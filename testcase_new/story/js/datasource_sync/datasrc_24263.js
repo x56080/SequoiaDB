@@ -2,8 +2,8 @@
  * @Description   : seqDB-24263:源集群设置会话访问属性，指定preferedinstance和preferedInstanceMode
  * @Author        : Wu Yan
  * @CreateTime    : 2021.05.06
- * @LastEditTime  : 2021.06.07
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.01.06
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
@@ -18,11 +18,11 @@ function test ()
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( [csNameA, csNameB], dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
-   var groups = commGetGroups( datasrcDB );   
+   var groups = commGetGroups( datasrcDB );
    var groupName = groups[0][0].GroupName;
    if( groups[0][0].Length < 3 )
    {
-      println("---At least three nodes in the group")
+      println( "---At least three nodes in the group" );
       return;
    }
    commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: groupName } );
@@ -57,13 +57,13 @@ function test ()
       //设置PreferedInstanceMode: ordered,默认访问第一个instanceid对应节点
       var optionsA = { PreferedInstance: [instanceid[0], instanceid[1], instanceid[2]], PreferedInstanceMode: "ordered" };
       db.setSessionAttr( optionsA );
-      var expAccessNodes = [ nodes[0] ];
+      var expAccessNodes = [nodes[0]];
       setSessionAndcheckAccessNodes( dbclA, expAccessNodes, optionsA );
       setSessionAndcheckAccessNodes( dbclB, expAccessNodes, optionsA );
-      
+
       //停止第一个instanceid对应节点，按顺序访问第二个节点
       datasrcDB.getRG( groupName ).getNode( groups[0][1].HostName, groups[0][1].svcname ).stop();
-      var expAccessNodes = [ nodes[1] ];
+      var expAccessNodes = [nodes[1]];
       findAndCheckAccessNodes( dbclA, expAccessNodes );
       findAndCheckAccessNodes( dbclB, expAccessNodes );
 
@@ -72,10 +72,10 @@ function test ()
 
       //设置设置PreferedInstanceMode: random,随机访问节点      
       var optionsB = { PreferedInstance: [instanceid[0], instanceid[1]], PreferedInstanceMode: "random" };
-      var expAccessNodes = [nodes[1], nodes[2]];
+      var expAccessNodes = [nodes[0], nodes[1]];
       setSessionAndcheckAccessNodes( dbclA, expAccessNodes, optionsB );
-      setSessionAndcheckAccessNodes( dbclB, expAccessNodes, optionsB );   
-      
+      setSessionAndcheckAccessNodes( dbclB, expAccessNodes, optionsB );
+
    }
    finally
    {

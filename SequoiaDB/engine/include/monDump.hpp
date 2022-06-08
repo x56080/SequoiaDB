@@ -92,7 +92,7 @@ namespace engine
 
    INT32 monDumpTraceStatus ( rtnContextDump *context ) ;
 
-   INT32 monDumpDatablocks( std::vector<dmsExtentID> &datablocks,
+   INT32 monDumpDatablocks( ossPoolVector<dmsExtentID> &datablocks,
                             rtnContextDump *context ) ;
 
    INT32 monDumpIndexblocks( std::vector< BSONObj > &idxBlocks,
@@ -531,10 +531,10 @@ namespace engine
          INT32       _fetchNext( BSONObj &obj ) ;
 
       private:
-         UINT32                  _addInfoMask ;
+         UINT32                         _addInfoMask ;
 
-         UINT32                  _pos ;
-         vector<dmsExtentID>     _vecBlock ;
+         UINT32                         _pos ;
+         ossPoolVector<dmsExtentID>     _vecBlock ;
    } ;
    typedef _monCLBlockFetch monCLBlockFetch ;
 
@@ -834,6 +834,47 @@ namespace engine
    typedef _monIndexStatsFetch monIndexStatsFetch ;
 
    /*
+     _monRecycleBinFetch define
+    */
+   class _monRecycleBinFetch : public rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+   public:
+      _monRecycleBinFetch() ;
+      virtual ~_monRecycleBinFetch() ;
+
+      /*
+          Use isCurrent for isIncludeSystem
+       */
+      virtual INT32 init( pmdEDUCB *cb,
+                          BOOLEAN isCurrent,
+                          BOOLEAN isDetail,
+                          UINT32 addInfoMask,
+                          const BSONObj obj = BSONObj() ) ;
+
+      virtual const CHAR *getName() const ;
+
+      virtual INT32 fetch( BSONObj &obj ) ;
+
+   protected:
+      INT32 _prepareRecycleList() ;
+      INT32 _fillRecycleStats() ;
+      INT32 _fillRecycleCSStats( monRecycleItem &item ) ;
+      INT32 _fillRecycleCLStats( monRecycleItem &item ) ;
+      INT32 _fetchRecycleItem( BSONObj &obj ) ;
+      void _closeSubContext() ;
+
+   private:
+      UINT32            _addInfoMask ;
+      MON_RECYCLE_LIST  _recycleList ;
+      INT64             _subContextID ;
+      BOOLEAN           _isDetail ;
+   } ;
+
+   typedef class _monRecycleBinFetch monRecycleBinFetch ;
+
+   /*
       _monDataSetFetch define
     */
    // NOTE: only use for fetch data from inner context or data set
@@ -845,6 +886,9 @@ namespace engine
       _monDataSetFetch() ;
       virtual ~_monDataSetFetch() ;
 
+      /*
+          Use isCurrent for isIncludeSystem
+       */
       virtual INT32 init( pmdEDUCB *cb,
                           BOOLEAN isCurrent,
                           BOOLEAN isDetail,

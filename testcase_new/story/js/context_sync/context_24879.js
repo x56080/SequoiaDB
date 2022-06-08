@@ -2,10 +2,11 @@
  * @Description   : seqDB-24879:上下文过期超时清理 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.29
- * @LastEditTime  : 2021.12.31
- * @LastEditors   : Yao Kang
+ * @LastEditTime  : 2022.04.01
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_24879";
+
 main( test );
 function test ( testPara )
 {
@@ -14,10 +15,10 @@ function test ( testPara )
    try
    {
       db.updateConf( { "contexttimeout": 1 } );
-      insertData( cl, 10000 );
+      insertData( cl, 30000 );
       cursor = cl.find();
       cursor.next();
-      sleep( 1000 * 60 * 2 );
+      sleep( 1000 * 60 * 3 );
       assert.tryThrow( SDB_RTN_CONTEXT_NOTEXIST, function()
       {
          while( cursor.next() ) { }

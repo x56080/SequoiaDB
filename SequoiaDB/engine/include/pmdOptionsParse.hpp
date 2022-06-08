@@ -63,6 +63,14 @@ typedef enum PMD_PREFER_INSTANCE_MODE
    PMD_PREFER_INSTANCE_MODE_ORDERED,
 } PMD_PREFER_INSTANCE_MODE ;
 
+typedef enum PMD_PREFER_CONSTRAINT
+{
+   PMD_PREFER_CONSTRAINT_UNKNOWN = 0,
+   PMD_PREFER_CONSTRAINT_NONE,
+   PMD_PREFER_CONSTRAINT_PRY_ONLY,
+   PMD_PREFER_CONSTRAINT_SND_ONLY
+} PMD_PREFER_CONSTRAINT ;
+
 namespace engine
 {
    const CHAR* pmdPreferInstInt2String( PMD_PREFER_INSTANCE_TYPE preferInstInt ) ;
@@ -74,6 +82,9 @@ namespace engine
 
    INT32 pmdParsePreferInstModeStr( const CHAR *instanceModeStr,
                                     PMD_PREFER_INSTANCE_MODE &instanceMode ) ;
+
+   INT32 pmdParsePreferConstraintStr( const CHAR *constraintStr,
+                                      PMD_PREFER_CONSTRAINT &constraint ) ;
 }
 
 #endif

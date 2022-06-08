@@ -40,6 +40,7 @@
 #include "utilStr.hpp"
 
 using namespace engine;
+using namespace bson;
 using namespace sequoiafs;
 #define FS_COMMANDS_OPTIONS \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MCS_HELP,           ",h" ), "Print help message" ) \

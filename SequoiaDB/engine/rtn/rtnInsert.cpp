@@ -45,6 +45,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "utilInsertResult.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson;
 
@@ -80,9 +81,18 @@ namespace engine
       SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
       SDB_ASSERT( NULL != insertResult, "insert result is invalid" ) ;
 
-      rc = su->insertRecord( clShortName, record, cb, dpsCB,
-                             mustOID, canUnLock, context, position,
-                             insertResult ) ;
+      pdLogShield shield ;
+      if ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
+           OSS_BIT_TEST( FLG_INSERT_CONTONDUP,    flags ) )
+      {
+         shield.addRC( SDB_IXM_DUP_KEY ) ;
+      }
+
+      rc = su->insertRecord( clShortName, record, cb, dpsCB, mustOID,
+                             canUnLock, context, position, insertResult ) ;
+
+      shield.clearRC() ;
+
       // check return code
       if ( SDB_IXM_DUP_KEY == rc )
       {
@@ -129,8 +139,7 @@ namespace engine
 
                PD_LOG( PDERROR, "Failed to update record[%s] in "
                        "collection[%s] when insert exists duplicate key, "
-                       "rc: %d", record.toString().c_str(), clFullName,
-                       rc ) ;
+                       "rc: %d", PD_SECURE_OBJ( record ), clFullName, rc ) ;
                goto error ;
             }
             else
@@ -144,8 +153,7 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Failed to insert record %s into "
                      "collection: %s, rc: %d",
-                     record.toPoolString().c_str(),
-                     clFullName, rc ) ;
+                     PD_SECURE_OBJ( record ), clFullName, rc ) ;
             goto error ;
          }
       }

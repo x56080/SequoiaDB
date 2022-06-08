@@ -438,10 +438,10 @@ namespace engine
          clsCreateIdxTask* pIdxTask = (clsCreateIdxTask*)pTask ;
          if ( ixmIsSameDef( pIdxTask->indexDef(), indexDef ) )
          {
-            rc = SDB_CLS_MUTEX_TASK_EXIST ;
-            PD_LOG_MSG( PDERROR,
-                        "Conflict with an existing task[%llu,%s]",
-                        pTask->taskID(), pTask->taskName() ) ;
+            rc = SDB_IXM_COVER_CREATING ;
+            PD_LOG_MSG( PDERROR, "An index '%s' "
+                        "which can cover this scene is creating in task[%llu]",
+                        pIdxTask->indexName(), pIdxTask->taskID() ) ;
             goto error ;
          }
 
@@ -601,39 +601,18 @@ namespace engine
          }
          else
          {
-            BSONObj dummyObj, obj ;
-            BSONObj boMatcher = BSON( FIELD_NAME_COLLECTION << cataSet.name() <<
-                                      IXM_FIELD_NAME_INDEX_DEF "."
-                                      IXM_FIELD_NAME_KEY << shardingKey ) ;
-            rc = catGetOneObj( CAT_INDEX_INFO_COLLECTION, dummyObj, boMatcher,
-                               dummyObj, cb, obj ) ;
-            if ( SDB_OK == rc )
-            {
-               PD_LOG( PDWARNING, "An index with the same definition already "
-                       "exists. Skip creating $shard index" ) ;
-            }
-            else if ( SDB_DMS_EOC == rc )
-            {
-               BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
-                                   IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
-               rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to check whether there are conflicting "
-                            "tasks, rc: %d", rc ) ;
+            BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
+                                IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
+            rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to check whether there are conflicting "
+                         "tasks, rc: %d", rc ) ;
 
-               rc = _buildSysIndexInfo( cataSet.name(), IXM_SHARD_KEY_NAME,
-                                        def, cb ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to build system index info, rc: %d",
-                            rc ) ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
-                       boMatcher.toString().c_str(),
-                       CAT_INDEX_INFO_COLLECTION, rc ) ;
-               goto error ;
-            }
+            rc = _buildSysIndexInfo( cataSet.name(), IXM_SHARD_KEY_NAME,
+                                     def, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build system index info, rc: %d",
+                         rc ) ;
          }
       }
 
@@ -826,7 +805,19 @@ namespace engine
                       "Failed to [%s]: Failed to check AutoSplit, rc: %d",
                       _task->getActionName(), rc ) ;
 
-         if ( UTIL_CL_AUTOSPLIT_FIELD != argument.getArgumentMask() )
+         if ( UTIL_CL_AUTOSPLIT_FIELD == argument.getArgumentMask() &&
+              cataSet.hasAutoSplit() &&
+              cataSet.isAutoSplit() == argument.isAutoSplit() )
+         {
+            // the same auto split value is ok
+         }
+         else if ( UTIL_CL_SHDKEY_FIELD == argument.getArgumentMask() &&
+                   !cataSet.getShardingKey().isEmpty() &&
+                   0 == cataSet.getShardingKey().woCompare( argument.getShardingKey() ) )
+         {
+            // the sharding key is ok, it will create $shard index
+         }
+         else
          {
             // Could be only executed on one group
             PD_CHECK( 1 == cataSet.groupCount(),
@@ -834,17 +825,7 @@ namespace engine
                       "Failed to [%s]: should have one group",
                       _task->getActionName() ) ;
          }
-         else
-         {
-            // either the same auto split value or only one group
-            PD_CHECK( ( ( cataSet.hasAutoSplit() &&
-                          cataSet.isAutoSplit() == argument.isAutoSplit() ) ||
-                        1 == cataSet.groupCount() ),
-                        SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                        "Failed to [%s]: should have one group",
-                        _task->getActionName() ) ;
 
-         }
          if ( cataSet.isSharding() )
          {
             PD_LOG( PDWARNING, "Sharding is already enabled" ) ;
@@ -1037,6 +1018,19 @@ namespace engine
          PD_CHECK( !cataSet.isMainCL(), SDB_MAIN_CL_OP_ERR, error, PDERROR,
                    "%s can't be altered in maincl(%s), rc: %d",
                    FIELD_NAME_REPARECHECK, cataSet.name(), rc ) ;
+      }
+
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) &&
+           localTask->isNoTrans() )
+      {
+         PD_CHECK( !cataSet.isMainCL(),
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "Failed to check attribute [%s]: collection [%s] is "
+                   "main-colleciton", CAT_NOTRANS, _dataName.c_str() ) ;
+         PD_CHECK( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ),
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "Failed to check attribute [%s]: collection [%s] is capped",
+                   CAT_NOTRANS, _dataName.c_str() ) ;
       }
 
    done :
@@ -1465,7 +1459,15 @@ namespace engine
                    "main-collection", _task->getActionName() ) ;
          setBuilder.append( CAT_SHARDINGKEY_NAME, argument.getShardingKey() ) ;
       }
-      else if ( argument.getArgumentMask() != UTIL_CL_AUTOSPLIT_FIELD )
+      else if ( UTIL_CL_AUTOSPLIT_FIELD == argument.getArgumentMask() )
+      {
+         // it is ok
+      }
+      else if ( UTIL_CL_SHDKEY_FIELD == argument.getArgumentMask() )
+      {
+         // it is ok
+      }
+      else
       {
          PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error,
                    PDERROR, "Failed to [%s]: should not be main-collection",
@@ -1743,6 +1745,18 @@ namespace engine
          else
          {
             OSS_BIT_SET( attribute, DMS_MB_ATTR_NOIDINDEX ) ;
+         }
+      }
+
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) )
+      {
+         if ( localTask->isNoTrans() )
+         {
+            OSS_BIT_SET( attribute, DMS_MB_ATTR_NOTRANS ) ;
+         }
+         else
+         {
+            OSS_BIT_CLEAR( attribute, DMS_MB_ATTR_NOTRANS ) ;
          }
       }
 
@@ -2723,7 +2737,7 @@ namespace engine
                       "field[%s], rc: %d", fieldName ) ;
          fldList[i]->setID( ID ) ;
          seqOpt = catBuildSequenceOptions( fldList[i]->getArgument(), ID ) ;
-         rc = pSeqMgr->createSequence( seqName, seqOpt, cb, w ) ;
+         rc = pSeqMgr->createSequence( seqName, clUniqueID, seqOpt, cb, w ) ;
          if( SDB_SEQUENCE_EXIST == rc )
          {
             rc = SDB_AUTOINCREMENT_FIELD_CONFLICT ;
@@ -3071,7 +3085,14 @@ namespace engine
          if ( localTask->testArgumentMask( UTIL_CS_PAGESIZE_FIELD ) )
          {
             // get groups of cs : _groups
-            rc = catGetCSGroupsFromCLs( _dataName.c_str(), cb, _groups ) ;
+            utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
+
+            rc = catParseCSUniqueID( _boData, uniqueID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                         "collection space [%s], rc: %d",
+                         _dataName.c_str(), rc ) ;
+
+            rc = catGetCSGroups( uniqueID, cb, TRUE, FALSE, _groups ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get group list of cs[%s], rc: %d",
                          _dataName.c_str(), rc ) ;
@@ -3296,8 +3317,15 @@ namespace engine
       sdbCatalogueCB * catCB = pmdGetKRCB()->getCATLOGUECB() ;
       const CHAR * collectionSpace = _dataName.c_str() ;
       BSONObj boDomain ;
-      ossPoolSet< UINT32 > occupiedGroups ;
+      vector< UINT32 > occupiedGroups ;
       map< string, UINT32 > domainGroups ;
+
+      utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
+
+      rc = catParseCSUniqueID( _boData, uniqueID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                   "collection space [%s], rc: %d",
+                   _dataName.c_str(), rc ) ;
 
       rc = catGetAndLockDomain( domain, boDomain, cb, &lockMgr, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get domain [%s], rc: %d",
@@ -3311,11 +3339,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get groups of domain [%s], "
                    "rc: %d", domain, rc ) ;
 
-      rc = catGetCSGroups( collectionSpace, cb, occupiedGroups, FALSE ) ;
+      // check domain groups without recycle bin
+      rc = catGetCSGroups( uniqueID, cb, FALSE, FALSE, occupiedGroups ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
                    "space [%s], rc: %d", collectionSpace, rc ) ;
 
-      for ( ossPoolSet< UINT32 >::iterator iterGroup = occupiedGroups.begin() ;
+      for ( vector< UINT32 >::iterator iterGroup = occupiedGroups.begin() ;
             iterGroup != occupiedGroups.end() ;
             iterGroup ++ )
       {
@@ -3326,10 +3355,6 @@ namespace engine
                    SDB_CAT_GROUP_NOT_IN_DOMAIN, error, PDERROR,
                    "Failed to check group [%s]: it is not in domain [%s]",
                    groupName, domain ) ;
-         PD_CHECK( lockMgr.tryLockGroup( groupName, SHARED ),
-                   SDB_LOCK_FAILED, error, PDWARNING,
-                   "Failed to lock group [%s]",
-                   groupName ) ;
          try
          {
             _groups.push_back( groupID ) ;
@@ -3358,8 +3383,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCSTASK__CHKGROUPS ) ;
-
-      sdbCatalogueCB * catCB = pmdGetKRCB()->getCATLOGUECB() ;
 
       BSONElement element ;
       BSONObj boCollections ;
@@ -3406,18 +3429,6 @@ namespace engine
 
             catGetCollectionGroupSet( boCollection, _groups ) ;
          }
-      }
-
-      for ( CAT_GROUP_LIST::iterator iterGroup = _groups.begin() ;
-            iterGroup != _groups.end() ;
-            iterGroup ++ )
-      {
-         UINT32 groupID = ( *iterGroup ) ;
-         const CHAR * groupName = catCB->groupID2Name( groupID ) ;
-         PD_CHECK( lockMgr.tryLockGroup( groupName, SHARED ),
-                   SDB_LOCK_FAILED, error, PDWARNING,
-                   "Failed to lock group [%s]",
-                   groupName ) ;
       }
 
    done :
@@ -3967,7 +3978,8 @@ namespace engine
 
       if ( !removingGroups.empty() )
       {
-         ossPoolList< string > collectionSpaces ;
+         ossPoolList< utilCSUniqueID > collectionSpaces ;
+         ossPoolList< utilCSUniqueID > recycledCSs ;
          ossPoolSet< UINT32 > occupiedGroups ;
 
          /// Get collection spaces for domain
@@ -3975,21 +3987,20 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection spaces for "
                       "domain [%s], rc: %d", _dataName.c_str(), rc ) ;
 
-         for ( ossPoolList< string >::iterator itCS = collectionSpaces.begin() ;
+         for ( ossPoolList< utilCSUniqueID >::iterator itCS =
+                                                   collectionSpaces.begin() ;
                itCS != collectionSpaces.end() ;
                itCS ++ )
          {
             /// For each collection space:
             /// 1. Get groups from collections
             /// 2. Get groups under splitting tasks
-            const CHAR * collectionSpace = itCS->c_str() ;
-            rc = catGetCSGroups( collectionSpace, cb, occupiedGroups, FALSE ) ;
+            /// 3. Get groups from recycled collections
+            utilCSUniqueID csUniqueID = *itCS ;
+
+            rc = catGetCSGroups( csUniqueID, cb, FALSE, TRUE, occupiedGroups ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get group list of collection "
-                         "space [%s], rc: %d", collectionSpace, rc ) ;
-            rc = catGetCSTaskGroups( collectionSpace, cb, occupiedGroups ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get splitting "
-                         "group list of collection space [%s]: rc: %d",
-                         collectionSpace, rc ) ;
+                         "space [%u], rc: %d", csUniqueID, rc ) ;
          }
 
          for ( ossPoolSet< UINT32 >::iterator itGroup = removingGroups.begin() ;
@@ -4000,12 +4011,13 @@ namespace engine
             const CHAR * groupName = catCB->groupID2Name( groupID ) ;
 
             // The group should not be occupied
-            PD_CHECK( occupiedGroups.end() == occupiedGroups.find( groupID ),
-                      SDB_DOMAIN_IS_OCCUPIED, error, PDERROR,
-                      "Failed to checkout removing groups from domain [%s]:"
-                      "clear data(of this domain) before remove it "
-                      "from domain. groups to be removed[%s]",
-                      _dataName.c_str(), groupName ) ;
+            PD_LOG_MSG_CHECK(
+                     occupiedGroups.end() == occupiedGroups.find( groupID ),
+                     SDB_DOMAIN_IS_OCCUPIED, error, PDERROR,
+                     "Failed to checkout removing groups from domain [%s]: "
+                     "clear data (of this domain) before remove it "
+                     "from domain. groups to be removed [%s]",
+                     _dataName.c_str(), groupName ) ;
 
             _groupMap.erase( groupName ) ;
          }

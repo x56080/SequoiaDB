@@ -50,7 +50,7 @@ public class ClusterManager13893 extends SdbTestBase {
         // getRGName,the RGname is not exist
         try {
             String RGName = "test13893";
-            Assert.assertFalse( sdb.isRelicaGroupExist( RGName ) );
+            Assert.assertFalse( sdb.isReplicaGroupExist( RGName ) );
             sdb.getReplicaGroup( RGName );
             Assert.fail( "get RG should be fail!" );
         } catch ( BaseException e ) {

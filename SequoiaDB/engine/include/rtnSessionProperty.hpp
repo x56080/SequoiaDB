@@ -79,23 +79,45 @@ namespace engine
          OSS_INLINE BOOLEAN isMasterRequired() const
          {
             // must use master node
-            return ( _instanceList.empty() &&
-                     ( PMD_PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
-                       PMD_PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ) ;
+            return ( PMD_PREFER_CONSTRAINT_PRY_ONLY == _constraint ) ;
+         }
+
+         OSS_INLINE BOOLEAN isSlaveRequired() const
+         {
+            // must use slave node
+            return ( PMD_PREFER_CONSTRAINT_SND_ONLY == _constraint ) ;
          }
 
          OSS_INLINE BOOLEAN isMasterPreferred () const
          {
-            // master node is preferred, but not required
-            return ( PMD_PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
-                     PMD_PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ;
+            // master node is preferred
+            switch ( _constraint )
+            {
+               case PMD_PREFER_CONSTRAINT_PRY_ONLY:
+                  return TRUE ;
+               case PMD_PREFER_CONSTRAINT_SND_ONLY:
+                  return FALSE ;
+               case PMD_PREFER_CONSTRAINT_NONE:
+               default:
+                  return ( PMD_PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
+                           PMD_PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ;
+            }
          }
 
          OSS_INLINE BOOLEAN isSlavePreferred () const
          {
             // slave node is preferred
-            return ( PMD_PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
-                     PMD_PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ;
+            switch ( _constraint )
+            {
+               case PMD_PREFER_CONSTRAINT_PRY_ONLY:
+                  return FALSE ;
+               case PMD_PREFER_CONSTRAINT_SND_ONLY:
+                  return TRUE ;
+               case PMD_PREFER_CONSTRAINT_NONE:
+               default:
+                  return ( PMD_PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
+                           PMD_PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ;
+            }
          }
 
          OSS_INLINE BOOLEAN hasCommonInstance () const
@@ -121,6 +143,11 @@ namespace engine
          OSS_INLINE BOOLEAN isPreferredStrict() const
          {
             return (!_instanceList.empty() && _strict) ? TRUE : FALSE ;
+         }
+
+         OSS_INLINE PMD_PREFER_CONSTRAINT getPreferredConstraint() const
+         {
+            return ( PMD_PREFER_CONSTRAINT )_constraint ;
          }
 
          OSS_INLINE void setPreferedPeriod( INT64 period )
@@ -149,10 +176,12 @@ namespace engine
          INT32 setPreferredInstance ( PREFER_REPLICA_TYPE replType ) ;
          INT32 setPreferredInstance ( PMD_PREFER_INSTANCE_TYPE instance ) ;
          INT32 setPreferredInstanceMode ( PMD_PREFER_INSTANCE_MODE mode ) ;
+         INT32 setPreferredConstraint( PMD_PREFER_CONSTRAINT constraint ) ;
 
          INT32 parsePreferredInstance ( const bson::BSONElement & option ) ;
          INT32 parsePreferredInstance ( const CHAR * instanceStr ) ;
          INT32 parsePreferredInstanceMode ( const CHAR * instanceModeStr ) ;
+         INT32 parsePreferredConstraint ( const CHAR * constraintStr ) ;
 
          void  setPreferredStrict( BOOLEAN strict ) ;
 
@@ -166,6 +195,7 @@ namespace engine
 
       protected :
          UINT8             _mode ;
+         UINT8             _constraint ;
          UINT8             _strict ;
          INT8              _specInstance ;
          INT32             _period ;
@@ -189,8 +219,9 @@ namespace engine
 
          void setInstanceOption ( const CHAR * instanceStr,
                                   const CHAR * instanceModeStr,
-                                  BOOLEAN preferedStrict,
-                                  INT32 preferedPeriod,
+                                  BOOLEAN preferredStrict,
+                                  INT32 preferredPeriod,
+                                  const CHAR * preferredConstraint,
                                   PMD_PREFER_INSTANCE_TYPE defaultInstance ) ;
 
          OSS_INLINE void setInstanceOption ( const rtnInstanceOption & instanceOption )
@@ -213,10 +244,16 @@ namespace engine
             return _instanceOption.isMasterRequired() ;
          }
 
+         OSS_INLINE BOOLEAN isSlaveRequired () const
+         {
+            return _instanceOption.isSlaveRequired() ;
+         }
+
          OSS_INLINE void setMasterRequired ()
          {
             _instanceOption.setPreferredInstance( PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
             _instanceOption.setPreferredInstanceMode( PMD_PREFER_INSTANCE_MODE_RANDOM ) ;
+            _instanceOption.setPreferredConstraint( PMD_PREFER_CONSTRAINT_PRY_ONLY ) ;
          }
 
          OSS_INLINE BOOLEAN isMasterPreferred() const

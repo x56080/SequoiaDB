@@ -44,6 +44,7 @@
 #include "pdTrace.hpp"
 #include "msgTrace.hpp"
 #include "../bson/bsonobj.h"
+#include "../bson/lib/md5.hpp"
 #include <stddef.h>
 #include "ossVer.hpp"
 
@@ -199,8 +200,12 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pUpdate->header.requestID     = reqID ;
    pUpdate->header.opCode        = MSG_BS_UPDATE_REQ ;
    pUpdate->header.messageLength = packetLength ;
+   pUpdate->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pUpdate->header.version       = SDB_PROTOCOL_VER_2 ;
+   pUpdate->header.flags         = 0 ;
    pUpdate->header.routeID.value = 0 ;
    pUpdate->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pUpdate->header.reserve, 0, sizeof(pUpdate->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pUpdate->name, CollectionName, pUpdate->nameLength ) ;
    pUpdate->name[pUpdate->nameLength] = 0 ;
@@ -407,8 +412,12 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.requestID     = reqID ;
    pInsert->header.opCode        = MSG_BS_INSERT_REQ ;
    pInsert->header.messageLength = packetLength ;
+   pInsert->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pInsert->header.version       = SDB_PROTOCOL_VER_2 ;
+   pInsert->header.flags         = 0 ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
    pInsert->name[pInsert->nameLength]=0 ;
@@ -504,8 +513,12 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.requestID     = reqID ;
    pInsert->header.opCode        = MSG_BS_INSERT_REQ ;
    pInsert->header.messageLength = packetLength ;
+   pInsert->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pInsert->header.version       = SDB_PROTOCOL_VER_2 ;
+   pInsert->header.flags         = 0 ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
    pInsert->name[pInsert->nameLength]=0 ;
@@ -701,8 +714,12 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->numToSkip             = numToSkip ;
    pQuery->numToReturn           = numToReturn ;
    pQuery->header.messageLength  = packetLength ;
+   pQuery->header.eye            = MSG_COMM_EYE_DEFAULT ;
+   pQuery->header.version        = SDB_PROTOCOL_VER_2 ;
+   pQuery->header.flags          = FLAG_RESULT_DETAIL | FLAG_PROCESS_DETAIL ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+   ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pQuery->name, CollectionName, pQuery->nameLength ) ;
    pQuery->name[pQuery->nameLength]=0 ;
@@ -892,8 +909,12 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pGetMore->numToReturn          = numToReturn ;
    pGetMore->contextID            = contextID ;
    pGetMore->header.messageLength = packetLength ;
+   pGetMore->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pGetMore->header.version       = SDB_PROTOCOL_VER_2 ;
+   pGetMore->header.flags         = 0 ;
    pGetMore->header.routeID.value = 0 ;
    pGetMore->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pGetMore->header.reserve, 0, sizeof(pGetMore->header.reserve) ) ;
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDGETMOREMSG, rc );
    return rc ;
@@ -924,10 +945,14 @@ void msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
 {
    PD_TRACE_ENTRY ( SDB_MSGFILLGETMOREMSG );
    getMoreMsg.header.messageLength = sizeof( MsgOpGetMore );
+   getMoreMsg.header.eye = MSG_COMM_EYE_DEFAULT ;
+   getMoreMsg.header.version = SDB_PROTOCOL_VER_2 ;
+   getMoreMsg.header.flags = 0 ;
    getMoreMsg.header.opCode = MSG_BS_GETMORE_REQ;
    getMoreMsg.header.TID = tid;
    getMoreMsg.header.routeID.value = 0;
    getMoreMsg.header.requestID = reqID;
+   ossMemset( getMoreMsg.header.reserve, 0, sizeof(getMoreMsg.header.reserve) ) ;
    getMoreMsg.contextID = contextID;
    getMoreMsg.numToReturn = numToReturn;
    PD_TRACE_EXIT ( SDB_MSGFILLGETMOREMSG );
@@ -1127,8 +1152,12 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDelete->header.requestID     = reqID ;
    pDelete->header.opCode        = MSG_BS_DELETE_REQ ;
    pDelete->header.messageLength = packetLength ;
+   pDelete->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pDelete->header.version       = SDB_PROTOCOL_VER_2 ;
+   pDelete->header.flags         = 0 ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pDelete->header.reserve, 0, sizeof(pDelete->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pDelete->name, CollectionName, pDelete->nameLength ) ;
    pDelete->name[pDelete->nameLength]=0 ;
@@ -1261,9 +1290,13 @@ INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pKC->header.requestID     = reqID ;
    pKC->header.opCode        = MSG_BS_KILL_CONTEXT_REQ ;
    pKC->header.messageLength = packetLength ;
+   pKC->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pKC->header.version       = SDB_PROTOCOL_VER_2 ;
+   pKC->header.flags         = 0 ;
    pKC->numContexts          = numContexts ;
    pKC->header.routeID.value = 0 ;
    pKC->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pKC->header.reserve, 0, sizeof(pKC->header.reserve) ) ;
    // copy collection name
    ossMemcpy ( (CHAR*)(&pKC->contextIDs[0]), (CHAR*)pContextIDs,
                sizeof(SINT64)*pKC->numContexts ) ;
@@ -1341,8 +1374,12 @@ INT32 msgBuildMsgMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.requestID     = reqID ;
    pMsg->header.opCode        = MSG_BS_MSG_REQ ;
    pMsg->header.messageLength = packetLength ;
+   pMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+   pMsg->header.flags         = 0 ;
    pMsg->header.routeID.value = 0 ;
    pMsg->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pMsg->msg, pMsgStr, msgLen ) ;
    pMsg->msg[msgLen] = 0 ;
@@ -1429,8 +1466,12 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.requestID     = reqID ;
    pReply->header.opCode        = MAKE_REPLY_TYPE(opCode);
    pReply->header.messageLength = packetLength ;
+   pReply->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pReply->header.version       = SDB_PROTOCOL_VER_2 ;
+   pReply->header.flags         = 0 ;
    pReply->header.routeID.value = 0 ;
    pReply->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pReply->header.reserve, 0, sizeof(pReply->header.reserve) ) ;
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDREPLYMSG, rc );
    return rc ;
@@ -1476,8 +1517,12 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.requestID     = reqID ;
    pReply->header.opCode        = MAKE_REPLY_TYPE(opCode);
    pReply->header.messageLength = packetLength ;
+   pReply->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pReply->header.version       = SDB_PROTOCOL_VER_2 ;
+   pReply->header.flags         = 0 ;
    pReply->header.routeID.value = 0 ;
    pReply->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pReply->header.reserve, 0, sizeof(pReply->header.reserve) ) ;
    if ( numReturned != 0 )
    {
       offset = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
@@ -1583,8 +1628,13 @@ INT32 msgBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDisconnect->header.requestID     = reqID ;
    pDisconnect->header.opCode        = MSG_BS_DISCONNECT ;
    pDisconnect->header.messageLength = packetLength ;
+   pDisconnect->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pDisconnect->header.version       = SDB_PROTOCOL_VER_2 ;
+   pDisconnect->header.flags         = 0 ;
    pDisconnect->header.routeID.value = 0 ;
    pDisconnect->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pDisconnect->header.reserve, 0,
+              sizeof(pDisconnect->header.reserve) ) ;
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDDISCONNMSG, rc );
    return rc ;
@@ -1608,7 +1658,12 @@ void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
    replyHeader.header.requestID     = reqID ;
    replyHeader.header.opCode        = MAKE_REPLY_TYPE(opCode);
    replyHeader.header.messageLength = packetLength ;
+   replyHeader.header.eye           = MSG_COMM_EYE_DEFAULT ;
+   replyHeader.header.version       = SDB_PROTOCOL_VER_2 ;
+   replyHeader.header.flags         = 0 ;
    replyHeader.header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( replyHeader.header.reserve, 0,
+              sizeof(replyHeader.header.reserve) ) ;
    PD_TRACE_EXIT ( SDB_MSGBLDREPLYMSGHD );
 }
 
@@ -1621,7 +1676,12 @@ void msgBuildDisconnectMsg ( MsgOpDisconnect &disconnectHeader,
    disconnectHeader.header.routeID       = routeID ;
    disconnectHeader.header.opCode        = MSG_BS_DISCONNECT ;
    disconnectHeader.header.messageLength = sizeof(MsgOpDisconnect) ;
+   disconnectHeader.header.eye           = MSG_COMM_EYE_DEFAULT ;
+   disconnectHeader.header.version       = SDB_PROTOCOL_VER_2 ;
+   disconnectHeader.header.flags         = 0 ;
    disconnectHeader.header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( disconnectHeader.header.reserve, 0,
+              sizeof(disconnectHeader.header.reserve) ) ;
    PD_TRACE_EXIT ( SDB_MSGBLDDISCONNMSG2 );
 }
 
@@ -1751,10 +1811,15 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
    }
    pCMRequest = (MsgCMRequest*) (*ppBuffer) ;
    pCMRequest->header.messageLength = packetLength ;
+   pCMRequest->header.eye           = MSG_COMM_EYE_DEFAULT ;
+   pCMRequest->header.version       = SDB_PROTOCOL_VER_2 ;
+   pCMRequest->header.flags         = 0 ;
    pCMRequest->header.requestID     = 0 ;
    pCMRequest->header.opCode        = MSG_CM_REMOTE ;
    pCMRequest->header.routeID.value = 0 ;
    pCMRequest->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( pCMRequest->header.reserve, 0,
+              sizeof(pCMRequest->header.reserve) ) ;
    pCMRequest->remoCode             = remoCode ;
    // write arguments
    ossMemcpy ( &((*ppBuffer)[offset]), arg1->objdata(), arg1->objsize() ) ;
@@ -1914,8 +1979,12 @@ INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
    pQuery->numToSkip             = 0 ;
    pQuery->numToReturn           = numToReturn ;
    pQuery->header.messageLength  = packetLength ;
+   pQuery->header.eye            = MSG_COMM_EYE_DEFAULT ;
+   pQuery->header.version        = SDB_PROTOCOL_VER_2 ;
+   pQuery->header.flags          = 0 ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+   ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
 
    // copy collection name
    ossStrncpy ( pQuery->name, commandName, commandNameLength ) ;
@@ -2024,19 +2093,27 @@ error :
 }
 
 INT32 msgBuildDropCSMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                         const CHAR *CollectionSpaceName, UINT64 reqID,
+                         const CHAR *CollectionSpaceName,
+                         BOOLEAN skipRecycleBin,
+                         BOOLEAN ignoreLock,
+                         UINT64 reqID,
                          IExecutor *cb )
 {
    SDB_ASSERT ( ppBuffer && bufferSize && CollectionSpaceName,
                 "Invalid input" ) ;
    const BSONObj emptyObj ;
    INT32 rc = SDB_OK ;
-   BSONObj boQuery;
+   BSONObj boQuery, boHint ;
    try
    {
-      bson::BSONObjBuilder bobQuery;
-      bobQuery.append( FIELD_NAME_NAME, CollectionSpaceName );
+      BSONObjBuilder bobQuery;
+      bobQuery.append( FIELD_NAME_NAME, CollectionSpaceName ) ;
+      bobQuery.appendBool( FIELD_NAME_SKIPRECYCLEBIN, skipRecycleBin ) ;
       boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
    }
    catch( exception &e )
    {
@@ -2047,7 +2124,7 @@ INT32 msgBuildDropCSMsg( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE,
-                             boQuery, emptyObj, emptyObj, emptyObj,
+                             boQuery, emptyObj, emptyObj, boHint,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -2095,7 +2172,10 @@ error :
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDDROPCLMSG, "msgBuildDropCLMsg" )
 INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
-                          const CHAR *CollectionName, UINT64 reqID,
+                          const CHAR *CollectionName,
+                          BOOLEAN skipRecycleBin,
+                          BOOLEAN ignoreLock,
+                          UINT64 reqID,
                           IExecutor *cb )
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDDROPCLMSG );
@@ -2104,12 +2184,17 @@ INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                 "Invalid input" ) ;
    PD_TRACE1 ( SDB_MSGBLDDROPCLMSG, PD_PACK_STRING(CollectionName) );
    INT32 rc             = SDB_OK ;
-   BSONObj boQuery;
+   BSONObj boQuery, boHint ;
    try
    {
       bson::BSONObjBuilder bobQuery;
-      bobQuery.append( FIELD_NAME_NAME, CollectionName );
+      bobQuery.append( FIELD_NAME_NAME, CollectionName ) ;
+      bobQuery.appendBool( FIELD_NAME_SKIPRECYCLEBIN, skipRecycleBin ) ;
       boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
    }
    catch ( exception &e )
    {
@@ -2122,7 +2207,7 @@ INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION,
-                             boQuery, __emptyObj, __emptyObj, __emptyObj,
+                             boQuery, __emptyObj, __emptyObj, boHint,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -2130,6 +2215,105 @@ done :
    PD_TRACE_EXITRC ( SDB_MSGBLDDROPCLMSG, rc );
    return rc ;
 error :
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDTRUNCCLMSG, "msgBuildTruncateCLMsg" )
+INT32 msgBuildTruncateCLMsg( CHAR **ppBuffer,
+                             INT32 *bufferSize,
+                             const CHAR *CollectionName,
+                             BOOLEAN skipRecycleBin,
+                             BOOLEAN ignoreLock,
+                             UINT64 reqID,
+                             IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDTRUNCCLMSG ) ;
+
+   SDB_ASSERT( ppBuffer && bufferSize && CollectionName, "Invalid input" ) ;
+   PD_TRACE1( SDB_MSGBLDTRUNCCLMSG, PD_PACK_STRING( CollectionName ) ) ;
+
+   BSONObj boQuery, boHint ;
+   const BSONObj emptyObj ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append( FIELD_NAME_COLLECTION, CollectionName ) ;
+      bobQuery.appendBool( FIELD_NAME_SKIPRECYCLEBIN, skipRecycleBin ) ;
+      boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
+   }
+   catch ( exception &e )
+   {
+      PD_LOG ( PDERROR, "Failed to build truncate collection message, "
+               "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
+                             boQuery, emptyObj, emptyObj, boHint,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDTRUNCCLMSG, rc ) ;
+   return rc ;
+
+error:
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDALTERCLMSG, "msgBuildAlterCLMsg" )
+INT32 msgBuildAlterCLMsg( CHAR **ppBuffer,
+                          INT32 *bufferSize,
+                          const CHAR *collectionName,
+                          const BSONObj &options,
+                          UINT64 reqID,
+                          engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDALTERCLMSG ) ;
+
+   SDB_ASSERT( ppBuffer && bufferSize && collectionName, "Invalid input" ) ;
+   PD_TRACE1( SDB_MSGBLDALTERCLMSG, PD_PACK_STRING( collectionName ) ) ;
+
+   BSONObj boQuery ;
+   const BSONObj emptyObj ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append ( FIELD_NAME_NAME, collectionName ) ;
+      bobQuery.append ( FIELD_NAME_OPTIONS, options ) ;
+      boQuery = bobQuery.obj() ;
+   }
+   catch ( exception &e )
+   {
+      PD_LOG ( PDERROR, "Failed to build alter collection message, "
+               "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
+                             boQuery, emptyObj, emptyObj, emptyObj,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDALTERCLMSG, rc ) ;
+   return rc ;
+
+error:
    goto done ;
 }
 
@@ -2242,6 +2426,49 @@ error :
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDCRTINXMSG, "msgBuildCreateIndexMsg" )
+INT32 msgBuildCreateIndexMsg( CHAR **ppBuffer,
+                              INT32 *bufferSize,
+                              const CHAR *collectionName,
+                              const BSONObj &options,
+                              UINT64 reqID,
+                              engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDCRTINXMSG ) ;
+
+   BSONObj boQuery ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append( FIELD_NAME_NAME, collectionName ) ;
+      bobQuery.append( FIELD_NAME_INDEX, options ) ;
+      boQuery = bobQuery.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      PD_LOG ( PDERROR, "Failed to build alter collection message, "
+               "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error ;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
+                             boQuery, __emptyObj, __emptyObj, __emptyObj,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDCRTINXMSG, rc ) ;
+   return rc ;
+
+error:
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDDROPINXMSG, "msgBuildDropIndexMsg" )
 INT32 msgBuildDropIndexMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                               const CHAR *CollectionName,
@@ -2285,6 +2512,57 @@ done :
    PD_TRACE_EXITRC ( SDB_MSGBLDDROPINXMSG, rc );
    return rc ;
 error :
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDDROPRECYBINITEMMSG, "msgBuildDropRecyBinItemMsg" )
+INT32 msgBuildDropRecyBinItemMsg( CHAR **ppBuffer,
+                                  INT32 *bufferSize,
+                                  const CHAR *recycleName,
+                                  BOOLEAN isRecursive,
+                                  BOOLEAN isEnforced,
+                                  BOOLEAN ignoreLock,
+                                  UINT64 reqID,
+                                  engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   PD_TRACE_ENTRY( SDB_MSGBLDDROPRECYBINITEMMSG ) ;
+
+   BSONObj boQuery ;
+   BSONObj boHint ;
+
+   try
+   {
+      BSONObjBuilder bobQuery ;
+      bobQuery.append( FIELD_NAME_RECYCLE_NAME, recycleName ) ;
+      bobQuery.appendBool( FIELD_NAME_ENFORCED1, isEnforced ) ;
+      bobQuery.appendBool( FIELD_NAME_RECURSIVE, isRecursive ) ;
+      boQuery = bobQuery.obj() ;
+
+      BSONObjBuilder bobHint ;
+      bobHint.appendBool( FIELD_NAME_IGNORE_LOCK, ignoreLock ) ;
+      boHint = bobHint.obj() ;
+   }
+   catch ( exception &e )
+   {
+      PD_LOG( PDERROR, "Failed to build drop recycle bin item message, "
+              "occur exception %s", e.what() ) ;
+      rc = ossException2RC( &e ) ;
+      goto error;
+   }
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_DROP_RECYCLEBIN_ITEM,
+                             boQuery, __emptyObj, __emptyObj, boHint,
+                             reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBLDDROPRECYBINITEMMSG, rc ) ;
+   return rc ;
+
+error:
    goto done ;
 }
 
@@ -2467,8 +2745,12 @@ INT32 msgBuildTransCommitPreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_RC_CHECK( rc, PDERROR, "failed to check buffer" );
    pMsg = (MsgOpTransCommitPre *)(*ppBuffer);
    pMsg->header.messageLength = packetLength;
+   pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
+   pMsg->header.version = SDB_PROTOCOL_VER_2 ;
+   pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_COMMITPRE_REQ;
    pMsg->header.routeID.value = 0;
+   ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
 
 done:
    return rc ;
@@ -2489,8 +2771,12 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_RC_CHECK( rc, PDERROR, "failed to check buffer" );
    pMsg = (MsgOpTransCommitInt *)(*ppBuffer);
    pMsg->header.messageLength = packetLength;
+   pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
+   pMsg->header.version = SDB_PROTOCOL_VER_2 ;
+   pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_COMMIT_REQ;
    pMsg->header.routeID.value = 0;
+   ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
    pMsg->commitTime = 0LL ;
 
 done:
@@ -2512,8 +2798,12 @@ INT32 msgBuildTransRollbackMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_RC_CHECK( rc, PDERROR, "failed to check buffer" );
    pMsg = (MsgOpTransRollback *)(*ppBuffer);
    pMsg->header.messageLength = packetLength;
+   pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
+   pMsg->header.version = SDB_PROTOCOL_VER_2 ;
+   pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_ROLLBACK_REQ;
    pMsg->header.routeID.value = 0;
+   ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
 
 done:
    return rc;
@@ -2585,6 +2875,7 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
    INT32 version = 0 ;
    INT32 subVersion = 0 ;
    INT32 fixVersion = 0 ;
+   md5::md5digest digest ;
    MsgSysInfoReply *reply = NULL ;
    PD_TRACE_ENTRY ( SDB_MSGBUILDSYSINFOREPLY ) ;
    rc = msgCheckBuffer ( ppBuffer, pBufferSize, sizeof(MsgSysInfoReply), cb ) ;
@@ -2599,7 +2890,13 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
    reply->version                            = version ;
    reply->subVersion                         = subVersion ;
    reply->fixVersion                         = fixVersion ;
-   ossMemset( reply->pad, 0, sizeof(reply->pad ) ) ;
+   ossMemset( reply->pad, 0, sizeof( reply->pad ) ) ;
+
+   md5::md5( (const void *)reply,
+             sizeof(MsgSysInfoReply) - sizeof(reply->fingerprint),
+             digest ) ;
+   ossMemcpy( reply->fingerprint, digest, sizeof(reply->fingerprint) ) ;
+
 done :
    PD_TRACE_EXITRC ( SDB_MSGBUILDSYSINFOREPLY, rc ) ;
    return rc ;
@@ -2609,7 +2906,7 @@ error :
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTSYSINFOREPLY, "msgExtractSysInfoReply" )
 INT32 msgExtractSysInfoReply ( const CHAR *pBuffer, BOOLEAN &endianConvert,
-                               INT32 *osType )
+                               INT32 *osType, SDB_PROTOCOL_VERSION *protocolVer )
 {
    SDB_ASSERT ( NULL != pBuffer, "invalid pBuffer" ) ;
    INT32 rc = SDB_OK ;
@@ -2635,6 +2932,19 @@ INT32 msgExtractSysInfoReply ( const CHAR *pBuffer, BOOLEAN &endianConvert,
    if ( osType )
    {
       ossEndianConvertIf4(reply->osType, *osType, endianConvert ) ;
+   }
+
+   if ( protocolVer )
+   {
+      md5::md5digest digest ;
+      md5::md5( (const void *)reply,
+                sizeof(MsgSysInfoReply) - sizeof(reply->fingerprint),
+                digest ) ;
+      *protocolVer =
+            ( 0 == ossStrncmp( reply->fingerprint,
+                               (const char *)digest,
+                               sizeof(reply->fingerprint) ) ) ?
+            SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
    }
 done :
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTSYSINFOREPLY, rc ) ;

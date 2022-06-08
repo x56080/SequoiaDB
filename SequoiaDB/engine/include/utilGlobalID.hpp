@@ -45,11 +45,13 @@ namespace engine
    typedef UINT64 utilGlobalID ;
 
    typedef utilGlobalID utilSequenceID ;
+   typedef utilGlobalID utilRecycleID ;
  
    #define UTIL_GLOGALID_MAX         OSS_UINT64_MAX
  
    #define UTIL_GLOBAL_NULL          0
-   #define UTIL_SEQUENCEID_NULL      UTIL_GLOBAL_NULL 
+   #define UTIL_SEQUENCEID_NULL      UTIL_GLOBAL_NULL
+   #define UTIL_RECYCLEID_NULL       UTIL_GLOBAL_NULL
 }
 
 #endif //UTIL_UNIQUEID_HPP_

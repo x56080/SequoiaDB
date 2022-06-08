@@ -388,26 +388,7 @@ namespace engine
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
       ossMemset( _fullPathName, 0, sizeof(_fullPathName) ) ;
 
-      if ( 0 == ossStrcmp( pInfo->_suName, SDB_DMSTEMP_NAME ) )
-      {
-         _isTempSU = TRUE ;
-         _isSysSU = TRUE ;
-         _blockScanSupport = FALSE ;
-      }
-      else if ( 0 == ossStrncmp( pInfo->_suName,
-                                 SDB_DMSRBS_NAME,
-                                 SDB_DMSRBS_NAME_SIZE ) )
-      {
-         _isSysSU = TRUE ;
-         _blockScanSupport = FALSE ;
-         // SYSRBS supports MVCC always
-         _mvccSupport = TRUE ;
-      }
-      else if ( 0 == ossStrncmp( pInfo->_suName, "SYS", 3 ) )
-      {
-         _isSysSU = TRUE ;
-         _blockScanSupport = FALSE ;
-      }
+      _resetInfoByName( pInfo->_suName ) ;
 
       _pSyncMgr           = NULL ;
       _isClosed           = TRUE ;
@@ -715,7 +696,6 @@ namespace engine
       UINT64 currentOffset   = 0 ;
       UINT32 mode = OSS_READWRITE|OSS_EXCLUSIVE ;
       UINT64 rightSize = 0 ;
-      BOOLEAN reGetSize = FALSE ;
       ossSpinSLatch *pExtendLatch = NULL ;
 
       SDB_ASSERT( pPath, "path can't be NULL" ) ;
@@ -861,11 +841,10 @@ namespace engine
          ossTimestampToString( commitTm, strTime ) ;
 
          PD_LOG( PDEVENT, "Storage file[%s] is %s[%u], CommitLSN: %lld, "
-                 "CommitTime: %s[%llu], Storage Type:%d", _suFileName,
+                 "CommitTime: %s[%llu]", _suFileName,
                  ( _isCrash ? "Invalid" : "Valid" ), _commitFlag,
                  _dmsHeader->_commitLsn,
-                 strTime, _dmsHeader->_commitTime,
-                  _pStorageInfo->_type) ;
+                 strTime, _dmsHeader->_commitTime ) ;
       }
 
       // SME, 16MB
@@ -891,74 +870,70 @@ namespace engine
                    _suFileName, rc ) ;
 
       // make sure the file size is multiple of segments
-      if ( 0 != ( fileSize - _dataOffset() ) % _getSegmentSize() )
+      if ( !_checkFileSizeValidBySegment( fileSize, rightSize ) )
       {
          PD_LOG ( PDWARNING, "Unexpected length[%llu] of file: %s", fileSize,
                   _suFileName ) ;
-
-         /// need to truncate the file
-         rightSize = ( ( fileSize - _dataOffset() ) /
-                       _getSegmentSize() ) * _getSegmentSize() +
-                       _dataOffset() ;
-         rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
-         if ( rc )
+         if ( fileSize > rightSize )
          {
-            PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
-                    _suFileName, rightSize, rc ) ;
-            goto error ;
-         }
-         PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
-                 _suFileName, rightSize ) ;
-         // then we get the size again to make sure it's what we need
-         rc = ossMmapFile::size ( fileSize ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
-                     _suFileName, rc ) ;
-            goto error ;
+            /// need to truncate the file, to remove
+            /// the invalid part of the segment
+            rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
+                       _suFileName, rightSize, rc ) ;
+               goto error ;
+            }
+            PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
+                    _suFileName, rightSize ) ;
+            // then we get the size again to make sure it's what we need
+            rc = ossMmapFile::size ( fileSize ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
+                        _suFileName, rc ) ;
+               goto error ;
+            }
          }
       }
 
-      rightSize = (UINT64)_dmsHeader->_storageUnitSize * pageSize() ;
+      rightSize = 0 ;
       /// make sure the file is correct with meta data
-      if ( fileSize > rightSize )
+      if ( !_checkFileSizeValid( fileSize, rightSize ) )
       {
-         PD_LOG( PDWARNING, "File[%s] size[%llu] is grater than storage "
-                 "unit pages[%u]", _suFileName, fileSize,
-                 _dmsHeader->_storageUnitSize ) ;
-
-         rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
-         if ( rc )
+         if ( fileSize > rightSize )
          {
-            PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
-                    _suFileName, rightSize, rc ) ;
-            goto error ;
+            PD_LOG( PDWARNING, "File[%s] size[%llu] is greater than storage "
+                    "unit pages[%u]", _suFileName, fileSize,
+                    _dmsHeader->_storageUnitSize ) ;
+            rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
+                       _suFileName, rightSize, rc ) ;
+               goto error ;
+            }
+            PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
+                    _suFileName, rightSize ) ;
          }
-         PD_LOG( PDEVENT, "Truncate file[%s] to size[%lld] succeed",
-                 _suFileName, rightSize ) ;
-         reGetSize = TRUE ;
-      }
-      else if ( fileSize < rightSize )
-      {
-         PD_LOG( PDWARNING, "File[%s] size[%llu] is less than storage "
-                 "unit pages[%u]", _suFileName, fileSize,
-                 _dmsHeader->_storageUnitSize ) ;
-
-         rc = ossExtendFile( &_file, (INT64)( rightSize - fileSize ) ) ;
-         if ( rc )
+         else if ( fileSize < rightSize )
          {
-            PD_LOG( PDERROR, "Extend file[%s] to size[%lld] from size[%lld] "
-                    "failed, rc: %d", _suFileName, rightSize,
-                    fileSize, rc ) ;
-            goto error ;
+            PD_LOG( PDWARNING, "File[%s] size[%llu] is less than storage "
+                    "unit pages[%u]", _suFileName, fileSize,
+                    _dmsHeader->_storageUnitSize ) ;
+            rc = ossExtendFile( &_file, (INT64)( rightSize - fileSize ) ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Extend file[%s] to size[%llu] from size[%llu] "
+                       "failed, rc: %d", _suFileName, rightSize,
+                       fileSize, rc ) ;
+               goto error ;
+            }
+            PD_LOG( PDEVENT, "Extend file[%s] to size[%llu] from size[%llu] "
+                    "succeed", _suFileName, rightSize, fileSize ) ;
          }
-         PD_LOG( PDEVENT, "Extend file[%s] to size[%lld] from size[%lld] "
-                 "succeed", _suFileName, rightSize, fileSize ) ;
-         reGetSize = TRUE ;
-      }
 
-      if ( reGetSize )
-      {
          // then we get the size again to make sure it's what we need
          rc = ossMmapFile::size ( fileSize ) ;
          if ( rc )
@@ -967,7 +942,6 @@ namespace engine
                      _suFileName, rc ) ;
             goto error ;
          }
-         reGetSize = FALSE ;
       }
 
       // loop and map each segment into separate mem range
@@ -978,7 +952,7 @@ namespace engine
          rc = map( currentOffset, _getSegmentSize(), NULL ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to map data segment at offset %lld",
+            PD_LOG ( PDERROR, "Failed to map data segment at offset %llu",
                      currentOffset ) ;
             goto error ;
          }
@@ -1176,6 +1150,8 @@ namespace engine
 
 #endif // _WINDOWS
 
+      _resetInfoByName( csName ) ;
+
    done:
       return rc ;
    error:
@@ -1215,30 +1191,10 @@ namespace engine
       if ( SDB_DMS_INVALID_SU == cause &&
            _fullPathName[0] != '\0' )
       {
-         CHAR tmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-         ossSnprintf( tmpFile, OSS_MAX_PATHSIZE, "%s.err.%u",
-                      _fullPathName, ossGetCurrentProcessID() ) ;
-         if ( SDB_OK == ossAccess( tmpFile, 0 ) )
-         {
-            rc = ossDelete( tmpFile ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Remove file[%s] failed, rc: %d",
-                       tmpFile, rc ) ;
-               goto error ;
-            }
-         }
-         /// rename the file
-         rc = ossRenamePath( _fullPathName, tmpFile ) ;
+         rc = dmsRenameInvalidFile( _fullPathName ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Rename file[%s] to [%s] failed, rc: %d",
-                    _fullPathName, tmpFile, rc ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Rename file[%s] to [%s] succeed",
-                    _fullPathName, tmpFile ) ;
+            goto error ;
          }
       }
 
@@ -1371,7 +1327,6 @@ namespace engine
 
    void _dmsStorageBase::_initHeader( dmsStorageUnitHeader * pHeader )
    {
-      SDB_ASSERT(NULL != _pStorageInfo, "can not be null");
       ossStrncpy( pHeader->_eyeCatcher, _getEyeCatcher(),
                   DMS_HEADER_EYECATCHER_LEN ) ;
       pHeader->_version = _curVersion() ;
@@ -1558,6 +1513,39 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _dmsStorageBase::_checkFileSizeValidBySegment( const UINT64 fileSize,
+                                                          UINT64 &rightSize )
+   {
+      if (  0 == ( fileSize - _dataOffset() ) % _getSegmentSize() )
+      {
+         rightSize = fileSize ;
+         return TRUE ;
+      }
+      else
+      {
+         rightSize = ( ( fileSize - _dataOffset() ) /
+                       _getSegmentSize() ) * _getSegmentSize() +
+                       _dataOffset() ;
+         return FALSE ;
+      }
+   }
+
+   BOOLEAN _dmsStorageBase::_checkFileSizeValid( const UINT64 fileSize,
+                                                 UINT64 &rightSize )
+   {
+      UINT64 rightSz = (UINT64)_dmsHeader->_storageUnitSize * pageSize() ;
+      if ( fileSize == rightSz )
+      {
+         rightSize = fileSize ;
+         return TRUE ;
+      }
+      else
+      {
+         rightSize = rightSz ;
+         return FALSE ;
+      }
+   }
+
    INT32 _dmsStorageBase::_preExtendSegment ()
    {
       INT32 rc = _extendSegments( 1 ) ;
@@ -1577,14 +1565,69 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__EXTENDSEG ) ;
-      INT64 fileSize = 0 ;
+      UINT64 fileSize       = 0 ;
+      UINT64 newFileSize    = 0 ;
+      UINT64 rightSize      = 0 ;
+      UINT64 incFileSize    = 0 ;
+      UINT32 incPageNum     = 0 ;
+      UINT32 mapSegNum      = 0 ;
+      UINT32 beginExtentID  = 0 ;
+      UINT32 endExtentID    = 0 ;
 
       // now other normal applications still able to access metadata in
       // read-only mode
-      // Then we'll check if adding new segments will exceed the limit
-      UINT32 beginExtentID = _dmsHeader->_pageNum ;
-      UINT32 endExtentID   = beginExtentID + _segmentPages * numSeg ;
 
+      // get file size for map or rollback
+      rc = ossGetFileSize ( &_file, (INT64 *)&fileSize ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to get file size, rc = %d", rc ) ;
+
+      // check file size is valid or not
+      if ( !_checkFileSizeValid( fileSize, rightSize ) )
+      {
+         if ( fileSize > rightSize )
+         {
+            PD_LOG( PDWARNING, "File[%s] size[%llu] is not match with storage "
+                    "unit pages[%u]", _suFileName, fileSize,
+                    _dmsHeader->_storageUnitSize ) ;
+            fileSize = rightSize ;
+            rc = ossTruncateFile( &_file, (INT64)fileSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
+                       _suFileName, fileSize, rc ) ;
+               goto error ;
+            }
+            PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu]", _suFileName,
+                    fileSize ) ;
+         }
+         else if ( fileSize < rightSize )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Invalid file[%s] size[%llu], less than the "
+                    "expected size[%llu], rc: %d",
+                    _suFileName, fileSize, rightSize, rc ) ;
+            goto error ;
+         }
+      }
+      // sanity check, fileSize must be equal with rightSize,
+      // all subsequent steps depend on this
+      if ( rightSize != fileSize )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed in sanity check in file[%s], "
+                 "fileSize: %llu, rightSize : %llu, rc = %d",
+                 _suFileName, fileSize, rightSize, rc ) ;
+         goto error ;
+      }
+      SDB_ASSERT( fileSize == rightSize, "Invalid file size" ) ;
+
+      // calculate the info for extend/map/deposit, numSeg will be updated
+      // to the actual number of increasing segments
+      _calcExtendInfo( fileSize, numSeg, incFileSize, incPageNum ) ;
+
+      // we'll check if adding new segments will exceed the limit
+      beginExtentID = _dmsHeader->_pageNum ;
+      endExtentID   = beginExtentID + incPageNum ;
       if ( endExtentID > DMS_MAX_PG )
       {
          PD_LOG( PDERROR, "Extent page[%u] exceed max pages[%u] in su[%s]",
@@ -1592,7 +1635,6 @@ namespace engine
          rc = SDB_DMS_NOSPC ;
          goto error ;
       }
-
       // We'll also verify the SME shows DMS_SME_FREE for all needed pages
       for ( UINT32 i = beginExtentID; i < endExtentID; i++ )
       {
@@ -1603,29 +1645,6 @@ namespace engine
          }
       }
 
-      // get file size for map or rollback
-      rc = ossGetFileSize ( &_file, &fileSize ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to get file size, rc = %d", rc ) ;
-
-      // check wether the file length is match storage unit pages
-      if ( fileSize > (INT64)_dmsHeader->_storageUnitSize * pageSize() )
-      {
-         PD_LOG( PDWARNING, "File[%s] size[%llu] is not match with storage "
-                 "unit pages[%u]", _suFileName, fileSize,
-                 _dmsHeader->_storageUnitSize ) ;
-
-         fileSize = (UINT64)_dmsHeader->_storageUnitSize * pageSize() ;
-         rc = ossTruncateFile( &_file, fileSize ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Truncate file[%s] to size[%lld] failed, rc: %d",
-                    _suFileName, fileSize, rc ) ;
-            goto error ;
-         }
-         PD_LOG( PDEVENT, "Truncate file[%s] to size[%lld]", _suFileName,
-                 fileSize ) ;
-      }
-
       // now we only hold extendsegment latch, no other sessions can extend
       // but other sessions can freely create new extents in existing segments
       // This should be safe because no one knows we are increasing the size of
@@ -1634,78 +1653,179 @@ namespace engine
       // MAKE SURE NOT HOLD ANY METADATA LATCH DURING SUCH EXPENSIVE DISK
       // OPERATION extendSeg latch is held here so that it's not possible //
       // two sessions doing same extend
-   retry:
-      if ( _pStorageInfo->_enableSparse )
-      {
-         rc = ossExtentBySparse( &_file, (UINT64)_getSegmentSize() * numSeg ) ;
-      }
-      else
-      {
-         rc = ossExtendFile( &_file, _getSegmentSize() * numSeg ) ;
-      }
 
-      if ( rc )
+      // try to extend file and map file
+      newFileSize = fileSize + incFileSize ;
+      if ( newFileSize > fileSize )
       {
-         INT32 rc1 = SDB_OK ;
-         PD_LOG ( PDERROR, "Failed to extend storage unit for %lld "
-                  "bytes, sparse:%s, rc: %d",
-                  _getSegmentSize() * (UINT64)numSeg,
-                  _pStorageInfo->_enableSparse ? "TRUE" : "FALSE", rc ) ;
-
-         // truncate the file when it's failed to extend file
-         rc1 = ossTruncateFile ( &_file, fileSize ) ;
-         if ( rc1 )
+         // extend file size
+      retry:
+         if ( _pStorageInfo->_enableSparse )
          {
-            PD_LOG ( PDSEVERE, "Failed to revert the increase of segment, "
-                     "rc = %d", rc1 ) ;
-            // if we increased the file size but got error, and we are not able
-            // to decrease it, something BIG wrong, let's panic
-            ossPanic () ;
+#if defined( _LINUX )
+            rc = ossFallocate( &_file, 0, fileSize, incFileSize ) ;
+#else
+            rc = ossExtentBySparse( &_file, incFileSize ) ;
+#endif
+         }
+         else
+         {
+            rc = ossExtendFile( &_file, incFileSize ) ;
+         }
+         if ( rc )
+         {
+            INT32 rc1 = SDB_OK ;
+            PD_LOG ( PDERROR, "Failed to extend storage unit for %llu "
+                     "bytes, sparse:%s, rc: %d", incFileSize,
+                     _pStorageInfo->_enableSparse ? "TRUE" : "FALSE", rc ) ;
+
+            // truncate the file when it's failed to extend file
+            rc1 = ossTruncateFile ( &_file, fileSize ) ;
+            if ( rc1 )
+            {
+               PD_LOG ( PDSEVERE, "Failed to revert the increase of segment, "
+                        "rc = %d", rc1 ) ;
+               // if we increased the file size but got error, and we are not able
+               // to decrease it, something BIG wrong, let's panic
+               ossPanic () ;
+            }
+
+            if ( SDB_INVALIDARG == rc && _pStorageInfo->_enableSparse )
+            {
+               _pStorageInfo->_enableSparse = FALSE ;
+               goto retry ;
+            }
+            // we need to manage how to truncate the file to original size here
+            goto error ;
          }
 
-         if ( SDB_INVALIDARG == rc && _pStorageInfo->_enableSparse )
+         // map all new segments into memory
+         while ( fileSize < newFileSize )
          {
-            _pStorageInfo->_enableSparse = FALSE ;
-            goto retry ;
+            rc = map ( fileSize, _getSegmentSize(), NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to map storage unit from "
+                        "offset %llu", fileSize ) ;
+               goto error ;
+            }
+            _maxSegID += 1 ;
+            _dirtyList.setSize( ossMmapFile::segmentSize() - _dataSegID ) ;
+            fileSize += _getSegmentSize() ;
+            mapSegNum++ ;
          }
-         // we need to manage how to truncate the file to original size here
+      }
+      // sanity check
+      if ( newFileSize != fileSize )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed in sanity check in file[%s], "
+                 "fileSize: %llu, newFileSize: %llu, rc = %d",
+                 _suFileName, fileSize, newFileSize, rc ) ;
+         goto error ;
+      }
+      if ( numSeg != mapSegNum )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed in sanity check in file[%s], "
+                 "numSeg: %d, mapSegNum : %d, rc = %d",
+                 _suFileName, numSeg, mapSegNum, rc ) ;
          goto error ;
       }
 
-      // map all new segments into memory
-      for ( UINT32 i = 0; i < numSeg ; i++ )
+      // deposit new pages to SME and then update info in file header
+      while ( beginExtentID < endExtentID )
       {
-         rc = map ( fileSize, _getSegmentSize(), NULL ) ;
-         if ( rc )
+         UINT32 incPages = 0 ;
+         if ( 0 == beginExtentID % _segmentPages )
          {
-            PD_LOG ( PDERROR, "Failed to map storage unit from offset %lld",
-                     _getSegmentSize() * i + _dmsHeader->_storageUnitSize ) ;
-            goto error ;
+            // when at the beginning of a segment, we have the
+            // follow two cases to handle
+            if ( ( endExtentID - beginExtentID ) < _segmentPages )
+            {
+               // cast 1: increased pages inside the range of a segmentPages
+               //
+               //              segmentPages
+               // --------|-------------------------------|
+               //
+               //    beginExtID                endExtID
+               // --------|-----------------------|
+               incPages = endExtentID - beginExtentID ;
+            }
+            else
+            {
+               // cast 2: increased pages outside the range of a segmentPages
+               //
+               //              segmentPages           segmentPages
+               // --------|-------------------|~|-------------------|
+               //
+               //    beginExtID                  endExtID
+               // --------|-------------------------|
+               incPages = _segmentPages ;
+            }
+            // we need to set _storageUnitSize before deposit()
+            // If not, FreeSize calculated by snapshot cs may be
+            // larger than TotalSize.
+            _dmsHeader->_storageUnitSize += incPages ;
+            // add pages to a new segmentSpace
+            rc = _smeMgr.depositPages( (dmsExtentID)beginExtentID, incPages ) ;
          }
-         _maxSegID += 1 ;
-         _dirtyList.setSize( segmentSize() - _dataSegID ) ;
-
-         // we need to set _storageUnitSize before depositASegment()
-         // If not, FreeSize calculated by snapshot cs may be
-         // larger than TotalSize.
-         _dmsHeader->_storageUnitSize += _segmentPages ;
-
-         // update SME Manager
-         rc = _smeMgr.depositASegment( (dmsExtentID)beginExtentID ) ;
+         else
+         {
+            UINT32 freePages = _segmentPages - ( beginExtentID % _segmentPages ) ;
+            // when not at the beginning of a segment, we have
+            // the follow two cases to handle
+            if ( ( endExtentID - beginExtentID ) < freePages )
+            {
+               // cast 1: increased pages inside the range of a segmentPages
+               //
+               //              segmentPages
+               // --------|-------------------------------|
+               //
+               //          beginExtID              endExtID
+               // --------------|---------------------|
+               incPages = endExtentID - beginExtentID ;
+            }
+            else
+            {
+               // cast 2: increased pages outside the range of a segmentPages
+               //
+               //              segmentPages           segmentPages
+               // --------|-------------------|~|-------------------|
+               //
+               //          beginExtID                  endExtID
+               // --------------|-------------------------|
+               incPages = freePages ;
+            }
+            _dmsHeader->_storageUnitSize += incPages ;
+            // append pages to the last segmentSpace
+            rc = _smeMgr.appendPages( (dmsExtentID)beginExtentID, incPages ) ;
+         }
          if ( rc )
          {
-            _dmsHeader->_storageUnitSize -= _segmentPages ;
-            PD_LOG ( PDERROR, "Failed to deposit new segment into SMEMgr, "
-                     "rc = %d", rc ) ;
+            _dmsHeader->_storageUnitSize -= incPages ;
+            PD_LOG ( PDSEVERE, "Failed to deposit pages[%d] into SMEMgr, "
+                     "segmentPages: %d, _storageUnitSize: %llu, "
+                     "_pageNum: %llu, rc = %d",
+                     incPages, _segmentPages,
+                     _dmsHeader->_storageUnitSize,
+                     _dmsHeader->_pageNum, rc ) ;
             ossPanic() ;
             goto error ;
          }
-         beginExtentID += _segmentPages ;
-         fileSize += _getSegmentSize() ;
-
+         beginExtentID += incPages ;
          // update header
-         _dmsHeader->_pageNum += _segmentPages ;
+         _dmsHeader->_pageNum += incPages ;
          _pageNum = _dmsHeader->_pageNum ;
+      }
+      // sanity check
+      if ( endExtentID != beginExtentID )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed in sanity check in file[%s], "
+                 "beginExtentID: %d, endExtentID : %d, rc = %d",
+                 _suFileName, beginExtentID, endExtentID, rc ) ;
+         goto error ;
       }
 
    done :
@@ -2013,6 +2133,39 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__RESETINOFBYNAME, "_dmsStorageBase::_resetInfoByName" )
+   void _dmsStorageBase::_resetInfoByName( const CHAR *csName )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEBASE__RESETINOFBYNAME ) ;
+
+      _isTempSU = FALSE ;
+      _isSysSU = FALSE ;
+      _blockScanSupport = TRUE ;
+
+      if ( 0 == ossStrcmp( csName, SDB_DMSTEMP_NAME ) )
+      {
+         _isTempSU = TRUE ;
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+      }
+      else if ( 0 == ossStrncmp( csName,
+                                 SDB_DMSRBS_NAME,
+                                 SDB_DMSRBS_NAME_SIZE ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+         // SYSRBS supports MVCC always
+         _mvccSupport = TRUE ;
+      }
+      else if ( 0 == ossStrncmp( csName, "SYS", 3 ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEBASE__RESETINOFBYNAME ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__MARKHEADEERINVALID, "_dmsStorageBase::_markHeaderInvalid" )
    void _dmsStorageBase::_markHeaderInvalid( INT32 collectionID,
                                              BOOLEAN isAll )
@@ -2099,6 +2252,16 @@ namespace engine
    void _dmsStorageBase::_disableBlockScan()
    {
       _blockScanSupport = FALSE ;
+   }
+
+   void _dmsStorageBase::_calcExtendInfo( const UINT64 fileSize,
+                                          UINT32 &numSeg,
+                                          UINT64 &incFileSize,
+                                          UINT32 &incPageNum )
+   {
+      SDB_ASSERT( _segmentPages > 0, "Not initialized segment pages" ) ;
+      incFileSize = (UINT64)_getSegmentSize() * numSeg ;
+      incPageNum  = _segmentPages * numSeg ;
    }
 
 }

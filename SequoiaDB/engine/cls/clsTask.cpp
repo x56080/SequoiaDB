@@ -1129,6 +1129,12 @@ namespace engine
 
             goto error ;
          }
+         else if ( CLS_TASK_STATUS_FINISH == _status )
+         {
+            // already finish, no need to update
+            rc = SDB_TASK_ALREADY_FINISHED ;
+            goto error ;
+         }
       }
       catch( std::exception &e )
       {
@@ -1155,6 +1161,7 @@ namespace engine
       {
          // can't cancel finish status
          if ( CLS_TASK_STATUS_META == _status ||
+              CLS_TASK_STATUS_CLEANUP == _status ||
               CLS_TASK_STATUS_FINISH == _status )
          {
             rc = SDB_TASK_ALREADY_FINISHED ;
@@ -1166,8 +1173,9 @@ namespace engine
             updator = BSON( "$set" <<
                             BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
                                   FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
-                                  FIELD_NAME_RESULTCODE << rc <<
-                                  FIELD_NAME_RESULTCODEDESC << getErrDesp(rc) ) ) ;
+                                  FIELD_NAME_RESULTCODE << SDB_TASK_HAS_CANCELED <<
+                                  FIELD_NAME_RESULTCODEDESC <<
+                                  getErrDesp(SDB_TASK_HAS_CANCELED) ) ) ;
          }
          else if ( CLS_TASK_STATUS_CANCELED != _status )
          {
@@ -2231,6 +2239,7 @@ namespace engine
    BOOLEAN _clsIdxTask::muteXOn ( const _clsTask* pOther )
    {
       BOOLEAN ret = FALSE ;
+      BOOLEAN sameCL = FALSE ;
       _clsIdxTask *pOtherIdx = NULL ;
 
       if ( pOther->taskType() != CLS_TASK_CREATE_IDX &&
@@ -2241,16 +2250,27 @@ namespace engine
 
       pOtherIdx = (clsIdxTask*)pOther ;
 
-      if ( 0 != ossStrcmp ( collectionName(), pOtherIdx->collectionName() ) )
+      // if they all have valid unique id, then compare by unique id
+      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID() ) &&
+           UTIL_IS_VALID_CLUNIQUEID( pOtherIdx->clUniqueID() ) &&
+           clUniqueID() == pOtherIdx->clUniqueID() )
       {
-         goto done ;
+         sameCL = TRUE ;
       }
-      if ( 0 != ossStrcmp ( indexName(), pOtherIdx->indexName() ) )
+      else if ( ! UTIL_IS_VALID_CLUNIQUEID( clUniqueID() ) &&
+                ! UTIL_IS_VALID_CLUNIQUEID( pOtherIdx->clUniqueID() ) &&
+                0 == ossStrcmp( collectionName(),
+                                pOtherIdx->collectionName() ) )
       {
-         goto done ;
+         sameCL = TRUE ;
       }
 
-      ret = TRUE ;
+      if ( sameCL && 0 == ossStrcmp( indexName(),
+                                     pOtherIdx->indexName() ) )
+      {
+         ret = TRUE ;
+         goto done ;
+      }
 
    done :
       return ret ;
@@ -2453,15 +2473,14 @@ namespace engine
       {
          if ( _isSucceedTask( it->second ) )
          {
-            _succeededTasks-- ;
+            _decSucceededTasks() ;
          }
          else
          {
-            _failedTasks-- ;
+            _decFailedTasks() ;
          }
       }
-      _totalTasks-- ;
-      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+      _decTotalTasks() ;
 
       _mapSubTask.erase( it ) ;
       _changedMask |= CLS_IDX_MASK_PULL_SUBTASK ;
@@ -2507,8 +2526,13 @@ namespace engine
          }
       }
 
+      // reset Groups
       _mapGroupInfo.clear() ;
       _changedMask |= CLS_IDX_MASK_GROUPS ;
+      _succeededGroups = 0 ;
+      _failedGroups = 0 ;
+      _totalGroups = 0 ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
 
       // count Groups
       for ( groupIt = groupInfo.begin() ; groupIt != groupInfo.end() ; groupIt++ )
@@ -2524,16 +2548,15 @@ namespace engine
          {
             if ( _isSucceedGroup( newGroup ) )
             {
-               _succeededGroups++ ;
+               _incSucceededGroups() ;
             }
             else
             {
-               _failedGroups++ ;
+               _incFailedGroups() ;
             }
          }
+         _incTotalGroups() ;
       }
-      _totalGroups = _mapGroupInfo.size() ;
-      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
 
       // other field
       _updateOtherBySubTaskInfo() ;
@@ -2542,6 +2565,77 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
 
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSIDXTASK_BMGTGP, "_clsIdxTask::buildMigrateGroup" )
+   INT32 _clsIdxTask::buildMigrateGroup( const CHAR* srcGroup,
+                                         const CHAR* dstGroup,
+                                         BSONObj& updator,
+                                         BSONObj& matcher )
+   {
+      SDB_ASSERT( srcGroup && dstGroup, "group name can't be null" ) ;
+      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
+
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLSIDXTASK_BMGTGP ) ;
+      MAP_GROUP_INFO_IT dIt ;
+      MAP_GROUP_INFO_IT sIt ;
+
+      if ( CLS_TASK_STATUS_FINISH == _status )
+      {
+         PD_LOG( PDWARNING, "Task[%llu] has already finished", _taskID ) ;
+         goto done ;
+      }
+      if ( CLS_TASK_DROP_IDX != _taskType )
+      {
+         goto done ;
+      }
+
+      // Split and drop index are concurrent. If target group has completed
+      // drop-index task( no index ), while source group hasn't complete the
+      // task( has index ). Target group will replay the indexes of source group
+      // while splitting, so target group may recreate index. Therefore, we
+      // should migrate the (drop-index) tasks of source group to target group.
+      dIt = _mapGroupInfo.find( dstGroup ) ;
+      sIt = _mapGroupInfo.find( srcGroup ) ;
+      if ( dIt != _mapGroupInfo.end() && sIt != _mapGroupInfo.end() )
+      {
+         _clsIdxTaskGroupUnit* dstGroupUnit = &(dIt->second) ;
+         _clsIdxTaskGroupUnit* srcGroupUnit = &(sIt->second) ;
+         if ( CLS_TASK_STATUS_FINISH == dstGroupUnit->status &&
+              CLS_TASK_STATUS_FINISH != srcGroupUnit->status )
+         {
+            _clearChangedMask() ;
+
+            // change SucceedGroups/FailedGroups
+            if ( _isSucceedGroup( *dstGroupUnit ) )
+            {
+               _decSucceededGroups() ;
+            }
+            else
+            {
+               _decFailedGroups() ;
+            }
+
+            // change group status
+            dstGroupUnit->status = CLS_TASK_STATUS_READY ;
+            _changedGroupMask |= CLS_IDX_MASK_STATUS ;
+            _changedMask |= CLS_IDX_MASK_GROUPS ;
+
+            // change other field
+            _updateOtherByGroupInfo() ;
+
+            // to bson
+            rc = _toChangedObj( dstGroupUnit, NULL, matcher, updator ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build changed bson", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSIDXTASK_BMGTGP, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2581,8 +2675,7 @@ namespace engine
       _changedMask |= CLS_IDX_MASK_PUSH_GROUP ;
       _pushGroupName = groupName ;
 
-      _totalGroups++ ;
-      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+      _incTotalGroups() ;
 
       // change other field
       _updateOtherByGroupInfo() ;
@@ -2711,15 +2804,14 @@ namespace engine
       {
          if ( _isSucceedGroup( it->second ) )
          {
-            _succeededGroups-- ;
+            _decSucceededGroups() ;
          }
          else
          {
-            _failedGroups-- ;
+            _decFailedGroups() ;
          }
       }
-      _totalGroups-- ;
-      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+      _decTotalGroups() ;
 
       _mapGroupInfo.erase( it ) ;
       _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
@@ -2768,52 +2860,41 @@ namespace engine
       if ( itGroup != _mapGroupInfo.end() )
       {
          clsIdxTaskGroupUnit& curGroupInfo = itGroup->second ;
-         if ( CLS_TASK_STATUS_FINISH != curGroupInfo.status )
+         if ( subTaskInfoList.empty() )
          {
-            if ( subTaskInfoList.empty() )
+            /// just remove this group
+            if ( CLS_TASK_STATUS_FINISH == curGroupInfo.status )
             {
-               /// just remove this group
-               if ( CLS_TASK_STATUS_FINISH == curGroupInfo.status )
+               if ( _isSucceedGroup( curGroupInfo ) )
                {
-                  if ( _isSucceedGroup( curGroupInfo ) )
-                  {
-                     _succeededGroups-- ;
-                  }
-                  else
-                  {
-                     _failedGroups-- ;
-                  }
+                  _decSucceededGroups() ;
                }
-               _totalGroups-- ;
-               _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+               else
+               {
+                  _decFailedGroups() ;
+               }
+            }
+            _decTotalGroups() ;
 
-               _mapGroupInfo.erase( itGroup ) ;
-               _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
-               _pullGroupName = curGroupInfo.groupName ;
-            }
-            else
-            {
-               /// update this group info by sub-tasks
-               clsIdxTaskGroupUnit newGroupInfo ;
-               rc = _buildNewGroupInfo( subTaskInfoList, newGroupInfo ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to build new group info",
-                            rc ) ;
-               _updateGroup( curGroupInfo, newGroupInfo ) ;
-            }
+            _mapGroupInfo.erase( itGroup ) ;
+            _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
+            _pullGroupName = curGroupInfo.groupName ;
          }
          else
          {
-            PD_LOG( PDWARNING, "Group[%s] in task[%llu] has already finished",
-                    groupName, _taskID ) ;
-            goto done ;
+            /// update this group info by sub-tasks
+            clsIdxTaskGroupUnit newGroupInfo ;
+            rc = _buildNewGroupInfo( subTaskInfoList, newGroupInfo ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build new group info",
+                         rc ) ;
+            _updateGroup( curGroupInfo, newGroupInfo ) ;
          }
       }
       else
       {
          PD_LOG( PDWARNING, "Group[%s] doesn't exist in task[%llu]",
                  groupName, _taskID ) ;
-         goto done ;
       }
 
       /// find out sub-task in SubTasks list
@@ -2830,8 +2911,10 @@ namespace engine
             newSubTask.status     = pSubTask->status() ;
             newSubTask.resultCode = pSubTask->resultCode() ;
 
+            /// change SubTasks / SucceedTasks / FailedTasks
             _updateSubTask( curSubTask, newSubTask ) ;
 
+            /// change other fields
             _updateOtherBySubTaskInfo() ;
          }
          else
@@ -3299,12 +3382,19 @@ namespace engine
                 "Failed to find out group[%s] from task[%llu]",
                 newGroupInfo.groupName.c_str(), _taskID ) ;
 
+      if ( CLS_TASK_STATUS_READY == it->second.status &&
+           CLS_TASK_STATUS_FINISH == newGroupInfo.status )
+      {
+         rc = SDB_CAT_TASK_STATUS_ERROR ;
+         PD_LOG( PDWARNING, "Group[%s] status[%s] error in task[%llu], rc: %d",
+                 newGroupInfo.groupName.c_str(), VALUE_NAME_READY, _taskID, rc ) ;
+         goto error ;
+      }
+
       if ( CLS_TASK_STATUS_FINISH == it->second.status &&
            newGroupInfo.resultCode == it->second.resultCode )
       {
          // 'finish + ok' can convert to 'finish + -243'
-         PD_LOG( PDWARNING, "Group[%s] in task[%llu] has already finished",
-                 newGroupInfo.groupName.c_str(), _taskID ) ;
          goto done ;
       }
 
@@ -3466,13 +3556,12 @@ namespace engine
       {
          if ( _isSucceedTask( newSubTask ) )
          {
-            _succeededTasks++ ;
+            _incSucceededTasks() ;
          }
          else
          {
-            _failedTasks++ ;
+            _incFailedTasks() ;
          }
-         _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
       }
 
    done:
@@ -3523,6 +3612,78 @@ namespace engine
       return isSucc ;
    }
 
+   void _clsIdxTask::_incSucceededGroups()
+   {
+      _succeededGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_decSucceededGroups()
+   {
+      _succeededGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_incFailedGroups()
+   {
+      _failedGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_decFailedGroups()
+   {
+      _failedGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_incTotalGroups()
+   {
+      _totalGroups++ ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_decTotalGroups()
+   {
+      _totalGroups-- ;
+      _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+   }
+
+   void _clsIdxTask::_incSucceededTasks()
+   {
+      _succeededTasks++ ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_decSucceededTasks()
+   {
+      _succeededTasks-- ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_incFailedTasks()
+   {
+      _failedTasks++ ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_decFailedTasks()
+   {
+      _failedTasks-- ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_incTotalTasks()
+   {
+      _totalTasks++ ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
+   void _clsIdxTask::_decTotalTasks()
+   {
+      _totalTasks-- ;
+      _changedMask |= CLS_IDX_MASK_TASKCOUNT ;
+   }
+
    void _clsIdxTask::_updateGroup( clsIdxTaskGroupUnit& curGroupInfo,
                                    const clsIdxTaskGroupUnit& newGroupInfo )
    {
@@ -3542,28 +3703,26 @@ namespace engine
          if (  _isSucceedGroup( curGroupInfo ) &&
               !_isSucceedGroup( newGroupInfo ) )
          {
-            _succeededGroups-- ;
-            _failedGroups++ ;
+            _decSucceededGroups() ;
+            _incFailedGroups() ;
          }
          else if ( !_isSucceedGroup( curGroupInfo ) &&
                     _isSucceedGroup( newGroupInfo ) )
          {
-            _failedGroups-- ;
-            _succeededGroups++ ;
+            _decFailedGroups() ;
+            _incSucceededGroups() ;
          }
-         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
       }
       else if ( CLS_TASK_STATUS_FINISH == newGroupInfo.status )
       {
          if ( _isSucceedGroup( newGroupInfo ) )
          {
-            _succeededGroups++ ;
+            _incSucceededGroups() ;
          }
          else
          {
-            _failedGroups++ ;
+            _incFailedGroups() ;
          }
-         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
       }
 
       /// update Groups element
@@ -3790,6 +3949,11 @@ namespace engine
                {
                   cntNotExistIdx++ ;
                }
+               else if ( SDB_DMS_CS_NOTEXIST == localGroup.resultCode ||
+                         SDB_DMS_NOTEXIST    == localGroup.resultCode )
+               {
+                  cntIgnoreError++ ;
+               }
                else
                {
                   // When one group failed, other groups will be rolled back
@@ -3806,7 +3970,7 @@ namespace engine
          }
       }
 
-      cntIgnoreError = cntRedefineIdx + cntNotExistIdx ;
+      cntIgnoreError += ( cntRedefineIdx + cntNotExistIdx ) ;
 
       // set first resultCode
       if ( cntTotalGroup != 0 )
@@ -3832,8 +3996,12 @@ namespace engine
       }
       else if ( CLS_TASK_STATUS_READY == _status )
       {
-         // If buildAddGroup() add another Ready group, just keep Ready status
-         if ( cntReadyGroup < cntTotalGroup )
+         if ( cntReadyGroup == cntTotalGroup )
+         {
+            // If buildAddGroup() add another Ready group,
+            // just keep Ready status
+         }
+         else
          {
             setRun() ;
          }
@@ -3852,20 +4020,33 @@ namespace engine
          }
          else if ( cntSucGroup + cntIgnoreError == cntTotalGroup )
          {
-            // all groups succeed( may include -247/-47 )
+            // all groups succeed( may include -247/-47/-23/-34 )
             setFinish() ;
          }
-         else if ( cntFailGroup - cntIgnoreError > 0 )
+         else if ( CLS_TASK_DROP_IDX == _taskType )
          {
-            // some groups failed
-            if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
+            // When drop index is running, we can't roll back it.
+            if ( cntSucGroup + cntFailGroup == cntTotalGroup )
             {
-               // none of groups did it, so just finish task
+               // all groups finish
                setFinish( firstResultCode, firstResultInfo ) ;
             }
-            else
+         }
+         else
+         {
+            if ( cntFailGroup - cntIgnoreError > 0 )
             {
-               setStatus( CLS_TASK_STATUS_ROLLBACK ) ;
+               // some groups failed
+               if ( cntReadyGroup + cntFailGroup == cntTotalGroup )
+               {
+                  // none of groups did it, so just finish task
+                  setFinish( firstResultCode, firstResultInfo ) ;
+               }
+               else
+               {
+                  // some groups failed, we need rollback other groups
+                  setStatus( CLS_TASK_STATUS_ROLLBACK ) ;
+               }
             }
          }
       }
@@ -4513,6 +4694,81 @@ namespace engine
       return CMD_NAME_CREATE_INDEX ;
    }
 
+   INT32 _clsCreateIdxTask::checkConflictWithExistTask( const _clsTask *pExistTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 != ossStrcmp( collectionName(), pExistTask->collectionName() ) )
+      {
+         goto done ;
+      }
+
+      if ( CLS_TASK_CREATE_IDX == pExistTask->taskType() )
+      {
+         clsCreateIdxTask* pExistIdxTask = (clsCreateIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            if ( ixmIsSameDef( pExistIdxTask->indexDef(), indexDef(), TRUE ) )
+            {
+               rc = SDB_IXM_CREATING ;
+               PD_LOG_MSG( PDERROR,
+                           "The same index '%s' is creating in task[%llu]",
+                           indexName(), pExistIdxTask->taskID() ) ;
+               goto error ;
+            }
+            else
+            {
+               rc = SDB_IXM_SAME_NAME_CREATING ;
+               PD_LOG_MSG( PDERROR,
+                           "An index '%s' which has the same name but with "
+                           "different definition is creating in task[%llu]",
+                           pExistIdxTask->indexName(), pExistIdxTask->taskID() ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            if ( ixmIsSameDef( pExistIdxTask->indexDef(), indexDef() ) )
+            {
+               rc = SDB_IXM_COVER_CREATING ;
+               PD_LOG_MSG( PDERROR, "An index '%s' which "
+                           "can cover this scene is creating in task[%llu]",
+                           pExistIdxTask->indexName(), pExistIdxTask->taskID() ) ;
+               goto error ;
+            }
+         }
+      }
+      else if ( CLS_TASK_DROP_IDX == pExistTask->taskType() )
+      {
+         clsDropIdxTask* pExistIdxTask = (clsDropIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            rc = SDB_IXM_DROPPING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is dropping in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_COPY_IDX == pExistTask->taskType() )
+      {
+         clsCopyIdxTask* pExistIdxTask = (clsCopyIdxTask*)pExistTask ;
+         if ( pExistIdxTask->indexList().count( indexName() ) > 0 )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsCreateIdxTask::_init( const CHAR *objdata )
    {
       INT32 rc = SDB_OK ;
@@ -4686,6 +4942,58 @@ namespace engine
       return CMD_NAME_DROP_INDEX ;
    }
 
+   INT32 _clsDropIdxTask::checkConflictWithExistTask( const _clsTask *pExistTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 != ossStrcmp( collectionName(), pExistTask->collectionName() ) )
+      {
+         goto done ;
+      }
+
+      if ( CLS_TASK_CREATE_IDX == pExistTask->taskType() )
+      {
+         clsCreateIdxTask* pExistIdxTask = (clsCreateIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The same index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_DROP_IDX == pExistTask->taskType() )
+      {
+         clsDropIdxTask* pExistIdxTask = (clsDropIdxTask*)pExistTask ;
+         if ( 0 == ossStrcmp( indexName(), pExistIdxTask->indexName() ) )
+         {
+            rc = SDB_IXM_DROPPING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is dropping in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_COPY_IDX == pExistTask->taskType() )
+      {
+         clsCopyIdxTask* pExistIdxTask = (clsCopyIdxTask*)pExistTask ;
+         if ( pExistIdxTask->indexList().count( indexName() ) > 0 )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsDropIdxTask::_init( const CHAR *objdata )
    {
       return SDB_OK ;
@@ -4853,9 +5161,58 @@ namespace engine
       }
    }
 
+   const ossPoolSet<ossPoolString>& _clsCopyIdxTask::indexList() const
+   {
+      return _indexList ;
+   }
+
    const CHAR* _clsCopyIdxTask::commandName() const
    {
       return CMD_NAME_COPY_INDEX ;
+   }
+
+   INT32 _clsCopyIdxTask::checkConflictWithExistTask( const _clsTask *pExistTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 != ossStrcmp( collectionName(), pExistTask->collectionName() ) )
+      {
+         goto done ;
+      }
+
+      if ( CLS_TASK_CREATE_IDX == pExistTask->taskType() )
+      {
+         clsCreateIdxTask* pExistIdxTask = (clsCreateIdxTask*)pExistTask ;
+         if ( _indexList.count( pExistIdxTask->indexName() ) > 0 )
+         {
+            rc = SDB_IXM_CREATING ;
+            PD_LOG_MSG( PDERROR,
+                        "The same index '%s' is creating in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_DROP_IDX == pExistTask->taskType() )
+      {
+         clsDropIdxTask* pExistIdxTask = (clsDropIdxTask*)pExistTask ;
+         if ( _indexList.count( pExistIdxTask->indexName() ) > 0 )
+         {
+            rc = SDB_IXM_DROPPING ;
+            PD_LOG_MSG( PDERROR,
+                        "The index '%s' is dropping in task[%llu]",
+                        indexName(), pExistIdxTask->taskID() ) ;
+            goto error ;
+         }
+      }
+      else if ( CLS_TASK_COPY_IDX == pExistTask->taskType() )
+      {
+         // do nothing, copy index check by sub-tasks
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }
 

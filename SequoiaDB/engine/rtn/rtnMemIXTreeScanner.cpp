@@ -44,6 +44,7 @@
 #include "rtnTrace.hpp"
 #include "dpsUtil.hpp"
 #include "optAccessPlanRuntime.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -300,9 +301,9 @@ namespace engine
    }
 
    // return the transID in the key which is the owner transID
-   DPS_TRANS_ID  _rtnMemIXTreeScanner::getCurKeyTransID() 
+   DPS_TRANS_ID  _rtnMemIXTreeScanner::getCurKeyTransID()
    {
-      SDB_ASSERT( _memIdxTree->isPosValid( _curIndexPos ), 
+      SDB_ASSERT( _memIdxTree->isPosValid( _curIndexPos ),
                   "Current iterator position is invalid" ) ;
 
       return _memIdxTree->getNodeKey( _curIndexPos ).getNodeTransID() ;
@@ -595,7 +596,7 @@ namespace engine
                rid = _savedRID ;
 
                // record the transID from the key when mvcc is enabled
-               if ( pmdGetOptionCB()->mvccOn() ) 
+               if ( pmdGetOptionCB()->mvccOn() )
                {
                   _savedTransID = getCurKeyTransID() ;
                }
@@ -679,7 +680,7 @@ namespace engine
             _savedObj = nodeKey.getKeyObj().getOwned() ;
 
             PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
-                    _savedObj.toString().c_str(),
+                    PD_SECURE_OBJ( _savedObj ),
                     _savedRID._extent, _savedRID._offset ) ;
          }
          catch ( std::exception &e )
@@ -876,7 +877,7 @@ namespace engine
    {
       SDB_ASSERT( memTree.get() == _memIdxTree.get(), "tree does not match" ) ;
       // FIXME: we assign both start and end to curPos for now.
-      // Next we will follow _ridNext to find the 
+      // Next we will follow _ridNext to find the
       if ( _memIdxTree->isPosValid( _curIndexPos ) )
       {
          startPos = _memIdxTree->getNodeData(_curIndexPos).getRBSOffset() ;
@@ -891,7 +892,7 @@ namespace engine
             endPos.reset() ;
          }
 #ifdef _DEBUG
-         PD_LOG( PDDEBUG, 
+         PD_LOG( PDDEBUG,
                  "IdxMemScan use startPos(%d, %lld) endPos(%d, %lld) for RBS",
                  startPos._clID, startPos._logicalID,
                  endPos._clID, endPos._logicalID );

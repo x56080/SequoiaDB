@@ -62,7 +62,7 @@ namespace engine
          */
          virtual EDUID        getEDUID() const ;
          virtual UINT32       getTID() const ;
-         virtual void         wakeup() ;
+         virtual void         wakeup( INT32 wakeupRC ) ;
          virtual INT32        wait( INT64 timeout ) ;
          virtual IExecutor*   getExecutor() ;
          virtual BOOLEAN      isInterrupted () ;

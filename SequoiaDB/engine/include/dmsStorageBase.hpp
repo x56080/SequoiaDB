@@ -54,8 +54,6 @@
 #include "pmdEnv.hpp"
 #include "sdbIPersistence.hpp"
 #include "dmsExtDataHandler.hpp"
-#include "dmsEngineDef.hpp"
-#include "dmsMBContext.hpp"
 
 #include <string>
 
@@ -137,7 +135,8 @@ namespace engine
       CHAR   _name [ DMS_SU_NAME_SZ+1 ] ;                // storage unit name
       UINT32 _sequence ;                                 // storage unit seq
       UINT32 _numMB ;                                    // Number of MB
-      UINT32 _MBHWM ;
+      UINT32 _MBHWM ;                                    // maximum of logical ID
+                                                         // WARNING: need acquire in atomic
       UINT32 _pageNum ;                                  // current page number
       UINT64 _secretValue ;                              // with the index
       UINT32 _lobdPageSize ;                             // lobd page size
@@ -338,6 +337,22 @@ namespace engine
    } ;
    typedef _dmsExtRW dmsExtRW ;
 
+   /*
+      _dmsContext define
+   */
+   class _dmsContext : public _IContext, public _utilPooledObject
+   {
+      public:
+         _dmsContext () {}
+         virtual ~_dmsContext () {}
+
+      public:
+         virtual string toString () const = 0 ;
+         virtual UINT16 mbID() const = 0 ;
+
+   };
+   typedef _dmsContext  dmsContext ;
+
    #define DMS_SU_FILENAME_SZ       ( DMS_SU_NAME_SZ + 15 )
    #define DMS_HEADER_OFFSET        ( 0 )
    #define DMS_SME_OFFSET           ( DMS_HEADER_OFFSET + DMS_HEADER_SZ )
@@ -491,6 +506,8 @@ namespace engine
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
       private:
+         void _resetInfoByName( const CHAR *csName ) ;
+
          virtual const CHAR*  _getEyeCatcher() const = 0 ;
          virtual UINT64 _dataOffset()  = 0 ;
          virtual UINT32 _curVersion() const = 0 ;
@@ -504,7 +521,14 @@ namespace engine
          virtual void   _initHeaderPageSize( dmsStorageUnitHeader *pHeader,
                                              dmsStorageInfo *pInfo ) ;
          virtual INT32  _checkPageSize( dmsStorageUnitHeader *pHeader ) ;
-
+         virtual BOOLEAN _checkFileSizeValidBySegment( const UINT64 fileSize,
+                                                       UINT64 &rightSize ) ;
+         virtual BOOLEAN _checkFileSizeValid( const UINT64 fileSize,
+                                              UINT64 &rightSize ) ;
+         virtual void    _calcExtendInfo( const UINT64 fileSize,
+                                          UINT32 &numSeg,
+                                          UINT64 &incFileSize,
+                                          UINT32 &incPageNum ) ;
          /*
             For Persistence
          */

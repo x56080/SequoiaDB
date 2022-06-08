@@ -1,7 +1,5 @@
 
-##描述##
-
-服务任务快照 $SNAPSHOT_SVCTASKS 列出当前数据库节点中服务任务的统计信息，输出一条记录。
+服务任务快照可以列出当前数据库节点中服务任务的统计信息，输出一条记录。
 
 ##标识##
 
@@ -28,7 +26,6 @@ $SNAPSHOT_SVCTASKS
 | TotalWrite        | int64         | 总数据写                                           |
 | StartTimestamp    | string        | 开始时间                     |
 | ResetTimestamp    | string        | 重置时间                     |
-
 ##示例##
 
 查看服务任务快照

@@ -106,7 +106,7 @@ namespace engine
 
       PD_CHECK( NULL != _evSuitPtr.get() && _evSuitPtr->isOpened(),
                 SDB_NETWORK, error, PDERROR, "Failed to send UDP message to "
-                "%s:%s, UDP suit is not opened" ) ;
+                "%s:%s, UDP suit is not opened", hostName, serviceName ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__NETUDPEVNHND_SYNCCONNECT, rc ) ;
@@ -121,12 +121,12 @@ namespace engine
       // do nothing
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVNHND_SYNCSEND, "_netUDPEventHandler::syncSend" )
-   INT32 _netUDPEventHandler::syncSend( const void *buf, UINT32 len )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVNHND_SYNCSENDRAW, "_netUDPEventHandler::syncSendRaw" )
+   INT32 _netUDPEventHandler::syncSendRaw( const void *buf, UINT32 len )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__NETUDPEVNHND_SYNCSEND ) ;
+      PD_TRACE_ENTRY( SDB__NETUDPEVNHND_SYNCSENDRAW ) ;
 
       udp::socket * sock = NULL ;
       UINT32 send = 0 ;
@@ -143,7 +143,6 @@ namespace engine
       PD_CHECK( NULL != sock, SDB_NETWORK, error, PDWARNING,
                 "Failed to send message via UDP handle [%u], "
                 "socket is invalid", _handle ) ;
-
 
       /// not care send suc or failed
       _lastSendTick = pmdGetDBTick() ;
@@ -186,6 +185,13 @@ namespace engine
             rc = SDB_NET_SEND_ERR ;
             goto error ;
          }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "UDP connection send message failed: %s",
+                    e.what() ) ;
+            rc = SDB_NET_SEND_ERR ;
+            goto error ;
+         }
 
          PD_CHECK( send == len, SDB_NET_SEND_ERR, error, PDERROR,
                    "UDP connection send message failed, length is not "
@@ -195,9 +201,8 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__NETUDPEVNHND_SYNCSEND, rc ) ;
+      PD_TRACE_EXITRC( SDB__NETUDPEVNHND_SYNCSENDRAW, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -279,18 +284,55 @@ namespace engine
       _lastRecvTick = pmdGetDBTick() ;
       _lastBeatTick = _lastRecvTick ;
 
-      PD_LOG( PDDEBUG, "UDP connection[Handle:%d] received "
-              "message[%s] from %s:%d", _handle,
-              msg2String( message, MSG_MASK_ALL, 0 ).c_str(),
-              _remoteEndPoint.address().to_string().c_str(),
-              _remoteEndPoint.port() ) ;
+      if ( SDB_PROTOCOL_VER_2 == _peerVersion )
+      {
+         PD_LOG( PDDEBUG, "UDP connection[Handle:%d] received "
+                          "message[%s] from %s:%d", _handle,
+                 msg2String( message, MSG_MASK_ALL, 0 ).c_str(),
+                 _remoteEndPoint.address().to_string().c_str(),
+                 _remoteEndPoint.port() ) ;
+      }
 
       if ( !_isConnected )
       {
          _isConnected = TRUE ;
       }
 
+      if ( SDB_PROTOCOL_VER_INVALID == _peerVersion &&
+           MSG_SYSTEM_INFO_LEN != (UINT32)message->messageLength )
+      {
+         _peerVersion =
+            ( MSG_COMM_EYE_DEFAULT == message->eye ||
+              MSG_COMM_EYE_DEFAULT_BACK == message->eye ) ?
+            SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
+         if ( SDB_PROTOCOL_VER_1 == _peerVersion )
+         {
+            _mtx.get() ;
+            INT32 rc = _enableMsgConvertor() ;
+            _mtx.release() ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Enable message convertor failed[%d]", rc ) ;
+               goto error_close ;
+            }
+            PD_LOG( PDEVENT, "Message convertor is enabled for node[%s] "
+                    "successfully", routeID2String( _id ).c_str() ) ;
+         }
+
+         if ( MSG_COMM_EYE_DEFAULT_BACK == message->eye )
+         {
+            // The peer node dose not recognize the message. Let's skip this
+            // time. The version is known now. It should work next time.
+            return ;
+         }
+      }
+
       _evSuitPtr->handleMsg( _getSharedBase() ) ;
+   done:
+      return ;
+   error_close:
+      close() ;
+      goto done ;
    }
 
    void _netUDPEventHandler::setRouteID( const MsgRouteID &routeID )
@@ -301,5 +343,4 @@ namespace engine
          id( routeID ) ;
       }
    }
-
 }

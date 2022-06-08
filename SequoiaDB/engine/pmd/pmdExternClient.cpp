@@ -69,6 +69,7 @@ namespace engine
       _localPort     = 0 ;
       _peerPort      = 0 ;
       _inMsg         = NULL ;
+      _protocolVer   = SDB_PROTOCOL_VER_INVALID ;
       ossMemset( _localIP, 0, sizeof( _localIP ) ) ;
       ossMemset( _peerIP, 0, sizeof( _peerIP ) ) ;
       ossMemset( _fromIP, 0, sizeof( _fromIP ) ) ;

@@ -79,6 +79,7 @@ namespace engine
      _eduCB( eduCB ),
      _cacheLevel( cacheLevel ),
      _normalizer( getMatchConfigPtr() ),
+     _isAutoHint( FALSE ),
      _isPredEstimated( FALSE ),
      _estSelectivity( OPT_MTH_DEFAULT_SELECTIVITY ),
      _predSelectivity( OPT_MTH_DEFAULT_SELECTIVITY ),

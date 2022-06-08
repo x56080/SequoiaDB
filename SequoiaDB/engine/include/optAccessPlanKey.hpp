@@ -193,6 +193,11 @@ namespace engine
                                FLG_QUERY_FORCE_IDX_BY_SORT ) ) ;
          }
 
+         OSS_INLINE BOOLEAN isForceHint() const
+         {
+            return ( !isHintEmpty() && testFlag( FLG_QUERY_FORCE_HINT ) ) ;
+         }
+
          OSS_INLINE void setCollectionInfo ( dmsStorageUnit *su,
                                              dmsMBContext *mbContext )
          {

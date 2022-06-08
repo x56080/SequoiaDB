@@ -73,6 +73,7 @@ namespace engine
       INT32 getOrderKey( rtnOrderKey &orderKey );
       rtnContextBuf buffer() ;
       void setBuffer( rtnContextBuf &buffer ) ;
+      void releaseBuffer() ;
 
       OSS_INLINE INT64 getDataID () const
       {
@@ -112,7 +113,8 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
 
-      INT32 open( const bson::BSONObj & orderBy,
+      INT32 open( const CHAR *mainCLName,
+                  const bson::BSONObj & orderBy,
                   INT64 numToReturn,
                   INT64 numToSkip ) ;
 
@@ -131,6 +133,13 @@ namespace engine
       virtual BOOLEAN          isWrite() const { return _isWrite ; }
       virtual BOOLEAN          needRollback() const { return _isWrite ; }
 
+      virtual const CHAR *     getProcessName() const
+      {
+         return ( NULL != _options.getCLFullName() ) ?
+                ( _options.getCLFullName() ) :
+                ( "" ) ;
+      }
+
    protected:
       virtual void _toString( stringstream &ss ) ;
       INT32   _prepareAllSubCtxDataByOrder( _pmdEDUCB *cb ) ;
@@ -139,16 +148,7 @@ namespace engine
       INT32   _saveEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
       INT32   _saveNonEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
 
-      virtual INT32 _doAfterPrepareData( _pmdEDUCB *cb )
-      {
-         if ( _subs.empty() &&
-              _subContextMap.empty() &&
-              _orderedContextMap.empty() )
-         {
-            _hitEnd = TRUE ;
-         }
-         return SDB_OK ;
-      }
+      virtual INT32 _doAfterPrepareData( _pmdEDUCB *cb ) ;
 
       void    _deleteSubContexts () ;
 

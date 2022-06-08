@@ -10,8 +10,8 @@ function test ()
 {
 
    //create cs cl
-   var csName = COMMCSNAME;
-   var clName = COMMCLNAME;
+   var csName = "cs_9479";
+   var clName = "cl_9479";
    // Drop CS
    commDropCS( db, csName, true );
 
@@ -30,7 +30,6 @@ function test ()
    checkResult( cl, recs );
    //clean environment
    commDropCS( db, csName, true );
-
 
 }
 //check the result;

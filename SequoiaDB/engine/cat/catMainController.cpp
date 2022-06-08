@@ -136,7 +136,6 @@ namespace engine
             _setCheckDelayTick() ;
          }
       }
-
       _pmdObjBase::onTimer( timerID, interval ) ;
    }
 
@@ -509,7 +508,6 @@ namespace engine
             _pCatCB->killTimer( _checkEventTimerID ) ;
             _checkEventTimerID = NET_INVALID_TIMER_ID ;
          }
-
          _pCatCB->unregEventHandler( this ) ;
       }
       return SDB_OK ;
@@ -656,6 +654,12 @@ namespace engine
       {
          goto error ;
       }
+      rc = _createSysIndex ( CAT_TASK_INFO_COLLECTION,
+                             CAT_TASK_INFO_NAMEIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       // create SYSCAT.SYSINDEXES
       rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION, cb ) ;
@@ -764,6 +768,103 @@ namespace engine
          }
       }
 
+      // collection for recycle bin item
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_ITEM_COLLECTION, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
+                   "rc: %d", CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
+
+      // index for recycle name
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
+                            UTIL_RECYCLEBIN_ITEM_NAME_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_ITEM_NAME_INDEX,
+                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
+
+      // index for origin name
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
+                            UTIL_RECYCLEBIN_ORIGNAME_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_ORIGNAME_INDEX,
+                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
+
+      // index for recycle ID
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
+                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_RECYID_INDEX,
+                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
+
+      // index for origin ID
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
+                            UTIL_RECYCLEBIN_ORIGID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_ORIGID_INDEX,
+                   CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
+
+      // collection for recycled collection space
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CS_COLLECTION, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
+                   "rc: %d", CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
+
+      // index for recycle ID of recycled collection space
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_CS_COLLECTION,
+                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_RECYID_INDEX,
+                   CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
+
+      // collection for recycled collection
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CL_COLLECTION, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
+                   "rc: %d", CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
+
+      // index for recycle ID of recycled collection
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_CL_COLLECTION,
+                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_RECYID_INDEX,
+                   CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
+
+      // index for unique ID of recycled collection
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_CL_COLLECTION,
+                            UTIL_RECYCLEBIN_UID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_UID_INDEX,
+                   CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
+
+      // collection for recycled sequence
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_SEQ_COLLECTION, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
+                   "rc: %d", CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
+
+      // index for recycle ID of recycled sequence
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_SEQ_COLLECTION,
+                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_RECYID_INDEX,
+                   CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
+
+      // collection for recycled index
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_IDX_COLLECTION, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
+                   "rc: %d", CAT_SYSRECYCLEBIN_IDX_COLLECTION, rc ) ;
+
+      // index for recycle ID of recycled index
+      rc = _createSysIndex( CAT_SYSRECYCLEBIN_IDX_COLLECTION,
+                            UTIL_RECYCLEBIN_RECYID_INDEX, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create system index [%s] "
+                   "on system collection [%s], rc: %d",
+                   UTIL_RECYCLEBIN_RECYID_INDEX,
+                   CAT_SYSRECYCLEBIN_IDX_COLLECTION, rc ) ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT__ENSUREMETADATA, rc ) ;
       return rc ;
@@ -791,11 +892,18 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to active cata dc manager, rc: %d",
                    rc ) ;
 
-      // catCatalogueManager::active() should be executed after
-      // catDCManager::active(), because it need to query SYSDCBASE
       rc = _pCatCB->getCatlogueMgr()->active() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to active catalog manager, rc: %d",
                    rc ) ;
+
+      rc = _pCatCB->getRecycleBinMgr()->active(
+            _pCatCB->getCatDCMgr()->getDCInfo()->getRecycleBinConf() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
+                   "rc: %d", rc ) ;
+
+      // all managers are active, now we can perform upgrade
+      rc = _pCatCB->checkUpgrade() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to upgrade CATALOG, rc: %d", rc ) ;
 
    done:
       _changeEvent.signal() ;
@@ -867,59 +975,89 @@ namespace engine
       MsgOpReply reply ;
       MsgOpReply *pReply     = NULL ;
 
-      // send the reply whether successful or not
-      rc = rtnGetMore( pGetMore->contextID, pGetMore->numToReturn,
-                       buffObj, _pEDUCB, _pRtnCB ) ;
+      rtnContextPtr pContext ;
+      BOOLEAN bIsDelay = FALSE ;
+      BOOLEAN rtnDel = FALSE ;
+
+      rc = _pRtnCB->contextFind ( pGetMore->contextID, pContext, _pEDUCB ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d",
+                  pGetMore->contextID, rc ) ;
+         goto error ;
+      }
+
+      if ( pContext->isWrite() )
+      {
+         rc = _pCatCB->primaryCheck( _pEDUCB, FALSE, bIsDelay ) ;
+         if ( rc )
+         {
+            rtnDel = TRUE ;
+            PD_LOG( PDERROR, "Failed to check primary, rc: %d", rc );
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore( pContext, pGetMore->numToReturn, buffObj,
+                       _pEDUCB, _pRtnCB ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )
          {
             PD_LOG ( PDERROR, "Failed to get more, rc: %d", rc ) ;
          }
-         delContextByID( pGetMore->contextID, FALSE );
-      }
-      msgLen =  sizeof(MsgOpReply) + buffObj.size() ;
-
-      // free by end of function
-      pReply = (MsgOpReply *)SDB_THREAD_ALLOC( msgLen ) ;
-      if ( NULL == pReply )
-      {
-         PD_LOG ( PDERROR, "Malloc error( size = %d )", msgLen ) ;
-         rc = SDB_OOM ;
-         pReply = &reply ;
-         msgLen = sizeof( reply ) ;
-         buffObj.release() ;
+         goto error ;
       }
 
-      pReply->header.messageLength = msgLen ;
-      pReply->header.opCode        = MSG_BS_GETMORE_RES ;
-      pReply->header.TID           = pGetMore->header.TID ;
-      pReply->header.routeID.value = 0 ;
-      pReply->header.requestID     = pGetMore->header.requestID ;
-      pReply->contextID            = pGetMore->contextID ;
-      pReply->startFrom            = (INT32)buffObj.getStartFrom() ;
-      pReply->numReturned          = buffObj.recordNum() ;
-      pReply->flags                = rc ;
-      /// copy data
-      if ( buffObj.size() > 0 )
+   done:
       {
-         ossMemcpy( (CHAR *)pReply + sizeof(MsgOpReply), buffObj.data(),
-                    buffObj.size() ) ;
-      }
+         msgLen =  sizeof(MsgOpReply) + buffObj.size() ;
 
-      /// send result
-      rc = _pCatCB->sendReply( handle, pReply, rc ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to syncSend, rc = %d", rc ) ;
-      }
+         // free by end of function
+         pReply = (MsgOpReply *)SDB_THREAD_ALLOC( msgLen ) ;
+         if ( NULL == pReply )
+         {
+            PD_LOG ( PDERROR, "Malloc error( size = %d )", msgLen ) ;
+            rc = SDB_OOM ;
+            pReply = &reply ;
+            msgLen = sizeof( reply ) ;
+            buffObj.release() ;
+         }
 
-      if ( pReply && pReply != &reply )
-      {
-         SDB_THREAD_FREE( pReply ) ;
+         pReply->header.messageLength = msgLen ;
+         pReply->header.opCode        = MSG_BS_GETMORE_RES ;
+         pReply->header.TID           = pGetMore->header.TID ;
+         pReply->header.routeID.value = 0 ;
+         pReply->header.requestID     = pGetMore->header.requestID ;
+         pReply->header.globalID      = pGetMore->header.globalID ;
+         pReply->contextID            = pGetMore->contextID ;
+         pReply->startFrom            = (INT32)buffObj.getStartFrom() ;
+         pReply->numReturned          = buffObj.recordNum() ;
+         pReply->flags                = rc ;
+         /// copy data
+         if ( buffObj.size() > 0 )
+         {
+            ossMemcpy( (CHAR *)pReply + sizeof(MsgOpReply), buffObj.data(),
+                       buffObj.size() ) ;
+         }
+
+         /// send result
+         rc = _pCatCB->sendReply( handle, pReply, rc ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to syncSend, rc = %d", rc ) ;
+         }
+
+         if ( pReply && pReply != &reply )
+         {
+            SDB_THREAD_FREE( pReply ) ;
+         }
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_GETMOREMSG, rc ) ;
       return rc ;
+   error:
+      delContextByID( pGetMore->contextID, rtnDel ) ;
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_ADVANCEMSG, "catMainController::_processAdvanceMsg" )
@@ -1004,6 +1142,7 @@ namespace engine
       msgReply.header.requestID = pReq->header.requestID;
       msgReply.header.routeID.value = 0;
       msgReply.header.TID = pReq->header.TID;
+      msgReply.header.globalID = pReq->header.globalID ;
 
       PD_TRACE_ENTRY ( SDB_CATMAINCT_KILLCONTEXT ) ;
       do
@@ -1126,6 +1265,7 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to init command[%s], rc: %d",
                     pCommand->name(), rc ) ;
+      _pEDUCB->setCurProcessName( pCommand->getProcessName() ) ;
 
       rc = pCommand->doit( _pEDUCB, ctxBuff, contextID ) ;
       PD_RC_CHECK ( rc, PDERROR,
@@ -1140,10 +1280,11 @@ namespace engine
          // send reply
          MsgOpReply replyHeader ;
          replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-         replyHeader.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode );
-         replyHeader.header.TID = pMsg->TID;
-         replyHeader.header.routeID.value = 0;
-         replyHeader.header.requestID = pMsg->requestID;
+         replyHeader.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode ) ;
+         replyHeader.header.TID = pMsg->TID ;
+         replyHeader.header.routeID.value = 0 ;
+         replyHeader.header.requestID = pMsg->requestID ;
+         replyHeader.header.globalID = pMsg->globalID ;
          replyHeader.contextID = contextID ;
          replyHeader.flags = rc ;
          replyHeader.startFrom = 0 ;
@@ -1326,6 +1467,7 @@ namespace engine
          msgReply.header.TID = pMsgHeader->TID;
          msgReply.header.routeID.value = 0;
          msgReply.header.requestID = pMsgHeader->requestID;
+         msgReply.header.globalID = pMsgHeader->globalID ;
          msgReply.contextID = contextID ;
          msgReply.startFrom = (INT32)buffObj.getStartFrom() ;
          msgReply.numReturned = buffObj.recordNum() ;
@@ -1384,6 +1526,8 @@ namespace engine
 
       _isDelayed = FALSE ;
 
+      _pEDUCB->clearProcessInfo() ;
+
       if ( MSG_PACKET == msg->opCode )
       {
          rc = _processPacketMsg( handle, msg ) ;
@@ -1414,6 +1558,8 @@ namespace engine
 
          _pCatCB->onEndCommand( msg, rc ) ;
       }
+
+      _pEDUCB->clearProcessInfo() ;
 
       return rc ;
    }
@@ -1513,6 +1659,7 @@ namespace engine
             reply.header.requestID = pMsg->requestID ;
             reply.header.routeID.value = 0 ;
             reply.header.TID = pMsg->TID ;
+            reply.header.globalID = pMsg->globalID ;
             reply.flags = rc ;
             reply.contextID = -1 ;
             reply.numReturned = 1 ;
@@ -1554,6 +1701,7 @@ namespace engine
       reply.header.requestID        = pMsg->requestID;
       reply.header.routeID.value    = 0 ;
       reply.header.TID              = pMsg->TID ;
+      reply.header.globalID         = pMsg->globalID ;
 
       _pCatCB->incPacketLevel() ;
 
@@ -1561,8 +1709,45 @@ namespace engine
       while( pos < pMsg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)pMsg + pos ) ;
+
+         // copy route ID
+         pTmpMsg->routeID.value = pMsg->routeID.value ;
+
          pos += pTmpMsg->messageLength ;
          reply.header.opCode = MAKE_REPLY_TYPE(pTmpMsg->opCode) ;
+
+         // for GTS message in packet message, post it to GTS manager
+         if ( ( MSG_GTS_BEGIN < pTmpMsg->opCode ) &&
+              ( pTmpMsg->opCode < MSG_GTS_END ) )
+         {
+            if ( pos >= pMsg->messageLength )
+            {
+               // post the message to GTS manager
+               rc = _pCatCB->getCatGTSMgr()->handleMsg( handle, pTmpMsg ) ;
+               if ( SDB_OK != rc )
+               {
+                  // failed to post the message, don't decrease the packet level,
+                  // let us send the error message back
+                  PD_LOG( PDERROR, "Failed to post GTS message, "
+                          "rc: %d", rc ) ;
+               }
+               else
+               {
+                  // processed by GTS manager, no need to send the reply
+                  _pCatCB->decPacketLevel() ;
+                  hasDec = TRUE ;
+               }
+            }
+            else
+            {
+               // if the GTS message is in the middle, return unknown message
+               // to peer, peer node will break the packet itself and retry
+               PD_LOG( PDWARNING, "Failed to handle packet message with GTS "
+                       "message in the middle" ) ;
+               rc = SDB_UNKNOWN_MESSAGE ;
+            }
+            break ;
+         }
 
          /// Is the last
          if ( pos >= pMsg->messageLength )
@@ -1607,6 +1792,7 @@ namespace engine
       reply.header.requestID = pMsg->requestID ;
       reply.header.routeID.value = 0 ;
       reply.header.TID = pMsg->TID ;
+      reply.header.globalID = pMsg->globalID ;
       reply.contextID = -1 ;
       reply.flags = SDB_OK ;
       reply.numReturned = 0 ;
@@ -1682,6 +1868,7 @@ namespace engine
       reply.header.requestID = pMsg->requestID ;
       reply.header.routeID.value = 0 ;
       reply.header.TID = pMsg->TID ;
+      reply.header.globalID = pMsg->globalID ;
       reply.contextID = -1 ;
       reply.flags = SDB_OK ;
       reply.numReturned = 0 ;
@@ -1761,6 +1948,7 @@ namespace engine
       reply.header.requestID = pMsg->requestID ;
       reply.header.routeID.value = 0 ;
       reply.header.TID = pMsg->TID ;
+      reply.header.globalID = pMsg->globalID ;
       reply.contextID = -1 ;
       reply.flags = SDB_OK ;
       reply.numReturned = 0 ;
@@ -1831,6 +2019,7 @@ namespace engine
       reply.header.requestID        = pMsgReq->header.requestID;
       reply.header.routeID.value    = 0 ;
       reply.header.TID              = pMsgReq->header.TID ;
+      reply.header.globalID         = pMsgReq->header.globalID ;
 
       /// check wether the route id is right
       MsgRouteID localRouteID       = _pCatCB->netWork()->localID() ;

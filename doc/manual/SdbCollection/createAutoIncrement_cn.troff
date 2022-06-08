@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -37,7 +37,7 @@ T{
 T}@T{
 option|options
 T}@T{
-Json 对象
+object/array
 T}@T{
 自增字段参数。
 T}@T{

@@ -370,7 +370,8 @@ namespace engine
       response.rspTimeError = client.getTimeError() ;
 
       // send by net agent
-      rc = _netManager->getNetAgent()->syncSend( handle, &response ) ;
+      rc = _netManager->getNetAgent()->syncSend( handle,
+                                                 (MsgHeader *)&response ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize time response, "
                    "rc: %d", rc ) ;
 

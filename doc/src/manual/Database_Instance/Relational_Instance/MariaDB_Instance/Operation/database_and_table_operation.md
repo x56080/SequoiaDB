@@ -57,7 +57,7 @@ MariaDB [company]> USE company;
 用户在 MariaDB 上创建表时，可以在表选项 COMMENT 中指定关键词"sequoiadb" ，并在其后添加一个 json 对象用于传入自定义的表配置参数。格式如下：
 
 ```lang-ini
-COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|false>] }"
+COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}, auto_partition:<true|false>, mapping:<string>] }"
 ```
 
 **具体配置参数**
@@ -67,6 +67,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 | string | string |用户自定义注释字符串 | 否 |
 | table_options | json | 创建集合的相关参数，详细参数可参考 [SequoiaDB 创建集合选项][createCL]| 否 |
 | auto_partition | boolean | 是否创建分区表，取值为 false 则显式创建非分区表| 否 |
+| mapping | string | 指定表与集合的[元数据映射][metadata_mapping_management]关系，格式为 `mapping: "<集合空间>.<集合>"`| 否 |
 
 **示例**
 
@@ -119,3 +120,4 @@ MariaDB [company]> DROP DATABASE company;
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
+[metadata_mapping_management]:Database_Instance/Relational_Instance/MariaDB_Instance/Maintainance/metadata_mapping_management.md

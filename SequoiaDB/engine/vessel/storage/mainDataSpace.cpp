@@ -42,7 +42,6 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
 #include "dpsDef.hpp"
-#include "vessel/deltaLogRecordBuilder.h"
 #include "dpsLogRecordDef.hpp"
 #include "utilStr.hpp"
 #include "vessel/fsmFile.h"

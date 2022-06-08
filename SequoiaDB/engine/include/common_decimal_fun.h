@@ -117,6 +117,8 @@ int sdb_decimal_update_typemod( bson_decimal *decimal, int typemod ) ;
 
 int sdb_decimal_is_out_of_precision( bson_decimal *decimal, int typemod ) ;
 
+int sdb_decimal_view_from_bsonvalue( const char *value,
+                                     bson_decimal *decimal ) ;
 
 SDB_EXTERN_C_END
 

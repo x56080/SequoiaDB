@@ -43,6 +43,7 @@
 
 namespace engine
 {
+
    /*
     * _catCtxDataBase define
     */
@@ -53,7 +54,7 @@ namespace engine
       virtual ~_catCtxDataBase () ;
 
    protected :
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _regEventHandlers() ;
 
       virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb, INT16 w )
       { return SDB_OK ; }
@@ -64,7 +65,7 @@ namespace engine
       { return SDB_OK ; }
 
    protected :
-      std::vector<UINT32> _groupList ;
+      catCtxGroupHandler _groupHandler ;
    } ;
 
    /*
@@ -107,7 +108,8 @@ namespace engine
       INT32 _addDropCLTask ( const std::string &clName,
                              INT32 version,
                              _catCtxDropCLTask **ppCtx,
-                             BOOLEAN pushExec = TRUE ) ;
+                             BOOLEAN pushExec = TRUE,
+                             BOOLEAN rmTaskAndIdx = TRUE ) ;
    } ;
 
    /*
@@ -131,16 +133,18 @@ namespace engine
          return RTN_CONTEXT_CAT_DROP_CS ;
       }
 
-      INT32 open ( const CHAR *pQuery,
+      INT32 open ( const bson::BSONObj &query,
                    rtnContextBuf &buffObj,
                    _pmdEDUCB *cb ) ;
 
    protected :
+      typedef _catCtxCLMultiTask _BASE ;
+
+      virtual INT32 _regEventHandlers() ;
+
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
-
-      virtual INT32 _makeReply ( rtnContextBuf & buffObj ) ;
 
       INT32 _addDropCSTask ( const std::string &csName,
                              _catCtxDropCSTask **ppCtx,
@@ -165,7 +169,9 @@ namespace engine
    private:
       /* ensure collectionspace is empty or not */
       BOOLEAN _ensureEmpty ;
-      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
+      catCtxGlobIdxHandler _globIdxHandler ;
+      catRecyCtxTaskHandler _taskHandler ;
+      catCtxRecycleHandler _recycleHandler ;
    } ;
 
    typedef class _catCtxDropCS catCtxDropCS ;
@@ -201,7 +207,6 @@ namespace engine
 
       protected :
          std::string _newCSName ;
-         BSONObj _boCollectionspace ;
    } ;
 
    typedef class _catCtxRenameCS catCtxRenameCS ;
@@ -263,7 +268,7 @@ namespace engine
          return RTN_CONTEXT_CAT_CREATE_CL ;
       }
 
-      INT32 open ( const CHAR *pQuery,
+      INT32 open ( const bson::BSONObj &query,
                    rtnContextBuf &buffObj,
                    _pmdEDUCB *cb ) ;
 
@@ -274,7 +279,7 @@ namespace engine
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
@@ -345,16 +350,20 @@ namespace engine
          return RTN_CONTEXT_CAT_DROP_CL ;
       }
 
-      INT32 open ( const CHAR *pQuery,
+      INT32 open ( const bson::BSONObj &query,
                    rtnContextBuf &buffObj,
                    _pmdEDUCB *cb ) ;
 
    protected :
+      typedef _catCtxCLMultiTask _BASE ;
+
+      virtual INT32 _regEventHandlers() ;
+
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
 
       INT32 _addDropCLSubTasks ( _catCtxDropCLTask *pDropCLTask,
                                  _pmdEDUCB *cb ) ;
@@ -368,8 +377,9 @@ namespace engine
                                    BOOLEAN pushExec = TRUE ) ;
 
    protected :
-      INT32 _needUpdateCoord ;
-      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
+      catCtxGlobIdxHandler _globIdxHandler ;
+      catRecyCtxTaskHandler _taskHandler ;
+      catCtxRecycleHandler _recycleHandler ;
    } ;
 
    typedef class _catCtxDropCL catCtxDropCL ;
@@ -456,8 +466,7 @@ namespace engine
       INT32 _addAlterSubCLTask ( catCtxAlterCLTask * catTask,
                                  pmdEDUCB * cb,
                                  catCtxLockMgr & lockMgr,
-                                 std::set< std::string > & collectionSet,
-                                 std::vector< UINT32 > & groupList ) ;
+                                 std::set< std::string > & collectionSet ) ;
       INT32 _addSequenceTask( const string & collection,
                               const rtnAlterTask * task,
                               catCtxTaskBase ** catAutoIncTask ) ;
@@ -471,7 +480,22 @@ namespace engine
                                   const rtnAlterTask * task,
                                   catCtxTaskBase ** catAutoIncTask ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      virtual INT32 _buildP2Reply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      virtual INT32 _buildPCReply( bson::BSONObjBuilder &builder )
+      {
+         return _buildTaskReply( builder ) ;
+      }
+
+      INT32 _buildTaskReply( bson::BSONObjBuilder &builder ) ;
 
    protected :
       rtnAlterJob _alterJob ;
@@ -558,7 +582,49 @@ namespace engine
    } ;
 
    typedef class _catCtxUnlinkCL catCtxUnlinkCL ;
+
+   /*
+      _catCtxTruncCL define
+    */
+   class _catCtxTruncCL : public _catCtxDataBase
+   {
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxTruncCL )
+   public :
+      _catCtxTruncCL( INT64 contextID, UINT64 eduID ) ;
+
+      virtual ~_catCtxTruncCL() ;
+
+      virtual const CHAR* name() const
+      {
+         return "CAT_TRUNCATE_CL" ;
+      }
+
+      virtual RTN_CONTEXT_TYPE getType () const
+      {
+         return RTN_CONTEXT_CAT_TRUNCATE_CL ;
+      }
+
+   protected :
+      typedef _catCtxDataBase _BASE ;
+
+      virtual INT32 _regEventHandlers() ;
+
+      virtual INT32 _parseQuery( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _checkInternal( _pmdEDUCB *cb ) ;
+
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
+
+      virtual INT32 _executeInternal( _pmdEDUCB *cb, INT16 w ) ;
+
+   protected :
+      catCtxGlobIdxHandler _globIdxHandler ;
+      catRecyCtxTaskHandler _taskHandler ;
+      catCtxRecycleHandler _recycleHandler ;
+   } ;
+
+   typedef class _catCtxTruncCL catCtxTruncCL ;
+
 }
 
 #endif //CATCONTEXTDATA_HPP_
-

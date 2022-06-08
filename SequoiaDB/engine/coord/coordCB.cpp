@@ -162,8 +162,9 @@ namespace engine
 
       _sitePropMgr.setInstanceOption( optCB->getPrefInstStr(),
                                       optCB->getPrefInstModeStr(),
-                                      optCB->isPreferedStrict(),
-                                      optCB->getPreferedPeriod(),
+                                      optCB->isPreferredStrict(),
+                                      optCB->getPreferredPeriod(),
+                                      optCB->getPrefConstraint(),
                                       PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
 
       rc = _remoteSessionMgr.init( _pAgent, &_sitePropMgr, &_dsMgr ) ;
@@ -218,22 +219,11 @@ namespace engine
 
       // set to primary
       pmdSetPrimary( TRUE ) ;
-      sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
+      rc = sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "all services, rc: %d", rc ) ;
 
-      // 1. start coord net work
-      rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)_pAgent,
-                               &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
-                   rc ) ;
-      rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
-      PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
-
-      /// active data source
-      rc = _dsMgr.active() ;
-      PD_RC_CHECK( rc, PDERROR, "Active data source manager failed, rc: %d",
-                   rc ) ;
-
-      // 2. start coord manager
+      // 1. start coord manager
       _attachEvent.reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDMGR, (_pmdObjBase*)this,
                                &eduID ) ;
@@ -243,7 +233,20 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to wait coord manager edu "
                    "attach, rc: %d", rc ) ;
 
-      // 3. set timer, and send register msg
+      // 2. start coord net work
+      rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)_pAgent,
+                               &eduID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
+                   rc ) ;
+      rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
+      PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
+
+      // 3. active data source
+      rc = _dsMgr.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Active data source manager failed, rc: %d",
+                   rc ) ;
+
+      // 4. set timer, and send register msg
       // if this coord is created before all catalog, don't need to register
       _resource.getCataNodeAddrList( catalogAddrList ) ;
       if ( !catalogAddrList.empty() )
@@ -337,8 +340,9 @@ namespace engine
 
       _sitePropMgr.setInstanceOption( optCB->getPrefInstStr(),
                                       optCB->getPrefInstModeStr(),
-                                      optCB->isPreferedStrict(),
-                                      optCB->getPreferedPeriod(),
+                                      optCB->isPreferredStrict(),
+                                      optCB->getPreferredPeriod(),
+                                      optCB->getPrefConstraint(),
                                       PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
    }
 
@@ -420,7 +424,7 @@ namespace engine
       }
       else
       {
-         rc = _pAgent->syncSend ( handle, (void *)pReply ) ;
+         rc = _pAgent->syncSend ( handle, (MsgHeader *)pReply ) ;
       }
 
       PD_RC_CHECK ( rc, PDERROR, "Send reply message[opCode:(%d)%d, "
@@ -513,7 +517,7 @@ retry :
       }
 
       // send to catalog primary node
-      rc = _pAgent->syncSend ( nodeID, (void*)pMsg, pHandle ) ;
+      rc = _pAgent->syncSend ( nodeID, pMsg, pHandle ) ;
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDWARNING, "Send message to primary catalog[%u, "
@@ -553,13 +557,14 @@ retry :
       buff = (CHAR *)SDB_THREAD_ALLOC( length ) ;
       if ( buff == NULL )
       {
-         PD_LOG ( PDERROR, "Failed to allocate memroy for register req" ) ;
+         PD_LOG ( PDERROR, "Failed to allocate memory for register req" ) ;
          rc = SDB_OOM ;
          goto error ;
       }
 
       pReq = (MsgCatRegisterReq*)buff ;
       pReq->header.messageLength = length ;
+      pReq->header.flags = 0 ;
       pReq->header.opCode = MSG_CAT_REG_REQ ;
       pReq->header.requestID = 0 ;
       pReq->header.TID = 0 ;
@@ -893,6 +898,7 @@ retry :
             /// send reply
             _replyHeader.header.messageLength = sizeof( MsgOpReply ) +
                                                 buffObj.size();
+            _replyHeader.header.globalID      = pMsg->globalID ;
             _replyHeader.flags                = rc ;
             _replyHeader.contextID            = contextID ;
             _replyHeader.startFrom            = (INT32)buffObj.getStartFrom() ;
@@ -931,7 +937,7 @@ retry :
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
 
-      rc = rtnGetMore ( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
+      rc = rtnGetMore( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
       if ( rc )
       {
          rtnDel = FALSE ;

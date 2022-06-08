@@ -396,6 +396,21 @@ namespace engine
       return rc ;
    }
 
+   rtnLocalTaskPtr _rtnLocalTaskMgr::getTask( UINT64 taskID )
+   {
+      rtnLocalTaskPtr taskPtr ;
+
+      ossScopedLock lock( &_taskLatch, SHARED ) ;
+
+      MAP_TASK_IT iter = _taskMap.find( taskID ) ;
+      if ( _taskMap.end() != iter )
+      {
+         taskPtr = iter->second ;
+      }
+
+      return taskPtr ;
+   }
+
 }
 
 

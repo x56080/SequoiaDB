@@ -72,6 +72,7 @@ const string SEQUOIAFS_META_ID_CL_FULL = SEQUOIAFS_META_CS + "." +
 using namespace sdbclient;
 using namespace sequoiafs;
 using namespace bson;
+using namespace engine;
 
 const INT32 BUFSIZE=1000;
 
@@ -772,6 +773,8 @@ INT32 sequoiaFS::_addMountID(sdb *db)
    BSONObj record;
    BSONObj emtpyObj;
    INT64 id = 0L;
+   string oldmountpoint;
+   CHAR tempPath[OSS_MAX_PATHSIZE + 1] = {0};
 
    rc = initMetaCSCL(db, SEQUOIAFS_CS, SEQUOIAFS_MOUNTID_CL, "", FALSE, emtpyObj);
    if(SDB_OK != rc)
@@ -876,10 +879,23 @@ INT32 sequoiaFS::_addMountID(sdb *db)
                PD_CHECK(String == ele.type(), SDB_INVALIDARG,
                      error, PDERROR, "The type of field:%s is not string",
                      FS_MOUNT_PATH);
-               if(0 != ossStrcmp((CHAR*)ele.valuestrsafe(), _mountpoint.c_str()))
+
+               oldmountpoint = ele.valuestrsafe();
+               if(NULL != ossGetRealPath(ele.valuestrsafe(), tempPath, OSS_MAX_PATHSIZE))
                {
-                  PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
-                                   SEQUOIAFS_MOUNTID_FULLCL, rc);
+                  oldmountpoint = tempPath;
+               }
+
+               if(_mountpoint != oldmountpoint)
+               {
+                  PD_LOG(PDERROR, "The mountpoint must be the same as an "
+                                  "existing mountpoint using the same collection,"
+                                  " existing mountpoint=%s, new mountpoint=%s",
+                                  ele.valuestrsafe(), _mountpoint.c_str());
+                  ossPrintf("The mountpoint must be the same as the "
+                            "existing mountpoint using the same collection,"
+                            " existing mountpoint=%s, new mountpoint=%s. exit."OSS_NEWLINE,
+                            ele.valuestrsafe(), _mountpoint.c_str());                
                   rc = SDB_INVALIDARG;
                   goto error;
                }
@@ -950,7 +966,6 @@ INT32 sequoiaFS::_initRootPath(sdb *db)
    }
 
 done:
-   releaseConnection(db);
    return rc;
 
 error:
@@ -960,7 +975,7 @@ error:
 INT32 sequoiaFS::writeMapHistory(const CHAR *hosts)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    BSONObj obj;
    BSONObj timeObj;
    sdbCollection cl;
@@ -1317,8 +1332,6 @@ INT32 sequoiaFS::init()
    {
       PD_LOG(PDERROR, "Failed to add mountid, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to add mountid, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
-                SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
 
@@ -1842,7 +1855,7 @@ error:
 INT32 sequoiaFS::unlink(const CHAR *path)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    CHAR *fileName = NULL;
    sdbCollection sysFileMetaCL;
    sdbCollection cl;
@@ -2116,7 +2129,7 @@ error:
 INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link, struct fuse_context *context)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    CHAR *linkName = NULL;
    sdbCollection sysFileMetaCL;
    OID oid;
@@ -2366,7 +2379,7 @@ error:
 INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;
    CHAR *linkName = NULL;
    CHAR *fileName = NULL;
    sdbCollection sysFileMetaCL;

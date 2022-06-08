@@ -165,10 +165,7 @@ public class Faulttolerance22202 extends SdbTestBase {
                                     + "hsdkjfhsdsafnweuhfuiwnqsdljfhjdshfjksdhfsdfhsdjefiuokdjf" );
                     records.add( record );
                 }
-                for ( int i = 0; i < 5000; i++ ) {
-                    if ( shutoff ) {
-                        break;
-                    }
+                while ( !shutoff ) {
                     // 当插入数据报错时不停止线程，只有shutoff为true时才停止线程
                     try {
                         cl.insert( records );
@@ -213,10 +210,7 @@ public class Faulttolerance22202 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 5000; i++ ) {
-                    if ( shutoff ) {
-                        break;
-                    }
+                while ( !shutoff ) {
                     DBLob lob = cl.createLob();
                     lob.write( lobBuff );
                     lob.close();

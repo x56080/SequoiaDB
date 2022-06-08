@@ -51,6 +51,7 @@
 #include <vector>
 #include "ossMemPool.hpp"
 #include "monCB.hpp"
+#include "utilRecycleItem.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -597,6 +598,76 @@ namespace engine
    } ;
    typedef _monCSName monCSName ;
    typedef std::vector< monCSName >          MON_CSNAME_VEC ;
+
+   class _monRecycleItem : public _utilRecycleItem
+   {
+   public:
+      _monRecycleItem()
+      : _utilRecycleItem(),
+        _pageSize( 0 ),
+        _lobPageSize( 0 ),
+        _totalRecords( 0 ),
+        _totalLobs( 0 ),
+        _totalDataSize( 0 ),
+        _totalIndexSize( 0 ),
+        _totalLobSize( 0 )
+      {
+      }
+
+      _monRecycleItem( const _utilRecycleItem &item )
+      : _utilRecycleItem( item ),
+        _pageSize( 0 ),
+        _lobPageSize( 0 ),
+        _totalRecords( 0 ),
+        _totalLobs( 0 ),
+        _totalDataSize( 0 ),
+        _totalIndexSize( 0 ),
+        _totalLobSize( 0 )
+      {
+      }
+
+      _monRecycleItem( const _monRecycleItem &item )
+      : _utilRecycleItem( item ),
+        _pageSize( item._pageSize ),
+        _lobPageSize( item._lobPageSize ),
+        _totalRecords( item._totalRecords ),
+        _totalLobs( item._totalLobs ),
+        _totalDataSize( item._totalDataSize ),
+        _totalIndexSize( item._totalIndexSize ),
+        _totalLobSize( item._totalLobSize )
+      {
+      }
+
+      ~_monRecycleItem()
+      {
+      }
+
+      _monRecycleItem &operator =( const _monRecycleItem &item )
+      {
+         _utilRecycleItem::operator =( item ) ;
+         _pageSize = item._pageSize ;
+         _lobPageSize = item._lobPageSize ;
+         _totalRecords = item._totalRecords ;
+         _totalLobs = item._totalLobs ;
+         _totalDataSize = item._totalDataSize ;
+         _totalIndexSize = item._totalIndexSize ;
+         _totalLobSize = item._totalLobSize ;
+
+         return ( *this ) ;
+      }
+
+   public:
+      INT32 _pageSize ;
+      INT32 _lobPageSize ;
+      INT64 _totalRecords ;
+      INT64 _totalLobs ;
+      INT64 _totalDataSize ;
+      INT64 _totalIndexSize ;
+      INT64 _totalLobSize ;
+   } ;
+
+   typedef class _monRecycleItem monRecycleItem ;
+   typedef ossPoolList< monRecycleItem > MON_RECYCLE_LIST ;
 
 }
 

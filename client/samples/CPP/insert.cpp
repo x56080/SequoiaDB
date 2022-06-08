@@ -15,8 +15,12 @@
  * Manual Compile:
  *    Dynamic Linking:
  *    Linux:
- *       g++ insert.cpp common.cpp -o insert -I../../include -O0 -ggdb \ 
- *       -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
+ *       if GCC version >= 5.1
+ *          g++ insert.cpp common.cpp -o insert -I../../include -O0 -ggdb \ 
+ *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ insert.cpp common.cpp -o insert -I../../include -O0 -ggdb \ 
+ *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
  *    Win:
  *       cl /Foinsert.obj /c insert.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 \
  *       /Z7 /TP
@@ -26,8 +30,13 @@
  *       /build
  *       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
  *    Static Linking:
- *    Linux: g++ insert.cpp common.cpp -o insert.static -I../../include -O0
- *           -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
+ *    Linux: 
+ *       if GCC version >= 5.1
+ *          g++ insert.cpp common.cpp -o insert.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ insert.cpp common.cpp -o insert.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
  * Run:
  * Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./insert <hostname> \
  *        <servicename> <username> <password>
@@ -72,6 +81,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    // define local variables
    // initialize them before use
    BSONObj obj ;
+   BSONObj result ;
 
    INT32 rc = SDB_OK ;
 
@@ -105,14 +115,16 @@ INT32 main ( INT32 argc, CHAR **argv )
    obj = BSON ( "name" << "tom" << "age" << 24 ) ;
    cout<<"The inserted record is: "<<endl ;
    cout<<obj.toString()<<endl ;
+
    // then,insert to the specified collection
-   rc = collection.insert ( obj ) ;
+   rc = collection.insert( obj, FLG_INSERT_RETURN_OID, &result ) ;
    if ( rc!=SDB_OK )
    {
       cout<<"Failed to insert record, rc = "<<rc<<endl ;
       goto error ;
    }
-   cout<<"Success to insert record!"<<endl ;
+   cout<< "Insert result: " << result.toString() <<endl ;
+
    // drop the specified collection
    rc = collectionspace.dropCollection( COLLECTION_NAME ) ;
    if( rc!=SDB_OK )

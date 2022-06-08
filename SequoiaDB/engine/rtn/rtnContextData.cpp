@@ -48,13 +48,67 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "pmdController.hpp"
-#include "dmsEngineCB.hpp"
-#include "dmsCursorReader.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
+
+   INT32 _rtnCmpSection::woNCompare( const BSONObj &l,
+                                     const BSONObj &r, UINT32 keyNum,
+                                     const BSONObj &keyPattern ) const
+   {
+      BSONObjIterator itrL( l ) ;
+      BSONObjIterator itrR( r ) ;
+      BSONObjIterator itrK( keyPattern ) ;
+      UINT32 i = 0 ;
+      INT32 cmp = 0 ;
+      BOOLEAN ordered = !keyPattern.isEmpty() ;
+
+      for ( i = 0 ; i < keyNum && itrL.more() && itrR.more() ; ++i )
+      {
+        BSONElement eL = itrL.next() ;
+        BSONElement eR = itrR.next() ;
+
+        BSONElement eK ;
+        if ( ordered )
+        {
+          if ( itrK.more() )
+          {
+            eK = itrK.next() ;
+          }
+          else
+          {
+            SDB_ASSERT( FALSE, "Key pattern is invalid" ) ;
+            ordered = FALSE ;
+          }
+        }
+
+        cmp = eL.woCompare( eR, FALSE ) ;
+        if ( 0 != cmp )
+        {
+          if ( ordered && eK.numberInt() < 0 )
+          {
+            cmp = -cmp ;
+          }
+          return cmp ;
+        }
+      }
+
+      if ( i < keyNum )
+      {
+        if ( itrL.more() )
+        {
+          cmp = 1 ;
+        }
+        else
+        {
+          cmp = -1 ;
+        }
+      }
+      return cmp ;
+   }
+
    /*
       _rtnContextData implement
    */
@@ -73,6 +127,7 @@ namespace engine
       _numToSkip        = 0 ;
 
       _extentID         = DMS_INVALID_EXTENT ;
+      _lastExtentID     = DMS_INVALID_EXTENT ;
       _lastExtLID       = DMS_INVALID_EXTENT ;
       _segmentScan      = FALSE ;
       _indexBlockScan   = FALSE ;
@@ -86,6 +141,7 @@ namespace engine
       _enableQueryActivity = TRUE ;
       _rsFilter         = NULL ;
       _appendRIDFilter  = FALSE ;
+      _isPrevSec        = FALSE ;
    }
 
    _rtnContextData::~_rtnContextData ()
@@ -114,8 +170,7 @@ namespace engine
          _queryModifier = NULL ;
          _dmsCB->writeDown( pmdGetThreadEDUCB() ) ;
       }
-
-      _cursor.reset();
+      _isPrevSec = FALSE ;
    }
 
    const CHAR* _rtnContextData::name() const
@@ -145,7 +200,8 @@ namespace engine
       _appendRIDFilter = appendMode ;
    }
 
-   INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby ) const
+   INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby,
+                                              BOOLEAN isRange ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -155,7 +211,7 @@ namespace engine
          PD_LOG_MSG( PDERROR, "Table scan does not support advance" ) ;
          rc = SDB_OPTION_NOT_SUPPORT ;
       }
-      else if ( _planRuntime.getPlan()->sortRequired() )
+      else if ( !isRange && _planRuntime.getPlan()->sortRequired() )
       {
          PD_LOG_MSG( PDERROR, "Orderby is not the same with index" ) ;
          rc = SDB_OPTION_NOT_SUPPORT ;
@@ -173,6 +229,636 @@ namespace engine
       }
 
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__PREPRAREDOADVANCE, "_rtnContextData::_prepareDoAdvance" )
+   INT32 _rtnContextData::_prepareDoAdvance ( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__PREPRAREDOADVANCE ) ;
+
+      rtnAdvanceSection sec ;
+      INT32 type = MSG_ADVANCE_TO_FIRST_IN_VALUE ;
+
+      if ( _nextAdvanceSecIt == _advanceSectionList.end() )
+      {
+         _hitEnd = TRUE ;
+         if ( isEmpty() )
+         {
+            rc = SDB_DMS_EOC ;
+         }
+         goto done ;
+      }
+
+      sec = *_nextAdvanceSecIt ;
+      if ( !sec.startIncluded )
+      {
+         type = MSG_ADVANCE_TO_NEXT_OUT_VALUE ;
+      }
+
+      rc = _doAdvance( type, sec.prefixNum, sec.startKey, _orderBy,
+                       sec.startKey, TRUE, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__RTNCTXDATA__PREPRAREDOADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC, "_rtnContextData::_extractAllEqualSec" )
+   INT32 _rtnContextData::_extractAllEqualSec( INT32 indexFieldNum,
+                                               const BSONElement &eNum,
+                                               const BSONElement &eVal )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC ) ;
+
+      INT32 prefixNum = 0 ;
+      BSONObj indexValue ;
+      BSONObjIterator indexIt ;
+
+      try
+      {
+         if ( NumberInt != eNum.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Int",
+                        FIELD_NAME_PREFIX_NUM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( Array != eVal.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
+                        FIELD_NAME_INDEXVALUE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         prefixNum = eNum.numberInt() ;
+         if ( prefixNum <= 0 )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
+                        FIELD_NAME_PREFIX_NUM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( prefixNum > indexFieldNum )
+         {
+            PD_LOG ( PDWARNING, "PrefixNum[%d] is too long, truncate to "
+                     "the same as the number of order by field", prefixNum ) ;
+            prefixNum = indexFieldNum ;
+         }
+
+         indexValue = eVal.embeddedObject() ;
+         indexIt = BSONObjIterator( indexValue ) ;
+
+         while ( indexIt.more() )
+         {
+            BSONObj keyObj ;
+            BSONObjBuilder startBuilder ;
+            BSONObjBuilder endBuilder ;
+            rtnAdvanceSection section ;
+            BSONObjIterator orderIt( _orderBy ) ;
+            BSONObjIterator keyObjIt ;
+            BSONElement elem = indexIt.next() ;
+
+            if ( Object != elem.type() )
+            {
+               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
+                           FIELD_NAME_INDEXVALUE ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            keyObj = elem.embeddedObject() ;
+            keyObjIt = BSONObjIterator ( keyObj ) ;
+            for ( INT32 i = 0 ; i < prefixNum && orderIt.more() ; ++ i )
+            {
+
+               BSONElement eField = orderIt.next() ;
+               if ( keyObjIt.more() )
+               {
+                  BSONElement eVal = keyObjIt.next() ;
+                  startBuilder.appendAs ( eVal, "" ) ;
+                  endBuilder.appendAs ( eVal, "" ) ;
+               }
+               else
+               {
+                  if ( eField.numberInt() > 0 )
+                  {
+                     startBuilder.appendMinKey( "" ) ;
+                     endBuilder.appendMaxKey( "" ) ;
+                  }
+                  else
+                  {
+                     startBuilder.appendMaxKey( "" ) ;
+                     endBuilder.appendMinKey( "" ) ;
+                  }
+               }
+            }
+
+            section.prefixNum = prefixNum ;
+            section.startIncluded = TRUE ;
+            section.endIncluded = TRUE ;
+            section.startKey = startBuilder.obj() ;
+            section.endKey = endBuilder.obj() ;
+            _advanceSectionList.push_back ( section ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to extract all equal section, rc: %d, "
+                 "Occur exception: %s", rc, e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__EXTRACTRANGESEC, "_rtnContextData::_extractRangeSec" )
+   INT32 _rtnContextData::_extractRangeSec( INT32 indexFieldNum,
+                                            const BSONElement &eNum,
+                                            const BSONElement &eVal,
+                                            const BSONElement &eIndexValueInc )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__EXTRACTRANGESEC ) ;
+
+      BSONObj keyVal ;
+      BSONObj objValueInc ;
+      BSONObj objPrefixNum ;
+      BSONObj objValue ;
+      BSONObjIterator objValueIt ;
+      BSONObjIterator objValueIncIt ;
+      BSONObjIterator objPrefixNumIt ;
+
+      try
+      {
+         if ( Array != eIndexValueInc.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
+                        FIELD_NAME_INDEXVALUE_INCLUDED );
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( Array != eNum.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
+                        FIELD_NAME_PREFIX_NUM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( Array != eVal.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
+                        FIELD_NAME_INDEXVALUE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         objValueInc = eIndexValueInc.embeddedObject() ;
+         objPrefixNum = eNum.embeddedObject() ;
+         objValue = eVal.embeddedObject() ;
+
+         if ( objValueInc.nFields() != objValue.nFields() )
+         {
+            PD_LOG_MSG( PDERROR, "The number of Field[%s] must be equal "
+                        "to Field[%s]", FIELD_NAME_INDEXVALUE_INCLUDED,
+                        FIELD_NAME_INDEXVALUE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if( objPrefixNum.nFields() != objValue.nFields() )
+         {
+            PD_LOG_MSG( PDERROR, "The number of Field[%s] must be equal "
+                        "to Field[%s]", FIELD_NAME_PREFIX_NUM,
+                        FIELD_NAME_INDEXVALUE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         objValueIt = BSONObjIterator( objValue ) ;
+         objValueIncIt = BSONObjIterator( objValueInc ) ;
+         objPrefixNumIt = BSONObjIterator( objPrefixNum ) ;
+
+         while ( objValueIt.more() )
+         {
+            INT32 prefixNum ;
+            BOOLEAN start = TRUE ;
+            BSONObj indexValue ;
+            BSONObj indexValueInc ;
+            BSONObjIterator indexValueIt ;
+            BSONObjIterator indexValueIncIt ;
+            rtnAdvanceSection section ;
+
+            BSONElement eValue = objValueIt.next() ;
+            BSONElement eValueInc = objValueIncIt.next() ;
+            BSONElement ePrefixNum = objPrefixNumIt.next() ;
+
+            if ( eValue.type() != Array )
+            {
+               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
+                           FIELD_NAME_INDEXVALUE ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( eValueInc.type() != Array )
+            {
+               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
+                           FIELD_NAME_INDEXVALUE_INCLUDED ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( ePrefixNum.type() != NumberInt )
+            {
+               PD_LOG_MSG( PDERROR, "The value of Field[%s] must be "
+                           "Int", FIELD_NAME_PREFIX_NUM ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            prefixNum = ePrefixNum.numberInt() ;
+            if ( prefixNum <= 0 )
+            {
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
+                           FIELD_NAME_PREFIX_NUM ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( prefixNum > indexFieldNum )
+            {
+               PD_LOG ( PDWARNING, "PrefixNum[%d] is too long, truncate to "
+                        "the same as the number of order by field", prefixNum ) ;
+               prefixNum = indexFieldNum ;
+            }
+
+            indexValue = eValue.embeddedObject() ;
+            indexValueInc = eValueInc.embeddedObject() ;
+            indexValueIt = BSONObjIterator( indexValue ) ;
+            indexValueIncIt = BSONObjIterator( indexValueInc ) ;
+
+            while ( indexValueIt.more() )
+            {
+               BSONObj keyObj ;
+               BSONObjBuilder builder ;
+               BSONObjIterator orderIt( _orderBy ) ;
+               BSONObjIterator keyObjIt ;
+               BSONElement eIndexValue = indexValueIt.next() ;
+               BSONElement eIndexValueInc = indexValueIncIt.next() ;
+
+               if ( eIndexValue.type() != Object )
+               {
+                  PD_LOG_MSG( PDERROR, "The single index value of "
+                              "section '%s' of Field[%s] must be Object",
+                              eIndexValue.toString().c_str(),
+                              FIELD_NAME_INDEXVALUE ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               else if ( eIndexValueInc.type() != Bool )
+               {
+                  PD_LOG_MSG( PDERROR, "The single index include value of "
+                              "section '%s' of Field[%s] must be Bool",
+                              eIndexValueInc.toString().c_str(),
+                              FIELD_NAME_INDEXVALUE_INCLUDED ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+
+               keyObj = eIndexValue.embeddedObject() ;
+               keyObjIt = BSONObjIterator ( keyObj ) ;
+               for ( INT32 i = 0 ; i < prefixNum && orderIt.more() ; ++i )
+               {
+                  BSONElement eField = orderIt.next() ;
+                  if ( keyObjIt.more() )
+                  {
+                     builder.appendAs( keyObjIt.next(), "" ) ;
+                  }
+                  else
+                  {
+                     BOOLEAN isPositive = eField.numberInt() > 0 ;
+                     if ( isPositive == start )
+                     {
+                        builder.appendMinKey( "" ) ;
+                     }
+                     else
+                     {
+                        builder.appendMaxKey( "" ) ;
+                     }
+                  }
+               }
+               keyVal = builder.obj() ;
+
+               if ( start )
+               {
+                  start = FALSE;
+                  section.prefixNum = prefixNum ;
+                  section.startIncluded = eIndexValueInc.Bool() ;
+                  section.startKey = keyVal ;
+               }
+               else
+               {
+                  INT32 cmp = 0 ;
+
+                  section.endIncluded = eIndexValueInc.Bool() ;
+                  section.endKey = keyVal ;
+
+                  cmp = _woNCompare( section.startKey, section.endKey,
+                                     FALSE, section.prefixNum, _orderBy ) ;
+                  if ( cmp > 0 )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "The start and end values of section "
+                                 "[%s, %s] don't meet the index scan order",
+                                 section.startKey.toString().c_str(),
+                                 section.endKey.toString().c_str() ) ;
+                     goto error ;
+                  }
+                  _advanceSectionList.push_back ( section ) ;
+                  break ;
+               }
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to extract range section, rc: %d, "
+                 "Occur exception: %s", rc, e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__RTNCTXDATA__EXTRACTRANGESEC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__SETADVANCESECTION, "_rtnContextData::setAdvanceSection" )
+   INT32 _rtnContextData::setAdvanceSection ( const BSONObj &arg )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__SETADVANCESECTION ) ;
+
+      BSONElement eNum ;
+      BSONElement eVal ;
+      BSONElement eValueInc ;
+      BSONElement eIsAllEqual ;
+      INT32 indexFieldNum = 0 ;
+      BOOLEAN isAllEqual = FALSE ;
+      ixmIndexCB *pIndexCB = NULL ;
+
+      rc = _getAdvanceOrderby( _orderBy, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // check index
+      pIndexCB = _scanner->getIndexCB() ;
+      if ( !pIndexCB )
+      {
+         PD_LOG ( PDERROR, "Failed to allocate memory for indexCB" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      if ( !pIndexCB->isInitialized() )
+      {
+         rc = SDB_DMS_INIT_INDEX ;
+         goto done ;
+      }
+
+      if ( pIndexCB->getFlag() != IXM_INDEX_FLAG_NORMAL )
+      {
+         rc = SDB_IXM_UNEXPECTED_STATUS ;
+         goto done ;
+      }
+
+      // compare the historical index OID with the current index oid, to make
+      // sure the index is not changed during the time
+      if ( !pIndexCB->isStillValid ( _scanner->getIdxOID() ) ||
+           _scanner->getIdxLID() != pIndexCB->getLogicalID() )
+      {
+         rc = SDB_DMS_INVALID_INDEXCB ;
+         goto done ;
+      }
+
+      try
+      {
+         eIsAllEqual = arg.getField( FIELD_NAME_IS_ALL_EQUAL ) ;
+         eValueInc = arg.getField( FIELD_NAME_INDEXVALUE_INCLUDED ) ;
+         eNum = arg.getField( FIELD_NAME_PREFIX_NUM ) ;
+         eVal = arg.getField( FIELD_NAME_INDEXVALUE ) ;
+
+         if ( Bool != eIsAllEqual.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Bool",
+                        FIELD_NAME_IS_ALL_EQUAL ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         indexFieldNum = pIndexCB->keyPattern().nFields() ;
+         isAllEqual = eIsAllEqual.Bool() ;
+
+         if ( isAllEqual )
+         {
+            rc = _extractAllEqualSec (indexFieldNum, eNum, eVal ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else
+         {
+            rc = _extractRangeSec(indexFieldNum, eNum, eVal, eValueInc) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+
+         _advanceSectionList.sort( rtnCmpSection(_orderBy) ) ;
+         _nextAdvanceSecIt = _advanceSectionList.begin() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to set advance section [%s], rc: %d, Occur "
+                 "exception: %s", arg.toString().c_str(), rc, e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCTXDATA__SETADVANCESECTION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA_VALIDATE, "_rtnContextData::validate" )
+   INT32 _rtnContextData::validate ( const BSONObj &record )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXDATA_VALIDATE ) ;
+
+      INT32 cmp = 0 ;
+      BOOLEAN matched = FALSE ;
+      BSONObj curKeyObj ;
+      rtnAdvanceSection sec ;
+      INT32 prefixNum = -1 ;
+
+      if ( _advanceSectionList.empty() ||
+           _nextAdvanceSecIt == _advanceSectionList.end() )
+      {
+         goto done ;
+      }
+
+      sec = *_nextAdvanceSecIt ;
+
+      /// generate keyVal
+      if ( !_keyGen.isInit() )
+      {
+         rc = _keyGen.setKeyPattern( _orderBy ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Set index generate pattern failed, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = _keyGen.getKeys( record, curKeyObj ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Generate key from obj(%s) failed, rc: %d",
+                          record.toPoolString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         while ( _nextAdvanceSecIt != _advanceSectionList.end() )
+         {
+            sec = *_nextAdvanceSecIt ;
+            prefixNum = sec.prefixNum ;
+
+            if ( _isPrevSec )
+            {
+               cmp = _woNCompare( curKeyObj, sec.endKey, FALSE,
+                                  prefixNum, _orderBy ) ;
+               if ( 0 == cmp )
+               {
+                  if ( sec.endIncluded )
+                  {
+                     matched = TRUE ;
+                     break ;
+                  }
+                  else
+                  {
+                     _nextAdvanceSecIt++ ;
+                     _isPrevSec = FALSE ;
+                  }
+               }
+               else if ( cmp < 0 )
+               {
+                  matched = TRUE ;
+                  break ;
+               }
+               else
+               {
+                  _nextAdvanceSecIt++ ;
+                  _isPrevSec = FALSE ;
+               }
+
+            }
+            else
+            {
+               cmp = _woNCompare( sec.startKey, curKeyObj,
+                                  FALSE, prefixNum, _orderBy ) ;
+               if ( 0 == cmp )
+               {
+                  if ( !sec.startIncluded )
+                  {
+                     rc = SDB_IXM_ADVANCE_EOC ;
+                     PD_LOG( PDINFO, "Advance to the next section for scanning "
+                                     "record, rc: %d", rc ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     matched = TRUE ;
+                     _isPrevSec = TRUE ;
+                     break ;
+                  }
+               }
+               else if ( cmp < 0 )
+               {
+                  cmp = _woNCompare( curKeyObj, sec.endKey, FALSE,
+                                     prefixNum, _orderBy ) ;
+                  if ( 0 == cmp )
+                  {
+                     if ( sec.endIncluded )
+                     {
+                        matched = TRUE ;
+                        _isPrevSec = TRUE ;
+                        break ;
+                     }
+                     else
+                     {
+                        _nextAdvanceSecIt++ ;
+                     }
+                  }
+                  else if ( cmp < 0 )
+                  {
+                     matched = TRUE ;
+                     _isPrevSec = TRUE ;
+                     break ;
+                  }
+                  else
+                  {
+                     _nextAdvanceSecIt++ ;
+                  }
+               }
+               else
+               {
+                  rc = SDB_IXM_ADVANCE_EOC ;
+                  PD_LOG( PDINFO, "Advance to the next section for scanning "
+                                  "record, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to validate reccord, rc: %d, "
+                 "Occur exception: %s", rc, e.what() ) ;
+         goto error ;
+      }
+
+      if ( !matched )
+      {
+         rc = SDB_IXM_ADVANCE_EOC ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_RTNCTXDATA_VALIDATE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA__DOADVANCE, "_rtnContextData::_doAdvance" )
@@ -256,7 +942,8 @@ namespace engine
 
          if ( prefixNum > keyPatternNum )
          {
-            SDB_ASSERT( FALSE, "Invalid prefix number" ) ;
+            PD_LOG ( PDWARNING, "PrefixNum[%s] is too long, truncate to "
+                     "the same as the number of order by field", prefixNum ) ;
             prefixNum = keyPatternNum ;
          }
 
@@ -448,20 +1135,13 @@ namespace engine
 
       // for index scan, we maintain context by runtime instead of by DMS
       ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
-                           su->index(),
-                           NULL ) ;
-      if ( !indexCB.isInitialized() )
+                           su->index(), NULL ) ;
+
+      rc = rtnIsIndexCBValid( &indexCB, _planRuntime.getIndexCBExtent(),
+                              _planRuntime.getIndexName(),
+                              _planRuntime.getIndexLID(), su, mbContext ) ;
+      if ( rc )
       {
-         PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      if ( indexCB.getLogicalID() != _planRuntime.getIndexLID() )
-      {
-         PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                 "expected[%d]", _planRuntime.getIndexCBExtent(),
-                 indexCB.getLogicalID(), _planRuntime.getIndexLID() ) ;
-         rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
 
@@ -522,51 +1202,45 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPTBSC );
 
-      if (DMS_STORAGE_VESSEL != su->type())
+      if ( blockObj )
       {
-         if ( blockObj )
-         {
-            rc = _parseSegments( *blockObj, _segments ) ;
-            PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
-                        blockObj->toString().c_str(), rc ) ;
+         SEGMENT_VEC segExtents ;
+         rc = _parseSegments( *blockObj, _segments ) ;
+         PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
+                      blockObj->toString().c_str(), rc ) ;
 
-            _segmentScan = TRUE ;
-            _extentID = _segments.size() > 0 ? *_segments.begin() :
-                        DMS_INVALID_EXTENT ;
-         }
-         else
+         // Check once again if the block ids given by the user are still valid.
+         rc = su->getSegExtents( mbContext->mb()->_collectionName,
+                                 segExtents, mbContext ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get segment extents of collection %s "
+                      "failed, rc: %d", mbContext->mb()->_collectionName, rc ) ;
+
+         for ( SEGMENT_VEC_CITR cItr = _segments.begin();
+               cItr != _segments.end(); ++cItr )
          {
-            _extentID = mbContext->mb()->_firstExtentID ;
+            if ( segExtents.end() ==
+                 std::find( segExtents.begin(), segExtents.end(), *cItr ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The specified datablock [%d] does not "
+                           "belong to collection %s, rc: %d",
+                           *cItr, mbContext->mb()->_collectionName, rc ) ;
+               goto error ;
+            }
          }
 
-         if ( DMS_INVALID_EXTENT == _extentID )
-         {
-            _hitEnd = TRUE ;
-         }
+         _segmentScan = TRUE ;
+         _extentID = _segments.size() > 0 ? *_segments.begin() :
+                     DMS_INVALID_EXTENT ;
       }
       else
       {
-         ossPoolString fullName;
-         fullName.append(su->CSName()).append(".")
-                 .append(mbContext->mb()->_collectionName);
-         IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-         DATA_COLLECTION_PTR cl;
-         dmsScanOptions o;
-         //o.rowCountLimit = returnOptions.getLimit();
+         _extentID = mbContext->mb()->_firstExtentID ;
+      }
 
-         rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d", fullName.c_str(), rc);
-            goto error;
-         }
-
-         rc = cl->scan(cb, o, _cursor);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to open cursor on cl[%s], rc:%d", fullName.c_str(), rc);
-            goto error;
-         }
+      if ( DMS_INVALID_EXTENT == _extentID )
+      {
+         _hitEnd = TRUE ;
       }
 
    done:
@@ -624,16 +1298,8 @@ namespace engine
       }
       else if ( IXSCAN == _planRuntime.getScanType() )
       {
-         if (DMS_STORAGE_VESSEL == su->type())
-         {
-            rc = _openIXScanCursor(su, mbContext, cb,
-                                   returnOptions, direction);
-         }
-         else
-         {
-            rc = _openIXScan( su, mbContext, cb, returnOptions,
-                              blockObj, direction ) ;
-         }
+         rc = _openIXScan( su, mbContext, cb, returnOptions,
+                           blockObj, direction ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open ixscan, rc: %d", rc ) ;
 
          mbContext->mbStat()->_crudCB.increaseIxScan( 1 ) ;
@@ -904,15 +1570,11 @@ namespace engine
 
       if ( TBSCAN == _scanType )
       {
-         rc = _cursor ?
-               _prepareByScanCursor(cb) :
-               _prepareByTBScan( cb, accessType, dollarList ) ;
+         rc = _prepareByTBScan( cb, accessType, dollarList ) ;
       }
       else if ( IXSCAN == _scanType )
       {
-         rc = _cursor ?
-              _prepareByScanCursor(cb) :
-              _prepareByIXScan( cb, accessType, dollarList ) ;
+         rc = _prepareByIXScan( cb, accessType, dollarList ) ;
       }
       else
       {
@@ -993,7 +1655,11 @@ namespace engine
          selObj = obj ;
       }
 
-      rc = append( selObj ) ;
+      rc = append( selObj, &obj ) ;
+      if ( SDB_IXM_ADVANCE_EOC == rc )
+      {
+         goto done ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                    selObj.toString().c_str(), rc ) ;
 
@@ -1016,6 +1682,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "get next record failed:rc=%d", rc ) ;
 
          rc = _selectAndAppend( selector, record ) ;
+         if ( SDB_IXM_ADVANCE_EOC == rc )
+         {
+            goto done ;
+         }
          PD_RC_CHECK( rc, PDERROR, "selectAndAppend failed:rc=%d", rc ) ;
       }
 
@@ -1063,7 +1733,7 @@ namespace engine
       }
 
       extScanner = extFactory->create( _su->data(), _mbContext, matchRuntime,
-                                       _extentID, accessType,
+                                       _extentID, _lastExtentID, accessType,
                                        _numToReturn, _numToSkip,
                                        _returnOptions.getFlag() ) ;
       if ( !extScanner )
@@ -1188,6 +1858,7 @@ namespace engine
          }
          else
          {
+            _lastExtentID = extScanner->curExtentID() ;
             _extentID = extScanner->nextExtentID() ;
          }
          _lastExtLID = extScanner->curExtent()->_logicID ;
@@ -1291,7 +1962,7 @@ namespace engine
                                              _indexRIDs[1],
                                              _direction ) ;
          }
-         if ( isCountMode() && !cb->isTransRR() )
+         if ( isCountMode() )
          {
             secScanner.enableCountMode() ;
          }
@@ -1340,6 +2011,12 @@ namespace engine
                   }
 
                   rc = _innerAppend( selector, generator ) ;
+                  if ( SDB_IXM_ADVANCE_EOC == rc )
+                  {
+                     secScanner.stop () ;
+                     goto done ;
+                  }
+
                   PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
 
                   // make sure we still have room to read another
@@ -1440,7 +2117,7 @@ namespace engine
    }
 
    INT32 _rtnContextData::_parseSegments( const BSONObj &obj,
-                                          vector< dmsExtentID > &segments )
+                                          SEGMENT_VEC &segments )
    {
       INT32 rc = SDB_OK ;
       BSONElement ele ;
@@ -1608,171 +2285,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextData::_openIXScanCursor(_dmsStorageUnit *su,
-                                             _dmsMBContext *mbContext,
-                                             _pmdEDUCB *cb,
-                                             const rtnReturnOptions &returnOptions,
-                                             INT32 direction)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(DMS_STORAGE_VESSEL == su->type(), "can not be other types");
-      SDB_ASSERT(NULL != _planRuntime.getPlan(), "can not be null");
-      ossPoolString fullName;
-      fullName.append(su->CSName()).append(".")
-               .append(mbContext->mb()->_collectionName);
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      DATA_COLLECTION_PTR cl;
-      dmsIndexScanOptions o;
-
-      //o.rowCountLimit = returnOptions.getLimit();
-      SDB_ASSERT(0 != _planRuntime.getPlan()->getDirection(), "invalid direction");
-      o.forward = 0 < _planRuntime.getPlan()->getDirection();
-
-      ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
-                           su->index(),
-                           NULL ) ;
-      if ( !indexCB.isInitialized() )
-      {
-         PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      if ( indexCB.getLogicalID() != _planRuntime.getIndexLID() )
-      {
-         PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                 "expected[%d]", _planRuntime.getIndexCBExtent(),
-                 indexCB.getLogicalID(), _planRuntime.getIndexLID() ) ;
-         rc = SDB_IXM_NOTEXIST ;
-         goto error ;
-      }
-
-      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d", fullName.c_str(), rc);
-         goto error;
-      }
-
-      SDB_ASSERT(NULL != _planRuntime.getPredList(), "can not be null");
-      rc = cl->scanIndex(cb, indexCB.getName(),
-                         *_planRuntime.getPredList(),
-                         o, _cursor);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open index scan cursor:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 _rtnContextData::_prepareByScanCursor(pmdEDUCB *cb)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != cb, "can not be null");
-      SDB_ASSERT(NULL != _cursor.get(), "not inited");
-
-      constexpr UINT32 _BUFFER_LIMIT = (UINT32)128 << 10;
-
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-      mthMatchRuntime *matchRuntime = _planRuntime.getMatchRuntime( TRUE ) ;
-      _mthMatchTreeContext mthContext;
-      dmsBsonCursorReader reader;
-      reader.init(_cursor);
-      UINT32 pushed = 0;
-
-      while (0 != _numToReturn && pushed < _BUFFER_LIMIT)
-      {
-         bson::BSONObj record;
-      
-         rc = reader.fetchNext(cb);
-         if (SDB_DMS_EOC == rc)
-         {
-            rc = SDB_OK;
-            _hitEnd = TRUE;
-            break;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fetch next record:%d", rc);
-            goto error;
-         }
-
-         if (NULL != matchRuntime && NULL != matchRuntime->getMatchTree())
-         {
-            BOOLEAN matched = FALSE;
-            _mthMatchTree *matcher = matchRuntime->getMatchTree() ;
-            rtnParamList *parameters = matchRuntime->getParametersPointer() ;
-            mthContext.clearRecordInfo() ;
-
-            rc = matcher->matches(reader.getRecord(), matched,
-                                  &mthContext, parameters);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to match record, rc: %d", rc ) ;
-               goto error ;
-            }
-            else if (!matched)
-            {
-               continue;
-            }
-         }
-
-         if (0 < _numToSkip)
-         {
-            --_numToSkip;
-            continue;
-         }
-         
-         if (_selector.isInitialized())
-         {
-            rc = _selector.select(reader.getRecord(), record);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to build projection:%d", rc);
-               goto error;
-            }
-         }
-         else
-         {
-            record = reader.getRecord();
-         }
-
-         rc = append(record);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append record to buffer:%d", rc);
-            goto error;
-         }
-
-         pushed += record.objsize();
-         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-         if (_numToReturn > 0)
-         {
-            if (0 == --_numToReturn)
-            {
-               break;
-            }
-         }
-      }
-
-      if ( !isEmpty() )
-      {
-         rc = SDB_OK ;
-      }
-      else
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    /*
       _rtnContextParaData implement
    */
@@ -1919,6 +2431,7 @@ namespace engine
       {
          _su = NULL ;
       }
+      _isOpened = FALSE ;
       goto done ;
    }
 

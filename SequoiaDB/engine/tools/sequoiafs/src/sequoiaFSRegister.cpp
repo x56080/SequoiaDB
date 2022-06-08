@@ -42,8 +42,8 @@
 #include "pmd.hpp"
 
 using namespace engine;
-using namespace bson; 
-using namespace sdbclient;  
+using namespace bson;
+using namespace sdbclient;
 
 namespace sequoiafs
 {
@@ -54,17 +54,17 @@ namespace sequoiafs
     _running(FALSE)
    {
    }
-   
+
    fsRegister::~fsRegister()
-   { 
+   {
    }
-         
+
    void fsRegister::fini()
    {
       _running = FALSE;
       _agent.stop();
    }
-   
+
    INT32 fsRegister::start(sdbConnectionPool* ds, CHAR* mountCL, CHAR* mountPath)
    {
       INT32 rc = SDB_OK;
@@ -99,7 +99,7 @@ namespace sequoiafs
       rc = _queryMountId(_mountCL, _mountPath, &_mountCLID);
       if(SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "Failed to queryMountId. _mountCL:%s, _mountPath:%s, rc=%d", 
+         PD_LOG( PDERROR, "Failed to queryMountId. _mountCL:%s, _mountPath:%s, rc=%d",
                  _mountCL, _mountPath, rc);
          goto error;
       }
@@ -136,7 +136,7 @@ namespace sequoiafs
          PD_LOG( PDERROR, "Failed to register to mcs, rc=%d", rc);
          goto error;
       }
-   
+
    done:
       return rc;
    error:
@@ -159,7 +159,7 @@ namespace sequoiafs
             continue;
          }
          count = 0;
-         
+
          if(!_isRegistered)
          {
             rc = registerToMCS();
@@ -181,7 +181,7 @@ namespace sequoiafs
       rc = _queryMcsInfo(SEQUOIADB_SERVICE_FULLCL, &hostname, &port);
       if(SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "Failed to queryMcsInfo, cl:%s. rc=%d", 
+         PD_LOG( PDERROR, "Failed to queryMcsInfo, cl:%s. rc=%d",
                  SEQUOIADB_SERVICE_FULLCL, rc);
          goto error;
       }
@@ -191,19 +191,19 @@ namespace sequoiafs
       {
          if(SDB_NET_UPDATE_EXISTING_NODE != rc)
          {
-            PD_LOG( PDERROR, "Failed to updateRoute. hostname:%s, port:%s, rc=%d", 
+            PD_LOG( PDERROR, "Failed to updateRoute. hostname:%s, port:%s, rc=%d",
                           hostname.c_str(), port.c_str(), rc);
             goto error;
          }
       }
-      
+
       rc = _agent.syncConnect(_routeID, &_pHandle);
       if(SDB_OK != rc)
       {
          PD_LOG( PDERROR, "Failed to syncConnect. rc=%d", rc);
          goto error;
       }
-      
+
       rc = sendRegReq(_mountPath, _mountCLID, _mountIP);
       if(SDB_OK != rc)
       {
@@ -240,7 +240,7 @@ namespace sequoiafs
       ossStrncpy(regReq->mountPath, mountPath, pathLen); //mountpath
       regReq->pathLen = pathLen; //pathlen
       regReq->mountPath[pathLen] = '\0';
-      rc = _agent.syncSend(_pHandle, (void *)regReq);
+      rc = _agent.syncSend(_pHandle, (MsgHeader *)regReq);
       if(SDB_OK != rc)
       {
          PD_LOG( PDERROR, "Failed to syncSend. rc=%d", rc);
@@ -259,7 +259,7 @@ namespace sequoiafs
       INT32 rc = SDB_OK;
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr();
       EDUID eduID = PMD_INVALID_EDUID ;
- 
+
       rc = pEDUMgr->startEDU(EDU_TYPE_FS_MCS_NET_AGENT, (void *)&_agent, &eduID) ;
       if ( rc )
       {
@@ -276,7 +276,7 @@ namespace sequoiafs
                  getEDUStatusDesp(PMD_EDU_RUNNING ), rc) ;
          goto error ;
       }
-     
+
    done:
       return rc;
    error :
@@ -292,7 +292,7 @@ namespace sequoiafs
 
       if(!_isRegistered)
       {
-         goto done; 
+         goto done;
       }
 
       notifyReq = (_mcsNotifyReq *)(void *)SDB_OSS_MALLOC(messageLength);
@@ -312,8 +312,8 @@ namespace sequoiafs
       ossStrncpy(notifyReq->dirName, dirName, nameLen); //dirName
       notifyReq->nameLen = nameLen; //nameLen
       notifyReq->dirName[nameLen] = '\0';
-      
-      rc = _agent.syncSend(_pHandle, (void *)notifyReq);
+
+      rc = _agent.syncSend(_pHandle, (MsgHeader *)notifyReq);
       if(SDB_OK != rc)
       {
          PD_LOG( PDERROR, "Failed to syncSend. rc=%d", rc);
@@ -334,7 +334,7 @@ namespace sequoiafs
       {
          _metaCache->setCacheMeta();
       }
-      else 
+      else
       {
          _metaCache->cancleCacheMeta();
       }
@@ -350,7 +350,7 @@ namespace sequoiafs
       BSONObj record;
       BSONObj condition;
 
-      try 
+      try
       {
          condition = BSON(SERVICE_NAME<<SERVICE_NAME_MCS);
       }
@@ -360,7 +360,7 @@ namespace sequoiafs
          PD_LOG(PDERROR, "Exception[%s] occurs when build bson obj.", e.what());
          goto error;
       }
-      
+
       rc = _dbDao->getCL(SEQUOIADB_SERVICE_FULLCL, cl);
       if(SDB_OK != rc)
       {
@@ -427,7 +427,7 @@ namespace sequoiafs
       BSONObj record;
       BSONObj condition;
 
-      try 
+      try
       {
          condition= BSON(FS_MOUNT_CL<<mountcl<<FS_MOUNT_PATH<<mountpoint);
       }

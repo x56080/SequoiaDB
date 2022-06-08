@@ -53,6 +53,11 @@ INT32    pdGetLastError() ;
 void     pdSetLastError( INT32 err ) ;
 
 /*
+   Clear the thread-local last error no
+*/
+void     pdClearLastError() ;
+
+/*
    _pdGeneralException define
 */
 class _pdGeneralException : public std::exception

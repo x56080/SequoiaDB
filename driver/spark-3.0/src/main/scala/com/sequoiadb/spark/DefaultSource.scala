@@ -81,7 +81,7 @@ class DefaultSource extends DataSourceRegister
     // Check whether a collection is writable for the given mode
     // Return true for writable, return false for non-writable, throw exception for error
     private def isCollectionWritable(config: SdbConfig, mode: SaveMode): Boolean = {
-        val sdb = new Sequoiadb(config.host, config.username, config.password, null)
+        val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)
 
         try {
             mode match {

@@ -1,8 +1,10 @@
-/*******************************************************************************
-*@Description : Backup all and restore for cluster
-*@Modify list :
-*               2018-1-10  wenjing Wang Init
-*******************************************************************************/
+/******************************************************************************
+ * @Description   : Backup all and restore for cluster
+ * @Author        : wenjing Wang
+ * @CreateTime    : 2018.01.10
+ * @LastEditTime  : 2022.01.21
+ * @LastEditors   : 钟子明
+ ******************************************************************************/
 function backupTestCase11673 () { }
 
 backupTestCase11673.prototype = new backupTestCase( db );
@@ -94,12 +96,13 @@ backupTestCase11673.prototype.tearDown =
    function()
    {
       bakRemoveBackups( this.db, CHANGEDPREFIX, true );
+      commDropCS( db, backupTestCase11673.prototype.csName, true, "finally: dropCS in the end" );
       commDropCS( this.db, this.csName, true, "dropCS in the end" );
       commDropDomain( this.db, this.domainName );
-
+      db.removeRG( backupandrestoreGroup );
    }
 
-/**main( test );**/
+main( test );
 function test ()
 {
    if( commIsStandalone( db ) )
@@ -114,7 +117,6 @@ function test ()
       {
          testBackUp.test();
       }
-      testBackUp.tearDown();
    }
    catch( e )
    {
@@ -124,18 +126,20 @@ function test ()
          println( e.stack );
       }
 
-      var backupDir = "/tmp/ci/rsrvnodelog/11673";
-      File.mkdir( backupDir );
-      for( var i = 0; i < this.logSourcePaths.length; i++ )
-      {
-         File.scp( this.logSourcePaths[i], backupDir + "/sdbdiag" + i + ".log" );
-      }
+      var backupDir = WORKDIR + "ci/rsrvnodelog/11673";
+      commMakeDir( COORDHOSTNAME, backupDir );
+
+      //该变量未定义有可能是文件权限引起的，此处不应该让这个runtime异常阻挡真正的异常
+      //抛出，因为它只是一个错误记录
+      if( this.logSourcePaths != undefined )
+         for( var i = 0; i < this.logSourcePaths.length; i++ )
+         {
+            File.scp( this.logSourcePaths[i], backupDir + "/sdbdiag" + i + ".log" );
+         }
       throw e;
    }
    finally
    {
-      println( backupandrestoreGroup )
-      commDropCS( db, backupTestCase11673.prototype.csName, true, "finally: dropCS in the end" );
-      db.removeRG( backupandrestoreGroup );
+      testBackUp.tearDown();
    }
 }

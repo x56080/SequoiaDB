@@ -289,7 +289,7 @@ class collection(object):
 
         return task_id
 
-    def bulk_insert(self, flag , records):
+    def bulk_insert(self, flag, records):
         """Insert a bulk of record into current collection.
 
         Parameters:
@@ -297,18 +297,24 @@ class collection(object):
            flag        int        See Info as below.
            records     list/tuple The list of inserted records.
         Return values:
-            A dict object containing the insert details.
+            A dict object contains the insert details. As follow:
+            - InsertedNum    : The number of records successfully inserted, including replaced and ignored records.
+            - DuplicatedNum  : The number of records ignored or replaced due to duplicate key conflicts.
+            - LastGenerateID : The max value of all auto-increments that the first record inserted contains. The
+                               result will include this field if current collection has auto-increments.
+            - _id            : ObjectId of the inserted record. The result will include field "_id" if
+                               FLG_INSERT_RETURN_OID is used.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
-           The flag to control the behavior of inserting. The value of flag default to be INSERT_FLG_DEFAULT, and it can
-           choose the follow values:
-             INSERT_FLG_DEFAULT      : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record hit index
-                                               key duplicate error.
+           The flag to control the behavior of inserting. The value of flag default to be INSERT_FLG_DEFAULT, and it
+           can choose the follow values:
+             INSERT_FLG_DEFAULT      : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record
+                                       hit index key duplicate error.
              INSERT_FLG_CONTONDUP    : If the record hit index key duplicate error, database will skip it.
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
-             INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
-                                               the inserting new record and then go on inserting.
+             INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing
+                                       record by the inserting new record and then go on inserting.
         """
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
@@ -354,18 +360,24 @@ class collection(object):
             record    dict    The inserted record.
             flag      int     See Info as below.
          Return values:
-            A dict object containing the insert details.
+            A dict object contains the insert details. As follow:
+            - InsertedNum    : The number of records successfully inserted, including replaced and ignored records.
+            - DuplicatedNum  : The number of records ignored or replaced due to duplicate key conflicts.
+            - LastGenerateID : The max value of all auto-increments that the inserted record contains. The result
+                               will include this field if current collection has auto-increments.
+            - _id            : ObjectId of the inserted record. The result will include field "_id" if
+                               FLG_INSERT_RETURN_OID is used.
          Exceptions:
             pysequoiadb.error.SDBBaseError
          Info:
-           The flag to control the behavior of inserting. The value of flag default to be INSERT_FLG_DEFAULT, and it can
-           choose the follow values:
-             INSERT_FLG_DEFAULT      : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record hit index
-                                               key duplicate error.
+           The flag to control the behavior of inserting. The value of flag default to be INSERT_FLG_DEFAULT, and it
+           can choose the follow values:
+             INSERT_FLG_DEFAULT      : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record
+                                       hit index key duplicate error.
              INSERT_FLG_CONTONDUP    : If the record hit index key duplicate error, database will skip it.
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
-             INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
-                                               the inserting new record and then go on inserting.
+             INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing
+                                       record by the inserting new record and then go on inserting.
          """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
@@ -392,7 +404,11 @@ class collection(object):
                                         if not provided.
            - flags     int      See Info as below.
         Return values:
-            A dict object containing the update details.
+            A dict object contains the update details. As follow:
+            - UpdatedNum  : The number of records successfully updated, including records that match but have no
+                            data changes.
+            - ModifiedNum : The number of records successfully updated with data changes.
+            - InsertedNum : The number of records successfully inserted.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
@@ -449,7 +465,11 @@ class collection(object):
                                        to the fields when insert.
            - flags       int   See Info as below.
         Return values:
-            A dict object containing the upsert details.
+            A dict object contains the upsert details. As follow:
+            - UpdatedNum  : The number of records successfully updated, including records that match but have no
+                            data changes.
+            - ModifiedNum : The number of records successfully updated with data changes.
+            - InsertedNum : The number of records successfully inserted.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
@@ -502,13 +522,13 @@ class collection(object):
         Parameters:
            Name          Type  Info:
            doc           dict  The updating rule.
-        Return values:
-            A dict object containing the saving details.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Note:
            It won't work to update the "ShardingKey" field, but the other fields
                  take effect.
+        Deprecated:
+           This function is deprecated, use upsert() or insert_with_flag() instead of it.
         """
         if not isinstance(doc, dict):
             raise SDBTypeError("rule must be an instance of dict")
@@ -531,7 +551,8 @@ class collection(object):
                                      if not provided.
            - flags     int   See Info as below.
         Return values:
-            A dict object containing the deletion details.
+            A dict object contains the deletion details. As follow:
+            - DeletedNum : The number of records successfully deleted.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
@@ -1009,6 +1030,8 @@ class collection(object):
             record = None
         except SDBBaseError:
             raise
+        finally:
+            result.close()
 
         del result
 
@@ -1039,7 +1062,7 @@ class collection(object):
             return False
 
     def drop_index(self, idx_name):
-        """The index name.
+        """Removed the named index of current collection.
 
         Parameters:
            Name         Type  Info:
@@ -1217,8 +1240,8 @@ class collection(object):
 
         Parameters:
            Name            Type  Info:
-           subcl_full_name str   The name fo the subcollection.
-           options         dict  he low boudary and up boudary
+           subcl_full_name str   The name of the subcollection.
+           options         dict  The low boudary and up boudary
                                        eg: {"LowBound":{a:1},"UpBound":{a:100}}
         Exceptions:
            pysequoiadb.error.SDBBaseError
@@ -1570,6 +1593,8 @@ class collection(object):
             record = None
         except SDBBaseError:
             raise
+        finally:
+            result.close()
 
         del result
 

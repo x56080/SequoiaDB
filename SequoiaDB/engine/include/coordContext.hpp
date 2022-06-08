@@ -144,6 +144,12 @@ namespace engine
 
          virtual BOOLEAN   isWrite() const { return _isModify ; }
          virtual BOOLEAN   needRollback() const { return _isModify ; }
+         virtual const CHAR *getProcessName() const
+         {
+            return ( NULL != _options.getCLFullName() ) ?
+                   ( _options.getCLFullName() ) :
+                   ( "" ) ;
+         }
 
       public:
          virtual const CHAR*      name() const ;
@@ -290,7 +296,6 @@ namespace engine
       protected :
          SET_ROUTEID             _locationFilter ;
          optExplainCoordPath     _explainCoordPath ;
-         UINT64                  _endSessionTimeout ;
    } ;
 
    typedef class _rtnContextCoordExplain rtnContextCoordExplain ;

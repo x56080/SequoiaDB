@@ -96,6 +96,11 @@ namespace engine
       RTN_CONTEXT_LIST_LOB,
       RTN_CONTEXT_OM_TRANSFER,
       RTN_CONTEXT_TS,            // Context of text search
+      RTN_CONTEXT_TRUNCATECL,
+      RTN_CONTEXT_TRUNCATEMAINCL,
+      RTN_CONTEXT_RETURNCL,
+      RTN_CONTEXT_RETURNCS,
+      RTN_CONTEXT_RETURNMAINCL,
 
       /// Alter contexts
       RTN_CONTEXT_ALTERCS,
@@ -124,12 +129,12 @@ namespace engine
       RTN_CONTEXT_CAT_LINK_CL,
       RTN_CONTEXT_CAT_UNLINK_CL,
       RTN_CONTEXT_CAT_RENAME_CL,
+      RTN_CONTEXT_CAT_TRUNCATE_CL,
       /// Index related
       RTN_CONTEXT_CAT_CREATE_IDX,
       RTN_CONTEXT_CAT_DROP_IDX,
-
-      // vessel
-      RTN_CONTEXT_VESSEL_SCAN,
+      /// recycle bin related
+      RTN_CONTEXT_CAT_RETURN_RECYCLEBIN,
 
       /// The last
       RTN_CONTEXT_CAT_END
@@ -181,6 +186,13 @@ namespace engine
    } ;
    typedef _rtnPrefWatcher rtnPrefWatcher ;
 
+   class _rtnContextValidator: public _utilPooledObject
+   {
+   public:
+      virtual  INT32 validate( const BSONObj &record ) = 0 ;
+      virtual ~_rtnContextValidator() { }
+   } ;
+
    class _rtnContextStoreBuf: public _utilPooledObject
    {
    public:
@@ -188,7 +200,8 @@ namespace engine
       ~_rtnContextStoreBuf() ;
 
    public:
-      INT32    append( const BSONObj &obj ) ;
+      INT32    append( const BSONObj &obj, 
+                       const BSONObj *orgObj = NULL ) ;
       INT32    pushFront( const BSONObj &obj ) ;
       INT32    pushFronts( const CHAR *objBuf,
                            INT32 len,
@@ -205,6 +218,8 @@ namespace engine
       INT32    pop( UINT32 num = 1 ) ;
 
       void     release() ;
+
+      void     setContextValidator( _rtnContextValidator *contextValidator ) ;
 
    public:
       OSS_INLINE void      enableCountMode() { _countOnly = TRUE ; }
@@ -254,13 +269,14 @@ namespace engine
       INT32    _readOffset ;
       INT32    _writeOffset ;
       BOOLEAN  _countOnly ;
+      _rtnContextValidator *_contextValidator ;
    } ;
    typedef _rtnContextStoreBuf rtnContextStoreBuf ;
 
    /*
       _rtnContextBase define
    */
-   class _rtnContextBase : public _utilPooledObject
+   class _rtnContextBase : public _rtnContextValidator
    {
       friend class _rtnContextParaData ;
       friend class _rtnExplainBase ;
@@ -275,6 +291,16 @@ namespace engine
          INT64    contextID () const { return _contextID ; }
          UINT64   eduID () const { return _eduID ; }
 
+         void     setOpID( UINT64 opID )
+         {
+            _opID = opID ;
+         }
+
+         UINT64   getOpID() const
+         {
+            return _opID ;
+         }
+
          ossRWMutex*       dataLock () { return &_dataLock ; }
 
          _mthSelector & getSelector ()
@@ -287,7 +313,8 @@ namespace engine
             return _selector ;
          }
 
-         INT32    append( const BSONObj &result ) ;
+         INT32    append( const BSONObj &result,
+                          const BSONObj *orgResult = NULL ) ;
          INT32    appendObjs( const CHAR *pObjBuff,
                               INT32 len,
                               INT32 num,
@@ -378,15 +405,28 @@ namespace engine
             return DMS_INVALID_LOGICCSID ;
          }
 
-         virtual BOOLEAN needTimeout() const
+         // name of processing object ( collection space or collection )
+         virtual const CHAR *getProcessName() const
          {
-            return TRUE ;
+            return "" ;
+         }
+
+         BOOLEAN needTimeout() const
+         {
+            return _needTimeout ;
+         }
+
+         void disableTimeout()
+         {
+            _needTimeout = FALSE ;
          }
 
          UINT64 getLastProcessTick() const
          {
             return _lastProcessTick ;
          }
+
+         void updateLastProcessTick() ;
 
          virtual _optAccessPlanRuntime * getPlanRuntime ()
          {
@@ -396,6 +436,16 @@ namespace engine
          virtual const _optAccessPlanRuntime * getPlanRuntime () const
          {
             return NULL ;
+         }
+
+         BOOLEAN needCloseOnEOF() const
+         {
+            return _needCloseOnEOF ;
+         }
+
+         void enableCloseOnEOF()
+         {
+            _needCloseOnEOF = TRUE ;
          }
 
       // Monitor
@@ -450,6 +500,12 @@ namespace engine
          {
          }
 
+         virtual INT32 validate ( const BSONObj &record )
+         {
+            // Do nothing
+            return 0;
+         }
+
       protected:
          virtual INT32     _prepareData( _pmdEDUCB *cb ) = 0 ;
          virtual BOOLEAN   _canPrefetch () const { return FALSE ; }
@@ -464,7 +520,8 @@ namespace engine
          {
             return SDB_OPTION_NOT_SUPPORT ;
          }
-         virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby, 
+                                               BOOLEAN isRange = FALSE ) const
          {
             return SDB_OPTION_NOT_SUPPORT ;
          }
@@ -475,6 +532,11 @@ namespace engine
          INT32             _prepareDataMonitor ( _pmdEDUCB *cb ) ;
          INT32             _getBuffer( INT32 maxNumToReturn,
                                        rtnContextBuf& buf ) ;
+
+         virtual INT32 _prepareDoAdvance ( _pmdEDUCB *cb )
+         {
+            return SDB_OPTION_NOT_SUPPORT; 
+         }
 
       protected:
          OSS_INLINE void _empty () ;
@@ -548,6 +610,7 @@ namespace engine
       private:
          INT64                   _contextID ;
          UINT64                  _eduID ;
+         UINT64                  _opID ;
          _rtnContextStoreBuf     _buffer ;
          INT64                   _totalRecords ;
          // mutex
@@ -570,11 +633,34 @@ namespace engine
 
          BOOLEAN                 _isAffectGIndex ;
 
+         // last tick after open, get-more or advance
          UINT64                  _lastProcessTick ;
+         // indicates whether to check timeout
+         BOOLEAN                 _needTimeout ;
+         // indicates whether to close when EOF
+         BOOLEAN                 _needCloseOnEOF ;
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;
    typedef utilThreadLocalPtr< rtnContext > rtnContextPtr ;
+
+   typedef ossPoolSet< INT64 > RTN_CTX_ID_SET ;
+
+   typedef struct _rtnCtxProcessInfo
+   {
+      _rtnCtxProcessInfo()
+      {
+         _opID = 0 ;
+         _ctxID = -1 ;
+         _eduID = PMD_INVALID_EDUID ;
+      }
+
+      UINT64         _opID ;
+      INT64          _ctxID ;
+      EDUID          _eduID ;
+      ossPoolString  _processName ;
+   } rtnCtxProcessInfo ;
+   typedef ossPoolVector< rtnCtxProcessInfo > RTN_CTX_PROCESS_LIST ;
 
    /*
       _rtnContextBase OSS_INLINE functions

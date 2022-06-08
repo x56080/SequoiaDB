@@ -82,6 +82,10 @@ namespace engine
 
    public:
       OSS_INLINE INT64     contextID () const { return _contextID ; }
+      OSS_INLINE void      setContextID( INT64 contextID )
+      {
+         _contextID = contextID ;
+      }
 
    public:
       virtual const CHAR*  front() = 0 ;

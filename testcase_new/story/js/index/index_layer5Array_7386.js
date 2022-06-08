@@ -60,12 +60,11 @@ function test ()
    }
 
    //test find by index 
-   checkExplain( idxCL, { "array1.array2.array3.array4": "temp4" } );
+   checkExplain( idxCL, { "array1.array2.array3.array4": "temp4" }, "ixscan", "arrLay5Index" );
 
    //check the result of find  
    checkResult( idxCL, { array1: [{ "array2": [{ "array3": [{ "array4": ["array5", "temp4"] }, "temp3"] }, "temp2"] }, "temp1"] } );
 
    // drop collection in clean
-   //commDropCL( db, csName, clName, false, false,
-   // "drop colleciton in the end" );
+   commDropCL( db, csName, clName, false, false, "drop colleciton in the end" );
 }

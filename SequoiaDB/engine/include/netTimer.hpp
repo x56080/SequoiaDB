@@ -132,7 +132,6 @@ namespace engine
          {
             if ( _actived )
             {
-               //_timer.expires_from_now( boost::chrono::milliseconds(_millisec) ) ;
                _timer.expires_from_now( std::chrono::milliseconds(_millisec) ) ;
                _timer.async_wait( boost::bind( &_netTimer::timeoutCallback,
                                                _getShared(),

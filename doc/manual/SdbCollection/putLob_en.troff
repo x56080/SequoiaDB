@@ -5,10 +5,10 @@
 .hy
 .SH NAME
 .PP
-putLob \- insert a LOB in the collection
+putLob \- put LOB in the collection
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.putLob(<file path>, [oid])\f[]
+\f[B]db.collectionspace.collection.putLob(<filepath>, [oid])\f[]
 .SH CATEGORY
 .PP
 SdbCollection
@@ -35,11 +35,11 @@ _
 T{
 1
 T}@T{
-file path
+filepath
 T}@T{
 string
 T}@T{
-The absolute path of
+The full path of the
 T}@T{
 required
 T}
@@ -47,28 +47,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-the file to be uploaded,
+local file to be
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-and users need to have
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-the read permission of
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-the file.
+uploaded.
 T}@T{
 T}
 T{
@@ -78,7 +64,7 @@ oid
 T}@T{
 string
 T}@T{
-Specify the oid of the
+Unique identifier of
 T}@T{
 not
 T}
@@ -105,38 +91,35 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v5.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
-Create collection space and collection.
-.RS 2
-.IP
-.nf
-\f[C]
-> db.createCS(\[aq]sample\[aq] )
-> db.sample.createCL(\[aq]employee\[aq])
-\f[]
-.fi
-.RE
-.IP \[bu] 2
-Upload the LOB file \f[C]mylob.txt\f[].
-.RS 2
-.IP
-.nf
-\f[C]
-> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
-0000604f989a390002db009e
-\f[]
-.fi
-.RE
-.IP \[bu] 2
-Upload the LOB file \f[C]mylob.txt\f[] of the specified "oid".
+Insert the file \f[C]mylob.txt\f[] into the collection "sample.employee" as a
+LOB, and specify the LOB "oid".
 .RS 2
 .IP
 .nf
 \f[C]
 > db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq], \[aq]5bf3a024ed9954d596420256\[aq])
 5bf3a024ed9954d596420256
+\f[]
+.fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+Users can create a LOB oid through createLobID().
+.RE
+.RE
+.IP \[bu] 2
+Insert the file \f[C]mylob.txt\f[] into the collection "sample.employee" as a
+LOB, without specifying the LOB "oid".
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
+0000604f989a390002db009e
 \f[]
 .fi
 .RE

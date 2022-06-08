@@ -300,7 +300,9 @@ class client(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        if '__members__' == name or '__methods__' == name:
+        if '_client' == name:
+           self._client = None
+        elif '__members__' == name or '__methods__' == name:
             pass
         else:
             cs = collectionspace()

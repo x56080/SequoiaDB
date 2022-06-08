@@ -136,8 +136,11 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onDropCS ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onDropCS ( SDB_EVENT_OCCUR_TYPE type,
+                                  IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,
+                                  const dmsEventSUItem &suItem,
+                                  dmsDropCSOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
 
@@ -148,16 +151,19 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onTruncateCL ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
+                                      IDmsEventHolder *pEventHolder,
                                       IDmsSUCacheHolder *pCacheHolder,
                                       const dmsEventCLItem &clItem,
-                                      UINT32 newCLLID,
+                                      dmsTruncCLOptions *options,
                                       pmdEDUCB *cb,
                                       SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onDropCL ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                  IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,
                                   const dmsEventCLItem &clItem,
+                                  dmsDropCLOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
 
@@ -181,9 +187,14 @@ namespace engine
                                          IDmsSUCacheHolder *pCacheHolder,
                                          const dmsEventCLItem &clItem ) ;
 
-         OSS_INLINE virtual UINT32 getMask ()
+         OSS_INLINE virtual UINT32 getMask () const
          {
             return DMS_EVENT_MASK_STAT ;
+         }
+
+         OSS_INLINE virtual const CHAR *getName() const
+         {
+            return "statistic SU manager" ;
          }
 
       protected :

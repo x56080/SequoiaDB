@@ -294,7 +294,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Build snapshot message failed[%d]", rc ) ;
          ((MsgOpQuery *)msg)->numToReturn = -1 ;
 
-         rc = connection.syncSend( msg, &recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
+         rc = connection.syncSend( msg, recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
                                    COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
          PD_RC_CHECK( rc, PDERROR, "Sync send snapshot database to data source "
                       "failed[%d]", rc ) ;
@@ -324,7 +324,7 @@ namespace engine
 
             // Release the original event.
             pmdEduEventRelease( recvEvent, cb ) ;
-            rc = connection.syncSend( msg, &recvEvent, cb,
+            rc = connection.syncSend( msg, recvEvent, cb,
                                       OSS_SOCKET_DFT_TIMEOUT,
                                       COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
             PD_RC_CHECK( rc, PDERROR, "Sync send getmore message to data "
@@ -403,7 +403,7 @@ namespace engine
          else
          {
             pmdEduEventRelease( recvEvent, cb ) ;
-            rcTemp = connection.syncSend( msg, &recvEvent, cb,
+            rcTemp = connection.syncSend( msg, recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
             if ( rcTemp )
@@ -760,7 +760,7 @@ namespace engine
                       rc ) ;
          ((MsgOpQuery *)msg)->numToReturn = -1 ;
 
-         rc = connection.syncSend( (MsgHeader *)msg, &recvEvent, cb,
+         rc = connection.syncSend( (MsgHeader *)msg, recvEvent, cb,
                                    OSS_SOCKET_DFT_TIMEOUT,
                                    COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
          PD_RC_CHECK( rc, PDERROR, "Execute list groups on data source "
@@ -786,7 +786,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Build get more request failed[%d]",
                          rc ) ;
             pmdEduEventRelease( recvEvent, cb ) ;
-            rc = connection.syncSend( (MsgHeader *)msg, &recvEvent, cb,
+            rc = connection.syncSend( (MsgHeader *)msg, recvEvent, cb,
                                       OSS_SOCKET_DFT_TIMEOUT,
                                       COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
             PD_RC_CHECK( rc, PDERROR, "Send getmore message to data source "
@@ -832,7 +832,7 @@ namespace engine
          else
          {
             pmdEduEventRelease( recvEvent, cb ) ;
-            rcTemp = connection.syncSend( msg, &recvEvent, cb,
+            rcTemp = connection.syncSend( msg, recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
             if ( rcTemp )
@@ -985,7 +985,7 @@ namespace engine
 
          ((MsgOpQuery *)msg)->numToReturn = -1 ;
 
-         rc = connection.syncSend( msg, &recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
+         rc = connection.syncSend( msg, recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
                                    COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
          PD_RC_CHECK( rc, PDERROR, "Sync send test collectionspace command to "
                       "data source node[%s:%s] failed[%d]",
@@ -1035,7 +1035,7 @@ namespace engine
          else
          {
             pmdEduEventRelease( recvEvent, cb ) ;
-            rcTemp = connection.syncSend( msg, &recvEvent, cb,
+            rcTemp = connection.syncSend( msg, recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
             if ( rcTemp )
@@ -1129,7 +1129,7 @@ namespace engine
                       rc ) ;
 
          ((MsgOpQuery *)msg)->numToReturn = -1 ;
-         rc = connection.syncSend( msg, &recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
+         rc = connection.syncSend( msg, recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
                                    COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
          PD_RC_CHECK( rc, PDERROR, "Send test collection command to data "
                       "source node[%s:%s] failed[%d]",
@@ -1176,7 +1176,7 @@ namespace engine
          else
          {
             pmdEduEventRelease( recvEvent, cb ) ;
-            rcTemp = connection.syncSend( msg, &recvEvent, cb,
+            rcTemp = connection.syncSend( msg, recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
             if ( rcTemp )

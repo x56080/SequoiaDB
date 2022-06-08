@@ -353,6 +353,56 @@ namespace engine
       goto done ;
    }
 
+   INT32 _sptSPArguments::getBoolean( UINT32 pos,
+                                      BOOLEAN &value,
+                                      BOOLEAN strict ) const
+   {
+      INT32 rc = SDB_OK ;
+      sptSPVal spVal ;
+      jsval *val = NULL ;
+
+      _errMsg.clear() ;
+
+      if ( _argc <= pos )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         goto error ;
+      }
+
+      val = _getValAtPos( pos ) ;
+      if ( NULL == val )
+      {
+         _errMsg = "Failed to get val at pos" ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      spVal.reset( _context, *val ) ;
+
+      /// strict for Boolean
+      if ( strict )
+      {
+         if ( !spVal.isBoolean() )
+         {
+            _errMsg = "Paramter is not boolean" ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      rc = spVal.toBoolean( value ) ;
+      if ( rc )
+      {
+         _errMsg = "Failed to convert a jsval to boolean" ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    sptPrivateData* _sptSPArguments::getPrivateData( ) const
    {
       return ( sptPrivateData* )JS_GetContextPrivate( _context ) ;

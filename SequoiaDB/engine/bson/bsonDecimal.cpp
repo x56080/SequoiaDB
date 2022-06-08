@@ -431,7 +431,21 @@ namespace bson {
 
    INT32 bsonDecimal::fromBsonValue( const CHAR *bsonValue )
    {
+      return _fromBsonValue( bsonValue, TRUE ) ;
+   }
+
+   INT32 bsonDecimal::_fromBsonValue( const CHAR *bsonValue,
+                                      BOOLEAN getOwned )
+   {
+      if ( getOwned )
+      {
+         return sdb_decimal_from_bsonvalue( bsonValue, &_decimal ) ;
+      }
+#ifdef SDB_BIG_ENDIAN
       return sdb_decimal_from_bsonvalue( bsonValue, &_decimal ) ;
+#else
+      return sdb_decimal_view_from_bsonvalue( bsonValue, &_decimal ) ;
+#endif
    }
 
    INT32 bsonDecimal::compare( const bsonDecimal &right ) const

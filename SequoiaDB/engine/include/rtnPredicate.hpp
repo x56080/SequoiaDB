@@ -758,7 +758,7 @@ namespace engine
    private :
       const rtnPredicateList &_predList ;
       VEC_ELE_CMP       _cmp ;
-      inclusiveVec      _inc ;
+      inclusiveVec       _inc ;
       VEC_INT32         _currentKey ;
       VEC_INT32         _prevKey ;
       // this variable is passed to ixm. When this variable is TRUE, it means we

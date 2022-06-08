@@ -35,6 +35,11 @@
             <package name="com.sequoiadb.fulltext.largedata" />
         </packages>     
     </test>
+     <test name="index" parallel="classes" thread-count="5">
+        <packages>
+            <package name="com.sequoiadb.index"/>
+        </packages>        
+    </test>
     
 </suite>
     

@@ -2,7 +2,9 @@ package com.sequoiadb.metadataconsistency.data;
 
 import java.util.Random;
 
-import org.testng.Assert;
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -27,59 +29,49 @@ public class CS10165 extends SdbTestBase {
     private String csName = "cs10165";
     private Random random = new Random();
     private int number = 30;
-    private int msec = 100;
 
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode or node number
-            if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone or one node, skip the testCase." );
-            }
-            MetaDataUtils.clearCS( sdb, csName );
-        } catch ( BaseException e ) {
-            sdb.close();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode or node number
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone or one node, skip the testCase." );
         }
+        MetaDataUtils.clearCS( sdb, csName );
     }
 
     @AfterClass
     public void tearDown() {
         try {
             MetaDataUtils.clearCS( sdb, csName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.close();
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
-    @Test(invocationCount = 10, threadPoolSize = 10)
-    public void test() {
-        CreateCS createCS = new CreateCS();
-        createCS.start();
-
-        DropCS dropCS = new DropCS();
-        MetaDataUtils.sleep( random.nextInt( msec ) );
-        dropCS.start();
-
-        if ( !( createCS.isSuccess() && dropCS.isSuccess() ) ) {
-            Assert.fail( createCS.getErrorMsg() + dropCS.getErrorMsg() );
+    @Test
+    public void test() throws Exception {
+        ThreadExecutor te = new ThreadExecutor();
+        for ( int i = 0; i < 10; i++ ) {
+            te.addWorker( new CreateCS() );
+            te.addWorker( new DropCS() );
         }
+        te.run();
 
         // check results
         MetaDataUtils.checkCSOfCatalog( csName );
     }
 
-    private class CreateCS extends SdbThreadBase {
-        @Override
+    private class CreateCS extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 db.createCollectionSpace(
                         csName + "_" + random.nextInt( number ) );
             } catch ( BaseException e ) {
@@ -87,8 +79,6 @@ public class CS10165 extends SdbTestBase {
                 if ( eCode != -33 && eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
@@ -96,9 +86,8 @@ public class CS10165 extends SdbTestBase {
     private class DropCS extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 db.dropCollectionSpace(
                         csName + "_" + random.nextInt( number ) );
             } catch ( BaseException e ) {
@@ -106,8 +95,6 @@ public class CS10165 extends SdbTestBase {
                 if ( eCode != -34 && eCode != -147 && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }

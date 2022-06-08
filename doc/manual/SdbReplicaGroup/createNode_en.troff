@@ -17,52 +17,38 @@ SdbReplicaGroup
 This function is used to create a node in the current replication group.
 .SH PARAMETERS
 .IP \[bu] 2
-host ( \f[I]string, required \f[] )
+host ( \f[I]string, required\f[] )
 .RS 2
 .PP
-Specify the host name of the node.
+Hostname
 .RE
 .IP \[bu] 2
-service ( \f[I]number/string, required \f[] )
+service ( \f[I]number, required\f[] )
 .RS 2
 .PP
-Node port number.
+Node port number
 .RE
 .IP \[bu] 2
 dbpath ( \f[I]string, required\f[] )
 .RS 2
-.IP \[bu] 2
-It is the data file path, which is used to store node data files.
-Ensure that the data administrator (created during installation, default is
-sdbadmin) user has write permissions.
-.IP \[bu] 2
-If the configuration path does not start with "/", the data file storage path
-will be the master directory (default is \f[C]/home/sequoiadb\f[]) of the
-database administrator user (default is sdbadmin) + configured path.
+.PP
+The storage path of the node data file.
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+The database management user (created when SequoiaDB is installed, the default
+is sdbadmin) needs to have write permission on the directory specified by this
+parameter.
+.RE
 .RE
 .IP \[bu] 2
 config ( \f[I]object, optional\f[] )
 .RS 2
 .PP
 Node configuration information, such as configuration log size, whether to open
-transactions.
-For more details, refer to Database Configuration.
-.RE
-.RS
-.PP
-\f[B]Note:\f[]
-.PD 0
-.P
-.PD
-The definition format of rg.createNode() has four parameters:
-host，service，dbpath，config.
-As is shown in the table above, host，dbpath is a string type, Service type
-supports number or string, which is required; The last one is a object, which is
-optional.
-.PD 0
-.P
-.PD
-Format: ("<hostname>", "<service>", "<dbpath>, "[{<configParam>: value, ...}])
+transactions and so on.
+Specific configuration can refer to parameter description.
 .RE
 .SH RETURN VALUE
 .PP
@@ -98,22 +84,21 @@ SDB_NETWORK
 T}@T{
 Network Error
 T}@T{
-1.
-Check whether the
+1) Check whether the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-sdbcm status is normal,
+sdbcm status is normal.
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-if the status is
+If the status is
 T}
 T{
 T}@T{
@@ -127,37 +112,42 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-restart.
- 2.
-Check
+restart sdbcm. 2)
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-whether the host is
+Check whether the "
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-correct and whether the
+hostname/IP" is correct
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-network can
+and whether the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-communicate normally.
+network can communicate
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+normally.
 T}
 T{
 2
@@ -186,7 +176,7 @@ SDB_CM_CONFIG_CONFLICTS
 T}@T{
 Node configuration
 T}@T{
-Execute the "netstat"
+Check whether the node
 T}
 T{
 T}@T{
@@ -194,21 +184,7 @@ T}@T{
 T}@T{
 conflict
 T}@T{
-command to check
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-whether the node port
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-is occupied.
+port is occupied.
 T}
 T{
 4
@@ -226,21 +202,14 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-path is correct and the
+path and path
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-path permissions are
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-correct.
+permissions are correct.
 T}
 .TE
 .PP
@@ -249,24 +218,24 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v2.0 and above
+v5.0 and above
 .SH EXAMPLES
 .PP
-Create a "hostname1:11830" node in the replication group "group1" and specify
-the log file size as 64MB.
+Create the node "sdbserver1:11830" in the replication group "group1", and
+specify the size of the synchronization log file to be 64MB.
 .IP
 .nf
 \f[C]
 > var rg = db.getRG("group1")
-> rg.createNode("hostname1", 11830, "/opt/sequoiadb/database/data/11830", {logfilesz: 64})
+> rg.createNode("sdbserver1", 11830, "/opt/sequoiadb/database/data/11830", {logfilesz: 64})
 \f[]
 .fi
 .RS
 .PP
 \f[B]Note:\f[]
 .PP
-A replication group can create multiple nodes, and each node needs to reserve at
-least five sequential ports.
+Multiple nodes can be created in a replication group, and each node needs to
+reserve at least five extended ports.
 Because the system controls five communication interfaces for each node in the
-backstage.
+background.
 .RE

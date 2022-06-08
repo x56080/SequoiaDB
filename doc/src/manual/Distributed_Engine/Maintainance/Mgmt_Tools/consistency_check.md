@@ -90,7 +90,11 @@ sdbinspect [--coord | -d arg] [--output | -o arg] [--collectionspace | -c arg] [
 
 - **--token**  
 
- 指定加密令牌
+ 指定密文文件的加密令牌
+
+ >**Note:**
+ >
+ > 如果创建密文文件时未指定 token，可忽略该参数.
 
 - **--cipher**  
 

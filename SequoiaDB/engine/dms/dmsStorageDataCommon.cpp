@@ -53,11 +53,7 @@
 #include "dmsLightJob.hpp"
 #include "utilInsertResult.hpp"
 #include "dpsUtil.hpp"
-#include "interface/IDataStorageEngine.h"
-#include "dmsEngineCB.hpp"
-#include "utilFullNameParser.hpp"
-#include "interface/IRecordUpdater.h"
-#include "vessel/builtinRecordUpdater.h"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -194,6 +190,8 @@ namespace engine
    #define DMS_MB_ATTR_NOIDINDEX_STR                         "NoIDIndex"
    #define DMS_MB_ATTR_CAPPED_STR                            "Capped"
    #define DMS_MB_ATTR_STRICTDATAMODE_STR                    "StrictDataMode"
+   #define DMS_MB_ATTR_NOTRANS_STR                           "NoTrans"
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MBATTR2STRING, "mbAttr2String" )
    void mbAttr2String( UINT32 attributes, CHAR * pBuffer, INT32 bufSize )
    {
@@ -220,6 +218,11 @@ namespace engine
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_ATTR_STRICTDATAMODE_STR ) ;
          OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_STRICTDATAMODE ) ;
+      }
+      if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOTRANS ) )
+      {
+         appendFlagString( pBuffer, bufSize, DMS_MB_ATTR_NOTRANS_STR ) ;
+         OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_NOTRANS ) ;
       }
 
       // Test other bits
@@ -292,6 +295,41 @@ namespace engine
    void _dmsMBContext::setSubContext( _IContext *subContext )
    {
       _pSubContext = subContext ;
+   }
+
+   void _dmsMBContext::swap( _dmsMBContext &other )
+   {
+      _dmsMBContext temp ;
+
+      temp._mb             = other._mb ;
+      temp._mbStat         = other._mbStat ;
+      temp._latch          = other._latch ;
+      temp._clLID          = other._clLID ;
+      temp._startLID       = other._startLID ;
+      temp._mbID           = other._mbID ;
+      temp._mbLockType     = other._mbLockType ;
+      temp._resumeType     = other._resumeType ;
+      temp._pSubContext    = other._pSubContext ;
+
+      other._mb            = _mb ;
+      other._mbStat        = _mbStat ;
+      other._latch         = _latch ;
+      other._clLID         = _clLID ;
+      other._startLID      = _startLID ;
+      other._mbID          = _mbID ;
+      other._mbLockType    = _mbLockType ;
+      other._resumeType    = _resumeType ;
+      other._pSubContext   = _pSubContext ;
+
+      _mb                  = temp._mb ;
+      _mbStat              = temp._mbStat ;
+      _latch               = temp._latch ;
+      _clLID               = temp._clLID ;
+      _startLID            = temp._startLID ;
+      _mbID                = temp._mbID ;
+      _mbLockType          = temp._mbLockType ;
+      _resumeType          = temp._resumeType ;
+      _pSubContext         = temp._pSubContext ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSMBCONTEXT_PAUSE, "_dmsMBContext::pause" )
@@ -542,7 +580,7 @@ namespace engine
       std::stringstream ss ;
       ss << "RecordRW(" << _rw.getCollectionID()
          << "," << _rid._extent << "," << _rid._offset << ");\n" ;
-      if ( _pData ) 
+      if ( _pData )
       {
          ss << "su(" << _pData->getSuFileName() << ")" ;
       }
@@ -678,10 +716,10 @@ namespace engine
                   _mbStatInfo[i]._totalOrgDataLen ;
             }
             if ( _dmsMME->_mbList[i]._maxGlobTransID !=
-                 _mbStatInfo[i]._maxGlobTransID.peek() )
+                 _mbStatInfo[i]._maxGlobTransID )
             {
                _dmsMME->_mbList[i]._maxGlobTransID =
-                  _mbStatInfo[i]._maxGlobTransID.peek() ;
+                  _mbStatInfo[i]._maxGlobTransID ;
             }
             if ( _dmsMME->_mbList[i]._commitLSN !=
                  _mbStatInfo[i]._lastLSN.peek() )
@@ -706,9 +744,15 @@ namespace engine
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATACOMMON_SYNCMEMTOMMAP ) ;
    }
 
-   BOOLEAN _dmsStorageDataCommon::isTransSupport() const
+   BOOLEAN _dmsStorageDataCommon::isTransSupport( dmsMBContext *context ) const
    {
       if ( DMS_STORAGE_CAPPED == getStorageType() || !_transSupport )
+      {
+         return FALSE ;
+      }
+      else if ( ( NULL != context ) &&
+                ( OSS_BIT_TEST( context->mb()->_attributes,
+                                DMS_MB_ATTR_NOTRANS ) ) )
       {
          return FALSE ;
       }
@@ -1057,8 +1101,8 @@ namespace engine
                                       TRUE : FALSE ;
 
             // read the max GTID from disk
-            _mbStatInfo[i]._maxGlobTransID.init(
-                                  _dmsMME->_mbList[i]._maxGlobTransID ) ;
+            _mbStatInfo[i]._maxGlobTransID =
+                                  _dmsMME->_mbList[i]._maxGlobTransID ;
 
             /// lsn
             _mbStatInfo[i]._lastLSN.init( _dmsMME->_mbList[i]._commitLSN ) ;
@@ -1435,7 +1479,7 @@ namespace engine
       lsn = info.getMergeBlock().record().head()._lsn ;
       context->mbStat()->updateLastLSN( lsn, type ) ;
 /*
-      // Before latch is released, put the lsn back into record as the 
+      // Before latch is released, put the lsn back into record as the
       // life lsn of the record
       if ( NULL != pRecord )
       {
@@ -1844,6 +1888,8 @@ namespace engine
       context->mbStat()->_totalDataLen = 0 ;
       context->mbStat()->_totalOrgDataLen = 0 ;
       context->mbStat()->_blockIndexCreatingCount = 0 ;
+      context->mbStat()->_lastSearchSlot = dmsMB::_max ;
+      context->mbStat()->_lastSearchRID.reset() ;
 
       {
          dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), NULL ) ;
@@ -2353,12 +2399,12 @@ namespace engine
                {
                   PD_LOG( PDDEBUG,
                           "Failed to test X lock on collection slot, "
-                          "rc: %d" OSS_NEWLINE
-                          "Conflict( representative ):" OSS_NEWLINE
-                          "   EDUID:  %llu" OSS_NEWLINE
-                          "   TID:    %u" OSS_NEWLINE
-                          "   LockId: %s" OSS_NEWLINE
-                          "   Mode:   %s" OSS_NEWLINE,
+                          "rc: %d"OSS_NEWLINE
+                          "Conflict( representative ):"OSS_NEWLINE
+                          "   EDUID:  %llu"OSS_NEWLINE
+                          "   TID:    %u"OSS_NEWLINE
+                          "   LockId: %s"OSS_NEWLINE
+                          "   Mode:   %s"OSS_NEWLINE,
                           testTransLockRC,
                           lockConflict._eduID,
                           lockConflict._tid,
@@ -2389,7 +2435,7 @@ namespace engine
       }
 
       // set mb meta data and header data
-      logicalID = _dmsHeader->_MBHWM++ ;
+      logicalID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
       mb = &_dmsMME->_mbList[newCollectionID] ;
       mb->reset( pName, clUniqueID, newCollectionID, logicalID,
                  attributes, compressionType ) ;
@@ -2461,15 +2507,12 @@ namespace engine
       /// set compressor when snappy
       _setCompressor( context ) ;
 
-      if (DMS_STORAGE_VESSEL != _pStorageInfo->_type)
+      // allocate new extent
+      if ( 0 != initPages )
       {
-         // allocate new extent
-         if ( 0 != initPages )
-         {
-            rc = _allocateExtent( context, initPages, TRUE, FALSE, NULL ) ;
-            PD_RC_CHECK( rc, PDERROR, "Allocate new %u pages of collection[%s] "
-                        "failed, rc: %d", initPages, pName, rc ) ;
-         }
+         rc = _allocateExtent( context, initPages, TRUE, FALSE, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Allocate new %u pages of collection[%s] "
+                      "failed, rc: %d", initPages, pName, rc ) ;
       }
 
       // create $id index[s_idKeyObj]
@@ -2502,15 +2545,6 @@ namespace engine
                                 context->mbID(),
                                 context->clLID() ) ;
          _pEventHolder->onCreateCL( DMS_EVENT_MASK_ALL, clItem, cb, dpscb ) ;
-      }
-
-      if (DMS_STORAGE_VESSEL == getStorageType())
-      {
-         rc = createCLInEngine(cb, context);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
       }
 
    done:
@@ -2559,7 +2593,8 @@ namespace engine
    INT32 _dmsStorageDataCommon::dropCollection( const CHAR * pName, pmdEDUCB * cb,
                                                 SDB_DPSCB * dpscb,
                                                 BOOLEAN sysCollection,
-                                                dmsMBContext * context )
+                                                dmsMBContext * context,
+                                                dmsDropCLOptions *options )
    {
       INT32 rc                = 0 ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
@@ -2574,6 +2609,8 @@ namespace engine
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       BOOLEAN isTransLocked   = FALSE ;
 
+      dmsEventCLItem clItem ;
+
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
       rc = dmsCheckCLName ( pName, sysCollection ) ;
@@ -2583,8 +2620,19 @@ namespace engine
       // calc the reserve dps size
       if ( dpscb )
       {
+         BSONObj *boOptions = NULL ;
+
+         if ( NULL != options )
+         {
+            rc = options->prepareOptions() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to prepare drop "
+                         "collection options, rc: %d", rc ) ;
+
+            boOptions = &( options->_boOptions ) ;
+         }
+
          rc = dpsCLDel2Record( _clFullName(pName, fullName, sizeof(fullName)),
-                               record ) ;
+                               boOptions, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
          rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
@@ -2616,6 +2664,9 @@ namespace engine
                       pName, rc ) ;
       }
 
+      clItem.init( pName, _logicalCSID, context->mbID(), context->clLID(),
+                   context ) ;
+
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_TRUNCATE ) )
       {
@@ -2625,28 +2676,20 @@ namespace engine
          goto error ;
       }
 
-      if ( _pEventHolder )
-      {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
-                                context->mbID(),
-                                context->clLID() ) ;
-         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, clItem, cb, dpscb ) ;
-      }
-
       // it is not need to lock that drop temp collection while startup
       // which cb is NULL
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, clItem._logicCSID, clItem._mbID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
-                      "Conflict( representative ):" OSS_NEWLINE
-                      "   EDUID:  %llu" OSS_NEWLINE
-                      "   TID:    %u" OSS_NEWLINE
-                      "   LockId: %s" OSS_NEWLINE
-                      "   Mode:   %s" OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -2656,71 +2699,89 @@ namespace engine
          isTransLocked = TRUE ;
       }
 
-      // drop all index
-      rc = _pIdxSU->dropAllIndexes( context, cb, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop index for collection[%s], "
-                   "rc: %d", pName, rc ) ;
-
-      // truncate the collection
-      _rmCompressor( context ) ;
-
-      rc = _truncateCollection( context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s], rc: %d",
-                   pName, rc ) ;
-
-      // truncate lob
-      if ( _pLobSU->isOpened() )
+      if ( _pEventHolder )
       {
-         rc = _pLobSU->truncate( context, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s] lob,"
+         rc = _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_BEFORE,
+                                       clItem, options, cb, dpscb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call before drop "
+                      "collection events, rc: %d", rc ) ;
+      }
+
+      if ( ( NULL == options ) ||
+           ( !( options->isTakenOver() ) ) )
+      {
+         // drop all index
+         rc = _pIdxSU->dropAllIndexes( context, cb, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop index for collection[%s], "
                       "rc: %d", pName, rc ) ;
-      }
 
-      // change mb meta data
-      DMS_SET_MB_DROPPED( context->mb()->_flag ) ;
-      context->mb()->_logicalID-- ;
-      DMS_MB_STATINFO_CLEAR_TRUNCATED( context->mbStat()->_flag ) ;
+         // truncate the collection
+         _rmCompressor( context ) ;
 
-      if ( DMS_INVALID_EXTENT != context->mb()->_mbExExtentID )
-      {
-         dmsExtRW rw = extent2RW( context->mb()->_mbExExtentID,
-                                  context->mbID() ) ;
-         rw.setNothrow( TRUE ) ;
-         const dmsMetaExtent *metaExt = rw.readPtr<dmsMetaExtent>() ;
-         if ( metaExt )
+         rc = _truncateCollection( context ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s], rc: %d",
+                      pName, rc ) ;
+
+         // truncate lob
+         if ( _pLobSU->isOpened() )
          {
-            _releaseSpace( context->mb()->_mbExExtentID, metaExt->_blockSize ) ;
+            rc = _pLobSU->truncate( context, cb, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s] lob,"
+                         "rc: %d", pName, rc ) ;
          }
-         context->mb()->_mbExExtentID = DMS_INVALID_EXTENT ;
-      }
 
-      // Release the option extent.
-      if ( DMS_INVALID_EXTENT != context->mb()->_mbOptExtentID )
-      {
-         dmsExtRW rw = extent2RW( context->mb()->_mbOptExtentID,
-                                  context->mbID() ) ;
-         rw.setNothrow( TRUE ) ;
-         const dmsOptExtent *optExt = rw.readPtr<dmsOptExtent>() ;
-         if ( optExt )
+         // change mb meta data
+         DMS_SET_MB_DROPPED( context->mb()->_flag ) ;
+         context->mb()->_logicalID-- ;
+         DMS_MB_STATINFO_CLEAR_TRUNCATED( context->mbStat()->_flag ) ;
+
+         if ( DMS_INVALID_EXTENT != context->mb()->_mbExExtentID )
          {
-            _releaseSpace( context->mb()->_mbOptExtentID, optExt->_blockSize ) ;
+            dmsExtRW rw = extent2RW( context->mb()->_mbExExtentID,
+                                     context->mbID() ) ;
+            rw.setNothrow( TRUE ) ;
+            const dmsMetaExtent *metaExt = rw.readPtr<dmsMetaExtent>() ;
+            if ( metaExt )
+            {
+               _releaseSpace( context->mb()->_mbExExtentID, metaExt->_blockSize ) ;
+            }
+            context->mb()->_mbExExtentID = DMS_INVALID_EXTENT ;
          }
-         context->mb()->_mbOptExtentID = DMS_INVALID_EXTENT ;
+
+         // Release the option extent.
+         if ( DMS_INVALID_EXTENT != context->mb()->_mbOptExtentID )
+         {
+            dmsExtRW rw = extent2RW( context->mb()->_mbOptExtentID,
+                                     context->mbID() ) ;
+            rw.setNothrow( TRUE ) ;
+            const dmsOptExtent *optExt = rw.readPtr<dmsOptExtent>() ;
+            if ( optExt )
+            {
+               _releaseSpace( context->mb()->_mbOptExtentID, optExt->_blockSize ) ;
+            }
+            context->mb()->_mbOptExtentID = DMS_INVALID_EXTENT ;
+         }
+
+         // release mb lock
+         context->mbUnlock() ;
+
+         // get unique id from mb. Because if the cl is in _collectionIDMap, and
+         // we don't erase it, it may cause core dump.
+         clUniqueID = context->mb()->_clUniqueID ;
+
+         // change metadata
+         ossLatch( &_metadataLatch, EXCLUSIVE ) ;
+         metalocked = TRUE ;
+         _collectionRemove( pName, clUniqueID ) ;
+         DMS_SET_MB_FREE( context->mb()->_flag ) ;
+         _dmsHeader->_numMB-- ;
       }
 
-      // release mb lock
-      context->mbUnlock() ;
-
-      // get unique id from mb. Because if the cl is in _collectionIDMap, and
-      // we don't erase it, it may cause core dump.
-      clUniqueID = context->mb()->_clUniqueID ;
-
-      // change metadata
-      ossLatch( &_metadataLatch, EXCLUSIVE ) ;
-      metalocked = TRUE ;
-      _collectionRemove( pName, clUniqueID ) ;
-      DMS_SET_MB_FREE( context->mb()->_flag ) ;
-      _dmsHeader->_numMB-- ;
+      if ( _pEventHolder )
+      {
+         _pEventHolder->onDropCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
+                                  clItem, options, cb, dpscb ) ;
+      }
 
       // write dps log
       if ( dpscb )
@@ -2739,7 +2800,7 @@ namespace engine
       }
       if ( isTransLocked )
       {
-         pTransCB->transLockRelease( cb, _logicalCSID, context->mbID() ) ;
+         pTransCB->transLockRelease( cb, clItem._logicCSID, clItem._mbID ) ;
          isTransLocked = FALSE ;
       }
       if ( context && getContext )
@@ -2767,7 +2828,8 @@ namespace engine
                                                     BOOLEAN sysCollection,
                                                     dmsMBContext *context,
                                                     BOOLEAN needChangeCLID,
-                                                    BOOLEAN truncateLob )
+                                                    BOOLEAN truncateLob,
+                                                    dmsTruncCLOptions *options )
    {
       INT32 rc           = SDB_OK ;
       BOOLEAN getContext = FALSE ;
@@ -2785,6 +2847,8 @@ namespace engine
       IDmsExtDataHandler* handler = NULL ;
       BOOLEAN isTransLocked   = FALSE ;
 
+      dmsEventCLItem clItem ;
+
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
       rc = dmsCheckCLName ( pName, sysCollection ) ;
@@ -2794,8 +2858,19 @@ namespace engine
       // calc the reserve dps size
       if ( dpscb )
       {
+         BSONObj *boOptions = NULL ;
+
+         if ( NULL != options )
+         {
+            rc = options->prepareOptions() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to prepare truncate "
+                         "collection options, rc: %d", rc ) ;
+
+            boOptions = &( options->_boOptions ) ;
+         }
+
          rc = dpsCLTrunc2Record( _clFullName(pName, fullName, sizeof(fullName)),
-                                 record ) ;
+                                 boOptions, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
          rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
@@ -2827,6 +2902,9 @@ namespace engine
                       pName, rc ) ;
       }
 
+      clItem.init( pName, _logicalCSID, context->mbID(), context->clLID(),
+                   context ) ;
+
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_TRUNCATE ) )
       {
@@ -2840,15 +2918,15 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, clItem._logicCSID, clItem._mbID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
-                      "Conflict( representative ):" OSS_NEWLINE
-                      "   EDUID:  %llu" OSS_NEWLINE
-                      "   TID:    %u" OSS_NEWLINE
-                      "   LockId: %s" OSS_NEWLINE
-                      "   Mode:   %s" OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -2858,21 +2936,14 @@ namespace engine
          isTransLocked = TRUE ;
       }
 
-      // pause mb lock and change metadata
-      if ( needChangeCLID )
+      if ( _pEventHolder )
       {
-         context->pause() ;
-         ossLatch( &_metadataLatch, EXCLUSIVE ) ;
-         newCLID = _dmsHeader->_MBHWM++ ;
-         ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
-         // resume context lock
-         rc = context->resume() ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d",
-                      rc ) ;
+         rc = _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL,
+                                           SDB_EVT_OCCUR_BEFORE, clItem,
+                                           options, cb, dpscb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call before truncate "
+                      "collection events, rc: %d", rc ) ;
       }
-
-      oldRecords = context->mbStat()->_totalRecords ;
-      oldLobs = context->mbStat()->_totalLobs ;
 
       if ( context->mbStat()->_textIdxNum > 0 )
       {
@@ -2893,39 +2964,52 @@ namespace engine
          }
       }
 
-      rc = _pIdxSU->truncateIndexes( context, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
-                   "rc: %d", pName, rc ) ;
-
-      /*
-       * For LZW, the compressor and dictionary should be removed during
-       * truncate. In case of snappy, the compressor should be reserved.
-       */
-      if ( UTIL_COMPRESSOR_LZW ==
-           (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType) &&
-           needChangeCLID )
+      if ( ( NULL == options ) ||
+           ( !( options->isTakenOver() ) ) )
       {
-         _rmCompressor( context ) ;
-      }
-      rc = _truncateCollection( context, needChangeCLID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
-                   pName, rc ) ;
+         if ( needChangeCLID )
+         {
+            // use atomic increment to avoid lock on meta data
+            newCLID = ossFetchAndIncrement32( &( _dmsHeader->_MBHWM ) ) ;
+         }
 
-      if ( truncateLob && _pLobSU->isOpened() )
-      {
-         rc = _pLobSU->truncate( context, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] lob failed, rc: %d",
+         oldRecords = context->mbStat()->_totalRecords ;
+         oldLobs = context->mbStat()->_totalLobs ;
+
+         rc = _pIdxSU->truncateIndexes( context, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
+                      "rc: %d", pName, rc ) ;
+
+         /*
+          * For LZW, the compressor and dictionary should be removed during
+          * truncate. In case of snappy, the compressor should be reserved.
+          */
+         if ( UTIL_COMPRESSOR_LZW ==
+              (UTIL_COMPRESSOR_TYPE)(context->mb()->_compressorType) &&
+              needChangeCLID )
+         {
+            _rmCompressor( context ) ;
+         }
+         rc = _truncateCollection( context, needChangeCLID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
                       pName, rc ) ;
-      }
 
-      // change mb metadata
-      if ( needChangeCLID )
-      {
-         oldCLID = context->_clLID ;
-         context->mb()->_logicalID = newCLID ;
-         context->_clLID           = newCLID ;
+         if ( truncateLob && _pLobSU->isOpened() )
+         {
+            rc = _pLobSU->truncate( context, cb, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] lob failed, rc: %d",
+                         pName, rc ) ;
+         }
+
+         // change mb metadata
+         if ( needChangeCLID )
+         {
+            oldCLID = context->_clLID ;
+            context->mb()->_logicalID = newCLID ;
+            context->_clLID           = newCLID ;
+         }
+         DMS_MB_STATINFO_SET_TRUNCATED( context->mbStat()->_flag ) ;
       }
-      DMS_MB_STATINFO_SET_TRUNCATED( context->mbStat()->_flag ) ;
 
       if ( handler )
       {
@@ -2936,11 +3020,8 @@ namespace engine
 
       if ( _pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
-                                context->mbID(),
-                                oldCLID ) ;
-         _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL, clItem, newCLID,
-                                      cb, dpscb ) ;
+         _pEventHolder->onTruncateCL( DMS_EVENT_MASK_ALL, SDB_EVT_OCCUR_AFTER,
+                                      clItem, options, cb, dpscb ) ;
       }
 
       // write dps log
@@ -2962,7 +3043,7 @@ namespace engine
    done:
       if ( isTransLocked )
       {
-         pTransCB->transLockRelease( cb, _logicalCSID, context->mbID() ) ;
+         pTransCB->transLockRelease( cb, clItem._logicCSID, clItem._mbID ) ;
          isTransLocked = FALSE ;
       }
       if ( context && getContext )
@@ -3119,7 +3200,9 @@ namespace engine
                                                   const CHAR * newName,
                                                   pmdEDUCB * cb,
                                                   SDB_DPSCB * dpscb,
-                                                  BOOLEAN sysCollection )
+                                                  BOOLEAN sysCollection,
+                                                  utilCLUniqueID newCLUniqueID,
+                                                  UINT32 *newStartLID )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION ) ;
@@ -3184,12 +3267,12 @@ namespace engine
          rc = pTransCB->transLockTrySAgainstWrite( cb, _logicalCSID, mbID,
                                                    NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
-                      "Conflict( representative ):" OSS_NEWLINE
-                      "   EDUID:  %llu" OSS_NEWLINE
-                      "   TID:    %u" OSS_NEWLINE
-                      "   LockId: %s" OSS_NEWLINE
-                      "   Mode:   %s" OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -3207,13 +3290,27 @@ namespace engine
                                    "rc: %d", rc ) ;
       }
 
-      _collectionRemove ( oldName ) ;
-      _collectionInsert ( newName, mbID ) ;
+      _collectionRemove ( oldName,
+                          UTIL_UNIQUEID_NULL == newCLUniqueID ?
+                                UTIL_UNIQUEID_NULL :
+                                _dmsMME->_mbList[ mbID ]._clUniqueID ) ;
+      _collectionInsert ( newName, mbID,
+                          UTIL_UNIQUEID_NULL == newCLUniqueID ?
+                                UTIL_UNIQUEID_NULL :
+                                newCLUniqueID ) ;
       ossMemset ( _dmsMME->_mbList[mbID]._collectionName, 0,
                   DMS_COLLECTION_NAME_SZ ) ;
       ossStrncpy ( _dmsMME->_mbList[mbID]._collectionName, newName,
                    DMS_COLLECTION_NAME_SZ ) ;
+      if ( UTIL_UNIQUEID_NULL != newCLUniqueID )
+      {
+         _dmsMME->_mbList[ mbID ]._clUniqueID = newCLUniqueID ;
+      }
       clLID = _dmsMME->_mbList[mbID]._logicalID ;
+      if ( NULL != newStartLID )
+      {
+         _mbStatInfo[ mbID ]._startLID = *newStartLID ;
+      }
 
       if ( dpscb )
       {
@@ -3253,6 +3350,473 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_RENAMECOLLECTION, rc ) ;
       return rc ;
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_COPYCOLLECTION, "_dmsStorageDataCommon::copyCollection" )
+   INT32 _dmsStorageDataCommon::copyCollection( dmsMBContext *oldMBContext,
+                                                const CHAR *newName,
+                                                utilCLUniqueID newCLUniqueID,
+                                                pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_COPYCOLLECTION ) ;
+
+      SDB_ASSERT( oldMBContext->isMBLock(), "mb context should be locked" ) ;
+
+      const CHAR *oldName = oldMBContext->mb()->_collectionName ;
+      BSONObj extOptions ;
+      UINT16 newMBID = DMS_INVALID_MBID ;
+      UINT32 newCLLID = DMS_INVALID_CLID ;
+      BOOLEAN added = FALSE ;
+      dmsMBContext *tmpMBContext = NULL ;
+      UINT32 attributes = oldMBContext->mb()->_attributes ;
+      UINT8 compressorType = oldMBContext->mb()->_compressorType ;
+      ossPoolVector< BSONObj > droppedIndexList ;
+
+      PD_LOG( PDDEBUG, "Start copy collection [from: %s.%s, "
+              "to %s.%s]", getSuName(), oldName, getSuName(), newName ) ;
+
+      rc = dumpExtOptions( oldMBContext, extOptions ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get ext options for "
+                   "collection [%s], rc: %d", oldName, rc ) ;
+
+      // not create id index, will copy index later
+      OSS_BIT_SET( attributes, DMS_MB_ATTR_NOIDINDEX ) ;
+
+      rc = addCollection( newName, &newMBID, newCLUniqueID, attributes, cb,
+                          NULL, 0, FALSE, compressorType, &newCLLID,
+                          &extOptions ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add collection [%s], rc: %d",
+                   newName, rc ) ;
+
+      added = TRUE ;
+
+      rc = getMBContext( &tmpMBContext, newMBID, DMS_INVALID_CLID,
+                         DMS_INVALID_CLID, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get mb context for copy collection "
+                   "[%s], rc: %d", newName, rc ) ;
+
+      // drop indexes with external data ( text and global index )
+      rc = _dropIndexesWithTypes( oldMBContext, cb,
+                                  ( IXM_EXTENT_TYPE_TEXT |
+                                    IXM_EXTENT_TYPE_GLOBAL ),
+                                  &droppedIndexList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop text and global index "
+                   "from collection [%s], rc: %d", oldName, rc ) ;
+
+      // copy indexes without external data ( text and global index )
+      rc = _copyIndexesWithoutTypes( oldMBContext, tmpMBContext, cb,
+                                     ( IXM_EXTENT_TYPE_TEXT |
+                                       IXM_EXTENT_TYPE_GLOBAL ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to copy indexes for collection [%s], "
+                   "rc: %d", newName, rc ) ;
+
+      for ( ossPoolVector< BSONObj >::iterator iter = droppedIndexList.begin() ;
+            iter != droppedIndexList.end() ;
+            ++ iter )
+      {
+         BSONObj indexDef = *iter ;
+         // copy text and global index to new collection
+         INT32 tmpRC = _pIdxSU->createIndex( tmpMBContext, indexDef, cb, NULL ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to create index [%s] to collection "
+                    "[%s.%s], rc: %d", indexDef.toPoolString().c_str(),
+                    getSuName(), newName, tmpRC ) ;
+         }
+      }
+
+      oldMBContext->swap( *tmpMBContext ) ;
+
+      PD_LOG( PDDEBUG, "Finish copy collection [from: %s.%s, "
+              "to: %s.%s]", getSuName(), oldName, getSuName(), newName ) ;
+
+   done:
+      if ( NULL != tmpMBContext )
+      {
+         releaseMBContext( tmpMBContext ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON_COPYCOLLECTION, rc ) ;
+      return rc ;
+
+   error:
+      if ( added )
+      {
+         INT32 tmpRC = dropCollection( newName, cb, NULL, FALSE,
+                                       tmpMBContext ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG ( PDWARNING, "Failed to drop collection [%s], rc: %d",
+                     newName, tmpRC ) ;
+         }
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RECYCOLLECTION, "_dmsStorageDataCommon::recycleCollection" )
+   INT32 _dmsStorageDataCommon::recycleCollection( dmsMBContext *mbContext,
+                                                   pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_RECYCOLLECTION ) ;
+
+      SDB_ASSERT( mbContext->isMBLock(), "mb context should be locked" ) ;
+
+      // drop all indexes with external data ( text index and global index )
+      rc = _dropIndexesWithTypes( mbContext, cb,
+                                  ( IXM_EXTENT_TYPE_TEXT |
+                                    IXM_EXTENT_TYPE_GLOBAL ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to drop indexes with external data "
+                   "from collection [%s.%s], rc: %d", getSuName(),
+                   mbContext->mb()->_collectionName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON_RECYCOLLECTION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__COPYINDEXESWITHOUTTYPES, "_dmsStorageDataCommon::_copyIndexesWithoutTypes" )
+   INT32 _dmsStorageDataCommon::_copyIndexesWithoutTypes( dmsMBContext *oldContext,
+                                                          dmsMBContext *newContext,
+                                                          _pmdEDUCB *cb,
+                                                          UINT16 types )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__COPYINDEXESWITHOUTTYPES ) ;
+
+      UINT32 idxSlot = 0 ;
+
+      const CHAR *oldName = oldContext->mb()->_collectionName ;
+      const CHAR *newName = newContext->mb()->_collectionName ;
+
+      while ( idxSlot < DMS_COLLECTION_MAX_INDEX &&
+              DMS_INVALID_EXTENT != oldContext->mb()->_indexExtent[ idxSlot ] )
+      {
+         INT32 tmpRC = SDB_OK ;
+         ixmIndexCB indexCB( oldContext->mb()->_indexExtent[ idxSlot ],
+                             _pIdxSU, oldContext ) ;
+         BSONObj indexDef ;
+         BOOLEAN isSysIndex = FALSE ;
+
+         if ( !indexCB.isInitialized() )
+         {
+            PD_LOG( PDWARNING, "Failed to get index on slot [%u] of "
+                    "collection [%s.%s], it is not initialized", idxSlot,
+                    getSuName(), oldName ) ;
+            ++ idxSlot ;
+            continue ;
+         }
+         else if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(), types ) )
+         {
+            ++ idxSlot ;
+            continue ;
+         }
+
+         // copy index definition
+         try
+         {
+            if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                      IXM_EXTENT_TYPE_TEXT ) )
+            {
+               BSONObjBuilder builder ;
+               BSONObjIterator iter( indexCB.getDef() ) ;
+               while ( iter.more() )
+               {
+                  BSONElement element = iter.next() ;
+                  if ( 0 != ossStrcmp( FIELD_NAME_EXT_DATA_NAME,
+                                       element.fieldName() ) )
+                  {
+                     builder.append( element ) ;
+                  }
+               }
+               indexDef = builder.obj() ;
+            }
+            else
+            {
+               indexDef = indexCB.getDef().copy() ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build copy index define BSON, "
+                    "occur exception %s", e.what() ) ;
+            ++ idxSlot ;
+            continue ;
+         }
+
+         PD_LOG( PDDEBUG, "Copy index [%s] to [%s]",
+                 indexDef.toPoolString().c_str(), newName ) ;
+
+         isSysIndex = dmsIsSysIndexName( indexCB.getName() ) ;
+
+         // copy index to new collection
+         tmpRC = _pIdxSU->createIndex( newContext, indexDef, cb, NULL,
+                                       isSysIndex ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to create index [%s] to collection "
+                    "[%s.%s], rc: %d", indexDef.toPoolString().c_str(),
+                    getSuName(), newName, tmpRC ) ;
+         }
+
+         ++ idxSlot ;
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__COPYINDEXESWITHOUTTYPES, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DROPINDEXESWITHTYPES, "_dmsStorageDataCommon::_dropIndexesWithTypes" )
+   INT32 _dmsStorageDataCommon::_dropIndexesWithTypes( dmsMBContext *context,
+                                                       _pmdEDUCB *cb,
+                                                       UINT16 types,
+                                                       ossPoolVector< BSONObj > *droppedIndexList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__DROPINDEXESWITHTYPES ) ;
+
+      UINT32 idxSlot = 0 ;
+
+      // text index and global index will be rebuild, so drop the old ones
+      while ( idxSlot < DMS_COLLECTION_MAX_INDEX )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ idxSlot ] )
+         {
+            break ;
+         }
+         else
+         {
+            dmsExtentID indexExtentID =
+                              context->mb()->_indexExtent[ idxSlot ] ;
+            ixmIndexCB indexCB( indexExtentID, _pIdxSU, context ) ;
+
+            if ( ( indexCB.isInitialized() ) &&
+                 ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(), types ) ) )
+            {
+               INT32 tmpRC = SDB_OK ;
+
+               if ( NULL != droppedIndexList )
+               {
+                  // copy index definition
+                  try
+                  {
+                     BSONObj indexDef ;
+
+                     if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                               IXM_EXTENT_TYPE_TEXT ) )
+                     {
+                        BSONObjBuilder builder ;
+                        BSONObjIterator iter( indexCB.getDef() ) ;
+                        while ( iter.more() )
+                        {
+                           BSONElement element = iter.next() ;
+                           if ( 0 != ossStrcmp( FIELD_NAME_EXT_DATA_NAME,
+                                                element.fieldName() ) )
+                           {
+                              builder.append( element ) ;
+                           }
+                        }
+                        indexDef = builder.obj() ;
+                     }
+                     else
+                     {
+                        indexDef = indexCB.getDef().copy() ;
+                     }
+
+                     droppedIndexList->push_back( indexDef ) ;
+                  }
+                  catch ( exception &e )
+                  {
+                     PD_LOG( PDERROR, "Failed to build define BSON, "
+                             "occur exception %s", e.what() ) ;
+                     // Failed to copy ignore this index
+                     ++ idxSlot ;
+                     continue ;
+                  }
+               }
+
+               tmpRC = _pIdxSU->dropIndex( context, idxSlot,
+                                           indexCB.getLogicalID(), cb,
+                                           NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING, "Failed to drop index on slot [%u], "
+                          "rc: %d", idxSlot, tmpRC ) ;
+               }
+               else
+               {
+                  continue ;
+               }
+            }
+         }
+
+         ++ idxSlot ;
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON__DROPINDEXESWITHTYPES, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_RTRNCL, "_dmsStorageDataCommon::returnCollection" )
+   INT32 _dmsStorageDataCommon::returnCollection( const CHAR *originName,
+                                                  const CHAR *recycleName,
+                                                  dmsReturnOptions &options,
+                                                  pmdEDUCB *cb,
+                                                  SDB_DPSCB *dpsCB,
+                                                  dmsMBContext **returnedMBContext )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_RTRNCL ) ;
+
+      dpsTransCB *transCB     = pmdGetKRCB()->getTransCB() ;
+      UINT32 logRecSize       = 0 ;
+      dpsMergeInfo info ;
+      dpsLogRecord &record    = info.getMergeBlock().record() ;
+
+      dmsMBContext *mbContext = NULL ;
+      BOOLEAN isLogReserved = FALSE, isTransLocked = FALSE ;
+      UINT16 recyMBID = DMS_INVALID_MBID ;
+      utilCLUniqueID newUniqueID = UTIL_UNIQUEID_NULL ;
+      UINT32 newStartLID = DMS_INVALID_CLID ;
+
+      PD_LOG( PDDEBUG, "Start return collection [origin: %s.%s, "
+              "recycle %s.%s]", getSuName(), originName, getSuName(),
+              recycleName ) ;
+
+      // reserved log-size
+      if ( dpsCB )
+      {
+         rc = options.prepareOptions() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to prepare return options, "
+                      "rc: %d", rc ) ;
+
+         rc = dpsReturn2Record( &( options._boOptions ), record ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build log record, rc: %d", rc ) ;
+
+         rc = dpsCB->checkSyncControl( record.alignedLen(), cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sync control, rc: %d",
+                      rc ) ;
+
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to reserve log space [length %u], "
+                      "rc: %d", rc ) ;
+
+         isLogReserved = TRUE ;
+      }
+
+      // drop origin collection
+      if ( UTIL_RECYCLE_OP_TRUNCATE == options._recycleItem.getOpType() )
+      {
+         rc = dropCollection( originName, cb, NULL ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop collection [%s], rc: %d",
+                      originName, rc ) ;
+      }
+
+      rc = getMBContext( &mbContext, recycleName, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get metadata block for collection "
+                   "[%s], rc: %d", recycleName, rc ) ;
+
+      recyMBID = mbContext->mbID() ;
+
+      if ( cb && cb->getTransExecutor()->useTransLock() )
+      {
+         dpsTransRetInfo lockConflict ;
+         rc = transCB->transLockTryX( cb, _logicalCSID, recyMBID, NULL,
+                                      &lockConflict ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
+                      rc,
+                      lockConflict._eduID,
+                      lockConflict._tid,
+                      lockConflict._lockID.toString().c_str(),
+                      lockModeToString( lockConflict._lockType ) ) ;
+         isTransLocked = TRUE ;
+      }
+
+      newUniqueID = (utilCLUniqueID)( options._recycleItem.getOriginID() ) ;
+      newStartLID = mbContext->mb()->_logicalID ;
+
+      // release mb context during rename
+      // NOTE: should block both origin and recycle collections
+      releaseMBContext( mbContext ) ;
+
+      rc = renameCollection( recycleName, originName, cb, NULL, TRUE,
+                             newUniqueID, &newStartLID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to rename collection, rc: %d", rc ) ;
+
+      // re-fetch mb context during rename
+      // NOTE: should block both origin and recycle collections
+      rc = getMBContext( &mbContext, originName, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get metadata block for collection "
+                   "[%s], rc: %d", originName, rc ) ;
+
+      // clear truncate flag
+      DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
+
+      if ( dpsCB )
+      {
+         rc = _logDPS( dpsCB, info, cb, mbContext, DMS_INVALID_EXTENT,
+                       FALSE, DMS_FILE_ALL, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write recycle record to log, "
+                      "rc: %d", rc ) ;
+      }
+      else if ( cb->getLsnCount() > 0 )
+      {
+         mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_ALL ) ;
+      }
+
+      if ( NULL != mbContext )
+      {
+         if ( NULL != returnedMBContext )
+         {
+            *returnedMBContext = mbContext ;
+            mbContext = NULL ;
+         }
+      }
+
+      PD_LOG( PDDEBUG, "Finish return collection [origin: %s.%s, "
+              "recycle %s.%s]", getSuName(), originName, getSuName(),
+              recycleName ) ;
+
+   done:
+      if ( NULL != mbContext )
+      {
+         releaseMBContext( mbContext ) ;
+      }
+      if ( isTransLocked )
+      {
+         transCB->transLockRelease( cb, _logicalCSID, recyMBID ) ;
+         isTransLocked = FALSE ;
+      }
+      if ( isLogReserved )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACOMMON_RTRNCL, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -3340,52 +3904,17 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, "_dmsStorageDataCommon::insertRecord" )
-   INT32 _dmsStorageDataCommon::insertRecord(dmsMBContext *context,
-                                             const BSONObj &record,
-                                             pmdEDUCB *cb,
-                                             SDB_DPSCB *dpscb,
-                                             BOOLEAN mustOID,
-                                             BOOLEAN canUnLock,
-                                             INT64 position,
-                                             utilInsertResult *insertResult )
-   {
-      INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD ) ;
-
-      if (DMS_STORAGE_VESSEL == getStorageType())
-      {
-         rc = insertRecordToEngine(cb, context, record, insertResult);
-      }
-      else
-      {
-         rc = insertRecordToMmap(context, record, cb, dpscb,
-                                 mustOID, canUnLock, position,
-                                 insertResult);
-      }
-
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP, "_dmsStorageDataCommon::insertRecordToMmap" )
-   INT32 _dmsStorageDataCommon::insertRecordToMmap (dmsMBContext *context,
-                                                    const BSONObj &record,
-                                                    pmdEDUCB *cb,
-                                                    SDB_DPSCB *dpscb,
-                                                    BOOLEAN mustOID,
-                                                    BOOLEAN canUnLock,
-                                                    INT64 position,
-                                                    utilInsertResult *insertResult )
+   INT32 _dmsStorageDataCommon::insertRecord ( dmsMBContext *context,
+                                               const BSONObj &record,
+                                               pmdEDUCB *cb,
+                                               SDB_DPSCB *dpscb,
+                                               BOOLEAN mustOID,
+                                               BOOLEAN canUnLock,
+                                               INT64 position,
+                                               utilInsertResult *insertResult )
    {
       INT32 rc                      = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP ) ;
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD ) ;
       UINT32         dmsRecordSize  = 0 ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       BSONObj        insertObj      = record ;
@@ -3425,7 +3954,7 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
-      if ( !isTransSupport() )
+      if ( !isTransSupport( context ) )
       {
          transInfo.reset() ;
       }
@@ -3436,8 +3965,8 @@ namespace engine
       // needed, like during space allocation, write extent and write index.
       // By doing so, we allow better concurrency for space allocation and
       // actual record/index IO, we also hold the latch for shorter duration.
-      // Potential drawback is we may acquire the latch more times. 
-      if ( !dpscb && !isTransSupport() )
+      // Potential drawback is we may acquire the latch more times.
+      if ( !dpscb && !isTransSupport( context ) )
       {
          highConcurrentMode = TRUE ;
       }
@@ -3449,7 +3978,7 @@ namespace engine
                                 recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
-                      position, insertObj.toPoolString().c_str(), rc ) ;
+                      position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
          if ( !markInsert )
          {
@@ -3606,7 +4135,7 @@ namespace engine
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
-         else if ( isTransSupport() &&
+         else if ( isTransSupport( context ) &&
                    OSS_BIT_TEST( context->mb()->_attributes,
                                  DMS_MB_ATTR_NOIDINDEX ) &&
                    cb->isTransaction() &&
@@ -3666,6 +4195,8 @@ namespace engine
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
                              NULL, cb ) ;
+            context->mbStat()->_totalDataLen += recordData.len() ;
+            context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
 
 #if defined (_DEBUG)
             PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
@@ -3713,7 +4244,7 @@ namespace engine
             // NOTE: we still need transaction locks during rollback
             // the insert record to rollback delete operation may insert
             // to a new place
-            if ( isTransSupport() &&
+            if ( isTransSupport( context ) &&
                  NULL != cb &&
                  cb->getTransExecutor()->useTransLock() )
             {
@@ -3727,12 +4258,12 @@ namespace engine
                                              &callback ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to insert the record, get "
                            "transaction-X-lock of record failed, "
-                           "rc: %d" OSS_NEWLINE
-                           "Conflict( representative ):" OSS_NEWLINE
-                           "   EDUID:  %llu" OSS_NEWLINE
-                           "   TID:    %u" OSS_NEWLINE
-                           "   LockId: %s" OSS_NEWLINE
-                           "   Mode:   %s" OSS_NEWLINE,
+                           "rc: %d"OSS_NEWLINE
+                           "Conflict( representative ):"OSS_NEWLINE
+                           "   EDUID:  %llu"OSS_NEWLINE
+                           "   TID:    %u"OSS_NEWLINE
+                           "   LockId: %s"OSS_NEWLINE
+                           "   Mode:   %s"OSS_NEWLINE,
                            rc,
                            lockConflict._eduID,
                            lockConflict._tid,
@@ -3784,6 +4315,12 @@ namespace engine
                               foundRID, cb, dpscb ? &callback : NULL,
                               insertResult, pUnqIdxHashArray ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert indexes, rc: %d", rc ) ;
+
+         if ( !markInsert )
+         {
+            _postInsertRecord( context, extRW, recordRW, recordData,
+                               dmsRecordSize, cb ) ;
+         }
       }
       catch( std::exception &e )
       {
@@ -3800,7 +4337,7 @@ namespace engine
                                insertObj.toString().c_str() ) ;
 
          /// enable trans
-         if ( isTransSupport() )
+         if ( isTransSupport( context ) )
          {
             info.enableTrans() ;
          }
@@ -3845,7 +4382,7 @@ namespace engine
       {
          cb->releaseBuff( pMergedData ) ;
       }
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORDMMAP, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
       return rc ;
    error:
       ctrlAssist.switchToUndo() ;
@@ -3876,7 +4413,7 @@ namespace engine
    //    corresponding log records and delete related indexes.
    // Input:
    //    pInfo:
-   //   
+   //
    // Dependency:
    //    Record lock should be held in X. MBlatch should be held.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_DELETERECORD, "_dmsStorageDataCommon::deleteRecord" )
@@ -3942,7 +4479,7 @@ namespace engine
       }
 #endif //_DEBUG
 
-      if ( !isTransSupport() )
+      if ( !isTransSupport( context ) )
       {
          transInfo.reset() ;
       }
@@ -4077,7 +4614,7 @@ namespace engine
                      }
                   }
                   // first to reserve dps
-                  if ( NULL != dpscb ) 
+                  if ( NULL != dpscb )
                   {
                      if ( pHandler )
                      {
@@ -4181,6 +4718,10 @@ namespace engine
 
                      // if local index delete fail, let's continue remove the record
                   }
+                  //here when we sub the remove data info,
+                  //if the record has compresssed,the orgLen mean the record size
+                  //in DB,len mean the uncompress size. So when we substract the
+                  //size,we should swap them.
                   context->mbStat()->_totalDataLen -= recordData.orgLen() ;
                   context->mbStat()->_totalOrgDataLen -= recordData.len() ;
                }
@@ -4210,7 +4751,7 @@ namespace engine
                     "isDeleting(%d), flag(%x), "
                     "hastransid(%d), lowtran(%s), expireTran(%s), "
                     "recordtransid(%s), pTransCB(%x)",
-                    recordID._extent, recordID._offset, isDeleting, 
+                    recordID._extent, recordID._offset, isDeleting,
                     pRecord->getFlag(),
                     pRecord->hasGlobTransID(),
                     dpsTransIDToString( lowTran ).c_str(),
@@ -4246,7 +4787,7 @@ namespace engine
             if( _mvccSupport && !pRecord->hasGlobTransID() )
             {
                // migrate to V1 record header before we can set transID
-               PD_LOG ( PDDEBUG, 
+               PD_LOG ( PDDEBUG,
                         "In-flight migration of record during delet object(%s) ",
                         recordRW.toString().c_str() ) ;
 
@@ -4264,7 +4805,7 @@ namespace engine
                // transaction ID for visiability check. We should handle this
                // case by doing a dummy update first, causing an overflow,
                // then we can try the delete again.
-               PD_LOG ( PDINFO, 
+               PD_LOG ( PDINFO,
                         "In-flight migration of record failed during delet"
                         " object(%s) because out of space in the record on disk",
                         recordRW.toString().c_str() ) ;
@@ -4278,7 +4819,7 @@ namespace engine
                             pRecord->toString().c_str() );
                   rc = _dummyUpdateRecord( context, recordID,
                                            deletedDataPtr, cb ) ;
-                  PD_RC_CHECK( rc, PDERROR, 
+                  PD_RC_CHECK( rc, PDERROR,
                                "Dummy update record for migration failed, "
                                "rc: %d", rc ) ;
                   retry = TRUE ;
@@ -4330,7 +4871,7 @@ namespace engine
             /// ignore the error
          }
 
-         if ( isTransSupport() )
+         if ( isTransSupport( context ) )
          {
             info.enableTrans() ;
          }
@@ -4388,39 +4929,7 @@ namespace engine
                                               utilUpdateResult *pResult,
                                               const dmsTransRecordInfo *pInfo )
    {
-      INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD ) ;
-
-      if (DMS_STORAGE_VESSEL == getStorageType())
-      {
-         rc = updateRecordInEngine(cb, context, modifier, recordID, pResult);
-      }
-      else
-      {
-         rc = updateRecordOnMmap(context, recordID, updatedDataPtr,
-                                 cb, dpscb, modifier, newRecord,
-                                 pHandler, pResult, pInfo);
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP, "_dmsStorageDataCommon::updateRecordOnMmap" )
-   INT32 _dmsStorageDataCommon::updateRecordOnMmap(dmsMBContext *context,
-                                                   const dmsRecordID &recordID,
-                                                   ossValuePtr updatedDataPtr,
-                                                   pmdEDUCB *cb,
-                                                   SDB_DPSCB *dpscb,
-                                                   _mthModifier &modifier,
-                                                   BSONObj* newRecord,
-                                                   IDmsOprHandler *pHandler,
-                                                   utilUpdateResult *pResult,
-                                                   const dmsTransRecordInfo *pInfo)
-   {
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP ) ;
       INT32            rc          = SDB_OK ;
       monAppCB        *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
       BSONObj          oldMatch, oldChg ;
@@ -4464,7 +4973,7 @@ namespace engine
          goto error ;
       }
 
-      if ( !isTransSupport() )
+      if ( !isTransSupport( context ) )
       {
          transInfo.reset() ;
       }
@@ -4548,9 +5057,7 @@ namespace engine
                   {
                      PD_LOG( PDERROR, "Process update record[%s] to [%s] "
                              "in handler failed, rc: %d",
-                             obj.toString().c_str(),
-                             newobj.toString().c_str(),
-                             rc ) ;
+                             PD_SECURE_OBJ( obj ), PD_SECURE_OBJ( newobj ), rc ) ;
                      goto error ;
                   }
                }
@@ -4686,9 +5193,9 @@ namespace engine
                   }
                }
 
-               PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
-                        "rc: %d", obj.toString().c_str(),
-                        newobj.toString().c_str(), rc ) ;
+               PD_LOG ( PDERROR,
+                        "Failed to update record from (%s) to (%s), rc: %d",
+                        PD_SECURE_OBJ( obj ), PD_SECURE_OBJ( newobj ), rc ) ;
                goto error ;
             }
 
@@ -4722,10 +5229,8 @@ namespace engine
       if ( dpscb )
       {
          PD_LOG ( PDDEBUG, "oldChange: %s,%s\nnewChange: %s,%s",
-                  oldMatch.toString().c_str(),
-                  oldChg.toString().c_str(),
-                  newMatch.toString().c_str(),
-                  newChg.toString().c_str() ) ;
+                  PD_SECURE_OBJ( oldMatch ), PD_SECURE_OBJ( oldChg ),
+                  PD_SECURE_OBJ( newMatch ), PD_SECURE_OBJ( newChg ) ) ;
 
          PD_AUDIT_OP_WITHNAME( AUDIT_UPDATE, "UPDATE", AUDIT_OBJ_CL,
                                fullName, rc, "OldMatch:%s, OldChange:%s, "
@@ -4735,7 +5240,7 @@ namespace engine
                                newMatch.toString().c_str(),
                                newChg.toString().c_str() ) ;
 
-         if ( isTransSupport() )
+         if ( isTransSupport( context ) )
          {
             info.enableTrans() ;
          }
@@ -4780,7 +5285,7 @@ namespace engine
             }
          }
       }
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORDONMMP, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD, rc ) ;
       return rc ;
    error :
       if ( handler )
@@ -4961,7 +5466,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY, "_dmsStorageDataCommon::loadDictionary" )
    INT32 _dmsStorageDataCommon::loadDictionary( dmsMBContext *context,
                                                 const CHAR *dictionary,
-                                                UINT32 dictLen, BOOLEAN force )
+                                                UINT32 dictLen )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY ) ;
@@ -5012,7 +5517,7 @@ namespace engine
          goto error ;
       }
 
-      if ( DMS_INVALID_EXTENT != mb->_dictExtentID && !force )
+      if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
       {
          PD_LOG( PDERROR, "Collection[%s] has valid compression dictionary and "
                  "force load is false", mb->_collectionName ) ;
@@ -5050,18 +5555,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to flush dictionary. It will be "
                    "created and flushed again next time" ) ;
-
-      // Release the old dictionary in force mode.
-      if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
-      {
-         dmsExtRW oldDictRW ;
-         dmsDictExtent *dictExt = NULL ;
-         // Remove the current compressor and release the dictionary.
-         _rmCompressor( context ) ;
-         oldDictRW = extent2RW( mb->_dictExtentID, context->mbID() ) ;
-         dictExt = oldDictRW.writePtr<dmsDictExtent>() ;
-         _releaseSpace( mb->_dictExtentID, dictExt->_blockSize ) ;
-      }
 
       // Set the dictionary extent id in mb only after the dictionary has been
       // successfully flushed to disk.
@@ -5137,7 +5630,7 @@ namespace engine
          dmsRecordRW ovfRW = record2RW( ovfRID, -1 ) ;
          pRecord = ovfRW.readPtr() ;
       }
-      
+
       return pRecord->getDataLength() ;
    }
 
@@ -5251,148 +5744,6 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
-   }
-
-   INT32 _dmsStorageDataCommon::createCLInEngine(pmdEDUCB * cb,
-                                                 dmsMBContext *context)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != cb, "can not be null");
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _pStorageInfo, "can not be null");
-      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be invalid");
-
-      ossPoolString fullName = utilFullNameParser::buildFullName(_pStorageInfo->_suName,
-                                                                 context->mb()->_collectionName);
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-
-      rc = engine->createCL(cb, fullName.c_str(),
-                            context->mb()->_clUniqueID,
-                            dmsCreateCLOptions(), bson::BSONObj());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create cl[%s] in engine:%d",
-                fullName.c_str(), rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 _dmsStorageDataCommon::insertRecordToEngine(pmdEDUCB *cb,
-                                                     dmsMBContext *context,
-                                                     const bson::BSONObj &record,
-                                                     utilInsertResult *result)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != cb, "can not be null");
-      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be other types");
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      DATA_COLLECTION_PTR cl;
-      monAppCB *pMonAppCB = cb->getMonAppCB();
-      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {};
-      BOOLEAN locked = FALSE;
-      rc = context->mbLock(SHARED);
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-      locked = TRUE;
-
-      if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
-                                          DMS_ACCESS_TYPE_INSERT ) )
-      {
-         PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
-         rc = SDB_DMS_INCOMPATIBLE_MODE ;
-         goto error ;
-      }
-
-      _clFullName(context->mb()->_collectionName, fullName,
-                  sizeof(fullName));
-      rc = engine->openCL(cb, fullName, dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
-                fullName, rc);
-         goto error;
-      }
-
-      rc = cl->insertRecord(cb, record, dmsInsertRecordOptions(), result);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to insert record into cl:%d", rc);
-         goto error;
-      }
-
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
-      _incWriteRecord() ;
-   done:
-      if (locked)
-      {
-         context->mbUnlock();
-      }
-      cl.reset();
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 _dmsStorageDataCommon::updateRecordInEngine(_pmdEDUCB *cb,
-                                                     dmsMBContext *context,
-                                                     _mthModifier &modifier,
-                                                     const dmsRecordID &rid,
-                                                     utilUpdateResult *pResult)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != cb, "can not be null");
-      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be other types");
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      DATA_COLLECTION_PTR cl;
-      monAppCB *pMonAppCB = cb->getMonAppCB();
-      CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {};
-      BOOLEAN locked = FALSE;
-      vessel::bsonRecordUpdater updater;
-
-      rc = context->mbLock(SHARED);
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-      locked = TRUE;
-      
-
-      if ( !dmsAccessAndFlagCompatiblity(context->mb()->_flag,
-                                         DMS_ACCESS_TYPE_UPDATE))
-      {
-         PD_LOG ( PDERROR, "Incompatible collection mode: %d",
-                  context->mb()->_flag ) ;
-         rc = SDB_DMS_INCOMPATIBLE_MODE ;
-         goto error ;
-      }
-
-      updater.setModifier(&modifier);
-      _clFullName(context->mb()->_collectionName, fullName,
-                  sizeof(fullName));
-      rc = engine->openCL(cb, fullName, dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
-                fullName, rc);
-         goto error;
-      }
-
-      rc = cl->updateRecord(cb, rid, &updater, dmsUpdateRecordOptions(), pResult);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      // increase update counter
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
-      _incWriteRecord();
-
-   done:
-      cl.reset();
-      return rc;
-   error:
-      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT, "_dmsStorageDataCommon::_updateMBStat" )

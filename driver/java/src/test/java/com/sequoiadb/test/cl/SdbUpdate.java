@@ -1,12 +1,20 @@
 package com.sequoiadb.test.cl;
 
 import com.sequoiadb.base.*;
+import com.sequoiadb.base.options.UpdateOption;
+import com.sequoiadb.base.options.UpsertOption;
+import com.sequoiadb.base.result.InsertResult;
+import com.sequoiadb.base.result.UpdateResult;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.message.request.UpdateRequest;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.ConstantsInsert;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -365,5 +373,76 @@ public class SdbUpdate {
         cursor = cl.query(matcher, null, null, null);
         BSONObject obj = cursor.getNext();
         assertEquals(obj.get("Age"), 80);
+    }
+
+    @Test
+    public void testUpdateWithResult(){
+        BSONObject matcher = new BasicBSONObject();
+        BSONObject modifier = new BasicBSONObject();
+        BSONObject m = new BasicBSONObject();
+
+        m.put("b", 1);
+        modifier.put("$set", m);
+
+        cl.truncate();
+        List<BSONObject> docList = new ArrayList<>();
+        docList.add( new BasicBSONObject("a", 1) );
+        docList.add( new BasicBSONObject("a", 2) );
+        docList.add( new BasicBSONObject("a", 3) );
+        cl.bulkInsert( docList );
+
+        // case 1: empty bson or null
+        try {
+            cl.updateRecords( null, null );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+        try {
+            cl.updateRecords( new BasicBSONObject(), new BasicBSONObject() );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+        try {
+            cl.upsertRecords( null, null );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+        try {
+            cl.upsertRecords( new BasicBSONObject(), new BasicBSONObject() );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+        // empty result
+        UpdateResult r1 = new UpdateResult( null );
+        Assert.assertEquals( -1, r1.getInsertNum() );
+        Assert.assertEquals( -1, r1.getModifiedNum() );
+        Assert.assertEquals( -1, r1.getUpdatedNum() );
+
+        // case 2: normal update
+        UpdateResult r2 = cl.updateRecords( matcher, modifier );
+        Assert.assertEquals( 0, r2.getInsertNum() );
+        Assert.assertEquals( 3, r2.getModifiedNum() );
+        Assert.assertEquals( 3, r2.getUpdatedNum() );
+
+        // case 3: update one
+        UpdateOption option = new UpdateOption();
+        option.setFlag( UpdateOption.FLG_UPDATE_ONE );
+        UpdateResult r3 = cl.updateRecords( matcher, modifier, option );
+        Assert.assertEquals( 1, r3.getUpdatedNum() );
+
+        // case 4: normal upsert
+        UpsertOption upsertOption = new UpsertOption();
+        upsertOption.setFlag( UpdateOption.FLG_UPDATE_ONE );
+        UpdateResult r4 = cl.upsertRecords( matcher, modifier, upsertOption );
+        Assert.assertEquals( 0, r4.getInsertNum() );
+        Assert.assertEquals( 0, r4.getModifiedNum() );
+        Assert.assertEquals( 1, r4.getUpdatedNum() );
+
+        // case 5: insert
+        matcher.put( "a", 5 );
+        UpdateResult r5 = cl.upsertRecords( matcher, modifier, upsertOption );
+        Assert.assertEquals( 1, r5.getInsertNum() );
+        Assert.assertEquals( 0, r5.getModifiedNum() );
+        Assert.assertEquals( 0, r5.getUpdatedNum() );
     }
 }

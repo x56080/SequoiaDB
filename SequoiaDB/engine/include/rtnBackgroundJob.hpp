@@ -74,6 +74,7 @@ namespace engine
          virtual INT32 init () ;
          const CHAR* getIndexName () const ;
          const CHAR* getCollectionName() const ;
+         utilCLUniqueID getCLUniqueID() const ;
 
          static INT32 checkIndexExist( const CHAR *pCLName,
                                        const CHAR *pIdxName,
@@ -96,7 +97,7 @@ namespace engine
          std::string             _indexName ;
          std::string             _jobName ;
          BSONObj                 _indexObj ;
-         BSONElement             _indexEle ;
+         BSONElement             _indexEle ; // This is for index dropping
          BOOLEAN                 _hasAddUnique ;
          BOOLEAN                 _hasAddGlobal ;
          UINT32                  _csLID ;

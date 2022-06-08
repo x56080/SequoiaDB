@@ -7,6 +7,7 @@ var csName = CHANGEDPREFIX + "_cs";;
 var cmd = new Cmd();
 var installDir = initPath();
 
+db.updateConf({ usessl: true},{role:"coord"});
 var dbs = new SecureSdb( COORDHOSTNAME, COORDSVCNAME );
 
 //inspect the index is created success or not.

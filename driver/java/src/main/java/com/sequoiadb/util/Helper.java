@@ -19,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import org.bson.BSON;
 import org.bson.BSONObject;
@@ -34,6 +35,16 @@ public final class Helper {
     public static final int ALIGN_SIZE = 4;
 
     public static final String ENCODING_TYPE =  "UTF-8";
+
+    public static final long INVALID_LONG = -1L;
+
+    public static Object getValue( BSONObject srcObj, String key, Object defaultValue ){
+        if ( srcObj == null ){
+            return defaultValue;
+        }
+        Object obj = srcObj.get( key );
+        return obj != null ? obj : defaultValue;
+    }
 
     public static String md5(String str) {
         MessageDigest md5;
@@ -374,5 +385,27 @@ public final class Helper {
         for (int i = 0; i < len; i++) {
             out.put((byte) 0);
         }
+    }
+
+    public static int eraseFlag( final int flags, int erasedFlag ) {
+        int newFlags = flags;
+        if ( ( newFlags & erasedFlag ) != 0 ) {
+            newFlags &= ~erasedFlag;
+        }
+        return newFlags;
+    }
+
+    public static byte[] genMD5( ByteBuffer data, int length ) {
+        MessageDigest md5;
+        try {
+            md5 = MessageDigest.getInstance( "MD5" );
+        } catch (Exception e) {
+            throw new BaseException( SDBError.SDB_SYS, e );
+        }
+        byte[] arr = new byte[data.limit()];
+        for ( int i = 0; i < arr.length; i++ ) {
+            arr[i] = data.get();
+        }
+        return Arrays.copyOf( md5.digest( arr ), length );
     }
 }

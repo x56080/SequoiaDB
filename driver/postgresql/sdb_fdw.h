@@ -20,14 +20,16 @@
 /******************************/
 
 /* Table related options */
-#define OPTION_NAME_COLLECTIONSPACE       "collectionspace"
-#define OPTION_NAME_COLLECTION            "collection"
-#define OPTION_NAME_USEDECIMAL            "decimal"
-#define OPTION_NAME_PUSHDOWNSORT          "pushdownsort"
-#define OPTION_NAME_PUSHDOWNLIMIT         "pushdownlimit"
-#define OPTION_NAME_PREFEREDINSTANCE      "preferedinstance"
-#define OPTION_NAME_PREFEREDINSTANCE_MODE "preferedinstancemode"
-#define OPTION_NAME_SESSION_TIMEOUT       "sessiontimeout"
+#define OPTION_NAME_COLLECTIONSPACE          "collectionspace"
+#define OPTION_NAME_COLLECTION               "collection"
+#define OPTION_NAME_USEDECIMAL               "decimal"
+#define OPTION_NAME_PUSHDOWNSORT             "pushdownsort"
+#define OPTION_NAME_PUSHDOWNLIMIT            "pushdownlimit"
+#define OPTION_NAME_PREFEREDINSTANCE         "preferedinstance"
+#define OPTION_NAME_PREFERREDINSTANCE        "preferredinstance"
+#define OPTION_NAME_PREFEREDINSTANCE_MODE    "preferedinstancemode"
+#define OPTION_NAME_PREFERREDINSTANCE_MODE   "preferredinstancemode"
+#define OPTION_NAME_SESSION_TIMEOUT          "sessiontimeout"
 
 
 
@@ -73,7 +75,9 @@ static const SdbInputOption SdbInputOptionList[] =
    { OPTION_NAME_CIPHER,                  ForeignServerRelationId },
    { OPTION_NAME_CIPHERFILE,              ForeignServerRelationId },
    { OPTION_NAME_PREFEREDINSTANCE,        ForeignServerRelationId },
+   { OPTION_NAME_PREFERREDINSTANCE,       ForeignServerRelationId },
    { OPTION_NAME_PREFEREDINSTANCE_MODE,   ForeignServerRelationId },
+   { OPTION_NAME_PREFERREDINSTANCE_MODE,  ForeignServerRelationId },
    { OPTION_NAME_SESSION_TIMEOUT,         ForeignServerRelationId },
    { OPTION_NAME_TRANSACTION,             ForeignServerRelationId },
 

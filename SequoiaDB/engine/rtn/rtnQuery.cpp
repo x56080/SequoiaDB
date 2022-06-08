@@ -688,6 +688,8 @@ namespace engine
       rtnQueryType queryType = RTN_QUERY_NORMAL ;
       rtnRemoteMessenger* messenger = rtnCB->getRemoteMessenger() ;
 
+      UINT32 scannerRetryTime = 0 ;
+
       // check if the adapter is registered.
       if ( messenger && messenger->isReady() )
       {
@@ -786,9 +788,26 @@ namespace engine
          UINT64 globTransAvailTime =
                mbContext->mbStat()->_globTransAvailTime.peek() ;
          stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
-         PD_CHECK( 0 == globTransAvailTime ||
-                   globTransAvailTime + STP_MAX_TIME_ERROR_US <=
-                                                          txBeginTm.getTime(),
+         if ( DPS_MAX_TRANS_TIME == globTransAvailTime )
+         {
+            stpAgent timeAgent ;
+            stpLogicalTimeUS curTime ;
+            // get global logical time
+            PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
+                             "Try to get STP logical time" ) ;
+            rc = timeAgent.getLogicalTimeUS( curTime,
+                                             OSS_ONE_SEC,
+                                             FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d",
+                         rc ) ;
+            mbContext->mbStat()
+                     ->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                           curTime.getTime() ) ;
+            globTransAvailTime =
+                  mbContext->mbStat()->_globTransAvailTime.peek() ;
+         }
+         PD_CHECK( ( ( 0 == globTransAvailTime ) ||
+                     ( globTransAvailTime < txBeginTm.getTime() ) ),
                    SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                    "Failed to check global transaction, available "
                    "timestamp on collection [%s] is [%llu], "
@@ -800,12 +819,26 @@ namespace engine
 
       try
       {
-      BSONElement eMeta = hintTmp.getField( FIELD_NAME_META ) ;
-      BSONElement ePos = hintTmp.getField( FIELD_NAME_POSITION ) ;
+      BSONElement eMeta  = hintTmp.getField( FIELD_NAME_META ) ;
+      BSONElement ePos   = hintTmp.getField( FIELD_NAME_POSITION ) ;
+      BSONElement eRange = hintTmp.getField( FIELD_NAME_RANGE ) ;
 
-      if ( !ePos.eoo() && Object != ePos.type() )
+      if ( !ePos.eoo() && !eRange.eoo() )
+      {
+         PD_LOG( PDERROR, "Field[%s] and Field[%s] cannot be specified at the "
+                 "same time", FIELD_NAME_POSITION, FIELD_NAME_RANGE ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( !ePos.eoo() && Object != ePos.type() )
       {
          PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( !eRange.eoo() && Object != eRange.type() )
+      {
+         PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_RANGE ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -866,6 +899,7 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT( apm, "apm shouldn't be NULL" ) ;
 
+retry:
       // plan is released in context destructor
       // selector, numToSkip and numToReturn are not considered in plan cache
       // now, so put dummy ones to find the plan
@@ -898,7 +932,7 @@ namespace engine
          else if ( indexName && ( IXSCAN != planRuntime->getScanType() ||
                    indexLID != planRuntime->getIndexLID() ) )
          {
-            PD_LOG( PDERROR, "Scan type[%d] error or indexLID[%d] is the "
+            PD_LOG( PDERROR, "Scan type[%d] error or indexLID[%d] is not the "
                     "same with [%d]", planRuntime->getScanType(),
                     planRuntime->getIndexLID(), indexLID ) ;
             rc = SDB_IXM_NOTEXIST ;
@@ -911,6 +945,16 @@ namespace engine
          // open context
          rc = dataContext->open( su, mbContext, cb, options, pBlockObj,
                                  direction ) ;
+         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         {
+            // Maybe in the process of scanning the index,
+            // the index is deleted
+            planRuntime->reset() ;
+            scannerRetryTime++ ;
+            // We only need to try to scan once. In most cases,
+            // the next scan is normal
+            goto retry ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
 
          /// when open succeed, plan and mbcontext and su is take over
@@ -941,6 +985,16 @@ namespace engine
                goto error ;
             }
          }
+         else if ( Object == eRange.type() )
+         {
+            rc = dataContext->setAdvanceSection( eRange.embeddedObject() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Do context set advance condition failed "
+                                ", rc: %d", rc ) ;
+               goto error ;
+            }
+         }
 
          context = dataContext ;
       }
@@ -960,6 +1014,16 @@ namespace engine
 
          rc = dataContext->open( su, mbContext, cb, returnOptions, pBlockObj,
                                  direction ) ;
+         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         {
+            // Maybe in the process of scanning the index,
+            // the index is deleted
+            planRuntime->reset() ;
+            scannerRetryTime++ ;
+            // We only need to try to scan once. In most cases,
+            // the next scan is normal
+            goto retry ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
 
          /// when open succeed, plan and mbcontext and su is take over
@@ -980,6 +1044,16 @@ namespace engine
             if ( rc )
             {
                PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         else if ( Object == eRange.type() )
+         {
+            rc = dataContext->setAdvanceSection( eRange.embeddedObject() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Do context set advance condition "
+                       "failed, rc: %d", rc ) ;
                goto error ;
             }
          }

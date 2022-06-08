@@ -260,7 +260,7 @@ namespace engine
                                            INT32 pageSize = DMS_PAGE_SIZE_DFT,
                                            INT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ,
                                            DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL,
-                                           BOOLEAN sysCall = FALSE) ;
+                                           BOOLEAN sysCall = FALSE ) ;
 
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       UINT32 attributes,
@@ -290,7 +290,6 @@ namespace engine
                                       const BSONObj *extOptions = NULL,
                                       const BSONObj *pIdIdxDef = NULL,
                                       BOOLEAN addIdxIDIfNotExist = FALSE ) ;
-
 
    INT32 rtnGetMore ( SINT64 contextID,            // input, context id
                       SINT32 maxNumToReturn,       // input, max record to read
@@ -342,7 +341,8 @@ namespace engine
                                         SDB_DPSCB *dpsCB,
                                         BOOLEAN sysCall,
                                         BOOLEAN dropFile,
-                                        BOOLEAN ensureEmpty = FALSE ) ;
+                                        BOOLEAN ensureEmpty = FALSE,
+                                        dmsDropCSOptions *options = NULL ) ;
 
    INT32 rtnUnloadCollectionSpace( const CHAR *pCollectionSpace,
                                    _pmdEDUCB *cb,
@@ -451,7 +451,8 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
+                                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
+                                    dmsDropCLOptions *options = NULL ) ;
 
    INT32 rtnRenameCollectionCommand ( const CHAR *csName,
                                       const CHAR *clShortName,
@@ -464,7 +465,9 @@ namespace engine
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection,
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
-                                    SDB_DPSCB *dpsCB ) ;
+                                    SDB_DPSCB *dpsCB,
+                                    dmsMBContext *mbContext = NULL,
+                                    dmsTruncCLOptions *options = NULL ) ;
 
    INT32 rtnRenameCollectionSpaceCommand ( const CHAR *pCSName,
                                            const CHAR *pNewCSName,
@@ -473,12 +476,19 @@ namespace engine
                                            SDB_DPSCB *dpsCB,
                                            BOOLEAN blockWrite ) ;
 
+   INT32 rtnReturnCommand( dmsReturnOptions &options,
+                           _pmdEDUCB *cb,
+                           SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB,
+                           BOOLEAN blockWrite ) ;
+
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,
                                          SDB_DMSCB *dmsCB,
                                          SDB_DPSCB *dpsCB,
                                          BOOLEAN   sysCall = FALSE,
-                                         BOOLEAN   ensureEmpty = FALSE ) ;
+                                         BOOLEAN   ensureEmpty = FALSE,
+                                         dmsDropCSOptions *options = NULL ) ;
 
    INT32 rtnDropCollectionSpaceP1 ( const CHAR *pCollectionSpace,
                                     _pmdEDUCB *cb,
@@ -490,7 +500,8 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    BOOLEAN   sysCall = FALSE );
+                                    BOOLEAN   sysCall = FALSE,
+                                    dmsDropCSOptions *options = NULL );
 
    INT32 rtnDropCollectionSpaceP1Cancel ( const CHAR *pCollectionSpace,
                                     _pmdEDUCB *cb,
@@ -722,16 +733,24 @@ namespace engine
    BOOLEAN rtnCollectionInTheSpace ( const CHAR *pCLName,
                                      const CHAR *pCSName ) ;
 
-   INT32 rtnConvertIndexDef( BSONObj& indexDef ) ;
+   INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef ) ;
 
    // Load compression dictionary for one collection.
-   // Note: Always be cautious to set force as true. Only use force when the
-   // dictionary is corrupted, and the dictionary being load is the same with
-   // the original one. Otherwise, all existing data will not able to
-   // decompress.
    INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
                                 const CHAR *dictionary,
-                                UINT32 dictSize, BOOLEAN force = FALSE ) ;
+                                UINT32 dictSize ) ;
+
+   INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
+                                dmsMBContext *context,
+                                const CHAR *dictionary,
+                                UINT32 dictSize ) ;
+
+   INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
+                            dmsExtentID expectedExtentID,
+                            const CHAR* expectedIndexName,
+                            dmsExtentID expectedIndexLID,
+                            dmsStorageUnit *su,
+                            dmsMBContext *mbContext ) ;
 }
 
 #endif

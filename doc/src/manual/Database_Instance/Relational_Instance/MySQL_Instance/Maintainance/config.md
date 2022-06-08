@@ -238,7 +238,7 @@
 
 **sequoiadb_preferred_instance**
 
-该参数可以配置 MySQL 会话进行读操作时，优先选择的 SequoiaDB 节点，取值规则可参考 [PreferedInstance][setSessionAttr] 参数说明。
+该参数可以配置 MySQL 会话进行读操作时，优先选择的 SequoiaDB 节点，取值规则可参考 [PreferredInstance][setSessionAttr] 参数说明。
 
 + 类型：string
 + 默认值："M"
@@ -247,7 +247,7 @@
 
 **sequoiadb_preferred_instance_mode**
 
-该参数可以配置多个节点符合 sequoiadb_preferred_instance 条件时，节点的选择模式，取值可参考 [PreferedInstanceMode][setSessionAttr] 参数说明。
+该参数可以配置多个节点符合 sequoiadb_preferred_instance 条件时，节点的选择模式，取值可参考 [PreferredInstanceMode][setSessionAttr] 参数说明。
 
 + 类型：string
 + 默认值："random"
@@ -275,6 +275,39 @@
 > **Note:**
 >
 > 事务模式下，所有操作均在主节点进行。因此上述配置需在无事务模式下修改，否则无效。
+
+###配置元数据映射功能###
+
+**sequoiadb_enable_mapping**
+
+该参数可以配置 MySQL 实例是否开启[元数据映射功能][metadata_mapping_management]。
+
++ 类型：boolean
++ 默认值：OFF
++ 作用范围：Global
++ 是否支持在线修改生效：否
+
+**sequoiadb_mapping_unit_count**
+
+该参数可以配置 MySQL 表所映射的集合空间数量。
+
++ 类型：int32
++ 默认值：10
++ 取值范围：[10,50]
++ 块大小：10
++ 作用范围：Global
++ 是否支持在线修改生效：否
+
+**sequoiadb_mapping_unit_size**
+
+该参数可以配置单个集合空间支持创建的集合数量。
+
++ 类型：int32
++ 默认值：1024
++ 取值范围：[1024,2048]
++ 块大小：512
++ 作用范围：Global
++ 是否支持在线修改生效：否
 
 ###其它配置###
 
@@ -359,3 +392,4 @@
 [sql_mode]:https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
 [optimizer_switch]:https://dev.mysql.com/doc/refman/5.7/en/switchable-optimizations.html
 [trans_isolation]:https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html
+[metadata_mapping_management]:Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/metadata_mapping_management.md

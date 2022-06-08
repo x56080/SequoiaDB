@@ -16,7 +16,7 @@
 
 SequoiaDB 的节点可以以多种角色运行，其中[数据节点][data]与[编目节点][catalog]包含用户与系统数据，因此可以通过复制组将其数据在多台物理设备中进行复制拷贝。
 
-![复制组示意图][replica_set]
+![复制组示意图][replica]
 
 通常情况下，复制组中的每个数据副本需要被存放于不同的物理服务器中，以保证任何物理设备出现故障都不会造成整体影响。通过将数据在多台物理服务器之间进行复制同步，SequoiaDB 可以有效避免单点问题，满足数据库的高可用与灾备能力。
 
@@ -32,6 +32,7 @@ SequoiaDB 的节点可以以多种角色运行，其中[数据节点][data]与[�
 + [复制组选举][election]
 + [部署复制组][create]
 + [主备一致性][consistency]
++ [复制组熔断][replica_set]
 + [复制组监控][monitor]
 
 [^_^]:
@@ -39,11 +40,12 @@ SequoiaDB 的节点可以以多种角色运行，其中[数据节点][data]与[�
 [node]:manual/Distributed_Engine/Architecture/Node/Readme.md
 [data]:manual/Distributed_Engine/Architecture/Node/data_node.md
 [catalog]:manual/Distributed_Engine/Architecture/Node/catalog_node.md
-[replica_set]:images/Distributed_Engine/Architecture/Replication/replica_set.png
+[replica]:images/Distributed_Engine/Architecture/Replication/replica_set.png
 [architecture]:manual/Distributed_Engine/Architecture/Replication/architecture.md
 [election]:manual/Distributed_Engine/Architecture/Replication/election.md
 [create]:manual/Distributed_Engine/Architecture/Replication/create.md
 [consistency]:manual/Distributed_Engine/Architecture/Replication/primary_secondary_consistency.md
+[replica_set]:manual/Distributed_Engine/Architecture/Replication/replica_set.md
 [monitor]:manual/Distributed_Engine/Architecture/Replication/monitoring.md
 
 

@@ -72,6 +72,9 @@ namespace engine
       virtual INT32 getUserObj( UINT32 pos, const _sptObjDesc &objDesc,
                                 const void** value ) const ;
 
+      virtual INT32 getBoolean( UINT32 pos, BOOLEAN &value,
+                                BOOLEAN strict = TRUE ) const ;
+
       virtual sptPrivateData* getPrivateData() const ;
 
       virtual UINT32 argc() const

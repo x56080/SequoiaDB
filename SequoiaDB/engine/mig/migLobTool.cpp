@@ -268,7 +268,7 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
          }
       }
 
-      ele = options.getField( FIELD_NAME_PREFERED_INSTANCE ) ;
+      ele = options.getField( FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) ;
       if ( String == ele.type() )
       {
          ops.prefer = ele.valuestr() ;
@@ -1052,12 +1052,12 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
       if ( NULL != ops.prefer )
       {
          rc = _db->setSessionAttr(
-                  BSON( FIELD_NAME_PREFERED_INSTANCE << ops.prefer ) ) ;
+                  BSON( FIELD_NAME_PREFERRED_INSTANCE_LEGACY << ops.prefer ) ) ;
       }
       else if ( 0 != ops.preferNum )
       {
          rc = _db->setSessionAttr(
-                  BSON( FIELD_NAME_PREFERED_INSTANCE << ops.preferNum ) ) ;
+                  BSON( FIELD_NAME_PREFERRED_INSTANCE_LEGACY << ops.preferNum ) ) ;
       }
       else
       {

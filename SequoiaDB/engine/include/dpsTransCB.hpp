@@ -352,6 +352,7 @@ namespace engine
       //                       global transaction
       // output:
       //    - visible: indicate if current transaction could visit given record
+      //    - pVisibleTime: indicate the visible time of this record
       // return:
       //    - SDB_OK: succeed to check version visible
       //    - other errors: failed to check version visible
@@ -372,7 +373,8 @@ namespace engine
                               const stpLogicalTimeUS &transBeginTime,
                               INT32 isolation,
                               BOOLEAN strictIsolation,
-                              BOOLEAN &visible ) ;
+                              BOOLEAN &visible,
+                              stpLogicalTimeUS *pVisibleTime = NULL ) ;
 
       // check expired of given transaction ID against lowTran
       // input:
@@ -1036,6 +1038,12 @@ namespace engine
                                        dpsTransRetInfo *pdpsTxResInfo = NULL,
                                        _dpsITransLockCallback *callback = NULL ) ;
 
+      // kill waiters for a specified lock ID
+      BOOLEAN transLockKillWaiters( UINT32 logicCSID,
+                                    UINT16 collectionID,
+                                    const dmsRecordID *recordID,
+                                    INT32 errorCode ) ;
+
       BOOLEAN transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                               UINT16 collectionID,
                               const dmsRecordID *recordID ) ;
@@ -1179,6 +1187,7 @@ namespace engine
       //    - transBeginTime: begin time of current transaction
       // output:
       //    - visible: indicate if current transaction could see record
+      //    - visibleTime: indicate the visible time of this record
       // return:
       //    - SDB_OK: succeed to check visibility
       //    - other errors: failed to check visibility
@@ -1190,7 +1199,8 @@ namespace engine
                                  const dpsTransBackInfo &recTransInfo,
                                  const DPS_TRANS_ID &transID,
                                  const stpLogicalTimeUS &transBeginTime,
-                                 BOOLEAN &visible ) ;
+                                 BOOLEAN &visible,
+                                 stpLogicalTimeUS &visibleTime ) ;
 
       // checks version visibility in global for wait-commit write transaction
       // input:
@@ -1200,6 +1210,7 @@ namespace engine
       //    - transBeginTime: begin time of current transaction
       // output:
       //    - visible: indicate if current transaction could see record
+      //    - visibleTime: indicate the visible time of this record
       // return:
       //    - SDB_OK: succeed to check visibility
       //    - other errors: failed to check visibility
@@ -1211,7 +1222,8 @@ namespace engine
                                       const dpsTransBackInfo &recTransInfo,
                                       const DPS_TRANS_ID &transID,
                                       const stpLogicalTimeUS &transBeginTime,
-                                      BOOLEAN &visible ) ;
+                                      BOOLEAN &visible,
+                                      stpLogicalTimeUS &visibleTime ) ;
 
       // checks version visibility in global cluster with time error
       // input:
@@ -1221,6 +1233,7 @@ namespace engine
       //    - transBeginTime: begin time of current transaction
       // output:
       //    - visible: indicate if current transaction could see record
+      //    - visibleTime: indicate the visible time of this record
       // return:
       //    - SDB_OK: succeed to check visibility
       //    - other errors: failed to check visibility
@@ -1231,7 +1244,8 @@ namespace engine
                             const DPS_TRANS_ID &recTransID,
                             const DPS_TRANS_ID &transID,
                             const stpLogicalTimeUS &transBeginTime,
-                            BOOLEAN &visible ) ;
+                            BOOLEAN &visible,
+                            stpLogicalTimeUS &visibleTime ) ;
 
       // checks version visibility in local node without time error
       // input:
@@ -1241,6 +1255,7 @@ namespace engine
       //    - transBeginTime: begin time of current transaction
       // output:
       //    - visible: indicate if current transaction could see record
+      //    - visibleTime: indicate the visible time of this record
       // return:
       //    - SDB_OK: succeed to check visibility
       //    - other errors: failed to check visibility
@@ -1250,7 +1265,8 @@ namespace engine
                              const DPS_TRANS_ID &recTransID,
                              const DPS_TRANS_ID &transID,
                              const stpLogicalTimeUS &transBeginTime,
-                             BOOLEAN &visible ) ;
+                             BOOLEAN &visible,
+                             stpLogicalTimeUS &visibleTime ) ;
 
    private:
       // node ID of transaction

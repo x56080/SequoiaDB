@@ -447,8 +447,11 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onDropCS ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onDropCS ( SDB_EVENT_OCCUR_TYPE type,
+                                  IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,
+                                  const dmsEventSUItem &suItem,
+                                  dmsDropCSOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
 
@@ -459,16 +462,19 @@ namespace engine
                                     pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onTruncateCL ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
+                                      IDmsEventHolder *pEventHolder,
                                       IDmsSUCacheHolder *pCacheHolder,
                                       const dmsEventCLItem &clItem,
-                                      UINT32 newCLLID,
+                                      dmsTruncCLOptions *options,
                                       pmdEDUCB *cb,
                                       SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onDropCL ( IDmsEventHolder *pEventHolder,
+         virtual INT32 onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                  IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,
                                   const dmsEventCLItem &clItem,
+                                  dmsDropCLOptions *options,
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
 
@@ -496,9 +502,14 @@ namespace engine
          virtual INT32 onChangeSUCaches ( IDmsEventHolder *pEventHolder,
                                           IDmsSUCacheHolder *pCacheHolder ) ;
 
-         OSS_INLINE virtual UINT32 getMask ()
+         OSS_INLINE virtual UINT32 getMask () const
          {
             return DMS_EVENT_MASK_PLAN ;
+         }
+
+         OSS_INLINE virtual const CHAR *getName() const
+         {
+            return "access plan manager" ;
          }
 
       protected :

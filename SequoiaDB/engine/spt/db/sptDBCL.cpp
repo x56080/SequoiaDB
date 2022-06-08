@@ -46,6 +46,8 @@ namespace engine
 {
    #define LOB_BUFFER_LEN  (2*1024*1024)
    #define SPT_CL_NAME  "SdbCollection"
+   #define SPT_OID_STR_LENGTH 24
+
    JS_CONSTRUCT_FUNC_DEFINE( _sptDBCL, construct )
    JS_DESTRUCT_FUNC_DEFINE( _sptDBCL, destruct )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, rawFind )
@@ -527,6 +529,7 @@ namespace engine
          // detail have set in _parseInsertOptions() when rc is not ok.
          goto error ;
       }
+      flags |= FLG_INSERT_RETURNNUM ;
 
       rc = _cl.insert( record, flags, &result ) ;
       if ( rc )
@@ -633,6 +636,7 @@ namespace engine
             flags |= UPDATE_ONE ;
          }
       }
+      flags |= UPDATE_RETURNNUM ;
 
       // Call cpp driver interface
       rc = _cl.update( rule, cond, hint, flags, &result ) ;
@@ -744,6 +748,7 @@ namespace engine
             flags |= FLG_UPDATE_ONE ;
          }
       }
+      flags |= UPDATE_RETURNNUM ;
 
       rc = _cl.upsert( rule, cond, hint, setOnInsert, flags, &result ) ;
       if( SDB_OK != rc )
@@ -819,6 +824,7 @@ namespace engine
             flags |= FLG_DELETE_ONE ;
          }
       }
+      flags |= FLG_DELETE_RETURNNUM ;
 
       rc = _cl.del( cond, hint, flags, &result ) ;
       if( SDB_OK != rc )
@@ -1246,6 +1252,7 @@ namespace engine
          // detail have set in _parseInsertOptions() when rc is not ok.
          goto error ;
       }
+      flags |= FLG_INSERT_RETURNNUM ;
 
       rc = _cl.insert( objVec, flags, &result ) ;
       if ( rc )
@@ -1834,6 +1841,14 @@ namespace engine
       }
       else
       {
+         if( SPT_OID_STR_LENGTH != oidStr.size() )
+         {
+            stringstream ss ;
+            ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << ss.str() ) ;
+            goto error ;
+         }
          if ( !utilIsValidOID( oidStr.c_str() ) )
          {
             rc = SDB_INVALIDARG ;
@@ -1935,6 +1950,14 @@ namespace engine
       else if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Oid must be string" ) ;
+         goto error ;
+      }
+      if( SPT_OID_STR_LENGTH != oidStr.size() )
+      {
+         stringstream ss ;
+         ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
       if ( !utilIsValidOID( oidStr.c_str() ) )
@@ -2058,6 +2081,14 @@ namespace engine
       else if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Oid must be string" ) ;
+         goto error ;
+      }
+      if( SPT_OID_STR_LENGTH != oidStr.size() )
+      {
+         stringstream ss ;
+         ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
       if ( !utilIsValidOID( oidStr.c_str() ) )
@@ -2383,7 +2414,21 @@ namespace engine
                              bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      rc = _cl.truncate() ;
+      BSONObj options ;
+
+      if ( arg.argc() > 0 )
+      {
+         rc = arg.getBsonobj( 0, options ) ;
+         if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      rc = _cl.truncate( options ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to truncate collection" ) ;

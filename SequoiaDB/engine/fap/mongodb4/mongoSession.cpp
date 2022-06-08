@@ -1009,7 +1009,7 @@ INT32 _mongoSession::_setSeesionAttr()
 
    msgSetAttr.reverse( sizeof( MsgOpQuery ) ) ;
    msgSetAttr.advance( sizeof( MsgOpQuery ) - 4 ) ;
-   obj = BSON( FIELD_NAME_PREFERED_INSTANCE << PREFER_REPL_MASTER ) ;
+   obj = BSON( FIELD_NAME_PREFERRED_INSTANCE_LEGACY << PREFER_REPL_MASTER ) ;
    set = (MsgOpQuery *)msgSetAttr.data() ;
 
    set->header.opCode = MSG_BS_QUERY_REQ ;

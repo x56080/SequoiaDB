@@ -49,9 +49,7 @@ namespace CSharp.Cluster
             sdb.Connect();
         }
 
-        // SEQUOIADBMAINSTREAM-7765
-        // [TestMethod]
-        [Ignore]
+        [TestMethod]
         public void Test14573()
         {
             if (Common.IsStandalone(sdb))
@@ -85,6 +83,20 @@ namespace CSharp.Cluster
             Assert.AreEqual(2, rg.GetNodeNum(SDBConst.NodeStatus.SDB_NODE_ALL));
 
             //5、获取该组内主备节点信息 
+            //测试GetDetail内部关闭游标
+            while (true)
+            {
+                try
+                {
+                    rg.GetDetail();
+                    break;
+                }
+                catch (BaseException e)
+                {
+                    Assert.AreEqual(-71, e.ErrorCode);
+                }
+            }
+
             while (true)
             {
                 try
@@ -96,7 +108,6 @@ namespace CSharp.Cluster
                 {
                     Assert.AreEqual(-71, e.ErrorCode);
                 }
-
             }
 
 

@@ -188,56 +188,6 @@ namespace vessel
    error:
       goto done;
    }
-
-/////////////logicalPageSapceLogUtil begin
-   INT32 lpsLogUtil::commit(requestContext *context,
-                             SPACE_ID sid,
-                             SPACE_TYPE spaceType,
-                             FILE_TYPE fileType,
-                             const deltaLogRecord &dlr,
-                             DPS_LSN_OFFSET &lsn)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context, "can not be invalid");
-      SDB_ASSERT(dlr.isValid(), "can not be invalid");
-      IDataJournal *journal = context->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
-      dpsLogRecordHeader jres;
-      UINT32 packedValue = packSidAndType(sid, spaceType, fileType);
-
-      jpad.setType(LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      rc = jpad.appendInt32(DPS_LOG_VESSEL_LPS_PM_SID_AND_TYPE, packedValue);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append sid and type:%d", rc);
-         goto error;
-      }
-
-      rc = jpad.append(DPS_LOG_VESSEL_LPS_PM_DELTA_LOG,
-                       dlr.getLogHead()->_size,
-                       dlr.getLogHead());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append delta log:%d", rc);
-         goto error;
-      }
-
-      jrequest = jpad.done();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to write journal:%d", rc);
-         goto error;
-      }
-
-      lsn = jres._lsn;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 /////////////logicalPageSapceLogUtil end
 }//namespace vessel
 }//namespace engine

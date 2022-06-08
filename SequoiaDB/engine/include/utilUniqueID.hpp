@@ -158,12 +158,10 @@ namespace engine
    }
 
    OSS_INLINE BOOLEAN utilCheckIdxUniqueID( utilIdxUniqueID idxUniqueID,
-                                            utilCSUniqueID csUniqueID,
-                                            BOOLEAN isStandaloneIdx )
+                                            utilCSUniqueID csUniqueID )
    {
 
-      return ( utilGetCSUniqIDFromIdx( idxUniqueID ) == csUniqueID &&
-               utilIsStandaloneIdx( idxUniqueID ) == isStandaloneIdx ) ;
+      return utilGetCSUniqIDFromIdx( idxUniqueID ) == csUniqueID ;
    }
 
    OSS_INLINE BOOLEAN utilCheckIdxInnerID(utilIdxInnerID idxInnerID)
@@ -196,7 +194,7 @@ namespace engine
    INT32 utilGetCSBounds( const CHAR *fieldName,
                           utilCSUniqueID csUniqueID,
                           bson::BSONObj &matcher ) ;
+
 }
 
 #endif //UTIL_UNIQUEID_HPP_
-

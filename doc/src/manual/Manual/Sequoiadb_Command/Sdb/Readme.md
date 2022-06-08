@@ -33,6 +33,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [getCS()][getCS] | 获取指定集合空间 |
 | [getDataSource()][getDataSource] | 获取数据源的引用 |
 | [getDomain()][getDomain] | 获取指定域 |
+| [getRecycleBin()][getRecycleBin] | 获取回收站的引用 |
 | [getRG()][getRG] | 获取指定复制组 |
 | [getSequence()][getSequence] | 获取指定的序列对象 |
 | [getSessionAttr()][getSessionAttr] | 获取会话属性 |
@@ -48,7 +49,6 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [listReplicaGroups()][listReplicaGroups] | 枚举复制组信息 |
 | [listSequences()][listSequences] | 枚举序列信息 |
 | [listTasks()][listTasks] | 枚举后台任务 |
-| [loadCS()][loadCS] | 加载集合空间到内存 |
 | [removeBackup()][removeBackup] | 删除数据库备份 |
 | [removeCataRG()][removeCataRG] | 删除编目复制组 |
 | [removeCoordRG()][removeCoordRG] | 删除数据库中的协调复制组 |
@@ -73,7 +73,6 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [transBegin()][transBegin] | 开启事务 |
 | [transCommit()][transCommit] | 事务提交 |
 | [transRollback()][transRollback] | 事务回滚 |
-| [unloadCS()][unloadCS] | 卸载集合空间 |
 | [updateConf()][updateConf] | 更新节点配置 |
 | [waitTasks()][waitTasks] | 同步等待指定任务结束或取消 |
 
@@ -110,6 +109,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [getCS]:manual/Manual/Sequoiadb_Command/Sdb/getCS.md
 [getDataSource]:manual/Manual/Sequoiadb_Command/Sdb/getDataSource.md
 [getDomain]:manual/Manual/Sequoiadb_Command/Sdb/getDomain.md
+[getRecycleBin]:manual/Manual/Sequoiadb_Command/Sdb/getRecycleBin.md
 [getRG]:manual/Manual/Sequoiadb_Command/Sdb/getRG.md
 [getSequence]:manual/Manual/Sequoiadb_Command/Sdb/getSequence.md
 [getSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/getSessionAttr.md
@@ -125,7 +125,6 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [listReplicaGroups]:manual/Manual/Sequoiadb_Command/Sdb/listReplicaGroups.md
 [listSequences]:manual/Manual/Sequoiadb_Command/Sdb/listSequences.md
 [listTasks]:manual/Manual/Sequoiadb_Command/Sdb/listTasks.md
-[loadCS]:manual/Manual/Sequoiadb_Command/Sdb/loadCS.md
 [removeBackup]:manual/Manual/Sequoiadb_Command/Sdb/removeBackup.md
 [removeCataRG]:manual/Manual/Sequoiadb_Command/Sdb/removeCataRG.md
 [removeCoordRG]:manual/Manual/Sequoiadb_Command/Sdb/removeCoordRG.md
@@ -150,6 +149,5 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [transBegin]:manual/Manual/Sequoiadb_Command/Sdb/transBegin.md
 [transCommit]:manual/Manual/Sequoiadb_Command/Sdb/transCommit.md
 [transRollback]:manual/Manual/Sequoiadb_Command/Sdb/transRollback.md
-[unloadCS]:manual/Manual/Sequoiadb_Command/Sdb/unloadCS.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 [waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md

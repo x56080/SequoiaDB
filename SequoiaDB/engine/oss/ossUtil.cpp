@@ -1245,6 +1245,7 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETDISKINFO, "ossGetDiskInfo" )
 INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
+                       INT64 &availBytes, INT32 &loadPercent,
                        CHAR* fsName, INT32 fsNameSize )
 {
    INT32 rc                = SDB_OK ;
@@ -1254,11 +1255,6 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    LPSTR lpszVolumePath    = NULL ;
    DWORD dwString          = 0 ;
    BOOL success            = FALSE ;
-   DWORD sectorsPerCluster = 0 ;
-   DWORD bytesPerSector    = 0 ;
-   DWORD freeClusters      = 0 ;
-   DWORD totalClusters     = 0 ;
-   INT64 availBytes        = 0 ;
    WCHAR volumePath[ OSS_MAX_PATHSIZE ] = L"" ;
 
    rc = ossANSI2WC ( pPath, &pszWString, &dwString ) ;
@@ -1272,21 +1268,26 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk space"
              ", errno: %d, rc = %d", ossGetLastError(), rc );
 
-   success = GetDiskFreeSpace ( pszWString, &sectorsPerCluster, &bytesPerSector,
-                                &freeClusters, &totalClusters ) ;
-   PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk free"
-             "space , errno: %d, rc = %d", ossGetLastError(), rc );
-
-   freeBytes = freeClusters * sectorsPerCluster * bytesPerSector ;
-   totalBytes = totalClusters * sectorsPerCluster * bytesPerSector ;
-
    // get disk name
    if ( NULL == fsName )
    {
       goto done ;
    }
 
-   success = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE+1) ;
+   // get percentage of disk load in space
+   if ( 0 != totalBytes )
+   {
+      loadPercent = 100 * ( totalBytes - freeBytes ) /
+                    totalBytes ;
+      loadPercent = loadPercent > 100 ? 100 : loadPercent ;
+      loadPercent = loadPercent < 0 ? 0 : loadPercent ;
+   }
+   else
+   {
+      loadPercent = 0 ;
+   }
+
+   success = GetVolumePathName ( pszWString, volumePath, OSS_MAX_PATHSIZE + 1 ) ;
    PD_CHECK( success, SDB_SYS, error, PDERROR, "Failed to get disk name"
              ", errno: %d, rc = %d", ossGetLastError(), rc );
 
@@ -1294,7 +1295,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    PD_RC_CHECK( rc, PDERROR, "Failed to convert ansi to wc, rc = %d", rc );
 
    ossStrncpy ( fsName, lpszVolumePath, fsNameSize - 1 ) ;
-   fsName[ fsNameSize ] = '\0' ;
+   fsName[ fsNameSize - 1 ] = '\0' ;
 
 #elif defined (_LINUX) || defined (_AIX)
    INT32 retcode = 0 ;
@@ -1306,6 +1307,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    struct stat pathStat ;
    BOOLEAN findOut = FALSE ;
    dev_t pathDevID ;
+   INT64 totalAvailale = 0 ;
 
    /// 1. get total and free space
    if ( statvfs ( pPath, &vfs ) )
@@ -1316,6 +1318,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
 
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
+   availBytes = vfs.f_bsize * vfs.f_bavail ;
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -1340,6 +1343,23 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
       goto error ;
    }
 
+   // 2.3 get percentage of disk load in space
+   // f_blocks means total space, f_bfree means free space in disk
+   // f_bavail means free space excluded system reserved space
+   // so total available space should be total space excluded system reserved space
+   totalAvailale = totalBytes - freeBytes + availBytes ;
+   if ( 0 != totalAvailale )
+   {
+      loadPercent = 1 + 100 * ( totalBytes - freeBytes ) /
+                    totalAvailale ;
+      loadPercent = loadPercent > 100 ? 100 : loadPercent ;
+      loadPercent = loadPercent < 0 ? 0 : loadPercent ;
+   }
+   else
+   {
+      loadPercent = 0 ;
+   }
+
    while ( NULL != ( me = getmntent_r ( fp, &dummy,
                                         tmpBuff, OSS_MAX_PATHSIZE ) ) )
    {
@@ -1352,7 +1372,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
          if ( pathDevID == devID )
          {
             ossStrncpy( fsName, me->mnt_fsname, fsNameSize - 1 ) ;
-            fsName[ fsNameSize ] = '\0' ;
+            fsName[ fsNameSize - 1 ] = '\0' ;
             findOut = TRUE ;
             break ;
          }
@@ -1363,7 +1383,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    if ( FALSE == findOut )
    {
       ossStrncpy( fsName, "unknown-disk", fsNameSize -1 ) ;
-      fsName[ fsNameSize ] = '\0' ;
+      fsName[ fsNameSize - 1 ] = '\0' ;
    }
 
 #endif

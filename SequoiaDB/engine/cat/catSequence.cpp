@@ -65,6 +65,7 @@ namespace engine
       _initial = TRUE ;
       _exceeded = FALSE ;
       _ID = UTIL_GLOBAL_NULL ;
+      _clUniqueID = UTIL_UNIQUEID_NULL ;
    }
 
    _catSequence::~_catSequence()
@@ -161,6 +162,11 @@ namespace engine
       _ID = id ;
    }
 
+   void _catSequence::setCLUniqueID( utilCLUniqueID clUniqueID )
+   {
+      _clUniqueID = clUniqueID ;
+   }
+
    INT32 _catSequence::toBSONObj( bson::BSONObj& obj, BOOLEAN forUpdate ) const
    {
       INT32 rc = SDB_OK ;
@@ -173,6 +179,7 @@ namespace engine
             builder.append( CAT_SEQUENCE_OID, _oid ) ;
             builder.append( CAT_SEQUENCE_INTERNAL, (bool)_internal ) ;
             builder.append( CAT_SEQUENCE_ID, (INT64)_ID ) ;
+            builder.append( CAT_SEQUENCE_CLUID, (INT64)_clUniqueID ) ;
          }
          builder.append( CAT_SEQUENCE_NAME, _name ) ;
          builder.append( CAT_SEQUENCE_VERSION, _version ) ;
@@ -219,6 +226,7 @@ namespace engine
          _version = other.getVersion() ;
          _internal = other.isInternal() ;
          _ID = other.getID() ;
+         _clUniqueID = other.getCLUniqueID() ;
       }
    }
 
@@ -792,6 +800,19 @@ namespace engine
             PD_CHECK( EOO == ele.type(), SDB_INVALIDARG, error, PDERROR,
                       "Invalid type (%d) for option [%s]",
                       ele.type(), CAT_SEQUENCE_VERSION ) ;
+         }
+
+         // CAT_SEQUENCE_CLUID
+         ele = options.getField( CAT_SEQUENCE_CLUID ) ;
+         if ( NumberInt == ele.type() || NumberLong == ele.type() )
+         {
+            setCLUniqueID( ele.numberLong() ) ;
+         }
+         else
+         {
+            PD_CHECK( EOO == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Invalid type (%d) for option [%s]",
+                      ele.type(), CAT_SEQUENCE_CLUID ) ;
          }
       }
 

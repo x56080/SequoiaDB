@@ -51,6 +51,7 @@
 #include "dmsPageMap.hpp"
 #include "rtnPredicate.hpp"
 #include "utilResult.hpp"
+#include "inclusiveVec.h"
 
 using namespace bson ;
 
@@ -151,7 +152,9 @@ namespace engine
       dmsExtRW             _extRW ;
 
       // reorganize the extent
-      INT32 _reorg (const Ordering &order, UINT16 &newPos) ;
+      INT32 _reorg ( const Ordering &order,
+                     UINT16 &newPos,
+                     BOOLEAN canDelNewPos ) ;
       INT32 _reorg (const Ordering &order) ;
       INT32 _alloc ( INT32 requestSpace, UINT16 &beginOffset ) ;
 
@@ -410,7 +413,7 @@ namespace engine
                      utilWriteResult *pResult = NULL ) ;
       // wipe out everything in the extent and all child extents
       void truncate ( ixmIndexCB *indexCB, dmsExtentID parent, BOOLEAN &valid,
-                      UINT64 *pDelKeyCnt = NULL ) ;
+                      ossAtomic64 *pDelKeyCnt = NULL ) ;
       // get the total number of elements in the index node and all children
       UINT64 count() const ;
 

@@ -71,6 +71,21 @@ namespace engine
    #define PMD_STOP_TIMEOUT               ( 600000 )  /// 10 mins
    #define PMD_STOP_DEADCHECK_TIMEOUT     ( PMD_STOP_TIMEOUT + 60000 )
 
+   typedef struct _pmdEDUProcessInfo
+   {
+      _pmdEDUProcessInfo()
+      {
+         _opID = 0 ;
+         _eduID = PMD_INVALID_EDUID ;
+      }
+
+      UINT64         _opID ;
+      EDUID          _eduID ;
+      ossPoolString  _processName ;
+   } pmdEDUProcessInfo ;
+
+   typedef ossPoolVector< pmdEDUProcessInfo > PMD_EDU_PROCESS_LIST ;
+
    /*
       _pmdEDUMgr define
    */
@@ -156,6 +171,10 @@ namespace engine
          BOOLEAN           hasWritingEDU( INT32 eduTypeFilter = -1,
                                           UINT64 idThreshold = 0,
                                           EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
+         INT32             getWritingEDUs( INT32 eduTypeFilter,
+                                           UINT64 idThreshold,
+                                           EDU_BLOCK_TYPE excludeBlockType,
+                                           PMD_EDU_PROCESS_LIST& writingEDUList ) ;
 
          void              resetMon( EDUID eduID = PMD_INVALID_EDUID ) ;
          void              resetIOService() ;
@@ -209,9 +228,13 @@ namespace engine
             When excludeBlockType = -1, will exclude all block type.
             0 will exclude none
          */
-         BOOLEAN           _hasWritingEDU( INT32 eduTypeFilter = -1,
-                                           UINT64 idThreshold = 0,
+         BOOLEAN           _hasWritingEDU( INT32 eduTypeFilter,
+                                           UINT64 idThreshold,
                                            EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
+         INT32             _getWritingEDUs( INT32 eduTypeFilter,
+                                            UINT64 idThreshold,
+                                            EDU_BLOCK_TYPE excludeBlockType,
+                                            PMD_EDU_PROCESS_LIST& writingEDUList ) ;
 
          void              setDestroyed( BOOLEAN b ) ;
          void              setQuiesced( BOOLEAN b ) ;

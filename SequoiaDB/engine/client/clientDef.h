@@ -79,7 +79,8 @@
 #define SDB_SNAP_TRANSWAITS       25
 /** snapshot of transaction deadlock */
 #define SDB_SNAP_TRANSDEADLOCK    26
-
+/** snapshot recycle bin **/
+#define SDB_SNAP_RECYCLEBIN       27
 
 /** list of all the contexts of all the sessions */
 #define SDB_LIST_CONTEXTS         0
@@ -130,6 +131,8 @@
 #define SDB_LIST_RESERVED7        25
 /** reserved */
 #define SDB_LIST_RESERVED8        26
+/** list recycle bin**/
+#define SDB_LIST_RECYCLEBIN       27
 
 // reserved
 #define SDB_LIST_CL_IN_DOMAIN     129

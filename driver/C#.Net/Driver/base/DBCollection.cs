@@ -196,29 +196,27 @@ namespace SequoiaDB
         }
 
         /** \fn long SplitAsync(String sourceGroupName,
-		 *	                    String destGroupName,
-		 *	                    BsonDocument splitCondition,
-		 *	                    BsonDocument splitEndCondition)
-	     *  \brief Split the specified collection from source group to target group by range asynchronously.
-         *  \param sourceGroupName the source group name
-         *  \param destGroupName the destination group name
-         *  \param splitCondition
-	     *            the split condition
-         *  \param splitEndCondition
-	     *            the split end condition or null
-	     *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-         *				 we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split,
-         *			 	 the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
-         *			 	 they are in [30,max).
-         *  \return return the task id, we can use the return id to manage the sharding which is run backgroup.
+         *                      String destGroupName,
+         *                      BsonDocument splitCondition,
+         *                      BsonDocument splitEndCondition)
+         *  \brief Split the specified collection from source group to target group by range asynchronously.
+         *  \param sourceGroupName The source group name
+         *  \param destGroupName The destination group name
+         *  \param splitCondition The split condition
+         *  \param splitEndCondition The split end condition or null
+         *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
+         *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split,
+         *               the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
+         *               they are in [30,max).
+         *  \return Return the task id, we can use the return id to manage the sharding which is run backgroup.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
-	     *  \see listTask, cancelTask
-	     */
+         *  \see listTask, cancelTask
+         */
         public long SplitAsync(String sourceGroupName,
-			                   String destGroupName,
-			                   BsonDocument splitCondition,
-			                   BsonDocument splitEndCondition)
+                               String destGroupName,
+                               BsonDocument splitCondition,
+                               BsonDocument splitEndCondition)
         {
             // check argument
             if (sourceGroupName == null || sourceGroupName.Equals("") ||
@@ -245,9 +243,17 @@ namespace SequoiaDB
                 throw new BaseException(flags, rtnSDBMessage.ErrorObject);
             // build cursor object to get result from database
             DBCursor cursor = new DBCursor(rtnSDBMessage, this);
-            BsonDocument result = cursor.Next();
-            if (result == null)
-                throw new BaseException("SDB_CAT_TASK_NOTFOUND");
+            BsonDocument result;
+            try
+            {
+                result = cursor.Next();
+                if (result == null)
+                    throw new BaseException("SDB_CAT_TASK_NOTFOUND");
+            }
+            finally
+            {
+                cursor.Close();
+            }
             bool flag = result.Contains(SequoiadbConstants.FIELD_TASKID);
             if (!flag)
                 throw new BaseException("SDB_CAT_TASK_NOTFOUND");
@@ -258,18 +264,17 @@ namespace SequoiaDB
         }
 
         /** \fn long SplitAsync(String sourceGroupName,
-		 *	                    String destGroupName,
-		 *	                    double percent)
-	     *  \brief Split the specified collection from source group to target group by percent asynchronously.
-         *  \param sourceGroupName the source group name
-         *  \param destGroupName the destination group name
-         *  \param percent
-	     *            the split percent, Range:(0,100]
-         *  \return return the task id, we can use the return id to manage the sharding which is run backgroup.
+         *                      String destGroupName,
+         *                      double percent)
+         *  \brief Split the specified collection from source group to target group by percent asynchronously.
+         *  \param sourceGroupName The source group name
+         *  \param destGroupName The destination group name
+         *  \param percent The split percent, Range:(0,100]
+         *  \return Return the task id, we can use the return id to manage the sharding which is run backgroup.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
-	     *  \see listTask, cancelTask
-	     */
+         *  \see listTask, cancelTask
+         */
         public long SplitAsync(String sourceGroupName,
                                String destGroupName,
                                double percent)
@@ -297,9 +302,17 @@ namespace SequoiaDB
                 throw new BaseException(flags, rtnSDBMessage.ErrorObject);
             // build cursor object to get result from database
             DBCursor cursor = new DBCursor(rtnSDBMessage, this);
-            BsonDocument result = cursor.Next();
-            if (result == null)
-                throw new BaseException("SDB_CAT_TASK_NOTFOUND");
+            BsonDocument result ;
+            try
+            {
+                result = cursor.Next();
+                if (result == null)
+                    throw new BaseException("SDB_CAT_TASK_NOTFOUND");
+            }
+            finally
+            {
+                 cursor.Close();
+            }
             bool flag = result.Contains(SequoiadbConstants.FIELD_TASKID);
             if (!flag)
                 throw new BaseException("SDB_CAT_TASK_NOTFOUND");

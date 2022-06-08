@@ -48,7 +48,8 @@
 #include "pmdTrace.hpp"
 #include "utilUniqueID.hpp"
 #include "dpsUtil.hpp"
-
+#include "msgConvertorImpl.hpp"
+#include "msgMessageFormat.hpp"
 #include <map>
 
 namespace engine
@@ -90,7 +91,8 @@ namespace engine
     _dumpTransCount( 0 )
 #if defined ( SDB_ENGINE )
     ,_transExecutor( this, pmdGetKRCB()->getMonMgr() ),
-    _urgentEventCount( 0 )
+    _urgentEventCount( 0 ),
+    _needCheckUrgentQueue( TRUE )
 #endif // SDB_ENGINE
 
    {
@@ -161,6 +163,11 @@ namespace engine
       ossMemset( _doingBuff, 0, sizeof( _doingBuff ) ) ;
 
       _curAutoTransCtxID = -1 ;
+      _currentContextID = -1 ;
+
+      ossMemset( _curProcessName, 0, sizeof( _curProcessName ) ) ;
+      ossMemset( _curMainCLName, 0, sizeof( _curMainCLName ) ) ;
+
       _pMemPool = NULL ;
       _monQueryCB = NULL ;
 
@@ -670,10 +677,23 @@ namespace engine
          {
             INT32 receivedLen ;
             MsgHeader header ;
-            INT32 rc = _pClientSock->recv( (CHAR*)&header , sizeof(header),
-                                           receivedLen, 0, MSG_PEEK, TRUE, TRUE ) ;
-            if ( ( rc >= (INT32)sizeof(header) &&
-                   MSG_BS_DISCONNECT == header.opCode ) ||
+            INT32 opCode = 0 ;
+            INT32 headerLen = 0 ;
+            SDB_PROTOCOL_VERSION version =
+                  _pSession->getClient()->getClientVersion() ;
+            headerLen = ( SDB_PROTOCOL_VER_1 == version ) ?
+                  sizeof(MsgHeaderV1) : sizeof(MsgHeader) ;
+
+            INT32 rc = _pClientSock->recv( (CHAR*)&header , headerLen,
+                                           receivedLen, 0, MSG_PEEK, TRUE, FALSE ) ;
+            if ( receivedLen >= headerLen )
+            {
+               opCode = ( SDB_PROTOCOL_VER_1 == version ) ?
+                        ( (MsgHeaderV1 *)(&header) )->opCode : header.opCode ;
+            }
+
+            if ( ( receivedLen >= headerLen &&
+                   MSG_BS_DISCONNECT == opCode ) ||
                  SDB_NETWORK_CLOSE == rc ||
                  SDB_NETWORK == rc )
             {
@@ -681,12 +701,12 @@ namespace engine
                _isInterruptSelf = FALSE ;
                ret = TRUE ;
             }
-            else if ( rc >= (INT32)sizeof(header) &&
-                      ( MSG_BS_INTERRUPTE == header.opCode ||
-                        MSG_BS_INTERRUPTE_SELF == header.opCode ) )
+            else if ( receivedLen >= headerLen &&
+                      ( MSG_BS_INTERRUPTE == opCode ||
+                        MSG_BS_INTERRUPTE_SELF == opCode ) )
             {
                _ctrlFlag |= EDU_CTRL_INTERRUPTED ;
-               _isInterruptSelf = MSG_BS_INTERRUPTE_SELF == header.opCode ?
+               _isInterruptSelf = MSG_BS_INTERRUPTE_SELF == opCode ?
                                   TRUE : FALSE ;
                ret = TRUE ;
             }
@@ -718,7 +738,7 @@ namespace engine
       return ( _ctrlFlag & EDU_CTRL_FORCED ) ? TRUE : FALSE ;
    }
 
-   void _pmdEDUCB::writingDB( BOOLEAN writing )
+   void _pmdEDUCB::writingDB( BOOLEAN writing, const CHAR* name )
    {
       if ( _writingDB == writing ) return ;
 
@@ -832,6 +852,7 @@ namespace engine
       {
          ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
          _contextList.insert ( contextID ) ;
+         setCurrentContextID( contextID ) ;
          result = TRUE ;
       }
       catch ( exception &e )
@@ -1104,11 +1125,38 @@ namespace engine
 #endif
    }
 
+   void _pmdEDUCB::enableCheckUrgentEvent()
+   {
+#if defined ( SDB_ENGINE )
+      _needCheckUrgentQueue = TRUE ;
+#endif
+   }
+
+   void _pmdEDUCB::disableCheckUrgentEvent()
+   {
+#if defined ( SDB_ENGINE )
+      _needCheckUrgentQueue = FALSE ;
+#endif
+   }
+
+   BOOLEAN _pmdEDUCB::needCheckUrgentEvent() const
+   {
+#if defined ( SDB_ENGINE )
+      return _needCheckUrgentQueue ;
+#else
+      return FALSE ;
+#endif
+   }
+
    void _pmdEDUCB::checkUrgentEvents()
    {
 #if defined ( SDB_ENGINE )
-      if ( _urgentEventCount.peek() > 0 )
+      if ( needCheckUrgentEvent() &&
+           _urgentEventCount.peek() > 0 )
       {
+         // shield to avoid calling check urgent event recursively
+         pmdUrgentEventShield _shield( this ) ;
+
          pmdEDUEvent event ;
          IContextMgr *ctxMgr = pmdGetKRCB()->getContextMgr() ;
          SDB_ASSERT( NULL != ctxMgr, "context manager should be valid" ) ;
@@ -1538,6 +1586,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 msgLen = 0 ;
       CHAR *pRecvBuf = NULL ;
+      UINT32 buffSize = 0 ;
+      UINT16 reserveSize = 0 ;   // For possible message conversion.
+      msgConvertorImpl *msgConvertor = NULL ;
+
+   reSend:
       rc = pmdSend( (const CHAR *)pMsg, pMsg->messageLength, sock,
                     cb, timeout ) ;
       if ( rc )
@@ -1551,22 +1604,33 @@ namespace engine
       {
          goto error ;
       }
-      if ( msgLen < sizeof( MsgHeader ) || msgLen > SDB_MAX_MSG_LENGTH )
+
+      // As we do not know the protocol version of the peer node, so we check
+      // the length with sizeof(MsgHeaderV1), as sizeof(MsgOpReplyV1) is less
+      // then sizeof(MsgHeader). If peer node is protocol version 2, need to
+      // check with sizeof(MsgHeader) below.
+      if ( msgLen < sizeof( MsgHeaderV1 ) || msgLen > SDB_MAX_MSG_LENGTH )
       {
          PD_LOG( PDERROR, "Recieve msg size[%u] less than msg header or more "
                  "than max size", msgLen ) ;
-         rc = SDB_INVALIDARG ;
+         rc = SDB_SYS ;
          sock->close() ;
          goto error ;
       }
 
-      // alloc memory
-      pRecvBuf = ( CHAR* )SDB_THREAD_ALLOC( msgLen ) ;
-      if ( !pRecvBuf )
+      if ( buffSize < msgLen + reserveSize )
       {
-         PD_LOG( PDERROR, "Alloc memory failed, size: %u", msgLen ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         CHAR *newBuff =
+               (CHAR *) SDB_THREAD_REALLOC( pRecvBuf, msgLen + reserveSize ) ;
+         if ( !newBuff )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Alloc memory[size: %u] failed[%d]",
+                    msgLen + reserveSize, rc ) ;
+            goto error ;
+         }
+         pRecvBuf = newBuff ;
+         buffSize = msgLen + reserveSize ;
       }
 
       ossMemcpy( pRecvBuf, ( CHAR* )&msgLen, sizeof( INT32 ) ) ;
@@ -1578,12 +1642,99 @@ namespace engine
          goto error ;
       }
 
+      if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader *)pRecvBuf)->eye )
+      {
+         // The eye is not as expected, so the peer node is most likely to be
+         // using old protocol. The first reply should report unknown message
+         // as the original request has not been converted. So convert the
+         // request and send again. And when the reply is received, it also
+         // needs to be converted.
+         MsgOpReplyV1 *reply = (MsgOpReplyV1 *)pRecvBuf ;
+         INT32 result = reply->flags ;
+         CHAR *convertedMsg = NULL ;
+         UINT32 finalSize = 0 ;
+         BOOLEAN newConvertor = FALSE ;
+
+         if ( !msgConvertor )
+         {
+            msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+            if ( !msgConvertor )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory for message "
+                       "convertor[size: %d] failed[%d]",
+                       sizeof(msgConvertorImpl), rc ) ;
+               goto error ;
+            }
+            newConvertor = TRUE ;
+         }
+
+         // If the result is not unknown message, it failed for some other
+         // reason. No need to retry and just convert the reply.
+         if ( newConvertor && ( SDB_UNKNOWN_MESSAGE == result ||
+                                SDB_CLS_UNKNOW_MSG == result ) )
+         {
+            PD_LOG( PDDEBUG, "Node[%s] may be using old protocol version. Try "
+                    "to convert the request message[opCode: %d] and resend",
+                    routeID2String( pMsg->routeID ).c_str(), pMsg->opCode ) ;
+
+            rc = msgConvertor->push( (CHAR *)pMsg, pMsg->messageLength ) ;
+            PD_RC_CHECK( rc, PDERROR, "Push message[opCode: %d] into message "
+                         "convertor failed[%d]", pMsg->opCode, rc ) ;
+            rc = msgConvertor->output( convertedMsg, finalSize ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get converted message[opCode: %d] "
+                         "from the message convertor failed[%d]",
+                         pMsg->opCode, rc ) ;
+            pMsg = (MsgHeader *)convertedMsg ;
+            reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
+
+            SDB_ASSERT( (UINT32)pMsg->messageLength == finalSize,
+                        "Message length is invalid") ;
+            goto reSend ;
+         }
+
+         msgConvertor->reset( FALSE ) ;
+         rc = msgConvertor->push( (CHAR *)reply, reply->header.messageLength ) ;
+         PD_RC_CHECK( rc, PDERROR, "Push reply message into message convertor "
+                      "failed[%d]", rc ) ;
+         rc = msgConvertor->output( convertedMsg, finalSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get converted reply message from message "
+                      "convertor failed[%d]", rc ) ;
+
+         if ( finalSize > buffSize )
+         {
+            CHAR *newBuff = (CHAR *)SDB_THREAD_REALLOC( pRecvBuf, finalSize ) ;
+            if ( !newBuff )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory[size: %u] for converted "
+                       "message failed[%d]", finalSize, rc ) ;
+               goto error ;
+            }
+            pRecvBuf = newBuff ;
+            buffSize = finalSize ;
+         }
+         ossMemcpy( pRecvBuf, convertedMsg, finalSize ) ;
+      }
+      else if ( msgLen < sizeof(MsgHeader) )
+      {
+         PD_LOG( PDERROR, "Recieve msg size[%u] less than msg header size",
+                 msgLen ) ;
+         rc = SDB_SYS ;
+         sock->close() ;
+         goto error ;
+      }
+
       recvEvent._eventType = PMD_EDU_EVENT_MSG ;
       recvEvent._Data = (void*)pRecvBuf ;
       recvEvent._dataMemType = PMD_EDU_MEM_THREAD ;
       recvEvent._userData = 0 ;
 
    done:
+      if ( msgConvertor )
+      {
+         SDB_OSS_DEL msgConvertor ;
+      }
       return rc ;
    error:
       if ( pRecvBuf )

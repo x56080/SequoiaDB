@@ -18,6 +18,7 @@
 
 package org.bson;
 
+import com.sequoiadb.base.ClientOptions;
 import org.bson.types.*;
 import org.bson.util.ClassMap;
 
@@ -473,6 +474,8 @@ public class BSON {
             return true;
         else if (obj.getClass().isPrimitive())
             return true;
+        else if (obj instanceof BSONDate)
+            return true;
         else if (obj instanceof Date)
             return true;
         else if (obj instanceof Number)
@@ -557,5 +560,18 @@ public class BSON {
      */
     public static boolean getJSCompatibility() {
         return _compatible;
+    }
+
+    // Whether to use exactly date, default is false.
+    // True:  only the year, month and day parts of java.util.Date are retained in BSON.encode()
+    // False: java.util.Date remains intact in BSON.encode()
+    private static boolean exactlyDate = false;
+
+    public static void setExactlyDate( boolean value) {
+        exactlyDate = value;
+    }
+
+    public static boolean getExactlyDate() {
+        return exactlyDate;
     }
 }

@@ -41,6 +41,7 @@ namespace bson {
 
    class SDB_EXPORT bsonDecimal
    {
+      friend class BSONDecimalElement ;
    public:
       bsonDecimal() ;
       bsonDecimal( const bsonDecimal &right ) ;
@@ -123,6 +124,8 @@ namespace bson {
 
    private:
       INT32          _checkAndGetUint64( UINT64 &result ) const ;
+      INT32          _fromBsonValue( const CHAR *bsonValue,
+                                     BOOLEAN getOwned ) ;
 
    private:
       bson_decimal   _decimal ;

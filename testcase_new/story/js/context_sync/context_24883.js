@@ -2,12 +2,11 @@
  * @Description   : seqDB-24883:查询指定sort()上下文超时清理 
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.30
- * @LastEditTime  : 2021.12.31
- * @LastEditors   : Yao Kang
+ * @LastEditTime  : 2022.04.01
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_24883";
-// 问题单：http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-7889
-// main( test );
+main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
@@ -15,10 +14,10 @@ function test ( testPara )
    try
    {
       db.updateConf( { "contexttimeout": 1 } );
-      insertData( cl, 10000 );
+      insertData( cl, 50000 );
       cursor = cl.find().sort( { no: 1 } );
       cursor.next();
-      sleep( 1000 * 60 * 2 );
+      sleep( 1000 * 60 * 3 );
       assert.tryThrow( SDB_RTN_CONTEXT_NOTEXIST, function()
       {
          while( cursor.next() ) { }

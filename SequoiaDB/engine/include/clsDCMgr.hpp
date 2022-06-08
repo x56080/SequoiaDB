@@ -41,6 +41,7 @@
 #include "netRouteAgent.hpp"
 #include "ossLatch.hpp"
 #include "clsCatalogAgent.hpp"
+#include "utilRecycleBinConf.hpp"
 #include "sdbInterface.hpp"
 #include <map>
 #include <string>
@@ -101,6 +102,7 @@ namespace engine
 
          BOOLEAN        hasCSUniqueHWM() const { return _hasCsUniqueHWM ; }
          utilCSUniqueID getCSUniqueHWM() const { return _csUniqueHWM ; }
+         UINT32         getCATVersion() const { return _catVersion ; }
 
          const CHAR*    getClusterName() const ;
          const CHAR*    getBusinessName() const ;
@@ -118,6 +120,9 @@ namespace engine
          string         dest2source( const string &destGroup ) ;
 
          BSONObj        getOrgObj() const { return _orgObj ; }
+
+         utilRecycleBinConf getRecycleBinConf() ;
+         void setRecycleBinConf( const utilRecycleBinConf &conf ) ;
 
       protected:
          void           _reset() ;
@@ -140,6 +145,7 @@ namespace engine
          BOOLEAN        _restoring ;
          BOOLEAN        _hasCsUniqueHWM ;
          utilCSUniqueID _csUniqueHWM ;
+         UINT32         _catVersion ;
 
          string         _imageClusterName ;
          string         _imageBusinessName ;
@@ -149,6 +155,8 @@ namespace engine
 
          map< string, string >  _imageGroups ;  // source 2 dest
          map< string, string >  _imageRGroups ; // dest 2 source
+
+         utilRecycleBinConf _recycleBinConf ;
 
          ossRWMutex     _rwMutex ;
 

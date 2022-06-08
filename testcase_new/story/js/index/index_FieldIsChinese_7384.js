@@ -20,7 +20,7 @@ function test ()
    varCL.insert( { "中文": 12 } );
 
    //test find by index 
-   checkExplain( varCL, { "中文": 12 } );
+   checkExplain( varCL, { "中文": 12 }, "ixscan", "chen" );
 
    //check the result of find  
    checkResult( varCL, { "中文": 12 } );

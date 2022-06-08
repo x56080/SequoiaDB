@@ -5,7 +5,7 @@
  @author:     laojingtang
 """
 from pysequoiadb import SDBError
-from pysequoiadb.errcode import SDB_CAT_TASK_NOTFOUND, SDB_TASK_ALREADY_FINISHED
+from pysequoiadb.errcode import SDB_CAT_TASK_NOTFOUND, SDB_TASK_ALREADY_FINISHED, SDB_TASK_HAS_CANCELED
 
 from lib import testlib
 
@@ -39,11 +39,15 @@ class TestTask12495(testlib.SdbTestBase):
       id = self.cl.split_async_by_percent(self.g1_name, self.g2_name, 50.0)
       import sys
       if sys.version_info[0] != 3:
-         id = long(id);
+         id = long(id)
       self.db.list_tasks()
       try:
          self.db.cancel_task(task_id=id, is_async=True)
       except SDBError as e:
          if e.errcode != SDB_CAT_TASK_NOTFOUND or e.errcode != SDB_TASK_ALREADY_FINISHED:
             raise e
-      self.db.wait_task([id], 1)
+      try:
+         self.db.wait_task([id], 1)
+      except SDBError as e:
+         if e.errcode != SDB_TASK_HAS_CANCELED:
+            raise e

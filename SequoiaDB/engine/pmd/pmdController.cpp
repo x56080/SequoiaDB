@@ -45,7 +45,6 @@
 #include "ossProc.hpp"
 #include "utilMemListPool.hpp"
 #include "coordResource.hpp"
-#include "dmsEngineCB.hpp"
 
 namespace engine
 {
@@ -298,16 +297,26 @@ namespace engine
       _mapSessions.clear() ;
       _mapUser2Sessions.clear() ;
 
+      _mapMonNets.clear() ;
+
       return SDB_OK ;
    }
 
    void _pmdController::onConfigChange()
    {
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
-
       setDiagFileNum( pmdGetOptionCB()->diagFileNum() ) ;
-      setAuditFileNum( pmdGetOptionCB()->auditFileNum() ) ;
 
+      if ( pmdGetOptionCB()->diagSecureOn() )
+      {
+         pdEnableDiaglogSecure() ;
+      }
+      else
+      {
+         pdDisableDiaglogSecure() ;
+      }
+
+      setAuditFileNum( pmdGetOptionCB()->auditFileNum() ) ;
       pdSetAuditMask( pmdGetOptionCB()->auditMask() ) ;
 
       pmdFTMgr *ftMgr = pmdGetKRCB()->getFTMgr() ;
@@ -409,7 +418,6 @@ namespace engine
       PMD_REGISTER_CB( sdbGetSQLCB() ) ;           // SQL
       PMD_REGISTER_CB( sdbGetAggrCB() ) ;          // AGGR
       PMD_REGISTER_CB( sdbGetPMDController() ) ;   // CONTROLLER
-      PMD_REGISTER_CB( sdbGetDMSEngineCB() ) ;     /// DMS ENGINE
    }
 
    void _pmdController::detachSessionInfo( restSessionInfo * pSessionInfo )
@@ -644,7 +652,7 @@ namespace engine
          _timeCounter = 0 ;
       }
 
-      map< _netFrame*, INT32 >::iterator it = _mapMonNets.begin() ;
+      map< _netFrame*, netFrameMon >::iterator it = _mapMonNets.begin() ;
       while( it != _mapMonNets.end() )
       {
          it->first->heartbeat( OSS_ONE_SEC, it->second ) ;
@@ -715,12 +723,54 @@ namespace engine
       _pRSManager = pRSManager ;
    }
 
-   void _pmdController::registerNet( _netFrame *pNetFrame, INT32 serviceType )
+   INT32 _pmdController::registerNet( _netFrame *pNetFrame,
+                                      INT32 serviceType,
+                                      BOOLEAN isActive )
    {
+      INT32 rc = SDB_OK ;
+
       SDB_ASSERT( pmdGetThreadEDUCB() &&
                   EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
                   "Must register in main thread" ) ;
-      _mapMonNets[ pNetFrame ] = serviceType ;
+
+      try
+      {
+         if ( isActive )
+         {
+            if ( -1 == serviceType )
+            {
+               _mapMonNets[ pNetFrame ].setAllMonitorActive() ;
+            }
+            else
+            {
+               _mapMonNets[ pNetFrame ].setMonitorActive( serviceType ) ;
+            }
+         }
+         else
+         {
+            if ( -1 == serviceType )
+            {
+               _mapMonNets[ pNetFrame ].setAllMonitorPassive() ;
+            }
+            else
+            {
+               _mapMonNets[ pNetFrame ].setMonitorPassive( serviceType ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to register net monitor, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    void _pmdController::unregNet( _netFrame *pNetFrame )
@@ -754,14 +804,14 @@ namespace engine
       if ( rc )
       {
          ossPrintf ( "Failed to get excutable file's working "
-                     "directory" OSS_NEWLINE ) ;
+                     "directory"OSS_NEWLINE ) ;
          goto error ;
       }
       rc = utilBuildFullPath( rootPath, FAP_MODULE_PATH,
                               OSS_MAX_PATHSIZE, path );
       if ( rc )
       {
-         ossPrintf( "Failed to build module path: %d" OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build module path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
       rc = _fapMongo->load( moduleName, path ) ;

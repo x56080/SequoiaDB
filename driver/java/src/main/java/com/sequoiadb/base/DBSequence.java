@@ -127,7 +127,7 @@ public class DBSequence {
     }
 
     /**
-     * Create the sequence with default options.
+     * Alter the sequence with the specified options.
      *
      * @param options The options specified by user, details as bellow:
      *                <ul>

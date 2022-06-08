@@ -598,6 +598,15 @@ namespace engine
       return FALSE ;
    }
 
+   BOOLEAN _coordGroupSel::isRequiredSecondary() const
+   {
+      if ( _pPropSite && _pPropSite->isSlaveRequired() )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
    BOOLEAN _coordGroupSel::isPreferredPrimary() const
    {
       if ( _pPropSite && _pPropSite->isMasterPreferred() )
@@ -762,18 +771,23 @@ namespace engine
       UINT32 nodeNum = 0 ;
 
       nodeID.value = _pPropSite->getLastNode( groupID ) ;
-      // last node is valid and in group info
+      // last node is valid and in group info and meets the constraints
       if ( MSG_INVALID_ROUTEID != nodeID.value &&
            COORD_GROUP_SEL_INVALID == _pos )
       {
-         if ( _groupPtr->nodePos( nodeID.columns.nodeID ) >= 0 )
+         if ( _groupPtr->nodePos( nodeID.columns.nodeID ) >= 0 &&
+              _meetPreferConstraint( nodeID ) &&
+              _svcType == nodeID.columns.serviceID )
          {
-            nodeID.columns.serviceID = _svcType ;
             _pos = COORD_GROUP_SEL_NONE ;
-            PD_LOG( PDDEBUG, "Select node: %s", routeID2String( nodeID ).c_str() ) ;
+            PD_LOG( PDDEBUG, "Select node: %s",
+                    routeID2String( nodeID ).c_str() ) ;
             goto done ;
          }
-         _pPropSite->delLastNode( groupID ) ;
+         else
+         {
+            _pPropSite->delLastNode( groupID ) ;
+         }
       }
 
       groupItem = _groupPtr.get() ;
@@ -806,6 +820,8 @@ namespace engine
       if ( _pos < 0 )
       {
          rc = SDB_CLS_NODE_NOT_EXIST ;
+         PD_LOG_MSG( PDERROR, "No preferred instance found in group [%s]",
+                     _groupPtr->groupName().c_str() ) ;
          goto error ;
       }
       rc = _nextPos( _groupPtr, _pPropSite->getInstanceOption(),
@@ -824,6 +840,30 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _coordGroupSel::_meetPreferConstraint( const MsgRouteID &nodeID ) const
+   {
+      BOOLEAN met = FALSE ;
+      PMD_PREFER_CONSTRAINT constraint =
+            _pPropSite->getInstanceOption().getPreferredConstraint() ;
+      UINT16 primaryID = _groupPtr->primary().columns.nodeID ;
+
+      switch ( constraint )
+      {
+         case PMD_PREFER_CONSTRAINT_PRY_ONLY:
+            met = ( nodeID.columns.nodeID == primaryID ) ? TRUE : FALSE ;
+            break ;
+         case PMD_PREFER_CONSTRAINT_SND_ONLY:
+            met = ( nodeID.columns.nodeID != primaryID ) ? TRUE : FALSE ;
+            break ;
+         case PMD_PREFER_CONSTRAINT_NONE:
+         default:
+            met = TRUE ;
+            break ;
+      }
+
+      return met ;
    }
 
    INT32 _coordGroupSel::selNext( MsgRouteID &nodeID )
@@ -915,47 +955,41 @@ namespace engine
       {
          UINT32 nodeCount = pGroupItem->nodeCount() ;
          BOOLEAN isSlavePreferred = FALSE ;
-         switch ( instanceOption.getSpecialInstance() )
+
+         if ( instanceOption.isMasterPreferred() )
          {
-            case PMD_PREFER_INSTANCE_TYPE_MASTER :
-            case PMD_PREFER_INSTANCE_TYPE_MASTER_SND :
+            // if there is no primary, then go on to get random node
+            if ( CLS_RG_NODE_POS_INVALID != primaryPos )
             {
-               // if there is no primary, then go on to get random node
-               if ( CLS_RG_NODE_POS_INVALID != primaryPos )
-               {
-                  selected = TRUE ;
-                  pos = (INT32)primaryPos ;
-               }
-               else
-               {
-                  pos = random ;
-               }
-               break ;
+               selected = TRUE ;
+               pos = (INT32)primaryPos ;
             }
-            case PMD_PREFER_INSTANCE_TYPE_SLAVE :
-            case PMD_PREFER_INSTANCE_TYPE_SLAVE_SND :
-            {
-               isSlavePreferred = TRUE ;
-               pos = random ;
-               break ;
-            }
-            case PMD_PREFER_INSTANCE_TYPE_ANYONE :
-            case PMD_PREFER_INSTANCE_TYPE_ANYONE_SND :
+            else
             {
                pos = random ;
-               break ;
             }
-            default :
+         }
+         else if ( instanceOption.isSlavePreferred() )
+         {
+            isSlavePreferred = TRUE ;
+            pos = random ;
+         }
+         else if ( instanceOption.getSpecialInstance() ==
+                   PMD_PREFER_INSTANCE_TYPE_ANYONE ||
+                   instanceOption.getSpecialInstance() ==
+                   PMD_PREFER_INSTANCE_TYPE_ANYONE_SND )
+         {
+            pos = random ;
+         }
+         else
+         {
+            if ( 1 == instanceOption.getInstanceList().size() )
             {
-               if ( 1 == instanceOption.getInstanceList().size() )
-               {
-                  pos = instanceOption.getInstanceList().front() - 1 ;
-               }
-               else
-               {
-                  pos = random ;
-               }
-               break ;
+               pos = instanceOption.getInstanceList().front() - 1 ;
+            }
+            else
+            {
+               pos = random ;
             }
          }
 
@@ -1114,9 +1148,13 @@ namespace engine
       UINT32 nodeCount = groupNodes.size() ;
       BOOLEAN foundPrimary = FALSE ;
       BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() ==
-                               PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
+                               PMD_PREFER_INSTANCE_TYPE_MASTER ||
+                               instanceOption.getPreferredConstraint() ==
+                               PMD_PREFER_CONSTRAINT_PRY_ONLY ) ;
       BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() ==
-                              PMD_PREFER_INSTANCE_TYPE_SLAVE ) ;
+                              PMD_PREFER_INSTANCE_TYPE_SLAVE ||
+                              instanceOption.getPreferredConstraint() ==
+                              PMD_PREFER_CONSTRAINT_SND_ONLY ) ;
 
       selectedPositions.clear() ;
 

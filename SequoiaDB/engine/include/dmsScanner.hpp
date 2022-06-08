@@ -118,7 +118,10 @@ namespace engine
                        DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH ) ;
          virtual ~_dmsScanner () ;
 
-         BOOLEAN  isReadOnly() const;
+         BOOLEAN  isReadOnly() const
+         {
+            return SHARED == _mbLockType ? TRUE : FALSE ;
+         }
 
          virtual dmsTransLockCallback*       callbackHandler() = 0 ;
          virtual const dmsTransRecordInfo*   recordInfo() const = 0 ;
@@ -172,6 +175,7 @@ namespace engine
          _dmsExtScannerBase ( _dmsStorageDataCommon *su, _dmsMBContext *context,
                               mthMatchRuntime *matchRuntime,
                               dmsExtentID curExtentID,
+                              dmsExtentID lastExtentID = DMS_INVALID_EXTENT,
                               DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                               INT64 maxRecords = -1,
                               INT64 skipNum = 0,
@@ -182,6 +186,7 @@ namespace engine
          virtual const dmsTransRecordInfo*   recordInfo() const ;
 
          const dmsExtent* curExtent () const { return _extent ; }
+         dmsExtentID curExtentID () const ;
          dmsExtentID nextExtentID () const ;
          INT32 stepToNextExtent() ;
          INT64 getMaxRecords() const { return _maxRecords ; }
@@ -228,8 +233,8 @@ namespace engine
          BOOLEAN              _CSCLLockHeld ;
          _pmdEDUCB            *_cb ;
          _dmsScannerContext   _scannerContext ;
-
-         dmsTransLockCallback    _callback ;
+         dmsExtentID          _lastExtentID ;
+         dmsTransLockCallback _callback ;
    };
    typedef _dmsExtScannerBase dmsExtScannerBase ;
 
@@ -239,6 +244,7 @@ namespace engine
          _dmsExtScanner( dmsStorageDataCommon *su, _dmsMBContext *context,
                          mthMatchRuntime *matchRuntime,
                          dmsExtentID curExtentID,
+                         dmsExtentID lastExtentID = DMS_INVALID_EXTENT,
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                          INT64 maxRecords = -1,
                          INT64 skipNum = 0,
@@ -265,6 +271,7 @@ namespace engine
                                 _dmsMBContext *context,
                                 mthMatchRuntime *matchRuntime,
                                 dmsExtentID curExtentID,
+                                dmsExtentID lastExtentID = DMS_INVALID_EXTENT,
                                 DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                                 INT64 maxRecords = -1,
                                 INT64 skipNum = 0,
@@ -416,7 +423,8 @@ namespace engine
          INT32 _checkTransLock( pmdEDUCB *cb,
                                 dmsRecordID &waitUnlockRID,
                                 dmsRecordData *recordData,
-                                BOOLEAN &skipRecord ) ;
+                                BOOLEAN &skipRecord,
+                                BOOLEAN *needData = NULL ) ;
 
          BOOLEAN _buildObj( ixmIndexNode *node,
                             IXM_ELE_RAWDATA_ARRAY& value,
@@ -547,6 +555,7 @@ namespace engine
                                     dmsMBContext *context,
                                     mthMatchRuntime *matchRuntime,
                                     dmsExtentID curExtentID,
+                                    dmsExtentID lastExtentID,
                                     DMS_ACCESS_TYPE accessType,
                                     INT64 maxRecords,
                                     INT64 skipNum,

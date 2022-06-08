@@ -94,6 +94,7 @@ class test_executor : public IExecutor
       virtual BOOLEAN   isWritingDB() const {return FALSE;}
       virtual UINT64    getWritingID() const {return 0;}
       virtual void      writingDB( BOOLEAN writing ) {}
+      virtual void      writingDB( BOOLEAN writing, const CHAR* name ) {}
 
       virtual UINT32    getProcessedNum() const {return 0;}
       virtual void      incEventCount( UINT32 step = 1 ) {}

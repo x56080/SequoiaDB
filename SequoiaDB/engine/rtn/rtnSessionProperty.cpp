@@ -52,6 +52,7 @@ namespace engine
     */
    _rtnInstanceOption::_rtnInstanceOption ()
    : _mode( ( UINT8 )PMD_PREFER_INSTANCE_MODE_UNKNOWN ),
+     _constraint( ( UINT8 )PMD_PREFER_CONSTRAINT_UNKNOWN ),
      _strict( 0 ),
      _specInstance( ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ),
      _period( PREFER_INSTANCE_DEF_PERIOD ),
@@ -61,6 +62,7 @@ namespace engine
 
    _rtnInstanceOption::_rtnInstanceOption ( const rtnInstanceOption & option )
    : _mode( option._mode ),
+     _constraint( ( UINT8 )option._constraint ),
      _strict( option._strict ),
      _specInstance( option._specInstance ),
      _period( option._period ),
@@ -76,6 +78,7 @@ namespace engine
    rtnInstanceOption & _rtnInstanceOption::operator = ( const rtnInstanceOption & option )
    {
       _mode = option._mode ;
+      _constraint = option._constraint ;
       _strict = option._strict ;
       _specInstance = option._specInstance ;
       _period = option._period ;
@@ -89,6 +92,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNINST_RESET ) ;
 
       _mode = ( UINT8 )PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
+      _constraint = ( UINT8 )PMD_PREFER_CONSTRAINT_UNKNOWN ;
       _strict = 0 ;
       _period = PREFER_INSTANCE_DEF_PERIOD ;
       _clearInstance() ;
@@ -178,6 +182,20 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_SETPREFCONSTRNT, "_rtnInstanceOption::setPreferredConstraint" )
+   INT32 _rtnInstanceOption::setPreferredConstraint( PMD_PREFER_CONSTRAINT constraint )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNINST_SETPREFCONSTRNT ) ;
+
+      _constraint = (UINT8)constraint ;
+
+      PD_TRACE_EXITRC( SDB__RTNINST_SETPREFCONSTRNT, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_PARSEPREFINST_BSON, "_rtnInstanceOption::parsePreferredInstance" )
    INT32 _rtnInstanceOption::parsePreferredInstance ( const BSONElement & option )
    {
@@ -206,8 +224,8 @@ namespace engine
             break ;
          default :
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDWARNING, "Failed to parse preferred instance: "
-                    "should be array, integer or string" ) ;
+            PD_LOG_MSG( PDERROR, "Failed to parse preferred instance: "
+                        "should be array, integer or string" ) ;
             goto error ;
       }
 
@@ -413,6 +431,32 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST__PARSEPREFCONSTRAINT, "_rtnInstanceOption::parsePreferredConstraint" )
+   INT32 _rtnInstanceOption::parsePreferredConstraint ( const CHAR *constraintStr )
+   {
+      INT32 rc = SDB_OK ;
+      PMD_PREFER_CONSTRAINT constraintTmp = PMD_PREFER_CONSTRAINT_UNKNOWN ;
+
+      PD_TRACE_ENTRY( SDB__RTNINST__PARSEPREFCONSTRAINT ) ;
+
+      rc = pmdParsePreferConstraintStr( constraintStr, constraintTmp ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse preferred constraint str, rc: %d", rc ) ;
+      _constraint = ( UINT8 )constraintTmp ;
+
+      PD_CHECK( PMD_PREFER_CONSTRAINT_UNKNOWN != _constraint,
+                SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse preferred constraint: "
+                "unknown input string [%s]", constraintStr ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__RTNINST__PARSEPREFCONSTRAINT, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    void _rtnInstanceOption::setPreferredStrict( BOOLEAN strict )
    {
       _strict = strict ? 1 : 0 ;
@@ -421,25 +465,31 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_TOBSON, "_rtnInstanceOption::toBSON" )
    void _rtnInstanceOption::toBSON ( BSONObjBuilder & builder ) const
    {
+      // TODO: "Prefered*" is fixed as "Preferred*". But for compatiblility,
+      // show both of them. "Prefered" to be removed in future.
+
       if ( isValidated() )
       {
          const CHAR * modeStr = NULL ;
+         const CHAR * constraintStr = NULL ;
          if ( _instanceList.empty() )
          {
-            builder.append( FIELD_NAME_PREFERED_INSTANCE,
-                            pmdPreferInstInt2String(
-                            ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ) ;
+            const CHAR * value = pmdPreferInstInt2String(
+                  ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ;
+            builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, value ) ;
+            builder.append( FIELD_NAME_PREFERRED_INSTANCE, value ) ;
          }
          else if ( _instanceList.size() == 1 &&
                    PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
-            builder.append( FIELD_NAME_PREFERED_INSTANCE,
-                            ( INT32 )_instanceList.front() ) ;
+            INT32 value = ( INT32 )_instanceList.front() ;
+            builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, value ) ;
+            builder.append( FIELD_NAME_PREFERRED_INSTANCE, value ) ;
          }
          else
          {
             BSONArrayBuilder instanceBuilder(
-                  builder.subarrayStart( FIELD_NAME_PREFERED_INSTANCE ) ) ;
+                  builder.subarrayStart( FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) ) ;
             for ( RTN_INSTANCE_LIST::const_iterator iter = _instanceList.begin() ;
                   iter != _instanceList.end() ;
                   iter ++ )
@@ -452,6 +502,21 @@ namespace engine
                                ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ) ;
             }
             instanceBuilder.doneFast() ;
+
+            BSONArrayBuilder instBuilder(
+                  builder.subarrayStart( FIELD_NAME_PREFERRED_INSTANCE ) ) ;
+            for ( RTN_INSTANCE_LIST::const_iterator iter = _instanceList.begin() ;
+                  iter != _instanceList.end() ;
+                  iter ++ )
+            {
+               instBuilder.append( ( INT32 )( *iter ) ) ;
+            }
+            if ( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance )
+            {
+               instBuilder.append( pmdPreferInstInt2String(
+                               ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ) ;
+            }
+            instBuilder.doneFast() ;
          }
          switch ( _mode )
          {
@@ -465,16 +530,35 @@ namespace engine
                modeStr = PREFER_INSTANCE_RANDOM_STR ;
                break ;
          }
-         builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE, modeStr ) ;
-         builder.appendBool( FIELD_NAME_PREFERED_STRICT, _strict ) ;
-         builder.append( FIELD_NAME_PREFERED_PERIOD, _period ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY, modeStr ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE, modeStr ) ;
+         builder.appendBool( FIELD_NAME_PREFERRED_STRICT_LEGACY, _strict ) ;
+         builder.appendBool( FIELD_NAME_PREFERRED_STRICT, _strict ) ;
+         builder.append( FIELD_NAME_PREFERRED_PERIOD_LEGACY, _period ) ;
+         builder.append( FIELD_NAME_PREFERRED_PERIOD, _period ) ;
+         switch ( _constraint )
+         {
+            case PMD_PREFER_CONSTRAINT_PRY_ONLY :
+               constraintStr = PREFER_CONSTRAINT_PRY_ONLY_STR ;
+               break ;
+            case PMD_PREFER_CONSTRAINT_SND_ONLY :
+               constraintStr = PREFER_CONSTRAINT_SND_ONLY_STR ;
+               break ;
+            default :
+               constraintStr = "" ;
+         }
+         builder.append( FIELD_NAME_PREFERRED_CONSTRAINT, constraintStr ) ;
       }
       else
       {
          // Invalid options, use the default one
-         builder.append( FIELD_NAME_PREFERED_INSTANCE,
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY,
                          PREFER_INSTANCE_MASTER_STR ) ;
-         builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE,
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE,
+                         PREFER_INSTANCE_MASTER_STR ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY,
+                         PREFER_INSTANCE_RANDOM_STR ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE,
                          PREFER_INSTANCE_RANDOM_STR ) ;
       }
    }
@@ -511,16 +595,18 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSESSPROP_SETINSTOPT, "_rtnSessionProperty::setInstanceOption" )
    void _rtnSessionProperty::setInstanceOption ( const CHAR * instanceStr,
                                                  const CHAR * instanceModeStr,
-                                                 BOOLEAN preferedStrict,
-                                                 INT32 preferedPeriod,
+                                                 BOOLEAN preferredStrict,
+                                                 INT32 preferredPeriod,
+                                                 const CHAR * preferredConstraint,
                                                  PMD_PREFER_INSTANCE_TYPE defaultInstance )
    {
       PD_TRACE_ENTRY( SDB__RTNSESSPROP_SETINSTOPT ) ;
 
       _instanceOption.parsePreferredInstance( instanceStr ) ;
       _instanceOption.parsePreferredInstanceMode( instanceModeStr ) ;
-      _instanceOption.setPreferredStrict( preferedStrict ) ;
-      _instanceOption.setPreferedPeriod( preferedPeriod ) ;
+      _instanceOption.setPreferredStrict( preferredStrict ) ;
+      _instanceOption.setPreferedPeriod( preferredPeriod ) ;
+      _instanceOption.parsePreferredConstraint( preferredConstraint ) ;
 
       if ( !_instanceOption.isValidated() )
       {
@@ -552,7 +638,7 @@ namespace engine
          PD_CHECK( !property.isEmpty(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse session property: empty property" ) ;
 
-         if ( property.hasField( FIELD_NAME_PREFERED_INSTANCE ) &&
+         if ( property.hasField( FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) &&
               !property.hasField( FIELD_NAME_PREFERED_INSTANCE_V1 ) )
          {
             newVersion = FALSE ;
@@ -618,14 +704,15 @@ namespace engine
       {
          BSONElement field = iter.next() ;
 
-         if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
+         if ( 0 == ossStrcmp( field.fieldName(),
+                              FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) )
          {
             /// PreferedInstance
             INT32 replType = PREFER_REPL_ANYONE ;
 
             PD_CHECK( field.type() == NumberInt, SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not integer",
-                      FIELD_NAME_PREFERED_INSTANCE ) ;
+                      FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) ;
 
             replType = field.numberInt();
             PD_CHECK( replType > PREFER_REPL_TYPE_MIN &&
@@ -714,12 +801,14 @@ namespace engine
             gotInstance = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_INSTANCE_MODE ) )
+                                       FIELD_NAME_PREFERRED_INSTANCE_MODE ) ||
+                   0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY ) )
          {
             /// PreferedInstanceMode
-            PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not string",
-                      FIELD_NAME_PREFERED_INSTANCE_MODE ) ;
+            PD_LOG_MSG_CHECK( String == field.type(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a string",
+                              field.fieldName() ) ;
 
             rc = instanceOption.parsePreferredInstanceMode(
                field.valuestrsafe() ) ;
@@ -729,52 +818,74 @@ namespace engine
             gotInstance = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_STRICT ) )
+                                       FIELD_NAME_PREFERRED_STRICT ) ||
+                   0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_PREFERRED_STRICT_LEGACY ) )
          {
             /// PreferedStrict
-            PD_CHECK( Bool == field.type(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_PREFERED_STRICT ) ;
+            PD_LOG_MSG_CHECK( Bool == field.type(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
 
             instanceOption.setPreferredStrict( field.boolean() ) ;
             gotInstance = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_PERIOD ) )
+                                       FIELD_NAME_PREFERRED_PERIOD ) ||
+                   0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_PREFERRED_PERIOD_LEGACY ) )
          {
             /// PreferedPeriod
-            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                      "Field [%s] is not number", FIELD_NAME_PREFERED_PERIOD ) ;
+            PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] should be a number",
+                              field.fieldName() ) ;
             instanceOption.setPreferedPeriod( field.numberLong() ) ;
+            gotInstance = TRUE ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_PREFERRED_CONSTRAINT ) )
+         {
+            /// PreferredConstraint
+            PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
+                      PDERROR, "Field [%s] should be a string",
+                      FIELD_NAME_PREFERRED_CONSTRAINT ) ;
+
+            rc = instanceOption.parsePreferredConstraint(
+                  field.valuestrsafe() ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse preferred constraint, rc: %d", rc ) ;
+
             gotInstance = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
          {
             /// Timeout
-            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not number",
-                      FIELD_NAME_TIMEOUT ) ;
+            PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a number",
+                              field.fieldName() ) ;
 
             operationTimeout = (INT64)field.numberLong() ;
             gotOperationTimeout = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
-                                       FIELD_NAME_PREFERED_INSTANCE ) )
+                                       FIELD_NAME_PREFERRED_INSTANCE ) ||
+                   0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_PREFERRED_INSTANCE_LEGACY ) )
          {
             /// do nothing
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANSISOLATION ) )
          {
-            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not number",
-                      FIELD_NAME_TRANSISOLATION ) ;
+            PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a number",
+                              field.fieldName() ) ;
             INT32 transIsolation = field.numberInt() ;
             if ( transIsolation < TRANS_ISOLATION_RU ||
                  transIsolation >= TRANS_ISOLATION_MAX )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Field[%s]'s value is invalid, rc: %d",
+               PD_LOG( PDERROR, "Field [%s]'s value is invalid, rc: %d",
                        field.toString().c_str(), rc ) ;
                goto error ;
             }
@@ -783,9 +894,9 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_TIMEOUT ) )
          {
-            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not number",
-                      FIELD_NAME_TRANS_TIMEOUT ) ;
+            PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a number",
+                              field.fieldName() ) ;
             INT32 transTimeout = field.numberInt() ;
             if ( transTimeout < 0 )
             {
@@ -796,45 +907,45 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_WAITLOCK ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_WAITLOCK ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             transConf.setTransWaitLock( field.boolean() ? TRUE : FALSE,
                                         TRUE ) ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_USE_RBS ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_USE_RBS ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             transConf.setUseRollbackSemgent( field.boolean() ? TRUE : FALSE,
                                              TRUE ) ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_AUTOCOMMIT ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_AUTOCOMMIT ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             transConf.setTransAutoCommit( field.boolean() ? TRUE : FALSE,
                                           TRUE ) ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_AUTOROLLBACK ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_AUTOROLLBACK ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             transConf.setTransAutoRollback( field.boolean() ? TRUE : FALSE,
                                             TRUE ) ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_RCCOUNT ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_RCCOUNT ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             transConf.setTransRCCount( field.boolean() ? TRUE : FALSE,
                                        TRUE ) ;
 
@@ -842,9 +953,9 @@ namespace engine
          else if ( 0 == ossStrcasecmp( field.fieldName(),
                                        FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             transConf.setTransAllowLockEscalation(
                   field.boolean() ? TRUE : FALSE, TRUE ) ;
          }
@@ -853,9 +964,9 @@ namespace engine
          {
             INT64 temp = 0 ;
 
-            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_MAXLOCKNUM ) ;
+            PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             temp = field.numberLong() ;
 
             // auto adjust
@@ -875,9 +986,9 @@ namespace engine
          {
             INT64 temp = 0 ;
 
-            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] is not boolean",
-                      FIELD_NAME_TRANS_MAXLOGSPACERATIO ) ;
+            PD_LOG_MSG_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                              "Field [%s] should be a number",
+                              field.fieldName() ) ;
             temp = field.numberLong() ;
 
             // auto adjust
@@ -894,16 +1005,17 @@ namespace engine
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_SOURCE ) )
          {
-            PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not string",
-                      FIELD_NAME_SOURCE ) ;
+            PD_LOG_MSG_CHECK( String == field.type(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a string",
+                              field.fieldName() ) ;
             pSource = field.valuestr() ;
          }
-         else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_CHECK_CLIENT_CATA_VERSION ) )
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_CHECK_CLIENT_CATA_VERSION ) )
          {
-            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
-                      PDERROR, "Field[%s] is not boolean",
-                      FIELD_NAME_CHECK_CLIENT_CATA_VERSION ) ;
+            PD_LOG_MSG_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] should be a boolean",
+                              field.fieldName() ) ;
             gotNeedCheckCatVer = TRUE;
             needCheckCatVer    = field.boolean() ? TRUE : FALSE;
          }
@@ -951,7 +1063,7 @@ namespace engine
       {
          _updateSource( pSource ) ;
       }
-      if( gotNeedCheckCatVer )
+      if ( gotNeedCheckCatVer )
       {
          setNeedCheckCatVer( needCheckCatVer );
       }

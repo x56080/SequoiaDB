@@ -114,12 +114,7 @@ function test ()
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
 
    //检查访问计划快照
-   var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "ixscan", IndexName: "a1" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "a1" }];
+   var expAccessPlan = [];
    //var expAccessPlan = tmp.concat( tmp ); 
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
@@ -150,12 +145,7 @@ function test ()
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
 
    //检查访问计划快照
-   var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "ixscan", IndexName: "a1" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "a1" }];
+   var expAccessPlan = [];
    //var expAccessPlan = tmp.concat( tmp ); 
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
@@ -189,12 +179,7 @@ function test ()
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
 
    //检查访问计划快照
-   var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "ixscan", IndexName: "a1" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "a1" }];
+   var expAccessPlan = [];
    //var expAccessPlan = tmp.concat( tmp ); 
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
@@ -229,12 +214,7 @@ function test ()
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
 
    //检查访问计划快照
-   var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "ixscan", IndexName: "a1" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "a1" }];
+   var expAccessPlan = [];
    //var expAccessPlan = tmp.concat( tmp ); 
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
@@ -253,12 +233,7 @@ function test ()
    checkStats( db, subcsName1, [subclName3, subclName4], ["$shard", "a1"], true, true, [srcGroupName, desGroupName] );
 
    //检查访问计划快照
-   var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: srcGroupName, ScanType: "ixscan", IndexName: "a1" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "$shard" },
-   { GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
-   { GroupName: desGroupName, ScanType: "ixscan", IndexName: "a1" }];
+   var expAccessPlan = [];
    //var expAccessPlan = tmp.concat( tmp ); 
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );

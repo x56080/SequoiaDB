@@ -1,10 +1,12 @@
-﻿/* *****************************************************************************
-@Description:  seqDB-8192:创建执行存储过程
-               seqDB-8194:删除查询存储过程
-@modify list:
-            2016-9-11   TingYU   modify
-***************************************************************************** */
-var csName = COMMCSNAME;
+﻿/******************************************************************************
+ * @Description   : seqDB-8192:创建执行存储过程
+ *                  seqDB-8194:删除查询存储过程
+ * @Author        : TingYU
+ * @CreateTime    : 2016.09.11
+ * @LastEditTime  : 2022.05.09
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+var csName = COMMCSNAME + "_8192";
 var pcdName1 = COMMCLNAME + '_procedurename_8192';
 var pcdName2 = 'sum_procedure_8192';
 
@@ -49,7 +51,6 @@ function excutePcd ()
 function listPcd ()
 {
    var rc = db.listProcedures();
-
 
    var expPcd1 = {};
    expPcd1["name"] = pcdName1;

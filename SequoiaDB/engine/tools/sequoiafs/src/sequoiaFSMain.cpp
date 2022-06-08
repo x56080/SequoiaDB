@@ -417,6 +417,7 @@ INT32 fsEnableSignalEvent()
    if ( sigaction ( OSS_STACK_DUMP_SIGNAL, &newact, NULL ) )
    {
       PD_LOG ( PDERROR, "Failed to setup signal handler for dump signal" ) ;
+      ossPrintf("Failed to setup signal handler for dump signal, exit."OSS_NEWLINE);
       rc = SDB_SYS ;
       goto error ;
    }
@@ -516,7 +517,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = sfsOptInitArgs(&fuseArgs);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to init args(rc=%d), exit. "OSS_NEWLINE, rc);
+      ossPrintf("Failed to init args(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
    ossMemset(optionTemp, 0, OSS_MAX_PATHSIZE);
@@ -558,20 +559,14 @@ INT32 main(INT32 argc, CHAR *argv[])
       rc = sfs.init();
       if(SDB_OK != rc)
       {
-         if(-ENOENT == rc)
-         {
-            ossPrintf("The cl:%s does not exist, exit." OSS_NEWLINE,
-                      sfs._collection.c_str());
-         }
-
-         ossPrintf("Failed to init, exit." OSS_NEWLINE);
+         PD_LOG( PDERROR, "Failed to init, rc: %d", rc);
          goto error;
       }
 
       rc = fsEnableSignalEvent();
       if(SDB_OK != rc)
       {
-         ossPrintf("Failed to EnableSignalEvent, exit." OSS_NEWLINE);
+         PD_LOG( PDERROR, "Failed to EnableSignalEvent, rc: %d", rc);
          goto error;
       }
    }
@@ -581,7 +576,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    }
    else if(SDB_OK != rc)
    {
-      ossPrintf("Failed to resolving arguments(rc=%d), exit." OSS_NEWLINE, rc);
+      ossPrintf("Failed to resolving arguments(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
   
@@ -594,7 +589,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = fuse_opt_parse(&fuseArgs, &lobFuseOption, lobOptions, sfsProcessArg);
    if(-1 == rc)
    {
-      ossPrintf("Failed to parse fuse option(rc=%d), exit." OSS_NEWLINE, rc);
+      ossPrintf("Failed to parse fuse option(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -608,7 +603,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       rc = fuse_opt_add_arg(&fuseArgs, "--help");
       if(0 != rc) 
       {
-         ossPrintf("Failed to add arg:\"%s\" (rc=%d), exit." OSS_NEWLINE, "--help", rc);
+         ossPrintf("Failed to add arg:\"%s\" (rc=%d), exit."OSS_NEWLINE, "--help", rc);
          goto error;
       }
    }
@@ -620,7 +615,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(0 != rc)
       {
          PD_LOG( PDERROR, "Failed to add arg:%s, rc:%d", lobFuseOption.mountpoint, rc ) ;
-         ossPrintf("Failed to add arg:%s (rc=%d), exit." OSS_NEWLINE,
+         ossPrintf("Failed to add arg:%s (rc=%d), exit."OSS_NEWLINE,
                    lobFuseOption.mountpoint, rc);
          goto error;
       }
@@ -630,7 +625,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       {
          PD_LOG( PDERROR, "Failed to write map history collection, rc:%d", rc ) ;
          ossPrintf("Failed to write map history collection(rc=%d), "
-                   "exit." OSS_NEWLINE, rc);
+                   "exit."OSS_NEWLINE, rc);
          goto error;
       }
 
@@ -653,7 +648,7 @@ INT32 main(INT32 argc, CHAR *argv[])
          if ( SDB_OK == exitCode )
          {
             PD_LOG( PDERROR, "The alias(%s) is already in use.",  (sfs.getOptionMgr())->getAlias() ) ;
-            ossPrintf("The alias(%s) is already in use, exit." OSS_NEWLINE, (sfs.getOptionMgr())->getAlias() );
+            ossPrintf("The alias(%s) is already in use, exit."OSS_NEWLINE, (sfs.getOptionMgr())->getAlias() );
             rc = SDB_OPERATION_CONFLICT;
             goto error;
          }
@@ -661,7 +656,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    }
    else if(!lobFuseOption.is_help && !lobFuseOption.is_version)
    {
-      ossPrintf("The mountpoint must be specified, exit." OSS_NEWLINE);
+      ossPrintf("The mountpoint must be specified, exit."OSS_NEWLINE);
       rc = SDB_INVALIDARG;
       goto error;
    }
@@ -670,7 +665,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    if(SDB_OK != rc && !lobFuseOption.is_help && !lobFuseOption.is_version)
    {
       PD_LOG( PDERROR, "Failed to start fuse main, rc:%d.", rc ) ;
-      ossPrintf("Failed to start fuse main(rc=%d), exit." OSS_NEWLINE, rc);
+      ossPrintf("Failed to start fuse main(rc=%d), exit."OSS_NEWLINE, rc);
    }
 
 done:

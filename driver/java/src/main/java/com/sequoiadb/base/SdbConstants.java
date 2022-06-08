@@ -78,6 +78,9 @@ final class SdbConstants {
     final static String SDB_ALTER_CL_CRT_AUTOINC_FLD = "create autoincrement";
     final static String SDB_ALTER_CL_DROP_AUTOINC_FLD = "drop autoincrement";
 
+    final static String SDB_ALTER_ENABLE_RECYCLEBIN = "enable";
+    final static String SDB_ALTER_DISABLE_RECYCLEBIN = "disable";
+
     final static String FIELD_NAME_MODIFY = "$Modify";
     final static String FIELD_NAME_OP = "OP";
     final static String FIELD_NAME_OP_UPDATE = "Update";
@@ -92,8 +95,9 @@ final class SdbConstants {
     final static String FIELD_COLLECTION = "Collection";
     final static String FIELD_TOTAL = "Total";
     final static String FIELD_INDEX = "Index";
-    final static String FIELD_NAME_PREFERED_INSTANCE = "PreferedInstance";
-    final static String FIELD_NAME_PREFERED_INSTANCE_V1 = "PreferedInstanceV1";
+    final static String FIELD_NAME_PREFERRED_INSTANCE_LEGACY = "PreferedInstance";
+    final static String FIELD_NAME_PREFERRED_INSTANCE_V1_LEGACY = "PreferedInstanceV1";
+    final static String FIELD_NAME_PREFERRED_INSTANCE = "PreferredInstance";
     final static String FIELD_NAME_RETYE = "ReturnType";
 
     final static String FIELD_NAME_ONLY_DETACH = "OnlyDetach";
@@ -114,10 +118,16 @@ final class SdbConstants {
     final static String FIELD_NAME_PASSWD = "Password";
     final static String FIELD_NAME_TYPE = "Type";
 
+    final static String FIELD_NAME_ENABLE = "Enable";
+    final static String FIELD_NAME_RECYCLE_NAME = "RecycleName";
+    final static String FIELD_NAME_RETURN_NAME = "ReturnName";
+
     final static String IXM_NAME = "name";
     final static String IXM_KEY = "key";
     final static String IXM_UNIQUE = "Unique";
     final static String IXM_ENFORCED = "Enforced";
+    final static String IXM_UNIQUE_LEGACY = "unique";
+    final static String IXM_ENFORCED_LEGACY = "enforced";
     final static String IXM_NOTNULL = "NotNull";
     final static String IXM_INDEXDEF = "IndexDef";
     final static String IXM_FIELD_NAME_SORT_BUFFER_SIZE = "SortBufferSize";
@@ -133,6 +143,9 @@ final class SdbConstants {
     final static String OID = "_id";
 
     final static int FLG_UPDATE_UPSERT = 0x00000001;
+    final static int FLG_INSERT_RETURNNUM = 0x00000002;
+    final static int FLG_UPDATE_RETURNNUM = 0x00000004;
+    final static int FLG_DELETE_RETURNNUM = 0x00000004;
 
     final static String SEQ_OPT_SETATTR = "set attributes";
     final static String SEQ_OPT_SET_CURR_VALUE = "set current value";

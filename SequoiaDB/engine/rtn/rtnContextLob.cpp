@@ -77,6 +77,19 @@ namespace engine
       return NULL == _stream ? NULL : _stream->getSU() ;
    }
 
+   BOOLEAN _rtnContextLob::isWrite() const
+   {
+      return ( NULL != _stream ) ?
+             ( !( _stream->isReadonly() ) ) :
+             ( FALSE ) ;
+   }
+
+   const CHAR *_rtnContextLob::getProcessName() const
+   {
+      return ( NULL != _stream && NULL != _stream->getFullName() ) ?
+             ( _stream->getFullName() ) : ( "" ) ;
+   }
+
    INT32 _rtnContextLob::_createLobID( bson::OID &oid )
    {
       INT32 rc = SDB_OK ;

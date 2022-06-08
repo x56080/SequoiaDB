@@ -71,7 +71,7 @@ namespace engine
 
 
       // event handler
-      virtual INT32 canAssignLogPage( UINT32 reqLen, IExecutor *executor ) ;
+      virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) ;
       virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
                                   INT32 extLID, DPS_LSN_OFFSET offset )
       {
@@ -81,7 +81,7 @@ namespace engine
       {
          return ;
       }
-      virtual INT32 onCompleteOpr( IExecutor *executor, INT32 w )
+      virtual INT32 onCompleteOpr( _pmdEDUCB *cb, INT32 w )
       {
          return SDB_OK ;
       }

@@ -39,6 +39,9 @@
 #include "rtn.hpp"
 #include "pmdTrace.hpp"
 #include "ossVer.hpp"
+#include "rtnContext.hpp"
+#include "msgConvertorImpl.hpp"
+#include "../bson/lib/md5.hpp"
 
 using namespace bson ;
 
@@ -50,7 +53,9 @@ namespace engine
       _pmdLocalSession implement
    */
    _pmdLocalSession::_pmdLocalSession( SOCKET fd )
-   :pmdSession( fd )
+   : pmdSession( fd ),
+     _inMsgConvertor( NULL ),
+     _outMsgConvertor( NULL )
    {
       ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
       _needReply = TRUE ;
@@ -58,6 +63,8 @@ namespace engine
 
    _pmdLocalSession::~_pmdLocalSession()
    {
+      SAFE_OSS_DELETE( _inMsgConvertor ) ;
+      SAFE_OSS_DELETE( _outMsgConvertor ) ;
    }
 
    INT32 _pmdLocalSession::getServiceType () const
@@ -86,6 +93,12 @@ namespace engine
       INT32 buffSize          = 0 ;
       pmdEDUMgr *pmdEDUMgr    = NULL ;
       monDBCB *mondbcb        = pmdGetKRCB()->getMonDBCB () ;
+      // Compatibility handling. As client protocol version is unknown until the
+      // first common message is received, set the minimum message length to the
+      // length of old message header. Adjust it once the client version is
+      // determined.
+      UINT32 minMsgSize       = sizeof(MsgHeaderV1) ;
+      MsgHeader *message      = NULL ;
 
       if ( !_pEDUCB )
       {
@@ -101,6 +114,7 @@ namespace engine
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
+         pdClearLastError() ;
 
          // recv msg
          rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
@@ -165,11 +179,11 @@ namespace engine
 
 #endif /* SDB_ENTERPRISE */
          // error msg
-         else if ( msgSize < sizeof(MsgHeader) || msgSize > SDB_MAX_MSG_LENGTH )
+         else if ( msgSize < minMsgSize || msgSize > SDB_MAX_MSG_LENGTH )
          {
             PD_LOG( PDERROR, "Session[%s] recv msg size[%d] is less than "
                     "MsgHeader size[%d] or more than max msg size[%d]",
-                    sessionName(), msgSize, sizeof(MsgHeader),
+                    sessionName(), msgSize, minMsgSize,
                     SDB_MAX_MSG_LENGTH ) ;
             rc = SDB_INVALIDARG ;
             break ;
@@ -214,12 +228,27 @@ namespace engine
                        sessionName(), rc ) ;
                break ;
             }
+
+            message = (MsgHeader *)pBuff ;
+            rc = _preprocessMsg( message ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s] preprocess message failed, rc: %d",
+                       sessionName(), rc ) ;
+               break ;
+            }
             // process msg
-            rc = _processMsg( (MsgHeader*)pBuff ) ;
+            rc = _processMsg( message ) ;
             if ( rc )
             {
                break ;
             }
+
+            if ( sizeof(MsgHeader) != minMsgSize && _clientVersionMatch() )
+            {
+               minMsgSize = sizeof(MsgHeader) ;
+            }
+
             // wait edu
             if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
             {
@@ -279,6 +308,7 @@ namespace engine
       INT32 subVersion = 0 ;
       INT32 fixVersion = 0 ;
       BOOLEAN endianConvert = FALSE ;
+      md5::md5digest digest ;
       MsgSysInfoReply reply ;
       reply.header.specialSysInfoLen      = MSG_SYSTEM_INFO_LEN ;
       reply.header.eyeCatcher             = MSG_SYSTEM_INFO_EYECATCHER ;
@@ -291,6 +321,11 @@ namespace engine
       reply.subVersion                    = subVersion ;
       reply.fixVersion                    = fixVersion ;
       ossMemset( reply.pad, 0, sizeof( reply.pad ) ) ;
+
+      md5::md5( (const void *)&reply,
+                sizeof(MsgSysInfoReply) - sizeof(reply.fingerprint),
+                digest ) ;
+      ossMemcpy( reply.fingerprint, digest, sizeof(reply.fingerprint) ) ;
 
       rc = msgExtractSysInfoRequest ( (CHAR*)msg, endianConvert ) ;
       PD_RC_CHECK ( rc, PDERROR, "Session[%s] failed to extract sys info "
@@ -307,17 +342,85 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _pmdLocalSession::_clientVersionMatch() const
+   {
+      return ( SDB_PROTOCOL_VER_2 == _client.getClientVersion() ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__PREPROCESSMSG, "_pmdLocalSession::_preprocessMsg" )
+   INT32 _pmdLocalSession::_preprocessMsg( MsgHeader *&msg )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN__PREPROCESSMSG ) ;
+      CHAR *newMsg = NULL ;
+      UINT32 msgLength = 0 ;
+
+      SDB_ASSERT( msg, "Message pointer is NULL" ) ;
+
+      // If the version of peer is unknown, we can determine it by the first
+      // common message.
+      if ( SDB_PROTOCOL_VER_INVALID == _client.getClientVersion() )
+      {
+         _client.setClientVersion(
+               ( MSG_COMM_EYE_DEFAULT == msg->eye ) ?
+               (SDB_PROTOCOL_VERSION)msg->version : SDB_PROTOCOL_VER_1 ) ;
+      }
+
+      if ( !_clientVersionMatch() )
+      {
+         if ( !_msgConvertorEnabled() )
+         {
+            rc = _enableMsgConvertor() ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s] enables message convertor "
+                         "failed[%d]", sessionName(), rc) ;
+            PD_LOG( PDDEBUG, "Session[%s] enables message convertors",
+                    sessionName() ) ;
+         }
+         else
+         {
+            _inMsgConvertor->reset( FALSE ) ;
+         }
+
+         rc = _inMsgConvertor->push((const CHAR *)msg, msg->messageLength ) ;
+         PD_RC_CHECK( rc, PDERROR, "Push message into the message convertor "
+                      "failed[%d]", rc ) ;
+         rc = _inMsgConvertor->output( newMsg, msgLength ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get message from the message convertor "
+                      "failed[%d]", rc ) ;
+
+         SDB_ASSERT( (UINT32)((MsgHeader *)newMsg)->messageLength == msgLength,
+                     "Message length after conversion is not as expected" ) ;
+
+         msg = (MsgHeader *)newMsg ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN__PREPROCESSMSG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
    {
+      _pEDUCB->clearProcessInfo() ;
+
       // set reply header ( except flags, length )
       getClient()->registerInMsg( msg ) ;
       _replyHeader.contextID          = -1 ;
       _replyHeader.numReturned        = 0 ;
       _replyHeader.startFrom          = 0 ;
+      _replyHeader.header.eye         = MSG_COMM_EYE_DEFAULT ;
       _replyHeader.header.opCode      = MAKE_REPLY_TYPE(msg->opCode) ;
       _replyHeader.header.requestID   = msg->requestID ;
       _replyHeader.header.TID         = msg->TID ;
       _replyHeader.header.routeID     = pmdGetNodeID() ;
+      _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
+      _replyHeader.header.flags       = 0 ;
+      _replyHeader.header.globalID    = msg->globalID ;
+      ossMemset( _replyHeader.header.reserve, 0,
+                 sizeof(_replyHeader.header.reserve) ) ;
+      _replyHeader.returnMask         = 0 ;
 
       if ( isNoReplyMsg( msg->opCode ) )
       {
@@ -354,6 +457,8 @@ namespace engine
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
 
       getClient()->unregisterInMsg() ;
+
+      _pEDUCB->clearProcessInfo() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )
@@ -526,34 +631,23 @@ namespace engine
       return rc ;
    }
 
-   INT32 _pmdLocalSession::_reply( MsgOpReply *responseMsg,
-                                   const CHAR *pBody,
+   INT32 _pmdLocalSession::_reply( MsgOpReply* responseMsg, const CHAR *pBody,
                                    INT32 bodyLen )
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( responseMsg->header.messageLength ==
-                  (SINT32)(sizeof(MsgOpReply) + bodyLen),
-                  "Invalid msg" ) ;
-
-      // response header
-      rc = sendData( (const CHAR*)responseMsg, sizeof(MsgOpReply) ) ;
-      if ( rc )
+      if ( _inMsgConvertor )
       {
-         PD_LOG( PDERROR, "Session[%s] failed to send response header, rc: %d",
-                 sessionName(), rc ) ;
-         goto error ;
+         rc = _replyInCompatibleMode( responseMsg, pBody, bodyLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Send reply message in compatible mode "
+                      "failed[%d]. Message: %s", rc,
+                      msg2String( &(responseMsg->header) ).c_str() ) ;
       }
-      // response body
-      if ( pBody )
+      else
       {
-         rc = sendData( pBody, bodyLen ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] failed to send response body, rc: %d",
-                    sessionName(), rc ) ;
-            goto error ;
-         }
+         rc = _replyInNormalMode( responseMsg, pBody, bodyLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Send reply message failed[%d]. Message: %s",
+                      rc, msg2String( &(responseMsg->header) ).c_str() ) ;
       }
 
    done:
@@ -562,7 +656,109 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__REPLYINCOMPATIBLEMODE, "_pmdLocalSession::_replyInCompatibleMode" )
+   INT32 _pmdLocalSession::_replyInCompatibleMode( MsgOpReply *responseMsg,
+                                                   const CHAR *data,
+                                                   INT32 dataLen )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN__REPLYINCOMPATIBLEMODE ) ;
+      CHAR *ptr = NULL ;
+      UINT32 len = 0 ;
 
+      SDB_ASSERT( _outMsgConvertor, "Message convertor is NULL" ) ;
+
+      _outMsgConvertor->reset( FALSE ) ;
+      rc = _outMsgConvertor->push( (const CHAR *)responseMsg,
+                                   sizeof(MsgOpReply) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Push reply message header into message "
+                   "convertor failed[%d]. Message: %s",
+                   rc, msg2String( &(responseMsg->header) ).c_str() ) ;
+      if ( data && dataLen > 0)
+      {
+         rc = _outMsgConvertor->push( data, dataLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Push reply data into message convertor "
+                      "failed[%d]. Message: %s",
+                      rc, msg2String( &(responseMsg->header) ).c_str() ) ;
+      }
+
+      while ( TRUE )
+      {
+         rc = _outMsgConvertor->output( ptr, len ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get reply message from message convertor "
+                      "failed[%d]", rc ) ;
+         if ( !ptr )
+         {
+            // All data has been sent.
+            break ;
+         }
+
+         rc = sendData( ptr, len ) ;
+         PD_RC_CHECK( rc, PDERROR, "Send reply message failed[%d]", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN__REPLYINCOMPATIBLEMODE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__REPLYINNORMALMODE, "_pmdLocalSession::_replyInNormalMode" )
+   INT32 _pmdLocalSession::_replyInNormalMode( MsgOpReply *responseMsg,
+                                               const CHAR *data,
+                                               INT32 dataLen )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN__REPLYINNORMALMODE ) ;
+
+      // Step 1: Send the message header
+      rc = sendData( (const CHAR *)responseMsg, sizeof(MsgOpReply) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to send response header[%d]",
+                   sessionName(), rc ) ;
+
+      if ( data && dataLen > 0)
+      {
+         rc = sendData( data, dataLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to send data[%d]",
+                      sessionName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN__REPLYINNORMALMODE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _pmdLocalSession::_msgConvertorEnabled() const
+   {
+      return ( NULL != _inMsgConvertor ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__ENABLEMSGCONVERTOR, "_pmdLocalSession::_enableMsgConvertor" )
+   INT32 _pmdLocalSession::_enableMsgConvertor()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN__ENABLEMSGCONVERTOR ) ;
+
+      SDB_ASSERT( !(_inMsgConvertor || _outMsgConvertor),
+                  "Convertor is not NULL" ) ;
+
+      _inMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+      _outMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+      if ( !_inMsgConvertor || !_outMsgConvertor )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN__ENABLEMSGCONVERTOR, rc ) ;
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( _inMsgConvertor ) ;
+      SAFE_OSS_DELETE( _outMsgConvertor ) ;
+      goto done ;
+   }
 }
-
-

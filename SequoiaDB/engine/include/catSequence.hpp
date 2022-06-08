@@ -39,6 +39,7 @@
 #include "ossLatch.hpp"
 #include "../bson/bson.hpp"
 #include "utilGlobalID.hpp"
+#include "utilUniqueID.hpp"
 #include <string>
 
 namespace engine
@@ -67,6 +68,7 @@ namespace engine
       OSS_INLINE BOOLEAN isInitial() const { return _initial ; }
       OSS_INLINE BOOLEAN isExceeded() const { return _exceeded ; }
       OSS_INLINE utilSequenceID getID() const { return _ID ; }
+      OSS_INLINE utilCLUniqueID getCLUniqueID() const { return _clUniqueID ; }
 
       OSS_INLINE void lock()
       {
@@ -96,6 +98,7 @@ namespace engine
       void setInitial( BOOLEAN initial ) ;
       void setExceeded( BOOLEAN exceeded ) ;
       void setID( utilGlobalID id ) ;
+      void setCLUniqueID( utilCLUniqueID clUniqueID ) ;
       INT32 toBSONObj( bson::BSONObj& obj, BOOLEAN forUpdate ) const ;
       void copyFrom( const _catSequence& other, BOOLEAN withInternalField = TRUE ) ;
       INT32 setOptions ( const bson::BSONObj & options,
@@ -118,6 +121,7 @@ namespace engine
 
    private:
       std::string    _name ;           // sequence name
+      utilCLUniqueID _clUniqueID ;     // unique ID of collection
       bson::OID      _oid ;            // sequence oid
       BOOLEAN        _internal ;       // system internal defined
       INT64          _version ;        // sequence version

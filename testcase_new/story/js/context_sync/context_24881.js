@@ -2,11 +2,12 @@
  * @Description   : seqDB-24881:主子表上下文过期超时清理
  * @Author        : Yao Kang
  * @CreateTime    : 2021.12.29
- * @LastEditTime  : 2021.12.31
- * @LastEditors   : Yao Kang
+ * @LastEditTime  : 2022.04.01
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_24881";
 testConf.skipStandAlone = true;
+
 main( test );
 function test ( testPara )
 {
@@ -25,16 +26,16 @@ function test ( testPara )
       cs.createCL( cl2Name, { ShardingKey: { no: 1 } } );
       cs.createCL( cl3Name, { ShardingKey: { no: 1 } } );
 
-      cl.attachCL( csName + "." + cl1Name, { LowBound: { no: 0 }, UpBound: { no: 5000 } } );
-      cl.attachCL( csName + "." + cl2Name, { LowBound: { no: 5000 }, UpBound: { no: 10000 } } );
-      cl.attachCL( csName + "." + cl3Name, { LowBound: { no: 10000 }, UpBound: { no: 15000 } } );
+      cl.attachCL( csName + "." + cl1Name, { LowBound: { no: 0 }, UpBound: { no: 20000 } } );
+      cl.attachCL( csName + "." + cl2Name, { LowBound: { no: 20000 }, UpBound: { no: 40000 } } );
+      cl.attachCL( csName + "." + cl3Name, { LowBound: { no: 40000 }, UpBound: { no: 60000 } } );
 
-      insertData( cl, 15000 );
+      insertData( cl, 50000 );
 
       cursor = cl.find();
       cursor.next();
 
-      sleep( 1000 * 60 * 2 );
+      sleep( 1000 * 60 * 3 );
       assert.tryThrow( SDB_RTN_CONTEXT_NOTEXIST, function()
       {
          while( cursor.next() ) { }

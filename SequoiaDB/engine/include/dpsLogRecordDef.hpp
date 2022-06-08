@@ -124,6 +124,7 @@ namespace engine
    enum DPS_LOG_CSDEL
    {
       DPS_LOG_CSDEL_CSNAME = 1,
+      DPS_LOG_CSDEL_OPTIONS = 2,
    } ;
 
    enum DPS_LOG_CSRENAME
@@ -153,6 +154,7 @@ namespace engine
 
    enum DPS_LOG_CLDEL
    {
+      DPS_LOG_CLDEL_OPTIONS = 1
    } ;
 
    enum DPS_LOG_IXCRT
@@ -195,6 +197,7 @@ namespace engine
 
    enum DPS_LOG_CLTRUNC
    {
+      DPS_LOG_CLTRUNC_OPTIONS = 1
    } ;
 
    enum DPS_LOG_TS_COMMIT
@@ -260,6 +263,11 @@ namespace engine
       DPS_LOG_ADDUNIQUEID_CLINFO
    } ;
 
+   enum DPS_LOG_RETURN
+   {
+      DPS_LOG_RETURN_OPTIONS = 1
+   } ;
+
    /// logical page space page management
    enum DPS_LOG_VESSEL_LPS_PM
    {
@@ -323,6 +331,7 @@ namespace engine
       DPS_LOG_VESSEL_CSMB_UPDATE_OLD = 2,
       DPS_LOG_VESSEL_CSMB_UPDATE_NEW = 3
    }; // enum DPS_LOG_VESSEL_CSMB_UPDATE
+
 }
 
 #endif

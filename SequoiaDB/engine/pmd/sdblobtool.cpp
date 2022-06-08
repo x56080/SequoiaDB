@@ -289,16 +289,16 @@ static INT32 parseCmdLine( const po::options_description &desc,
       try
       {
          preferNum = boost::lexical_cast<UINT32>( prefer ) ;
-         builder.append( FIELD_NAME_PREFERED_INSTANCE, preferNum ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, preferNum ) ;
       }
       catch ( boost::bad_lexical_cast & )
       {
-         builder.append( FIELD_NAME_PREFERED_INSTANCE, prefer ) ;
+         builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, prefer ) ;
       }
    }
    else
    {
-       builder.append( FIELD_NAME_PREFERED_INSTANCE, "M" ) ;
+       builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY, "M" ) ;
    }
 
    if ( isMig )

@@ -968,9 +968,8 @@ namespace engine
             curClearScore = (double)accessCount /
                             (double)( currentTimestamp - accessTime ) ;
 
-            if ( activity.getPlan()->isInvalid() ||
-                 ( curClearScore > -OSS_EPSILON &&
-                   curClearScore < avgClearScore ) )
+            if ( curClearScore > -OSS_EPSILON &&
+                 curClearScore < avgClearScore )
             {
                // The score is smaller than average score, clear the plan
                // NOTE: the score < 0.0, means access time is larger than
@@ -1557,23 +1556,29 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONDROPCS, "_optAccessPlanManager::onDropCS" )
-   INT32 _optAccessPlanManager::onDropCS ( IDmsEventHolder *pEventHolder,
+   INT32 _optAccessPlanManager::onDropCS ( SDB_EVENT_OCCUR_TYPE type,
+                                           IDmsEventHolder *pEventHolder,
                                            IDmsSUCacheHolder *pCacheHolder,
+                                           const dmsEventSUItem &suItem,
+                                           dmsDropCSOptions *options,
                                            pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB )
+                                           SDB_DPSCB *dpsCB)
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTAPM_ONDROPCS ) ;
 
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
+      if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         _invalidSUPlans( pCacheHolder ) ;
+         SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
 
-         // Run invalidation again to clear main-collection plans
-         invalidateSUPlans( pCacheHolder->getCSName() ) ;
+         if ( pCacheHolder && isInitialized() )
+         {
+            _invalidSUPlans( pCacheHolder ) ;
+
+            // Run invalidation again to clear main-collection plans
+            invalidateSUPlans( pCacheHolder->getCSName() ) ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB_OPTAPM_ONDROPCS, rc ) ;
@@ -1606,10 +1611,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONTRUNCATECL, "_optAccessPlanManager::onTruncateCL" )
-   INT32 _optAccessPlanManager::onTruncateCL ( IDmsEventHolder *pEventHolder,
+   INT32 _optAccessPlanManager::onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
+                                               IDmsEventHolder *pEventHolder,
                                                IDmsSUCacheHolder *pCacheHolder,
                                                const dmsEventCLItem &clItem,
-                                               UINT32 newCLLID,
+                                               dmsTruncCLOptions *options,
                                                pmdEDUCB *cb,
                                                SDB_DPSCB *dpsCB )
    {
@@ -1617,11 +1623,14 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM_ONTRUNCATECL ) ;
 
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
+      if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
+         SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
+
+         if ( pCacheHolder && isInitialized() )
+         {
+            _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB_OPTAPM_ONTRUNCATECL, rc ) ;
@@ -1630,9 +1639,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONDROPCL, "_optAccessPlanManager::onDropCL" )
-   INT32 _optAccessPlanManager::onDropCL ( IDmsEventHolder *pEventHolder,
+   INT32 _optAccessPlanManager::onDropCL ( SDB_EVENT_OCCUR_TYPE type,
+                                           IDmsEventHolder *pEventHolder,
                                            IDmsSUCacheHolder *pCacheHolder,
                                            const dmsEventCLItem &clItem,
+                                           dmsDropCLOptions *options,
                                            pmdEDUCB *cb,
                                            SDB_DPSCB *dpsCB )
    {
@@ -1640,11 +1651,14 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM_ONDROPCL ) ;
 
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
+      if ( SDB_EVT_OCCUR_BEFORE == type )
       {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
+         SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
+
+         if ( pCacheHolder && isInitialized() )
+         {
+            _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB_OPTAPM_ONDROPCL, rc ) ;
@@ -2057,8 +2071,18 @@ namespace engine
 
                if ( NULL != mainPlan )
                {
-                  // cache main-collection plan
-                  _cacheAccessPlan( mainPlan ) ;
+                  // we won't cache the main-collection plan in below cases
+                  // - the hint is failed, which means some indexes may not exist
+                  //   in current sub-collection
+                  // - the plan is table scan, which means the current
+                  //   sub-collection does not have matched index, but this does
+                  //   not mean other sub-collections do not have
+                  if ( ( !mainPlan->isHintFailed() ) &&
+                       ( IXSCAN == mainPlan->getScanType() ) )
+                  {
+                     // cache main-collection plan
+                     _cacheAccessPlan( mainPlan ) ;
+                  }
                   // release main-collection plan, since we will use the
                   // sub-collection plan for the this time
                   mainPlan->release() ;
@@ -2485,7 +2509,10 @@ namespace engine
       subPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( subPlan, "subPlan is invalid " ) ;
 
-      rc = mainPlan->bindSubCLAccessPlan( planHelper, subPlan, parameters ) ;
+      rc = mainPlan->bindSubCLAccessPlan( planHelper,
+                                          subPlan,
+                                          mbContext,
+                                          parameters ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind main-collection access "
                    "plan, rc: %d" ) ;
 
@@ -2537,7 +2564,7 @@ namespace engine
 
       // Check whether the sub-collection and parameters had been
       // already validated
-      if ( mainPlan->checkSavedSubCL( subOptions.getCLFullName(),
+      if ( mainPlan->checkSavedSubCL( mbContext->mb()->_clUniqueID,
                                       parameters ) )
       {
          rc = _bindMainCLPlan( mainPlan, subOptions, su, mbContext,
@@ -2564,7 +2591,7 @@ namespace engine
 
          // do nothing
       }
-      else if ( !mainPlan->validateSubCLPlan( subPlan, parameters ) )
+      else if ( !mainPlan->validateSubCLPlan( subPlan, mbContext, parameters ) )
       {
          // The sub-collection is not validate for the main-collection
          // plan, mark the collection invalidate for main-collection plans

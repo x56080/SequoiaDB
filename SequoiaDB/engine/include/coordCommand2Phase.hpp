@@ -39,41 +39,13 @@
 #define COORD_COMMAND_2PHASE_HPP__
 
 #include "coordCommandBase.hpp"
+#include "coordCMDEventHandler.hpp"
 #include "coordFactory.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-
-   /*
-      _coordCMDArguments define
-   */
-   class _coordCMDArguments : public SDBObject
-   {
-      public :
-         _coordCMDArguments () { _pBuf = NULL ; }
-
-         virtual ~_coordCMDArguments () {}
-
-         /* A copy of the query object */
-         BSONObj _boQuery ;
-
-         /* Name of the catalog target to be updated */
-         string _targetName ;
-
-         /* ignore error return codes */
-         SET_RC _ignoreRCList ;
-
-         /* retry when error returned */
-         SET_RC _retryRCList ;
-
-         /* the return context buf pointer */
-         rtnContextBuf *_pBuf ;
-
-         CoordGroupList _groupList ;
-   } ;
-   typedef _coordCMDArguments coordCMDArguments ;
 
    /*
     * _coordCMD2Phase define
@@ -104,20 +76,12 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) = 0 ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) = 0 ;
-
          virtual INT32 _generateDataMsg ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           coordCMDArguments *pArgs,
                                           const vector<BSONObj> &cataObjs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) = 0 ;
-
-         virtual void  _releaseDataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) = 0 ;
 
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
@@ -149,7 +113,8 @@ namespace engine
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
-                                          const CoordGroupList &pGroupLst ) ;
+                                          const CoordGroupList &pGroupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
@@ -211,10 +176,51 @@ namespace engine
          virtual BOOLEAN _allowInTransaction() const { return TRUE ; }
 
          /*
-            set new collection version to buf
-         */
-         virtual INT32 _setVer2Context( rtnContextBuf *buf );
+            Get output to client
+          */
+         virtual INT32 _doOutput( rtnContextBuf *buf ) ;
 
+         virtual INT32 _regEventHandlers()
+         {
+            return SDB_OK ;
+         }
+
+         INT32 _regEventHandler( coordCMDEventHandler *handler ) ;
+         void _unregEventHandlers() ;
+
+         INT32 _parseCatReturn( coordCMDArguments *pArgs,
+                                const std::vector<bson::BSONObj> &cataObjs ) ;
+
+         INT32 _parseCatP2Return( coordCMDArguments *pArgs,
+                                  const std::vector<bson::BSONObj> &cataObjs ) ;
+
+         BOOLEAN _needRewriteDataMsg() ;
+
+         INT32 _rewriteDataMsg( MsgHeader *pMsg,
+                                coordCMDArguments *pArgs,
+                                pmdEDUCB *cb,
+                                CHAR **ppMsgBuf,
+                                INT32 *pBufSize ) ;
+
+         INT32 _onBeginEvent( coordCMDArguments *pArgs,
+                              pmdEDUCB *cb ) ;
+
+         INT32 _onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
+                               coordCMDArguments *pArgs,
+                               pmdEDUCB *cb ) ;
+
+         INT32 _onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
+                               coordCMDArguments *pArgs,
+                               pmdEDUCB *cb ) ;
+
+         void _onCommitEvent( coordCMDArguments *pArgs,
+                              pmdEDUCB *cb ) ;
+
+         void _onRollbackEvent( coordCMDArguments *pArgs,
+                                pmdEDUCB *cb ) ;
+
+      protected:
+         COORD_CMD_EVENT_HANDLER_LIST  _eventHandlers ;
    } ;
    typedef _coordCMD2Phase coordCMD2Phase ;
 

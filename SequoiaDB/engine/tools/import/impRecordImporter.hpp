@@ -71,7 +71,7 @@ namespace import
 
       INT32 _bulkInsert( PageInfo* pageInfo, SINT32 flag ) ;
 
-      INT32 _send( const CHAR *pMsg, INT32 len ) ;
+      INT32 _send( const CHAR *pMsg, INT32 len, BOOLEAN isHeader = TRUE ) ;
 
       INT32 _recv() ;
 
@@ -79,9 +79,12 @@ namespace import
 
       INT32 _setSessionAttr() ;
 
+      INT32 _getLastResultObj( bson *result ) ;
+
    private:
       INT32 _insertBufferSize ;
       INT32 _recvBufferSize ;
+      INT32 _resultBufferSize ;
 
       BOOLEAN  _useSSL ;
       BOOLEAN  _enableTransaction ;
@@ -98,6 +101,7 @@ namespace import
       MsgOpInsert*  _insertMsg ;
       CHAR*         _insertBuffer ;
       CHAR*         _recvBuffer ;
+      CHAR*         _resultBuffer ;
 
       string   _hostname ;
       string   _svcname ;
@@ -107,6 +111,10 @@ namespace import
       string   _clname ;
 
       INT32    _batchSize ;
+
+      _sdbMsgConvertor* _msgConvertor ;
+      INT16             _peerProtocolVersion ;
+
    } ;
 }
 

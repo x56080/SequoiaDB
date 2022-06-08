@@ -1,5 +1,6 @@
 package com.sequoiadb.crud.truncate;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -108,7 +109,10 @@ public class TestTruncate171 extends SdbTestBase {
                 // check split
                 checkSplit( db, srcGroupName, dstGroupName );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_TRUNCATED
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode() ) {
                     throw e;
                 }
             } finally {

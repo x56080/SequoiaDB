@@ -1259,27 +1259,6 @@ namespace engine
          bLatched = TRUE ;
       }
 
-      // in case of reading with isolation mode RR, beforeLockAcquire
-      // will read record on disk to check the visibility. Since the
-      // mblatch latch should be already acquired at this time,
-      // we can read record on disk safely without acquiring bkt latch
-      // or record lock, no need to worry about partial reading.
-      // Although bkt latch is not acquired for calling beforeLockAcquire,
-      // it is possible we hold the bucket latch this time. Here is the
-      // scenario, when getS was put on waiter queue and previous
-      // owner woke it up when released a record lock. It acquires the
-      // bucket latch first, then removes itself from waiter queue and
-      // executes _tryAcquireOrTest again.
-      if ( callback )
-      {
-         callback->beforeLockAcquire( lockId, lockMode, opMode ) ;
-         if ( callback->hasError() )
-         {
-            PD_LOG( PDERROR, "before lock acquire callback failed (rc=%d)",
-                    callback->getResult() ) ;
-         }
-      }
-
       //
       // try to take a shortcut if it is less expensive to find out
       // whether the lock is already acquired
@@ -3128,17 +3107,26 @@ nextLock:
    void dpsTransLockManager::_wakeUp( _dpsTransExecutor *dpsTxExectr )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__WAKEUP ) ;
-#ifdef _DEBUG
+
       SDB_ASSERT( dpsTxExectr, "dpsTransExecutor can't be NULL" ) ;
-      // dpsTransLRB *pLRB = dpsTxExectr->getWaiterLRB( _lockMgrType ) ;
-      // dpsTransLRBHeader * pLRBHdr = pLRB->lrbHdr ;
-      // PD_LOG( PDDEBUG, "Waking up TID:%d for lock(%s)",
-      //         dpsTxExectr->getTID(), pLRBHdr->lockId.toString().c_str() ) ;
-#endif
-      dpsTxExectr->wakeup() ;
+
+      dpsTxExectr->wakeup( SDB_OK ) ;
+
       PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER__WAKEUP ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__KILLWAITER, "dpsTransLockManager::_killWaiter" )
+   void dpsTransLockManager::_killWaiter( _dpsTransExecutor *dpsTxExectr,
+                                          INT32 errorCode )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__KILLWAITER ) ;
+
+      SDB_ASSERT( dpsTxExectr, "dpsTransExecutor can't be NULL" ) ;
+
+      dpsTxExectr->wakeup( errorCode ) ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER__KILLWAITER ) ;
+   }
 
    //
    // Description: Wait a lock
@@ -4461,6 +4449,38 @@ nextLock:
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER_KILLWAITERS, "dpsTransLockManager::killWaiters" )
+   BOOLEAN dpsTransLockManager::killWaiters( const dpsTransLockId &lockID,
+                                             INT32 errorCode )
+   {
+      BOOLEAN killed = FALSE ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_KILLWAITERS ) ;
+
+      dpsTransLRBHeader *pLRBHdr = NULL ;
+      UINT32 bktIdx = _getBucketNo( lockID ) ;
+
+      _acquireOpLatch( bktIdx ) ;
+
+      pLRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
+      if ( _getLRBHdrByLockId( lockID, pLRBHdr ) )
+      {
+         dpsTransLRB *pLRB = (dpsTransLRB *)pLRBHdr->waiterLRB ;
+         while ( NULL != pLRB )
+         {
+            _killWaiter( pLRB->dpsTxExectr, errorCode ) ;
+            killed = TRUE ;
+            pLRB = pLRB->nextLRB ;
+         }
+      }
+
+      _releaseOpLatch( bktIdx ) ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER_KILLWAITERS ) ;
+
+      return killed ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER, "dpsTransLockManager::_getIncompTrans" )

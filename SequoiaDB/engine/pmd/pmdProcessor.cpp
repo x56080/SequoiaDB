@@ -63,6 +63,7 @@
 #include "clsResourceContainer.hpp"
 #include "ossMemPool.hpp"
 #include "utilStr.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -100,7 +101,11 @@ namespace engine
 
       needRollback = FALSE ;
 
-      if ( eduCB()->getMonQueryCB() == NULL )
+      // When this is a GETMORE operation following another operation,
+      // the context of the original operation already had the monQuery.
+      // The cb will set the monQuery with the monQuery from the original
+      // context when we find the original context later on.
+      if ( eduCB()->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != opCode)
       {
          monQuery = pmdGetKRCB()->getMonMgr()->
                     registerMonitorObject<monClassQuery>() ;
@@ -272,7 +277,7 @@ namespace engine
                        msg->TID, msg->routeID.columns.groupID,
                        msg->routeID.columns.nodeID,
                        msg->routeID.columns.serviceID, msg->requestID ) ;
-               rc = SDB_INVALIDARG ;
+               rc = SDB_UNKNOWN_MESSAGE ;
                break ;
          }
       }
@@ -291,9 +296,8 @@ namespace engine
          if ( !monQuery->anchorToContext )
          {
             pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
-
-            eduCB()->setMonQueryCB( NULL ) ;
          }
+         eduCB()->setMonQueryCB( NULL ) ;
       }
    done:
       PD_TRACE_EXITRC ( SDB_PMDDATAPROC_PROMSG, rc ) ;
@@ -523,6 +527,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract update message failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
+      eduCB()->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
       /// When update virtual cs
@@ -571,9 +576,8 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Session[%s] Update:\nMatcher: %s\nUpdator: %s\n"
                   "hint: %s\nFlag: 0x%08x(%u)", getSession()->sessionName(),
-                  selector.toPoolString().c_str(),
-                  updator.toPoolString().c_str(), hint.toPoolString().c_str(),
-                  flags, flags ) ;
+                  PD_SECURE_OBJ( selector ), PD_SECURE_OBJ( updator ),
+                  hint.toPoolString().c_str(), flags, flags ) ;
 
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &upResult ) ;
@@ -618,6 +622,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace insert msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
+      eduCB()->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
       if ( (flag & FLG_INSERT_CONTONDUP) && (flag & FLG_INSERT_REPLACEONDUP) )
@@ -688,7 +693,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Session[%s] insert objs[%s, count:%d, "
                       "collection: %s] failed, rc: %d",
                       getSession()->sessionName(),
-                      insertor.toPoolString().c_str(),
+                      PD_SECURE_OBJ( insertor ),
                       count, pCollectionName, rc ) ;
       }
       catch( std::exception &e )
@@ -735,6 +740,8 @@ namespace engine
 
       if ( !rtnIsCommand ( pCollectionName ) )
       {
+         eduCB()->setCurProcessName( pCollectionName ) ;
+
          /// check auto-commit
          rc = _checkTransAutoCommit( msg, ( flags & FLG_QUERY_MODIFY ) ?
                                           TRUE : FALSE ) ;
@@ -848,6 +855,15 @@ namespace engine
             goto error ;
          }
 
+         if ( NULL != pCommand->collectionFullName() )
+         {
+            eduCB()->setCurProcessName( pCommand->collectionFullName() ) ;
+         }
+         else if ( NULL != pCommand->spaceName() )
+         {
+            eduCB()->setCurProcessName( pCommand->spaceName() ) ;
+         }
+
          MON_SAVE_CMD_DETAIL( eduCB()->getMonAppCB(), pCommand->type(),
                               "Command:%s, Collection:%s, Match:%s, "
                               "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
@@ -881,27 +897,35 @@ namespace engine
          }
       }
 
-      if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+      if ( ( ( flags & FLG_QUERY_WITH_RETURNDATA ) ||
+             ( flags & FLG_QUERY_CLOSE_EOF_CTX ) ) &&
            ( ( pContext ) ||
              ( -1 != contextID &&
                SDB_OK == _pRTNCB->contextFind( contextID, pContext ) ) ) )
       {
-         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-         if ( rc || pContext->eof() )
+         if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
          {
-            _pRTNCB->contextDelete( contextID, eduCB() ) ;
-            contextID = -1 ;
+            pContext->enableCloseOnEOF() ;
          }
+         if ( flags & FLG_QUERY_WITH_RETURNDATA )
+         {
+            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+            if ( rc || pContext->eof() )
+            {
+               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               contextID = -1 ;
+            }
 
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] failed to query with return "
-                    "data, rc: %d", getSession()->sessionName(), rc ) ;
-            goto error ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s] failed to query with return "
+                       "data, rc: %d", getSession()->sessionName(), rc ) ;
+               goto error ;
+            }
          }
       }
 
@@ -930,6 +954,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract delete msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
+      eduCB()->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
       /// When delete virtual cs
@@ -1020,6 +1045,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
+      eduCB()->setCurrentContextID( contextID ) ;
+
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",
@@ -1032,11 +1059,12 @@ namespace engine
       rc = _pRTNCB->contextFind ( contextID, pContext, eduCB() ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d", contextID,
+         PD_LOG ( PDERROR, "Failed to find context %lld, rc: %d", contextID,
                   rc ) ;
          goto error ;
       }
 
+      eduCB()->setMonQueryCB( pContext->getMonQueryCB() ) ;
       needRollback = pContext->needRollback() ;
 
       rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB ) ;
@@ -1045,10 +1073,19 @@ namespace engine
          contextID = -1 ;
          goto error ;
       }
-      else if ( pContext->eof() &&
-                contextID == eduCB()->getCurAutoTransCtxID() )
+      else if ( pContext->eof() )
       {
-         eduCB()->setCurAutoTransCtxID( -1 ) ;
+         if ( contextID == eduCB()->getCurAutoTransCtxID() )
+         {
+            eduCB()->setCurAutoTransCtxID( -1 ) ;
+         }
+
+         if ( pContext->needCloseOnEOF() )
+         {
+            // early close to save get-more round-trips
+            _pRTNCB->contextDelete( contextID, eduCB() ) ;
+            contextID = -1 ;
+         }
       }
 
    done:
@@ -1059,6 +1096,10 @@ namespace engine
 
       return rc ;
    error:
+      if ( -1 != contextID )
+      {
+         _pRTNCB->contextDelete( contextID, eduCB() ) ;
+      }
       goto done ;
    }
 
@@ -1263,6 +1304,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace aggr msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
+      eduCB()->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
       try
@@ -1774,6 +1816,10 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
+      // shield to avoid calling check urgent event during
+      // communicating messages with other nodes
+      pmdUrgentEventShield _shield( eduCB() ) ;
+
       //if ( !restorePendingChecker.isOpAllowed() )
       if ( FALSE )
       {
@@ -2177,25 +2223,33 @@ namespace engine
       }
 
       // query with return data
-      if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
+      if ( ( ( flag & FLG_QUERY_WITH_RETURNDATA ) ||
+             ( flag & FLG_QUERY_CLOSE_EOF_CTX ) ) &&
            -1 != contextID &&
            SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
       {
-         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-         if ( rc || pContext->eof() )
+         if ( flag & FLG_QUERY_CLOSE_EOF_CTX )
          {
-            _pRTNCB->contextDelete( contextID, eduCB() ) ;
-            contextID = -1 ;
+            pContext->enableCloseOnEOF() ;
          }
+         if ( flag & FLG_QUERY_WITH_RETURNDATA )
+         {
+            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+            if ( rc || pContext->eof() )
+            {
+               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               contextID = -1 ;
+            }
 
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to query with return data, "
-                    "rc: %d", rc ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to query with return data, "
+                       "rc: %d", rc ) ;
+            }
          }
       }
 
@@ -2227,7 +2281,11 @@ namespace engine
       BSONObjBuilder clientInfoBuilder ;
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROMSG );
 
-      if ( eduCB()->getMonQueryCB() == NULL )
+      // When this is a GETMORE operation following another operation,
+      // the context of the original operation already had the monQuery.
+      // The cb will set the monQuery with the monQuery from the original
+      // context when we find the original context later on.
+      if ( eduCB()->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != msg->opCode )
       {
          monQueryCB = pmdGetKRCB()->getMonMgr()->
                       registerMonitorObject<monClassQuery>() ;
@@ -2271,6 +2329,7 @@ namespace engine
                pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
                eduCB()->setMonQueryCB( NULL ) ;
             }
+            eduCB()->setMonQueryCB( NULL ) ;
          }
       }
 

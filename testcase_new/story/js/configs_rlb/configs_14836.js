@@ -4,7 +4,6 @@
  * @date        ：2018.3.30
  ******************************************************************************/
 testConf.skipStandAlone = true;
-
 main( test );
 
 function test ()

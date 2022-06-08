@@ -19,12 +19,12 @@ SequoiaDB 巨杉数据库支持连接器、操作符、SQL 语法等操作，用
 [^_^]:
     本文使用的所有引用及链接
 [shell]:manual/Manual/Sequoiadb_Command/Readme.md
-[errorcode]:manual/Manual/sequoiadb_error_code.md
+[errorcode]:manual/Manual/Sequoiadb_error_code.md
 [connector]:manual/Manual/Connector/Readme.md
 [operator]:manual/Manual/Operator/Readme.md
 [mapping]:manual/Manual/SQL_to_Sequoiadb_mapping.md
 [sql]:manual/Manual/SQL_Grammar/Readme.md
-[catalog]:manual/Manual/SQL_Grammar/Readme.md
+[catalog]:manual/Manual/Catalog_Table/Readme.md
 [snapshot]:manual/Manual/Snapshot/Readme.md
 [list]:manual/Manual/List/Readme.md
 [plan]:manual/Manual/Cost_Estimation/Readme.md

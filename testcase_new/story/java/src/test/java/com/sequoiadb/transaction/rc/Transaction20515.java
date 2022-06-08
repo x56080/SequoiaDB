@@ -92,9 +92,9 @@ public class Transaction20515 extends SdbTestBase {
             boolean isTaskExist = false;
             for ( int i = 0; i < 10; i++ ) {
                 Thread.sleep( 1000 );
-                DBCursor cursor = sdb.listTasks(
-                        new BasicBSONObject( "Name", csName + "." + clName ),
-                        null, null, null );
+                BSONObject matcher = new BasicBSONObject( "Name", csName + "." + clName );
+                matcher.put( "TaskType", 0 ); // split task
+                DBCursor cursor = sdb.listTasks( matcher, null, null, null );
                 while ( cursor.hasNext() ) {
                     isTaskExist = true;
                     break;
@@ -240,9 +240,9 @@ public class Transaction20515 extends SdbTestBase {
             boolean isTaskExist = false;
             for ( int i = 0; i < 10; i++ ) {
                 Thread.sleep( 1000 );
-                DBCursor cursor = sdb.listTasks(
-                        new BasicBSONObject( "Name", csName + "." + clName ),
-                        null, null, null );
+                BSONObject matcher = new BasicBSONObject( "Name", csName + "." + clName );
+                matcher.put( "TaskType", 0 ); // split task
+                DBCursor cursor = sdb.listTasks( matcher, null, null, null );
                 while ( cursor.hasNext() ) {
                     isTaskExist = true;
                     break;

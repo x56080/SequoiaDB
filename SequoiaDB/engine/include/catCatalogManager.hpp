@@ -40,6 +40,7 @@
 
 #include "pmd.hpp"
 #include "catTask.hpp"
+#include "catEventHandler.hpp"
 #include "rtnContextBuff.hpp"
 #include "utilCompressor.hpp"
 #include "utilArguments.hpp"
@@ -79,6 +80,7 @@ namespace engine
       BOOLEAN     _autoSplit ;
       BOOLEAN     _autoRebalance ;
       BOOLEAN     _strictDataMode ;
+      BOOLEAN     _noTrans ;
       const CHAR * _gpSpecified ;
       INT32       _version ;
       INT32       _assignType ;
@@ -113,6 +115,7 @@ namespace engine
          _autoSplit           = FALSE ;
          _autoRebalance       = FALSE ;
          _strictDataMode      = FALSE ;
+         _noTrans             = FALSE ;
          _gpSpecified         = NULL ;
          _version             = 0 ;
          _assignType          = ASSIGN_RANDOM ;
@@ -133,7 +136,8 @@ namespace engine
    /*
       catCatalogueManager define
    */
-   class catCatalogueManager : public SDBObject
+   class catCatalogueManager : public SDBObject,
+                               public _catEventHandler
    {
    public:
       catCatalogueManager() ;
@@ -150,6 +154,9 @@ namespace engine
       INT32 deactive() ;
 
       UINT64 assignTaskID () ;
+
+      virtual const CHAR *getHandlerName() { return "catCatalogueManager" ; }
+      virtual INT32 onUpgrade( UINT32 version ) ;
 
    // message process functions
    protected:
@@ -177,8 +184,6 @@ namespace engine
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
-      INT32 processCmdTruncate ( const CHAR *pQuery,
-                                 rtnContextBuf &ctxBuf ) ;
 
    // tool functions
    protected:

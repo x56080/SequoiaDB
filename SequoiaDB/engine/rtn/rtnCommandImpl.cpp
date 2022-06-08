@@ -54,7 +54,6 @@
 #include "rtnContextDel.hpp"
 #include "ossMemPool.hpp"
 #include "rtnTSClt.hpp"
-#include "dmsEngineCB.hpp"
 
 using namespace bson ;
 
@@ -330,7 +329,7 @@ namespace engine
                                    const CHAR *pCLShortName )
    {
       INT32 rc = SDB_OK ;
-      std::vector< dmsExtentID > extentList ;
+      ossPoolVector< dmsExtentID > extentList ;
 
       rc = su->getSegExtents( pCLShortName, extentList, mbContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] segment extents failed, "
@@ -822,21 +821,14 @@ namespace engine
       }
 
       {
-         ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
+         ixmIndexCB indexCB( planRuntime->getIndexCBExtent(),
+                             su->index(), NULL ) ;
 
-         if ( !indexCB.isInitialized() )
+         rc = rtnIsIndexCBValid( &indexCB, planRuntime->getIndexCBExtent(),
+                                 planRuntime->getIndexName(),
+                                 planRuntime->getIndexLID(), su, mbContext ) ;
+         if ( rc )
          {
-            PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
-         {
-            PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                    "expected[%d]", planRuntime->getIndexCBExtent(),
-                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-            rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
 
@@ -1078,6 +1070,7 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       optAccessPlanRuntime planRuntime ;
       optAccessPlanManager *apm = NULL ;
+      UINT32 scannerRetryTime = 0 ;
 
       ossTick startTime, endTime ;
       monContextCB monCtxCB ;
@@ -1101,6 +1094,7 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
+retry:
       // plan is released in context destructor
       rc = apm->getAccessPlan( copiedOptions, su, mbContext, planRuntime, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
@@ -1126,6 +1120,17 @@ namespace engine
       else if ( IXSCAN == planRuntime.getScanType() )
       {
          rc = rtnGetIndexblocks( su, &planRuntime, cb, context, mbContext ) ;
+         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         {
+            // Maybe in the process of scanning the index,
+            // the index is deleted
+            planRuntime.reset() ;
+            scannerRetryTime++ ;
+            // We only need to try to scan once. In most cases,
+            // the next scan is normal
+            mbContext->mbUnlock() ;
+            goto retry ;
+         }
       }
       else
       {
@@ -1246,7 +1251,7 @@ namespace engine
                                            INT32 pageSize,
                                            INT32 lobPageSize,
                                            DMS_STORAGE_TYPE type,
-                                           BOOLEAN sysCall)
+                                           BOOLEAN sysCall )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCREATECSCOMMAND ) ;
@@ -1465,6 +1470,7 @@ namespace engine
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
+
       if ( rc && pCollectionShortName && (flags&FLG_CREATE_WHEN_NOT_EXIST) )
       {
          CHAR temp [ DMS_COLLECTION_SPACE_NAME_SZ +
@@ -1534,7 +1540,9 @@ namespace engine
       if ( !shardIdxDef.isEmpty() )
       {
          rc = rtnCreateIndexCommand ( pCollection, shardIdxDef,
-                                      cb, dmsCB, dpsCB, TRUE ) ;
+                                      cb, dmsCB, dpsCB, TRUE,
+                                      SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                      NULL, NULL, addIdxIDIfNotExist ) ;
          if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
          {
             /// same defined index already exists.
@@ -1923,6 +1931,7 @@ namespace engine
             i++ ;
          }
          PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
       }
       else
       {
@@ -1963,6 +1972,7 @@ namespace engine
          if ( blockWrite )
          {
             dmsCB->unblockWrite( cb ) ;
+            PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
          }
          else
          {
@@ -1983,18 +1993,187 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRTRNCLCMD, "_rtnReturnCLCommand" )
+   static INT32 _rtnReturnCLCommand( dmsReturnOptions &options,
+                                     _pmdEDUCB *cb,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRTRNCLCMD ) ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      const CHAR *originCLName = NULL ;
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsMBContext *origMBContext = NULL ;
+
+      rc = rtnResolveCollectionNameAndLock( originName, dmsCB, &su,
+                                            &originCLName, suID, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get storage unit for collection "
+                   "[%s], rc: %d", originName, rc ) ;
+
+      rc = su->data()->returnCollection( originCLName, recycleName, options, cb,
+                                         dpsCB, &origMBContext ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to return collection [%s] to [%s], "
+                   "rc: %d", recycleName, originCLName, rc ) ;
+
+      if ( NULL != origMBContext &&
+           OSS_BIT_TEST( origMBContext->mb()->_attributes,
+                         DMS_MB_ATTR_COMPRESSED ) &&
+           UTIL_COMPRESSOR_LZW == origMBContext->mb()->_compressorType )
+      {
+         dmsCB->pushDictJob( dmsDictJob( su->CSID(),
+                                         su->LogicalCSID(),
+                                         origMBContext->mbID(),
+                                         origMBContext->clLID() ) ) ;
+      }
+
+   done:
+      if ( NULL != origMBContext && NULL != su )
+      {
+         su->data()->releaseMBContext( origMBContext ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID, SHARED ) ;
+      }
+      PD_TRACE_EXITRC( SDB__RTNRTRNCLCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRTRNCSCMD, "_rtnReturnCSCommand" )
+   static INT32 _rtnReturnCSCommand( dmsReturnOptions &options,
+                                     _pmdEDUCB *cb,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRTRNCSCMD ) ;
+
+      const CHAR *originName = options._recycleItem.getOriginName() ;
+      const CHAR *recycleName = options._recycleItem.getRecycleName() ;
+
+      UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+
+      rc = dmsCB->nameToSULID( recycleName, suLogicalID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", recycleName,
+                   suLogicalID, rc ) ;
+      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
+                  "logical ID should be valid" ) ;
+
+      rc = dmsCB->returnCollectionSpace( options, cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to return collection space "
+                   "[origin %s, recycle %s], rc: %d", originName,
+                   recycleName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRTRNCSCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRTRNCMD, "rtnReturnCommand" )
+   INT32 rtnReturnCommand( dmsReturnOptions &options,
+                           _pmdEDUCB *cb,
+                           SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB,
+                           BOOLEAN blockWrite )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNRTRNCMD ) ;
+
+      BOOLEAN lockDMS = FALSE ;
+
+      PD_CHECK( options._recycleItem.isValid(), SDB_SYS, error, PDERROR,
+                "Failed to run return command, recycle item is invalid" ) ;
+
+      if ( blockWrite )
+      {
+         // When two threads concurrently do rename, blockWrite() will report
+         // -148. We retry multiple times to reduce the error.
+         INT16 i = 0 ;
+         while ( ( rc = dmsCB->blockWrite( cb ) )  &&
+                 ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
+         {
+            ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
+            i++ ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
+      }
+      else
+      {
+         rc = dmsCB->writable( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      }
+      lockDMS = TRUE ;
+
+      if ( UTIL_RECYCLE_CS == options._recycleItem.getType() )
+      {
+         rc = _rtnReturnCSCommand( options, cb, dmsCB, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection space, "
+                      "rc: %d", rc ) ;
+      }
+      else if ( UTIL_RECYCLE_CL == options._recycleItem.getType() )
+      {
+         rc = _rtnReturnCLCommand( options, cb, dmsCB, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to return collection, rc: %d",
+                      rc ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "invalid recycle type" ) ;
+         PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to run return "
+                   "command, invalid recycle type [%d]",
+                   options._recycleItem.getType() ) ;
+      }
+
+   done:
+      if ( lockDMS )
+      {
+         if ( blockWrite )
+         {
+            dmsCB->unblockWrite( cb ) ;
+            PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
+         }
+         else
+         {
+            dmsCB->writeDown( cb ) ;
+         }
+         lockDMS = FALSE ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNRTRNCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPCSCOMMAND, "rtnDropCollectionSpaceCommand" )
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,
                                          SDB_DMSCB *dmsCB,
                                          SDB_DPSCB *dpsCB,
                                          BOOLEAN   sysCall,
-                                         BOOLEAN   ensureEmpty )
+                                         BOOLEAN   ensureEmpty,
+                                         dmsDropCSOptions *options )
    {
       PD_TRACE_ENTRY ( SDB_RTNDROPCSCOMMAND ) ;
       INT32 rc = rtnDelCollectionSpaceCommand( pCollectionSpace, cb,
                                                dmsCB, dpsCB, sysCall,
-                                               TRUE, ensureEmpty ) ;
+                                               TRUE, ensureEmpty, options ) ;
       if ( SDB_OK == rc )
       {
          PD_LOG( PDEVENT, "Drop collectionspace[%s] succeed",
@@ -2019,6 +2198,7 @@ namespace engine
 
       UINT32 retryTime = 0 ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
@@ -2057,8 +2237,14 @@ namespace engine
             goto error ;
          }
 
-         // tell others to close contexts on the same collection space
-         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         // - tell others to close contexts on the same collection space
+         // - tell other waiting transactions to give up
+         if ( ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 ) ||
+              ( NULL != cb && cb->getTransExecutor()->useTransLock() &&
+                transCB->transLockKillWaiters( suLogicalID,
+                                               DMS_INVALID_MBID,
+                                               NULL,
+                                               SDB_DPS_TRANS_LOCK_INCOMPATIBLE ) ) )
          {
             ossSleep( 200 ) ;
          }
@@ -2121,7 +2307,8 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    BOOLEAN   sysCall )
+                                    BOOLEAN   sysCall,
+                                    dmsDropCSOptions *options )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCSP2 ) ;
@@ -2137,7 +2324,7 @@ namespace engine
          goto error ;
       }
       dmsCB->aquireCSMutex( pCollectionSpace ) ;
-      rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB ) ;
+      rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB, options ) ;
       dmsCB->releaseCSMutex( pCollectionSpace ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to drop cs(name:%s, rc=%d)",
@@ -2157,7 +2344,8 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB,
-                                    utilCLUniqueID clUniqueID )
+                                    utilCLUniqueID clUniqueID,
+                                    dmsDropCLOptions *options )
    {
       INT32 rc                            = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCLCOMMAND ) ;
@@ -2206,7 +2394,7 @@ namespace engine
       }
 
       rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB,
-                                        TRUE, mbContext ) ;
+                                        TRUE, mbContext, options ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to drop collection %s, rc: %d",
@@ -2264,6 +2452,7 @@ namespace engine
             i++ ;
          }
          PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+         PD_LOG( PDINFO, "Block write operation succeed" ) ;
       }
       else
       {
@@ -2308,6 +2497,7 @@ namespace engine
          if ( blockWrite )
          {
             dmsCB->unblockWrite( cb ) ;
+            PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
          }
          else
          {
@@ -2323,7 +2513,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRUNCCLCOMMAND, "rtnTruncCollectionCommand" )
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection, pmdEDUCB *cb,
-                                    SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB )
+                                    SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
+                                    dmsMBContext *mbContext,
+                                    dmsTruncCLOptions *options )
    {
       INT32 rc                         = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNTRUNCCLCOMMAND ) ;
@@ -2333,8 +2525,8 @@ namespace engine
       dmsStorageUnit *su               = NULL ;
       const CHAR *pCollectionShortName = NULL ;
       BOOLEAN writable                 = FALSE ;
-      dmsMBContext *context            = NULL ;
       dmsMB *mb                        = NULL ;
+      BOOLEAN getContext               = FALSE ;
 
       // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
@@ -2350,7 +2542,9 @@ namespace engine
          goto error ;
       }
 
-      rc = su->data()->truncateCollection( pCollectionShortName, cb, dpsCB ) ;
+      rc = su->data()->truncateCollection( pCollectionShortName, cb, dpsCB,
+                                           TRUE, mbContext, TRUE, TRUE,
+                                           options ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to truncate collection %s, rc: %d",
@@ -2363,27 +2557,39 @@ namespace engine
        * truncation. So it should be pushed to the dictionary creating list
        * again after truncation.
        */
-      rc = su->data()->getMBContext( &context, pCollectionShortName, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to get mb context of collection %s, rc: %d",
-                   pCollection, rc ) ;
-      mb = context->mb() ;
+      if ( NULL == mbContext )
+      {
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName,
+                                        SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get mb context of collection %s, rc: %d",
+                      pCollection, rc ) ;
+         getContext = TRUE ;
+      }
+      else if ( !mbContext->isMBLock() )
+      {
+         rc = mbContext->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock mb context of "
+                      "collection %s, rc: %d", pCollection, rc ) ;
+      }
+
+      mb = mbContext->mb() ;
 
       if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
            UTIL_COMPRESSOR_LZW == mb->_compressorType &&
            DMS_INVALID_EXTENT == mb->_dictExtentID )
       {
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
-                             context->mbID(), context->clLID() ) ) ;
+                             mbContext->mbID(), mbContext->clLID() ) ) ;
       }
 
       PD_LOG( PDEVENT, "Truncate collection[%s] succeed",
               pCollection ) ;
 
    done :
-      if ( context )
+      if ( getContext && mbContext )
       {
-         su->data()->releaseMBContext( context ) ;
+         su->data()->releaseMBContext( mbContext ) ;
       }
       if ( DMS_INVALID_CS != suID )
       {
@@ -2421,7 +2627,8 @@ namespace engine
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
       if ( SDB_OK != rc )
       {
-         goto error;
+         rc = SDB_DMS_CS_NOTEXIST ;
+         goto error ;
       }
       curCsUniqueID = su->CSUniqueID() ;
 

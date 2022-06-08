@@ -789,5 +789,40 @@ namespace engine
    } ;
    typedef _coordCMDSnapshotTransDeadlockIntr coordCMDSnapshotTransDeadlockIntr;
 
+   /*
+      _coordCMDSnapshotRecycleBin define
+    */
+   class _coordCMDSnapshotRecycleBin : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordCMDSnapshotRecycleBin() {}
+      virtual ~_coordCMDSnapshotRecycleBin() {}
+
+   private:
+      virtual const CHAR *getIntrCMDName()
+      {
+         return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR ;
+      }
+
+      virtual const CHAR *getInnerAggrContent() ;
+   } ;
+
+   typedef class _coordCMDSnapshotRecycleBin coordCMDSnapshotRecycleBin ;
+
+   /*
+      _coordCMDSnapshotRecycleBinIntr define
+    */
+   class _coordCMDSnapshotRecycleBinIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _coordCMDSnapshotRecycleBinIntr() {}
+      virtual ~_coordCMDSnapshotRecycleBinIntr() {}
+      virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+   } ;
+
 }
 #endif // COORD_COMMAND_SNAPSHOT_HPP__

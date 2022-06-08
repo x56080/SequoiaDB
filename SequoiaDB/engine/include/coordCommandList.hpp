@@ -457,6 +457,10 @@ namespace engine
       public:
          _coordCmdListIndexes() ;
          virtual ~_coordCmdListIndexes() ;
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
       protected:
          virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
                                     string &clName,
@@ -629,6 +633,36 @@ namespace engine
          virtual ~_coordCMDListDataSourceIntr() ;
    } ;
    typedef _coordCMDListDataSourceIntr coordCMDListDataSourceIntr ;
+
+   /*
+      _coordCMDListRecycleBin define
+    */
+   class _coordCMDListRecycleBin : public _coordCMDQueryBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+   public:
+      _coordCMDListRecycleBin() ;
+      ~_coordCMDListRecycleBin() ;
+
+   protected:
+      virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
+                                 string &clName,
+                                 BSONObj &outSelector ) ;
+   } ;
+   typedef class _coordCMDListRecycleBin coordCMDListRecycleBin ;
+
+   /*
+      _coordCMDListRecycleBinIntr define
+    */
+   class _coordCMDListRecycleBinIntr : public _coordCMDListRecycleBin
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+   public:
+      _coordCMDListRecycleBinIntr() ;
+      virtual ~_coordCMDListRecycleBinIntr() ;
+   } ;
+   typedef class _coordCMDListRecycleBinIntr coordCMDListRecycleBinIntr ;
+
 }
 
 #endif // COORD_COMMAND_LIST_HPP__

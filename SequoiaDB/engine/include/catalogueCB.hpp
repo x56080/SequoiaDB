@@ -53,6 +53,7 @@
 #include "catDCManager.hpp"
 #include "sdbInterface.hpp"
 #include "catLevelLock.hpp"
+#include "catRecycleBinManager.hpp"
 
 using namespace bson ;
 
@@ -101,6 +102,7 @@ namespace engine
          void     releaseNodeID( UINT16 nodeID ) ;
          UINT16   allocSystemNodeID() ;
          BOOLEAN  checkGroupActived( const CHAR *gpName, BOOLEAN &gpExist  ) ;
+         BOOLEAN  checkGroupActived( UINT32 groupID, BOOLEAN &gpExist ) ;
 
          void        clearInfo() ;
          GRP_ID_MAP* getGroupMap( BOOLEAN isActive = TRUE ) ;
@@ -113,10 +115,16 @@ namespace engine
 
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     vector< string > &groups,
-                                    BOOLEAN ignoreErr = FALSE ) ;
+                                    BOOLEAN ignoreErr = FALSE,
+                                    BOOLEAN ignoreNonExist = FALSE ) ;
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     vector< UINT32 > &groups,
-                                    BOOLEAN ignoreErr = FALSE ) ;
+                                    BOOLEAN ignoreErr = FALSE,
+                                    BOOLEAN ignoreNonExist = FALSE ) ;
+         INT32       makeGroupsObj( BSONObjBuilder &builder,
+                                    const CAT_GROUP_SET &groups,
+                                    BOOLEAN ignoreErr = FALSE,
+                                    BOOLEAN ignoreNonExist = FALSE ) ;
 
          INT16    majoritySize( BOOLEAN needWaitSync = FALSE ) ;
          INT32    primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,
@@ -126,6 +134,7 @@ namespace engine
          BOOLEAN  isDCActivated() const { return _catDCMgr.isDCActivated() ; }
          BOOLEAN  isImageEnabled() const { return _catDCMgr.isImageEnabled() ; }
          BOOLEAN  isDCReadonly() const { return _catDCMgr.isDCReadonly() ; }
+         BOOLEAN  isActived() const { return _isActived ; }
 
          UINT32   setTimer( UINT32 milliSec ) ;
          void     killTimer( UINT32 timerID ) ;
@@ -163,12 +172,18 @@ namespace engine
             return &_levelLockMgr ;
          }
 
+         catRecycleBinManager *getRecycleBinMgr()
+         {
+            return &_recycleBinMgr ;
+         }
+
          void regEventHandler ( _catEventHandler *pHandler ) ;
          void unregEventHandler ( _catEventHandler *pHandler ) ;
 
          INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
          INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
          INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
+         INT32 checkUpgrade() ;
 
          INT32 sendReply ( const NET_HANDLE &handle,
                            MsgOpReply *pReply,
@@ -186,6 +201,15 @@ namespace engine
 
          // callback on create group, remove group, create node or remove node
          void     onGroupChange() ;
+
+         void setNeedForceSecondary( BOOLEAN needForce )
+         {
+            _needForceSecondary = needForce ;
+         }
+
+      protected:
+         INT32 _onUpgrade( UINT32 beginVersion ) ;
+         INT32 _onDowngrade( UINT32 beginVersion ) ;
 
       private:
          _netRouteAgent       *_pNetWork ;
@@ -206,9 +230,11 @@ namespace engine
          catGTSManager        _catGTSMgr ;
          catDCManager         _catDCMgr ;
          catLevelLockMgr      _levelLockMgr ;
+         catRecycleBinManager _recycleBinMgr ;
 
          MsgRouteID           _primaryID ;
          BOOLEAN              _isActived ;
+         BOOLEAN              _needForceSecondary ;
 
          VEC_EVENT_HANDLER    _vecEventHandler ;
 

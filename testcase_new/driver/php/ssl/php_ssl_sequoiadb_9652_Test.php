@@ -16,11 +16,27 @@ class sslTest965202 extends PHPUnit_Framework_TestCase
    public static function setUpBeforeClass()
    {
       $address = globalParameter::getHostName().':'.globalParameter::getCoordPort();
+
+      // don't use SSL
       self::$db = new Sequoiadb();
-      $err = self::$db -> connect($address, '', '', true);
+      $err = self::$db -> connect($address, '', '', false);
       if ( $err['errno'] != 0 )
       {
          throw new Exception("failed to connect db, errno=".$err['errno']);
+      }
+      // enable SSL
+      $err = self::$db -> updateConfig( array('usessl' => true) );
+      if ( $err['errno'] != 0 )
+      {
+          throw new Exception("failed to enable SSL using updateConfig, errno=".$err['errno']);
+      }
+      self::$db -> close();
+
+      // use SSL
+      $err = self::$db -> connect($address, '', '', true);
+      if ( $err['errno'] != 0 )
+      {
+         throw new Exception("failed to connect db using SSL, errno=".$err['errno']);
       }
    }
 
@@ -29,23 +45,24 @@ class sslTest965202 extends PHPUnit_Framework_TestCase
       // create cs
       self::$db -> createCS( self::$csName, null );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );
-      
+
       // get cs
       $csDB = self::$db -> getCS( self::$csName );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );
-      
+
       // create cl
       $csDB -> createCL( self::$clName, null );
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );
-      
+
       // drop cs
       self::$db -> dropCS( self::$csName );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );      
+      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
    }
-   
+
    public static function tearDownAfterClass()
    {
       $err = self::$db->close();
    }
+
 };
 ?>

@@ -19,10 +19,13 @@ package com.sequoiadb.message.response;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
+import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.message.SysInfoHeader;
+import com.sequoiadb.util.Helper;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 /**
  * @since 2.9
@@ -30,7 +33,18 @@ import java.nio.ByteOrder;
 public class SysInfoResponse extends SysInfoHeader implements Response {
     private static final int LENGTH = 128;
     private int osType;
+    private int authVersion;
+    private long dbStartTime;
+    private byte version;
+    private byte subVersion;
+    private byte fixVersion;
+    private byte pad[] = new byte[93];
+    // Fingerprint of the reply message. Actually part of the md5 value.
+    private byte fingerprint[] = new byte[4];
+
+
     private ByteOrder byteOrder;
+    private SdbProtocolVersion peerProtocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
 
     @Override
     public int length() {
@@ -50,8 +64,12 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
         return byteOrder;
     }
 
+    public SdbProtocolVersion getPeerProtocolVersion() {
+        return peerProtocolVersion;
+    }
+
     @Override
-    public void decode(ByteBuffer in) {
+    public void decode(ByteBuffer in, SdbProtocolVersion protocolVersion) {
         // Java platform is BIG_ENDIAN
         in.order(ByteOrder.BIG_ENDIAN);
         specialSysInfoLen = in.getInt();
@@ -65,6 +83,24 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
         }
         in.order(byteOrder);
         realMsgLen = in.getInt();
+
         osType = in.getInt();
+        authVersion = in.getInt();
+        dbStartTime = in.getLong();
+        version = in.get();
+        subVersion = in.get();
+        fixVersion = in.get();
+        for ( int i = 0; i < pad.length; i++ ){
+            pad[i] = in.get();
+        }
+        for ( int i = 0; i < fingerprint.length; i++ ){
+            fingerprint[i] = in.get();
+        }
+
+        in.rewind();
+        in.limit( realMsgLen - 4 );
+        byte[] actualMD5 = Helper.genMD5( in, 4 );
+        peerProtocolVersion = Arrays.equals( actualMD5, fingerprint ) ?
+                SdbProtocolVersion.SDB_PROTOCOL_VERSION_V2 : SdbProtocolVersion.SDB_PROTOCOL_VERSION_V1;
     }
 }

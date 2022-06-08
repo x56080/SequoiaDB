@@ -432,6 +432,10 @@ namespace engine
 
       if ( isGlobTrans )
       {
+         PD_CHECK( DPS_INVALID_TRANSID_NODEID != _TransIDH16,
+                   SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                   "Failed to allocate global transaction ID, "
+                   "node ID is invalid" ) ;
          // global transaction by global logical time
          stpLogicalTimeUS transTime ;
          rc = getGlobTransTime( transTime, (INT32)timeout ) ;
@@ -483,7 +487,8 @@ namespace engine
                                           const dpsTransBackInfo &recTransInfo,
                                           const DPS_TRANS_ID &transID,
                                           const stpLogicalTimeUS &transBeginTime,
-                                          BOOLEAN &visible )
+                                          BOOLEAN &visible,
+                                          stpLogicalTimeUS &visibleTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -555,9 +560,41 @@ namespace engine
                    dpsTransIDToString( recTransID ).c_str(),
                    dpsTransStatusToString( recTransInfo._status ) ) ;
 
-      // NOTE:
-      // no need to wait for commit if visible is TRUE, the caller should
-      // wait for transaction lock release instead
+      // we use test lock for RR now, so if return visible, we need
+      // to wait the record transaction commit
+      if ( visible )
+      {
+         BOOLEAN committed = FALSE ;
+         BOOLEAN multiGroups = FALSE ;
+         stpLogicalTimeUS commitTime ;
+         // the current transaction have a chance to see this record
+         // but first we need to wait commit
+         rc = _gtsAgent->waitArbitCommit( eduCB,
+                                          recTransID,
+                                          eduCB->getTransTimeout(),
+                                          committed,
+                                          multiGroups,
+                                          commitTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
+                      "commit, rc: %d",
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
+
+         if ( !committed )
+         {
+            // the arbit result is visible, it must be committed in other
+            // nodes
+            SDB_ASSERT( FALSE, "should not be uncommitted" ) ;
+            // failed to wait commit, record transaction is rollback,
+            // the record should not be seen now
+            PD_LOG( PDWARNING, "Failed to wait transaction [%s] "
+                    "to be committed, it is rollbacked",
+                    dpsTransIDToString( recTransID ).c_str() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         visibleTime = commitTime ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB__ISGLOBDOINGVISIBLE, rc ) ;
@@ -574,7 +611,8 @@ namespace engine
                                        const dpsTransBackInfo &recTransInfo,
                                        const DPS_TRANS_ID &transID,
                                        const stpLogicalTimeUS &transBeginTime,
-                                       BOOLEAN &visible )
+                                       BOOLEAN &visible,
+                                       stpLogicalTimeUS &visibleTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -623,6 +661,8 @@ namespace engine
          goto done ;
       }
 
+      visibleTime = commitTime ;
+
       // record transaction committed after current transaction
       // the record should not be seen
       if ( transBeginTime <= recTransInfo._preCommitTime )
@@ -662,7 +702,8 @@ namespace engine
                                      const DPS_TRANS_ID &recTransID,
                                      const DPS_TRANS_ID &transID,
                                      const stpLogicalTimeUS &transBeginTime,
-                                     BOOLEAN &visible )
+                                     BOOLEAN &visible,
+                                     stpLogicalTimeUS &visibleTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -763,7 +804,8 @@ namespace engine
          case DPS_TRANS_DOING :
          {
             rc = _isGlobDoingVisible( eduCB, recTransID, recTransInfo,
-                                      transID, transBeginTime, visible ) ;
+                                      transID, transBeginTime, visible,
+                                      visibleTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check visible for "
                          "transaction [%s] against doing transaction [%s], "
                          "rc: %d", dpsTransIDToString( transID ).c_str(),
@@ -773,7 +815,8 @@ namespace engine
          case DPS_TRANS_WAIT_COMMIT :
          {
             rc = _isGlobWaitCommitVisible( eduCB, recTransID, recTransInfo,
-                                           transID, transBeginTime, visible ) ;
+                                           transID, transBeginTime, visible,
+                                           visibleTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check visible for "
                          "transaction [%s] against wait-commit "
                          "transaction [%s], rc: %d",
@@ -795,6 +838,7 @@ namespace engine
             {
                visible = TRUE ;
             }
+            visibleTime = recTransInfo._commitTime ;
             break ;
          }
          case DPS_TRANS_ROLLBACK :
@@ -852,7 +896,8 @@ namespace engine
                                       const DPS_TRANS_ID &recTransID,
                                       const DPS_TRANS_ID &transID,
                                       const stpLogicalTimeUS &transBeginTime,
-                                      BOOLEAN &visible )
+                                      BOOLEAN &visible,
+                                      stpLogicalTimeUS &visibleTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -952,6 +997,10 @@ namespace engine
                {
                   visible = TRUE ;
                }
+               else if ( committed )
+               {
+                  visibleTime = commitTime ;
+               }
             }
 
             break ;
@@ -967,6 +1016,7 @@ namespace engine
             {
                visible = TRUE ;
             }
+            visibleTime = recTransInfo._commitTime ;
             break ;
          }
          case DPS_TRANS_ROLLBACK :
@@ -1019,7 +1069,8 @@ namespace engine
                                        const stpLogicalTimeUS &transBeginTime,
                                        INT32 isolation,
                                        BOOLEAN strictIsolation,
-                                       BOOLEAN &visible )
+                                       BOOLEAN &visible,
+                                       stpLogicalTimeUS *pVisibleTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -1028,6 +1079,7 @@ namespace engine
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
       DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
+      stpLogicalTimeUS visibleTime( DPS_MAX_TRANS_TIME, STP_MAX_TIME_ERROR ) ;
 
       if ( TRANS_ISOLATION_RR != isolation )
       {
@@ -1082,7 +1134,7 @@ namespace engine
          // from different node, check visible in global cluster with
          // time error
          rc = _isGlobVisible( eduCB, recTransID, transID, transBeginTime,
-                              visible ) ;
+                              visible, visibleTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check global visible for "
                       "transaction [%s] against record transaction [%s], "
                       "rc: %d", dpsTransIDToString( transID ).c_str(),
@@ -1094,11 +1146,16 @@ namespace engine
          // check visible in this node
          // NOTE: we could check visible without time error
          rc = _isLocalVisible( eduCB, recTransID, transID, transBeginTime,
-                               visible ) ;
+                               visible, visibleTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check local visible for "
                       "transaction [%s] against record transaction [%s], "
                       "rc: %d", dpsTransIDToString( transID ).c_str(),
                       dpsTransIDToString( recTransID ).c_str(), rc ) ;
+      }
+
+      if ( NULL != pVisibleTime )
+      {
+         *pVisibleTime = visibleTime ;
       }
 
 #if defined (_DEBUG)
@@ -3720,6 +3777,22 @@ namespace engine
 
       return transLockTryS( eduCB, logicCSID, collectionID, recordID,
                             pdpsTxResInfo, callback ) ;
+   }
+
+   BOOLEAN dpsTransCB::transLockKillWaiters( UINT32 logicCSID,
+                                             UINT16 collectionID,
+                                             const dmsRecordID *recordID,
+                                             INT32 errorCode )
+   {
+      BOOLEAN killed = FALSE ;
+
+      if ( _isOn )
+      {
+         dpsTransLockId lockID( logicCSID, collectionID, recordID ) ;
+         killed = _transLockMgr->killWaiters( lockID, errorCode ) ;
+      }
+
+      return killed ;
    }
 
    BOOLEAN dpsTransCB::transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,

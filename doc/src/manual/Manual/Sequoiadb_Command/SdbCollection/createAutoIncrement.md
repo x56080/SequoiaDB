@@ -4,7 +4,7 @@ createAutoIncrement - 创建自增字段
 
 ##语法##
 
-**db.collectionspace.collection.createAutoIncrement\(\<option|options\>\)**
+**db.collectionspace.collection.createAutoIncrement(\<option|options\>)**
 
 ##类别##
 
@@ -16,9 +16,9 @@ SdbCollection
 
 ##参数##
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
+| 参数名 | 类型 | 描述 | 是否必填 |
 | ------ | -------- | ---- | -------- |
-| option&#124;options | Json 对象 | 自增字段参数。option 是一个字段的参数，options 是多个字段的参数。 | 是 |
+| option&#124;options | object/array | 自增字段参数。option 是一个字段的参数，options 是多个字段的参数。 | 是 |
 
 option中的具体参数请参见[自增字段属性](manual/Distributed_Engine/Architecture/Data_Model/sequence.md)
 

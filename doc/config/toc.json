@@ -132,12 +132,6 @@
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
-                              },
-                              {
-                                 "id": 1572505575,
-                                 "file": "ha",
-                                 "cn": "元数据同步工具",
-                                 "en": "High Availability"
                               }
                            ]
                         },
@@ -196,6 +190,18 @@
                                  "file": "sdb_mysql_ctl",
                                  "cn": "实例管理",
                                  "en": "Instance management tool"
+                              },
+                              {
+                                 "id": 1648718137,
+                                 "file": "metadata_mapping_management",
+                                 "cn": "元数据映射",
+                                 "en": "Metadata mapping management tool"
+                              },
+                              {
+                                 "id": 1572505575,
+                                 "file": "audit_log",
+                                 "cn": "审计日志",
+                                 "en": "Audit Log"
                               },
                               {
                                  "id": 1556198260,
@@ -281,12 +287,6 @@
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
-                              },
-                              {
-                                 "id": 1972505575,
-                                 "file": "ha",
-                                 "cn": "元数据同步工具",
-                                 "en": "High Availability"
                               }
                            ]
                         },
@@ -351,6 +351,18 @@
                                  "file": "sdb_maria_ctl",
                                  "cn": "实例管理",
                                  "en": "Instance management tool"
+                              },
+                              {
+                                 "id": 1648718184,
+                                 "file": "metadata_mapping_management",
+                                 "cn": "元数据映射",
+                                 "en": "Metadata mapping management tool"
+                              },
+                              {
+                                 "id": 1972505575,
+                                 "file": "audit_log",
+                                 "cn": "审计日志",
+                                 "en": "Audit Log"
                               },
                               {
                                  "id": 1575355422,
@@ -549,6 +561,47 @@
                             "file": "data_type",
                             "cn": "数据类型映射表",
                             "en": "Data Type"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1641263173,
+                     "dir": "FlinkSQL_Connector",
+                     "cn": "FlinkSQL 连接器",
+                     "en": "FlinkSQL Connector",
+                     "top": true,
+                     "contents": [
+                        {
+                            "id": 1641263180,
+                            "file": "setup",
+                            "cn": "安装部署",
+                            "en": "Installation and Deployment"
+                        },
+                        {
+                           "id": 1641263185,
+                           "dir": "Operation",
+                           "cn": "操作",
+                           "en": "Operation",
+                           "contents": [
+                              {
+                                 "id": 1641263190,
+                                 "file": "connection",
+                                 "cn": "连接",
+                                 "en": "Connection"
+                              },
+                              {
+                                 "id": 1641263195,
+                                 "file": "usage",
+                                 "cn": "使用",
+                                 "en": "usage"  
+                              }
+                           ]
+                        },
+                        {
+                            "id": 1641263213,
+                            "file": "data_type",
+                            "cn": "数据类型映射表",
+                            "en": "Data Type Convert table"
                         }
                      ]
                   }
@@ -885,26 +938,26 @@
                              {
                                 "id": 1606703906,
                                 "file": "engine_download",
-                                "cn": "S3驱动下载",
+                                "cn": "下载 S3 开发工具包",
                                 "en": "S3 Engine Download"
-                             },
-                             {
-                                "id": 1606703915,
-                                "file": "connection",
-                                "cn": "通过s3cmd进行连接",
-                                "en": "Connection"
                              },
                              {
                                 "id": 1606703922,
                                 "file": "java_sample",
-                                "cn": "Java程序样例",
+                                "cn": "Java 程序样例",
                                 "en": "Java Sample"
                              },
                              {
                                 "id": 1606703928,
                                 "file": "C++_sample",
-                                "cn": "C++程序样例",
+                                "cn": "C++ 程序样例",
                                 "en": "C++ Sample"
+                             },
+                             {
+                                "id": 1606703915,
+                                "file": "connection",
+                                "cn": "通过 s3cmd 进行连接",
+                                "en": "Connection"
                              }
                           ]
                        }
@@ -996,6 +1049,12 @@
                            "en": "Primary Secondary Consistency"
                         },
                         {
+                           "id": 1599727239,
+                           "file": "replica_set",
+                           "cn": "复制组熔断",
+                           "en": "Circuit Breaker"
+                        },
+                        {
                            "id": 1600677192,
                            "file": "monitoring",
                            "cn": "复制组监控",
@@ -1082,6 +1141,12 @@
                            "file": "isolation",
                            "cn": "隔离级别",
                            "en": "Isolation"
+                        },
+                        {
+                           "id": 1642131218,
+                           "file": "transaction_optimization",
+                           "cn": "大事务优化",
+                           "en": "Transaction Optimization"
                         },
                         {
                            "id": 1600139505,
@@ -1269,6 +1334,12 @@
                      "file": "collection_operation",
                      "cn": "集合操作",
                      "en": "Collection Operation"
+                  },
+                  {
+                     "id": 1617245375,
+                     "file": "build_datasource",
+                     "cn": "搭建数据源",
+                     "en": "Build DataSource"
                   }
                ]
             },
@@ -1358,7 +1429,7 @@
                       {
                         "id": 1432191411,
                         "dir": "Special_Configuration_Modify",
-                        "cn": "特殊配置项修改",
+                        "cn": "特殊参数配置",
                         "en": "Special Configuration Modify",
                         "contents": [
                             {
@@ -1572,6 +1643,12 @@
                            "file": "upgrade_index",
                            "cn": "索引升级工具",
                            "en": "Upgrade Index Tool"
+                        },
+                        {
+                           "id": 1599730477,
+                           "file": "sdbsecuretool",
+                           "cn": "数据安全处理工具",
+                           "en": "Secure Tool"
                         }
                      ]
                   },
@@ -1672,12 +1749,6 @@
                      ]
                   },
                   {
-                     "id": 1617245375,
-                     "file": "build_datasource",
-                     "cn": "搭建数据源",
-                     "en": "Build DataSource"
-                  },
-                  {
                      "id": 1432190663,
                      "dir": "Backup_Recovery",
                      "cn": "备份恢复",
@@ -1754,6 +1825,12 @@
                      "en": "Deadlock detection"
                   },
                   {
+                     "id": 1640749000,
+                     "file": "recycle_bin",
+                     "cn": "回收站",
+                     "en": "Recycle Bin"
+                  },
+                  {
                      "id": 1610960736,
                      "file": "hot_spare",
                      "cn": "热备节点",
@@ -1814,26 +1891,6 @@
                            "file": "analyze",
                            "cn": "trace分析方法",
                            "en": "trace analysis"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1599727016,
-                     "dir": "CircuitBreaker",
-                     "cn": "熔断机制",
-                     "en": "Circuit Breaker",
-                     "contents": [
-                        {
-                           "id": 1599727157,
-                           "file": "connection_pool",
-                           "cn": "连接池熔断机制",
-                           "en": "Connection Pool"
-                        },
-                        {
-                           "id": 1599727239,
-                           "file": "replica_set",
-                           "cn": "复制组熔断机制",
-                           "en": "Replication"
                         }
                      ]
                   },
@@ -2732,6 +2789,12 @@
                            "en": "getDomain()"
                         },
                         {
+                           "id": 1610377718,
+                           "file": "getRecycleBin",
+                           "cn": "getRecycleBin()",
+                           "en": "getRecycleBin()"
+                        },
+                        {
                            "id": 1432190791,
                            "file": "getRG",
                            "cn": "getRG()",
@@ -2826,12 +2889,6 @@
                            "file": "listTasks",
                            "cn": "listTasks()",
                            "en": "listTasks()"
-                        },
-                        {
-                           "id": 1563243400,
-                           "file": "loadCS",
-                           "cn": "loadCS()",
-                           "en": "loadCS()"
                         },
                         {
                            "id": 1432190801,
@@ -3000,12 +3057,6 @@
                            "file": "transRollback",
                            "cn": "transRollback()",
                            "en": "transRollback()"
-                        },
-                        {
-                           "id": 1563243401,
-                           "file": "unloadCS",
-                           "cn": "unloadCS()",
-                           "en": "unloadCS()"
                         },
                         {
                            "id": 1521424274,
@@ -3676,6 +3727,86 @@
                            "file": "alter",
                            "cn": "alter()",
                            "en": "alter()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1642123100,
+                     "dir": "SdbRecycleBin",
+                     "cn": "SdbRecycleBin",
+                     "en": "SdbRecycleBin",
+                     "contents": [
+                        {
+                           "id": 1642123101,
+                           "file": "alter",
+                           "cn": "alter()",
+                           "en": "alter()"
+                        },
+                        {
+                           "id": 1642123102,
+                           "file": "count",
+                           "cn": "count()",
+                           "en": "count()"
+                        },
+                        {
+                           "id": 1642123103,
+                           "file": "disable",
+                           "cn": "disable()",
+                           "en": "disable()"
+                        },
+                        {
+                           "id": 1642123104,
+                           "file": "dropAll",
+                           "cn": "dropAll()",
+                           "en": "dropAll()"
+                        },
+                        {
+                           "id": 1642123105,
+                           "file": "dropItem",
+                           "cn": "dropItem()",
+                           "en": "dropItem()"
+                        },
+                        {
+                           "id": 1642123106,
+                           "file": "enable",
+                           "cn": "enable()",
+                           "en": "enable()"
+                        },
+                        {
+                           "id": 1642123107,
+                           "file": "getDetail",
+                           "cn": "getDetail()",
+                           "en": "getDetail()"
+                        },
+                        {
+                           "id": 1642123108,
+                           "file": "list",
+                           "cn": "list()",
+                           "en": "list()"
+                        },
+                        {
+                           "id": 1642123109,
+                           "file": "returnItem",
+                           "cn": "returnItem()",
+                           "en": "returnItem()"
+                        },
+                        {
+                           "id": 1642123110,
+                           "file": "returnItemToName",
+                           "cn": "returnItemToName()",
+                           "en": "returnItemToName()"
+                        },
+                        {
+                           "id": 1642123111,
+                           "file": "setAttributes",
+                           "cn": "setAttributes()",
+                           "en": "setAttributes()"
+                        },
+                        {
+                           "id": 1642123112,
+                           "file": "snapshot",
+                           "cn": "snapshot()",
+                           "en": "snapshot()"
                         }
                      ]
                   },
@@ -5842,6 +5973,12 @@
                            "en": "$SNAPSHOT_TRANSDEADLOCK"
                         },
                         {
+                           "id": 1631086817,
+                           "file": "SNAPSHOT_RECYCLEBIN",
+                           "cn": "$SNAPSHOT_RECYCLEBIN",
+                           "en": "$SNAPSHOT_RECYCLEBIN"
+                        },
+                        {
                            "id": 1559282949,
                            "file": "LIST_CONTEXT",
                            "cn": "$LIST_CONTEXT",
@@ -5930,6 +6067,12 @@
                            "file": "LIST_DATASOURCE",
                            "cn": "$LIST_DATASOURCE",
                            "en": "$LIST_DATASOURCE"
+                        },
+                        {
+                           "id": 1611220899,
+                           "file": "LIST_RECYCLEBIN",
+                           "cn": "$LIST_RECYCLEBIN",
+                           "en": "$LIST_RECYCLEBIN"
                         }
                      ]
                   },
@@ -6164,6 +6307,12 @@
                      "file": "SDB_SNAP_TRANSDEADLOCK",
                      "cn": "事务死锁检测快照",
                      "en": "SDB_SNAP_TRANSDEADLOCK"
+                  },
+                  {
+                     "id": 1631066570,
+                     "file": "SDB_SNAP_RECYCLEBIN",
+                     "cn": "回收站项目快照",
+                     "en": "SDB_SNAP_RECYCLEBIN"
                   }
                ]
             },
@@ -6222,6 +6371,12 @@
                      "en": "SDB_LIST_GROUPS"
                   },
                   {
+                     "id": 1641976146,
+                     "file": "SDB_LIST_TASKS",
+                     "cn": "后台任务列表",
+                     "en": "SDB_LIST_TASKS"
+                  },
+                  {
                      "id": 1501230617,
                      "file": "SDB_LIST_TRANSACTIONS",
                      "cn": "事务列表",
@@ -6262,6 +6417,12 @@
                      "file": "SDB_LIST_DATASOURCES",
                      "cn": "数据源列表",
                      "en": "SDB_LIST_DATASOURCES"
+                  },
+                  {
+                     "id": 1611158408,
+                     "file": "SDB_LIST_RECYCLEBIN",
+                     "cn": "回收站项目列表",
+                     "en": "SDB_LIST_RECYCLEBIN"
                   }
                ]
             },

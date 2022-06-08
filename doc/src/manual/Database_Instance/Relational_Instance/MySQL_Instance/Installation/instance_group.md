@@ -55,9 +55,9 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
    输出结果如下：
 
    ```lang-text
-   InstanceGroupName    InstanceID    HostName     SvcName  DBType      
-   mysql                129135        sdbserver    3306     mysql
-   mysql                129136        sdbserver    3307     mysql
+   InstanceGroupName    InstanceID    HostName     SvcName  DBType    DataGroup
+   mysql                129135        sdbserver    3306     mysql     -
+   mysql                129136        sdbserver    3307     mysql     -
    ```
 
 5. 使用 mysql 命令连接到 myinst_01 实例
@@ -196,7 +196,7 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
 
 ##实例组管理##
 
-实例组管理工具包括实例组初始化工具、实例组配置查看工具和实例组配置清除工具。运行上述工具时，应使用数据库管理用户（安装 MySQL 实例组件时指定，默认为 sdbadmin）权限。
+实例组管理工具包括初始化工具、配置查看工具、配置清除工具和密码修改工具。运行上述工具时，应使用数据库管理用户（安装 MySQL 实例组件时指定，默认为 sdbadmin）权限。
 
 ###初始化工具###
 
@@ -212,7 +212,8 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
    | --key | 实例组用户密码密钥 | 否 |
    | -t, --token | 指定解密 SequoiaDB 用户密码令牌 | 否 |
    | --file | 指定 SequoiaDB 用户密码文件 | 否 |
-   | --verbose | 输出实例组用户名及密码 | 否 |
+   | --data-group | 指定 SequoiaDB 复制组，该复制组用于存储实例组中的数据 | 否 |
+   | --verbose | 输出工具的日志信息 | 否 |
    | -?, --help | 返回详细的帮助说明 | 否 |
    | --usage | 返回简要的帮助说明 | 否 |
 
@@ -220,9 +221,9 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
 
    ```lang-text
    ha_inst_group_init [-?] [-u USER] [-p[PASSWORD]] [-t TOKEN]
-              [--host=HOST] [--user=USER] [--password[=PASSWORD]] [--key=KEY]
-              [--token=TOKEN] [--file=FILE] [--verbose] [--help] [--usage]
-              inst_group_name
+            [--host=HOST] [--user=USER] [--password[=PASSWORD]] [--key=KEY]
+            [--token=TOKEN] [--file=FILE] [--verbose] [--data-group=NAME]
+            [--help] [--usage] inst_group_name
    ```
  
    初始化一个名为“sql_group”的实例组
@@ -245,7 +246,6 @@ ha_inst_group_list 工具用于查看 SQL 实例的配置信息，包括实例�
    | -p, --password | 连接 SequoiaDB 集群用户的密码 | 否 |
    | -t, --token | 指定解密 SequoiaDB 用户密码令牌 | 否 |
    | --file | 指定 SequoiaDB 用户密码文件 | 否 |
-   | --data-group | 指定 SequoiaDB 复制组，该复制组用于存储实例组中的数据 | 否 |
    | -?, --help | 返回详细的帮助说明 | 否 |
    | --usage | 返回简要的帮助说明 | 否 |
 
@@ -267,13 +267,13 @@ ha_inst_group_list 工具用于查看 SQL 实例的配置信息，包括实例�
      输出示例结果如下：
     
      ```lang-text
-     InstanceGroupName    InstanceID    HostName     SvcName  DBType      
-     group1               129147        sdbserver    3309     mariadb
-     group1               129148        sdbserver    3310     mariadb
-     group2               129135        sdbserver    3306     mysql
-     group2               129136        sdbserver    3307     mysql
-     group3               129149        sdbserver    3330     mysql
-     group3               129150        sdbserver    3331     mysql
+     InstanceGroupName    InstanceID    HostName     SvcName  DBType    DataGroup
+     group1               129147        sdbserver    3309     mariadb   -
+     group1               129148        sdbserver    3310     mariadb   -
+     group2               129135        sdbserver    3306     mysql     -
+     group2               129136        sdbserver    3307     mysql     -
+     group3               129149        sdbserver    3330     mysql     -
+     group3               129150        sdbserver    3331     mysql     -
      ```
  
    * 查看实例组 group2 中所有实例的配置信息
@@ -285,9 +285,9 @@ ha_inst_group_list 工具用于查看 SQL 实例的配置信息，包括实例�
      输出结果如下：
      
      ```lang-text
-     InstanceGroupName    InstanceID    HostName     SvcName  DBType      
-     group2               129135        sdbserver    3306     mysql
-     group2               129136        sdbserver    3307     mysql
+     InstanceGroupName    InstanceID    HostName     SvcName  DBType    DataGroup
+     group2               129135        sdbserver    3306     mysql     -
+     group2               129136        sdbserver    3307     mysql     -
      ```
  
 ###配置清除工具###
@@ -341,11 +341,11 @@ ha_inst_group_clear 工具用于清除实例组或者实例的配置信息。
      输出结果如下：
      
      ```lang-text
-     InstanceGroupName    InstanceID    HostName     SvcName  DBType      
-     group2               129135        sdbserver    3306     mysql
-     group2               129136        sdbserver    3307     mysql
-     group3               129149        sdbserver    3330     mysql
-     group3               129150        sdbserver    3331     mysql
+     InstanceGroupName    InstanceID    HostName     SvcName  DBType    DataGroup
+     group2               129135        sdbserver    3306     mysql     -
+     group2               129136        sdbserver    3307     mysql     -
+     group3               129149        sdbserver    3330     mysql     -
+     group3               129150        sdbserver    3331     mysql     -
      ```
  
    * 清除实例组 group2 中服务端口为 3306 的实例配置
@@ -370,17 +370,70 @@ ha_inst_group_clear 工具用于清除实例组或者实例的配置信息。
      输出结果如下：
     
      ```lang-text
-     InstanceGroupName    InstanceID    HostName     SvcName  DBType      
-     group2               129136        sdbserver    3307     mysql
-     group3               129149        sdbserver    3330     mysql
-     group3               129150        sdbserver    3331     mysql
+     InstanceGroupName    InstanceID    HostName     SvcName  DBType    DataGroup
+     group2               129136        sdbserver    3307     mysql     -
+     group3               129149        sdbserver    3330     mysql     -
+     group3               129150        sdbserver    3331     mysql     -
      ```
 
 > **Note：**
 >
 > 清除实例组或实例配置并不会删除实例，删除实例需要用户手动使用 sdb_mysql_ctl 命令完成。
  
+###密码修改工具###
 
+ha_inst_group_chpass 工具用于修改配置表中的密码信息。实例组初始化后，会自动生成实例组用户信息并写入配置表。如果该用户的密码被修改，需使用 ha_inst_group_chpass 工具同步配置表中的信息，否则实例组将无法添加新的实例。
+
+- **参数说明**
+
+   | 参数 | 描述 | 是否必填 |
+   | ---- | ---- | -------- |
+   | --host | SequoiaDB 集群协调节点服务地址 | 否 |
+   | -u, --user | 连接 SequoiaDB 集群用户的用户名 | 否 |
+   | -p, --password | 连接 SequoiaDB 集群用户的密码 | 否 |
+   | -s, --new_pass | 实例组用户密码 | 否 |
+   | --key | 实例组用户密码密钥 | 否 |
+   | -t, --token | 指定解密 SequoiaDB 用户密码令牌 | 否 |
+   | --file | 指定 SequoiaDB 用户密码文件 | 否 |
+   | --verbose | 输出工具的日志信息 | 否 |
+   | -?, --help | 返回详细的帮助说明 | 否 |
+   | --usage | 返回简要的帮助说明 | 否 |
+
+- **使用说明**
+
+   ```lang-text
+   ha_inst_group_chpass [-?] [-u USER] [-p [PASSWORD]] [-s [PASSWORD]] [-t TOKEN]
+              [--host=HOST] [--user=USER] [--password[=PASSWORD]] [--new_pass=[PASSWORD]] [--key=KEY]
+              [--token=TOKEN] [--file=FILE] [--verbose] [--help] [--usage]
+              inst_group_name
+   ```
+
+   1. 连接实例 inst1，该实例所属实例组 sql_group
+
+     ```lang-bash
+     $ mysql --socket=/opt/sequoiasql/mysql/database/3206/mysqld.sock -u root
+     ```
+
+   2. 修改实例组用户密码
+
+     ```lang-sql
+     mysql> select user from mysql.user;
+     +----------------------------------+
+     | User                             |
+     +----------------------------------+
+     | HAInstanceGroup_sql_group_D6965A |
+     | root                             |
+     | sdbadmin                         |
+     +----------------------------------+
+     mysql> ALTER USER 'HAInstanceGroup_sql_group_D6965A'@'%' IDENTIFIED BY 'sdbadmin';
+     Query OK, 0 rows affected (0.01 sec)
+     ```
+
+   3. 同步配置表中的密码信息
+
+     ```lang-bash
+     $ ha_inst_group_chpass sql_group -s sdbadmin
+     ```
 
 [^_^]:
     本文使用到的所有连接及引用

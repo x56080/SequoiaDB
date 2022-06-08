@@ -98,6 +98,11 @@ namespace engine
          _coordBackupOffline() ;
          virtual ~_coordBackupOffline() ;
 
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+
       protected:
          virtual FILTER_BSON_ID  _getGroupMatherIndex () ;
          virtual NODE_SEL_STY    _nodeSelWhenNoFilter () ;
@@ -105,6 +110,10 @@ namespace engine
          virtual UINT32          _getMask() const ;
 
          virtual BOOLEAN         _interruptWhenFailed() const ;
+
+      private:
+         INT32 _parseGroupList( MsgHeader *pMsg, CoordGroupList &groupLst,
+                                pmdEDUCB *cb ) ;
    } ;
    typedef _coordBackupOffline coordBackupOffline ;
 

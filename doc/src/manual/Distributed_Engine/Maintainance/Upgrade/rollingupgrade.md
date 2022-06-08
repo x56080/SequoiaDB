@@ -24,8 +24,10 @@
 4. 选取下一个节点按照上述步骤完成升级，直至完成所有主机上的软件升级
 5. 按照离线升级中的[升级步骤][offlineupgrade]第 6 步完成索引升级
 
-> **Note:**  
-> 滚动升级过程中，禁止执行创建索引、删除索引、同步索引、创建集合、修改集合属性等 DML 操作。
+> **Note:**
+>
+> 在用户将 SequoiaDB 由低版本滚动升级至 v3.6/5.0.3 及以上版本的过程中，禁止执行 [createIndex][createIndex]、[dropIndex][dropIndex]、[copyIndex][copyIndex] 和 [split][split] 操作。
+
 
 [^_^]:
     本文中用到的所有链接
@@ -33,3 +35,7 @@
 [compatible_list]:manual/Distributed_Engine/Maintainance/Upgrade/compatibility.md
 [reelect]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/reelect.md
 [offlineupgrade]:manual/Distributed_Engine/Maintainance/Upgrade/offline.md#升级
+[createIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
+[dropIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md
+[copyIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/copyIndex.md
+[split]:manual/Manual/Sequoiadb_Command/SdbCollection/split.md

@@ -358,6 +358,7 @@ INT32 clientBuildSysInfoRequest ( CHAR **ppBuffer, INT32 *pBufferSize ) ;
 
 INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
                                   INT32 *osType, INT32 *authVersion,
+                                  INT16 *peerProtocolVersion,
                                   UINT64 *dbStartTime,
                                   UINT8 *version, UINT8 *subVersion,
                                   UINT8 *fixVersion ) ;
@@ -414,6 +415,15 @@ INT32 clientReplicaGroupExtractNode ( const CHAR *data,
 
 INT32 clientSnprintf( CHAR* pBuffer, INT32 bufSize, const CHAR* pFormat, ... ) ;
 
+// For compatible communication with node which uses old version of protocol.
+void clientMsgHeaderUpgrade( const MsgHeaderV1 *msgHeader,
+                             MsgHeader *newMsgHeader ) ;
+
+void clientMsgHeaderDowngrade( const MsgHeader *msgHeader,
+                               MsgHeaderV1 *newMsgHeader ) ;
+
+void clientMsgReplyHeaderUpgrade( const MsgOpReplyV1 *replyHeader,
+                                  MsgOpReply *newReplyHeader ) ;
 
 SDB_EXTERN_C_END
 

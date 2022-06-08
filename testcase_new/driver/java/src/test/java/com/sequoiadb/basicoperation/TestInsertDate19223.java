@@ -86,11 +86,9 @@ public class TestInsertDate19223 extends SdbTestBase {
         }
     }
 
-    private void DateTest( String field, Date value ) {
-        Date expectDate = DateInterceptUtil.interceptDate( value,
-                "yyyy-MM-dd" );
+    private void DateTest( String field, Date expectDate ) {
         BSONObject bsonObject = new BasicBSONObject();
-        bsonObject.put( field, value );
+        bsonObject.put( field, expectDate );
         cl.insert( bsonObject );
         // 在sdbshell端手工验证匹配查询结果
         DBCursor cursor = cl.query( bsonObject, null, null, null );
@@ -99,10 +97,10 @@ public class TestInsertDate19223 extends SdbTestBase {
             BSONObject obj = cursor.getNext();
             Date actDate = ( Date ) obj.get( field );
             Assert.assertEquals( actDate, expectDate,
-                    "field = " + field + ", value = " + value );
+                    "field = " + field + ", expectDate = " + expectDate );
             count++;
         }
         Assert.assertEquals( count, 1,
-                "field = " + field + ", value = " + value );
+                "field = " + field + ", expectDate = " + expectDate );
     }
 }

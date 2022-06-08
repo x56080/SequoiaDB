@@ -2,7 +2,6 @@ package com.sequoiadb.fulltext.parallel;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.sequoiadb.exception.SDBError;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -10,6 +9,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.fulltext.utils.FullTextDBUtils;
 import com.sequoiadb.fulltext.utils.FullTextUtils;
 import com.sequoiadb.testcommon.FullTestBase;
@@ -123,7 +123,9 @@ public class Fulltext12116 extends FullTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_DMS_MAX_INDEX
                         .getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_CLS_MUTEX_TASK_EXIST
+                        && e.getErrorCode() != SDBError.SDB_IXM_CREATING
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_REDEF
                                 .getErrorCode() ) {
                     throw e;
                 }

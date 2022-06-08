@@ -28,15 +28,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AggregateRequest extends SdbRequest {
-    private static final int FIXED_LENGTH = 44;
+    private static final int FIXED_LENGTH = 72;
     private static final int version = 1;
     private static final short w = 0;
     private static final short padding = 0;
-    private static final int flag = 0;
+    private int flag = 0;
     private byte[] clNameBytes;
     private List<byte[]> objsBytes;
 
-    public AggregateRequest(String collectionName, List<BSONObject> objects) {
+    public AggregateRequest(String collectionName, List<BSONObject> objects, int flag) {
         opCode = MsgOpCode.AGGREGATE_REQ;
         length = FIXED_LENGTH;
 
@@ -61,6 +61,8 @@ public class AggregateRequest extends SdbRequest {
             objsBytes.add(objBytes);
             length += Helper.alignedSize(objBytes.length);
         }
+
+        this.flag = flag;
     }
 
     @Override

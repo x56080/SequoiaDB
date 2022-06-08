@@ -45,6 +45,10 @@
 #include "rtnQueryOptions.hpp"
 #include "rtnSessionProperty.hpp"
 #include "utilResult.hpp"
+#include "utilGlobalID.hpp"
+#include "utilRecycleBinConf.hpp"
+#include "utilRecycleItem.hpp"
+#include "utilRecycleReturnInfo.hpp"
 
 using namespace bson ;
 
@@ -97,8 +101,6 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) = 0 ;
-
-         virtual void setMainCLName ( const CHAR * mainCL ) {}
 
       protected:
          INT32             _fromService ;
@@ -537,6 +539,16 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_LIST_DATASOURCES ; }
    } ;
 
+   class _rtnGetRecycleBinDetail : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnGetRecycleBinDetail() {}
+      virtual ~_rtnGetRecycleBinDetail() {}
+      virtual const CHAR *name() { return NAME_GET_RECYCLEBIN_DETAIL ; }
+      virtual RTN_COMMAND_TYPE type() { return CMD_GET_RECYCLEBIN_DETAIL ; }
+   } ;
+
    class _rtnBackup : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -545,7 +557,7 @@ namespace engine
          _rtnBackup () ;
          virtual ~_rtnBackup () ;
 
-         virtual BOOLEAN      writable () { return TRUE ; }
+         virtual BOOLEAN      writable () { return FALSE ; }
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
@@ -626,13 +638,12 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
-
-      protected:
+     protected:
          const CHAR                 *_spaceName ;
          utilCSUniqueID             _csUniqueID ;
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
-         DMS_STORAGE_TYPE           _storageType ;    
+         DMS_STORAGE_TYPE           _storageType ;
    };
 
    class _rtnDropCollection : public _rtnCommand
@@ -656,9 +667,10 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
+
       protected:
          const CHAR           *_collectionName ;
-
+         utilRecycleItem      _recycleItem ;
    };
 
    class _rtnDropCollectionspace : public _rtnCommand
@@ -685,6 +697,7 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
       protected:
          const CHAR           *_spaceName ;
+         utilRecycleItem      _recycleItem ;
          BOOLEAN              _ensureEmpty ;
    };
 
@@ -808,6 +821,7 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
+
       protected:
          const CHAR           *_clShortName ;
          const CHAR           *_newCLShortName ;
@@ -1376,9 +1390,8 @@ namespace engine
    DECLARE_CMD_AUTO_REGISTER()
    public:
       _rtnTruncate()
-      :_fullName( NULL )
+      : _collectionName( NULL )
       {
-
       }
 
       virtual ~_rtnTruncate() {}
@@ -1393,7 +1406,7 @@ namespace engine
 
       virtual const CHAR * collectionFullName()
       {
-         return _fullName ;
+         return _collectionName ;
       }
 
       virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
@@ -1404,8 +1417,10 @@ namespace engine
       virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
+
    private:
-      const CHAR * _fullName ;
+      const CHAR * _collectionName ;
+      utilRecycleItem _recycleItem ;
    } ;
 
    class _rtnPop : public _rtnCommand
@@ -1732,6 +1747,239 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
          BOOLEAN _isOldRestorePoint() ;
    };
+
+   /*
+      _rtnCMDGetRecycleBinCount define
+    */
+   class _rtnCMDGetRecycleBinCount : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER() ;
+
+   public:
+      _rtnCMDGetRecycleBinCount() ;
+      virtual ~_rtnCMDGetRecycleBinCount() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      bson::BSONObj _queryObj ;
+   } ;
+
+   typedef class _rtnCMDGetRecycleBinCount rtnCMDGetRecycleBinCount ;
+
+   /*
+      _rtnCMDAlterRecycleBin define
+    */
+   class _rtnCMDAlterRecycleBin : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDAlterRecycleBin() ;
+      virtual ~_rtnCMDAlterRecycleBin() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+      virtual BOOLEAN writable()
+      {
+         // need primary node
+         return TRUE ;
+      }
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff )
+      {
+         // do nothing
+         return SDB_OK ;
+      }
+
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      utilRecycleBinConf _newConf ;
+   } ;
+
+   typedef class _rtnCMDAlterRecycleBin rtnCMDAlterRecycleBin ;
+
+   /*
+      _rtnCMDDropRecycleBinBase define
+    */
+   class _rtnCMDDropRecycleBinBase : public _rtnCommand
+   {
+   public:
+      _rtnCMDDropRecycleBinBase() ;
+      virtual ~_rtnCMDDropRecycleBinBase() ;
+
+      virtual BOOLEAN writable()
+      {
+         return TRUE ;
+      }
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const = 0 ;
+
+   protected:
+      BOOLEAN              _isAsync ;
+      const CHAR *         _recycleItemName ;
+   } ;
+
+   typedef class _rtnCMDDropRecycleBinBase rtnCMDDropRecycleBinBase ;
+
+   /*
+      _rtnCMDDropRecycleBinItem define
+    */
+   class _rtnCMDDropRecycleBinItem : public _rtnCMDDropRecycleBinBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDDropRecycleBinItem() ;
+      virtual ~_rtnCMDDropRecycleBinItem() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnCMDDropRecycleBinItem rtnCMDDropRecycleBinItem ;
+
+   /*
+      _rtnCMDDropRecycleBinAll define
+    */
+   class _rtnCMDDropRecycleBinAll : public _rtnCMDDropRecycleBinBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDDropRecycleBinAll() ;
+      virtual ~_rtnCMDDropRecycleBinAll() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+   protected:
+      virtual BOOLEAN _isDropAll() const
+      {
+         return TRUE ;
+      }
+   } ;
+
+   typedef class _rtnCMDDropRecycleBinAll rtnCMDDropRecycleBinAll ;
+
+   /*
+      _rtnCMDReturnRecycleBinBase define
+    */
+   class _rtnCMDReturnRecycleBinBase : public _rtnCommand
+   {
+   public:
+      _rtnCMDReturnRecycleBinBase() ;
+      virtual ~_rtnCMDReturnRecycleBinBase() ;
+
+      virtual BOOLEAN writable()
+      {
+         return TRUE ;
+      }
+
+      virtual INT32 init( INT32 flags,
+                          INT64 numToSkip,
+                          INT64 numToReturn,
+                          const CHAR *pMatcherBuff,
+                          const CHAR *pSelectBuff,
+                          const CHAR *pOrderByBuff,
+                          const CHAR *pHintBuff ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          _SDB_DMSCB *dmsCB,
+                          _SDB_RTNCB *rtnCB,
+                          _dpsLogWrapper *dpsCB,
+                          INT16 w = 1,
+                          INT64 *pContextID = NULL ) ;
+
+   protected:
+      utilRecycleItem         _recycleItem ;
+      utilRecycleReturnInfo   _returnInfo ;
+   } ;
+
+   typedef class _rtnCMDReturnRecycleBinBase rtnCMDReturnRecycleBinBase ;
+
+   /*
+      _rtnCMDReturnRecycleBinItem define
+    */
+   class _rtnCMDReturnRecycleBinItem : public _rtnCMDReturnRecycleBinBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDReturnRecycleBinItem() ;
+      virtual ~_rtnCMDReturnRecycleBinItem() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+   } ;
+
+   typedef class _rtnCMDReturnRecycleBinItem rtnCMDReturnRecycleBinItem ;
+
+   /*
+      _rtnCMDReturnRecycleBinItemToName define
+    */
+   class _rtnCMDReturnRecycleBinItemToName : public _rtnCMDReturnRecycleBinBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnCMDReturnRecycleBinItemToName() ;
+      virtual ~_rtnCMDReturnRecycleBinItemToName() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+   } ;
+
+   typedef class _rtnCMDReturnRecycleBinItemToName rtnCMDReturnRecycleBinItemToName ;
+
 }
 
 const UINT32 pdGetTraceFunctionListNum();

@@ -107,12 +107,46 @@ namespace engine
    #define PMD_DFT_ENABLE_MIX_CMP      (FALSE)
    #define PMD_DFT_PREFINST            ( PREFER_INSTANCE_MASTER_STR )
    #define PMD_DFT_PREFINST_MODE       ( PREFER_INSTANCE_RANDOM_STR )
+   #define PMD_DFT_PREF_CONSTRAINT     ("")
    #define PMD_DFT_INSTANCE_ID         ( NODE_INSTANCE_ID_UNKNOWN )
    #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
    #define PMD_DFT_MVCCRBSNUM          ( 16 )
    #define PMD_MAX_MVCCRBSNUM          ( 128 )
+
+   #define PMD_RDX_WITH_ALIAS( formalName, aliasName, rdxFunc, pEX, ... ) \
+      if ( pEX->isLoad() ) \
+      { \
+         if ( pEX->isWhole() && (!pEX->hasField( formalName ) || \
+                                 !pEX->hasField( aliasName ) ) ) \
+         { \
+            if ( !pEX->hasField( formalName ) ) \
+            { \
+               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
+            } \
+            if ( !pEX->hasField( aliasName ) ) \
+            { \
+               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
+            } \
+         } \
+         else \
+         { \
+            if ( pEX->hasField( aliasName ) ) \
+            { \
+               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
+            } \
+            if ( pEX->hasField( formalName ) ) \
+            { \
+               rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
+            } \
+         } \
+      } \
+      else \
+      { \
+         rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
+         rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
+      }
 
    /*
       _pmdCfgExchange implement
@@ -1864,6 +1898,7 @@ done:
       ossMemset( _syncStrategyStr, 0, PMD_MAX_ENUM_STR_LEN + 1) ;
       ossMemset( _prefInstStr, 0, PMD_MAX_LONG_STR_LEN + 1 ) ;
       ossMemset( _prefInstModeStr, 0, PMD_MAX_SHORT_STR_LEN + 1 ) ;
+      ossMemset( _prefConstraint, 0, sizeof( _prefConstraint ) ) ;
       ossMemset( _catAddrLine, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _dmsTmpBlkPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _krcbLobPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
@@ -1921,7 +1956,7 @@ done:
       _syncwaitTimeout     = PMD_DFT_SYNCWAIT_TIMEOUT ;
       _shutdownWaitTimeout = PMD_DFT_SHUTDOWN_WAIT_TIMEOUT ;
       _directIOInLob       = FALSE ;
-      _sparseFile          = FALSE ;
+      _sparseFile          = TRUE ;
       _weight              = 0 ;
       _auth                = TRUE ;
       _planBucketNum       = OPT_PLAN_DEF_CACHE_BUCKETS ;
@@ -1961,8 +1996,8 @@ done:
       _svcSchedulerType = 0 ;
       _svcMaxConcurrency= 0 ;
 
-      _preferedStrict = FALSE ;
-      _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
+      _preferredStrict = FALSE ;
+      _preferredPeriod = PMD_DFT_PREFINST_PERIOD ;
 
       ossMemset( _logWriteModStr, 0, sizeof(_logWriteModStr) ) ;
       _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
@@ -1989,6 +2024,7 @@ done:
       _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
 
       _detectDisk = TRUE ;
+      _diagSecureOn = TRUE ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2170,20 +2206,29 @@ done:
       // --syncstrategy
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
                  sizeof( _syncStrategyStr ), FALSE, PMD_CFG_CHANGE_RUN, "", FALSE ) ;
-      // --preferedinstance
-      rdxString( pEX, PMD_OPTION_PREFINST, _prefInstStr,
-                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
-      // --preferedinstancemode
-      rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
-                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
-                 PMD_DFT_PREFINST_MODE ) ;
-      // --preferedstrict
-      rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferedStrict, FALSE,
-                   PMD_CFG_CHANGE_RUN, FALSE ) ;
-      // --preferedperiod
-      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
-              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
-      rdvMinMax( pEX, _preferedPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
+      // --preferedinstance / --preferredinstance
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST, PMD_OPTION_PREFINST,
+                          rdxString, pEX, _prefInstStr, sizeof( _prefInstStr ),
+                          FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
+      // --preferedinstancemode / --preferredinstancemode
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_MODE,
+                          PMD_OPTION_PREFINST_MODE, rdxString, pEX,
+                          _prefInstModeStr, sizeof( _prefInstModeStr ), FALSE,
+                          PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_MODE ) ;
+      // --preferedstrict / --preferredstrict
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_STRICT,
+                          PMD_OPTION_PREFINST_STRICT, rdxBooleanS, pEX,
+                          _preferredStrict, FALSE, PMD_CFG_CHANGE_RUN, FALSE ) ;
+      // --preferedperiod / --preferredperiod
+      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_PERIOD,
+                          PMD_OPTION_PREFINST_PERIOD, rdxInt, pEX,
+                          _preferredPeriod, FALSE, PMD_CFG_CHANGE_RUN,
+                          PMD_DFT_PREFINST_PERIOD, FALSE ) ;
+      rdvMinMax( pEX, _preferredPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
+      // --preferredconstraint
+      rdxString( pEX, PMD_OPTION_PREFERRED_CONSTRAINT, _prefConstraint,
+                 sizeof( _prefConstraint ), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DFT_PREF_CONSTRAINT ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, PMD_CFG_CHANGE_REBOOT,
                PMD_DFT_INSTANCE_ID, FALSE ) ;
@@ -2296,7 +2341,7 @@ done:
                    FALSE, PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_SPARSE_FILE, _sparseFile,
-                   FALSE, PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
 
       // --weight
       rdxUInt( pEX, PMD_OPTION_WEIGHT, _weight,
@@ -2550,6 +2595,10 @@ done:
       rdxBooleanS( pEX, PMD_OPTION_DETECT_DISK, _detectDisk,
                    FALSE, PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
 
+      // --diagsecureon
+      rdxBooleanS( pEX, PMD_OPTION_DIAG_SECURE_ON, _diagSecureOn,
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
+
       // end map
 
       return getResult () ;
@@ -2562,6 +2611,7 @@ done:
       ossPoolList< UINT8 > instanceList ;
       PMD_PREFER_INSTANCE_TYPE specInstance = PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       PMD_PREFER_INSTANCE_MODE instanceMode = PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
+      PMD_PREFER_CONSTRAINT constraint = PMD_PREFER_CONSTRAINT_UNKNOWN ;
       BOOLEAN hasInvalidChar = FALSE ;
 
       rc = ossGetPort( _krcbSvcName, _krcbSvcPort ) ;
@@ -2724,7 +2774,7 @@ done:
       rc = pmdParsePreferInstModeStr( _prefInstModeStr, instanceMode ) ;
       if ( rc )
       {
-         std::cerr << "Failed to parse preferd instance mode str, rc: "
+         std::cerr << "Failed to parse preferred instance mode str, rc: "
                    << rc << endl ;
          goto error ;
       }
@@ -2735,6 +2785,23 @@ done:
                    << endl ;
          ossStrncpy( _prefInstModeStr, PMD_DFT_PREFINST_MODE,
                      sizeof( _prefInstModeStr ) ) ;
+         _invalidConfNum++ ;
+      }
+
+      rc = pmdParsePreferConstraintStr( _prefConstraint, constraint ) ;
+      if ( rc )
+      {
+         std::cerr << "Failed to parse preferred constraint, rc: "
+                   << rc << endl ;
+         goto error ;
+      }
+
+      if ( PMD_PREFER_CONSTRAINT_UNKNOWN == constraint )
+      {
+         std::cerr << PMD_OPTION_PREFERRED_CONSTRAINT
+                   << " value error, use default" << endl ;
+         ossStrncpy( _prefConstraint, PMD_DFT_PREF_CONSTRAINT,
+                     sizeof( _prefConstraint ) ) ;
          _invalidConfNum++ ;
       }
 
@@ -2825,7 +2892,7 @@ done:
          if ( !_exePath.empty() )
          {
             rc = utilBuildFullPath( _exePath.c_str(),
-                                    ".." OSS_FILE_SEP PMD_OPTION_WWW_PATH_DIR,
+                                    ".."OSS_FILE_SEP PMD_OPTION_WWW_PATH_DIR,
                                     OSS_MAX_PATHSIZE, wwwPath ) ;
          }
          else
@@ -3202,6 +3269,15 @@ done:
       JUDGE_RC( rc )
 
       /// read cmd first
+      if ( vm.empty() )
+      {
+         std::cout << "sequoiadb: missing arguments" << std::endl ;
+         std::cout << "Try 'sequoiadb --help' for more information." << std::endl ;
+         rc = SDB_INVALIDARG ;
+         utilRC2ShellRC ( rc ) ;
+         goto error ;
+      }
+
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          std::cout << display << std::endl ;
@@ -3353,40 +3429,9 @@ done:
       }\
    }
 
-
    INT32 _pmdOptionsMgr::removeAllDir()
    {
       INT32 rc = SDB_OK ;
-
-      {
-         ossPoolString pathStr;
-         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append("vessel");
-         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
-      }
-
-      {
-         ossPoolString pathStr;
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("vessel");
-         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
-      }
-
-      {
-         ossPoolString pathStr;
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("lsm");
-         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
-      }
-
-      {
-         ossPoolString pathStr;
-         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append("vessel");
-         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
-      }
-
-      {
-         ossPoolString pathStr;
-         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append("vessel");
-         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
-      }
 
       PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _archivePath ) ;
 
@@ -3494,59 +3539,6 @@ done:
          std::cerr << "Failed to create lob meta dir: " << _krcbLobMetaPath <<
                       ", rc = " << rc << std::endl ;
          goto error ;
-      }
-
-      /// make vessel dirs
-      {
-         ossPoolString pathStr;
-         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append("vessel");
-         rc = ossMkdir(pathStr.c_str());
-         if ( rc && SDB_FE != rc )
-         {
-            std::cerr << "Failed to create sub data dir: " << pathStr <<
-                        ", rc = " << rc << std::endl ;
-            goto error ;
-         }
-
-         pathStr.clear();
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("vessel");
-         rc = ossMkdir(pathStr.c_str());
-         if ( rc && SDB_FE != rc )
-         {
-            std::cerr << "Failed to create sub data dir: " << pathStr <<
-                        ", rc = " << rc << std::endl ;
-            goto error ;
-         }
-
-         pathStr.clear();
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("lsm");
-         rc = ossMkdir(pathStr.c_str());
-         if ( rc && SDB_FE != rc )
-         {
-            std::cerr << "Failed to create sub data dir: " << pathStr <<
-                        ", rc = " << rc << std::endl ;
-            goto error ;
-         }
-
-         pathStr.clear();
-         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append("vessel");
-         rc = ossMkdir(pathStr.c_str());
-         if ( rc && SDB_FE != rc )
-         {
-            std::cerr << "Failed to create sub data dir: " << pathStr <<
-                        ", rc = " << rc << std::endl ;
-            goto error ;
-         }
-
-         pathStr.clear();
-         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append("vessel");
-         rc = ossMkdir(pathStr.c_str());
-         if ( rc && SDB_FE != rc )
-         {
-            std::cerr << "Failed to create sub data dir: " << pathStr <<
-                        ", rc = " << rc << std::endl ;
-            goto error ;
-         }
       }
 
       rc = SDB_OK ;
@@ -3682,31 +3674,6 @@ done:
       }
       ossStrncpy( _prefInstStr, ss.str().c_str(), sizeof( _prefInstStr ) ) ;
    }
-
-   void _pmdOptionsMgr::makeOpenDBOptions(vessel::openDBOptions &o)const
-   {
-      o = vessel::openDBOptions();
-      o.path.dataPath.append(_krcbDbPath);
-      o.path.dataPath.append(OSS_FILE_SEP);
-      o.path.dataPath.append("vessel");
-
-      o.path.indexPath.append(_krcbIndexPath);
-      o.path.indexPath.append(OSS_FILE_SEP);
-      o.path.indexPath.append("vessel");
-
-      o.path.lobmPath.append(_krcbLobMetaPath);
-      o.path.lobmPath.append(OSS_FILE_SEP);
-      o.path.lobmPath.append("vessel");
-
-      o.path.lobdPath.append(_krcbLobPath);
-      o.path.lobdPath.append(OSS_FILE_SEP);
-      o.path.lobdPath.append("vessel");
-
-      o.path.lsmPath.append(_krcbIndexPath);
-      o.path.lsmPath.append(OSS_FILE_SEP);
-      o.path.lsmPath.append("lsm");
-   }
-
 
    INT32 optString2LogMod( const CHAR *str, UINT32 &value )
    {

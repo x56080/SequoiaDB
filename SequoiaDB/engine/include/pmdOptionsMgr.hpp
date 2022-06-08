@@ -56,11 +56,6 @@
 #include <map>
 #include "../bson/bson.h"
 
-#include "vessel/vesselOptions.h"
-
-using namespace std ;
-using namespace bson ;
-
 namespace engine
 {
    #define PMD_MAX_ENUM_STR_LEN        ( 32 )
@@ -147,13 +142,13 @@ namespace engine
 
       public:
          _pmdCfgExchange ( MAP_K2V *pMapField,
-                           const BSONObj &dataObj,
+                           const bson::BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
          _pmdCfgExchange ( MAP_K2V *pMapField,
                            MAP_K2V *pMapColdField,
-                           const BSONObj &dataObj,
+                           const bson::BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
@@ -230,8 +225,8 @@ namespace engine
 
          PMD_CFG_DATA_TYPE       _dataType ;
          //
-         BSONObj                 _dataObj ;
-         BSONObjBuilder          _dataBuilder ;
+         bson::BSONObj           _dataObj ;
+         bson::BSONObjBuilder    _dataBuilder ;
          po::variables_map       *_pVMFile ;
          po::variables_map       *_pVMCmd ;
          stringstream            _strStream ;
@@ -294,16 +289,16 @@ namespace engine
          void  resetResult () { _result = SDB_OK ; }
 
          INT32 init( po::variables_map *pVMFile, po::variables_map *pVMCMD ) ;
-         INT32 restore( const BSONObj &objData,
+         INT32 restore( const bson::BSONObj &objData,
                         po::variables_map *pVMCMD ) ;
-         INT32 change( const BSONObj &objData,
+         INT32 change( const bson::BSONObj &objData,
                        BOOLEAN isWhole = FALSE ) ;
 
-         INT32 update( const BSONObj &userConfig,
+         INT32 update( const bson::BSONObj &userConfig,
                        BOOLEAN setForRestore,
-                       BSONObj &errorObj ) ;
+                       bson::BSONObj &errorObj ) ;
 
-         INT32 toBSON ( BSONObj &objData,
+         INT32 toBSON ( bson::BSONObj &objData,
                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
          INT32 toString( string &str,
                          UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
@@ -342,7 +337,7 @@ namespace engine
          INT32  _saveUpdateChange( MAP_K2V &mapKeyField,
                                    MAP_K2V &mapColdKeyField,
                                    BOOLEAN setForRestore,
-                                   BSONObj &errorObj ) ;
+                                   bson::BSONObj &errorObj ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;
@@ -659,8 +654,9 @@ namespace engine
          OSS_INLINE UINT32 getPlanCacheLevel() const { return _planCacheLevel ; }
          OSS_INLINE const CHAR * getPrefInstStr () const { return _prefInstStr ; }
          OSS_INLINE const CHAR * getPrefInstModeStr () const { return _prefInstModeStr ; }
-         OSS_INLINE BOOLEAN isPreferedStrict() const { return _preferedStrict ; }
-         OSS_INLINE INT32 getPreferedPeriod() const { return _preferedPeriod ; }
+         OSS_INLINE BOOLEAN isPreferredStrict() const { return _preferredStrict ; }
+         OSS_INLINE INT32 getPreferredPeriod() const { return _preferredPeriod ; }
+         OSS_INLINE const CHAR * getPrefConstraint() const { return _prefConstraint; }
          OSS_INLINE UINT32 getInstanceID () const { return _instanceID ; }
          OSS_INLINE UINT32 getMaxConn () const { return _maxconn ; }
          OSS_INLINE UINT32 getSvcSchedulerType() const { return _svcSchedulerType ; }
@@ -691,8 +687,7 @@ namespace engine
          OSS_INLINE INT32 contextTimeout() const { return _contextTimeout ; }
          std::string getOmAddr() const ;
          OSS_INLINE BOOLEAN detectDisk() const { return _detectDisk ; }
-
-         void makeOpenDBOptions(vessel::openDBOptions &o)const;
+         OSS_INLINE BOOLEAN diagSecureOn() const { return _diagSecureOn ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -723,6 +718,7 @@ namespace engine
          CHAR        _syncStrategyStr[ PMD_MAX_ENUM_STR_LEN + 1 ] ;
          CHAR        _prefInstStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _prefInstModeStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
+         CHAR        _prefConstraint[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _auditMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _ftMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _memDebugMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
@@ -805,8 +801,8 @@ namespace engine
          UINT32      _maxconn;
          UINT32      _svcSchedulerType ;
          UINT32      _svcMaxConcurrency ;
-         BOOLEAN     _preferedStrict ;
-         INT32       _preferedPeriod ;
+         BOOLEAN     _preferredStrict ;
+         INT32       _preferredPeriod ;
          CHAR        _logWriteModStr[ PMD_MAX_LOGMOD_STR_LEN + 1 ] ;
          UINT32      _logWriteMod ;
          BOOLEAN     _logTimeOn ;
@@ -838,6 +834,7 @@ namespace engine
          INT32       _contextTimeout ;
 
          BOOLEAN     _detectDisk ;
+         BOOLEAN     _diagSecureOn ;
 
 #ifdef SDB_ENTERPRISE
 

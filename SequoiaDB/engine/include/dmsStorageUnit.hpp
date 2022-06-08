@@ -51,8 +51,6 @@
 #include "dmsCachedPlanUnit.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
-#include "dmsEventHolder.hpp"
-#include "dmsCacheHolder.hpp"
 
 using namespace bson ;
 
@@ -70,6 +68,15 @@ namespace engine
    class _mthMatchRuntime ;
    class _mthModifier ;
 
+   class _dmsStorageUnit ;
+   typedef _dmsStorageUnit dmsStorageUnit ;
+
+   class _dmsCacheHolder ;
+   typedef class _dmsCacheHolder dmsCacheHolder ;
+
+   class _dmsEventHolder ;
+   typedef class _dmsEventHolder dmsEventHolder ;
+
    /*
       _dmsStorageUnitStat define
    */
@@ -77,6 +84,7 @@ namespace engine
    {
       INT32          _clNum ;
       INT64          _totalCount ;
+      INT64          _totalLobs ;
       INT32          _totalDataPages ;
       INT32          _totalIndexPages ;
       INT32          _totalLobPages ;
@@ -89,6 +97,225 @@ namespace engine
    #define DMS_SU_INDEX          ( 0x0002 )
    #define DMS_SU_LOB            ( 0x0004 )
    #define DMS_SU_ALL            ( 0xFFFF )
+
+   /*
+      _dmsCacheHolder
+    */
+   class _dmsCacheHolder : public IDmsSUCacheHolder
+   {
+      public :
+         _dmsCacheHolder ( dmsStorageUnit *su ) ;
+
+         virtual ~_dmsCacheHolder () ;
+
+         virtual const CHAR *getCSName () const ;
+
+         virtual UINT32 getSUID () const ;
+
+         virtual UINT32 getSULID () const ;
+
+         virtual BOOLEAN isSysSU () const ;
+
+         virtual BOOLEAN checkCacheUnit ( utilSUCacheUnit *pCacheUnit ) ;
+
+         virtual BOOLEAN createSUCache ( UINT8 type ) ;
+
+         virtual BOOLEAN deleteSUCache ( UINT8 type ) ;
+
+         virtual void deleteAllSUCaches () ;
+
+         OSS_INLINE virtual dmsSUCache *getSUCache ( UINT8 type )
+         {
+            if ( type < DMS_CACHE_TYPE_NUM )
+            {
+               return _pSUCaches[ type ] ;
+            }
+            return NULL ;
+         }
+
+         dmsStorageUnit *getSU ()
+         {
+            return _su ;
+         }
+
+      protected :
+         INT32 _checkCollectionStat ( dmsCollectionStat *pCollectionStat ) ;
+         INT32 _checkIndexStat ( dmsIndexStat *pIndexStat,
+                                 dmsMBContext *mbContext ) ;
+
+      protected :
+         dmsStorageUnit *     _su ;
+         dmsSUCache *         _pSUCaches [ DMS_CACHE_TYPE_NUM ] ;
+   } ;
+
+   /*
+      _dmsEventHolder define
+    */
+   class _dmsEventHolder : public _IDmsEventHolder
+   {
+      public :
+         _dmsEventHolder( dmsStorageUnit *su ) ;
+
+         virtual ~_dmsEventHolder () ;
+
+         void setHandlers ( DMS_HANDLER_LIST *handlers )
+         {
+            _handlers = handlers ;
+         }
+
+         virtual void unsetHandlers ()
+         {
+            _handlers = NULL ;
+         }
+
+         virtual INT32 onCreateCS ( UINT32 mask,
+                                    pmdEDUCB *cb,
+                                    SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onLoadCS ( UINT32 mask,
+                                  pmdEDUCB *cb,
+                                  SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onUnloadCS ( UINT32 mask,
+                                    pmdEDUCB *cb,
+                                    SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onRenameCS ( UINT32 mask,
+                                    const CHAR *pOldCSName,
+                                    const CHAR *pNewCSName,
+                                    pmdEDUCB *cb,
+                                    SDB_DPSCB *dpsCB ) ;
+
+         // drop collection space callbacks
+         virtual INT32 onCheckDropCS( UINT32 mask,
+                                      const dmsEventSUItem &suItem,
+                                      dmsDropCSOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onDropCS ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
+                                  const dmsEventSUItem &suItem,
+                                  dmsDropCSOptions *options,
+                                  pmdEDUCB *cb,
+                                  SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCleanDropCS( UINT32 mask,
+                                      const dmsEventSUItem &suItem,
+                                      dmsDropCSOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCreateCL ( UINT32 mask,
+                                    const dmsEventCLItem &clItem,
+                                    pmdEDUCB *cb,
+                                    SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onRenameCL ( UINT32 mask,
+                                    const dmsEventCLItem &clItem,
+                                    const CHAR *pNewCLName,
+                                    pmdEDUCB *cb,
+                                    SDB_DPSCB *dpsCB ) ;
+
+         // truncate collection callbacks
+         virtual INT32 onCheckTruncCL( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       dmsTruncCLOptions *options,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onTruncateCL ( UINT32 mask,
+                                      SDB_EVENT_OCCUR_TYPE type,
+                                      const dmsEventCLItem &clItem,
+                                      dmsTruncCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCleanTruncCL( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       dmsTruncCLOptions *options,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
+         // drop collection callbacks
+         virtual INT32 onCheckDropCL( UINT32 mask,
+                                      const dmsEventCLItem &clItem,
+                                      dmsDropCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onDropCL ( UINT32 mask,
+                                  SDB_EVENT_OCCUR_TYPE type,
+                                  const dmsEventCLItem &clItem,
+                                  dmsDropCLOptions *options,
+                                  pmdEDUCB *cb,
+                                  SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCleanDropCL( UINT32 mask,
+                                      const dmsEventCLItem &clItem,
+                                      dmsDropCLOptions *options,
+                                      pmdEDUCB *cb,
+                                      SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onCreateIndex ( UINT32 mask,
+                                       const dmsEventCLItem &clItem,
+                                       const dmsEventIdxItem &idxItem,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onRebuildIndex ( UINT32 mask,
+                                        const dmsEventCLItem &clItem,
+                                        const dmsEventIdxItem &idxItem,
+                                        pmdEDUCB *cb,
+                                        SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onDropIndex ( UINT32 mask,
+                                     const dmsEventCLItem &clItem,
+                                     const dmsEventIdxItem &idxItem,
+                                     pmdEDUCB *cb,
+                                     SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onLinkCL ( UINT32 mask,
+                                  const dmsEventCLItem &clItem,
+                                  const CHAR *pMainCLName,
+                                  pmdEDUCB *cb,
+                                  SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onUnlinkCL ( UINT32 mask,
+                                    const dmsEventCLItem &clItem,
+                                    const CHAR *pMainCLName,
+                                    pmdEDUCB *cb,
+                                    SDB_DPSCB *dpsCB ) ;
+
+         virtual INT32 onClearSUCaches ( UINT32 mask ) ;
+
+         virtual INT32 onClearCLCaches ( UINT32 mask,
+                                         const dmsEventCLItem &clItem ) ;
+
+         virtual INT32 onChangeSUCaches ( UINT32 mask ) ;
+
+         virtual const CHAR *getCSName () const ;
+
+         virtual UINT32 getSUID () const ;
+
+         virtual UINT32 getSULID () const ;
+
+         dmsStorageUnit *getSU()
+         {
+            return _su ;
+         }
+
+         OSS_INLINE virtual void setCacheHolder ( dmsCacheHolder *pCacheHolder )
+         {
+            _pCacheHolder = pCacheHolder ;
+         }
+
+      protected :
+         dmsStorageUnit *     _su ;
+         dmsCacheHolder *     _pCacheHolder ;
+         DMS_HANDLER_LIST *   _handlers ;
+   } ;
+
 
    /*
       _dmsStorageUnit define
@@ -203,7 +430,7 @@ namespace engine
                                monCollection &info ) ;
 
          INT32    getSegExtents ( const CHAR *pName,
-                                  vector< dmsExtentID > &segExtents,
+                                  ossPoolVector< dmsExtentID > &segExtents,
                                   dmsMBContext *context = NULL ) ;
 
          INT32    getIndexes ( dmsMBContext *context,
@@ -217,6 +444,8 @@ namespace engine
          INT32    getIndex ( dmsMBContext *context,
                              const CHAR *pIndexName,
                              _monIndex &resultIndex ) ;
+
+         INT32    dumpRecycleInfo( monRecycleItem &item ) ;
 
       protected :
          // Dump helper functions
@@ -235,6 +464,10 @@ namespace engine
          INT32    _getIndex ( const dmsMB *mb,
                               const CHAR *pIndexName,
                               monIndex &resultIndex ) ;
+
+         INT32    _dumpRecycleInfo( UINT16 mbID,
+                                    monRecycleItem &item ) ;
+         INT32    _dumpRecycleInfo( monRecycleItem &itme ) ;
 
       // only for LOAD
       public:
@@ -289,6 +522,8 @@ namespace engine
                                   SINT64 maxDelete = -1,
                                   dmsMBContext *context = NULL,
                                   utilDeleteResult *pResult = NULL ) ;
+
+         INT32    recycleCollectionSpace( _pmdEDUCB *cb ) ;
 
          INT32    rebuildIndexes ( const CHAR *pName,
                                    _pmdEDUCB * cb,
@@ -383,6 +618,11 @@ namespace engine
                                            BOOLEAN noIDIndex,
                                            dmsMBContext * context = NULL ) ;
 
+         INT32    setCollectionNoTrans ( const CHAR * pName,
+                                         BOOLEAN noTrans,
+                                         dmsMBContext * context,
+                                         pmdEDUCB *cb ) ;
+
          INT32    canSetCollectionCompressor ( dmsMBContext * context ) ;
          INT32    setCollectionCompressor ( const CHAR * pName,
                                             UTIL_COMPRESSOR_TYPE compressType,
@@ -408,9 +648,8 @@ namespace engine
       public :
          _IDmsEventHolder * getEventHolder () ;
 
-         void regEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandlers () ;
+         void setEventHandlers ( DMS_HANDLER_LIST *handlers ) ;
+         void unsetEventHandlers () ;
 
          dmsSUCache *getSUCache ( UINT32 type ) ;
 
@@ -426,13 +665,6 @@ namespace engine
          INT32 _getTypeFromFile( const CHAR *dataPath,
                                  DMS_STORAGE_TYPE &type ) ;
 
-      private:
-         INT32 createCSInDataEngine();
-         INT32 getRecordCountInEngine(pmdEDUCB *cb,
-                                      dmsMBContext *context,
-                                      UINT64 &count);
-         INT32 removeCSInEngine(pmdEDUCB *cb);
-
       private :
          dmsStorageDataCommon                *_pDataSu ;
          dmsStorageIndex                     *_pIndexSu ;
@@ -444,8 +676,6 @@ namespace engine
          dmsEventHolder                       _eventHolder ;
          dmsCacheHolder                       _cacheHolder ;
    } ;
-
-   typedef class _dmsStorageUnit dmsStorageUnit;
 
    OSS_INLINE INT32 _dmsStorageUnit::extentRemoveRecord( dmsMBContext *context,
                                                          dmsExtRW &extRW,

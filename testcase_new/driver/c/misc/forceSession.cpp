@@ -114,8 +114,7 @@ TEST_F( forceSessionTest, currentSession )
    }
 
    SINT64 sessionId = -1 ;
-   //INT32 groupId[] = { 1, 2, 1000 } ;   // catalogRG/coordRG/dataRG
-   INT32 groupId[] = { 1, 1000 } ;
+   INT32 groupId[] = { 1, 2, 1000 } ;   // catalogRG/coordRG/dataRG
    const CHAR* hostName = NULL ;
    const CHAR* svcName = NULL ;
    const CHAR* nodeName = NULL ;

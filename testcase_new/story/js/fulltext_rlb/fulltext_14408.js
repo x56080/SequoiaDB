@@ -1,9 +1,10 @@
-/************************************
-*@Description: 异常启动DB备节点不影响全文索引功能
-*@author:      liuxiaoxuan
-*@createdate:  2019.08.21
-*@testlinkCase: seqDB-14408
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-14408: 异常启动DB备节点不影响全文索引功能
+ * @Author        : liuxiaoxuan
+ * @CreateTime    : 2019.08.21
+ * @LastEditTime  : 2022.04.19
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
 
@@ -25,7 +26,7 @@ function test ()
    var clName = COMMCLNAME + "_ES_14408";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 } );
 
    // 创建全文索引，插入数据
    var textIndexName = "textIndex_14408";

@@ -5,6 +5,9 @@ import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.Sequoiadb;
 
 public class Constants {
 	public final static String CS_NAME = "SAMPLE";
@@ -94,4 +97,20 @@ public class Constants {
 		return list;
 	}
 
+	public static DBCollection getCL(Sequoiadb db) {
+		CollectionSpace cs;
+		DBCollection cl;
+
+		if (db.isCollectionSpaceExist(CS_NAME))
+			cs = db.getCollectionSpace(CS_NAME);
+		else
+			cs = db.createCollectionSpace(CS_NAME);
+
+		if (cs.isCollectionExist(CL_NAME))
+			cl = cs.getCollection(CL_NAME);
+		else
+			cl = cs.createCollection(CL_NAME);
+
+		return cl;
+	}
 }

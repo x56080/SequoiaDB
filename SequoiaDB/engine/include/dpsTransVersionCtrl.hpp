@@ -139,12 +139,12 @@ namespace engine
    /** definition of preIdxTreeNodeKey
     *  preIdxTreeNodeKey is the key for node in preIdxTree.
     *  Note that the raw key is stored in _keyData.
-    *  
+    *
     **/
    class preIdxTreeNodeKey : public SDBObject
    {
    // public interfaces:
-   public: 
+   public:
       // constructors:
       // use super class to construct key portion
       preIdxTreeNodeKey( const BSONObj* key,
@@ -211,14 +211,14 @@ namespace engine
                {
                   rv = true ;
                }
-               else if ( _rid._offset == right._rid._offset ) 
+               else if ( _rid._offset == right._rid._offset )
                {
                   if ( right._transID.isValid() && _transID.isValid() )
                   {
                      // evaluate transID if both have valid transID
-                     // note that the tranID is in decending order so that 
+                     // note that the tranID is in decending order so that
                      // we will scan and evaluate newer version first. This
-                     // way we won't mistakenly use too old version which 
+                     // way we won't mistakenly use too old version which
                      // could be "visiable" to the newer transaction.
                      rv = _transID.getGlobSN() > right._transID.getGlobSN() ;
                   }
@@ -248,29 +248,29 @@ namespace engine
          return rv ;
       }
 
-      string toString() const ;
+      string toString( BOOLEAN encryptKey = TRUE ) const ;
 
       const UINT32 size() const
       {
-         return ( _keyObj.objsize() + sizeof(dmsRecordID) + 
+         return ( _keyObj.objsize() + sizeof(dmsRecordID) +
                   sizeof(DPS_TRANS_ID) + sizeof(Ordering *) ) ;
       }
       // private attributes:
    private:
       BSONObj           _keyObj ;
-      // Original rid. This is used to differ duplicated keys when index is 
+      // Original rid. This is used to differ duplicated keys when index is
       // not unique
       dmsRecordID       _rid ;
       // We use the transID as the version of the index in the tree
-      // This is NOT reflecting the record transID, but the owner transID, 
-      // which is the transaction adding the version into the tree. We will 
+      // This is NOT reflecting the record transID, but the owner transID,
+      // which is the transaction adding the version into the tree. We will
       // use this to decide when to recycle the node from the mem tree, i.e.
       // we can delete the tree node if the transID is older than lowTran.
       // This is also used for visiability check as the "owner" transID.
       DPS_TRANS_ID      _transID ;
       // it's shared from the tree. Check clsCataOrder()
       const Ordering    *_order ;
-      
+
    } ;
 
    enum DPS_PREIDXTREENODEVALUE_STATUS
@@ -350,7 +350,7 @@ namespace engine
 
       void setRBSOffset( const dmsRBSOffset& offset ) ;
 
-      string toString() const ;
+      string toString( BOOLEAN encryptObj = TRUE ) const ;
 
       DPS_PREIDXTREENODEVALUE_STATUS getStatus() const ;
 
@@ -366,16 +366,16 @@ namespace engine
       // pre and next pointer for the node with same record(RID)
       INDEX_TREE_POS          _ridPre ;   // This is previous version
       INDEX_TREE_POS          _ridNext ;  // This is newer version
-      // Corresponding old record version location stored in RBS 
+      // Corresponding old record version location stored in RBS
       dmsRBSOffset            _rbsOffset ;
    } ;
 
 
    /** definition of preIdxTree
-    *  preIdxTree is a red-black tree which holds all old key values of a 
+    *  preIdxTree is a red-black tree which holds all old key values of a
     *  specific index during runtime. Index scanner will merge this in-memory
     *  tree with the index on disk during runtime based on its isolation level.
-    *  The rule of thumb is: on-disk index contain latest value with could be 
+    *  The rule of thumb is: on-disk index contain latest value with could be
     *  uncommitted. in-memory preIdxTree holds the last committed value.
     **/
    class preIdxTree : public SDBObject
@@ -384,7 +384,7 @@ namespace engine
       friend class oldVersionContainer ;
 
    // public interfaces:
-   public: 
+   public:
       // constructors & destructors
       preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB ) ;
 
@@ -437,7 +437,7 @@ namespace engine
       const preIdxTreeNodeKey&   getNodeKey( INDEX_TREE_CPOS pos ) const ;
       const preIdxTreeNodeValue& getNodeData( INDEX_TREE_CPOS pos ) const ;
 
-      // Traverse the tree to see if the key exist, caller need to hold 
+      // Traverse the tree to see if the key exist, caller need to hold
       // the latch otherwise the iterator can change underneath
       BOOLEAN isKeyExist( const BSONObj &key,
                           preIdxTreeNodeValue &value ) const ;
@@ -516,17 +516,17 @@ namespace engine
          return _tree.size() ;
       }
 
-      BOOLEAN hasRidPre( INDEX_TREE_CPOS & pos ) 
+      BOOLEAN hasRidPre( INDEX_TREE_CPOS & pos )
       {
          return ( this->getNodeData(pos).getRidPre() != _tree.end() ) ;
       }
 
-      BOOLEAN hasRidNext( INDEX_TREE_CPOS & pos ) 
+      BOOLEAN hasRidNext( INDEX_TREE_CPOS & pos )
       {
          return ( this->getNodeData(pos).getRidNext() != _tree.end() ) ;
       }
 
-      INDEX_TREE_POS getKeyNodeFromRidTree( dmsRecordID rid ) ; 
+      INDEX_TREE_POS getKeyNodeFromRidTree( dmsRecordID rid ) ;
 
       // assistant function to print out the whole tree.
       void printTree( BOOLEAN detailed = TRUE) const ;
@@ -592,11 +592,11 @@ namespace engine
       // 1. preIdxTree latch must be held in X to insert/delete node in the tree
       //    oldVersionCB(_oldVersionCBLatch) need to be held in S before
       //    taking individual preIdxTree latch.
-      // 2. Should never request LRB hash bkt latch while holding preIdxTree 
+      // 2. Should never request LRB hash bkt latch while holding preIdxTree
       //    latch, reverse order is OK. Keep in mind we store the _lrbHdrIdx
       //    in the tree so that we have direct access to lrbHdr without need
       //    to go through lrbhash bkt.
-      monSpinSLatch       _latch ;  // latch for concurrency control, 
+      monSpinSLatch       _latch ;  // latch for concurrency control,
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
       INDEX_BINARY_TREE   _tree ;   // tree to hold all old index key value
@@ -604,7 +604,7 @@ namespace engine
       BSONObj             _keyPattern ;
       // a separate tree ordered by RID, the value points to the latest
       // index value(iterator) in the above _tree. This tree only exists
-      // if MVCC and Globtrans are enabled. This is also protected by the 
+      // if MVCC and Globtrans are enabled. This is also protected by the
       // _latch. Note that we normally update the _ridTree the same time we
       // touch _tree, under the same _latch at the same time.
       INDEX_RID_TREE      _ridTree ;
@@ -760,7 +760,7 @@ namespace engine
    typedef std::pair< UINT64, oldVersionUnitPtr>      MAP_OLDVERION_UNIT_PAIR ;
 
    /** definition of oldVersionCB
-    *  Control block holding all resources and structures for old version 
+    *  Control block holding all resources and structures for old version
     *  records and index keys. It's globally hanging of dpsTransCB
     **/
    class oldVersionCB : public SDBObject
@@ -862,10 +862,10 @@ namespace engine
 
    // private attributes
    private:
-      // latch to protect the fields. Should hold it in X to initialize and 
+      // latch to protect the fields. Should hold it in X to initialize and
       // destroy _memBlockPool, otherwise hold in S
       ossSpinSLatch       _oldVersionCBLatch ;
-      IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
+      IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older
                                           // version of indexes
       MAP_OLDVERION_UNIT  _mapOldVersionUnit ;
       // The smallest transID among all trees
@@ -932,8 +932,8 @@ namespace engine
       BSONObj           _idxObj ; // BSON Object
    } ;
 
-   // Use set of idx lid to figure out if the first version of an index value 
-   // was already stored or not. 
+   // Use set of idx lid to figure out if the first version of an index value
+   // was already stored or not.
    typedef ossPoolMap< SINT32, preIdxTreePtr >     idxLidMap ;
    // use set of idxObj to store all index key values
    typedef ossPoolSet< dpsIdxObj >                 idxObjSet ;
@@ -950,7 +950,7 @@ namespace engine
  //#define OLDVER_MASK_HAS_COPED             0x00000010
    #define OLDVER_MASK_ROLLED_BACK           0x00000020
 
-   // Class to store all information for old version record/indexes. This 
+   // Class to store all information for old version record/indexes. This
    // container is currently hanging off LRBHdr
    class oldVersionContainer : public _utilPooledObject
    {
@@ -989,7 +989,7 @@ namespace engine
                                          BOOLEAN hasLocked ) ;
 
       void                 setRecordDeleted() ;
-      void                 setOwnerTransID( DPS_TRANS_ID const & ownerTransID ) 
+      void                 setOwnerTransID( DPS_TRANS_ID const & ownerTransID )
                            { _ownerTransID = ownerTransID ; }
 
       BOOLEAN              isRecordDeleted() const ;
@@ -1066,7 +1066,7 @@ namespace engine
       // We use this to figure out if the idx was already stored in the tree
       // Keep in mind that RC require us read the last committed version which
       // will be the version before first update in the transaction
-      idxLidMap         _oldIdxLid ; 
+      idxLidMap         _oldIdxLid ;
       // point to a set containing all key sets.
       idxObjSet         _oldIdx ;
       oldVersionContainer * _prev ;

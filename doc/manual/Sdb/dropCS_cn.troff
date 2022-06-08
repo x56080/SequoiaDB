@@ -8,7 +8,7 @@
 dropCS \- 删除一个已存在的集合空间。
 .SH 语法
 .PP
-\f[B]\f[I]db.dropCS(<name>,[options])\f[]\f[]
+\f[B]db.dropCS(<name>, [options])\f[]
 .SH 类别
 .PP
 Sdb
@@ -39,6 +39,17 @@ true：当集合空间下存在集合时，不执行删除操作，返回失败�
 false：不做检查，直接删除集合空间及其包含的相关集合
 .PP
 格式：\f[C]EnsureEmpty:true|false\f[]
+.RE
+.IP "2." 3
+\f[C]SkipRecycleBin\f[] ( \f[I]Bool\f[]
+)：删除集合空间时，是否禁用回收站机制，默认是 false。其可选取值如下：
+.RS 4
+.IP \[bu] 2
+true：删除集合空间时，将不生成对应的回收站项目
+.IP \[bu] 2
+false：根据字段 Enable 的值决定是否启用回收站机制
+.PP
+格式：\f[C]SkipRecycleBin:true|false\f[]
 .RE
 .RE
 .SH 返回值
@@ -93,6 +104,38 @@ T}@T{
 集合空间中存在
 T}@T{
 检查是否开启了 \f[C]| ||||集合。|EnsureEmpty\f[] 选项。
+T}
+T{
+3
+T}@T{
+\-386
+T}@T{
+SDB_RECYCLE_FULL
+T}@T{
+回收站已满。
+T}@T{
+检查回收站是否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+已满，并通过
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+dropItem() 或 dropAll(
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+) 手动清理回收站。
 T}
 .TE
 .PP

@@ -39,8 +39,8 @@
 #include "dpsLogRecord.hpp"
 #include "vessel/vesselIdDef.h"
 #include "vessel/strSlice.h"
-#include "vessel/deltaLogRecord.h"
 #include "vessel/slice.h"
+#include "vessel/vesselFileDef.h"
 
 namespace engine
 {
@@ -73,22 +73,6 @@ namespace vessel
    INT32 commitReleasingPagesLog(requestContext *context,
                                  const ossPoolVector<PAGE_ID> &lpids,
                                  const bson::BSONObj &adjunct);
-
-   class lpsLogUtil : public SDBObject
-   {
-      public:
-         lpsLogUtil() = delete;
-         ~lpsLogUtil() = delete;
-
-      public:
-         static INT32 commit(requestContext *context,
-                             SPACE_ID sid,
-                             SPACE_TYPE spaceType,
-                             FILE_TYPE fileType,
-                             const deltaLogRecord &dlr,
-                             DPS_LSN_OFFSET &lsn);
-   };//class lpsLogUtil
-
 }//namespace vessel
 }//namespace engine
 

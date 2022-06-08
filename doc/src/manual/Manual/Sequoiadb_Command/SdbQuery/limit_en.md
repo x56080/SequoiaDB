@@ -1,11 +1,10 @@
-
 ##NAME##
 
-limit - Control the number of records returned by the query.
+limit - controls the number of records returned by the query
 
 ##SYNOPSIS##
 
-***query.limit( \<num\> )***
+**query.limit(\<num\>)**
 
 ##CATEGORY##
 
@@ -13,46 +12,46 @@ SdbQuery
 
 ##DESCRIPTION##
 
-Control the number of records returned by the query.
+This function is used to control the number of records returned by the query.
 
 ##PARAMETERS##
 
-| Name | Type | Default | Description                | Required or not |
-| ---- | ---- | ------- | -------------------------- | --------------- |
-| num  | int  | defualt to display all records | the number of records returned | yes |
-
->**Note:**
-
->If the number of records in the result set is less than num, it is returned according to the actual number of records. Otherwise return only the first "num" records.
+| Name | Type| Description | Required or not |
+| ---- | --- | ----------- | --------------- |
+| num    | number | Customize the number of records to return to the result set.| required |
 
 ##RETURN VALUE##
 
-On success, returns the cursor of the query result set.
+When the function executes successfully, it will return an object of type SdbQuery.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, refer to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v2.0 and above
 
 ##EXAMPLES##
 
-* Select the record that the age field value greater than (with using [$gt](reference/operator/match_operator/gt.md)) 10 under the collection, employee, and return only the first two records.
+Get the record with the largest field "age" in the collection "sample.employee".
 
 ```lang-javascript
-> db.sample.employee.find( { age: { $gt: 10 } } ).limit( 2 )
+> db.sample.employee.find().sort({age: -1}).limit(1)
 {
   "_id": {
-    "$oid": "5cf8aef75e72aea111e82b38"
+    "$oid": "5813035cc842af52b6000009"
   },
-  "name": "tom",
-  "age": 20
-}
-{
-  "_id": {
-    "$oid": "5cf8aefe5e72aea111e82b39"
-  },
-  "name": "ben",
-  "age": 21
+  "name": "Tom",
+  "age": 22
 }
 ```
+
+[^_^]:
+    Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

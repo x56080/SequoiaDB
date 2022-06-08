@@ -197,7 +197,7 @@ namespace engine
                          string &domain ) ;
 
    INT32 catGetDomainCSs ( const CHAR * domain, pmdEDUCB * cb,
-                           ossPoolList< std::string > & collectionSpaces ) ;
+                           ossPoolList< utilCSUniqueID > & collectionSpaces ) ;
 
    /* Collection[CAT_COLLECTION_INFO_COLLECTION] functions: */
    INT32 catRemoveCL( const CHAR *clFullName, pmdEDUCB *cb, _SDB_DMSCB * dmsCB,
@@ -222,15 +222,22 @@ namespace engine
    INT32 catUpdateCatalogByUnset( const CHAR * clFullName, const CHAR * field,
                                   pmdEDUCB * cb, INT16 w ) ;
 
-   INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
-                                vector< UINT32 > &groups,
-                                BOOLEAN includeSubCLGroups = FALSE,
-                                BOOLEAN checkDataSource = FALSE ) ;
-   INT32 catGetCSGroups ( const CHAR * csName,
-                          pmdEDUCB * cb,
-                          ossPoolSet< UINT32 > & groups,
-                          BOOLEAN includeSubCLGroups = FALSE,
-                          BOOLEAN checkDataSource = FALSE ) ;
+   INT32 catGetCSSubCLGroups ( const CHAR * csName,
+                               pmdEDUCB * cb,
+                               ossPoolSet< UINT32 > & groups ) ;
+   INT32 catGetCSGroups( utilCSUniqueID csUniqueID,
+                         pmdEDUCB *cb,
+                         BOOLEAN includeRecycleBin,
+                         BOOLEAN includeRunningTask,
+                         std::vector< UINT32 > &groups ) ;
+   INT32 catGetCSGroups( utilCSUniqueID csUniqueID,
+                         pmdEDUCB *cb,
+                         BOOLEAN includeRecycleBin,
+                         BOOLEAN includeRunningTask,
+                         ossPoolSet< UINT32 > &groups ) ;
+   INT32 catCheckCSCapacity( utilCSUniqueID csUniqueID,
+                             UINT32 newAdding,
+                             pmdEDUCB *cb ) ;
 
    /* Collection[CAT_INDEX_INFO_COLLECTION] functions: */
    INT32 catGetAndIncIdxUniqID( const CHAR* collection, pmdEDUCB *cb, INT16 w,
@@ -247,6 +254,7 @@ namespace engine
                          pmdEDUCB *cb, INT16 w,
                          BOOLEAN *pRemoveOldIdx = NULL ) ;
    INT32 catRemoveCLIndexes( const CHAR *collection, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catRemoveCSIndexes( const CHAR *csName, pmdEDUCB *cb, INT16 w ) ;
 
    INT32 catCheckIndexExist( const CHAR *collection, const BSONObj &indexDef,
                              pmdEDUCB *cb,
@@ -269,7 +277,7 @@ namespace engine
                                 string &indexCLName,
                                 utilCLUniqueID &indexCLUID ) ;
    INT32 catGetCLGlobalIndexesInfo( const CHAR *collection, pmdEDUCB *cb,
-                                    ossPoolList<PAIR_CLNAME_ID>& indexCLList ) ;
+                                    CAT_PAIR_CLNAME_ID_LIST& indexCLList ) ;
 
    INT32 catRenameCLInIndexes( const CHAR *clFullName, const CHAR *newCLFullName,
                                pmdEDUCB *cb, INT16 w ) ;
@@ -282,6 +290,17 @@ namespace engine
                                   pmdEDUCB *cb, INT64 &count ) ;
    INT32 catGetCLTaskCountByType( const CHAR *collection, CLS_TASK_TYPE type,
                                   pmdEDUCB *cb, INT64 &count ) ;
+   INT32 catGetCSSplitTargetGroups( utilCSUniqueID csUniqueID,
+                                    pmdEDUCB * cb,
+                                    ossPoolSet< UINT32 > & groups ) ;
+   INT32 catGetCLTaskByType( const CHAR *clName,
+                             CLS_TASK_TYPE type,
+                             pmdEDUCB *cb,
+                             ossPoolSet< UINT64 > &tasks ) ;
+   INT32 catGetCSTaskByType( const CHAR *csName,
+                             CLS_TASK_TYPE type,
+                             pmdEDUCB *cb,
+                             ossPoolSet< UINT64 > &tasks ) ;
    INT32 catGetTaskStatus( UINT64 taskID, INT32 &status, pmdEDUCB *cb ) ;
    INT32 catUpdateTask( UINT64 taskID, const BSONObj *pSetInfo,
                         const BSONObj *pUnsetInfo, pmdEDUCB *cb, INT16 w ) ;
@@ -299,19 +318,13 @@ namespace engine
                         INT16 w ) ;
    INT32 catRemoveTask( UINT64 taskID, BOOLEAN checkExist, pmdEDUCB *cb,
                         INT16 w ) ;
-   INT32 catRemoveCLTasks( const string &clName, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catRemoveCLTasks( const CHAR *clName, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catRemoveCSTasks( const CHAR *csName, pmdEDUCB *cb, INT16 w ) ;
    INT32 catRemoveSequenceTasks ( const CHAR * sequenceName, pmdEDUCB * cb,
                                   INT16 w ) ;
    INT32 catRemoveTasksByType ( CLS_TASK_TYPE type, pmdEDUCB * cb, INT16 w ) ;
    INT32 catRemoveExpiredTasks ( pmdEDUCB * cb, INT16 w,
                                  INT32 expirationTimeS ) ;
-
-   INT32 catGetCSGroupsFromTasks( const CHAR *csName, pmdEDUCB *cb,
-                                  vector< UINT32 > &groups ) ;
-   INT32 catGetCSTaskGroups ( const CHAR * csName,
-                              pmdEDUCB * cb,
-                              ossPoolSet< UINT32 > & groups ) ;
-
    INT32 catRenameCLInTasks( const CHAR *clFullName, const CHAR *newCLFullName,
                              pmdEDUCB *cb, INT16 w ) ;
 
@@ -370,7 +383,9 @@ namespace engine
                                     _pmdEDUCB *cb ) ;
 
    /* Get collection's name by unique id */
-   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID, string &clName,
+   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID,
+                                    string &clName,
+                                    bson::BSONObj &clInfo,
                                     _pmdEDUCB *cb ) ;
 
    /* Check whether collection is main collection */
@@ -398,14 +413,20 @@ namespace engine
    /* Get and lock Collection Space */
    INT32 catGetAndLockCollectionSpace ( const string &csName, BSONObj &boSpace,
                                         _pmdEDUCB *cb,
-                                        catCtxLockMgr *pLockMgr,
-                                        OSS_LATCH_MODE mode ) ;
+                                        catCtxLockMgr *pLockMgr = NULL,
+                                        OSS_LATCH_MODE mode = SHARED ) ;
+   INT32 catGetAndLockCollectionSpace( utilCSUniqueID csUniqueID,
+                                       BSONObj &boSpace,
+                                       const CHAR *&csName,
+                                       _pmdEDUCB *cb,
+                                       catCtxLockMgr *pLockMgr = NULL,
+                                       OSS_LATCH_MODE mode = SHARED ) ;
 
    /* Get and lock Collection */
    INT32 catGetAndLockCollection ( const string &clName, BSONObj &boCollection,
                                    _pmdEDUCB *cb,
-                                   catCtxLockMgr *pLockMgr,
-                                   OSS_LATCH_MODE mode ) ;
+                                   catCtxLockMgr *pLockMgr = NULL,
+                                   OSS_LATCH_MODE mode = SHARED ) ;
 
    /* Get and lock groups of Collection */
    INT32 catGetAndLockCollectionGroups ( const BSONObj &boCollection,
@@ -417,17 +438,20 @@ namespace engine
    INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
                                     vector<UINT32> &groupIDList ) ;
 
+   INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
+                                    SET_UINT32 &groupIDSet ) ;
+
    /* Lock groups */
    INT32 catLockGroups( vector<UINT32> &groupIDList,
                         _pmdEDUCB *cb,
                         catCtxLockMgr &lockMgr,
                         OSS_LATCH_MODE mode ) ;
 
-   /* Get groups of Collection including its sub-collections */
-   INT32 catGetCollectionGroupsCascade ( const std::string &clName,
-                                         const BSONObj &boCollection,
-                                         _pmdEDUCB *cb,
-                                         std::vector<UINT32> &groupIDList ) ;
+   INT32 catLockGroups( const CAT_GROUP_SET &groupIDSet,
+                        _pmdEDUCB *cb,
+                        catCtxLockMgr &lockMgr,
+                        OSS_LATCH_MODE mode,
+                        BOOLEAN ignoreNonExist ) ;
 
    /* Check available of groups */
    INT32 catCheckGroupsByID ( std::vector<UINT32> &groupIDList ) ;
@@ -467,7 +491,7 @@ namespace engine
    /* Drop Collection */
    INT32 catDropCLStep ( const string &clName, INT32 version, BOOLEAN delFromCS,
                          _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
-                         INT16 w ) ;
+                         INT16 w, BOOLEAN rmTaskAndIdx = TRUE ) ;
 
    /* Alter Collection */
    INT32 catAlterCLStep ( const string &clName, const BSONObj &boNewData,
@@ -536,7 +560,7 @@ namespace engine
                                  catCollectionInfo &clInfo,
                                  UINT32 mask,
                                  UINT32 attribute,
-                                 const std::vector<UINT32> &grpIDLst,
+                                 const CAT_GROUP_SET &grpIDSet,
                                  const std::map<std::string, UINT32> &splitLst,
                                  BSONObj &catRecord,
                                  INT16 w ) ;
@@ -586,6 +610,10 @@ namespace engine
    /* Data Source */
    INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
                                   BSONObj &obj, pmdEDUCB *cb ) ;
+   INT32 catCheckDataSourceExist( UTIL_DS_UID dsUID,
+                                  BOOLEAN &exist,
+                                  bson::BSONObj &obj,
+                                  pmdEDUCB *cb ) ;
 
    INT32 catCheckPureMappingCS( const CHAR *csName,
                                 pmdEDUCB *cb,
@@ -602,6 +630,40 @@ namespace engine
 
    INT32 catCheckDataSourceID( const bson::BSONObj &boObject,
                                UTIL_DS_UID &dsUID ) ;
+
+   /* recycle bin */
+   INT32 catUpdateRecycleBinConf( const utilRecycleBinConf &newConf,
+                                  pmdEDUCB *cb,
+                                  INT16 w ) ;
+   const CHAR *catGetRecycleBinMetaCL( UTIL_RECYCLE_TYPE type ) ;
+   const CHAR *catGetRecycleBinRecyCL( UTIL_RECYCLE_TYPE type ) ;
+   INT32 catGetGroupsForRecycleCS( utilCSUniqueID csUniqueID,
+                                   pmdEDUCB *cb,
+                                   CAT_GROUP_SET &groupIDSet ) ;
+   INT32 catGetGroupsForRecycleItem( utilRecycleID recycleID,
+                                     pmdEDUCB *cb,
+                                     CAT_GROUP_SET &groupIDSet ) ;
+   INT32 catSaveToGroupIDList( SET_UINT32 &groupIDSet,
+                               std::vector<UINT32> &groupIDList ) ;
+   INT32 catParseCLUniqueID( const bson::BSONObj &object,
+                             utilCLUniqueID &uniqueID,
+                             const CHAR *fieldName = FIELD_NAME_UNIQUEID ) ;
+   INT32 catParseCSUniqueID( const bson::BSONObj &object,
+                             utilCSUniqueID &uniqueID,
+                             const CHAR *fieldName = FIELD_NAME_UNIQUEID ) ;
+   INT32 catIncAndFetchRecycleID( utilRecycleID &recycleID,
+                                  pmdEDUCB *cb,
+                                  INT16 w ) ;
+   INT32 catGetDomainRecycleCSs( const CHAR *domain,
+                                 pmdEDUCB *cb,
+                                 ossPoolList< utilCSUniqueID > &collectionSpaces ) ;
+   INT32 catGetRecyCSGroups( utilCSUniqueID csUniqueID,
+                             pmdEDUCB *cb,
+                             SET_UINT32 &groups ) ;
+   INT32 catGetReturnCLUID( utilCLUniqueID clUniqueID,
+                            utilCLUniqueID &returnCLUniqueID,
+                            pmdEDUCB *cb,
+                            INT16 w ) ;
 
 }
 

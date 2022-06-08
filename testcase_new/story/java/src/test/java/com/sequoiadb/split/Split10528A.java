@@ -113,7 +113,8 @@ public class Split10528A extends SdbTestBase {
                 // 如果删除成功，本次测试未碰撞到测试点
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -23 && e.getErrorCode() != -147
-                        && e.getErrorCode() != -190 ) {
+                        && e.getErrorCode() != -190
+                        && e.getErrorCode() != -243 ) {
                     e.printStackTrace();
                     throw e;
                 }

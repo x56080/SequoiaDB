@@ -145,6 +145,8 @@ public class NetSplit2577 extends SdbTestBase {
         } catch ( ReliabilityException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             if ( db != null ) {
                 db.close();

@@ -548,9 +548,11 @@ namespace engine
     _replServiceID ( MSG_ROUTE_REPL_SERVICE ),
     _taskMgr( 0x7FFFFFFF ),
     _requestID ( 0 ),
-     _regTimerID ( CLS_INVALID_TIMERID ),
+    _regTimerID ( CLS_INVALID_TIMERID ),
     _regFailedTimes( 0 ),
-    _oneSecTimerID ( CLS_INVALID_TIMERID )
+    _needUpdateNode( FALSE ),
+    _oneSecTimerID ( CLS_INVALID_TIMERID ),
+    _taskTimerID( CLS_INVALID_TIMERID )
    {
       _replServiceName[0] = 0 ;
       _shdServiceName[0]  = 0 ;
@@ -566,6 +568,8 @@ namespace engine
       _shardNetRtAgent     = NULL ;
       _shdObj              = NULL ;
       _replObj             = NULL ;
+      _pSitePropMgr        = NULL ;
+      _pResource           = NULL ;
    }
 
    _clsMgr::~_clsMgr ()
@@ -594,16 +598,16 @@ namespace engine
       rc = _pResource->init( netRouteAgent, optCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
-      // set userOwnQueen = TRUE to avoid bug like SEQUOIADBMAINSTREAM-4631
-      // _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr( TRUE ) ;
-      _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr() ;
+      // set userOwnQueue = TRUE to avoid messages posted to EDU directly
+      _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr( TRUE ) ;
       PD_CHECK( NULL != _pSitePropMgr, SDB_OOM, error, PDERROR,
                 "Failed to malloc _coordSessionPropMgr, rc: %d", rc ) ;
 
       _pSitePropMgr->setInstanceOption( optCB->getPrefInstStr(),
                                         optCB->getPrefInstModeStr(),
-                                        optCB->isPreferedStrict(),
-                                        optCB->getPreferedPeriod(),
+                                        optCB->isPreferredStrict(),
+                                        optCB->getPreferredPeriod(),
+                                        optCB->getPrefConstraint(),
                                         PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
       rc = _remoteSessionMgr.init( netRouteAgent, _pSitePropMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Init session manager failed, rc: %d", rc ) ;
@@ -813,6 +817,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init repl session manager, rc: %d",
                    rc ) ;
 
+      rc = _recycleBinMgr.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init recycle bin manager, rc: %d",
+                   rc ) ;
+
       // 4. set bussiness not ok( need wait register to change )
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
 
@@ -827,6 +835,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVE ) ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_recycleBinMgr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
+                      "recycle bin manager to DMS, rc: %d", rc ) ;
+      }
 
       if ( pmdGetStartup().isOK() )
       {
@@ -933,11 +948,20 @@ namespace engine
       }
 
       // 3. set timer
-      _oneSecTimerID = setTimer ( CLS_REPL, OSS_ONE_SEC ) ;
+      _oneSecTimerID = setTimer( CLS_REPL, OSS_ONE_SEC ) ;
 
       if ( CLS_INVALID_TIMERID == _oneSecTimerID )
       {
-         PD_LOG ( PDERROR, "Register repl/shard/one seccond timer failed" ) ;
+         PD_LOG ( PDERROR, "Register one seccond timer failed" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      _taskTimerID = setTimer( CLS_REPL, 0xFFFFFFFF ) ;
+
+      if ( CLS_INVALID_TIMERID == _taskTimerID )
+      {
+         PD_LOG ( PDERROR, "Register task timer failed" ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -961,6 +985,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Start storage checking job thread failed, rc: %d",
                       rc ) ;
+
+         rc = _recycleBinMgr.startBGJob() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start background job for "
+                      "recycle bin manager, rc: %d", rc ) ;
       }
 
    done:
@@ -1004,6 +1032,11 @@ namespace engine
 
       _shardSessionMgr.setForced() ;
       _replSessionMgr.setForced() ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         pmdGetKRCB()->getDMSCB()->unregHandler( &_recycleBinMgr ) ;
+      }
 
       return SDB_OK ;
    }
@@ -1058,6 +1091,8 @@ namespace engine
       _mapTaskQuery.clear() ;
       _mapTaskID.clear() ;
       _vecInnerSessionParam.clear() ;
+
+      _recycleBinMgr.fini() ;
 
       PD_TRACE_EXIT ( SDB__CLSMGR_FINAL );
       return SDB_OK ;
@@ -1214,14 +1249,19 @@ namespace engine
       {
          if ( primary )
          {
-            if ( SDB_ROLE_DATA == pmdGetDBRole() &&
-                 pDmsCB->nullCSUniqueIDCnt() > 0 )
+            if ( SDB_ROLE_DATA == pmdGetDBRole() )
             {
-               startUniqueIDCheckJob() ;
-            }
+               if ( pDmsCB->nullCSUniqueIDCnt() > 0 )
+               {
+                  startUniqueIDCheckJob() ;
+               }
+               // set configure invalid, so the recycle bin manager
+               // will update configure from CATALOG later
+               _recycleBinMgr.setConfInvalid() ;
 
-            // start query task
-            startAllTaskCheck() ;
+               // start query task
+               startAllTaskCheck() ;
+            }
          }
          else
          {
@@ -1551,7 +1591,7 @@ namespace engine
    // Another daemon will be triggered every second, it will send the check
    // request to CATALOG to check for task collection
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKCHK, "_clsMgr::startTaskCheck" )
-   INT32 _clsMgr::startTaskCheck ( const BSONObj & match )
+   INT32 _clsMgr::startTaskCheck( const BSONObj &match, BOOLEAN quickPull )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_STARTTSKCHK );
@@ -1573,6 +1613,11 @@ namespace engine
             builder.append( FIELD_NAME_IS_MAINTASK,
                             BSON( "$exists" << 0 ) ) ;
             _mapTaskQuery[++_requestID] = builder.obj() ;
+
+            if ( quickPull )
+            {
+               _postTimeoutEvent( _taskTimerID ) ;
+            }
          }
          catch( std::exception &e )
          {
@@ -1619,7 +1664,8 @@ namespace engine
       return rc ;
    }
 
-   INT32 _clsMgr::startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask )
+   INT32 _clsMgr::startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask,
+                                     BOOLEAN quickPull )
    {
       INT32 rc = SDB_OK ;
 
@@ -1637,7 +1683,7 @@ namespace engine
          builder.append( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME,
                          pmdGetKRCB()->getGroupName() ) ;
 
-         rc = startTaskCheck( builder.done() ) ;
+         rc = startTaskCheck( builder.done(), quickPull ) ;
       }
       catch( std::exception &e )
       {
@@ -1665,6 +1711,56 @@ namespace engine
       {
          rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsMgr::startIdxTaskCheckByCS( utilCSUniqueID csUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME,
+                         pmdGetKRCB()->getGroupName() ) ;
+
+         rc = utilGetCSBounds( FIELD_NAME_UNIQUEID, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection space bound "
+                      "[%u], rc: %d", csUniqueID, rc ) ;
+
+         rc = startTaskCheck( builder.done() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _clsMgr::startAllSplitTaskCheck()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj match1 = BSON( CAT_TARGETID_NAME <<
+                                _selfNodeID.columns.groupID ) ;
+
+         rc = startTaskCheck( match1 ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
       return rc ;
@@ -1795,6 +1891,10 @@ namespace engine
             _shardSessionMgr.stopUnShardTimer() ;
          }
       }
+      else if ( timerID == _taskTimerID )
+      {
+         _prepareTask () ;
+      }
       else
       {
          // otherwise let's extract the type from timerID, and call onTimer
@@ -1887,6 +1987,27 @@ namespace engine
       return rc ;
    }
 
+   void _clsMgr::_postTimeoutEvent( UINT64 timerID )
+   {
+      UINT32 type = 0 ;
+      UINT32 netTimerID = 0 ;
+
+      ossUnpack32From64( timerID, type, netTimerID ) ;
+
+      if ( CLS_SHARD == type )
+      {
+         _shdTimerHandler->handleTimeout( 0, netTimerID ) ;
+      }
+      else if ( CLS_REPL == type )
+      {
+         _replTimerHandler->handleTimeout( 0, netTimerID ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "Invalid timerID" ) ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKTH, "_clsMgr::startTaskThread" )
    INT32 _clsMgr::startTaskThread ( const BSONObj &taskObj, UINT64 &taskID )
    {
@@ -1911,7 +2032,8 @@ namespace engine
          PD_LOG( PDINFO,
                  "Task[%llu] has been finished, do not start thread",
                  taskID ) ;
-         goto done ;
+         // release memory in goto error
+         goto error ;
       }
 
       // add to clsTaskMgr and clsMgr
@@ -2373,7 +2495,7 @@ namespace engine
       // send msg
       rc = sendToCatlog( msg ) ;
       PD_LOG ( PDDEBUG,
-               "Send MSG_CAT_QUERY_TASK_REQ[%s] requestID[%llu] to catalog"
+               "Send MSG_CAT_QUERY_TASK_REQ[%s] [requestID:%llu] to catalog"
                "[rc:%d]", match->toString().c_str(), requestID, rc ) ;
    done:
       if ( pBuff )
@@ -2392,6 +2514,53 @@ namespace engine
       return _shdObj->updateCatGroup ( millisec ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__UPDATEDCINFO, "_clsMgr::_updateDCInfo" )
+   INT32 _clsMgr::_updateDCInfo( MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSMGR__UPDATEDCINFO ) ;
+
+      try
+      {
+         /// update dc base info
+         BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
+         if ( msgIsInnerOpReply( msg ) &&
+              msg->messageLength > (INT32)sizeof( MsgOpReply ) +
+              msgObject.objsize() + 5 )
+         {
+            MsgOpReply *pReply = ( MsgOpReply* )msg ;
+            if ( pReply->numReturned > 1 )
+            {
+               clsDCBaseInfo *pInfo = _shdObj->getDCMgr()->getDCBaseInfo() ;
+               BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
+                                  ossAlign4( (UINT32)msgObject.objsize() ) ) ;
+               _shdObj->getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
+
+               _recycleBinMgr.setConf( pInfo->getRecycleBinConf() ) ;
+
+               pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
+               pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
+               pmdGetKRCB()->setDBRestoring( pInfo->isRestoring() ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse DC info, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSMGR__UPDATEDCINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    //message function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
    INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg )
@@ -2403,6 +2572,7 @@ namespace engine
       const CHAR *hostname = NULL ;
       NodeID routeID ;
       clsRegAssit regAssit ;
+      MsgCatRegisterRsp *rsp = (MsgCatRegisterRsp *)msg ;
 
       // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
@@ -2429,10 +2599,63 @@ namespace engine
       nodeID = regAssit.getNodeID () ;
       hostname = regAssit.getHostname () ;
 
-      //Kill register timer
-      killTimer ( _regTimerID ) ;
-      _regTimerID = CLS_INVALID_TIMERID ;
-      _regFailedTimes = 0 ;
+      rc = _updateDCInfo( msg ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update DC info, rc: %d", rc ) ;
+
+      if ( _needUpdateNode )
+      {
+         if ( 0 == rsp->startFrom )
+         {
+            // update node done
+            //Kill register timer
+            killTimer ( _regTimerID ) ;
+            _regTimerID = CLS_INVALID_TIMERID ;
+            _regFailedTimes = 0 ;
+
+            _needUpdateNode = FALSE ;
+
+            PD_LOG ( PDEVENT, "Update node succeed, groupID:%u, nodeID:%u",
+                     _selfNodeID.columns.groupID,
+                     _selfNodeID.columns.nodeID ) ;
+         }
+
+         if ( 0 == rsp->startFrom )
+         {
+            if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
+            {
+               _shdObj->updateCatGroup () ;
+            }
+         }
+         else if ( -1 != rsp->startFrom )
+         {
+            if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
+            {
+               _shdObj->updateCatGroup() ;
+            }
+         }
+         else
+         {
+            // primary is unknown
+            _shdObj->updateCatGroup() ;
+         }
+
+         goto done ;
+      }
+      else if ( SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() &&
+                0 != rsp->startFrom )
+      {
+         // for CATALOG, need a secondary register message to update
+         // node information to the primary node
+         _needUpdateNode = TRUE ;
+         _regFailedTimes = 0 ;
+      }
+      else
+      {
+         //Kill register timer
+         killTimer ( _regTimerID ) ;
+         _regTimerID = CLS_INVALID_TIMERID ;
+         _regFailedTimes = 0 ;
+      }
 
       //Update the net route agent the local id
       _selfNodeID.columns.groupID = groupID ;
@@ -2449,28 +2672,6 @@ namespace engine
        */
       pmdGetKRCB()->setHostName( hostname ) ;
 
-      {
-         /// update dc base info
-         BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
-         if ( msgIsInnerOpReply( msg ) &&
-              msg->messageLength > (INT32)sizeof( MsgOpReply ) +
-              msgObject.objsize() + 5 )
-         {
-            MsgOpReply *pReply = ( MsgOpReply* )msg ;
-            if ( pReply->numReturned > 1 )
-            {
-               clsDCBaseInfo *pInfo = _shdObj->getDCMgr()->getDCBaseInfo() ;
-               BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
-                                  ossAlign4( (UINT32)msgObject.objsize() ) ) ;
-               _shdObj->getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
-
-               pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
-               pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
-               pmdGetKRCB()->setDBRestoring( pInfo->isRestoring() ) ;
-            }
-         }
-      }
-
       routeID.value = _selfNodeID.value ;
       routeID.columns.serviceID = _replServiceID ;
       _replNetRtAgent->setLocalID ( routeID ) ;
@@ -2484,9 +2685,24 @@ namespace engine
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
       //Update the primary catlog node
-      if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
+      if ( 0 == rsp->startFrom )
       {
-         _shdObj->updateCatGroup () ;
+         if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
+         {
+            _shdObj->updateCatGroup () ;
+         }
+      }
+      else if ( -1 != rsp->startFrom )
+      {
+         if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
+         {
+            _shdObj->updateCatGroup() ;
+         }
+      }
+      else
+      {
+         // primary is unknown
+         _shdObj->updateCatGroup() ;
       }
 
       //Active the shard and repl CBs
@@ -2558,11 +2774,13 @@ namespace engine
          {
             if ( 1 == _mapTaskQuery.size() )
             {
-               BSONObj queryAll = BSON( CAT_TARGETID_NAME <<
-                                        _selfNodeID.columns.groupID ) ;
-               if ( 0 != queryAll.woCompare( it->second ) )
+               BSONObj queryAllSplit = BSON( FIELD_NAME_TARGETID <<
+                                             _selfNodeID.columns.groupID <<
+                                             FIELD_NAME_STATUS <<
+                                             BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+               if ( 0 != queryAllSplit.woCompare( it->second ) )
                {
-                  _mapTaskQuery[ ++_requestID ] = queryAll ;
+                  _mapTaskQuery[ ++_requestID ] = queryAllSplit ;
                }
             }
          }
@@ -2600,8 +2818,8 @@ namespace engine
             _mapTaskQuery.erase ( it ) ;
          }
 
-         PD_LOG ( PDINFO, "The query task[%lld] has %d jobs", msg->requestID,
-                  numReturned ) ;
+         PD_LOG ( PDINFO, "The query task[requestID:%lld] has %d jobs",
+                  msg->requestID, numReturned ) ;
 
          // start task thread
          for ( UINT32 i = 0 ; i < objList.size() ; i++ )

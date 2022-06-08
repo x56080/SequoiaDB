@@ -63,7 +63,26 @@ namespace bson {
 
         /** @return the object ID output as 24 hex digits */
         string str() const { return toHexLower(data, 12); }
-        string toString() const { return str(); }
+        string toString() const
+        {
+            try
+            {
+                return str();
+            }
+            catch ( std::exception &e )
+            {
+                try
+                {
+                    StringBuilder s ;
+                    s << e.what() ;
+                    return s.str();
+                }
+                catch (...)
+                {
+                    return "Out of memory" ;
+                }
+            }
+        }
         void toByteArray( unsigned char *array, int arrayLen ) const;
 
         static OID gen() { OID o; o.init(); return o; }

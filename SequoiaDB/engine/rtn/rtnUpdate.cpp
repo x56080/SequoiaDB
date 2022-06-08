@@ -46,11 +46,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dmsScanner.hpp"
-#include "utilFullNameParser.hpp"
-#include "vessel/builtinRecordUpdater.h"
-#include "interface/IDataStorageEngine.h"
-#include "dmsEngineCB.hpp"
-#include "dmsCursorReader.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -101,152 +97,6 @@ namespace engine
       return rc ;
    }
 
-   static INT32 _rtnUpdateInEngine(rtnQueryOptions &options,
-                                   const BSONObj &updator,
-                                   pmdEDUCB *cb,
-                                   dmsStorageUnit *su,
-                                   utilUpdateResult *pResult)
-   {
-      INT32 rc = SDB_OK;
-
-      dmsMBContext *mbContext = NULL;
-      optAccessPlanManager *apm = pmdGetKRCB()->getRTNCB()->getAPM();
-      optAccessPlanRuntime planRuntime;
-      mthMatchRuntime *matchRuntime = NULL;
-      _mthMatchTreeContext mthContext;
-      utilFullNameParser parser;
-      const CHAR *clName = NULL;
-      mthModifier modifier;
-      vessel::bsonRecordUpdater recordUpdater;
-
-      IDataStorageEngine *engine = NULL;
-      DATA_COLLECTION_PTR cl;
-      DATA_CURSOR_PTR cursor;
-      dmsBsonCursorReader reader;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-
-      if (!parser.parse(options.getCLFullName(), &clName))
-      {
-         PD_LOG(PDERROR, "failed to parse fullName");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = su->data()->getMBContext( &mbContext, clName, -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
-                   "rc: %d", options.getCLFullName(), rc ) ;
-
-      rc = modifier.loadPattern(updator);
-      PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
-                      "%s", updator.toString().c_str() ) ;
-
-      recordUpdater.setModifier(&modifier);
-
-      rc = mbContext->mbLock(SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock mb context:%d", rc);
-         goto error;
-      }      
-
-      rc = apm->getAccessPlan( options, su, mbContext, planRuntime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
-                     "rc: %d", options.getCLFullName(), rc ) ;
-      matchRuntime = planRuntime.getMatchRuntime(TRUE) ;
-
-      engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      rc = engine->openCL(cb, options.getCLFullName(), dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s], rc:%d", options.getCLFullName(), rc);
-         goto error;
-      }
-
-      if (planRuntime.getScanType() == IXSCAN)
-      {
-         dmsIndexScanOptions o;
-         o.scanFor = DMS_SCAN_FOR_UPDATE;
-
-         rc = cl->scanIndex(cb, planRuntime.getIndexName(),
-                            *(planRuntime.getMatchRuntime()->getPredList()),
-                            o, cursor);
-      }
-      else
-      {
-         dmsScanOptions o;
-         o.scanFor = DMS_SCAN_FOR_UPDATE;
-         rc = cl->scan(cb, o, cursor);
-      }
-
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cursor:%d", rc);
-         goto error;
-      }
-
-      reader.init(cursor);
-      do
-      {
-         rc = reader.fetchNext(cb);
-         if (SDB_DMS_EOC == rc)
-         {
-            rc = SDB_OK;
-            break;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fetch next:%d", rc);
-            goto error;
-         }
-         else if (NULL != matchRuntime && NULL != matchRuntime->getMatchTree())
-         {
-            BOOLEAN matched = FALSE;
-            _mthMatchTree *matcher = matchRuntime->getMatchTree() ;
-            rtnParamList *parameters = matchRuntime->getParametersPointer() ;
-            mthContext.clearRecordInfo();
-            rc = matcher->matches(reader.getRecord(), matched,
-                                  &mthContext, parameters);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to match record, rc: %d", rc ) ;
-               goto error ;
-            }
-            else if (!matched)
-            {
-               continue;
-            }
-         }
-
-         if (NULL != pResult)
-         {
-            pResult->incUpdatedNum();
-         }
-         rc = cl->updateRecord(cb, reader.getRid(), &recordUpdater,
-                               dmsUpdateRecordOptions(), pResult);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to update record:%d", rc);
-            goto error;
-         }
-      } while (TRUE);
-      
-   done:
-      transCB->transLockReleaseAll(cb);
-      if (NULL != mbContext)
-      {
-         if (mbContext->isMBLock())
-         {
-            mbContext->mbUnlock();
-         }
-
-         su->data()->releaseMBContext(mbContext) ;
-      }
-      return rc;
-   error:
-      goto done;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNUPDATE_OPTIONS, "rtnUpdate" )
    INT32 rtnUpdate ( rtnQueryOptions &options, const BSONObj &updator,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
@@ -272,6 +122,7 @@ namespace engine
       BOOLEAN writable                 = FALSE ;
       BOOLEAN strictDataMode           = FALSE ;
       dmsScanner *pScanner             = NULL ;
+      UINT32 scannerRetryTime          = 0 ;
       BSONObj emptyObj ;
       mthModifier modifier ;
       vector<INT64> dollarList ;
@@ -303,18 +154,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    options.getCLFullName(), rc ) ;
 
-      if (DMS_STORAGE_VESSEL == su->type())
-      {
-         rc = _rtnUpdateInEngine(options, updator,
-                                 cb, su, pResult);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         goto done;
-      }
-
       // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
@@ -344,12 +183,12 @@ namespace engine
                                      logWriteMod,
                                      TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
-                      "%s", updator.toString().c_str() ) ;
+                      "%s", PD_SECURE_OBJ( updator ) ) ;
       }
       catch ( std::exception &e )
       {
          PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s: %s",
-                  updator.toString().c_str(), e.what() ) ;
+                  PD_SECURE_OBJ( updator ), e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -359,6 +198,7 @@ namespace engine
          apm = rtnCB->getAPM() ;
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
+retry:
          // plan is released when exiting the function
          rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
@@ -375,6 +215,16 @@ namespace engine
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
                                   DMS_ACCESS_TYPE_UPDATE ) ;
+            if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+            {
+               // Maybe in the process of scanning the index,
+               // the index is deleted
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               // We only need to try to scan once. In most cases,
+               // the next scan is normal
+               goto retry ;
+            }
          }
          else
          {
@@ -496,7 +346,7 @@ namespace engine
                goto error ;
             }
             PD_LOG ( PDDEBUG, "modified equality query object: %s",
-                     target.toString().c_str() ) ;
+                     PD_SECURE_OBJ( target ) ) ;
 
             BSONElement setOnInsert =
                        options.getHint().getField( FIELD_NAME_SET_ON_INSERT ) ;
@@ -512,7 +362,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to insert record %s\ninto "
-                        "collection: %s", target.toString().c_str(),
+                        "collection: %s", PD_SECURE_OBJ( target ),
                         pCollectionShortName ) ;
                goto error ;
             }
@@ -582,7 +432,7 @@ namespace engine
          mthModifier setModifier ;
          rc = setModifier.loadPattern( setObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected: { %s }, "
-                      "rc: %d", setOnInsert.toString().c_str(), rc ) ;
+                      "rc: %d", PD_SECURE_STR( setOnInsert.toString() ), rc ) ;
          rc = setModifier.modify( target, newTarget ) ;
          PD_RC_CHECK( rc, PDERROR, "failed to generate upsertor "
                       "record(rc=%d) by " FIELD_NAME_SET_ON_INSERT, rc ) ;
@@ -592,7 +442,7 @@ namespace engine
       catch ( std::exception &e )
       {
          PD_LOG ( PDERROR, "failed to generate upsertor on { %s }, %s",
-                  setOnInsert.toString().c_str(), e.what() ) ;
+                  PD_SECURE_STR( setOnInsert.toString() ), e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -615,14 +465,14 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Load pattern[%s] failed, rc: %d",
-                    updator.toString().c_str(), rc ) ;
+                    PD_SECURE_OBJ( updator ), rc ) ;
             goto done ;
          }
          rc = modifier.modify( source, obj ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Make modify[%s] failed, rc: %d",
-                    updator.toString().c_str(), rc ) ;
+                    PD_SECURE_OBJ( updator ), rc ) ;
             goto done ;
          }
       }

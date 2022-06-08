@@ -15,6 +15,7 @@
  */
 package org.bson;
 
+import org.bson.types.BSONDate;
 import org.bson.types.BSONDecimal;
 import org.bson.types.ObjectId;
 
@@ -81,6 +82,10 @@ public class EmptyBSONCallback implements BSONCallback {
     }
 
     public void gotLong( String name , long v ){
+        throw new UnsupportedOperationException( "Not supported yet." );
+    }
+
+    public void gotBSONDate(String name, long millis) {
         throw new UnsupportedOperationException( "Not supported yet." );
     }
 

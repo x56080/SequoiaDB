@@ -1,4 +1,4 @@
-﻿<!-- Configuration List                                                                     -->
+<!-- Configuration List                                                                     -->
 <!-- name: (required) the macro name that going to be generated in source code              -->
 <!-- long: (required) configure option ( long version )                                     -->
 <!-- short: (optional) configure option ( short version, one character )                    -->
@@ -60,6 +60,10 @@
       <coorddft>/opt/sequoiadb/database/coord</coorddft>
       <datadft>/opt/sequoiadb/database/data</datadft>
       <standdft>/opt/sequoiadb/database/standalone</standdft>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of data file.<fig></fig>
              2. If it is not specified, the default path is current path.</en>
@@ -76,6 +80,10 @@
          <en>Index path</en>
          <cn>索引路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of index file<fig></fig>
              2. If it is not specified, the default path is the same with 'dbpath'.</en>
@@ -358,16 +366,16 @@
       <long>httpname</long>
       <short>s</short>
       <description>
-         <en>The HTTP service port is svcname+4 by default.</en>
-         <cn>HTTP 服务端口，默认端口为 svcname+4</cn>
+         <en>The REST service port is svcname+4 by default.</en>
+         <cn>REST 服务端口，默认端口为 svcname+4</cn>
       </description>
       <catalogdft>11804</catalogdft>
       <coorddft>11814</coorddft>
       <datadft>11824</datadft>
       <standdft>11814</standdft>
       <detail>
-         <en>Specify the HTTP service port, which is svcname+4 by default.</en>
-         <cn>指定 HTTP 服务端口，默认端口为 svcname+4</cn>
+         <en>Specify the REST service port, which is svcname+4 by default.</en>
+         <cn>指定 REST 服务端口，默认端口为 svcname+4</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -489,6 +497,10 @@
       </description>
       <type>int</type>
       <default>64</default>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the size of sync log file. It is between 64(MB) and 2048(MB).<fig></fig>
              2. If it is not specified, the default value is 64 (MB).<fig></fig>
@@ -504,6 +516,10 @@
       <name>PMD_OPTION_LOGFILENUM</name>
       <long>logfilenum</long>
       <short>n</short>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <description>
          <en>Number of log files,default:20, value range:[1,11800]</en>
          <cn>日志文件数量,默认值:20,取值范围:[1,11800]</cn>
@@ -936,6 +952,31 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_PREFERREDINST</name>
+      <long>preferredinstance</long>
+      <description>
+         <en>Preferred instance for read request, default: 'M'. Could be single value in 'M', 'm', 'S', 's', 'A', 'a', 1-255. Or use ',' to join multiple values. Maximum lenght of option string is 256.</en>
+         <cn>读请求优先选择的实例,默认值为 'M'，取值列表：'M'、'm'、'S'、's'、'A'、'a'、1-255。可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>Specify the preferred instance when executing a read request. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).<fig></fig>
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedinstance</en>
+         <cn>指定执行读请求时优先选择的实例，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedinstance。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+      <default>M</default>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_PREFINST</name>
       <long>preferedinstance</long>
       <description>
@@ -951,25 +992,37 @@
          <cn>新连接生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. It specifies the instance on which to query.<fig></fig>
-             2. If it is not specifed, the default value is "M", i.e. read and write instance.<fig></fig>
-             3. Could be single value, or mutilple values. In SequoiaDB configuration, use ',' to join multiple values. Maximum lenght of option string is 256. e.g. "1,2,S".<fig></fig>
-             4. Accepted values:<fig></fig>
-             ● There are 2 kinds of values: ROLE value, like "M", "S", etc; INSTANCE value, specified by node's instanceid value.<fig></fig>
-             ● ROLE value: "M", "m": read and write instance( master instance ); "S", "s": read only instance( slave instance ); "A", "a": any role instance.<fig></fig>
-             ● INSTANCE value: 1-255, instance ID specified by node's instanceid configuration.<fig></fig>
-             5. More detailed information can be found in [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
-         <cn>1. 指定执行读请求时优先选择的实例<fig></fig>
-             2. 如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
-             3. 取值可以取单值单独指定，也可以取多值混合指定；在 SequoiaDB 的配置文件中可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。如："1,2,S"。<fig></fig>
-             4. 取值范围：<fig></fig>
-             ● 取值类型分为两类，一类是角色取值，如 "M", "S" 等；一类是实例取值，即数据节点通过配置 instanceid 设置的实例 ID。<fig></fig>
-             ● 角色取值："M", "m"：可读写实例（主实例）；"S", "s": 只读实例（备实例）；"A", "a": 任意角色实例。<fig></fig>
-             ● 实例取值：1-255，指定匹配 instanceid 设置的节点。数据节点可以通过配置 instanceid 配合使用。<fig></fig>
-             5. 更详细的内容请参考 [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
+         <en>Specify the prefered instance when executing a read request. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
+         <cn>指定执行读请求时优先选择的实例，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>M</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_PREFERREDINST_MODE</name>
+      <long>preferredinstancemode</long>
+      <description>
+         <en>The mode to choose query instance when multiple preferred instances are found. Could be 'random' or 'ordered'. Default is 'random'.</en>
+         <cn>指定当多个实例符合 preferredinstance 的条件时的选择模式。可选值有 'random' 和 'ordered'。默认值是 'random'。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>Specify the selection mode when multiple instance meet the conditions of preferredinstance. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).<fig></fig>
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedinstancemode</en>
+         <cn>指定当多个实例符合 preferredinstance 的条件时的选择模式，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedinstancemode。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+      <default>random</default>
    </opt>
 
    <opt>
@@ -988,22 +1041,37 @@
          <cn>新连接生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. The mode to choose query instance when multiple prefered instances are found.<fig></fig>
-             2. value enumeration:<fig></fig>
-                ● "random": choose the instance from matched instances by random.<fig></fig>
-                ● "ordered": choose the instance from matched instances by the order of preferedinstance.<fig></fig>
-                ● ROLE value in preferedinstance has higher or lower piority than INSTRANCE value.<fig></fig>
-             3. Default value is 'random'.</en>
-         <cn>1. 指定当多个实例符合 preferedinstance 的条件时的选择模式。<fig></fig>
-             2. 取值列表：<fig></fig>
-                ● "random": 从候选的实例取值中随机选择。<fig></fig>
-                ● "ordered": 从候选的实例取值中按照 preferedinstance 的顺序进行选择。<fig></fig>
-                ● preferedinstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 preferedinstancemode 取值无关。<fig></fig>
-             3. 默认值为 "random"。<fig></fig>
-             4. 更详细的内容请参考 [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
+         <en>Specify the selection mode when multiple instance meet the conditions of preferedinstance. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
+         <cn>指定当多个实例符合 preferedinstance 的条件时的选择模式，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>random</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_PREFERREDINST_STRICT</name>
+      <long>preferredstrict</long>
+      <description>
+         <en>Specify whether the node selection is a strict mode, and when it is a strict mode, the node can only be selected from the specified IDs by preferredinstance.Default is false.</en>
+         <cn>指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferredinstance 指定的ID中选取，默认为false。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>Specify whether the node selection is a strict mode, and when it is a strict mode, the node can only be selected from the specified IDs by preferredinstance.Default is false.<fig></fig>
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedstrict</en>
+         <cn>指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferredinstance 指定的ID中选取，默认为false。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedstrict。</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+      <default>false</default>
    </opt>
 
    <opt>
@@ -1027,6 +1095,33 @@
       </detail>
       <typeofweb>boolean</typeofweb>
       <default>false</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_PREFERREDINST_PERIOD</name>
+      <long>preferredperiod</long>
+      <description>
+         <en>Specify the timeout period (in seconds) of last node chosen for requests. During this timeout period, SequoiaDB will reuse the last node for read quest. Default is 60 seconds, range is [-1, 2^31 - 1], -1 means the last chosen node will not be re-chosen for read request, 0 means always re-choose for read request.</en>
+         <cn>优先实例的有效周期，单位为秒。如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 preferredinstance 重新选择。默认值为 60 秒，取值范围为 [-1, 2^31 - 1]，-1 表示不失效，0 表示本次查询不使用上次选择的实例，根据 preferredinstance 进行重新选择。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>The effective period of the priority instance, in seconds, for more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).<fig></fig>
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedperiod</en>
+         <cn>优先实例的有效周期，单位为秒，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedperiod。</cn>
+      </detail>
+      <typeofweb>num</typeofweb>
+      <type>int</type>
+      <default>60</default>
    </opt>
 
    <opt>
@@ -1045,22 +1140,36 @@
          <cn>新连接生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. Specify the timeout period (in seconds) of last node chosen for requests.<fig></fig>
-             2. During this timeout period, SequoiaDB will reuse the last node for read quest.<fig></fig>
-             3. Default is 60 seconds<fig></fig>
-             4. Range is [-1, 2^31 - 1]<fig></fig>
-             5. -1 means the last chosen node will not be re-chosen for read request<fig></fig>
-             6. 0 means always re-choose for read request.</en>
-         <cn>1. 优先实例的有效周期，单位为秒。<fig></fig>
-             2. 如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 preferedinstance 重新选择。<fig></fig>
-             3. 默认值为 60 秒。<fig></fig>
-             4. 取值范围为 [-1, 2^31 - 1]<fig></fig>
-             5. -1 表示不失效<fig></fig>
-             6. 0 表示本次查询不使用上次选择的实例，根据 preferedinstance 进行重新选择。</cn>
+         <en>The effective period of the priority instance, in seconds, for more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
+         <cn>优先实例的有效周期，单位为秒，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>num</typeofweb>
       <type>int</type>
       <default>60</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_PREFERRED_CONSTRAINT</name>
+      <long>preferredconstraint</long>
+      <description>
+         <en>The constraint of the preferred instance. Value enumeration: 'primaryonly', 'secondaryonly', ''. Default: ''. For more details can refer to setSessionAttr()</en>
+         <cn>优先实例的约束条件，默认值为“”，取值包括“primaryonly”、“secondaryonly”、“”。取值说明可参考 setSessionAttr()。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon new connection</en>
+         <cn>新连接生效</cn>
+      </reloadstrategy>
+      <detail>
+         <en>The constraint of the preferred instance. Value enumeration: 'primaryonly', 'secondaryonly', ''. Default: ''. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr_en.md)</en>
+         <cn>优先实例的约束条件，默认值为""，取值包括"primaryonly"、"secondaryonly"、""。取值说明可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+      <default></default>
    </opt>
 
    <opt>
@@ -1075,14 +1184,16 @@
          <cn>重启生效</cn>
       </reloadable>
       <detail>
-         <en>1. Instance ID of node, used by preferedinstance to choose query instance.<fig></fig>
+         <en>1. Instance ID of node, used by preferredinstance to choose query instance.<fig></fig>
              2. Valid value could be [1, 255].<fig></fig>
              3. If not given or give out-of-range value, will use the order in CATALOG meta-data.<fig></fig>
-             4. Different nodes could use the same instance ID.</en>
-         <cn>1. 节点的实例 ID，用于 preferedinstance 进行实例选择。<fig></fig>
+             4. Different nodes could use the same instance ID.<fig></fig>
+             5. After restarting, users need to use [invalidateCache()](manual/Manual/Sequoiadb_Command/Sdb/invalidateCache.md) to clear the cache information of the node.</en>
+         <cn>1. 节点的实例 ID，用于 preferredinstance 进行实例选择。<fig></fig>
              2. 有效的取值包括 [1, 255]。<fig></fig>
              3. 如不指定，或者指定超出有效范围，则按照节点在编目信息中的下标进行自动分配。<fig></fig>
-             4. 多个节点可以指定相同的实例 ID。</cn>
+             4. 多个节点可以指定相同的实例 ID。<fig></fig>
+             5. 重启后需要使用 [invalidateCache()](manual/Manual/Sequoiadb_Command/Sdb/invalidateCache.md) 清除节点的缓存信息</cn>
       </detail>
       <typeofweb>num</typeofweb>
       <type>int</type>
@@ -1096,6 +1207,10 @@
          <en>Large object file path</en>
          <cn>大对象文件路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of lob. <fig></fig>
              2. If it is not specified, the default path is "Data file path".</en>
@@ -1112,6 +1227,10 @@
          <en>Large object meta file path</en>
          <cn>大对象元数据文件路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
          <en>1. It specifies the path of lob. <fig></fig>
              2. If it is not specified, the default path is the same with 'lobpath'.</en>
@@ -1148,18 +1267,18 @@
       <name>PMD_OPTION_SPARSE_FILE</name>
       <long>sparsefile</long>
       <description>
-         <en>Extend the file as a sparse file, if it is not specified, the default value is 'false'</en>
-         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为'false'</cn>
+         <en>Extend the file as a sparse file, if it is not specified, the default value is 'true'</en>
+         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为'true'</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
       <detail>
-         <en>Extend the file as a sparse file, if it is not specified, the default value is "false"</en>
-         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为"false"</cn>
+         <en>Extend the file as a sparse file, if it is not specified, the default value is "true"</en>
+         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为"true"</cn>
       </detail>
-      <default>false</default>
+      <default>true</default>
       <typeofweb>boolean</typeofweb>
    </opt>
 
@@ -2084,9 +2203,13 @@
         <cn>复制日志写模式，取值：increment,full,默认为increment。</cn>
       </description>
       <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
          <en>takes effect upon next transaction</en>
          <cn>下一次事务中生效</cn>
-      </reloadable>
+      </reloadstrategy>
       <detail>
         <en>Replica log write mod, value enumeration:increment,full, default:increment.</en>
         <cn>复制日志写模式，取值：increment,full,默认为increment。为increment时，复制日志只保存更新记录的增量信息；为full时，复制日志将保存更新记录的完整信息。</cn>
@@ -2104,9 +2227,13 @@
         <cn>开启复制日志保存时间信息功能，默认为false。</cn>
       </description>
       <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <reloadstrategy>
          <en>takes effect upon next transaction</en>
          <cn>下一次事务中生效</cn>
-      </reloadable>
+      </reloadstrategy>
       <detail>
         <en>Turn on replica log save timestamp info, default false.</en>
         <cn>开启复制日志保存时间信息功能，默认为false。</cn>
@@ -2540,22 +2667,22 @@
       <name>PMD_OPTION_SERVICE_MASK</name>
       <long>servicemask</long>
       <description>
-         <en>Block the mask of service port. The values include LOCAL,REPL,SHARD,CATALOG and HTTP. Users can use '|' to connect multiple values. The default value is NONE.</en>
-         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。</cn>
+         <en>Block the mask of service port. The values include LOCAL,REPL,SHARD,CATALOG and REST. Users can use '|' to connect multiple values. The default value is NONE.</en>
+         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 REST，可以使用'|'连接多个值，默认值为 NONE。</cn>
       </description>
       <detail>
-         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and HTTP. Users can use ‘|’ to connect multiple values. The default value is NONE.<fig></fig>
+         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and REST. Users can use ‘|’ to connect multiple values. The default value is NONE.<fig></fig>
          LOCAL: Disable the local service port. If the local service port of the coordination node is disabled, the database will not be able to provide services to clients.<fig></fig>
          REPL: Disable the replication service port. If the replication service port of the catalog node or data node is disabled, the data of the primary node and the standby node will be inconsistent. Generally, it should not be disabled.<fig></fig>
          SHARD: Disable the shard service port. If the shard service port of any node is disabled, data operations will fail. Generally, it should not be disabled.<fig></fig>
          CATALOG: Disable the catalog service port. If the catalog service port of the catalog node is disabled, the node operation will fail and the data operation will fail. Generally, it should not be disabled.<fig></fig>
-         HTTP: Disable the HTTP service port. If the HTTP service port of a node is disabled, the node cannot provide HTTP services.<fig></fig></en>
-         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。<fig></fig>
+         REST: Disable the REST service port. If the REST service port of a node is disabled, the node cannot provide REST services.<fig></fig></en>
+         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 REST，可以使用'|'连接多个值，默认值为 NONE。<fig></fig>
          LOCAL：禁用本地服务端口。如果禁用协调节点的本地服务端口，会导致数据库不能为客户端提供服务。<fig></fig>
          REPL：禁用数据同步服务端口。如果禁用编目节点或数据节点的数据同步服务端口，会导致主节点和备节点数据不一致，通常不应该禁用。<fig></fig>
          SHARD：禁用数据分区服务端口。如果禁用任一节点的数据分区服务端口，会导致数据操作失败，通常不应该禁用。<fig></fig>
          CATALOG：禁用编目服务端口。如果禁用编目节点的编目服务端口，会导致节点操作失败、数据操作失败，通常不应该禁用。<fig></fig>
-         HTTP：禁用 HTTP 服务端口。如果禁用节点的 HTTP 服务端口，会导致该节点不能提供 HTTP 服务。<fig></fig></cn>
+         REST：禁用 REST 服务端口。如果禁用节点的 REST 服务端口，会导致该节点不能提供 REST 服务。<fig></fig></cn>
       </detail>
       <reloadable>
          <en>Take effect after restart</en>
@@ -2686,8 +2813,8 @@
       <name>PMD_OPTION_MAXCONTEXTNUM</name>
       <long>maxcontextnum</long>
       <description>
-        <en>Maximum number of contexts in a node, default: 100000, range: 0 and [ 1000, 2^31-1 ]</en>
-        <cn>节点中最多可以同时开启的上下文个数，默认：100000，取值范围：0 和 [ 1000, 2^31-1 ]。</cn>
+        <en>Maximum number of contexts in a node, default: 100000, range: 0 and [ 1000, 2^31 - 1 ]</en>
+        <cn>节点中最多可以同时开启的上下文个数，默认：100000，取值范围：0 和 [ 1000, 2^31 - 1 ]。</cn>
       </description>
       <reloadable>
         <en>Take effect immediately</en>
@@ -2695,11 +2822,11 @@
       </reloadable>
       <detail>
         <en>1. Maximum number of contexts in a node.<fig></fig>
-            2. Default is 100000, range is 0 and [ 1000, 2^31-1 ].<fig></fig>
+            2. Default is 100000, range is 0 and [ 1000, 2^31 - 1 ].<fig></fig>
             3. If the number of contexts exceeds the limit, creating new contexts will fail.<fig></fig>
             4. 0 means no limit on number of contexts.</en>
         <cn>1. 节点中最多可以同时开启的上下文个数。<fig></fig>
-            2. 默认是100000，取值范围是 0 和 [ 1000, 2^31-1 ]。<fig></fig>
+            2. 默认是100000，取值范围是 0 和 [ 1000, 2^31 - 1 ]。<fig></fig>
             3. 如果节点中同时开启的上下文个数达到上限，新开启的上下文将会报错。<fig></fig>
             4. 取值为0，表示对上下文的个数没有限制。</cn>
       </detail>
@@ -2712,8 +2839,8 @@
       <name>PMD_OPTION_MAXSESSIONCONTEXTNUM</name>
       <long>maxsessioncontextnum</long>
       <description>
-        <en>Maximum number of contexts in a session per node, default: 100, range: 0 and [ 10, 2^31-1 ]</en>
-        <cn>会话在每个节点中最多可以同时开启的上下文个数，默认：100，取值范围：0 和 [ 10, 2^31-1 ]。</cn>
+        <en>Maximum number of contexts in a session per node, default: 100, range: 0 and [ 10, 2^31 - 1 ]</en>
+        <cn>会话在每个节点中最多可以同时开启的上下文个数，默认：100，取值范围：0 和 [ 10, 2^31 - 1 ]。</cn>
       </description>
       <reloadable>
         <en>Take effect immediately</en>
@@ -2721,11 +2848,11 @@
       </reloadable>
       <detail>
         <en>1. Maximum number of contexts in a session per node.<fig></fig>
-            2. Default is 100, range is 0 and [ 10, 2^31-1 ].<fig></fig>
+            2. Default is 100, range is 0 and [ 10, 2^31 - 1 ].<fig></fig>
             3. If the number of contexts in the session exceeds the limit, creating new contexts will fail in the same session.<fig></fig>
             4. 0 means no limit on number of contexts in the session.</en>
         <cn>1. 会话在每个节点中最多可以同时开启的上下文个数。<fig></fig>
-            2. 默认是100，取值范围是 0 和 [ 10, 2^31-1 ]。<fig></fig>
+            2. 默认是100，取值范围是 0 和 [ 10, 2^31 - 1 ]。<fig></fig>
             3. 如果会话在节点中同时开启的上下文个数达到上限，会话新开启的上下文将会报错。<fig></fig>
             4. 取值为0，表示对会话的上下文的个数没有限制。</cn>
       </detail>
@@ -2738,8 +2865,8 @@
       <name>PMD_OPTION_CONTEXTTIMEOUT</name>
       <long>contexttimeout</long>
       <description>
-        <en>Timeout of idle context, default: 1440 in minutes, range: [ 0, 2^31-1 ]</en>
-        <cn>上下文空闲超时时间，单位是分钟，默认：1440，取值范围：[ 0, 2^31-1 ]。</cn>
+        <en>Timeout of idle context, default: 1440 in minutes, range: [ 0, 2^31 - 1 ]</en>
+        <cn>上下文空闲超时时间，单位是分钟，默认：1440，取值范围：[ 0, 2^31 - 1 ]。</cn>
       </description>
       <reloadable>
         <en>Take effect immediately</en>
@@ -2747,11 +2874,11 @@
       </reloadable>
       <detail>
         <en>1. Timeout of idle context.<fig></fig>
-            2. Default is 1440 in minutes, range is [ 0, 2^31-1 ].<fig></fig>
+            2. Default is 1440 in minutes, range is [ 0, 2^31 - 1 ].<fig></fig>
             3. If context is idle without get-more message after timeout, context will be killed.<fig></fig>
             4. 0 means no limit on idle timeout of contexts.</en>
         <cn>1. 上下文空闲超时时间，单位是分钟。<fig></fig>
-            2. 默认是1440（即1天），取值范围是 [ 0, 2^31-1 ]。<fig></fig>
+            2. 默认是1440（即1天），取值范围是 [ 0, 2^31 - 1 ]。<fig></fig>
             3. 如果上下文超过空闲时间没有接受到新的消息，上下文将会被自动清理。<fig></fig>
             4. 取值为0，表示对上下文的空闲超时没有限制。</cn>
       </detail>
@@ -2764,16 +2891,20 @@
       <name>PMD_OPTION_TRANSALLOWLOCKESCALATION</name>
       <long>transallowlockescalation</long>
       <description>
-        <en>Whether allow lock escalation when number of record locks hold by a transaction exceeds transmaxlocknum, default true.</en>
-        <cn>指定事务持有记录锁个数超过transmaxlocknum后是否允许锁升级，默认为true。</cn>
+        <en>Whether to allow lock escalation after the number of record locks held by a transaction exceeds the parameter transmaxlocknum. The default value is true, which means lock escalation ia allowed.</en>
+        <cn>事务持有记录锁个数超过 transmaxlocknum 后是否允许锁升级，默认为 true，表示允许锁升级。</cn>
       </description>
       <reloadable>
-        <en>takes effect upon next transaction</en>
-        <cn>下一次事务中生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
+      </reloadstrategy>
       <detail>
-        <en>Whether allow lock escalation when number of record locks hold by a transaction exceeds transmaxlocknum, default true.</en>
-        <cn>指定事务持有记录锁个数超过transmaxlocknum后是否允许锁升级，默认为true。</cn>
+        <en>Whether to allow lock escalation after the number of record locks held by a transaction exceeds the parameter transmaxlocknum. The default value is true, which means lock escalation ia allowed.</en>
+        <cn>事务持有记录锁个数超过 transmaxlocknum 后是否允许锁升级，默认为 true，表示允许锁升级。</cn>
       </detail>
       <default>true</default>
       <typeofweb>boolean</typeofweb>
@@ -2783,24 +2914,20 @@
       <name>PMD_OPTION_TRANSMAXLOCKNUM</name>
       <long>transmaxlocknum</long>
       <description>
-        <en>Maximum number of record locks can be hold by a transaction on a data node, default: 10000, range: [ -1, 2^31-1 ]</en>
-        <cn>事务在一个数据节点上可以持有最大的记录锁个数，默认：10000，取值范围：[ -1, 2^31-1 ]。</cn>
+        <en>Maximum number of record locks can be hold by a transaction on a data node, default value is 10000, range is [ -1, 2^31 - 1 ].</en>
+        <cn>事务在一个数据节点上可以持有最大的记录锁个数，默认值为 10000，取值范围为[-1, 2^31 - 1]</cn>
       </description>
       <reloadable>
-        <en>takes effect upon next transaction</en>
-        <cn>下一次事务中生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
+      </reloadstrategy>
       <detail>
-        <en>1. Maximum number of record locks can be hold by a transaction on a data node.<fig></fig>
-            2. Default is 10000, range is [ -1, 2^31-1 ].<fig></fig>
-            3. If the number of record locks hold by a transaction exceeds limit, it will trigger lock escalation if allowed by transallowlockescation, or fail if not allowed.</en>
-            4. -1 means no limit on number of record locks for a transactiong.<fig></fig>
-            5. 0 means no record locks for transaction, use collection locks directly<fig></fig>
-        <cn>1. 事务在一个数据节点上可以持有最大的记录锁个数。<fig></fig>
-            2. 默认是10000，取值范围是[ -1, 2^31-1 ]。<fig></fig>
-            3. 如果事务持有的记录锁个数达到上限，则如果transallowlockescalation允许锁升级，则进行锁升级，否则将会报错。<fig></fig>
-            4. 取值为-1，表示事务对记录锁的个数没有限制。<fig></fig>
-            5. 取值为0，表示事务不使用记录锁，直接使用集合锁。</cn>
+        <en>Maximum number of record locks can be hold by a transaction on a data node, default value is 10000, range is [ -1, 2^31 - 1 ]. For more details, refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md). </en>
+        <cn>事务在一个数据节点上可以持有最大的记录锁个数，默认值为 10000，取值范围为[-1, 2^31 - 1]，详细说明可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <type>int</type>
       <default>10000</default>
@@ -2811,22 +2938,20 @@
       <name>PMD_OPTION_TRANSMAXLOGSPACERATIO</name>
       <long>transmaxlogspaceratio</long>
       <description>
-        <en>Maximum ratio of log space can be used by a transaction on a data node, default: 50, range: [ 1, 50 ]</en>
-        <cn>事务在一个数据节点上可以使用的最大日志空间比例(%)，默认为50，取值范围：[ 1, 50 ]</cn>
+        <en>Maximum ratio of log space can be used by a transaction on a data node, default value is 50, range is [ 1, 50 ].</en>
+        <cn>事务在一个数据节点上可以使用的最大日志空间比例(%)，默认为 50，取值范围：[1, 50]</cn>
       </description>
       <reloadable>
-        <en>takes effect upon next transaction</en>
-        <cn>下一次事务中生效</cn>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
       </reloadable>
+      <reloadstrategy>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
+      </reloadstrategy>
       <detail>
-        <en>1. Maximum ratio of log space can be used by a transaction on data node, percent of total log space of data node( logfilesz * logfilenum ).<fig></fig>
-            2. Default is 50, range is [ 1, 50 ].<fig></fig>
-            3. If the log space occupied by a transaction exceeds limit, it will fail.<fig></fig>
-            4. 50 means half of the log space can be used by transaction, and another half will be used for transaction rollback.</en>
-        <cn>1. 事务在一个数据节点上可以使用的最大日志空间比例(%)，即占数据节点的日志空间总大小（logfilesz*logfilenum）的最大百分比。<fig></fig>
-            2. 默认是50，取值范围是[ 1, 50 ]。<fig></fig>
-            3. 如果事务使用的日志空间达到上限，则事务操作将报错。<fig></fig>
-            4. 取值为50，表示一半的日志空间都可以被事务使用，另外一半用于事务回滚。</cn>
+        <en>Maximum ratio of log space can be used by a transaction on a data node, default value is 50, range is [ 1, 50 ]. For more details, refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
+        <cn>事务在一个数据节点上可以使用的最大日志空间比例(%)，默认值为 50，取值范围为[1, 50]，详细说明可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <type>int</type>
       <default>50</default>
@@ -2851,6 +2976,28 @@
       <default>true</default>
       <typeofweb>boolean</typeofweb>
       <hidden>true</hidden>
+  </opt>
+  
+  <opt>
+      <name>PMD_OPTION_DIAG_SECURE_ON</name>
+      <long>diagsecureon</long>
+      <description>
+         <en>Turn on diaglog secure. Default is true</en>
+         <cn>开启诊断日志数据脱敏，默认为true</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Turn on diaglog secure. Default is true, means turn on.<fig></fig>
+             When it is turned on, user performs data operations, database will encrypt the business data in diaglog to ensure data security</en>
+         <cn>开启[节点诊断日志](manual/Distributed_Engine/Maintainance/DiagLog/diaglog.md)的数据脱敏功能，默认值为 true，表示已开启。<fig></fig>
+             在开启该功能的情况下，当用户对数据进行操作后，数据库将对日志中所涉及的业务数据进行加密，以保证数据安全性。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+      <hidden>false</hidden>
   </opt>
 
 </optlist>

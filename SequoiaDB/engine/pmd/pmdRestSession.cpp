@@ -50,6 +50,7 @@
 #include "monClass.hpp"
 #include "msg.h"
 #include "omDef.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -231,6 +232,10 @@ namespace engine
 
       pEDUMgr = _pEDUCB->getEDUMgr() ;
 
+      // Rest request is not affacted by the common message formant change. So
+      // we always think it's in the 'new' format.
+      _client.setClientVersion( SDB_PROTOCOL_VER_2 ) ;
+
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
          restRequest request( _pEDUCB ) ;
@@ -239,6 +244,7 @@ namespace engine
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
+         pdClearLastError() ;
 
          rc = request.init() ;
          if ( rc )
@@ -973,6 +979,8 @@ namespace engine
          { CMD_NAME_LIST_DOMAINS,
                                  &RestToMSGTransfer::_convertListDomains },
          { CMD_NAME_LIST_TASKS,  &RestToMSGTransfer::_convertListTasks },
+         { CMD_NAME_LIST_RECYCLEBIN,
+                                 &RestToMSGTransfer::_convertListRecycleBin },
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
 //         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
@@ -1016,6 +1024,8 @@ namespace engine
                                  &RestToMSGTransfer::_convertSnapshotTransWaits },
          { CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
                                  &RestToMSGTransfer::_convertSnapshotTransDeadlock },
+         { CMD_NAME_SNAPSHOT_RECYCLEBIN,
+                                 &RestToMSGTransfer::_convertSnapshotRecycleBin },
          { CMD_NAME_LIST_LOBS,   &RestToMSGTransfer::_convertListLobs },
          { OM_LOGIN_REQ,         &RestToMSGTransfer::_convertLogin },
          { REST_CMD_NAME_EXEC,   &RestToMSGTransfer::_convertExec },
@@ -1396,7 +1406,7 @@ namespace engine
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
                         "value=%s", FIELD_NAME_FILTER,
-                        REST_KEY_NAME_MATCHER, matchStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, PD_SECURE_STR( matchStr ) ) ;
             goto error ;
          }
       }
@@ -1444,7 +1454,10 @@ namespace engine
                         "value=%s", REST_KEY_NAME_FLAG, flagStr.c_str() ) ;
             goto error ;
          }
-         *flag = *flag | FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_PREPARE_MORE ;
+         *flag = *flag |
+                 FLG_QUERY_WITH_RETURNDATA |
+                 FLG_QUERY_PREPARE_MORE |
+                 FLG_QUERY_CLOSE_EOF_CTX ;
       }
 
       if ( FALSE == skipStr.empty() )
@@ -1573,7 +1586,7 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                           FIELD_NAME_OP_UPDATE, updateStr.c_str() ) ;
+                           FIELD_NAME_OP_UPDATE, PD_SECURE_STR( updateStr ) ) ;
                goto error ;
             }
 
@@ -1694,7 +1707,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                     REST_KEY_NAME_INSERTOR, insertorStr.c_str() ) ;
+                     REST_KEY_NAME_INSERTOR, PD_SECURE_STR( insertorStr ) ) ;
          goto error ;
       }
 
@@ -1702,7 +1715,7 @@ namespace engine
       if ( !insertor.hasElement( DMS_ID_KEY_NAME ) )
       {
          PD_LOG( PDDEBUG, "Rest insert object [%s] has no _id",
-                 insertor.toPoolString().c_str() ) ;
+                 PD_SECURE_OBJ( insertor ) ) ;
          try
          {
             BSONObjBuilder builder ;
@@ -1718,7 +1731,7 @@ namespace engine
             goto error ;
          }
       }
-
+      flag |= FLG_INSERT_RETURNNUM ;
       rc = msgBuildInsertMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &insertor );
       if ( SDB_OK != rc )
@@ -1805,7 +1818,7 @@ namespace engine
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", FIELD_NAME_FILTER,
-                        REST_KEY_NAME_MATCHER, matchStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, PD_SECURE_STR( matchStr ) ) ;
             goto error ;
          }
       }
@@ -1823,7 +1836,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                     REST_KEY_NAME_UPDATOR, updatorStr.c_str() ) ;
+                     REST_KEY_NAME_UPDATOR, PD_SECURE_STR( updatorStr ) ) ;
          goto error ;
       }
 
@@ -1852,7 +1865,7 @@ namespace engine
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
                            REST_KEY_NAME_SET_ON_INSERT,
-                           setOnInsertStr.c_str() ) ;
+                           PD_SECURE_STR( setOnInsertStr ) ) ;
                goto error ;
             }
 
@@ -1877,7 +1890,7 @@ namespace engine
 
          flag |= FLG_UPDATE_UPSERT ;
       }
-
+      flag |= FLG_UPDATE_RETURNNUM ;
       rc = msgBuildUpdateMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &matcher, &updator, &hint ) ;
       if ( SDB_OK != rc )
@@ -1947,7 +1960,7 @@ namespace engine
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", REST_KEY_NAME_DELETOR,
-                        REST_KEY_NAME_MATCHER, deletorStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, PD_SECURE_STR( deletorStr ) ) ;
             goto error ;
          }
       }
@@ -1963,7 +1976,7 @@ namespace engine
             goto error ;
          }
       }
-
+      flag |= FLG_DELETE_RETURNNUM ;
       rc = msgBuildDeleteMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &deletor, &hint ) ;
       if ( SDB_OK != rc )
@@ -3569,6 +3582,15 @@ namespace engine
       return _convertListBase( pAdaptor, request, pCommand, msg ) ;
    }
 
+   INT32 RestToMSGTransfer::_convertListRecycleBin( restAdaptor * pAdaptor,
+                                                    restRequest & request,
+                                                    MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
+
+      return _convertListBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
    INT32 RestToMSGTransfer::_convertListIndexes( restAdaptor *pAdaptor,
                                                  restRequest &request,
                                                  MsgHeader **msg )
@@ -4061,11 +4083,20 @@ namespace engine
 
    INT32 RestToMSGTransfer::_convertSnapshotTransDeadlock ( restAdaptor * pAdaptor,
                                                             restRequest &request,
-                                                             MsgHeader ** msg )
+                                                            MsgHeader ** msg )
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
 
       return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotRecycleBin ( restAdaptor * pAdaptor,
+                                                         restRequest & request,
+                                                         MsgHeader ** msg )
+   {
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN;
+
+      return _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
    }
 
    INT32 RestToMSGTransfer::_buildExecMsg( CHAR **ppBuffer, INT32 *bufferSize,
@@ -4100,8 +4131,13 @@ namespace engine
          sqlMsg->header.requestID     = reqID ;
          sqlMsg->header.opCode        = MSG_BS_SQL_REQ ;
          sqlMsg->header.messageLength = sizeof( MsgOpSql ) + sqlLen ;
+         sqlMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
+         sqlMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+         sqlMsg->header.flags         = 0 ;
          sqlMsg->header.routeID.value = 0 ;
          sqlMsg->header.TID           = ossGetCurrentThreadID() ;
+         ossMemset( sqlMsg->header.reserve, 0,
+                    sizeof(sqlMsg->header.reserve) ) ;
          ossMemcpy( *ppBuffer + sizeof( MsgOpSql ),
                     pSql, sqlLen ) ;
       }

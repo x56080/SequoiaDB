@@ -223,6 +223,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CATGLOBTRANSMANAGER_UPDATEGLOBLOWTRAN ) ;
 
       globLowTran = DPS_MAX_TRANSID_SN ;
+      BOOLEAN hasUpdated = FALSE ;
       GTS_NODE_SET transNodes ;
 
       PD_LOG( PDINFO, "Got node lowTran [%s] "
@@ -276,6 +277,10 @@ namespace engine
            DPS_MAX_TRANSID_SN != globLowTran )
       {
          // update valid global lowTran
+         if ( _globLowTran != globLowTran )
+         {
+            hasUpdated = TRUE ;
+         }
          _globLowTran = globLowTran ;
       }
 
@@ -283,13 +288,20 @@ namespace engine
            DPS_MAX_TRANSID_SN != globExpireTran )
       {
          // update valid global expireTran
+         if ( _globExpireTran != globExpireTran )
+         {
+            hasUpdated = TRUE ;
+         }
          _globExpireTran = globExpireTran ;
       }
 
-      PD_LOG( PDEVENT, "Update global lowTran to [%s], "
-              "global expireTran to [%s]",
-              dpsTransSNToString( globLowTran ).c_str(),
-              dpsTransSNToString( globExpireTran ).c_str() ) ;
+      if ( hasUpdated )
+      {
+         PD_LOG( PDDEBUG, "Update global lowTran to [%s], "
+                 "global expireTran to [%s]",
+                 dpsTransSNToString( globLowTran ).c_str(),
+                 dpsTransSNToString( globExpireTran ).c_str() ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CATGLOBTRANSMANAGER_UPDATEGLOBLOWTRAN, rc ) ;

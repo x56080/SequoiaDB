@@ -2,7 +2,6 @@
 *@Description:  seqDB-19168:科学计数法，底数为整数（如 1E+308）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-
 main( test );
 
 function test ()
@@ -16,32 +15,36 @@ function test ()
    var importFile = tmpFileDir + tmpPrefix + "." + type;
    var importFields = 'a int, b int';
 
-   // test point1, b value e.g: 1E+10, 1E+9 ...... 1E+0
-   // init import file and expect records
-   var recsNum = initImportFile_testPoint1( importFile );
-   var expRecs = initExpectData_testPoint1( recsNum );
-   // import
-   var rc = importData( csName, clName, importFile, type, importFields, true );
-   // check results
-   checkImportRC( rc, recsNum );
-   checkCLData( cl, recsNum, expRecs, findCond );
-   // clean data
-   cmd.run( "rm -rf " + importFile );
-   cl.truncate();
 
-   // test poin2, b value e.g: 1E+308, 11E+307 ...... xxxE+0
-   // init import file and expect records
-   var recsNum = initImportFile_testPoint2( importFile );
-   var expRecs = initExpectData_testPoint2( recsNum );
-   // import
-   var rc = importData( csName, clName, importFile, type, importFields, true );
-   // check results
-   checkImportRC( rc, recsNum );
-   checkCLData( cl, recsNum, expRecs, findCond );
-   // clean data
-   cmd.run( "rm -rf " + importFile );
-   cl.truncate();
+   if ( commIsArmArchitecture() == false )
+   {
+      // test point1, b value e.g: 1E+10, 1E+9 ...... 1E+0
+      // init import file and expect records
+      var recsNum = initImportFile_testPoint1( importFile );
+      var expRecs = initExpectData_testPoint1( recsNum );
+      // import
+      var rc = importData( csName, clName, importFile, type, importFields, true );
+      // check results
+      checkImportRC( rc, recsNum );
+      checkCLData( cl, recsNum, expRecs, findCond );
+      // clean data
+      cmd.run( "rm -rf " + importFile );
+      cl.truncate();
 
+      // test poin2, b value e.g: 1E+308, 11E+307 ...... xxxE+0
+      // init import file and expect records
+      var recsNum = initImportFile_testPoint2( importFile );
+      var expRecs = initExpectData_testPoint2( recsNum );
+      // import
+      var rc = importData( csName, clName, importFile, type, importFields, true );
+      // check results
+      checkImportRC( rc, recsNum );
+      checkCLData( cl, recsNum, expRecs, findCond );
+      // clean data
+      cmd.run( "rm -rf " + importFile );
+      cl.truncate();
+   }
+   
    // test poin3, bValIndexNum > 308, b value e.g: 1E+309
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );

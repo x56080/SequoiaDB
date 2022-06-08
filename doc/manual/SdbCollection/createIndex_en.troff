@@ -18,7 +18,7 @@ SdbCollection
 .SH DESCRIPTION
 .PP
 This function is used to create an index for the collection to improve query
-speed.
+speed.User need to understand the limitations of indexes before careating.
 .SH PARAMETERS
 .IP \[bu] 2
 name ( \f[I]string, required\f[] )
@@ -32,101 +32,151 @@ indexDef ( \f[I]object, required\f[] )
 .RS 2
 .PP
 Index key.
-It contains one or more objects that specify index fields and order direction.
-"1" means ascending order.
-"\-1" means descending order.
+The format is \f[C]{<index field>:<value>, ...}\f[].
+The optional type values are as follows:
+.IP \[bu] 2
+1: sort by field in ascending order.
+.IP \[bu] 2
+\-1: sort by field in descending order.
+.IP \[bu] 2
+"text": create text index.
 .RE
 .IP \[bu] 2
 isUnique ( \f[I]boolean, optional\f[] )
 .RS 2
 .PP
 Whether the index is unique.
-The default value is "false".
-When it is "true", the index is unique.
+The default value is false, means the index is not unique.
 .RE
 .IP \[bu] 2
 enforced ( \f[I]boolean, optional\f[] )
 .RS 2
 .PP
 Whether the index is mandatorily unique or not.
-Its default value is false, and it becomes effective when "isUnique" is true.
-When it is true, it means that there can be no more than one empty index key.
+The default value is false.
+.IP \[bu] 2
+When it is true, cannot repeatedly insert records whose index field value is
+null.
+.IP \[bu] 2
+It only becomes effective when the parameter "isUnique" is true.
 .RE
 .IP \[bu] 2
 sortBufferSize ( \f[I]number, optional\f[] )
 .RS 2
 .PP
-The size of sort buffer used when creating index, the unit is MB, zero means
-don\[aq]t use sort buffer, the default value is 64.
+The size of sort buffer.
+The default value is 64, the unit is MB.
+.IP \[bu] 2
+Zero means don\[aq]t use sort buffer.
+.IP \[bu] 2
+When the collection record data volume more than 10 million records,
+appropriately increasing the sort cache size can increase the speed of index
+creation.
+.RE
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+For text index, the parameters "isUnique", "enforced" and "sortBufferSize" are
+invalid.
 .RE
 .IP \[bu] 2
 indexAttr ( \f[I]object, optional\f[] )
 .RS 2
 .PP
-Index attributes can be set through the parameter:
+Index attributes can be set through the parameter "indexAttr":
 .IP \[bu] 2
 Unique ( \f[I]boolean\f[] ): Whether the index is unique.
 The defalut value is false.
+.RS 2
+.PP
+Format: \f[C]Unique: true\f[]
+.RE
 .IP \[bu] 2
 Enforced ( \f[I]boolean\f[] ): Whether the index is mandatorily unique.
 The defalut value is false.
+.RS 2
 .IP \[bu] 2
-NotNull ( \f[I]boolean\f[] ): Whether any field of index is allowed to be null
-or not\-existent.
-The defalut value is false.
+When it is true, cannot repeatedly insert records whose index field value is
+null.
 .IP \[bu] 2
-NotArray ( \f[I]boolean\f[] ): Whether any field of index is allowed tobe an
-array.
+It only becomes effective when the parameter "Unique" is true.
+.PP
+Format: \f[C]Enforced: true\f[]
+.RE
+.IP \[bu] 2
+NotNull ( \f[I]boolean\f[] ): Whether to allowed the index field to
+not\-existent or be null when inserting a record.
 The defalut value is false.
+.RS 2
+.PP
+The values are as follows:
+.IP \[bu] 2
+true: The index field must exist and the value cannot be null.
+.IP \[bu] 2
+false: Allows the index field to not exist or the value be null.
+.PP
+Format: \f[C]NotNull: true\f[]
+.RE
+.IP \[bu] 2
+NotArray ( \f[I]boolean\f[] ): Whether any field of index is allowed to be an
+array when inserting a record.
+The defalut value is false.
+.RS 2
+.IP \[bu] 2
+true: The value of the index field is not allowed to be an array.
+.IP \[bu] 2
+false: The value of the index field is allowed to be an array.
+.PP
+Format: \f[C]NotArray: true\f[]
+.RE
 .IP \[bu] 2
 Standalone ( \f[I]boolean\f[] ): Whether it is a standalone index.
-The defalut value is false.
-.RE
-.IP \[bu] 2
-options ( \f[I]object, optional\f[] )
+The defalut value is false, means is not a standalone index.
 .RS 2
 .PP
-Other optional parameters can be set through the options parameter:
-.IP \[bu] 2
-SortBufferSize ( \f[I]number\f[] ): The size of sort buffer used when creating
-index.
-The defalut value is 64 MB.
-.IP \[bu] 2
-NodeName ( \f[I]string/array\f[] ): Specify the name of data node when a
-standalone index is created.
-The format is <hostname>:<svcname>.
-Used in conjunction with the parameter Standalone.
+When it is true, the parameter "NodeName", "NodeID" or "InstanceID" must be
+specified.
+.PP
+Format: \f[C]Standalone: true\f[]
+.RE
 .RE
 .IP \[bu] 2
-NodeID ( \f[I]number/array\f[] ): Specify the ID of data node when a standalone
-index is created.
-Used in conjunction with the parameter Standalone.
+option ( \f[I]object, optional\f[] )
+.RS 2
+.PP
+Control parameters can be set through the parameter "option":
+.IP \[bu] 2
+SortBufferSize ( \f[I]number\f[] ): The size of sort buffer.
+The default value is 64, the unit is MB.
 .RS 2
 .IP \[bu] 2
-InstanceID ( \f[I]number/array\f[] ): Specify the ID of instance when a
-standalone index is created.
-Used in conjunction with the parameter Standalone.
-.RE
-.RS
-.PP
-\f[B]Note:\f[]
+Zero means don\[aq]t use sort buffer.
 .IP \[bu] 2
-There should not be any exactly same records in the fields that are specified by
-the unique index in a collection.
-.IP \[bu] 2
-Index name should not be null string.
-It should not contain "." or "$".
-The length of it should be no more than 127B.
-.IP \[bu] 2
-When the collection record data volume is large(more than 10 million records),
+When the collection record data volume more than 10 million records,
 appropriately increasing the sort cache size can increase the speed of index
 creation.
+.PP
+Format: \f[C]SortBufferSize: 80\f[]
+.RE
 .IP \[bu] 2
-For text index, the parameters isUnique, enforced and sortBufferSize are
-meaningless.
+NodeName ( \f[I]string/array\f[] ): Data node name
+.RS 2
+.PP
+Format: \f[C]NodeName: "sdbserver:11820"\f[]
+.RE
 .IP \[bu] 2
-Standalone index can be selectively designated to be created on the primary or
-secondary data node.
+NodeID ( \f[I]number/array\f[] ): Data node ID
+.RS 2
+.PP
+Format: \f[C]NodeID: 1001\f[]
+.RE
+.IP \[bu] 2
+InstanceID ( \f[I]number/array\f[] ): Data node instance ID
+.RS 2
+.PP
+Format: \f[C]InstanceID: 100\f[]
+.RE
 .RE
 .SH RETURN VALUE
 .PP
@@ -144,74 +194,78 @@ For more details, refer to Troubleshooting.
 v2.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
-Create an unique index named "ageIndex" on the field "age" in collection
-sample.employee.
-The records are in ascending order on the field "age".
+Create an unique index named "ageIndex", and specify the records are in
+ascending order on the field "age".
 .RS 2
 .IP
 .nf
 \f[C]
-> db.sample.employee.createIndex( "ageIndex", { age: 1 }, true )
+> db.sample.employee.createIndex("ageIndex", {age: 1}, true)
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-Create an unique index in collection sample.employee, and any field of index
-should exist and cannot be null.
+Create a text index named "addr_tag".
 .RS 2
 .IP
 .nf
 \f[C]
-> db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { Unique: true, NotNull: true } )
-> 
-> // "b" field is null. Insert will throw error.
-> db.sample.employee.insert( { a: 1, b: null } )
+> db.sample.employee.createIndex("addr_tags", {address: "text", tags: "text"})
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Create an unique index named "ab", and specify the parameter "NotNull" is true.
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.createIndex("ab", {a: 1, b: 1}, {Unique: true, NotNull: true})
+\f[]
+.fi
+.PP
+When the field "b" does not exist or the value is null, an error message will be
+returned.
+.IP
+.nf
+\f[C]
+> db.sample.employee.insert({a: 1})
 sdb.js:625 uncaught exception: \-339
 Any field of index key should exist and cannot be null
-> 
-> // "b" field does not exist. Insert will throw error.
-> db.sample.employee.insert( { a: 1 } )
+
+> db.sample.employee.insert({a: 1, b: null})
 sdb.js:625 uncaught exception: \-339
 Any field of index key should exist and cannot be null
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-Create a text index named "addr_tag" on field "address" and "tags" in collection
-"bar", which will be used for full text search.
+Create an index named "ab", and specify the parameter "NotArray" is true.
 .RS 2
 .IP
 .nf
 \f[C]
-> db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )
+> db.sample.employee.createIndex("ab", {a: 1, b: 1}, {NotArray: true})
 \f[]
 .fi
-.RE
-.IP \[bu] 2
-Create an unique index in collection sample.employee, and any field of index not
-support array.
-.RS 2
+.PP
+When the field "a" is array, an error message will be returned.
 .IP
 .nf
 \f[C]
-> db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
->
-> // "a" field is array. Insert will throw error.
-> db.sample.employee.insert( { a: [1],b: 10 } )
+> db.sample.employee.insert({a: [1], b: 10})
 sdb.js:645 uncaught exception: \-364
 Any field of index key cannot be array
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-Assuming that the collection sample.employee is in the data group
-\[aq]group1\[aq], and the node \f[C]sdbserver:11850\f[] belongs to
-\[aq]group1\[aq], create a standalone index on this node.
+Create a standalone index named "a" on the data node \f[C]sdbserver:11850\f[].
 .RS 2
 .IP
 .nf
 \f[C]
-> db.sample.employee.createIndex( "a", { a: 1 }, { Standalone: true }, { NodeName: "sdbserver:11850" } )
+> db.sample.employee.createIndex("a", {a: 1}, {Standalone: true}, {NodeName: "sdbserver:11850"})
 \f[]
 .fi
 .RE

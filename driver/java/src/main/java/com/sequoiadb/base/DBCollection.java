@@ -22,7 +22,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.bson.BSON;
+import com.sequoiadb.base.options.DeleteOption;
+import com.sequoiadb.base.options.InsertOption;
+import com.sequoiadb.base.options.UpdateOption;
+import com.sequoiadb.base.options.UpsertOption;
+import com.sequoiadb.base.result.DeleteResult;
+import com.sequoiadb.base.result.InsertResult;
+import com.sequoiadb.base.result.UpdateResult;
+import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -60,32 +67,44 @@ public class DBCollection {
     /**
      * The flag represent whether insert continue(no errors were reported) when hitting index key
      * duplicate error
-     */
+     * @deprecated Use {@link InsertOption#FLG_INSERT_CONTONDUP} instead.
+    */
+    @Deprecated
     public static final int FLG_INSERT_CONTONDUP = 0x00000001;
 
     /**
      * The flag represent whether insert return the "_id" field of the record for user
+     * @deprecated Use {@link InsertOption#FLG_INSERT_RETURN_OID} instead.
      */
+    @Deprecated
     public static final int FLG_INSERT_RETURN_OID = 0x10000000;
 
     /**
      * The flag represent whether insert becomes update when hitting index key duplicate error.
+     * @deprecated Use {@link InsertOption#FLG_INSERT_REPLACEONDUP} instead.
      */
+    @Deprecated
     public static final int FLG_INSERT_REPLACEONDUP = 0x00000004;
 
     /**
      * The sharding key in update rule is not filtered, when executing update or upsert.
+     * @deprecated Use {@link UpdateOption#FLG_UPDATE_KEEP_SHARDINGKEY} instead.
      */
+    @Deprecated
     public static final int FLG_UPDATE_KEEP_SHARDINGKEY = 0x00008000;
 
     /**
      * The flag represent whether to update only one matched record or all matched records.
+     * @deprecated Use {@link UpdateOption#FLG_UPDATE_ONE} instead.
      */
+    @Deprecated
     public static final int FLG_UPDATE_ONE = 0x00000002;
 
     /**
      * The flag represent whether to delete only one matched record or all matched records
+     * @deprecated Use {@link DeleteOption#FLG_DELETE_ONE} instead.
      */
+    @Deprecated
     public static final int FLG_DELETE_ONE = 0x00000002;
 
     /**
@@ -176,15 +195,11 @@ public class DBCollection {
      * Insert a document into current collection.
      *
      * @param insertor The bson object to be inserted, can't be null.
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value.</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_RETURN_OID: return the value of "_id" field in the record.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -194,26 +209,11 @@ public class DBCollection {
      * "5c456e8eb17ab30cfbf1d5d1" } }</li>
      * </ul>
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#insertRecord(BSONObject, InsertOption)} instead.
      */
+    @Deprecated
     public BSONObject insert(BSONObject insertor, int flags) throws BaseException {
-        BSONObject result = null;
-        if (insertor == null) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        // send to engine
-        InsertRequest request = new InsertRequest(collectionFullName, insertor, flags);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, insertor);
-        sequoiadb.upsertCache(collectionFullName);
-        // return result
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
-            Object oid = request.getOIDValue();
-            if (oid != null) {
-                result = new BasicBSONObject();
-                result.put(SdbConstants.OID, oid);
-            }
-        }
-        return result;
+        return _insert( insertor, flags | SdbConstants.FLG_INSERT_RETURNNUM );
     }
 
     /**
@@ -223,10 +223,12 @@ public class DBCollection {
      * @param insertor The insertor.
      * @return the value of the filed "_id"
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#insertRecord(BSONObject)} instead.
      */
+    @Deprecated
     public Object insert(BSONObject insertor) throws BaseException {
-        BSONObject result = insert(insertor, FLG_INSERT_RETURN_OID);
-        return result.get(SdbConstants.OID);
+        BSONObject result = _insert( insertor, InsertOption.FLG_INSERT_RETURN_OID );
+        return result != null ? result.get( SdbConstants.OID ) : null;
     }
 
     /**
@@ -236,7 +238,9 @@ public class DBCollection {
      * @param insertor The string of insertor
      * @return the value of the filed "_id"
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#insertRecord(BSONObject)} instead.
      */
+    @Deprecated
     public Object insert(String insertor) throws BaseException {
         BSONObject in = null;
         if (insertor != null) {
@@ -249,17 +253,11 @@ public class DBCollection {
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value.</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_RETURN_OID: return the value of "_id" field in the record. When set
-     *                 this flag, ensureOID() will be set to true.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record and them go on
-     *                 inserting.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -270,57 +268,32 @@ public class DBCollection {
      * </ul>
      * @throws BaseException If error happens.
      * @since 3.0.2
+     * @deprecated Use {@link DBCollection#bulkInsert(List, InsertOption)} instead.
      */
+    @Deprecated
     public BSONObject insertRecords(List<BSONObject> insertor, int flags) throws BaseException {
-        BSONObject result = null;
-        if (insertor == null || insertor.size() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        // try to ensure oid
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
-            if (!isOIDEnsured()) {
-                ensureOID(true);
-            }
-        }
-        // build and send message
-        InsertRequest request = new InsertRequest(collectionFullName, insertor, flags, ensureOID);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response);
-        sequoiadb.upsertCache(collectionFullName);
-        // return result
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
-            Object oid = request.getOIDValue();
-            if (oid != null) {
-                result = new BasicBSONObject();
-                result.put(SdbConstants.OID, oid);
-            }
-        }
-        sequoiadb.cleanRequestBuff();
-        return result;
+        return _bulkInsert( insertor, flags | SdbConstants.FLG_INSERT_RETURNNUM );
     }
 
     /**
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record and them go on
-     *                 inserting.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @throws BaseException If error happens.
      * @since 3.0.2
+     * @deprecated Use {@link DBCollection#bulkInsert(List, InsertOption)} instead.
      */
+    @Deprecated
     public void insert(List<BSONObject> insertor, int flags) throws BaseException {
         if (flags != 0) {
-            flags = DBQuery.eraseSingleFlag(flags, FLG_INSERT_RETURN_OID);
+            flags = Helper.eraseFlag(flags, InsertOption.FLG_INSERT_RETURN_OID);
         }
-        insertRecords(insertor, flags);
+        _bulkInsert(insertor, flags);
     }
 
     /**
@@ -330,9 +303,114 @@ public class DBCollection {
      *                 Duplicate key exist.
      * @throws BaseException If error happens.
      * @since 2.9
+     * @deprecated Use {@link DBCollection#bulkInsert(List)} instead.
      */
+    @Deprecated
     public void insert(List<BSONObject> insertor) throws BaseException {
         insert(insertor, 0);
+    }
+
+    /**
+     * Insert a document into current collection.
+     *
+     * @param record The bson object to be inserted, can't be null.
+     * @return {@link InsertResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public InsertResult insertRecord( BSONObject record ) throws BaseException {
+        return insertRecord( record, null );
+    }
+
+     /**
+     * Insert a document into current collection.
+     *
+     * @param record The bson object to be inserted, can't be null.
+     * @param option {@link InsertOption}
+     * @return {@link InsertResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public InsertResult insertRecord( BSONObject record, InsertOption option ) throws BaseException {
+        InsertOption tmp = option != null ? option : new InsertOption();
+        int flag = tmp.getFlag() | SdbConstants.FLG_INSERT_RETURNNUM;
+        return new InsertResult( _insert( record, flag ) );
+    }
+
+    private BSONObject _insert( BSONObject record, int flag ) throws BaseException {
+        if ( record == null ) {
+            throw new BaseException( SDBError.SDB_INVALIDARG, "The inserted data cannot be null!" );
+        }
+        // build and send message
+        InsertRequest request = new InsertRequest( collectionFullName, record, flag );
+        SdbReply response = sequoiadb.requestAndResponse( request );
+        sequoiadb.throwIfError(response, record);
+        sequoiadb.upsertCache(collectionFullName);
+        // get result
+        BSONObject result = response.getReturnData();
+        if ( ( flag & InsertOption.FLG_INSERT_RETURN_OID ) != 0 ) {
+            if ( result == null ){
+                result = new BasicBSONObject();
+            }
+            result.put(SdbConstants.OID, request.getOIDValue());
+        }
+        return result;
+    }
+
+    /**
+     * Insert a bulk of bson objects into current collection.
+     *
+     * @param records The Bson object of record list, can't be null. insert will interrupt when
+     *            Duplicate key exist.
+     * @return {@link InsertResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public InsertResult bulkInsert( List<BSONObject> records ) throws BaseException {
+        return bulkInsert( records, null );
+    }
+
+    /**
+     * Insert a bulk of bson objects into current collection.
+     *
+     * @param records The Bson object of record list, can't be null. insert will interrupt when
+     *            Duplicate key exist.
+     * @param option {@link InsertOption}
+     * @return {@link InsertResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public InsertResult bulkInsert( List<BSONObject> records, InsertOption option ) throws BaseException {
+        InsertOption tmp = option != null ? option : new InsertOption();
+        int flag = tmp.getFlag() | SdbConstants.FLG_INSERT_RETURNNUM;
+        return new InsertResult( _bulkInsert( records, flag ) );
+    }
+
+    private BSONObject _bulkInsert( List<BSONObject> docs, int flag ) throws BaseException {
+        if (docs == null) {
+            throw new BaseException( SDBError.SDB_INVALIDARG, "The inserted data cannot be null!" );
+        }
+        // try to ensure oid
+        if ( ( flag & InsertOption.FLG_INSERT_RETURN_OID ) != 0 ) {
+            if ( !isOIDEnsured() ) {
+                ensureOID(true );
+            }
+        }
+        // build and send message
+        InsertRequest request = new InsertRequest( collectionFullName, docs, flag, ensureOID );
+        SdbReply response = sequoiadb.requestAndResponse( request );
+        sequoiadb.throwIfError( response );
+        sequoiadb.upsertCache( collectionFullName );
+        // get result
+        BSONObject result = response.getReturnData();
+        if ( ( flag & InsertOption.FLG_INSERT_RETURN_OID ) != 0 ) {
+            if ( result == null ){
+                result = new BasicBSONObject();
+            }
+            result.put( SdbConstants.OID, request.getOIDValue() );
+        }
+        sequoiadb.cleanRequestBuff();
+        return result;
     }
 
     /**
@@ -341,10 +419,9 @@ public class DBCollection {
      *
      * @param type            The object of insertor, can't be null
      * @param ignoreNullValue true:if type's inner value is null, it will not save to collection;
-     * @param flag            the update flag, default to be 0. Please see the definition of follow flags for
-     *                        more detail.
+     * @param flag            the update flag, default to be 0:
      *                        <ul>
-     *                        <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                        <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
      *                        </ul>
      * @throws BaseException 1.when the type is not support, throw BaseException with the type
      *                       "SDB_INVALIDARG" 2.when offer main keys by setMainKeys(), and try to update "_id"
@@ -433,10 +510,9 @@ public class DBCollection {
      *
      * @param type            The List instance of insertor, can't be null or empty
      * @param ignoreNullValue true:if type's inner value is null, it will not save to collection;
-     * @param flag            the update flag, default to be 0. Please see the definition of follow flags for
-     *                        more detail.
+     * @param flag            the update flag, default to be 0:
      *                        <ul>
-     *                        <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                        <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
      *                        </ul>
      * @throws BaseException 1.while the input argument is null or the List instance is empty 2.while the type
      *                       is not support, throw BaseException with the type "SDB_INVALIDARG" 3.while offer
@@ -559,18 +635,13 @@ public class DBCollection {
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags    The flag to control the behavior of inserting. The value of flags default to be 0,
-     *                 and it can choose the follow values:
+     * @param flags    The insert flag, default to be 0:
      *                 <ul>
-     *                 <li>0: default value</li>
-     *                 <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error, database
-     *                 will skip them and go on inserting.</li>
-     *                 <li>FLG_INSERT_REPLACEONDUP: if the record hit index key duplicate error, database
-     *                 will replace the existing record by the inserting new record and them go on
-     *                 inserting.</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
+     *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
      *                 </ul>
      * @throws BaseException If error happens.
-     * @deprecated use insert(List<BSONObject> insertor, int flags) instead
+     * @deprecated Use {@link DBCollection#bulkInsert(List, InsertOption)} instead.
      */
     @Deprecated
     public void bulkInsert(List<BSONObject> insertor, int flags) throws BaseException {
@@ -582,7 +653,9 @@ public class DBCollection {
      *
      * @param matcher The matching condition, match all the documents if null
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#deleteRecords(BSONObject)} instead.
      */
+    @Deprecated
     public void delete(BSONObject matcher) throws BaseException {
         delete(matcher, null);
     }
@@ -592,7 +665,9 @@ public class DBCollection {
      *
      * @param matcher The matching condition, match all the documents if null
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#deleteRecords(BSONObject)} instead.
      */
+    @Deprecated
     public void delete(String matcher) throws BaseException {
         BSONObject ma = null;
         if (matcher != null) {
@@ -609,7 +684,9 @@ public class DBCollection {
      *                "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                null, database automatically match the optimal index to scan data.
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#deleteRecords(BSONObject)} instead.
      */
+    @Deprecated
     public void delete(String matcher, String hint) throws BaseException {
         BSONObject ma = null;
         BSONObject hi = null;
@@ -629,7 +706,9 @@ public class DBCollection {
      *                "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                null, database automatically match the optimal index to scan data.
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#deleteRecords(BSONObject, DeleteOption)} instead.
      */
+    @Deprecated
     public void delete(BSONObject matcher, BSONObject hint) throws BaseException {
         delete(matcher, hint, 0);
     }
@@ -641,20 +720,131 @@ public class DBCollection {
      * @param hint    Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag    The delete flag, default to be 0.
+     * @param flag    The delete flag, default to be 0:
      *                 <ul>
      *                 <li>{@link DBCollection#FLG_DELETE_ONE}
      *                 </ul>
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#deleteRecords(BSONObject, DeleteOption)} instead.
      */
+    @Deprecated
     public void delete(BSONObject matcher, BSONObject hint, int flag) throws BaseException {
-        DeleteRequest request = new DeleteRequest(collectionFullName, matcher, hint, flag);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        if (response.getFlag() != 0) {
-            String msg = "matcher = " + matcher + ", hint = " + hint;
-            sequoiadb.throwIfError(response, msg);
+        _delete( matcher, hint, flag, false );
+    }
+
+    /**
+     * Delete the matching records of current collection.
+     *
+     * @param matcher The matching condition, match all the documents if null.
+     * @return {@link DeleteResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public DeleteResult deleteRecords( BSONObject matcher ) throws BaseException {
+        return deleteRecords( matcher, null );
+    }
+
+    /**
+     * Delete the matching records of current collection.
+     *
+     * @param matcher The matching condition, match all the documents if null.
+     * @param option {@link DeleteOption}
+     * @return {@link DeleteResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public DeleteResult deleteRecords( BSONObject matcher, DeleteOption option )
+            throws BaseException {
+        DeleteOption tmp = option != null ? option : new DeleteOption();
+        int flag = tmp.getFlag() | SdbConstants.FLG_DELETE_RETURNNUM;
+        return _delete( matcher, tmp.getHint(), flag, true );
+    }
+
+    private DeleteResult _delete( BSONObject matcher, BSONObject hint, int flag , boolean hasReturn )
+            throws BaseException {
+        DeleteRequest request = new DeleteRequest( collectionFullName, matcher, hint, flag );
+        SdbReply response = sequoiadb.requestAndResponse( request );
+        if ( response.getFlag() != 0 ) {
+            String msg = "matcher = " + matcher + ", hint = " + hint + ", flag = " + flag;
+            sequoiadb.throwIfError( response, msg );
         }
-        sequoiadb.upsertCache(collectionFullName);
+        sequoiadb.upsertCache( collectionFullName );
+        return hasReturn ? new DeleteResult( response.getReturnData() ) : null;
+    }
+
+    /**
+     * Update the matching records of current collection. It won't work to update the ShardingKey field,
+     * but the other fields take effect.
+     *
+     * @param matcher  The matching condition, match all the documents if null
+     * @param modifier The updating rule, can't be null
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult updateRecords( BSONObject matcher, BSONObject modifier ) throws BaseException {
+        return updateRecords( matcher, modifier, null );
+    }
+
+    /**
+     * Update the matching records of current collection. It won't work to update the ShardingKey field,
+     * but the other fields take effect.
+     *
+     * @param matcher  The matching condition, match all the documents if null
+     * @param modifier The updating rule, can't be null
+     * @param option {@link UpdateOption}
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult updateRecords(BSONObject matcher, BSONObject modifier, UpdateOption option)
+            throws BaseException {
+        UpdateOption tmp = option != null ? option : new UpdateOption();
+        int flag = tmp.getFlag() | SdbConstants.FLG_UPDATE_RETURNNUM;
+        return _update( matcher, modifier, tmp.getHint(), flag, true );
+    }
+
+    /**
+     * Update the matching records of current collection, insert if no matching. It won't work to update
+     * the ShardingKey field, but the other fields take effect.
+     *
+     * @param matcher     The matching condition, match all the documents if null
+     * @param modifier    The updating rule, can't be null
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult upsertRecords(BSONObject matcher, BSONObject modifier) throws BaseException {
+        return upsertRecords( matcher, modifier, null );
+    }
+
+    /**
+     * Update the matching records of current collection, insert if no matching. It won't work to update
+     * the ShardingKey field, but the other fields take effect.
+     *
+     * @param matcher     The matching condition, match all the documents if null
+     * @param modifier    The updating rule, can't be null
+     * @param option {@link UpsertOption}
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult upsertRecords(BSONObject matcher, BSONObject modifier, UpsertOption option)
+            throws BaseException {
+        UpsertOption tmp = option != null ? option : new UpsertOption();
+        BSONObject newHint;
+        if ( tmp.getSetOnInsert() != null ) {
+            newHint = new BasicBSONObject();
+            if ( tmp.getHint() != null) {
+                newHint.putAll( tmp.getHint() );
+            }
+            newHint.put( SdbConstants.FIELD_NAME_SET_ON_INSERT, tmp.getSetOnInsert() );
+        } else {
+            newHint = tmp.getHint();
+        }
+        int flag = tmp.getFlag() | SdbConstants.FLG_UPDATE_UPSERT;
+        flag |= SdbConstants.FLG_UPDATE_RETURNNUM;
+        return _update( matcher, modifier, newHint, flag, true );
     }
 
     /**
@@ -663,9 +853,11 @@ public class DBCollection {
      *
      * @param query DBQuery with matching condition, updating rule and hint
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#updateRecords(BSONObject, BSONObject, UpdateOption)} instead.
      */
+    @Deprecated
     public void update(DBQuery query) throws BaseException {
-        _update(query.getFlag(), query.getMatcher(), query.getModifier(), query.getHint());
+        update(query.getMatcher(), query.getModifier(), query.getHint(), query.getFlag());
     }
 
     /**
@@ -678,10 +870,12 @@ public class DBCollection {
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#updateRecords(BSONObject, BSONObject)} instead.
      */
+    @Deprecated
     public void update(BSONObject matcher, BSONObject modifier, BSONObject hint)
             throws BaseException {
-        _update(0, matcher, modifier, hint);
+        update(matcher, modifier, hint, 0);
     }
 
     /**
@@ -693,17 +887,18 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the update flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail.
+     * @param flag     the update flag, default to be 0:
      *                 <ul>
      *                 <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
      *                 <li>{@link DBCollection#FLG_UPDATE_ONE}
      *                 </ul>
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#updateRecords(BSONObject, BSONObject, UpdateOption)} instead.
      */
+    @Deprecated
     public void update(BSONObject matcher, BSONObject modifier, BSONObject hint, int flag)
             throws BaseException {
-        _update(flag, matcher, modifier, hint);
+        _update( matcher, modifier, hint, flag, false );
     }
 
     /**
@@ -716,7 +911,9 @@ public class DBCollection {
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#updateRecords(BSONObject, BSONObject, UpdateOption)} instead.
      */
+    @Deprecated
     public void update(String matcher, String modifier, String hint) throws BaseException {
         BSONObject ma = null;
         BSONObject mo = null;
@@ -730,7 +927,7 @@ public class DBCollection {
         if (hint != null) {
             hi = (BSONObject) JSON.parse(hint);
         }
-        _update(0, ma, mo, hi);
+        update(ma, mo, hi, 0);
     }
 
     /**
@@ -742,14 +939,15 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the update flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail.
+     * @param flag     the update flag, default to be 0:
      *                 <ul>
      *                 <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
      *                 <li>{@link DBCollection#FLG_UPDATE_ONE}
      *                 </ul>
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#updateRecords(BSONObject, BSONObject, UpdateOption)} instead.
      */
+    @Deprecated
     public void update(String matcher, String modifier, String hint, int flag)
             throws BaseException {
         BSONObject ma = null;
@@ -764,7 +962,7 @@ public class DBCollection {
         if (hint != null) {
             hi = (BSONObject) JSON.parse(hint);
         }
-        _update(flag, ma, mo, hi);
+        update(ma, mo, hi, flag);
     }
 
     /**
@@ -777,10 +975,12 @@ public class DBCollection {
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#upsertRecords(BSONObject, BSONObject)} instead.
      */
+    @Deprecated
     public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint)
             throws BaseException {
-        _update(SdbConstants.FLG_UPDATE_UPSERT, matcher, modifier, hint);
+        upsert(matcher, modifier, hint, null);
     }
 
     /**
@@ -795,7 +995,9 @@ public class DBCollection {
      * @param setOnInsert When "setOnInsert" is not a null or an empty object, it assigns the specified
      *                    values to the fields when insert.
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#upsertRecords(BSONObject, BSONObject, UpsertOption)} instead.
      */
+    @Deprecated
     public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint,
                        BSONObject setOnInsert) throws BaseException {
         upsert(matcher, modifier, hint, setOnInsert, 0);
@@ -812,14 +1014,15 @@ public class DBCollection {
      *                    null, database automatically match the optimal index to scan data.
      * @param setOnInsert When "setOnInsert" is not a null or an empty object, it assigns the specified
      *                    values to the fields when insert.
-     * @param flag        the upsert flag, default to be 0. Please see the definition of follow flags for
-     *                    more detail.
-     *                    <ul>
-     *                    <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
-     *                    <li>{@link DBCollection#FLG_UPDATE_ONE}
-     *                    </ul>
+     * @param flag        the update flag, default to be 0:
+     *                     <ul>
+     *                     <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
+     *                     <li>{@link DBCollection#FLG_UPDATE_ONE}
+     *                     </ul>
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#upsertRecords(BSONObject, BSONObject, UpsertOption)} instead.
      */
+    @Deprecated
     public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint,
                        BSONObject setOnInsert, int flag) throws BaseException {
         BSONObject newHint;
@@ -833,7 +1036,7 @@ public class DBCollection {
             newHint = hint;
         }
         flag |= SdbConstants.FLG_UPDATE_UPSERT;
-        _update(flag, matcher, modifier, newHint);
+        _update( matcher, modifier, newHint, flag, false );
     }
 
     /**
@@ -848,15 +1051,12 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flag       the query flag, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
-     *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   </ul>
+     * @param flag       the query flag, default to be 0:
+     *                    <ul>
+     *                    <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                    <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                    <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                    </ul>
      * @param options    The rules of query explain, the options are as below:
      *                   <ul>
      *                   <li>Run : Whether execute query explain or not, true for executing query explain
@@ -937,16 +1137,13 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the query flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                 DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag    the query flag, default to be 0:
      *                 <ul>
-     *                 <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                 <li>DBQuery.FLG_QUERY_PARALLED
-     *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                 <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                 <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                 <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -982,20 +1179,19 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the query flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                 DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag    the query flag, default to be 0:
      *                 <ul>
-     *                 <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                 <li>DBQuery.FLG_QUERY_PARALLED
-     *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                 <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                 <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                 <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                 <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#query(BSONObject, BSONObject, BSONObject, BSONObject, int)} instead.
      */
+    @Deprecated
     public DBCursor query(String matcher, String selector, String orderBy, String hint, int flag)
             throws BaseException {
         BSONObject ma = null;
@@ -1031,7 +1227,9 @@ public class DBCollection {
      *                   when returnRows is -1, return all the documents
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#query(BSONObject, BSONObject, BSONObject, BSONObject, long, long)} instead.
      */
+    @Deprecated
     public DBCursor query(String matcher, String selector, String orderBy, String hint,
                           long skipRows, long returnRows) throws BaseException {
         BSONObject ma = null;
@@ -1085,17 +1283,14 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flags      the query flags, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
-     *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
-     *                   </ul>
+     * @param flags      the query flag, default to be 0:
+     *                    <ul>
+     *                    <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                    <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                    <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                    <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                    <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
+     *                    </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
      */
@@ -1115,10 +1310,9 @@ public class DBCollection {
         if (returnRows < 0) {
             returnRows = -1;
         }
-        if (returnRows == 1) {
-            newFlags |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
-        }
+        newFlags |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
         newFlags |= DBQuery.FLG_QUERY_PREPARE_MORE;
+        newFlags |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
         QueryRequest request = new QueryRequest(collectionFullName, matcher, selector, orderBy,
                 hint, skipRows, returnRows, newFlags);
@@ -1137,9 +1331,7 @@ public class DBCollection {
         }
 
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -1151,23 +1343,19 @@ public class DBCollection {
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                 null, database automatically match the optimal index to scan data.
-     * @param flag     the query flag, default to be 0. Please see the definition of follow flags for
-     *                 more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                 DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
-     *                 <ul>
-     *                 <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                 <li>DBQuery.FLG_QUERY_PARALLED
-     *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                 <li>DBQuery.FLG_QUERY_FOR_SHARE
-     *                 </ul>
+     * @param flag     the query flag, default to be 0:
+     *                  <ul>
+     *                  <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                  <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                  <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                  <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                  <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
+     *                  </ul>
      * @return the matched document or null if no such document
      * @throws BaseException If error happens.
      */
     public BSONObject queryOne(BSONObject matcher, BSONObject selector, BSONObject orderBy,
                                BSONObject hint, int flag) throws BaseException {
-        flag = flag | DBQuery.FLG_QUERY_WITH_RETURNDATA;
         DBCursor cursor = query(matcher, selector, orderBy, hint, 0, 1, flag);
         BSONObject obj;
         try {
@@ -1197,23 +1385,18 @@ public class DBCollection {
     public DBCursor getIndexes() throws BaseException {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
-
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, null, obj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, null, null, null,
+                obj, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                sequoiadb.throwIfError(response);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
         }
-
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     private DBCursor _queryAndModify(BSONObject matcher, BSONObject selector, BSONObject orderBy,
@@ -1260,17 +1443,13 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flag       the query flags, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag      the query flag, default to be 0:
      *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                   <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                   <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                   <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                   </ul>
      * @param returnNew  When true, returns the updated document rather than the original
      * @return a DBCursor instance of the result or null if no any matched document
@@ -1296,16 +1475,13 @@ public class DBCollection {
      * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
      * @param returnRows return the specified amount of documents, when returnRows is 0, return nothing,
      *                   when returnRows is -1, return all the documents
-     * @param flag       the query flag, default to be 0. Please see the definition of follow flags for
-     *                   more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT |
-     *                   DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+     * @param flag      the query flag, default to be 0:
      *                   <ul>
-     *                   <li>DBQuery.FLG_QUERY_STRINGOUT
-     *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
-     *                   <li>DBQuery.FLG_QUERY_PARALLED
-     *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_SHARE
+     *                   <li>{@link DBQuery#FLG_QUERY_STRINGOUT}
+     *                   <li>{@link DBQuery#FLG_QUERY_FORCE_HINT}
+     *                   <li>{@link DBQuery#FLG_QUERY_PARALLED}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_UPDATE}
+     *                   <li>{@link DBQuery#FLG_QUERY_FOR_SHARE}
      *                   </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1336,17 +1512,16 @@ public class DBCollection {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, obj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, null, null,
+                obj, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                sequoiadb.throwIfError(response);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
         }
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
         return new DBCursor(response, sequoiadb);
     }
@@ -1370,11 +1545,13 @@ public class DBCollection {
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, obj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, null, null,
+                obj, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        if (response.getFlag() != 0) {
-            sequoiadb.throwIfError(response);
-        }
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
         DBCursor cursor = new DBCursor(response, sequoiadb);
         try {
@@ -1404,8 +1581,11 @@ public class DBCollection {
         BSONObject hint = new BasicBSONObject();
         hint.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
         hint.put(SdbConstants.FIELD_INDEX, name);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEX_STAT, null, hint);
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEX_STAT, null, null, null,
+                hint, 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         if (response.getFlag() != 0) {
             sequoiadb.throwIfError(response);
@@ -1489,7 +1669,11 @@ public class DBCollection {
             hint.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
         }
 
-        AdminRequest request = new AdminRequest(AdminCommand.CREATE_INDEX, matcher, hint);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_INDEX, matcher, null, null,
+                hint, -1 , -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         // check return info
         if (response.getFlag() != 0) {
@@ -1563,8 +1747,9 @@ public class DBCollection {
                             int sortBufferSize) throws BaseException {
         BSONObject option = new BasicBSONObject();
         BSONObject indexAttr = new BasicBSONObject();
-        indexAttr.put(SdbConstants.IXM_UNIQUE, isUnique);
-        indexAttr.put(SdbConstants.IXM_ENFORCED, enforced);
+        // IXM_UNIQUE_LEGACY and IXM_ENFORCED_LEGACY are used for compatibility with 2.8 SequoiaDB engine.
+        indexAttr.put(SdbConstants.IXM_UNIQUE_LEGACY, isUnique);
+        indexAttr.put(SdbConstants.IXM_ENFORCED_LEGACY, enforced);
         option.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
         createIndex(indexName, indexKeys, indexAttr, option);
     }
@@ -1688,7 +1873,11 @@ public class DBCollection {
             dropObj.put(SdbConstants.FIELD_NAME_ASYNC, false);
         }
 
-        AdminRequest request = new AdminRequest(AdminCommand.DROP_INDEX, dropObj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_INDEX, dropObj, null, null, null,
+                0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, indexName);
 
@@ -1764,7 +1953,11 @@ public class DBCollection {
             copyObj.put(SdbConstants.FIELD_NAME_INDEXNAME, indexName);
         }
 
-        AdminRequest request = new AdminRequest(AdminCommand.COPY_INDEX, copyObj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+
+        AdminRequest request = new AdminRequest(AdminCommand.COPY_INDEX, copyObj, null, null, null,
+                0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response);
 
@@ -1823,7 +2016,9 @@ public class DBCollection {
      * @param matcher the matching rule
      * @return the amount of matching documents
      * @throws BaseException If error happens.
+     * @deprecated Use {@link DBCollection#getCount(BSONObject)} instead.
      */
+    @Deprecated
     public long getCount(String matcher) throws BaseException {
         BSONObject con = null;
         if (matcher != null) {
@@ -1861,10 +2056,11 @@ public class DBCollection {
         if (null != hint) {
             newHint.put(SdbConstants.FIELD_NAME_HINT, hint);
         }
-
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
         QueryRequest request = new QueryRequest(AdminCommand.GET_COUNT,
-                matcher, null, null, newHint, -1, -1,
-                DBQuery.FLG_QUERY_WITH_RETURNDATA );
+                matcher, null, null, newHint, 0, -1,
+                flag );
         SdbReply response = sequoiadb.requestAndResponse(request);
 
         if (response.getFlag() != 0) {
@@ -1996,7 +2192,10 @@ public class DBCollection {
             obj.put(SdbConstants.FIELD_NAME_SPLITENDQUERY, splitEndCondition);
         }
 
-        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj, null, null, null,
+                0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
         if (response.getFlag() != 0) {
@@ -2015,14 +2214,12 @@ public class DBCollection {
         } finally {
             cursor.close();
         }
-        boolean flag = result.containsField(SdbConstants.FIELD_NAME_TASKID);
-        if (!flag) {
+        if (!result.containsField(SdbConstants.FIELD_NAME_TASKID)) {
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
         }
 
         sequoiadb.upsertCache(collectionFullName);
-        long taskid = (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
-        return taskid;
+        return (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
     }
 
     /**
@@ -2050,7 +2247,10 @@ public class DBCollection {
         obj.put(SdbConstants.FIELD_NAME_TARGET, destGroupName);
         obj.put(SdbConstants.FIELD_NAME_SPLITPERCENT, percent);
 
-        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AdminRequest request = new AdminRequest(AdminCommand.SPLIT, obj, null, null, null,
+                0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
         if (response.getFlag() != 0) {
@@ -2068,15 +2268,12 @@ public class DBCollection {
         } finally {
             cursor.close();
         }
-        boolean flag = result.containsField(SdbConstants.FIELD_NAME_TASKID);
-        if (!flag) {
+        if (!result.containsField(SdbConstants.FIELD_NAME_TASKID)) {
             throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
         }
 
         sequoiadb.upsertCache(collectionFullName);
-
-        long taskid = (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
-        return taskid;
+        return (Long) result.get(SdbConstants.FIELD_NAME_TASKID);
     }
 
     /**
@@ -2089,23 +2286,17 @@ public class DBCollection {
         if (objs == null || objs.size() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
-
-        AggregateRequest request = new AggregateRequest(collectionFullName, objs);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+        AggregateRequest request = new AggregateRequest(collectionFullName, objs, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                sequoiadb.throwIfError(response, objs);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
         }
-
+        sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -2135,25 +2326,21 @@ public class DBCollection {
             newHint.put("Hint", hint);
         }
 
+        flag |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
         QueryRequest request = new QueryRequest(AdminCommand.GET_QUERYMETA, matcher, null, orderBy,
                 newHint, skipRows, returnRows, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                String msg = "query = " + matcher + ", hint = " + hint + ", orderBy = " + orderBy
-                        + ", skipRows = " + skipRows + ", returnRows = " + returnRows;
-                sequoiadb.throwIfError(response, msg);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
+        } else if (response.getFlag() != 0) {
+            String msg = "query = " + matcher + ", hint = " + hint + ", orderBy = " + orderBy
+                    + ", skipRows = " + skipRows + ", returnRows = " + returnRows;
+            sequoiadb.throwIfError(response, msg);
         }
-
         sequoiadb.upsertCache(collectionFullName);
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -2448,18 +2635,17 @@ public class DBCollection {
         alterInternal(SdbConstants.SDB_ALTER_SET_ATTRIBUTES, options, false);
     }
 
-    private void _update(int flag, BSONObject matcher, BSONObject modifier, BSONObject hint)
+    private UpdateResult _update( BSONObject matcher, BSONObject modifier, BSONObject hint, int flag, boolean hasReturn)
             throws BaseException {
-        UpdateRequest request = new UpdateRequest(collectionFullName, matcher, modifier, hint,
-                flag);
-        SdbReply response = sequoiadb.requestAndResponse(request);
+        UpdateRequest request = new UpdateRequest( collectionFullName, matcher, modifier, hint, flag );
+        SdbReply response = sequoiadb.requestAndResponse( request );
 
-        if (response.getFlag() != 0) {
-            String msg = "matcher = " + matcher + ", modifier = " + modifier + ", hint = " + hint;
-            sequoiadb.throwIfError(response, msg);
+        if ( response.getFlag() != 0 ) {
+            String msg = "matcher = " + matcher + ", modifier = " + modifier + ", hint = " + hint + ", flag = " + flag;
+            sequoiadb.throwIfError( response, msg );
         }
-
-        sequoiadb.upsertCache(collectionFullName);
+        sequoiadb.upsertCache( collectionFullName );
+        return hasReturn ? new UpdateResult( response.getReturnData() ) : null;
     }
 
     /**
@@ -2506,9 +2692,7 @@ public class DBCollection {
             BaseException savedError = null;
             try {
                 isOldLobServer = false;
-                DBCursor cursor = _listLobs(matcher, selector, orderBy, newHint, skipRows,
-                        returnRows);
-                return cursor;
+                return _listLobs(matcher, selector, orderBy, newHint, skipRows, returnRows);
             } catch (BaseException e) {
                 if (!isOldLobServer) {
                     throw e;
@@ -2551,19 +2735,18 @@ public class DBCollection {
 
     private DBCursor _listLobs(BSONObject matcher, BSONObject selector, BSONObject orderBy,
                                BSONObject hint, long skipRows, long returnRows) throws BaseException {
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
         AdminRequest request = new AdminRequest(AdminCommand.LIST_LOBS, matcher, selector, orderBy,
-                hint, skipRows, returnRows);
+                hint, skipRows, returnRows, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        int flag = response.getFlag();
-        if (flag == SDBError.SDB_INVALIDARG.getErrorCode()) {
+        if (response.getFlag() == SDBError.SDB_INVALIDARG.getErrorCode()) {
             isOldLobServer = true;
         }
 
         sequoiadb.throwIfError(response);
-
         sequoiadb.upsertCache(collectionFullName);
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        return cursor;
+        return new DBCursor(response, sequoiadb);
     }
 
     /**
@@ -2635,11 +2818,13 @@ public class DBCollection {
      * Open an existing lob with id.
      *
      * @param id   the lob's id.
-     * @param mode open mode: DBLob.SDB_LOB_READ for reading, DBLob.SDB_LOB_SHAREREAD for share reading,
-     *             DBLob.SDB_LOB_WRITE for writing, DBLob.SDB_LOB_SHAREREAD|DBLob.SDB_LOB_WRITE for both 
-     *             reading and writing. if one lob has been opened by DBLob.SDB_LOB_READ mode, it can't 
-     *             be opened by DBLob.SDB_LOB_WRITE mode; However, if one lob has been opened by 
-     *             DBLob.SDB_LOB_SHAREREAD mode, it can be opened by DBLob.SDB_LOB_WRITE mode
+     * @param mode open mode as follow:
+     *              <ul>
+     *              <li>{@link DBLob#SDB_LOB_READ}
+     *              <li>{@link DBLob#SDB_LOB_SHAREREAD}
+     *              <li>{@link DBLob#SDB_LOB_WRITE}
+     *              <li>{@link DBLob#SDB_LOB_SHAREREAD} | {@link DBLob#SDB_LOB_WRITE} for both reading and writing
+     *              </ul>
      * @return DBLob object
      * @throws BaseException If error happens..
      */
@@ -2712,12 +2897,29 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public void truncate() throws BaseException {
-        BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        truncate(null);
+    }
 
-        AdminRequest request = new AdminRequest(AdminCommand.TRUNCATE, options);
+    /**
+     * Truncate the collection.
+     *
+     * @param options The options for truncate current collection
+     *                <ul>
+     *                <li>SkipRecycleBin : Indicates whether to skip recycle bin, default is false.
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void truncate(BSONObject options) throws BaseException {
+        BSONObject rebuildOptions = new BasicBSONObject();
+        rebuildOptions.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        if (options != null) {
+            rebuildOptions.putAll(options);
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.TRUNCATE,
+                                                rebuildOptions);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, options);
+        sequoiadb.throwIfError(response, rebuildOptions);
         sequoiadb.upsertCache(collectionFullName);
     }
 

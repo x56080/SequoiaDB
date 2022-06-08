@@ -39,7 +39,6 @@ namespace engine
    : _dmsIxmKeySorter( bufSize, comparer )
    {
       _buf = NULL ;
-      _ownedBuf = NULL;
       _headOffset = 0 ;
       _tailOffset = bufSize ;
       _keyNum = 0 ;
@@ -50,33 +49,25 @@ namespace engine
 
    _rtnIxmKeySorter::~_rtnIxmKeySorter()
    {
-      if ( NULL != _ownedBuf )
+      if ( NULL != _buf )
       {
-         SDB_OSS_FREE( _ownedBuf ) ;
-         _ownedBuf = NULL ;
+         SDB_OSS_FREE( _buf ) ;
+         _buf = NULL ;
       }
    }
 
-   INT32 _rtnIxmKeySorter::init(CHAR *outerBuf)
+   INT32 _rtnIxmKeySorter::init()
    {
       INT32 rc = SDB_OK ;
 
       if ( !_inited )
       {
-         if (NULL == outerBuf)
+         _buf = ( CHAR* )SDB_OSS_MALLOC( _bufSize ) ;
+         if ( NULL == _buf )
          {
-            _ownedBuf = ( CHAR* )SDB_OSS_MALLOC( _bufSize ) ;
-            if ( NULL == _ownedBuf )
-            {
-               PD_LOG( PDERROR, "failed to allocate buffer for index sorting." ) ;
-               rc = SDB_OOM ;
-               goto error ;
-            }
-            _buf = _ownedBuf;
-         }
-         else
-         {
-            _buf = outerBuf;
+            PD_LOG( PDERROR, "failed to allocate buffer for index sorting." ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
 
          _inited = TRUE ;
@@ -138,45 +129,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   INT32 _rtnIxmKeySorter::push(const bson::BSONObjSet &keySet,
-                                const dmsRecordID& recordID)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!keySet.empty(), "can not be empty");
-      if (1 == keySet.size())
-      {
-         ixmKeyOwned key(*keySet.begin());
-         rc = push(key, recordID);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      else
-      {
-         INT64 tailOffset = _tailOffset;
-         INT64 headOffset = _headOffset;
-         INT64 keyNum = _keyNum;
-         for (bson::BSONObjSet::const_iterator itr = keySet.begin();
-              itr != keySet.end();
-              ++itr)
-         {
-            rc = push(ixmKeyOwned(*itr), recordID);
-            if (SDB_OK != rc)
-            {
-               _tailOffset = tailOffset;
-               _headOffset = headOffset;
-               _keyNum = keyNum;
-               goto error;
-            }
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
    }
 
    INT32 _rtnIxmKeySorter::sort()
@@ -241,41 +193,6 @@ namespace engine
       }
 
       rc = pSorter->init() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to init _rtnIxmKeySorter, rc: %d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      *ppSorter = pSorter ;
-      return rc ;
-   error:
-      if ( NULL != pSorter )
-      {
-         SDB_OSS_DEL( pSorter ) ;
-         pSorter = NULL ;
-      }
-      goto done ;
-   }
-
-   INT32 _rtnIxmKeySorterCreator::createSorter( INT64 bufSize,
-                                                CHAR *outerBuf,
-                                                const _dmsIxmKeyComparer& comparer,
-                                                _dmsIxmKeySorter** ppSorter )
-   {
-      INT32 rc = SDB_OK ;
-      _rtnIxmKeySorter* pSorter = NULL ;
-
-      pSorter = SDB_OSS_NEW _rtnIxmKeySorter( bufSize, comparer ) ;
-      if ( NULL == pSorter )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to create _rtnIxmKeySorter, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = pSorter->init(outerBuf) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to init _rtnIxmKeySorter, rc: %d", rc ) ;

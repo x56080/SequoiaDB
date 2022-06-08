@@ -242,13 +242,20 @@ namespace engine
 
          INT32    getFTLevel() const { return _ftLevel ; }
 
-         UINT32   getConfirmedStat() const { return _confirmedStat ; }
+         UINT32   getConfirmedStat() const
+         {
+            return ( _confirmedStat | _heldMask ) ;
+         }
+
          INT32    getIndoubtErr() const { return _indoubtErr ; }
 
          BOOLEAN  isCatchup() const { return _isCatchup ; }
          BOOLEAN  isStop() const ;
 
          void     reportErr( INT32 err, BOOLEAN isWrite ) ;
+
+         void     holdStatus( UINT32 status ) ;
+         void     unholdStatus( UINT32 status ) ;
 
       protected:
          ftSampleWndItem*  _sample( UINT64 dbTick ) ;
@@ -273,6 +280,7 @@ namespace engine
          BOOLEAN        _isCatchup ;
 
          UINT32         _confirmedStat ;
+         UINT32         _heldMask ;
          INT32          _indoubtErr ;
    } ;
    typedef _pmdFTMgr pmdFTMgr ;

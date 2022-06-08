@@ -1,4 +1,4 @@
-[^_^]:
+ [^_^]:
     分布式事务
     作者：何国明
     时间：20190817
@@ -32,7 +32,6 @@ SequoiaDB 支持以下类型的事务锁以及事务意向锁：
 - 事务锁或者事务意向锁作用在集合上时，可以称为表锁
 - 事务锁作用在数据记录上时，可以称为记录锁
 - SequoiaDB 支持在集合和集合空间上加超级排他锁 (Z) 进行 DDL 操作（如 [renameCS()][renameCS]、[renameCL()][renameCL] 等），对其他并发事务进行阻塞。
-- 为了节省大量记录锁引起的内存开销，SequoiaDB 支持锁升级（lock escalation）机制，当事务持有记录锁个数超过一定限制时，增大加锁的粒度，升级为对集合进行加锁。
 
 隔离级别
 ----
@@ -45,8 +44,8 @@ SequoiaDB 目前支持四种隔离级别：
 - 读稳定性（Read Stability，RS）：RS 级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改
 - 可重复读（Repeatable Read，RR）：RR 级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改，且不会因为其他事务对结果集的记录个数发生改变。
 
-读未提交
-----
+##读未提交##
+
 读未提交（Read Uncommitted，RU）级别是最低隔离级别。设置 RU 隔离级别不同的事务之间能够互相读到未提交的修改信息。
 
 RU 级别中事务对读取的数据不加锁，因此可能会出现脏读、不可重复读以及幻读等情况。
@@ -57,8 +56,8 @@ RU 级别中事务对读取的数据不加锁，因此可能会出现脏读、�
 >
 > SequoiaDB 中的存储机制保证了读写某条记录及相应索引项的原子性。
 
-读已提交
-----
+##读已提交##
+
 读已提交（Read Committed，RC）级别为会话读取每条记录最新已被提交的状态。
 
 RC 级别中，事务对读取的数据加短的共享锁，访问完即放锁，因此可能会出现不可重复读以及幻读等情况。
@@ -89,23 +88,25 @@ SequoiaDB 的 RR 级别是通过多版本并发控制（MVCC，Multi-Version Con
 >
 > RR 隔离级别需要[时间序列服务（STP）][overview]和全局事务的支持。开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon][configuration_parameters] 和 [globtranson][configuration_parameters] 为 true。
 
-隔离级别摘要
-----
+##隔离级别摘要##
 
 | 隔离级别 | 脏读 | 不可重复读 | 幻读 |
 | :------- | :--- | :--------- | :--- |
 | 可重复读 RR | 不可能 | 不可能 | 不可能 |
 | 读稳定性 RS | 不可能 | 不可能 | 可能 |
-| 读已提交 RC | 不可能 | 可能 | 可能 |
+| 读已提交 RC | 不可能 | 可能 | 可能 | 
 | 读未提交 RU | 可能 | 可能 | 可能 |
 
 - 脏读：写事务 W 修改某一行数据，读事务 R 在W 执行提交前访问该行，如果 W 事务执行回滚，则 R 事务所读取的是不存在的数据。
 - 不可重复读：读事务 R 读取某一行数据，写事务 W 修改该行数据且执行提交，R 再次读取该行数据，则 R 两次读取的值不一致。
 - 幻读：读事务 R 读取按照条件读取一组数据，写事务 W 插入一行或者多行满足相同条件的数据且执行提交，R 再次按照相同条件读取时，将会读取到更多的数据。
 
+
+
+
+
 [^_^]:
     本文使用到的所有链接
-
 [configurations]:manual/Distributed_Engine/Architecture/Transactions/configurations.md
 [overview]:manual/Distributed_Engine/Architecture/Stp/Readme.md
 [configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md

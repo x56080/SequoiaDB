@@ -44,18 +44,81 @@
 #include "rtnQueryModifier.hpp"
 #include "rtnResultSetFilter.hpp"
 #include "optAccessPlanRuntime.hpp"
-#include "interface/IDataStorageEngine.h"
 
 namespace engine
 {
    class _rtnIXScanner ;
    class _dpsITransLockCallback ;
+
+   typedef struct _rtnAdvanceSection
+   {
+      INT32   prefixNum ;
+      BOOLEAN startIncluded ;
+      BOOLEAN endIncluded ;
+      BSONObj startKey ;
+      BSONObj endKey ;
+   } rtnAdvanceSection ;
+
+   class _rtnCmpSection
+   {
+   public:
+      _rtnCmpSection( const BSONObj &order ) : _orderBy( order ) { }
+      bool operator()( const rtnAdvanceSection &l, const rtnAdvanceSection &r )
+      {
+         INT32 cmpStart = 0 ;
+         INT32 cmpEnd   = 0 ;
+         INT32 maxNum   = l.prefixNum > r.prefixNum ?
+                                        l.prefixNum : r.prefixNum ;
+
+         cmpStart = woNCompare( l.startKey, r.startKey, maxNum, _orderBy ) ;
+
+         if ( cmpStart < 0 )
+         {
+            return TRUE ;
+         }
+         else if ( 0 == cmpStart )
+         {
+            if ( l.startIncluded && !r.startIncluded )
+            {
+               return TRUE ;
+            }
+            else if ( l.startIncluded == r.startIncluded )
+            {
+               cmpEnd = woNCompare( l.endKey, r.endKey, maxNum, _orderBy ) ;
+               if ( cmpEnd > 0 )
+               {
+                  return TRUE ;
+               }
+               else if ( 0 == cmpEnd )
+               {
+                  if( l.endIncluded && !r.endIncluded )
+                  {
+                     return TRUE ;
+                  }
+               }
+            }
+         }
+         return FALSE ;
+      }
+
+      INT32 woNCompare( const BSONObj &l, const BSONObj &r,
+                        UINT32 keyNum, const BSONObj &orderBy) const ;
+
+   private:
+      const BSONObj _orderBy ;
+   } ;
+   typedef class _rtnCmpSection rtnCmpSection ;
+
    /*
       _rtnContextData define
    */
    class _rtnContextData : public _rtnContextBase
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
+
+      typedef ossPoolVector< dmsExtentID >      SEGMENT_VEC ;
+      typedef SEGMENT_VEC::const_iterator       SEGMENT_VEC_CITR ;
+
       public:
          _rtnContextData ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextData () ;
@@ -107,6 +170,11 @@ namespace engine
          virtual _dmsStorageUnit* getSU () { return _su ; }
          virtual BOOLEAN          isWrite() const ;
          virtual BOOLEAN          needRollback() const ;
+         virtual const CHAR *     getProcessName() const
+         {
+            return _planRuntime.getCLFullName() ?
+                   _planRuntime.getCLFullName() : "" ;
+         }
 
          virtual UINT32 getSULogicalID() const
          {
@@ -115,6 +183,10 @@ namespace engine
 
          virtual void setResultSetFilter( rtnResultSetFilter *rsFilter,
                                           BOOLEAN appendMode = TRUE ) ;
+
+         INT32   setAdvanceSection ( const BSONObj &arg ) ;
+
+         virtual INT32 validate ( const BSONObj &record ) ;
 
       protected:
          INT32 _queryModify( _pmdEDUCB* eduCB,
@@ -139,8 +211,10 @@ namespace engine
                                        BOOLEAN isLocate,
                                        _pmdEDUCB *cb ) ;
 
-         virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const ;
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby,
+                                       BOOLEAN isRange = FALSE ) const ;
 
+         virtual INT32     _prepareDoAdvance ( _pmdEDUCB *cb ) ;
 
       protected:
 
@@ -152,7 +226,7 @@ namespace engine
                                     vector<INT64>* dollarList ) ;
 
          INT32    _parseSegments( const BSONObj &obj,
-                                  std::vector< dmsExtentID > &segments ) ;
+                                  SEGMENT_VEC &segments ) ;
          INT32    _parseIndexBlocks( const BSONObj &obj,
                                     std::vector< BSONObj > &indexBlocks,
                                     std::vector< dmsRecordID > &indexRIDs ) ;
@@ -176,14 +250,6 @@ namespace engine
 
          INT32    _evalIndexCover( IXM_FIELD_NAME_SET &selectSet ) ;
 
-      private:
-         INT32 _openIXScanCursor(_dmsStorageUnit *su,
-                                 _dmsMBContext *mbContext,
-                                 _pmdEDUCB *cb,
-                                 const rtnReturnOptions &returnOptions,
-                                 INT32 direction);
-         INT32 _prepareByScanCursor(pmdEDUCB *cb);
-      
          BSONObj  _buildNextValueObj( const BSONObj &keyPattern,
                                       const BSONObj &srcVal,
                                       UINT32 keepNum,
@@ -192,6 +258,15 @@ namespace engine
          BOOLEAN  _compareFieldName( const BSONObj &orderby,
                                      const BSONObj &keyPattern,
                                      UINT32 prefixNum ) const ;
+
+         INT32    _extractAllEqualSec( INT32 indexFieldNum,
+                                       const BSONElement &eNum,
+                                       const BSONElement &eVal );
+
+         INT32    _extractRangeSec( INT32 indexFieldNum,
+                                    const BSONElement &eNum,
+                                    const BSONElement &eVal,
+                                    const BSONElement &eIndexValueInc );
 
       protected:
          _SDB_DMSCB                 *_dmsCB ;
@@ -210,9 +285,10 @@ namespace engine
 
          // TBSCAN
          dmsExtentID                _extentID ;
+         dmsExtentID                _lastExtentID ;
          dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
-         std::vector< dmsExtentID > _segments ;
+         SEGMENT_VEC                _segments ;
          // Index scan
          _rtnIXScanner              *_scanner ;
          std::vector< BSONObj >     _indexBlocks ;
@@ -228,7 +304,13 @@ namespace engine
 
          BOOLEAN                    _indexCover ;
 
-         DATA_CURSOR_PTR            _cursor;
+         BOOLEAN                    _isPrevSec ;
+
+         BSONObj                    _orderBy ;
+         ixmIndexKeyGen             _keyGen ;
+
+         ossPoolList< rtnAdvanceSection > _advanceSectionList ;
+         ossPoolList< rtnAdvanceSection >::iterator _nextAdvanceSecIt ;
    } ;
 
    typedef _rtnContextData rtnContextData ;

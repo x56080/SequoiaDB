@@ -117,11 +117,11 @@ TEST_F( taskTest12527, listCancelTask12527 )
    INT32 resCode = obj.getField("ResultCode").Int() ;
    if ( rc == SDB_OK )
    {
-      ASSERT_EQ( SDB_OK, resCode ) << "fail to list tasks" << obj.toString() ;
+      ASSERT_EQ( SDB_TASK_HAS_CANCELED , resCode ) << "fail to list tasks" << obj.toString() ;
    }
    else
    {
-      ASSERT_EQ( SDB_TASK_HAS_CANCELED , resCode ) << "fail to list tasks" << obj.toString() ;
+      ASSERT_EQ( SDB_OK , resCode ) << "fail to list tasks" << obj.toString() ;
    }
   
 

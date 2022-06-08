@@ -18,6 +18,9 @@ import org.springframework.stereotype.Repository;
 public class SdbBaseOperation {
     private static final Logger logger = LoggerFactory.getLogger(SdbBaseOperation.class);
 
+    private static int SDB_IXM_CREATING = -387;         //DB error code
+    private static int SDB_IXM_COVER_CREATING = -389;   //DB error code
+
     public void releaseDBCursor(DBCursor cursor) {
         if (null == cursor) {
             return;
@@ -110,7 +113,9 @@ public class SdbBaseOperation {
         catch (BaseException e) {
             logger.error("creating index failed: clName={}.{}, db error:{}",csName, clName, e.getErrorCode());
             if (e.getErrorCode() != SDBError.SDB_IXM_REDEF.getErrorCode()
-                    && e.getErrorCode() != SDBError.SDB_IXM_DUP_KEY.getErrorCode()) {
+                    && e.getErrorCode() != SDBError.SDB_IXM_EXIST_COVERD_ONE.getErrorCode()
+                    && e.getErrorCode() != SDB_IXM_CREATING
+                    && e.getErrorCode() != SDB_IXM_COVER_CREATING) {
                 throw new S3ServerException(S3Error.DAO_DB_ERROR,
                         "create Index failed. cs=" + csName + ",cl=" + clName +
                                 ",indexName=" + indexName, e);

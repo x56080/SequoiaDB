@@ -772,25 +772,14 @@ namespace engine
       INT32 rc             = SDB_OK ;
       INT64 diskTotalBytes = 0 ;
       INT64 diskFreeBytes  = 0 ;
+      INT64 diskAvailBytes = 0 ;
       INT32 loadPercent    = 0 ;
       const CHAR *dbPath   = pmdGetOptionCB()->getDbPath () ;
       CHAR fsName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      rc = ossGetDiskInfo( dbPath, diskTotalBytes, diskFreeBytes,
-                           fsName, OSS_MAX_PATHSIZE + 1 ) ;
+      rc = ossGetDiskInfo( dbPath, diskTotalBytes, diskFreeBytes, diskAvailBytes,
+                           loadPercent, fsName, OSS_MAX_PATHSIZE + 1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get disk info, rc = %d", rc ) ;
-
-      if ( diskTotalBytes != 0 )
-      {
-         loadPercent = 100 * ( diskTotalBytes - diskFreeBytes ) /
-                       diskTotalBytes ;
-         loadPercent = loadPercent > 100 ? 100 : loadPercent ;
-         loadPercent = loadPercent < 0 ? 0 : loadPercent ;
-      }
-      else
-      {
-         loadPercent = 0 ;
-      }
 
       {
          BSONObjBuilder diskOb( ob.subobjStart( FIELD_NAME_DISK ) ) ;
@@ -801,7 +790,7 @@ namespace engine
          }
          diskOb.append( FIELD_NAME_LOADPERCENT, loadPercent ) ;
          diskOb.append( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
-         diskOb.append( FIELD_NAME_FREESPACE, diskFreeBytes ) ;
+         diskOb.append( FIELD_NAME_FREESPACE, diskAvailBytes ) ;
          diskOb.done();
       }
 
@@ -1207,7 +1196,7 @@ namespace engine
 
    #define MAX_DATABLOCK_A_RECORD_NUM  (500)
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPDATABLOCKS, "monDumpDatablocks" )
-   INT32 monDumpDatablocks( std::vector<dmsExtentID> &datablocks,
+   INT32 monDumpDatablocks( ossPoolVector<dmsExtentID> &datablocks,
                             rtnContextDump *context )
    {
       INT32 rc = SDB_OK ;
@@ -1230,7 +1219,7 @@ namespace engine
 
             builder.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
             // add datablocks
-            std::vector<dmsExtentID>::iterator it = datablocks.begin() ;
+            ossPoolVector<dmsExtentID>::iterator it = datablocks.begin() ;
             while ( it != datablocks.end() &&
                     datablockNum < MAX_DATABLOCK_A_RECORD_NUM )
             {
@@ -1426,6 +1415,31 @@ namespace engine
             replCB *pReplCB = sdbGetReplCB() ;
             ob.append( FIELD_NAME_REPL_NETIN, pReplCB->netIn() ) ;
             ob.append( FIELD_NAME_REPL_NETOUT, pReplCB->netOut() ) ;
+         }
+         else if ( SDB_ROLE_COORD == role )
+         {
+            netRouteAgent *shardAgent = sdbGetCoordCB()->getRouteAgent() ;
+            if ( shardAgent )
+            {
+               ob.append( FIELD_NAME_SHARD_NETIN, shardAgent->netIn() ) ;
+               ob.append( FIELD_NAME_SHARD_NETOUT, shardAgent->netOut() ) ;
+            }
+            else
+            {
+               ob.append( FIELD_NAME_SHARD_NETIN, 0 ) ;
+               ob.append( FIELD_NAME_SHARD_NETOUT, 0 ) ;
+            }
+
+            ob.append( FIELD_NAME_REPL_NETIN, 0 ) ;
+            ob.append( FIELD_NAME_REPL_NETOUT, 0 ) ;
+         }
+         else
+         {
+            ob.append( FIELD_NAME_SHARD_NETIN, 0 ) ;
+            ob.append( FIELD_NAME_SHARD_NETOUT, 0 ) ;
+
+            ob.append( FIELD_NAME_REPL_NETIN, 0 ) ;
+            ob.append( FIELD_NAME_REPL_NETOUT, 0 ) ;
          }
       }
       catch ( std::exception &e )
@@ -3715,6 +3729,8 @@ namespace engine
       ossTime userTime, sysTime ;
       INT64 diskTotalBytes    = 0 ;
       INT64 diskFreeBytes     = 0 ;
+      INT64 diskAvailBytes    = 0 ;
+      INT32 loadPercent       = 0 ;
       const CHAR *dbPath = pmdGetOptionCB()->getDbPath() ;
 
       if ( _hitEnd )
@@ -3723,8 +3739,9 @@ namespace engine
          goto error ;
       }
 
-      ossGetCPUUsage( userTime, sysTime ) ;
-      ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes ) ;
+      ossGetCPUUsage ( userTime, sysTime ) ;
+      ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes,
+                       diskAvailBytes, loadPercent ) ;
 
       try
       {
@@ -3752,22 +3769,10 @@ namespace engine
 
          {
             BSONObjBuilder diskOb( ob.subobjStart( FIELD_NAME_DISK ) ) ;
-            INT32 loadPercent = 0 ;
-            if ( diskTotalBytes != 0 )
-            {
-               loadPercent = 100 * ( diskTotalBytes - diskFreeBytes ) /
-                             diskTotalBytes ;
-               loadPercent = loadPercent > 100 ? 100 : loadPercent ;
-               loadPercent = loadPercent < 0 ? 0 : loadPercent ;
-            }
-            else
-            {
-               loadPercent = 0 ;
-            }
             diskOb.append ( FIELD_NAME_DATABASEPATH, dbPath ) ;
             diskOb.append ( FIELD_NAME_LOADPERCENT, loadPercent ) ;
             diskOb.append ( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
-            diskOb.append ( FIELD_NAME_FREESPACE, diskFreeBytes ) ;
+            diskOb.append ( FIELD_NAME_FREESPACE, diskAvailBytes ) ;
             diskOb.done() ;
          }
 
@@ -5181,7 +5186,7 @@ namespace engine
    _monQueriesFetch::_monQueriesFetch()
       : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_QUERIES )
    {
-      _addInfoMask = MON_MASK_NODEID ;
+      _addInfoMask = MON_MASK_NODE_NAME | MON_MASK_NODEID ;
       _viewArchive = FALSE ;
       _isDetail= TRUE ;
    }
@@ -5746,7 +5751,8 @@ namespace engine
       // Scan a whole extent for once
       try
       {
-         dmsExtScanner scanner( _su->data(), _mbContext, NULL, _curExtentID,
+         dmsExtScanner scanner( _su->data(), _mbContext, NULL,
+                                _curExtentID, DMS_INVALID_EXTENT,
                                 DMS_ACCESS_TYPE_FETCH, -1L, 0 ) ;
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
@@ -5860,6 +5866,373 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   /*
+      _monRecycleBinFetch implement
+    */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monRecycleBinFetch )
+
+   _monRecycleBinFetch::_monRecycleBinFetch()
+   : rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_RECYCLEBIN ),
+     _addInfoMask( 0 ),
+     _subContextID( -1 ),
+     _isDetail( FALSE )
+   {
+   }
+
+   _monRecycleBinFetch::~_monRecycleBinFetch()
+   {
+      _closeSubContext() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH_INIT, "_monRecycleBinFetch::init" )
+   INT32 _monRecycleBinFetch::init( pmdEDUCB *cb,
+                                    BOOLEAN isCurrent,
+                                    BOOLEAN isDetail,
+                                    UINT32 addInfoMask,
+                                    const BSONObj obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH_INIT ) ;
+
+      clsRecycleBinManager *recycleBinMgr =
+            pmdGetKRCB()->getClsCB()->getRecycleBinMgr() ;
+
+      BSONObj dummy ;
+
+      _isDetail = isDetail ;
+      _addInfoMask = addInfoMask ;
+      _hitEnd = TRUE ;
+
+      rc = recycleBinMgr->getItems( dummy, dummy, dummy, -1, cb, _subContextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open query for recycle items, "
+                   "rc: %d", rc ) ;
+
+      _hitEnd = FALSE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONRECYBINFETCH_INIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   const CHAR* _monRecycleBinFetch::getName() const
+   {
+      return CMD_NAME_SNAPSHOT_RECYCLEBIN ;
+   }
+
+   INT32 _monRecycleBinFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+      else if ( -1 == _subContextID && _recycleList.empty() )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      if ( _recycleList.empty() )
+      {
+         rc = _prepareRecycleList() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to prepare recycle list, rc: %d",
+                      rc ) ;
+
+         if ( _recycleList.empty() )
+         {
+            _hitEnd = TRUE ;
+            rc = SDB_DMS_EOC ;
+            goto error ;
+         }
+      }
+
+      rc = _fetchRecycleItem( obj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to fetch recycle item, rc: %d", rc ) ;
+
+      // check hit end
+      if ( -1 == _subContextID && _recycleList.empty() )
+      {
+         _hitEnd = TRUE ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      _closeSubContext() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH_PREPARERECYLIST, "_monRecycleBinFetch::_prepareRecycleList" )
+   INT32 _monRecycleBinFetch::_prepareRecycleList()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH_PREPARERECYLIST ) ;
+
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      rtnContextBuf buffObj ;
+
+      while( TRUE )
+      {
+         rc = rtnGetMore( _subContextID, 1, buffObj, cb,
+                          rtnCB ) ;
+         if( SDB_DMS_EOC == rc )
+         {
+            _subContextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            _subContextID = -1 ;
+            PD_LOG( PDERROR, "Failed to get recycle items, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            monRecycleItem recycleItem ;
+            BSONObj object( buffObj.data() ) ;
+
+            rc = recycleItem.fromBSON( object ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item from BSON, "
+                         "rc: %d", rc ) ;
+
+            _recycleList.push_back( recycleItem ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to get recycle item, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+         if ( _recycleList.size() > MON_MAX_SLICE_SIZE )
+         {
+            break ;
+         }
+      }
+
+      if ( _isDetail )
+      {
+         rc = _fillRecycleStats() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to fill statistics for recycle "
+                      "items, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONRECYBINFETCH_PREPARERECYLIST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH__FILLRECYSTAT, "_monRecycleBinFetch::_fillRecycleStats" )
+   INT32 _monRecycleBinFetch::_fillRecycleStats()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH__FILLRECYSTAT ) ;
+
+      MON_RECYCLE_LIST::iterator iter = _recycleList.begin() ;
+      while ( iter != _recycleList.end() )
+      {
+         monRecycleItem &item = ( *iter ) ;
+         if ( UTIL_RECYCLE_CS == item.getType() )
+         {
+            rc = _fillRecycleCSStats( item ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
+            {
+               // not exist anymore
+               rc = SDB_OK ;
+               iter = _recycleList.erase( iter ) ;
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to fill statistics for "
+                         "recycle item [%s], rc: %d",
+                         item.getRecycleName(), rc ) ;
+         }
+         else if ( UTIL_RECYCLE_CL == item.getType() )
+         {
+            rc = _fillRecycleCLStats( item ) ;
+            if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+            {
+               // not exist anymore
+               rc = SDB_OK ;
+               iter = _recycleList.erase( iter ) ;
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to fill statistics for "
+                         "recycle item [%s], rc: %d",
+                         item.getRecycleName(), rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Unsupported recycle type [%s]",
+                    utilGetRecycleTypeName( item.getType() ) ) ;
+            iter = _recycleList.erase( iter ) ;
+            continue ;
+         }
+         ++ iter ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONRECYBINFETCH__FILLRECYSTAT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH__FILLRECYCSSTAT, "_monRecycleBinFetch::_fillRecycleCSStats" )
+   INT32 _monRecycleBinFetch::_fillRecycleCSStats( monRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH__FILLRECYCSSTAT ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CS == item.getType(), "type is invalid" ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+
+      rc = dmsCB->idToSUAndLock( (utilCSUniqueID)( item.getOriginID() ),
+                                 suID, &su ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock storage unit [%s], rc: %d",
+                   item.getRecycleName(), rc ) ;
+
+      rc = su->dumpRecycleInfo( item ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item [%s], rc: %d",
+                   item.getRecycleName(), rc ) ;
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      PD_TRACE_EXITRC( SDB_MONRECYBINFETCH__FILLRECYCSSTAT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH__FETCHRECYCLECL, "_monRecycleBinFetch::_fillRecycleCLStats" )
+   INT32 _monRecycleBinFetch::_fillRecycleCLStats( monRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH__FETCHRECYCLECL ) ;
+
+      SDB_ASSERT( UTIL_RECYCLE_CL == item.getType(), "type is invalid" ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      utilCSUniqueID csUniqueID =
+            utilGetCSUniqueID( (utilCLUniqueID)( item.getOriginID() ) ) ;
+
+      rc = dmsCB->idToSUAndLock( csUniqueID, suID, &su ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock storage unit [%s], rc: %d",
+                   item.getRecycleName(), rc ) ;
+
+      rc = su->dumpRecycleInfo( item ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to dump recycle item [%s], rc: %d",
+                   item.getRecycleName(), rc ) ;
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      PD_TRACE_EXITRC( SDB_MONRECYBINFETCH__FETCHRECYCLECL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH_FETCHRECYCLEITEM, "_monRecycleBinFetch::_fetchRecycleItem" )
+   INT32 _monRecycleBinFetch::_fetchRecycleItem( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH_FETCHRECYCLEITEM ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         monRecycleItem item = _recycleList.front() ;
+
+         _recycleList.pop_front() ;
+
+         rc = item.toBSON( builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for recycle item, "
+                      "rc: %d", rc ) ;
+
+         if ( _isDetail )
+         {
+            rc = monAppendSystemInfo( builder, _addInfoMask ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build system info, rc: %d",
+                         rc ) ;
+
+            builder.append( FIELD_NAME_PAGE_SIZE, item._pageSize ) ;
+            builder.append( FIELD_NAME_LOB_PAGE_SIZE, item._lobPageSize ) ;
+            builder.append( FIELD_NAME_TOTAL_RECORDS, item._totalRecords ) ;
+            builder.append( FIELD_NAME_TOTAL_LOBS, item._totalLobs ) ;
+            builder.append( FIELD_NAME_TOTAL_DATA_SIZE, item._totalDataSize ) ;
+            builder.append( FIELD_NAME_TOTAL_IDX_SIZE, item._totalIndexSize ) ;
+            builder.append( FIELD_NAME_TOTAL_LOB_SIZE, item._totalLobSize ) ;
+         }
+
+         obj = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build recycle item BSON, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONRECYBINFETCH_FETCHRECYCLEITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRECYBINFETCH__CLOSESUBCTX, "_monRecycleBinFetch::_closeSubContext" )
+   void _monRecycleBinFetch::_closeSubContext()
+   {
+      PD_TRACE_ENTRY( SDB_MONRECYBINFETCH__CLOSESUBCTX ) ;
+
+      if ( -1 != _subContextID )
+      {
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+         rtnCB->contextDelete( _subContextID, cb ) ;
+         _subContextID = -1 ;
+      }
+
+      PD_TRACE_EXIT( SDB_MONRECYBINFETCH__CLOSESUBCTX ) ;
    }
 
    /*

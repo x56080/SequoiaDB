@@ -17,6 +17,7 @@
 package com.sequoiadb.message.response;
 
 import com.sequoiadb.message.Msg;
+import com.sequoiadb.message.SdbProtocolVersion;
 
 import java.nio.ByteBuffer;
 
@@ -24,5 +25,5 @@ import java.nio.ByteBuffer;
  * @since 2.9
  */
 public interface Response extends Msg {
-    void decode(ByteBuffer in);
+    void decode(ByteBuffer in, SdbProtocolVersion protocolVersion);
 }

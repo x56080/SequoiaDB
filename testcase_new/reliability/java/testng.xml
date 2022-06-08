@@ -16,6 +16,10 @@
     <parameter name="ESHOSTNAME"      value="${ESHOSTNAME}" />
     <!--全文索引ES端端口号，CI默认传入9200-->
     <parameter name="ESSVCNAME"       value="${ESSVCNAME}" />
+    <!--stp环境主机名，CI默认传入localhost-->
+    <parameter name="STPHOSTNAME"     value="${STPHOSTNAME}" />
+    <!--stp环境端口号，CI默认传入9622-->
+    <parameter name="STPSVCNAME"      value="${STPSVCNAME}" />
     <!--全文索引前缀，CI传入与工程名相关，例如NORMALTESTG3D3-->
     <parameter name="FULLTEXTPREFIX"  value="${FULLTEXTPREFIX}" />
     <!--公共CS名-->
@@ -29,11 +33,11 @@
     <!--用例临时文件存放路径 -->
     <parameter name="WORKDIR"         value="/tmp/ci_reliability" />
     <!--远程机器root用户密码-->
-    <parameter name="ROOTPASSWD"      value="jenkins" />
+    <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
     <!--远程机器用户名-->
-    <parameter name="REMOTEUSER"      value="sdbadmin" />
+    <parameter name="REMOTEUSER"      value="${REMOTEUSER}" />
     <!--远程机器用户密码-->
-    <parameter name="REMOTEPASSWD"    value="Admin@1024" />
+    <parameter name="REMOTEPASSWD"    value="${REMOTEPASSWD}" />
     <!--可靠性shell脚本位置-->
     <parameter name="SCRIPTDIR"       value="${SCRIPTDIR}" />
     <!-- 适配器配置文件的父目录，默认是/opt/sequoiadb/conf/sdbseadapter -->

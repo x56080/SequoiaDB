@@ -739,7 +739,7 @@ namespace engine
                             CMD_NAME_SNAPSHOT_QUERIES_INTR,
                             CMD_SNAPSHOT_QUERIES,
                             RTN_FETCH_QUERIES,
-                            MON_MASK_NODEID )
+                            MON_MASK_NODE_NAME | MON_MASK_NODEID )
          {}
 
          virtual ~_rtnSnapshotQueries() {}
@@ -757,7 +757,7 @@ namespace engine
             : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_QUERIES_INTR,
                                  CMD_SNAPSHOT_QUERIES,
                                  RTN_FETCH_QUERIES,
-                                 MON_MASK_NODEID )
+                                 MON_MASK_NODE_NAME | MON_MASK_NODEID )
          {}
 
          virtual ~_rtnSnapshotQueriesInner() {}
@@ -961,6 +961,65 @@ namespace engine
          virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
       protected:
    } ;
+
+   /*
+      _rtnSnapshotRecycleBin define
+    */
+   class _rtnSnapshotRecycleBin : public _rtnSnapshot
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnSnapshotRecycleBin()
+      : _rtnSnapshot( NAME_SNAPSHOT_RECYCLEBIN,
+                      CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR,
+                      CMD_SNAPSHOT_RECYCLEBIN,
+                      RTN_FETCH_RECYCLEBIN,
+                      MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
+      {
+      }
+
+      virtual ~_rtnSnapshotRecycleBin()
+      {
+      }
+
+   protected:
+      virtual BOOLEAN _isCurrent() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnSnapshotRecycleBin rtnSnapshotRecycleBin ;
+
+   /*
+      _rtnSnapshotRecycleBinInner define
+    */
+   class _rtnSnapshotRecycleBinInner : public _rtnSnapshotInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnSnapshotRecycleBinInner()
+      : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR,
+                           CMD_SNAPSHOT_RECYCLEBIN,
+                           RTN_FETCH_RECYCLEBIN,
+                           MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME )
+      {
+      }
+
+      virtual ~_rtnSnapshotRecycleBinInner()
+      {
+      }
+
+   protected:
+      virtual BOOLEAN _isCurrent() const
+      {
+         return FALSE ;
+      }
+   } ;
+
+   typedef class _rtnSnapshotRecycleBinInner rtnSnapshotRecycleBinInner ;
 
 }
 

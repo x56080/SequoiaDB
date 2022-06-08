@@ -17,16 +17,36 @@
 package com.sequoiadb.base;
 
 /**
- * Options for client.
+ * Global configuration of SequoiaDB driver.
+ * 
+ * When using the SequoiaDB driver, you can specify its global configuration and initialize
+ * it with {@link Sequoiadb#initClient(ClientOptions)}
+ *
+ * </p>
+ * Usage example:
+ * <pre>
+ * ClientOptions options = new ClientOptions();
+ * options.setEnableCache( true );
+ * options.setCacheInterval( 300 * 1000 );  // 300s
+ * options.setExactlyDate( false );
+ *
+ * Sequoiadb.initClient( options );
+ * </pre>
  */
 public class ClientOptions {
-    private boolean enableCache;
-    // define in milliseconds
-    private long cacheInterval;
+    private static final long CACHE_INTERVAL_DEFAULT = 300 * 1000; // 300s
 
+    private boolean enableCache;
+    private long cacheInterval;
+    private boolean exactlyDate;
+
+    /**
+     * The construction method of ClientOptions.
+     */
     public ClientOptions() {
         enableCache = true;
-        cacheInterval = 300 * 1000;
+        cacheInterval = CACHE_INTERVAL_DEFAULT;
+        exactlyDate = false;
     }
 
     /**
@@ -64,4 +84,30 @@ public class ClientOptions {
         cacheInterval = interval;
     }
 
+
+    /**
+     * @return A boolean value to indicate whether use exactly date or not
+     */
+    public Boolean getExactlyDate() {
+        return exactlyDate;
+    }
+
+    /**
+     * Whether to use exactly date, default is false. False indicates that the hours, minutes,
+     * seconds and milliseconds of java.util.Date are valid. True indicates that they are meaningless
+     * and the SequoiaDB driver will discard the hours, minutes, seconds and milliseconds of
+     * java.util.Date.
+     *
+     * <pre>
+     * Example:
+     * A instance of java.util.Date is "2022-01-01 01:01:01", insert it to SequoiaDB with the SequoiaDB driver.
+     * 1. exactlyDate is false: the inserted data is "2022-01-01 01:01:01"
+     * 2. exactlyDate is true: the inserted data is "2022-01-01 00:00:00"
+     * </pre>
+     *
+     * @param exactlyDate True or false.
+     */
+    public void setExactlyDate( boolean exactlyDate ) {
+        this.exactlyDate = exactlyDate;
+    }
 }

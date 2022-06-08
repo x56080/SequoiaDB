@@ -84,6 +84,8 @@ namespace engine
          INT32       dumpTask( RTN_LOCAL_TASK_TYPE type,
                                MAP_TASK &mapTask ) ;
 
+         rtnLocalTaskPtr getTask( UINT64 taskID ) ;
+
       protected:
          void        _clear() ;
 

@@ -109,6 +109,13 @@ namespace engine
                                        dmsRecordID &foundRID,
                                        _pmdEDUCB *cb ) ;
 
+      virtual void _postInsertRecord( dmsMBContext *context,
+                                      dmsExtRW &extRW,
+                                      dmsRecordRW &recordRW,
+                                      const dmsRecordData &recordData,
+                                      UINT32 recordSize,
+                                      _pmdEDUCB *cb ) ;
+
       virtual INT32 _allocRecordSpaceByPos( dmsMBContext *context,
                                             UINT32 size,
                                             INT64 position,
@@ -149,7 +156,8 @@ namespace engine
                                  const dmsRecordID &rid,
                                  INT32 recordSize,
                                  dmsExtent *extAddr,
-                                 dmsDeletedRecord *pRecord ) ;
+                                 dmsDeletedRecord *pRecord,
+                                 BOOLEAN isRecycled ) ;
 
       void  _mapExtent2DelList ( dmsMB *mb, dmsExtent *extAddr,
                                  SINT32 extentID ) ;

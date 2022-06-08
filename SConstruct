@@ -370,7 +370,7 @@ env = Environment( BUILD_DIR=variantDir,
                    PYSYSPLATFORM=os.sys.platform,
                    )
 if guess_os == "linux":
-    env.Append( CXXFLAGS=" -std=c++11 " )
+   env.Append( CXXFLAGS=" -std=c++11 " )
 
 libdeps.setup_environment( env )
 
@@ -641,7 +641,7 @@ if guess_os == "linux":
         env.Append( CPPFLAGS=" -mieee " )
 
     # Building for mysqld without linking openssl in c/c++ client.
-    # Or there will be two same openssl symbol existing in one mysqld program 
+    # Or there will be two same openssl symbol existing in one mysqld program
     # in case of mysqld building openssl in.
     if hasNoLinkSSL == False:
         env.Append(LIBS=['ssl', 'crypto', 'lz4', 'zlib', 'snappy'])

@@ -1,14 +1,5 @@
 [^_^]: 
-
-    数据库快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-
-    王涛：
-    许建辉：
-    市场部：20190425
-
+    当前事务快照
 
 当前事务快照可以列出当前会话正在进行的事务信息，当前会话在每一个数据节点上正在进行的事务为一条记录。
 
@@ -32,9 +23,13 @@ SDB_SNAP_TRANSACTIONS_CURRENT
 | TransactionID          | string   | 事务 ID                                  |
 | TransactionIDSN        | int64    | 事务序列号                               |
 | IsRollback             | boolean  | 事务是否处于回滚中                       |
-| CurrentTransLSN        | int64    | 事务当前的日志 LSN                       |   
+| CurrentTransLSN        | int64    | 事务当前的日志 LSN                       | 
+| BeginTransLSN          | int64    | 事务开始的日志 LSN                        |  
 | WaitLock               | bson     | 正在等待的锁                             |
 | TransactionLocksNum    | int32    | 事务已经获得的锁                         |
+| IsLockEscalated        | boolean  | 事务是否已触发锁升级                     |
+| UsedLogSpace           | int64    | 事务已使用的日志空间，单位为字节         |
+| ReservedLogSpace       | int64    | 事务为回滚操作保留的日志空间，单位为字节 |
 | RelatedID              | string   | 内部标识                                 |
 | GotLocks               | bson array| 事务已经获得的锁列表                    |
 
@@ -62,7 +57,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 
 | 锁对象       | CSID | CLID  | ExtentID | Offset | 备注 |
 | ------------ | ---- | ----- | ---- | ---- | ------------ |
-| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在WaitLock为没有锁对象时，表示当前事务没有在等待锁 |
+| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在 WaitLock 为没有锁对象时，表示当前事务没有在等待锁 |
 | 集合空间锁   | >= 0 | 65535 | -1   | -1   | |
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
@@ -73,20 +68,23 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 查看当前事务快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_TRANSACTIONS_CURRENT )
+> db.snapshot(SDB_SNAP_TRANSACTIONS_CURRENT)
 ```
 
 输出结果如下：
 
 ```lang-json
 {
-  "NodeName": "sdbserver1:11830",
+  "NodeName": "sdbserver:11830",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
   "IsRollback": false,
   "CurrentTransLSN": -1,
   "WaitLock": {},
   "TransactionLocksNum": 3,
+  "IsLockEscalated": false,
+  "UsedLogSpace": 100,
+  "ReservedLogSpace": 116,
   "RelatedID": "c0a81457c35000006b75",
   "GotLocks": [
     {

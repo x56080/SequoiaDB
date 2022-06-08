@@ -611,11 +611,24 @@ namespace engine
 
       if ( pSubContext->contextID() != pReply->contextID )
       {
-         rc = SDB_INVALIDARG;
-         PD_LOG ( PDERROR, "Failed to append the data, no match context"
-                  "(expectContextID=%lld, contextID=%lld)",
-                  pSubContext->contextID(), pReply->contextID ) ;
-         goto error ;
+         if ( -1 == pReply->contextID )
+         {
+            PD_LOG( PDDEBUG, "Context %lld closed by node "
+                    "[ groupID=%u, nodeID=%u, serviceID=%u ]",
+                    pSubContext->contextID(),
+                    pReply->header.routeID.columns.groupID,
+                    pReply->header.routeID.columns.nodeID,
+                    pReply->header.routeID.columns.serviceID ) ;
+            pSubContext->setContextID( pReply->contextID ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG ( PDERROR, "Failed to append the data, no match context"
+                     "(expectContextID=%lld, contextID=%lld)",
+                     pSubContext->contextID(), pReply->contextID ) ;
+            goto error ;
+         }
       }
 
       // after appendData success, the data-pointer is manage by subContext.
@@ -625,7 +638,8 @@ namespace engine
 
       rc = _processSubContext( pSubContext, skipData ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process sub-context"
-                   "[ groupID=%u, nodeID=%u, serviceID=%u, contextID=%lld ]",
+                   "[ groupID=%u, nodeID=%u, serviceID=%u, contextID=%lld ], "
+                   "rc: %d",
                    pReply->header.routeID.columns.groupID,
                    pReply->header.routeID.columns.nodeID,
                    pReply->header.routeID.columns.serviceID,
@@ -1091,7 +1105,7 @@ namespace engine
          routeID.value = pSubContext->getRouteID().value ;
          pAdvance->header.routeID.value = MSG_INVALID_ROUTEID ;
          pAdvance->contextID = pSubContext->contextID() ;
-   
+
          pSub = _pSession->addSubSession( routeID.value ) ;
          pSub->setReqMsg( (MsgHeader*)pAdvance, PMD_EDU_MEM_NONE ) ;
 
@@ -1414,7 +1428,7 @@ namespace engine
    _rtnContextCoordExplain::_rtnContextCoordExplain ( INT64 contextID, UINT64 eduID,
                                                       BOOLEAN preRead )
    : _rtnContextCoord( contextID, eduID, preRead ),
-     _explainCoordPath( getPlanAllocator() )
+     _explainCoordPath()
    {
    }
 

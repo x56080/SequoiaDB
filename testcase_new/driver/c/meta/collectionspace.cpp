@@ -129,3 +129,39 @@ TEST_F(collectionspaceTest, sdbGetCSName_10402)
    sdbReleaseCS ( collectionspace ) ;
 }
 
+TEST_F(collectionspaceTest, sdbDropCollectionSpace1_with_options25073)
+{
+   sdbCSHandle collectionspace    = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   const CHAR* csName             = "dropcs_collectionspace_25073" ;
+   const CHAR* clName             = "dropcs_collection_25073" ;
+   INT32 rc                       = SDB_OK ;
+   bson options1 ;
+
+   // dropCollectionSpace option bson
+   bson_init( &options1 ) ;
+   bson_append_bool( &options1, "EnsureEmpty", TRUE ) ;
+   rc = bson_finish( &options1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   //case :the options parameter is {"EnsureEmpty" : true}
+   rc = sdbCreateCollectionSpace( db, csName, SDB_PAGESIZE_4K, &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "Failed to create collectionspace, rc = " << rc;
+   rc = sdbDropCollectionSpace1 ( db, csName, &options1) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   sdbReleaseCS( collectionspace ) ;
+   rc = sdbCreateCollectionSpace( db, csName, SDB_PAGESIZE_4K, &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "Failed to create collectionspace, rc = " << rc;
+   rc = sdbCreateCollection( collectionspace, clName, &collection ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "Failed to create collection, rc = " << rc;
+   rc = sdbDropCollectionSpace1 ( db, csName, &options1) ;
+   ASSERT_EQ( -275, rc ) << "Failed to drop collection, rc = " << rc;
+
+   // Clear the environment
+   rc = sdbDropCollectionSpace ( db, csName ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_destroy( &options1 ) ;
+   sdbReleaseCS( collectionspace ) ;
+   sdbReleaseCollection( collection ) ;
+}

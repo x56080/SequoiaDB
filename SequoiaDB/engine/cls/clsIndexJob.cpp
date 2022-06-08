@@ -59,6 +59,8 @@ namespace engine
       {
          clsCreateIdxTask* pTask1 = (clsCreateIdxTask*)pTask ;
          _indexObj = pTask1->indexDef() ;
+         _hasSetIndexObj = TRUE ;
+         _indexName = pTask1->indexName() ;
          _sortBufSize = pTask1->sortBufSize() ;
       }
       else if ( CLS_TASK_DROP_IDX == pTask->taskType() )
@@ -66,11 +68,14 @@ namespace engine
          try
          {
             _indexObj = BSON( "" << pTask->indexName() ) ;
+            _hasSetIndexObj = TRUE ;
          }
          catch( std::exception &e )
          {
+            _hasSetIndexObj = FALSE ;
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          }
+         _indexName = pTask->indexName() ;
          _sortBufSize = 0 ;
       }
 
@@ -80,6 +85,7 @@ namespace engine
       _clUniqID = pTask->clUniqueID() ;
 
       _threadMode = CLS_INDEX_NORMAL ;
+      _retryLater = FALSE ;
    }
 
    // rollback thread use it
@@ -96,15 +102,35 @@ namespace engine
       _locationID = _taskStatusPtr->locationID() ;
       _mainTaskID = _taskStatusPtr->mainTaskID() ;
 
-      _indexObj = _taskStatusPtr->indexDef() ;
-      _sortBufSize = _taskStatusPtr->sortBufSize() ;
+      if ( DMS_TASK_CREATE_IDX == _taskStatusPtr->taskType() )
+      {
+         _indexObj = _taskStatusPtr->indexDef() ;
+         _hasSetIndexObj = TRUE ;
+         _indexName = _taskStatusPtr->indexName() ;
+         _sortBufSize = _taskStatusPtr->sortBufSize() ;
+      }
+      else if ( DMS_TASK_DROP_IDX == _taskStatusPtr->taskType() )
+      {
+         try
+         {
+            // DON'T use _taskStatusPtr->indexDef(), it may be empty
+            _indexObj = BSON( "" << _taskStatusPtr->indexName() ) ;
+            _hasSetIndexObj = TRUE ;
+         }
+         catch( std::exception &e )
+         {
+            _hasSetIndexObj = FALSE ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+         _indexName = _taskStatusPtr->indexName() ;
+         _sortBufSize = 0 ;
+      }
 
-      ossStrncpy( _clFullName, _taskStatusPtr->collectionName(),
-                  DMS_COLLECTION_FULL_NAME_SZ ) ;
-      _clFullName[DMS_COLLECTION_FULL_NAME_SZ] = 0 ;
+      _taskStatusPtr->collectionName( _clFullName, sizeof( _clFullName ) ) ;
       _clUniqID = _taskStatusPtr->clUniqueID() ;
 
       _threadMode = threadMod ;
+      _retryLater = FALSE ;
    }
 
    void _clsIndexJob::_onAttach()
@@ -143,6 +169,15 @@ namespace engine
       clsCB->removeTask( _taskID ) ;
       clsCB->getTaskMgr()->removeTask( _locationID ) ;
 
+      // add to task map to retry, should after removeTask
+      if ( _retryLater )
+      {
+         if ( SDB_OK != clsCB->startIdxTaskCheck( _taskID ) )
+         {
+            PD_LOG( PDWARNING, "Failed to push task[%llu] to retry", _taskID ) ;
+         }
+      }
+
       // update task status to FINISH in catalog
       clsCB->getTaskEvent()->signal() ;
 
@@ -150,8 +185,32 @@ namespace engine
       _session.detachCB() ;
    }
 
+   // master node use the function
    INT32 _clsIndexJob::init ()
    {
+      try
+      {
+         if ( !_hasSetIndexObj )
+         {
+            _indexObj = BSON( "" << _indexName ) ;
+            _hasSetIndexObj = TRUE ;
+         }
+
+         if ( RTN_JOB_DROP_INDEX == _type )
+         {
+            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
+            if ( _indexEle.eoo() )
+            {
+               _indexEle = _indexObj.firstElement() ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+
       return _buildJobName() ;
    }
 
@@ -160,46 +219,20 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN writeDB = FALSE ;
       clsFreezingWindow* pWindow = sdbGetShardCB()->getFreezingWindow() ;
-      dmsTaskStatusMgr* pStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
-      DMS_TASK_TYPE statType = DMS_TASK_UNKNOWN ;
       pmdEDUCB* cb = eduCB() ;
       SDB_DMSCB* dmsCB = sdbGetDMSCB() ;
       SDB_DPSCB* dpsCB = sdbGetDPSCB() ;
+      BOOLEAN nameIsOk = FALSE ;
+      INT32 retryCnt = 0 ;
+      BOOLEAN needRollback = FALSE ;
 
       // build task status ptr if not exist
-      if ( !_taskStatusPtr.get() )
+      rc = _buildTaskStatus() ;
+      if ( rc )
       {
-         if ( RTN_JOB_CREATE_INDEX == _type )
-         {
-            statType = DMS_TASK_CREATE_IDX ;
-         }
-         else if ( RTN_JOB_DROP_INDEX == _type )
-         {
-            statType = DMS_TASK_DROP_IDX ;
-         }
-
-         rc = pStatMgr->createIdxItem( statType, _taskStatusPtr,
-                                       _taskID, _locationID, _mainTaskID ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to create task status, rc: %d",
-                      rc ) ;
-
-         rc = _taskStatusPtr->init( _clFullName, _indexObj, _sortBufSize,
-                                    _clUniqID ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to initialize task status, rc: %d",
-                      rc ) ;
+         PD_LOG( PDERROR, "Failed to build task status, rc: %d", rc ) ;
+         goto error ;
       }
-
-      // wait for operation which register this cl
-      cb->writingDB( TRUE ) ;
-      writeDB = TRUE ;
-
-      rc = pWindow->waitForOpr( _clFullName, cb, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to wait freezing window for collection[%s], rc: %d",
-                   _clFullName, rc ) ;
-      PD_LOG( PDDEBUG, "wait for opr, ID: %llu", cb->getWritingID() ) ;
 
       // start catalog task, make task status from Ready to Running
       if ( CLS_INDEX_NORMAL == _threadMode || CLS_INDEX_RESTART == _threadMode )
@@ -227,77 +260,264 @@ namespace engine
          {
             if ( RTN_JOB_CREATE_INDEX == _type )
             {
-               BSONObj index ;
-               try
-               {
-                  index = BSON( "" << _indexName.c_str() ) ;
-               }
-               catch( std::exception &e )
-               {
-                  rc = ossException2RC( &e ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-               }
-
                _taskStatusPtr->setStatus( SDB_TASK_HAS_CANCELED == rc ?
                                           DMS_TASK_STATUS_CANCELED :
                                           DMS_TASK_STATUS_ROLLBACK ) ;
-               if ( UTIL_IS_VALID_CLUNIQUEID( _clUniqID ) )
-               {
-                  rc = rtnDropIndexCommand( _clUniqID, index.firstElement(),
-                                            cb, dmsCB, dpsCB ) ;
-               }
-               else
-               {
-                  rc = rtnDropIndexCommand( _clFullName, index.firstElement(),
-                                            cb, dmsCB, dpsCB ) ;
-               }
-               if ( SDB_IXM_NOTEXIST == rc )
-               {
-                  rc = SDB_OK ;
-               }
-               _taskStatusPtr->setStatus2Finish( rc ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to drop index[%s] "
-                            "for collection[%s:%llu], rc: %d",
-                            _indexName.c_str(), _clFullName, _clUniqID, rc ) ;
-               goto done ;
+               needRollback = TRUE ;
             }
          }
          else if ( rc != SDB_OK )
          {
             PD_LOG( PDERROR, "Failed to start task[%llu] on catalog, rc: %d",
                     _taskStatusPtr->taskID(), rc ) ;
-
-            rc = sdbGetClsCB()->startIdxTaskCheck( _taskStatusPtr->taskID() ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR,
-                       "Failed to push task[%llu] to check map, rc: %d",
-                       _taskStatusPtr->taskID(), rc ) ;
-            }
+            // maybe catalog not exist / no primary, just retry
+            _retryLater = TRUE ;
             goto error ;
          }
       }
 
+   retry:
+      // wait for operation which register this cl
+      cb->setCurProcessName( _clFullName ) ;
+      cb->writingDB( TRUE ) ;
+      writeDB = TRUE ;
+
+      rc = pWindow->waitForOpr( _clFullName, cb, TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR,
+                 "Failed to wait freezing window for collection[%s], rc: %d",
+                 _clFullName, rc ) ;
+         _taskStatusPtr->setStatus2Finish( rc ) ;
+         goto error ;
+      }
+
+      // check collection name by unique id, in case collection/space rename
+      rc = _checkAndFixCLNameByID( nameIsOk ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR,
+                 "Failed to check collection name[%s] by unique id[%llu], "
+                 "rc: %d", _clFullName, _clUniqID, rc ) ;
+         _taskStatusPtr->setStatus2Finish( rc ) ;
+         goto error ;
+      }
+      if ( !nameIsOk )
+      {
+         // _clFullName is wrong, just retry
+         cb->writingDB( FALSE ) ;
+         writeDB = FALSE ;
+         if ( retryCnt++ < 5 )
+         {
+            cb->clearProcessInfo() ;
+            goto retry ;
+         }
+         else
+         {
+            _retryLater = TRUE ;
+            goto error ;
+         }
+      }
+
+      // do rollback
+      if ( needRollback )
+      {
+         BSONObj index ;
+         try
+         {
+            index = BSON( "" << _indexName.c_str() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            _taskStatusPtr->setStatus2Finish( rc ) ;
+            needRollback = FALSE ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+
+         if ( UTIL_IS_VALID_CLUNIQUEID( _clUniqID ) )
+         {
+            rc = rtnDropIndexCommand( _clUniqID, index.firstElement(),
+                                      cb, dmsCB, dpsCB ) ;
+         }
+         else
+         {
+            rc = rtnDropIndexCommand( _clFullName, index.firstElement(),
+                                      cb, dmsCB, dpsCB ) ;
+         }
+         _taskStatusPtr->setStatus2Finish( rc ) ;
+         needRollback = FALSE ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop index[%s] "
+                      "for collection[%s:%llu], rc: %d",
+                      _indexName.c_str(), _clFullName, _clUniqID, rc ) ;
+         goto done ;
+      }
+
       // do it
       rc = _rtnIndexJob::doit() ;
+      // result code and finish status has been set at doit()
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to do it, rc: %d",
                    rc ) ;
 
    done:
-      if ( CLS_INDEX_ROLLBACK == _threadMode ||
-           CLS_INDEX_ROLLBACK_CANCEL == _threadMode )
-      {
-         // make sure rollback task will be finished even if there are errors
-         if ( _taskStatusPtr.get() &&
-              DMS_TASK_STATUS_FINISH != _taskStatusPtr->status() )
-         {
-            _taskStatusPtr->setStatus2Finish( rc ) ;
-         }
-      }
       if ( writeDB )
       {
          cb->writingDB( FALSE ) ;
+      }
+      cb->clearProcessInfo() ;
+      return rc ;
+   error:
+      if ( needRollback )
+      {
+         _taskStatusPtr->setStatus2Finish( rc ) ;
+      }
+      goto done ;
+   }
+
+   INT32 _clsIndexJob::_buildTaskStatus()
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !_taskStatusPtr.get() )
+      {
+         DMS_TASK_TYPE statType = DMS_TASK_UNKNOWN ;
+         dmsTaskStatusMgr* pStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
+
+         if ( RTN_JOB_CREATE_INDEX == _type )
+         {
+            statType = DMS_TASK_CREATE_IDX ;
+         }
+         else if ( RTN_JOB_DROP_INDEX == _type )
+         {
+            statType = DMS_TASK_DROP_IDX ;
+         }
+
+         rc = pStatMgr->createIdxItem( statType, _taskStatusPtr,
+                                       _taskID, _locationID, _mainTaskID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create task status, rc: %d",
+                      rc ) ;
+
+         rc = _taskStatusPtr->init( _clFullName, _indexObj, _sortBufSize,
+                                    _clUniqID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initialize task status, rc: %d",
+                      rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      _retryLater = TRUE ;
+      goto done ;
+   }
+
+   BOOLEAN _clsIndexJob::_isCLNameExist()
+   {
+      INT32 rc                   = SDB_OK ;
+      dmsStorageUnitID suID      = DMS_INVALID_SUID ;
+      dmsStorageUnit *su         = NULL ;
+      SDB_DMSCB *pDmsCB          = sdbGetDMSCB() ;
+      dmsMBContext *pMBContext   = NULL ;
+      const CHAR *clShortName    = NULL ;
+      BOOLEAN exist              = FALSE ;
+
+      rc = rtnResolveCollectionNameAndLock( _clFullName, pDmsCB, &su,
+                                            &clShortName, suID, SHARED ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to loop up su by collection name[%s], rc: %d",
+                   _clFullName, rc ) ;
+
+      rc = su->data()->getMBContext( &pMBContext, clShortName ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get mb context by collection name[%s], rc: %d",
+                   clShortName, rc ) ;
+
+      exist = TRUE ;
+
+   done:
+      if ( pMBContext )
+      {
+         su->data()->releaseMBContext( pMBContext ) ;
+         pMBContext = NULL ;
+      }
+      if ( suID != DMS_INVALID_SUID )
+      {
+         pDmsCB->suUnlock( suID, SHARED ) ;
+         suID = DMS_INVALID_SUID ;
+         su = NULL ;
+      }
+      return exist ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsIndexJob::_checkAndFixCLNameByID( BOOLEAN& isOk )
+   {
+      INT32 rc                   = SDB_OK ;
+      utilCSUniqueID csUniqueID  = utilGetCSUniqueID( _clUniqID ) ;
+      dmsStorageUnitID suID      = DMS_INVALID_SUID ;
+      dmsStorageUnit *su         = NULL ;
+      SDB_DMSCB *pDmsCB          = sdbGetDMSCB() ;
+      dmsMBContext *pMBContext   = NULL ;
+      CHAR clNameInData[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+      isOk = FALSE ;
+
+      rc = pDmsCB->idToSUAndLock( csUniqueID, suID, &su, SHARED ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to loop up su by cs unique id[%u], rc: %d",
+                   csUniqueID, rc ) ;
+
+      rc = su->data()->getMBContextByID( &pMBContext, _clUniqID, SHARED ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get mb context by cl unique id[%llu], rc: %d",
+                   _clUniqID, rc ) ;
+
+      ossSnprintf( clNameInData, sizeof( clNameInData ),
+                   "%s.%s", su->CSName(), pMBContext->mb()->_collectionName ) ;
+
+      if ( 0 == ossStrcmp( clNameInData, _clFullName ) )
+      {
+         isOk = TRUE ;
+      }
+      else
+      {
+         isOk = FALSE ;
+         PD_LOG( PDWARNING, "Collection name[%s] doesn't match unique id[%llu],"
+                 " fix collection name to [%s]",
+                 _clFullName, _clUniqID, clNameInData ) ;
+
+         ossStrncpy( _clFullName, clNameInData, DMS_COLLECTION_FULL_NAME_SZ ) ;
+         _clFullName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+
+         _taskStatusPtr->collectionRename( clNameInData ) ;
+      }
+
+   done:
+      if ( pMBContext )
+      {
+         su->data()->releaseMBContext( pMBContext ) ;
+         pMBContext = NULL ;
+      }
+      if ( suID != DMS_INVALID_SUID )
+      {
+         pDmsCB->suUnlock( suID, SHARED ) ;
+         suID = DMS_INVALID_SUID ;
+         su = NULL ;
+      }
+      if ( ( SDB_DMS_CS_NOTEXIST == rc ||
+             SDB_DMS_NOTEXIST == rc ) && _isCLNameExist() )
+      {
+         // If cl unique id not exist, but cl name exist, means cl unique id is
+         // wrong, we just ignore error
+         PD_LOG( PDWARNING, "Collection[%s]'s unqiue id isn't equal to task's "
+                 "collection unique id[%llu]", _clFullName, _clUniqID ) ;
+         rc = SDB_OK ;
+         isOk = TRUE ;
+         _clUniqID = UTIL_UNIQUEID_NULL ;
+
       }
       return rc ;
    error:
@@ -386,24 +606,20 @@ namespace engine
    INT32 _clsIndexJob::_onDoit( INT32 resultCode )
    {
       INT32 rc = SDB_OK ;
-      _pmdEDUCB* cb = eduCB() ;
-      shardCB* pShard = sdbGetShardCB() ;
-      clsCatalogSet* pCatSet = NULL ;
-      const CHAR* collection = NULL ;
 
       SDB_ASSERT( _taskStatusPtr.get(), "taskStatusPtr can't be null" ) ;
       PD_CHECK( _taskStatusPtr.get(), SDB_SYS, error,
                 PDERROR, "taskStatusPtr can't be null" ) ;
-
-      collection = _taskStatusPtr->collectionName() ;
 
       /// process this collection's main-collection
       if ( _taskStatusPtr->mainTaskID() != CLS_INVALID_TASKID &&
            SDB_OK == resultCode )
       {
          CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         shardCB* pShard = sdbGetShardCB() ;
+         clsCatalogSet* pCatSet = NULL ;
 
-         rc = pShard->getAndLockCataSet( collection, &pCatSet ) ;
+         rc = pShard->getAndLockCataSet( _clFullName, &pCatSet ) ;
          if ( SDB_OK == rc && pCatSet )
          {
             ossStrncpy( mainCLName, pCatSet->getMainCLName().c_str(),
@@ -433,7 +649,7 @@ namespace engine
                       rc ) ;
 
          IRemoteOperator *pRemoteOpr = NULL ;
-         rc = cb->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+         rc = eduCB()->getOrCreateRemoteOperator( &pRemoteOpr ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get remote operator, rc: %d",
                       rc ) ;
@@ -449,10 +665,10 @@ namespace engine
          {
             /// wait all data nodes's index to be dropped
             const CHAR* indexName = _taskStatusPtr->indexName() ;
-            rc = _waitIndexAllInvalid( pRemoteOpr, collection, indexName ) ;
+            rc = _waitIndexAllInvalid( pRemoteOpr, _clFullName, indexName ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check index[%s:%s] "
                          "invalid or not exist on all data nodes, rc: %d",
-                         collection, indexName, rc ) ;
+                         _clFullName, indexName, rc ) ;
 
             /// TODO drop global index collection
          }
@@ -584,9 +800,10 @@ namespace engine
                 PDERROR, "Failed to alloc memory for index job" ) ;
 
       rc = job->init() ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to init index job, collection[%s] index[%s], rc: %d",
-                   idxStatPtr->collectionName(), idxStatPtr->indexName(), rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init index job, "
+                   "collection[%llu] index[%s], rollback task[%llu], rc: %d",
+                   idxStatPtr->clUniqueID(), idxStatPtr->indexName(),
+                   idxStatPtr->taskID(), rc ) ;
 
       rc = rtnGetJobMgr()->startJob( job, RTN_JOB_MUTEX_STOP_CONT ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start job[%s], rc: %d",
@@ -613,9 +830,10 @@ namespace engine
                 PDERROR, "Failed to alloc memory for index job" ) ;
 
       rc = job->init() ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to init index job, collection[%s] index[%s], rc: %d",
-                   idxStatPtr->collectionName(), idxStatPtr->indexName(), rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init index job, "
+                   "collection[%llu] index[%s], restart task[%llu], rc: %d",
+                   idxStatPtr->clUniqueID(), idxStatPtr->indexName(),
+                   idxStatPtr->taskID(), rc ) ;
 
       idxStatPtr->setPauseReport( TRUE ) ;
 
@@ -801,7 +1019,7 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Failed to update task info[%llu], rc: %d",
                  cataTaskID, res->flags ) ;
-
+         ossSleep( OSS_ONE_SEC ) ;
          rc = _pClsCB->restartTaskThread( cataTaskID ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to restart thread for task[%llu], rc: %d",
@@ -828,8 +1046,8 @@ namespace engine
 
       cataTaskStat = ( CLS_TASK_STATUS )ele.numberInt() ;
       PD_LOG( PDINFO,
-              "Get task[%llu] status[%d] from catalog reply",
-              cataTaskID, cataTaskStat ) ;
+              "Get task[%llu] status[%s] from catalog reply",
+              cataTaskID, clsTaskStatusStr( cataTaskStat ) ) ;
 
       /// process different task status
       if ( CLS_TASK_STATUS_FINISH == cataTaskStat )

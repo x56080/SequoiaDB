@@ -1699,16 +1699,23 @@ namespace SequoiaDB
                 throw new BaseException(flags, rtn.ErrorObject);
             }
             DBCursor cursor = new DBCursor(rtn, this);
-            result = cursor.Next();
-            if (result == null)
+            try
             {
-                _clearSessionAttrCache();
+                result = cursor.Next();
+                if (result == null)
+                {
+                    _clearSessionAttrCache();
+                }
+                else
+                {
+                    _setSessionAttrCache(result);
+                }
+                return result;
             }
-            else
+            finally
             {
-                _setSessionAttrCache(result);
+                cursor.Close();
             }
-            return result;
         }
 
         /** \fn void CloseAllCursors()
@@ -1954,33 +1961,31 @@ namespace SequoiaDB
             BsonDocument dummyobj = new BsonDocument();
             matcher.Add(SequoiadbConstants.FIELD_GROUPNAME, groupName);
             DBCursor cursor = GetList(SDBConst.SDB_LIST_GROUPS, matcher, dummyobj, dummyobj);
-            if (cursor != null)
-            {
-                BsonDocument detail = cursor.Next();
-                if (detail != null)
-                {
-                    try
-                    {
-                        if (!detail[SequoiadbConstants.FIELD_GROUPID].IsInt32)
-                        {
-                            throw new BaseException("SDB_SYS");
-                        }
-                        int groupID = detail[SequoiadbConstants.FIELD_GROUPID].AsInt32;
-                        return new ReplicaGroup(this, groupName, groupID);
-                    }
-                    catch (KeyNotFoundException)
-                    {
-                        throw new BaseException("SDB_SYS");
-                    }
-                }
-                else
-                {
-                    throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
-                }
-            }
-            else
+            if (cursor == null)
             {
                 throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
+            }
+            try
+            {
+                BsonDocument detail = cursor.Next();
+                if (detail == null)
+                {
+                    throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
+                }	
+                if (!detail[SequoiadbConstants.FIELD_GROUPID].IsInt32)
+                {
+                    throw new BaseException("SDB_SYS");
+                }
+                int groupID = detail[SequoiadbConstants.FIELD_GROUPID].AsInt32;
+                return new ReplicaGroup(this, groupName, groupID);
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new BaseException("SDB_SYS");
+            }
+            finally
+            {
+                cursor.Close();
             }
         }
 
@@ -1997,33 +2002,31 @@ namespace SequoiaDB
             BsonDocument dummyobj = new BsonDocument();
             matcher.Add(SequoiadbConstants.FIELD_GROUPID, groupID);
             DBCursor cursor = GetList(SDBConst.SDB_LIST_GROUPS, matcher, dummyobj, dummyobj);
-            if (cursor != null)
+            if (cursor == null)
+            {
+                throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
+            }
+            try
             {
                 BsonDocument detail = cursor.Next();
-                if (detail != null)
-                {
-                    try
-                    {
-                        if (!detail[SequoiadbConstants.FIELD_GROUPNAME].IsString)
-                        {
-                            throw new BaseException("SDB_SYS");
-                        }
-                        string groupName = detail[SequoiadbConstants.FIELD_GROUPNAME].AsString;
-                        return new ReplicaGroup(this, groupName, groupID);
-                    }
-                    catch (KeyNotFoundException)
-                    {
-                        throw new BaseException("SDB_SYS");
-                    }
-                }
-                else
+                if (detail == null)
                 {
                     throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
                 }
+                if (!detail[SequoiadbConstants.FIELD_GROUPNAME].IsString)
+                {
+                    throw new BaseException("SDB_SYS");
+                }
+                string groupName = detail[SequoiadbConstants.FIELD_GROUPNAME].AsString;
+                return new ReplicaGroup(this, groupName, groupID);
             }
-            else
+            catch (KeyNotFoundException)
             {
-                throw new BaseException("SDB_CLS_GRP_NOT_EXIST");
+                throw new BaseException("SDB_SYS");
+            }
+            finally
+            {
+                cursor.Close();
             }
         }
 

@@ -40,8 +40,14 @@ Get the session attributes.
 > db.getSessionAttr()
 {
   "PreferedInstance": "M",
+  "PreferredInstance": "M",
   "PreferedInstanceMode": "random",
+  "PreferredInstanceMode": "random",
   "PreferedStrict": false,
+  "PreferredStrict": false,
+  "PreferedPeriod": 60,
+  "PreferredPeriod": 60,
+  "PreferredConstraint": "",
   "Timeout": -1,
   "TransIsolation": 0,
   "TransTimeout": 60,
@@ -56,6 +62,10 @@ Get the session attributes.
   "Source": ""
 }
 ```
+
+> **Note:**
+>
+> In v5.0.3 and above, fields PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod are renamed to PreferredInstance, PreferredInstanceMode, PreferredStrict, PreferredPeriod. For compatibility, after upgrading to v5.0.3 and above, SequoiaDB is still compatible with the original fields.
 
 [^_^]:
    links

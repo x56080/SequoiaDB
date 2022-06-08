@@ -533,7 +533,7 @@ namespace engine
                                          MSG_STP_META_NOTIFY ) ;
 
       // send notify by net agent
-      rc = _netAgent->syncSend( routeID, &notify ) ;
+      rc = _netAgent->syncSend( routeID, (MsgHeader *)&notify ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize meta "
                    "notify to %s, rc: %d", routeID2String( routeID ).c_str(),
                    rc ) ;
@@ -560,7 +560,7 @@ namespace engine
                                          MSG_STP_META_SYNC_REQ ) ;
 
       // send request by net agent
-      rc = _netAgent->syncSend( routeID, &request ) ;
+      rc = _netAgent->syncSend( routeID, (MsgHeader *)&request ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize meta "
                    "request to %s, rc: %d", routeID2String( routeID ).c_str(),
                    rc ) ;
@@ -599,7 +599,7 @@ namespace engine
       response.version = version ;
 
       // send reply by net agent
-      rc = _netAgent->syncSend( handle, &response ) ;
+      rc = _netAgent->syncSend( handle, (MsgHeader *)&response ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize meta result, "
                    "rc: %d", rc ) ;
 

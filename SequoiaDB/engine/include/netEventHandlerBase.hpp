@@ -45,6 +45,7 @@
 #include "ossLatch.hpp"
 #include "ossAtomic.hpp"
 #include "utilPooledObject.hpp"
+#include "msgConvertor.hpp"
 
 #include <string>
 #include <boost/enable_shared_from_this.hpp>
@@ -184,6 +185,9 @@ namespace engine
 
    /*
       _netEventHandlerBase define
+      Handler to deal with network events. The main task is to establish the
+      connection(for TCP), and to send messages. It should be used in exclusive
+      mode, that is, the user need to take X lock on it before using.
     */
    class _netEventHandlerBase : public utilPooledObject,
                                 public netUserDataHolder
@@ -255,11 +259,22 @@ namespace engine
       void  syncLastBeatTick() ;
       void  makeStat( UINT64 curTick ) ;
 
+      IMsgConvertor *getInMsgConvertor() ;
+      IMsgConvertor *getOutMsgConvertor() ;
+
       virtual NET_EVENT_HANDLER_TYPE getHandlerType() const = 0 ;
       virtual INT32 syncConnect( const CHAR *hostName,
                                  const CHAR *serviceName ) = 0 ;
       virtual void asyncRead() = 0 ;
-      virtual INT32 syncSend( const void *buff, UINT32 len ) = 0 ;
+
+      /**
+       * @brief Send data in its raw format. It will NOT be treated as in any
+       *        particular format.
+       * @param buff Data to be sent.
+       * @param len  Length of the data.
+       */
+      virtual INT32 syncSendRaw( const void *buff, UINT32 len ) = 0 ;
+
       virtual void close() = 0 ;
       virtual CHAR *msg() = 0 ;
       virtual void setOpt() = 0 ;
@@ -286,6 +301,8 @@ namespace engine
          return NET_EH::makeRaw( this, ALLOC_POOL ) ;
       }
 
+      INT32 _enableMsgConvertor() ;
+
    protected:
       ossSpinXLatch           _mtx ;
       NET_HANDLE              _handle ;
@@ -299,6 +316,9 @@ namespace engine
       UINT64                  _lastStatTick ;
       UINT64                  _totalIOTimes ;
       UINT32                  _iops ;     /// times/s
+      SDB_PROTOCOL_VERSION    _peerVersion ;
+      IMsgConvertor           *_inMsgConvertor ;
+      IMsgConvertor           *_outMsgConvertor ;
    } ;
 
 }

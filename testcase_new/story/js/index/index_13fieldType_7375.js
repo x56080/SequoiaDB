@@ -72,20 +72,20 @@ function test ()
    }
 
    //test find by index 
-   checkExplain( idxCL, { number: 24523453 } );
-   checkExplain( idxCL, { longint: 2147483647000 } );
-   checkExplain( idxCL, { floatNum: 123e+50 } );
-   checkExplain( idxCL, { string: "field_value" } );
-   checkExplain( idxCL, { objectOID: { "$oid": "123abcd00ef12358902300ef" } } );
+   checkExplain( idxCL, { number: 24523453 }, "ixscan", "numberIdx" );
+   checkExplain( idxCL, { longint: 2147483647000 }, "ixscan", "longinIdx" );
+   checkExplain( idxCL, { floatNum: 123e+50 }, "ixscan", "floatNumIdx" );
+   checkExplain( idxCL, { string: "field_value" }, "ixscan", "stringIdx" );
+   checkExplain( idxCL, { objectOID: { "$oid": "123abcd00ef12358902300ef" } }, "ixscan", "objIDIdx" );
    //checkExplain( idxCL, {bool:true} );
-   checkExplain( idxCL, { date: { "$date": "2014-5-21" } } );
-   checkExplain( idxCL, { timestamp: { "$timestamp": "2014-5-21-9.17.30.111111" } } );
-   checkExplain( idxCL, { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
-   checkExplain( idxCL, { object: { "subobj": "can't" } } );
-   checkExplain( idxCL, { array: "abc" } );
+   checkExplain( idxCL, { date: { "$date": "2014-5-21" } }, "ixscan", "dateIdx" );
+   checkExplain( idxCL, { timestamp: { "$timestamp": "2014-5-21-9.17.30.111111" } }, "ixscan", "timestampIdx" );
+   checkExplain( idxCL, { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } }, "ixscan", "binaryIdx" );
+   checkExplain( idxCL, { object: { "subobj": "can't" } }, "ixscan", "objIdx" );
+   checkExplain( idxCL, { array: "abc" }, "ixscan", "arrayIdx" );
    //checkExplain( idxCL, {array:["abc",123,"def","噆"]} );
-   checkExplain( idxCL, { NULL: null } );
-   checkExplain( idxCL, { regex: { "$regex": "^张" } } );
+   checkExplain( idxCL, { NULL: null }, "ixscan", "nullIdx" );
+   checkExplain( idxCL, { regex: { "$regex": "^张" } }, "ixscan", "regexIdx" );
 
    //check the result of find  
    checkResult( idxCL, { number: 24523453 } );

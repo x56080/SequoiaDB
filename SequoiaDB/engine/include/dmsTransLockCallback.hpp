@@ -111,6 +111,7 @@ namespace engine
       BOOLEAN isPostActionRequired() { return _needPostAction ; }
 
       BOOLEAN isIndexProtected( INT32 idxTreeId, INT32 latchMode = -1 ) ;
+      BOOLEAN isRecordOnDiskVisible() { return _recordOnDiskVisible ; }
 
       const dmsRBSOffset & getRBSRecordOffset() ;
 
@@ -137,12 +138,9 @@ namespace engine
       }
 
    public:
+      INT32 checkRecordVisible( dmsMBContext *context, BOOLEAN *needData = NULL ) ;
 
       /// Interface
-      virtual void beforeLockAcquire( const dpsTransLockId &lockId,
-                                      DPS_TRANSLOCK_TYPE requestLockMode,
-                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode );
-
       virtual void afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,

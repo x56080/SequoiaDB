@@ -71,6 +71,11 @@ namespace import
          return _failedNum.fetch();
       }
 
+      inline INT64 duplicatedNum()
+      {
+         return _duplicatedNum.fetch();
+      }
+
       inline const string& logFileName() const
       {
          return _logFile.fileName() ;
@@ -88,7 +93,8 @@ namespace import
       ossAtomicSigned32 _livingNum ;
       ossAtomicSigned64 _importedNum ;
       ossAtomicSigned64 _failedNum ;
-
+      ossAtomicSigned64 _duplicatedNum ;
+      
       Coords            _coords ;
       vector<Worker*>   _workers ;
       LogFile           _logFile ;

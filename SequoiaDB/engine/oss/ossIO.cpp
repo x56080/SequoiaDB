@@ -2986,55 +2986,61 @@ error:
 #endif // _LINUX
 }
 
-INT32 ossFallocate(OSSFILE *file,
-                   UINT32 mode,
-                   UINT64 offset,
-                   UINT64 size)
+INT32 ossFallocate( OSSFILE *file,
+                    UINT32 mode,
+                    UINT64 offset,
+                    UINT64 size)
 {
-   INT32 rc = SDB_OK;
+   INT32 rc = SDB_OK ;
 
 #if defined( _LINUX )
 
-   if (NULL == file ||
-       !file->isOpened() ||
-       0 == size)
+   if ( NULL == file ||
+        !file->isOpened() ||
+        0 == size )
    {
-      rc = SDB_INVALIDARG;
-      goto error;
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
 
-   rc = fallocate(file->fd, mode, offset, size);
-   if (rc < 0)
+   rc = fallocate( file->fd, mode, offset, size ) ;
+   if ( rc < 0 )
    {
-      UINT32 lastErr = ossGetLastError();
-      switch (lastErr)
+      UINT32 lastErr = ossGetLastError() ;
+      switch ( lastErr )
       {
       case EBADF:
-         rc = SDB_PERM;
-         break;
+         rc = SDB_PERM ;
+         break ;
       case EINTR:
-         rc = SDB_INTERRUPT;
-         break;
+         rc = SDB_INTERRUPT ;
+         break ;
       case EINVAL:
-         rc = SDB_INVALIDARG;
-         break;
+         rc = SDB_INVALIDARG ;
+         break ;
       case ENOSPC:
-         rc = SDB_NOSPC;
-         break;
+         rc = SDB_NOSPC ;
+         break ;
+      case EOPNOTSUPP:
+         rc = SDB_INVALIDARG ;
+         break ;
+      case ENOSYS:
+         rc = SDB_INVALIDARG ;
+         break ;
       default:
-         rc = SDB_IO;
-         break;
+         rc = SDB_IO ;
+         break ;
       }
    }
 #else
-   /// TODO.
-   rc = SDB_SYS;
-   goto error;
-#endif//_LINUX
+   /// Windows does not support.
+   rc = SDB_SYS ;
+   goto error ;
+#endif //_LINUX
 done:
-   return rc;
+   return rc ;
 error:
-   goto done;
+   goto done ;
 }
 
 

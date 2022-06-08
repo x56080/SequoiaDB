@@ -994,11 +994,13 @@ namespace engine
             itr++ )
       {
          BSONObjBuilder diskBuilder ;
-         INT64 totalBytes = 0 ;
-         INT64 freeBytes = 0 ;
-         const CHAR *fs = NULL ;
+         INT64 totalBytes   = 0 ;
+         INT64 freeBytes    = 0 ;
+         INT64 availBytes   = 0 ;
+         INT32 loadPercent  = 0 ;
+         const CHAR *fs     = NULL ;
          const CHAR *fsType = NULL ;
-         const CHAR *mount = NULL ;
+         const CHAR *mount  = NULL ;
          vector<string> columns ;
 
          try
@@ -1032,7 +1034,8 @@ namespace engine
          fs = columns.at( 0 ).c_str() ;
          mount = columns.at( 1 ).c_str() ;
 
-         rc = ossGetDiskInfo( mount, totalBytes, freeBytes ) ;
+         rc = ossGetDiskInfo( mount, totalBytes, freeBytes,
+                              availBytes, loadPercent ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to get disk info, rc: %d, path: %s",

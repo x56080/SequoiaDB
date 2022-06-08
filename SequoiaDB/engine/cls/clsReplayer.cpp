@@ -51,6 +51,7 @@
 #include "mthModifier.hpp"
 #include "utilBsonHash.hpp"
 #include "dpsUtil.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -784,7 +785,8 @@ namespace engine
          }
          PD_LOG( PDERROR, "sync bucket: replay log [type:%d, lsn:%lld, "
                  "data: %s] failed, rc: %d", recordHeader->_type,
-                 recordHeader->_lsn, tmpBuff, rc ) ;
+                 recordHeader->_lsn,
+                 PD_SECURE_STR1( tmpBuff ), rc ) ;
       }
       PD_TRACE_EXITRC ( SDB__CLSREP_REPLYBUCKET, rc ) ;
       return rc ;
@@ -866,7 +868,7 @@ namespace engine
                         insertResult.isSameID() ) )
             {
                PD_LOG( PDINFO, "Record[%s] already exist when insert",
-                       obj.toPoolString().c_str() ) ;
+                       PD_SECURE_OBJ( obj ) ) ;
                rc = SDB_OK ;
             }
 
@@ -916,7 +918,7 @@ namespace engine
                {
                   PD_LOG( PDDEBUG, "LSN [%llu] matcher %s updated 0 record on "
                           "collection [%s]", recordHeader->_lsn,
-                          match.toPoolString().c_str(), fullname ) ;
+                          PD_SECURE_OBJ( match ), fullname ) ;
                }
             }
             // ignore duplicated key in REPLACE case
@@ -927,7 +929,7 @@ namespace engine
                       ( ignoreDupKey || upResult.isSameID() ) )
             {
                PD_LOG( PDINFO, "Record[%s] already exist when update",
-                       match.toPoolString().c_str() ) ;
+                       PD_SECURE_OBJ( match ) ) ;
                rc = SDB_OK ;
             }
             break ;
@@ -950,7 +952,7 @@ namespace engine
                if ( idEle.eoo() )
                {
                   PD_LOG( PDWARNING, "replay: failed to parse "
-                          "oid from bson:[%s]",obj.toString().c_str() ) ;
+                          "oid from bson:[%s]", PD_SECURE_OBJ( obj ) ) ;
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
@@ -980,7 +982,7 @@ namespace engine
                {
                   PD_LOG( PDDEBUG, "LSN [%llu] matcher %s deleted 0 record on "
                           "collection [%s]", recordHeader->_lsn,
-                          obj.toPoolString().c_str(), fullname ) ;
+                          PD_SECURE_OBJ( obj ), fullname ) ;
                }
             }
             break ;
@@ -1062,16 +1064,21 @@ namespace engine
          case LOG_TYPE_CS_DELETE :
          {
             const CHAR *cs = NULL ;
+            BSONObj boOptions ;
+            dmsDropCSOptions options ;
             rc = dpsRecord2CSDel( (CHAR *)recordHeader,
-                                  &cs ) ;
+                                  &cs, &boOptions ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                         "space options, rc: %d", rc ) ;
             while ( TRUE )
             {
                rc = rtnDropCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
-                                                   TRUE ) ;
+                                                   TRUE, FALSE, &options ) ;
                if ( SDB_LOCK_FAILED == rc )
                {
                   ossSleep ( 100 ) ;
@@ -1153,13 +1160,20 @@ namespace engine
          case LOG_TYPE_CL_DELETE :
          {
             const CHAR *cl = NULL ;
+            BSONObj boOptions ;
+            dmsDropCLOptions options ;
             rc = dpsRecord2CLDel( (CHAR *)recordHeader,
-                                   &cl ) ;
+                                   &cl,
+                                   &boOptions ) ;
             if ( rc )
             {
                goto error ;
             }
-            rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB ) ;
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                         "options, rc: %d", rc ) ;
+            rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB,
+                                           UTIL_UNIQUEID_NULL, &options ) ;
             if ( SDB_DMS_NOTEXIST == rc )
             {
                PD_LOG( PDWARNING, "Collection [%s] not exist when drop", cl ) ;
@@ -1298,18 +1312,25 @@ namespace engine
          case LOG_TYPE_CL_TRUNC :
          {
             const CHAR *clname = NULL ;
-            rc = dpsRecord2CLTrunc( (const CHAR *)recordHeader, &clname ) ;
+            BSONObj boOptions ;
+            dmsTruncCLOptions options ;
+            rc = dpsRecord2CLTrunc( (const CHAR *)recordHeader, &clname,
+                                    &boOptions ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
+                         "options, rc: %d", rc ) ;
             // truncate will reset index flag of dropping indexes,
             // so we need to wait for collection jobs ( for drop indexes )
             while ( rtnGetIndexJobHolder()->hasCLJob( clname ) )
             {
                ossSleep( CLS_REPLAY_CHECK_INTERVAL ) ;
             }
-            rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB ) ;
+            rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB,
+                                            NULL, &options ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to truncate collection[%s], rc: %d",
@@ -1564,6 +1585,35 @@ namespace engine
 
             break ;
          }
+         case LOG_TYPE_RETURN :
+         {
+            BSONObj boOptions ;
+            dmsReturnOptions options ;
+
+            rc = dpsRecord2Return( (CHAR *)recordHeader, &( boOptions ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get return options from "
+                         "DPS log, rc: %d", rc ) ;
+
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse return options, "
+                         "rc: %d", rc ) ;
+
+            while ( TRUE )
+            {
+               rc = rtnReturnCommand( options, eduCB, _dmsCB, _dpsCB, FALSE ) ;
+               if ( SDB_LOCK_FAILED == rc )
+               {
+                  // retry for lock failed
+                  rc = SDB_OK ;
+                  ossSleep( 100 ) ;
+                  continue ;
+               }
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to return item, rc: %d", rc ) ;
+
+            break ;
+         }
          case LOG_TYPE_DUMMY :
          {
             rc = SDB_OK ;
@@ -1614,7 +1664,7 @@ namespace engine
          }
          PD_LOG( PDERROR, "sync: replay log [type:%d, lsn:%lld, data: %s] "
                  "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
-                 tmpBuff, rc ) ;
+                 PD_SECURE_STR1( tmpBuff ), rc ) ;
       }
       if ( !_dpsCB )
       {
@@ -1720,7 +1770,7 @@ namespace engine
                if ( idEle.eoo() )
                {
                   PD_LOG( PDWARNING, "replay: failed to parse"
-                          " oid from bson:[%s]",obj.toString().c_str() ) ;
+                          " oid from bson:[%s]", PD_SECURE_OBJ( obj ) ) ;
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
@@ -1912,7 +1962,7 @@ namespace engine
                                              eduCB, _dmsCB, _dpsCB, FALSE ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to rename cs[%s] cl %s to %s, rc: %d",
+               PD_LOG( PDERROR, "Failed to rename cs[%s] cl %s to %s, rc: %d",
                        cs, oldCl, newCl, rc ) ;
                goto error ;
             }
@@ -1934,7 +1984,7 @@ namespace engine
                                                   FALSE ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",
+               PD_LOG( PDERROR, "Failed to rename %s to %s, rc: %d",
                        oldName, newName, rc ) ;
                goto error ;
             }
@@ -1975,6 +2025,11 @@ namespace engine
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to add unique id, rc: %d", rc ) ;
 
+            break ;
+         }
+         case LOG_TYPE_RETURN :
+         {
+            rc = SDB_CLS_REPLAY_LOG_FAILED ;
             break ;
          }
          case LOG_TYPE_TS_COMMIT :
@@ -2126,7 +2181,7 @@ namespace engine
          }
          PD_LOG( PDERROR, "sync: rollback log [type:%d, lsn:%lld, data: %s] "
                  "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
-                 tmpBuff, rc ) ;
+                 PD_SECURE_STR1( tmpBuff ), rc ) ;
       }
       if( !_dpsCB )
       {
@@ -2362,7 +2417,7 @@ namespace engine
          BSONElement idElement = insertObject.getField( DMS_ID_KEY_NAME ) ;
          PD_CHECK( EOO != idElement.type(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to find OID from BSON [%s]",
-                   insertObject.toPoolString().c_str() ) ;
+                   PD_SECURE_OBJ( insertObject ) ) ;
          deleteSelector = BSON( DMS_ID_KEY_NAME << idElement ) ;
       }
 
@@ -2533,7 +2588,7 @@ namespace engine
             rc = _queryRecord( clFullName, newMatch, eduCB, currentObject ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
                          "collection [%s], rc: %d",
-                         newMatch.toPoolString().c_str(), clFullName, rc ) ;
+                         PD_SECURE_OBJ( newMatch ), clFullName, rc ) ;
 
             rc = _replayUpdateModifier( oldObject, currentObject,
                                         rollbackObject, logWriteMod ) ;
@@ -2892,7 +2947,7 @@ namespace engine
          {
             PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
                          "collection [%s], rc: %d",
-                         newMatch.toPoolString().c_str(), clFullName, rc ) ;
+                         PD_SECURE_OBJ( newMatch ), clFullName, rc ) ;
 
             rc = _replayUpdateModifier( oldObject, currentObject,
                                         rollbackObject, logWriteMod ) ;
@@ -2916,7 +2971,7 @@ namespace engine
       PD_CHECK( added, SDB_SYS, error, PDERROR,
                 "Failed to add pending key [ collection %s, key %s ]",
                 newPendingKey._collection.c_str(),
-                newPendingKey._obj.toPoolString().c_str() ) ;
+                PD_SECURE_OBJ( newPendingKey._obj ) ) ;
 
       // have pending object, set rollback pending flag
       eduCB->setTransRBPending() ;
@@ -2974,7 +3029,7 @@ namespace engine
       PD_CHECK( added, SDB_SYS, error, PDERROR,
                 "Failed to add pending key [ collection %s, key %s ]",
                 pendingKey._collection.c_str(),
-                pendingKey._obj.toPoolString().c_str() ) ;
+                PD_SECURE_OBJ( pendingKey._obj ) ) ;
 
       // have pending object, set rollback pending flag
       eduCB->setTransRBPending() ;
@@ -3001,12 +3056,12 @@ namespace engine
       rc = modifier.loadPattern( updater, NULL, TRUE, NULL, FALSE,
                                  logWriteMode ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load modify pattern [%s], rc: %d",
-                   updater.toPoolString().c_str(), rc ) ;
+                   PD_SECURE_OBJ( updater ), rc ) ;
 
       rc = modifier.modify( oldObject, newObject ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to modify [%s] by [%s], rc: %d",
-                   oldObject.toPoolString().c_str(),
-                   updater.toPoolString().c_str(), rc ) ;
+                   PD_SECURE_OBJ( oldObject ),
+                   PD_SECURE_OBJ( updater ), rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__CLSREP__REPLAYUPDATEMODIFIER, rc ) ;
@@ -3036,28 +3091,28 @@ namespace engine
                      s_replayHint, 0, eduCB, 0, 1, _dmsCB,
                      sdbGetRTNCB(), contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
-                   "collection [%s], rc: %d", matcher.toPoolString().c_str(),
+                   "collection [%s], rc: %d", PD_SECURE_OBJ( matcher ),
                    collection, rc ) ;
 
       rc = rtnGetMore( contextID, 1, buffer, eduCB, sdbGetRTNCB() ) ;
       if ( SDB_DMS_EOC == rc )
       {
          PD_LOG( PDDEBUG, "Hit end of query object [%s] from collection [%s]",
-                 matcher.toPoolString().c_str(), collection ) ;
+                 PD_SECURE_OBJ( matcher ), collection ) ;
          goto done ;
       }
       else
       {
          PD_RC_CHECK( rc, PDERROR, "Failed to get object [%s] from "
                       "collection [%s], rc: %d",
-                      matcher.toPoolString().c_str(), collection, rc ) ;
+                      PD_SECURE_OBJ( matcher ), collection, rc ) ;
       }
 
       /// get object
       rc = buffer.nextObj( currentObject ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse object [%s] from "
                    "collection [%s], rc: %d",
-                   matcher.toPoolString().c_str(), collection, rc ) ;
+                   PD_SECURE_OBJ( matcher ), collection, rc ) ;
 
       object = currentObject.getOwned() ;
 
@@ -3151,6 +3206,8 @@ namespace engine
       {
          PD_LOG ( PDERROR, "Index job[%s] init failed, rc = %d",
                   indexJob->name(), rc ) ;
+         SDB_OSS_DEL indexJob ;
+         indexJob = NULL ;
          goto error ;
       }
 
@@ -3164,6 +3221,7 @@ namespace engine
       }
       else
       {
+         ossPoolString indexName = indexJob->getIndexName() ;
          EDUID jobEduID = PMD_INVALID_EDUID ;
          // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
          // drop index should not drop really, so it's error, need to use
@@ -3182,7 +3240,7 @@ namespace engine
             {
                /// when index job is running
                if ( SDB_OK != rtnIndexJob::checkIndexExist( collection,
-                                                            indexJob->getIndexName(),
+                                                            indexName.c_str(),
                                                             indexExist ) ||
                     TRUE == indexExist )
                {

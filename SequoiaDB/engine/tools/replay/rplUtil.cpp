@@ -222,6 +222,8 @@ namespace replay
          return RPL_LOG_OP_CS_RENAME;
       case LOG_TYPE_DATA_POP:
          return RPL_LOG_OP_POP;
+      case LOG_TYPE_RETURN:
+         return RPL_LOG_OP_RETURN;
       default:
          return "unknown";
       }

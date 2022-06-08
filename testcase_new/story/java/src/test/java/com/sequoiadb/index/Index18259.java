@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.SkipException;
@@ -88,9 +89,13 @@ public class Index18259 extends SdbTestBase {
                         + this.getClass().getName().toString() );
                 cl2.createIndex( IDX_NAME, IDX_KEY, false, false );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -247 && e.getErrorCode() != -199
-                        && e.getErrorCode() != -43
-                        && e.getErrorCode() != -175 ) {
+                if ( e.getErrorCode() != SDBError.SDB_IXM_REDEF.getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DMS_INVALID_INDEXCB
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_NOTEXIST
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_CREATING
+                                .getErrorCode() ) {
                     throw e;
                 }
             }
@@ -115,8 +120,12 @@ public class Index18259 extends SdbTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -47 && e.getErrorCode() != -147
-                        && e.getErrorCode() != -175 ) {
+                if ( e.getErrorCode() != SDBError.SDB_IXM_NOTEXIST
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_DROPPING
+                                .getErrorCode() ) {
                     throw e;
                 }
             }

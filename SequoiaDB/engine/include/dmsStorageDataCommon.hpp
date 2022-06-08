@@ -53,8 +53,6 @@
 #include "monCB.hpp"
 #include "sdbRemoteOperator.hpp"
 
-#include "dmsMBContext.hpp"
-
 using namespace bson ;
 
 namespace engine
@@ -97,7 +95,226 @@ namespace engine
 
 #pragma pack()
 
-    /*
+#pragma pack(4)
+   /*
+      _dmsMetadataBlock defined
+   */
+   struct _dmsMetadataBlock
+   {
+      // every records <= 32 bytes go to slot 0
+      // every records >32 and <= 64 go to slot 1...
+      // every records
+      enum deleteListType
+      {
+         _32 = 0,
+         _64,
+         _128,
+         _256,
+         _512,
+         _1k,
+         _2k,
+         _4k,
+         _8k,
+         _16k,
+         _32k,
+         _64k,
+         _128k,
+         _256k,
+         _512k,
+         _1m,
+         _2m,
+         _4m,
+         _8m,
+         _16m,
+         _max
+      } ;
+
+      CHAR           _collectionName [ DMS_COLLECTION_NAME_SZ+1 ] ;
+      UINT16         _flag ;
+      UINT16         _blockID ;
+      dmsExtentID    _firstExtentID ;
+      dmsExtentID    _lastExtentID ;
+      UINT32         _numIndexes ;
+      dmsRecordID    _deleteList [_max] ;
+      dmsExtentID    _indexExtent [DMS_COLLECTION_MAX_INDEX] ;
+      UINT32         _logicalID ;
+      UINT32         _indexHWCount ;
+      UINT32         _attributes ;
+      dmsExtentID    _loadFirstExtentID ;
+      dmsExtentID    _loadLastExtentID ;
+      dmsExtentID    _mbExExtentID ;
+      // for stat
+      UINT64         _totalRecords ;
+      UINT32         _totalDataPages ;
+      UINT32         _totalIndexPages ;
+      UINT64         _totalDataFreeSpace ;
+      UINT64         _totalIndexFreeSpace ;
+      UINT32         _totalLobPages ;
+      // end
+
+      // This extent is used to store dictionary of the collection. If the
+      // dictionary has not been created, the value should be DMS_INVALID_EXTENT.
+      dmsExtentID    _dictExtentID ;
+      dmsExtentID    _newDictExtentID ;
+      SINT32         _dictStatPageID ;
+      UINT8          _dictVersion ;
+      UINT8          _compressorType ;
+      UINT8          _lastCompressRatio ;
+      UINT8          _compressFlags ;
+      // for stat
+      UINT64         _totalLobs ;
+      UINT64         _totalOrgDataLen ;
+      UINT64         _totalDataLen ;
+      // end stat
+
+      // for persistence
+      UINT64         _maxGlobTransID ;
+      CHAR           _pad2[ 8 ] ;  // reserved
+      UINT32         _commitFlag ;
+      UINT64         _commitLSN ;
+      UINT64         _commitTime ;
+      UINT32         _idxCommitFlag ;
+      UINT64         _idxCommitLSN ;
+      UINT64         _idxCommitTime ;
+      UINT32         _lobCommitFlag ;
+      UINT64         _lobCommitLSN ;
+      UINT64         _lobCommitTime ;
+      // end persistence
+
+      // Extend option extent id for collection.
+      // If one storage type has its own special options, allocate one seperate
+      // page to store them, instead of putting them in this common structure.
+      dmsExtentID    _mbOptExtentID ;
+
+      utilCLUniqueID _clUniqueID ;
+
+      CHAR           _pad [ 276 ] ;
+
+      void reset ( const CHAR *clName = NULL,
+                   utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
+                   UINT16 mbID = DMS_INVALID_MBID,
+                   UINT32 clLID = DMS_INVALID_CLID,
+                   UINT32 attr = 0,
+                   UINT8 compressType = UTIL_COMPRESSOR_INVALID )
+      {
+         INT32 i = 0 ;
+         ossMemset( _collectionName, 0, sizeof( _collectionName ) ) ;
+         if ( clName )
+         {
+            ossStrncpy( _collectionName, clName, DMS_COLLECTION_NAME_SZ ) ;
+         }
+         _clUniqueID = clUniqueID ;
+         if ( DMS_INVALID_MBID != mbID )
+         {
+            DMS_SET_MB_INUSE( _flag ) ;
+         }
+         else
+         {
+            DMS_SET_MB_FREE( _flag ) ;
+         }
+         _blockID = mbID ;
+         _firstExtentID = DMS_INVALID_EXTENT ;
+         _lastExtentID  = DMS_INVALID_EXTENT ;
+         _numIndexes    = 0 ;
+         for ( i = 0 ; i < _max ; ++i )
+         {
+            _deleteList[i].reset() ;
+         }
+         for ( i = 0 ; i < DMS_COLLECTION_MAX_INDEX ; ++i )
+         {
+            _indexExtent[i] = DMS_INVALID_EXTENT ;
+         }
+         _logicalID = clLID ;
+         _indexHWCount = 0 ;
+         _attributes   = attr ;
+         _loadFirstExtentID = DMS_INVALID_EXTENT ;
+         _loadLastExtentID  = DMS_INVALID_EXTENT ;
+         _mbExExtentID      = DMS_INVALID_EXTENT ;
+
+         _totalRecords           = 0 ;
+         _totalDataPages         = 0 ;
+         _totalIndexPages        = 0 ;
+         _totalDataFreeSpace     = 0 ;
+         _totalIndexFreeSpace    = 0 ;
+         _totalLobPages          = 0 ;
+         _totalLobs              = 0 ;
+         _compressorType         = UTIL_COMPRESSOR_INVALID ;
+         _dictVersion            = 0 ;
+         _dictExtentID           = DMS_INVALID_EXTENT ;
+         _newDictExtentID        = DMS_INVALID_EXTENT ;
+         _dictStatPageID         = DMS_INVALID_EXTENT ;
+         _lastCompressRatio      = 100 ;
+         _compressFlags          = UTIL_COMPRESS_ALTERABLE_FLAG ;
+
+         _totalOrgDataLen        = 0 ;
+         _totalDataLen           = 0 ;
+
+         _maxGlobTransID         = 0 ;
+         _commitFlag             = 0 ;
+         _commitLSN              = ~0 ;
+         _commitTime             = 0 ;
+         _idxCommitFlag          = 0 ;
+         _idxCommitLSN           = ~0 ;
+         _idxCommitTime          = 0 ;
+         _lobCommitFlag          = 0 ;
+         _lobCommitLSN           = ~0 ;
+         _lobCommitTime          = 0 ;
+
+         _mbOptExtentID          = DMS_INVALID_EXTENT ;
+
+         /// set compressor type
+         if ( OSS_BIT_TEST( attr, DMS_MB_ATTR_COMPRESSED ) )
+         {
+            _compressorType      = compressType ;
+         }
+
+         // pad
+         ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
+         ossMemset( _pad, 0, sizeof( _pad ) ) ;
+      }
+   } ;
+   typedef _dmsMetadataBlock  dmsMetadataBlock ;
+   typedef dmsMetadataBlock   dmsMB ;
+   #define DMS_MB_SIZE                 (1024)
+
+#pragma pack()
+
+   // minimum space slot is 2^5 = 32 byte
+   #define DMS_MIN_SPACE_SLOT_SQUQRE_ROOT ( 5 )
+
+   // to avoid small deleted record which can not be reused by average
+   // size of records in the same collection, we only split the record if
+   // the remain size can at least save the record with average size,
+   // or current record ( scale down to 0.8x )
+   #define DMS_REMAIN_SIZE_RATIO          ( 0.8 )
+
+   // get space slot to store the record with given size
+   OSS_INLINE UINT8 dmsMBGetSpaceSlot( UINT32 recSize )
+   {
+      UINT8 freeSlot = 0 ;
+
+      // divide by 32 (2^5) first since our first slot is for <32 bytes
+      // while loop, divide by 2 every time, find the closest delete slot
+      // for example, for a given size 3000, we should go _4k (which is
+      // _deleteList[7], using 3000>>5=93
+      // then in a loop, first round we have 46, type=1
+      // then 23, type=2
+      // then 11, type=3
+      // then 5, type=4
+      // then 2, type=5
+      // then 1, type=6
+      // finally 0, type=7
+      recSize = ( recSize - 1 ) >> DMS_MIN_SPACE_SLOT_SQUQRE_ROOT ;
+      while ( recSize != 0 )
+      {
+         ++ freeSlot ;
+         recSize >>= 1 ;
+      }
+
+      return freeSlot ;
+   }
+
+   /*
       Type to String functions
    */
    void  mbFlag2String ( UINT16 flag, CHAR *pBuffer, INT32 bufSize ) ;
@@ -171,8 +388,527 @@ namespace engine
    } ;
    typedef _dmsMetadataManagementExtent dmsMetadataManagementExtent ;
 
-   class _dmsStorageDataCommon;
-   
+   /*
+      _dmsMBStatInfo define
+   */
+   struct _dmsMBStatInfo
+   {
+      UINT64      _totalRecords ;
+      UINT32      _totalDataPages ;
+      UINT32      _totalIndexPages ;
+      UINT64      _totalDataFreeSpace ;
+      UINT64      _totalIndexFreeSpace ;
+      UINT32      _totalLobPages ;
+      UINT64      _totalLobs ;
+      UINT8       _uniqueIdxNum ;
+      UINT8       _textIdxNum ;
+      UINT8       _globIdxNum ;
+      UINT8       _lastCompressRatio ;
+      UINT64      _totalOrgDataLen ;
+      UINT64      _totalDataLen ;
+      UINT32      _startLID ;
+      UINT32      _flag ;
+
+      ossAtomic32 _commitFlag ;
+      ossAtomic64 _lastLSN ;
+      UINT64      _maxGlobTransID ;
+      UINT64      _lastWriteTick ;
+      BOOLEAN     _isCrash ;
+
+      ossAtomic32 _idxCommitFlag ;
+      ossAtomic64 _idxLastLSN ;
+      UINT64      _idxLastWriteTick ;
+      BOOLEAN     _idxIsCrash ;
+
+      ossAtomic32 _lobCommitFlag ;
+      ossAtomic64 _lobLastLSN ;
+      UINT64      _lobLastWriteTick ;
+      BOOLEAN     _lobIsCrash ;
+      // how many operators need to block index creating
+      UINT32      _blockIndexCreatingCount ;
+
+      // total record count for transaction RC count
+      ossAtomic64 _rcTotalRecords ;
+
+      // runtime CRUD statistics monitor
+      monCRUDCB   _crudCB ;
+
+      // bitmap to indicate index fields
+      ixmIdxHashBitmap _clIdxHashBitmap ;
+      ixmIdxHashArray  _idxHashFields[ IXM_IDX_HASH_MAX_INDEX_NUM ] ;
+
+      // global timestamp to support global transaction to
+      // fetch MVCC old versions
+      // - updated after destination of split
+      // - updated after commit of transaction with lock escalated
+      ossAtomic64 _globTransAvailTime ;
+
+      // the last search slot of delete list
+      UINT8       _lastSearchSlot ;
+      // the last search position of delete list
+      dmsRecordID _lastSearchRID ;
+
+      void reset()
+      {
+         _totalRecords           = 0 ;
+         _totalDataPages         = 0 ;
+         _totalIndexPages        = 0 ;
+         _totalDataFreeSpace     = 0 ;
+         _totalIndexFreeSpace    = 0 ;
+         _totalLobPages          = 0 ;
+         _totalLobs              = 0 ;
+         _uniqueIdxNum           = 0 ;
+         _textIdxNum             = 0 ;
+         _globIdxNum             = 0 ;
+         _lastCompressRatio      = 100 ;
+         _totalOrgDataLen        = 0 ;
+         _totalDataLen           = 0 ;
+         _startLID               = DMS_INVALID_CLID ;
+         _flag                   = 0 ;
+         _commitFlag.init( 0 ) ;
+         _lastLSN.init( ~0 ) ;
+         _lastWriteTick          = 0 ;
+         _isCrash                = FALSE ;
+         _idxCommitFlag.init( 0 ) ;
+         _idxLastLSN.init( ~0 ) ;
+         _maxGlobTransID         = 0 ;
+         _idxLastWriteTick       = 0 ;
+         _idxIsCrash             = FALSE ;
+         _lobCommitFlag.init( 0 ) ;
+         _lobLastLSN.init( ~0 ) ;
+         _lobLastWriteTick       = 0 ;
+         _lobIsCrash             = FALSE ;
+         _rcTotalRecords.init( 0 ) ;
+         _crudCB.reset() ;
+         _blockIndexCreatingCount = 0 ;
+         _clIdxHashBitmap.resetBitmap() ;
+         for ( UINT32 i = 0 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+         {
+            _idxHashFields[ i ].reset() ;
+         }
+         _globTransAvailTime.init( 0 ) ;
+         _lastSearchSlot = dmsMB::_max ;
+         _lastSearchRID.reset() ;
+      }
+
+      void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
+      {
+         if ( OSS_BIT_TEST( type, DMS_FILE_DATA ) )
+         {
+            _lastLSN.swap( lsn ) ;
+         }
+         if ( OSS_BIT_TEST( type, DMS_FILE_IDX ) )
+         {
+            _idxLastLSN.swap( lsn ) ;
+         }
+         if ( OSS_BIT_TEST( type, DMS_FILE_LOB ) )
+         {
+            _lobLastLSN.swap( lsn ) ;
+         }
+      }
+
+      void updateLastLSNWithComp( UINT64 lsn,
+                                  DMS_FILE_TYPE type,
+                                  BOOLEAN isRollback )
+      {
+         if ( OSS_BIT_TEST( type, DMS_FILE_DATA ) )
+         {
+            if ( !_lastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET, lsn ) )
+            {
+               if ( !isRollback )
+               {
+                  _lastLSN.swapGreaterThan( lsn ) ;
+               }
+               else
+               {
+                  _lastLSN.swapLesserThan( lsn ) ;
+               }
+            }
+         }
+         if ( OSS_BIT_TEST( type, DMS_FILE_IDX ) )
+         {
+            if ( !_idxLastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET, lsn ) )
+            {
+               if ( !isRollback )
+               {
+                  _idxLastLSN.swapGreaterThan( lsn ) ;
+               }
+               else
+               {
+                  _idxLastLSN.swapLesserThan( lsn ) ;
+               }
+            }
+         }
+         if ( OSS_BIT_TEST( type, DMS_FILE_LOB ) )
+         {
+            if ( !_lobLastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET, lsn ) )
+            {
+               if ( !isRollback )
+               {
+                  _lobLastLSN.swapGreaterThan( lsn ) ;
+               }
+               else
+               {
+                  _lobLastLSN.swapLesserThan( lsn ) ;
+               }
+            }
+         }
+      }
+
+      // compare and update GlobTransID if the one passed in is newer
+      // Note: that we only compare serial number with global transaction tag
+      //       here. When user use this maxGlobTranID, he may need to consider
+      //       max error if needed.
+      void updateGlobTransIDWithComp( const DPS_TRANS_ID &transID )
+      {
+         if ( transID.isGlobTrans() &&
+              _maxGlobTransID < transID.getGlobSN() )
+         {
+            _maxGlobTransID = transID.getGlobSN() ;
+         }
+      }
+
+      // get the max GlobTransID 
+      UINT64 getMaxGlobTransID( )
+      {
+         return _maxGlobTransID ;
+      }
+
+      void setIdxHash( INT32 indexID, const CHAR *idxFieldName )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         UINT32 bitIndex = ixmIdxHashBitmap::calcIndex( idxFieldName ) ;
+         _clIdxHashBitmap.setBit( bitIndex ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _idxHashFields[ indexID ].setField( bitIndex ) ;
+         }
+      }
+
+      // reset index hash fields from given index
+      void resetIdxHashFrom( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         _clIdxHashBitmap.resetBitmap() ;
+         // reset bitmaps after given index ID
+         for ( UINT32 i = indexID ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+         {
+            _idxHashFields[ i ].reset() ;
+         }
+      }
+
+      void resetIdxHashAt( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         _idxHashFields[ indexID ].reset() ;
+      }
+
+      void mergeIdxHash( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _idxHashFields[ indexID ].mergeToBitmap( _clIdxHashBitmap ) ;
+         }
+      }
+
+      BOOLEAN testIdxHash( const ixmIdxHashBitmap &idxHash )
+      {
+         return _clIdxHashBitmap.hasIntersaction( idxHash ) ;
+      }
+
+      BOOLEAN testIdxHash( INT32 indexID, const ixmIdxHashBitmap &idxHash )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            return _idxHashFields[ indexID ].testBitmap( idxHash ) ;
+         }
+         return TRUE ;
+      }
+
+      BOOLEAN isIdxHashReady() const
+      {
+         return !( _clIdxHashBitmap.isEmpty() ) ;
+      }
+
+      BOOLEAN isIdxHashReady( INT32 indexID ) const
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            return _idxHashFields[ indexID ].isValid() ;
+         }
+         // for indexes after first 8 ones, always not ready
+         return FALSE ;
+      }
+
+      UINT32 getAvgDataSize() const
+      {
+         if ( 0 != _totalRecords )
+         {
+            // calculate from total data length and total records
+            UINT64 avgSize = _totalDataLen / _totalRecords ;
+            avgSize = OSS_MAX( DMS_MIN_RECORD_SZ, avgSize ) ;
+            avgSize = OSS_MIN( DMS_RECORD_USER_MAX_SZ, avgSize ) ;
+            return (UINT32)( avgSize ) ;
+         }
+         return 0 ;
+      }
+
+      _dmsMBStatInfo ()
+      : _commitFlag( 0 ),
+        _lastLSN( 0 ),
+        _idxCommitFlag( 0 ),
+        _idxLastLSN( 0 ),
+        _lobCommitFlag( 0 ),
+        _lobLastLSN( 0 ),
+        _rcTotalRecords( 0 ),
+        _globTransAvailTime( 0 )
+      {
+         reset() ;
+      }
+
+      ~_dmsMBStatInfo ()
+      {
+         reset() ;
+      }
+   } ;
+   typedef _dmsMBStatInfo dmsMBStatInfo ;
+
+   class _dmsStorageDataCommon ;
+   /*
+      _dmsMBContext define
+   */
+   class _dmsMBContext : public _dmsContext
+   {
+      friend class _dmsStorageDataCommon ;
+      private:
+         _dmsMBContext() ;
+         virtual ~_dmsMBContext() ;
+         void _reset () ;
+
+      public:
+         virtual string toString () const ;
+         virtual INT32  pause () ;
+         virtual INT32  resume () ;
+
+         void setSubContext( _IContext *subContext ) ;
+         void swap( _dmsMBContext &other ) ;
+
+         OSS_INLINE INT32   mbLock( INT32 lockType ) ;
+         OSS_INLINE INT32   mbTryLock( INT32 lockType ) ;
+         OSS_INLINE INT32   mbUnlock() ;
+         OSS_INLINE BOOLEAN isMBLock( INT32 lockType ) const ;
+         OSS_INLINE BOOLEAN isMBLock() const ;
+         OSS_INLINE BOOLEAN canResume() const ;
+
+         virtual     UINT16 mbID () const { return _mbID ; }
+         OSS_INLINE  dmsMB* mb () { return _mb ; }
+         OSS_INLINE  dmsMBStatInfo* mbStat() { return _mbStat ; }
+         OSS_INLINE  UINT32 clLID () const { return _clLID ; }
+         OSS_INLINE  UINT32 startLID() const { return _startLID ; }
+         OSS_INLINE  INT32  mbLockType() const { return _mbLockType ; }
+
+      private:
+         OSS_INLINE INT32   _mbLock( INT32 lockType, BOOLEAN isTry ) ;
+      private:
+         dmsMB             *_mb ;
+         dmsMBStatInfo     *_mbStat ;
+         monSpinSLatch     *_latch ;
+         UINT32            _clLID ;
+         UINT32            _startLID ;
+         UINT16            _mbID ;
+         INT32             _mbLockType ;
+         INT32             _resumeType ;
+         _IContext         *_pSubContext ;
+   };
+   typedef _dmsMBContext   dmsMBContext ;
+
+   class _dmsMBContextSubScope : public SDBObject
+   {
+   public:
+      _dmsMBContextSubScope( _dmsMBContext* mbContext, _IContext *subContext ) ;
+      ~_dmsMBContextSubScope() ;
+
+   private:
+      _dmsMBContext *_mbContext ;
+   } ;
+
+   /*
+      _dmsMBContext OSS_INLINE functions
+   */
+   OSS_INLINE INT32 _dmsMBContext::_mbLock( INT32 lockType,
+                                            BOOLEAN isTry )
+   {
+      INT32 rc = SDB_OK ;
+      if ( SHARED != lockType && EXCLUSIVE != lockType )
+      {
+         return SDB_INVALIDARG ;
+      }
+      if ( _mbLockType == lockType )
+      {
+         return SDB_OK ;
+      }
+      // already lock(type not same), need to unlock
+      if ( -1 != _mbLockType && SDB_OK != ( rc = pause() ) )
+      {
+         return rc ;
+      }
+
+      // check before lock
+      if ( !DMS_IS_MB_INUSE(_mb->_flag) )
+      {
+         return SDB_DMS_NOTEXIST ;
+      }
+      if ( _clLID != _mb->_logicalID )
+      {
+         if ( _startLID == _mbStat->_startLID &&
+              DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
+         {
+            return SDB_DMS_TRUNCATED ;
+         }
+         else
+         {
+            return SDB_DMS_NOTEXIST ;
+         }
+      }
+      else if ( _startLID != _mbStat->_startLID )
+      {
+         // start logical IDs are different
+         // NOTE: recycle or return cases will keep the logical ID
+         if ( (UINT32)DMS_INVALID_CLID == _mbStat->_startLID )
+         {
+            // collection is recycled by drop or truncate
+            if ( DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag) )
+            {
+               return SDB_DMS_TRUNCATED ;
+            }
+            else
+            {
+               return SDB_DMS_NOTEXIST ;
+            }
+         }
+         else if ( (UINT32)DMS_INVALID_CLID == _startLID )
+         {
+            // recycle collection is returned
+            return SDB_RECYCLE_ITEM_NOTEXIST ;
+         }
+         return SDB_DMS_NOTEXIST ;
+      }
+
+      if ( isTry )
+      {
+         BOOLEAN hasLock = FALSE ;
+         hasLock = ( SHARED == lockType ) ?
+                   _latch->try_get_shared() : _latch->try_get() ;
+         if ( !hasLock )
+         {
+            return SDB_TIMEOUT ;
+         }
+      }
+      else
+      {
+         ossLatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+      }
+
+      // check after lock
+      if ( !DMS_IS_MB_INUSE(_mb->_flag) )
+      {
+         ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+         return SDB_DMS_NOTEXIST ;
+      }
+      if ( _clLID != _mb->_logicalID )
+      {
+         if ( _startLID == _mbStat->_startLID &&
+              DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
+         {
+            ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+            return SDB_DMS_TRUNCATED ;
+         }
+         else
+         {
+            ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+            return SDB_DMS_NOTEXIST ;
+         }
+      }
+      else if ( _startLID != _mbStat->_startLID )
+      {
+         // start logical IDs are different
+         // NOTE: recycle or return cases will keep the logical ID
+         if ( (UINT32)DMS_INVALID_CLID == _mbStat->_startLID )
+         {
+            // collection is recycled by drop or truncate
+            if ( DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag) )
+            {
+               ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+               return SDB_DMS_TRUNCATED ;
+            }
+            else
+            {
+               ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+               return SDB_DMS_NOTEXIST ;
+            }
+         }
+         else if ( (UINT32)DMS_INVALID_CLID == _startLID )
+         {
+            // recycle collection is returned
+            ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+            return SDB_RECYCLE_ITEM_NOTEXIST ;
+         }
+         ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+         return SDB_DMS_NOTEXIST ;
+      }
+
+      _mbLockType = lockType ;
+      _resumeType = -1 ;
+      return SDB_OK ;
+   }
+   OSS_INLINE INT32 _dmsMBContext::mbLock( INT32 lockType )
+   {
+      return _mbLock( lockType, FALSE ) ;
+   }
+   OSS_INLINE INT32 _dmsMBContext::mbTryLock( INT32 lockType )
+   {
+      return _mbLock( lockType, TRUE ) ;
+   }
+   OSS_INLINE INT32 _dmsMBContext::mbUnlock()
+   {
+      if ( SHARED == _mbLockType || EXCLUSIVE == _mbLockType )
+      {
+         ossUnlatch( _latch, (OSS_LATCH_MODE)_mbLockType ) ;
+         _resumeType = _mbLockType ;
+         _mbLockType = -1 ;
+      }
+      return SDB_OK ;
+   }
+   OSS_INLINE BOOLEAN _dmsMBContext::isMBLock( INT32 lockType ) const
+   {
+      return lockType == _mbLockType ? TRUE : FALSE ;
+   }
+   OSS_INLINE BOOLEAN _dmsMBContext::isMBLock() const
+   {
+      if ( SHARED == _mbLockType || EXCLUSIVE == _mbLockType )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+   OSS_INLINE BOOLEAN _dmsMBContext::canResume() const
+   {
+      if ( SHARED == _resumeType || EXCLUSIVE == _resumeType )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
    /*
       _dmsRecordRW define
    */
@@ -235,7 +971,6 @@ namespace engine
 
    #define DMS_MME_OFFSET                 ( DMS_SME_OFFSET + DMS_SME_SZ )
    #define DMS_DATASU_EYECATCHER          "SDBDATA"
-   #define DMS_DATASU_VESSEL_EYECATCHER   "SDBVSSL"
 
    // History of data version change:
    // Version  Update in which version    Reason
@@ -368,7 +1103,7 @@ namespace engine
          /// flush mme
          INT32          flushMME( BOOLEAN sync = FALSE ) ;
 
-         BOOLEAN        isTransSupport() const ;
+         BOOLEAN        isTransSupport( dmsMBContext *context ) const ;
 
       public:
 
@@ -391,7 +1126,8 @@ namespace engine
                                 _pmdEDUCB *cb,
                                 SDB_DPSCB *dpscb,
                                 BOOLEAN sysCollection = TRUE,
-                                dmsMBContext *context = NULL ) ;
+                                dmsMBContext *context = NULL,
+                                dmsDropCLOptions *options = NULL ) ;
 
          INT32 truncateCollection ( const CHAR *pName,
                                     _pmdEDUCB *cb,
@@ -399,7 +1135,8 @@ namespace engine
                                     BOOLEAN sysCollection = TRUE,
                                     dmsMBContext *context = NULL,
                                     BOOLEAN needChangeCLID = TRUE,
-                                    BOOLEAN truncateLob = TRUE ) ;
+                                    BOOLEAN truncateLob = TRUE,
+                                    dmsTruncCLOptions *options = NULL ) ;
 
          INT32 truncateCollectionLoads( const CHAR *pName,
                                         dmsMBContext *context = NULL ) ;
@@ -412,7 +1149,22 @@ namespace engine
 
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                                  BOOLEAN sysCollection = FALSE ) ;
+                                  BOOLEAN sysCollection = FALSE,
+                                  utilCLUniqueID newCLUniqueID = UTIL_UNIQUEID_NULL,
+                                  UINT32 *newStartLID = NULL ) ;
+
+         INT32 copyCollection( dmsMBContext *mbContext,
+                               const CHAR *newName,
+                               utilCLUniqueID newCLUniqueID,
+                               pmdEDUCB *cb ) ;
+         INT32 recycleCollection( dmsMBContext *mbContext, pmdEDUCB *cb ) ;
+
+         INT32 returnCollection( const CHAR *originName,
+                                 const CHAR *recycleName,
+                                 dmsReturnOptions &options,
+                                 pmdEDUCB *cb,
+                                 SDB_DPSCB *dpsCB,
+                                 dmsMBContext **returnedMBContext ) ;
 
          INT32 findCollection ( const CHAR *pName,
                                 UINT16 &collectionID,
@@ -468,7 +1220,7 @@ namespace engine
                        DPS_TRANS_ID      *version = NULL ) ;
 
          INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
-                               UINT32 dictLen, BOOLEAN force ) ;
+                               UINT32 dictLen ) ;
 
          BOOLEAN getDictionary( dmsMBContext *context, const CHAR *&dictionary,
                                 UINT32 &dictLen ) ;
@@ -561,6 +1313,13 @@ namespace engine
                                             BOOLEAN isInsert = TRUE,
                                             const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
 
+         virtual void _postInsertRecord( dmsMBContext *context,
+                                         dmsExtRW &extRW,
+                                         dmsRecordRW &recordRW,
+                                         const dmsRecordData &recordData,
+                                         UINT32 recordSize,
+                                         _pmdEDUCB *cb ) = 0 ;
+
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
          virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
@@ -606,6 +1365,16 @@ namespace engine
                                                dmsRecordRW  &recordRW,
                                                _pmdEDUCB    *cb,
                                                BOOLEAN      bSetOvfRecrd ) = 0 ;
+
+         INT32 _copyIndexesWithoutTypes( dmsMBContext *oldContext,
+                                         dmsMBContext *newContext,
+                                         _pmdEDUCB *cb,
+                                         UINT16 types ) ;
+         INT32 _dropIndexesWithTypes( dmsMBContext *context,
+                                      _pmdEDUCB *cb,
+                                      UINT16 types,
+                                      ossPoolVector< bson::BSONObj > *droppedIndexList = NULL ) ;
+
       private:
          virtual UINT64 _dataOffset() ;
          virtual UINT32 _curVersion() const ;
@@ -721,41 +1490,6 @@ namespace engine
                                         IDmsOprHandler *pOprHandle,
                                         utilWriteResult *insertResult,
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
-
-      private:
-         INT32 insertRecordToMmap(dmsMBContext *context,
-                                  const BSONObj &record,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpscb,
-                                  BOOLEAN mustOID,
-                                  BOOLEAN canUnLock,
-                                  INT64 position,
-                                  utilInsertResult *insertResult );
-
-         INT32 updateRecordOnMmap(dmsMBContext *context,
-                                 const dmsRecordID &recordID,
-                                 ossValuePtr updatedDataPtr,
-                                 pmdEDUCB *cb,
-                                 SDB_DPSCB *dpscb,
-                                 _mthModifier &modifier,
-                                 BSONObj* newRecord,
-                                 IDmsOprHandler *pHandler,
-                                 utilUpdateResult *pResult,
-                                 const dmsTransRecordInfo *pInfo);
-
-      private:
-         INT32 createCLInEngine(pmdEDUCB * cb,
-                                dmsMBContext *context);
-         INT32 insertRecordToEngine(pmdEDUCB *cb,
-                                    dmsMBContext *context,
-                                    const bson::BSONObj &record,
-                                    utilInsertResult *result);
-
-         INT32 updateRecordInEngine(_pmdEDUCB *cb,
-                                    dmsMBContext *context,
-                                    _mthModifier &modifier,
-                                    const dmsRecordID &rid,
-                                    utilUpdateResult *pResult);
 
       //private:
       protected:

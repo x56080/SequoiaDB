@@ -202,6 +202,11 @@ namespace engine
       _startFrom = buffer.getStartFrom() ;
    }
 
+   void _rtnSubCLContext::releaseBuffer()
+   {
+      _buffer.release() ;
+   }
+
    RTN_CTX_AUTO_REGISTER(_rtnContextMainCL, RTN_CONTEXT_MAINCL, "MAINCL")
 
    _rtnContextMainCL::_rtnContextMainCL( INT64 contextID, UINT64 eduID )
@@ -257,11 +262,14 @@ namespace engine
       goto done;
    }
 
-   INT32 _rtnContextMainCL::open( const bson::BSONObj & orderBy,
+   INT32 _rtnContextMainCL::open( const CHAR *mainCLName,
+                                  const bson::BSONObj & orderBy,
                                   INT64 numToReturn,
                                   INT64 numToSkip )
    {
       INT32 rc = SDB_OK ;
+
+      _options.setCLFullName( mainCLName ) ;
 
       _options.setOrderBy( orderBy ) ;
       _options.setSkip( numToSkip ) ;
@@ -756,6 +764,10 @@ namespace engine
       }
       else
       {
+         // make sure all data are popped
+         tmpCtx->releaseBuffer() ;
+
+         // save to context map
          try
          {
             _subContextMap.insert(
@@ -783,12 +795,19 @@ namespace engine
       _rtnSubCLContext *tmpCtx = dynamic_cast<_rtnSubCLContext*>( subCtx ) ;
       SDB_ASSERT( NULL != tmpCtx, "sub-context is invalid" ) ;
 
+      // normal sub ctx is in _subContextMap,
+      // if sub-context is ended, remove it from context map
       if ( tmpCtx->isHitEnd() )
       {
          sdbGetRTNCB()->contextDelete( subCtx->contextID(),
                                        pmdGetThreadEDUCB() );
          _subContextMap.erase( subCtx->contextID() ) ;
          SDB_OSS_DEL subCtx ;
+      }
+      else
+      {
+         // make sure all data are popped
+         tmpCtx->releaseBuffer() ;
       }
 
       return SDB_OK ;
@@ -804,6 +823,16 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 _rtnContextMainCL::_doAfterPrepareData( _pmdEDUCB *cb )
+   {
+      if ( _subs.empty() &&
+           _subContextMap.empty() &&
+           _orderedContextMap.empty() )
+      {
+         _hitEnd = TRUE ;
+      }
+      return SDB_OK ;
+   }
 
    void _rtnContextMainCL::_deleteSubContexts ()
    {
@@ -896,7 +925,7 @@ namespace engine
    _rtnContextMainCLExplain::_rtnContextMainCLExplain ( INT64 contextID,
                                                         UINT64 eduID )
    : _rtnContextBase( contextID, eduID ),
-     _explainMergePath( getPlanAllocator() )
+     _explainMergePath()
    {
    }
 

@@ -20,7 +20,7 @@ function test ()
    varCL.insert( { use: { id: 1, name: "chen" } } );
    varCL.insert( { use: { id: 2, name: "chen" } } );
 
-   checkExplain( varCL, { "use.id": 1 } );
+   checkExplain( varCL, { "use.id": 1 }, "ixscan", "testindex" );
 
    var rc = varCL.find( { "use.id": 1 } );
    var expRecs = [];

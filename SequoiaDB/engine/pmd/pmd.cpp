@@ -49,6 +49,7 @@ namespace engine
 
    #define PMD_MEM_SHRINK_TIMER_INTERVAL        ( 120000 )     // ms
    #define PMD_MONITOR_CLEANUP_INTERVAL         ( 2000 )       // ms
+   #define PMD_PRINT_SHIELDINFO_INTERVAL        ( 3600 * OSS_ONE_SEC )
 
    /*
       _SDB_KRCB implement
@@ -101,6 +102,7 @@ namespace engine
       _pFTMgr         = NULL ;
       _timeCounter    = 0 ;
       _monTimeCounter = 0 ;
+      _logTimeCounter = 0 ;
 
       g_monMgrPtr = &_monMgr;
    }
@@ -509,10 +511,14 @@ namespace engine
 
       _isActive = FALSE ;
 
+      pdPrintShieldInfo() ;
+
       // destroy trace
       sdbGetPDTraceCB()->destroy() ;
 
-      INT64 shutdownWaitTimeout = _optioncb.shutdownWaitTimeout() ;
+      // add 60 seconds buffer
+      INT64 shutdownWaitTimeout = _optioncb.shutdownWaitTimeout() * OSS_ONE_SEC +
+                                  60 * OSS_ONE_SEC ;
       if ( shutdownWaitTimeout < PMD_STOP_DEADCHECK_TIMEOUT )
       {
          shutdownWaitTimeout = PMD_STOP_DEADCHECK_TIMEOUT ;
@@ -630,6 +636,7 @@ namespace engine
    {
       _timeCounter += interval ;
       _monTimeCounter += interval ;
+      _logTimeCounter += interval ;
 
       if ( _timeCounter >= PMD_MEM_SHRINK_TIMER_INTERVAL )
       {
@@ -637,10 +644,16 @@ namespace engine
          _timeCounter = 0 ;
       }
 
-      if (_monTimeCounter >= PMD_MONITOR_CLEANUP_INTERVAL )
+      if ( _monTimeCounter >= PMD_MONITOR_CLEANUP_INTERVAL )
       {
          _monMgr.relocate() ;
          _monTimeCounter = 0 ;
+      }
+
+      if ( _logTimeCounter >= PMD_PRINT_SHIELDINFO_INTERVAL )
+      {
+         pdPrintShieldInfo() ;
+         _logTimeCounter = 0 ;
       }
 
       if ( _pFTMgr )

@@ -21,8 +21,20 @@ function check_num_para()
 
    local regex='^[0-9]+$'
    if ! [[ "$para_value" =~ $regex ]]; then
-      echo "sdbtaskctl: invalid value for parameter \"$para_name\": \"$para_value\"" >&2
-      echo 'Try "sdbtaskctl --help" for more information.'
+      echo "sdbupgradeidx: invalid value for parameter \"$para_name\": \"$para_value\", should be number" >&2
+      echo 'Try "sdbupgradeidx --help" for more information.'
+      exit 64
+   fi
+}
+
+function check_bool_para()
+{
+   local para_name=$1
+   local para_value=$2
+
+   if [ "$para_value" != true ] && [ "$para_value" != false ]; then
+      echo "sdbupgradeidx: invalid value for parameter \"$para_name\": \"$para_value\", should be true or false" >&2
+      echo 'Try "sdbupgradeidx --help" for more information.'
       exit 64
    fi
 }
@@ -40,15 +52,22 @@ function build_help()
    echo "sdbupgradeidx is a utility to upgrade index."
    echo ""
    echo "Common options:"
-   echo "  -s [ --hostname ] arg        host name, default: localhost"
-   echo "  -p [ --svcname ] arg         service name, default: 11810"
-   echo "  -o [ --output ] arg          specify the output file"
-   echo "  --action arg                 check or upgrade, defalut: check"
+   echo "  -s [ --hostname ] arg        host name"
+   echo "  -p [ --svcname ] arg         service name"
+   echo "  -u [ --user ] arg            user name, default: \"\""
+   echo "  -w [ --password ] arg        password, default: \"\""
+   echo "  --cipher arg                 use cipher file or not, default: false"
+   echo "  --cipherfile arg             cipher file location, default: ~/sequoiadb/passwd"
+   echo "  --token arg                  password encryption token, default: \"\"" 
+   echo "  -o [ --output ] arg          specify the output file, default: ./sdbupgradeidx.log"
+   echo "  --action arg                 check or upgrade"
    echo "  -h [ --help ]                print help message"
    echo "  --version                    print version information"
    echo ""
    echo "Example: "
    echo "  ./sdbupgradeidx -s localhost -p 11810 --action check"
+   echo "  ./sdbupgradeidx -s localhost -p 11810 -u sdbadmin -w sdbadmin --action check"
+   echo "  ./sdbupgradeidx -s localhost -p 11810 --cipher true -u sdbadmin --token sdb --action check"
    echo ""
 }
 
@@ -63,15 +82,25 @@ GIT_VERSION="xxxxxxxxxx"
 BUILD_TIME="0000-00-00-00.00.00"
 
 # Default value
-HOSTNAME="localhost"
-SVCNAME=11810
+HAS_HOSTNAME=false
+HAS_SVCNAME=false
+HAS_USER=false
+HAS_PASSWD=false
+HAS_ACTION=false
+HAS_TOKEN=false
+IS_USE_CIPHER_FILE=false
+HOSTNAME=""
+SVCNAME=""
+USERNAME=""
+PASSWD=""
+CIPHER_FILE="~/sequoiadb/passwd"
+TOKEN=""
+ACTION=""
 OUTPUT="./sdbupgradeidx.log"
-ACTION="check"
 
 # Parse command line parameters
-test $# -eq 0 && { build_help && exit 64; }
 
-ARGS=`getopt -o hs:p:o: --long help,version,hostname:,svcname:,output:,action: -n 'sdbupgradeidx' -- "$@"`
+ARGS=`getopt -o hs:p:u:w:o: --long help,version,hostname:,svcname:,user:,password:,cipher:,cipherfile:,token:,action: -n 'sdbupgradeidx' -- "$@"`
 ret=$?
 test $ret -ne 0 && exit $ret
 
@@ -81,15 +110,37 @@ while true
 do
    case "$1" in
       --action )          ACTION="$2"
+                          HAS_ACTION=true
                           test "$ACTION" == "check" -o "$ACTION" == "upgrade" \
                              || err_para ACTION "$ACTION"
                           shift 2
                           ;;
       -s | --hostname )   HOSTNAME=$2
+                          HAS_HOSTNAME=true
                           shift 2
                           ;;
       -p | --svcname )    SVCNAME=$2
+                          HAS_SVCNAME=true
                           check_num_para "SVCNAME" "$SVCNAME"
+                          shift 2
+                          ;;
+      -u | --user )       USERNAME=$2
+                          HAS_USER=true
+                          shift 2
+                          ;;
+      -w | --password )   PASSWD=$2
+                          HAS_PASSWD=true
+                          shift 2
+                          ;;
+      --cipher )          IS_USE_CIPHER_FILE=$2
+                          check_bool_para "--cipher" "$IS_USE_CIPHER_FILE"
+                          shift 2
+                          ;;
+      --cipherfile )      CIPHER_FILE=$2
+                          shift 2
+                          ;;
+      --token )           TOKEN=$2
+                          HAS_TOKEN=true
                           shift 2
                           ;;
       -o | --output )     OUTPUT=$2
@@ -109,6 +160,40 @@ do
                           ;;
    esac
 done
+
+if [ $HAS_HOSTNAME != true ]; then
+   echo "sdbupgradeidx: missing argument: hostname" >&2
+   echo 'Try "sdbupgradeidx --help" for more information.'
+   exit 64
+fi
+if [ $HAS_SVCNAME != true ]; then
+   echo "sdbupgradeidx: missing argument: svcname" >&2
+   echo 'Try "sdbupgradeidx --help" for more information.'
+   exit 64
+fi
+if [ $IS_USE_CIPHER_FILE == true ]; then
+   if [ $HAS_USER != true ]; then
+      echo "sdbupgradeidx: missing argument: user" >&2
+      echo 'Try "sdbupgradeidx --help" for more information.'
+      exit 64
+   fi
+   if [ $HAS_PASSWD == true ]; then
+      echo "sdbupgradeidx: can't specify --cipher true and --password at the same time" >&2
+      echo 'Try "sdbupgradeidx --help" for more information.'
+      exit 64
+   fi
+else
+   if [ $HAS_USER == true ] && [ $HAS_PASSWD != true ]; then
+      echo "sdbupgradeidx: missing argument: password" >&2 
+      echo 'Try "sdbupgradeidx --help" for more information.'
+      exit 64
+   fi
+fi
+if [ $HAS_ACTION != true ]; then
+   echo "sdbupgradeidx: missing argument: action" >&2
+   echo 'Try "sdbupgradeidx --help" for more information.'
+   exit 64
+fi
 
 if [ "$*" != "" ]; then
    echo "sdbupgradeidx: too many arguments: $*" >&2
@@ -134,6 +219,13 @@ jsFile=$myPath/upgradeIndex.js
 # generate parameters
 jsParameter="var hostname=\""$HOSTNAME"\";"
 jsParameter=$jsParameter"var svcname="$SVCNAME";"
+jsParameter=$jsParameter"var username=\""$USERNAME"\";"
+if [ $IS_USE_CIPHER_FILE == true ]; then
+   jsParameter=$jsParameter"var cipherfile=\""$CIPHER_FILE"\";"
+   jsParameter=$jsParameter"var token=\""$TOKEN"\";"
+else
+   jsParameter=$jsParameter"var password=\""$PASSWD"\";"
+fi
 if [ "$ACTION" == "check" ]; then
    jsParameter=$jsParameter"var checkonly=true;"
 else

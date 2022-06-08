@@ -238,6 +238,7 @@ namespace engine
 
          BOOLEAN  isPrimary() const ;
          BOOLEAN  isRequiredPrimary() const ;
+         BOOLEAN  isRequiredSecondary() const ;
          BOOLEAN  isPreferredPrimary() const ;
          BOOLEAN  isPreferredSecondary() const ;
          BOOLEAN  existLastNode( UINT32 groupID ) const ;
@@ -282,6 +283,7 @@ namespace engine
                                    COORD_POS_LIST & positionList ) ;
          INT32    _shufflePositions ( COORD_POS_ARRAY & positionArray,
                                       COORD_POS_LIST & positionList ) ;
+         BOOLEAN  _meetPreferConstraint( const MsgRouteID &nodeID ) const ;
 
       private:
          coordResource           *_pResource ;

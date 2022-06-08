@@ -48,6 +48,7 @@
 #include "clsShardMgr.hpp"
 #include "clsReplicateSet.hpp"
 #include "clsCatalogAgent.hpp"
+#include "clsRecycleBinManager.hpp"
 #include "ossLatch.hpp"
 #include "clsTask.hpp"
 #include "ossMemPool.hpp"
@@ -258,10 +259,16 @@ namespace engine
                                           BOOLEAN isCancel = FALSE ) ;
          INT32  restartTaskThread ( UINT64 taskID ) ;
 
-         INT32  startTaskCheck ( const BSONObj& match ) ;
-         INT32  startTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
-         INT32  startIdxTaskCheck( UINT64 taskID, BOOLEAN isMainTask = FALSE ) ;
+         INT32  startTaskCheck( const BSONObj& match,
+                                BOOLEAN quickPull = FALSE ) ;
+         INT32  startTaskCheck( UINT64 taskID,
+                                BOOLEAN isMainTask = FALSE) ;
+         INT32  startIdxTaskCheck( UINT64 taskID,
+                                   BOOLEAN isMainTask = FALSE,
+                                   BOOLEAN quickPull = FALSE ) ;
          INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
+         INT32  startIdxTaskCheckByCS( utilCSUniqueID csUniqueID ) ;
+         INT32  startAllSplitTaskCheck() ;
          INT32  startAllTaskCheck() ;
 
          INT32  stopTask ( UINT64 taskID ) ;
@@ -287,6 +294,11 @@ namespace engine
          void     dumpSchedInfo( BSONObjBuilder &builder ) ;
          void     resetDumpSchedInfo() ;
 
+         clsRecycleBinManager *getRecycleBinMgr()
+         {
+            return &_recycleBinMgr ;
+         }
+
       protected:
 
          INT32          _startEDU ( INT32 type, EDU_STATUS waitStatus,
@@ -304,6 +316,8 @@ namespace engine
                                           pmdAsycSessionMgr *pSessionMgr ) ;
          INT32       _prepareTask () ;
 
+         void        _postTimeoutEvent( UINT64 timerID ) ;
+
          INT32       _initRemoteSession( _netRouteAgent *netRouteAgent ) ;
 
       //msg and event function
@@ -315,7 +329,7 @@ namespace engine
          BOOLEAN _findAndCheckTaskStatus( UINT64 taskID,
                                           dmsTaskStatusPtr &statusPtr,
                                           BOOLEAN &needRollback ) ;
-
+         INT32 _updateDCInfo( MsgHeader* msg ) ;
       private:
          clsShardSessionMgr            _shardSessionMgr ;
          clsReplSessionMgr             _replSessionMgr ;
@@ -340,7 +354,9 @@ namespace engine
 
          UINT64                        _regTimerID ;
          UINT32                        _regFailedTimes ;
+         BOOLEAN                       _needUpdateNode ;
          UINT64                        _oneSecTimerID ;
+         UINT64                        _taskTimerID ;
 
          _coordSessionPropMgr          *_pSitePropMgr ;
          _coordResource                *_pResource ;
@@ -359,6 +375,7 @@ namespace engine
          _clsShardMgr                  *_shdObj ;
          _clsReplicateSet              *_replObj ;
 
+         clsRecycleBinManager          _recycleBinMgr ;
    };
 
    typedef _clsMgr  clsCB ;

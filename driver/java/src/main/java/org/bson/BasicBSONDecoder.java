@@ -205,7 +205,7 @@ public class BasicBSONDecoder implements BSONDecoder {
             break;
 
         case DATE:
-            _callback.gotDate( name , _in.readLong() );
+            _callback.gotBSONDate( name , _in.readLong() );
             break;
 
         case REGEX:

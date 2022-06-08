@@ -38,8 +38,9 @@
 #include "msgMessage.hpp"
 #include "msgAuth.hpp"
 #include "msgCatalog.hpp"
+#include "msgConvertorImpl.hpp"
 #include "pmdController.hpp"
-#include "../bson/bson.h"
+#include "pmdDummySession.hpp"
 #include "rtnQueryOptions.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
@@ -138,688 +139,6 @@ namespace engine
       }
    }
 
-   /*
-      _clsFreezingWindow implement
-   */
-   _clsFreezingWindow::_clsFreezingWindow()
-   {
-      _clCount = 0 ;
-   }
-
-   _clsFreezingWindow::~_clsFreezingWindow()
-   {
-   }
-
-   INT32 _clsFreezingWindow::registerCL ( const CHAR *pName, UINT64 &opID )
-   {
-      INT32 rc = SDB_OK ;
-      UINT64 oldOpID = opID ;
-
-      ossScopedLock lock( &_latch ) ;
-
-      /// first increase _clCount. Because waitForOpr will use _clCount without
-      /// latch. If don't increase first, the case will occur:
-      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
-      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
-      ///    if ( isWrite && _clCount > 0 )
-      /// 3. the split thread will not wait write thread, so some data will lost
-      ++_clCount ;
-
-      // operator ID is not given, acquire one for it
-      // Must be acquired inside latch, which could avoid other operators to
-      // acquire operator ID and pass the checking between acquiring and
-      // registering
-      if ( 0 == opID )
-      {
-         opID = pmdAcquireGlobalID() ;
-      }
-
-      if ( !pName || !*pName )
-      {
-         rc = SDB_INVALIDARG ;
-         SDB_ASSERT( FALSE, "Name is invalid" ) ;
-      }
-      else
-      {
-         try
-         {
-            ossPoolString name( pName ) ;
-            rc = _registerCLInternal( name, opID ) ;
-         }
-         catch( std::exception &e )
-         {
-            /// ossPoolString maybe throw exception when out of memory
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-
-      /// last decrease _clCount
-      --_clCount ;
-
-      if ( rc && opID != oldOpID )
-      {
-         /// restore opID when failed
-         opID = oldOpID ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _clsFreezingWindow::registerCS( const CHAR *pName,
-                                         UINT64 &opID )
-   {
-      INT32 rc = SDB_OK ;
-      UINT64 oldOpID = opID ;
-
-      ossScopedLock lock( &_latch ) ;
-
-      /// first increase _clCount. Because waitForOpr will use _clCount without
-      /// latch. If don't increase first, the case will occur:
-      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
-      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
-      ///    if ( isWrite && _clCount > 0 )
-      /// 3. the split thread will not wait write thread, so some data will lost
-      ++_clCount ;
-
-      // operator ID is not given, acquire one for it
-      // Must be acquired inside latch, which could avoid other operators to
-      // acquire operator ID and pass the checking between acquiring and
-      // registering
-      if ( 0 == opID )
-      {
-         opID = pmdAcquireGlobalID() ;
-      }
-
-      if ( !pName || !*pName || ossStrchr( pName, '.' ) )
-      {
-         rc = SDB_INVALIDARG ;
-         SDB_ASSERT( FALSE, "Name is invalid" ) ;
-      }
-      else
-      {
-         try
-         {
-            ossPoolString name( pName ) ;
-            rc = _registerCSInternal( name, opID ) ;
-         }
-         catch( std::exception &e )
-         {
-            /// ossPoolString maybe throw exception when out of memory
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-
-      /// last decrease _clCount
-      --_clCount ;
-
-      if ( rc && opID != oldOpID )
-      {
-         /// restore opID when failed
-         opID = oldOpID ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _clsFreezingWindow::registerWhole( UINT64 &opID  )
-   {
-      INT32 rc = SDB_OK ;
-      UINT64 oldOpID = opID ;
-
-      ossScopedLock lock( &_latch ) ;
-
-      /// first increase _clCount. Because waitForOpr will use _clCount without
-      /// latch. If don't increase first, the case will occur:
-      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
-      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
-      ///    if ( isWrite && _clCount > 0 )
-      /// 3. the split thread will not wait write thread, so some data will lost
-      ++_clCount ;
-
-      // operator ID is not given, acquire one for it
-      // Must be acquired inside latch, which could avoid other operators to
-      // acquire operator ID and pass the checking between acquiring and
-      // registering
-      if ( 0 == opID )
-      {
-         opID = pmdAcquireGlobalID() ;
-      }
-
-      rc = _regWholeInternal( opID ) ;
-
-      /// last decrease _clCount
-      --_clCount ;
-
-      if ( rc && opID != oldOpID )
-      {
-         /// restore opID when failed
-         opID = oldOpID ;
-      }
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDCLWHITELST, "_clsFreezingWindow::updateCLWhiteList" )
-   INT32 _clsFreezingWindow::updateCLWhiteList( const CHAR *pName,
-                                             UINT64 opID,
-                                             const DPS_TRANS_ID_SET &whiteList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDCLWHITELST ) ;
-
-      SDB_ASSERT( NULL != pName, "name is invalid" ) ;
-      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
-
-      if ( whiteList.empty() )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         ossScopedLock lock( &_latch ) ;
-
-         MAP_WINDOW::iterator iterCL ;
-         OP_SET::iterator iterItem ;
-
-         ossPoolString name( pName ) ;
-         iterCL = _mapWindow.find( name ) ;
-         PD_CHECK( iterCL != _mapWindow.end(), SDB_SYS, error, PDERROR,
-                   "Failed to find freezing item for collection [%s]",
-                   pName ) ;
-
-         iterItem = iterCL->second.find( opID ) ;
-         PD_CHECK( iterItem != iterCL->second.end(), SDB_SYS, error, PDERROR,
-                   "Failed to find freezing item for collection [%s], "
-                   "op [%llu]", pName, opID ) ;
-
-         iterItem->updateWhiteList( whiteList ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update white list for collection, "
-                 "occur exception %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDCLWHITELST, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDCSWHITELST, "_clsFreezingWindow::updateCSWhiteList" )
-   INT32 _clsFreezingWindow::updateCSWhiteList( const CHAR *pName,
-                                                UINT64 opID,
-                                                const DPS_TRANS_ID_SET &whiteList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDCSWHITELST ) ;
-
-      SDB_ASSERT( NULL != pName, "name is invalid" ) ;
-      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
-
-      if ( whiteList.empty() )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         ossScopedLock lock( &_latch ) ;
-
-         MAP_CS_WINDOW::iterator iterCS ;
-         OP_SET::iterator iterItem ;
-
-         ossPoolString name( pName ) ;
-         iterCS = _mapCSWindow.find( name ) ;
-         PD_CHECK( iterCS != _mapCSWindow.end(), SDB_SYS, error, PDERROR,
-                   "Failed to find freezing item for collection space [%s]",
-                   pName ) ;
-
-         iterItem = iterCS->second.find( opID ) ;
-         PD_CHECK( iterItem != iterCS->second.end(), SDB_SYS, error, PDERROR,
-                   "Failed to find freezing item for collection space [%s], "
-                   "op [%llu]", pName, opID ) ;
-
-         iterItem->updateWhiteList( whiteList ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update white list for collection space, "
-                 "occur exception %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDCSWHITELST, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDWHOLEWHITELST, "_clsFreezingWindow::updateWholeWhiteList" )
-   INT32 _clsFreezingWindow::updateWholeWhiteList( UINT64 opID,
-                                                   const DPS_TRANS_ID_SET &whiteList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDWHOLEWHITELST ) ;
-
-      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
-
-      try
-      {
-         ossScopedLock lock( &_latch ) ;
-
-         OP_SET::iterator iterItem ;
-
-         iterItem = _setWholeID.find( opID ) ;
-         PD_CHECK( iterItem != _setWholeID.end(), SDB_SYS, error, PDERROR,
-                   "Failed to find freezing item for whole DB, op [%llu]",
-                   opID ) ;
-
-         iterItem->updateWhiteList( whiteList ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update white list for whole DB, "
-                 "occur exception %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDWHOLEWHITELST, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 _clsFreezingWindow::_regWholeInternal( UINT64 opID )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( _setWholeID.empty() )
-      {
-         ++_clCount ;
-      }
-
-      try
-      {
-         _setWholeID.insert( opID ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = SDB_OOM ;
-         --_clCount ;
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _clsFreezingWindow::_registerCLInternal ( const ossPoolString &name,
-                                                   UINT64 opID )
-   {
-      INT32 rc = SDB_OK ;
-      MAP_WINDOW::iterator it = _mapWindow.find( name ) ;
-
-      if ( _mapWindow.end() == it )
-      {
-         ++_clCount ;
-
-         try
-         {
-            OP_SET newOpSet ;
-            newOpSet.insert( opID ) ;
-
-            _mapWindow[ name ] = newOpSet ;
-         }
-         catch( std::exception &e )
-         {
-            rc = SDB_OOM ;
-            --_clCount ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-      else
-      {
-         try
-         {
-            it->second.insert( opID ) ;
-         }
-         catch( std::exception &e )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-
-      return rc ;
-   }
-
-   INT32 _clsFreezingWindow::_registerCSInternal( const ossPoolString &name,
-                                                  UINT64 opID )
-   {
-      INT32 rc = SDB_OK ;
-      MAP_CS_WINDOW::iterator it = _mapCSWindow.find( name ) ;
-
-      if ( _mapCSWindow.end() == it )
-      {
-         ++_clCount ;
-
-         try
-         {
-            OP_SET newOpSet ;
-            newOpSet.insert( opID ) ;
-
-            _mapCSWindow[ name ] = newOpSet ;
-         }
-         catch( std::exception &e )
-         {
-            rc = SDB_OOM ;
-            --_clCount ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-      else
-      {
-         try
-         {
-            it->second.insert( opID ) ;
-         }
-         catch( std::exception &e )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-
-      return rc ;
-   }
-
-   void _clsFreezingWindow::unregisterCL ( const CHAR *pName, UINT64 opID )
-   {
-      ossScopedLock lock( &_latch ) ;
-
-      if ( pName && *pName )
-      {
-         try
-         {
-            ossPoolString name( pName ) ;
-            _unregisterCLInternal( name, opID ) ;
-         }
-         catch( ... )
-         {
-            _unregisterCLByIter( pName, opID ) ;
-         }
-      }
-
-      _event.signalAll() ;
-   }
-
-   void _clsFreezingWindow::unregisterCS( const CHAR *pName, UINT64 opID )
-   {
-      ossScopedLock lock( &_latch ) ;
-
-      if ( pName && *pName )
-      {
-         try
-         {
-            ossPoolString name( pName ) ;
-            _unregisterCSInternal( name, opID ) ;
-         }
-         catch( ... )
-         {
-            _unregisterCSByIter( pName, opID ) ;
-         }
-      }
-
-      _event.signalAll() ;
-   }
-
-   void _clsFreezingWindow::unregisterWhole( UINT64 opID )
-   {
-      ossScopedLock lock( &_latch ) ;
-
-      _unregWholeInternal( opID ) ;
-
-      _event.signalAll() ;
-   }
-
-   void _clsFreezingWindow::_unregisterCLByIter( const CHAR *pName,
-                                                 UINT64 opID )
-   {
-      MAP_WINDOW::iterator it = _mapWindow.begin() ;
-
-      clsFreezingItem temp( opID ) ;
-      while ( it != _mapWindow.end() )
-      {
-         if ( 0 == ossStrcmp( it->first.c_str(), pName ) )
-         {
-            it->second.erase( opID ) ;
-
-            if ( it->second.empty() )
-            {
-               _mapWindow.erase( it ) ;
-               --_clCount ;
-            }
-            break ;
-         }
-         ++it ;
-      }
-   }
-
-   void _clsFreezingWindow::_unregisterCSByIter( const CHAR *pName,
-                                                 UINT64 opID )
-   {
-      MAP_CS_WINDOW::iterator it = _mapCSWindow.begin() ;
-
-      while ( it != _mapCSWindow.end() )
-      {
-         if ( 0 == ossStrcmp( it->first._name.c_str(), pName ) )
-         {
-            it->second.erase( opID ) ;
-
-            if ( it->second.empty() )
-            {
-               _mapCSWindow.erase( it ) ;
-               --_clCount ;
-            }
-            break ;
-         }
-         ++it ;
-      }
-   }
-
-   void _clsFreezingWindow::unregisterAll()
-   {
-      ossScopedLock lock( &_latch ) ;
-
-      _setWholeID.clear() ;
-      _mapWindow.clear() ;
-      _mapCSWindow.clear() ;
-      _clCount = 0 ;
-   }
-
-   void _clsFreezingWindow::_unregWholeInternal( UINT64 opID )
-   {
-      _setWholeID.erase( opID ) ;
-      if ( _setWholeID.empty() )
-      {
-         --_clCount ;
-      }
-   }
-
-   void _clsFreezingWindow::_unregisterCLInternal ( const ossPoolString &name,
-                                                    UINT64 opID )
-   {
-      MAP_WINDOW::iterator it = _mapWindow.find( name ) ;
-
-      if ( _mapWindow.end() != it )
-      {
-         it->second.erase( opID ) ;
-
-         if ( it->second.empty() )
-         {
-            _mapWindow.erase( it ) ;
-            --_clCount ;
-         }
-      }
-   }
-
-   void _clsFreezingWindow::_unregisterCSInternal( const ossPoolString &name,
-                                                   UINT64 opID )
-   {
-      MAP_CS_WINDOW::iterator it = _mapCSWindow.find( name ) ;
-
-      if ( _mapCSWindow.end() != it )
-      {
-         it->second.erase( opID ) ;
-
-         if ( it->second.empty() )
-         {
-            _mapCSWindow.erase( it ) ;
-            --_clCount ;
-         }
-      }
-   }
-
-   void _clsFreezingWindow::_blockCheck( const OP_SET &setID,
-                                         UINT64 testOPID,
-                                         _pmdEDUCB *cb,
-                                         BOOLEAN &result,
-                                         BOOLEAN &forceEnd )
-   {
-      OP_SET::const_iterator cit = setID.begin() ;
-      while ( cit != setID.end () )
-      {
-         if ( *cit == testOPID )
-         {
-            // Self
-            result = FALSE ;
-            forceEnd = TRUE ;
-            break ;
-         }
-         else if ( *cit < testOPID &&
-                   !cit->isInWhiteList( cb->getTransID() ) )
-         {
-            result = TRUE ;
-            break ;
-         }
-         ++ cit ;
-      }
-   }
-
-   BOOLEAN _clsFreezingWindow::needBlockOpr( const ossPoolString &name,
-                                             UINT64 testOpID,
-                                             _pmdEDUCB *cb )
-   {
-      MAP_WINDOW::iterator it ;
-      MAP_CS_WINDOW::iterator itCS ;
-      BOOLEAN needBlock = FALSE ;
-      BOOLEAN forceEnd = FALSE ;
-
-      ossScopedLock lock( &_latch ) ;
-
-      /// whole block check
-      if ( !_setWholeID.empty() )
-      {
-         _blockCheck( _setWholeID, testOpID, cb, needBlock, forceEnd ) ;
-         if ( forceEnd )
-         {
-            goto done ;
-         }
-      }
-
-      /// cs block check
-      if ( !_mapCSWindow.empty() &&
-           _mapCSWindow.end() != ( itCS = _mapCSWindow.find( name ) ) )
-      {
-         _blockCheck( itCS->second, testOpID, cb, needBlock, forceEnd ) ;
-         if ( forceEnd )
-         {
-            goto done ;
-         }
-      }
-
-      /// cl block check
-      if ( !_mapWindow.empty() &&
-           _mapWindow.end() != ( it = _mapWindow.find( name ) ) )
-      {
-         _blockCheck( it->second, testOpID, cb, needBlock, forceEnd ) ;
-      }
-
-   done:
-      return needBlock ;
-   }
-
-   INT32 _clsFreezingWindow::waitForOpr( const CHAR *pName,
-                                         _pmdEDUCB *cb,
-                                         BOOLEAN isWrite )
-   {
-      INT32 rc = SDB_OK ;
-      BOOLEAN hasBlock = FALSE ;
-
-      if ( isWrite && _clCount > 0 )
-      {
-         try
-         {
-            ossPoolString clName( pName ) ;
-            BOOLEAN needBlock = TRUE ;
-            MAP_WINDOW::iterator it ;
-            UINT64 opID = cb->getWritingID() ;
-
-            while( needBlock )
-            {
-               if ( cb->isInterrupted() )
-               {
-                  rc = SDB_APP_INTERRUPT ;
-                  break ;
-               }
-
-               needBlock = needBlockOpr( clName, opID, cb ) ;
-               if ( needBlock )
-               {
-                  if ( !hasBlock )
-                  {
-                     cb->setBlock( EDU_BLOCK_FREEZING_WND, "" ) ;
-                     cb->printInfo( EDU_INFO_DOING,
-                                    "Waiting for freezing window(Name:%s)",
-                                    pName ) ;
-                     hasBlock = TRUE ;
-                  }
-
-                  _event.reset() ;
-                  _event.wait( OSS_ONE_SEC ) ;
-               }
-            }
-         }
-         catch( std::exception &e )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         }
-      }
-
-      if ( hasBlock )
-      {
-         cb->unsetBlock() ;
-      }
-      return rc ;
-   }
-
    BEGIN_OBJ_MSG_MAP(_clsShardMgr, _pmdObjBase)
       ON_MSG ( MSG_CAT_CATGRP_RES, _onCatCatGroupRes )
       ON_MSG ( MSG_CAT_NODEGRP_RES, _onCatGroupRes )
@@ -913,8 +232,15 @@ namespace engine
       pNetFrame->setMaxSockPerThread( pmdGetOptionCB()->maxSockPerThread() ) ;
       pNetFrame->setMaxThreadNum( pmdGetOptionCB()->maxSockThread() ) ;
 
-      sdbGetPMDController()->registerNet( pNetFrame,
-                                          MSG_ROUTE_CAT_SERVICE ) ;
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_CAT_SERVICE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "CAT service, rc: %d", rc ) ;
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_SHARD_SERVCIE,
+                                               FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "SHARD service, rc: %d", rc ) ;
 
       // init param, get configured catalog address
       for ( UINT32 i = 0 ; i < catAddrs.size() ; ++i )
@@ -1140,8 +466,11 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_SYNCSND ) ;
       INT32 rc = SDB_OK ;
+      CHAR* buff = NULL ;
       std::vector< _hostAndPort > hosts ;
       BOOLEAN hasUpdateGroup = FALSE ;
+      UINT16 reserveSize = 0 ;
+      msgConvertorImpl *msgConvertor = NULL ;
 
    retry:
       // if we are sending to catalog group
@@ -1180,7 +509,7 @@ namespace engine
          UINT32 msgLength = 0 ;
          INT32 receivedLen = 0 ;
          INT32 sentLen = 0 ;
-         CHAR* buff = NULL ;
+         UINT32 buffSize = 0 ;
          UINT16 port = 0 ;
          // randomly pickup a starting position
          UINT32 pos = ossRand() % hosts.size() ;
@@ -1219,6 +548,7 @@ namespace engine
                                     OSS_SOCKET_KEEP_INTERVAL,
                                     OSS_SOCKET_KEEP_CONTER ) ;
 
+   reSend:
             // send msg, if we can connect to the node but failed to send
             // let's skip and retry
             if ( NULL != buffer && bufferSize > 0 )
@@ -1272,15 +602,23 @@ namespace engine
                goto error ;
             }
             // buff is freed outside the function
-            buff = (CHAR*)SDB_OSS_MALLOC( msgLength + 1 ) ;
-            if ( !buff )
+            if ( buffSize < msgLength + reserveSize )
             {
-               rc = SDB_OOM ;
-               PD_LOG ( PDERROR, "Failed to allocate memory for %d bytes",
-                        msgLength + 1 ) ;
-               goto error ;
+               CHAR *newBuff =
+                     (CHAR*)SDB_OSS_REALLOC( buff, msgLength + reserveSize ) ;
+               if ( !newBuff )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG ( PDERROR, "Allocate memory[size: %u] failed[%d]",
+                           msgLength + reserveSize, rc ) ;
+                  goto error ;
+               }
+               buff = newBuff ;
+               buffSize = msgLength + reserveSize ;
             }
+            ossMemset( buff, 0, buffSize ) ;
             *(INT32*)buff = msgLength ;
+
             // do not loop and retry, simply return error message when we failed to
             // recv, including timeout, because this is internal communication and
             // we should control the timeout value
@@ -1289,9 +627,89 @@ namespace engine
                                  millisec ) ;
             if ( rc )
             {
-               SDB_OSS_FREE( buff ) ;
                PD_LOG ( PDERROR, "Recieve response message failed, rc: %d", rc ) ;
                goto error ;
+            }
+
+            if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader *)buff)->eye )
+            {
+               // The eye is not as expected, so the peer node is most likely to be
+               // using old protocol. The first reply should report unknown message
+               // as the original request has not been converted. So convert the
+               // request and send again. And when the reply is received, it also
+               // needs to be converted.
+               MsgOpReplyV1 *reply = (MsgOpReplyV1 *)buff ;
+               INT32 result = reply->flags ;
+               CHAR *convertedMsg = NULL ;
+               UINT32 len = 0 ;
+               BOOLEAN newConvertor = FALSE ;
+
+               if ( !msgConvertor )
+               {
+                  msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+                  if ( !msgConvertor )
+                  {
+                     rc = SDB_OOM ;
+                     PD_LOG( PDERROR, "Allocate memory for message "
+                             "convertor[size: %d] failed[%d]",
+                             sizeof(msgConvertorImpl), rc ) ;
+                     goto error ;
+                  }
+                  newConvertor = TRUE ;
+               }
+
+               // If the result is not unknown message, it failed for some other
+               // reason. No need to retry and just convert the reply.
+               if ( newConvertor && ( SDB_UNKNOWN_MESSAGE == result ||
+                                      SDB_CLS_UNKNOW_MSG == result ) )
+               {
+                  PD_LOG( PDDEBUG, "Node[%s:%d] may be using old protocol "
+                          "version. Try to convert the request "
+                          "message[opCode: %d] and resend",
+                          tmpInfo._host.c_str(), port, msg->opCode ) ;
+
+                  rc = msgConvertor->push((const CHAR *)msg,
+                                          msg->messageLength ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Push message[opCode: %d] into "
+                               "message convertor failed[%d]",
+                               msg->opCode, rc ) ;
+                  rc = msgConvertor->output( convertedMsg, len ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get converted message[opCode: %d] "
+                               "from the message convertor failed[%d]",
+                               msg->opCode, rc ) ;
+                  msg = (MsgHeader *)convertedMsg ;
+                  reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
+
+                  SDB_ASSERT( (UINT32)msg->messageLength == len,
+                              "Message length is invalid" ) ;
+                  goto reSend ;
+               }
+
+               msgConvertor->reset( FALSE ) ;
+               rc = msgConvertor->push((const CHAR *)reply,
+                                       reply->header.messageLength ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into convertor "
+                            "failed[%d]", rc ) ;
+               rc = msgConvertor->output( convertedMsg, len ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get converted message failed[%d]",
+                            rc ) ;
+               SDB_ASSERT( len == *(UINT32 *)convertedMsg, "Length of the "
+                           "converted message is not as expected") ;
+
+               if ( len > buffSize )
+               {
+                  CHAR *newBuff = (CHAR *)SDB_OSS_REALLOC( buff, len ) ;
+                  if ( !newBuff )
+                  {
+                     rc = SDB_OOM ;
+                     PD_LOG( PDERROR, "Allocate memory[size: %u] for "
+                             "message failed[%d]", len, rc ) ;
+                     goto error ;
+                  }
+                  buff = newBuff ;
+                  buffSize = len ;
+               }
+               ossMemcpy( buff, convertedMsg, len ) ;
             }
             // Once we received something, we just break out the loop
             // so no memory leak here
@@ -1325,9 +743,15 @@ namespace engine
             unlockGroupItem( item ) ;
          }
       }
+
+      if ( msgConvertor )
+      {
+         SDB_OSS_DEL msgConvertor ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_SYNCSND, rc );
       return rc ;
    error:
+      SAFE_OSS_FREE( buff ) ;
       goto done ;
    update_group:
       if ( !hasUpdateGroup )
@@ -1436,7 +860,7 @@ namespace engine
            SDB_OK == _cataGrpItem.getNodeInfo( tmpPos, status ) &&
            NET_NODE_STAT_NORMAL == status )
       {
-         rc = _pNetRtAgent->syncSend ( nodeID, (void*)msg, pHandle ) ;
+         rc = _pNetRtAgent->syncSend ( nodeID, msg, pHandle ) ;
          if ( rc != SDB_OK )
          {
             string hostName ;
@@ -1467,7 +891,7 @@ namespace engine
                  SDB_OK == _cataGrpItem.getNodeInfo( tmpPos, status ) &&
                  NET_NODE_STAT_NORMAL == status )
             {
-               rc = _pNetRtAgent->syncSend ( nodeID, (void*)msg, pHandle ) ;
+               rc = _pNetRtAgent->syncSend ( nodeID, msg, pHandle ) ;
                if ( SDB_OK == rc )
                {
                   goto done ;
@@ -1477,7 +901,7 @@ namespace engine
                   string hostName ;
                   string svcName ;
                   _cataGrpItem.getNodeInfo( nodeID, hostName, svcName ) ;
-                  PD_LOG ( PDWARNING, "Send message to catlog[%s:%s, "
+                  PD_LOG ( PDWARNING, "Send message to catalog[%s:%s, "
                            "NodeID: %u] failed[rc:%d]", hostName.c_str(),
                            svcName.c_str(), nodeID.columns.nodeID, rc ) ;
                   /// updata node status
@@ -2206,6 +1630,10 @@ namespace engine
       INT32 sentLen = 0, receivedLen = 0 ;
       INT32 replyLength = 0 ;
       CHAR *replyBuffer = NULL ;
+      BOOLEAN tryInCompatibleMode = FALSE ;
+      msgConvertorImpl *msgConvertor = NULL ;
+      UINT16 reserveSize = 0 ;
+      UINT32 recvBuffSize = 0 ;
 
       // initialize socket
       rc = tmpSocket.initSocket() ;
@@ -2243,6 +1671,7 @@ namespace engine
                       "rc: %d", hostName, port, rc ) ;
       }
 
+   try_recv:
       // receive message
       rc = tmpSocket.recv( (CHAR *)( &replyLength ), sizeof( INT32 ),
                            receivedLen, millisec ) ;
@@ -2254,11 +1683,21 @@ namespace engine
                 SDB_SYS, error, PDERROR,
                 "Failed to check length of reply [%d]", replyLength ) ;
 
-      replyBuffer = (CHAR *)SDB_OSS_MALLOC( replyLength + 1 ) ;
-      PD_CHECK( NULL != replyBuffer, SDB_OOM, error, PDERROR,
-                "Failed to allocate reply buffer for %d bytes",
-                replyLength + 1 ) ;
-
+      if ( recvBuffSize < (UINT32)(replyLength + reserveSize) )
+      {
+         CHAR *newBuff = (CHAR *)
+               SDB_OSS_REALLOC( replyBuffer, replyLength + reserveSize ) ;
+         if ( !newBuff )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory[size: %u] failed[%d]",
+                    replyLength + reserveSize, rc ) ;
+            goto error ;
+         }
+         replyBuffer = newBuff ;
+         recvBuffSize = replyLength + reserveSize ;
+      }
+      ossMemset( replyBuffer, 0, recvBuffSize ) ;
       *(INT32 *)replyBuffer = replyLength ;
 
       rc = tmpSocket.recv( &replyBuffer[ sizeof( INT32 ) ],
@@ -2268,12 +1707,72 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to receive reply message, rc: %d",
                    rc ) ;
 
+      if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader *)replyBuffer)->eye )
+      {
+         CHAR *convertedMsg = NULL ;
+         UINT32 convertedMsgLen = 0 ;
+         if ( tryInCompatibleMode )
+         {
+            rc = msgConvertor->push( replyBuffer, replyLength ) ;
+            PD_RC_CHECK( rc, PDERROR, "Push reply message into message "
+                         "convertor failed[%d]", rc ) ;
+            rc = msgConvertor->output( convertedMsg, convertedMsgLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
+                                      "failed[%d]", rc ) ;
+            SDB_ASSERT( recvBuffSize >= convertedMsgLen,
+                        "Converted message length is not as expected" ) ;
+            ossMemcpy( replyBuffer, convertedMsg, convertedMsgLen ) ;
+         }
+         else
+         {
+            msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+            if ( !msgConvertor )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory for message convertor "
+                       "failed[%d]", rc ) ;
+               goto error ;
+            }
+
+            if ( buffer && bufferSize > 0 )
+            {
+               rc = msgConvertor->push( (const CHAR *)message,
+                                        message->messageLength - bufferSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                            "failed[%d]", rc ) ;
+               rc = msgConvertor->push( buffer, bufferSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                            "failed[%d]", rc ) ;
+            }
+            else
+            {
+               rc = msgConvertor->push( (const CHAR *)message,
+                                        message->messageLength ) ;
+               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
+                                         "failed[%d]", rc ) ;
+            }
+
+            rc = msgConvertor->output( convertedMsg, convertedMsgLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
+                         "failed[%d]", rc ) ;
+            rc = tmpSocket.send( convertedMsg, convertedMsgLen,
+                                 sentLen, millisec ) ;
+            PD_RC_CHECK( rc, PDERROR, "Send message to %s:%d failed[%d]",
+                         hostName, port, rc ) ;
+
+            tryInCompatibleMode = TRUE ;
+            reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
+            goto try_recv ;
+         }
+      }
+
       // buffer will be freed outside the function
       *receiveMessage = (MsgHeader *)replyBuffer ;
       replyBuffer = NULL ;
 
    done:
       SAFE_OSS_FREE( replyBuffer ) ;
+      SAFE_OSS_DELETE( msgConvertor ) ;
       PD_TRACE_EXITRC( SDB__CLSSHDMGR__SENDANDRECV, rc ) ;
       return rc ;
 
@@ -2737,21 +2236,43 @@ namespace engine
       if ( bCreate )
       {
          pEventInfo = SDB_OSS_NEW _clsEventItem ;
-         pEventInfo->name = pCollectionName ;
-         pEventInfo->clUniqueID = clUniqueID ;
-         if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID) )
+         if ( !pEventInfo )
          {
-            _mapSyncCLIDEvent[ clUniqueID ] = pEventInfo ;
+            PD_LOG( PDERROR, "Allocate memory[size: %d] for event item "
+                    "failed[%d]", sizeof(_clsEventItem), SDB_OOM ) ;
+            goto error ;
          }
-         else
+
+         try
          {
-            _mapSyncCatEvent[ pCollectionName ] = pEventInfo ;
+            pEventInfo->name = pCollectionName ;
+            pEventInfo->clUniqueID = clUniqueID ;
+            if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID) )
+            {
+               _mapSyncCLIDEvent[ clUniqueID ] = pEventInfo ;
+            }
+            else
+            {
+               _mapSyncCatEvent[ pCollectionName ] = pEventInfo ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(),
+                    ossException2RC( &e ) ) ;
+            goto error ;
          }
       }
 
    done:
       PD_TRACE_EXIT ( SDB__CLSSHDMGR__FNDCATSYNCEV );
       return pEventInfo ;
+   error:
+      if ( bCreate )
+      {
+         SAFE_OSS_DELETE( pEventInfo ) ;
+      }
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDCATSYNCEVN, "_clsShardMgr::_findCatSyncEvent" )
@@ -2810,13 +2331,35 @@ namespace engine
 
       //create new event info
       pEventInfo = SDB_OSS_NEW _clsEventItem ;
+      if ( !pEventInfo )
+      {
+         PD_LOG( PDERROR, "Allocate memory[size: %d] for event item failed[%d]",
+                 sizeof(_clsEventItem), SDB_OOM ) ;
+         goto error ;
+      }
+
       pEventInfo->groupID = groupID ;
       //add to map
-      _mapSyncNMEvent[groupID] = pEventInfo ;
+      try
+      {
+         _mapSyncNMEvent[groupID] = pEventInfo ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(),
+                 ossException2RC( &e ) ) ;
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXIT ( SDB__CLSSHDMGR__FNDNMSYNCEV );
       return pEventInfo ;
+   error:
+      if ( bCreate )
+      {
+         SAFE_OSS_DELETE( pEventInfo ) ;
+      }
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDNMSYNCEVN, "_clsShardMgr::_findNMSyncEvent" )
@@ -3120,12 +2663,20 @@ namespace engine
          PD_LOG( PDERROR, "Alloc memory failed" ) ;
          goto error ;
       }
-      item->csName = csName ;
 
-      _catLatch.get() ;
-      requestID = ++_requestID ;
-      _mapSyncCSEvent[ requestID ] = item ;
-      _catLatch.release() ;
+      try
+      {
+         item->csName = csName ;
+         ossScopedLock lock( &_catLatch ) ;
+         requestID = ++_requestID ;
+         _mapSyncCSEvent[ requestID ] = item ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occurr exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
    retry:
       ++retryTimes ;
@@ -3212,6 +2763,112 @@ namespace engine
          SDB_OSS_DEL item ;
       }
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_RGETRECYITEM, "_clsShardMgr::rGetRecycleItem" )
+   INT32 _clsShardMgr::rGetRecycleItem( pmdEDUCB *cb,
+                                        utilRecycleID recycleID,
+                                        utilRecycleItem &recycleItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDMGR_RGETRECYITEM ) ;
+
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      IRemoteOperator *pRemoteOpr = NULL ;
+      BSONObj query ;
+      INT64 contextID = -1 ;
+      vector< BSONObj > objList ;
+      BOOLEAN attachedDummySession = FALSE ;
+
+      pmdDummySession session ;
+
+      if ( NULL == cb->getSession() )
+      {
+         session.attachCB( cb ) ;
+         attachedDummySession = TRUE ;
+      }
+
+      try
+      {
+         query = BSON( FIELD_NAME_RECYCLE_ID << (INT64)recycleID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build query object, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = cb->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d",
+                   rc ) ;
+
+      rc = pRemoteOpr->list( contextID,
+                             CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN,
+                             query ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle bin from remote "
+                   "operator, rc: %d", rc ) ;
+
+      while ( -1 != contextID )
+      {
+         rtnContextBuf buf ;
+         rc = rtnGetMore( contextID, -1, buf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to call get more, rc: %d", rc ) ;
+
+         while ( !buf.eof() )
+         {
+            BSONObj obj ;
+            try
+            {
+               rc = buf.nextObj( obj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get object from result, "
+                            "rc: %d", rc ) ;
+               objList.push_back( obj ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to get object from result, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+         }
+      }
+
+      PD_CHECK( 0 < objList.size(), SDB_RECYCLE_ITEM_NOTEXIST, error, PDWARNING,
+                "Failed to get recycle item [%llu], it is not found",
+                recycleID ) ;
+      PD_CHECK( 1 == objList.size(), SDB_RECYCLE_CONFLICT, error, PDWARNING,
+                "Failed to get recycle item [%llu], [%d] items are returned",
+                recycleID, objList.size() ) ;
+
+      rc = recycleItem.fromBSON( objList.front() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item [%llu] "
+                   "from BSON, rc: %d", recycleID, rc ) ;
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnKillContexts( 1, &contextID, cb, rtnCB ) ;
+         contextID = -1 ;
+      }
+      if ( attachedDummySession )
+      {
+         session.detachCB() ;
+      }
+      PD_TRACE_EXITRC( SDB__CLSSHDMGR_RGETRECYITEM, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -3629,6 +3286,7 @@ namespace engine
          reply->header.TID = msg->TID ;
          reply->header.routeID.value = 0 ;
          reply->header.requestID = msg->requestID ;
+         reply->header.globalID = msg->globalID ;
          reply->flags = rc ;
          reply->startFrom = 0 ;
          if ( SDB_OK == rc && !myInfoObj.isEmpty() )
@@ -3890,7 +3548,7 @@ namespace engine
       _shardLatch.get_shared() ;
       hasLock = TRUE ;
 
-      rc = _pNetRtAgent->syncSend( handle, (void *)msg ) ;
+      rc = _pNetRtAgent->syncSend( handle, (MsgHeader *)msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Send message to search engine adapter "
                    "failed[ %d ]", rc ) ;
 

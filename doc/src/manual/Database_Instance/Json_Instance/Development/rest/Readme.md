@@ -7,7 +7,7 @@
 | -------------- | -------------------------------------- | -------------------- |
 | Content-Type   | 请求的数据类型                         | application/x-www-form-urlencoded;charset=UTF-8 |
 | Content-Length | 请求的长度                             | 54                   |
-| Host           | 主机名（协调节点或数据节点的服务地址） | 192.168.1.214:11814  |
+| Host           | 主机名（协调节点或数据节点的 REST 服务地址） | 192.168.1.214:11814  |
 | Accept         | 希望应答的数据类型，如果不指定该字段，默认响应 text/html （文本格式）的数据类型 | application/json |
 
 ```lang-http

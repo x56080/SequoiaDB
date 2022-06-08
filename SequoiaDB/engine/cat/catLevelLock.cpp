@@ -538,9 +538,47 @@ namespace engine
    }
 
    /*
+      _catRecycleBinLock implement
+    */
+   _catRecycleBinLock::_catRecycleBinLock()
+   : _catZeroLevelLock( CAT_LOCK_RECYCLEBIN )
+   {
+   }
+
+   _catRecycleBinLock::~_catRecycleBinLock()
+   {
+   }
+
+   /*
+      _catRecycleCSLock implement
+    */
+   _catCSRecycleLock::_catCSRecycleLock( const string &csName )
+   : _catOneLevelLock( CAT_LOCK_RECYCLEBIN, csName )
+   {
+   }
+
+   _catCSRecycleLock::~_catCSRecycleLock()
+   {
+   }
+
+   /*
+      _catRecycleCLLock implement
+    */
+   _catCLRecycleLock::_catCLRecycleLock( const std::string &csName,
+                                         const std::string &clFullName )
+   : _catTwoLevelLock( CAT_LOCK_RECYCLEBIN, csName, clFullName )
+   {
+   }
+
+   _catCLRecycleLock::~_catCLRecycleLock()
+   {
+   }
+
+   /*
       _catCtxLockMgr implement
     */
    _catCtxLockMgr::_catCtxLockMgr ()
+   : _ignoreLock( FALSE )
    {
    }
 
@@ -637,11 +675,73 @@ namespace engine
       return _tryLockObject ( CAT_LOCK_NODE, groupName, nodeName, mode ) ;
    }
 
+   BOOLEAN _catCtxLockMgr::tryLockRecycleItem( const utilRecycleItem &recycleItem,
+                                               OSS_LATCH_MODE mode )
+   {
+      if ( UTIL_RECYCLE_CS == recycleItem.getType() )
+      {
+         string levelOneName ;
+
+         try
+         {
+            StringBuilder levelOneBuilder ;
+            levelOneBuilder << recycleItem.getOriginID() ;
+            levelOneName = levelOneBuilder.str() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build lock name for "
+                    "recycle item, occur exception %s", e.what() ) ;
+            return FALSE ;
+         }
+
+         return _tryLockObject( CAT_LOCK_RECYCLEBIN,
+                                levelOneName,
+                                mode ) ;
+      }
+      else
+      {
+         SDB_ASSERT( UTIL_RECYCLE_CL == recycleItem.getType(),
+                     "Should be collection recycle item" ) ;
+
+         string levelOneName, levelTwoName ;
+
+         try
+         {
+            StringBuilder levelOneBuilder, levelTwoBuilder ;
+            utilCSUniqueID csUniqueID =
+                  utilGetCSUniqueID( recycleItem.getOriginID() ) ;
+
+            levelOneBuilder << csUniqueID ;
+            levelTwoBuilder << csUniqueID << "." << recycleItem.getRecycleID() ;
+
+            levelOneName = levelOneBuilder.str() ;
+            levelTwoName = levelTwoBuilder.str() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build lock name for "
+                    "recycle item, occur exception %s", e.what() ) ;
+            return FALSE ;
+         }
+
+         return _tryLockObject( CAT_LOCK_RECYCLEBIN,
+                                levelOneName,
+                                levelTwoName,
+                                mode ) ;
+      }
+   }
+
    BOOLEAN _catCtxLockMgr::_tryLockObject ( CAT_LOCK_TYPE type,
                                             const std::string &name,
                                             OSS_LATCH_MODE mode )
    {
       catOneLevelLock *pLock = NULL ;
+
+      if ( _ignoreLock )
+      {
+         return TRUE ;
+      }
 
       // Create lock by lock type
       switch ( type )
@@ -657,6 +757,9 @@ namespace engine
          break ;
       case CAT_LOCK_SHARDING :
          pLock = SDB_OSS_NEW catCSShardingLock( name ) ;
+         break ;
+      case CAT_LOCK_RECYCLEBIN :
+         pLock = SDB_OSS_NEW catCSRecycleLock( name ) ;
          break ;
       default :
          break ;
@@ -674,6 +777,11 @@ namespace engine
 
       SDB_ASSERT( parentName != name, "Names of 2 levels are the same" ) ;
 
+      if ( _ignoreLock )
+      {
+         return TRUE ;
+      }
+
       // Create lock by lock type
       switch ( type )
       {
@@ -686,6 +794,9 @@ namespace engine
       case CAT_LOCK_SHARDING :
          pLock = SDB_OSS_NEW catCLShardingLock( parentName, name ) ;
          break ;
+      case CAT_LOCK_RECYCLEBIN :
+         pLock = SDB_OSS_NEW catCLRecycleLock( parentName, name ) ;
+         break ;
       default :
          break ;
       }
@@ -697,7 +808,15 @@ namespace engine
                                             OSS_LATCH_MODE mode )
    {
       if ( !pLock )
+      {
          return FALSE ;
+      }
+
+      if ( _ignoreLock )
+      {
+         SAFE_OSS_DELETE( pLock ) ;
+         return TRUE ;
+      }
 
       if ( pLock->tryLock( mode ) )
       {

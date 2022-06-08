@@ -66,6 +66,11 @@ namespace engine
          virtual INT32 init () ;
          virtual INT32 doit () ;
 
+         virtual BOOLEAN useTransLock() const
+         {
+            return TRUE ;
+         }
+
       protected:
          virtual void _onAttach() ;
          virtual void _onDetach() ;
@@ -78,10 +83,15 @@ namespace engine
                                      const CHAR* collectionName,
                                      const CHAR* indexName ) ;
          INT32 _startCatalogTask( UINT64 taskID ) ;
+         INT32 _checkAndFixCLNameByID( BOOLEAN& isOk ) ;
+         INT32 _buildTaskStatus() ;
+         BOOLEAN _isCLNameExist() ;
 
       private:
          _pmdDummySession      _session ;
          CLS_INDEX_THREAD_MODE _threadMode ;
+         BOOLEAN               _hasSetIndexObj ; // protect _indexObj
+         BOOLEAN               _retryLater ;
    };
    typedef class _clsIndexJob clsIndexJob ;
 

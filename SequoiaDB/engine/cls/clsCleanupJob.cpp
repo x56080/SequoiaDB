@@ -169,6 +169,7 @@ namespace engine
 
       if ( _dpsCB )
       {
+         eduCB()->setCurProcessName( _clFullName.c_str() ) ;
          eduCB()->writingDB( TRUE ) ;
       }
 
@@ -299,6 +300,7 @@ namespace engine
 
    done:
       eduCB()->writingDB( FALSE ) ;
+      eduCB()->clearProcessInfo() ;
       PD_TRACE_EXITRC ( SDB__CLSCLNJOB_DOIT, rc );
       return rc ;
    error:
@@ -374,7 +376,7 @@ namespace engine
       {
          INT32 range = clsPartition( page._oid, page._sequence,
                                      catSet->getPartitionBit() ) ;
-         need2Remove = _splitKeyObj.firstElement().Int() <= range && 
+         need2Remove = _splitKeyObj.firstElement().Int() <= range &&
            ( _splitEndKeyObj.isEmpty() ||
              range < _splitEndKeyObj.firstElement().Int() ) ;
       }
@@ -733,7 +735,7 @@ namespace engine
                      break ;
                   }
                }
- 
+
                PD_LOG ( PDWARNING, "Job[%s] filter del not found collection[%s]"
                         " catalog info", name(), _clFullName.c_str() ) ;
                rc = SDB_DMS_NOTEXIST ;

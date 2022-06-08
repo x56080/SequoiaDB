@@ -23,7 +23,7 @@ import com.sequoiadb.message.MsgOpCode;
 import java.nio.ByteBuffer;
 
 public class KillContextRequest extends SdbRequest {
-    private final static int FIXED_LENGTH = HEADER_LENGTH + 8;
+    private final static int FIXED_LENGTH = 64;
     private final static int reserved = 0;
     private long[] contextIds;
 

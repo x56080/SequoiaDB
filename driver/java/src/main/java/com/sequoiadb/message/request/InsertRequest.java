@@ -16,6 +16,7 @@
 
 package com.sequoiadb.message.request;
 
+import com.sequoiadb.base.options.InsertOption;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
@@ -29,11 +30,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.sequoiadb.base.DBCollection.FLG_INSERT_RETURN_OID;
-
 public class InsertRequest extends SdbRequest {
     private final static String OID = "_id";
-    private static final int FIXED_LENGTH = 44;
+    private static final int FIXED_LENGTH = 72;
     private static final int version = 1;
     private static final short w = 0;
     private static final short padding = 0;
@@ -58,16 +57,16 @@ public class InsertRequest extends SdbRequest {
         }
     }
 
-    public InsertRequest(String collectionName, BSONObject doc, int flags) {
+    public InsertRequest(String collectionName, BSONObject doc, int flag) {
         this(collectionName);
 
-        this.flag = flags;
+        this.flag = flag;
 
         if (doc == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "doc is null");
         }
         // prepare oid and try to return it
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
+        if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0) {
             Object objId = doc.get(OID);
             if (objId == null) {
                 objId = ObjectId.get();
@@ -81,15 +80,15 @@ public class InsertRequest extends SdbRequest {
         length += Helper.alignedSize(docBytes.length);
     }
 
-    public InsertRequest(String collectionName, List<BSONObject> docs, int flags, boolean ensureOID) {
+    public InsertRequest(String collectionName, List<BSONObject> docs, int flag, boolean ensureOID) {
         this(collectionName);
 
-        this.flag = flags;
+        this.flag = flag;
 
         if (docs == null || docs.size() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "docs is null or empty");
         }
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
+        if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0) {
             oid = new BasicBSONList();
         }
         docsBytes = new ArrayList<byte[]>(docs.size());
@@ -98,7 +97,7 @@ public class InsertRequest extends SdbRequest {
             if (ensureOID && !doc.containsField(OID)) {
                 doc.put(OID, ObjectId.get());
             }
-            if ((flags & FLG_INSERT_RETURN_OID) != 0 && doc.containsField(OID)) {
+            if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0 && doc.containsField(OID)) {
                 ((BasicBSONList) oid).put(index++, doc.get(OID));
             }
             byte[] docBytes = Helper.encodeBSONObj(doc);

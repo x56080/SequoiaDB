@@ -42,6 +42,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "optAccessPlanRuntime.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson;
 
@@ -109,7 +110,7 @@ namespace engine
    }
 
    // change the scanner's current location to a given key and rid
-   // User can indicate if they want to reset _savedObj/_savedRID using 
+   // User can indicate if they want to reset _savedObj/_savedRID using
    // selected index RID position (_curIndexRID)
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID1, "_rtnDiskIXScanner::_relocateRID" )
    INT32 _rtnDiskIXScanner::_relocateRID( const BSONObj &keyObj,
@@ -141,7 +142,7 @@ namespace engine
          rc = root.locate ( keyObj, rid, _order, _curIndexRID,
                             found, direction, _indexCB ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to locate from new keyobj(%s) "
-                       "and rid(%d, %d), rc: %d", keyObj.toString().c_str(),
+                       "and rid(%d, %d), rc: %d", PD_SECURE_OBJ( keyObj ),
                        rid._extent, rid._offset, rc ) ;
 
          _savedObj = keyObj.getOwned() ;
@@ -155,7 +156,7 @@ namespace engine
 
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
 #ifdef _DEBUG
-         PD_LOG ( PDDEBUG, 
+         PD_LOG ( PDDEBUG,
                   "relocateRID to saved obj(%s) and rid(%d, %d), found(%d)",
                   _savedObj.toString().c_str(),
                   _savedRID._extent, _savedRID._offset, found ) ;
@@ -201,7 +202,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to locate from saved obj(%s) and "
-                  "rid(%d, %d), rc: %d", _savedObj.toString().c_str(),
+                  "rid(%d, %d), rc: %d", PD_SECURE_OBJ( _savedObj ),
                   _savedRID._extent, _savedRID._offset, rc ) ;
          goto error ;
       }
@@ -475,7 +476,7 @@ namespace engine
          rid.reset() ;
 
          PD_LOG( PDDEBUG, "Hit end with last obj(%s)",
-                 _curKeyObj.toString().c_str() ) ;
+                 PD_SECURE_OBJ( _curKeyObj ) ) ;
       }
       PD_TRACE_EXITRC( SDB__RTNDISKIXSCAN_ADVANCE, rc ) ;
       return rc ;
@@ -529,7 +530,7 @@ namespace engine
          _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
 
          PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d, %d)",
-                 _savedObj.toString().c_str(),
+                 PD_SECURE_OBJ( _savedObj ),
                  _savedRID._extent, _savedRID._offset ) ;
       }
 
@@ -625,7 +626,7 @@ namespace engine
          }
 
          PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d, %d), found(%d)",
-                 _savedObj.toString().c_str(), _savedRID._extent,
+                 PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
                  _savedRID._offset, isSame ) ;
 
          if ( isSame )
@@ -678,12 +679,12 @@ namespace engine
       goto done ;
    }
 
-   void _rtnDiskIXScanner::getOwnerTransID( DPS_TRANS_ID &transID ) 
+   void _rtnDiskIXScanner::getOwnerTransID( DPS_TRANS_ID &transID )
    {
       SDB_ASSERT( FALSE, "Owner not provided in disk scan.") ;
       transID.reset() ;
    }
-   
+
    INT32 _rtnDiskIXScanner::_isCursorSame( ixmExtent *pExtent,
                                            const BSONObj &saveObj,
                                            const dmsRecordID &saveRID,
@@ -747,19 +748,19 @@ namespace engine
    void _rtnDiskIXScanner::getRBSPositions( dmsRBSOffset & startPos,
                                             dmsRBSOffset & endPos,
                                             dmsRecordID  & rid,
-                                            preIdxTreePtr  memTree ) 
+                                            preIdxTreePtr  memTree )
    {
       preIdxTreePtr  tree ;
-      // native diskIXScan should not get to here. We can only 
-      // call this function through merge scan, and the tree 
+      // native diskIXScan should not get to here. We can only
+      // call this function through merge scan, and the tree
       // should have been set up. One speical case was during merge
-      // scan, the MemIXscanner hasn't touch the tree yet, 
-      // if we come from disk ixscanner, we might need to search 
+      // scan, the MemIXscanner hasn't touch the tree yet,
+      // if we come from disk ixscanner, we might need to search
       // RBS, but the stopping position would be the first position
-      // pointed by mem tree 
+      // pointed by mem tree
       startPos.reset() ;
       endPos.reset() ;
-      
+
       if ( !memTree.get() )
       {
          globIdxID gid( getSu()->CSID(),
@@ -776,7 +777,7 @@ namespace engine
       {
          // End position should be the newest index tree value for
          // this RID. If there is no keynode for this RID in memTree, that
-         // means we didn't change the index before, we should search the 
+         // means we didn't change the index before, we should search the
          // whole RBS
          INDEX_TREE_POS it = memTree->getKeyNodeFromRidTree( rid ) ;
          if ( it != memTree->getTree()->end() )

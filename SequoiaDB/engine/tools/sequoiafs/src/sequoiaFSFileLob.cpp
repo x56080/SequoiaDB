@@ -356,7 +356,6 @@ INT32 fileLob::flFlush(INT64 *fileSize)
       if(SDB_OK != rc)
       {
           PD_LOG(PDERROR, "Failed to getLobSize, error=%d", rc);
-          rc = -EIO;
           goto error;
       }
       _fileSize = lobSize;
@@ -427,7 +426,6 @@ INT32 fileLob::flClose(INT64 *fileSize)
       if(SDB_OK != rc)
       {
           PD_LOG(PDERROR, "Failed to getLobSize, error=%d", rc);
-          rc = -EIO;
           goto error;
       }
       _fileSize = lobSize;

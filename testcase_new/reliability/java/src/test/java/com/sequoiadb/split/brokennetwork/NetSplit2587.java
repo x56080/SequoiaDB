@@ -150,6 +150,8 @@ public class NetSplit2587 extends SdbTestBase {
             clearFlag = true;
         } catch ( ReliabilityException e ) {
             Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             if ( db != null ) {
                 db.close();

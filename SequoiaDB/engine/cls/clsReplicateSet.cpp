@@ -185,13 +185,12 @@ namespace engine
       if ( _srcSessionNum > 0 )
       {
          UINT32 index = 0 ;
-         _vecLatch.lock_r () ;
+         ossScopedRWLock lock( &_vecLatch, SHARED ) ;
          while ( index < _srcSessionNum )
          {
             _vecSrcSessions[index]->notifyLSN ( suLID, clLID, extLID, offset ) ;
             ++index ;
          }
-         _vecLatch.release_r () ;
       }
       _ntyProcessedOffset = offset ;
 
@@ -204,10 +203,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREPSET_REGSN );
       SDB_ASSERT ( pSession, "Session can't be null" ) ;
 
-      _vecLatch.lock_w () ;
-      _srcSessionNum++ ;
-      _vecSrcSessions.push_back ( pSession ) ;
-      _vecLatch.release_w () ;
+      try
+      {
+         ossScopedRWLock lock( &_vecLatch, EXCLUSIVE ) ;
+         _vecSrcSessions.push_back ( pSession ) ;
+         _srcSessionNum++ ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register session, "
+                 "occur exception %s", e.what() ) ;
+         // unable to handle the exception, throw it
+         throw e ;
+      }
       PD_TRACE_EXIT ( SDB__CLSREPSET_REGSN );
    }
 
@@ -217,7 +225,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREPSET_UNREGSN );
       SDB_ASSERT ( pSession, "Session can't be null" ) ;
 
-      _vecLatch.lock_w () ;
+      ossScopedRWLock lock( &_vecLatch, EXCLUSIVE ) ;
       std::vector<_clsDataSrcBaseSession*>::iterator it =
          _vecSrcSessions.begin() ;
       while ( it != _vecSrcSessions.end() )
@@ -230,7 +238,6 @@ namespace engine
          }
          ++it ;
       }
-      _vecLatch.release_w () ;
       PD_TRACE_EXIT ( SDB__CLSREPSET_UNREGSN );
    }
 
@@ -267,8 +274,10 @@ namespace engine
       /// register repl net agent to net monitor for connections
       pNetFrame->setBeatInfo( pmdGetOptionCB()->getOprTimeout() ) ;
 
-      sdbGetPMDController()->registerNet( pNetFrame,
-                                          MSG_ROUTE_REPL_SERVICE ) ;
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_REPL_SERVICE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "REPL service, rc: %d", rc ) ;
 
       _totalLogSize = pmdGetOptionCB()->getTotalLogSpace() ;
       // init sync control param
@@ -724,7 +733,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__CANASSIGNLOGPAGE, "_clsReplicateSet::canAssignLogPage" )
-   INT32 _clsReplicateSet::canAssignLogPage( UINT32 reqLen, IExecutor *executor )
+   INT32 _clsReplicateSet::canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPSET__CANASSIGNLOGPAGE );
       INT32 rc = SDB_OK ;
@@ -734,8 +743,6 @@ namespace engine
       DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN expectLSN ;
       BOOLEAN hasBlock = FALSE ;
-      pmdEDUCB *cb = dynamic_cast<pmdEDUCB *>(executor);
-      SDB_ASSERT(NULL != cb, "invalid executor");
 
       while ( SDB_OK == rc && PMD_IS_DB_AVAILABLE() )
       {

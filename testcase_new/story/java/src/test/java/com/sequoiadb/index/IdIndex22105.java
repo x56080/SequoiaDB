@@ -43,7 +43,6 @@ public class IdIndex22105 extends SdbTestBase {
         cl = cs.createCollection( clName,
                 new BasicBSONObject( "ShardingType", "range" ).append(
                         "ShardingKey", new BasicBSONObject( "a", 1 ) ) );
-
         ArrayList< BSONObject > insertor = new ArrayList<>();
         for ( int i = 0; i < recsNum; i++ ) {
             insertor.add( new BasicBSONObject( "a", i ) );

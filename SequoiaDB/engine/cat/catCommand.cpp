@@ -603,7 +603,8 @@ namespace engine
 
    CAT_IMPLEMENT_CMD_AUTO_REGISTER( _catCMDAlterDataSource )
    _catCMDAlterDataSource::_catCMDAlterDataSource()
-   : _dsID( UTIL_INVALID_DS_UID )
+   : _dsName( NULL ),
+     _dsID( UTIL_INVALID_DS_UID )
    {
 
    }
@@ -624,7 +625,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CATCMDALTERATASOURCE_INIT ) ;
-      const CHAR *name = NULL ;
 
       try
       {
@@ -639,7 +639,7 @@ namespace engine
                    "Failed to get field[%s] from query when altering data "
                    "source: %s", FIELD_NAME_NAME,
                    alterObj.toString().c_str() ) ;
-         name = argEle.valuestr() ;
+         _dsName = argEle.valuestr() ;
          argEle = alterObj.getField( FIELD_NAME_OPTIONS ) ;
          if ( argEle.eoo() )
          {
@@ -651,9 +651,9 @@ namespace engine
          PD_LOG( PDDEBUG, "Alter data source options: %s",
                  argEle.toString().c_str() ) ;
 
-         rc = _getDataSourceMeta( name, currentMeta ) ;
+         rc = _getDataSourceMeta( _dsName, currentMeta ) ;
          PD_RC_CHECK( rc, PDERROR, "Get metadata of data source[%s] failed[%d]",
-                      name, rc ) ;
+                      _dsName, rc ) ;
 
          {
             BSONObjIterator itr( argEle.embeddedObject() );
@@ -1452,7 +1452,7 @@ namespace engine
 
       {
       catCtxCreateCL catCtx( -1, cb->getID() ) ;
-      rc = catCtx.open( boQuery.objdata(), ctxBuf, cb ) ;
+      rc = catCtx.open( boQuery, ctxBuf, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to open context, rc: %d",
                    rc ) ;
@@ -1484,7 +1484,8 @@ namespace engine
 
       try
       {
-         boQuery = BSON( FIELD_NAME_NAME << clName ) ;
+         boQuery = BSON( FIELD_NAME_NAME << clName <<
+                         FIELD_NAME_SKIPRECYCLEBIN << true ) ;
       }
       catch( std::exception &e )
       {
@@ -1494,7 +1495,7 @@ namespace engine
 
       {
       catCtxDropCL catCtx( -1, cb->getID() ) ;
-      rc = catCtx.open( boQuery.objdata(), ctxBuf, cb ) ;
+      rc = catCtx.open( boQuery, ctxBuf, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to open context, rc: %d",
                    rc ) ;
@@ -1527,7 +1528,8 @@ namespace engine
       try
       {
          boQuery = BSON( FIELD_NAME_NAME << csName <<
-                         FIELD_NAME_ENSURE_EMPTY << true ) ;
+                         FIELD_NAME_ENSURE_EMPTY << true <<
+                         FIELD_NAME_SKIPRECYCLEBIN << true ) ;
       }
       catch( std::exception &e )
       {
@@ -1537,7 +1539,7 @@ namespace engine
 
       {
       catCtxDropCS catCtx( -1, cb->getID() ) ;
-      rc = catCtx.open( boQuery.objdata(), ctxBuf, cb ) ;
+      rc = catCtx.open( boQuery, ctxBuf, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to open context, rc: %d",
                    rc ) ;
@@ -1634,7 +1636,8 @@ namespace engine
    : _pCataSet( NULL ),
      _pCollection( NULL ),
      _pIndexName( NULL ),
-     _sysCall( sysCall )
+     _sysCall( sysCall ),
+     _needLevelLock( TRUE )
    {
    }
 
@@ -1744,6 +1747,7 @@ namespace engine
       // query tasks
       if ( _pCataSet->isMainCL() )
       {
+         // not only main collection but also its sub collections
          matcher = BSON( FIELD_NAME_STATUS <<
                          BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
       }
@@ -1792,19 +1796,19 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDIDX_CHKTASKCONF2, "_catCMDIndexHelper::_checkTaskConflict" )
-   INT32 _catCMDIndexHelper::_checkTaskConflict( const BSONObj &otherIdxObj )
+   INT32 _catCMDIndexHelper::_checkTaskConflict( const BSONObj &existTaskObj )
    {
       PD_TRACE_ENTRY( SDB_CATCMDIDX_CHKTASKCONF2 ) ;
 
       INT32 rc = SDB_OK ;
-      clsTask *pOtherTask = NULL ;
+      clsTask *pExistTask = NULL ;
 
-      rc = clsNewTask( otherIdxObj, pOtherTask ) ;
+      rc = clsNewTask( existTaskObj, pExistTask ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to new task, rc: %d",
                    rc ) ;
 
-      if ( CLS_TASK_STATUS_FINISH == pOtherTask->status() )
+      if ( CLS_TASK_STATUS_FINISH == pExistTask->status() )
       {
          goto done ;
       }
@@ -1812,39 +1816,20 @@ namespace engine
       for( VEC_TASKS_IT it = _vecTasks.begin() ; it != _vecTasks.end() ; ++it )
       {
          clsIdxTask* pCurTask = *it ;
-         if ( pCurTask->taskID() == pOtherTask->taskID() ||
-              pCurTask->muteXOn( pOtherTask ) ||
-              pOtherTask->muteXOn( pCurTask ) )
-         {
-            rc = SDB_CLS_MUTEX_TASK_EXIST ;
-         }
-         else if ( CLS_TASK_CREATE_IDX == pOtherTask->taskType() &&
-                   CLS_TASK_CREATE_IDX == pCurTask->taskType() )
-         {
-            if ( 0 == ossStrcmp( pOtherTask->collectionName(),
-                                 pCurTask->collectionName() ) )
-            {
-               if ( ixmIsSameDef( ((clsCreateIdxTask*)pOtherTask)->indexDef(),
-                                  ((clsCreateIdxTask*)pCurTask)->indexDef() ) )
-               {
-                  rc = SDB_CLS_MUTEX_TASK_EXIST ;
-               }
-            }
-         }
+         rc = pCurTask->checkConflictWithExistTask( pExistTask ) ;
          if ( rc )
          {
-            PD_LOG_MSG( PDERROR,
-                        "New task[%s] conflict with an existing task[%llu,%s]",
-                        pCurTask->taskName(),
-                        pOtherTask->taskID(), pOtherTask->taskName() ) ;
+            PD_LOG( PDERROR,
+                    "Failed to check confilct with existing task[%llu], rc: %d",
+                    pExistTask->taskID(), rc ) ;
             goto error ;
          }
       }
 
    done:
-      if ( pOtherTask )
+      if ( pExistTask )
       {
-         clsReleaseTask( pOtherTask ) ;
+         clsReleaseTask( pExistTask ) ;
       }
       PD_TRACE_EXITRC( SDB_CATCMDIDX_CHKTASKCONF2, rc ) ;
       return rc ;
@@ -1912,9 +1897,10 @@ namespace engine
                       "Failed to get field [%s], rc: %d",
                       FIELD_NAME_INDEX, rc ) ;
 
-         rc = rtnConvertIndexDef( _boIdx ) ;
+         rc = rtnCheckAndConvertIndexDef( _boIdx ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to convert index definition" ) ;
+                      "Failed to convert index definition: %s",
+                      _boIdx.toString().c_str() ) ;
 
          BSONObjIterator ii( _boIdx ) ;
          while ( ii.more() )
@@ -1922,60 +1908,22 @@ namespace engine
             BSONElement e = ii.next();
             if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NAME ) == 0 )
             {
-               if ( e.type() != String )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_NAME, _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
-               _pIndexName = e.valuestr() ;
+               _pIndexName = e.valuestrsafe() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_KEY ) == 0 )
             {
-               if ( e.type() != Object )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_KEY, _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _key = e.Obj() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_UNIQUE ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_UNIQUE,
-                              _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _isUnique = e.boolean() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_ENFORCED ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_ENFORCED,
-                              _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _isEnforced = e.boolean() ;
             }
             else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_GLOBAL ) == 0 )
             {
-               if ( e.type() != Bool )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Field[%s] invalid in obj[%s]",
-                              IXM_FIELD_NAME_GLOBAL,
-                              _boIdx.toString().c_str() ) ;
-                  goto error ;
-               }
                _isGlobal = e.boolean() ;
             }
          }
@@ -2162,12 +2110,15 @@ namespace engine
          }
       }
 
-      // lock collection, create/drop index and rename cs/cl are mutually
-      // exclusive
-      PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock collection[%s], rc: %d",
-                _pCollection, rc ) ;
+      if ( _needLevelLock )
+      {
+         // lock collection, create/drop index and rename cs/cl are mutually
+         // exclusive
+         PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock collection[%s], rc: %d",
+                   _pCollection, rc ) ;
+      }
 
       // check index exist and build tasks
       if ( _pCataSet->isMainCL() )
@@ -2820,7 +2771,7 @@ namespace engine
    */
    CAT_IMPLEMENT_CMD_AUTO_REGISTER(_catCMDDropIndex)
    _catCMDDropIndex::_catCMDDropIndex( BOOLEAN sysCall )
-   : _catCMDIndexHelper( sysCall )
+   : _catCMDIndexHelper( sysCall ), _ignoreIdxNotExist( FALSE )
    {}
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDDROPIDX_INIT, "_catCMDDropIndex::init" )
@@ -2834,21 +2785,17 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCMDDROPIDX_INIT ) ;
+      BOOLEAN enforce = FALSE ;
 
       // message formate:
       // macher: { Collection: "foo.bar", Index: { "": "aIdx" }, Async: true }
-      // hint:   { Prepare: true }
 
       try
       {
-         BSONObj query, hint, idxObj ;
+         BSONObj query, idxObj ;
          if ( pQuery )
          {
             query = BSONObj( pQuery ) ;
-         }
-         if ( pHint )
-         {
-            hint = BSONObj( pHint ) ;
          }
 
          // get collection name
@@ -2867,6 +2814,19 @@ namespace engine
                    SDB_INVALIDARG, error, PDERROR,
                    "Invalid index obj type: %s", idxObj.toString().c_str() ) ;
          _pIndexName = ele.valuestr() ;
+
+         // get hint
+         rc = rtnGetBooleanElement( query, FIELD_NAME_ENFORCED1, enforce ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                      FIELD_NAME_ENFORCED1, rc ) ;
+
+         // if it is 'enforce' mode, then we ignore catalog's -47 error, and
+         // continue to drop index on the data node
+         _ignoreIdxNotExist = enforce ;
       }
       catch( std::exception &e )
       {
@@ -3025,13 +2985,6 @@ namespace engine
          goto error ;
       }
 
-      // lock collection, create/drop index and rename cs/cl are mutually
-      // exclusive
-      PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock collection[%s], rc: %d",
-                _pCollection, rc ) ;
-
       // check index exist, and build tasks
       if ( _pCataSet->isMainCL() )
       {
@@ -3058,6 +3011,10 @@ namespace engine
       else
       {
          rc = _checkIndexExist( _pCollection, _pIndexName, cb ) ;
+         if ( SDB_IXM_NOTEXIST == rc && _ignoreIdxNotExist )
+         {
+            rc = SDB_OK ;
+         }
          if ( rc )
          {
             goto error ;
@@ -3075,6 +3032,16 @@ namespace engine
       if ( rc )
       {
          goto error ;
+      }
+
+      if ( _needLevelLock )
+      {
+         // lock collection, create/drop index and rename cs/cl are mutually
+         // exclusive
+         PD_CHECK( lockMgr.tryLockCollection( _pCollection, SHARED ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock collection[%s], rc: %d",
+                   _pCollection, rc ) ;
       }
 
    done:
@@ -3212,11 +3179,18 @@ namespace engine
          rc = _checkIndexExist( subclName, _pIndexName, cb ) ;
          if ( SDB_IXM_NOTEXIST == rc )
          {
-            // if the subcl's index already exists, DON'T build the subcl's task
-            rc = SDB_OK ;
-            PD_LOG( PDWARNING, "Collection[%s] index[%s] doesn't exists",
-                    subclName, _pIndexName ) ;
-            continue ;
+            if ( _ignoreIdxNotExist )
+            {
+               rc = SDB_OK ;
+            }
+            else
+            {
+               // if the subcl's index already exists, DON'T build the subcl's
+               // task
+               PD_LOG( PDWARNING, "Collection[%s] index[%s] doesn't exists",
+                       subclName, _pIndexName ) ;
+               continue ;
+            }
          }
          if ( rc )
          {
@@ -3245,9 +3219,16 @@ namespace engine
       if ( 0 == subTaskList.size() && mainCLIdxNotExist )
       {
          rc = SDB_IXM_NOTEXIST ;
-         PD_LOG( PDERROR, "Index does't exists: [%s:%s]",
-                 _pCollection, _pIndexName ) ;
-         goto error ;
+         if ( _ignoreIdxNotExist )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Index does't exists: [%s:%s]",
+                    _pCollection, _pIndexName ) ;
+            goto error ;
+         }
       }
 
       /// 4. build main task

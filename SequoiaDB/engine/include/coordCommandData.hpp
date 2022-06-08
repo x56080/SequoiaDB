@@ -47,6 +47,7 @@ using namespace bson ;
 
 namespace engine
 {
+
    /*
       _coordDataCMD2Phase define
    */
@@ -62,10 +63,6 @@ namespace engine
                                           const vector<BSONObj> &cataObjs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseDataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
@@ -121,15 +118,9 @@ namespace engine
          virtual BOOLEAN _flagUseGrpLstInCoord () { return FALSE ; }
 
          /*
-            set new collection version to buf
-         */
-         virtual INT32 _setVer2Context( rtnContextBuf *buf );
-
-      protected:
-         INT32 _dropCL( const CHAR *clName, pmdEDUCB *cb ) ;
-
-      protected:
-         BOOLEAN _needReleaseDataMsg ;
+            Get output to client
+          */
+         virtual INT32 _doOutput( rtnContextBuf *buf ) ;
    } ;
    typedef _coordDataCMD2Phase coordDataCMD2Phase ;
 
@@ -146,7 +137,8 @@ namespace engine
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
-                                          const CoordGroupList &pGroupLst ) ;
+                                          const CoordGroupList &pGroupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
@@ -234,7 +226,8 @@ namespace engine
                                           pmdEDUCB * cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments * pArgs,
-                                          const CoordGroupList & groupLst ) ;
+                                          const CoordGroupList & groupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader * pMsg,
                                           pmdEDUCB * cb,
@@ -261,10 +254,6 @@ namespace engine
                                           coordCMDArguments * pArgs,
                                           CHAR ** ppMsgBuf,
                                           INT32 * pBufSize ) ;
-
-         virtual void _releaseCataMsg ( CHAR * pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB * cb ) ;
 
          virtual INT32 _generateDataMsg( MsgHeader *pMsg,
                                          pmdEDUCB *cb,
@@ -376,19 +365,56 @@ namespace engine
    /*
       _coordCMDTruncate define
    */
-   class _coordCMDTruncate : public _coordCommandBase
+   class _coordCMDTruncate : public _coordDataCMD3Phase
    {
+      typedef class _coordDataCMD3Phase _BASE ;
+
       COORD_DECLARE_CMD_AUTO_REGISTER() ;
       public:
          _coordCMDTruncate() ;
          virtual ~_coordCMDTruncate() ;
-         virtual INT32 execute( MsgHeader *pMsg,
-                                pmdEDUCB *cb,
-                                INT64 &contextID,
-                                rtnContextBuf *buf ) ;
 
-      private:
-         INT32 _truncateCL( const CHAR *clName, pmdEDUCB *cb ) ;
+         virtual INT32 _regEventHandlers() ;
+
+         virtual INT32 _parseMsg( MsgHeader *pMsg,
+                                  coordCMDArguments *pArgs ) ;
+
+         virtual INT32 _generateCataMsg( MsgHeader *pMsg,
+                                         pmdEDUCB *cb,
+                                         coordCMDArguments *pArgs,
+                                         CHAR **ppMsgBuf,
+                                         INT32 *pBufSize ) ;
+
+         virtual INT32 _generateDataMsg( MsgHeader *pMsg,
+                                         pmdEDUCB *cb,
+                                         coordCMDArguments *pArgs,
+                                         const vector<BSONObj> &cataObjs,
+                                         CHAR **ppMsgBuf,
+                                         INT32 *pBufSize ) ;
+
+         virtual INT32 _doOnDataGroup( MsgHeader *pMsg,
+                                       pmdEDUCB *cb,
+                                       rtnContextCoord::sharePtr *ppContext,
+                                       coordCMDArguments *pArgs,
+                                       const CoordGroupList &groupLst,
+                                       const vector<BSONObj> &cataObjs,
+                                       CoordGroupList &sucGroupLst ) ;
+
+         /*
+            update catalog info before send command to Data Groups
+         */
+         virtual BOOLEAN _flagUpdateBeforeData() { return TRUE ; }
+
+         /*
+            use group in Coord cache, since we only have short-term
+            locks in Catalog
+         */
+         virtual BOOLEAN _flagUseGrpLstInCoord() { return TRUE ; }
+
+      protected:
+         coordDropGlobIdxHandler _globIdxHandler ;
+         coordCMDRecycleHandler  _recycleHandler ;
+         coordCMDRecyTaskHandler _taskHandler ;
    } ;
    typedef _coordCMDTruncate coordCMDTruncate ;
 
@@ -422,6 +448,8 @@ namespace engine
          _coordCMDDropCollectionSpace() ;
          virtual ~_coordCMDDropCollectionSpace() ;
       protected :
+         virtual INT32 _regEventHandlers() ;
+
          virtual INT32 _parseMsg ( MsgHeader *pMsg,
                                    coordCMDArguments *pArgs ) ;
 
@@ -431,28 +459,9 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _doComplete ( MsgHeader *pMsg,
                                      pmdEDUCB *cb,
                                      coordCMDArguments *pArgs ) ;
-
-         virtual INT32 _generateDataMsg ( MsgHeader *pMsg,
-                                          pmdEDUCB *cb,
-                                          coordCMDArguments *pArgs,
-                                          const vector<BSONObj> &cataObjs,
-                                          CHAR **ppMsgBuf,
-                                          INT32 *pBufSize ) ;
-
-         virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
-                                        pmdEDUCB *cb,
-                                        rtnContextCoord::sharePtr *ppContext,
-                                        coordCMDArguments *pArgs,
-                                        const CoordGroupList &groupLst,
-                                        const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
 
       protected :
          /*
@@ -463,12 +472,9 @@ namespace engine
          virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
 
       private:
-         typedef ossPoolList< utilCLUniqueID > UTIL_UNIQUE_LIST ;
-         typedef UTIL_UNIQUE_LIST::iterator    UTIL_UNIQUE_LIST_ITER ;
-
-         UTIL_UNIQUE_LIST _indexCLList ;
-
-
+         coordDropGlobIdxHandler _globIdxHandler ;
+         coordCMDRecycleHandler  _recycleHandler ;
+         coordCMDRecyTaskHandler _taskHandler ;
    } ;
    typedef _coordCMDDropCollectionSpace coordCMDDropCollectionSpace ;
 
@@ -490,10 +496,6 @@ namespace engine
                                          coordCMDArguments *pArgs,
                                          CHAR **ppMsgBuf,
                                          INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doComplete( MsgHeader *pMsg,
                                     pmdEDUCB *cb,
@@ -552,10 +554,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _generateDataMsg ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           coordCMDArguments *pArgs,
@@ -607,16 +605,15 @@ namespace engine
    */
    class _coordCMDDropCollection : public _coordDataCMD3Phase
    {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      typedef class _coordDataCMD3Phase _BASE ;
 
-      private:
-         typedef ossPoolList< utilCLUniqueID > UTIL_UNIQUE_LIST ;
-         typedef UTIL_UNIQUE_LIST::iterator    UTIL_UNIQUE_LIST_ITER ;
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
 
       public:
          _coordCMDDropCollection() ;
          virtual ~_coordCMDDropCollection() ;
       protected :
+         virtual INT32 _regEventHandlers() ;
          virtual INT32 _parseMsg ( MsgHeader *pMsg,
                                    coordCMDArguments *pArgs ) ;
 
@@ -625,10 +622,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _generateDataMsg ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
@@ -641,14 +634,6 @@ namespace engine
                                      pmdEDUCB *cb,
                                      coordCMDArguments *pArgs ) ;
 
-         virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
-                                        pmdEDUCB *cb,
-                                        rtnContextCoord::sharePtr *ppContext,
-                                        coordCMDArguments *pArgs,
-                                        const CoordGroupList &groupLst,
-                                        const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
-
          /*
             use coord cache but not use group list, because split
             will change the version and groups without lock
@@ -657,8 +642,10 @@ namespace engine
 
          virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
 
-      private:
-         UTIL_UNIQUE_LIST _globalIndexes ;
+      protected:
+         coordDropGlobIdxHandler _globIdxHandler ;
+         coordCMDRecycleHandler  _recycleHandler ;
+         coordCMDRecyTaskHandler _taskHandler ;
    } ;
    typedef _coordCMDDropCollection coordCMDDropCollection ;
 
@@ -680,10 +667,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doComplete ( MsgHeader *pMsg,
                                      pmdEDUCB *cb,
@@ -795,10 +778,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
                                                   coordCMDArguments *pArgs,
@@ -850,10 +829,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
@@ -1104,11 +1079,13 @@ namespace engine
                                    INT64 &contextID,
                                    rtnContextBuf *buf ) ;
          INT32 _getIndexInfoFromObj( const BSONObj &obj,
+                                     BOOLEAN &isOldVersionIdx,
                                      BOOLEAN &isStandaloneIdx,
                                      const CHAR *&nodeName ) ;
          INT32 _snapshotIndex( pmdEDUCB *cb,
                                BOOLEAN &hasConsistentIdx,
                                BOOLEAN &hasStandaloneIdx,
+                               BOOLEAN &hasOldVersionIdx,
                                ossPoolVector<ossPoolString> &standIdxNodeList ) ;
 
       protected :

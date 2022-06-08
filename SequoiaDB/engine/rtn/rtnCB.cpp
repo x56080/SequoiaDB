@@ -185,8 +185,19 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       UINT64 jobID = 0 ;
-      rtnClearExpireContextJob *job =
-            SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
+      rtnClearExpireContextJob *job = NULL ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
+      {
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_accessPlanManager ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
+                      "access plan manager to DMS, rc: %d", rc ) ;
+      }
+
+      job = SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
       PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
                 "Failed to allocate clear context job" ) ;
 
@@ -217,6 +228,13 @@ namespace engine
          _remoteMessenger->deactive() ;
       }
 
+      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
+      {
+         pmdGetKRCB()->getDMSCB()->unregHandler( &_accessPlanManager ) ;
+      }
       return SDB_OK ;
    }
 
@@ -292,13 +310,6 @@ namespace engine
          else
          {
             context = ret.first ;
-#ifdef _DEBUG
-            if ( context && cb && context->getMonQueryCB() )
-            {
-               SDB_ASSERT( cb->getMonQueryCB() == context->getMonQueryCB(),
-                           "Mismatch monQuery" ) ;
-            }
-#endif
          }
       }
       else
@@ -384,6 +395,24 @@ namespace engine
             pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
          }
 
+         monClassQuery *monQueryCB = pContext->getMonQueryCB() ;
+         if ( NULL != monQueryCB )
+         {
+            monQueryCB->anchorToContext = FALSE ;
+            // Usuaully the monQuery will get removed/archived
+            // at the point when pmd processMsg ends with data
+            // collected at that time.
+            // But if this context is cleaned and pmd currently
+            // is not processing the query this context belongs to.
+            // Which also means the original query this context
+            // belongs to ends unexpectedly.
+            // We need to clean the monQuery.
+            if ( cb->getMonQueryCB() != monQueryCB )
+            {
+               pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
+            }
+            pContext->setMonQueryCB( NULL ) ;
+         }
          pContext.release() ;
 
          PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %u, "
@@ -488,6 +517,67 @@ namespace engine
 
    done:
       return contexts.size() ;
+   }
+
+   INT32 _SDB_RTNCB::dumpWritingContext( RTN_CTX_PROCESS_LIST &contextProcessList,
+                                         EDUID filterEDUID,
+                                         UINT64 blockID )
+   {
+      INT32 rc = SDB_OK ;
+
+      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+      {
+         rtnContext *pContext = it->second.get() ;
+
+         if ( pContext &&
+              pContext->isOpened() &&
+              pContext->isWrite() )
+         {
+            if ( PMD_INVALID_EDUID != filterEDUID &&
+                 pContext->eduID() == filterEDUID )
+            {
+               continue ;
+            }
+            else if ( blockID > 0 &&
+                      pContext->getOpID() >= blockID )
+            {
+               continue ;
+            }
+            else
+            {
+               const CHAR *processName = pContext->getProcessName() ;
+               if ( NULL == processName || 0 == processName[ 0 ] )
+               {
+                  continue ;
+               }
+               else
+               {
+                  try
+                  {
+                     rtnCtxProcessInfo info ;
+                     info._opID = pContext->getOpID() ;
+                     info._ctxID = pContext->contextID() ;
+                     info._eduID = pContext->eduID() ;
+                     info._processName.assign( processName ) ;
+                     contextProcessList.push_back( info ) ;
+                  }
+                  catch ( exception &e )
+                  {
+                     PD_LOG( PDERROR, "Failed to save context, "
+                             "occur exception %s", e.what() ) ;
+                     rc = ossException2RC( &e ) ;
+                     goto error ;
+                  }
+               }
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    void _SDB_RTNCB::_notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts )
@@ -601,9 +691,18 @@ namespace engine
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
+      context->setOpID( pEDUCB->getWritingID() ) ;
 
-      PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s])",
-               contextID, type, getContextTypeDesp(type) ) ;
+      // only check timeout for contexts from local service
+      if ( !pEDUCB->isFromLocal() )
+      {
+         context->disableTimeout() ;
+      }
+
+      PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
+               "writing ID %llu)",
+               contextID, type, getContextTypeDesp(type),
+               context->getOpID() ) ;
 
       return SDB_OK ;
    }

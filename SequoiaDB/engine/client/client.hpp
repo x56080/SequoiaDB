@@ -620,7 +620,7 @@ namespace sdbclient
                               INT64 numToReturn  = -1 ) = 0 ;
 
       /// truncate
-      virtual INT32 truncate() = 0 ;
+      virtual INT32 truncate( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
       /// create/drop $id index
       virtual INT32 createIdIndex( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
@@ -931,7 +931,22 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the inserted record
+                               contains. The result will include this field if current
+                               collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -974,7 +989,22 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the inserted record
+                               contains. The result will include this field if current
+                               collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1018,7 +1048,22 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1064,7 +1109,22 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1110,7 +1170,22 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The detail result for inserting.
+          \param [out] pResult A BSONObj object whose contaions the insert details,
+                               as follows:
+               <ul>
+               <li>
+               InsertedNum: The number of records successfully inserted, including
+                            replaced and ignored records.
+               <li>
+               DuplicatedNum: The number of records ignored or replaced due to duplicate
+                              key conflicts.
+               <li>
+               LastGenerateID: The max value of all auto-increments that the first record
+                               inserted contains. The result will include this field if
+                               current collection has auto-increments.
+               <li>
+               _id: Obecjt ID of the inserted record. The result will include field "_id"
+                    if FLG_INSERT_RETURN_OID is used.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1180,7 +1255,16 @@ namespace sdbclient
               UPDATE_KEEP_SHARDINGKEY
               UPDATE_ONE
           \endcode
-          \param [out] pResult The detail result for updating.
+          \param [out] pResult A BSONObj object whose contaions the update details,
+                               as follows:
+               <ul>
+               <li>
+               UpdatedNum: The number of records successfully updated, including records that match
+                           but have no data changes.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
+               InsertedNum: The number of records successfully inserted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
@@ -1218,7 +1302,16 @@ namespace sdbclient
               UPDATE_KEEP_SHARDINGKEY
               UPDATE_ONE
           \endcode
-          \param [out] pResult The detail result for upserting
+          \param [out] pResult A BSONObj object whose contaions the upsert details,
+                               as follows:
+               <ul>
+               <li>
+               UpdatedNum: The number of records successfully updated, including records that match
+                           but have no data changes.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
+               InsertedNum: The number of records successfully inserted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
@@ -1253,7 +1346,11 @@ namespace sdbclient
           \code
               FLG_DELETE_ONE
           \endcode
-          \param [out] pResult The detail result for deleting
+          \param [out] pResult A BSONObj object whose contaions the deletion details,
+                               as follows:
+               <ul>
+               <li>
+               DeletedNum: The number of records successfully deleted.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
@@ -2233,18 +2330,20 @@ namespace sdbclient
          return pCollection->createLobID( oid, pTimeStamp ) ;
       }
 
-      /** \fn INT32 truncate()
+      /** \fn INT32 truncate( const bson::BSONObj &options )
           \brief truncate the collection
+          \param [in] options The arguments of truncate
+              SkipRecycleBin      : Whether to skip recycle bin, default is true
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 truncate()
+      INT32 truncate( const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pCollection )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->truncate() ;
+         return pCollection->truncate( options ) ;
       }
 
       /** \fn INT32 createIdIndex( const bson::BSONObj &options )
@@ -3332,8 +3431,9 @@ namespace sdbclient
       virtual INT32 createCollection ( const CHAR *pCollection,
                                        sdbCollection &collection ) = 0 ;
 
-      // drop an existing collection
-      virtual INT32 dropCollection ( const CHAR *pCollection ) = 0 ;
+      // drop an existing collection with options
+      virtual INT32 dropCollection( const CHAR *pCollection,
+                                    const bson::BSONObj &options ) = 0 ;
 
       virtual INT32 listCollections ( _sdbCursor **cursor ) = 0 ;
 
@@ -3518,19 +3618,23 @@ namespace sdbclient
                                                      collection ) ;
       }
 
-      /** \fn INT32 dropCollection ( const CHAR *pCollection )
+      /** \fn INT32 dropCollection( const CHAR *pCollection,
+                                    const bson::BSONObj &options )
           \brief Drop the specified collection in current collection space.
           \param [in] pCollection  The collection name.
+          \param [in] options The arguments of drop collection
+              SkipRecycleBin      : Whether to skip recycle bin, default is false
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 dropCollection ( const CHAR *pCollection )
+      INT32 dropCollection( const CHAR *pCollection,
+                            const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pCollectionSpace )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollectionSpace->dropCollection ( pCollection ) ;
+         return pCollectionSpace->dropCollection( pCollection, options ) ;
       }
 
       /** \fn INT32 listCollections (  _sdbCursor **cursor )
@@ -4244,6 +4348,447 @@ namespace sdbclient
       }
 
    };
+
+   class DLLEXPORT _sdbRecycleBin
+   {
+   private :
+      _sdbRecycleBin ( const _sdbRecycleBin& other ) ; // non construction-copyable
+      _sdbRecycleBin& operator= ( const _sdbRecycleBin& ) ; // non copyable
+
+   public :
+      _sdbRecycleBin () {}
+      virtual ~_sdbRecycleBin () {}
+
+   public :
+      virtual INT32 getDetail( bson::BSONObj &retInfo ) = 0 ;
+      virtual INT32 enable() = 0 ;
+      virtual INT32 disable() = 0 ;
+      virtual INT32 setAttributes( const bson::BSONObj &options ) = 0 ;
+      virtual INT32 alter( const bson::BSONObj &options ) = 0 ;
+      virtual INT32 returnItem( const CHAR *recycleName,
+                                const bson::BSONObj &options = _sdbStaticObject,
+                                bson::BSONObj *result = NULL ) = 0 ;
+      virtual INT32 returnItemToName( const CHAR *recycleName,
+                                      const CHAR *returnName,
+                                      const bson::BSONObj &options = _sdbStaticObject,
+                                      bson::BSONObj *result = NULL ) = 0 ;
+      virtual INT32 dropItem( const CHAR *recycleName,
+                              const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual INT32 dropAll( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual INT32 list( _sdbCursor **cursor,
+                          const bson::BSONObj &condition = _sdbStaticObject,
+                          const bson::BSONObj &selector = _sdbStaticObject,
+                          const bson::BSONObj &orderBy = _sdbStaticObject,
+                          const bson::BSONObj &hint = _sdbStaticObject,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) = 0 ;
+      virtual INT32 list( sdbCursor &cursor,
+                          const bson::BSONObj &condition = _sdbStaticObject,
+                          const bson::BSONObj &selector = _sdbStaticObject,
+                          const bson::BSONObj &orderBy = _sdbStaticObject,
+                          const bson::BSONObj &hint = _sdbStaticObject,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) = 0 ;
+      virtual INT32 snapshot( _sdbCursor **cursor,
+                              const bson::BSONObj &condition = _sdbStaticObject,
+                              const bson::BSONObj &selector = _sdbStaticObject,
+                              const bson::BSONObj &orderBy = _sdbStaticObject,
+                              const bson::BSONObj &hint = _sdbStaticObject,
+                              INT64 numToSkip = 0,
+                              INT64 numToReturn = -1 ) = 0 ;
+      virtual INT32 snapshot( sdbCursor &cursor,
+                              const bson::BSONObj &condition = _sdbStaticObject,
+                              const bson::BSONObj &selector = _sdbStaticObject,
+                              const bson::BSONObj &orderBy = _sdbStaticObject,
+                              const bson::BSONObj &hint = _sdbStaticObject,
+                              INT64 numToSkip = 0,
+                              INT64 numToReturn = -1 ) = 0 ;
+      virtual INT32 getCount( INT64 &count,
+                              const bson::BSONObj &condition = _sdbStaticObject ) = 0 ;
+   } ;
+
+   /* \class  sdbRecycleBin
+       \brief Database operation interfaces of recycle bin.
+   */
+   class DLLEXPORT sdbRecycleBin
+   {
+   private :
+      sdbRecycleBin( const sdbRecycleBin & ) ; // non construction-copyable
+      sdbRecycleBin &operator =( const sdbRecycleBin & ) ; // non copyable
+
+   public :
+
+      /** \var pRecycleBin
+          \breif A pointer of virtual base class _sdbRecycleBin
+
+           Class sdbRecycleBin is a shell for _sdbRecycleBin. We use
+           pRecycleBin to call the methods in class _sdbRecycleBin.
+      */
+      _sdbRecycleBin *pRecycleBin ;
+
+      /** \fn sdbRecycleBin ()
+          \brief Default constructor.
+      */
+      sdbRecycleBin() { pRecycleBin = NULL ; }
+
+      /** \fn ~sdbRecycleBin ()
+          \brief Destructor.
+      */
+      ~sdbRecycleBin()
+      {
+         if ( pRecycleBin )
+         {
+            delete pRecycleBin ;
+         }
+      }
+
+   public :
+
+      /** \fn INT32 getDetail( bson::BSONObj &retInfo )
+          \brief Get the detail of current recycle bin.
+          \param [out] retInfo The detail of recycle bin
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getDetail( bson::BSONObj &retInfo )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->getDetail( retInfo ) ;
+      }
+
+      /** \fn INT32 enable()
+          \brief Enable the recycle bin
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 enable()
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->enable() ;
+      }
+
+      /** \fn INT32 disable()
+          \brief Disable the recycle bin
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 disable()
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->disable() ;
+      }
+
+      /** \fn INT32 setAttributes( const bson::BSONObj &options )
+          \brief Alter options of the recycle bin.
+          \param [in] options The options of recycle bin to be changed.
+
+              Enable         : Indicates whether to enable the recycle bin
+              ExpireTime     : Indicates the expired time of items in the recycle bin
+              MaxItemNum     : Indicates the maximum number of items allowed in the recycle bin
+              MaxVersionNum  : Indicates the maximum number of versions of the same item allowed in the recycle bin
+              AutoDrop       : Indicates whether to drop old items automatically when number of items is up to the limit of MaxItemNum or MaxVersionNum
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setAttributes( const bson::BSONObj &options )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->setAttributes( options ) ;
+      }
+
+      /** \fn INT32 alter( const bson::BSONObj &options )
+          \brief Alter options of the recycle bin.
+          \param [in] options The options of recycle bin to be changed.
+
+              Enable         : Indicates whether to enable the recycle bin
+              ExpireTime     : Indicates the expired time of items in the recycle bin
+              MaxItemNum     : Indicates the maximum number of items allowed in the recycle bin
+              MaxVersionNum  : Indicates the maximum number of versions of the same item allowed in the recycle bin
+              AutoDrop       : Indicates whether to drop old items automatically when number of items is up to the limit of MaxItemNum or MaxVersionNum
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 alter( const bson::BSONObj &options )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->alter( options ) ;
+      }
+
+      /** \fn INT32 returnItem( const CHAR *recycleName,
+                                const bson::BSONObj &options,
+                                bson::BSONObj *result = NULL )
+          \brief Return item from recycle bin.
+          \param [in] recycleName The name of item to be returned
+          \param [in] options Reserved argument
+          \param [out] return result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 returnItem( const CHAR *recycleName,
+                        const bson::BSONObj &options = _sdbStaticObject,
+                        bson::BSONObj *result = NULL )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->returnItem( recycleName, options, result ) ;
+      }
+
+      /** \fn INT32 returnItemToName( const CHAR *recycleName,
+                                      const CHAR *returnName,
+                                      const bson::BSONObj &options,
+                                      bson::BSONObj *result )
+          \brief Return item to specified name from recycle bin.
+          \param [in] recycleName The name of item to be returned
+          \param [in] returnName The name of collection or collection space to be returned to
+          \param [in] options Reserved argument
+          \param [out] return result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 returnItemToName( const CHAR *recycleName,
+                              const CHAR *returnName,
+                              const bson::BSONObj &options = _sdbStaticObject,
+                              bson::BSONObj *result = NULL )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->returnItemToName( recycleName,
+                                               returnName,
+                                               options,
+                                               result ) ;
+      }
+
+      /** \fn INT32 dropItem( const CHAR *recycleName )
+          \brief Drop item from recycle bin permanently
+          \param [in] recycleName The name of item to be cleared
+          \param [in] options Reserved argument
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 dropItem( const CHAR *recycleName,
+                      const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->dropItem( recycleName, options ) ;
+      }
+
+      /** \fn INT32 dropAll()
+          \brief Drop all items from recycle bin permanently
+          \param [in] options Reserved argument
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 dropAll( const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->dropAll( options ) ;
+      }
+
+      /** \fn INT32 list( _sdbCursor **cursor,
+                          const bson::BSONObj &condition,
+                          const bson::BSONObj &selector,
+                          const bson::BSONObj &orderBy,
+                          const bson::BSONObj &hint,
+                          INT64 numToSkip,
+                          INT64 numToReturn ) ;
+          \brief List the items in recycle bin.
+          \param [in] condition The matching rule, return all the documents if null
+          \param [in] selector The selective rule, return the whole document if null
+          \param [in] orderBy The ordered rule, never sort if null
+          \param [in] hint The options provided for specific list type. Reserved.
+          \param [in] numToSkip Skip the first numToSkip documents.
+          \param [in] numToReturn Only return numToReturn documents. -1 means return
+                      all matched results.
+          \param [out] cursor The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 list( _sdbCursor **cursor,
+                  const bson::BSONObj &condition = _sdbStaticObject,
+                  const bson::BSONObj &selector = _sdbStaticObject,
+                  const bson::BSONObj &orderBy = _sdbStaticObject,
+                  const bson::BSONObj &hint = _sdbStaticObject,
+                  INT64 numToSkip = 0,
+                  INT64 numToReturn = -1 )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->list( cursor,
+                                   condition,
+                                   selector,
+                                   orderBy,
+                                   hint,
+                                   numToSkip,
+                                   numToReturn ) ;
+      }
+
+      /** \fn INT32 list( sdbCursor &cursor,
+                          const bson::BSONObj &condition,
+                          const bson::BSONObj &selector,
+                          const bson::BSONObj &orderBy,
+                          const bson::BSONObj &hint,
+                          INT64 numToSkip,
+                          INT64 numToReturn ) ;
+          \brief List the items in recycle bin.
+          \param [in] condition The matching rule, return all the documents if null
+          \param [in] selector The selective rule, return the whole document if null
+          \param [in] orderBy The ordered rule, never sort if null
+          \param [in] hint The options provided for specific list type. Reserved.
+          \param [in] numToSkip Skip the first numToSkip documents.
+          \param [in] numToReturn Only return numToReturn documents. -1 means return
+                      all matched results.
+          \param [out] cursor The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 list( sdbCursor &cursor,
+                  const bson::BSONObj &condition = _sdbStaticObject,
+                  const bson::BSONObj &selector = _sdbStaticObject,
+                  const bson::BSONObj &orderBy = _sdbStaticObject,
+                  const bson::BSONObj &hint = _sdbStaticObject,
+                  INT64 numToSkip = 0,
+                  INT64 numToReturn = -1 )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->list( cursor,
+                                   condition,
+                                   selector,
+                                   orderBy,
+                                   hint,
+                                   numToSkip,
+                                   numToReturn ) ;
+      }
+
+      /** \fn INT32 snapshot( _sdbCursor **cursor,
+                              const bson::BSONObj &condition,
+                              const bson::BSONObj &selector,
+                              const bson::BSONObj &orderBy,
+                              const bson::BSONObj &hint,
+                              INT64 numToSkip,
+                              INT64 numToReturn ) ;
+          \brief Get the snapshot of the items in recycle bin.
+          \param [in] condition The matching rule, return all the documents if null
+          \param [in] selector The selective rule, return the whole document if null
+          \param [in] orderBy The ordered rule, never sort if null
+          \param [in] hint The options provided for specific snapshot type. Reserved.
+          \param [in] numToSkip Skip the first numToSkip documents.
+          \param [in] numToReturn Only return numToReturn documents. -1 means return
+                      all matched results.
+          \param [out] cursor The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 snapshot( _sdbCursor **cursor,
+                      const bson::BSONObj &condition = _sdbStaticObject,
+                      const bson::BSONObj &selector = _sdbStaticObject,
+                      const bson::BSONObj &orderBy = _sdbStaticObject,
+                      const bson::BSONObj &hint = _sdbStaticObject,
+                      INT64 numToSkip = 0,
+                      INT64 numToReturn = -1 )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->snapshot( cursor,
+                                       condition,
+                                       selector,
+                                       orderBy,
+                                       hint,
+                                       numToSkip,
+                                       numToReturn ) ;
+      }
+
+      /** \fn INT32 snapshot( sdbCursor &cursor,
+                              const bson::BSONObj &condition,
+                              const bson::BSONObj &selector,
+                              const bson::BSONObj &orderBy,
+                              const bson::BSONObj &hint,
+                              INT64 numToSkip,
+                              INT64 numToReturn ) ;
+          \brief Get the snapshot of the items in recycle bin.
+          \param [in] condition The matching rule, return all the documents if null
+          \param [in] selector The selective rule, return the whole document if null
+          \param [in] orderBy The ordered rule, never sort if null
+          \param [in] hint The options provided for specific snapshot type. Reserved.
+          \param [in] numToSkip Skip the first numToSkip documents.
+          \param [in] numToReturn Only return numToReturn documents. -1 means return
+                      all matched results.
+          \param [out] cursor The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 snapshot( sdbCursor &cursor,
+                      const bson::BSONObj &condition = _sdbStaticObject,
+                      const bson::BSONObj &selector = _sdbStaticObject,
+                      const bson::BSONObj &orderBy = _sdbStaticObject,
+                      const bson::BSONObj &hint = _sdbStaticObject,
+                      INT64 numToSkip = 0,
+                      INT64 numToReturn = -1 )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->snapshot( cursor,
+                                       condition,
+                                       selector,
+                                       orderBy,
+                                       hint,
+                                       numToSkip,
+                                       numToReturn ) ;
+      }
+
+      /** \fn INT32 getCount ( SINT64 &count,
+                               const bson::BSONObj &condition )
+          \brief Get the count of matching recycle items in recycle bin
+          \param [in] condition The matching rule, return the count of all documents if this parameter is empty
+          \param [out] count The count of matching recycle items.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getCount( INT64 &count,
+                      const bson::BSONObj &condition = _sdbStaticObject )
+      {
+         if ( NULL == pRecycleBin )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pRecycleBin->getCount( count, condition ) ;
+      }
+   } ;
 
    class DLLEXPORT _sdbLob
    {
@@ -5188,6 +5733,9 @@ namespace sdbclient
       virtual INT32 getDC( _sdbDataCenter **dc ) = 0 ;
       virtual INT32 getDC( sdbDataCenter &dc ) = 0 ;
 
+      virtual INT32 getRecycleBin( _sdbRecycleBin **recycleBin ) = 0 ;
+      virtual INT32 getRecycleBin( sdbRecycleBin &recycleBin ) = 0 ;
+
       static _sdb *getObj ( BOOLEAN useSSL = FALSE ) ;
 
       // get last alive time
@@ -5678,6 +6226,7 @@ namespace sdbclient
               SDB_SNAP_SVCTASKS         : Get snapshot of service task
               SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
               SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
+              SDB_SNAP_RECYCLEBIN       : Get the snapshot of items in recycle bin
 
           \param [in] numToSkip Skip the first numToSkip documents, default is 0
           \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
@@ -5738,6 +6287,7 @@ namespace sdbclient
               SDB_SNAP_SVCTASKS         : Get snapshot of service task
               SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
               SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
+              SDB_SNAP_RECYCLEBIN       : Get the snapshot of items in recycle bin
 
            \param [in] condition The matching rule, match all the documents if not provided.
            \param [in] select The selective rule, return the whole document if not provided.
@@ -5847,6 +6397,7 @@ namespace sdbclient
               SDB_LIST_SEQUENCES        : Get all the sequence informations
               SDB_LIST_USERS            : Get all the user informations
               SDB_LIST_DATASOURCES      : Get all the data source informations
+              SDB_LIST_RECYCLEBIN       : Get all the items in recycle bin
 
          \param [in] condition The matching rule, match all the documents if null.
          \param [in] select The selective rule, return the whole document if null.
@@ -6047,9 +6598,8 @@ namespace sdbclient
       /** \fn INT32 dropCollectionSpace ( const CHAR *pCollectionSpaceName, const bson::BSONObj &options )
           \brief Remove the specified collection space.
           \param [in] pCollectionSpaceName The name of collection space.
-          \param [in] options The options for dropping collection or NULL for not specified any options.
-                              Please reference <a href="http://doc.sequoiadb.com/cn/index-cat_id-1432190778-edition_id-@SDB_SYMBOL_VERSION">here</a>
-                              for more detail.
+          \param [in] options The arguments of drop collection space
+              SkipRecycleBin      : Whether to skip recycle bin, default is false
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
@@ -7017,6 +7567,35 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->getDC ( dc ) ;
+      }
+
+      /* \fn INT32 getRecycleBin( sdbRecycleBin &recycleBin )
+          \brief Get current recycle bin.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+       */
+      INT32 getRecycleBin( sdbRecycleBin &recycleBin )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( recycleBin.pRecycleBin ) ;
+         return pSDB->getRecycleBin( recycleBin ) ;
+      }
+
+      /* \fn INT32 getRecycleBin( _sdbRecycleBin **recycleBin )
+          \brief Get current recycle bin.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+       */
+      INT32 getRecycleBin( _sdbRecycleBin **recycleBin )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getRecycleBin( recycleBin ) ;
       }
 
       /** \fn UINT64 getLastAliveTime()

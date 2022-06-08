@@ -102,7 +102,7 @@ namespace engine
         // callback on after receiving message
         // - handle: net handle
         // - id: route ID to peer node
-        // - header: message header to send
+        // - header: message header received
         // - availableSize: size of available messages in socket ( including
         //                  current message and blocking messages )
         // - userDataHolder: holder of user data, pass user data to handle

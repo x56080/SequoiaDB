@@ -1,11 +1,12 @@
 package com.sequoiadb.metadataconsistency.data;
 
 import java.util.ArrayList;
-import java.util.Random;
 
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -20,8 +21,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
- * TestLink: seqDB-10172: create autoSplit collection seqDB-10178:
- * concurrency[alterCL, dropCL]
+ * TestLink: seqDB-10178:修改cl过程中删除该cl
  * 
  * @author xiaoni huang init
  * @Date 2016.10.11
@@ -33,35 +33,28 @@ public class CL10178 extends SdbTestBase {
     private String domainName = "dm10178";
     private String csName = "cs10178";
     private String clName = "cl10178";
-    private Random random = new Random();
-    private int msec = 100;
 
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode or group number or node number
-            if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
-                    || MetaDataUtils.oneCataNode( sdb )
-                    || MetaDataUtils.oneDataNode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone or only one group or one node, "
-                                + "skip the testCase." );
-            }
-            MetaDataUtils.clearCS( sdb, csName );
-            MetaDataUtils.clearDomain( sdb, domainName );
-
-            dataGroups = MetaDataUtils.getDataGroupNames( sdb );
-
-            createDomain();
-            createCS();
-            createCL();
-            MetaDataUtils.insertData( sdb, csName, clName );
-        } catch ( BaseException e ) {
-            sdb.close();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode or group number or node number
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
+                || MetaDataUtils.oneCataNode( sdb )
+                || MetaDataUtils.oneDataNode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone or only one group or one node, "
+                            + "skip the testCase." );
         }
+        MetaDataUtils.clearCS( sdb, csName );
+        MetaDataUtils.clearDomain( sdb, domainName );
+
+        dataGroups = MetaDataUtils.getDataGroupNames( sdb );
+
+        createDomain();
+        createCS();
+        createCL();
+        MetaDataUtils.insertData( sdb, csName, clName );
     }
 
     @AfterClass
@@ -69,36 +62,32 @@ public class CL10178 extends SdbTestBase {
         try {
             MetaDataUtils.clearCS( sdb, csName );
             MetaDataUtils.clearDomain( sdb, domainName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.close();
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
-    @Test(invocationCount = 10, threadPoolSize = 10)
-    public void test() {
-        AlterCL alterCL = new AlterCL();
-        alterCL.start();
-
-        DropCL dropCL = new DropCL();
-        MetaDataUtils.sleep( random.nextInt( msec ) );
-        dropCL.start();
-
-        if ( !( alterCL.isSuccess() && dropCL.isSuccess() ) ) {
-            Assert.fail( alterCL.getErrorMsg() + dropCL.getErrorMsg() );
+    @Test
+    public void test() throws Exception {
+        ThreadExecutor te = new ThreadExecutor();
+        for ( int i = 0; i < 10; i++ ) {
+            te.addWorker( new AlterCL() );
+            te.addWorker( new DropCL() );
         }
+        te.run();
 
         // check results
         MetaDataUtils.checkCLResult( csName, clName );
     }
 
-    private class AlterCL extends SdbThreadBase {
-        @Override
+    private class AlterCL extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 BSONObject opt = new BasicBSONObject();
@@ -113,68 +102,52 @@ public class CL10178 extends SdbTestBase {
                         && eCode != -190 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
-    private class DropCL extends SdbThreadBase {
-        @Override
+    private class DropCL extends ResultStore {
+
+        @ExecuteOrder(step = 1)
         public void exec() throws BaseException {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace csDB = db.getCollectionSpace( csName );
 
                 csDB.dropCollection( clName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode == -147 && eCode != -190 ) {
+                if ( eCode != -147 && eCode != -190 && eCode != -23 ) {
                     throw e;
                 }
-            } finally {
-                db.close();
             }
         }
     }
 
     public void createDomain() {
-        try {
-            BSONObject opt = new BasicBSONObject();
-            opt.put( "Groups", dataGroups );
-            opt.put( "AutoSplit", true );
-            sdb.createDomain( domainName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        opt.put( "Groups", dataGroups );
+        opt.put( "AutoSplit", true );
+        sdb.createDomain( domainName, opt );
     }
 
     public void createCS() {
-        try {
-            BSONObject opt = new BasicBSONObject();
-            opt.put( "Domain", domainName );
-            sdb.createCollectionSpace( csName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        opt.put( "Domain", domainName );
+        sdb.createCollectionSpace( csName, opt );
     }
 
     public void createCL() {
-        try {
-            CollectionSpace csDB = sdb.getCollectionSpace( csName );
+        CollectionSpace csDB = sdb.getCollectionSpace( csName );
 
-            BSONObject opt = new BasicBSONObject();
-            BSONObject subObj = new BasicBSONObject();
-            subObj.put( "a", 1 );
-            opt.put( "ShardingType", "hash" );
-            opt.put( "ShardingKey", subObj );
-            opt.put( "ReplSize", 1 );
-            opt.put( "AutoSplit", true );
-            csDB.createCollection( clName, opt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        BSONObject opt = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+        subObj.put( "a", 1 );
+        opt.put( "ShardingType", "hash" );
+        opt.put( "ShardingKey", subObj );
+        opt.put( "ReplSize", 1 );
+        opt.put( "AutoSplit", true );
+        csDB.createCollection( clName, opt );
     }
 
 }

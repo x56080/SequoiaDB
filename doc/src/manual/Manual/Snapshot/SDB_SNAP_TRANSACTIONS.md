@@ -1,13 +1,5 @@
 [^_^]: 
-
-    数据库快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-
-    王涛：
-    许建辉：
-    市场部：
+    事务快照
 
 事务快照可以列出正在进行的事务信息。每一个数据节点上正在进行的每一个事务为一条记录。
 
@@ -17,7 +9,6 @@
 
 SDB_SNAP_TRANSACTIONS
 
-
 字段信息
 ----
 
@@ -26,12 +17,15 @@ SDB_SNAP_TRANSACTIONS
 | NodeName               | string   | 节点名，格式为<主机名>:<服务名>          |
 | SessionID              | int32    | 会话 ID                                  |
 | TransactionID          | string   | 事务 ID                                  |
-| TransactionIDSN        | int64   | 事务序列号                               |
+| TransactionIDSN        | int64    | 事务序列号                               |
 | IsRollback             | boolean  | 事务是否处于回滚中                       |
 | CurrentTransLSN        | int64    | 事务当前的日志 LSN                       |
-| BeginTransLSN          | int64    | 事务开始的日志LSN                        |    
+| BeginTransLSN          | int64    | 事务开始的日志 LSN                       |    
 | WaitLock               | bson     | 正在等待的锁                             |
 | TransactionLocksNum    | int32    | 事务已经获得的锁                         |
+| IsLockEscalated        | boolean  | 事务是否已触发锁升级                     |
+| UsedLogSpace           | int64    | 事务已使用的日志空间，单位为字节         |
+| ReservedLogSpace       | int64    | 事务为回滚操作保留的日志空间，单位为字节 |
 | RelatedID              | string   | 内部标识                                 |
 | GotLocks               | bson array| 事务已经获得的锁列表                    |
 
@@ -59,7 +53,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 
 | 锁对象       | CSID | CLID  | ExtentID | Offset | 备注 |
 | ------------ | ---- | ----- | ---- | ---- | ------------ |
-| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在WaitLock为没有锁对象时，表示当前事务没有在等待锁 |
+| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在 WaitLock 为没有锁对象时，表示当前事务没有在等待锁 |
 | 集合空间锁   | >= 0 | 65535 | -1   | -1   | |
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
@@ -70,55 +64,14 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 查看事务快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_TRANSACTIONS )
+> db.snapshot(SDB_SNAP_TRANSACTIONS)
 ```
 
 输出结果如下：
 
 ```lang-json
 {
-  "NodeName": "ubuntu1604-xjh:20000",
-  "SessionID": 89,
-  "TransactionID": "03e80000000001",
-  "TransactionIDSN": 1,
-  "IsRollback": false,
-  "CurrentTransLSN": 491325292,
-  "BeginTransLSN": 491325292,
-  "WaitLock": {},
-  "TransactionLocksNum": 3,
-  "RelatedID": "c0a81457c35000006b75",
-  "GotLocks": [
-    {
-      "CSID": 1,
-      "CLID": 0,
-      "ExtentID": 9,
-      "Offset": 36,
-      "Mode": "U",
-      "Count": 1,
-      "Duration": 1137053
-    },
-    {
-      "CSID": 1,
-      "CLID": 0,
-      "ExtentID": -1,
-      "Offset": -1,
-      "Mode": "IS",
-      "Count": 1,
-      "Duration": 1137053
-    },
-    {
-      "CSID": 1,
-      "CLID": 65535,
-      "ExtentID": -1,
-      "Offset": -1,
-      "Mode": "IS",
-      "Count": 1,
-      "Duration": 1137053
-    }
-  ]
-}
-{
-  "NodeName": "ubuntu1604-xjh:20000",
+  "NodeName": "sdbserver:20000",
   "SessionID": 92,
   "TransactionID": "03e80000000002",
   "TransactionIDSN": 2,
@@ -134,6 +87,9 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
     "Duration": 8784
   },
   "TransactionLocksNum": 2,
+  "IsLockEscalated": false,
+  "UsedLogSpace": 100,
+  "ReservedLogSpace": 116,
   "RelatedID": "c0a81457c35000006b76",
   "GotLocks": [
     {

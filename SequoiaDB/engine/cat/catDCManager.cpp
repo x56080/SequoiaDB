@@ -262,10 +262,54 @@ namespace engine
       goto done ;
    }
 
-   INT32 _catDCManager::onSendReply ( MsgOpReply *pReply, INT32 result )
+   INT32 _catDCManager::getCATVersion( UINT32 &version )
    {
-      // Do nothing
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      // update catalog cache
+      rc = updateDCCache() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update DC cache, rc: %d", rc ) ;
+
+      version = _pDCBaseInfo->getCATVersion() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _catDCManager::setCATVersion( UINT32 version )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj matcher, updator, dummy ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+         updator = BSON( "$set" <<
+                         BSON( FIELD_NAME_CAT_VERSION << (INT32)version ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher and updator, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                      dummy, 0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update collection [%s], rc: %d",
+                   CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+
+      // update catalog cache
+      updateDCCache() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _catDCManager::active()
@@ -567,7 +611,7 @@ namespace engine
       string address ;
 
       BSONElement eleAddr = objQuery.getFieldDotted(
-         FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS ) ;
+         FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS ) ;
 
       if ( !pBaseInfo->hasImage() )
       {
@@ -575,7 +619,7 @@ namespace engine
               0 == ossStrlen( eleAddr.valuestr() ) )
          {
             PD_LOG( PDERROR, "Param[%s] is invalid in obj[%s]",
-                    FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS,
+                    FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS,
                     objQuery.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -589,13 +633,13 @@ namespace engine
          if ( String != eleAddr.type() )
          {
             PD_LOG( PDERROR, "Param[%s] is invalid in obj[%s]",
-                    FIELD_NAME_OPTIONS "." FIELD_NAME_ADDRESS,
+                    FIELD_NAME_OPTIONS"."FIELD_NAME_ADDRESS,
                     objQuery.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
          else if ( 0 != ossStrlen( eleAddr.valuestr() ) )
-         {         
+         {
             rc = SDB_CAT_IMAGE_IS_CONFIGURED ;
             goto error ;
          }
@@ -627,17 +671,17 @@ namespace engine
          BSONObjBuilder builder ;
          if ( clusterName )
          {
-            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_CLUSTERNAME,
+            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_CLUSTERNAME,
                             clusterName ) ;
          }
          if ( businessName )
          {
-            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_BUSINESSNAME,
+            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_BUSINESSNAME,
                             businessName ) ;
          }
          if ( !address.empty() )
          {
-            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_ADDRESS,
+            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_ADDRESS,
                             address ) ;
          }
          BSONObj updator = BSON( "$set" << builder.obj() ) ;
@@ -731,7 +775,7 @@ namespace engine
 
       // analysis groups
       eleGroups = objQuery.getFieldDotted(
-         FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS ) ;
+         FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS ) ;
       if ( Array == eleGroups.type() )
       {
          objGroups = eleGroups.embeddedObject() ;
@@ -739,7 +783,7 @@ namespace engine
       else if ( !eleGroups.eoo() )
       {
          PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                 FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS,
+                 FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS,
                  objQuery.toString().c_str() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -804,7 +848,7 @@ namespace engine
       {
          BSONObjBuilder builder ;
          _dcBaseInfoGroups2Obj( pBaseInfo, builder,
-                                FIELD_NAME_IMAGE "." FIELD_NAME_GROUPS ) ;
+                                FIELD_NAME_IMAGE"."FIELD_NAME_GROUPS ) ;
          BSONObj updator = BSON( "$set" << builder.obj() ) ;
          BSONObj matcher = BSON( FIELD_NAME_TYPE <<
                                  CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -848,7 +892,7 @@ namespace engine
       }
 
       // analysis groups
-      eleGroups = objQuery.getField( FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS ) ;
+      eleGroups = objQuery.getField( FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS ) ;
       if ( Array == eleGroups.type() )
       {
          objGroups = eleGroups.embeddedObject() ;
@@ -856,7 +900,7 @@ namespace engine
       else if ( !eleGroups.eoo() )
       {
          PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                 FIELD_NAME_OPTIONS "." FIELD_NAME_GROUPS,
+                 FIELD_NAME_OPTIONS"."FIELD_NAME_GROUPS,
                  objQuery.toString().c_str() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -898,7 +942,7 @@ namespace engine
       {
          BSONObjBuilder builder ;
          _dcBaseInfoGroups2Obj( pBaseInfo, builder,
-                                FIELD_NAME_IMAGE "." FIELD_NAME_GROUPS ) ;
+                                FIELD_NAME_IMAGE"."FIELD_NAME_GROUPS ) ;
          BSONObj updator = BSON( "$set" << builder.obj() ) ;
          BSONObj matcher = BSON( FIELD_NAME_TYPE <<
                                  CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -1208,6 +1252,10 @@ namespace engine
          }
       }
 
+      // force to secondary to reelect, then the primary node can resume
+      // active works did not finish in read-only mode
+      _pCatCB->setNeedForceSecondary( TRUE ) ;
+
    done:
       return rc ;
    error:
@@ -1296,6 +1344,7 @@ namespace engine
       rspMsg->requestID = reqMsg->requestID ;
       rspMsg->routeID.value = 0 ;
       rspMsg->TID = reqMsg->TID ;
+      rspMsg->globalID = reqMsg->globalID ;
    }
 
    INT32 _catDCManager::_mapData2DCMgr( _clsDCMgr *pDCMgr )
@@ -1435,7 +1484,22 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-                         FIELD_NAME_RESTORE << false ) ;
+                         FIELD_NAME_RESTORE << false <<
+                         FIELD_NAME_CSUNIQUEHWM << 0 <<
+                         FIELD_NAME_TASKHWM << 0 <<
+                         FIELD_NAME_CAT_VERSION << CATALOG_VERSION_CUR <<
+                         FIELD_NAME_RECYCLEBIN <<
+                         BSON( FIELD_NAME_ENABLE <<
+                                     (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
+                               FIELD_NAME_RECYCLEIDHWM << (INT64)0 <<
+                               FIELD_NAME_EXPIRETIME <<
+                                     UTIL_RECYCLEBIN_DFT_EXPIRETIME <<
+                               FIELD_NAME_MAXITEMNUM <<
+                                     UTIL_RECYCLEBIN_DFT_MAXITEMNUM <<
+                               FIELD_NAME_MAXVERNUM <<
+                                     UTIL_RECYCLEBIN_DFT_MAXVERNUM <<
+                               FIELD_NAME_AUTODROP <<
+                                     (bool)( UTIL_RECYCLEBIN_DFT_AUTODROP ) ) ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "
@@ -1454,31 +1518,64 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Parse dc base info[%s] failed, rc: %d",
                       infoObj.toString().c_str() ) ;
 
-         tmpClsName = dcBaseInfo.getClusterName() ;
-         tmpBusName = dcBaseInfo.getBusinessName() ;
-
-         if ( clusterName != tmpClsName || businessName != tmpBusName )
+         if ( !dcBaseInfo.isReadonly() )
          {
-            PD_LOG( PDEVENT, "Cluster name[%s] or business name[%s] has "
-                    "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
-                    clusterName.c_str(), businessName.c_str() ) ;
-            BSONObj updator = BSON( "$set" << BSON(
-              FIELD_NAME_DATACENTER "." FIELD_NAME_CLUSTERNAME << clusterName <<
-              FIELD_NAME_DATACENTER "." FIELD_NAME_BUSINESSNAME << businessName )
-                                   ) ;
-            BSONObj matcher = BSON( FIELD_NAME_TYPE <<
-                                    CAT_BASE_TYPE_GLOBAL_STR ) ;
-            rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
-                            BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
-                            &upResult ) ;
-            PD_RC_CHECK( rc, PDERROR, "Update global info[%s] failed, rc: %d",
-                         updator.toString().c_str(), rc ) ;
-            if ( upResult.updateNum() <= 0 )
+            tmpClsName = dcBaseInfo.getClusterName() ;
+            tmpBusName = dcBaseInfo.getBusinessName() ;
+
+            if ( clusterName != tmpClsName || businessName != tmpBusName )
             {
-               PD_LOG( PDERROR, "Not found global info, matcher: %s",
-                       matcher.toString().c_str() ) ;
-               rc = SDB_SYS ;
-               goto error ;
+               PD_LOG( PDEVENT, "Cluster name[%s] or business name[%s] has "
+                       "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
+                       clusterName.c_str(), businessName.c_str() ) ;
+               BSONObj updator = BSON( "$set" << BSON(
+                 FIELD_NAME_DATACENTER"."FIELD_NAME_CLUSTERNAME << clusterName <<
+                 FIELD_NAME_DATACENTER"."FIELD_NAME_BUSINESSNAME << businessName )
+                                      ) ;
+               BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                                       CAT_BASE_TYPE_GLOBAL_STR ) ;
+               rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                               BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
+                               &upResult ) ;
+               PD_RC_CHECK( rc, PDERROR, "Update global info[%s] failed, rc: %d",
+                            updator.toString().c_str(), rc ) ;
+               if ( upResult.updateNum() <= 0 )
+               {
+                  PD_LOG( PDERROR, "Not found global info, matcher: %s",
+                          matcher.toString().c_str() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+            }
+
+            // add recycle bin if not exists
+            if ( !infoObj.hasField( FIELD_NAME_RECYCLEBIN ) )
+            {
+               BSONObj updator =
+                     BSON( "$set" <<
+                           BSON( FIELD_NAME_RECYCLEBIN <<
+                                 BSON( FIELD_NAME_ENABLE <<
+                                          (bool)( UTIL_RECYCLEBIN_DFT_ENABLE ) <<
+                                       FIELD_NAME_RECYCLEIDHWM << (INT64)0 <<
+                                       FIELD_NAME_EXPIRETIME <<
+                                             UTIL_RECYCLEBIN_DFT_EXPIRETIME <<
+                                       FIELD_NAME_MAXITEMNUM <<
+                                             UTIL_RECYCLEBIN_DFT_MAXITEMNUM <<
+                                       FIELD_NAME_MAXVERNUM <<
+                                             UTIL_RECYCLEBIN_DFT_MAXVERNUM <<
+                                       FIELD_NAME_AUTODROP <<
+                                          (bool)( UTIL_RECYCLEBIN_DFT_AUTODROP ) ) ) ) ;
+
+               BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                                       CAT_BASE_TYPE_GLOBAL_STR ) ;
+               rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                               BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
+                               &upResult ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update recycle info [%s], "
+                            "rc: %d", updator.toString().c_str(), rc ) ;
+               PD_CHECK( upResult.updateNum() > 0, SDB_SYS, error, PDERROR,
+                         "Not found global info, matcher: %s",
+                         matcher.toString().c_str() ) ;
             }
          }
       }
@@ -1538,13 +1635,13 @@ namespace engine
          if ( 0 != ossStrcmp( pBaseInfo->getImageClusterName(),
                               imageClsName ) )
          {
-            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_CLUSTERNAME,
+            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_CLUSTERNAME,
                             imageClsName ) ;
          }
          if ( 0 != ossStrcmp( pBaseInfo->getImageBusinessName(),
                               imageBsName ) )
          {
-            builder.append( FIELD_NAME_IMAGE "." FIELD_NAME_BUSINESSNAME,
+            builder.append( FIELD_NAME_IMAGE"."FIELD_NAME_BUSINESSNAME,
                             imageBsName ) ;
          }
          newObj = builder.obj() ;
@@ -1569,5 +1666,3 @@ namespace engine
       goto done ;
    }
 }
-
-

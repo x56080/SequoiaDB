@@ -57,7 +57,7 @@ namespace engine
       if ( NULL == instanceStr )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "The preferd instance str can't be null, rc: %d",
+         PD_LOG( PDERROR, "The preferred instance str can't be null, rc: %d",
                  rc ) ;
          goto error ;
       }
@@ -167,8 +167,8 @@ namespace engine
       if ( NULL == instanceModeStr )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "The preferd instance mode str can't be null, rc: %d",
-                 rc ) ;
+         PD_LOG( PDERROR, "The preferred instance mode str can't be null, "
+                 "rc: %d", rc ) ;
          goto error ;
       }
 
@@ -181,6 +181,42 @@ namespace engine
       else if ( 0 == ossStrcmp( instanceModeStr, PREFER_INSTANCE_ORDERED_STR ) )
       {
          instanceMode = PMD_PREFER_INSTANCE_MODE_ORDERED ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 pmdParsePreferConstraintStr( const CHAR *constraintStr,
+                                      PMD_PREFER_CONSTRAINT &constraint )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( NULL == constraintStr )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "The preferred constraint str can't be null, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+      constraint = PMD_PREFER_CONSTRAINT_UNKNOWN ;
+
+      if ( '\0' == constraintStr[0] )
+      {
+         constraint = PMD_PREFER_CONSTRAINT_NONE ;
+      }
+      else if ( 0 == ossStrcasecmp( constraintStr,
+                                    PREFER_CONSTRAINT_PRY_ONLY_STR ) )
+      {
+         constraint = PMD_PREFER_CONSTRAINT_PRY_ONLY ;
+      }
+      else if ( 0 == ossStrcasecmp( constraintStr,
+                                    PREFER_CONSTRAINT_SND_ONLY_STR ) )
+      {
+         constraint = PMD_PREFER_CONSTRAINT_SND_ONLY ;
       }
 
    done:

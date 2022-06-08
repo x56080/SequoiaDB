@@ -17,14 +17,12 @@
 
 *******************************************************************************/
 
-#include <utilBSON.hpp>
-
-#include <string>
-
-#include <ossMemPool.hpp>
 #include <ossTypes.h>
+#include <utilBSON.hpp>
+#include <ossMemPool.hpp>
 
 #include <../bson/bson.h>
+#include <string>
 
 namespace
 {

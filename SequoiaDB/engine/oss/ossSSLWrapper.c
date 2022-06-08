@@ -514,6 +514,24 @@ INT32 ossSSLPeek(SSLHandle* handle, void* buf, INT32 num)
    return status;
 }
 
+/*
+ * check if buffered and processed data is available
+ * Return value:
+ * TRUE: has buffered and processed data
+ * FALSE: has no buffered and processed data
+ */
+BOOLEAN ossSSLHasPending( SSLHandle *handle )
+{
+   // two level of buffers
+   // - SSL buffer for processed message
+   // - BIO buffer for raw message if has
+   SSL_ASSERT(NULL != handle);
+   SSL_ASSERT(NULL != handle->ssl);
+   return ( ( SSL_pending( handle->ssl ) > 0 ) ||
+            ( NULL != handle->bufferBIO &&
+              BIO_pending( handle->bufferBIO ) > 0 ) ) ? TRUE : FALSE ;
+}
+
 /* Return value:
  * >0: the number of bytes actually write to SSL connection
  * SSL_AGAIN: need to write again

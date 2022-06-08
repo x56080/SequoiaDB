@@ -1,7 +1,5 @@
 package com.sequoiadb.base;
 
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import org.bson.*;
 import org.bson.io.Bits;
 import org.bson.types.*;
@@ -9,15 +7,17 @@ import org.bson.util.DateInterceptUtil;
 import org.bson.util.JSON;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -30,6 +30,7 @@ public class TestBSON {
     @BeforeClass
     public static void setUpTestCase() {
         Date date = DateInterceptUtil.interceptDate(new Date(), "yyyy-MM-dd");
+        BSONDate bsonDate = new BSONDate(date.getTime());
 
         BSONObject embeddedObj = new BasicBSONObject();
         embeddedObj.put("int", 123);
@@ -43,6 +44,7 @@ public class TestBSON {
         embeddedObj.put("true", true);
         embeddedObj.put("false", false);
         embeddedObj.put("date", date);
+        embeddedObj.put( "bsonDate", bsonDate );
         embeddedObj.put("timestamp", new BSONTimestamp((int) (System.currentTimeMillis() / 1000), 1234));
         embeddedObj.put("decimal", new BSONDecimal("12345678901234567890.09876543210987654321"));
 
@@ -60,6 +62,7 @@ public class TestBSON {
         embeddedArray.put("10", date);
         embeddedArray.put("11", new BSONTimestamp((int) (System.currentTimeMillis() / 1000), 1234));
         embeddedArray.put("12", new BSONDecimal("12345678901234567890.09876543210987654321"));
+        embeddedArray.put("13", bsonDate);
 
         Binary binary1 = new Binary(BSON.B_GENERAL, "Hello, world!".getBytes());
         Binary binary2 = new Binary(BSON.B_FUNC, "Hello, world!".getBytes());
@@ -78,6 +81,7 @@ public class TestBSON {
         obj.put("true", true);
         obj.put("false", false);
         obj.put("date", date);
+        obj.put("bsonDate", bsonDate);
         obj.put("timestamp", new BSONTimestamp((int) (System.currentTimeMillis() / 1000), 1234));
         obj.put("decimal", new BSONDecimal("12345678901234567890.09876543210987654321"));
         obj.put("binary1", binary1);
@@ -120,6 +124,10 @@ public class TestBSON {
         UUID binary4 = (UUID) object.get("binary4");
         UUID bin4 = (UUID) decodedObj.get("binary4");
         assertEquals(binary4, bin4);
+
+        BSONDate bsonDate1 = (BSONDate) object.get("bsonDate");
+        BSONDate bsonDate2 = (BSONDate) decodedObj.get("bsonDate");
+        assertEquals(bsonDate1, bsonDate2);
     }
 
     @Test
@@ -196,16 +204,143 @@ public class TestBSON {
             fail();
         }
         java.sql.Date date2 = new java.sql.Date(date.getTime());
+        BSONDate date3 = new BSONDate(date.getTime());
 
         BSONObject obj = new BasicBSONObject();
         obj.put("date", date);
         obj.put("date2", date2);
+        obj.put("date3", date3);
 
         String json = obj.toString();
 
         BSONObject obj2 = (BSONObject) JSON.parse(json);
 
         assertEquals(obj, obj2);
+    }
+
+    @Test
+    public void testBSONDateInBSON(){
+        BSONDate bsonDate = new BSONDate(new Date().getTime());
+
+        // case 1: BasicBSONObject
+        BSONObject obj = new BasicBSONObject();
+        obj.put( "date", bsonDate );
+
+        BSONDate d1 = (BSONDate) obj.get("date");
+        assertEquals( bsonDate, d1 );
+        Date d2 = (Date) obj.get("date");
+        assertEquals( bsonDate, d2 );
+
+        // case 2: BasicBSONList
+        BSONObject list = new BasicBSONList();
+        list.put( "0", bsonDate );
+
+        BSONDate d3 = (BSONDate) list.get("0");
+        assertEquals( bsonDate, d3 );
+        Date d4 = (Date) list.get("0");
+        assertEquals( bsonDate, d4 );
+    }
+
+    @Test
+    public void testBSONDate(){
+
+        // case 1: LocalDate
+        LocalDate date1 = LocalDate.of( 1899, 12, 31 );
+        LocalDate expectDate1 = BSONDate.valueOf( date1 ).toLocalDate();
+        Assert.assertEquals( date1.toString(), expectDate1.toString() );
+
+        LocalDate date2 = LocalDate.of( 2022, 1, 1 );
+        LocalDate expectDate2 = BSONDate.valueOf( date2 ).toLocalDate();
+        Assert.assertEquals( date2.toString(), expectDate2.toString() );
+
+        // case 2: LocalDateTime
+        LocalDateTime date3 = LocalDateTime.of( 1, 1, 1, 0, 0, 0, 0 );
+        LocalDateTime expectDate3 = BSONDate.valueOf( date3 ).toLocalDateTime();
+        Assert.assertEquals( date3.toString(), expectDate3.toString() );
+
+        LocalDateTime date4 = LocalDateTime.of( 2040, 1, 1, 1, 1, 1, 999999999 );
+        LocalDateTime actualDate4 = BSONDate.valueOf( date4 ).toLocalDateTime();
+        Assert.assertEquals( date4.getYear(), actualDate4.getYear() );
+        Assert.assertEquals( date4.getMonth(), actualDate4.getMonth() );
+        Assert.assertEquals( date4.getDayOfMonth(), actualDate4.getDayOfMonth() );
+        Assert.assertEquals( date4.getHour(), actualDate4.getHour() );
+        Assert.assertEquals( date4.getMinute(), actualDate4.getMinute() );
+        Assert.assertEquals( date4.getSecond(), actualDate4.getSecond() );
+        Assert.assertEquals( 999000000, actualDate4.getNano() );
+    }
+
+    @Test
+    public void testBSONDateToString() {
+        String dateStr1 = "2022-01-01";
+        String dateStr2 = "2022-01-01 10:30:01.123";
+        String expBSONDateStr1 = "2022-01-01T00:00";
+        String expBSONDateStr2 = "2022-01-01T10:30:01.123";
+
+        SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
+        DateTimeFormatter format2 = DateTimeFormatter.ofPattern( "yyyy-MM-dd" );
+        DateTimeFormatter format3 = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSS" );
+        BSONObject obj = new BasicBSONObject();
+
+        try {
+            java.util.Date utilDate = format1.parse( dateStr1 );
+            java.sql.Date sqlDate = new java.sql.Date( utilDate.getTime() );
+            LocalDate localDate = LocalDate.parse( dateStr1, format2 );
+            LocalDateTime localDateTime = LocalDateTime.parse( dateStr2, format3 );
+
+            // case 1: normal BSON
+            obj.put( "util.Date", utilDate );
+            obj.put( "sql.Date", sqlDate );
+            obj.put( "LocalDate", BSONDate.valueOf( localDate ) );
+            obj.put( "LocalDateTime", BSONDate.valueOf( localDateTime ) );
+
+            String bsonStr = "{ " +
+                    "\"util.Date\" : { \"$date\" : \"2022-01-01\" } ," +
+                    " \"sql.Date\" : { \"$date\" : \"2022-01-01\" } ," +
+                    " \"LocalDate\" : { \"$date\" : \"2022-01-01\" } ," +
+                    " \"LocalDateTime\" : { \"$date\" : \"2022-01-01\" }" +
+                    " }";
+            // Date in BSON
+            Assert.assertEquals( bsonStr, obj.toString() );
+
+            // Get date from BSON
+            java.util.Date expUtilDate = (java.util.Date) obj.get( "util.Date" );
+            java.sql.Date expSqlDate = (java.sql.Date) obj.get( "sql.Date" );
+            BSONDate bsonDate1 = (BSONDate) obj.get( "LocalDate" );
+            BSONDate bsonDate2 = (BSONDate) obj.get( "LocalDateTime" );
+            LocalDate expLd = bsonDate1.toLocalDate();
+            LocalDateTime expLdt = bsonDate2.toLocalDateTime();
+
+            Assert.assertEquals( utilDate.toString(), expUtilDate.toString() );
+            Assert.assertEquals( dateStr1, expSqlDate.toString() );
+            Assert.assertEquals( expBSONDateStr1, bsonDate1.toString() );
+            Assert.assertEquals( expBSONDateStr2, bsonDate2.toString() );
+            Assert.assertEquals( dateStr1, expLd.toString() );
+            Assert.assertEquals( expBSONDateStr2, expLdt.toString() );
+
+            // case 2: BSON encode/decode
+            byte[] bytes = BSON.encode( obj );
+            BSONObject o = BSON.decode( bytes );
+
+            // Date in BSON
+            Assert.assertEquals( bsonStr, o.toString() );
+
+            // Get date from BSON
+            expUtilDate = (java.util.Date) o.get( "util.Date" );
+            java.util.Date expSqlDate1 = (java.util.Date) o.get( "sql.Date" );
+            bsonDate1 = (BSONDate) o.get( "LocalDate" );
+            bsonDate2 = (BSONDate) o.get( "LocalDateTime" );
+            expLd = bsonDate1.toLocalDate();
+            expLdt = bsonDate2.toLocalDateTime();
+
+            Assert.assertEquals( expBSONDateStr1, expUtilDate.toString() );
+            Assert.assertEquals( expBSONDateStr1, expSqlDate1.toString() );
+            Assert.assertEquals( expBSONDateStr1, bsonDate1.toString() );
+            Assert.assertEquals( expBSONDateStr2, bsonDate2.toString() );
+            Assert.assertEquals( dateStr1, expLd.toString() );
+            Assert.assertEquals( expBSONDateStr2, expLdt.toString() );
+        }catch ( ParseException e ) {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -347,4 +482,44 @@ public class TestBSON {
         System.out.println(objList3);
     }
 
+    @Test
+    public void testJSONParsDate() {
+        // case: Date
+        String dateStr = "{" +
+                " 'date1' : { $date : '1890-01-01T10:30:01.123Z' }, " +
+                " 'date2' : { $date : '1890-01-01T10:30:01Z' }, " +
+                " 'date3' : { $date : '1890-01-01' }" +
+                "}";
+        String expDate1 = "1890-01-01T18:35:44.123";
+        String expDate2 = "1890-01-01T18:35:44";
+        String expDate3 = "1890-01-01T00:00";
+
+        String bsonStr1 = "{ " +
+                "\"date1\" : { \"$date\" : \"1890-01-01\" } , " +
+                "\"date2\" : { \"$date\" : \"1890-01-01\" } , " +
+                "\"date3\" : { \"$date\" : \"1890-01-01\" } " +
+                "}";
+
+        BSONObject obj1 = (BSONObject) JSON.parse( dateStr );
+        Assert.assertEquals( bsonStr1, obj1.toString() );
+        checkDate( obj1, "date1", expDate1 );
+        checkDate( obj1, "date2", expDate2 );
+        checkDate( obj1, "date3", expDate3 );
+
+        // case: timestamp
+        String tsStr = " { 'ts': { $timestamp : '2022-01-01-10.30.01.123456' } }";
+        String bsonStr2 = "{ \"ts\" : { \"$ts\" : 1641004201 , \"$inc\" : 123456 } }";
+        String expTsStr = "{ $timestamp : 2022-01-01-10.30.01.123456 }";
+
+        BSONObject obj2 = (BSONObject) JSON.parse( tsStr );
+        Assert.assertEquals( bsonStr2, obj2.toString() );
+        BSONTimestamp ts = (BSONTimestamp) obj2.get( "ts" );
+        Assert.assertEquals( expTsStr, ts.toString() );
+    }
+
+    private void checkDate( BSONObject obj, String key, String expStr ) {
+        BSONDate date = (BSONDate) obj.get( key );
+        Assert.assertNotNull( date );
+        Assert.assertEquals( expStr, date.toString() );
+    }
 }

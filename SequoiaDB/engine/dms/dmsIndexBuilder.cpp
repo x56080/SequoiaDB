@@ -34,6 +34,7 @@
 #include "dmsStorageData.hpp"
 #include "dmsIndexBuilderImpl.hpp"
 #include "ixm.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -59,6 +60,7 @@ namespace engine
       _indexCB = NULL ;
       _scanExtLID = DMS_INVALID_EXTENT ;
       _currentExtentID = DMS_INVALID_EXTENT ;
+      _lastExtentID = DMS_INVALID_EXTENT ;
       _extent = NULL ;
       _unique = FALSE ;
       _dropDups = FALSE ;
@@ -300,7 +302,6 @@ namespace engine
       {
          _pIdxStatus->setTotalRecNum(
             _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
-
          _pIdxStatus->resetPcsedRecNum() ;
       }
 
@@ -488,7 +489,7 @@ namespace engine
 
          rc = _keyGen.getKeys( obj, keySet ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
-                       obj.toString().c_str() ) ;
+                       PD_SECURE_OBJ( obj ) ) ;
       }
       catch ( std::exception &e )
       {
@@ -592,7 +593,7 @@ namespace engine
                                        0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert to remote:cl=%s,"
                       "insertor=%s,rc=%d", _indexCB->getIndexCLName(),
-                      insertor.toString().c_str(), rc ) ;
+                      PD_SECURE_OBJ( insertor ), rc ) ;
       }
 
    done:

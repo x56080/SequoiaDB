@@ -84,7 +84,8 @@ public class RenameCSAndSplit16139 extends SdbTestBase {
             BaseException e = ( BaseException ) ( splitCLThread.getExceptions()
                     .get( 0 ) );
             if ( e.getErrorCode() != -147 && e.getErrorCode() != -172
-                    && e.getErrorCode() != -23 && e.getErrorCode() != -190 ) {
+                    && e.getErrorCode() != -23 && e.getErrorCode() != -190
+                    && e.getErrorCode() != -34 ) {
                 Assert.fail( "split fail:" + splitCLThread.getErrorMsg()
                         + "  e:" + e.getErrorCode() );
             }

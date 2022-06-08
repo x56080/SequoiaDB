@@ -46,25 +46,15 @@ namespace engine
    public:
       _rtnIxmKeySorter( INT64 bufSize, const _dmsIxmKeyComparer& comparer ) ;
       ~_rtnIxmKeySorter() ;
-      INT32 init(CHAR *outerBuf = NULL) ;
+      INT32 init() ;
       INT32 push( const ixmKey& key, const dmsRecordID& recordID ) ;
       INT32 sort() ;
       INT32 fetch( ixmKey& key, dmsRecordID& recordID ) ;
       INT32 reset() ;
       INT64 usedBufferSize() const ;
 
-      /// All or nothing.
-      virtual INT32 push(const bson::BSONObjSet &keySet,
-                         const dmsRecordID& recordID);
-
-      virtual INT64 getKeyNum()const
-      {
-         return _keyNum;
-      }
-
    private:
       CHAR*                _buf ;
-      CHAR*                _ownedBuf;
       INT64                _headOffset ;
       INT64                _tailOffset ;
       INT64                _keyNum ;
@@ -80,11 +70,6 @@ namespace engine
       _rtnIxmKeySorterCreator() {}
       ~_rtnIxmKeySorterCreator() {}
       INT32 createSorter( INT64 bufSize,
-                          const _dmsIxmKeyComparer& comparer,
-                          _dmsIxmKeySorter** ppSorter ) ;
-
-      INT32 createSorter( INT64 bufSize,
-                          CHAR *outerBuf,
                           const _dmsIxmKeyComparer& comparer,
                           _dmsIxmKeySorter** ppSorter ) ;
       void releaseSorter( _dmsIxmKeySorter* pSorter ) ;

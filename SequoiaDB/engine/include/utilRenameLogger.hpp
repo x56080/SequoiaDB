@@ -77,6 +77,17 @@ namespace engine
                       UTIL_RENAME_LOG_OLDNAME, UTIL_RENAME_LOG_SEP, oldName,
                       UTIL_RENAME_LOG_NEWNAME, UTIL_RENAME_LOG_SEP, newName ) ;
       }
+
+      BOOLEAN isValid() const
+      {
+         return 0 != oldName[ 0 ] && 0 != newName[ 0 ] ;
+      }
+
+      void clear()
+      {
+         oldName[ 0 ] = 0 ;
+         newName[ 0 ] = 0 ;
+      }
    } ;
    typedef _utilRenameLog utilRenameLog ;
 
@@ -95,6 +106,8 @@ namespace engine
          ~_utilRenameLogger () ;
 
          INT32 init( UTIL_RENAME_LOGGER_MODE mode = UTIL_RENAME_LOGGER_WRITE ) ;
+         INT32 init( const CHAR *fileName,
+                     UTIL_RENAME_LOGGER_MODE mode ) ;
          INT32 log( const utilRenameLog& log ) ;
          INT32 load( utilRenameLog& log );
          INT32 clear() ;
@@ -107,6 +120,41 @@ namespace engine
          BOOLEAN _fileExist ;
    } ;
    typedef _utilRenameLogger utilRenameLogger ;
+
+   /*
+      _utilRenameLogManager define
+    */
+   class _utilRenameLogManager : public SDBObject
+   {
+   public:
+      _utilRenameLogManager() {}
+      ~_utilRenameLogManager() {}
+
+      INT32 load() ;
+      INT32 clearAll() ;
+      INT32 clear( const utilRenameLog &log ) ;
+
+      BOOLEAN hasRenamed() ;
+      INT32 getRenameLog( const CHAR *csName, utilRenameLog &log ) ;
+
+   protected:
+      typedef ossPoolMap< ossPoolString, ossPoolString > _UTIL_STRING_MAP ;
+      typedef _UTIL_STRING_MAP::iterator _UTIL_STRING_MAP_IT ;
+
+      INT32 _clear( const CHAR *fileName ) ;
+      static _UTIL_STRING_MAP_IT _find( const CHAR *name,
+                                        _UTIL_STRING_MAP &targetMap ) ;
+
+   protected:
+      // old name -> file name mapping
+      _UTIL_STRING_MAP  _oldToFileMap ;
+      // old name -> new name mapping
+      _UTIL_STRING_MAP  _oldToNewMap ;
+      // new name -> old name mapping
+      _UTIL_STRING_MAP  _newToOldMap ;
+   } ;
+
+   typedef class _utilRenameLogManager utilRenameLogManager ;
 
 }
 

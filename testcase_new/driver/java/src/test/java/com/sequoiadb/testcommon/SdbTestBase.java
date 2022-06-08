@@ -2,6 +2,8 @@ package com.sequoiadb.testcommon;
 
 import java.io.IOException;
 import java.io.File;
+import java.util.TimeZone;
+
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import org.testng.Assert;
@@ -23,15 +25,16 @@ public class SdbTestBase {
     protected static String workDir;
     protected static String username;
     protected static String password;
+    public static TimeZone defaultZone = TimeZone.getDefault();
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
-            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "USERNAME", "PASSWORD",
-            "DSHOSTNAME", "DSSVCNAME" })
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "REMOTEUSER",
+            "REMOTEPASSWD", "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, String USERNAME,
-            String PASSWORD, @Optional("localhost") String DSHOSTNAME,
+            String RSRVNODEDIR, String WORKDIR, String REMOTEUSER,
+            String REMOTEPASSWD, @Optional("localhost") String DSHOSTNAME,
             @Optional("11810") String DSSVCNAME ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
@@ -40,12 +43,13 @@ public class SdbTestBase {
         reservedPortEnd = RSRVPORTEND;
         reservedDir = RSRVNODEDIR;
         workDir = WORKDIR;
-        username = USERNAME;
-        password = PASSWORD;
+        username = REMOTEUSER;
+        password = REMOTEPASSWD;
         coordUrl = HOSTNAME + ":" + SVCNAME;
         dsHostName = DSHOSTNAME;
         dsServiceName = DSSVCNAME;
 
+        TimeZone.setDefault( TimeZone.getTimeZone( "Asia/Shanghai" ) );
         Sequoiadb db = null;
         try {
             db = new Sequoiadb( coordUrl, "", "" );
@@ -55,9 +59,6 @@ public class SdbTestBase {
             if ( !workDirFile.exists() ) {
                 workDirFile.mkdir();
             }
-        } catch ( BaseException e ) {
-            e.printStackTrace();
-            Assert.fail( "failed to initSuite" );
         } finally {
             if ( db != null ) {
                 db.disconnect();
@@ -73,9 +74,8 @@ public class SdbTestBase {
             if ( db.isCollectionSpaceExist( csName ) ) {
                 db.dropCollectionSpace( csName );
             }
-        } catch ( BaseException e ) {
-
         } finally {
+            TimeZone.setDefault( defaultZone );
             if ( db != null ) {
                 db.disconnect();
             }

@@ -43,9 +43,11 @@
 #include "../bson/bson.h"
 #include "dmsLobDef.hpp"
 #include "stpLogicalTime.hpp"
+#include "dmsEventHandler.hpp"
 #include "utilCompressor.hpp"
 #include "utilBitmap.hpp"
 #include "utilArray.hpp"
+#include "utilRecycleItem.hpp"
 
 using namespace bson ;
 
@@ -251,10 +253,12 @@ namespace engine
                           INT32 &type ) ;
 
    INT32 dpsCSDel2Record( const CHAR *csName,
+                          bson::BSONObj *boOptions,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2CSDel( const CHAR *logRecord,
-                          const CHAR **csName ) ;
+                          const CHAR **csName,
+                          bson::BSONObj *boOptions = NULL ) ;
 
    INT32 dpsCSRename2Record( const CHAR *csName,
                              const CHAR *newCSName,
@@ -281,10 +285,12 @@ namespace engine
                           BSONObj &idIdxDef ) ;
 
    INT32 dpsCLDel2Record( const CHAR *fullName,
+                          bson::BSONObj *boOptions,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2CLDel( const CHAR *logRecord,
-                          const CHAR **fullName ) ;
+                          const CHAR **fullName,
+                          bson::BSONObj *boOptions = NULL ) ;
 
    INT32 dpsIXCrt2Record( const CHAR *fullName,
                           const BSONObj &index,
@@ -317,10 +323,12 @@ namespace engine
                              const CHAR **clNewName ) ;
 
    INT32 dpsCLTrunc2Record( const CHAR *fullName,
+                            bson::BSONObj *boOptions,
                             dpsLogRecord &record ) ;
 
    INT32 dpsRecord2CLTrunc( const CHAR *logRecord,
-                            const CHAR **fullName ) ;
+                            const CHAR **fullName,
+                            bson::BSONObj *boOptions = NULL ) ;
 
    const CHAR*  dpsTSCommitAttr2String ( UINT8 attr ) ;
 
@@ -451,6 +459,12 @@ namespace engine
                                  const CHAR** csname,
                                  utilCSUniqueID& csUniqueID,
                                  bson::BSONObj & clInfoObj ) ;
+
+   INT32 dpsReturn2Record( bson::BSONObj *boOptions,
+                           dpsLogRecord &record ) ;
+
+   INT32 dpsRecord2Return( const CHAR *logRecord,
+                           bson::BSONObj *boOptions ) ;
 
    // get transaction ID from record
    INT32 dpsGetTransIDFromRecord( const CHAR *logRecord,

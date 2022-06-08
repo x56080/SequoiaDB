@@ -1029,6 +1029,84 @@ namespace engine
       return count ;
    }
 
+   INT32 _pmdEDUMgr::_getWritingEDUs( INT32 eduTypeFilter,
+                                      UINT64 idThreshold,
+                                      EDU_BLOCK_TYPE excludeBlockType,
+                                      PMD_EDU_PROCESS_LIST& writingEDUList )
+   {
+      pmdEDUCB *self = pmdGetThreadEDUCB() ;
+      INT32 rc = SDB_OK ;
+
+      ossScopedLock _lock( &_latch, SHARED ) ;
+
+      for ( MAP_EDUCB_IT it = _mapRuns.begin () ; it != _mapRuns.end () ;
+            ++ it )
+      {
+         pmdEDUCB *cb = it->second ;
+         if ( self == cb )
+         {
+            continue ;
+         }
+         else if ( cb->isWritingDB() )
+         {
+            UINT64 opID = cb->getWritingID() ;
+
+            if ( -1 != eduTypeFilter && eduTypeFilter != cb->getType() )
+            {
+               continue ;
+            }
+            else if ( 0 != idThreshold && opID > idThreshold )
+            {
+               continue ;
+            }
+            else if ( EDU_BLOCK_ALL == excludeBlockType && cb->isBlocked() )
+            {
+               continue ;
+            }
+            else if ( EDU_BLOCK_NONE != excludeBlockType &&
+                      OSS_BIT_TEST( cb->getBlockType(), excludeBlockType ) )
+            {
+               continue ;
+            }
+            else
+            {
+               CHAR processName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+               ossStrncpy( processName,
+                           cb->getCurProcessName(),
+                           DMS_COLLECTION_FULL_NAME_SZ ) ;
+               if ( 0 == processName[ 0 ] )
+               {
+                  continue ;
+               }
+               else if ( 0 != idThreshold && opID != cb->getWritingID() )
+               {
+                  // if the writingID has been changed, just discard it
+                  continue ;
+               }
+
+               try
+               {
+                  pmdEDUProcessInfo info ;
+                  info._opID = opID ;
+                  info._eduID = cb->getID() ;
+                  info._processName.assign( processName ) ;
+                  writingEDUList.push_back( info ) ;
+               }
+               catch ( exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+               }
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    BOOLEAN _pmdEDUMgr::_hasWritingEDU( INT32 eduTypeFilter,
                                        UINT64 idThreshold,
                                        EDU_BLOCK_TYPE excludeBlockType )
@@ -1069,6 +1147,7 @@ namespace engine
             {
                continue ;
             }
+
             PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
                      "is writing", cb->getID(), cb->getTID(), opID ) ;
             hasWriting = TRUE ;
@@ -1129,6 +1208,15 @@ namespace engine
                                       EDU_BLOCK_TYPE excludeBlockType )
    {
       return _hasWritingEDU( eduTypeFilter, idThreshold, excludeBlockType ) ;
+   }
+
+   INT32 _pmdEDUMgr::getWritingEDUs( INT32 eduTypeFilter,
+                                     UINT64 idThreshold,
+                                     EDU_BLOCK_TYPE excludeBlockType,
+                                     PMD_EDU_PROCESS_LIST& writingEDUList )
+   {
+      return _getWritingEDUs( eduTypeFilter, idThreshold, excludeBlockType,
+                              writingEDUList ) ;
    }
 
    void _pmdEDUMgr::resetIOService()

@@ -19,7 +19,9 @@ package org.bson.util;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Map;
@@ -58,6 +60,7 @@ public class JSONSerializers {
 		ClassMapBasedObjectSerializer serializer = addCommonSerializers();
 
 		serializer.addObjectSerializer(Date.class, new LegacyDateSerializer(serializer));
+		serializer.addObjectSerializer(BSONDate.class, new LegacyBSONDateSerializer(serializer));
 		serializer.addObjectSerializer(Timestamp.class, new LegacyBSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new LegacyBSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new BinarySerializer(serializer));
@@ -77,6 +80,7 @@ public class JSONSerializers {
 		ClassMapBasedObjectSerializer serializer = addCommonSerializers();
 
 		serializer.addObjectSerializer(Date.class, new DateSerializer(serializer));
+		serializer.addObjectSerializer(BSONDate.class, new BSONDateSerializer(serializer));
 		serializer.addObjectSerializer(Timestamp.class, new BSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(BSONTimestamp.class, new BSONTimestampSerializer(serializer));
 		serializer.addObjectSerializer(Binary.class, new BinarySerializer(serializer));
@@ -224,6 +228,20 @@ public class JSONSerializers {
 			serializer.serialize(new BasicBSONObject("$date", format.format(d)), buf);
 		}
 
+	}
+
+	private static class LegacyBSONDateSerializer extends CompoundObjectSerializer {
+
+		LegacyBSONDateSerializer(ObjectSerializer serializer) {
+			super(serializer);
+		}
+
+		////@Override
+		public void serialize(Object obj, StringBuilder buf) {
+			BSONDate d = (BSONDate) obj;
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd" );
+			serializer.serialize(new BasicBSONObject("$date", formatter.format( d.toLocalDate() )), buf);
+		}
 	}
 
 	private static class BasicBSONObjectSerializer extends CompoundObjectSerializer {
@@ -470,6 +488,20 @@ public class JSONSerializers {
 		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			Date d = (Date) obj;
+			serializer.serialize(new BasicBSONObject("$date", d.getTime()), buf);
+		}
+
+	}
+
+	private static class BSONDateSerializer extends CompoundObjectSerializer {
+
+		BSONDateSerializer(ObjectSerializer serializer) {
+			super(serializer);
+		}
+
+		////@Override
+		public void serialize(Object obj, StringBuilder buf) {
+			BSONDate d = (BSONDate) obj;
 			serializer.serialize(new BasicBSONObject("$date", d.getTime()), buf);
 		}
 

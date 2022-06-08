@@ -209,8 +209,7 @@ public class Domain {
         matcher.put(SdbConstants.FIELD_NAME_DOMAIN, this.name);
         selector.put(SdbConstants.FIELD_NAME_NAME, null);
         // get cs or cl in current domain
-        DBCursor cursor = this.sequoiadb.getList(type, matcher, selector, null);
-        return cursor;
+        return this.sequoiadb.getList(type, matcher, selector, null);
     }
 
 }

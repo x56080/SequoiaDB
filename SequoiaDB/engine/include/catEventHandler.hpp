@@ -55,11 +55,25 @@ namespace engine
 
       virtual const CHAR *getHandlerName () = 0 ;
 
-      virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) = 0 ;
+      virtual INT32 onBeginCommand ( MsgHeader *pReqMsg )
+      {
+         return SDB_OK ;
+      }
 
-      virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) = 0 ;
+      virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result )
+      {
+         return SDB_OK ;
+      }
 
-      virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) = 0 ;
+      virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 onUpgrade( UINT32 upgradeVersion )
+      {
+         return SDB_OK ;
+      }
    } ;
 
 }

@@ -525,6 +525,7 @@ namespace engine
       rspMsg->requestID = reqMsg->requestID ;
       rspMsg->routeID.value = 0 ;
       rspMsg->TID = reqMsg->TID ;
+      rspMsg->globalID = reqMsg->globalID ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_REGREQ, "catNodeManager::processRegReq" )
@@ -653,6 +654,18 @@ namespace engine
 
    done:
       PD_TRACE1 ( SDB_CATNODEMGR_REGREQ, PD_PACK_INT ( rc ) ) ;
+      if ( !pmdIsPrimary() )
+      {
+         if ( INVALID_NODEID != _pCatCB->getPrimaryNode() )
+         {
+            replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
+         }
+         else
+         {
+            // don't know who is primary
+            replyHeader.startFrom = -1 ;
+         }
+      }
       if ( 0 == dataLen )
       {
          rc = _pCatCB->sendReply( handle, &replyHeader, rc ) ;
@@ -837,7 +850,8 @@ namespace engine
                                     _pEduCB ) ;
             if ( SDB_OK == rc )
             {
-               rc = pCatCtx->open( handle, pMsg, pQuery, ctxBuff, _pEduCB ) ;
+               rc = pCatCtx->open( handle, pMsg, pQuery, pHint, ctxBuff,
+                                   _pEduCB ) ;
                if ( SDB_OK != rc )
                {
                   catDeleteContext( contextID, _pEduCB ) ;

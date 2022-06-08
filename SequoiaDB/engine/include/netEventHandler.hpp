@@ -91,8 +91,8 @@ namespace engine
          virtual INT32 syncConnect( const CHAR *hostName,
                                     const CHAR *serviceName ) ;
 
-         virtual INT32 syncSend( const void *buf,
-                                 UINT32 len ) ;
+         virtual INT32 syncSendRaw( const void *buf,
+                                    UINT32 len ) ;
 
          virtual void  setOpt() ;
          virtual UINT32 getAvailableSize() ;
@@ -112,6 +112,7 @@ namespace engine
       protected:
          void  _readCallback( const boost::system::error_code &error ) ;
          INT32 _allocateBuf( UINT32 len ) ;
+         INT32 _syncCheckSysInfo( ossSocket &socket ) ;
 
          OSS_INLINE NET_TCP_EH _getShared()
          {
@@ -122,6 +123,7 @@ namespace engine
          netEvSuitPtr                     _evSuitPtr ;
          boost::asio::ip::tcp::socket     _sock ;
          _MsgHeader                       _header ;
+         UINT16                           _headerSz ;
          CHAR                             *_buf ;
          UINT32                           _bufLen ;
          NET_EVENT_HANDLER_STATE          _state ;

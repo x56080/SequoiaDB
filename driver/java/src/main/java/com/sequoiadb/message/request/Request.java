@@ -17,6 +17,7 @@
 package com.sequoiadb.message.request;
 
 import com.sequoiadb.message.Msg;
+import com.sequoiadb.message.SdbProtocolVersion;
 
 import java.nio.ByteBuffer;
 
@@ -26,5 +27,5 @@ import java.nio.ByteBuffer;
 public interface Request extends Msg {
     void setRequestId(long requestId);
 
-    void encode(ByteBuffer out);
+    void encode( ByteBuffer out, SdbProtocolVersion version );
 }

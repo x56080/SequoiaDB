@@ -1757,7 +1757,7 @@
          <name>SDB_CLS_SHARDING_NOT_HASH</name>
          <description>
             <en>Sharding type is not hash</en>
-            <cn>分区类型不为哈稀</cn>
+            <cn>分区类型不为哈希</cn>
          </description>
       </code>
 
@@ -3080,6 +3080,70 @@
             <cn>任务状态错误</cn>
          </description>
       </code>
+ 
+      <code>
+         <name>SDB_RECYCLE_ITEM_NOTEXIST</name>
+         <description>
+            <en>Recycle bin item does not exist</en>
+            <cn>回收站项目不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_CONFLICT</name>
+         <description>
+            <en>Recycle bin item conflicts</en>
+            <cn>回收站项目存在冲突</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RECYCLE_FULL</name>
+         <description>
+            <en>Recycle bin is full</en>
+            <cn>回收站已满</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_CREATING</name>
+         <description>
+            <en>The index is creating</en>
+            <cn>索引正在创建</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_SAME_NAME_CREATING</name>
+         <description>
+            <en>An index with the same name is creating</en>
+            <cn>有一个同名的索引正在创建</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_COVER_CREATING</name>
+         <description>
+            <en>An index which can cover this scene is creating</en>
+            <cn>有一个可以处理本场景的索引正在创建</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_DROPPING</name>
+         <description>
+            <en>The index is dropping</en>
+            <cn>索引正在删除</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_ADVANCE_EOC</name>
+         <description>
+            <en>End of index advance section</en>
+            <cn>当前索引范围结束</cn>
+         </description>
+      </code>
 
       <code>
          <tag>vessel</tag>
@@ -3092,37 +3156,10 @@
 
       <code>
          <tag>vessel</tag>
-         <name>SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL</name>
-         <description>
-            <en>Not enough pages in free list</en>
-            <cn>空闲链表中的内存页不足</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_LC_LRU_BUSY</name>
-         <description>
-            <en>Failed to evict mem page from lru</en>
-            <cn>无法从内存池链表中找到可用的内存页</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
          <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
          <description>
             <en>forbidden operation because of holding wrong type latch</en>
             <cn>由于没有持有对应的锁类型，操作被禁止</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_LC_NOT_IN_POOL</name>
-         <description>
-            <en>Extent does not exist in lite cache</en>
-            <cn>数据块不在缓存中</cn>
          </description>
       </code>
 
@@ -3141,15 +3178,6 @@
          <description>
             <en>file head already crashed</en>
             <cn>文件头损坏</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_CF_VERSION_NOT_AVAILABLE</name>
-         <description>
-            <en>target version of control file is not available</en>
-            <cn>控制文件中的目标版本不可用</cn>
          </description>
       </code>
 
@@ -3299,16 +3327,6 @@
 
       <code>
          <tag>vessel</tag>
-         <name>SDB_VESSEL_FAILURE_LOADING_DLR</name>
-         <description>
-            <en>failed to load delta log record on disk</en>
-            <cn>加载文件中的增量日志记录失败</cn>
-         </description>
-      </code>
-      
-
-      <code>
-         <tag>vessel</tag>
          <name>SDB_VESSEL_DUPLICATED_KEY</name>
          <description>
             <en>the key is duplicated</en>
@@ -3363,15 +3381,6 @@
 
       <code>
          <tag>vessel</tag>
-         <name>SDB_VESSEL_LATCH_OBJ_BUSY</name>
-         <description>
-            <en>the latch object is busy</en>
-            <cn>锁对象忙碌导致无法获取</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
          <name>SDB_VESSEL_IXM_ITEM_NOT_FOUND</name>
          <description>
             <en>the index item with key and rid not found</en>
@@ -3387,7 +3396,7 @@
             <cn>达到批量资源上限</cn>
          </description>
       </code>
-
+      
       <code>
          <tag>vessel</tag>
          <name>SDB_VESSEL_RECORD_NOT_FOUND</name>

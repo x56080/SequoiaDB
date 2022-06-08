@@ -50,10 +50,7 @@
 #include "dpsTransID.hpp"
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
-
-#include "interface/IDataStorageEngine.h"
-#include "dmsEngineCB.hpp"
-#include "utilFullNameParser.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -808,7 +805,7 @@ namespace engine
       {
          // If there is no new unique id, the id will be generated locally later.
          // If current unique id is valid, we don't need do anything.
-         if ( utilCheckIdxUniqueID( oldIdxUniqID, csUniqID, TRUE ) )
+         if ( utilCheckIdxUniqueID( oldIdxUniqID, csUniqID ) )
          {
             goto done ;
          }
@@ -966,15 +963,6 @@ namespace engine
                             pResult, pIdxStatus,
                             forceTransCallback, addUIDIfNotExist ) ;
          PD_RC_CHECK (rc, PDERROR, "Create index failed, rc: %d", rc ) ;
-
-         if (DMS_STORAGE_VESSEL == getStorageType())
-         {
-            rc = createIndexInDataEngine(cb, context, index);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-         }
       }
 
    done :
@@ -1039,6 +1027,9 @@ namespace engine
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      try
+      {
 
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_DROP_INDEX ) )
@@ -1107,6 +1098,13 @@ namespace engine
          goto error ;
       }
 
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX_DROPIDX1, rc );
       return rc ;
@@ -1163,7 +1161,7 @@ namespace engine
                goto error ;
             }
 
-            if ( _pDataSu->isTransSupport() && NULL != cb
+            if ( _pDataSu->isTransSupport( context ) && NULL != cb
                  && ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName )
                       || indexCB.isGlobal() ) )
             {
@@ -1182,12 +1180,12 @@ namespace engine
                                                            NULL,
                                                            &lockConflict ) ;
                   PD_RC_CHECK( rc, PDERROR,
-                               "Failed to lock the collection, rc: %d" OSS_NEWLINE
-                               "Conflict( representative ):" OSS_NEWLINE
-                               "   EDUID:  %llu" OSS_NEWLINE
-                               "   TID:    %u" OSS_NEWLINE
-                               "   LockId: %s" OSS_NEWLINE
-                               "   Mode:   %s" OSS_NEWLINE,
+                               "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                               "Conflict( representative ):"OSS_NEWLINE
+                               "   EDUID:  %llu"OSS_NEWLINE
+                               "   TID:    %u"OSS_NEWLINE
+                               "   LockId: %s"OSS_NEWLINE
+                               "   Mode:   %s"OSS_NEWLINE,
                                rc,
                                lockConflict._eduID,
                                lockConflict._tid,
@@ -1256,6 +1254,9 @@ namespace engine
       BSONObj indexDef ;
       IDmsExtDataHandler *extDataHandler = NULL ;
       BSONObj option ;
+
+      try
+      {
 
       dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(),
                                      cb ) ;
@@ -1342,7 +1343,15 @@ namespace engine
          // reserved log-size
          if ( dpscb )
          {
-            indexDef = indexCB.getDef().getOwned() ;
+            try
+            {
+               indexDef = indexCB.getDef().getOwned() ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+            }
             buildOption( option, pIdxStatus ) ;
 
             rc = dpsIXDel2Record( fullName, indexDef, option, record ) ;
@@ -1479,6 +1488,13 @@ namespace engine
                                                    cb->isDoRollback() ) ;
       }
 
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
+      }
+
    done :
       if ( 0 != logRecSize )
       {
@@ -1498,6 +1514,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       utilIdxInnerID inID = 0 ;
+
+      BOOLEAN isStandalone = FALSE ;
 
       if ( ossAtomicFetch32( &_pDataSu->_dmsHeader->_idxInnerHWM ) >=
                                                          UTIL_IDXINNERID_MAX )
@@ -1521,8 +1539,14 @@ namespace engine
          goto error ;
       }
 
+      // for user collections, the index is standalone
+      if ( !( _pDataSu->isSysSU() ) )
+      {
+         isStandalone = TRUE ;
+      }
+
       uniqID = utilBuildIdxUniqueID( _pDataSu->_dmsHeader->_csUniqueID,
-                                     inID, TRUE ) ;
+                                     inID, isStandalone ) ;
 
    done:
       return rc ;
@@ -1629,26 +1653,6 @@ namespace engine
          indexDef = indexCB.getDef().getOwned() ;
          indexCB.getIndexID( indexOID ) ;
 
-         // create old version index tree if needed
-         // NOTE: alter command will not pass dpsCB to write DPS log, so we can
-         //       not simply check dpsCB here
-         if ( ( _pDataSu->isTransSupport() ) &&
-              ( NULL != dpscb || forceTransCallback ) )
-         {
-            // invoke callback function
-            pOprHandler = &callback ;
-            callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
-                                _pDataSu->logicalID(),
-                                context->clLID() ) ;
-            rc = callback.onCreateIndex( context, &indexCB, cb ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Create index failed to invoke callback, "
-                       "rc = %d", rc ) ;
-               goto error ;
-            }
-         }
-
          // calc the reserve size
          if ( dpscb )
          {
@@ -1670,6 +1674,26 @@ namespace engine
                PD_LOG( PDERROR, "Failed to reserved log space(length=%u)",
                        logRecSize ) ;
                logRecSize = 0 ;
+               goto error ;
+            }
+         }
+
+         // create old version index tree if needed
+         // NOTE: alter command will not pass dpsCB to write DPS log, so we can
+         //       not simply check dpsCB here
+         if ( ( _pDataSu->isTransSupport( context ) ) &&
+              ( NULL != dpscb || forceTransCallback ) )
+         {
+            // invoke callback function
+            pOprHandler = &callback ;
+            callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
+                                _pDataSu->logicalID(),
+                                context->clLID() ) ;
+            rc = callback.onCreateIndex( context, &indexCB, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Create index failed to invoke callback, "
+                       "rc = %d", rc ) ;
                goto error ;
             }
          }
@@ -1890,10 +1914,6 @@ namespace engine
 
       indexName = index.getStringField( IXM_FIELD_NAME_NAME ) ;
 
-      rc = _checkForCrtTextIdx( context, index ) ;
-      PD_RC_CHECK( rc, PDERROR, "Check for creating text index failed[%d]",
-                   rc ) ;
-
       rc = _allocateIdxID( context, indexName, index, indexID ) ;
       if ( SDB_IXM_REDEF == rc && ( addUIDIfNotExist ||
            index.hasField( FIELD_NAME_UNIQUEID ) ) )
@@ -1904,6 +1924,10 @@ namespace engine
                       ", rc: %d", rc1 ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Allocate index id failed: %d", rc ) ;
+
+      rc = _checkForCrtTextIdx( context, index ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check for creating text index failed[%d]",
+                   rc ) ;
 
       if ( NULL == _pDataSu->getExtDataHandler() )
       {
@@ -2271,7 +2295,7 @@ namespace engine
          }
 
          PD_LOG ( PDERROR, "Failed to insert index, key[%s], rid[%d:%d], rc: %d",
-                  key.toString( FALSE, TRUE ).c_str(), rid._extent,
+                  PD_SECURE_STR(key.toString(FALSE, TRUE)), rid._extent,
                   rid._offset, rc ) ;
          goto error ;
       }
@@ -2301,7 +2325,7 @@ namespace engine
 
       rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
-                    inputObj.toString().c_str() ) ;
+                    PD_SECURE_OBJ( inputObj ) ) ;
       {
          BSONObjSet::iterator it ;
          Ordering order = Ordering::make( indexCB->keyPattern() ) ;
@@ -2337,7 +2361,7 @@ namespace engine
                   pResult->setCurrentID( inputObj ) ;
                }
                PD_LOG ( PDERROR, "Insert index key(%s) with rid(%d, %d) "
-                        "failed, rc: %d", it->toString().c_str(),
+                        "failed, rc: %d", PD_SECURE_OBJ( *it ),
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
@@ -2373,16 +2397,17 @@ namespace engine
       {
          rc = key.toRecord( indexCB->keyPattern(), builder ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to builder index insertor:key=%s,"
-                      "pattern=%s,rc=%d", key.toString().c_str(),
-                      indexCB->keyPattern().toString().c_str(), rc ) ;
+                      "pattern=%s,rc=%d", PD_SECURE_STR( key.toString() ),
+                      PD_SECURE_OBJ( indexCB->keyPattern() ), rc ) ;
 
          record = builder.obj() ;
       }
       catch ( std::exception &e )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Failed to builder index insertor:key=%s,"
-                 "exception=%s,rc=%d", key.toString().c_str(), e.what(), rc ) ;
+         PD_LOG( PDERROR,
+                 "Failed to builder index insertor: key=%s,exception=%s,rc=%d",
+                 PD_SECURE_STR( key.toString() ), e.what(), rc ) ;
          goto error ;
       }
 
@@ -2401,12 +2426,12 @@ namespace engine
       BSONObj record ;
       // TODO: linyoubin global index's operation must under the transaction
       rc = _builderIndexRecord( &indexCB, key, record ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build index record, key: %s,rc: %d",
-                   key.toString().c_str(), rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build index record, key: %s, rc: %d",
+                   PD_SECURE_STR( key.toString() ), rc ) ;
 
       rc = container.append( indexCB.getIndexCLName(), record, isInsert ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to append record, record: %s,rc: %d",
-                   record.toString().c_str(), rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to append record, record: %s, rc: %d",
+                   PD_SECURE_OBJ( record ), rc ) ;
 
    done
 :
@@ -2457,7 +2482,7 @@ namespace engine
                                             extraRec._record, 0 ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to insert, cl: %s, "
                             "insertor: %s, rc: %d", extraRec._clName.c_str(),
-                            extraRec._record.toString().c_str(), rc ) ;
+                            PD_SECURE_OBJ( extraRec._record ), rc ) ;
             }
             else
             {
@@ -2465,7 +2490,7 @@ namespace engine
                                             extraRec._record, dummy, 0 ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to delete, cl: %s, "
                             "deletor: %s, rc: %d", extraRec._clName.c_str(),
-                            extraRec._record.toString().c_str(), rc ) ;
+                            PD_SECURE_OBJ( extraRec._record ), rc ) ;
             }
 
             ++iterVec ;
@@ -2547,14 +2572,15 @@ namespace engine
 
             rc = indexCB.getKeysFromObject ( inputObj, keySet ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
-                          inputObj.toString().c_str() ) ;
+                          PD_SECURE_OBJ( inputObj ) ) ;
 
             for ( it = keySet.begin() ; it != keySet.end() ; ++it )
             {
                ixmKeyOwned ko ((*it)) ;
                rc = _collectGIDXRecord( indexCB, ko, TRUE, container ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to collect index record, "
-                            "key: %s, rc: %d", ko.toString().c_str(), rc ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to collect index record, key: %s, rc: %d",
+                            PD_SECURE_STR( ko.toString() ), rc ) ;
             }
          }
       }
@@ -2629,7 +2655,7 @@ namespace engine
             rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
                                 dropDups, pOprHandle, pResult, pUnqIdxHashArray ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to insert object(%s) index(%s), "
-                          "rc: %d", inputObj.toString().c_str(),
+                          "rc: %d", PD_SECURE_OBJ( inputObj ),
                           indexCB.getDef().toString().c_str(), rc ) ;
          }
       }
@@ -2707,7 +2733,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from org object %s",
-                  originalObj.toString().c_str() ) ;
+                  PD_SECURE_OBJ( originalObj ) ) ;
          goto error ;
       }
 
@@ -2728,7 +2754,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from new object %s",
-                  newObj.toString().c_str() ) ;
+                  PD_SECURE_OBJ( newObj ) ) ;
          goto error ;
       }
 
@@ -2793,7 +2819,7 @@ namespace engine
                if ( rc )
                {
                   PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
-                           "failed, rc: %d", (*itori).toString().c_str(),
+                           "failed, rc: %d", PD_SECURE_OBJ( *itori ),
                            rid._extent, rid._offset, rc ) ;
                   goto error ;
                }
@@ -2855,7 +2881,7 @@ namespace engine
                   }
 
                   PD_LOG ( PDERROR, "Failed to insert index(%s) with "
-                           "rid(%d, %d), rc: %d", (*itnew).toString().c_str(),
+                           "rid(%d, %d), rc: %d", PD_SECURE_OBJ( *itnew ),
                            rid._extent, rid._offset, rc ) ;
                   goto error ;
                }
@@ -2890,7 +2916,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
-                        "failed, rc: %d", (*itori).toString().c_str(),
+                        "failed, rc: %d", PD_SECURE_OBJ( *itori ),
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
@@ -2953,7 +2979,7 @@ namespace engine
                }
 
                PD_LOG ( PDERROR, "Failed to insert index(%s) with "
-                        "rid(%d, %d), rc: %d", (*itnew).toString().c_str(),
+                        "rid(%d, %d), rc: %d", PD_SECURE_OBJ( *itnew ),
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
@@ -3034,11 +3060,11 @@ namespace engine
             BSONObjSet keySetNew ;
             rc = indexCB.getKeysFromObject( originalObj, keySetOri ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from org object %s",
-                        originalObj.toString().c_str() ) ;
+                         PD_SECURE_OBJ( originalObj ) ) ;
 
             rc = indexCB.getKeysFromObject( newObj, keySetNew ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from new object %s",
-                        newObj.toString().c_str() ) ;
+                         PD_SECURE_OBJ( newObj ) ) ;
 
             {
                BSONObjSet::iterator itori = keySetOri.begin() ;
@@ -3059,7 +3085,7 @@ namespace engine
                      rc = _collectGIDXRecord( indexCB, ko, FALSE, container ) ;
                      PD_RC_CHECK( rc, PDERROR, "Failed to collect index "
                                   "record, key: %s, rc: %d",
-                                  ko.toString().c_str(), rc ) ;
+                                  PD_SECURE_STR( ko.toString() ), rc ) ;
 
                      itori++ ;
                   }
@@ -3069,7 +3095,7 @@ namespace engine
                      rc = _collectGIDXRecord( indexCB, ko, TRUE, container ) ;
                      PD_RC_CHECK( rc, PDERROR, "Failed to collect index "
                                   "record, key: %s, rc: %d",
-                                  ko.toString().c_str(), rc ) ;
+                                  PD_SECURE_STR( ko.toString() ), rc ) ;
 
                      itnew++ ;
                   }
@@ -3082,7 +3108,7 @@ namespace engine
                   rc = _collectGIDXRecord( indexCB, ko, FALSE, container ) ;
                      PD_RC_CHECK( rc, PDERROR, "Failed to collect index "
                                   "record, key: %s, rc: %d",
-                                  ko.toString().c_str(), rc ) ;
+                                  PD_SECURE_STR( ko.toString() ), rc ) ;
 
                   itori++ ;
                }
@@ -3094,7 +3120,7 @@ namespace engine
                   rc = _collectGIDXRecord( indexCB, ko, TRUE, container ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to collect index "
                                "record, key: %s, rc: %d",
-                               ko.toString().c_str(), rc ) ;
+                               PD_SECURE_STR( ko.toString() ), rc ) ;
 
                   itnew++ ;
                }
@@ -3184,7 +3210,7 @@ namespace engine
                                rid, cb, isUndo, pOprHandle, pResult,
                                pNewUnqIdxHashArray, pOldUnqIdxHashArray ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to update obj(%s) index(%s), "
-                          "rc: %d", newObj.toString().c_str(),
+                          "rc: %d", PD_SECURE_OBJ( newObj ),
                           indexCB.getDef().toString().c_str(), rc ) ;
          }
       }
@@ -3242,7 +3268,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from object %s",
-                  inputObj.toString().c_str() ) ;
+                  PD_SECURE_OBJ( inputObj ) ) ;
          goto error ;
       }
 
@@ -3278,7 +3304,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
-                        "failed, rc: %d", it->toString().c_str(),
+                        "failed, rc: %d", PD_SECURE_OBJ( *it ),
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
@@ -3355,15 +3381,16 @@ namespace engine
             BSONObjSet keySet ;
             rc = indexCB.getKeysFromObject ( inputObj, keySet ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from object %s",
-                        inputObj.toString().c_str() ) ;
+                         PD_SECURE_OBJ( inputObj ) ) ;
 
             // go through each index in the set
             for ( iter = keySet.begin() ; iter != keySet.end() ; iter++ )
             {
                ixmKeyOwned ko ((*iter)) ;
                rc = _collectGIDXRecord( indexCB, ko, FALSE, container ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to collect index record, "
-                            "key: %s, rc: %d", ko.toString().c_str(), rc ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to collect index record, key: %s, rc: %d",
+                            PD_SECURE_STR( ko.toString() ), rc ) ;
             }
          }
       }
@@ -3551,7 +3578,7 @@ namespace engine
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to delete object(%s) index(%s), "
-                        "rc: %d", inputObj.toString().c_str(),
+                        "rc: %d", PD_SECURE_OBJ( inputObj ),
                         indexCB.getDef().toString().c_str(), rc ) ;
                goto error ;
             }
@@ -3782,6 +3809,49 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsStorageIndex::checkIndexCBExtentExist( dmsMBContext *context,
+                                                    dmsExtentID indexExtent,
+                                                    BOOLEAN &exist )
+   {
+      SDB_ASSERT( context, "context can't be NULL" ) ;
+
+      INT32 rc          = SDB_OK ;
+      BOOLEAN hasLocked = FALSE ;
+
+      exist = FALSE ;
+
+      if ( !context->isMBLock() )
+      {
+         rc = context->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+         hasLocked = TRUE ;
+      }
+
+      for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ;
+            ++indexID )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
+         {
+            break ;
+         }
+
+         if ( context->mb()->_indexExtent[indexID] == indexExtent )
+         {
+            exist = TRUE ;
+            goto done ;
+         }
+      }
+
+   done:
+      if ( hasLocked )
+      {
+         context->mbUnlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void _dmsStorageIndex::addStatFreeSpace( UINT16 mbID, UINT16 size )
    {
       if ( mbID < DMS_MME_SLOTS && _pDataSu )
@@ -3796,43 +3866,6 @@ namespace engine
       {
          _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
       }
-   }
-
-   INT32 _dmsStorageIndex::createIndexInDataEngine(_pmdEDUCB *cb,
-                                                   _dmsMBContext *context,
-                                                   const bson::BSONObj &indexDef)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != cb, "can not be null");
-      SDB_ASSERT(NULL != context && context->isMBLock(), "can not be invalid");
-      SDB_ASSERT(DMS_STORAGE_VESSEL == getStorageType(), "can not be other types");
-
-      ossPoolString fullName;
-      IDataStorageEngine *engine = pmdGetKRCB()->getDMSEngineCB()->getEngine();
-      DATA_COLLECTION_PTR cl;
-
-      fullName = utilFullNameParser::buildFullName(getSuName(),
-                                                   context->mb()->_collectionName);
-
-      rc = engine->openCL(cb, fullName.c_str(), dmsOpenCLOptions(), cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cl[%s] in engine:%d",
-                fullName.c_str(), rc);
-         goto error;
-      }
-
-      rc = cl->createIndex(cb, dmsBuildIndexOptions(), indexDef);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create index in engine:%d", rc);
-         goto error;
-      }
-   done:
-      cl.reset();
-      return rc;
-   error:
-      goto done;
    }
 }
 

@@ -153,6 +153,7 @@ namespace engine
    #define IXM_EXTENT_TYPE_REVERSE        0x0002
    #define IXM_EXTENT_TYPE_2D             0x0004
    #define IXM_EXTENT_TYPE_TEXT           0x0008
+   #define IXM_EXTENT_TYPE_GLOBAL         0x0010
    #define IXM_EXTENT_HAS_TYPE(type,dst)  (type&dst)
    /*
       _ixmIndexCBExtent define
@@ -533,7 +534,23 @@ namespace engine
 
          try
          {
-            BSONElement ele = obj.getField( IXM_KEY_FIELD ) ;
+            BSONElement ele = obj.getField( IXM_GLOBAL_FIELD ) ;
+            if ( EOO != ele.type() )
+            {
+               if ( Bool != ele.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Invalid [%s] field type[%d], rc: %d",
+                          IXM_GLOBAL_FIELD, ele.type(), rc ) ;
+                  goto error ;
+               }
+               if ( ele.boolean() )
+               {
+                  type |= IXM_EXTENT_TYPE_GLOBAL ;
+               }
+            }
+
+            ele = obj.getField( IXM_KEY_FIELD ) ;
             if ( ele.type() != Object )
             {
                rc = SDB_INVALIDARG ;
@@ -1157,7 +1174,7 @@ namespace engine
       }
 
       INT32 truncate ( BOOLEAN removeRoot, UINT16 indexFlag,
-                       UINT64 *pDelKeyCnt = NULL ) ;
+                       ossAtomic64* pDelKeyCnt = NULL ) ;
 
       BOOLEAN isSameDef( const BSONObj &defObj,
                          BOOLEAN strict = FALSE ) const ;

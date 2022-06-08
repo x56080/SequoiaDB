@@ -622,10 +622,12 @@ TEST( lob, lobWithReturnData )
    BSONObj obj ;
    #define BUFSIZE1 (1024 * 1024 * 3)
    #define BUFSIZE2 (1024 * 1024 * 2)
-   CHAR buf[BUFSIZE1] = { 0 } ;
-   CHAR readBuf[BUFSIZE2] = { 0 } ;
    BOOLEAN flag = FALSE ;
    CHAR c = 'a' ;
+   CHAR *buf     = allocMemory( BUFSIZE1 ) ;
+   CHAR *readBuf = allocMemory( BUFSIZE2 ) ;
+   ASSERT_TRUE( NULL != buf ) ;
+   ASSERT_TRUE( NULL != readBuf ) ;
 
    // initialize the work environment
    rc = initEnv() ;
@@ -702,6 +704,8 @@ TEST( lob, lobWithReturnData )
    ASSERT_EQ( SDB_OK, rc ) ;
 
    db.disconnect() ;
+   freeMemory( buf ) ;
+   freeMemory( readBuf ) ;
 }
 
 // Nest function for Create Data
@@ -902,7 +906,7 @@ TEST( lob, lobApiBasicOperation )
    BSONObj obj = BSON( "ReplSize" << 0 ) ;   //replsize = 0
    rc = cs.createCollection( clName, obj, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize, sizeof(char) ) ) )
+   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize + 10, sizeof(char) ) ) )
    {
       perror( "lobBuffer" ) ;
       ASSERT_TRUE( false ) ;
@@ -1031,7 +1035,7 @@ TEST( lob, NotExistLob )
    BSONObj obj = BSON( "ReplSize" << 0 ) ;   //replsize = 0
    rc = cs.createCollection( clName, obj, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize, sizeof(char) ) ) )
+   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize + 10, sizeof(char) ) ) )
    {
       perror( "lobBuffer" ) ;
       ASSERT_TRUE( false ) ;
@@ -1097,8 +1101,10 @@ TEST( lob, use_lob_after_close_contexts )
 #define writeBuffSize (2 * 1024 * 1024)
 #define readBuffSize (writeBuffSize/2)
    CHAR buf[10]                  = { 0 } ;
-   CHAR writeBuff[writeBuffSize] = { 0 };
-   CHAR readBuff[readBuffSize]   = { 0 };
+   CHAR *writeBuff = allocMemory( writeBuffSize ) ;
+   CHAR *readBuff  = allocMemory( readBuffSize ) ;
+   ASSERT_TRUE( NULL != writeBuff ) ;
+   ASSERT_TRUE( NULL != readBuff ) ;
    UINT32 readNum                = 0 ;
 
    // initialize the work environment
@@ -1201,5 +1207,7 @@ TEST( lob, use_lob_after_close_contexts )
    ASSERT_EQ(0, oid.compare(oid2)) ;
    ASSERT_EQ(createTime, createTime2) ;
    ASSERT_EQ(lobSize, lobSize2) ;
+   freeMemory( writeBuff ) ;
+   freeMemory( readBuff ) ;
 }
 

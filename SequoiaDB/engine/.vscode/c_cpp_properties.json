@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/../../thirdparty/**",
+                "${workspaceFolder}/tools/**",
+                "${workspaceFolder}/client/"
+            ],
+            "defines": ["SDB_ENGINE"],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c89",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

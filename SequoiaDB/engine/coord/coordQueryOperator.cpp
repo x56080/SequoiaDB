@@ -472,10 +472,24 @@ namespace engine
                                       pCollectionName, numToSkip, numToReturn,
                                       flag ) ;
             BSONElement ePos = hint.getField( FIELD_NAME_POSITION ) ;
+            BSONElement eRange = hint.getField( FIELD_NAME_RANGE ) ;
 
-            if ( !ePos.eoo() && Object != ePos.type() )
+            if ( !ePos.eoo() && !eRange.eoo() )
+            {
+               PD_LOG( PDERROR, "Field[%s] and Field[%s] cannot be specified at the "
+                       "same time", FIELD_NAME_POSITION, FIELD_NAME_RANGE ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( !ePos.eoo() && Object != ePos.type() )
             {
                PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else if ( !eRange.eoo() && Object != eRange.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_RANGE ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }

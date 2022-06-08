@@ -235,6 +235,7 @@
     <Compile Include="Transaction\TestTransaction14566.cs" />
     <Compile Include="Transaction\TestTransaction19216.cs" />
     <Compile Include="Transaction\TestTransaction19217.cs" />
+    <Compile Include="Transaction\TestTransaction25359.cs" />
     <Compile Include="Backup\TestBackup14569.cs" />
     <Compile Include="Backup\TestBackup14570.cs" />
     <Compile Include="Cluster\TestClusterManage12437.cs" />

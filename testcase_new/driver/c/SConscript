@@ -68,6 +68,7 @@ testFiles = [
    [ "./misc/resetSnapshot14424.cpp" ], # sync
    [ "./misc/configs14875.cpp" ], # sync
    [ "./misc/invalidFlag15382.cpp" ],
+   [ "./misc/snapshot25411.cpp" ],
    [ "./load/loadUnloadCS.cpp" ],
    [ "./load/rename.cpp" ],   # sync
    [ "./load/setPDLevel.cpp" ],
@@ -109,9 +110,15 @@ testFiles = [
    #[ "./crud/queryAndUpdateShardingKey.cpp" ],
    #[ "./crud/upsertShardingKey.cpp"],
    [ "./crud/queryMeta.cpp" ],
+   [ "./crud/query25369_25370.cpp" ],
    [ "./crud/specialDecimal_14004.cpp" ],
    [ "./crud/snapshotPlan14515.cpp" ],
+   [ "./crud/closeAllCursors20122.cpp" ],
    [ "./crud/pop14506.cpp" ],
+   [ "./crud/insert26324.cpp" ],
+   [ "./crud/delete25407.cpp" ],
+   [ "./crud/update25408.cpp" ],
+   [ "./crud/upsert25409.cpp" ],
    [ "./paraVerify/domain22020.cpp" ],
    [ "./paraVerify/lobFunc14388.cpp" ],
    [ "./paraVerify/sdbFunc14277.cpp" ],
@@ -131,11 +138,13 @@ testFiles = [
    [ "./crud/autoIncrementSequence16623_16624_16654.cpp"],
    [ "./crud/insertReplaceondup18581.cpp" ],
    [ "./sessionAttr/sessionAttrCache19208_19209.cpp" ],   # sync
+   [ "./list/list26398.cpp" ],
    [ "./list/list19948.cpp" ],   # sync
    [ "./crud/query10404.cpp" ],
    [ "./cls/getCLDetail22183.cpp" ],
    [ "./misc/snapshotIndexStat22498.cpp" ],
    [ "./list/listTest.cpp" ],
+   [ "./meta/getDomainName25084.cpp" ],
 #   [ "./crud/closeAllCursors20122.cpp" ]
 ]
 

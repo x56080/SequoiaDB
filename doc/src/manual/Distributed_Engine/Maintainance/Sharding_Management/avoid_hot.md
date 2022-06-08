@@ -195,10 +195,10 @@
 
 主数据节点繁忙程度远高于同组内备数据节点时，代表当前大量的数据操作为查询操作，可以将部分查询操作分散到备数据节点。
 
-设置备数据节点承担部分查询操作，需要将 --preferedinstance 配置为 A，保证主备节点繁忙度基本相同
+设置备数据节点承担部分查询操作，需要将 --preferredinstance 配置为 A，保证主备节点繁忙度基本相同
 
 ```lang-bash
-> db.updateConf( { preferedinstance: "A" } )
+> db.updateConf( { preferredinstance: "A" } )
 ```
 
 ### 主数据节点繁忙的监测 ###

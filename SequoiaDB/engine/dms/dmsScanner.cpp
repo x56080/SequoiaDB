@@ -118,12 +118,6 @@ namespace engine
       _pSu        = NULL ;
    }
 
-   BOOLEAN _dmsScanner::isReadOnly()const
-   {
-      SDB_ASSERT(DMS_ACCESS_TYPE_NULL != _accessType, "can not be invalid");
-      return !DMS_IS_WRITE_OPR(_accessType);
-   }
-
    void _dmsScanner::_saveAdvancedRecrodID( const dmsRecordID &recordID,
                                             INT32 rc )
    {
@@ -144,9 +138,26 @@ namespace engine
       stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
       UINT64 globTransAvailTime =
                         _context->mbStat()->_globTransAvailTime.peek() ;
-      PD_CHECK( 0 == globTransAvailTime ||
-                globTransAvailTime + STP_MAX_TIME_ERROR_US <=
-                                                       txBeginTm.getTime(),
+      if ( DPS_MAX_TRANS_TIME == globTransAvailTime )
+      {
+         stpAgent timeAgent ;
+         stpLogicalTimeUS curTime ;
+         // get global logical time
+         PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
+                 "Try to get STP logical time" ) ;
+         rc = timeAgent.getLogicalTimeUS( curTime,
+                                          OSS_ONE_SEC,
+                                          FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d",
+                      rc ) ;
+         _context->mbStat()
+                 ->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                       curTime.getTime() ) ;
+         globTransAvailTime =
+               _context->mbStat()->_globTransAvailTime.peek() ;
+      }
+      PD_CHECK( ( ( 0 == globTransAvailTime ) ||
+                  ( globTransAvailTime < txBeginTm.getTime() ) ),
                 SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                 "Failed to check global transaction, available "
                 "timestamp on collection [%s] is [%llu], "
@@ -169,6 +180,7 @@ namespace engine
                                            dmsMBContext *context,
                                            mthMatchRuntime *matchRuntime,
                                            dmsExtentID curExtentID,
+                                           dmsExtentID lastExtentID,
                                            DMS_ACCESS_TYPE accessType,
                                            INT64 maxRecords,
                                            INT64 skipNum,
@@ -184,6 +196,7 @@ namespace engine
       _extent              = NULL ;
       _pTransCB            = NULL ;
       _curRID._extent      = curExtentID ;
+      _lastExtentID        = lastExtentID ;
       _recordLock          = DPS_TRANSLOCK_MAX ;
       _selectLockMode      = DPS_TRANSLOCK_MAX ;
       _needUnLock          = FALSE ;
@@ -228,6 +241,11 @@ namespace engine
       return _callback.getTransRecordInfo() ;
    }
 
+   dmsExtentID _dmsExtScannerBase::curExtentID() const
+   {
+      return _curRID._extent ;
+   }
+
    dmsExtentID _dmsExtScannerBase::nextExtentID() const
    {
       if ( _extent )
@@ -242,6 +260,7 @@ namespace engine
       if ( 0 != _maxRecords &&
            DMS_INVALID_EXTENT != nextExtentID() )
       {
+         _lastExtentID = _curRID._extent ;
          _curRID._extent = nextExtentID() ;
          releaseCSCLLock() ;
          _firstRun = TRUE ;
@@ -384,12 +403,12 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDWARNING,
-                     "Failed to get CS/CL lock, rc: %d" OSS_NEWLINE
-                     "Conflict ( representative ):" OSS_NEWLINE
-                     "   EDUID:  %llu" OSS_NEWLINE
-                     "   TID:    %u" OSS_NEWLINE
-                     "   LockId: %s" OSS_NEWLINE
-                     "   Mode:   %s" OSS_NEWLINE,
+                     "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
+                     "Conflict ( representative ):"OSS_NEWLINE
+                     "   EDUID:  %llu"OSS_NEWLINE
+                     "   TID:    %u"OSS_NEWLINE
+                     "   LockId: %s"OSS_NEWLINE
+                     "   Mode:   %s"OSS_NEWLINE,
                      rc,
                      lockConflict._eduID,
                      lockConflict._tid,
@@ -433,12 +452,13 @@ namespace engine
                                    _dmsMBContext *context,
                                    mthMatchRuntime *matchRuntime,
                                    dmsExtentID curExtentID,
+                                   dmsExtentID lastExtentID,
                                    DMS_ACCESS_TYPE accessType,
                                    INT64 maxRecords,
                                    INT64 skipNum,
                                    INT32 flag )
-   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, accessType,
-                         maxRecords, skipNum, flag )
+   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, lastExtentID,
+                         accessType, maxRecords, skipNum, flag )
    {
    }
 
@@ -467,7 +487,7 @@ namespace engine
       }
 
       /// When not support trans
-      if ( !_pSu->isTransSupport() )
+      if ( !_pSu->isTransSupport( _context ) )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
       }
@@ -599,6 +619,47 @@ namespace engine
          goto error ;
       }
 
+      // if we span different segment, we should get next extent again
+      if ( _lastExtentID != DMS_INVALID_EXTENT &&
+           _curRID._extent != DMS_INVALID_EXTENT &&
+           _pSu->extent2Segment( _lastExtentID ) !=
+           _pSu->extent2Segment( _curRID._extent ) )
+      {
+         dmsExtRW extRW = _pSu->extent2RW( _lastExtentID, _context->mbID() ) ;
+         extRW.setNothrow( TRUE ) ;
+         const dmsExtent* extent = extRW.readPtr<dmsExtent>() ;
+         if ( NULL == extent )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR,
+                    "Failed to read collection[%s.%s]'s extent[%d], rc: %d",
+                    _pSu->getSuName(), _context->mb()->_collectionName,
+                    _lastExtentID, rc ) ;
+            goto error ;
+         }
+         if ( DMS_INVALID_EXTENT == extent->_nextExtent )
+         {
+            rc = SDB_DMS_EOC ;
+            goto error ;
+         }
+         if ( extent->_nextExtent != _curRID._extent )
+         {
+            _curRID._extent = extent->_nextExtent ;
+            _extRW = _pSu->extent2RW( _curRID._extent, _context->mbID() ) ;
+            _extRW.setNothrow( TRUE ) ;
+            _extent = _extRW.readPtr<dmsExtent>() ;
+            if ( NULL == _extent )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR,
+                       "Failed to read collection[%s.%s]'s extent[%d], rc: %d",
+                       _pSu->getSuName(), _context->mb()->_collectionName,
+                       _curRID._extent, rc ) ;
+               goto error ;
+            }
+         }
+      }
+
       // WARNING: once the collection has been locked eXclusively by
       //          other transaction, the first record offset may be changed
       //          by that transaction, so we should not get the first record
@@ -683,6 +744,12 @@ namespace engine
             {
                if ( !needWaitForLock() )
                {
+                  // check visibility before testing transaction lock
+                  rc = _callback.checkRecordVisible( _context ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
+                               "of record [%d, %d], rc: %d", _curRID._extent,
+                               _curRID._offset, rc ) ;
+
                   // for new RC/RR logic, we should first test on S lock instead
                   // of directly wait on the record lock. Under the cover,
                   // the lock call back function would try to use the old copy
@@ -731,15 +798,15 @@ namespace engine
             if ( rc )
             {
                PD_LOG( PDERROR,
-                       "Failed to get record lock, rc: %d" OSS_NEWLINE
-                       "Request Mode:   %s" OSS_NEWLINE
-                       "Conflict ( representative ):" OSS_NEWLINE
-                       "   EDUID:  %llu" OSS_NEWLINE
-                       "   TID:    %u" OSS_NEWLINE
-                       "   LockId: %s" OSS_NEWLINE
-                       "   Mode:   %s" OSS_NEWLINE
-                       "WaitLock: %s" OSS_NEWLINE
-                       "Isolation: %d" OSS_NEWLINE,
+                       "Failed to get record lock, rc: %d"OSS_NEWLINE
+                       "Request Mode:   %s"OSS_NEWLINE
+                       "Conflict ( representative ):"OSS_NEWLINE
+                       "   EDUID:  %llu"OSS_NEWLINE
+                       "   TID:    %u"OSS_NEWLINE
+                       "   LockId: %s"OSS_NEWLINE
+                       "   Mode:   %s"OSS_NEWLINE
+                       "WaitLock: %s"OSS_NEWLINE
+                       "Isolation: %d"OSS_NEWLINE,
                        rc,
                        lockModeToString( _recordLock ),
                        lockConflict._eduID,
@@ -811,7 +878,6 @@ namespace engine
                                             &_callback ) ;
                _hasLockedRecord = FALSE ;
             }
-            PD_LOG( PDDEBUG, "skip deleting record " ) ;
             continue ;
          }
          // either we got an old version from RBS(setup in recordData), we
@@ -968,12 +1034,13 @@ namespace engine
                                                dmsMBContext *context,
                                                mthMatchRuntime *matchRuntime,
                                                dmsExtentID curExtentID,
+                                               dmsExtentID lastExtentID,
                                                DMS_ACCESS_TYPE accessType,
                                                INT64 maxRecords,
                                                INT64 skipNum,
                                                INT32 flag )
-   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, accessType,
-                         maxRecords, skipNum, flag )
+   : _dmsExtScannerBase( su, context, matchRuntime, curExtentID, lastExtentID,
+                         accessType, maxRecords, skipNum, flag )
    {
       _maxRecords = maxRecords ;
       _skipNum = skipNum ;
@@ -1410,6 +1477,7 @@ namespace engine
       _extScanner = dmsGetScannerFactory()->create( _pSu, _context,
                                                     _matchRuntime,
                                                     _curExtentID,
+                                                    DMS_INVALID_EXTENT,
                                                     _accessType,
                                                     _maxRecords,
                                                     _skipNum,
@@ -1787,12 +1855,12 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDWARNING,
-                      "Failed to get CS/CL lock, rc: %d" OSS_NEWLINE
-                      "Conflict ( representative ):" OSS_NEWLINE
-                      "   EDUID:  %llu" OSS_NEWLINE
-                      "   TID:    %u" OSS_NEWLINE
-                      "   LockId: %s" OSS_NEWLINE
-                      "   Mode:   %s" OSS_NEWLINE,
+                      "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
+                      "Conflict ( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -1853,7 +1921,7 @@ namespace engine
       }
 
       /// when not support transaction
-      if ( !_pSu->isTransSupport() )
+      if ( !_pSu->isTransSupport( _context ) )
       {
          _recordLock = DPS_TRANSLOCK_MAX ;
       }
@@ -2045,7 +2113,8 @@ namespace engine
    INT32 _dmsIXSecScanner::_checkTransLock( pmdEDUCB *cb,
                                             dmsRecordID &waitUnlockRID,
                                             dmsRecordData *recordData,
-                                            BOOLEAN &skipRecord )
+                                            BOOLEAN &skipRecord,
+                                            BOOLEAN *needData )
    {
       INT32 rc = SDB_OK ;
 
@@ -2094,6 +2163,16 @@ namespace engine
          {
             if ( !needWaitForLock() )
             {
+               // check visibility before testing transaction lock
+               rc = _callback.checkRecordVisible( _context, needData ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check visibility "
+                            "of record [%d, %d], rc: %d", _curRID._extent,
+                            _curRID._offset, rc ) ;
+               if ( NULL != needData && *needData )
+               {
+                  goto done ;
+               }
+
                // for new RC/RR logic, we should first test on S lock instead
                // of directly wait on the record lock. Under the cover,
                // the lock call back function would try to use the old copy
@@ -2152,15 +2231,15 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR,
-                    "Failed to get record lock, rc: %d" OSS_NEWLINE
-                    "Request Mode:   %s" OSS_NEWLINE
-                    "Conflict ( representative ):" OSS_NEWLINE
-                    "   EDUID:  %llu" OSS_NEWLINE
-                    "   TID:    %u" OSS_NEWLINE
-                    "   LockId: %s" OSS_NEWLINE
-                    "   Mode:   %s" OSS_NEWLINE
-                    "WaitLock: %s" OSS_NEWLINE
-                    "Isolation: %d" OSS_NEWLINE,
+                    "Failed to get record lock, rc: %d"OSS_NEWLINE
+                    "Request Mode:   %s"OSS_NEWLINE
+                    "Conflict ( representative ):"OSS_NEWLINE
+                    "   EDUID:  %llu"OSS_NEWLINE
+                    "   TID:    %u"OSS_NEWLINE
+                    "   LockId: %s"OSS_NEWLINE
+                    "   Mode:   %s"OSS_NEWLINE
+                    "WaitLock: %s"OSS_NEWLINE
+                    "Isolation: %d"OSS_NEWLINE,
                     rc,
                     lockModeToString( _recordLock ),
                     lockConflict._eduID,
@@ -2501,13 +2580,25 @@ namespace engine
             }
             else if ( _countOnly )
             {
-               SDB_ASSERT( !cb->isTransRR(), "Should not be RR isolation" ) ;
-
                if ( cb->isTransaction() && !cb->isTransRU() )
                {
                   // no need to read record
                   // look for transaction lock
-                  rc = _checkTransLock( cb, waitUnlockRID, NULL, skipRecord ) ;
+                  if ( cb->isTransRR() )
+                  {
+                     BOOLEAN needData = FALSE ;
+                     _recordRW = dmsRecordRW() ;
+                     rc = _checkTransLock( cb, waitUnlockRID, NULL, skipRecord, &needData ) ;
+                     if ( SDB_OK == rc && needData )
+                     {
+                        _recordRW = _pSu->record2RW( _curRID, _context->mbID() );
+                        rc = _checkTransLock( cb, waitUnlockRID, &recordData, skipRecord ) ;
+                     }
+                  }
+                  else
+                  {
+                     rc = _checkTransLock( cb, waitUnlockRID, NULL, skipRecord ) ;
+                  }
                   PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
                                "rc: %d", rc ) ;
                   if ( skipRecord )
@@ -2542,13 +2633,14 @@ namespace engine
 
          pRecord = NULL ;
 
-         if( _scanner->isIndexCover() &&
-             !_recordRW.isDirectMem() &&
-             DMS_IS_READ_OPR( _accessType ) &&
-             !cb->isTransRR() )
+         if ( _scanner->isIndexCover() &&
+              !_recordRW.isDirectMem() &&
+              DMS_IS_READ_OPR( _accessType ) &&
+              ( !cb->isTransRR() ||
+                _callback.isRecordOnDiskVisible() ) )
          {
             pRecord = _buildIndexRecord() ;
-            if( NULL != pRecord )
+            if ( NULL != pRecord )
             {
                _recordRW = dmsIndexRecordRW( _recordRW, pRecord ) ;
             }
@@ -2591,7 +2683,6 @@ namespace engine
             // remove the duplicate key before continue because the _scanner
             // has already added it to dup buffer in its advance logic
             _scanner->removeDuplicatRID( _curRID ) ;
-            PD_LOG( PDDEBUG, "skip deleting record " ) ;
 
             continue ;
          }
@@ -3120,6 +3211,7 @@ namespace engine
                                                      dmsMBContext *context,
                                                      mthMatchRuntime *matchRuntime,
                                                      dmsExtentID curExtentID,
+                                                     dmsExtentID lastExtentID,
                                                      DMS_ACCESS_TYPE accessType,
                                                      INT64 maxRecords,
                                                      INT64 skipNum,
@@ -3131,6 +3223,7 @@ namespace engine
          scanner = SDB_OSS_NEW dmsCappedExtScanner( su, context,
                                                     matchRuntime,
                                                     curExtentID,
+                                                    lastExtentID,
                                                     accessType,
                                                     maxRecords,
                                                     skipNum,
@@ -3141,6 +3234,7 @@ namespace engine
          scanner = SDB_OSS_NEW dmsExtScanner( su, context,
                                               matchRuntime,
                                               curExtentID,
+                                              lastExtentID,
                                               accessType,
                                               maxRecords,
                                               skipNum,

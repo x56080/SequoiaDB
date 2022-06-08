@@ -91,7 +91,8 @@ msgFiles = [
       "msg/msgMessage.cpp",
       "msg/msgMessageFormat.cpp",
       "msg/msgCatalog.cpp",
-      "msg/msgAuth.cpp"
+      "msg/msgAuth.cpp",
+      "msg/msgConvertorImpl.cpp"
       ]
 
 ossFiles = [
@@ -240,7 +241,11 @@ utilFiles = [
       "util/utilLobID.cpp",
       "util/utilIniParser.c",
       "util/utilIniParserEx.cpp",
-      "util/utilAuthSCRAMSHA.cpp"
+      "util/utilAuthSCRAMSHA.cpp",
+      "util/utilRecycleItem.cpp",
+      "util/utilUniqueID.cpp",
+      "util/base64.cpp",
+      "util/utilSecure.cpp"
       ]
 
 dpsFiles = [
@@ -356,7 +361,8 @@ sptFiles = [
       "spt/db/sptDBUser.cpp",
       "spt/db/sptDBCipherUser.cpp",
       "spt/db/sptDBSequence.cpp",
-      "spt/db/sptDBDataSource.cpp"
+      "spt/db/sptDBDataSource.cpp",
+      "spt/db/sptDBRecycleBin.cpp"
       ]
 
 ssh2Files = [
@@ -686,7 +692,7 @@ sdbSEAdptFiles = [
 sequoiaFSComFiles = [
       "tools/sequoiafs/src/sequoiaFSDao.cpp",
       "tools/sequoiafs/src/sequoiaFSCommon.cpp"
-]  
+]
 sequoiaFSFiles = [
       "tools/sequoiafs/src/sequoiaFS.cpp",
       "tools/sequoiafs/src/sequoiaFSLRUList.cpp",
@@ -715,9 +721,12 @@ sequoiaMCSFiles = [
       "tools/sequoiafs/src/sequoiaFSMCSOptionMgr.cpp",
       "tools/sequoiafs/src/sequoiaFSMCSSessionMgr.cpp",
       "tools/sequoiafs/src/sequoiaFSMCSSession.cpp"
-    ]    
+    ]
 sdbPasswdFiles = [
       "tools/passwd/sdbPasswd.cpp"
+    ]
+sdbSecureFiles = [
+      "tools/securetool/sdbSecureTool.cpp"
     ]
 
 monFiles = [
@@ -824,6 +833,11 @@ sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
 sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
+         
+sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
+         LIBDEPS=["pd", "oss", "bson", "util"],
+         _LIBDEPS='$_LIBDEPS_OBJS' )
+         
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,
             LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon"],
@@ -855,13 +869,13 @@ sdbseadapter = toolEnv.Program("sdbseadapter",
          sdbSEAdptFiles,
          LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob","rtn","ixm","cls","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-        
+
 if linux64:
     sequoiamcs = toolEnv.Program("sequoiamcs",
         sequoiaMCSFiles,
         LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", "net", "msg"],
-        _LIBDEPS='$_LIBDEPS_OBJS' )    
-        
+        _LIBDEPS='$_LIBDEPS_OBJS' )
+
 if linux64:
     Import("fuse_lib")
     sequoiafs = toolEnv.Program("sequoiafs",
@@ -881,6 +895,7 @@ toolEnv.Install( '#/bin', sdbcmart )
 toolEnv.Install( '#/bin', sdbcmtop )
 toolEnv.Install( '#/bin', sdblobtool )
 toolEnv.Install( '#/bin', sdbpasswd )
+toolEnv.Install( '#/bin', sdbsecuretool )
 if linux:
    toolEnv.Install( '#/bin', sdbtop )
 toolEnv.Install( '#/tools', sdbload2 )

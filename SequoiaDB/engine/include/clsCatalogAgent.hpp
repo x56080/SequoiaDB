@@ -267,6 +267,7 @@ namespace engine
          UINT32            getAttribute() const { return _attribute ; }
 
          BOOLEAN           isMainCL() const ;
+         BOOLEAN           isSubCL() const ;
          INT32             getSubCLList(
                               CLS_SUBCL_LIST &subCLLst,
                               CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
@@ -277,6 +278,7 @@ namespace engine
                                       CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap ) ;
          BOOLEAN           isSortSubCLPrepared() const ;
          BOOLEAN           isContainSubCL( const string &subCLName ) const ;
+         BOOLEAN           hasSubCLLocateOnCS( const CHAR* csName ) const ;
          INT32             getSubCLCount () const ;
          const string&     getMainCLName() const ;
          INT32             addSubCL ( const CHAR *subCLName,

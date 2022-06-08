@@ -117,12 +117,18 @@ v1.2 及以上版本
 
 ##示例##
 
-对复制组 group1 进行全量备份
+- 对复制组 group1 进行全量备份
 
-```lang-javascript
-> db.backup({Name: "backupName", Description: "backup group1", GroupName: "group1"})
-```
+    ```lang-javascript
+    > db.backup({Name: "backupName", Description: "backup group1", GroupName: "group1"})
+    ```
 
+- 指定备节点进行全量备份
+
+    ```lang-javascript
+    > db.setSessionAttr({PreferredInstance: "S", PreferredConstraint: "secondaryonly"})
+    > db.backup({Name: "backupName", Description: "backup on secondary"})
+    ```
 
 [^_^]:
     本文使用的所有引用及连接

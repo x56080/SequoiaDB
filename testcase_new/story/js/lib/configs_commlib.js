@@ -50,7 +50,7 @@ var Configs = ( function()
       this.runConfigs.push( new ConfDesp( "startshifttime", "int", 600, 1200, "some" ) );
       this.runConfigs.push( new ConfDesp( "preferedstrict", "bool", "FALSE", "TRUE", 123 ) );
       //this.runConfigs.push( new ConfDesp( "directioinlob", "bool", "FALSE", "TRUE", "1234" ) ) ;新建集合空间在线生效
-      this.runConfigs.push( new ConfDesp( "sparsefile", "bool", "FALSE", "TRUE", null ) );
+      this.runConfigs.push( new ConfDesp( "sparsefile", "bool", "TRUE", "FALSE", null ) );
       this.runConfigs.push( new ConfDesp( "weight", "int", 10, 20, "asdafd" ) );
       //this.runConfigs.push( new ConfDesp( "usessl", "bool", "FALSE", "TRUE", "1234" ) ) ;新连接生效
       this.runConfigs.push( new ConfDesp( "auth", "bool", "TRUE", "FALSE", "1234" ) );

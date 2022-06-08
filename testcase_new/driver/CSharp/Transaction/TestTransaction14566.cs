@@ -42,47 +42,40 @@ namespace CSharp.Transaction
         [TestMethod]
         public void Test14566()
         {
-            try
+            sdb.TransactionBegin();
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
+            if (cs.IsCollectionExist(clName))
             {
-                sdb.TransactionBegin();
-                cs = sdb.GetCollectionSpace(SdbTestBase.csName);
-                if (cs.IsCollectionExist(clName))
-                {
-                    cs.DropCollection(clName);
-                }
-                cl = cs.CreateCollection(clName);
-                List<BsonDocument> datas = new List<BsonDocument>();
-                for (int i = 1; i <= 100; i++)
-                {
-                    BsonDocument doc = new BsonDocument();
-                    doc.Add("_id", i);
-                    doc.Add("number", i);
-                    doc.Add("name", "sequoiadb" + i);
-                    datas.Add(doc);
-                }
-                cl.BulkInsert(datas, 0);
-                BsonDocument matcher = new BsonDocument();
-                BsonArray arr = new BsonArray();
-                arr.Add(new BsonDocument("number", new BsonDocument("$gte", 5)));
-                arr.Add(new BsonDocument("number", new BsonDocument("$lt", 10)));
-                matcher.Add("$and", arr);
-                Assert.AreEqual(5, cl.GetCount(matcher));
-                BsonDocument modifier = new BsonDocument();
-                modifier.Add("$inc", new BsonDocument("number", 100));
-                cl.Update(matcher, modifier, null);
-                Assert.AreEqual(0, cl.GetCount(matcher));
-                matcher = new BsonDocument();
-                matcher.Add("number", new BsonDocument("$gt", 100));
-                Assert.AreEqual(5, cl.GetCount(matcher));
-                cl.Delete(matcher, null);
-                Assert.AreEqual(95, cl.GetCount(null));
-                sdb.TransactionRollback();
-                Assert.AreEqual(0, cl.GetCount(null));
+                cs.DropCollection(clName);
             }
-            catch (Exception e)
+            cl = cs.CreateCollection(clName);
+            List<BsonDocument> datas = new List<BsonDocument>();
+            for (int i = 1; i <= 100; i++)
             {
-                Assert.Fail(e.Message);
+                BsonDocument doc = new BsonDocument();
+                doc.Add("_id", i);
+                doc.Add("number", i);
+                doc.Add("name", "sequoiadb" + i);
+                datas.Add(doc);
             }
+            cl.BulkInsert(datas, 0);
+            BsonDocument matcher = new BsonDocument();
+            BsonArray arr = new BsonArray();
+            arr.Add(new BsonDocument("number", new BsonDocument("$gte", 5)));
+            arr.Add(new BsonDocument("number", new BsonDocument("$lt", 10)));
+            matcher.Add("$and", arr);
+            Assert.AreEqual(5, cl.GetCount(matcher));
+            BsonDocument modifier = new BsonDocument();
+            modifier.Add("$inc", new BsonDocument("number", 100));
+            cl.Update(matcher, modifier, null);
+            Assert.AreEqual(0, cl.GetCount(matcher));
+            matcher = new BsonDocument();
+            matcher.Add("number", new BsonDocument("$gt", 100));
+            Assert.AreEqual(5, cl.GetCount(matcher));
+            cl.Delete(matcher, null);
+            Assert.AreEqual(95, cl.GetCount(null));
+            sdb.TransactionRollback();
+            Assert.AreEqual(0, cl.GetCount(null));
         }
 
         [TestCleanup()]

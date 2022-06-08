@@ -29,6 +29,8 @@ public class SdbTestBase {
     public static String serviceName;
     public static String dsHostName;
     public static String dsServiceName;
+    public static String stpHostName;
+    public static String stpServiceName;
     public static String csName;
     public static String cappedCSName;
     public static int reservedPortBegin;
@@ -89,7 +91,8 @@ public class SdbTestBase {
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
             "REMOTEPASSWD", "SCRIPTDIR", "ESHOSTNAME", "ESSVCNAME",
-            "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME", "DSSVCNAME" })
+            "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME", "DSSVCNAME",
+            "STPHOSTNAME", "STPSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
@@ -100,7 +103,9 @@ public class SdbTestBase {
             @Optional("") String FULLTEXTPREFIX,
             @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR,
             @Optional("${DSHOSTNAME}") String DSHOSTNAME,
-            @Optional("11810") String DSSVCNAME ) {
+            @Optional("11810") String DSSVCNAME,
+            @Optional("localhost") String STPHOSTNAME,
+            @Optional("9622") String STPSVCNAME ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -120,6 +125,8 @@ public class SdbTestBase {
         sdbseadapterDir = SDBSEADAPTERDIR;
         dsHostName = DSHOSTNAME;
         dsServiceName = DSSVCNAME;
+        stpHostName = STPHOSTNAME;
+        stpServiceName = STPSVCNAME;
         srcCoordUrl = DSHOSTNAME + ":" + DSSVCNAME;
 
         getAllNodeConf( confObj );
@@ -252,7 +259,7 @@ public class SdbTestBase {
                 Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
                     ssh.exec( "mkdir -p " + SdbTestBase.reservedDir );
-                    ssh.exec( "chown " + SdbTestBase.remoteUser + " "
+                    ssh.exec( "chown sdbadmin:sdbadmin_group "
                             + SdbTestBase.reservedDir );
                 } finally {
                     ssh.disconnect();

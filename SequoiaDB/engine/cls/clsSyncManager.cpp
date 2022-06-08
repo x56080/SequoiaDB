@@ -254,7 +254,7 @@ namespace engine
          }
          if ( !has )
          {
-            status[merge].offset = 0 ; 
+            status[merge].offset = 0 ;
             status[merge].id.value = itr->first ;
             status[merge].valid = newNodeValid ;
             ++merge ;
@@ -271,7 +271,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_SYNC, "_clsSyncManager::sync" )
    INT32 _clsSyncManager::sync( _clsSyncSession &session,
                                 const UINT32 &w,
-                                INT64 timeout )
+                                INT64 timeout,
+                                BOOLEAN isFTWhole )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_SYNC ) ;
       SDB_ASSERT( w <= CLS_REPLSET_MAX_NODE_SIZE &&
@@ -309,7 +310,18 @@ namespace engine
       }
       else if ( _aliveCount < _validSync && w > _aliveCount + 1 )
       {
-         rc = SDB_CLS_WAIT_SYNC_FAILED ;
+         // if ReplSize is -1, or ReplSize is valid with FT whole mode,
+         // we can degrade the ReplSize for wait sync, report node is down
+         // to caller, who can adjust ReplSize if needed
+         if ( ( -1 == session.eduCB->getOrgReplSize() ) ||
+              ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
+         {
+            rc = SDB_DATABASE_DOWN ;
+         }
+         else
+         {
+            rc = SDB_CLS_WAIT_SYNC_FAILED ;
+         }
          _info->mtx.release_r() ;
          goto error ;
       }
@@ -379,7 +391,7 @@ namespace engine
          msg.next = lsn ;
          msg.from = id ;
          msg.header.TID = TID ;
-         _agent->syncSend( primary, &msg ) ;
+         _agent->syncSend( primary, (MsgHeader *)&msg ) ;
       }
       else
       {
@@ -428,7 +440,7 @@ namespace engine
          else if ( offset == _notifyList[i].offset )
          {
             msg.header.routeID = _notifyList[i].id ;
-            _agent->syncSend( _notifyList[i].id, &msg ) ;
+            _agent->syncSend( _notifyList[i].id, (MsgHeader *)&msg ) ;
          }
          else
          {
@@ -563,7 +575,6 @@ namespace engine
       SDB_ASSERT( alives <= _validSync, "impossible" ) ;
       if ( _validSync < alives )
       {
-         
          PD_LOG( PDWARNING, "sync: alives is bigger than valid sync."
                  "[alives:%d][valid:%d]", alives, _validSync ) ;
          goto done ;
@@ -862,7 +873,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__CRSYNCLIST, "_clsSyncManager::_clearSyncList" )
    void _clsSyncManager::_clearSyncList( UINT32 removed, UINT32 removedAlives,
-                                         UINT32 preAlives, UINT32 preSyncNum,                           
+                                         UINT32 preAlives, UINT32 preSyncNum,
                                          _clsSyncStatus *left )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CRSYNCLIST ) ;

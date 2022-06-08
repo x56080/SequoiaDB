@@ -45,6 +45,7 @@
 #include "dmsDump.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -411,7 +412,7 @@ namespace engine
          // before reorg let's get the child extent id for pos
          dmsExtentID ch = getChildExtentID ( pos ) ;
          // note _reorg may change pos
-         rc = _reorg ( order, pos ) ;
+         rc = _reorg ( order, pos, TRUE ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "index extent reorg failed with rc : %d", rc ) ;
@@ -450,7 +451,7 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                     key.dataSize()) ;
+                     key.dataSize() ) ;
             goto error ;
          }
          // copy the data into the position
@@ -496,7 +497,15 @@ namespace engine
       SDB_ASSERT ( indexCB, "index control block can't be NULL" ) ;
       dmsExtentID newRootExtentID = DMS_INVALID_EXTENT ;
       dmsExtentID newExtentID = DMS_INVALID_EXTENT ;
+      dmsExtentID origRightChildID = DMS_INVALID_EXTENT ;
       const ixmKeyNode *splitKey = NULL ;
+
+      BOOLEAN fixNewPageIfFailed = FALSE ;
+      BOOLEAN fixNewRootIfFailed = FALSE ;
+
+      // save origin right child
+      origRightChildID = _extentHead->_right ;
+
       // find the split position
       rc = _splitPos ( pos, splitPos ) ;
       if ( rc )
@@ -514,9 +523,12 @@ namespace engine
                   rc ) ;
          goto error ;
       }
+
       {
          // initialize the header for the new extent
          _ixmExtent newExtent( newExtentID, _extentHead->_mbID, _pIndexSu ) ;
+         fixNewPageIfFailed = TRUE ;
+
          // copy all keys from the split pos to new extent
          for ( UINT16 i = splitPos + 1 ; i < getNumKeyNode() ; i++ )
          {
@@ -531,6 +543,7 @@ namespace engine
                goto error ;
             }
          }
+
          // assign the right pointer
          newExtent._assignRight ( _extentHead->_right ) ;
 
@@ -554,7 +567,6 @@ namespace engine
          if ( DMS_INVALID_EXTENT == getParent() )
          {
             // if this is root page, let's allocate another page
-
             // allocate new extent
             rc = indexCB->allocExtent ( newRootExtentID ) ;
             if ( rc )
@@ -563,9 +575,12 @@ namespace engine
                         "rc = %d", rc ) ;
                goto error ;
             }
+
             // initialize the header for the new extent
             _ixmExtent rootExtent( newRootExtentID, _extentHead->_mbID,
                                    _pIndexSu ) ;
+            fixNewRootIfFailed = TRUE ;
+
             // promote the split key into parent, key._left point to the current
             // extent
             rc = rootExtent._pushBack ( splitKey->_rid,
@@ -637,18 +652,26 @@ namespace engine
             // remove unused keys from original extent, which may change newPos
             rc = insertHere ( newPos, rid, key, order, lchild, rchild,
                               indexCB ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to insert into splitted left page, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
          }
          else
          {
             // otherwise the insert will be performed in new page
             rc = newExtent.insertHere ( pos-splitPos-1, rid, key, order, lchild,
                                         rchild, indexCB ) ;
-         }
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to insert into splitted page, rc = %d",
-                     rc ) ;
-            goto error ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to insert into splitted right page, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
          }
       }
    done :
@@ -657,11 +680,39 @@ namespace engine
    error :
       if ( DMS_INVALID_EXTENT != newRootExtentID )
       {
+         if ( fixNewRootIfFailed )
+         {
+            ixmExtent newRootExtent( newRootExtentID, _pIndexSu ) ;
+
+            // fix statistics
+            _pIndexSu->decStatFreeSpace( newRootExtent.getMBID(),
+                                         newRootExtent.getFreeSize() ) ;
+
+            // fix parent point
+            setParent( DMS_INVALID_EXTENT, TRUE ) ;
+         }
+
          indexCB->freeExtent( newRootExtentID ) ;
          newRootExtentID = DMS_INVALID_EXTENT ;
       }
       if ( DMS_INVALID_EXTENT != newExtentID )
       {
+         if ( fixNewPageIfFailed )
+         {
+            ixmExtent newPageExtent( newExtentID, _pIndexSu ) ;
+
+            // fix statistics
+            _pIndexSu->decStatFreeSpace( newPageExtent.getMBID(),
+                                         newPageExtent.getFreeSize() ) ;
+
+            // fix parent points for left children
+            _fixParentPtrs( splitPos + 1,
+                            splitPos + 1 + newPageExtent.getNumKeyNode() ) ;
+
+            // fix parent point of right child
+            _assignRight( origRightChildID ) ;
+         }
+
          indexCB->freeExtent( newExtentID ) ;
          newExtentID = DMS_INVALID_EXTENT ;
       }
@@ -683,7 +734,10 @@ namespace engine
          ixmExtentHead *pExtent = _extRW.writePtr<ixmExtentHead>() ;
          pExtent->_totalKeyNodeNum = totalNodes ;
          unsetCompact() ;
-         return _reorg( order, newPos ) ;
+
+         // we should not delete the new inserting position
+         // we still need to match the left tree on that position
+         return _reorg( order, newPos, FALSE ) ;
       }
       return SDB_OK ;
    }
@@ -869,7 +923,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                  key.dataSize()) ;
+                  key.dataSize() ) ;
          goto error ;
       }
       ossMemcpy ( ((CHAR*)pHeader)+kn->_keyOffset,
@@ -1031,12 +1085,14 @@ namespace engine
    INT32 _ixmExtent::_reorg (const Ordering &order)
    {
       UINT16 dummy = 0xFFFF ;
-      return _reorg ( order, dummy ) ;
+      return _reorg ( order, dummy, TRUE ) ;
    }
    // inline reorg an index page, newPos represent the input/output for a key
    // after reorg happened
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__REORG, "_ixmExtent::_reorg" )
-   INT32 _ixmExtent::_reorg (const Ordering &order, UINT16 &newPos)
+   INT32 _ixmExtent::_reorg (const Ordering &order,
+                             UINT16 &newPos,
+                             BOOLEAN canDelNewPos )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__REORG );
@@ -1059,11 +1115,13 @@ namespace engine
       {
          ixmKeyNode *kn = writeKeyNode(i) ;
          INT32 keyDataSize = 0 ;
+         BOOLEAN foundNewPos = FALSE ;
          // if the slot doesn't same as previous, and that is what we are
          // looking for, then let's set newPos to the new position after reorg
          if ( newPos == i )
          {
             newPos = totalKeyNodeNum ;
+            foundNewPos = TRUE ;
          }
          // if there is no child and it's unused, let's skip it ( that means it
          // will not be copied and count, so it's actually deleted)
@@ -1071,8 +1129,11 @@ namespace engine
          {
             /// When all node is unused, should keep the one node.
             /// Otherwise the page will has no key node
-            if ( totalKeyNodeNum > 0 ||
-                 i < pHeader->_totalKeyNodeNum - 1 )
+            // if given position is not allowed to delete, we should not
+            // delete it, the caller still needs this position
+            if ( ( canDelNewPos || !foundNewPos ) &&
+                 ( ( totalKeyNodeNum > 0 ) ||
+                   ( i < pHeader->_totalKeyNodeNum - 1 ) ) )
             {
                continue ;
             }
@@ -1249,6 +1310,7 @@ namespace engine
                // this error only returned when dupAllowed == FALSE
                // this error represent duplicate key is not allowed and
                // duplicate key is detected
+               rc = pdError( SDB_IXM_DUP_KEY ) ;
 #ifdef _DEBUG
                PD_LOG ( PDWARNING, "Duplicate key is detected with rid(%d, %d), "
                         "page:%d, keynode:%d, insert rid:(%d, %d)",
@@ -1265,7 +1327,6 @@ namespace engine
                   pResult->setCurRID( rid ) ;
                   pResult->setPeerRID( kn->_rid ) ;
                }
-               rc = SDB_IXM_DUP_KEY ;
                goto error ;
             }
             // NOTE: there is an issue in earlier versions
@@ -1286,8 +1347,8 @@ namespace engine
                rc = root.exists( key, order, indexCB, tmpFound, tmpIdxRID,
                                  tmpRID ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to locate key %s to find "
-                            "duplicated keys, rc: %d", key.toString().c_str(),
-                            rc ) ;
+                            "duplicated keys, rc: %d",
+                            PD_SECURE_STR( key.toString() ), rc ) ;
                if ( tmpFound )
                {
                   if ( tmpRID == rid )
@@ -1298,6 +1359,7 @@ namespace engine
                   }
                   else
                   {
+                     rc = pdError( SDB_IXM_DUP_KEY ) ;
 #ifdef _DEBUG
                      PD_LOG ( PDWARNING, "Duplicate key is detected with "
                               "rid(%d, %d), page:%d, keynode:%d, "
@@ -1316,7 +1378,6 @@ namespace engine
                         pResult->setCurRID( rid ) ;
                         pResult->setPeerRID( tmpRID ) ;
                      }
-                     rc = SDB_IXM_DUP_KEY ;
                   }
                   goto error ;
                }
@@ -2171,7 +2232,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_TRUNC, "_ixmExtent::truncate" )
    void _ixmExtent::truncate( ixmIndexCB *indexCB, dmsExtentID parent,
-                              BOOLEAN &valid, UINT64 *pDelKeyCnt )
+                              BOOLEAN &valid, ossAtomic64 *pDelKeyCnt )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
@@ -2216,7 +2277,7 @@ namespace engine
                      pPageMap->rmItem( childExtentID ) ;
                      if ( pDelKeyCnt )
                      {
-                        (*pDelKeyCnt) += keyCnt ;
+                        pDelKeyCnt->add( keyCnt ) ;
                      }
                   }
                }

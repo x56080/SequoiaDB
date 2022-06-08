@@ -41,12 +41,11 @@
 #include "netRoute.hpp"
 #include "ossMem.hpp"
 #include "pmdEnv.hpp"
-#include "msgDef.h"
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
-#include "msgMessageFormat.hpp"
 #include <boost/bind.hpp>
+#include "msgConvertorImpl.hpp"
 
 using namespace boost::asio::ip ;
 
@@ -183,6 +182,7 @@ namespace engine
       if ( NULL == tmpEH.get() )
       {
          ossScopedLock lock( ( &_mtx ), EXCLUSIVE ) ;
+
          // after got exclusive lock, check again
          NET_UDP_EP2EH_MAP::iterator iter = _ep2ehMap.find( endPoint ) ;
          if ( iter != _ep2ehMap.end() )
@@ -199,16 +199,43 @@ namespace engine
             try
             {
                _ep2ehMap.insert( make_pair( endPoint, tmpEH ) ) ;
+               if ( MSG_INVALID_ROUTEID != routeID.value )
+               {
+                  _id2ehMap.insert( make_pair( routeID.value, tmpEH ) ) ;
+               }
             }
             catch ( exception &e )
             {
                PD_LOG( PDERROR, "Failed to add event handler to "
                        "end point map, occurred unexpected error: %s",
                        e.what() ) ;
-               rc = SDB_SYS ;
+               rc = ossException2RC( &e ) ;
                goto error ;
             }
             created = TRUE ;
+         }
+      }
+
+      // check and set route ID
+      if ( MSG_INVALID_ROUTEID == tmpEH->id().value &&
+           MSG_INVALID_ROUTEID != routeID.value )
+      {
+         ossScopedLock lock( ( &_mtx ), EXCLUSIVE ) ;
+         if ( MSG_INVALID_ROUTEID == tmpEH->id().value )
+         {
+            tmpEH->id( routeID ) ;
+            try
+            {
+               _id2ehMap.insert( make_pair( routeID.value, tmpEH ) ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add event handler to "
+                       "route ID map, occurred unexpected error: %s",
+                       e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
          }
       }
 
@@ -231,6 +258,42 @@ namespace engine
       return rc  ;
 
    error:
+      // clean up
+      removeEH( endPoint ) ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_GETEH_ID, "_netUDPEventSuit::getEH" )
+   INT32 _netUDPEventSuit::getEH( const MsgRouteID &routeID,
+                                  NET_EH &eh )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT_GETEH_ID ) ;
+
+      netUDPEndPoint endPoint ;
+
+      NET_EH tmpEH = _getEH( routeID ) ;
+      if ( NULL == tmpEH.get() )
+      {
+         rc = _route->route( routeID, endPoint ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to route [ group: %d, node: %d, "
+                      "service: %d ], rc: %d", routeID.columns.groupID,
+                      routeID.columns.nodeID, routeID.columns.serviceID, rc ) ;
+
+         rc = getEH( endPoint, routeID, tmpEH ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get EH from remote end "
+                      "point [%s], rc: %d",
+                      endPoint.address().to_string().c_str(), rc ) ;
+      }
+
+      eh = tmpEH ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__NETUDPEVENTSUIT_GETEH_ID, rc ) ;
+      return rc  ;
+
+   error:
       goto done ;
    }
 
@@ -249,6 +312,11 @@ namespace engine
             eh = iter->second ;
             _ep2ehMap.erase( iter ) ;
          }
+         if ( NULL != eh.get() &&
+              MSG_INVALID_ROUTEID != eh->id().value )
+         {
+            _id2ehMap.erase( eh->id().value ) ;
+         }
       }
 
       if ( NULL != eh.get() )
@@ -265,12 +333,41 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT_REMOVEEH_RID ) ;
 
-      netUDPEndPoint endPoint ;
-      INT32 rc = _route->route( routeID, endPoint, FALSE ) ;
-      if ( SDB_OK == rc )
+      NET_EH eh ;
+
       {
-         removeEH( endPoint ) ;
-         _route->clearUDPRoute( routeID, TRUE ) ;
+         ossScopedLock lock( ( &_mtx ), EXCLUSIVE ) ;
+         NET_UDP_ID2EH_MAP::iterator iter = _id2ehMap.find( routeID.value ) ;
+         if ( iter != _id2ehMap.end() )
+         {
+            eh = iter->second ;
+            _id2ehMap.erase( iter ) ;
+         }
+         if ( NULL != eh.get() )
+         {
+            netUDPEventHandler *udpEH =
+                  dynamic_cast< netUDPEventHandler * >( eh.get() ) ;
+            SDB_ASSERT( NULL != udpEH, "UDP event handler is invalid" ) ;
+            if ( NULL != udpEH )
+            {
+               _ep2ehMap.erase( udpEH->getRemoteEndPoint() ) ;
+            }
+         }
+      }
+
+      if ( NULL != eh.get() )
+      {
+         _frame->_erase( eh->handle() ) ;
+         eh->close() ;
+      }
+      else
+      {
+         // not found in route ID map, try release from end point map
+         netUDPEndPoint endPoint ;
+         if ( SDB_OK == _route->route( routeID, endPoint ) )
+         {
+            removeEH( endPoint ) ;
+         }
       }
 
       PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT_REMOVEEH_RID ) ;
@@ -286,15 +383,32 @@ namespace engine
          NET_EH eh ;
          {
             ossScopedLock lock( ( &_mtx ), EXCLUSIVE ) ;
-            if ( _ep2ehMap.size() == 0 )
+            if ( _ep2ehMap.size() > 0 )
+            {
+               NET_UDP_EP2EH_MAP::iterator iter = _ep2ehMap.begin() ;
+               if ( iter != _ep2ehMap.end() )
+               {
+                  eh = iter->second ;
+                  _ep2ehMap.erase( iter ) ;
+               }
+               if ( NULL != eh.get() &&
+                    MSG_INVALID_ROUTEID != eh->id().value )
+               {
+                  _id2ehMap.erase( eh->id().value ) ;
+               }
+            }
+            else if ( _id2ehMap.size() > 0 )
+            {
+               NET_UDP_ID2EH_MAP::iterator iter = _id2ehMap.begin() ;
+               if ( iter != _id2ehMap.end() )
+               {
+                  eh = iter->second ;
+                  _id2ehMap.erase( iter ) ;
+               }
+            }
+            else
             {
                break ;
-            }
-            NET_UDP_EP2EH_MAP::iterator iter = _ep2ehMap.begin() ;
-            if ( iter != _ep2ehMap.end() )
-            {
-               eh = iter->second ;
-               _ep2ehMap.erase( iter ) ;
             }
          }
          if ( NULL != eh.get() )
@@ -322,6 +436,25 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT__GETEH ) ;
+
+      return eh ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT__GETEH_ID, "_netUDPEventSuit::_getEH" )
+   NET_EH _netUDPEventSuit::_getEH( const MsgRouteID &routeID )
+   {
+      NET_EH eh ;
+
+      PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT__GETEH_ID ) ;
+
+      ossScopedLock lock( ( &_mtx ), SHARED ) ;
+      NET_UDP_ID2EH_MAP::iterator iter = _id2ehMap.find( routeID.value ) ;
+      if ( iter != _id2ehMap.end() )
+      {
+         eh = iter->second ;
+      }
+
+      PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT__GETEH_ID ) ;
 
       return eh ;
    }
@@ -359,6 +492,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT__READCALLBACK ) ;
 
       NET_EH eh ;
+      MsgRouteID routeID ;
       MsgHeader *message = (MsgHeader *)_buffer ;
 
       if ( error )
@@ -387,10 +521,33 @@ namespace engine
          goto error_close ;
       }
 
-      _frame->onReceiveMsg( eh, message->routeID, message,
-                            message->messageLength ) ;
+      // In version >= 3.4.5/5.0.3, sysinfo is sent between nodes in cluster
+      // too.
+      if ( MSG_SYSTEM_INFO_LEN == (UINT32)message->messageLength )
+      {
+         routeID.value = MSG_INVALID_ROUTEID ;
+      }
+      else
+      {
+         routeID = message->routeID ;
+      }
 
-      if ( SDB_OK == getEH( _remoteEndPoint, message->routeID, eh ) )
+      if ( MSG_COMM_EYE_DEFAULT != message->eye )
+      {
+         MsgHeader tmpHeader ;
+         msgConvertorImpl::msgHeaderUpgrade( (const MsgHeaderV1 *)message,
+                                             tmpHeader ) ;
+         _frame->onReceiveMsg( eh, message->routeID, &tmpHeader,
+                               message->messageLength ) ;
+      }
+      else
+      {
+         _frame->onReceiveMsg( eh, message->routeID, message,
+                               message->messageLength ) ;
+      }
+
+      // The _remoteEndPoint is used to get the eh, not the route id.
+      if ( SDB_OK == getEH( _remoteEndPoint, routeID, eh ) )
       {
          netUDPEventHandler *handler = NULL ;
 
@@ -598,7 +755,9 @@ namespace engine
 
       NET_HANDLE handle = _frame->allocateHandler() ;
 
-      eh = netUDPEventHandler::createShared( _getShared(), handle, routeID,
+      eh = netUDPEventHandler::createShared( _getShared(),
+                                             handle,
+                                             routeID,
                                              remoteEndPoint ) ;
       PD_CHECK( NULL != eh.get(), SDB_OOM, error, PDERROR,
                 "Failed to allocate UDP event handler" ) ;

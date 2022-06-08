@@ -1232,6 +1232,7 @@ public class TransUtils extends SdbTestBase {
     public static int getSplitTaskStatus( Sequoiadb db, String clFullName ) {
         int status = -1;
         BasicBSONObject matcher = new BasicBSONObject( "Name", clFullName );
+        matcher.put( "TaskType", 0 ); // split task
         DBCursor cursor = db.listTasks( matcher, null, null, null );
         while ( cursor.hasNext() ) {
             BSONObject record = cursor.getNext();

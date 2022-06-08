@@ -19,6 +19,7 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 
 public class CommLib {
     /**
@@ -843,5 +844,107 @@ public class CommLib {
         System.out.println(
                 testClassName.getTestClass().getName() + " coord:" + coord );
         return new Sequoiadb( coord, "", "" );
+    }
+
+    /**
+     * @description: 获取group下的所有节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
+     * @param db
+     *          db连接
+     * @param groupName
+     *          需要获取的group名
+     * @return
+     */
+    public static List< BasicBSONObject > getGroupNodes( Sequoiadb db,
+                                                         String groupName ) {
+
+        List< BasicBSONObject > nodeAddrs = new ArrayList<>();
+        try {
+            ReplicaGroup tmpArray = db.getReplicaGroup( groupName );
+            BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
+            BasicBSONList groups = ( BasicBSONList ) doc.get( "Group" );
+
+            for ( int i = 0; i < groups.size(); ++i ) {
+                BasicBSONObject group = ( BasicBSONObject ) groups.get( i );
+                String hostName = group.getString( "HostName" );
+                BasicBSONList service = ( BasicBSONList ) group
+                        .get( "Service" );
+                BasicBSONObject srcInfo = ( BasicBSONObject ) service.get( 0 );
+                String svcName = srcInfo.getString( "Name" );
+                String nodeID = group.getString( "NodeID" );
+                nodeAddrs.add( new BasicBSONObject( "hostName", hostName )
+                        .append( "svcName", svcName )
+                        .append( "nodeID", nodeID ) );
+            }
+        } catch ( BaseException e ) {
+            throw e;
+        }
+        return nodeAddrs;
+    }
+
+    /**
+     * @description: 获取CL所在的所有节点
+     * @param db
+     *          db连接
+     * @param csName
+     *          需要获取的CS名
+     * @param clName
+     *          需要获取的CL名
+     * @return
+     */
+    public static List< BasicBSONObject > getCLNodes( Sequoiadb db,
+                                                      String csName, String clName ) {
+        List< String > groupName = new ArrayList<>();
+        List< BasicBSONObject > nodeAddrs = new ArrayList<>();
+        List< BasicBSONObject > nodeInfo = new ArrayList<>();
+        DBCollection dbcl = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        groupName = CommLib.getCLGroups( dbcl );
+        for ( int i = 0; i < groupName.size(); i++ ) {
+            nodeInfo = getGroupNodes( db, groupName.get( i ) );
+            for ( int j = 0; j < nodeInfo.size(); j++ ) {
+                nodeAddrs.add( nodeInfo.get( j ) );
+            }
+        }
+        return nodeAddrs;
+    }
+
+    /**
+     * @description: 循环获取CL,超过60s未获取到报超时
+     * @param db
+     *          需要获取CL的db连接
+     * @param csName
+     *          对应的CS名
+     * @param clName
+     *          需要获取的CL名
+     * @return
+     */
+    public static DBCollection getCL( Sequoiadb db, String csName,
+                                      String clName ) {
+        int doTime = 0;
+        int timeOut = 60;
+        DBCollection dbcl = null;
+        while ( doTime < timeOut ) {
+            try {
+                dbcl = db.getCollectionSpace( csName ).getCollection( clName );
+                break;
+            } catch ( BaseException e ) {
+                if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorType()
+                        && e.getErrorType() != SDBError.SDB_DMS_CS_NOTEXIST
+                        .getErrorType() ) {
+                    throw e;
+                }
+            }
+            try {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
+                e.printStackTrace();
+            }
+            doTime++;
+        }
+        if ( doTime >= timeOut ) {
+            Assert.fail( "get collection time out" );
+        }
+        return dbcl;
     }
 }

@@ -112,7 +112,9 @@ function StartOne()
     let "nesscount++"
     mountinfo=$(echo ${mountpointarg%*/})
   fi
-    
+ 
+  mountinfo=$(cd "$mountinfo"; pwd)
+
   mountpid=$( mount -t $fusetype |grep $mountinfo" " | awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')    
   if [ -n "$mountpid" ]; then   
     cmdconfpathinfo=$( ps -ef| grep  $mountpid | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
@@ -188,11 +190,11 @@ function StartOne()
       echo "Succeed: $curfspid"
       return 0
     else
-      echo "Failed"
+      echo "Failed to start."
       return 1  
     fi
   else
-    echo "Failed"
+    echo "Failed to start."
     return 1
   fi
 }

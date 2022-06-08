@@ -37,7 +37,7 @@ public class Backup7173 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "run mode is standalone,test case skip" );
         }
-        if ( sdb.isRelicaGroupExist( groupName ) ) {
+        if ( sdb.isReplicaGroupExist( groupName ) ) {
             if ( sdb.isCollectionSpaceExist( csName ) ) {
                 sdb.dropCollectionSpace( csName );
             }

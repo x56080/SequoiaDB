@@ -113,10 +113,9 @@ enum DPS_LOG_TYPE
    LOG_TYPE_DATA_POP     = 0x14,
    LOG_TYPE_ALTER        = 0x15,
    LOG_TYPE_ADDUNIQUEID  = 0x16,
-   LOG_TYPE_IX_CRT_END   = 0x17,
+   LOG_TYPE_RETURN       = 0x17, 
 
    ///vessel log types
-   LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT = 0x400,
    LOG_TYPE_VESSEL_COPY_PAGE = 0x401,
 
    LOG_TYPE_VESSEL_PAGE_INIT = 0x402,
@@ -147,14 +146,14 @@ namespace engine
          _dpsEventHandler () {}
          virtual ~_dpsEventHandler () {}
 
-         virtual INT32 canAssignLogPage( UINT32 reqLen, IExecutor *executor ) = 0 ;
+         virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) = 0 ;
 
          virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
                                      INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
 
          virtual void  onWriteLog( DPS_LSN_OFFSET offset ) = 0 ;
 
-         virtual INT32 onCompleteOpr( IExecutor *executor, INT32 w ) = 0 ;
+         virtual INT32 onCompleteOpr( _pmdEDUCB *cb, INT32 w ) = 0 ;
 
          virtual void  onSwitchLogFile( UINT32 preLogicalFileId,
                                         UINT32 preFileId,

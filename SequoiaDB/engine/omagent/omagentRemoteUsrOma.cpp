@@ -272,12 +272,7 @@ namespace engine
                }
             }
 
-            // Note:
-            //_jobList.push_back( make_pair<EDUID,string>( eduID, svcname ) );
-            // above statement encountered compiling error with -std=c++11,
-            // so was changed as following :
-            std::pair< EDUID, string > tmpPair = make_pair( eduID, svcname ) ;
-            _jobList.push_back( tmpPair );
+            _jobList.push_back( pair<EDUID,string>( eduID, svcname ) );
          }
       }
 

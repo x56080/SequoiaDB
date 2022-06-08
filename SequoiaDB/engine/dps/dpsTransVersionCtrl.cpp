@@ -48,6 +48,7 @@
 #include "dmsTransLockCallback.hpp"
 #include "ixmExtent.hpp" // for _keyCmp
 #include "dpsUtil.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -87,11 +88,12 @@ namespace engine
       _rid.reset() ;
    }
 
-   string preIdxTreeNodeKey::toString() const
+   string preIdxTreeNodeKey::toString( BOOLEAN encryptKey ) const
    {
       std::stringstream ss ;
-      ss << "RID(" << _rid._extent << ", " << _rid._offset
-         << "), Key:" << _keyObj.toString() 
+      ss << "RID(" << _rid._extent << "," << _rid._offset
+         << ", Key:"
+         << ( encryptKey ? PD_SECURE_OBJ( _keyObj ) : _keyObj.toString() )
          << ", TransID:" << dpsTransIDToString( _transID ).c_str() ;
       return ss.str() ;
    }
@@ -159,7 +161,7 @@ namespace engine
       return 0 ;
    }
 
-   string preIdxTreeNodeValue::toString() const
+   string preIdxTreeNodeValue::toString( BOOLEAN encryptObj ) const
    {
       dmsRecordID rid = getRecordID() ;
       BSONObj obj = getRecordObj() ;
@@ -170,7 +172,10 @@ namespace engine
       {
          ss << "(Deleted)" ;
       }
-      ss << "Object(" << obj.toString() << "), " ;
+
+      ss << "Object("
+         << ( encryptObj ? PD_SECURE_OBJ( obj ) : obj.toString() )
+         << ")" ;
 
       ss << "rbsOffset(" << _rbsOffset._clID << ", "
          << _rbsOffset._logicalID << ")" ;
@@ -195,7 +200,7 @@ namespace engine
          if ( isRecordDeleted() )
          {
             result = DPS_PREIDXTREENODEVALUE_DELETED ;
-         }         
+         }
          else
          {
             result = DPS_PREIDXTREENODEVALUE_VALID ;
@@ -235,7 +240,7 @@ namespace engine
    }
 
    // destructor
-   preIdxTree::~preIdxTree() 
+   preIdxTree::~preIdxTree()
    {
       if ( NULL != _order )
       {
@@ -380,7 +385,7 @@ namespace engine
             }
             else
             {
-               // rid already exist. Note that newly inserted one 
+               // rid already exist. Note that newly inserted one
                // should always be the newest version, thus be directly
                // pointed by ridTree node.
                pre->second->second.setRidNext( ret.first );
@@ -389,7 +394,7 @@ namespace engine
                _ridTree[keyNode.getRID()] = ret.first ;
 
 #if SDB_INTERNAL_DEBUG
-               PD_LOG( PDDEBUG, 
+               PD_LOG( PDDEBUG,
                        "Added new rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
                        dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
@@ -447,7 +452,7 @@ namespace engine
    }
 
    // Create a node from key and rid, insert the node to map(tree)
-   // Dependency: 
+   // Dependency:
    //   Caller has to held the tree latch in X
    INT32 preIdxTree::insert ( const BSONObj *keyData,
                               const dmsRecordID &rid,
@@ -537,13 +542,13 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Occur exception(%s)", 
+         PD_LOG( PDERROR, "Occur exception(%s)",
                  e.what() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-   done : 
+   done :
       if ( isLocked )
       {
          unlockX() ;
@@ -606,7 +611,7 @@ namespace engine
       {
          if ( _isValid && !pOldVer )
          {
-            PD_LOG( PDWARNING, 
+            PD_LOG( PDWARNING,
                     "Did not find records in index tree(%d) with key[%s]",
                     _idxLID,
                     keyNode.toString().c_str() ) ;
@@ -634,7 +639,7 @@ namespace engine
                               BOOLEAN hasLock )
    {
       // In MVCC, without the transID, we might delete unexpected version
-      SDB_ASSERT( !pmdGetOptionCB()->mvccOn(), 
+      SDB_ASSERT( !pmdGetOptionCB()->mvccOn(),
                   "Should not use this interface when MVCC is enabled" ) ;
       preIdxTreeNodeKey keyNode( keyData, rid, getOrdering() ) ;
       return remove( keyNode, pOldVer, hasLock ) ;
@@ -767,10 +772,10 @@ namespace engine
 
          // check if deleted. The record could have been marked deleted
          // but index haven't been physically removed from the tree due
-         // to async release. 
+         // to async release.
          // OR in MVCC, the in memory record could be deleted after written
-         // to RBS, but the old version index is still in the tree which 
-         // the caller should evaluate and make decision on how to 
+         // to RBS, but the old version index is still in the tree which
+         // the caller should evaluate and make decision on how to
          // use the record
          if ( !pos->second.isRecordDeleted() || pmdGetOptionCB()->mvccOn() )
          {
@@ -878,19 +883,19 @@ namespace engine
    // Description:
    //   Locate the best matching key location based on the provided key value
    //   and search criteria. The key value is likely saved from the last cycle
-   //   before the pause. Since the tree structure can be changed due to 
+   //   before the pause. Since the tree structure can be changed due to
    //   insertion and deletion, we don't bother to try and verify the saved
    //   iterator. Directly use the key value to find the best match key and
    //   start the new round from there.
    // Input:
    //   prevKey: previous indexkey to start with the search
    //   keepFieldsNum & skipToNext:
-   //   keepFieldsNum is the number of fields from prevKey that should match 
+   //   keepFieldsNum is the number of fields from prevKey that should match
    //   the currentKey (for example if the prevKey is {c1:1, c2:1}, and
-   //   keepFieldsNum = 1, that means we want to match c1:1 key for the 
+   //   keepFieldsNum = 1, that means we want to match c1:1 key for the
    //   current location. Depends on if we have skipToNext set, if we do
    //   that it means we want to skip c1:1 and match whatever the next
-   //   (for example c1:1.1); otherwise we want to continue match the 
+   //   (for example c1:1.1); otherwise we want to continue match the
    //   elements from matchEle
    //   matchEle matchInclusive: push down matching criteria from access plan
    //   o: key order information
@@ -900,7 +905,7 @@ namespace engine
    // Return:
    //   SDB_IXM_EOC: end of index search
    //   Any error coming from the function
-   // Dependency: 
+   // Dependency:
    //   Caller must hold tree latch in S/X
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_KEYLOCATE, "preIdxTree::keyLocate" )
    INT32 preIdxTree::keyLocate( INDEX_TREE_CPOS &pos,
@@ -1006,7 +1011,7 @@ namespace engine
    //   direction: search direction
    // Output:
    //   iter: The iterator pointing to the best location.
-   //   prevKey: 
+   //   prevKey:
    // Return:
    //   SDB_IXM_EOC: end of index search
    //   Any error coming from the function
@@ -1162,7 +1167,7 @@ namespace engine
 
    // adjust pre and next node in the rid chain when removing a node from
    // the in memory index tree. tree latch must be held in X
-   void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS & pos ) 
+   void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS & pos )
    {
       preIdxTreeNodeValue tmpValue = pos->second ;
       dmsRecordID         rid = pos->first.getRID() ;
@@ -1190,7 +1195,7 @@ namespace engine
          if ( _ridTree[rid] == pos )
          {
 #ifdef _DEBUG
-            PD_LOG ( PDDEBUG, 
+            PD_LOG ( PDDEBUG,
                      "Remove first rid(%d, %d) from ridtree(%d)",
                      rid._extent, rid._offset, _idxLID ) ;
 #endif
@@ -1213,7 +1218,7 @@ namespace engine
 
    // search _ridTree, find the first version of keynode in memtree
    // for the given rid. Caller should hold the tree latch
-   INDEX_TREE_POS preIdxTree::getKeyNodeFromRidTree( dmsRecordID rid ) 
+   INDEX_TREE_POS preIdxTree::getKeyNodeFromRidTree( dmsRecordID rid )
    {
       INDEX_TREE_POS pos = _tree.end() ;
       INDEX_RID_TREE::iterator it = _ridTree.find( rid ) ;
@@ -1386,7 +1391,7 @@ namespace engine
       {
          _pUnit->lockS() ;
          _locked = TRUE ;
-   
+
          if ( _lockOnChain )
          {
             _cur->unlockOnChain() ;
@@ -1553,7 +1558,7 @@ namespace engine
       IDXID_TO_TREE_MAP_IT it = _idxTrees.begin() ;
       while( it != _idxTrees.end() )
       {
-         
+
          SDB_ASSERT( pmdGetOptionCB()->mvccOn() || it->second->empty(),
                      "Index tree should be empty" ) ;
          if ( !it->second->empty() )
@@ -1753,7 +1758,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_GCIDXTREES, "oldVersionCB::gcIdxTrees" )
-   void oldVersionCB::gcIdxTrees( ) 
+   void oldVersionCB::gcIdxTrees( )
    {
       PD_TRACE_ENTRY ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
       preIdxTreePtr treePtr ;
@@ -1815,7 +1820,7 @@ namespace engine
       }
 
       releaseS() ;
-      
+
       PD_TRACE_EXIT ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
    }
 
@@ -2152,12 +2157,12 @@ namespace engine
    void oldVersionCB::cleanIdxNodesForRecord( UINT32 csID,
                                               UINT16 clID,
                                               SINT32 extID,
-                                              SINT32 offset ) 
+                                              SINT32 offset )
    {
       PD_TRACE_ENTRY ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD ) ;
       preIdxTreePtr treePtr ;
       IDXID_TO_TREE_MAP_IT it ;
-      globIdxID   gid(csID, clID, 0); 
+      globIdxID   gid(csID, clID, 0);
 
       latchS() ;
       // find the first index tree of this collection under the latch
@@ -2269,7 +2274,7 @@ namespace engine
       pNewRecord = ( dmsRecord* )_recordPtr.get() ;
       /// copy header
       ossMemcpy( _recordPtr.get(), (const void*)pRecord,
-                 pRecord->hasGlobTransID() ? DMS_RECORD_METADATA_SZ : 
+                 pRecord->hasGlobTransID() ? DMS_RECORD_METADATA_SZ :
                                              DMS_RECORD_V0_METADATA_SZ ) ;
 
       pNewRecord->unsetCompressed() ;
@@ -2289,7 +2294,7 @@ namespace engine
       PD_LOG ( PDDEBUG,
                "Thread(%d) Saved old copy for rid(%d, %d) to oldVer(%x) "
                "through transaction(%s), recordTransID(%s)",
-               ownerTID, _rid._extent, _rid._offset, 
+               ownerTID, _rid._extent, _rid._offset,
                this, dpsTransIDToString( _ownerTransID ).c_str(),
                dpsTransIDToString( _recordTransID ).c_str() ) ;
 #endif //_DEBUG
@@ -2361,16 +2366,16 @@ namespace engine
          SINT32 rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->appendRecord( _csID, _clID, _rid,
                                       _recordTransID,
-                                      _ownerTransID, 
+                                      _ownerTransID,
                                       this->getRecordObj() ) ;  // use insertRecord API
                    //  this->getRecord() ) ;  // use my own interface
          if ( rc )
          {
-            PD_LOG( PDERROR, 
+            PD_LOG( PDERROR,
                     "Failed to write record (%d, %d, %d, %d) to RBS "
                     "(rc=%d), leave the record!",
                     _csID, _clID, _rid._extent, _rid._offset, rc ) ;
-            SDB_ASSERT( FALSE, 
+            SDB_ASSERT( FALSE,
                         "Failed to write in memory old version to RBS") ;
             goto done ;
          }

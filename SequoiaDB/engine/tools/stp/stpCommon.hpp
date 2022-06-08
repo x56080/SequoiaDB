@@ -39,6 +39,7 @@
 #ifndef STP_COMMON_HPP__
 #define STP_COMMON_HPP__
 
+#include "oss.hpp"
 #include "math.h"
 
 namespace engine

@@ -14,7 +14,7 @@
 
 //#define HOST                  "localhost"
 //#define SERVER                "11810" // for coord
-#define HOST                  "192.168.20.42"
+#define HOST                  "localhost"
 #define SERVER                "50000" // for coord
 #define SERVER1               "30000" // for catalog
 #define SERVER2               "20000" // for data
@@ -36,9 +36,8 @@
 
 
 // for rg
-#define GROUPNAME1            "testgroup1"
-#define GROUPNAME2            "testgroup2"
-#define GROUPNAME3            "testgroup3"
+#define GROUPNAME1            "db1"
+#define GROUPNAME2            "db2"
 
 #define DATAPATH1             "/opt/sequoiadb/database/test/data1"
 #define DATAPATH2             "/opt/sequoiadb/database/test/data2"

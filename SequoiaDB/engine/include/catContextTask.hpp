@@ -42,14 +42,13 @@
 #include "rtnContext.hpp"
 #include "catLevelLock.hpp"
 #include "catalogueCB.hpp"
+#include "IDataSource.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
    class _SDB_DMSCB ;
-   typedef _SDB_DMSCB SDB_DMSCB;
-   typedef std::vector< UINT32 > CAT_GROUP_LIST ;
 
    /*
     * _catCtxTaskBase define
@@ -135,6 +134,16 @@ namespace engine
 
       const std::string &getDataName () const { return _dataName ; }
 
+      BOOLEAN isDataSource() const
+      {
+         return UTIL_INVALID_DS_UID != _dsUID ;
+      }
+
+      UTIL_DS_UID getDataSourceUID() const
+      {
+         return _dsUID ;
+      }
+
    protected :
       virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb,
                                           SDB_DMSCB *pDmsCB,
@@ -151,6 +160,7 @@ namespace engine
    protected :
       std::string _dataName ;
       BSONObj _boData ;
+      UTIL_DS_UID _dsUID ;
    } ;
 
    typedef _catCtxDataTask catCtxDataTask ;
@@ -178,15 +188,14 @@ namespace engine
    class _catCtxDropCLTask : public _catCtxDataTask
    {
    public :
-      _catCtxDropCLTask ( const std::string &clName, INT32 version ) ;
+      _catCtxDropCLTask ( const std::string &clName, INT32 version,
+                          BOOLEAN rmTaskAndIdx ) ;
 
       virtual ~_catCtxDropCLTask () {}
 
-      BOOLEAN needUpdateCoord () const { return _needUpdateCoord ; }
-
       INT32 getVersion () const { return _version ; }
 
-      const ossPoolList<PAIR_CLNAME_ID>& globalIndexCLList() const
+      const CAT_PAIR_CLNAME_ID_LIST& globalIndexCLList() const
       {
          return _globalIdxCLList ;
       }
@@ -196,11 +205,6 @@ namespace engine
 
       virtual INT32 _recheckInternal( _pmdEDUCB *cb ) ;
 
-      virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb,
-                                          SDB_DMSCB *pDmsCB,
-                                          SDB_DPSCB *pDpsCB,
-                                          INT16 w ) ;
-
       virtual INT32 _executeInternal ( _pmdEDUCB *cb,
                                        SDB_DMSCB *pDmsCB,
                                        SDB_DPSCB *pDpsCB,
@@ -208,8 +212,8 @@ namespace engine
 
    protected :
       INT32 _version ;
-      BOOLEAN _needUpdateCoord ;
-      ossPoolList<PAIR_CLNAME_ID> _globalIdxCLList ;
+      BOOLEAN _rmTaskAndIdx ;
+      CAT_PAIR_CLNAME_ID_LIST _globalIdxCLList ;
    } ;
 
    /*

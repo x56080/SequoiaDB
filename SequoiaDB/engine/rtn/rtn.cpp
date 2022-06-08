@@ -672,8 +672,11 @@ namespace engine
       {
          fileType = SDB_FILE_STARTUP_HST ;
       }
-      else if ( 0 == ossStrcmp( pFileName, UTIL_RENAME_LOG_FILENAME ) )
+      else if ( 0 == ossStrncmp( pFileName,
+                                 UTIL_RENAME_LOG_FILENAME,
+                                 ossStrlen( UTIL_RENAME_LOG_FILENAME ) ) )
       {
+         // ".SEQUOIADB_RENAME_INFO" is prefix of rename log file
          fileType = SDB_FILE_RENAME_INFO ;
       }
       else
@@ -1017,34 +1020,9 @@ namespace engine
       SDB_ASSERT ( lobMetaPath, "lob meta path can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
 
-      utilRenameLogger logger ;
-      utilRenameLog renameLog ;
-      BOOLEAN hasRenameInfo = TRUE ;
-
-      rc = logger.init( UTIL_RENAME_LOGGER_READ ) ;
-      if ( SDB_FNE == rc )
-      {
-         rc = SDB_OK ;
-         hasRenameInfo = FALSE ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to init logger, rc: %d" , rc ) ;
-
-      if ( hasRenameInfo )
-      {
-         rc = logger.load( renameLog ) ;
-         if ( SDB_SYS == rc )
-         {
-            PD_LOG( PDWARNING, "Failed to load rename log file, rc: %d. "
-                    "And delete rename log file" , rc ) ;
-            logger.clear() ;
-            hasRenameInfo = FALSE ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to load rename log file, rc: %d" , rc ) ;
-            goto error ;
-         }
-      }
+      utilRenameLogManager logManager ;
+      rc = logManager.load() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load rename logs, rc: %d", rc ) ;
 
       try
       {
@@ -1070,28 +1048,43 @@ namespace engine
                                                    DMS_SU_FILENAME_SZ,
                                                    sequence ) )
             {
-               if ( hasRenameInfo &&
-                    ( 0 == ossStrcmp( csName, renameLog.oldName ) ||
-                    0 == ossStrcmp( csName, renameLog.newName ) ) )
+               // check if rename is interrupted
+               if ( logManager.hasRenamed() )
                {
-                  rc = rtnCorrectCollectionSpaceFile( dataPath, indexPath,
-                                                      lobPath, lobMetaPath,
-                                                      sequence, renameLog ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Correct cs file failed, rc: %d", rc ) ;
+                  utilRenameLog renameLog ;
+                  rc = logManager.getRenameLog( csName, renameLog ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to get rename log "
+                               "for collection space [%s], rc: %d",
+                               csName, rc ) ;
 
-                  if ( 0 == ossStrcmp( csName, renameLog.oldName ) )
+                  if ( renameLog.isValid() )
                   {
-                     ossStrcpy( csName, renameLog.newName );
-                  }
+                     PD_LOG( PDEVENT, "Got rename log [%s] -> [%s]",
+                             renameLog.oldName, renameLog.newName ) ;
 
-                  rc = logger.clear() ;
-                  if ( rc )
-                  {
-                     PD_LOG( PDWARNING,
-                             "Failed to clear rename log, rc: %d" , rc ) ;
+                     // try correct file names
+                     rc = rtnCorrectCollectionSpaceFile( dataPath, indexPath,
+                                                         lobPath, lobMetaPath,
+                                                         sequence, renameLog ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to correct collection "
+                                  "space file [%s] -> [%s], rc: %d",
+                                  renameLog.oldName, renameLog.newName, rc ) ;
+
+                     if ( 0 == ossStrcmp( csName, renameLog.oldName ) )
+                     {
+                        ossStrcpy( csName, renameLog.newName );
+                     }
+
+                     rc = logManager.clear( renameLog ) ;
+                     if ( SDB_OK != rc )
+                     {
+                        // clear failed, we can ignore
+                        PD_LOG( PDWARNING, "Failed to clear rename log "
+                                "[%s] -> [%s], rc: %d",
+                                renameLog.oldName, renameLog.newName, rc ) ;
+                        rc = SDB_OK ;
+                     }
                   }
-                  hasRenameInfo = FALSE ;
                }
 
                /// skip SYSTEMP file
@@ -1172,10 +1165,9 @@ namespace engine
                        dataPath, e.what() ) ;
       }
 
-      if ( hasRenameInfo )
+      if ( logManager.hasRenamed() )
       {
-         logger.clear() ;
-         hasRenameInfo = FALSE ;
+         logManager.clearAll() ;
       }
 
    done :
@@ -1243,13 +1235,15 @@ namespace engine
                                         SDB_DPSCB *dpsCB,
                                         BOOLEAN sysCall,
                                         BOOLEAN dropFile,
-                                        BOOLEAN ensureEmpty )
+                                        BOOLEAN ensureEmpty,
+                                        dmsDropCSOptions *options )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDELCSCOMMAND ) ;
       BOOLEAN writable = FALSE ;
       UINT32 retryTime = 0 ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
@@ -1291,8 +1285,14 @@ namespace engine
             goto error ;
          }
 
-         // tell others to close contexts on the same collection space
-         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         // - tell others to close contexts on the same collection space
+         // - tell other waiting transactions to give up
+         if ( ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 ) ||
+              ( NULL != cb && cb->getTransExecutor()->useTransLock() &&
+                transCB->transLockKillWaiters( suLogicalID,
+                                               DMS_INVALID_MBID,
+                                               NULL,
+                                               SDB_DPS_TRANS_LOCK_INCOMPATIBLE ) ) )
          {
             ossSleep( 200 ) ;
          }
@@ -1306,7 +1306,8 @@ namespace engine
             }
             else
             {
-               rc = dmsCB->dropCollectionSpace ( pCollectionSpace, cb, dpsCB ) ;
+               rc = dmsCB->dropCollectionSpace ( pCollectionSpace, cb, dpsCB,
+                                                 options ) ;
             }
          }
          else
@@ -1764,6 +1765,78 @@ namespace engine
       return fullPathName ;
    }
 
+   INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
+                            dmsExtentID expectedExtentID,
+                            const CHAR* expectedIndexName,
+                            dmsExtentID expectedIndexLID,
+                            dmsStorageUnit *su,
+                            dmsMBContext *mbContext )
+   {
+      SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
+      SDB_ASSERT ( expectedIndexName, "planRuntimeIndexName can't be NULL" ) ;
+      SDB_ASSERT ( su, "su can't be NULL" ) ;
+      SDB_ASSERT ( mbContext, "mbContext can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasLocked = FALSE ;
+      BOOLEAN exist = FALSE ;
+
+      if ( !mbContext->isMBLock() )
+      {
+         rc = mbContext->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
+                      mbContext->toString().c_str(), rc ) ;
+         hasLocked = TRUE ;
+      }
+
+      if ( !indexCB->isInitialized() )
+      {
+         rc = su->index()->checkIndexCBExtentExist( mbContext,
+                                                    expectedExtentID,
+                                                    exist ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to check index[extent id: %d, name: %s],"
+                    " rc: %d", expectedExtentID, expectedIndexName, rc ) ;
+            goto error ;
+         }
+
+         if ( exist )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Invalid index page[extent id: %d, name: %s], "
+                    "rc: %d", expectedExtentID, expectedIndexName, rc ) ;
+            goto error ;
+         }
+         else
+         {
+            rc = SDB_IXM_NOTEXIST ;
+            PD_LOG( PDWARNING, "Index[extent id: %d, name: %s] does not exist, "
+                    "rc: %d", expectedExtentID, expectedIndexName, rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( indexCB->getLogicalID() != expectedIndexLID )
+      {
+         rc = SDB_IXM_NOTEXIST ;
+         PD_LOG( PDWARNING, "Index[extent id: %d, name: %s] logical id[%d] "
+                 "is not expected[%d], rc: %d", expectedExtentID,
+                 expectedIndexName, indexCB->getLogicalID(),
+                 expectedIndexLID, rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( hasLocked )
+      {
+         mbContext->mbUnlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // Note that Only delete and update are calling this interface
    // In the future, if there are other cases, we should carefully
    // review the usage and decide what scanner to initialize with.
@@ -1809,19 +1882,14 @@ namespace engine
       {
          rtnPredicateList *predList = NULL ;
          // for index scan, we maintain context by runtime instead of by DMS
-         ixmIndexCB indexCB ( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
-         if ( !indexCB.isInitialized() )
+         ixmIndexCB indexCB ( planRuntime->getIndexCBExtent(),
+                              su->index(), NULL ) ;
+
+         rc = rtnIsIndexCBValid( &indexCB, planRuntime->getIndexCBExtent(),
+                                 planRuntime->getIndexName(),
+                                 planRuntime->getIndexLID(), su, mbContext ) ;
+         if ( rc )
          {
-            PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
-         {
-            PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                    "expected[%d]", planRuntime->getIndexCBExtent(),
-                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-            rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
 
@@ -2467,7 +2535,7 @@ namespace engine
       }
    }
 
-   INT32 rtnConvertIndexDef( BSONObj& indexDef )
+   INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef )
    {
       INT32 rc = SDB_OK ;
 
@@ -2483,7 +2551,6 @@ namespace engine
          while ( i.more() )
          {
             BSONElement e = i.next() ;
-            BOOLEAN hasAppend = FALSE ;
 
             if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD ) ||
@@ -2492,62 +2559,125 @@ namespace engine
                  0 == ossStrcmp( e.fieldName(), IXM_GLOBAL_FIELD ) ||
                  0 == ossStrcmp( e.fieldName(), IXM_STANDALONE_FIELD ) )
             {
-               if ( e.isNumber() &&
-                    ( 1 == e.number() || 0 == e.number() ) )
+               if ( Bool == e.type() )
+               {
+                  builder.append( e ) ;
+               }
+               else if ( e.isNumber() &&
+                         ( 1 == e.number() || 0 == e.number() ) )
                {
                   // convert { unique: 1 } => { unique: true }
                   builder.append( e.fieldName(), e.trueValue() ) ;
-                  hasAppend = TRUE ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be boolean",
+                              e.fieldName() ) ;
+                  goto error ;
                }
             }
             else if ( 0 == ossStrcmp( e.fieldName(), IXM_UNIQUE_FIELD1 ) )
             {
-               // convert { Unique: true } => { unique: true }
-               if ( e.isNumber() &&
+               if ( Bool == e.type() )
+               {
+                  // convert { Unique: true } => { unique: true }
+                  builder.appendAs( e, IXM_UNIQUE_FIELD ) ;
+               }
+               else if ( e.isNumber() &&
                     ( 1 == e.number() || 0 == e.number() ) )
                {
+                  // convert { Unique: 1 } => { unique: true }
                   builder.append( IXM_UNIQUE_FIELD, e.trueValue() ) ;
                }
                else
                {
-                  builder.appendAs( e, IXM_UNIQUE_FIELD ) ;
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be boolean",
+                              e.fieldName() ) ;
+                  goto error ;
                }
-               hasAppend = TRUE ;
             }
             else if ( 0 == ossStrcmp( e.fieldName(), IXM_ENFORCED_FIELD1 ) )
             {
-               // convert { Enforced: true } => { enforce: true }
-               if ( e.isNumber() &&
+               if ( Bool == e.type() )
+               {
+                  // convert { Enforced: true } => { enforced: true }
+                  builder.appendAs( e, IXM_ENFORCED_FIELD ) ;
+               }
+               else if ( e.isNumber() &&
                     ( 1 == e.number() || 0 == e.number() ) )
                {
+                  // convert { Enforced: 1 } => { enforced: true }
                   builder.append( IXM_ENFORCED_FIELD, e.trueValue() ) ;
                }
                else
                {
-                  builder.appendAs( e, IXM_ENFORCED_FIELD ) ;
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be boolean",
+                              e.fieldName() ) ;
+                  goto error ;
                }
-               hasAppend = TRUE ;
             }
-            if ( !hasAppend )
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_NAME ) )
             {
+               if ( String == e.type() )
+               {
+                  builder.append( e ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Field[%s] invalid in obj[%s]",
+                          IXM_FIELD_NAME_NAME, indexDef.toString().c_str() ) ;
+                  goto error ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_KEY ) )
+            {
+               if ( Object == e.type() )
+               {
+                  builder.append( e ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Field[%s] invalid in obj[%s]",
+                          IXM_FIELD_NAME_KEY, indexDef.toString().c_str() ) ;
+                  goto error ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_V ) ||
+                      0 == ossStrcmp( e.fieldName(), IXM_DROPDUP_FIELD ) ||
+                      0 == ossStrcmp( e.fieldName(), IXM_2DRANGE_FIELD ) )
+            {
+               // old version create index or copy index has them
                builder.append( e ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Unrecognized field: %s", e.fieldName() ) ;
+               goto error ;
             }
          }
          indexDef = builder.obj() ;
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT, "rtnLoadCollectionDict" )
    INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
-                                const CHAR *dictionary,
-                                UINT32 dictSize, BOOLEAN force )
+                                const CHAR *dictionary, UINT32 dictSize )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT ) ;
@@ -2568,7 +2698,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get mb context for collection[%s] failed: %d",
                    pCollectionName, rc ) ;
 
-      rc = data->loadDictionary( context, dictionary, dictSize, force ) ;
+      rc = data->loadDictionary( context, dictionary, dictSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Load dictionary for collection[%s] failed[%d]",
                    pCollectionName, rc ) ;
 
@@ -2582,6 +2712,39 @@ namespace engine
          dmsCB->suUnlock( suID ) ;
       }
       PD_TRACE_EXITRC( SDB_RTNLOADCOLLECTIONDICT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT1, "rtnLoadCollectionDict" )
+   INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
+                                dmsMBContext *context,
+                                const CHAR *dictionary,
+                                UINT32 dictSize )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT1 ) ;
+
+      SDB_ASSERT( FALSE == context->isMBLock(),
+                  "mb should not have been locked" ) ;
+
+      rc = context->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Lock collection[%s.%s] failed[%d]",
+                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+
+      rc = dataSu->loadDictionary( context, dictionary, dictSize ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Load dictionary for collection[%s.%s] failed[%d]",
+                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+
+   done:
+      if ( context )
+      {
+         context->mbUnlock() ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNLOADCOLLECTIONDICT1, rc ) ;
       return rc ;
    error:
       goto done ;

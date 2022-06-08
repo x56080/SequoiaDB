@@ -247,16 +247,23 @@ namespace engine
          const string&              getSource() const ;
 
       protected:
+         enum CLS_CL_OP_TYPE {
+            CLS_CL_OP_UNKNOWN = 0,
+            CLS_CL_OP_WRITE,
+            CLS_CL_OP_READ_ON_ANY,
+            CLS_CL_OP_READ_ON_PRY,
+            CLS_CL_OP_READ_ON_SND
+         } ;
+
          INT32 _checkWriteStatus() ;
-         INT32 _checkPrimaryWhenRead( INT32 flag, INT32 reqFlag ) ;
-         INT32 _checkSecondaryWhenRead( INT32 flag, INT32 reqFlag ) ;
+         INT32 _checkPrimaryWhenRead() ;
+         INT32 _checkSecondaryWhenRead() ;
 
          /// do multi things to reduce times of getting lock
          INT32 _checkCLStatusAndGetSth( const CHAR *name,
                                         INT32 version,
-                                        BOOLEAN *isMainCL = NULL,
+                                        CLS_CL_OP_TYPE opType,
                                         INT16 *w = NULL,
-                                        CHAR *mainCLName = NULL,
                                         utilCLUniqueID *clUniqueID = NULL,
                                         BOOLEAN *repairCheck = NULL ) ;
 
@@ -448,8 +455,10 @@ namespace engine
                                    INT16 w ) ;
 
          INT32 _dropMainCL( const CHAR *pCollection,
-                           INT16 w,
-                           SINT64 &contextID ) ;
+                            const CHAR *pQuery,
+                            const CHAR *pHint,
+                            INT16 w,
+                            SINT64 &contextID ) ;
 
          INT32 _renameMainCL( const CHAR *pCollection,
                               INT16 w,
@@ -487,12 +496,20 @@ namespace engine
                                 BOOLEAN isWrite,
                                 BOOLEAN isAllowEmptyList ) ;
 
+         // check sub-collection ( write operators, version, etc )
+         INT32 _checkSubCL( const CHAR *mainCLName,
+                            const CHAR *subCLName ) ;
+
          // get sub-collection list
          INT32 _getSubCLList( const CHAR *pCollectionName,
                               CLS_SUBCL_LIST &subCLList,
                               CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
 
-         INT32 _truncateMainCL( const CHAR *fullName ) ;
+         INT32 _truncateMainCL( const CHAR *fullName,
+                                const CHAR *pQuery,
+                                const CHAR *pHint,
+                                INT16 w,
+                                SINT64 &contextID ) ;
 
          INT32 _testMainCollection( const CHAR *fullName ) ;
 
@@ -586,16 +603,27 @@ namespace engine
                                     const stpLogicalTimeUS &sendTime,
                                     stpLogicalTimeUS &preCommitTime ) ;
 
-         void _copyCollectionName( const CHAR *collectionName )
+         void _setCollectionName( const CHAR *collectionName )
          {
-            _cmdCollectionName.assign( collectionName ) ;
-            _pCollectionName = _cmdCollectionName.c_str() ;
+            _pEDUCB->setCurProcessName( collectionName ) ;
+            _pCollectionName = _pEDUCB->getCurProcessName() ;
+         }
+
+         void _setCollectionSpaceName( const CHAR *collectionSpaceName )
+         {
+            _pEDUCB->setCurProcessName( collectionSpaceName ) ;
+            _pCollectionName = NULL ;
          }
 
          void _clearCollectionName()
          {
-            _cmdCollectionName.clear() ;
             _pCollectionName = NULL ;
+         }
+
+         void _clearProcessInfo()
+         {
+            _pCollectionName = NULL ;
+            _pEDUCB->clearProcessInfo() ;
          }
 
          INT32 _getCSInfoWhenLoadCS( _rtnLoadCollectionSpace* pCommand ) ;
@@ -617,9 +645,7 @@ namespace engine
          MsgRouteID             _primaryID ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
-         ossPoolString           _cmdCollectionName ;
-         INT32                   _clVersion ;
-
+         INT32                  _clVersion ;
          BOOLEAN                _isMainCL ;
          BOOLEAN                _hasUpdateCataInfo ;
 

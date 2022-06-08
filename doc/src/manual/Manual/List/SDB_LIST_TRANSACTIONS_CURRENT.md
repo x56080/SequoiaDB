@@ -1,15 +1,5 @@
 [^_^]: 
-
     当前事务列表
-    作者：何嘉文
-    时间：20190524
-    评审意见
-
-    王涛：
-    许建辉：
-    市场部：
-
-
 
 当前事务列表可以列出当前会话正在进行的事务信息。
 
@@ -35,6 +25,9 @@ SDB_LIST_TRANSACTIONS_CURRENT
 | CurrentTransLSN        | int64    | 事务当前的日志 LSN                       |   
 | WaitLock               | bson     | 正在等待的锁                             |
 | TransactionLocksNum    | int32    | 事务已经获得的锁                         |
+| IsLockEscalated        | boolean  | 事务是否已触发锁升级                     |
+| UsedLogSpace           | int64    | 事务已使用的日志空间，单位为字节         |
+| ReservedLogSpace       | int64    | 事务为回滚操作保留的日志空间，单位为字节 |
 | RelatedID              | string   | 内部标识                                 |
 
 > **Note:**  
@@ -60,7 +53,7 @@ WaitLock 字段中锁对象的信息如下：
 
 | 锁对象       | CSID | CLID  | ExtentID | Offset | 备注 |
 | ------------ | ---- | ----- | ---- | ---- | ------------ |
-| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在WaitLock为没有锁对象时，表示当前事务没有在等待锁 |
+| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在 WaitLock 为没有锁对象时，表示当前事务没有在等待锁 |
 | 集合空间锁   | >= 0 | 65535 | -1   | -1   | |
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
@@ -78,7 +71,7 @@ WaitLock 字段中锁对象的信息如下：
 
 ```lang-json
 {
-  "NodeName": "ubuntu1604-xjh:20000",
+  "NodeName": "sdbserver:20000",
   "GroupName": "db1",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
@@ -86,6 +79,9 @@ WaitLock 字段中锁对象的信息如下：
   "CurrentTransLSN": -1,
   "WaitLock": {},
   "TransactionLocksNum": 3,
+  "IsLockEscalated": false,
+  "UsedLogSpace": 100,
+  "ReservedLogSpace": 116,
   "RelatedID": "c0a81457c35000006b75"
 }
 ```

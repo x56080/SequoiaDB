@@ -84,6 +84,7 @@ final class AdminCommand {
     final static String LIST_DATASOURCES = PREFIX + "list datasources";
     final static String LIST_CL_IN_DOMAIN = PREFIX + "list collections in domain";
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
+    final static String LIST_RECYCLEBIN = PREFIX + "list recyclebin";
 
     final static String SNAP_CONTEXTS = PREFIX + "snapshot contexts";
     final static String SNAP_CONTEXTS_CURRENT = PREFIX + "snapshot contexts current";
@@ -109,6 +110,7 @@ final class AdminCommand {
     final static String SNAP_INDEXES = PREFIX + "snapshot indexes";
     final static String SNAP_TRANSWAITS = PREFIX + "snapshot waiting transactions";
     final static String SNAP_TRANSDEADLOCK = PREFIX + "snapshot transaction deadlocks";
+    final static String SNAP_RECYCLEBIN = PREFIX + "snapshot recyclebin";
 
     final static String RESET_SNAPSHOT = PREFIX + "snapshot reset";
 
@@ -150,4 +152,12 @@ final class AdminCommand {
     final static String ALTER_DATASOURCE = PREFIX + "alter datasource";
 
     final static String INVALIDATE_CACHE = PREFIX + "invalidate cache";
+
+    final static String GET_RECYCLEBIN_DETAIL = PREFIX + "get recyclebin detail";
+    final static String GET_RECYCLEBIN_COUNT = PREFIX + "get recyclebin count";
+    final static String ALTER_RECYCLEBIN = PREFIX + "alter recyclebin";
+    final static String RETURN_RECYCLEBIN_ITEM = PREFIX + "return recyclebin item";
+    final static String RETURN_RECYCLEBIN_ITEM_TO_NAME = PREFIX + "return recyclebin item to name";
+    final static String DROP_RECYCLEBIN_ITEM = PREFIX + "drop recyclebin item";
+    final static String DROP_RECYCLEBIN_ALL = PREFIX + "drop recyclebin all";
 }

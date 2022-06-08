@@ -100,7 +100,6 @@ namespace engine
 
          SDB_DPSCB            *_dpsCB ;
          SDB_DMSCB            *_dmsCB ;
-
    };
    typedef class _clsCleanupJob clsCleanupJob ;
 

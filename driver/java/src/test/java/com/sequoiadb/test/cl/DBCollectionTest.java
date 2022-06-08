@@ -14,6 +14,7 @@ import org.bson.BasicBSONObject;
 import org.bson.types.BSONTimestamp;
 import org.bson.types.BasicBSONList;
 import org.bson.types.Binary;
+import org.bson.util.DateInterceptUtil;
 import org.bson.util.JSON;
 import org.junit.*;
 
@@ -828,6 +829,44 @@ public class DBCollectionTest {
         options.put("Role", "coord");
         sdb.invalidateCache(null);
         sdb.invalidateCache(options);
+    }
+
+    @Test
+    public void testExactlyDate() {
+        String utilStr = "utilDate";
+        String sqlStr = "utilDate";
+        BSONObject obj = new BasicBSONObject();
+        Date date = new Date();
+        java.sql.Date sqlDate = new java.sql.Date( date.getTime() );
+        ClientOptions options = new ClientOptions();
+
+        // case 1: exactlyDate is true
+        options.setExactlyDate( true );
+        Sequoiadb.initClient( options );
+        obj.put( utilStr, date );
+        obj.put( sqlStr, sqlDate );
+        cl.truncate();
+        cl.insertRecord( obj );
+
+        BSONObject result1 = cl.queryOne();
+        Date actualUtilDate1 = (Date) result1.get( utilStr );
+        Date actualSqlDate1 = (Date) result1.get( sqlStr );
+        Assert.assertEquals( DateInterceptUtil.getYMDTime( date ), (Long)actualUtilDate1.getTime() );
+        Assert.assertEquals( DateInterceptUtil.getYMDTime( sqlDate ), (Long)actualSqlDate1.getTime() );
+
+        // case 2: exactlyDate is false
+        options.setExactlyDate( false );
+        Sequoiadb.initClient( options );
+        obj.put( utilStr, date );
+        obj.put( sqlStr, sqlDate );
+        cl.truncate();
+        cl.insertRecord( obj );
+
+        BSONObject result2 = cl.queryOne();
+        Date actualUtilDate2 = (Date) result2.get( utilStr );
+        Date actualSqlDate2 = (Date) result2.get( sqlStr );
+        Assert.assertEquals( date.getTime(), actualUtilDate2.getTime() );
+        Assert.assertEquals( sqlDate.getTime(), actualSqlDate2.getTime() );
     }
 
     @Test

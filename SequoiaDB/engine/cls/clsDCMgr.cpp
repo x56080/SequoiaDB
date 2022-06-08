@@ -72,10 +72,13 @@ namespace engine
       _readonly = FALSE ;
       _hasCsUniqueHWM = FALSE ;
       _csUniqueHWM = 0 ;
+      _catVersion = CATALOG_VERSION_CUR ;
 
       _orgObj = BSONObj() ;
       _imageGroups.clear() ;
       _imageRGroups.clear() ;
+
+      _recycleBinConf.reset() ;
    }
 
    INT32 _clsDCBaseInfo::lock_r( INT32 millisec )
@@ -180,6 +183,22 @@ namespace engine
          }
       }
 
+      e = obj.getField( FIELD_NAME_CAT_VERSION ) ;
+      if ( e.eoo() )
+      {
+         _catVersion = CATALOG_VERSION_V0 ;
+      }
+      else if ( e.isNumber() )
+      {
+         _catVersion = (UINT32)( e.numberInt() ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to parse field [%s]",
+                 FIELD_NAME_CAT_VERSION ) ;
+         goto error ;
+      }
+
       e = obj.getField( FIELD_NAME_IMAGE ) ;
       if ( Object == e.type() )
       {
@@ -239,6 +258,10 @@ namespace engine
       {
          goto error ;
       }
+
+      rc = _recycleBinConf.fromBSON( obj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update recycle info from BSON, "
+                   "rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -1760,6 +1783,18 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   utilRecycleBinConf _clsDCBaseInfo::getRecycleBinConf()
+   {
+      ossScopedRWLock _lock( &_rwMutex, SHARED ) ;
+      return _recycleBinConf ;
+   }
+
+   void _clsDCBaseInfo::setRecycleBinConf( const utilRecycleBinConf &conf )
+   {
+      ossScopedRWLock _lock( &_rwMutex, EXCLUSIVE ) ;
+      _recycleBinConf = conf ;
    }
 
 }

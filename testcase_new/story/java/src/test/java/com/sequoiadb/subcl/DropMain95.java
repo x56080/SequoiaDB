@@ -71,7 +71,9 @@ public class DropMain95 extends SdbTestBase {
                 Assert.fail( DropClThread.getErrorMsg() );
             }
         } catch ( BaseException e ) {
-            Assert.assertEquals( -23, e.getErrorCode(), e.getMessage() );
+            if ( e.getErrorCode() != -23 && e.getErrorCode() != -190 ) {
+                throw e;
+            }
             return;
         } finally {
             if ( db2 != null ) {

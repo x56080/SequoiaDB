@@ -40,8 +40,6 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 
-#include "../bson/bson.h"
-
 using namespace bson ;
 
 namespace engine
@@ -1648,6 +1646,7 @@ namespace engine
       reply.header.routeID.value = 0 ;
       reply.header.TID  = pReqMsg->TID ;
       reply.header.messageLength = sizeof ( MsgOpReply ) ;
+      reply.header.globalID = pReqMsg->globalID ;
       reply.flags = rc ;
       reply.contextID = -1 ;
       reply.numReturned = 1 ;

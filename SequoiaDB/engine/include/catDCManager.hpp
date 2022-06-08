@@ -80,6 +80,8 @@ namespace engine
 
       INT32 updateGlobalAddr() ;
 
+      _clsDCBaseInfo *getDCInfo() { return _pDCBaseInfo ; }
+
       BOOLEAN isDCActivated() const ;
       BOOLEAN isDCReadonly() const ;
       BOOLEAN isImageEnabled() const ;
@@ -89,12 +91,19 @@ namespace engine
       void    setWritedCommand( BOOLEAN writed ) { _isWritedCmd = writed ; }
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
 
+      INT32 updateDCCache()
+      {
+         return _mapData2DCMgr( _pDCMgr ) ;
+      }
+
+      INT32 getCATVersion( UINT32 &version ) ;
+      INT32 setCATVersion( UINT32 version ) ;
+
    public :
       // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
       virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
-      virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
 
    // message process functions
    protected:

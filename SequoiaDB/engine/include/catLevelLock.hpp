@@ -44,6 +44,7 @@
 #include "oss.hpp"
 #include "ossErr.h"
 #include "ossLatch.hpp"
+#include "utilRecycleItem.hpp"
 #include <string>
 #include <map>
 #include <vector>
@@ -65,6 +66,7 @@ namespace engine
       CAT_LOCK_NODE        = 2,  // for group,node
       CAT_LOCK_DOMAIN      = 3,  // for domain
       CAT_LOCK_SHARDING    = 4,  // for sharding
+      CAT_LOCK_RECYCLEBIN  = 5,  // for recycle bin
       CAT_LOCK_MAX
    } ;
 
@@ -289,6 +291,40 @@ namespace engine
    typedef _catDomainLock catDomainLock ;
 
    /*
+      _catRecycleBinLock define
+    */
+   class _catRecycleBinLock : public _catZeroLevelLock
+   {
+   public:
+      _catRecycleBinLock() ;
+      virtual ~_catRecycleBinLock() ;
+   } ;
+   typedef class _catRecycleBinLock catRecycleBinLock ;
+
+   /*
+      _catRecycleCSLock define
+    */
+   class _catCSRecycleLock : public _catOneLevelLock
+   {
+   public:
+      _catCSRecycleLock( const std::string &csName ) ;
+      virtual ~_catCSRecycleLock() ;
+   } ;
+   typedef class _catCSRecycleLock catCSRecycleLock ;
+
+   /*
+      _catRecycleCLLock define
+    */
+   class _catCLRecycleLock : public _catTwoLevelLock
+   {
+   public:
+      _catCLRecycleLock( const std::string &csName,
+                         const std::string &clFullName ) ;
+      virtual ~_catCLRecycleLock() ;
+   } ;
+   typedef class _catCLRecycleLock catCLRecycleLock ;
+
+   /*
        _catCtxLockMgr define
     */
    class _catCtxLockMgr : public SDBObject
@@ -332,7 +368,20 @@ namespace engine
                             const std::string &nodeName,
                             OSS_LATCH_MODE mode ) ;
 
+      BOOLEAN tryLockRecycleItem( const utilRecycleItem &recycleItem,
+                                  OSS_LATCH_MODE mode ) ;
+
       void unlockObjects () ;
+
+      OSS_INLINE void setIgnoreLock( BOOLEAN ignoreLock )
+      {
+         _ignoreLock = ignoreLock ;
+      }
+
+      OSS_INLINE BOOLEAN isIgnoreLock() const
+      {
+         return _ignoreLock ;
+      }
 
    protected:
       BOOLEAN _tryLockObject ( CAT_LOCK_TYPE type,
@@ -348,6 +397,7 @@ namespace engine
 
    protected:
       LOCK_LIST _lockList ;
+      BOOLEAN   _ignoreLock ;
    } ;
 
    typedef class _catCtxLockMgr catCtxLockMgr ;

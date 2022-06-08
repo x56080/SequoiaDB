@@ -49,11 +49,13 @@ using namespace std ;
 
 namespace engine
 {
+
    /*
     * _catCtxDataBase implement
     */
    _catCtxDataBase::_catCtxDataBase ( INT64 contextID, UINT64 eduID )
-   : _catContextBase( contextID, eduID )
+   : _catContextBase( contextID, eduID ),
+     _groupHandler( _lockMgr )
    {
    }
 
@@ -61,32 +63,23 @@ namespace engine
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDATA_MAKEREPLY, "_catCtxDataBase::_makeReply" )
-   INT32 _catCtxDataBase::_makeReply ( rtnContextBuf &buffObj )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDATA__REGEVENTHANDLERS, "_catCtxDataBase::_regEventHandlers" )
+   INT32 _catCtxDataBase::_regEventHandlers()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY ( SDB_CATCTXDATA_MAKEREPLY ) ;
+      PD_TRACE_ENTRY( SDB_CATCTXDATA__REGEVENTHANDLERS ) ;
 
-      // If the Data group list is not empty, we need the Coord and Catalog
-      // walk through this context step by step, so send dummy object to
-      // keep one GetMore for one step.
-      if ( ( CAT_CONTEXT_READY == _status && !_executeAfterLock ) ||
-           ( CAT_CONTEXT_CAT_DONE == _status && _executeAfterLock ) )
-      {
-         BSONObjBuilder retObjBuilder ;
-         _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-         buffObj = rtnContextBuf( retObjBuilder.obj() ) ;
-      }
-      else if ( CAT_CONTEXT_END != _status )
-      {
-         BSONObj dummy ;
-         buffObj = rtnContextBuf( dummy.getOwned() ) ;
-      }
+      rc = _regEventHandler( &_groupHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register group handler, "
+                   "rc: %d", rc ) ;
 
-      PD_TRACE_EXITRC ( SDB_CATCTXDATA_MAKEREPLY, rc ) ;
-
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXDATA__REGEVENTHANDLERS, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
@@ -233,14 +226,15 @@ namespace engine
    INT32 _catCtxCLMultiTask::_addDropCLTask ( const std::string &clName,
                                               INT32 version,
                                               _catCtxDropCLTask **ppCtx,
-                                              BOOLEAN pushExec )
+                                              BOOLEAN pushExec,
+                                              BOOLEAN rmTaskAndIdx )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CATCTXCL_DROPCL_TASK ) ;
 
       _catCtxDropCLTask *pCtx = NULL ;
-      pCtx = SDB_OSS_NEW _catCtxDropCLTask( clName, version ) ;
+      pCtx = SDB_OSS_NEW _catCtxDropCLTask( clName, version, rmTaskAndIdx ) ;
       PD_CHECK( pCtx, SDB_SYS, error, PDERROR,
                 "Failed to create drop collection [%s] sub-task",
                 clName.c_str() ) ;
@@ -266,12 +260,18 @@ namespace engine
                           "CAT_DROP_CS" )
 
    _catCtxDropCS::_catCtxDropCS ( INT64 contextID, UINT64 eduID )
-   : _catCtxCLMultiTask( contextID, eduID )
+   : _catCtxCLMultiTask( contextID, eduID ),
+     _globIdxHandler( _lockMgr ),
+     _taskHandler( _lockMgr ),
+     _recycleHandler( UTIL_RECYCLE_CS, UTIL_RECYCLE_OP_DROP, _taskHandler,
+                      _lockMgr )
    {
-      _executeAfterLock = FALSE ;
-      _commitAfterExecute = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
       _ensureEmpty = FALSE ;
+
+      // may have recycled collections on dropped groups
+      _groupHandler.setIgnoreNonExist( TRUE ) ;
    }
 
    _catCtxDropCS::~_catCtxDropCS ()
@@ -280,54 +280,55 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCS_OPEN, "_catCtxDropCS::open" )
-   INT32 _catCtxDropCS::open ( const CHAR *pQuery,
+   INT32 _catCtxDropCS::open ( const BSONObj &query,
                                rtnContextBuf &buffObj,
                                _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
-                   "Wrong catalog status before opening" ) ;
-
       PD_TRACE_ENTRY( SDB_CATCTXDROPCS_OPEN ) ;
 
-      _isOpened = TRUE ;
-
-      _cmdType = MSG_CAT_DROP_SPACE_REQ ;
-
-      try
-      {
-         BSONObj dump( pQuery ) ;
-         _boQuery = dump.getOwned() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-      rc = _parseQuery( cb ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = SDB_INVALIDARG ;
-      }
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed in catContext [%lld]: "
-                   "failed to parse query, rc: %d",
-                   contextID(), rc ) ;
-
-      rc = _open( buffObj, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      rc = _open( query, MSG_CAT_DROP_SPACE_REQ, buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open drop collection space context, "
+                   "rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXDROPCS_OPEN, rc ) ;
       return rc ;
    error :
-      _changeStatusOnError() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCS__REGEVENTHANDLERS, "_catCtxDropCS::_regEventHandlers" )
+   INT32 _catCtxDropCS::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXDROPCS__REGEVENTHANDLERS ) ;
+
+      rc = _BASE::_regEventHandlers() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register base handlers, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_globIdxHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register global index handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      // NOTE: behavior of task handler depends on recycle handler, so
+      // must register task handler after recycle handler
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXDROPCS__REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -371,13 +372,6 @@ namespace engine
                          "Field type is not Bool, type: %d, obj: %s, rc: %d",
                          ele.type(), _boQuery.toString().c_str(), rc ) ;
                _ensureEmpty = ele.Bool() ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Field name is unreconigzed, name: %s, obj: %s",
-                       ele.fieldName(), _boQuery.toString().c_str() ) ;
-               goto error ;
             }
          }
 
@@ -423,6 +417,28 @@ namespace engine
                    "Failed to check drop collection space [%s] task, rc: %d",
                    _targetName.c_str(), rc ) ;
 
+      _boTarget = pDropCSTask->getDataObj() ;
+
+      if ( !pDropCSTask->isDataSource() )
+      {
+         utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
+
+         rc = catParseCSUniqueID( _boTarget, csUniqueID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of collection "
+                      "space [%s], rc: %d", _targetName.c_str(), rc ) ;
+
+         // dropping collection space need to drop recycle items inside
+         // this collection space
+         // get group list for recycle bin items
+         rc = _groupHandler.addGroupsInRecycleBin( csUniqueID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get group list for recycle "
+                      "collections from collection space [%s], rc: %d",
+                      _targetName.c_str(), rc ) ;
+
+         // set current collection space unique ID to global index handler
+         _globIdxHandler.setExclusedCSUniqueID( csUniqueID ) ;
+      }
+
       rc = _addDropCSSubTasks( pDropCSTask, cb ) ;
       PD_RC_CHECK( rc , PDERROR,
                    "Failed to add sub-tasks for drop collection space [%s], "
@@ -432,11 +448,6 @@ namespace engine
       rc = _pushExecTask( pDropCSTask ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to push collection task, rc: %d", rc ) ;
-
-      rc = catLockGroups( _groupList, cb, _lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to lock groups, rc: %d",
-                   rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXDROPCS_CHECK_INT, rc ) ;
@@ -471,67 +482,6 @@ namespace engine
       return rc ;
    error :
       SAFE_OSS_DELETE( pCtx ) ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCS__MAKEREPLY, "_catCtxDropCS::_makeReply" )
-   INT32 _catCtxDropCS::_makeReply ( rtnContextBuf & buffObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CATCTXDROPCS__MAKEREPLY ) ;
-
-      try
-      {
-         if ( CAT_CONTEXT_READY == _status )
-         {
-            // send index's CLUID and grouplist to coord.
-            BSONObjBuilder retObjBuilder ;
-
-            if ( _globalIdxCLList.size() > 0 )
-            {
-               BSONArrayBuilder indexArrBuilder(
-                         retObjBuilder.subarrayStart( CAT_GLOBAL_INDEX ) ) ;
-
-               ossPoolList<PAIR_CLNAME_ID>::iterator it ;
-               for ( it = _globalIdxCLList.begin() ;
-                     it != _globalIdxCLList.end() ; it++ )
-               {
-                  if ( !rtnCollectionInTheSpace( it->first.c_str(),
-                                                 _targetName.c_str() ) )
-                  {
-                     indexArrBuilder.append( BSON( CAT_COLLECTION <<
-                                                   it->first <<
-                                                   CAT_GIDX_CL_UNIQUEID <<
-                                                   (INT64)(it->second) ) ) ;
-                  }
-
-               }
-               indexArrBuilder.done() ;
-            }
-
-            // send grouplist to coord
-            _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-            buffObj = rtnContextBuf( retObjBuilder.obj() ) ;
-         }
-         else
-         {
-            // Send dummy object to keep one GetMore for one step.
-            BSONObj dummy ;
-            buffObj = rtnContextBuf( dummy.getOwned() ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_CATCTXDROPCS__MAKEREPLY, rc ) ;
-      return rc ;
-
-   error:
       goto done ;
    }
 
@@ -582,7 +532,7 @@ namespace engine
                   goto error ;
                }
 
-               rc = _addDropCLTask( clFullName, -1, &pDropCLTask );
+               rc = _addDropCLTask( clFullName, -1, &pDropCLTask, TRUE, FALSE );
 
                // Space has been locked already
                pDropCLTask->disableLocks() ;
@@ -594,9 +544,10 @@ namespace engine
 
                if ( pDropCLTask->globalIndexCLList().size() > 0 )
                {
-                  _globalIdxCLList.insert( _globalIdxCLList.end(),
-                                 pDropCLTask->globalIndexCLList().begin(),
-                                 pDropCLTask->globalIndexCLList().end() ) ;
+                  rc = _globIdxHandler.addGlobIdxs(
+                                          pDropCLTask->globalIndexCLList() ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to add global indexes, "
+                               "rc: %d", rc ) ;
                }
 
                rc = _addDropCLSubTasks( pDropCLTask, cb, externalMainCL ) ;
@@ -630,7 +581,7 @@ namespace engine
                pUnlinkCS->addIgnoreRC( SDB_INVALID_MAIN_CL ) ;
             }
 
-            if ( _groupList.size() == 0 )
+            if ( _groupHandler.isGroupEmpty() )
             {
                // If group size is 0, there are two possibilities:
                // (1) No collection is in the collection space.
@@ -643,7 +594,9 @@ namespace engine
                   UTIL_DS_UID dsID = dsEle.numberInt() ;
                   SDB_ASSERT( UTIL_INVALID_DS_UID != dsID,
                               "Data source is invalid" ) ;
-                  _groupList.push_back( SDB_DSID_2_GROUPID( dsID ) ) ;
+                  rc = _groupHandler.addGroup( SDB_DSID_2_GROUPID( dsID ) ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to add data source "
+                               "group ID, rc: %d", rc ) ;
                }
             }
          }
@@ -746,8 +699,7 @@ namespace engine
                   continue ;
                }
 
-               rc = catGetCollectionGroupSet( pUnlinkSubCLTask->getDataObj(),
-                                              _groupList ) ;
+               rc = _groupHandler.addGroups( pUnlinkSubCLTask->getDataObj() ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to collect groups for sub-collection [%s], "
                             "rc: %d",
@@ -780,8 +732,7 @@ namespace engine
                   }
                }
             }
-            rc = catGetCollectionGroupSet( pDropCLTask->getDataObj(),
-                                           _groupList ) ;
+            rc = _groupHandler.addGroups( pDropCLTask->getDataObj() ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to collect groups for collection [%s], rc: %d",
                          clName.c_str(), rc ) ;
@@ -868,9 +819,11 @@ namespace engine
    _catCtxRenameCS::_catCtxRenameCS ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
-      _executeAfterLock = FALSE ;
-      _commitAfterExecute = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
+
+      // may have recycled collections on dropped groups
+      _groupHandler.setIgnoreNonExist( TRUE ) ;
    }
 
    _catCtxRenameCS::~_catCtxRenameCS ()
@@ -921,8 +874,9 @@ namespace engine
 
       BOOLEAN newCSExist = FALSE ;
       BSONObj boCollectionspace ;
-      ossPoolSet< UINT32 > occupiedGroups ;
+      ossPoolSet< UINT32 > subCLGroupSet ;
       INT64 taskCount = 0 ;
+      utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
 
       /// check new cs name whether invaild
       rc = dmsCheckCSName( _newCSName.c_str(), FALSE );
@@ -931,7 +885,7 @@ namespace engine
       try
       {
          // lock old cs
-         rc = catGetAndLockCollectionSpace( _targetName, _boCollectionspace,
+         rc = catGetAndLockCollectionSpace( _targetName, _boTarget,
                                             cb, &_lockMgr, EXCLUSIVE ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection space[%s], rc: %d",
@@ -965,13 +919,44 @@ namespace engine
             goto error ;
          }
 
+         rc = catParseCSUniqueID( _boTarget, uniqueID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                      "collection space [%s], rc: %d",
+                      _targetName.c_str(), rc ) ;
+
          // we need reply groups list to coord, so that coord can send msg to
          // corresponding data by groups list
-         rc = catGetCSGroupsFromCLs( _targetName.c_str(), cb,
-                                     _groupList, TRUE, TRUE ) ;
+         rc = catGetCSGroups( uniqueID, cb, TRUE, FALSE,
+                              _groupHandler.getGroupIDSet() ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get group list of cs[%s], rc: %d",
                       _targetName.c_str(), rc ) ;
+
+         rc = catGetCSSubCLGroups( _targetName.c_str(), cb, subCLGroupSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get group list from "
+                      "sub-collections of collection [%s], rc: %d",
+                      _targetName.c_str(), rc ) ;
+
+         rc = _groupHandler.addGroups( subCLGroupSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add sub-collection groups, "
+                      "rc: %d", rc ) ;
+
+         // check if from data source
+         if ( _groupHandler.isGroupEmpty() &&
+              _boTarget.hasField( FIELD_NAME_DATASOURCE_ID ) )
+         {
+            UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
+
+            // check data source ID
+            rc = catCheckDataSourceID( _boTarget, dsUID ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to check data source ID "
+                         "from collection space [%s], rc: %d",
+                         _targetName.c_str(), rc ) ;
+
+            rc = _groupHandler.addGroup( SDB_DSID_2_GROUPID( dsUID ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add data source "
+                         "group ID, rc: %d", rc ) ;
+         }
       }
       catch( std::exception &e )
       {
@@ -1000,7 +985,7 @@ namespace engine
                    "Failed to rename collection space[%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      ele = _boCollectionspace.getField( CAT_COLLECTION ) ;
+      ele = _boTarget.getField( CAT_COLLECTION ) ;
       if ( Array == ele.type() )
       {
          BSONObjIterator i ( ele.embeddedObject() ) ;
@@ -1055,6 +1040,8 @@ namespace engine
    _catCtxAlterCS::_catCtxAlterCS ( INT64 contextID, UINT64 eduID )
    : _catCtxDataMultiTaskBase( contextID, eduID )
    {
+      // may have recycled collections on dropped groups
+      _groupHandler.setIgnoreNonExist( TRUE ) ;
    }
 
    _catCtxAlterCS::~_catCtxAlterCS ()
@@ -1154,11 +1141,11 @@ namespace engine
 
          if ( task->testFlags( RTN_ALTER_TASK_FLAG_3PHASE ) )
          {
-            _executeAfterLock = FALSE ;
+            _executeOnP1 = FALSE ;
          }
          else
          {
-            _executeAfterLock = TRUE ;
+            _executeOnP1 = TRUE ;
          }
       }
 
@@ -1213,7 +1200,7 @@ namespace engine
       catCtxLockMgr localLockMgr ;
       catCtxLockMgr * lockMgr = &localLockMgr ;
       catCtxAlterCSTask * catTask = NULL ;
-      set< UINT32 > groupSet ;
+      SET_UINT32 groupSet ;
 
       if ( task->testFlags( RTN_ALTER_TASK_FLAG_CONTEXTLOCK ) )
       {
@@ -1246,12 +1233,8 @@ namespace engine
          }
       }
 
-      for ( set< UINT32 >::iterator iterGroup = groupSet.begin() ;
-            iterGroup != groupSet.end() ;
-            iterGroup ++ )
-      {
-         _groupList.push_back( (*iterGroup) ) ;
-      }
+      rc = _groupHandler.addGroups( groupSet ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add groups, rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCS__CHKALTERTASK, rc ) ;
@@ -1270,7 +1253,7 @@ namespace engine
    _catCtxCreateCL::_catCtxCreateCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
-      _executeAfterLock = TRUE ;
+      _executeOnP1 = TRUE ;
       _needRollback = TRUE ;
       _clUniqueID = UTIL_UNIQUEID_NULL ;
       _fieldMask = UTIL_ARG_FIELD_EMPTY ;
@@ -1283,54 +1266,22 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCRTCL_OPEN, "_catCtxCreateCL::open" )
-   INT32 _catCtxCreateCL::open ( const CHAR *pQuery,
+   INT32 _catCtxCreateCL::open ( const bson::BSONObj &query,
                                  rtnContextBuf &buffObj,
                                  _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
-                   "Wrong catalog status before opening" ) ;
-
       PD_TRACE_ENTRY( SDB_CATCTXCRTCL_OPEN ) ;
 
-      _isOpened = TRUE ;
-
-      _cmdType = MSG_CAT_CREATE_COLLECTION_REQ ;
-
-      try
-      {
-         BSONObj dump( pQuery ) ;
-         _boQuery = dump.getOwned() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-      rc = _parseQuery( cb ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = SDB_INVALIDARG ;
-      }
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed in catContext [%lld]: "
-                   "failed to parse query, rc: %d",
-                   contextID(), rc ) ;
-
-      rc = _open( buffObj, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      rc = _open( query, MSG_CAT_CREATE_COLLECTION_REQ, buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open create collection context, "
+                   "rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXCRTCL_OPEN, rc ) ;
       return rc ;
    error :
-      _changeStatusOnError() ;
       goto done ;
    }
 
@@ -1376,6 +1327,9 @@ namespace engine
       CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
       CHAR szCollection[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
       BSONObj boSpace, boDomain, boDummy ;
+      utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
+      UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
+      CAT_GROUP_LIST groupList ;
 
       // Just check the existence of collection, no lock is needed
       rc = catGetCollection( _targetName, boDummy, cb ) ;
@@ -1404,39 +1358,30 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the collection space [%s], rc: %d",
                    szSpace, rc ) ;
+
+      // Check if the collection space is mapping to another collection
+      // space on a data source(pure mapping collection space). If yes, it's
+      // not allowed to create collection in this collection space.
+      rc = catCheckDataSourceID( boSpace, dsUID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check data source ID from "
+                   "collection [%s], rc: %d", szSpace, rc ) ;
+      if ( UTIL_INVALID_DS_UID != dsUID )
       {
-         // Check if the collection space is mapping to another collection
-         // space on a data source(pure mapping collection space). If yes, it's
-         // not allowed to create collection in this collection space.
-         BSONElement dsEle = boSpace.getField( FIELD_NAME_DATASOURCE_ID ) ;
-         // For compatible reason, need to check if dsEle is eoo.
-         if ( !dsEle.eoo() &&
-              ( UTIL_INVALID_DS_UID != (UINT32)dsEle.numberInt() ) )
-         {
-            rc = SDB_OPERATION_INCOMPATIBLE ;
-            PD_LOG( PDERROR, "Can not create collection on a data source "
-                    "mapping collection space[%s]", szSpace ) ;
-            goto error ;
-         }
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         PD_LOG( PDERROR, "Can not create collection on a data source "
+                 "mapping collection space[%s]", szSpace ) ;
+         goto error ;
       }
 
       // here we do not care what the values are
       // we care how many records in the specified collection space
-      {
-         BSONElement ele = boSpace.getField( CAT_COLLECTION ) ;
-         /// some times, the CAT_COLLECTION will be not exist
-         if ( Array == ele.type() )
-         {
-            if ( ele.embeddedObject().nFields() >= DMS_MME_SLOTS )
-            {
-               PD_LOG( PDERROR,
-                       "Collection Space [%s] cannot accept more collection",
-                       szSpace ) ;
-               rc = SDB_DMS_NOSPC ;
-               goto error ;
-            }
-         }
-      }
+      rc = catParseCSUniqueID( boSpace, csUniqueID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                   "collection space [%s], rc: %d",
+                   szSpace, rc ) ;
+      rc = catCheckCSCapacity( csUniqueID, 1, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check capacity for "
+                   "collection space [%s], rc: %d", szSpace, rc ) ;
 
       // Lock the collection name
       PD_CHECK( _lockMgr.tryLockCollection( szSpace, _targetName, EXCLUSIVE ),
@@ -1525,18 +1470,13 @@ namespace engine
 
       /// choose a group to create cl
       rc = _chooseGroupOfCl( boDomain, boSpace, _clInfo, cb,
-                             _groupList, _splitList ) ;
+                             groupList, _splitList ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to choose groups for new collection [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      if ( UTIL_INVALID_DS_UID == _clInfo._dsUID )
-      {
-         rc = catLockGroups( _groupList, cb, _lockMgr, SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock groups, rc: %d",
-                      rc ) ;
-      }
+      rc = _groupHandler.addGroups( groupList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add group list, rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATECL_CHECK_INT, rc ) ;
@@ -1554,7 +1494,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_EXECUTE_INT ) ;
 
       // build new collection record for meta data.
-      rc = catBuildCatalogRecord ( cb, _clInfo, _fieldMask, 0, _groupList,
+      rc = catBuildCatalogRecord ( cb, _clInfo, _fieldMask, 0,
+                                   _groupHandler.getGroupIDSet(),
                                    _splitList, boNewObj, w ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Build new collection catalog record failed, rc: %d",
@@ -1671,30 +1612,23 @@ namespace engine
       goto done ;
    }
 
-   INT32 _catCtxCreateCL::_makeReply ( rtnContextBuf &buffObj )
+   INT32 _catCtxCreateCL::_buildP1Reply( BSONObjBuilder &builder )
    {
       // reply eg:
       // { Index: [ { Name: "cs.cl", IndexName: "$id", IndexDef: xxx, ... },
       //            { Name: "cs.cl", IndexName: "$shard", IndexDef: xx, ... } ],
-      //   Group: [ { GroupID: 1000, GroupName: "db1" }, ... ] }
 
       INT32 rc = SDB_OK ;
 
       try
       {
-         BSONObjBuilder retObjBuilder ;
-
          ossPoolVector<BSONObj>::iterator it ;
-         BSONArrayBuilder arr( retObjBuilder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+         BSONArrayBuilder arr( builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
          for ( it = _indexList.begin() ; it != _indexList.end() ; it++ )
          {
             arr.append ( *it ) ;
          }
          arr.done() ;
-
-         _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-
-         buffObj = rtnContextBuf( retObjBuilder.obj() ) ;
       }
       catch( std::exception &e )
       {
@@ -1942,9 +1876,14 @@ namespace engine
       // FOLLOW is given
       if ( ASSIGN_FOLLOW == assignType )
       {
-         BSONElement ele = csObj.getField( CAT_COLLECTION_SPACE_NAME ) ;
-         rc = catGetCSGroupsFromCLs( ele.valuestrsafe(), cb,
-                                     candidateGroupList ) ;
+         utilCSUniqueID uniqueID = UTIL_UNIQUEID_NULL ;
+
+         rc = catParseCSUniqueID( csObj, uniqueID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get unique ID of "
+                      "collection space [%s], rc: %d",
+                      csObj.toPoolString().c_str(), rc ) ;
+
+         rc = catGetCSGroups( uniqueID, cb, FALSE, FALSE, candidateGroupList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s]"
                       " groups, rc: %d", csObj.toString().c_str(), rc ) ;
       }
@@ -2032,12 +1971,14 @@ namespace engine
                           "CAT_DROP_CL" )
 
    _catCtxDropCL::_catCtxDropCL ( INT64 contextID, UINT64 eduID )
-   : _catCtxCLMultiTask( contextID, eduID )
+   : _catCtxCLMultiTask( contextID, eduID ),
+     _globIdxHandler( _lockMgr ),
+     _taskHandler( _lockMgr ),
+     _recycleHandler( UTIL_RECYCLE_CL, UTIL_RECYCLE_OP_DROP, _taskHandler,
+                      _lockMgr )
    {
-      _executeAfterLock = FALSE ;
-      _commitAfterExecute = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
-      _needUpdateCoord = FALSE ;
    }
 
    _catCtxDropCL::~_catCtxDropCL ()
@@ -2046,54 +1987,55 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL_OPEN, "_catCtxDropCL::open" )
-   INT32 _catCtxDropCL::open ( const CHAR *pQuery,
+   INT32 _catCtxDropCL::open ( const BSONObj &query,
                                rtnContextBuf &buffObj,
                                _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
-                   "Wrong catalog status before opening" ) ;
-
       PD_TRACE_ENTRY( SDB_CATCTXDROPCL_OPEN ) ;
 
-      _isOpened = TRUE ;
-
-      _cmdType = MSG_CAT_DROP_COLLECTION_REQ ;
-
-      try
-      {
-         BSONObj dump( pQuery ) ;
-         _boQuery = dump.getOwned() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-      rc = _parseQuery( cb ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = SDB_INVALIDARG ;
-      }
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed in catContext [%lld]: "
-                   "failed to parse query, rc: %d",
-                   contextID(), rc ) ;
-
-      rc = _open( buffObj, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      rc = _open( query, MSG_CAT_DROP_COLLECTION_REQ, buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open drop collection context, "
+                   "rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXDROPCL_OPEN, rc ) ;
       return rc ;
    error :
-      _changeStatusOnError() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL__REGEVENTHANDLERS, "_catCtxDropCL::_regEventHandlers" )
+   INT32 _catCtxDropCL::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXDROPCL__REGEVENTHANDLERS ) ;
+
+      rc = _BASE::_regEventHandlers() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register base handlers, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_globIdxHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register global index handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      // NOTE: behavior of task handler depends on recycle handler, so
+      // must register task handler after recycle handler
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXDROPCL__REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -2149,7 +2091,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check collection task, rc: %d", rc ) ;
 
-      _globalIdxCLList = pDropCLTask->globalIndexCLList() ;
+      _boTarget = pDropCLTask->getDataObj() ;
+
+      rc = _globIdxHandler.addGlobIdxs( pDropCLTask->globalIndexCLList() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add global indexes, "
+                   "rc: %d", rc ) ;
 
       rc = _addDropCLSubTasks ( pDropCLTask, cb ) ;
       PD_RC_CHECK( rc , PDERROR,
@@ -2159,12 +2105,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to push drop collection task, rc: %d", rc ) ;
 
-      rc = catLockGroups( _groupList, cb, _lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to lock groups, rc: %d", rc ) ;
-
-      _needUpdateCoord = pDropCLTask->needUpdateCoord() ;
-      _boTarget = pDropCLTask->getDataObj() ;
-
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXDROPCL_CHECK_INT, rc ) ;
       return rc ;
@@ -2172,61 +2112,32 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL_MAKEREPLY, "_catCtxDropCL::_makeReply" )
-   INT32 _catCtxDropCL::_makeReply ( rtnContextBuf &buffObj )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL__BLDP1REPLY, "_catCtxDropCL::_buildP1Reply" )
+   INT32 _catCtxDropCL::_buildP1Reply( BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY ( SDB_CATCTXDROPCL_MAKEREPLY ) ;
+      PD_TRACE_ENTRY ( SDB_CATCTXDROPCL__BLDP1REPLY ) ;
 
-      if ( CAT_CONTEXT_READY == _status )
+      try
       {
-         BSONObjBuilder retObjBuilder ;
-
-         if ( _needUpdateCoord )
-         {
-            // Version of collection in Coord need to be updated
-            retObjBuilder.appendElements(
-                  BSON( CAT_COLLECTION << _boTarget ) ) ;
-            // Append GROUP field even if the list is empty
-            _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-         }
-         else if ( !_groupList.empty() )
-         {
-            _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
-         }
-
-         // send global index's cl name and unique id to coord.
-         if ( _globalIdxCLList.size() > 0 )
-         {
-            BSONArrayBuilder builder(
-                      retObjBuilder.subarrayStart( CAT_GLOBAL_INDEX ) ) ;
-
-            for ( ossPoolList<PAIR_CLNAME_ID>::iterator it = _globalIdxCLList.begin() ;
-                  it != _globalIdxCLList.end() ; it++ )
-            {
-               builder.append( BSON( CAT_COLLECTION << it->first <<
-                                     CAT_GIDX_CL_UNIQUEID <<
-                                     (INT64)(it->second) ) ) ;
-
-            }
-            builder.done() ;
-         }
-
-         BSONObj retObj = retObjBuilder.obj() ;
-         if ( !retObj.isEmpty() )
-         {
-            buffObj = rtnContextBuf( retObj ) ;
-         }
+         // Version of collection in Coord need to be updated
+         builder.append( CAT_COLLECTION, _boTarget ) ;
       }
-      else
+      catch ( exception &e )
       {
-         rc = _catCtxDataMultiTaskBase::_makeReply( buffObj ) ;
+         PD_LOG( PDERROR, "Failed to build reply, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
-      PD_TRACE_EXITRC ( SDB_CATCTXDROPCL_MAKEREPLY, rc ) ;
-
+   done:
+      PD_TRACE_EXITRC ( SDB_CATCTXDROPCL__BLDP1REPLY, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL_DROPCL_SUBTASK, "_catCtxDropCL::_addDropCLSubTasks" )
@@ -2312,8 +2223,7 @@ namespace engine
                             "Failed to add collection [%s] into delCLsFromCS task, "
                             "rc: %d", subCLName.c_str(), rc ) ;
 
-               rc = catGetCollectionGroupSet( pDropSubCLTask->getDataObj(),
-                                              _groupList ) ;
+               rc = _groupHandler.addGroups( pDropSubCLTask->getDataObj() ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to collect groups for sub-collection [%s], "
                             "rc: %d",
@@ -2349,8 +2259,7 @@ namespace engine
                pUnlinkMainCLTask->addIgnoreRC( SDB_DMS_NOTEXIST ) ;
                pUnlinkMainCLTask->addIgnoreRC( SDB_INVALID_MAIN_CL ) ;
             }
-            rc = catGetCollectionGroupSet( pDropCLTask->getDataObj(),
-                                           _groupList ) ;
+            rc = _groupHandler.addGroups( pDropCLTask->getDataObj() ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to collect groups for collection [%s], rc: %d",
                          clName.c_str(), rc ) ;
@@ -2442,8 +2351,7 @@ namespace engine
    _catCtxRenameCL::_catCtxRenameCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
-      _executeAfterLock = FALSE ;
-      _commitAfterExecute = FALSE ;
+      _executeOnP1 = FALSE ;
       _needRollback = FALSE ;
    }
 
@@ -2586,14 +2494,14 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to get the collection [%s], "
                             "rc: %d", _targetName.c_str() ) ;
 
-               rc = catGetCollectionGroupSet( boCollection, _groupList ) ;
+               rc = _groupHandler.addGroups( boCollection ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to collect groups for "
                             "collection [%s], rc: %d", subCLName.c_str(), rc ) ;
             }
          }
          else
          {
-            rc = catGetCollectionGroupSet( boOldCL, _groupList ) ;
+            rc = _groupHandler.addGroups( boOldCL ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get group list of cl[%s], rc: %d",
                          _targetName.c_str(), rc ) ;
@@ -2645,7 +2553,7 @@ namespace engine
    _catCtxAlterCL::_catCtxAlterCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataMultiTaskBase( contextID, eduID )
    {
-      _executeAfterLock = TRUE ;
+      _executeOnP1 = TRUE ;
       _needRollback = TRUE ;
    }
 
@@ -2759,11 +2667,11 @@ namespace engine
 
          if ( task->testFlags( RTN_ALTER_TASK_FLAG_3PHASE ) )
          {
-            _executeAfterLock = FALSE ;
+            _executeOnP1 = FALSE ;
          }
          else
          {
-            _executeAfterLock = TRUE ;
+            _executeOnP1 = TRUE ;
          }
 
          if( task->testFlags( RTN_ALTER_TASK_FLAG_SEQUENCE ) )
@@ -2910,8 +2818,7 @@ namespace engine
           actionType != RTN_ALTER_CL_DROP_AUTOINC_FLD &&
           actionType != RTN_ALTER_CL_INC_VERSION)
       {
-         rc = _addAlterSubCLTask( catTask, cb, *lockMgr, collectionSet,
-                                  _groupList ) ;
+         rc = _addAlterSubCLTask( catTask, cb, *lockMgr, collectionSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add alter sub tasks [%s] on "
                       "collection [%s], rc: %d", task->getActionName(),
                       _targetName.c_str(), rc ) ;
@@ -2948,10 +2855,6 @@ namespace engine
                       collectionName.c_str() ) ;
          }
       }
-
-      // Lock groups
-      rc = catLockGroups( _groupList, cb, *lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to lock groups, rc: %d", rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXALTERCL_CHECK_ALTERTASK, rc ) ;
@@ -3068,8 +2971,7 @@ namespace engine
    INT32 _catCtxAlterCL::_addAlterSubCLTask ( catCtxAlterCLTask * catTask,
                                             pmdEDUCB * cb,
                                             catCtxLockMgr & lockMgr,
-                                            set< string > & collectionSet,
-                                            vector< UINT32 > & groupList )
+                                            set< string > & collectionSet )
    {
       INT32 rc = SDB_OK ;
 
@@ -3129,8 +3031,7 @@ namespace engine
                             alterTask->getActionName(),
                             subCLName.c_str(), rc ) ;
 
-               rc = catGetCollectionGroupSet( subCLTask->getDataObj(),
-                                              _groupList ) ;
+               rc = _groupHandler.addGroups( subCLTask->getDataObj() ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to collect groups for collection [%s], "
                             "rc: %d",
@@ -3141,7 +3042,7 @@ namespace engine
          }
          else
          {
-            rc = catGetCollectionGroupSet( catTask->getDataObj(), groupList ) ;
+            rc = _groupHandler.addGroups( catTask->getDataObj() ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get groups for collection [%s], rc: %d",
                          collectionName.c_str(), rc ) ;
@@ -3318,73 +3219,73 @@ namespace engine
    }
 
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__MAKEREPLY, "_catCtxAlterCL::_makeReply" )
-   INT32 _catCtxAlterCL::_makeReply ( rtnContextBuf & buffObj )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDTASKREPLY, "_catCtxAlterCL::_buildTaskReply" )
+   INT32 _catCtxAlterCL::_buildTaskReply( BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CATCTXALTERCL__MAKEREPLY ) ;
-
-      BSONObjBuilder replyBuilder ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDTASKREPLY ) ;
 
       if ( _execTasks.size() > 0 )
       {
-         /* message format:
-         *  { TaskID: [ 1, 2, ... ],
-         *    Index: [ { Collection: "foo.bar", IndexDef: xxx },
-         *             { Collection: "foo.bar", IndexDef: xxx },
-         *             ...
-         *           ]
-         *  }
-         */
-         // Generate task list
-         BSONArrayBuilder taskBuilder(
-                               replyBuilder.subarrayStart( CAT_TASKID_NAME ) ) ;
-         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
+         try
          {
-            catCtxAlterCLTask * task =
-                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-            if( task )
+            /* message format:
+            *  { TaskID: [ 1, 2, ... ],
+            *    Index: [ { Collection: "foo.bar", IndexDef: xxx },
+            *             { Collection: "foo.bar", IndexDef: xxx },
+            *             ...
+            *           ]
+            *  }
+            */
+            // Generate task list
+            BSONArrayBuilder taskBuilder(
+                                    builder.subarrayStart( CAT_TASKID_NAME ) ) ;
+            for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
             {
-               const ossPoolList< UINT64 > & postTasks = task->getPostTasks() ;
-               for ( ossPoolList<UINT64>::const_iterator it = postTasks.begin();
-                     it != postTasks.end() ;
-                     it ++ )
+               catCtxAlterCLTask * task =
+                              dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+               if( task )
                {
-                  taskBuilder.append( (INT64)( *it ) ) ;
+                  const ossPoolList< UINT64 > & postTasks = task->getPostTasks() ;
+                  for ( ossPoolList<UINT64>::const_iterator it = postTasks.begin();
+                        it != postTasks.end() ;
+                        it ++ )
+                  {
+                     taskBuilder.append( (INT64)( *it ) ) ;
+                  }
                }
             }
-         }
-         taskBuilder.done() ;
-         // Generate index list
-         BSONArrayBuilder idxBuilder(
-                              replyBuilder.subarrayStart( FIELD_NAME_INDEX ) ) ;
-         for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
-         {
-            catCtxAlterCLTask * task =
-                           dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-            if( task )
+            taskBuilder.done() ;
+            // Generate index list
+            BSONArrayBuilder idxBuilder(
+                                    builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
+            for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
             {
-               const ossPoolList<BSONObj> & indexes = task->getIndexes() ;
-               for ( ossPoolList<BSONObj>::const_iterator it = indexes.begin() ;
-                     it != indexes.end() ; it++ )
+               catCtxAlterCLTask * task =
+                              dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+               if( task )
                {
-                  idxBuilder.append( BSON( FIELD_NAME_COLLECTION <<
-                                           task->getDataName().c_str() <<
-                                           IXM_FIELD_NAME_INDEX_DEF << *it ) ) ;
+                  const ossPoolList<BSONObj> & indexes = task->getIndexes() ;
+                  for ( ossPoolList<BSONObj>::const_iterator it = indexes.begin() ;
+                        it != indexes.end() ; it++ )
+                  {
+                     idxBuilder.append( BSON( FIELD_NAME_COLLECTION <<
+                                              task->getDataName().c_str() <<
+                                              IXM_FIELD_NAME_INDEX_DEF << *it ) ) ;
+                  }
                }
             }
+            idxBuilder.done() ;
          }
-         idxBuilder.done() ;
-         // Generate task list
-         _pCatCB->makeGroupsObj( replyBuilder, _groupList, TRUE ) ;
-         buffObj = rtnContextBuf( replyBuilder.obj() ) ;
-      }
-      else
-      {
-         rc = _catCtxDataMultiTaskBase::_makeReply( buffObj ) ;
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build task reply, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
       }
 
-      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__MAKEREPLY, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDTASKREPLY, rc ) ;
       return rc ;
    }
 
@@ -3397,7 +3298,7 @@ namespace engine
    _catCtxLinkCL::_catCtxLinkCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
-      _executeAfterLock = TRUE ;
+      _executeOnP1 = TRUE ;
       _needRollback = TRUE ;
 
       _needUpdateSubCL = FALSE ;
@@ -3510,10 +3411,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Check multiple collections on data source "
                    "attached to main collection failed[%d]", rc ) ;
 
-      /// Lock groups of sub-collection
-      rc = catGetAndLockCollectionGroups( _boSubCL,
-                                          _groupList,
-                                          _lockMgr, SHARED ) ;
+      rc = _groupHandler.addGroups( _boSubCL ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get group info from "
+                   "collection record [%s], rc: %d",
+                   _boSubCL.toPoolString().c_str(), rc ) ;
+
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to lock groups, rc: %d",
                    rc ) ;
@@ -3628,7 +3530,7 @@ namespace engine
    _catCtxUnlinkCL::_catCtxUnlinkCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
-      _executeAfterLock = TRUE ;
+      _executeOnP1 = TRUE ;
       _needRollback = TRUE ;
 
       _needUpdateSubCL = FALSE ;
@@ -3752,12 +3654,10 @@ namespace engine
          _needUpdateSubCL = FALSE ;
       }
 
-      // Lock groups of sub-collection
-      rc = catGetAndLockCollectionGroups( _boSubCL,
-                                          _groupList,
-                                          _lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to lock groups, rc: %d", rc ) ;
+      rc = _groupHandler.addGroups( _boSubCL ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get group info from "
+                   "collection record [%s], rc: %d",
+                   _boSubCL.toPoolString().c_str(), rc ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXUNLINKCL_CHECK_INT, rc ) ;
@@ -3862,6 +3762,279 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB_CATCTXUNLINKCL_ROLLBACK_INT, rc ) ;
       return rc ;
+   }
+
+   /*
+      _catCtxTruncCL implement
+    */
+   RTN_CTX_AUTO_REGISTER( _catCtxTruncCL, RTN_CONTEXT_CAT_TRUNCATE_CL,
+                          "CAT_TRUNCATE_CL" )
+
+   _catCtxTruncCL::_catCtxTruncCL( INT64 contextID, UINT64 eduID )
+   : _catCtxDataBase( contextID, eduID ),
+     _globIdxHandler( _lockMgr ),
+     _taskHandler( _lockMgr ),
+     _recycleHandler( UTIL_RECYCLE_CL, UTIL_RECYCLE_OP_TRUNCATE, _taskHandler,
+                      _lockMgr )
+   {
+      _executeOnP1 = FALSE ;
+      _needRollback = FALSE ;
+   }
+
+   _catCtxTruncCL::~_catCtxTruncCL()
+   {
+      _onCtxDelete() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTRUNCCL__REGEVENTHANDLERS, "_catCtxTruncCL::_regEventHandlers" )
+   INT32 _catCtxTruncCL::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTRUNCCL__REGEVENTHANDLERS ) ;
+
+      rc = _BASE::_regEventHandlers() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register base handlers, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_globIdxHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register global index handler, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_recycleHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register recycle handler, "
+                   "rc: %d", rc ) ;
+
+      // NOTE: behavior of task handler depends on recycle handler, so
+      // must register task handler after recycle handler
+      rc = _regEventHandler( &_taskHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register task handler, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTRUNCCL__REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTRUNCCL_PARSEQUERY, "_catCtxTruncCL::_parseQuery" )
+   INT32 _catCtxTruncCL::_parseQuery ( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTRUNCCL_PARSEQUERY ) ;
+
+      SDB_ASSERT( MSG_CAT_TRUNCATE_REQ == _cmdType,
+                  "Wrong command type" ) ;
+
+      try
+      {
+         rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION, _targetName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field %s, rc: %d",
+                      CAT_COLLECTION, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse truncate command, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTRUNCCL_PARSEQUERY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTRUNCCL__CHKINT, "_catCtxTruncCL::_checkInternal" )
+   INT32 _catCtxTruncCL::_checkInternal( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTRUNCCL__CHKINT ) ;
+
+      rc = catGetAndLockCollection( _targetName, _boTarget, cb, &_lockMgr,
+                                    EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get the collection [%s], rc: %d",
+                   _targetName.c_str(), rc ) ;
+
+      if ( _boTarget.hasField( FIELD_NAME_DATASOURCE_ID ) )
+      {
+         UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
+
+         // check data source ID
+         rc = catCheckDataSourceID( _boTarget, dsUID ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to check data source ID from "
+                      "collection space [%s], rc: %d", _targetName.c_str(),
+                      rc ) ;
+
+         rc = _groupHandler.addGroup( SDB_DSID_2_GROUPID( dsUID ) ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add data source "
+                      "group ID, rc: %d", rc ) ;
+      }
+
+      try
+      {
+          clsCatalogSet cataSet( _targetName.c_str() ) ;
+
+          rc = cataSet.updateCatSet( _boTarget ) ;
+          PD_RC_CHECK( rc, PDERROR, "Failed to parse catalog for collection "
+                       "[%s], rc: %d", _targetName.c_str(), rc ) ;
+
+          if ( cataSet.isMainCL() )
+          {
+             // For main-collection
+             CLS_SUBCL_LIST subCLList;
+
+             rc = cataSet.getSubCLList( subCLList );
+             PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list of "
+                          "collection [%s], rc: %d", _targetName.c_str(), rc ) ;
+             for ( CLS_SUBCL_LIST_IT iterSubCL = subCLList.begin() ;
+                   iterSubCL != subCLList.end() ;
+                   ++ iterSubCL )
+             {
+                const string &subCLName = ( *iterSubCL ) ;
+                BSONObj subCLObject ;
+
+                rc = catGetAndLockCollection( subCLName, subCLObject, cb,
+                                              &_lockMgr, EXCLUSIVE ) ;
+                PD_RC_CHECK( rc, PDERROR, "Failed to get the collection [%s], "
+                             "rc: %d", subCLName.c_str(), rc ) ;
+
+                rc = _groupHandler.addGroups( subCLObject ) ;
+                PD_RC_CHECK( rc, PDERROR, "Failed to collect groups for "
+                             "sub-collection [%s], rc: %d", subCLName.c_str(),
+                             rc ) ;
+
+                // get collection's global index
+                rc = _globIdxHandler.addGlobIdxs( subCLName.c_str() ) ;
+                PD_RC_CHECK( rc, PDWARNING,
+                             "Failed to get collection[%s]'s global indexes, "
+                             "rc: %d", subCLName.c_str(), rc ) ;
+             }
+          }
+          else
+          {
+             rc = _groupHandler.addGroups( _boTarget ) ;
+             PD_RC_CHECK( rc, PDERROR, "Failed to collect groups for "
+                          "collection [%s], rc: %d", _targetName.c_str(),
+                          rc ) ;
+
+             // get collection's global index
+             rc = _globIdxHandler.addGlobIdxs( _targetName.c_str() ) ;
+             PD_RC_CHECK( rc, PDWARNING,
+                          "Failed to get collection[%s]'s global indexes, "
+                          "rc: %d", _targetName.c_str(), rc ) ;
+          }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to check collection, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTRUNCCL__CHKINT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTRUNCCL__BLDP1REPLY, "_catCtxTruncCL::_buildP1Reply" )
+   INT32 _catCtxTruncCL::_buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTRUNCCL__BLDP1REPLY ) ;
+
+      try
+      {
+         // Version of collection in Coord need to be updated
+         builder.append( CAT_COLLECTION, _boTarget ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build reply, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTRUNCCL__BLDP1REPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTRUNCCL__EXEINT, "_catCtxTruncCL::_executeInternal" )
+   INT32 _catCtxTruncCL::_executeInternal( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTRUNCCL__EXEINT ) ;
+
+      catSequenceManager *seqMgr = _pCatCB->getCatGTSMgr()->getSequenceMgr() ;
+
+      try
+      {
+         BSONElement beAutoInc = _boTarget.getField( CAT_AUTOINCREMENT ) ;
+         if ( EOO == beAutoInc.type() )
+         {
+            goto done ;
+         }
+         PD_CHECK( Array == beAutoInc.type(),
+                   SDB_CAT_CORRUPTION, error, PDERROR,
+                   "Failed to get auto-increment info, it is not array" ) ;
+
+         {
+            BSONObjIterator it( beAutoInc.embeddedObject() ) ;
+            while ( it.more() )
+            {
+               BSONObj boAutoIncItem ;
+               string seqName ;
+               BSONElement ele = it.next() ;
+               PD_CHECK( Object == ele.type(),
+                         SDB_CAT_CORRUPTION, error, PDERROR,
+                         "Failed to get auto-increment, it is not object" ) ;
+
+               boAutoIncItem = ele.embeddedObject() ;
+               rc = rtnGetSTDStringElement( boAutoIncItem, CAT_AUTOINC_SEQ,
+                                            seqName ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get sequence name, "
+                            "rc: %d", rc ) ;
+
+               rc = seqMgr->resetSequence( seqName, cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to reset sequence[%s], "
+                            "rc: %d", seqName.c_str(), rc ) ;
+            }
+         }
+
+         PD_LOG( PDDEBUG, "truncated cl[%s]", _targetName.c_str() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to execute truncate, occur exception %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTRUNCCL__EXEINT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

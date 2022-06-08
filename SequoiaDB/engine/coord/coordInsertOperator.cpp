@@ -44,6 +44,7 @@
 #include "coordTrace.hpp"
 #include "coordSequenceAgent.hpp"
 #include "ossMemPool.hpp"
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -249,6 +250,7 @@ namespace engine
          goto error ;
       }
 
+      cb->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( cb, pCollectionName ) ;
 
       if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
@@ -1063,7 +1065,7 @@ namespace engine
          rc = _addAutoIncToObj( objIn, autoIncSet, cb, builder, hasExplicitKey ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to add autoIncrement field to obj[%s], rc: %d",
-                      objIn.toString().c_str(), rc ) ;
+                      PD_SECURE_OBJ( objIn ), rc ) ;
          builder.done() ;
 
          pCurPos += ossRoundUpToMultipleX( builder.len(), 4 ) ;

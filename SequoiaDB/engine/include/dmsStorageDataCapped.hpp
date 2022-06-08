@@ -289,6 +289,16 @@ namespace engine
                                          BOOLEAN isInsert = TRUE,
                                          const dmsTransRecordInfo *recordInfo = NULL ) ;
 
+      virtual void _postInsertRecord( dmsMBContext *context,
+                                      dmsExtRW &extRW,
+                                      dmsRecordRW &recordRW,
+                                      const dmsRecordData &recordData,
+                                      UINT32 recordSize,
+                                      _pmdEDUCB *cb )
+      {
+         // do nothing
+      }
+
       virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
                                           dmsExtRW &extRW,
                                           dmsRecordRW &recordRW,

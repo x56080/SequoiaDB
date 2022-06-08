@@ -178,11 +178,13 @@ namespace engine
 
          if ( SDB_ROLE_STANDALONE == pmdGetDBRole() )
          {
+            dpsTransCB * transCB = pmdGetKRCB()->getTransCB() ;
             MsgRouteID standAloneID ;
             standAloneID.value             = MSG_INVALID_ROUTEID ;
             standAloneID.columns.groupID   = INVALID_GROUPID ;
             standAloneID.columns.nodeID    = DATA_NODE_ID_BEGIN ;
             pmdSetNodeID( standAloneID ) ;
+            transCB->onRegistered( standAloneID ) ;
          }
       }
 
@@ -218,6 +220,14 @@ namespace engine
       sdbEnablePD( pmdGetOptionCB()->getDiagLogPath(),
                    pmdGetOptionCB()->diagFileNum() ) ;
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
+      if ( pmdGetOptionCB()->diagSecureOn() )
+      {
+         pdEnableDiaglogSecure() ;
+      }
+      else
+      {
+         pdDisableDiaglogSecure() ;
+      }
       // enalble pd audit
       sdbEnableAudit( pmdGetOptionCB()->getAuditLogPath(),
                       pmdGetOptionCB()->auditFileNum() ) ;

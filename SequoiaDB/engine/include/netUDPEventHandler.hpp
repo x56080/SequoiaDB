@@ -76,7 +76,7 @@ namespace engine
       virtual INT32 syncConnect( const CHAR *hostName,
                                  const CHAR *serviceName ) ;
       virtual void asyncRead() ;
-      virtual INT32 syncSend( const void *buf, UINT32 len ) ;
+      virtual INT32 syncSendRaw( const void *buf, UINT32 len ) ;
       virtual void close() ;
       virtual void setOpt() ;
       virtual CHAR *msg() ;
@@ -91,6 +91,11 @@ namespace engine
 
       void readCallback( MsgHeader *message ) ;
       void setRouteID( const MsgRouteID &routeID ) ;
+
+      OSS_INLINE const netUDPEndPoint &getRemoteEndPoint() const
+      {
+         return _remoteEndPoint ;
+      }
 
    protected:
       OSS_INLINE NET_UDP_EH _getShared()

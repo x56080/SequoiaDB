@@ -25,7 +25,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.util.Helper;
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -74,8 +76,8 @@ public class Sequoiadb implements Closeable {
 
     // cache cs/cl name
     private Map<String, Long> nameCache = new HashMap<String, Long>();
-    private static boolean enableCache = true;
-    private static long cacheInterval = 300 * 1000;
+    private static ClientOptions globalClientConf = new ClientOptions();
+
     private BSONObject attributeCache = null;
 
     private final static String DEFAULT_HOST = "127.0.0.1";
@@ -83,6 +85,7 @@ public class Sequoiadb implements Closeable {
 
     private final static int DEFAULT_BUFF_LENGTH = 512;
     private ByteBuffer requestBuffer = null;
+    private SdbProtocolVersion protocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
 
     /**
      * specified the package size of the collections in current collection space to be 4K
@@ -109,60 +112,195 @@ public class Sequoiadb implements Closeable {
      */
     public final static int SDB_PAGESIZE_DEFAULT = 0;
 
+    /**
+     * List of all the contexts of all the sessions
+     */
     public final static int SDB_LIST_CONTEXTS = 0;
+    /**
+     * List of the contexts of current session
+     */
     public final static int SDB_LIST_CONTEXTS_CURRENT = 1;
+    /**
+     * List of all the sessions
+     */
     public final static int SDB_LIST_SESSIONS = 2;
+    /**
+     * List of current session
+     */
     public final static int SDB_LIST_SESSIONS_CURRENT = 3;
+    /**
+     * List of collections
+     */
     public final static int SDB_LIST_COLLECTIONS = 4;
+    /**
+     * List of collection spaces
+     */
     public final static int SDB_LIST_COLLECTIONSPACES = 5;
+    /**
+     * List of strorage units
+     */
     public final static int SDB_LIST_STORAGEUNITS = 6;
+    /**
+     * List of all the groups
+     */
     public final static int SDB_LIST_GROUPS = 7;
+    /**
+     * List of store procedures
+     */
     public final static int SDB_LIST_STOREPROCEDURES = 8;
+    /**
+     * List of domains
+     */
     public final static int SDB_LIST_DOMAINS = 9;
+    /**
+     * List of tasks
+     */
     public final static int SDB_LIST_TASKS = 10;
+    /**
+     * List of all the transactions of all the sessions
+     */
     public final static int SDB_LIST_TRANSACTIONS = 11;
+    /**
+     * List of all transactions of current session
+     */
     public final static int SDB_LIST_TRANSACTIONS_CURRENT = 12;
+    /**
+     * List of service tasks
+     */
     public final static int SDB_LIST_SVCTASKS = 14;
+    /**
+     * List of sequences
+     */
     public final static int SDB_LIST_SEQUENCES = 15;
+    /**
+     * List of users
+     */
     public final static int SDB_LIST_USERS = 16;
+    /**
+     * List of backups
+     */
     public final static int SDB_LIST_BACKUPS = 17 ;
     //public final static int SDB_LIST_RESERVED1 = 18 ;
     //public final static int SDB_LIST_RESERVED2 = 19 ;
     //public final static int SDB_LIST_RESERVED3 = 20 ;
     //public final static int SDB_LIST_RESERVED4 = 21 ;
+    /**
+     * List of data source
+     */
     public final static int SDB_LIST_DATASOURCES = 22;
-    //public final static int SDB_LIST_RESERVED6 = 23 ;
     //public final static int SDB_LIST_RESERVED7 = 24 ;
+    /**
+     * List of recycle bin
+     */
+    public final static int SDB_LIST_RECYCLEBIN = 27;
+    // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
+    // reserved
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
+    /**
+     * Snapshot of all the contexts of all the sessions
+     */
     public final static int SDB_SNAP_CONTEXTS = 0;
+    /**
+     * Snapshot of the contexts of current session
+     */
     public final static int SDB_SNAP_CONTEXTS_CURRENT = 1;
+    /**
+     * Snapshot of all the sessions
+     */
     public final static int SDB_SNAP_SESSIONS = 2;
+    /**
+     * Snapshot of current session
+     */
     public final static int SDB_SNAP_SESSIONS_CURRENT = 3;
+    /**
+     * Snapshot of collections
+     */
     public final static int SDB_SNAP_COLLECTIONS = 4;
+    /**
+     * Snapshot of collection spaces
+     */
     public final static int SDB_SNAP_COLLECTIONSPACES = 5;
+    /**
+     * Snapshot of database
+     */
     public final static int SDB_SNAP_DATABASE = 6;
+    /**
+     * Snapshot of system
+     */
     public final static int SDB_SNAP_SYSTEM = 7;
+    /**
+     * Snapshot of catalog
+     */
     public final static int SDB_SNAP_CATALOG = 8;
+    /**
+     * Snapshot of all the transactions of all the sessions
+     */
     public final static int SDB_SNAP_TRANSACTIONS = 9;
+    /**
+     * Snapshot of all transactions of current session
+     */
     public final static int SDB_SNAP_TRANSACTIONS_CURRENT = 10;
+    /**
+     * Snapshot of access plans
+     */
     public final static int SDB_SNAP_ACCESSPLANS = 11;
+    /**
+     * Snapshot of health
+     */
     public final static int SDB_SNAP_HEALTH = 12;
+    /**
+     * Snapshot of configs
+     */
     public final static int SDB_SNAP_CONFIGS = 13;
+    /**
+     * Snapshot of service tasks
+     */
     public final static int SDB_SNAP_SVCTASKS = 14;
+    /**
+     * Snapshot of sequences
+     */
     public final static int SDB_SNAP_SEQUENCES = 15;
     //public final static int SDB_SNAP_RESERVED1 = 16;
     //public final static int SDB_SNAP_RESERVED2 = 17;
+    /**
+     * Snapshot of queries
+     */
     public final static int SDB_SNAP_QUERIES = 18;
+    /**
+     * Snapshot of latch waits
+     */
     public final static int SDB_SNAP_LATCHWAITS = 19;
+    /**
+     * Snapshot of lock waits
+     */
     public final static int SDB_SNAP_LOCKWAITS = 20;
+    /**
+     * Snapshot of index statistics
+     */
     public final static int SDB_SNAP_INDEXSTATS = 21;
     //public final static int SDB_SNAP_RESERVED3 = 22;
+    /**
+     * Snapshot of tasks
+     */
     public final static int SDB_SNAP_TASKS = 23;
+    /**
+     * Snapshot of indexes
+     */
     public final static int SDB_SNAP_INDEXES = 24;
+    /**
+     * Snapshot of transaction waits
+     */
     public final static int SDB_SNAP_TRANSWAITS = 25;
+    /**
+     * Snapshot of transaction deadlock
+     */
     public final static int SDB_SNAP_TRANSDEADLOCK = 26;
+    /**
+     * Snapshot of recycle bin
+     */
+    public final static int SDB_SNAP_RECYCLEBIN = 27;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
@@ -175,7 +313,7 @@ public class Sequoiadb implements Closeable {
         if (name == null) {
             return;
         }
-        if (enableCache) {
+        if (globalClientConf.getEnableCache()) {
             long current = System.currentTimeMillis();
             nameCache.put(name, current);
             String[] arr = name.split("\\.");
@@ -230,10 +368,10 @@ public class Sequoiadb implements Closeable {
     }
 
     boolean fetchCache(String name) {
-        if (enableCache) {
+        if (globalClientConf.getEnableCache()) {
             if (nameCache.containsKey(name)) {
                 long lastUpdatedTime = nameCache.get(name);
-                if ((System.currentTimeMillis() - lastUpdatedTime) >= cacheInterval) {
+                if ((System.currentTimeMillis() - lastUpdatedTime) >= globalClientConf.getCacheInterval()) {
                     nameCache.remove(name);
                     return false;
                 } else {
@@ -248,15 +386,13 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * Initialize the configuration options for client.
+     * Initialize the global configuration of SequoiaDB driver.
      *
-     * @param options the configuration options for client
+     * @param options The global configuration of SequoiaDB driver
      */
     public static void initClient(ClientOptions options) {
-        enableCache = (options != null) ? options.getEnableCache() : true;
-        cacheInterval = (options != null && options.getCacheInterval() >= 0)
-                ? options.getCacheInterval()
-                : 300 * 1000;
+        globalClientConf = options != null ? options : new ClientOptions();
+        BSON.setExactlyDate( globalClientConf.getExactlyDate() );
     }
 
     /**
@@ -511,9 +647,11 @@ public class Sequoiadb implements Closeable {
 
         connProxy = new ConnectionProxy(connection);
 
-        byteOrder = getSysInfo();
-        authenticate(username, password);
+        SysInfoResponse sysInfoResponse = getSysInfo();
+        byteOrder = sysInfoResponse.byteOrder();
+        protocolVersion = sysInfoResponse.getPeerProtocolVersion();
 
+        authenticate(username, password);
         this.userName = username;
         this.password = password;
     }
@@ -649,7 +787,7 @@ public class Sequoiadb implements Closeable {
      *
      * @param options The connection options
      * @throws BaseException If error happens.
-     * @deprecated Create a new Sequoiadb instance instead..
+     * @deprecated Create a new Sequoiadb instance instead.
      */
     @Deprecated
     public void changeConnectionOptions(ConfigOptions options) throws BaseException {
@@ -677,12 +815,12 @@ public class Sequoiadb implements Closeable {
      * @param csName   The name of collection space
      * @param pageSize The Page Size as below:
      *                 <ul>
-     *                 <li>SDB_PAGESIZE_4K
-     *                 <li>SDB_PAGESIZE_8K
-     *                 <li>SDB_PAGESIZE_16K
-     *                 <li>SDB_PAGESIZE_32K
-     *                 <li>SDB_PAGESIZE_64K
-     *                 <li>SDB_PAGESIZE_DEFAULT
+     *                 <li>{@link Sequoiadb#SDB_PAGESIZE_4K}
+     *                 <li>{@link Sequoiadb#SDB_PAGESIZE_8K}
+     *                 <li>{@link Sequoiadb#SDB_PAGESIZE_16K}
+     *                 <li>{@link Sequoiadb#SDB_PAGESIZE_32K}
+     *                 <li>{@link Sequoiadb#SDB_PAGESIZE_64K}
+     *                 <li>{@link Sequoiadb#SDB_PAGESIZE_DEFAULT}
      *                 </ul>
      * @return the newly created collection space object
      * @throws BaseException If error happens.
@@ -750,17 +888,19 @@ public class Sequoiadb implements Closeable {
      *                <ul>
      *                <li>EnsureEmpty(boolean) : check whether the collection space is empty when drop,
      *                false means drop directly, true means only empty can drop, default value is false
+     *                <li>SkipRecycleBin(boolean) : Indicates whether to skip recycle bin, default is false.
      *                </ul>
      * @throws BaseException If error happens.
      */
     public void dropCollectionSpace(String csName, BSONObject options) throws BaseException {
         if (csName == null || csName.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
+            throw new BaseException(SDBError.SDB_INVALIDARG,
+                                    "cs name can not be null or empty");
         }
 
         BSONObject innerOptions = new BasicBSONObject();
         innerOptions.put(SdbConstants.FIELD_NAME_NAME, csName);
-        if (null != options) {
+        if (options != null) {
             innerOptions.putAll(options);
         }
 
@@ -1131,32 +1271,27 @@ public class Sequoiadb implements Closeable {
      * Get the information of specified type.
      *
      * @param listType   The list type as below:
-     *                   <dl>
-     *                   <dt>Sequoiadb.SDB_LIST_CONTEXTS : Get all contexts list
-     *                   <dt>Sequoiadb.SDB_LIST_CONTEXTS_CURRENT : Get contexts list for the current
-     *                   session
-     *                   <dt>Sequoiadb.SDB_LIST_SESSIONS : Get all sessions list
-     *                   <dt>Sequoiadb.SDB_LIST_SESSIONS_CURRENT : Get the current session
-     *                   <dt>Sequoiadb.SDB_LIST_COLLECTIONS : Get all collections list
-     *                   <dt>Sequoiadb.SDB_LIST_COLLECTIONSPACES : Get all collection spaces list
-     *                   <dt>Sequoiadb.SDB_LIST_STORAGEUNITS : Get storage units list
-     *                   <dt>Sequoiadb.SDB_LIST_GROUPS : Get replica group list ( only applicable in
-     *                   sharding env )
-     *                   <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES : Get stored procedure list ( only
-     *                   applicable in sharding env )
-     *                   <dt>Sequoiadb.SDB_LIST_DOMAINS : Get all the domains list ( only applicable in
-     *                   sharding env )
-     *                   <dt>Sequoiadb.SDB_LIST_TASKS : Get all the running split tasks ( only applicable
-     *                   in sharding env )
-     *                   <dt>Sequoiadb.SDB_LIST_TRANSACTIONS : Get all the transactions information.
-     *                   <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of
-     *                   current session.
-     *                   <dt>Sequoiadb.SDB_LIST_SVCTASKS : Get all the schedule task information
-     *                   <dt>Sequoiadb.SDB_LIST_SEQUENCES : Get the information of sequences
-     *                   <dt>Sequoiadb.SDB_LIST_USERS : Get all the user information.
-     *                   <dt>Sequoiadb.SDB_LIST_BACKUPS : Get all the backup information.
-     *                   <dt>Sequoiadb.SDB_LIST_DATASOURCES : Get all the data source information</dt>
-     *                   </dl>
+     *                   <ul>
+     *                   <li>{@link Sequoiadb#SDB_LIST_CONTEXTS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_CONTEXTS_CURRENT}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SESSIONS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SESSIONS_CURRENT}
+     *                   <li>{@link Sequoiadb#SDB_LIST_COLLECTIONS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_COLLECTIONSPACES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_STORAGEUNITS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_GROUPS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_STOREPROCEDURES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_DOMAINS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_TASKS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_TRANSACTIONS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_TRANSACTIONS_CURRENT}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SVCTASKS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SEQUENCES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_USERS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
+     *                   </ul>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
      * @param orderBy    The ordered rule, never sort if null.
@@ -1169,8 +1304,10 @@ public class Sequoiadb implements Closeable {
     public DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy,
                             BSONObject hint, long skipRows, long returnRows) throws BaseException {
         String command = getListCommand(listType);
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
         AdminRequest request = new AdminRequest(command, query, selector, orderBy, hint, skipRows,
-                returnRows);
+                returnRows, flag);
         SdbReply response = requestAndResponse(request);
 
         int flags = response.getFlag();
@@ -1185,33 +1322,28 @@ public class Sequoiadb implements Closeable {
     /**
      * Get the information of specified type.
      *
-     * @param listType The list type as below:
-     *                 <dl>
-     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS : Get all contexts list
-     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS_CURRENT : Get contexts list for the current
-     *                 session
-     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS : Get all sessions list
-     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS_CURRENT : Get the current session
-     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONS : Get all collections list
-     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONSPACES : Get all collection spaces list
-     *                 <dt>Sequoiadb.SDB_LIST_STORAGEUNITS : Get storage units list
-     *                 <dt>Sequoiadb.SDB_LIST_GROUPS : Get replica group list ( only applicable in
-     *                 sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES : Get stored procedure list ( only
-     *                 applicable in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_DOMAINS : Get all the domains list ( only applicable in
-     *                 sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_TASKS : Get all the running split tasks ( only applicable
-     *                 in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS : Get all the transactions information.
-     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of
-     *                 current session.
-     *                 <dt>Sequoiadb.SDB_LIST_SVCTASKS : Get all the schedule task information
-     *                 <dt>Sequoiadb.SDB_LIST_SEQUENCES : Get the information of sequences
-     *                 <dt>Sequoiadb.SDB_LIST_USERS : Get all the user information.
-     *                 <dt>Sequoiadb.SDB_LIST_BACKUPS : Get all the backup information.
-     *                 <dt>Sequoiadb.SDB_LIST_DATASOURCES : Get all the data source information</dt>
-     *                 </dl>
+     * @param listType   The list type as below:
+     *                   <ul>
+     *                   <li>{@link Sequoiadb#SDB_LIST_CONTEXTS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_CONTEXTS_CURRENT}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SESSIONS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SESSIONS_CURRENT}
+     *                   <li>{@link Sequoiadb#SDB_LIST_COLLECTIONS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_COLLECTIONSPACES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_STORAGEUNITS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_GROUPS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_STOREPROCEDURES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_DOMAINS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_TASKS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_TRANSACTIONS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_TRANSACTIONS_CURRENT}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SVCTASKS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_SEQUENCES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_USERS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
+     *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
+     *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
+     *                   </ul>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
      * @param orderBy  The ordered rule, never sort if null.
@@ -1331,40 +1463,42 @@ public class Sequoiadb implements Closeable {
     /**
      * Get snapshot of the database.
      *
-     * @param snapType The snapshot types are as below:
-     *                 <dl>
-     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS : Get all contexts' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT : Get the current context's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS : Get all sessions' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT : Get the current session's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONS : Get the collections' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES : Get the collection spaces' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_DATABASE : Get database's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SYSTEM : Get system's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_CATALOG : Get catalog's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS : Get the snapshot of all the transactions
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT : Get the snapshot of current
-     *                 transactions
-     *                 <dt>Sequoiadb.SDB_SNAP_ACCESSPLANS : Get the snapshot of cached access plans
-     *                 <dt>Sequoiadb.SDB_SNAP_HEALTH : Get the snapshot of node health detection
-     *                 <dt>Sequoiadb.SDB_SNAP_CONFIGS : Get the snapshot of node configurations
-     *                 <dt>Sequoiadb.SDB_SNAP_SVCTASKS : Get all the information of schedule task
-     *                 <dt>Sequoiadb.SDB_SNAP_SEQUENCES : Get the snapshot of the sequence
-     *                 <dt>Sequoiadb.SDB_SNAP_QUERIES : Get the snapshot of queries
-     *                 <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
-     *                 <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
-     *                 <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
-     *                 <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
-     *                 <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSWAITS : Get the snapshot of transaction waits
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSDEADLOCK : Get the snapshot of transaction deadlock
-     *                 </dl>
+     * @param snapType The snapshot type as below:
+     *                  <ul>
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONTEXTS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONTEXTS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SESSIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SESSIONS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_COLLECTIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_COLLECTIONSPACES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_DATABASE}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SYSTEM}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CATALOG}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSACTIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSACTIONS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_ACCESSPLANS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_HEALTH}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONFIGS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SVCTASKS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SEQUENCES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_QUERIES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_LATCHWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_LOCKWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXSTATS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TASKS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_RECYCLEBIN}
+     *                  </ul>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
      * @param orderBy  the ordered rule, never sort if null
      * @return the DBCursor of the result
      * @throws BaseException If error happens.
+     * @deprecated Use {@link Sequoiadb#getSnapshot(int, BSONObject, BSONObject, BSONObject)} instead.
      */
+    @Deprecated
     public DBCursor getSnapshot(int snapType, String matcher, String selector, String orderBy)
             throws BaseException {
         BSONObject ma = null;
@@ -1386,34 +1520,34 @@ public class Sequoiadb implements Closeable {
     /**
      * Get snapshot of the database.
      *
-     * @param snapType The snapshot types are as below:
-     *                 <dl>
-     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS : Get all contexts' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT : Get the current context's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS : Get all sessions' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT : Get the current session's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONS : Get the collections' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES : Get the collection spaces' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_DATABASE : Get database's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SYSTEM : Get system's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_CATALOG : Get catalog's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS : Get snapshot of transactions in current
-     *                 session
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
-     *                 <dt>SequoiaDB.SDB_SNAP_ACCESSPLANS : Get the snapshot of cached access plans
-     *                 <dt>Sequoiadb.SDB_SNAP_HEALTH : Get the snapshot of node health detection
-     *                 <dt>Sequoiadb.SDB_SNAP_CONFIGS : Get the snapshot of node configurations
-     *                 <dt>Sequoiadb.SDB_SNAP_SVCTASKS : Get all the information of schedule task
-     *                 <dt>Sequoiadb.SDB_SNAP_SEQUENCES : Get the snapshot of the sequence
-     *                 <dt>Sequoiadb.SDB_SNAP_QUERIES : Get the snapshot of queries
-     *                 <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
-     *                 <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
-     *                 <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
-     *                 <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
-     *                 <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSWAITS : Get the snapshot of transaction waits
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSDEADLOCK : Get the snapshot of transaction deadlock
-     *                 </dl>
+     * @param snapType The snapshot type as below:
+     *                  <ul>
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONTEXTS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONTEXTS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SESSIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SESSIONS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_COLLECTIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_COLLECTIONSPACES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_DATABASE}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SYSTEM}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CATALOG}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSACTIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSACTIONS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_ACCESSPLANS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_HEALTH}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONFIGS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SVCTASKS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SEQUENCES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_QUERIES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_LATCHWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_LOCKWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXSTATS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TASKS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_RECYCLEBIN}
+     *                  </ul>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
      * @param orderBy  the ordered rule, never sort if null
@@ -1428,34 +1562,33 @@ public class Sequoiadb implements Closeable {
     /**
      * Get snapshot of the database.
      *
-     * @param snapType   The snapshot types are as below:
-     *                   <dl>
-     *                   <dt>Sequoiadb.SDB_SNAP_CONTEXTS : Get all contexts' snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT : Get the current context's snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_SESSIONS : Get all sessions' snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT : Get the current session's snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_COLLECTIONS : Get the collections' snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES : Get the collection spaces' snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_DATABASE : Get database's snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_SYSTEM : Get system's snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_CATALOG : Get catalog's snapshot
-     *                   <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS : Get snapshot of transactions in current
-     *                   session
-     *                   <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
-     *                   <dt>SequoiaDB.SDB_SNAP_ACCESSPLANS : Get the snapshot of cached access plans
-     *                   <dt>Sequoiadb.SDB_SNAP_HEALTH : Get the snapshot of node health detection
-     *                   <dt>Sequoiadb.SDB_SNAP_CONFIGS : Get the snapshot of node configurations
-     *                   <dt>Sequoiadb.SDB_SNAP_SVCTASKS : Get all the information of schedule task
-     *                   <dt>Sequoiadb.SDB_SNAP_SEQUENCES : Get the snapshot of the sequence
-     *                   <dt>Sequoiadb.SDB_SNAP_QUERIES : Get the snapshot of queries
-     *                   <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
-     *                   <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
-     *                   <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
-     *                   <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
-     *                   <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
-     *                   <dt>Sequoiadb.SDB_SNAP_TRANSWAITS : Get the snapshot of transaction waits
-     *                   <dt>Sequoiadb.SDB_SNAP_TRANSDEADLOCK : Get the snapshot of transaction deadlock
-     *                   </dl>
+     * @param snapType The snapshot type as below:
+     *                  <ul>
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONTEXTS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONTEXTS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SESSIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SESSIONS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_COLLECTIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_COLLECTIONSPACES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_DATABASE}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SYSTEM}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CATALOG}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSACTIONS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSACTIONS_CURRENT}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_ACCESSPLANS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_HEALTH}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_CONFIGS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SVCTASKS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_SEQUENCES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_QUERIES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_LATCHWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_LOCKWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXSTATS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TASKS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_INDEXES}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSWAITS}
+     *                  <li>{@link Sequoiadb#SDB_SNAP_TRANSDEADLOCK}
+     *                  </ul>
      * @param matcher    the matching rule, match all the documents if null
      * @param selector   the selective rule, return the whole document if null
      * @param orderBy    the ordered rule, never sort if null
@@ -1471,21 +1604,19 @@ public class Sequoiadb implements Closeable {
                                 BSONObject orderBy, BSONObject hint, long skipRows, long returnRows)
             throws BaseException {
         String command = getSnapshotCommand(snapType);
-
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
         QueryRequest request = new QueryRequest(command, matcher, selector, orderBy, hint, skipRows,
-                returnRows, 0);
+                returnRows, flag);
         SdbReply response = requestAndResponse(request);
 
-        int flag = response.getFlag();
-        if (flag != 0) {
-            if (flag == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
-                        + orderBy + ", hint = " + hint + ", skipRows = " + skipRows
-                        + ", returnRows = " + returnRows;
-                throwIfError(response, msg);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
+        } else if (response.getFlag() != 0) {
+            String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
+                    + orderBy + ", hint = " + hint + ", skipRows = " + skipRows
+                    + ", returnRows = " + returnRows;
+            throwIfError(response, msg);
         }
 
         return new DBCursor(response, this);
@@ -1541,6 +1672,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_TRANSWAITS;
             case SDB_SNAP_TRANSDEADLOCK:
                 return AdminCommand.SNAP_TRANSDEADLOCK;
+            case SDB_SNAP_RECYCLEBIN:
+                return AdminCommand.SNAP_RECYCLEBIN;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid snapshot type: %d", snapType));
@@ -1776,23 +1909,20 @@ public class Sequoiadb implements Closeable {
      */
     public DBCursor listBackup(BSONObject options, BSONObject matcher, BSONObject selector,
                                BSONObject orderBy) throws BaseException {
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
         AdminRequest request = new AdminRequest(AdminCommand.LIST_BACKUP, matcher, selector,
-                orderBy, options);
+                orderBy, options, 0, -1, flag );
         SdbReply response = requestAndResponse(request);
 
-        int flags = response.getFlag();
-        if (flags != 0) {
-            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
-                return null;
-            } else {
-                String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
-                        + orderBy + ", options = " + options;
-                throwIfError(response, msg);
-            }
+        if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
+            return null;
+        } else if (response.getFlag() != 0) {
+            String msg = "matcher = " + matcher + ", selector = " + selector + ", orderBy = "
+                    + orderBy + ", options = " + options;
+            throwIfError(response, msg);
         }
-
-        DBCursor cursor = new DBCursor(response, this);
-        return cursor;
+        return new DBCursor(response, this);
     }
 
     /**
@@ -1924,7 +2054,8 @@ public class Sequoiadb implements Closeable {
 
         for (String key: options.keySet()) {
             Object value = options.get(key);
-            if (key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERED_INSTANCE)){
+            if (key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERRED_INSTANCE_LEGACY) ||
+                    key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERRED_INSTANCE)) {
                 if (value instanceof String) {
                     String valueStr = (String)value;
                     int v ;
@@ -1937,13 +2068,13 @@ public class Sequoiadb implements Closeable {
                     } else {
                         throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
                     }
-                    newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, v);
+                    newObj.put(key, v);
                 } else if (value instanceof Integer) {
-                    newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, value);
+                    newObj.put(key, value);
                 }
                 // Add new version of preferred instance
-                newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE_V1, value);
-            }else {
+                newObj.put(SdbConstants.FIELD_NAME_PREFERRED_INSTANCE_V1_LEGACY, value);
+            } else {
                 newObj.put(key, value);
             }
         }
@@ -2195,8 +2326,20 @@ public class Sequoiadb implements Closeable {
      *
      * @param rgName replica group's name
      * @return true or false
+     * @deprecated Use isReplicaGroupExist(String rgName) instead.
      */
+    @Deprecated
     public boolean isRelicaGroupExist(String rgName) {
+        return isReplicaGroupExist(rgName);
+    }
+
+    /**
+     * whether the replica group exists in the database or not
+     *
+     * @param rgName replica group's name
+     * @return true or false
+     */
+    public boolean isReplicaGroupExist(String rgName) {
         BSONObject rg = getDetailByName(rgName);
         if (rg == null) {
             return false;
@@ -2433,7 +2576,7 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * Create a sequence with default options.
+     * Create a sequence.
      *
      * @param seqName The name of sequence
      * @return A sequence object of creation
@@ -2443,7 +2586,7 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * Create a sequence with default options.
+     * Create a sequence with the specified options.
      *
      * @param seqName The name of sequence
      * @param options The options specified by user, details as bellow:
@@ -2676,6 +2819,14 @@ public class Sequoiadb implements Closeable {
         }
     }
 
+    /**
+     * Get recycle bin.
+     *
+     * @return The recycle bin object
+     */
+    public DBRecycleBin getRecycleBin(){
+        return new DBRecycleBin(this);
+    }
 
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
@@ -2735,6 +2886,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_BACKUPS;
             case SDB_LIST_DATASOURCES:
                 return AdminCommand.LIST_DATASOURCES;
+            case SDB_LIST_RECYCLEBIN:
+                return AdminCommand.LIST_RECYCLEBIN;
             case SDB_LIST_CL_IN_DOMAIN:
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:
@@ -2798,7 +2951,7 @@ public class Sequoiadb implements Closeable {
         SysInfoResponse response = new SysInfoResponse();
         byte[] lengthBytes = connection.receive(response.length());
         ByteBuffer buffer = ByteBuffer.wrap(lengthBytes);
-        response.decode(buffer);
+        response.decode(buffer, null);
         return response;
     }
 
@@ -2834,7 +2987,7 @@ public class Sequoiadb implements Closeable {
     private ByteBuffer encodeRequest(Request request) {
         resetRequestBuff(request.length());
         request.setRequestId(getNextRequestId());
-        request.encode(requestBuffer);
+        request.encode(requestBuffer, protocolVersion);
         return requestBuffer;
     }
 
@@ -2855,7 +3008,7 @@ public class Sequoiadb implements Closeable {
         } catch (Exception e) {
             throw new BaseException(SDBError.SDB_INVALIDARG, e);
         }
-        response.decode(buffer);
+        response.decode(buffer, protocolVersion);
         return response;
     }
 
@@ -2943,13 +3096,9 @@ public class Sequoiadb implements Closeable {
         }
     }
 
-    private ByteOrder getSysInfo() {
-        SysInfoRequest request = new SysInfoRequest();
-        sendRequest(request);
-
-        SysInfoResponse response = receiveSysInfoResponse();
-
-        return response.byteOrder();
+    private SysInfoResponse getSysInfo() {
+        sendRequest(new SysInfoRequest());
+        return receiveSysInfoResponse();
     }
 
     private void killContext() {

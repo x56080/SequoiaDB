@@ -1,6 +1,8 @@
 package com.sequoiadb.test.cl;
 
 import com.sequoiadb.base.*;
+import com.sequoiadb.base.options.InsertOption;
+import com.sequoiadb.base.result.InsertResult;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
@@ -9,6 +11,9 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.junit.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.sequoiadb.base.DBCollection.FLG_INSERT_CONTONDUP;
 import static org.junit.Assert.assertEquals;
@@ -19,6 +24,7 @@ public class CLInsert {
     private static Sequoiadb sdb;
     private static CollectionSpace cs;
     private static DBCollection cl;
+    private static DBCollection cl2;
     private static DBCursor cursor;
     private static long i = 0;
 
@@ -37,6 +43,8 @@ public class CLInsert {
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
+        conf.put( "AutoIncrement", new BasicBSONObject("Field", "autoIncField"));
+        cl2 = cs.createCollection( Constants.TEST_CS_NAME_2, conf );
     }
 
     @AfterClass
@@ -48,6 +56,7 @@ public class CLInsert {
     @Before
     public void setUp() throws Exception {
         cl.truncate();
+        cl2.truncate();
     }
 
     @After
@@ -162,5 +171,94 @@ public class CLInsert {
         } catch (BaseException e) {
             Assert.assertEquals(SDBError.SDB_IXM_DUP_KEY.getErrorCode(), e.getErrorCode());
         }
+    }
+
+    @Test
+    public void insertCompatibilityTest(){
+        try {
+            cl.bulkInsert( null );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+
+        try {
+            cl.bulkInsert( null, 0 );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+
+        try {
+            cl.bulkInsert( null, null );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+    }
+
+    @Test
+    public void insertWithResultTest(){
+        cl.createIndex( "a", new BasicBSONObject("a", 1), true, false);
+
+        BSONObject doc = new BasicBSONObject();
+        try {
+            // case 1: empty bson
+            cl.insertRecord( doc );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+        // empty result
+        InsertResult r1 = new InsertResult( null );
+        Assert.assertEquals( -1, r1.getInsertNum() );
+        Assert.assertEquals( -1, r1.getDuplicatedNum() );
+        Assert.assertNull( r1.getOid() );
+        Assert.assertNull( r1.getOidList() );
+        Assert.assertEquals( -1, r1.getLastGenerateID() );
+
+        // case 2: no oid returned
+        doc.put( "a", 1 );
+        InsertResult r2 = cl.insertRecord( doc );
+        Assert.assertEquals( 1, r2.getInsertNum() );
+        Assert.assertEquals( 0, r2.getDuplicatedNum() );
+        Assert.assertNull( r2.getOid() );
+        Assert.assertNull( r2.getOidList() );
+
+        // case 3: return oid
+        InsertOption option = new InsertOption();
+        option.setFlag( InsertOption.FLG_INSERT_CONTONDUP );
+        option.appendFlag( InsertOption.FLG_INSERT_RETURN_OID );
+        InsertResult r3 = cl.insertRecord( doc, option );
+        Assert.assertEquals( 0, r3.getInsertNum() );
+        Assert.assertEquals( 1, r3.getDuplicatedNum() );
+        Assert.assertNotNull( r3.getOid() );
+        Assert.assertNull( r3.getOidList() );
+        Assert.assertEquals( -1, r3.getLastGenerateID() );
+
+        // case 4: user-defined oid
+        doc.put( "_id", "111" );
+        InsertResult r4 = cl.insertRecord( doc, option );
+        Assert.assertEquals( "111", r4.getOid() );
+
+        List<BSONObject> docList = new ArrayList<>();
+        try {
+            // case 5: empty list
+            InsertResult r5 = cl2.bulkInsert( docList );
+        }catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+
+        // case 6: return oid
+        docList.add( doc );
+        docList.add( new BasicBSONObject("a", 2) );
+        InsertResult r6 = cl2.bulkInsert( docList, option );
+        Assert.assertEquals( 2, r6.getInsertNum() );
+        Assert.assertEquals( 0, r6.getDuplicatedNum() );
+        Assert.assertNull( r6.getOid() );
+        Assert.assertEquals( 2, r6.getOidList().size());
+
+        // case 7: no oid returned
+        option.eraseFlag( InsertOption.FLG_INSERT_RETURN_OID );
+        cl2.truncate();
+        InsertResult r7 = cl2.bulkInsert( docList, option );
+        Assert.assertNull( r7.getOid() );
+        Assert.assertNull( r7.getOidList());
     }
 }

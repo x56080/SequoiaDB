@@ -284,23 +284,15 @@ public class ReleaseConnectionTest7576_7584 extends DataSourceTestBase {
      * 归还连接后对连接持有资源的处理
      */
     @Test
-    public void checkResourceAfterRelease7584() {
-        try {
-            if ( isStandAlone() )
-                return;
-            Sequoiadb sdb;
-            sdb = datasource.getConnection();
-
-            DBCursor cursor = sdb.listReplicaGroups();
-            datasource.releaseConnection( sdb );
-            cursor.getNext();
-            Assert.fail("must throw exception!") ;
-        } catch ( InterruptedException e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            Assert.fail(e.getMessage());
-        } catch ( BaseException e ) {
-            judegeErrCode( "SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode() );
-        }
+    public void checkResourceAfterRelease7584() throws InterruptedException {
+        if ( isStandAlone() )
+            return;
+        Sequoiadb sdb;
+        sdb = datasource.getConnection();
+        DBCursor cursor = sdb.listReplicaGroups();
+        datasource.releaseConnection( sdb );
+        // 问题单SEQUOIADBMAINSTREAM-8226修改，该用例预期结果getNext()成功
+        cursor.getNext();
+        cursor.close();
     }
 }

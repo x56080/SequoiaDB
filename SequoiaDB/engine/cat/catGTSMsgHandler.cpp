@@ -296,8 +296,9 @@ namespace engine
       reply.header.messageLength = sizeof( MsgOpReply ) + buf.size() ;
       reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
       reply.header.requestID = msg->requestID ;
-      reply.header.routeID.value = msg->routeID.value ;
+      reply.header.routeID.value = 0 ;
       reply.header.TID = msg->TID ;
+      reply.header.globalID = msg->globalID ;
       reply.flags = rc ;
       reply.contextID = -1 ;
       reply.numReturned = buf.recordNum() ;
@@ -329,8 +330,9 @@ namespace engine
          reply.header.messageLength = sizeof( MsgOpReply ) ;
          reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
          reply.header.requestID = msg->requestID ;
-         reply.header.routeID.value = msg->routeID.value ;
+         reply.header.routeID.value = 0 ;
          reply.header.TID = msg->TID ;
+         reply.header.globalID = msg->globalID ;
          reply.flags = rc ;
          reply.contextID = -1 ;
          reply.numReturned = 0 ;
@@ -590,7 +592,8 @@ namespace engine
 
       name = ele.String() ;
 
-      rc = seqMgr->createSequence( name, options, eduCB, _catCB->majoritySize( TRUE ) ) ;
+      rc = seqMgr->createSequence( name, UTIL_UNIQUEID_NULL, options, eduCB,
+                                   _catCB->majoritySize( TRUE ) ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

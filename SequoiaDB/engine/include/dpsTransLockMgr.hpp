@@ -253,27 +253,30 @@ namespace engine
          DPS_TRANS_ID_SET &         incompTrans
       ) ;
 
+      // kill waiters with error code
+      BOOLEAN killWaiters( const dpsTransLockId &lockID, INT32 errorCode ) ;
+
    public:
       virtual INT32 acquire(IExecutor *executor,
                             const dpsTransLockId &lockId,
                             const DPS_TRANSLOCK_TYPE &mode,
                             _IContext * pContext,
                             dpsTransRetInfo *pdpsTxResInfo,
-                            _dpsITransLockCallback *callback);
+                            _dpsITransLockCallback *callback) override;
 
       virtual void release(IExecutor *executor,
                            const dpsTransLockId &lockId,
                            BOOLEAN bForceRelease,
-                           _dpsITransLockCallback * callback);
+                           _dpsITransLockCallback * callback) override;
 
       virtual void releaseAll(IExecutor *executor,
-                              _dpsITransLockCallback *callback);
+                              _dpsITransLockCallback *callback) override;
 
       virtual INT32 tryAcquire(IExecutor *executor,
                                  const dpsTransLockId &lockId,
                                  const DPS_TRANSLOCK_TYPE &mode,
                                  dpsTransRetInfo *pdpsTxResInfo,
-                                 _dpsITransLockCallback *callback);
+                                 _dpsITransLockCallback *callback) override;
 
       virtual INT32 testAcquire(IExecutor *executor,
                                  const dpsTransLockId &lockId,
@@ -281,7 +284,7 @@ namespace engine
                                  BOOLEAN preemptMode,
                                  dpsTransRetInfo *pdpsTxResInfo,
                                  _dpsITransLockCallback *callback,
-                                 BOOLEAN intentLock);
+                                 BOOLEAN intentLock) override;
 
    private:
       // Latch for normal lock operation ( acquire, tryAcquire,
@@ -522,6 +525,9 @@ namespace engine
 
       // wakeup a lock waiting exectuor ( EDU )
       void _wakeUp( _dpsTransExecutor * dpsTxExectr ) ;
+
+      // kill a waiter with error code
+      void _killWaiter( _dpsTransExecutor * dpsTxExectr, INT32 errorCode ) ;
 
       // wait a lock till be woken up, lock timeout elapsed, or be interrupted
       INT32 _waitLock( _dpsTransExecutor * dpsTxExectr ) ;

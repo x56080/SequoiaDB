@@ -47,17 +47,17 @@ namespace sequoiafs
    {
       _mcs = mcs;
    }
-   
+
    mcsMsghandler::~mcsMsghandler()
    {
    }
-         
+
    INT32 mcsMsghandler::handleMsg(const NET_HANDLE &handle,
                                   const _MsgHeader *header,
                                   const CHAR *msg)
    {
       INT32 rc = SDB_OK;
-      
+
       SDB_ASSERT (NULL != header, "message-header should not be NULL");
 
       if (FS_REGISTER_REQ == header->opCode)
@@ -85,13 +85,13 @@ namespace sequoiafs
       goto done ;
    }
 
-   void mcsMsghandler::handleClose(const NET_HANDLE &handle, 
+   void mcsMsghandler::handleClose(const NET_HANDLE &handle,
                                    _MsgRouteID id)
    {
       _mcs->delMountNode(handle);
    }
 
-   INT32 mcsMsghandler::handleRegRequest(const NET_HANDLE &handle, 
+   INT32 mcsMsghandler::handleRegRequest(const NET_HANDLE &handle,
                                          const _mcsRegReq *request)
    {
       INT32 rc = SDB_OK;
@@ -104,7 +104,7 @@ namespace sequoiafs
       if((INT32)ossStrlen(request->mountPath) != request->pathLen)
       {
          PD_LOG(PDERROR, "pathLen(%d) in msg != the length of mountPath(%s) in msg,",
-                          request->pathLen, request->mountPath); 
+                          request->pathLen, request->mountPath);
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -112,10 +112,10 @@ namespace sequoiafs
       if(_mcs->getRegService()->isRegistered())
       {
          //mcs addFsNode(mountId, fsnode)
-         rc = _mcs->addMountNode(request->mountId, 
-                                (CHAR*)&(request->mountIp), 
-                                (CHAR*)&(request->mountPath), 
-                                handle); 
+         rc = _mcs->addMountNode(request->mountId,
+                                (CHAR*)&(request->mountIp),
+                                (CHAR*)&(request->mountPath),
+                                handle);
          if(rc != SDB_OK)
          {
             PD_LOG(PDERROR, "Failed to add mountNode, rc=%d", rc);
@@ -129,16 +129,16 @@ namespace sequoiafs
          regResponse.reply.header.requestID = request->header.requestID;
          regResponse.reply.header.routeID.value = 0;
          regResponse.reply.res = SDB_OK;
-         
-         _mcs->getAgent()->syncSend(handle, (void *)&regResponse);
+
+         _mcs->getAgent()->syncSend(handle, (MsgHeader *)&regResponse);
          if(SDB_OK != rc)
          {
-            _mcs->delMountNode(handle); 
+            _mcs->delMountNode(handle);
             PD_LOG(PDERROR, "Failed to send rsp for register, rc=%d", rc);
             goto error;
          }
       }
-      else 
+      else
       {
          rc = SDBCM_SVC_STARTING;
          PD_LOG(PDERROR, "MCS is registing to SequoiaDB, rc=%d", rc);
@@ -146,13 +146,13 @@ namespace sequoiafs
 
    done:
       return rc;
-      
+
    error :
       _mcs->getAgent()->close(handle);
-      goto done;   
+      goto done;
    }
 
-   INT32 mcsMsghandler::handleNotifyRequest(const NET_HANDLE &handle, 
+   INT32 mcsMsghandler::handleNotifyRequest(const NET_HANDLE &handle,
                                             const _mcsNotifyReq *request)
    {
       INT32 rc = SDB_OK;
@@ -162,7 +162,7 @@ namespace sequoiafs
       SDB_ASSERT(NULL != request, "request message is invalid");
       SDB_ASSERT(FS_RELEASELOCK == request->header.opCode,
                  "opcode of message is invalid");
-     
+
       mountNode* mountFS = _mcs->getFsList(request->mountId);  //TODO:使用list的时候也要在锁中
 
       //build broadcast
@@ -172,7 +172,7 @@ namespace sequoiafs
          rc = SDB_OOM;
          PD_LOG( PDERROR, "Failed to SDB_THREAD_ALLOC, length:%d", request->header.messageLength);
          goto error;
-      } 
+      }
       ossMemcpy(broadcast, request, request->header.messageLength);
       broadcast->header.opCode = MS_RELEASELOCK;
 
@@ -184,10 +184,10 @@ namespace sequoiafs
          {
             continue;
          }
-         
+
          NET_HANDLE curHandle = (NET_HANDLE)(cur->_handle);
-         rc = _mcs->getAgent()->syncSend(curHandle, (void *)broadcast);
-         
+         rc = _mcs->getAgent()->syncSend(curHandle, (MsgHeader *)broadcast);
+
          if(SDB_OK != rc)
          {
             PD_LOG( PDERROR, "Failed to syncSend broadcast, ip:%s, path:%s, rc=%d", cur->mountIp, cur->mountPath, rc);
@@ -201,7 +201,7 @@ namespace sequoiafs
       }
       return rc;
    error :
-      goto done;  
+      goto done;
    }
 
    _mcsTimerHandler::_mcsTimerHandler (_pmdAsycSessionMgr * pSessionMgr)

@@ -457,7 +457,7 @@ namespace engine
       request.type = (UINT16)type ;
 
       // send server request
-      rc = _netAgent->syncSend( routeID, &request ) ;
+      rc = _netAgent->syncSend( routeID, (MsgHeader *)&request ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send server request to %s, "
                    "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
 
@@ -557,6 +557,27 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   void _stpNodeManager::updateLocalTimeError( UINT32 timeError )
+   {
+      ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
+      if ( timeError > _local.getMaxTimeError() )
+      {
+         PD_LOG( PDWARNING, "Time error [%u] is larger than maximum time "
+                 "error [%u], round with maximum value", timeError,
+                 _local.getMaxTimeError() ) ;
+         timeError = _local.getMaxTimeError() ;
+      }
+      else if ( timeError < STP_MIN_TIME_ERROR )
+      {
+         PD_LOG( PDWARNING, "Time error [%u] is smaller than minimum time "
+                 "error [%u], round with minimum value", timeError,
+                 STP_MIN_TIME_ERROR ) ;
+         timeError = STP_MIN_TIME_ERROR ;
+      }
+
+      _local.setTimeError( timeError ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR_CHKEXPIREDVER, "_stpNodeManager::checkExpiredVersion" )

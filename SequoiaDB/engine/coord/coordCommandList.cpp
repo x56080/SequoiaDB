@@ -47,6 +47,7 @@
 #include "coordTrace.hpp"
 #include "catGTSDef.hpp"
 #include "coordUtil.hpp"
+#include "coordCommandStat.hpp"
 
 using namespace bson ;
 
@@ -658,6 +659,53 @@ namespace engine
    {
    }
 
+   INT32 _coordCmdListIndexes::execute( MsgHeader *pMsg,
+                                        pmdEDUCB *cb,
+                                        INT64 &contextID,
+                                        rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _coordCMDQueryBase::execute( pMsg, cb, contextID, buf ) ;
+      if ( SDB_DMS_NOTEXIST == rc )
+      {
+         // If catalog is old version, it doesn't has SYSINDEXES collection,
+         // it will return -23, we should try to list index by old command.
+         if ( buf )
+         {
+            buf->release() ;
+         }
+
+         coordCMDGetIndexesOldVersion listIndexOld ;
+         rc = listIndexOld.init( _pResource, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to init get index command, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+
+         rc = listIndexOld.execute( pMsg, cb, contextID, buf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to list indexes by old command, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+      else if ( rc )
+      {
+
+         PD_LOG( PDERROR, "Failed to list indexes, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORDLISTIDX_PREPCS, "_coordCmdListIndexes::_preProcess" )
    INT32 _coordCmdListIndexes::_preProcess( rtnQueryOptions &queryOpt,
                                             string &clName,
@@ -1209,5 +1257,70 @@ namespace engine
    _coordCMDListDataSourceIntr::~_coordCMDListDataSourceIntr()
    {
    }
-}
 
+   /*
+      _coordCMDListRecycleBin implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListRecycleBin,
+                                      CMD_NAME_LIST_RECYCLEBIN,
+                                      TRUE ) ;
+   _coordCMDListRecycleBin::_coordCMDListRecycleBin()
+   {
+   }
+
+   _coordCMDListRecycleBin::~_coordCMDListRecycleBin()
+   {
+   }
+
+   INT32 _coordCMDListRecycleBin::_preProcess( rtnQueryOptions &queryOpt,
+                                               string &clName,
+                                               BSONObj &outSelector )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.appendNull( FIELD_NAME_RECYCLE_NAME ) ;
+         builder.appendNull( FIELD_NAME_RECYCLE_ID ) ;
+         builder.appendNull( FIELD_NAME_ORIGIN_NAME ) ;
+         builder.appendNull( FIELD_NAME_ORIGIN_ID ) ;
+         builder.appendNull( FIELD_NAME_TYPE ) ;
+         builder.appendNull( FIELD_NAME_OPTYPE ) ;
+         builder.appendNull( FIELD_NAME_RECYCLE_TIME ) ;
+
+         outSelector = queryOpt.getSelector() ;
+         queryOpt.setSelector( builder.obj() ) ;
+
+         clName.assign( CAT_SYSRECYCLEBIN_ITEM_COLLECTION ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to pre-process list recycle bin command, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDListRecycleBinIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListRecycleBinIntr,
+                                      CMD_NAME_LIST_RECYCLEBIN_INTR,
+                                      TRUE ) ;
+   _coordCMDListRecycleBinIntr::_coordCMDListRecycleBinIntr()
+   {
+   }
+
+   _coordCMDListRecycleBinIntr::~_coordCMDListRecycleBinIntr()
+   {
+   }
+
+}

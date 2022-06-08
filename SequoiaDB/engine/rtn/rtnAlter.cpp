@@ -179,8 +179,8 @@ namespace engine
       {
          rc = SDB_OK ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], rc: %d",
-                   IXM_SHARD_KEY_NAME, collection, rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
+                   "rc: %d", IXM_SHARD_KEY_NAME, collection, rc ) ;
 
       if ( dropIndex )
       {
@@ -191,8 +191,8 @@ namespace engine
          {
             rc = SDB_OK ;
          }
-         PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s], "
-                      "rc: %d", collection, rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s],"
+                      " rc: %d", collection, rc ) ;
       }
 
       if ( argument.isEnsureShardingIndex() && createIndex )
@@ -602,6 +602,17 @@ namespace engine
                                                localTask->isStrictDataMode(),
                                                mbContext ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set strict data mode "
+                      "on collection [%s], rc: %d", collection, rc ) ;
+      }
+
+      // no trans
+      if ( localTask->testArgumentMask( UTIL_CL_NOTRANS_FIELD ) )
+      {
+         rc = su->setCollectionNoTrans( collectionShortName,
+                                        localTask->isNoTrans(),
+                                        mbContext,
+                                        cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set no trans "
                       "on collection [%s], rc: %d", collection, rc ) ;
       }
 

@@ -531,11 +531,22 @@ class SequoiaCL
     *                                                                   the inserting new record.
     *                                    @endcode
     *
-    * @return Returns the result, default return array. When flag SDB_FLG_INSERT_RETURN_OID is set,
-    * return the value of "_id" field of the inserted record.
+    * @return Returns the result, default return array. 
+    *                                    @code
+    *                                    InsertedNum    :  The number of records successfully inserted, including
+                                                           replaced and ignored records.
+                                         DuplicatedNum  :  The number of records ignored or replaced due to duplicate
+                                                           key conflicts.
+                                         LastGenerateID :  The max value of all autoIncrements in current collection.
+                                                           The result will include field "LastGenerateID" if current
+                                                           collection has autoIncrements.
+                                         _id            :  Obecjt ID of the inserted record. The result will include field "_id"
+                                                           if FLG_INSERT_RETURN_OID is used or the default value of flag is used.
+                                         errno          :  Operation error code.
+    *                                    @endcode
     *
-    * @retval array   array( 'errno' => 0, '_id' => &lt;24 hexadecimal characters&gt; )
-    * @retval string  { "errno": 0, "_id": &lt;24 hexadecimal characters&gt; }
+    * @retval array   array( 'errno' => 0, '_id' => &lt;24 hexadecimal characters&gt;, 'InsertedNum' => &lt;long&gt;, 'DuplicatedNum' => &lt;long&gt; )
+    * @retval string  { "errno": 0, "_id": &lt;24 hexadecimal characters&gt;, "InsertedNum": &lt;long&gt;, "DuplicatedNum": &lt;long&gt; }
     *
     * Example: Record type is php array
     * @code
@@ -544,7 +555,22 @@ class SequoiaCL
     *    echo "Failed to insert record, error code: ".$err['errno'] ;
     *    return ;
     * }
-    * echo "Insert record id is: ".$err['_id'] ;
+    * var_dump( $err ) ;
+    *
+    * Print $err is 
+    * array(4) {
+        ["_id"]=>
+        object(SequoiaID)#3 (1) {
+          ["$oid"]=>
+          string(24) "620dbd79d3e4543f45000000"
+        }
+        ["InsertedNum"]=>
+        int(1)
+        ["DuplicatedNum"]=>
+        int(0)
+        ["errno"]=>
+        int(0)
+      }
     * @endcode
     *
     * Example: Record type is json string
@@ -554,7 +580,7 @@ class SequoiaCL
     *    echo "Failed to insert record, error code: ".$err['errno'] ;
     *    return ;
     * }
-    * echo "Insert record id is: ".$err['_id'] ;
+    * var_dump( $err ) ;
     * @endcode
     *
     * Example: 
@@ -564,7 +590,7 @@ class SequoiaCL
     *    echo "Failed to insert record, error code: ".$err['errno'] ;
     *    return ;
     * }
-    * echo "Insert record id is: ".$err['_id'] ;
+    * var_dump( $err ) ;
     * @endcode
    */
    public function insert( array|string $record, integer $flags = SDB_FLG_INSERT_RETURN_OID ){}
@@ -587,9 +613,21 @@ class SequoiaCL
     *                                    @endcode
     *
     * @return Returns the result, default return array.
+    *                                    @code
+    *                                    InsertedNum    :  The number of records successfully inserted, including
+                                                           replaced and ignored records.
+                                         DuplicatedNum  :  The number of records ignored or replaced due to duplicate
+                                                           key conflicts.
+                                         LastGenerateID :  The max value of all autoIncrements in current collection.
+                                                           The result will include field "LastGenerateID" if current
+                                                           collection has autoIncrements.
+                                         _id            :  Obecjt ID of the inserted record. The result will include field "_id"
+                                                           if FLG_INSERT_RETURN_OID is used.
+                                         errno          :  Operation error code.
+    *                                    @endcode
     *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
+    * @retval array   array( 'errno' => 0, 'InsertedNum' => &lt;long&gt;, 'DuplicatedNum' => &lt;long&gt; )
+    * @retval string  { "errno": 0, "InsertedNum": &lt;long&gt;, "DuplicatedNum": &lt;long&gt; }
     *
     * Example: Insert an array record
     * @code
@@ -685,6 +723,10 @@ class SequoiaCL
             string(24) <24 hexadecimal characters>
           }
         }
+        ["InsertedNum"]=>
+        int(3)
+        ["DuplicatedNum"]=>
+        int(0)
         ["errno"]=>
         int(0)
       }
@@ -700,9 +742,13 @@ class SequoiaCL
     * @param $hint      an array or the string argument. The hint, automatically match the optimal hint if null.
     *
     * @return Returns the result, default return array.
+    *                                    @code
+    *                                    DeletedNum     :  The number of records successfully deleted.
+                                         errno          :  Operation error code.
+    *                                    @endcode
     *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
+    * @retval array   array( 'errno' => 0, 'DeletedNum' => &lt;long&gt; )
+    * @retval string  { "errno": 0,  "DeletedNum": &lt;long&gt;  }
     *
     * Example: Remove all records
     * @code
@@ -720,6 +766,15 @@ class SequoiaCL
     *    echo "Failed to remove, error code: ".$err['errno'] ;
     *    return ;
     * }
+    * var_dump( $err ) ;
+    *
+    * Print $err is
+    * array(2) {
+        ["DeletedNum"]=>
+        int(1)
+        ["errno"]=>
+        int(0)
+      }
     * @endcode
    */
    public function remove( array|string $condition = null, array|string $hint = null ){}
@@ -739,9 +794,16 @@ class SequoiaCL
     *                                   @endcode
     *
     * @return Returns the result, default return array.
+    *                                    @code
+    *                                    UpdatedNum     :  The number of records successfully updated, including
+                                                           records that matched but did not change data.
+                                         ModifiedNum    :  The number of records successfully updated with data changes.
+                                         InsertedNum    :  The number of records successfully inserted.
+                                         errno          :  Operation error code.
+    *                                    @endcode
     *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
+    * @retval array   array( 'errno' => 0, 'UpdatedNum' => &lt;long&gt;, 'ModifiedNum' => &lt;long&gt;, 'InsertedNum' => &lt;long&gt; )
+    * @retval string  { "errno": 0, "UpdatedNum" => &lt;long&gt;, "ModifiedNum" => &lt;long&gt;, "InsertedNum" => &lt;long&gt; }
     *
     * Example:
     * @code
@@ -750,6 +812,19 @@ class SequoiaCL
     *    echo "Failed to update, error code: ".$err['errno'] ;
     *    return ;
     * }
+    * var_dump( $err ) ;
+    *
+    * Print $err is
+    * array(4) {
+        ["UpdatedNum"]=>
+        int(1)
+        ["ModifiedNum"]=>
+        int(1)
+        ["InsertedNum"]=>
+        int(0)
+        ["errno"]=>
+        int(0)
+      ｝
     * @endcode
    */
    public function update( array|string $rule, array|string $condition = null, array|string $hint = null, integer $flag = 0 ){}
@@ -771,9 +846,16 @@ class SequoiaCL
     *                                   @endcode
     *
     * @return Returns the result, default return array.
+    *                                    @code
+    *                                    UpdatedNum     :  The number of records successfully updated, including
+                                                           records that matched but did not change data.
+                                         ModifiedNum    :  The number of records successfully updated with data changes.
+                                         InsertedNum    :  The number of records successfully inserted.
+                                         errno          :  Operation error code.
+    *                                    @endcode
     *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
+    * @retval array   array( 'errno' => 0, 'UpdatedNum' => &lt;long&gt;, 'ModifiedNum' => &lt;long&gt;, 'InsertedNum' => &lt;long&gt; )
+    * @retval string  { "errno": 0, "UpdatedNum" => &lt;long&gt;, "ModifiedNum" => &lt;long&gt;, "InsertedNum" => &lt;long&gt; }
     *
     * Example:
     * @code
@@ -782,6 +864,19 @@ class SequoiaCL
     *    echo "Failed to upsert, error code: ".$err['errno'] ;
     *    return ;
     * }
+    * var_dump( $err ) ;
+    *
+    * Print $err is
+    * array(4) {
+        ["UpdatedNum"]=>
+        int(1)
+        ["ModifiedNum"]=>
+        int(1)
+        ["InsertedNum"]=>
+        int(1)
+        ["errno"]=>
+        int(0)
+      ｝
     * @endcode
    */
    public function upsert( array|string $rule, array|string $condition = null, array|string $hint = null, array|string $setOnInsert = null, integer $flag = 0 ){}

@@ -288,7 +288,7 @@ public class NewBSONDecoder implements BSONDecoder {
             }
 
             case DATE: {
-                _callback.gotDate(name, Bits.readLong(_data, _pos));
+                _callback.gotBSONDate(name, Bits.readLong(_data, _pos));
                 _pos += 8;
                 return true;
             }

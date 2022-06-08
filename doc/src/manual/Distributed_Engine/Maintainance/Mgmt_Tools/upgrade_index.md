@@ -3,7 +3,7 @@
 
 sdbupgradeidx 是 SequoiaDB 巨杉数据库的索引升级工具，用于在编目节点上添加索引的元数据信息，并生成 UniqueID。
 
-在 SequoiaDB v3.4.5/5.0.3 及以上版本创建索引时，编目节点上会添加索引的元数据信息并生成 UniqueID。因此，将 SequoiaDB v3.4.5/5.0.3 以下版本创建的索引，升级至 v3.4.5/5.0.3 及以上版本后，需手动执行 sdbupgradeidx 升级工具。
+在 SequoiaDB v3.6/5.0.3 及以上版本创建索引时，编目节点上会添加索引的元数据信息并生成 UniqueID。因此，用户将 SequoiaDB 升级至 v3.6/5.0.3 及以上版本后，需手动执行 sdbupgradeidx 工具以升级索引。
 
 ##语法规则##
 
@@ -21,21 +21,47 @@ sdbupgradeidx [ options ] ...
 
     获取版本信息
 
-- **--hostname, -s <coord hostname>**  
+- **--hostname, -s \<coord hostname\>**  
 
-    指定协调节点所在的主机名，默认为 localhost
+    指定协调节点所在的主机名
   
-- **--svcname, -p <coord port>**  
+- **--svcname, -p \<coord port\>**  
   
-    指定协调节点的端口号，默认为 11810
-  
-- **--output, -o <output file>**  
+    指定协调节点的端口号
+    
+- **--username, -u \<user name\>**  
+
+    指定用户名，默认为空字符串
+
+- **--password, -w \<password\>**  
+
+    指定用户密码，默认为空字符串
+
+- **--cipher \<boolean\>**  
+
+    是否使用密文模式输入密码，默认为false，取值如下：
+
+    - "true": 使用密文模式输入密码，配合 --cipherfile --token 参数使用，关于密文模式的介绍可参考[密码管理][passwd]
+
+    - "false": 使用明文模式 --password 输入密码
+
+- **--cipherfile \<cipher file\>**  
+
+    指定密文文件路径，默认值为 ~/sequoiadb/passwd
+
+- **--token \<token\>**  
+
+    指定密文文件的加密令牌
+
+    如果创建密文文件时未指定 token，可忽略该参数
+
+- **--output, -o \<output file\>**  
 
     指定输出报告的文件路径，默认输出在当前路径下的 `sdbupgradeidx.log` 文件中
   
-- **--action <action>**  
+- **--action \<action\>**  
 
-    指定操作，默认为"check"，取值如下：
+    指定操作，取值如下：
  
     - "check": 只做升级前的检验
  
@@ -163,28 +189,29 @@ Standalone：[独立索引][standalone]
 
     解决办法：
      
-    - 方案1：通过数据节点创建索引，让已存在的索引成为独立索引，可以为已存在的索引生成本地的 UniqueID
+    - 方案1：通过协调节点补充缺失的索引，使原索引升级为一致性索引
      
         ```lang-javascript
-        > data3 = new Sdb('sdbserver3:11830')
-        > data3.sample.February.createIndex('nameIdx', {name: 1})
+        > db.sample.February.createIndex('nameIdx', {name: 1})
         ```
 
-    - 方案2：通过数据节点补充缺失的索引
+    - 方案2：将已存在的索引转换为独立索引
      
         ```lang-javascript
-        > data1 = new Sdb('sdbserver1:11830')
-        > data1.sample.February.createIndex('nameIdx', {name: 1})
-        > data2 = new Sdb('sdbserver2:11830')
-        > data2.sample.February.createIndex('nameIdx', {name: 1})
+        > db.sample.February.createIndex('nameIdx', {name: 1}, {Standalone: true}, {NodeName: "sdbserver3:11830"})
         ```
 
-        再执行本工具，将独立索引转换为一致性索引
+        通过 createIndex() 转换索引时，会输出如下信息，用户可忽略该提示：
 
-        ```lang-bash
-        $ ./sdbupgradeidx -s sdbserver1 -p 11810 --action upgrade
-        $ ./sdbupgradeidx -s sdbserver2 -p 11810 --action upgrade
+        ```lang-text
+        (shell):1 uncaught exception: -247
+        Redefine index:
+        The same index 'ageIdx' has been defined already
         ```
+
+    > **Note:**
+    > 
+    > 具有约束性的索引（唯一索引、NotNull 索引等）无法升级为独立索引，需将其删除或升级为一致性索引。
    
 - **索引冲突**
 
@@ -200,27 +227,33 @@ Standalone：[独立索引][standalone]
     冲突的索引无法通过本工具升级，用户需要手工干预。
 
     解决办法：
-     
-    - 方案1：通过数据节点创建索引，让已存在的索引成为独立索引，可以为已存在的索引生成本地的 UniqueID
-     
-        ```lang-javascript
-        > data1 = new Sdb('sdbserver1:11830')
-        > data1.sample.February.createIndex('ageIdx', {age: 1})
-        ```
 
-    - 方案2：通过数据节点删除冲突的索引后，重新创建目标索引
+    - 方案1：在数据节点上删除冲突的索引后，重新创建目标索引，使原索引升级为一致性索引
      
         ```lang-javascript
         > data3 = new Sdb('sdbserver3:11830')
         > data3.sample.February.dropIndex('ageIdx')
-        > data3.sample.February.createIndex('ageIdx', {age: 1})
+        > db.sample.February.createIndex('ageIdx', {age: 1})
+        ```
+     
+    - 方案2：将已存在的索引转换为独立索引
+     
+        ```lang-javascript
+        > db.sample.February.createIndex('ageIdx', {age: 1}, {Standalone: true}, {NodeName: ["sdbserver1:11830", "sdbserver2:11830"]})
+        > db.sample.February.createIndex('ageIdx', {age1: 1}, {Standalone: true}, {NodeName: "sdbserver3:11830"})
         ```
 
-        再执行本工具，将独立索引转换为一致性索引
+        通过 createIndex() 转换索引时，会输出如下信息，用户可忽略该提示：
 
-        ```lang-bash
-        $ ./sdbupgradeidx -s sdbserver3 -p 11810 --action upgrade
+        ```lang-text
+        (shell):1 uncaught exception: -247
+        Redefine index:
+        The same index 'ageIdx' has been defined already
         ```
+
+    > **Note:**
+    > 
+    >  具有约束性的索引（唯一索引、NotNull 索引等）无法升级为独立索引，需将其删除或升级为一致性索引。
      
 - **本地残留集合上的索引**
 
@@ -256,3 +289,4 @@ Succeed to Upgrade : 2
 [^_^]:
     本文使用的所有引用及链接
 [standalone]:manual/Distributed_Engine/Architecture/Data_Model/index.md#创建索引
+[passwd]:manual/Distributed_Engine/Maintainance/Security/system_security.md#密码管理

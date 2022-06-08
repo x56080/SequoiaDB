@@ -42,6 +42,7 @@
 #include "rtnContext.hpp"
 #include "catLevelLock.hpp"
 #include "catalogueCB.hpp"
+#include "catCtxEventHandler.hpp"
 #include "catContextTask.hpp"
 #include "catContextAlterTask.hpp"
 
@@ -69,6 +70,13 @@ namespace engine
          CAT_CONTEXT_END
       } ;
 
+      enum CAT_CONTEXT_PHASE
+      {
+         CAT_CONTEXT_PHASE_1 = 1,
+         CAT_CONTEXT_PHASE_2,
+         CAT_CONTEXT_PHASE_COMMIT
+      } ;
+
       typedef std::vector<UINT32> _catGroupList ;
       typedef std::vector<_catCtxTaskBase *> _catSubTasks ;
 
@@ -77,22 +85,26 @@ namespace engine
       virtual ~_catContextBase () ;
 
    public:
+      virtual BOOLEAN isWrite() const { return TRUE ; }
       // Override functions
       virtual _dmsStorageUnit* getSU () { return NULL ; }
 
       // Catalog context functions
       CAT_CONTEXT_STATUS getStatus () const { return _status ; }
 
-      virtual INT32 open ( const NET_HANDLE &handle,
-                           MsgHeader *pMsg,
-                           const CHAR *pQuery,
-                           rtnContextBuf &buffObj,
-                           _pmdEDUCB *cb ) ;
-
-      // can not timeout
-      virtual BOOLEAN needTimeout() const { return FALSE ; }
+      INT32 open ( const NET_HANDLE &handle,
+                   MsgHeader *pMsg,
+                   const CHAR *pQuery,
+                   const CHAR *pHint,
+                   rtnContextBuf &buffObj,
+                   _pmdEDUCB *cb ) ;
 
    protected:
+      INT32 _open( const bson::BSONObj &queryObject,
+                   MSG_TYPE cmdType,
+                   rtnContextBuf &buffObj,
+                   _pmdEDUCB *cb ) ;
+
       INT32 _open ( rtnContextBuf &buffObj,
                     _pmdEDUCB *cb ) ;
 
@@ -121,11 +133,28 @@ namespace engine
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) = 0 ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) = 0 ;
+      virtual INT32 _makeReply ( CAT_CONTEXT_PHASE phase,
+                                 rtnContextBuf &buffObj ) ;
+
+      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 _buildP2Reply( bson::BSONObjBuilder &builder )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 _buildPCReply( bson::BSONObjBuilder &builder )
+      {
+         return SDB_OK ;
+      }
 
       virtual INT32 _initQuery ( const NET_HANDLE &handle,
                                  MsgHeader *pMsg,
                                  const CHAR *pQuery,
+                                 const CHAR *pHint,
                                  _pmdEDUCB *cb ) ;
       virtual INT32 _clear ( _pmdEDUCB *cb ) ;
       virtual INT32 _clearInternal(  _pmdEDUCB *cb, INT16 w  ) = 0 ;
@@ -136,6 +165,34 @@ namespace engine
       void _changeStatusOnError () ;
 
       virtual void _toString ( stringstream &ss ) ;
+
+      virtual INT32 _regEventHandlers()
+      {
+         return SDB_OK ;
+      }
+
+      INT32 _regEventHandler( catCtxEventHandler *handler ) ;
+      void _unregEventHandlers() ;
+
+      INT32 _parseQueryForHandlers( _pmdEDUCB *cb ) ;
+
+      INT32 _onCheckEvent( SDB_EVENT_OCCUR_TYPE type,
+                           _pmdEDUCB *cb,
+                           INT16 w ) ;
+      INT32 _onExecuteEvent( SDB_EVENT_OCCUR_TYPE type,
+                             _pmdEDUCB *cb,
+                             INT16 w ) ;
+      INT32 _onCommitEvent( SDB_EVENT_OCCUR_TYPE type,
+                            _pmdEDUCB *cb,
+                            INT16 w ) ;
+      INT32 _onRollbackEvent( SDB_EVENT_OCCUR_TYPE type,
+                              _pmdEDUCB *cb,
+                              INT16 w ) ;
+      void _onDeleteEvent() ;
+
+      INT32 _buildP1HandlerReply( bson::BSONObjBuilder &builder ) ;
+      INT32 _buildP2HandlerReply( bson::BSONObjBuilder &builder ) ;
+      INT32 _buildPCHandlerReply( bson::BSONObjBuilder &builder ) ;
 
    protected:
       _SDB_DMSCB *_pDmsCB ;
@@ -149,8 +206,7 @@ namespace engine
       catCtxLockMgr _lockMgr ;
 
       // Flags to control process
-      BOOLEAN _executeAfterLock ;
-      BOOLEAN _commitAfterExecute ;
+      BOOLEAN _executeOnP1 ;
       BOOLEAN _needPreExecute ;
       BOOLEAN _needRollbackAlways ;
       BOOLEAN _needRollback ;
@@ -160,6 +216,8 @@ namespace engine
 
       std::string _targetName ;
       BSONObj _boTarget ;
+
+      CAT_CTX_EVENT_HANDLER_LIST _eventHandlers ;
    } ;
 
    typedef class _catContextBase catContext ;
@@ -176,6 +234,7 @@ namespace engine
       operator const catContext* () { return get() ; }
       operator catContext* () { return get() ; }
    } ;
+
 }
 
 #endif //CATCONTEXT_HPP_

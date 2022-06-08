@@ -61,10 +61,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseDataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _generateRollbackDataMsg ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
                                                   coordCMDArguments *pArgs,
@@ -104,7 +100,8 @@ namespace engine
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
-                                          const CoordGroupList &pGroupLst ) ;
+                                          const CoordGroupList &pGroupLst,
+                                          vector<BSONObj> &cataObjs ) ;
 
    } ;
    typedef _coordNodeCMD3Phase coordNodeCMD3Phase ;
@@ -316,10 +313,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _doOnCataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
                                         rtnContextCoord::sharePtr *ppContext,
@@ -364,10 +357,6 @@ namespace engine
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
 
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
-
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
                                         rtnContextCoord::sharePtr *ppContext,
@@ -404,10 +393,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
@@ -456,10 +441,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
@@ -513,10 +494,6 @@ namespace engine
                                           coordCMDArguments *pArgs,
                                           CHAR **ppMsgBuf,
                                           INT32 *pBufSize ) ;
-
-         virtual void  _releaseCataMsg( CHAR *pMsgBuf,
-                                        INT32 bufSize,
-                                        pmdEDUCB *cb ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,

@@ -295,6 +295,8 @@ namespace engine
          virtual const MsgHeader *getInMsg() const = 0 ;
          virtual void registerInMsg( const MsgHeader *msg ) = 0 ;
          virtual void unregisterInMsg() = 0 ;
+         virtual void setClientVersion( SDB_PROTOCOL_VERSION version ) = 0 ;
+         virtual SDB_PROTOCOL_VERSION getClientVersion() const = 0 ;
    } ;
    typedef _IClient IClient ;
 
@@ -413,7 +415,7 @@ namespace engine
 
          virtual BOOLEAN   isWritingDB() const = 0 ;
          virtual UINT64    getWritingID() const = 0 ;
-         virtual void      writingDB( BOOLEAN writing ) = 0 ;
+         virtual void      writingDB( BOOLEAN writing, const CHAR* name ) = 0 ;
 
          virtual UINT32    getProcessedNum() const = 0 ;
          virtual void      incEventCount( UINT32 step = 1 ) = 0 ;

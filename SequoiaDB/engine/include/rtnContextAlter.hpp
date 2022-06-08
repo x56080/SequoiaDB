@@ -74,6 +74,14 @@ namespace engine
             return TRUE ;
          }
 
+         virtual const CHAR *getProcessName() const
+         {
+            return ( NULL != _alterJob &&
+                     NULL != _alterJob->getObjectName() ) ?
+                   ( _alterJob->getObjectName() ) :
+                   ( "" ) ;
+         }
+
       protected :
          void _close ( _pmdEDUCB * cb ) ;
          virtual INT32 _openInternal ( _pmdEDUCB * cb ) = 0 ;

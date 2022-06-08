@@ -664,7 +664,7 @@ namespace engine
       else if ( status.isUDPUnavailable() )
       {
          // UDP is marked unavailable, use TCP directly
-         rc = _agent->syncSend( status.beat.identity, message ) ;
+         rc = _agent->syncSend( status.beat.identity, (MsgHeader *)message ) ;
       }
       else
       {
@@ -679,7 +679,7 @@ namespace engine
             status.increaseUDPTest() ;
          }
 
-         rc = _agent->syncSend( status.beat.identity, message ) ;
+         rc = _agent->syncSend( status.beat.identity, (MsgHeader *)message ) ;
       }
 
       PD_TRACE_EXITRC( SDB__ICLSREPLAGENT__SENDSHARINGBEAT, rc ) ;
@@ -883,7 +883,7 @@ namespace engine
 
          res.header.header.requestID = msg->header.requestID ;
          res.identity = _info.local ;
-         _agent->syncSend( handle, &res ) ;
+         _agent->syncSend( handle, (MsgHeader *)&res ) ;
       }
 
    done:

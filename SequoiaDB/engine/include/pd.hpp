@@ -76,7 +76,7 @@
 
 #define PD_LOG(level, fmt, ...) \
    do { \
-      if ( getPDLevel() >= level ) \
+      if ( getPDLevel() >= level && !pdIsShieldLog() ) \
       { \
          pdLog(level, __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -89,10 +89,12 @@
          IExecutor *__cb = sdbGetThreadExecutor() ; \
          if ( __cb ) \
          { \
+            pdLocalDisableDiaglogSecure() ; \
             __cb->printInfo ( EDU_INFO_ERROR, fmt, ##__VA_ARGS__ ) ; \
+            pdLocalEnableDiaglogSecure() ; \
          } \
       } \
-      if ( getPDLevel() >= level ) \
+      if ( getPDLevel() >= level && !pdIsShieldLog() ) \
       { \
          pdLog(level, __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -172,6 +174,33 @@ void pdcheck( const CHAR* string, const CHAR* func,
 #define pdcheck(str1,str2,str3,str4)
 #endif
 
+#define LOG_MASK_IXM_DUP_KEY 0x0000000000000001
+
+void pdEnableDiaglogSecure() ;
+void pdDisableDiaglogSecure() ;
+BOOLEAN pdIsDiaglogSecureEnabled() ;
+void pdLocalEnableDiaglogSecure() ;
+void pdLocalDisableDiaglogSecure() ;
+BOOLEAN pdLocalIsDiaglogSecureEnabled() ;
+
+void pdEnableShieldLogMask( UINT64 mask ) ;
+void pdDisableShieldLogMask( UINT64 mask ) ;
+BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
+BOOLEAN pdIsShieldLog() ;
+void pdPrintShieldInfo() ;
+INT32 pdError( INT32 rc ) ;
+
+class pdLogShield
+{
+public:
+   pdLogShield() ;
+   ~pdLogShield() ;
+   void addRC( INT32 rc ) ;
+   void clearRC() ;
+private:
+   UINT64 _addRCMask ;
+} ;
+
 /*
    pdLog function define
 */
@@ -238,6 +267,7 @@ enum AUDIT_OBJ_TYPE
    AUDIT_OBJ_SESSION,
    AUDIT_OBJ_USER,
    AUDIT_OBJ_SEQ,
+   AUDIT_OBJ_RECYCLEBIN,
 
    AUDIT_OBJ_MAX
 } ;

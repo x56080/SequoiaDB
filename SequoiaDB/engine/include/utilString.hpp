@@ -71,6 +71,12 @@ namespace engine
          _len = 0 ;
       }
 
+      INT32 assign( const CHAR *str )
+      {
+         clear() ;
+         return append( str ) ;
+      }
+
       INT32 append( const CHAR *str )
       {
          if ( str && *str )
