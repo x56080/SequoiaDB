@@ -50,6 +50,7 @@
 #include "vessel/shallowPointer.hpp"
 #include "vessel/fixedBitset.hpp"
 #include "vessel/objectHolder.hpp"
+#include "vessel/csProperties.h"
 
 namespace engine
 {
@@ -74,52 +75,47 @@ namespace vessel
          }
          OSS_INLINE SPACE_ID getSpaceId()const
          {
-            return NULL == _su ? INVALID_SPACE_ID : _su->getSpaceID();
+            return _properties.csid.getSpaceId();
          }
          OSS_INLINE const CHAR *getCSName()const
          {
-            return _blockInMem.name;
+            return _properties.name.c_str();
          }
          OSS_INLINE strSlice getCSNameSlice()const
          {
-            return strSlice(_blockInMem.name);
+            return strSlice(_properties.name.c_str(), _properties.name.size());
          }
          OSS_INLINE UINT32 getUniqueID()const
          {
-            return nullptr == _su ?
-                   UTIL_UNIQUEID_NULL : _su->getIdentifier().getUniqueId();
+            return _properties.csid.getUniqueId();
          }
 
          OSS_INLINE UINT32 getStatus()const
          {
-            return _blockInMem.status;
+            return _properties.status;
          }
          OSS_INLINE UINT32 getFlags()const
          {
-            return _blockInMem.flags;
-         }
-         OSS_INLINE UINT32 getVersion()const
-         {
-            return _blockInMem.version;
+            return _properties.flags;
          }
          OSS_INLINE BOOLEAN isOnline()const
          {
-            return _blockInMem.isOnline();
+            return CS_STATUS_ONLINE == getStatus();
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return nullptr == _su ?
-                   DMS_INVALID_LOGICCSID : _su->getIdentifier().getLid();
+            return _properties.csid.getLid();
          }
          OSS_INLINE storageUnit *getSU()const
          {
             return _su;
          }
-         OSS_INLINE collectionSpaceId getIdentifier()const
+         OSS_INLINE const collectionSpaceId &getIdentifier()const
          {
-            return nullptr == _su ?
-                   collectionSpaceId() : _su->getIdentifier();
+            return _properties.csid;
          }
+
+         OSS_INLINE const csProperties *getProperties()const {return &_properties;}
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,
@@ -206,6 +202,10 @@ namespace vessel
          INT32 _loadMetaBlock(requestContext *context,
                               csMetaBlock &block);
 
+         void _initProperties(const csMetaBlock &block);
+
+         void _exportMetaBlock(csMetaBlock &block);
+
       private:
 
          INT32 initCollectionsFromDisk(requestContext *context);
@@ -258,7 +258,7 @@ namespace vessel
          BOOLEAN _isOpen = FALSE;
          storageUnit *_su = NULL;
          ossSpinSLatchPOSIX _latch;
-         csMetaBlock _blockInMem;
+         csProperties _properties;
 
          fixedBitset<_ALLOCATOR_SIZE> _allocator;
          lazyArray<_CL_HOLDER_GROUP> _collections;

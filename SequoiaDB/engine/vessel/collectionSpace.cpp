@@ -75,6 +75,7 @@ namespace vessel
       bson::BSONObj optionsObj = bson::BSONObj();
       slice optionsSlice;
       OSS_LATCH_MODE mode = SHARED;
+      csMetaBlock mb;
       SDB_ASSERT(!isOpen(), "do not recreate");
       
       if (OSS_UNLIKELY(NULL == context ||
@@ -100,18 +101,20 @@ namespace vessel
          goto error;
       }
 
-      _blockInMem.version = CS_META_BLOCK_VERSION_1;
-      _blockInMem.status = CS_STATUS_ONLINE;
-      _blockInMem.type = CS_TYPE_NORMAL;
-      _blockInMem.flags = 0;
-      ossMemcpy(_blockInMem.name, name.str(), name.strLen() + 1);
+      mb.version = CS_META_BLOCK_VERSION_1;
+      mb.status = CS_STATUS_ONLINE;
+      mb.type = CS_TYPE_NORMAL;
+      mb.flags = 0;
+      ossMemcpy(mb.name, name.str(), name.strLen() + 1);
 
-      rc = _initMetaBlock(context, _blockInMem, lsn);
+      rc = _initMetaBlock(context, mb, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init meta block on disk:%d", rc);
          goto error;
       }
+
+      _initProperties(mb);
 
       createCSNameFile();
    done:
@@ -131,6 +134,7 @@ namespace vessel
                                storageUnit *su)
    {
       INT32 rc = SDB_OK;
+      csMetaBlock mb;
       
       SDB_ASSERT(!isOpen(), "do not reopen");
       if (OSS_UNLIKELY(NULL == context ||
@@ -146,13 +150,13 @@ namespace vessel
       _isOpen = TRUE;
       _su = su;
 
-      rc = _loadMetaBlock(context, _blockInMem);
+      rc = _loadMetaBlock(context, mb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to load meta block:%d", rc);
          goto error;
       }
-      else if (!_blockInMem.isValid())
+      else if (!mb.isValid())
       {
          PD_LOG(PDERROR, "invalid meta block loaded");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -165,6 +169,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to init in-mem structures:%d", rc);
          goto error;
       }
+
+      _initProperties(mb);
 
       rc = initCollectionsFromDisk(context);
       if (SDB_OK != rc)
@@ -183,7 +189,7 @@ namespace vessel
    {
       _isOpen = FALSE;
       _su = NULL;
-      _blockInMem.reset();
+      _properties.reset();
       _allocator.clearAll();
       _collections.fini();
       _clNameIndex.clear();
@@ -1071,11 +1077,12 @@ namespace vessel
       SDB_ASSERT(!clName.empty(), "can not be empty");
       SDB_ASSERT(nullptr != _su, "can not be null");
 
+      csMetaBlock mb;
       logicalID = DMS_INVALID_LOGICCLID;
       mbID = INVALID_CL_MB_ID;
 
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      if ((_blockInMem.maxCLLogicalID + 1) == DMS_INVALID_LOGICCLID)
+      if ((_properties.maxCLLogicalID + 1) == DMS_INVALID_LOGICCLID)
       {
          PD_LOG(PDERROR, "logical id hits the max value");
          rc = SDB_DMS_NOSPC;
@@ -1105,15 +1112,16 @@ namespace vessel
       }
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "impossible");
       
-      ++_blockInMem.maxCLLogicalID;
-      rc = _updateMetaBlock(context, _blockInMem, MAX_CL_LOGICAL_ID);
+      ++_properties.maxCLLogicalID;
+      _exportMetaBlock(mb);
+      rc = _updateMetaBlock(context, mb, MAX_CL_LOGICAL_ID);
       if (SDB_OK != rc)
       {
-         --_blockInMem.maxCLLogicalID;
+         --_properties.maxCLLogicalID;
          PD_LOG(PDERROR, "failed to set max cl logical id on cs meta block, rc:%d", rc);
          goto error;
       }
-      logicalID = _blockInMem.maxCLLogicalID;
+      logicalID = _properties.maxCLLogicalID;
 
       ///WARNING: do not goto error from here.
       _unformalNameIndex.insert(clName.str());
@@ -1311,11 +1319,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
+      SDB_ASSERT(!_properties.name.empty(), "can not be empty");
    
       ossPoolString fullPath;
       OSSFILE file;
       CHAR nameBuffer[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
-      strSlice nameSlice(_blockInMem.name);
+      strSlice nameSlice(_properties.name.c_str(), _properties.name.size());
       UINT32 flags = OSS_READWRITE|OSS_EXCLUSIVE|OSS_REPLACE;
 
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
@@ -1627,6 +1636,31 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void collectionSpace::_initProperties(const csMetaBlock &block)
+   {
+      SDB_ASSERT(block.isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _su && _su->isOpen(), "can not be invalid");
+      _properties.csid = _su->getIdentifier();
+      _properties.status = (CS_STATUS)block.status;
+      _properties.type = (CS_TYPE)block.type;
+      _properties.flags = block.flags;
+      _properties.name.assign(block.name);
+      _properties.maxCLLogicalID = block.maxCLLogicalID;
+      return;
+   }
+
+   void collectionSpace::_exportMetaBlock(csMetaBlock &block)
+   {
+      block.version = CS_META_BLOCK_VERSION_1;
+      block.status = _properties.status;
+      block.type = _properties.type;
+      block.flags = _properties.flags;
+      ossMemset(block.name, 0, sizeof(block.name));
+      ossMemcpy(block.name, _properties.name.c_str(), _properties.name.size());
+      block.maxCLLogicalID = _properties.maxCLLogicalID;
+      return;  
    }
 }//namespace vessel
 }//namespace engine

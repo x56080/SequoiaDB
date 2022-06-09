@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionProperties.h
+   Source File Name = csProperties.h
 
    Descriptive Name =
 
@@ -33,60 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_COLLECTION_PROPERTIES_H_
-#define VESSEL_COLLECTION_PROPERTIES_H_
+#ifndef VESSEL_CS_PROPERTIES_H_
+#define VESSEL_CS_PROPERTIES_H_
 
 #include "vessel/objectIdentifier.h"
 #include "vessel/objectBaseDef.h"
-#include "utilCompression.hpp"
-#include "dmsStripingId.hpp"
-#include "vessel/csProperties.h"
 
 namespace engine
 {
 namespace vessel
 {
-   struct collectionProperties : public SDBObject
+   struct csProperties : public SDBObject
    {
-      OSS_INLINE void reset()
+      void reset()
       {
-         csproperties = nullptr;
-         clid.reset();
+         csid.reset();
+         status = CS_STATUS_INVALID;
+         type = CS_TYPE_INVALID;
+         flags = 0;
          name.clear();
-         type = CL_TYPE_INVALID;
-         compressor = UTIL_COMPRESSOR_INVALID;
-         _minFreePct = 0;
-         stripingRange.reset();
-         return;
+         maxCLLogicalID = DMS_INVALID_LOGICCLID;
       }
 
-      OSS_INLINE FLOAT32 getMinFreePct()const
-      {
-         return static_cast<FLOAT32>(_minFreePct) / 100;
-      }
-
-      OSS_INLINE globalCollectionId getGlobalId()const
-      {
-         globalCollectionId id;
-         if (nullptr != csproperties)
-         {
-            id.reset(csproperties->csid, clid);
-         }
-         return id;
-      }
-
-      const csProperties *csproperties = nullptr;
-      collectionId clid;
+      collectionSpaceId csid;
+      CS_STATUS status = CS_STATUS_INVALID;
+      CS_TYPE type = CS_TYPE_INVALID;
+      UINT32 flags = 0;
       std::string name;
-      CL_TYPE type = CL_TYPE_INVALID;
-      UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
-      UINT8 _minFreePct = 0;
-      dmsStripingRange stripingRange;
-   };//struct collectionProperties
-
+      UINT32 maxCLLogicalID = DMS_INVALID_LOGICCLID;
+   };
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_COLLECTION_PROPERTIES_H_
+#endif//VESSEL_CS_PROPERTIES_H_

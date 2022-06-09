@@ -5901,7 +5901,7 @@ namespace vessel
       SDB_ASSERT(nullptr != _cs, "can not be invalid");
       collectionProperties &properties = _entryBlock._properties;
 
-      properties.csid = _cs->getIdentifier();
+      properties.csproperties = _cs->getProperties();
       properties.clid = collectionId(block.logicalCLID,
                                      block.innerID,
                                      block.mbID);
@@ -5937,7 +5937,8 @@ namespace vessel
       }
       mb.minStriping = getProperties()->stripingRange.getLow().getValue();
       mb.maxStriping = getProperties()->stripingRange.getHigh().getValue();
-      ossMemcpy(mb.name, getProperties()->name.c_str(), getProperties()->name.size() + 1);
+      ossMemset(mb.name, 0, sizeof(mb.name));
+      ossMemcpy(mb.name, getProperties()->name.c_str(), getProperties()->name.size());
       mb.compressionType = (UINT8)(getProperties()->compressor);
       mb.minFreePercent = (UINT8)(getProperties()->_minFreePct);
    }
