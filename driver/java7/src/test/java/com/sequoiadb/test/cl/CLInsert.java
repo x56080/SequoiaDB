@@ -231,6 +231,7 @@ public class CLInsert {
         Assert.assertNotNull( r3.getOid() );
         Assert.assertNull( r3.getOidList() );
         Assert.assertEquals( -1, r3.getLastGenerateID() );
+        Assert.assertEquals( 0, r3.getModifiedNum() );
 
         // case 4: user-defined oid
         doc.put( "_id", "111" );
@@ -260,5 +261,45 @@ public class CLInsert {
         InsertResult r7 = cl2.bulkInsert( docList, option );
         Assert.assertNull( r7.getOid() );
         Assert.assertNull( r7.getOidList());
+    }
+
+    @Test
+    public void insertResultTest() {
+        String key = "_id";
+        // case 1: same oid object
+        ObjectId oid1 = ObjectId.get();
+        InsertResult result1_1 = new InsertResult( new BasicBSONObject(key, oid1) );
+        InsertResult result1_2 = new InsertResult( new BasicBSONObject(key, oid1) );
+        // symmetric
+        Assert.assertTrue( result1_1.equals( result1_2 ) );
+        Assert.assertTrue( result1_2.equals( result1_1 ) );
+        Assert.assertEquals( result1_1.hashCode(), result1_2.hashCode() );
+        // reflexivity
+        Assert.assertTrue( result1_1.equals( result1_1 ) );
+        Assert.assertEquals( result1_1.hashCode(), result1_1.hashCode() );
+
+        // case 2: different oid object
+        InsertResult result2_1 = new InsertResult( new BasicBSONObject(key, ObjectId.get()) );
+        InsertResult result2_2 = new InsertResult( new BasicBSONObject(key, ObjectId.get()) );
+        InsertResult result2_3 = new InsertResult( new BasicBSONObject(key, ObjectId.get()) );
+        // transitive
+        Assert.assertFalse( result2_1.equals( result2_2 ) );
+        Assert.assertNotEquals( result2_1.hashCode(), result2_2.hashCode() );
+        Assert.assertFalse( result2_1.equals( result2_3 ) );
+        Assert.assertNotEquals( result2_1.hashCode(), result2_3.hashCode() );
+        Assert.assertFalse( result2_2.equals( result2_3 ) );
+        Assert.assertNotEquals( result2_2.hashCode(), result2_3.hashCode() );
+
+        // case 3: same oid but different oid object
+        ObjectId oid3_1 = new ObjectId(oid1.toString());
+        ObjectId oid3_2 = new ObjectId(oid1.toString());
+        Assert.assertEquals( oid3_1, oid3_2 );
+
+        InsertResult result3_1 = new InsertResult( new BasicBSONObject(key, oid3_1) );
+        InsertResult result3_2 = new InsertResult( new BasicBSONObject(key, oid3_2) );
+        // consistent
+        Assert.assertTrue( result3_1.equals( result3_2 ) );
+        Assert.assertTrue( result3_1.equals( result3_2 ) );
+        Assert.assertEquals( result3_1.hashCode(), result3_2.hashCode() );
     }
 }
