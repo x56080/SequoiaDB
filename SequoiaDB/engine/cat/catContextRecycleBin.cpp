@@ -234,10 +234,11 @@ namespace engine
                       "rc: %d", _targetName.c_str(), rc ) ;
 
          // lock recycle item
-         PD_CHECK( _lockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
-                   SDB_LOCK_FAILED, error, PDERROR,
-                   "Failed to lock recycle item [origin: %s, recycle: %s]",
-                   _recycleItem.getOriginName(), _recycleItem.getRecycleName() ) ;
+         rc = _recycleBinMgr->tryLockItem( _recycleItem, cb, EXCLUSIVE, _lockMgr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item  "
+                      "item [origin %s, recycle %s], rc: %d",
+                      _recycleItem.getOriginName(),
+                      _recycleItem.getRecycleName(), rc ) ;
 
          if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
          {

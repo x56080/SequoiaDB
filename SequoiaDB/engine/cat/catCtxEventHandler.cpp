@@ -741,10 +741,11 @@ namespace engine
          {
             // we need to drop recycle items inside this collection space
             // if we don't use recycle bin, so need to lock them
-            PD_CHECK( _lockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
-                      SDB_LOCK_FAILED, error, PDERROR,
-                      "Failed to lock recycle items in collection space [%s], "
-                      "rc: %d", targetName, rc ) ;
+            rc = _recycleBinMgr->tryLockItem( _recycleItem, cb, EXCLUSIVE, _lockMgr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items in collection space  "
+                         "item [origin %s, recycle %s], rc: %d",
+                         _recycleItem.getOriginName(),
+                         _recycleItem.getRecycleName(), rc ) ;
          }
       }
 

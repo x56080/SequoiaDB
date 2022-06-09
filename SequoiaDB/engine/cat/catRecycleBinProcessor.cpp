@@ -3238,4 +3238,131 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _catRecycleSubCLLocker implement
+    */
+   _catRecycleSubCLLocker::_catRecycleSubCLLocker( _catRecycleBinManager *recyBinMgr,
+                                                   utilRecycleItem item,
+                                                   catCtxLockMgr &lockMgr,
+                                                   OSS_LATCH_MODE &mode,
+                                                   ossPoolSet< utilCSUniqueID > *lockedCS,
+                                                   ossPoolSet< utilCSUniqueID > &lockedSubCLCS )
+   : _catRecycleBinProcessor( recyBinMgr, item ),
+     _lockMgr( lockMgr ),
+     _lockMode( mode ),
+     _lockedCS( lockedCS ),
+     _lockedSubCLCS( lockedSubCLCS )
+   {
+   }
+   _catRecycleSubCLLocker:: ~_catRecycleSubCLLocker()
+   {
+   }
+
+   const CHAR *_catRecycleSubCLLocker::getCollection() const
+   {
+      return catGetRecycleBinRecyCL( UTIL_RECYCLE_CL ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYCLESUBCLLOCK_GETMATCHER, "_catRecycleSubCLLocker::getMatcher" )
+   INT32 _catRecycleSubCLLocker::getMatcher( ossPoolList< BSONObj > &matcherList )
+   {
+       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYCLESUBCLLOCK_GETMATCHER ) ;
+
+      try
+      {
+         BSONObj matcher = BSON( FIELD_NAME_RECYCLE_ID <<
+                                 (INT64)( _item.getRecycleID() ) <<
+                                 FIELD_NAME_MAINCLNAME <<
+                                 _item.getOriginName() ) ;
+         matcherList.push_back( matcher ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for subCL locker, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYCLESUBCLLOCK_GETMATCHER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ, "_catRecycleSubCLLocker::processObject" )
+   INT32  _catRecycleSubCLLocker::processObject( const BSONObj &object,
+                                                 pmdEDUCB *cb,
+                                                 INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ ) ;
+
+      const CHAR *clName = NULL ;
+
+      try
+      {
+         BSONElement element = object.getField( CAT_COLLECTION_NAME ) ;
+         PD_CHECK( String == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not string",
+                   CAT_COLLECTION_NAME ) ;
+         clName = element.valuestr() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse collection object, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+      try
+      {
+         clsCatalogSet originSet( clName ) ;
+         rc = originSet.updateCatSet( object ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse catalog for collection "
+                      "[%s], rc: %d", _item.getOriginName(), rc ) ;
+      
+         SDB_ASSERT( originSet.isSubCL(), "should be sub-collection" ) ;
+         
+         if ( originSet.isSubCL() )
+         {
+            utilRecycleItem subItem ;
+            subItem.inherit( _item,
+                             clName,
+                             originSet.clUniqueID() ) ;
+
+            if ( ( _lockedCS == NULL || 
+                  !_lockedCS->count( utilGetCSUniqueID( subItem.getOriginID() ) ) ) &&
+                  !_lockedSubCLCS.count( utilGetCSUniqueID( subItem.getOriginID() ) ) )
+            {
+               PD_CHECK( _lockMgr.tryLockRecycleItem( subItem, _lockMode ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s, recycle %s]",
+                         subItem.getOriginName(), subItem.getRecycleName() ) ;
+               _lockedSubCLCS.insert( utilGetCSUniqueID( subItem.getOriginID() ) ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to lock recycle items, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+      
+      
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ, rc ) ;
+      return rc ;   
+
+   error:
+      goto done ;
+   }
+   
+
 }

@@ -552,7 +552,7 @@ namespace engine
       item.init( recycleID ) ;
 
       // lock items
-      rc = _tryLockItems( item, droppingItems, lockMgr ) ;
+      rc = _tryLockItemsForRecycle( item, droppingItems, cb, lockMgr ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items, "
                    "rc: %d", rc ) ;
 
@@ -726,6 +726,83 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYLOCKITEM, "_catRecycleBinManager::tryLockItem" )
+   INT32 _catRecycleBinManager::tryLockItem( const utilRecycleItem &item,
+                                             pmdEDUCB *cb,
+                                             OSS_LATCH_MODE mode,
+                                             catCtxLockMgr &lockMgr,
+                                             ossPoolSet< utilCSUniqueID > *lockedCS,
+                                             BOOLEAN isCheckSubCL )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYLOCKITEM ) ;    
+      try
+      {  
+
+         if ( UTIL_RECYCLE_CL == item.getType() )
+         {  
+            if ( ( NULL != lockedCS && 
+                   !lockedCS->count( utilGetCSUniqueID( item.getOriginID() ) ) ) ||
+                   NULL == lockedCS )
+            {
+               PD_CHECK( lockMgr.tryLockRecycleItem( item, mode ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s, recycle %s]",
+                         item.getOriginName(), item.getRecycleName() ) ;
+            }
+            if ( item.isMainCL() && isCheckSubCL )
+            {
+               ossPoolSet< utilCSUniqueID > lockedSubCLCS ;
+               lockedSubCLCS.insert( utilGetCSUniqueID( item.getOriginID() )  ) ;     
+               _catRecycleSubCLLocker sublocker( this, item, lockMgr, mode, lockedCS, lockedSubCLCS ) ;
+               rc = processObjects( sublocker, cb , 1 ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to process lock subitem, "
+                            "rc: %d", rc ) ;
+            }
+         }
+         else if ( UTIL_RECYCLE_CS == item.getType() )
+         {
+            if ( NULL != lockedCS && 
+                 !lockedCS->count( (utilCSUniqueID)( item.getOriginID() ) ) )
+            {
+               PD_CHECK( lockMgr.tryLockRecycleItem( item, mode ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s, recycle %s]",
+                         item.getOriginName(), item.getRecycleName() ) ;
+               
+               lockedCS->insert( (utilCSUniqueID)( item.getOriginID() ) ) ;
+            }
+            else if ( NULL == lockedCS )
+            {  
+               PD_CHECK( lockMgr.tryLockRecycleItem( item, mode ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s, recycle %s]",
+                         item.getOriginName(), item.getRecycleName() ) ;
+            }  
+         }
+         else
+         {
+            SDB_ASSERT( FALSE, "Invalid type for recycle item" ) ;
+         }
+
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to lock recycle items, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYLOCKITEM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__RTRNCSOBJS, "_catRecycleBinManager::_returnCSObjects" )
@@ -1205,29 +1282,26 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYLOCKITEMS, "_catRecycleBinManager::_tryLockItems" )
-   INT32 _catRecycleBinManager::_tryLockItems( const utilRecycleItem &item,
-                                               const UTIL_RECY_ITEM_LIST &droppingItems,
-                                               catCtxLockMgr &lockMgr )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__TRYLOCKITEMSFORRECYCLE, "_catRecycleBinManager::_tryLockItemsForRecycle" )
+   INT32 _catRecycleBinManager::_tryLockItemsForRecycle( const utilRecycleItem &item,
+                                                         const UTIL_RECY_ITEM_LIST &droppingItems,
+                                                         pmdEDUCB *cb,
+                                                         catCtxLockMgr &lockMgr )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYLOCKITEMS ) ;
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYLOCKITEMSFORRECYCLE ) ;
 
       try
       {
          ossPoolSet< utilCSUniqueID > lockedCS ;
 
-         // round 1: lock for collection spaces
-
          // check target item
          if ( UTIL_RECYCLE_CS == item.getType() )
          {
-            PD_CHECK( lockMgr.tryLockRecycleItem( item, EXCLUSIVE ),
-                      SDB_LOCK_FAILED, error, PDERROR,
-                      "Failed to lock recycle item [origin %s, recycle %s]",
-                      item.getOriginName(), item.getRecycleName() ) ;
-            lockedCS.insert( (utilCSUniqueID)( item.getOriginID() ) ) ;
+            rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, &lockedCS, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
+                         "rc: %d", rc ) ;
          }
 
          for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
@@ -1237,25 +1311,18 @@ namespace engine
             const utilRecycleItem &droppingItem = *iter ;
             if ( UTIL_RECYCLE_CS == droppingItem.getType() )
             {
-               PD_CHECK( lockMgr.tryLockRecycleItem( droppingItem, EXCLUSIVE ),
-                         SDB_LOCK_FAILED, error, PDERROR,
-                         "Failed to lock recycle item [origin: %s, recycle: %s]",
-                         droppingItem.getOriginName(),
-                         droppingItem.getRecycleName() ) ;
-               lockedCS.insert( (utilCSUniqueID)( droppingItem.getOriginID() ) ) ;
+               rc = tryLockItem( droppingItem, cb, EXCLUSIVE, lockMgr, &lockedCS ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
+                            "rc: %d", rc ) ;
             }
          }
-
-         // round 2: lock for collections
-
          // check target item
-         if ( ( UTIL_RECYCLE_CL == item.getType() ) &&
-              ( !lockedCS.count( utilGetCSUniqueID( item.getOriginID() ) ) ) )
+         if ( ( UTIL_RECYCLE_CL == item.getType() )  )
          {
-            PD_CHECK( lockMgr.tryLockRecycleItem( item, EXCLUSIVE ),
-                      SDB_LOCK_FAILED, error, PDERROR,
-                      "Failed to lock recycle item [origin %s, recycle %s]",
-                      item.getOriginName(), item.getRecycleName() ) ;
+            
+            rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, &lockedCS, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
+                         "rc: %d", rc ) ;
          }
 
          for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
@@ -1267,17 +1334,11 @@ namespace engine
             {
                continue ;
             }
-            else if ( lockedCS.count( utilGetCSUniqueID( droppingItem.getOriginID() ) ) )
-            {
-               continue ;
-            }
-
-            PD_CHECK( lockMgr.tryLockRecycleItem( droppingItem, EXCLUSIVE ),
-                      SDB_LOCK_FAILED, error, PDERROR,
-                      "Failed to lock recycle item [origin: %s, recycle: %s]",
-                      droppingItem.getOriginName(),
-                      droppingItem.getRecycleName() ) ;
+            rc = tryLockItem( droppingItem, cb, EXCLUSIVE, lockMgr, &lockedCS ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
+                         "rc: %d", rc ) ;
          }
+
       }
       catch ( exception &e )
       {
@@ -1288,7 +1349,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYLOCKITEMS, rc ) ;
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYLOCKITEMSFORRECYCLE, rc ) ;
       return rc ;
 
    error:
@@ -1374,8 +1435,10 @@ namespace engine
       {
          // check if item has been locked, if so, try later items
          catCtxLockMgr lockMgr ;
-         if ( !lockMgr.tryLockRecycleItem( oldestItem, EXCLUSIVE ) )
-         {
+         rc = tryLockItem( oldestItem, cb, EXCLUSIVE, lockMgr ) ;
+         if ( SDB_LOCK_FAILED == rc )
+         {  
+            rc = SDB_OK ;
             BSONObj matcher, orderBy ;
             UTIL_RECY_ITEM_LIST candItemList ;
             BOOLEAN foundCandidate = FALSE ;
@@ -1414,8 +1477,8 @@ namespace engine
                   ++ iter )
             {
                utilRecycleItem &tmpItem = *iter ;
-
-               if ( lockMgr.tryLockRecycleItem( tmpItem, EXCLUSIVE ) )
+               rc = tryLockItem( tmpItem, cb, EXCLUSIVE, lockMgr ) ;
+               if ( SDB_OK == rc )
                {
                   // found candidate
                   PD_LOG( PDDEBUG, "Found later available item "
@@ -1425,12 +1488,31 @@ namespace engine
                   foundCandidate = TRUE ;
                   break ;
                }
+               else if ( SDB_LOCK_FAILED == rc )
+               {  
+                  rc = SDB_OK ;
+                  continue ;
+               }
+               else
+               {
+                  PD_RC_CHECK( rc, PDERROR, "Failed to lock tmp items  "
+                               "item [origin %s, recycle %s], rc: %d",
+                               tmpItem.getOriginName(),
+                               tmpItem.getRecycleName(), rc ) ;
+               }
             }
 
             PD_CHECK( foundCandidate, SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock dropping item [origin %s, recycle %s]",
                       oldestItem.getOriginName(),
                       oldestItem.getRecycleName() ) ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock oldestItem items  "
+                         "item [origin %s, recycle %s], rc: %d",
+                         oldestItem.getOriginName(),
+                         oldestItem.getRecycleName(), rc ) ;
          }
       }
 
@@ -1490,8 +1572,10 @@ namespace engine
       {
          // check if item has been locked, if so, try later items
          catCtxLockMgr lockMgr ;
-         if ( !lockMgr.tryLockRecycleItem( oldestItem, EXCLUSIVE ) )
-         {
+         rc = tryLockItem( oldestItem, cb, EXCLUSIVE, lockMgr ) ;
+         if ( SDB_LOCK_FAILED == rc )
+         {  
+            rc = SDB_OK ;
             UINT32 retryCount = 0 ;
             BSONObj matcherName, matcherUID, orderBy ;
             UTIL_RECY_ITEM_LIST candNameItemList,
@@ -1568,7 +1652,8 @@ namespace engine
                   // end loop
                   break ;
                }
-               if ( lockMgr.tryLockRecycleItem( tempItem, EXCLUSIVE ) )
+               rc = tryLockItem( tempItem, cb, EXCLUSIVE, lockMgr ) ;
+               if ( SDB_OK == rc )
                {
                   // found candidate
                   PD_LOG( PDDEBUG, "Found later available item "
@@ -1579,9 +1664,10 @@ namespace engine
                   foundCandidate = TRUE ;
                   break ;
                }
-               else
+               else if ( SDB_LOCK_FAILED == rc )
                {
                   // still failed to lock, look for the next one
+                  rc = SDB_OK ;
                   if ( ( iterName != candNameItemList.end() ) &&
                        ( tempItem.getRecycleID() == iterName->getRecycleID() ) )
                   {
@@ -1594,12 +1680,26 @@ namespace engine
                   }
                   ++ retryCount ;
                }
+               else
+               {
+                  PD_RC_CHECK( rc, PDERROR, "Failed to lock tempItem items  "
+                               "item [origin %s, recycle %s], rc: %d",
+                               tempItem.getOriginName(),
+                               tempItem.getRecycleName(), rc ) ;
+               }
             }
 
             PD_CHECK( foundCandidate, SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock dropping item [origin %s, recycle %s]",
                       oldestItem.getOriginName(),
                       oldestItem.getRecycleName() ) ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock oldestItem items  "
+                         "item [origin %s, recycle %s], rc: %d",
+                         oldestItem.getOriginName(),
+                         oldestItem.getRecycleName(), rc ) ;
          }
       }
 

@@ -543,10 +543,11 @@ namespace engine
          goto error ;
       }
 
-      PD_CHECK( localLockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock recycle item [origin: %s, recycle: %s]",
-                _recycleItem.getOriginName(), _recycleItem.getRecycleName() ) ;
+      rc = _recycleBinMgr->tryLockItem( _recycleItem, cb, EXCLUSIVE, localLockMgr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item  "
+                   "item [origin %s, recycle %s], rc: %d",
+                   _recycleItem.getOriginName(),
+                   _recycleItem.getRecycleName(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHECK, rc ) ;

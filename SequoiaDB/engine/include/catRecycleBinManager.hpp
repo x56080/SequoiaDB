@@ -109,7 +109,12 @@ namespace engine
                         catRecycleReturnInfo &info,
                         pmdEDUCB *cb,
                         INT16 w ) ;
-
+      INT32 tryLockItem( const utilRecycleItem &item,
+                         pmdEDUCB *cb,
+                         OSS_LATCH_MODE mode,
+                         catCtxLockMgr &lockMgr,
+                         ossPoolSet< utilCSUniqueID > *lockedCS = NULL,
+                         BOOLEAN isCheckSubCL = TRUE ) ;
       OSS_INLINE void reserveItem()
       {
          ++ _reservedCount ;
@@ -179,9 +184,10 @@ namespace engine
                            utilCLUniqueID originID,
                            const utilRecycleBinConf &conf,
                            pmdEDUCB *cb ) ;
-      INT32 _tryLockItems( const utilRecycleItem &item,
-                           const UTIL_RECY_ITEM_LIST &droppingItems,
-                           catCtxLockMgr &lockMgr ) ;
+      INT32 _tryLockItemsForRecycle( const utilRecycleItem &item,
+                                     const UTIL_RECY_ITEM_LIST &droppingItems,
+                                     pmdEDUCB *cb,
+                                     catCtxLockMgr &lockMgr ) ;
       INT32 _saveItem( utilRecycleItem &item,
                        pmdEDUCB *cb,
                        INT16 w ) ;

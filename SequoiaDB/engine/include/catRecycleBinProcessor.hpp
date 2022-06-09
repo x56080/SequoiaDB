@@ -741,6 +741,41 @@ namespace engine
 
    typedef class _catReturnIdxProcessor catReturnIdxProcessor ;
 
+   /*
+     _catRecycleSubCLLocker define
+    */
+   class _catRecycleSubCLLocker : public _catRecycleBinProcessor
+   {
+   public:
+      _catRecycleSubCLLocker( _catRecycleBinManager *recyBinMgr,
+                              utilRecycleItem item,
+                              catCtxLockMgr &lockMgr,
+                              OSS_LATCH_MODE &mode,
+                              ossPoolSet< utilCSUniqueID > *lockedCS,
+                              ossPoolSet< utilCSUniqueID > &lockedSubCLCS ) ;
+      virtual ~ _catRecycleSubCLLocker() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual const CHAR *getName() const
+      {
+         return "RecycleSubCLLocker" ;
+      }
+   
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w )  ;
+   protected:
+      catCtxLockMgr &                     _lockMgr ;
+      OSS_LATCH_MODE &                    _lockMode ;
+      ossPoolSet< utilCSUniqueID > *      _lockedCS ;
+      ossPoolSet< utilCSUniqueID > &      _lockedSubCLCS ;
+   } ;
+
+   typedef class  _catRecycleSubCLLocker catRecycleSubCLLocker ;
+
+
 }
 
 #endif // CAT_RECYCLE_BIN_PROCESSOR_HPP__
