@@ -37,7 +37,7 @@
 #include "vessel/indexEntryPage.h"
 #include "vessel/requestContext.h"
 #include "vessel/indexUtils.h"
-#include "vessel/runtimeMbContext.h"
+
 
 namespace engine
 {
@@ -53,7 +53,7 @@ namespace vessel
       indexEntryPageHead *headPtr = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
                        !defObj.isValid() ||
                        NULL == lpb ||
@@ -79,7 +79,7 @@ namespace vessel
 
       head.version = INDEX_DEF_RECORD_VERSION;
       head.indexLogicalID = indexId;
-      head.clLogicalID = context->getMbContext()->getGlobalId().getCLLid();
+      head.clLogicalID = context->getLogicalClId();
       head.createdTime = ossGetCurrentMilliseconds();
       head.alteredTime = head.createdTime;
       head.status = INDEX_STATUS_BUILDING;
@@ -121,7 +121,7 @@ namespace vessel
       const CHAR *ptr = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -151,11 +151,11 @@ namespace vessel
          goto error;
       }
 
-      if (context->getMbContext()->getGlobalId().getCLLid() !=
+      if (context->getLogicalClId() !=
           head->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 head->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
@@ -191,7 +191,7 @@ namespace vessel
       indexEntryPageHead *head = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
                        INDEX_STATUS_INVALID == status ||
                        NULL == lpb ||
@@ -223,11 +223,11 @@ namespace vessel
          rc = SDB_IXM_NOTEXIST;
          goto error;
       }
-      else if (context->getMbContext()->getGlobalId().getCLLid() !=
+      else if (context->getLogicalClId() !=
                readableHead->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 readableHead->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
@@ -275,7 +275,7 @@ namespace vessel
       indexEntryPageHead *head = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
                        INVALID_PAGE_ID == root ||
                        NULL == lpb ||
@@ -307,11 +307,11 @@ namespace vessel
          rc = SDB_IXM_NOTEXIST;
          goto error;
       }
-      else if (context->getMbContext()->getGlobalId().getCLLid() !=
+      else if (context->getLogicalClId() !=
                readableHead->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 readableHead->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
@@ -359,7 +359,7 @@ namespace vessel
       bson::BSONObj defObj;
 
       if (NULL == context ||
-          !context->isMbContextAttached() ||
+          !context->isClPropertiesSet() ||
           NULL == lpb ||
           !lpb->isValid())
       {
@@ -389,11 +389,11 @@ namespace vessel
          rc = SDB_IXM_NOTEXIST;
          goto error;
       }
-      else if (context->getMbContext()->getGlobalId().getCLLid() !=
+      else if (context->getLogicalClId() !=
                readableHead->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 readableHead->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
@@ -436,7 +436,7 @@ namespace vessel
       const indexEntryPageHead *head = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
                        NULL == lpb ||
                        !lpb->isValid() ||
@@ -468,10 +468,10 @@ namespace vessel
          goto error;
       }
 
-      if (context->getMbContext()->getGlobalId().getCLLid() != head->clLogicalID)
+      if (context->getLogicalClId() != head->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getMbContext()->getGlobalId().getCLLid(), head->clLogicalID);
+                context->getLogicalClId(), head->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

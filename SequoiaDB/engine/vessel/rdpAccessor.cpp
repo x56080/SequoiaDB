@@ -38,7 +38,7 @@
 #include "dpsLogRecordDef.hpp"
 #include "vessel/requestContext.h"
 #include "vessel/modifyRecordContext.h"
-#include "vessel/runtimeMbContext.h"
+#include "vessel/collectionProperties.h"
 #include "vessel/dmlContext.h"
 #include "vessel/rdpCompactor.h"
 #include "dpsJournalPad.hpp"
@@ -55,7 +55,7 @@ namespace vessel
 
       _lpb = nullptr;
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        nullptr == lpb ||
                        !lpb->isValid()))
       {
@@ -85,10 +85,10 @@ namespace vessel
       UINT16 offset = 0;
       recordID rid;
       BOOLEAN ridLocked = FALSE;
-      const runtimeMbContext *mbContext = nullptr;
+      const collectionProperties *properties = nullptr;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !record.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -118,12 +118,12 @@ namespace vessel
          goto error;
       }
 
-      mbContext = context->getMbContext();
-      SDB_ASSERT(mbContext->getGlobalId().getCLLid() == head->clLogcalID,
+      properties = context->getClProperties();
+      SDB_ASSERT(properties->clid.getLid() == head->clLogcalID,
                  "must be same");
 
       if (!findPositionToInsert(record.getSize(),
-                                mbContext->getFloatMinFreePercent(),
+                                properties->getMinFreePct(),
                                 pos, offset))
       {
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
@@ -425,7 +425,7 @@ namespace vessel
 
       outOfSpace = FALSE;
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !isValidRecordSlotPosition(pos) ||
                        !newRowData.isValid()))
       {
@@ -522,11 +522,10 @@ namespace vessel
       const recordDataPageHead *head = nullptr;
       RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
       UINT16 offset = 0;
-      const runtimeMbContext *mbContext = nullptr;
 
       rid.reset();
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !record.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -557,12 +556,11 @@ namespace vessel
          goto error;
       }
 
-      mbContext = context->getMbContext();
-      SDB_ASSERT(mbContext->getGlobalId().getCLLid() == head->clLogcalID,
+      SDB_ASSERT(context->getLogicalClId() == head->clLogcalID,
                  "must be same");
 
       if (!findPositionToInsert(record.getSize(),
-                                mbContext->getFloatMinFreePercent(),
+                                context->getClProperties()->getMinFreePct(),
                                 pos, offset))
       {
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
@@ -712,7 +710,6 @@ namespace vessel
       UINT16 offset = 0;
       recordID rid;
       BOOLEAN ridLocked = FALSE;
-      const runtimeMbContext *mbContext = nullptr;
 
       if (OSS_UNLIKELY(nullptr == context ||
                        !overflowAddr.isValid()))
@@ -739,12 +736,11 @@ namespace vessel
          goto error;
       }
 
-      mbContext = context->getMbContext();
-      SDB_ASSERT(mbContext->getGlobalId().getCLLid() == head->clLogcalID,
+      SDB_ASSERT(context->getLogicalClId() == head->clLogcalID,
                  "must be same");
 
       if (!findPositionToInsert(OVERFLOWED_RECORD_SIZE,
-                                mbContext->getFloatMinFreePercent(),
+                                context->getClProperties()->getMinFreePct(),
                                 pos, offset))
       {
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
@@ -1967,10 +1963,10 @@ namespace vessel
    INT32 rdpAccessor::validatePage(requestContext *context,
                                    logicalPageBuffer *lpb)const
    {
-      SDB_ASSERT(nullptr != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(nullptr != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(nullptr != lpb && lpb->isValid(), "can not be invalid");
       const recordDataPageHead *head = nullptr;
-      UINT32 lid = context->getMbContext()->getGlobalId().getCLLid();
+      UINT32 lid =  context->getLogicalClId();
       INT32 rc = lpb->validatePage(PAGE_TYPE_RECORD);
       if (SDB_OK != rc)
       {
@@ -2489,7 +2485,7 @@ namespace vessel
       recordSlot rs;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        INVALID_RECORD_SLOT_POS == pos))
       {
          rc = SDB_INVALIDARG;

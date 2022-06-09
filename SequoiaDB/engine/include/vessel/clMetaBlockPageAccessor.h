@@ -65,7 +65,8 @@ namespace vessel
 
          /// record on disk must be valid.
          INT32 updateRoutePages(requestContext *context,
-                                const clMetaBlock &block,
+                                const PAGE_ID *pages,
+                                UINT32 count,
                                 logicalPageBuffer *lpb);
 
          INT32 truncateRouteMap(requestContext *context,

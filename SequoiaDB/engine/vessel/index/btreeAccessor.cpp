@@ -44,7 +44,7 @@
 #include "vessel/indexEntryPageAccessor.h"
 #include "vessel/btreeNodePageIniter.h"
 #include "vessel/btreeAccessPathNode.h"
-#include "vessel/runtimeMbContext.h"
+
 
 namespace engine
 {
@@ -68,7 +68,7 @@ namespace vessel
       fini();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        NULL == obj ||
                        !obj->isValid() ||
                        obj->getDescription().getType() != INDEX_TYPE_BTREE))
@@ -704,7 +704,7 @@ namespace vessel
       SDB_ASSERT(_obj->getBtreeRoot() == node.getBuffer()->getLogicalPid(),
                  "must be same");
 
-      initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
+      initer._logicalCLID = _context->getLogicalClId();
       initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._isLeaf = FALSE;
       initer._isRoot = TRUE;
@@ -848,7 +848,7 @@ namespace vessel
          goto done;
       }
 
-      initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
+      initer._logicalCLID = _context->getLogicalClId();
       initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._isLeaf = TRUE;
       initer._isRoot = TRUE;
@@ -1237,7 +1237,7 @@ namespace vessel
                  "can not be invalid");
       SDB_ASSERT((UINT32)pos <= node.getItemCount(), "out of bound");
 
-      initer._logicalCLID = _context->getMbContext()->getGlobalId().getCLLid();
+      initer._logicalCLID = _context->getLogicalClId();
       initer._indexId = _obj->getIndexId().getLogicalIndexId();
       initer._isLeaf = TRUE;
       initer._isRoot = FALSE;

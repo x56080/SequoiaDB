@@ -39,7 +39,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/indexSpace.h"
 #include "vessel/requestContext.h"
-#include "vessel/runtimeMbContext.h"
+
 
 namespace engine
 {
@@ -59,7 +59,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != obj && obj->isValid(), "can not be invalid");
       SDB_ASSERT(obj->getDescription().getType() == INDEX_TYPE_BTREE, "msut be btree");
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(NULL != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(NULL != is && is->isOpen(), "can not be invalid");
 
       fini();
@@ -634,7 +634,6 @@ namespace vessel
       const runtimePageBuffer &rpb = buffer.getRuntimeBuffer();
       strictBuffer pageBuffer;
       const btreeNodePageHead *head = NULL;
-      const globalCollectionId &gcid = _context->getMbContext()->getGlobalId();
 
       rc = buffer.validatePage(PAGE_TYPE_BTREE_NODE);
       if (SDB_OK != rc)
@@ -653,10 +652,10 @@ namespace vessel
          goto error;
       }
 
-      if (gcid.getCLLid() != head->clLogicalID)
+      if (_context->getLogicalClId() != head->clLogicalID)
       {
          PD_LOG(PDERROR, "different logical clids found[%d,%d] on page[%s]",
-                gcid.getCLLid(), head->clLogicalID,
+                _context->getLogicalClId(), head->clLogicalID,
                 rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;

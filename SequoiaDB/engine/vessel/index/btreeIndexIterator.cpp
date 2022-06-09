@@ -69,7 +69,7 @@ namespace vessel
       logicalPageSpace *lps = NULL;
       close();
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        NULL == obj ||
                        !obj->isValid() ||
                        INDEX_TYPE_BTREE != obj->getDescription().getType()))

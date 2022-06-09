@@ -60,7 +60,6 @@
 #include "vessel/indexScanContext.h"
 #include "vessel/indexScanCursor.h"
 #include "interface/IRecordUpdater.h"
-#include "vessel/runtimeMbContext.h"
 #include "vessel/stackAllocatorRowBatch.h"
 #include "vessel/indexScanEntry.h"
 #include "ixm_common.hpp"
@@ -72,11 +71,6 @@ namespace engine
 {
 namespace vessel
 {
-   collection::collection()
-   {
-      
-   }
-
    collection::~collection()
    {
       fini();
@@ -87,9 +81,8 @@ namespace vessel
                                   collectionSpace *cs)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr == _collectionSpace, "do not reinit");
+      SDB_ASSERT(nullptr == _cs, "do not reinit");
       fsmFile *file = nullptr;
-      runtimeMbContext mbContext;
       
       if (OSS_UNLIKELY(nullptr == context ||
                        !block.isValid() ||
@@ -100,12 +93,11 @@ namespace vessel
          goto error;
       }
 
-      _collectionSpace = cs;
-      _clMetaBlock = block;
-      mbContext.init(_clMetaBlock,
-                     _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      _cs = cs;
+      initProperties(block);
+      context->setClProperties(_entryBlock.getProperties());
       
+      initRouteMapInBlock(block);
       rc = initPageSequenceWhenOpen(context);
       if (SDB_OK != rc)
       {
@@ -114,12 +106,12 @@ namespace vessel
       }
 
       file = cs->getSU()->getMainDataSpace().getFsmFile();
-      rc = _fsm.open(block.mbID,
-                     block.logicalCLID,
-                     _rdpCount.load(std::memory_order_relaxed),
-                     file,
-                     dmsStripingRange(block.minStriping,
-                                      block.maxStriping));
+      rc = _entryBlock._fsm.open(block.mbID,
+                                 block.logicalCLID,
+                                 _getRdpCount().load(std::memory_order_relaxed),
+                                 file,
+                                 dmsStripingRange(block.minStriping,
+                                                  block.maxStriping));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open free space map of cl[%d], rc:%d",
@@ -127,21 +119,21 @@ namespace vessel
          goto error;
       }
 
-         rc = initIndexesWhenOpen(context);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init indexes, rc:%d", rc);
-            goto error;
-         }
+      rc = initIndexesWhenOpen(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init indexes, rc:%d", rc);
+         goto error;
+      }
 
-      context->detachMbContext();
    done:
-      return rc;
-   error:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
+      return rc;
+   error:
+     
       fini();
       goto done;
    }
@@ -150,14 +142,8 @@ namespace vessel
    {
       SDB_ASSERT(isOpen(), "must be open");
       globalCollectionId gcid;
-      gcid.reset(_collectionSpace->getIdentifier(), getCollectionId());
+      gcid.reset(_cs->getIdentifier(), getCollectionId());
       return gcid;
-   }
-   
-   collectionId collection::getCollectionId()const
-   {
-      SDB_ASSERT(isOpen(), "must be open");
-      return collectionId(_clMetaBlock.logicalCLID, _clMetaBlock.innerID, _clMetaBlock.mbID);
    }
 
    INT32 collection::create(requestContext *context,
@@ -169,7 +155,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       fsmFile *fsm = nullptr;
-      runtimeMbContext mbContext;
+      clMetaBlock mb;
 
       SDB_ASSERT(!isOpen(), "do not reinit");
 
@@ -185,25 +171,24 @@ namespace vessel
          goto error;
       }
 
-      _collectionSpace = cs;
+      _cs = cs;
 
-      _clMetaBlock.reset();
-      _clMetaBlock.version = CL_META_BLOCK_VERSION;
-      _clMetaBlock.mbID = context->getMBID();
-      _clMetaBlock.innerID = innerID;
-      _clMetaBlock.type = options.type;
-      _clMetaBlock.logicalCLID = logicalID;
-      _clMetaBlock.minFreePercent = options.minFreePercent;
-      _clMetaBlock.minStriping = options.stripingRange.getLow().getValue();
-      _clMetaBlock.maxStriping = options.stripingRange.getHigh().getValue();
-      ossMemcpy(_clMetaBlock.name, clName.str(), clName.strLen());
-      _clMetaBlock.compressionType = options.compressionType;
+      mb.version = CL_META_BLOCK_VERSION;
+      mb.mbID = context->getMBID();
+      mb.innerID = innerID;
+      mb.type = options.type;
+      mb.logicalCLID = logicalID;
+      mb.minFreePercent = options.minFreePercent;
+      mb.minStriping = options.stripingRange.getLow().getValue();
+      mb.maxStriping = options.stripingRange.getHigh().getValue();
+      ossMemcpy(mb.name, clName.str(), clName.strLen());
+      mb.compressionType = options.compressionType;
 
       fsm = cs->getSU()->getMainDataSpace().getFsmFile();
-      rc = _fsm.create(context->getMBID(),
-                       logicalID, fsm,
-                       dmsStripingRange(_clMetaBlock.minStriping,
-                                        _clMetaBlock.maxStriping));
+      rc = _entryBlock._fsm.create(context->getMBID(),
+                                   logicalID, fsm,
+                                   dmsStripingRange(mb.minStriping,
+                                                    mb.maxStriping));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create free space map of mb[%d], rc:%d",
@@ -211,10 +196,9 @@ namespace vessel
          goto error;
       }
 
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      initProperties(mb);
       
-      rc = initCLMetaBlockOnDisk(context, options);
+      rc = initCLMetaBlockOnDisk(context, mb, options);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init cl meta block, rc:%d", rc);
@@ -222,10 +206,6 @@ namespace vessel
       }
 
    done:
-      if (nullptr != context)
-      {
-         context->detachMbContext();
-      }
       return rc;
    error:
       fini();
@@ -234,12 +214,8 @@ namespace vessel
 
    void collection::fini()
    {
-      _clMetaBlock.reset();
-      _collectionSpace = nullptr;
-      _lvl0Count.store(0, std::memory_order_relaxed);
-      _rdpCount.store(0, std::memory_order_relaxed);
-      _fsm.close();
-      _indexes.fini();
+      _cs = nullptr;
+      _entryBlock.reset();
       return;
    }
 
@@ -247,7 +223,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       OSS_LATCH_MODE mode = SHARED;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(nullptr == context))
       {
@@ -266,22 +241,19 @@ namespace vessel
          goto error;
       }
 
-      mbContext.init(_clMetaBlock,
-                     _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
-      _fsm.destroy();
+      context->setClProperties(_entryBlock.getProperties());
+      _entryBlock._fsm.destroy();
       removeAllIndexes(context);
       releaseAllRdps(context);
       removeCLMetaBlockOnDisk(context);
-      if (_collectionSpace->getSU()->getLobSpace().isOpen())
+      if (_cs->getSU()->getLobSpace().isOpen())
       {
-         _collectionSpace->getSU()->getLobSpace().removeLobChunksInCL(context);
+         _cs->getSU()->getLobSpace().removeLobChunksInCL(context);
       }
       
-      context->detachMbContext();
+      context->resetClProperties();
       fini();
    done:
-      
       return rc;
    error:
       goto done;
@@ -291,9 +263,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       OSS_LATCH_MODE mode;
-      runtimeMbContext mbContext;
-
-      ///TODO: hold shared mb lock and exclusive ddl latch.
 
       if (OSS_UNLIKELY(nullptr == context))
       {
@@ -312,16 +281,14 @@ namespace vessel
          goto error;
       }
 
-      mbContext.init(_clMetaBlock,
-                     _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
 
-      if (_collectionSpace->getSU()->getLobSpace().isOpen())
+      if (_cs->getSU()->getLobSpace().isOpen())
       {
-         _collectionSpace->getSU()->getLobSpace().removeLobChunksInCL(context);
+         _cs->getSU()->getLobSpace().removeLobChunksInCL(context);
       }
 
-      _fsm.truncate();
+      _entryBlock._fsm.truncate();
 
       rc = truncateAllIndexes(context);
       if (SDB_OK != rc)
@@ -337,13 +304,11 @@ namespace vessel
          PD_LOG(PDERROR, "failed to reset route map on disk:%d", rc);
          goto error;
       }
-
-      for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
-      {
-         _clMetaBlock.routePages[i] = INVALID_PAGE_ID;
-      }
    done:
-      context->detachMbContext();
+      if (nullptr != context)
+      {
+         context->resetClProperties();
+      }
       return rc;
    error:
       goto done;
@@ -355,7 +320,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexIdentifier indexId;
-      runtimeMbContext mbContext;
       indexDescription desc;
 
       if (!isOpen())
@@ -371,15 +335,14 @@ namespace vessel
          goto error;
       }
 
+      context->setClProperties(_entryBlock.getProperties());
+
       rc = desc.extractFromBson(adjunct);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extract index description, rc:%d", rc);
          goto error;
       }
-
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
 
       rc = _createIndex(context, desc, indexId);
       if (SDB_OK != rc)
@@ -412,7 +375,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -424,7 +387,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexes.clear();
-      ossRWMutexGuard guard(&_indexlock, SHARED);
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
 
       if (!isOpen())
       {
@@ -437,8 +400,8 @@ namespace vessel
          goto error;
       }
 
-      for (indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-           itr != _indexes.end(); ++itr)
+      for (indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+           itr !=_entryBlock._indexes.end(); ++itr)
       {
          bson::BSONObjBuilder builder;
          itr->second->dump(builder);
@@ -455,7 +418,6 @@ namespace vessel
                                  const strSlice &indexName)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
       indexIdentifier indexId;
 
       if (!isOpen())
@@ -471,8 +433,7 @@ namespace vessel
          goto error;
       }
 
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
 
       rc = markIndexRemovingByName(context, indexName, indexId);
       if (SDB_OK != rc)
@@ -494,7 +455,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -506,7 +467,7 @@ namespace vessel
                                      indexIdentifier &indexId)
    {
       INT32 rc = SDB_OK;
-      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED, FALSE);
       indexId.reset();
       if (!isOpen())
       {
@@ -522,8 +483,8 @@ namespace vessel
       }
 
       guard.autoLock();
-      for (indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-           itr != _indexes.end(); ++itr)
+      for (indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+           itr !=_entryBlock._indexes.end(); ++itr)
       {
          if (itr->second->isNormal() &&
              itr->second->getDescription().getNameSlice() == indexName)
@@ -546,23 +507,25 @@ namespace vessel
    }
 
    INT32 collection::initCLMetaBlockOnDisk(requestContext *context,
+                                           const clMetaBlock &mb,
                                            const createCLOptions &options)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(_clMetaBlock.isValid(), "must be valid");
+      SDB_ASSERT(mb.isValid(), "must be valid");
+      
       logicalPageBuffer lpb;
       clMetaBlockPageAccessor accessor;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       UINT32 pageSize = getDataPageSize();
       strSlice csName;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
-      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, _clMetaBlock.mbID);
+      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, mb.mbID);
       if (INVALID_PAGE_ID == lpid)
       {
-         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", _clMetaBlock.mbID);
+         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", mb.mbID);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -575,7 +538,7 @@ namespace vessel
          goto error;
       }
       
-      rc = accessor.createCL(context, _clMetaBlock, options, &lpb);
+      rc = accessor.createCL(context, mb, options, &lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cl on cl meta block page:%d", rc);
@@ -593,18 +556,17 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(_clMetaBlock.isValid(), "must be valid");
 
       logicalPageBuffer lpb;
       clMetaBlockPageAccessor accessor;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       UINT32 pageSize = getDataPageSize();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
-      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, _clMetaBlock.mbID);
+      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, getId().getMbId());
       if (INVALID_PAGE_ID == lpid)
       {
-         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", _clMetaBlock.mbID);
+         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", getId().getMbId());
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -634,18 +596,17 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(_clMetaBlock.isValid(), "must be valid");
 
       logicalPageBuffer lpb;
       clMetaBlockPageAccessor accessor;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       UINT32 pageSize = getDataPageSize();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
-      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, _clMetaBlock.mbID);
+      PAGE_ID lpid = getMbpLpidOfCollection(pageSize, getId().getMbId());
       if (INVALID_PAGE_ID == lpid)
       {
-         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", _clMetaBlock.mbID);
+         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", getId().getMbId());
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -674,14 +635,14 @@ namespace vessel
                           bson::BSONObj &record)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(nullptr == _collectionSpace))
+      if (OSS_UNLIKELY(nullptr == _cs))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      record = dumpCollectionWhenList(_collectionSpace->getLogicalID(),
-                                      _clMetaBlock);
+      record = dumpCollectionWhenList(_cs->getLogicalID(),
+                                      _entryBlock.getProperties());
    done:
       return rc;
    error:
@@ -694,8 +655,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
-      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
-      runtimeMbContext mbContext;
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -710,17 +670,15 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_clMetaBlock.isStripingMode() &&
+      else if (getProperties()->stripingRange.isValid() &&
                !request.o.stripingId.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
       guard.autoLock();
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
       context->setStripingId(request.o.stripingId);
       
       /// build indexes keys.
@@ -789,7 +747,7 @@ namespace vessel
       if (nullptr != context)
       {
          context->reset();
-         context->detachMbContext();
+         context->resetClProperties();
       }
 
       return rc;
@@ -804,8 +762,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
-      runtimeMbContext mbContext;
-      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED, FALSE);
 
       recordID rid;
       indexConsole console;
@@ -827,10 +784,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
       guard.autoLock();
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
       context->setStripingId(request.o.stripingId);
       
       rc = lockAndFetchRecordToModify(context, request.rid);
@@ -900,7 +855,7 @@ namespace vessel
          }
       }
 
-      console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
+      console.init(getMBID(), &(_cs->getSU()->getIndexSpace()));
       rc = console.handleDmlRequest(context, ra);
       if (SDB_OK != rc)
       {
@@ -917,7 +872,7 @@ namespace vessel
       if (nullptr != context)
       {
          context->reset();
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -930,8 +885,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
-      runtimeMbContext mbContext;
-      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED, FALSE);
 
       indexConsole console;
 
@@ -948,10 +902,8 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
       guard.autoLock();
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
 
       rc = lockAndFetchRecordToModify(context, request.rid);
       if (SDB_OK != rc)
@@ -998,7 +950,7 @@ namespace vessel
             }
          }
 
-         console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
+         console.init(getMBID(), &(_cs->getSU()->getIndexSpace()));
          rc = console.handleDmlRequest(context, ra);
          if (SDB_OK != rc)
          {
@@ -1015,7 +967,7 @@ namespace vessel
       if (nullptr != context)
       {
          context->reset();
-         context->detachMbContext();
+         context->resetClProperties();
       }
 
       return rc;
@@ -1031,7 +983,7 @@ namespace vessel
       
       IExecutor *executor = context->getExecutor();
       const static UINT32 _QUIT_CHECK = 7;
-      runtimeMbContext mbContext;
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
 
       count = 0;
 
@@ -1041,10 +993,9 @@ namespace vessel
          goto error;
       }
 
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
 
-      for (UINT32 i = 0; i < _rdpCount.load(std::memory_order_relaxed); ++i)
+      for (UINT32 i = 0; i < _getRdpCount().load(std::memory_order_relaxed); ++i)
       {
          PAGE_ID lpid = INVALID_PAGE_ID;
          UINT32 countInRdp = 0;
@@ -1075,7 +1026,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -1090,13 +1041,14 @@ namespace vessel
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(nullptr != cursor, "can not be null");
       SDB_ASSERT(cursor->isOpen(), "must be open");
-      SDB_ASSERT(cursor->getCollectionId().getCLLid() == _clMetaBlock.logicalCLID,
+      SDB_ASSERT(cursor->getCollectionId().getCLLid() == getCollectionId().getLid(),
                  "must be same");
 
-      runtimeMbContext mbContext;
       UINT32 pageStep = 2;
       UINT32 totalRead = 0;
       UINT32 maxPageSeq = 0;
+
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1110,8 +1062,7 @@ namespace vessel
          goto error;
       }
 
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
       if (0 < cursor->getOptions().pageStep)
       {
          pageStep = cursor->getOptions().pageStep;
@@ -1123,7 +1074,7 @@ namespace vessel
          UINT32 readCount = 0;
          PAGE_ID lpid = cursor->getLpid();
 
-         if (_rdpCount.load(std::memory_order_relaxed) <=
+         if (_getRdpCount().load(std::memory_order_relaxed) <=
               cursor->getToScanEntry().getSeq())
          {
             cursor->setEOC();
@@ -1166,7 +1117,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -1179,10 +1130,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
+      SDB_ASSERT(nullptr != _cs, "can not be null");
       rdpAccessor accessor;
       logicalPageBuffer lpb;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       count = 0;
 
@@ -1219,7 +1170,7 @@ namespace vessel
                                              UINT32 &count)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
+      SDB_ASSERT(nullptr != _cs, "can not be null");
       SDB_ASSERT(nullptr != cursor, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != cursor->getLpid(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(cursor->getToScanEntry().getPos()),
@@ -1298,8 +1249,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       indexObject *obj = nullptr;
       indexIdentifier indexId;
-      ossRWMutexGuard guard(&_indexlock, SHARED, FALSE);
-      runtimeMbContext mbContext;
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1315,11 +1265,10 @@ namespace vessel
       }
 
       guard.autoLock();
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      context->setClProperties(_entryBlock.getProperties());
       indexId = context->getCursor()->getIndexId();
 
-      obj = _indexes.find(indexId, INDEX_STATUS_NORMAL);
+      obj =_entryBlock._indexes.find(indexId, INDEX_STATUS_NORMAL);
       if (nullptr == obj)
       {
          PD_LOG(PDERROR, "index[%d] not found", indexId.getIndexSlot());
@@ -1348,7 +1297,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -1649,17 +1598,17 @@ namespace vessel
                                               BOOLEAN &outOfSpace)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context && context->isMbContextAttached(),
+      SDB_ASSERT(nullptr != context && context->isClPropertiesSet(),
                  "can not be invalid");
       SDB_ASSERT(record.isValid(), "can not be invalid");
       SDB_ASSERT(candidate.isValid() && INVALID_PAGE_ID != candidate.getLpid(),
                  "can not be invalid");
 
       logicalPageBuffer lpb;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
-      const runtimeMbContext *mbContext = context->getMbContext();
+      const collectionProperties *properties = context->getClProperties();
 
       outOfSpace = FALSE;
 
@@ -1702,7 +1651,7 @@ namespace vessel
          goto error;
       }
 
-      if (accessor.getFreeSpacePercent() < mbContext->getFloatMinFreePercent())
+      if (accessor.getFreeSpacePercent() < properties->getMinFreePct())
       {
          candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
       }
@@ -1729,17 +1678,18 @@ namespace vessel
                                                        recordID &rid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context && context->isMbContextAttached(),
+      SDB_ASSERT(nullptr != context && context->isClPropertiesSet(),
                  "can not be invalid");
       SDB_ASSERT(newRowData.isValid(), "can not be invalid");
       SDB_ASSERT(candidate.isValid() && INVALID_PAGE_ID != candidate.getLpid(),
                  "can not be invalid");
 
       logicalPageBuffer lpb;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
-      const runtimeMbContext *mbContext = context->getMbContext();
+      const collectionProperties *properties = context->getClProperties();
+      
 
       outOfSpace = FALSE;
       rid.reset();
@@ -1783,7 +1733,7 @@ namespace vessel
          goto error;
       }
 
-      if (accessor.getFreeSpacePercent() < mbContext->getFloatMinFreePercent())
+      if (accessor.getFreeSpacePercent() < properties->getMinFreePct())
       {
          candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
       }
@@ -1817,9 +1767,9 @@ namespace vessel
 
       logicalPageBuffer lpb;
       rdpAccessor accessor;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
-      const runtimeMbContext *mbContext = context->getMbContext();
+      const collectionProperties *properties = context->getClProperties();
 
       outOfSpace = FALSE;
       rc = mds.getLogicalPageBuffer(context, candidate.getLpid(), mode, lpb);
@@ -1861,7 +1811,7 @@ namespace vessel
          goto error;
       }
 
-      if (accessor.getFreeSpacePercent() < mbContext->getFloatMinFreePercent())
+      if (accessor.getFreeSpacePercent() < properties->getMinFreePct())
       {
          candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
       }
@@ -1890,11 +1840,11 @@ namespace vessel
                  "can not be invalid");
 
       logicalPageBuffer lpb;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
       INT32 lvl = FSM_INVALID_SPACE_LVL;
-      const runtimeMbContext *mbContext = context->getMbContext();
+      const collectionProperties *properties = context->getClProperties();
 
       rc = mds.getLogicalPageBuffer(context, candidate.getLpid(), mode, lpb);
       if (SDB_OK != rc)
@@ -1923,9 +1873,9 @@ namespace vessel
             goto error;
          }
       }
-      else if (accessor.getFreeSpacePercent() >= mbContext->getFloatMinFreePercent())
+      else if (accessor.getFreeSpacePercent() >= properties->getMinFreePct())
       {
-         _fsm.upgradePageSpaceLvl(candidate.getSeq(), lvl);
+        _entryBlock._fsm.upgradePageSpaceLvl(candidate.getSeq(), lvl);
       }
 
    done:
@@ -1949,11 +1899,12 @@ namespace vessel
 
       do
       {
-         UINT32 totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
+         UINT32 totalRdpCount = _getRdpCount().load(std::memory_order_relaxed);
          /// do not get latch here.
-         ossXLatchGuard guard(&_extendingLatch, FALSE);
+         std::unique_lock<std::mutex> guard(_entryBlock.getExtLock(),
+                                            std::defer_lock);
 
-         rc = _fsm.find(context, lvl, striping, candidate);
+         rc =_entryBlock._fsm.find(context, lvl, striping, candidate);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to find candidate from fsm:%d", rc);
@@ -1966,7 +1917,7 @@ namespace vessel
          }
 
          guard.lock();
-         if (totalRdpCount < _rdpCount.load(std::memory_order_relaxed))
+         if (totalRdpCount < _getRdpCount().load(std::memory_order_relaxed))
          {
             continue;
          }
@@ -1979,7 +1930,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
+         rc =_entryBlock._fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert new pages into fsm:%d", rc);
@@ -2005,11 +1956,12 @@ namespace vessel
 
       do
       {
-         UINT32 totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
+         UINT32 totalRdpCount = _getRdpCount().load(std::memory_order_relaxed);
          /// do not get latch here.
-         ossXLatchGuard guard(&_extendingLatch, FALSE);
+         std::unique_lock<std::mutex> guard(_entryBlock.getExtLock(),
+                                            std::defer_lock);
 
-         rc = _fsm.findAndKick(lvl, candidate);
+         rc =_entryBlock._fsm.findAndKick(lvl, candidate);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to find candidate from fsm:%d", rc);
@@ -2022,7 +1974,7 @@ namespace vessel
          }
 
          guard.lock();
-         if (totalRdpCount < _rdpCount.load(std::memory_order_relaxed))
+         if (totalRdpCount < _getRdpCount().load(std::memory_order_relaxed))
          {
             continue;
          }
@@ -2035,7 +1987,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
+         rc =_entryBlock._fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert new pages into fsm:%d", rc);
@@ -2066,7 +2018,7 @@ namespace vessel
       UINT32 totalRdpCount = 0;
       UINT32 totalLvl0Count = 0;
       PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       UINT32 capacity = 0;
       atomicOperationList oplist;
       atomicOperationList *backup = nullptr;
@@ -2081,8 +2033,8 @@ namespace vessel
          goto error;
       }
 
-      totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
-      totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
+      totalRdpCount = _getRdpCount().load(std::memory_order_relaxed);
+      totalLvl0Count = _getLvl0Count().load(std::memory_order_relaxed);
       lvl0No = totalRdpCount / capacity;
       SDB_ASSERT(lvl0No <= totalLvl0Count, "impossible");
       if (lvl0No == totalLvl0Count)
@@ -2095,7 +2047,7 @@ namespace vessel
          }
       }
       
-      initer.init(_clMetaBlock.logicalCLID, totalRdpCount, count);
+      initer.init(getCollectionId().getLid(), totalRdpCount, count);
       context->swtichOplist(&oplist, &backup);
       switched = TRUE;
 
@@ -2130,7 +2082,7 @@ namespace vessel
       }
 
       firstSeq = totalRdpCount;
-      _rdpCount.fetch_add(count, std::memory_order_relaxed);
+      _getRdpCount().fetch_add(count, std::memory_order_relaxed);
 
    done:
       if (switched)
@@ -2148,11 +2100,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
-      SDB_ASSERT(_clMetaBlock.isValid(), "must be valid");
+      SDB_ASSERT(nullptr != _cs, "can not be null");
    
-
-      if (INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_ROOT_LVL2])
+      if (INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_ROOT_LVL2])
       {
          rc = initPageSequenceByRootLvL2(context);
          if (SDB_OK != rc)
@@ -2161,7 +2111,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_SECOND_ROOT_LVL1])
+      else if (INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_SECOND_ROOT_LVL1])
       {
          rc = initPageSequenceByRootLvL1(context, 1);
          if (SDB_OK != rc)
@@ -2170,7 +2120,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_FIRST_ROOT_LVL1])
+      else if (INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_FIRST_ROOT_LVL1])
       {
          rc = initPageSequenceByRootLvL1(context, 0);
          if (SDB_OK != rc)
@@ -2179,7 +2129,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_ROOT_LVL0])
+      else if (INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_ROOT_LVL0])
       {
          rc = initPageSequenceByRootLvL0(context);
          if (SDB_OK != rc)
@@ -2190,8 +2140,8 @@ namespace vessel
       }
       else
       {
-         _lvl0Count.store(0, std::memory_order_relaxed);
-         _rdpCount.store(0, std::memory_order_relaxed);
+         _getLvl0Count().store(0, std::memory_order_relaxed);
+         _getRdpCount().store(0, std::memory_order_relaxed);
       }
 
    done:
@@ -2203,8 +2153,7 @@ namespace vessel
    INT32 collection::initPageSequenceByRootLvL2(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_clMetaBlock.isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
+      SDB_ASSERT(INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_ROOT_LVL2],
                  "can not be invalid");
 
       UINT32 lvl1Count = 0;
@@ -2217,7 +2166,7 @@ namespace vessel
       UINT32 totalLvl0Count = 0;
       UINT32 totalRdpCount = 0;
 
-      UINT32 pageSize = _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
+      UINT32 pageSize = _cs->getSU()->getManifest().dataArgs.pageSize;
       UINT32 capacity = getCapacityOfRoutePage(pageSize);
       if (0 == capacity)
       {
@@ -2231,7 +2180,7 @@ namespace vessel
       totalRdpCount = totalLvl0Count * capacity;
 
       rc = getCountAndLastEleInRoutePage(context,
-                                         _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
+                                         _entryBlock.routeMap[COLLECTION_ROOT_LVL2],
                                          COLLECTION_ROUTE_PAGE_LVL2,
                                          lvl1Count, lastLvl1);
       if (SDB_OK != rc)
@@ -2278,13 +2227,13 @@ namespace vessel
 
       totalRdpCount += rdpCount;
 
-      _lvl0Count.store(totalLvl0Count, std::memory_order_relaxed);
-      _rdpCount.store(totalRdpCount, std::memory_order_relaxed);
+      _getLvl0Count().store(totalLvl0Count, std::memory_order_relaxed);
+      _getRdpCount().store(totalRdpCount, std::memory_order_relaxed);
    done:
       return rc;
    error:
-      _lvl0Count.store(0, std::memory_order_relaxed);
-      _rdpCount.store(0, std::memory_order_relaxed);
+      _getLvl0Count().store(0, std::memory_order_relaxed);
+      _getRdpCount().store(0, std::memory_order_relaxed);
       goto done;
    }
 
@@ -2292,9 +2241,8 @@ namespace vessel
                                                 UINT32 rootNo)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_clMetaBlock.isValid(), "can not be invalid");
       SDB_ASSERT(rootNo <= 1, "can not out of bound");
-      PAGE_ID lpid = _clMetaBlock.routePages[COLLECTION_FIRST_ROOT_LVL1 + rootNo];
+      PAGE_ID lpid = _entryBlock.routeMap[COLLECTION_FIRST_ROOT_LVL1 + rootNo];
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
 
       UINT32 lvl0Count = 0;
@@ -2305,7 +2253,7 @@ namespace vessel
       UINT32 totalLvl0Count = 0;
       UINT32 totalRdpCount = 0;
 
-      UINT32 pageSize = _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
+      UINT32 pageSize = _cs->getSU()->getManifest().dataArgs.pageSize;
       UINT32 capacity = getCapacityOfRoutePage(pageSize);
       if (0 == capacity)
       {
@@ -2356,21 +2304,20 @@ namespace vessel
 
       totalRdpCount += rdpCount;
 
-      _lvl0Count.store(totalLvl0Count, std::memory_order_relaxed);
-      _rdpCount.store(totalRdpCount, std::memory_order_relaxed);
+      _getLvl0Count().store(totalLvl0Count, std::memory_order_relaxed);
+      _getRdpCount().store(totalRdpCount, std::memory_order_relaxed);
    done:
       return rc;
    error:
-      _lvl0Count.store(0, std::memory_order_relaxed);
-      _rdpCount.store(0, std::memory_order_relaxed);
+      _getLvl0Count().store(0, std::memory_order_relaxed);
+      _getRdpCount().store(0, std::memory_order_relaxed);
       goto done;
    }
 
    INT32 collection::initPageSequenceByRootLvL0(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_clMetaBlock.isValid(), "can not be invalid");
-      PAGE_ID lpid = _clMetaBlock.routePages[COLLECTION_ROOT_LVL0];
+      PAGE_ID lpid = _entryBlock.routeMap[COLLECTION_ROOT_LVL0];
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
 
       UINT32 rdpCount = 0;
@@ -2385,13 +2332,13 @@ namespace vessel
          goto error;
       }
 
-      _lvl0Count.store(1, std::memory_order_relaxed);
-      _rdpCount.store(rdpCount, std::memory_order_relaxed);
+      _getLvl0Count().store(1, std::memory_order_relaxed);
+      _getRdpCount().store(rdpCount, std::memory_order_relaxed);
    done:
       return rc;
    error:
-      _lvl0Count.store(0, std::memory_order_relaxed);
-      _rdpCount.store(0, std::memory_order_relaxed);
+      _getLvl0Count().store(0, std::memory_order_relaxed);
+      _getRdpCount().store(0, std::memory_order_relaxed);
       goto done;
    }
 
@@ -2401,12 +2348,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
+      SDB_ASSERT(nullptr != _cs, "can not be null");
 
       UINT32 capacity = 0;
       UINT32 lvl0Id = 0;
       PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
-      UINT32 totalRdpCount = _rdpCount.load(std::memory_order_relaxed);
+      UINT32 totalRdpCount = _getRdpCount().load(std::memory_order_relaxed);
 
       lpid = INVALID_PAGE_ID;
 
@@ -2464,9 +2411,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
+      SDB_ASSERT(nullptr != _cs, "can not be null");
 
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       logicalPageBuffer lpb;
       routePageAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
@@ -2503,7 +2450,7 @@ namespace vessel
 
       lpid = INVALID_PAGE_ID;
 
-      if (_lvl0Count.load(std::memory_order_relaxed) <= lvl0No)
+      if (_getLvl0Count().load(std::memory_order_relaxed) <= lvl0No)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
@@ -2511,7 +2458,7 @@ namespace vessel
 
       if (0 == lvl0No)
       {
-         lpid = _clMetaBlock.routePages[COLLECTION_ROOT_LVL0];
+         lpid = _entryBlock.routeMap[COLLECTION_ROOT_LVL0];
          if (INVALID_PAGE_ID == lpid)
          {
             PD_LOG(PDERROR, "root lvl0 does not exist");
@@ -2524,7 +2471,7 @@ namespace vessel
                                                         COLLECTION_FIRST_ROOT_LVL1))
       {
          pos = lvl0No - 1;
-         lvl1Lpid = _clMetaBlock.routePages[COLLECTION_FIRST_ROOT_LVL1];
+         lvl1Lpid = _entryBlock.routeMap[COLLECTION_FIRST_ROOT_LVL1];
          if (INVALID_PAGE_ID == lvl1Lpid)
          {
             PD_LOG(PDERROR, "the first root lvl1 does not exist");
@@ -2536,7 +2483,7 @@ namespace vessel
                                                         COLLECTION_SECOND_ROOT_LVL1))
       {
          pos = lvl0No - 1 - capacity;
-         lvl1Lpid = _clMetaBlock.routePages[COLLECTION_SECOND_ROOT_LVL1];
+         lvl1Lpid = _entryBlock.routeMap[COLLECTION_SECOND_ROOT_LVL1];
          if (INVALID_PAGE_ID == lvl1Lpid)
          {
             PD_LOG(PDERROR, "the second root lvl1 does not exist");
@@ -2548,7 +2495,7 @@ namespace vessel
       {
          pos = (lvl0No - 1 - capacity - capacity) % capacity;
          UINT32 lvl1Pos = (lvl0No - 1 - capacity - capacity) / capacity;
-         PAGE_ID lvl2Lpid = _clMetaBlock.routePages[COLLECTION_ROOT_LVL2];
+         PAGE_ID lvl2Lpid = _entryBlock.routeMap[COLLECTION_ROOT_LVL2];
          if (INVALID_PAGE_ID == lvl2Lpid)
          {
             PD_LOG(PDERROR, "lvl2 root does not exist");
@@ -2595,10 +2542,10 @@ namespace vessel
                                           PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
+      SDB_ASSERT(nullptr != _cs, "can not be null");
       routePageAccessor accessor;
       logicalPageBuffer lpb;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       rc = mds.getLogicalPageBuffer(context, routePgaeLpid, mode, lpb);
@@ -2629,7 +2576,7 @@ namespace vessel
 
       PAGE_ID newLvl0 = INVALID_PAGE_ID;
       UINT32 maxLvl0COunt = 0;
-      UINT32 totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
+      UINT32 totalLvl0Count = _getLvl0Count().load(std::memory_order_relaxed);
       PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -2658,14 +2605,14 @@ namespace vessel
       if (0 == totalLvl0Count)
       {
          /// COLLECTION_ROOT_LVL0 impossible to be valid when totalLvl0Count is zero.
-         SDB_ASSERT(INVALID_PAGE_ID == _clMetaBlock.routePages[COLLECTION_ROOT_LVL0], "impossible");
+         SDB_ASSERT(INVALID_PAGE_ID == _entryBlock.routeMap[COLLECTION_ROOT_LVL0], "impossible");
          rc = ensureRootRoutePage(context, COLLECTION_ROOT_LVL0);
          if (SDB_OK != rc)
          {
             goto error;
          }
 
-         _lvl0Count.fetch_add(1, std::memory_order_relaxed);
+         _getLvl0Count().fetch_add(1, std::memory_order_relaxed);
          goto done;
       }
       else if (totalLvl0Count <
@@ -2677,7 +2624,7 @@ namespace vessel
          {
             goto error;
          }
-         lvl1Lpid = _clMetaBlock.routePages[COLLECTION_FIRST_ROOT_LVL1];
+         lvl1Lpid = _entryBlock.routeMap[COLLECTION_FIRST_ROOT_LVL1];
       }
       else if (totalLvl0Count <
                getMaxLvL0RoutePageCountLteRoot(capacity,
@@ -2688,7 +2635,7 @@ namespace vessel
          {
             goto error;
          }
-         lvl1Lpid = _clMetaBlock.routePages[COLLECTION_SECOND_ROOT_LVL1];
+         lvl1Lpid = _entryBlock.routeMap[COLLECTION_SECOND_ROOT_LVL1];
       }
       else
       {
@@ -2715,7 +2662,7 @@ namespace vessel
          goto error;
       }
 
-      _lvl0Count.fetch_add(1, std::memory_order_relaxed);
+      _getLvl0Count().fetch_add(1, std::memory_order_relaxed);
    done:
       return rc;
    error:
@@ -2742,6 +2689,8 @@ namespace vessel
       BOOLEAN swtiched = FALSE;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
+      clMetaBlock mb;
+
       if (COLLECTION_FIRST_ROOT_LVL1 == rootSlot ||
           COLLECTION_SECOND_ROOT_LVL1 == rootSlot)
       {
@@ -2752,14 +2701,14 @@ namespace vessel
          rootLvl = COLLECTION_ROUTE_PAGE_LVL2;
       }
 
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
 
-      if (INVALID_PAGE_ID != _clMetaBlock.routePages[rootSlot])
+      if (INVALID_PAGE_ID != _entryBlock.routeMap[rootSlot])
       {
          goto done;
       }
 
-      clmbpLpid = getMbpLpidOfCollection(getDataPageSize(), _clMetaBlock.mbID);
+      clmbpLpid = getMbpLpidOfCollection(getDataPageSize(), getMBID());
       if (OSS_UNLIKELY(INVALID_PAGE_ID == clmbpLpid))
       {
          PD_LOG(PDERROR, "failed to get lpid of cl meta block page");
@@ -2787,12 +2736,14 @@ namespace vessel
 
       /// we are holding ddl s latch and page allocating x latch.
       /// all columns in _record are unchangeable now.
-      _clMetaBlock.routePages[rootSlot] = routeLpid;
+      _entryBlock.routeMap[rootSlot] = routeLpid;
       oplist.setWaitingTail();
-      rc = accessor.updateRoutePages(context, _clMetaBlock, &lpb);
+
+      rc = accessor.updateRoutePages(context, _entryBlock.routeMap.data(),
+                                     _entryBlock.routeMap.size(), &lpb);
       if (SDB_OK != rc)
       {
-         _clMetaBlock.routePages[rootSlot] = INVALID_PAGE_ID;
+         _entryBlock.routeMap[rootSlot] = INVALID_PAGE_ID;
          PD_LOG(PDERROR, "failed to update collection record:%d", rc);
          goto error;
       }
@@ -2826,7 +2777,7 @@ namespace vessel
       atomicOperationList *backup = nullptr;
       logicalPageBuffer lpb;
       routePageAccessor accessor;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       context->swtichOplist(&oplist, &backup);
@@ -2869,17 +2820,17 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_ROOT_LVL2], "impossible");
+      SDB_ASSERT(INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_ROOT_LVL2], "impossible");
       lpid = INVALID_PAGE_ID;
       routePageAccessor accessor;
       logicalPageBuffer lpb;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       UINT32 targetCount = 0;
       UINT32 minCount = 0;
       UINT32 currentLvl1Count = 0;
       PAGE_ID lvl1 = INVALID_PAGE_ID;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-      UINT32 totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
+      UINT32 totalLvl0Count = _getLvl0Count().load(std::memory_order_relaxed);
 
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -2907,7 +2858,7 @@ namespace vessel
       targetCount = ((totalLvl0Count - minCount) / capacity) + 1;
 
       rc = mds.getLogicalPageBuffer(context,
-                                    _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
+                                    _entryBlock.routeMap[COLLECTION_ROOT_LVL2],
                                     mode, lpb);
       if (SDB_OK != rc)
       {
@@ -2946,7 +2897,7 @@ namespace vessel
       }
 
       rc = createNonRootRoutePage(context,
-                                  _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
+                                  _entryBlock.routeMap[COLLECTION_ROOT_LVL2],
                                   COLLECTION_ROUTE_PAGE_LVL1,
                                   lpid);
       if (SDB_OK != rc)
@@ -2969,10 +2920,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(nullptr != _collectionSpace, "can not be null");
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      SDB_ASSERT(nullptr != _cs, "can not be null");
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       routePageIniter initer;
-      initer.setLogicalId(_clMetaBlock.logicalCLID);
+      initer.setLogicalId(getCollectionId().getLid());
       initer.setLvl(lvl);
 
       rc = mds.allocatePages(context, &initer, 1, &lpid);
@@ -2991,7 +2942,7 @@ namespace vessel
    UINT32 collection::getDataPageSize()const
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return _collectionSpace->getSU()->getManifest().dataArgs.pageSize;
+      return _cs->getSU()->getManifest().dataArgs.pageSize;
    }
 
    UINT32 collection::getMaxLvL0RoutePageCountLteRoot(UINT32 capacity,
@@ -3043,11 +2994,11 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
 
       indexId.reset();
-      ossScopedRWLock guard(&_indexlock, EXCLUSIVE);
+      ossScopedRWLock guard(_entryBlock.getOpLock(), EXCLUSIVE);
 
-      console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
+      console.init(getMBID(), &(_cs->getSU()->getIndexSpace()));
 
-      if (!_indexes.isMetaBlockEverCreated())
+      if (!_entryBlock._indexes.isMetaBlockEverCreated())
       {
          rc = console.initIndexMetaBlock(context);
          if (SDB_OK != rc)
@@ -3057,7 +3008,7 @@ namespace vessel
          }
       }
 
-      if (!_indexes.isAllowedToCreateMore())
+      if (!_entryBlock._indexes.isAllowedToCreateMore())
       {
          PD_LOG(PDINFO, "no more available logical index id or slot");
          rc = SDB_DMS_MAX_INDEX;
@@ -3088,11 +3039,11 @@ namespace vessel
 
       objSlice.reset(obj.objsize(), obj.objdata());
       fullName.reserve(128);
-      fullName.append(_collectionSpace->getCSName()).append(".").append(getName());
+      fullName.append(_cs->getCSName()).append(".").append(getProperties()->name.c_str());
       nameSlice.reset(fullName.c_str(), fullName.size());
 
-      indexSlot = _indexes.findFreeIndexSlot();
-      indexLid = _indexes.getNextIndexLid();
+      indexSlot =_entryBlock._indexes.findFreeIndexSlot();
+      indexLid =_entryBlock._indexes.getNextIndexLid();
       indexId.reset(indexSlot, indexLid, desc.getInnerID());
       SDB_ASSERT(indexId.isValid(), "impossible");
 
@@ -3113,7 +3064,7 @@ namespace vessel
       }
       rollbackDefPage = TRUE;
 
-      rc = _indexes.insert(indexSlot, indexLid, lpid, desc, INDEX_STATUS_BUILDING);
+      rc =_entryBlock._indexes.insert(indexSlot, indexLid, lpid, desc, INDEX_STATUS_BUILDING);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
@@ -3163,9 +3114,9 @@ namespace vessel
       indexObject *obj = nullptr;
       indexConsole console;
       
-      ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
-      indexObjectMap::ITERATOR itr = _indexes.begin();
-      for (; itr != _indexes.end(); ++itr)
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
+      indexObjectMap::ITERATOR itr =_entryBlock._indexes.begin();
+      for (; itr !=_entryBlock._indexes.end(); ++itr)
       {
          strSlice nameSlice = itr->second->getDescription().getNameSlice();
          if (nameSlice == indexName)
@@ -3189,7 +3140,7 @@ namespace vessel
          goto error;
       }
       
-      console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
+      console.init(getMBID(), &(_cs->getSU()->getIndexSpace()));
       rc = console.updateIndexStatus(context, obj->getIndexId().getLogicalIndexId(),
                                      obj->getEntryLpid(),
                                      INDEX_STATUS_REMOVING);
@@ -3215,11 +3166,11 @@ namespace vessel
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
       indexObject *obj = nullptr;
       indexConsole console;
-      console.init(_clMetaBlock.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
-      ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
+      console.init(getMBID(), &(_cs->getSU()->getIndexSpace()));
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
 
       /// ensure index object firsts
-      obj = _indexes.find(indexId);
+      obj =_entryBlock._indexes.find(indexId);
       if (nullptr == obj)
       {
          PD_LOG(PDERROR, "failed to find index object[%d]", indexId.getIndexSlot());
@@ -3237,7 +3188,7 @@ namespace vessel
       }
 
       obj = nullptr;
-      _indexes.erase(indexId.getIndexSlot());
+     _entryBlock._indexes.erase(indexId.getIndexSlot());
 
       /// release index entry page
       /// TODO: we should ensure releasing always be ok here.
@@ -3378,7 +3329,7 @@ namespace vessel
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "can not be null");
       buildingIndexContext *buildingContext = nullptr;
       scanEntry entry;
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       SDB_ASSERT((!(!keyGen)), "can not be invalid");
       memoryBlock mb;
@@ -3400,7 +3351,7 @@ namespace vessel
          goto error;
       }
 
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
       while (entry.getSeq() < maxRdpCount)
       {
@@ -3608,9 +3559,9 @@ namespace vessel
          indexObject *obj = nullptr;
          buildingIndexContext *buildingContext = nullptr;
 
-         ossRWMutexGuard guard(&_indexlock, SHARED);
+         ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
 
-         obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
+         obj =_entryBlock._indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexId.getIndexSlot());
@@ -3633,7 +3584,7 @@ namespace vessel
             goto error;
          }
 
-         currentRdpCount = _rdpCount.load(std::memory_order_relaxed);
+         currentRdpCount = _getRdpCount().load(std::memory_order_relaxed);
 
          if (currentRdpCount <= (buildEntry.getSeq() + _SCAN_PAGE_COUNT_PER_LOOP))
          {
@@ -3651,11 +3602,11 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
+         ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
          scanEntry buildEntry;
          buildingIndexContext *buildingContext = nullptr;
-         UINT32 rdpCount = _rdpCount.load(std::memory_order_relaxed);
-         indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
+         UINT32 rdpCount = _getRdpCount().load(std::memory_order_relaxed);
+         indexObject *obj =_entryBlock._indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexId.getIndexSlot());
@@ -3725,10 +3676,10 @@ namespace vessel
 
       do
       {
-         ossRWMutexGuard guard(&_indexlock, SHARED);
+         ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
          UINT32 currentRdpCount = 0;
          buildingIndexContext *buildingContext = nullptr;
-         indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
+         indexObject *obj =_entryBlock._indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexId.getIndexSlot());
@@ -3751,7 +3702,7 @@ namespace vessel
             goto error;
          }
 
-         currentRdpCount = _rdpCount.load(std::memory_order_relaxed);;
+         currentRdpCount = _getRdpCount().load(std::memory_order_relaxed);;
 
          if (currentRdpCount <= (entry.getSeq() + _ENDING_LOOP_RDP_COUNT))
          {
@@ -3768,10 +3719,10 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
+         ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
          buildingIndexContext *buildingContext = nullptr;
-         UINT32 rdpCount = _rdpCount.load(std::memory_order_relaxed);
-         indexObject *obj = _indexes.find(indexId, INDEX_STATUS_BUILDING);
+         UINT32 rdpCount = _getRdpCount().load(std::memory_order_relaxed);
+         indexObject *obj =_entryBlock._indexes.find(indexId, INDEX_STATUS_BUILDING);
          if (nullptr == obj)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexId.getIndexSlot());
@@ -3828,10 +3779,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != buildingContext, "can not be null");
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexMergingRecordList mrl;
       indexConsole console;
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
       while (!buildingContext->endToBuildCurrentRange(mrl))
       {
@@ -3849,9 +3800,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != sorter, "can not be null");
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "must be building");
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
       buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext *>
                                               (obj->getUnstatbleContext());
       if (OSS_UNLIKELY(nullptr == buildingContext))
@@ -3894,17 +3845,17 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "must be building");
 
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
       ossPoolString fullName;
       strSlice nameSlice;
 
 
       fullName.reserve(128);
-      fullName.append(_collectionSpace->getCSName()).append(".").append(getName());
+      fullName.append(_cs->getCSName()).append(".").append(getProperties()->name.c_str());
       nameSlice.reset(fullName.c_str(), fullName.size());
 
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
       rc = commitCreateIndexEndLog(context, nameSlice,
                                    obj->getDescription().getNameSlice(),
@@ -3949,8 +3900,8 @@ namespace vessel
       SDB_ASSERT(pattern.isValid(), "can not be invalid");
 
       duplicated = FALSE;
-      for (indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-           itr != _indexes.end(); ++itr)
+      for (indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+           itr !=_entryBlock._indexes.end(); ++itr)
       {
          if (!itr->second->isNormal() && !itr->second->isBuilding())
          {
@@ -3979,12 +3930,12 @@ namespace vessel
    INT32 collection::initIndexesWhenOpen(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
 
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
-      rc = console.loadIndexesWhenStartup(context, &_indexes);
+      rc = console.loadIndexesWhenStartup(context, &(_entryBlock._indexes));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index context:%d", rc);
@@ -4006,8 +3957,8 @@ namespace vessel
    INT32 collection::fixUnstatbleIndexesWhenOpen(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-      for (; itr != _indexes.end(); ++itr)
+      indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+      for (; itr !=_entryBlock._indexes.end(); ++itr)
       {
          if (!itr->second->isNormal())
          {
@@ -4027,8 +3978,8 @@ namespace vessel
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       bson::BSONObjSet keySet;
 
-      for (indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-           itr != _indexes.end(); ++itr)
+      for (indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+           itr !=_entryBlock._indexes.end(); ++itr)
       {
          keySet.clear();
          indexObject *obj = itr->second;
@@ -4082,8 +4033,8 @@ namespace vessel
       bson::BSONObjSet keySetToInsert;
       bson::BSONObjSet keySetToRemove;
 
-      indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-      for (; itr != _indexes.end(); ++itr)
+      indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+      for (; itr !=_entryBlock._indexes.end(); ++itr)
       {
          BOOLEAN associated = FALSE;
          indexObject *obj = itr->second;
@@ -4154,8 +4105,8 @@ namespace vessel
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       bson::BSONObjSet keySetToRemove;
 
-      indexObjectMap::CONST_ITERATOR itr = _indexes.begin();
-      for (; itr != _indexes.end(); ++itr)
+      indexObjectMap::CONST_ITERATOR itr =_entryBlock._indexes.begin();
+      for (; itr !=_entryBlock._indexes.end(); ++itr)
       {
          indexObject *obj = itr->second;
          SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
@@ -4196,7 +4147,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       recordID rid;
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
       duplicated = FALSE;
 
@@ -4212,7 +4163,7 @@ namespace vessel
          goto error;
       }
 
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
       for (UINT32 i = 0; i < ra.getSize(); ++i)
       {
@@ -4267,9 +4218,9 @@ namespace vessel
                                          const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
       rc = console.handleDmlRequest(context, ra);
       if (SDB_OK != rc)
@@ -4357,11 +4308,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be invalid");
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_indexlock, EXCLUSIVE);
-      console.init(_clMetaBlock.mbID, &is);
-      indexObject *obj = _indexes.find(indexId);
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
+      console.init(getMBID(), &is);
+      indexObject *obj =_entryBlock._indexes.find(indexId);
       if (nullptr == obj)
       {
          PD_LOG(PDERROR, "index[%d] not found", indexId.getIndexSlot());
@@ -4398,11 +4349,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(indexId.isValid(), "can not be invalid");
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_indexlock, SHARED);
-      console.init(_clMetaBlock.mbID, &is);
-      indexObject *obj = _indexes.find(indexId);
+      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
+      console.init(getMBID(), &is);
+      indexObject *obj =_entryBlock._indexes.find(indexId);
       if (nullptr == obj)
       {
          PD_LOG(PDERROR, "failed to find index context[%d]", indexId.getIndexSlot());
@@ -4437,14 +4388,14 @@ namespace vessel
       OSS_LATCH_MODE mode;
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
-      if (_indexes.isMetaBlockEverCreated())
+      if (_entryBlock._indexes.isMetaBlockEverCreated())
       {
-         indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+         indexSpace &is = _cs->getSU()->getIndexSpace();
          indexConsole console;
-         console.init(_clMetaBlock.mbID, &is);
+         console.init(getMBID(), &is);
          
-         indexObjectMap::ITERATOR itr = _indexes.begin();
-         for (; itr != _indexes.end(); ++itr)
+         indexObjectMap::ITERATOR itr =_entryBlock._indexes.begin();
+         for (; itr !=_entryBlock._indexes.end(); ++itr)
          {
             indexObject *obj = itr->second;
             SDB_ASSERT(nullptr != obj && obj->isNormal(), "can not be other status");
@@ -4462,7 +4413,7 @@ namespace vessel
 
          console.resetIndexMetaBlock(context);
       }
-      _indexes.fini();
+     _entryBlock._indexes.fini();
    done:
       return rc;
    error:
@@ -4476,12 +4427,12 @@ namespace vessel
       OSS_LATCH_MODE mode;
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexSpace &is = _cs->getSU()->getIndexSpace();
       indexConsole console;
-      console.init(_clMetaBlock.mbID, &is);
+      console.init(getMBID(), &is);
 
-      indexObjectMap::ITERATOR itr = _indexes.begin();
-      for (; itr != _indexes.end(); ++itr)
+      indexObjectMap::ITERATOR itr =_entryBlock._indexes.begin();
+      for (; itr !=_entryBlock._indexes.end(); ++itr)
       {
          indexObject *obj = itr->second;
          SDB_ASSERT(nullptr != obj && obj->isNormal(), "can not be other status");
@@ -4516,7 +4467,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context && context->isCursorAttached(), "can not be invalid");
-      SDB_ASSERT(context->isMbContextAttached(), "must be attached");
+      SDB_ASSERT(context->isClPropertiesSet(), "must be attached");
       SDB_ASSERT(nullptr != obj && obj->isNormal(), "must be normal");
       
       const dmsIndexScanOptions &o = context->getOptions();
@@ -4661,7 +4612,7 @@ namespace vessel
    INT32 collection::lockAndFetchRecordToModify(dmlContext *context, const recordID &rid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(nullptr != context && context->isClPropertiesSet(), "can not be invalid");
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       rdpRecordScanner scanner;
       BOOLEAN locked = FALSE;
@@ -4763,7 +4714,7 @@ namespace vessel
       logicalPageBuffer lpb;
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       BOOLEAN outOfSpace = FALSE;
       BOOLEAN bigRecord = isBigRecord(getDataPageSize(), newRecord.getSize());
       recordID currentAddr = context->getRid();
@@ -4851,7 +4802,7 @@ namespace vessel
       SDB_ASSERT(newRecord.isValid(), "can not be invalid");
 
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       recordID orid = context->getMrc().getOverflowAddr();
       BOOLEAN bigRecord = isBigRecord(getDataPageSize(), newRecord.getSize());
       BOOLEAN outOfSpace = FALSE;
@@ -4984,7 +4935,7 @@ namespace vessel
       logicalPageBuffer lpb;
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       BOOLEAN bigRecord = isBigRecord(getDataPageSize(), newRecord.getSize());
       recordID currentAddr = context->getRid();
       recordID overflowAddr;
@@ -5063,7 +5014,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       recordID orid;
       rdpAccessor accessor;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
 
       //TODO:attach oplist
       rc = insertInvisibleRecord(context, newRecord, orid);
@@ -5113,7 +5064,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       recordID orid;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
 
       //TODO:attach oplist
       rc = insertInvisibleRecord(context, newRecord, orid);
@@ -5231,7 +5182,7 @@ namespace vessel
       logicalPageBuffer lpb;
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       recordID rid = context->getRid();
 
       rc = mds.getLogicalPageBuffer(context, rid.getPid(), mode, lpb);
@@ -5269,7 +5220,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context, "can not be null");
 
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       recordID rid = context->getRid();
       recordID overflowAddr = context->getMrc().getOverflowAddr();
 
@@ -5336,7 +5287,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       logicalPageBuffer lpb;
       rdpAccessor accessor;
       recordID overflowAddr = context->getMrc().getOverflowAddr();
@@ -5383,9 +5334,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       recordID currentAddr = context->getMrc().getOverflowAddr();
-      const runtimeMbContext *mbContext = context->getMbContext();
 
       do
       {
@@ -5433,13 +5383,6 @@ namespace vessel
             goto error;
          }
 
-         // dummy upgrade
-         if (tmpAccessor.getFreeSpacePercent() >= mbContext->getFloatMinFreePercent())
-         {
-            INT32 lvl = getFsmSpaceLvl(getDataPageSize(), tmpAccessor.getFreeSpaceAfterLastSlot());
-            _fsm.upgradePageSpaceLvl(head->pageSeq, lvl);
-         }
-
          currentAddr = nextAddr;
 
       } while (currentAddr.isValid());
@@ -5474,9 +5417,9 @@ namespace vessel
       ossPoolVector<PAGE_ID> batch;
       logicalPageBuffer buffer;
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      UINT32 totalLvl0Count = _lvl0Count.load(std::memory_order_relaxed);
+      UINT32 totalLvl0Count = _getLvl0Count().load(std::memory_order_relaxed);
 
 
       for (INT32 i = (INT32)totalLvl0Count - 1; i >= 0; --i)
@@ -5511,7 +5454,7 @@ namespace vessel
          batch.clear();
       }
 
-      _rdpCount.store(0, std::memory_order_relaxed);
+      _getRdpCount().store(0, std::memory_order_relaxed);
 
    done:
       return rc;
@@ -5528,16 +5471,16 @@ namespace vessel
       SDB_ASSERT(context->isMbLocked(&m) && EXCLUSIVE == m, "must be exclusive");
       ossPoolVector<PAGE_ID> batch;
       logicalPageBuffer buffer;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      mainDataSpace &mds = _cs->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      SDB_ASSERT(INVALID_PAGE_ID == _clMetaBlock.routePages[COLLECTION_ROOT_LVL2],
+      SDB_ASSERT(INVALID_PAGE_ID == _entryBlock.routeMap[COLLECTION_ROOT_LVL2],
                 "plan to remove lvl2 node");
 
       for (INT32 i = COLLECTION_SECOND_ROOT_LVL1; i > (INT32)COLLECTION_ROOT_LVL0; --i)
       {
          routePageAccessor accessor;
-         PAGE_ID lpid = _clMetaBlock.routePages[i];
+         PAGE_ID lpid = _entryBlock.routeMap[i];
          if (INVALID_PAGE_ID == lpid)
          {
             continue;
@@ -5563,14 +5506,15 @@ namespace vessel
          batch.push_back(lpid);
       }
 
-      if (INVALID_PAGE_ID != _clMetaBlock.routePages[COLLECTION_ROOT_LVL0])
+      if (INVALID_PAGE_ID != _entryBlock.routeMap[COLLECTION_ROOT_LVL0])
       {
-         batch.push_back(_clMetaBlock.routePages[COLLECTION_ROOT_LVL0]);
+         batch.push_back(_entryBlock.routeMap[COLLECTION_ROOT_LVL0]);
       }
 
       commitReleasingPagesLog(context, batch, bson::BSONObj());
       mds.releasePages(context, batch.size(), batch.data());
-      _lvl0Count.store(0, std::memory_order_relaxed);
+      _getLvl0Count().store(0, std::memory_order_relaxed);
+      _entryBlock.routeMap.fill(INVALID_PAGE_ID);
 
    done:
       return rc;
@@ -5584,7 +5528,6 @@ namespace vessel
                                     const slice &data)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5601,12 +5544,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      context->setClProperties(_entryBlock.getProperties());
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             rc = los.ensureCreated();
@@ -5627,7 +5569,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -5642,7 +5584,6 @@ namespace vessel
                                   UINT32 &readSize)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5659,12 +5600,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      context->setClProperties(_entryBlock.getProperties());
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             rc = SDB_LOB_SEQUENCE_NOT_EXIST;
@@ -5685,7 +5625,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -5696,7 +5636,6 @@ namespace vessel
                                     const lobChunkKey &key)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5712,12 +5651,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      context->setClProperties(_entryBlock.getProperties());
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             rc = SDB_LOB_SEQUENCE_NOT_EXIST;
@@ -5733,7 +5671,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -5747,7 +5685,6 @@ namespace vessel
                                     BOOLEAN createIfNotExists)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5763,12 +5700,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      context->setClProperties(_entryBlock.getProperties());
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             if (!createIfNotExists)
@@ -5805,7 +5741,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -5818,7 +5754,6 @@ namespace vessel
                                       UINT32 &tsize)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5834,12 +5769,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      context->setClProperties(_entryBlock.getProperties());
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             rc = SDB_LOB_SEQUENCE_NOT_EXIST;
@@ -5857,7 +5791,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -5869,7 +5803,6 @@ namespace vessel
                                   dmsLobChunkProfile *profile)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5885,12 +5818,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
-      context->attachMbContext(&mbContext);
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      context->setClProperties(_entryBlock.getProperties());
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             rc = SDB_LOB_SEQUENCE_NOT_EXIST;
@@ -5908,7 +5840,7 @@ namespace vessel
    done:
       if (nullptr != context)
       {
-         context->detachMbContext();
+         context->resetClProperties();
       }
       return rc;
    error:
@@ -5919,7 +5851,6 @@ namespace vessel
                                    listLobChunkCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -5934,12 +5865,12 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!context->isMbContextAttached(), "can not be attached");
-      //mbContext.init(_clMetaBlock, _collectionSpace->getIdentifier());
+      SDB_ASSERT(!context->isClPropertiesSet(), "can not be attached");
+      //mbContext.init(_clMetaBlock, _cs->getIdentifier());
       //context->attachMbContext(&mbContext);
 
       {
-         largeObjectSpace &los = _collectionSpace->getSU()->getLobSpace();
+         largeObjectSpace &los = _cs->getSU()->getLobSpace();
          if (!los.isOpen())
          {
             cursor->setEOC();
@@ -5957,13 +5888,58 @@ namespace vessel
    done:
       // if (nullptr != context)
       // {
-      //    context->detachMbContext();
+      //    context->resetClProperties();
       // }
       return rc;
    error:
       goto done;
    }
 
+   void collection::initProperties(const clMetaBlock &block)
+   {
+      SDB_ASSERT(block.isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _cs, "can not be invalid");
+      collectionProperties &properties = _entryBlock._properties;
 
+      properties.csid = _cs->getIdentifier();
+      properties.clid = collectionId(block.logicalCLID,
+                                     block.innerID,
+                                     block.mbID);
+      properties.name.assign(block.name);
+      properties.type = (CL_TYPE)block.type;
+      properties.compressor = (UTIL_COMPRESSOR_TYPE)block.compressionType;
+      properties._minFreePct = block.minFreePercent;
+      properties.stripingRange = dmsStripingRange(block.minStriping,
+                                                  block.maxStriping);
+      return;
+   }
+
+   void collection::initRouteMapInBlock(const clMetaBlock &block)
+   {
+      SDB_ASSERT(block.isValid(), "can not be invalid");
+      for (UINT32 i = 0; i < _entryBlock.routeMap.size(); ++i)
+      {
+         _entryBlock.routeMap.at(i) = block.routePages[i];
+      }
+   }
+
+   void collection::_exportMetaBlock(clMetaBlock &mb)const
+   {
+      mb.reset();
+      mb.version = CL_META_BLOCK_VERSION;
+      mb.type = (UINT16)(getProperties()->type);
+      mb.mbID = getMBID();
+      mb.innerID = getCollectionId().getInnerId();
+      mb.logicalCLID = getCollectionId().getLid();
+      for (UINT32 i = 0; i < _entryBlock.routeMap.size(); ++i)
+      {
+         mb.routePages[i] = _entryBlock.routeMap[i];
+      }
+      mb.minStriping = getProperties()->stripingRange.getLow().getValue();
+      mb.maxStriping = getProperties()->stripingRange.getHigh().getValue();
+      ossMemcpy(mb.name, getProperties()->name.c_str(), getProperties()->name.size() + 1);
+      mb.compressionType = (UINT8)(getProperties()->compressor);
+      mb.minFreePercent = (UINT8)(getProperties()->_minFreePct);
+   }
 }//namespace vessel
 }//namespace engine

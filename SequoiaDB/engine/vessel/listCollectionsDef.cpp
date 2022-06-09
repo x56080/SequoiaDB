@@ -34,23 +34,25 @@
 ******************************************************************************/
 
 #include "vessel/listCollectionsDef.h"
+#include "vessel/collectionProperties.h"
 
 namespace engine
 {
 namespace vessel
 {
    bson::BSONObj dumpCollectionWhenList(UINT32 csLogicalID,
-                                        const clMetaBlock &block)
+                                        const collectionProperties *properties)
    {
+      SDB_ASSERT(nullptr != properties, "can not be invalid");
       bson::BSONObjBuilder builder;
       builder.append(CL_DUMP_RECORD_FIELD_CS_LOGICAL_ID, csLogicalID)
-             .append(CL_DUMP_RECORD_FIELD_MB_ID, block.mbID)
-             .append(CL_DUMP_RECORD_FIELD_NAME, block.name)
-             .append(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID, block.logicalCLID)
-             .append(CL_DUMP_RECORD_FIELD_INNER_ID, block.innerID)
-             .append(CL_DUMP_RECORD_FIELD_COMPRESSION, block.compressionType)
-             .append(CL_DUMP_RECORD_FIELD_MIN_STRIPING, block.minStriping)
-             .append(CL_DUMP_RECORD_FIELD_MAX_STRIPING, block.maxStriping);
+             .append(CL_DUMP_RECORD_FIELD_MB_ID, properties->clid.getMbId())
+             .append(CL_DUMP_RECORD_FIELD_NAME, properties->name)
+             .append(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID, properties->clid.getLid())
+             .append(CL_DUMP_RECORD_FIELD_INNER_ID, properties->clid.getInnerId())
+             .append(CL_DUMP_RECORD_FIELD_COMPRESSION, properties->compressor)
+             .append(CL_DUMP_RECORD_FIELD_MIN_STRIPING, properties->stripingRange.getLow().getValue())
+             .append(CL_DUMP_RECORD_FIELD_MAX_STRIPING, properties->stripingRange.getHigh().getValue());
       return builder.obj();
    }
 }//namespace vessel

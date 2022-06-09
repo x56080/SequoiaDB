@@ -47,7 +47,7 @@
 #include "vessel/indexScanCursor.h"
 #include "vessel/indexUtils.h"
 #include "rtnPredicate.hpp"
-#include "vessel/runtimeMbContext.h"
+
 
 namespace engine
 {
@@ -67,7 +67,7 @@ namespace vessel
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !context->isCursorAttached() ||
                        NULL == obj ||
                        !obj->isValid()))

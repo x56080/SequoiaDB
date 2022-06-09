@@ -112,6 +112,14 @@ namespace vessel
                    INVALID_CL_MB_ID != _mbId &&
                    0 == _pad;   
          }
+         OSS_INLINE void reset()
+         {
+            _lid = DMS_INVALID_LOGICCLID;
+            _innerId = UTIL_UNIQUEID_NULL;
+            _mbId = INVALID_CL_MB_ID;
+            _pad = 0;
+            return;
+         }
       private:
          UINT32 _lid = DMS_INVALID_LOGICCLID;
          UINT32 _innerId = UTIL_UNIQUEID_NULL;

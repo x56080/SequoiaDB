@@ -50,16 +50,14 @@
 #include "ixmKey.hpp"
 #include "ossSharedLatch.hpp"
 #include "vessel/indexIterator.h"
-#include "vessel/runtimeMbContext.h"
 #include "vessel/clIndexMbpIniter.h"
 #include "vessel/clIndexMbpAccessor.h"
 #include "vessel/clIndexMetaBlockPage.h"
-
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndexExecutor.h"
-
 #include "vessel/btreeAccessor.h"
 #include "vessel/clIndexMbpIniter.h"
+#include "vessel/collectionProperties.h"
 namespace engine
 {
 namespace vessel
@@ -597,12 +595,12 @@ namespace vessel
                                  const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
+      SDB_ASSERT(NULL != context && context->isClPropertiesSet(), "can not be null");
       SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
-      const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
+      globalCollectionId gcid = context->getClProperties()->getGlobalId();
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
 
       globalIndexID gid(gcid.getCSLid(),
@@ -674,9 +672,9 @@ namespace vessel
                                    const indexObject *obj)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(NULL != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(obj->isValid(), "must be valid");
-      const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
+      globalCollectionId gcid = context->getClProperties()->getGlobalId();
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
       globalIndexID gid(gcid.getCSLid(),
                         gcid.getCLLid(),
@@ -897,9 +895,9 @@ namespace vessel
                                  const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
+      SDB_ASSERT(NULL != context && context->isClPropertiesSet(), "can not be null");
       SDB_ASSERT(context->isDmlPositionSet(), "must be set");
-      const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
+      globalCollectionId gcid = context->getClProperties()->getGlobalId();
       SDB_ASSERT(gcid.isValid(), "can not be invalid");
 
       lsmIndexWriteBatch batch;
@@ -981,7 +979,7 @@ namespace vessel
       rid = recordID();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        NULL == obj ||
                        !obj->isValid() ||
                        !obj->getDescription().isUnique()))

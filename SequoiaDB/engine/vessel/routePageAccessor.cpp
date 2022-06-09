@@ -40,7 +40,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/requestContext.h"
-#include "vessel/runtimeMbContext.h"
+#include "vessel/collectionProperties.h"
 #include "dpsJournalPad.hpp"
 #include "vessel/outerResource.h"
 
@@ -63,7 +63,7 @@ namespace vessel
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        0 == count ||
                        nullptr == lpids ||
                        nullptr == lpb ||
@@ -82,7 +82,7 @@ namespace vessel
          }
       }
 
-      lid = context->getMbContext()->getGlobalId().getCLLid();
+      lid = context->getLogicalClId();
 
       rc = lpb->validatePage(PAGE_TYPE_ROUTE);
       if (SDB_OK != rc)
@@ -184,7 +184,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(nullptr == context ||
                        !isValidRoutePageLvl(targetLvl) ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        nullptr == lpb ||
                        !lpb->isValid()))
       {
@@ -210,7 +210,7 @@ namespace vessel
          goto error;
       }
 
-      clid = context->getMbContext()->getGlobalId().getCLLid();
+      clid = context->getLogicalClId();
       if (clid != readableHead->logicalId)
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
@@ -259,7 +259,7 @@ namespace vessel
       strictBuffer buffer;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        nullptr == lpb ||
                        !lpb->isValid()))
       {
@@ -284,10 +284,10 @@ namespace vessel
          goto error;
       }
 
-      if (context->getMbContext()->getGlobalId().getCLLid() != readableHead->logicalId)
+      if (context->getLogicalClId() != readableHead->logicalId)
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 readableHead->logicalId);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
@@ -374,7 +374,7 @@ namespace vessel
                                          const logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(nullptr != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(isValidRoutePageLvl(targetLvl), "can not be invalid");
       SDB_ASSERT(nullptr != lpb && lpb->isValid(), "can not be invalid");
       const routePageHead *header = nullptr;
@@ -387,11 +387,11 @@ namespace vessel
       }
 
       header = lpb->getReadableBodyBuffer().getReadableObjPtr<routePageHead>(0);
-      if (header->logicalId != context->getMbContext()->getGlobalId().getCLLid())
+      if (header->logicalId != context->getLogicalClId())
       {
          PD_LOG(PDERROR, "different cl logical id found[%d, %d]",
                 header->logicalId,
-                context->getMbContext()->getGlobalId().getCLLid());
+                context->getLogicalClId());
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -420,7 +420,7 @@ namespace vessel
       UINT32 oldSize = lpids.size();
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !isValidRoutePageLvl(targetLvl) ||
                        nullptr == lpb || !lpb->isValid()))
       {

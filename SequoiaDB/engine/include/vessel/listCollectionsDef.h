@@ -38,12 +38,13 @@
 
 #include "vessel/vesselIdDef.h"
 #include "../bson/bson.hpp"
-#include "vessel/clMetaBlockPage.h"
+
 
 namespace engine
 {
 namespace vessel
 {
+   struct collectionProperties;
    static const CHAR * const CL_DUMP_RECORD_FIELD_CS_LOGICAL_ID = "cs_logical_id";
    static const CHAR * const CL_DUMP_RECORD_FIELD_MB_ID = "mbid";
    static const CHAR * const CL_DUMP_RECORD_FIELD_NAME = "name";
@@ -54,7 +55,7 @@ namespace vessel
    static const CHAR * const CL_DUMP_RECORD_FIELD_MAX_STRIPING = "max_striping";
 
    bson::BSONObj dumpCollectionWhenList(UINT32 csLogicalID,
-                                        const clMetaBlock &block);
+                                        const collectionProperties *properties);
 
 }//namespace vessel
 }//namespace engine

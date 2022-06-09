@@ -42,7 +42,7 @@
 #include "vessel/requestContext.h"
 #include "dmsLobDef.hpp"
 #include "vessel/lobExtentMetaBlock.h"
-#include "vessel/runtimeMbContext.h"
+
 #include "vessel/lobcMetaBlockMapping.h"
 #include "vessel/lobcLatchHelper.h"
 #include "vessel/storageFileLoader.h"
@@ -192,7 +192,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !key.isValid() ||
                        !data.isValid() ||
                        MAX_LOB_CHUNK_SIZE < (offset + data.getSize())))
@@ -693,7 +693,7 @@ namespace vessel
       readSize = 0;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !key.isValid() ||
                        nullptr == buffer ||
                        MAX_LOB_CHUNK_SIZE < (offset + size)))
@@ -772,7 +772,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !key.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -842,7 +842,7 @@ namespace vessel
       SDB_ASSERT(nullptr != tc, "can not be null");
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached()))
+                       !context->isClPropertiesSet()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -880,7 +880,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !key.isValid() ||
                        !data.isValid() ||
                        MAX_LOB_CHUNK_SIZE < (offset + data.getSize())))
@@ -966,7 +966,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !key.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -1029,7 +1029,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !key.isValid() ||
                        0 == size))
       {

@@ -202,7 +202,8 @@ namespace vessel
    }
 
    INT32 clMetaBlockPageAccessor::updateRoutePages(requestContext *context,
-                                                   const clMetaBlock &block,
+                                                   const PAGE_ID *pages,
+                                                   UINT32 count,
                                                    logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
@@ -214,9 +215,12 @@ namespace vessel
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       
       if (OSS_UNLIKELY(NULL == context ||
-                       !block.isValid() ||
+                       !context->isClPropertiesSet() ||
                        NULL == lpb ||
-                       !lpb->isValid()))
+                       !lpb->isValid() ||
+                       0 == count ||
+                       COLLECTION_ROUTE_PAGE_SLOT_COUNT < count ||
+                       nullptr == pages))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -237,7 +241,7 @@ namespace vessel
          goto error;
       }
 
-      slot = block.mbID % capacity;
+      slot = context->getMBID() % capacity;
 
       rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
@@ -266,19 +270,18 @@ namespace vessel
       }
 
       oldBlock = wptr->block;
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         wptr->block.routePages[i] = pages[i];
+      }
 
       rc = writeUpdateJournal(context, lpb->getGlobalPid(),
                               COLLECTION_UPDATE_MASK_ROUTE_PAGES,
-                              oldBlock, block, lsn);
+                              oldBlock, wptr->block, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
-      }
-
-      for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
-      {
-         wptr->block.routePages[i] = block.routePages[i];
       }
 
       lpb->commit(lsn);

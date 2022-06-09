@@ -56,6 +56,7 @@
 #include "vessel/objectIdentifier.h"
 #include "vessel/lobChunkKey.h"
 #include "vessel/listLobChunkCursor.h"
+#include "vessel/clEntryBlock.h"
 
 #include <atomic>
 
@@ -80,7 +81,7 @@ namespace vessel
    class collection: public SDBObject
    {
       public:
-         collection();
+         collection() = default;
          ~collection();
          collection(const collection &) = delete;
          collection &operator=(const collection &) = delete;
@@ -88,35 +89,47 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return nullptr != _collectionSpace;
+            return nullptr != _cs;
          }
-         OSS_INLINE const clMetaBlock &getRecord()const
+
+         OSS_INLINE const collectionId &getId()const
          {
-            return _clMetaBlock;
-         }
-         OSS_INLINE const CHAR *getName()const
-         {
-            return _clMetaBlock.name;
-         }
-         OSS_INLINE UINT32 getLogicalID()const
-         {
-            return _clMetaBlock.logicalCLID;
-         }
-         OSS_INLINE CL_MB_ID getMBID()const
-         {
-            return _clMetaBlock.mbID;
-         }
-         OSS_INLINE utilCLInnerID getInnerID()const
-         {
-            return _clMetaBlock.innerID;
-         }
-         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
-         {
-            return (UTIL_COMPRESSOR_TYPE)(_clMetaBlock.compressionType);
+            return _entryBlock._properties.clid;
          }
 
          globalCollectionId getGlobalId()const;
-         collectionId getCollectionId()const;
+
+         OSS_INLINE const collectionId &getCollectionId()const
+         {
+            return _entryBlock._properties.clid;
+         }
+
+         OSS_INLINE CL_MB_ID getMBID()const
+         {
+            return _entryBlock._properties.clid.getMbId();
+         }
+
+         OSS_INLINE UINT32 getLogicalID()const
+         {
+            return _entryBlock._properties.clid.getLid();
+         }
+
+         OSS_INLINE utilCLInnerID getInnerID()const
+         {
+            return _entryBlock._properties.clid.getInnerId();
+         }
+
+         OSS_INLINE const CHAR *getName()const
+         {
+            return _entryBlock._properties.name.c_str();
+         }
+
+         OSS_INLINE const collectionProperties *getProperties()const
+         {
+            return _entryBlock.getProperties();
+         }
+
+      public:
 
          INT32 create(requestContext *context,
                       const strSlice &clName,
@@ -258,6 +271,7 @@ namespace vessel
                                              PAGE_ID &element);
 
          INT32 initCLMetaBlockOnDisk(requestContext *context,
+                                     const clMetaBlock &mb,
                                      const createCLOptions &options);
 
          INT32 removeCLMetaBlockOnDisk(requestContext *context);
@@ -493,19 +507,18 @@ namespace vessel
          INT32 initIndexesWhenOpen(requestContext *context);
 
          INT32 fixUnstatbleIndexesWhenOpen(requestContext *context);
+
+      private:
+         void initProperties(const clMetaBlock &block);
+         void initRouteMapInBlock(const clMetaBlock &block);
+         OSS_INLINE atomic_uint &_getRdpCount() {return _entryBlock._rdpCount;}
+         OSS_INLINE atomic_uint &_getLvl0Count() {return _entryBlock._lvl0Count;}
+
+         void _exportMetaBlock(clMetaBlock &mb)const;
          
       private:
-         //ossSpinSLatch _recordLatch;
-         clMetaBlock _clMetaBlock;
-         collectionSpace *_collectionSpace = nullptr;
-         atomic_uint _lvl0Count = {0};
-         atomic_uint _rdpCount = {0};
-         freeSpaceMap _fsm;
-
-         indexObjectMap _indexes;
-
-         ossRWMutex _indexlock;
-         ossSpinXLatch _extendingLatch;
+         collectionSpace *_cs = nullptr;
+         clEntryBlock _entryBlock;
    };//class collection
 
    typedef shallowPointer<collection> COLLECTION_PTR;

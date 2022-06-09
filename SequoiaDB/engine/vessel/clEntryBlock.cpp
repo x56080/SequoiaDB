@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = result.h
+   Source File Name = clEntryBlock.cpp
 
    Descriptive Name =
 
@@ -33,57 +33,22 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_RESULT_H_
-#define VESSEL_RESULT_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/clEntryBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class result : public SDBObject
+   void clEntryBlock::reset()
    {
-      public:
-         OSS_INLINE result(){}
-         OSS_INLINE ~result(){}
-         OSS_INLINE result(const result &o):
-         _rc(o._rc)
-         {}
-         OSS_INLINE result &operator=(const result &o)
-         {
-            _rc = o._rc;
-            return *this;
-         }
-         OSS_INLINE result &operator=(INT32 rc)
-         {
-            _rc = rc;
-            return *this;
-         }
+      _properties.reset();
+      _lvl0Count.store(0, std::memory_order_relaxed);
+      _rdpCount.store(0, std::memory_order_relaxed);
+      routeMap.fill(INVALID_PAGE_ID);
+      _fsm.close();
+      _indexes.fini();
+      return;
+   }
+} // namespace vessel
 
-      public:
-         OSS_INLINE INT32 rc()const
-         {
-            return _rc;
-         }
-         OSS_INLINE BOOLEAN isOk()const
-         {
-            return SDB_OK == _rc;
-         }
-         OSS_INLINE BOOLEAN isNotOk()const
-         {
-            return SDB_OK != _rc;
-         }
-         OSS_INLINE void reset()
-         {
-            _rc = SDB_OK;
-         }
-
-      private:
-         INT32 _rc = SDB_OK;
-   };//class result
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_FUNC_RESULT_H_
+} // namespace engine

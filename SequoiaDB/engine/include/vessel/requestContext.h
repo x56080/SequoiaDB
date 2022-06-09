@@ -66,7 +66,7 @@ namespace vessel
    class instanceEnv;
    class outerResource;
    class atomicOperationList;
-   class runtimeMbContext;
+   struct collectionProperties;
 
    class requestContext : public SDBObject
    {
@@ -131,22 +131,12 @@ namespace vessel
             return _mbID; 
          }
 
-         /// do not release rmc outside until detaching.
-         void attachMbContext(runtimeMbContext *rmc);
-
-         void detachMbContext();
-
-         OSS_INLINE BOOLEAN isMbContextAttached()const
-         {
-            return nullptr != _rmc;
-         }
-         const runtimeMbContext *getMbContext()const
-         {
-            return _rmc;
-         }
-
+         void setClProperties(const collectionProperties *properties);
+         void resetClProperties() {_clProperties = nullptr;}
+         OSS_INLINE const collectionProperties *getClProperties()const {return _clProperties;}
+         OSS_INLINE BOOLEAN isClPropertiesSet()const {return nullptr != _clProperties;}
+         /// properties must be set
          UINT32 getLogicalClId()const;
-
       public:
          /// no timeout. no recursive locking.
          INT32 lockLpid(SPACE_TYPE type,
@@ -246,7 +236,7 @@ namespace vessel
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
          ossRWMutex *_mbMutex = nullptr;
          OSS_LATCH_MODE _mbMode = SHARED;
-         runtimeMbContext *_rmc = nullptr;
+         const collectionProperties *_clProperties = nullptr;
 
          LPID_LATCH_CONTEXT _lpidLatchContext;
          RID_LATCH_CONTEXT _ridLatchContext;

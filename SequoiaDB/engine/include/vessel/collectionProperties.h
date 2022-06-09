@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = runtimeMbContext.cpp
+   Source File Name = collectionProperties.h
 
    Descriptive Name =
 
@@ -33,33 +33,56 @@
 
 ******************************************************************************/
 
-#include "vessel/runtimeMbContext.h"
-#include "pdTrace.hpp"
+#ifndef VESSEL_COLLECTION_PROPERTIES_H_
+#define VESSEL_COLLECTION_PROPERTIES_H_
+
+#include "vessel/objectIdentifier.h"
+#include "vessel/objectBaseDef.h"
+#include "utilCompression.hpp"
+#include "dmsStripingId.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void runtimeMbContext::init(const clMetaBlock &cmb,
-                               const collectionSpaceId &csIdentifer)
+   struct collectionProperties : public SDBObject
    {
-      SDB_ASSERT(cmb.isValid(), "can not be invalid");
-      SDB_ASSERT(csIdentifer.isValid(), "can not be invalid");
-      _gcid.reset(csIdentifer,
-                  collectionId(cmb.logicalCLID, cmb.innerID, cmb.mbID));
-      _name.reset(cmb.name);
-      SDB_ASSERT(cmb.minFreePercent <= 100, "out of range");
-      _minFreePercent = cmb.minFreePercent;
-      _compressionType = (UTIL_COMPRESSOR_TYPE)(cmb.compressionType);
-   }
+      OSS_INLINE void reset()
+      {
+         csid.reset();
+         clid.reset();
+         name.clear();
+         type = CL_TYPE_INVALID;
+         compressor = UTIL_COMPRESSOR_INVALID;
+         _minFreePct = 0;
+         stripingRange.reset();
+         return;
+      }
 
-   void runtimeMbContext::fini()
-   {
-      _gcid.reset();
-      _name.reset();
-      _minFreePercent = 0.0f;
-      _compressionType = UTIL_COMPRESSOR_INVALID;
-   }
+      OSS_INLINE FLOAT32 getMinFreePct()const
+      {
+         return static_cast<FLOAT32>(_minFreePct) / 100;
+      }
+
+      OSS_INLINE globalCollectionId getGlobalId()const
+      {
+         globalCollectionId id;
+         id.reset(csid, clid);
+         return id;
+      }
+
+      collectionSpaceId csid; ///TODO: move to cs properties
+      collectionId clid;
+      std::string name;
+      CL_TYPE type = CL_TYPE_INVALID;
+      UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
+      UINT8 _minFreePct = 0;
+      dmsStripingRange stripingRange;
+   };//struct collectionProperties
+
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_COLLECTION_PROPERTIES_H_

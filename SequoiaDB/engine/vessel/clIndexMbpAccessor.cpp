@@ -38,7 +38,6 @@
 #include "vessel/requestContext.h"
 #include "vessel/indexDef.h"
 #include "vessel/strictBuffer.h"
-#include "vessel/runtimeMbContext.h"
 
 namespace engine
 {
@@ -88,7 +87,7 @@ namespace vessel
       clIndexMetaBlock *wBlockPtr = nullptr;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        0 > blockPos))
       {
          rc = SDB_INVALIDARG;
@@ -142,7 +141,7 @@ namespace vessel
       }
 
       wBlockPtr->version = CL_INDEX_META_BLOCK_VERSION;
-      wBlockPtr->clLogicalId = context->getMbContext()->getGlobalId().getCLLid();
+      wBlockPtr->clLogicalId = context->getLogicalClId();
       wBlockPtr->maxIndexLid = 0;
       for (UINT32 i = 0; i < MAX_INDEX_COUNT_PER_CL; ++i)
       {
@@ -167,7 +166,7 @@ namespace vessel
       clIndexMetaBlock *wBlockPtr = nullptr;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        0 > blockPos))
       {
          rc = SDB_INVALIDARG;
@@ -215,11 +214,11 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(rBlockPtr->clLogicalId !=
-                            context->getMbContext()->getGlobalId().getCLLid()))
+                            context->getLogicalClId()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "cl logical id[%d] does not match the cl logical id[%d] on block, rc:%d",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 rBlockPtr->clLogicalId, rc);
          goto error;
       }
@@ -266,7 +265,7 @@ namespace vessel
 
       block.reset();
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        0 > blockPos))
       {
          rc = SDB_INVALIDARG;
@@ -314,11 +313,11 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(rBlockPtr->clLogicalId !=
-                            context->getMbContext()->getGlobalId().getCLLid()))
+                            context->getLogicalClId()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "cl logical id[%d] does not match the cl logical id[%d] on block, rc:%d",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 rBlockPtr->clLogicalId, rc);
          goto error;
       }
@@ -344,7 +343,7 @@ namespace vessel
       clIndexMetaBlock *wBlockPtr = nullptr;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        0 > blockPos ||
                        !isValidIndexSlot(slot) ||
                        INVALID_PAGE_ID == lpid))
@@ -399,11 +398,11 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(rBlockPtr->clLogicalId !=
-                            context->getMbContext()->getGlobalId().getCLLid()))
+                            context->getLogicalClId()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "cl logical id[%d] does not match the cl logical id[%d] on block, rc:%d",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 rBlockPtr->clLogicalId, rc);
          goto error;
       }
@@ -453,7 +452,7 @@ namespace vessel
       clIndexMetaBlock *wBlockPtr = nullptr;
 
       if (OSS_UNLIKELY(nullptr == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        0 > blockPos ||
                        !isValidIndexSlot(slot)))
       {
@@ -508,11 +507,11 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(rBlockPtr->clLogicalId !=
-                            context->getMbContext()->getGlobalId().getCLLid()))
+                            context->getLogicalClId()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "cl logical id[%d] does not match the cl logical id[%d] on block, rc:%d",
-                context->getMbContext()->getGlobalId().getCLLid(),
+                context->getLogicalClId(),
                 rBlockPtr->clLogicalId, rc);
          goto error;
       }

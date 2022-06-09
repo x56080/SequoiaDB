@@ -38,7 +38,7 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/atomicOperationList.h"
 #include "vessel/objectLatchHelper.hpp"
-#include "vessel/runtimeMbContext.h"
+#include "vessel/collectionProperties.h"
 
 namespace engine
 {
@@ -62,11 +62,6 @@ namespace vessel
       SDB_ASSERT(nullptr == _oplist, "detaching missed");
 
       _oplist = nullptr;
-
-      if (isMbContextAttached())
-      {
-         detachMbContext();
-      }
 
       if (!_lpidLatchContext.isEmpty())
       {
@@ -281,6 +276,8 @@ namespace vessel
    {
       if (isMbLocked())
       {
+         resetClProperties();
+         
          if (SHARED == _mbMode)
          {
             _mbMutex->release_r();
@@ -297,23 +294,19 @@ namespace vessel
       return;
    }
 
-   void requestContext::attachMbContext(runtimeMbContext *rmc)
+   void requestContext::setClProperties(const collectionProperties *properties)
    {
-      SDB_ASSERT(nullptr != rmc && rmc->isValid(), "can not be invalid");
-      SDB_ASSERT(isMbLocked(), "lock mb first");
-      SDB_ASSERT(rmc->getGlobalId().getMbId() == _mbID, "must be same mb");
-      SDB_ASSERT(nullptr == _rmc, "do not reattach");
-      _rmc = rmc;
-   }
-
-   void requestContext::detachMbContext()
-   {
-      _rmc = nullptr;
+      SDB_ASSERT(nullptr != properties, "can not be invalid");
+      SDB_ASSERT(isMbLocked(), "must be locked");
+      SDB_ASSERT(properties->clid.getMbId() == _mbID, "must be same");
+      _clProperties = properties;
+      return;
    }
 
    UINT32 requestContext::getLogicalClId()const
    {
-      return isMbContextAttached() ? _rmc->getGlobalId().getCLLid() : DMS_INVALID_LOGICCLID;
+      return nullptr == _clProperties ?
+             DMS_INVALID_LOGICCLID : _clProperties->clid.getLid();
    }
 
    INT32 requestContext::lockLpid(SPACE_TYPE type,
@@ -573,7 +566,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isMbContextAttached()))
+      else if (OSS_UNLIKELY(!isMbLocked()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -668,7 +661,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isMbContextAttached()))
+      else if (OSS_UNLIKELY(!isMbLocked()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -705,7 +698,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isMbContextAttached()))
+      else if (OSS_UNLIKELY(!isMbLocked()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;

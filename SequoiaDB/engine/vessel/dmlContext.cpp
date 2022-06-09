@@ -48,7 +48,7 @@ namespace vessel
    dmlContext::~dmlContext()
    {
       SDB_ASSERT(_uniqueKeyContext.empty(), "must be empty");
-      SDB_ASSERT(!isMbContextAttached(), "must be detached");
+      SDB_ASSERT(!isClPropertiesSet(), "must be detached");
    }
 
    void dmlContext::_onClose()
@@ -60,7 +60,7 @@ namespace vessel
    INT32 dmlContext::lockUniqueIndexKeys(const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      if (!requestContext::isMbContextAttached())
+      if (!requestContext::isClPropertiesSet())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;

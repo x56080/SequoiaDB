@@ -41,7 +41,7 @@
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "vessel/lsm/lsmScanEntryParser.h"
-#include "vessel/runtimeMbContext.h"
+#include "vessel/collectionProperties.h"
 #include "vessel/lsm/lsmIndexKeyPacker.h"
 
 namespace engine
@@ -106,7 +106,7 @@ namespace vessel
       _close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        NULL == obj ||
                        !obj->isValid() ||
                        INDEX_TYPE_LSM != obj->getDescription().getType()))
@@ -118,7 +118,7 @@ namespace vessel
       _context = context;
       _obj = obj;
 
-      gcid = context->getMbContext()->getGlobalId();
+      gcid = context->getClProperties()->getGlobalId();
 
       indexId = globalIndexID(gcid.getCSLid(),
                               gcid.getCLLid(),

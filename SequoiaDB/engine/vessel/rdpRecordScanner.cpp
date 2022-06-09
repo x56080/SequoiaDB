@@ -56,7 +56,7 @@ namespace vessel
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        INVALID_PAGE_ID == lpid ||
                        INVALID_RECORD_SLOT_POS  == begin))
       {
@@ -99,7 +99,7 @@ namespace vessel
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
+                       !context->isClPropertiesSet() ||
                        !rid.isValid()))
       {
          rc = SDB_INVALIDARG;
