@@ -740,13 +740,13 @@ sdbrestoreFiles = [
 #      "test/smwrappertest.cpp"
 #      ]
 #LatchTestFiles = [
-#      "test/ossLatchTest.cpp"
+#      "test/oss/ossLatchTest.cpp"
 #      ]
 #ossIOTestFiles = [
-#      "test/ossIOTest.cpp"
+#      "test/oss/ossIOTest.cpp"
 #      ]
 #ossIOTestFiles2 = [
-#      "test/ossIOTest2.cpp"
+#      "test/oss/ossIOTest2.cpp"
 #      ]
 #socketTestFiles = [
 #      "test/socketTest.cpp"
@@ -793,6 +793,9 @@ clientTestFiles = [
 clsTestFiles = [
       "test/cls/clsTest.cpp",
       "test/cls/clsCataAgentTest.cpp"
+      ]
+ossTestFiles = [
+      "test/oss/ossHashFloatTest.cpp"
       ]
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"
@@ -929,6 +932,7 @@ env.StaticLibrary('omsvc', omsvcFiles)
 #nettest = env.Object ( 'nettest', gtestMainFile )
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
+osstest = env.Object('osstest', gtestMainFile)
 ixmgentest = env.Object('ixmgentest', gtestMainFile)
 mthtest = env.Object('mthtest', gtestMainFile)
 bsonbuildertest = env.Object('bsonbuildertest', gtestMainFile)
@@ -1032,6 +1036,9 @@ if hasTestcase:
    clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   ossTest = env.Program("ossTest", [ ossTestFiles, osstest],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    ixmgenTest = env.Program("ixmgenTest", [ ixmgenTestFiles, ixmgentest ],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1102,6 +1109,7 @@ if hasTestcase:
 #   env.Install( '#/tests', npipeServerTest )
 #   env.Install( '#/tests', npipeClientTest )
    env.Install( '#/tests', clsTest )
+   env.Install( '#/tests', ossTest )
    env.Install( '#/tests', ixmgenTest )
    env.Install( '#/tests', idxHashTest )
    env.Install( '#/tests', mthUpdateTest )

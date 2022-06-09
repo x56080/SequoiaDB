@@ -92,6 +92,9 @@
    typedef long long            SINT64;
    typedef long long            INT64 ;
 
+//x86(Instruction Set) when convert an overflow double to unsigned long long ,
+//ull will give an "indefinite integer value" with (0x8000000000000000)
+#define OSS_INDEF_VAL_64 (0x8000000000000000uLL)
 #define OSS_UINT64_MAX 0xFFFFFFFFFFFFFFFFuLL
 #define OSS_SINT64_MAX 0x7FFFFFFFFFFFFFFFLL
 #define OSS_SINT64_MIN (-9223372036854775807LL-1)
@@ -99,6 +102,7 @@
 #define OSS_SINT64_MIN_D (-9223372036854775808.0)
 #define OSS_SINT64_JS_MAX  (9007199254740991LL)
 #define OSS_SINT64_JS_MIN (-9007199254740991LL)
+#define OSS_SINT64_2_32   (4294967296LL)
 #define OSS_SINT32_MAX    (2147483647)
 #define OSS_SINT32_MIN    ((INT32)0-2147483648)
 #define OSS_SINT32_MAX_LL (2147483647LL)
