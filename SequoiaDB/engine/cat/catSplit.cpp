@@ -194,8 +194,12 @@ namespace engine
             PD_LOG( PDWARNING, "Exist task[%s] conflict with current "
                     "task[%s]", pTmpTask->toBson().toString().c_str(),
                     pTask->toBson().toString().c_str() ) ;
+
+            clsReleaseTask( pTmpTask ) ;
             break ;
          }
+
+         clsReleaseTask( pTmpTask ) ;
       }
 
    done:
