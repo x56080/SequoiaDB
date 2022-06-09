@@ -1,5 +1,5 @@
 # @decription: insert regex data
-# @testlink:   seqDB-12456
+# @testlink:   seqDB-12456/seqDB-26599
 # @interface:  insert(record)
 #              update(rule, kwargs)
 #              delete(kwargs)
@@ -32,6 +32,8 @@ class TestRegex12456(testlib.SdbTestBase):
    def test_regex_12456(self):
       # insert int data
       data1 = Regex('^a', 'i')
+      r1 = Regex('^b', 'i')
+      self.assertFalse(data1 == r1)
       data2 = Regex('^b', 4)
       data3 = Regex.from_native(re.compile(b'.c', 0))
       data4 = '{"$regex": "^d", "$options": "x"}'
