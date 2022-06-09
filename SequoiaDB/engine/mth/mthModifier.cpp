@@ -281,14 +281,23 @@ namespace engine
       INT32 dollarNum = 0 ;
       PD_TRACE_ENTRY ( SDB__MTHMDF__ADDMDF );
 
-      if ( RENAME == type && ( ele.type() != String ||
-           ossStrchr ( ele.valuestr(), '.' ) != NULL ||
-           ossStrncmp ( ele.valuestr(), "$", 1 ) == 0 ) )
+      if ( RENAME == type )
       {
-         PD_LOG_MSG ( PDERROR, "Rename field must be string,and can't start "
-                      "with '$', and can't include '.', %s",
-                      ele.toString().c_str() ) ;
-         goto error ;
+         if ( ele.type() != String || ossStrchr ( ele.valuestr(), '.' ) != NULL ||
+              ossStrncmp ( ele.valuestr(), "$", 1 ) == 0 )
+         {
+            PD_LOG_MSG ( PDERROR, "Rename field must be string,and can't start "
+                         "with '$', and can't include '.', %s",
+                         ele.toString().c_str() ) ;
+            goto error ;
+         }
+
+         if ( ossStrcmp ( ele.valuestr(), ele.fieldName() ) == 0 )
+         {
+            PD_LOG_MSG ( PDERROR, "Can not rename a field to its original name"
+                         ", %s", ele.toString().c_str() ) ;
+            goto error ;
+         }
       }
       else if ( ( PUSH_ALL == type || PULL_ALL == type ||
                   PULL_ALL_BY == type ) &&
