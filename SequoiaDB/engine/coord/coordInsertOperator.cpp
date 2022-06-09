@@ -36,6 +36,7 @@
 *******************************************************************************/
 
 #include "coordInsertOperator.hpp"
+#include "coordKeyKicker.hpp"
 #include "coordUtil.hpp"
 #include "msgMessage.hpp"
 #include "msgMessageFormat.hpp"
@@ -45,8 +46,12 @@
 #include "coordSequenceAgent.hpp"
 #include "ossMemPool.hpp"
 #include "pdSecure.hpp"
+#include "rtnHintModifier.hpp"
 
 using namespace bson ;
+
+#define GET_INSERT_HINT_MARK_PTR( hintPtr ) \
+   ( ( CHAR *)hintPtr - MSG_HINT_MARK_LEN )
 
 namespace engine
 {
@@ -165,6 +170,8 @@ namespace engine
 
       const static string s_insertStr("Insert" ) ;
       setName( s_insertStr ) ;
+
+      _pHint = NULL ;
    }
 
    _coordInsertOperator::~_coordInsertOperator()
@@ -240,9 +247,10 @@ namespace engine
       const CHAR *pInsertor = NULL;
       INT32 count = 0 ;
       rtnQueryOptions options ;
+      BSONObj updator ;
 
       rc = msgExtractInsert( (const CHAR*)pMsg, &flag,
-                             &pCollectionName, &pInsertor, count ) ;
+                             &pCollectionName, &pInsertor, count, &_pHint ) ;
       if( rc )
       {
          PD_LOG( PDERROR, "Failed to parse insert request, rc: %d", rc ) ;
@@ -251,6 +259,14 @@ namespace engine
       }
 
       cb->setCurProcessName( pCollectionName ) ;
+
+      if ( !msgIsInsertFlagValid( flag ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Insert flag[%d] is invalid[%d]", flag, rc ) ;
+         goto error ;
+      }
+
       MONQUERY_SET_NAME( cb, pCollectionName ) ;
 
       if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
@@ -262,6 +278,33 @@ namespace engine
 
       options.setCLFullName( pCollectionName ) ;
       options.setInsertor( BSONObj( pInsertor ) ) ;
+
+      if ( _pHint )
+      {
+         try
+         {
+            BSONObj hint = BSONObj( _pHint ) ;
+            options.setHint( hint ) ;
+
+            // Only when the updating flag is given do we parse the hint and get
+            // the modifier.
+            if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) )
+            {
+               rc = _modifier.init( hint ) ;
+               PD_RC_CHECK( rc, PDERROR, "Init modifier from insertion hint[%s] "
+                            "failed[%d]", PD_SECURE_OBJ( BSONObj( _pHint ) ),
+                            rc ) ;
+               updator = _modifier.getUpdator() ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s, rc: %d",
+                         e.what(), rc ) ;
+            goto error ;
+         }
+      }
 
       // add list op info
       MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
@@ -280,12 +323,28 @@ namespace engine
       orgMsgLen = pMsg->messageLength ;
 
    retry:
-      rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+      rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
+                "check cat version failed, rc: %d", rc ) ;
 
       // It may be a main or normal collection.
       cataPtr = cataSel.getCataPtr() ;
+      _modifier.setModifyShardKey( FALSE ) ;
+      if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) &&
+           cataPtr->isSharded() )
+      {
+         coordKeyKicker keyKicker ;
+         BOOLEAN includeShardKey = FALSE ;
+         keyKicker.bind( _pResource, cataSel.getCataPtr() ) ;
+         rc = keyKicker.checkShardingKey( updator, includeShardKey, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check sharding key in updator failed[%d]",
+                      rc ) ;
+         if ( includeShardKey )
+         {
+            _modifier.setModifyShardKey( TRUE ) ;
+         }
+      }
+
       if ( cataPtr->hasAutoIncrement() )
       {
          pAutoIncSet = &cataPtr->getAutoIncSet() ;
@@ -306,6 +365,8 @@ namespace engine
             inMsg.data()->clear() ;
 
             hasExplicitKey = FALSE ;
+            // TODO: YSD The argument logic here is too obscure. Try to make
+            //  it simple.
             rc = _addAutoIncToMsg( *pAutoIncSet, pInsertMsg, pInsertor,
                                    count, orgMsgLen, cb,
                                    &pNewMsg, newMsgSize, newMsgLen,
@@ -361,13 +422,28 @@ namespace engine
       /// AUDIT
       if ( pCollectionName )
       {
-         PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
-                      pCollectionName, rc, "InsertedNum:%llu, "
-                      "DuplicatedNum:%llu, ObjNum:%u, Insertor:%s, "
-                      "Flag:0x%08x(%u)",
-                      _inResult.insertedNum(), _inResult.duplicatedNum(),
-                      count, BSONObj(pInsertor).toPoolString().c_str(),
-                      oldFlag, oldFlag ) ;
+         if ( _pHint )
+         {
+
+            PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
+                         pCollectionName, rc, "InsertedNum:%llu, "
+                         "DuplicatedNum:%llu, ObjNum:%u, Insertor:%s, Hint:%s, "
+                         "Flag:0x%08x(%u)",
+                         _inResult.insertedNum(), _inResult.duplicatedNum(),
+                         count, BSONObj(pInsertor).toPoolString().c_str(),
+                         BSONObj(_pHint).toPoolString().c_str(),
+                         oldFlag, oldFlag ) ;
+         }
+         else
+         {
+            PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
+                         pCollectionName, rc, "InsertedNum:%llu, "
+                         "DuplicatedNum:%llu, ObjNum:%u, Insertor:%s, "
+                         "Flag:0x%08x(%u)",
+                         _inResult.insertedNum(), _inResult.duplicatedNum(),
+                         count, BSONObj(pInsertor).toPoolString().c_str(),
+                         oldFlag, oldFlag ) ;
+         }
       }
 
       if ( buf )
@@ -412,6 +488,7 @@ namespace engine
                                              coordProcessResult &result )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN msgRebuild = FALSE ;
       MsgOpInsert *pInsertMsg = ( MsgOpInsert* )inMsg.msg() ;
       // From version to collection name in MsgOpInsert message, the header
       // excluded.
@@ -435,11 +512,12 @@ namespace engine
          INT32 flag = 0 ;
          const CHAR *pCollectionName = NULL ;
          const CHAR *pInsertor = NULL ;
+         const CHAR *pHint = NULL ;
          INT32 count = 0 ;
 
          rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag, &pCollectionName,
-                                &pInsertor, count ) ;
-         PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
+                                &pInsertor, count, &pHint ) ;
+         PD_RC_CHECK( rc, PDERROR, "Extract insert msg failed, rc: %d",
                       rc ) ;
 
          rc = shardDataByGroup( cataSel.getCataPtr(), count, pInsertor,
@@ -447,37 +525,54 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",
                       rc ) ;
 
-         // only one group, send by normal
-         if ( 1 == inMsg._datas.size() )
+         // When the modifier is changed, need to rebuild the message.
+         // Otherwise, if only one group, send by normal.
+         if ( 1 == inMsg._datas.size() && !_modifier.needRebuild() )
          {
             UINT32 groupID = inMsg._datas.begin()->first ;
             options._groupLst[ groupID ] = groupID ;
             inMsg._datas.clear() ;
+            goto done ;
          }
-         else
-         {
-            GROUP_2_IOVEC::iterator it = inMsg._datas.begin() ;
-            while( it != inMsg._datas.end() )
-            {
-               options._groupLst[ it->first ] = it->first ;
-               ++it ;
-            }
-         }
+
+         msgRebuild = TRUE ;
       }
       // reshard
       else
       {
          rc = reshardData( cataSel.getCataPtr(), fixed, inMsg._datas ) ;
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
+         msgRebuild = TRUE ;
+      }
 
-         // build groups
+      if ( msgRebuild )
+      {
+         // Append hint to the end of messages for each group.
+         try
          {
+            netIOVec extraInfo ;
+            rc = _prepareExtraInfoForMsg( extraInfo ) ;
+            PD_RC_CHECK( rc, PDERROR, "Prepare extra info for insertion "
+                         "failed[%d]", rc ) ;
+
             GROUP_2_IOVEC::iterator it = inMsg._datas.begin() ;
             while( it != inMsg._datas.end() )
             {
+               if ( extraInfo.size() > 0 )
+               {
+                  it->second.insert( it->second.end(), extraInfo.begin(),
+                                     extraInfo.end() ) ;
+               }
                options._groupLst[ it->first ] = it->first ;
                ++it ;
             }
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s. rc: %d",
+                         e.what(), rc ) ;
+            goto error ;
          }
       }
 
@@ -523,6 +618,7 @@ namespace engine
       {
          BOOLEAN insertedProcessed = FALSE ;
          BOOLEAN duplicateProcessed = FALSE ;
+         BOOLEAN modifiedProcessed = FALSE ;
 
          try
          {
@@ -544,8 +640,16 @@ namespace engine
                   duplicateProcessed = TRUE ;
                   _inResult.incDuplicatedNum( (UINT64)e.numberLong() ) ;
                }
+               else if ( !modifiedProcessed &&
+                         0 == ossStrcmp( e.fieldName(),
+                                         FIELD_NAME_MODIFIED_NUM ) )
+               {
+                  modifiedProcessed = TRUE ;
+                  _inResult.incModifiedNum( (UINT64)e.numberLong() ) ;
+               }
 
-               if ( insertedProcessed && duplicateProcessed )
+               if ( insertedProcessed && duplicateProcessed
+                    && modifiedProcessed )
                {
                   break ;
                }
@@ -564,7 +668,51 @@ namespace engine
          ossUnpack32From64( pReply->contextID, hi, lo ) ;
          _inResult.incInsertedNum( hi ) ;
          _inResult.incDuplicatedNum( lo ) ;
+         // Very old version, replace/update on duplication is not supported.
+         // So no need for the modifiedNum.
       }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__PREPAREEXTRAINFOFORMSG, "_coordInsertOperator::_prepareExtraInfoForMsg" )
+   INT32 _coordInsertOperator::_prepareExtraInfoForMsg( netIOVec &iov )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_INSERTOPR__PREPAREEXTRAINFOFORMSG ) ;
+      if ( !_pHint )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         BSONObj hint ;
+         if ( _modifier.needRebuild() )
+         {
+            rc = _modifier.hint( hint ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get hint for insertion from hint "
+                         "modifier failed[%d]", rc ) ;
+         }
+         else
+         {
+            hint = BSONObj( _pHint ) ;
+         }
+
+         iov.push_back( netIOV( GET_INSERT_HINT_MARK_PTR( _pHint ),
+                                MSG_HINT_MARK_LEN ) ) ;
+         iov.push_back( netIOV( hint.objdata(), hint.objsize() ) ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_INSERTOPR__PREPAREEXTRAINFOFORMSG , rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR_SHARDANOBJ, "_coordInsertOperator::shardAnObj" )
@@ -689,7 +837,8 @@ namespace engine
       while ( it != datas.end() )
       {
          netIOVec &iovec = it->second ;
-         UINT32 size = iovec.size() ;
+         // Skip the hint and hint mark, if any. So need to minus 2.
+         UINT32 size = _pHint ? iovec.size() - 2 : iovec.size() ;
          // skip the first
          for ( UINT32 i = 1 ; i < size ; ++i )
          {
@@ -755,11 +904,12 @@ namespace engine
          INT32 flag = 0 ;
          const CHAR *pCollectionName = NULL ;
          const CHAR *pInsertor = NULL ;
+         const CHAR *pHint = NULL ;
          INT32 count = 0 ;
 
          rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
                                 &pCollectionName,
-                                &pInsertor, count ) ;
+                                &pInsertor, count, &pHint ) ;
          PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
                       rc ) ;
 
@@ -976,52 +1126,79 @@ namespace engine
       INT32 rc = SDB_OK ;
       static CHAR _fillData[ 8 ] = { 0 } ;
 
-      GroupSubCLMap::iterator iterGroup = groupSubCLMap.begin() ;
-      while ( iterGroup != groupSubCLMap.end() )
+      try
       {
-         UINT32 groupID = iterGroup->first ;
-         netIOVec &iovec = datas[ groupID ] ;
-         iovec.push_back( fixed ) ;
+         netIOVec extraInfo ;
+         GroupSubCLMap::iterator iterGroup = groupSubCLMap.begin() ;
 
-         SubCLObjsMap &subCLDataMap = iterGroup->second ;
-         SubCLObjsMap::iterator iterCL = subCLDataMap.begin() ;
-         while ( iterCL != iterGroup->second.end() )
+         if ( _pHint )
          {
-            netIOVec &subCLIOVec = iterCL->second ;
-            UINT32 dataLen = netCalcIOVecSize( subCLIOVec ) ;
-            UINT32 objNum = subCLIOVec.size() ;
-
-            // first for sub cl info
-            BSONObjBuilder subCLInfoBuild ;
-            subCLInfoBuild.append( FIELD_NAME_SUBOBJSNUM, (INT32)objNum ) ;
-            subCLInfoBuild.append( FIELD_NAME_SUBOBJSSIZE, (INT32)dataLen ) ;
-            subCLInfoBuild.append( FIELD_NAME_SUBCLNAME, iterCL->first ) ;
-            BSONObj subCLInfoObj = subCLInfoBuild.obj() ;
-            subClInfoLst.push_back( subCLInfoObj ) ;
-            netIOV ioCLInfo ;
-            ioCLInfo.iovBase = (const void*)subCLInfoObj.objdata() ;
-            ioCLInfo.iovLen = subCLInfoObj.objsize() ;
-            iovec.push_back( ioCLInfo ) ;
-
-            // need fill
-            UINT32 infoRoundSize = ossRoundUpToMultipleX( ioCLInfo.iovLen,
-                                                          4 ) ;
-            if ( infoRoundSize > ioCLInfo.iovLen )
-            {
-               iovec.push_back( netIOV( (const void*)_fillData,
-                                infoRoundSize - ioCLInfo.iovLen ) ) ;
-            }
-
-            for ( UINT32 i = 0 ; i < objNum ; ++i )
-            {
-               iovec.push_back( subCLIOVec[ i ] ) ;
-            }
-            ++iterCL ;
+            rc = _prepareExtraInfoForMsg( extraInfo ) ;
+            PD_RC_CHECK( rc, PDERROR, "Prepare extra info for insertion "
+                         "failed[%d]", rc ) ;
          }
-         ++iterGroup ;
+
+         while ( iterGroup != groupSubCLMap.end() )
+         {
+            UINT32 groupID = iterGroup->first ;
+            netIOVec &iovec = datas[ groupID ] ;
+            iovec.push_back( fixed ) ;
+
+            SubCLObjsMap &subCLDataMap = iterGroup->second ;
+            SubCLObjsMap::iterator iterCL = subCLDataMap.begin() ;
+            while ( iterCL != iterGroup->second.end() )
+            {
+               netIOVec &subCLIOVec = iterCL->second ;
+               UINT32 dataLen = netCalcIOVecSize( subCLIOVec ) ;
+               UINT32 objNum = subCLIOVec.size() ;
+
+               // first for sub cl info
+               BSONObjBuilder subCLInfoBuild ;
+               subCLInfoBuild.append( FIELD_NAME_SUBOBJSNUM, (INT32)objNum ) ;
+               subCLInfoBuild.append( FIELD_NAME_SUBOBJSSIZE, (INT32)dataLen ) ;
+               subCLInfoBuild.append( FIELD_NAME_SUBCLNAME, iterCL->first ) ;
+               BSONObj subCLInfoObj = subCLInfoBuild.obj() ;
+               subClInfoLst.push_back( subCLInfoObj ) ;
+               netIOV ioCLInfo ;
+               ioCLInfo.iovBase = (const void*)subCLInfoObj.objdata() ;
+               ioCLInfo.iovLen = subCLInfoObj.objsize() ;
+               iovec.push_back( ioCLInfo ) ;
+
+               // need fill
+               UINT32 infoRoundSize = ossRoundUpToMultipleX( ioCLInfo.iovLen,
+                                                             4 ) ;
+               if ( infoRoundSize > ioCLInfo.iovLen )
+               {
+                  iovec.push_back( netIOV( (const void*)_fillData,
+                                           infoRoundSize - ioCLInfo.iovLen ) ) ;
+               }
+
+               for ( UINT32 i = 0 ; i < objNum ; ++i )
+               {
+                  iovec.push_back( subCLIOVec[ i ] ) ;
+               }
+               ++iterCL ;
+            }
+
+            if ( extraInfo.size() > 0 )
+            {
+               iovec.insert( iovec.end(), extraInfo.begin(),
+                             extraInfo.end() ) ;
+            }
+            ++iterGroup ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s. rc: %d", e.what(), rc ) ;
+         goto error ;
       }
 
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__ADD_AUTOINC_TO_MSG, "_coordInsertOperator::_addAutoIncToMsg" )
@@ -1070,6 +1247,14 @@ namespace engine
 
          pCurPos += ossRoundUpToMultipleX( builder.len(), 4 ) ;
          pInsertor += ossRoundUpToMultipleX( objIn.objsize(), 4 ) ;
+      }
+
+      // Append the hint to the end of the message.
+      if ( _pHint )
+      {
+         ossMemcpy( pCurPos, GET_INSERT_HINT_MARK_PTR( _pHint ),
+                    *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ) ;
+         pCurPos += *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ;
       }
 
       newMsgLen = pCurPos - (*ppNewMsg) ;
@@ -1367,6 +1552,4 @@ namespace engine
 
       PD_TRACE_EXIT( COORD_INSERTOPR__REMOVE_LOCAL_SEQ_CACHE ) ;
    }
-
 }
-

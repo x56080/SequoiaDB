@@ -226,7 +226,7 @@ namespace engine
 
    private:
       INT32 _parseInsertOptions( const _sptArguments &arg, SINT32 &flags,
-                                 bson::BSONObj &detail ) ;
+                                 BSONObj &hint, bson::BSONObj &detail ) ;
    private:
       sdbCollection _cl ;
    } ;

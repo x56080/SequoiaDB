@@ -218,9 +218,9 @@ namespace engine
          BOOLEAN keepShardingKey = OSS_BIT_TEST( flag,
                                                  FLG_UPDATE_KEEP_SHARDINGKEY ) ;
 
-         rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+         rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                   "check cat version failed, rc: %d",rc );
+                   "check cat version failed, rc: %d",rc ) ;
 
          if ( cataSel.getCataPtr()->isSharded() ||
               cataSel.getCataPtr()->hasAutoIncrement() )

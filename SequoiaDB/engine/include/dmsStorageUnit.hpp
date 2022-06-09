@@ -51,6 +51,7 @@
 #include "dmsCachedPlanUnit.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
+#include "dmsOprHandler.hpp"
 
 using namespace bson ;
 
@@ -449,6 +450,7 @@ namespace engine
                                   _mthModifier &modifier,
                                   SINT64 maxUpdate = -1,
                                   dmsMBContext *context = NULL,
+                                  IDmsOprHandler *pHandler = NULL,
                                   utilUpdateResult *pResult = NULL ) ;
 
          INT32    deleteRecords ( const CHAR *pName,

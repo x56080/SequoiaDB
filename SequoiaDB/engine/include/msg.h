@@ -548,6 +548,10 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 #define FLG_INSERT_CONTONDUP    0x00000001
 #define FLG_INSERT_RETURNNUM    0x00000002
 #define FLG_INSERT_REPLACEONDUP 0x00000004
+#define FLG_INSERT_UPDATEONDUP  0x00000008
+
+// This flag indicates that a hint is sent in the insert message.
+#define FLG_INSERT_HASHINT      0x80000000
 // For Insert, 1 BSON object will be followed
 // Inserted Data
 struct _MsgOpInsert

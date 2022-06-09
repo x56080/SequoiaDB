@@ -48,6 +48,7 @@
 #include "pmdStartup.hpp"
 #include "dmsStorageDataFactory.hpp"
 #include "dmsTransContext.hpp"
+#include "dmsOprHandler.hpp"
 
 namespace engine
 {
@@ -1650,6 +1651,7 @@ namespace engine
                                           mthModifier &modifier,
                                           SINT64 maxUpdate,
                                           dmsMBContext *context,
+                                          IDmsOprHandler *opHandler,
                                           utilUpdateResult *pResult )
    {
       INT32 rc                     = SDB_OK ;
@@ -1675,7 +1677,8 @@ namespace engine
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
          dmsTBScanner tbScanner( _pDataSu, context, matchRuntime,
-                                 DMS_ACCESS_TYPE_UPDATE, maxUpdate ) ;
+                                 DMS_ACCESS_TYPE_UPDATE, maxUpdate,
+                                 0, 0, opHandler ) ;
          while ( SDB_OK == ( rc = tbScanner.advance( recordID, generator,
                                                      cb ) ) )
          {

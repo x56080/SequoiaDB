@@ -454,6 +454,7 @@
 #define FIELD_NAME_RETURNNEW                 "ReturnNew"
 #define FIELD_NAME_KEEP_SHARDING_KEY         "KeepShardingKey"
 #define FIELD_NAME_JUSTONE                   "JustOne"
+#define FIELD_NAME_UPDATE_SHARDING_KEY       "UpdateShardingKey"
 
 #define FIELD_NAME_INSERT                    "Insert"
 #define FIELD_NAME_UPDATE                    "Update"
@@ -575,6 +576,7 @@
 #define FIELD_NAME_SEQUENCE_ID               "ID"
 #define FIELD_NAME_CONTONDUP                 "ContOnDup"
 #define FIELD_NAME_REPLACEONDUP              "ReplaceOnDup"
+#define FIELD_NAME_UPDATEONDUP               "UpdateOnDup"
 #define FIELD_NAME_RETURN_OID                "ReturnOID"
 #define FIELD_NAME_AUDIT_MASK                "AuditMask"
 #define FIELD_NAME_AUDIT_CONFIG_MASK         "AuditConfigMask"
@@ -939,6 +941,8 @@
 #define CATA_NODE_MAX_NUM                    CLS_REPLSET_MAX_NODE_SIZE
 
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
+
+#define MSG_HINT_MARK_LEN                    4
 
 #define SDB_ROLE_DATA_STR                    "data"
 #define SDB_ROLE_COORD_STR                   "coord"

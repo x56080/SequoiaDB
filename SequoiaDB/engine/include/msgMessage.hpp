@@ -144,6 +144,25 @@ OSS_INLINE BOOLEAN isTransWriteMsg( INT32 opCode, const MsgHeader *pMsg )
    return ret ;
 }
 
+OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )
+{
+   BOOLEAN result = TRUE ;
+
+   // Only one action for index duplication can be specified.
+   INT32 dupFlag = flags & ( FLG_INSERT_CONTONDUP |
+                             FLG_INSERT_REPLACEONDUP |
+                             FLG_INSERT_UPDATEONDUP ) ;
+   if ( ( 0 != dupFlag ) &&
+        ( FLG_INSERT_CONTONDUP != dupFlag ) &&
+        ( FLG_INSERT_REPLACEONDUP != dupFlag ) &&
+        ( FLG_INSERT_UPDATEONDUP != dupFlag ) )
+   {
+      result = FALSE ;
+   }
+
+   return result ;
+}
+
 /*
  * Extract Commit Message from pBuffer
  * in pBuffer
@@ -217,7 +236,8 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
                          const CHAR **ppCollectionName,
                          const CHAR **ppInsertor,
-                         INT32 &count ) ;
+                         INT32 &count,
+                         const CHAR **ppHint = NULL ) ;
 
 INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, SINT32 flag, UINT64 reqID,

@@ -36,6 +36,7 @@
 
 #include "pmdAsyncSession.hpp"
 #include "rtn.hpp"
+#include "rtnInsertModifier.hpp"
 
 using namespace bson ;
 
@@ -50,7 +51,7 @@ namespace engine
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class _rtnContextBase ;
-   class _clsOPContext ;
+   class _clsOprHandler ;
 
    struct _clsIdentifyInfo
    {
@@ -85,7 +86,7 @@ namespace engine
 
    class _clsShdSession : public _pmdAsyncSession
    {
-      friend class _clsOPContext ;
+      friend class _clsOprHandler ;
 
       DECLARE_OBJ_MSG_MAP()
 
@@ -236,7 +237,8 @@ namespace engine
                                       INT32 &result ) ;
          INT32 _insertToMainCL( BSONObj &objs, INT32 objNum, INT32 flags,
                                 INT16 w, BOOLEAN onlyCheck,
-                                utilInsertResult &inResult ) ;
+                                utilInsertResult &inResult,
+                                const rtnInsertModifier *modifier = NULL ) ;
 
          INT32 _queryToMainCL( rtnQueryOptions &options,
                                pmdEDUCB *cb,
@@ -461,22 +463,6 @@ namespace engine
 
          BSONObjBuilder         _retBuilder ;
    } ;
-
-   class _clsOPContext : public _IOperationContext
-   {
-      public:
-         _clsOPContext( _clsShdSession *shdSession ) ;
-         virtual ~_clsOPContext() ;
-
-      public:
-         INT32 getShardingKey( const CHAR* clName, BSONObj &shardingKey ) ;
-
-      private:
-         _clsShdSession *_pShdSession ;
-   } ;
-
-   typedef _clsOPContext clsOPContext ;
-
 }
 
 #endif //CLS_SHARD_SESSION_HPP_

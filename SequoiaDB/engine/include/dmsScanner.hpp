@@ -54,6 +54,7 @@
 #include "mthMatchRuntime.hpp"
 #include "ossMemPool.hpp"
 #include "dmsTransLockCallback.hpp"
+#include "dmsOprHandler.hpp"
 
 using namespace bson ;
 
@@ -115,7 +116,8 @@ namespace engine
       public:
          _dmsScanner ( _dmsStorageDataCommon *su, _dmsMBContext *context,
                        mthMatchRuntime *matchRuntime,
-                       DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH ) ;
+                       DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
+                       IDmsOprHandler *opHandler = NULL ) ;
          virtual ~_dmsScanner () ;
 
          BOOLEAN  isReadOnly() const
@@ -157,6 +159,7 @@ namespace engine
          BOOLEAN                 _useRollbackSegment ;
 
          dmsRecordID             _advancedRecordID ;
+         IDmsOprHandler         *_opHandler ;
    } ;
    typedef _dmsScanner dmsScanner ;
 
@@ -175,7 +178,8 @@ namespace engine
                               DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                               INT64 maxRecords = -1,
                               INT64 skipNum = 0,
-                              INT32 flag = 0 ) ;
+                              INT32 flag = 0,
+                              IDmsOprHandler *handler = NULL ) ;
          virtual ~_dmsExtScannerBase () ;
 
          virtual dmsTransLockCallback*       callbackHandler() ;
@@ -243,7 +247,8 @@ namespace engine
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                          INT64 maxRecords = -1,
                          INT64 skipNum = 0,
-                         INT32 flag = 0 ) ;
+                         INT32 flag = 0,
+                         IDmsOprHandler *handler = NULL ) ;
          virtual ~_dmsExtScanner() ;
 
       private:
@@ -270,7 +275,8 @@ namespace engine
                                 DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                                 INT64 maxRecords = -1,
                                 INT64 skipNum = 0,
-                                INT32 flag = 0 ) ;
+                                INT32 flag = 0,
+                                IDmsOprHandler *handler = NULL ) ;
          virtual ~_dmsCappedExtScanner() ;
          INT64 getMaxRecords() const { return _maxRecords ; }
          INT64 getSkipNum () const { return _skipNum ; }
@@ -312,7 +318,8 @@ namespace engine
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                          INT64 maxRecords = -1,
                          INT64 skipNum = 0,
-                         INT32 flag = 0  ) ;
+                         INT32 flag = 0,
+                         IDmsOprHandler *opHandler = NULL ) ;
          ~_dmsTBScanner () ;
 
          virtual dmsTransLockCallback*       callbackHandler() ;
@@ -369,7 +376,8 @@ namespace engine
                             DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                             INT64 maxRecords = -1,
                             INT64 skipNum = 0,
-                            INT32 flag = 0 ) ;
+                            INT32 flag = 0,
+                            IDmsOprHandler *opHandler = NULL ) ;
          virtual ~_dmsIXSecScanner () ;
 
          virtual dmsTransLockCallback*       callbackHandler() ;
@@ -469,7 +477,8 @@ namespace engine
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
                          INT64 maxRecords = -1,
                          INT64 skipNum = 0,
-                         INT32 flag = 0 ) ;
+                         INT32 flag = 0,
+                         IDmsOprHandler *opHandler = NULL ) ;
          ~_dmsIXScanner () ;
 
          virtual dmsTransLockCallback*       callbackHandler() ;
@@ -547,7 +556,8 @@ namespace engine
                                     DMS_ACCESS_TYPE accessType,
                                     INT64 maxRecords,
                                     INT64 skipNum,
-                                    INT32 flag ) ;
+                                    INT32 flag,
+                                    IDmsOprHandler *opHandler = NULL ) ;
    } ;
    typedef _dmsExtScannerFactory dmsExtScannerFactory ;
 

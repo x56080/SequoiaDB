@@ -71,7 +71,7 @@ namespace engine
 
       PD_PACK_UINT( hashCode ) ;
       PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHOBJ ) ;
-      return hashCode ;      
+      return hashCode ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHELE, "_utilBSONHasher::hashElement" )
@@ -204,7 +204,7 @@ namespace engine
       return hashCode ;
    }
 
-   UINT32 _utilBSONHasher::hashDecimal( UINT32 hashCode, 
+   UINT32 _utilBSONHasher::hashDecimal( UINT32 hashCode,
                                         const bson::bsonDecimal &decimal )
    {
       bsonDecimal maxFloat ;
@@ -214,7 +214,7 @@ namespace engine
 
       minFloat.fromDouble( -numeric_limits<double>::max() ) ;
 
-      if ( decimal.compare( maxFloat ) > 0 || 
+      if ( decimal.compare( maxFloat ) > 0 ||
            decimal.compare( minFloat ) < 0 )
       {
          INT16 sign          = 0 ;

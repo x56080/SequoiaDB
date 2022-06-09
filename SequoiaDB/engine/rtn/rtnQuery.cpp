@@ -191,114 +191,6 @@ namespace engine
       goto done ;
    }
 
-   static INT32 _rtnParseQueryModify( const BSONObj &hint,
-                                      rtnQueryModifier** modifier )
-   {
-      BSONObjIterator iter( hint );
-      BOOLEAN isUpdate = FALSE ;
-      BOOLEAN isRemove = FALSE ;
-      BSONObj updator ;
-      BOOLEAN returnNew = FALSE ;
-      rtnQueryModifier* queryModifier = NULL ;
-      INT32 rc = SDB_OK ;
-
-      SDB_ASSERT( NULL != modifier, "modifier can't be null" ) ;
-
-      while ( iter.more() )
-      {
-         BSONElement elem = iter.next() ;
-
-         if ( 0 == ossStrcmp( elem.fieldName(), FIELD_NAME_MODIFY ) )
-         {
-            // $Modify
-            BSONObj modify = elem.Obj() ;
-            const CHAR* op = NULL ;
-
-            rc = rtnGetStringElement( modify, FIELD_NAME_OP, &op ) ;
-            PD_RC_CHECK( rc, PDERROR,
-               "Query and modify has invalid field[%s] in hint: %s",
-               FIELD_NAME_OP, hint.toString().c_str() ) ;
-
-            if ( 0 == ossStrcmp( op, FIELD_OP_VALUE_UPDATE ) )
-            {
-               isUpdate = TRUE ;
-
-               rc = rtnGetBooleanElement( modify, FIELD_NAME_RETURNNEW, returnNew ) ;
-               if ( SDB_INVALIDARG == rc )
-               {
-                  PD_LOG( PDERROR,
-                     "Query and modify has invalid field[%s] in hint: %s",
-                     FIELD_NAME_RETURNNEW, hint.toString().c_str() ) ;
-                  goto error ;
-               }
-
-               rc = rtnGetObjElement( modify, FIELD_NAME_OP_UPDATE, updator ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                  "Query and modify has invalid field[%s] in hint: %s",
-                  FIELD_NAME_OP_UPDATE, hint.toString().c_str() ) ;
-            }
-            else if ( 0 == ossStrcmp( op, FIELD_OP_VALUE_REMOVE ) )
-            {
-               isRemove = TRUE ;
-
-               BOOLEAN remove = FALSE ;
-               rc = rtnGetBooleanElement( modify, FIELD_NAME_OP_REMOVE, remove ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                  "Query and modify has invalid field[%s] in hint: %s",
-                  FIELD_NAME_OP_REMOVE, hint.toString().c_str() ) ;
-
-               if ( TRUE != remove )
-               {
-                  PD_LOG( PDERROR,
-                     "Query and modify has invalid field[%s] in hint: %s",
-                     FIELD_NAME_OP_REMOVE, hint.toString().c_str() ) ;
-                  goto error ;
-               }
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Query and modify has invalid hint: %s",
-                 hint.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-      }
-
-      if ( !isUpdate && !isRemove )
-      {
-         PD_LOG( PDERROR, "Query and modify has no modify hint: %s",
-                 hint.toString().c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      queryModifier = SDB_OSS_NEW rtnQueryModifier( isUpdate, isRemove, returnNew ) ;
-      if ( NULL == queryModifier )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      if ( isUpdate )
-      {
-         rc = queryModifier->loadUpdator( updator ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                  "Query and modify has invalid updator: %s",
-                  updator.toString().c_str() ) ;
-      }
-
-      *modifier = queryModifier ;
-
-   done:
-      return rc ;
-   error:
-      if ( NULL != queryModifier )
-      {
-         SDB_OSS_DEL queryModifier ;
-      }
-      goto done ;
-   }
-
    static INT32 _rtnParseQueryMeta( const BSONObj &meta, const CHAR *&scanType,
                                     const CHAR *&indexName, INT32 &indexLID,
                                     INT32 &direction, BSONObj &blockObj )
@@ -732,7 +624,15 @@ namespace engine
 
       if ( options.testFlag( FLG_QUERY_MODIFY ) )
       {
-         rc = _rtnParseQueryModify( hintTmp, &queryModifier ) ;
+         queryModifier = SDB_OSS_NEW rtnQueryModifier ;
+         if ( !queryModifier )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for query modifier failed[%d]",
+                    rc) ;
+            goto error ;
+         }
+         rc = queryModifier->init( hintTmp ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to parse query and modify:%d", rc ) ;

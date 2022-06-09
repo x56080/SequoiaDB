@@ -66,6 +66,7 @@ namespace engine
 
       UINT64               insertedNum() const { return _insertedNum ; }
       UINT64               duplicatedNum() const { return _duplicatedNum ; }
+      UINT64               modifiedNum() const { return _modifiedNum ; }
 
       void                 incInsertedNum( UINT64 step = 1 )
       {
@@ -77,6 +78,11 @@ namespace engine
          _duplicatedNum += step ;
       }
 
+      void                 incModifiedNum( UINT64 step = 1 )
+      {
+         _modifiedNum += step ;
+      }
+
       void                 setReturnIDByObj( const BSONObj &obj ) ;
       BSONObj              getReturnIDObj() const ;
 
@@ -85,6 +91,9 @@ namespace engine
       UINT64               _duplicatedNum ;
       BOOLEAN              _enableReturnID ;
       BSONObj              _returnIDObj ;
+
+   protected:
+      UINT64               _modifiedNum ;    // replace or update on duplication
    } ;
 
    /*
@@ -104,22 +113,16 @@ namespace engine
 
    public:
       UINT64               updateNum() const { return _updatedNum ; }
-      UINT64               modifiedNum() const { return _modifiedNum ; }
 
       void                 incUpdatedNum( UINT64 step = 1 )
       {
          _updatedNum += step ;
-      }
-      void                 incModifiedNum( UINT64 step = 1 )
-      {
-         _modifiedNum += step ;
       }
 
       void                 setCurrentField( BSONElement &errEle ) ;
 
    private:
       UINT64               _updatedNum ;
-      UINT64               _modifiedNum ;
       BSONObj              _currentFieldObj ;
 
    } ;

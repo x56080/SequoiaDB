@@ -52,6 +52,7 @@ namespace engine
       enableMask( UTIL_RESULT_MASK_IDX ) ;
       _insertedNum = 0 ;
       _duplicatedNum = 0 ;
+      _modifiedNum = 0 ;
       _enableReturnID = FALSE ;
    }
 
@@ -67,6 +68,7 @@ namespace engine
 
       _insertedNum = 0 ;
       _duplicatedNum = 0 ;
+      _modifiedNum = 0 ;
    }
 
    void utilInsertResult::_resetInfo()
@@ -83,6 +85,7 @@ namespace engine
          /// stat info
          builder.append( FIELD_NAME_INSERT_NUM, (INT64)_insertedNum ) ;
          builder.append( FIELD_NAME_DUPLICATE_NUM, (INT64)_duplicatedNum ) ;
+         builder.append( FIELD_NAME_MODIFIED_NUM, (INT64)_modifiedNum ) ;
       }
       catch ( std::exception &e )
       {
@@ -94,7 +97,8 @@ namespace engine
    BOOLEAN utilInsertResult::_filterResultElement( const BSONElement &e ) const
    {
       if ( 0 == ossStrcmp( FIELD_NAME_INSERT_NUM, e.fieldName() ) ||
-           0 == ossStrcmp( FIELD_NAME_DUPLICATE_NUM, e.fieldName() ) )
+           0 == ossStrcmp( FIELD_NAME_DUPLICATE_NUM, e.fieldName() ) ||
+           0 == ossStrcmp( FIELD_NAME_MODIFIED_NUM, e.fieldName() ) )
       {
          return FALSE ;
       }
@@ -159,7 +163,6 @@ namespace engine
    utilUpdateResult::utilUpdateResult()
    {
       _updatedNum = 0 ;
-      _modifiedNum = 0 ;
    }
 
    utilUpdateResult::~utilUpdateResult()
@@ -170,7 +173,6 @@ namespace engine
    {
       utilInsertResult::_resetStat() ;
       _updatedNum = 0 ;
-      _modifiedNum = 0 ;
    }
 
    void utilUpdateResult::_resetInfo()

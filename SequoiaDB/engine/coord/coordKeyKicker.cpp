@@ -244,7 +244,7 @@ namespace engine
                   if( 0 == ossStrcmp( beTmp.fieldName(),
                                       CMD_ADMIN_PREFIX FIELD_OP_VALUE_REPLACE ) )
                   {
-                     // rule is replace, shardingKeyChanged will be juded in later flow 
+                     // rule is replace, shardingKeyChanged will be juded in later flow
                      if( 0 == _setKeys.count( pField ) &&
                          !_isShardingKeyChange( beField, matcher ) )
                      {

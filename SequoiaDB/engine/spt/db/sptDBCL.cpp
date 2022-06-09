@@ -418,7 +418,7 @@ namespace engine
    }
 
    INT32 _sptDBCL::_parseInsertOptions( const _sptArguments &arg, SINT32 &flags,
-                                        bson::BSONObj &detail )
+                                        BSONObj &hint, bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
 
@@ -436,8 +436,7 @@ namespace engine
       {
          BSONObj options ;
          BSONElement elem ;
-         BOOLEAN contOnDup = FALSE ;
-         BOOLEAN returnOid = FALSE ;
+         BOOLEAN value = FALSE ;
          rc = arg.getBsonobj( 1, options ) ;
          if( SDB_OUT_OF_BOUND == rc )
          {
@@ -447,35 +446,57 @@ namespace engine
 
          /// ContOnDup
          elem = options.getField( FIELD_NAME_CONTONDUP ) ;
-         contOnDup =
-            ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
-         if ( contOnDup )
+         value = ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
+         if ( value )
          {
             flags |= FLG_INSERT_CONTONDUP ;
          }
 
          /// ReturnOID
          elem = options.getField( FIELD_NAME_RETURN_OID ) ;
-         returnOid =
+         value =
             ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
-         if ( returnOid )
+         if ( value )
          {
             flags |= FLG_INSERT_RETURN_OID ;
          }
 
          /// replace on duplicate
          elem = options.getField( FIELD_NAME_REPLACEONDUP ) ;
-         returnOid =
-            ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
-         if ( returnOid )
+         value = ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
+         if ( value )
          {
             flags |= FLG_INSERT_REPLACEONDUP ;
+         }
+
+         /// Update on duplicate
+         elem = options.getField( FIELD_NAME_UPDATEONDUP ) ;
+         value = ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
+         if ( value )
+         {
+            flags |= FLG_INSERT_UPDATEONDUP ;
+            /// Need to build the hint
+            BSONElement updator = options.getField( FIELD_NAME_UPDATE ) ;
+            if ( Object == updator.type() && !updator.Obj().isEmpty() )
+            {
+               hint = BSON( FIELD_NAME_MODIFY <<
+                            BSON( FIELD_NAME_OP << FIELD_OP_VALUE_UPDATE <<
+                        FIELD_NAME_UPDATE << updator ) ) ;
+            }
+            else if ( !updator.eoo() )
+            {
+               detail = BSON( SPT_ERR << "Updator in the hint should be an "
+                              "nonempty object" ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
          }
       }
       else
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "The second argument should be insert flag or insert options" ) ;
+         detail = BSON( SPT_ERR << "The second argument should be insert flag "
+                                   "or insert options" ) ;
          goto error ;
       }
 
@@ -492,6 +513,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       SINT32 flags = 0 ;
       BSONObj record ;
+      BSONObj hint ;
       BSONObj result ;
 
       rc = arg.getBsonobj( 0, record ) ;
@@ -513,7 +535,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _parseInsertOptions( arg, flags, detail ) ;
+      rc = _parseInsertOptions( arg, flags, hint, detail ) ;
       if ( SDB_OK != rc )
       {
          // detail have set in _parseInsertOptions() when rc is not ok.
@@ -521,7 +543,7 @@ namespace engine
       }
       flags |= FLG_INSERT_RETURNNUM ;
 
-      rc = _cl.insert( record, flags, &result ) ;
+      rc = _cl.insert( record, hint, flags, &result ) ;
       if ( rc )
       {
          detail = BSON( SPT_ERR << "Failed to insert record" ) ;
@@ -1056,6 +1078,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       SINT32 flags = 0 ;
       vector< BSONObj > objVec ;
+      BSONObj hint ;
       BSONObj result ;
 
       rc = arg.getArray( 0, objVec ) ;
@@ -1070,7 +1093,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _parseInsertOptions( arg, flags, detail ) ;
+      rc = _parseInsertOptions( arg, flags, hint, detail ) ;
       if ( SDB_OK != rc )
       {
          // detail have set in _parseInsertOptions() when rc is not ok.
@@ -1078,7 +1101,7 @@ namespace engine
       }
       flags |= FLG_INSERT_RETURNNUM ;
 
-      rc = _cl.insert( objVec, flags, &result ) ;
+         rc = _cl.insert( objVec, hint, flags, &result ) ;
       if ( rc )
       {
          detail = BSON( SPT_ERR << "Failed to insert record" ) ;

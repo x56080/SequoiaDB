@@ -57,7 +57,8 @@ namespace engine
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
                      pmdEDUCB *cb, utilUpdateResult *pResult,
-                     const BSONObj *shardingKey, UINT32 logWriteMod )
+                     const BSONObj *shardingKey, UINT32 logWriteMod,
+                     IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNUPDATE1 ) ;
@@ -71,7 +72,8 @@ namespace engine
       }
 
       rc = rtnUpdate ( pCollectionName, matcher, updator, hint, flags, cb,
-                       dmsCB, dpsCB, 1, pResult, shardingKey, logWriteMod ) ;
+                       dmsCB, dpsCB, 1, pResult, shardingKey, logWriteMod,
+                       opHandler ) ;
 
       PD_TRACE_EXITRC ( SDB_RTNUPDATE1, rc ) ;
       return rc ;
@@ -82,7 +84,8 @@ namespace engine
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
                      INT16 w, utilUpdateResult *pResult,
-                     const BSONObj *shardingKey, UINT32 logWriteMod )
+                     const BSONObj *shardingKey, UINT32 logWriteMod,
+                     IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNUPDATE2 ) ;
@@ -91,7 +94,7 @@ namespace engine
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
       rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pResult,
-                      shardingKey, logWriteMod ) ;
+                      shardingKey, logWriteMod, opHandler ) ;
       PD_TRACE_EXITRC( SDB_RTNUPDATE2, rc ) ;
       return rc ;
    }
@@ -100,7 +103,8 @@ namespace engine
    INT32 rtnUpdate ( rtnQueryOptions &options, const BSONObj &updator,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
                      INT16 w, utilUpdateResult *pResult,
-                     const BSONObj *shardingKey, UINT32 logWriteMod )
+                     const BSONObj *shardingKey, UINT32 logWriteMod,
+                     IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNUPDATE_OPTIONS ) ;
@@ -207,13 +211,13 @@ retry:
          {
             rc = rtnGetTBScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_UPDATE ) ;
+                                  DMS_ACCESS_TYPE_UPDATE, opHandler ) ;
          }
          else if ( planRuntime.getScanType() == IXSCAN )
          {
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_UPDATE ) ;
+                                  DMS_ACCESS_TYPE_UPDATE, opHandler ) ;
             if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
             {
                // Maybe in the process of scanning the index,

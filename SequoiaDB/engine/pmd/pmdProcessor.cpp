@@ -62,6 +62,7 @@
 #include "pmdTrace.hpp"
 #include "clsResourceContainer.hpp"
 #include "pdSecure.hpp"
+#include "rtnInsertModifier.hpp"
 
 using namespace bson ;
 
@@ -614,20 +615,22 @@ namespace engine
       INT32 count = 0 ;
       const CHAR *pCollectionName = NULL ;
       const CHAR *pInsertor       = NULL ;
+      const CHAR *pHint           = NULL ;
+      rtnInsertModifier modify ;
+      rtnInsertModifier *modifyPtr = NULL ;
 
       rc = msgExtractInsert( (const CHAR *)msg, &flag, &pCollectionName,
-                             &pInsertor, count ) ;
+                             &pInsertor, count, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace insert msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
       eduCB()->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
-      if ( (flag & FLG_INSERT_CONTONDUP) && (flag & FLG_INSERT_REPLACEONDUP) )
+      if ( !msgIsInsertFlagValid( flag ) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR,"Conflict insert flag(CONTONDUP and REPLACEONDUP):"
-                     "flag=%d,rc=%d", flag, rc ) ;
+         PD_LOG( PDERROR, "Insert flag[%d] is invalid[%d]", flag, rc ) ;
          goto error ;
       }
 
@@ -663,6 +666,14 @@ namespace engine
       try
       {
          BSONObj insertor( pInsertor ) ;
+         if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) && pHint )
+         {
+            rc = modify.init( BSONObj( pHint ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Init modify from insert hint[%s] "
+                         "failed[%d]", PD_SECURE_OBJ( BSONObj( pHint ) ),
+                         rc ) ;
+            modifyPtr = &modify ;
+         }
          // add list op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Insertors:%s, ObjNum:%d, "
@@ -678,7 +689,7 @@ namespace engine
                   count, pCollectionName, flag, flag ) ; */
 
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
-                         NULL, &inResult ) ;
+                         NULL, &inResult, modifyPtr ) ;
          /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc, "InsertedNum:%llu, "

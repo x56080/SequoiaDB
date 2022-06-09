@@ -299,7 +299,9 @@ rtnFiles = [
       "rtn/rtnLocalTaskMgr.cpp",
       "rtn/rtnLocalTaskFactory.cpp",
       "rtn/rtnLocalTask.cpp",
-      "rtn/rtnDetectDeadlock.cpp"
+      "rtn/rtnDetectDeadlock.cpp",
+      "rtn/rtnHintModifier.cpp",
+      "rtn/rtnInsertModifier.cpp"
       ]
 
 msgFiles = [
@@ -480,7 +482,8 @@ clsFiles = [
       "cls/clsAdapterJob.cpp",
       "cls/clsMainCLMonAggregator.cpp",
       "cls/clsRemoteOperator.cpp",
-      "cls/clsResourceContainer.cpp"
+      "cls/clsResourceContainer.cpp",
+      "cls/clsOprHandler.cpp"
       ]
 
 dpsFiles = [
