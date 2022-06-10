@@ -211,7 +211,7 @@ namespace engine
          SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
          result = ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
                     mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE &&
-                    mbStatInfo->_totalRecords > job._recordNum ) ;
+                    mbStatInfo->_totalRecords != job._recordNum ) ;
       }
 
    done:
