@@ -1418,7 +1418,7 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDINFO, "Change _dmsCBState from [%d] to [%d]",
+            PD_LOG( PDINFO, "Change dms state from [%d] to [%d]",
                     _dmsCBState, DMS_STATE_ONLINE_BACKUP ) ;
             _dmsCBState = DMS_STATE_ONLINE_BACKUP ;
          }
@@ -1441,7 +1441,7 @@ namespace engine
       else
       {
          _stateMtx.get() ;
-         PD_LOG( PDINFO, "Change _dmsCBState from [%d] to [%d]",
+         PD_LOG( PDINFO, "Change dms state from [%d] to [%d]",
                  _dmsCBState, DMS_STATE_NORMAL ) ;
          _dmsCBState = DMS_STATE_NORMAL ;
          _stateMtx.release() ;
@@ -1451,19 +1451,12 @@ namespace engine
 
    INT32 _SDB_DMSCB::registerRebuild( _pmdEDUCB *cb )
    {
-      INT32 rc = SDB_OK ;
-      rc = blockWrite( cb, SDB_DB_REBUILDING ) ;
-      if ( SDB_OK == rc )
-      {
-         PD_LOG( PDINFO, "Block write operation succeed" ) ;
-      }
-      return rc ;
+      return blockWrite( cb, SDB_DB_REBUILDING ) ;
    }
 
    void _SDB_DMSCB::rebuildDown( _pmdEDUCB *cb )
    {
       unblockWrite( cb ) ;
-      PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
    }
 
    INT32 _SDB_DMSCB::idToSUAndLock ( utilCSUniqueID csUniqueID,
