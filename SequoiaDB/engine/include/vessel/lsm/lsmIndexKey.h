@@ -56,6 +56,7 @@ namespace vessel
 // for different purpose, so it requires specific encoding regarding its type.
 // There are two types of entry in current desgin:
 //
+// * '_':         nothing, is just for readability
 // Key:   IndexID_Flags_LSN_RowID_Ordering_EncodedKey
 // Value: Type_Flag_RBSOffset_TransID
 //
