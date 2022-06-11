@@ -1076,7 +1076,7 @@ Output: 无
 Expected Result: 
    成功创建CS、创建CL、CL中成功插入2GB大小的lob chunk，删除CS，无法插入剩余的数据，得到预期报错，-34集合空间不存在
 */
-void test4_insert_lob(vesselImpl* db, std::atomic<UINT32>* lobc_count)
+void test4_insert_lob(vesselImpl *db, std::atomic<UINT32> *lobc_count, UINT32 total_number)
 {
    INT32 rc = SDB_OK;
    test_executor session;
@@ -1085,7 +1085,7 @@ void test4_insert_lob(vesselImpl* db, std::atomic<UINT32>* lobc_count)
    ASSERT_EQ(SDB_OK, rc);
    constexpr UINT32 LOBC_SIZE = 1024 * 1024;
    unique_ptr<CHAR[]> buf(new CHAR[LOBC_SIZE]);
-   while ((*lobc_count)++ < 4 * 1024)
+   while ((*lobc_count)++ < total_number)
    {
       bson::OID oid;
       oid.init();
@@ -1094,7 +1094,7 @@ void test4_insert_lob(vesselImpl* db, std::atomic<UINT32>* lobc_count)
       {
          continue;
       }
-      else 
+      else
       {
          ASSERT_EQ(SDB_DMS_CS_NOTEXIST, rc);
          break;
@@ -1102,13 +1102,13 @@ void test4_insert_lob(vesselImpl* db, std::atomic<UINT32>* lobc_count)
    }
 }
 
-void test4_remove_cs(vesselImpl* db, std::atomic<UINT32>* lobc_count)
+void test4_remove_cs(vesselImpl *db, std::atomic<UINT32> *lobc_count, UINT32 trigger_number)
 {
    INT32 rc = SDB_OK;
    test_executor session;
-   while(true)
+   while (true)
    {
-      if((*lobc_count) > 2 * 1024)
+      if ((*lobc_count) > trigger_number)
       {
          rc = db->removeCS(&session, "foo");
          ASSERT_EQ(SDB_OK, rc);
@@ -1137,7 +1137,6 @@ TEST_F(cs_ddl_test, base_removeCS_4)
    
    DATA_COLLECTION_PTR handler;
 
-   
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -1148,8 +1147,11 @@ TEST_F(cs_ddl_test, base_removeCS_4)
    ASSERT_EQ(SDB_OK, rc);
 
    std::atomic<UINT32> lobc_count{0};
-   std::thread th1(test4_insert_lob, &db, &lobc_count);
-   std::thread th2(test4_remove_cs, &db, &lobc_count);
+   constexpr UINT32 total_number = 4 * 1024;
+   constexpr UINT32 trigger_number = 2 * 1024;
+   static_assert(trigger_number < total_number, "Trigger number must be less than total number");
+   std::thread th1(test4_insert_lob, &db, &lobc_count, total_number);
+   std::thread th2(test4_remove_cs, &db, &lobc_count, trigger_number);
 
    th1.join();
    th2.join();

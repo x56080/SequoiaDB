@@ -118,6 +118,7 @@ namespace vessel
 
    void dirtyLobcBufferList::discard(SPACE_ID sid, CL_MB_ID mbid, SHARED_LOBC_BUFFER_LIST &l) 
    {
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       std::unique_lock<std::mutex> guard(_mutex);
       SHARED_LOBC_BUFFER_LIST::iterator left = _l.begin(), right = _l.begin();
       while (_l.end() != right)
