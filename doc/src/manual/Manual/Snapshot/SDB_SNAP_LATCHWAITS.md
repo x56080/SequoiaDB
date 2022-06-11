@@ -42,7 +42,7 @@ SDB_SNAP_LATCHWAITS
      "NodeName": "sdbserver:11870",
      "WaiterTID": 24118,
      "RequiredMode": "S",
-     "LatchName": "catGTSMsgHandler jobLatch",
+     "LatchName": "dmsStorageDataCommon mblock",
      "Address": "0x7fd3740ae410",
      "StartTimestamp": "2020-06-13-02.52.50.336383",
      "LatchWaitTime": 34.806,
@@ -52,7 +52,7 @@ SDB_SNAP_LATCHWAITS
    }
    ```
 
-   上述输出显示此时系统中正在发生一个闩锁等待事件，线程 24118 正在等待获取"catGTSMsgHandler jobLatch"闩锁的 S 共享模式，本次等待到目前为止已耗时 34.806 毫秒。"LatestOwner"显示最近获得该闩锁的线程为 24109，"LatestOwnerMode"显示上一次拿到的闩锁为 X 排他模式，"NumOwner"显示闩锁只有 24109 一个拥有者。
+   上述输出显示此时系统中正在发生一个闩锁等待事件，线程 24118 正在等待获取"dmsStorageDataCommon mblock"闩锁的 S 共享模式，本次等待到目前为止已耗时 34.806 毫秒。"LatestOwner"显示最近获得该闩锁的线程为 24109，"LatestOwnerMode"显示上一次拿到的闩锁为 X 排他模式，"NumOwner"显示闩锁只有 24109 一个拥有者。
 
 - 查看历史闩锁等待信息
 
