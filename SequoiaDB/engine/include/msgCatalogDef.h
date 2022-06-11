@@ -149,6 +149,8 @@
 
 #define CAT_INTERNAL_VERSION_2            (2)
 #define CAT_INTERNAL_VERSION_3            (3)
+#define CAT_INTERNAL_VERSION_4            (4)
+#define CAT_INTERNAL_CURRENT_VERSION      CAT_INTERNAL_VERSION_4
 
 #define CAT_ASSIGNGROUP_FOLLOW            "$follow"
 #define CAT_ASSIGNGROUP_RANDOM            "$random"

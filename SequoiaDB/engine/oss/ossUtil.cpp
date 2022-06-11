@@ -69,6 +69,101 @@ void ossLocalTime ( time_t &Time, struct tm &TM )
 #endif
 }
 
+// When a double value is out of the range of type unsigned long, the result of
+// converting it into a unsigned long value is different on x86 from arm. So when
+// it is out of range we handle the result as x86 did.
+UINT64 ossDoubleToUINT64( FLOAT64 num )
+{
+   // When double is out of the range of unsigned long,it has four cases.
+   // case1: when double is special value ,in NaN and -INF case we give it an
+   //        "indefinite integer value",in +INF case we give it 0
+   // case2: when double is left overflow than the min value long type can
+   //        represent,we give it an "indefinite integer value"
+   // case3: when double is smaller than zero we mod it with 2^64, which is
+   //        equivalent to ( num + 2^64 ), but the max value UINT64 can represent
+   //        is (2^64-1),so here we handle it as (OSS_UINT64_MAX - abs(num) + 1 )
+   // case4: when double if right overflow than the max value unsigned long type
+   //        can represent,we give it an 0
+   // otherwise: we do nothing
+   UINT64 ans = 0 ;
+   INT32 sign = 0 ;
+
+   if ( ossIsNaN( num ) )
+   {
+      ans = OSS_INDEF_VAL_64 ;
+   }
+   else if ( ossIsInf( num, &sign ) )
+   {
+      if ( sign == -1 )
+      {
+         ans = OSS_INDEF_VAL_64 ;
+      }
+      else
+      {
+         ans = 0 ;
+      }
+   }
+   else if ( num <= OSS_SINT64_MIN_D )
+   {
+      ans = OSS_INDEF_VAL_64 ;
+   }
+   else if ( num < 0 )
+   {
+      ans = UINT64( OSS_UINT64_MAX - UINT64( -num ) + 1 ) ;
+   }
+   else if ( num >= OSS_UINT64_MAX )
+   {
+      ans = 0 ;
+   }
+   else
+   {
+      ans = num ;
+   }
+
+   return ans ;
+}
+
+UINT32 ossDoubleToUINT32( FLOAT64 num )
+{
+   // When double is out of the range of unsigned int,it has five cases.
+   // case1: when double is special value  NaN and -INF and +INF we give it 0
+   // case2: when double is left overflow than the min value long type can
+   //        represent,we give it an 0
+   // case3: when double is smaller than zero we mod it with 2^32
+   // case4: when double is right overflow than the max value long type can
+   //        represent,we give it an 0
+   // case5: when double if right overflow than the max value unsigned int type
+   //        can represent,we mod it with 2^32
+   // otherwise: we do nothing
+   UINT32 ans = 0 ;
+   if ( ossIsNaN( num ) || ossIsInf( num ) )
+   {
+      ans = 0 ;
+   }
+   else if ( num <= OSS_SINT64_MIN_D )
+   {
+      ans = 0 ;
+   }
+   else if ( num < 0 )
+   {
+      ans = INT64( num ) % OSS_SINT64_2_32 ;
+   }
+   else if ( num >= OSS_SINT64_MAX_D )
+   {
+      ans = 0 ;
+   }
+   else if ( num > OSS_UINT32_MAX )
+   {
+      ans = INT64( num ) % OSS_SINT64_2_32 ;
+   }
+   else
+   {
+      ans = num ;
+   }
+
+   return ans ;
+}
+
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 * pSquare )
 {
    BOOLEAN bPowered = ( ( 0 != num ) && ( 0 == ( num & ( num -1 ) ) ) ) ;
@@ -2370,3 +2465,29 @@ INT32 ossException2RC( std::exception *pe )
    }
    return SDB_SYS ;
 }
+
+OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d )
+{
+   return d != d ;
+}
+
+OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign )
+{
+   volatile FLOAT64 tmp = d ;
+
+   if ( ( tmp == d ) && ( ( tmp - d ) != 0.0 ) )
+   {
+      if ( sign )
+      {
+         *sign = ( d < 0.0 ? -1 : 1 ) ;
+      }
+      return TRUE ;
+   }
+   if ( sign )
+   {
+      *sign = 0 ;
+   }
+
+   return FALSE ;
+}
+

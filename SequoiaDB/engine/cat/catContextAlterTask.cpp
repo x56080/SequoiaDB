@@ -1447,7 +1447,7 @@ namespace engine
 
             /// optimize query on hash-sharding only sdb's version >= 1.12
             /// update version since 1.12.4
-            setBuilder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_VERSION_3 ) ;
+            setBuilder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_CURRENT_VERSION ) ;
          }
       }
       else if ( argument.getArgumentMask() == UTIL_CL_SHDKEY_FIELD &&

@@ -51,6 +51,32 @@ using namespace bson ;
 
 namespace engine
 {
+   //when internalVersion value is CAT_INTERNAL_VERSION_3 ,we uesed a series of
+   //functions with V3, the other functions if for the lastest internalVersion.
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHOBJV3, "_utilBSONHasher::hashObjV3" )
+   UINT32 _utilBSONHasher::hashObjV3( const bson::BSONObj &obj,
+                                      UINT32 partitionBit )
+   {
+      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASHOBJV3 ) ;
+      UINT32 hashCode = 0 ;
+      BSONObjIterator i( obj ) ;
+      while ( i.more() )
+      {
+         BSONElement e = i.next() ;
+         HASH_COMBINE( hashCode, hashElementV3( e ) ) ;
+      }
+
+      if ( 0 < partitionBit && partitionBit < 32 )
+      {
+         hashCode >>= 32 - partitionBit ;
+      }
+
+      PD_PACK_UINT( hashCode ) ;
+      PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHOBJV3 ) ;
+      return hashCode ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHOBJ, "_utilBSONHasher::hashObj" )
    UINT32 _utilBSONHasher::hashObj( const bson::BSONObj &obj,
                                     UINT32 partitionBit )
@@ -71,13 +97,13 @@ namespace engine
 
       PD_PACK_UINT( hashCode ) ;
       PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHOBJ ) ;
-      return hashCode ;      
+      return hashCode ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHELE, "_utilBSONHasher::hashElement" )
-   UINT32 _utilBSONHasher::hashElement( const bson::BSONElement &e )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHELEV3, "_utilBSONHasher::hashElementV3" )
+   UINT32 _utilBSONHasher::hashElementV3( const bson::BSONElement &e )
    {
-      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASHELE ) ;
+      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASHELEV3 ) ;
       UINT32 hashCode = 0 ;
       HASH_COMBINE( hashCode, e.canonicalType() ) ;
 
@@ -114,14 +140,13 @@ namespace engine
       case NumberLong:
       case NumberInt:
       {
-         hashCode = hashFLoat64( hashCode, e.Number() ) ;
+         hashCode = hashFLoat64V3( hashCode, e.Number() ) ;
          break ;
       }
 
       case NumberDecimal:
       {
-         BSONDecimalElement decEle( e ) ;
-         hashCode = hashDecimal( hashCode, decEle.numberDecimal() ) ;
+         hashCode = hashDecimalV3( hashCode, e.numberDecimal() ) ;
          break ;
       }
 
@@ -159,6 +184,38 @@ namespace engine
       }
 
       PD_PACK_UINT( hashCode ) ;
+      PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHELEV3 ) ;
+      return hashCode ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHELE, "_utilBSONHasher::hashElement" )
+   UINT32 _utilBSONHasher::hashElement( const bson::BSONElement &e )
+   {
+      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASHELE ) ;
+      UINT32 hashCode = 0 ;
+      switch( e.type() )
+      {
+         case NumberDouble:
+         case NumberLong:
+         case NumberInt:
+         {
+            HASH_COMBINE( hashCode, e.canonicalType() ) ;
+            hashCode = hashFLoat64( hashCode, e.Number() ) ;
+            break ;
+         }
+         case NumberDecimal:
+         {
+            HASH_COMBINE( hashCode, e.canonicalType() ) ;
+            hashCode = hashDecimal( hashCode, e.numberDecimal() ) ;
+            break ;
+         }
+         default :
+         {
+            hashCode = hashElementV3( e ) ;
+            break ;
+         }
+      }
+
       PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHELE ) ;
       return hashCode ;
    }
@@ -189,7 +246,7 @@ namespace engine
       return hash( str, ossStrlen( str ) ) ;
    }
 
-   UINT32 _utilBSONHasher::hashFLoat64( UINT32 hashCode, FLOAT64 dv )
+   UINT32 _utilBSONHasher::hashFLoat64V3( UINT32 hashCode, FLOAT64 dv )
    {
       UINT64 uv  = dv ;
       UINT32 afp = ( dv - uv ) * 1000000 ;
@@ -205,43 +262,102 @@ namespace engine
       return hashCode ;
    }
 
-   UINT32 _utilBSONHasher::hashDecimal( UINT32 hashCode, 
-                                        const bson::bsonDecimal &decimal )
+   UINT32 _utilBSONHasher::hashFLoat64( UINT32 hashCode, FLOAT64 dv )
+   {
+      // When a double value is out of the range of type unsigned long, the result
+      // of converting it into a unsigned long value is different on x86 from arm.
+      // So whenit is out of range we handle the result as x86 did.
+
+      UINT64 uv  = OSS_FLOAT64_2_UINT64( dv ) ;
+
+      FLOAT64 temp = ( dv - uv ) * 1000000 ;
+      UINT32 afp = OSS_FLOAT64_2_UINT32( temp ) ;
+
+      UINT32 h1  = 0 ;
+      UINT32 h2  = 0 ;
+
+      h1 = hash( &uv, sizeof( uv ) ) ;
+      h2 = hash( &afp, sizeof( afp ) ) ;
+
+      HASH_COMBINE( hashCode, h1 ) ;
+      HASH_COMBINE( hashCode, h2 ) ;
+
+      return hashCode ;
+   }
+
+   BOOLEAN _utilBSONHasher::_isInDoubleRange( const bson::bsonDecimal &decimal )
    {
       bsonDecimal maxFloat ;
       bsonDecimal minFloat ;
 
       maxFloat.fromDouble( numeric_limits<double>::max() ) ;
-
       minFloat.fromDouble( -numeric_limits<double>::max() ) ;
 
-      if ( decimal.compare( maxFloat ) > 0 || 
+      if ( decimal.compare( maxFloat ) > 0 ||
            decimal.compare( minFloat ) < 0 )
       {
-         INT16 sign          = 0 ;
-         INT16 weight        = 0 ;
-         INT32 ndigits       = 0 ;
-         INT32 i             = 0 ;
-         const INT16 *digits = NULL ;
-
-         sign    = decimal.getSign() ;
-         weight  = decimal.getWeight() ;
-         ndigits = decimal.getNdigit() ;
-         digits  = decimal.getDigits() ;
-
-         HASH_COMBINE( hashCode, hash( &sign, sizeof( sign ) ) ) ;
-         HASH_COMBINE( hashCode, hash( &weight, sizeof( weight ) ) ) ;
-         HASH_COMBINE( hashCode, hash( &ndigits, sizeof( ndigits ) ) ) ;
-         for ( i = 0 ; i < ndigits ; i++ )
-         {
-            HASH_COMBINE( hashCode, hash( &digits[i], sizeof( digits[i] ) ) ) ;
-         }
+         return FALSE ;
       }
       else
+      {
+         return TRUE ;
+      }
+   }
+
+   UINT32 _utilBSONHasher::_hashDecimal( UINT32 hashCode,
+                                         const bson::bsonDecimal &decimal )
+   {
+      INT16 sign          = 0 ;
+      INT16 weight        = 0 ;
+      INT32 ndigits       = 0 ;
+      INT32 i             = 0 ;
+      const INT16 *digits = NULL ;
+
+      sign    = decimal.getSign() ;
+      weight  = decimal.getWeight() ;
+      ndigits = decimal.getNdigit() ;
+      digits  = decimal.getDigits() ;
+
+      HASH_COMBINE( hashCode, hash( &sign, sizeof( sign ) ) ) ;
+      HASH_COMBINE( hashCode, hash( &weight, sizeof( weight ) ) ) ;
+      HASH_COMBINE( hashCode, hash( &ndigits, sizeof( ndigits ) ) ) ;
+      for ( i = 0 ; i < ndigits ; i++ )
+      {
+         HASH_COMBINE( hashCode, hash( &digits[i], sizeof( digits[i] ) ) ) ;
+      }
+
+      return hashCode ;
+   }
+
+   UINT32 _utilBSONHasher::hashDecimalV3( UINT32 hashCode,
+                                          const bson::bsonDecimal &decimal )
+   {
+      if ( _isInDoubleRange( decimal ) )
+      {
+         FLOAT64 dv = 0.0 ;
+         decimal.toDouble( &dv ) ;
+         hashCode = hashFLoat64V3( hashCode, dv ) ;
+      }
+      else
+      {
+         hashCode = _hashDecimal( hashCode, decimal ) ;
+      }
+
+      return hashCode ;
+   }
+
+   UINT32 _utilBSONHasher::hashDecimal( UINT32 hashCode,
+                                        const bson::bsonDecimal &decimal )
+   {
+      if ( _isInDoubleRange( decimal ) )
       {
          FLOAT64 dv = 0.0 ;
          decimal.toDouble( &dv ) ;
          hashCode = hashFLoat64( hashCode, dv ) ;
+      }
+      else
+      {
+         hashCode = _hashDecimal( hashCode, decimal ) ;
       }
 
       return hashCode ;
@@ -253,4 +369,3 @@ namespace engine
       return x ;
    }
 }
-

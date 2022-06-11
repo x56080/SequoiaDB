@@ -66,6 +66,11 @@ namespace engine
       _utilBSONHasher() {}
       ~_utilBSONHasher() {}
 
+      static UINT32 _hashDecimal( UINT32 hashCode,
+                                  const bson::bsonDecimal &decimal ) ;
+
+      static BOOLEAN _isInDoubleRange( const bson::bsonDecimal &decimal ) ;
+
    public:
       static UINT32 hashObj( const bson::BSONObj &obj,
                              UINT32 partitionBit = 0 ) ;
@@ -80,10 +85,20 @@ namespace engine
 
       static UINT32 hashFLoat64( UINT32 hashCode, FLOAT64 value ) ;
 
-      static UINT32 hashDecimal( UINT32 hashCode, 
+      static UINT32 hashDecimal( UINT32 hashCode,
                                  const bson::bsonDecimal &decimal ) ;
 
       static UINT32 hashCombine( UINT32 x, UINT32 y ) ;
+
+      static UINT32 hashObjV3( const bson::BSONObj &obj,
+                               UINT32 partitionBit = 0 ) ;
+
+      static UINT32 hashElementV3( const bson::BSONElement &e ) ;
+
+      static UINT32 hashFLoat64V3( UINT32 hashCode, FLOAT64 value ) ;
+
+      static UINT32 hashDecimalV3( UINT32 hashCode,
+                                   const bson::bsonDecimal &decimal ) ;
    } ;
 
    typedef class _utilBSONHasher BSON_HASHER ;

@@ -90,8 +90,18 @@ OSS_INLINE UINT32 ossHash( const BYTE *v1, UINT32 s1,
    return hash ;
 }
 
+
+#define OSS_FLOAT64_2_UINT64(x) ossDoubleToUINT64(x)
+#define OSS_FLOAT64_2_UINT32(x) ossDoubleToUINT32(x)
+
+UINT64 ossDoubleToUINT64( FLOAT64 num );
+UINT32 ossDoubleToUINT32( FLOAT64 num );
+
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
 UINT64 ossNextPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
+
+OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d ) ;
+OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign = 0 ) ;
 
 #if defined (_WINDOWS)
 OSS_INLINE void ossSleepmillis ( UINT64 s )

@@ -4719,9 +4719,13 @@ namespace engine
                        UINT32 partitionBit,
                        UINT32 internalVersion )
    {
-      if ( CAT_INTERNAL_VERSION_3 <= internalVersion )
+      if ( CAT_INTERNAL_VERSION_4 <= internalVersion )
       {
          return BSON_HASHER::hashObj( keyObj, partitionBit ) ;
+      }
+      else if ( CAT_INTERNAL_VERSION_3 == internalVersion )
+      {
+         return BSON_HASHER::hashObjV3( keyObj, partitionBit ) ;
       }
       else if ( CAT_INTERNAL_VERSION_2 == internalVersion )
       {
