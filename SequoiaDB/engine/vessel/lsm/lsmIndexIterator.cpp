@@ -102,6 +102,7 @@ namespace vessel
       rocksdb::ReadOptions opt;
       globalIndexID indexId;
       globalCollectionId gcid;
+      const CHAR *boundPtr = nullptr;
                         
       _close();
 
@@ -127,8 +128,10 @@ namespace vessel
 
       _forward = o.isForward();
       _globalId = indexId;
-      _lowKey = rocksdb::Slice(_lowBoundKey, sizeof(_lowBoundKey));
-      _upKey = rocksdb::Slice(_upperBoundKey, sizeof(_upperBoundKey));
+      boundPtr = (const CHAR *)(&_lowBound);
+      _lowKey = rocksdb::Slice(boundPtr, LSM_IDX_BOUNDARY_SIZE);
+      boundPtr = (const CHAR *)(&_upBound);
+      _upKey = rocksdb::Slice(boundPtr, LSM_IDX_BOUNDARY_SIZE);
       opt.iterate_lower_bound = &_lowKey;
       opt.iterate_upper_bound = &_upKey;
       opt.auto_prefix_mode = TRUE;
@@ -232,7 +235,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       recordID rid;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      lsmIndexKeyPacker packer;
+      lsmIndexKeyStackPacker packer;
 
       if (OSS_UNLIKELY(!key.isValid()))
       {
@@ -260,7 +263,7 @@ namespace vessel
 
       rc = packer.packFullKey(key, _globalId,
                               _obj->getDescription().getPattern().getOrdering(),
-                              rid, lsn, DPS_TRANS_ID());
+                              rid, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "pack full key by packer failed, rc:%d", rc);
@@ -292,7 +295,7 @@ namespace vessel
    INT32 lsmIndexIterator::moveToTheNextOfEntry(const slice &entry)
    {
       INT32 rc = SDB_OK;
-      lsmIndexKeyPacker packer;
+      lsmIndexKeyStackPacker packer;
       lsmScanEntryParser parser;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
@@ -322,7 +325,7 @@ namespace vessel
 
       rc = packer.packFullKey(parser.getKey(), _globalId,
                               _obj->getDescription().getPattern().getOrdering(),
-                              parser.getRid(), lsn, DPS_TRANS_ID());
+                              parser.getRid(), lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "pack index full key by packer failed, rc:%d", rc);
@@ -369,8 +372,8 @@ namespace vessel
       
       if (_itr->Valid())
       {
-         if (LSM_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
-             sizeof(lsmIndexValue) != _itr->value().size())
+         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
+             LSM_VALUE_SIZE != _itr->value().size())
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "invalid key or value:%d", rc);
@@ -409,7 +412,9 @@ namespace vessel
    DPS_TRANS_ID lsmIndexIterator::getTransID()const
    {
       SDB_ASSERT(_isReadyToRead(), "must be valid");
-      return _currentEntry.getTransID();
+      const lsmIndexValue *value = reinterpret_cast<const lsmIndexValue *>
+                                  (_itr->value().data());
+      return value->getTransID();
    }
 
    recordID lsmIndexIterator::getRid()const
@@ -534,8 +539,8 @@ namespace vessel
 
       if (_itr->Valid())
       {
-         if (LSM_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
-             sizeof(lsmIndexValue) != _itr->value().size())
+         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
+             LSM_VALUE_SIZE != _itr->value().size())
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "invalid key or value:%d", rc);
@@ -561,7 +566,7 @@ namespace vessel
       _currentEntry.reset();
       do
       {
-         lsmKeyEntry currentEntry;
+         lsmPureKeyEntry currentEntry;
          ixmKey lastKey(builder.buf());
 
          rc = moveIterator(TRUE);
@@ -624,8 +629,8 @@ namespace vessel
       _backwardCurrentEntryCache.resize(0);
       while (_itr->Valid())
       {
-         lsmKeyEntry entryInItr;
-         lsmKeyEntry entryInCache;
+         lsmPureKeyEntry entryInItr;
+         lsmPureKeyEntry entryInCache;
          BOOLEAN removedFlag = _isMarkedRemoved(_itr);
 
          rc = _backwardCurrentEntryCache.copy(_itr->key().size(),
@@ -792,15 +797,10 @@ namespace vessel
    void lsmIndexIterator::_initKeyBoundWhenOpen(const globalIndexID &id)
    {
       SDB_ASSERT(id.isValid(), "can not be invalid");
-      _lowBoundKey[0] = LSM_ENTRY_TYPE_DATA;
-      *((globalIndexID *)(_lowBoundKey + 1)) = id;
-
-      globalIndexID upperIndexId;
-      upperIndexId.reset(id.getLogicalCSID(),
-                         id.getLogicalCLID(),
-                         id.getLogicalIndexID() + 1);
-      _upperBoundKey[0] = LSM_ENTRY_TYPE_DATA;
-      *((globalIndexID *)(_upperBoundKey + 1)) = upperIndexId;
+      _lowBound = id;
+      _upBound.reset(id.getLogicalCSID(),
+                     id.getLogicalCLID(),
+                     id.getLogicalIndexID() + 1);
       return;
    }
 }//namespace vessel

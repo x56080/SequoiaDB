@@ -50,11 +50,11 @@ namespace vessel
    }
 
    INT32 lsmIndexWriteBatch::put(const lsmIndexMeta &meta,
-                                 const lsmKeyEntry &key,
+                                 const lsmPureKeyEntry &key,
                                  const lsmIndexValue &value)
    {
       INT32 rc = SDB_OK;
-      lsmIndexKeyPacker packer;
+      lsmIndexKeyStackPacker packer;
 
       if (!isOpen())
       {

@@ -36,7 +36,7 @@
 #ifndef VESSE_LSM_INSERT_BATCH_H_
 #define VESSE_LSM_INSERT_BATCH_H_
 
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "rocksdb/write_batch.h"
@@ -60,7 +60,7 @@ namespace vessel
          }
 
          INT32 put(const lsmIndexMeta &meta,
-                   const lsmKeyEntry &ke,
+                   const lsmPureKeyEntry &ke,
                    const lsmIndexValue *value=NULL);
 
          void clear();

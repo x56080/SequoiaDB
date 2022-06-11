@@ -80,7 +80,6 @@ namespace vessel
 
       _type = parser->getType();
       _rid = parser->getRid();
-      _transID = parser->getTransID();
       _keySlice = parser->getKeySlice();
       _entryData = data;
    done:
@@ -94,7 +93,6 @@ namespace vessel
    {
       _type = INVALID_INDEX_TYPE;
       _rid = recordID();
-      _transID.reset();
       _keySlice.reset();
       _entryData.reset();
       return;

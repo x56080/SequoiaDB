@@ -210,19 +210,35 @@ namespace vessel
       INT32 rc = SDB_OK;
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageSpace *lps = nullptr;
+      requestContext *context = nullptr;
+
       if (!isValid())
       {
+         SDB_ASSERT(FALSE, "invalid buffer");
+         goto done;
+      }
+      else if (!_mode.isExclusive())
+      {
+         SDB_ASSERT(FALSE, "invalid locking mode");
          goto done;
       }
 
       lpid = _lpid;
       lps = _lps;
+      context = _context;
+
+      /// do not unlock when fini
+      _mode.setNone();
+
       fini();
-      rc = lps->releasePage(_context, lpid);
+      rc = lps->releasePage(context, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", lpid, rc);
+         SDB_ASSERT(FALSE, "failed to release lpid");
       }
+
+      context->unlockLpid(lps->getSpaceType(), lpid);
    done:
       return;
    }

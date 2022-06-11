@@ -37,7 +37,7 @@
 
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
 
 namespace engine
@@ -53,7 +53,7 @@ namespace vessel
       public:
          void open();
          INT32 put(const lsmIndexMeta &meta,
-                   const lsmKeyEntry &key,
+                   const lsmPureKeyEntry &key,
                    const lsmIndexValue &value);
 
    }; // class lsmIndexWriteBatch   

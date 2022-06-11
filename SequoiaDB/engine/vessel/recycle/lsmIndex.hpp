@@ -35,7 +35,7 @@
 #ifndef LSMINDEX_HPP_
 #define LSMINDEX_HPP_
 
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmDB.hpp"
 #include "rtnPredicate.hpp"     // VEC_ELE_CMP
@@ -113,7 +113,7 @@ public:
       keyObj:    ixmKey, searching key obj
       rid:       vessel::recordID, recordID ( a.k.a row id )
     Output:
-      keyEntry:  lsmKeyEntry, the actuall key and value stored in rocksdb.
+      keyEntry:  lsmPureKeyEntry, the actuall key and value stored in rocksdb.
       pFound:    whether find the exact match the searching key
     Return:
       SDB_OK: normal return
@@ -180,9 +180,9 @@ public:
      searchKey regarding the searching direction.
      Input:
        direction: searching direction, 1 forward, -1 backward
-       searchKey: lsmKeyEntry, searching key entry
+       searchKey: lsmPureKeyEntry, searching key entry
      Output:
-       keyEntry:  lsmKeyEntry, the actuall key entry stored in rocksdb.
+       keyEntry:  lsmPureKeyEntry, the actuall key entry stored in rocksdb.
      Return:
        SDB_OK: normal return
        otherwise any popped error code
@@ -229,7 +229,7 @@ public:
      K3C 0_{cs:1,cl:2,idx:3}_{5,"t1",  1}_{pg:2,slt:1}_3_{sn:1,nd:3}
   */
   INT32 advance( const INT32        direction,
-                 const lsmKeyEntry & searchKey,
+                 const lsmPureKeyEntry & searchKey,
                  lsmOwnedRecord    & out ) ;
 
 
@@ -393,7 +393,7 @@ public:
        SDB_OK: normal return
        otherwise any popped error code
   */
-  INT32 keyInsert(const lsmKeyEntry &key);
+  INT32 keyInsert(const lsmPureKeyEntry &key);
 
 
   /*
@@ -432,8 +432,8 @@ public:
   */
  /*
    INT32 keyDelete( const BOOLEAN            blsmIdx,
-                    const lsmKeyEntry      & origKeyEntry,
-                    const lsmKeyEntry      & keyEntry,
+                    const lsmPureKeyEntry      & origKeyEntry,
+                    const lsmPureKeyEntry      & keyEntry,
                     const UINT64             logLSN,
                     rocksdb::WriteBatch    * pBatch = NULL ) ;*/
 
@@ -451,7 +451,7 @@ public:
        SDB_OK: normal return
        otherwise any popped error code
   */
-  INT32 keyRemove( const lsmKeyEntry   & keyEntry,
+  INT32 keyRemove( const lsmPureKeyEntry   & keyEntry,
                    const UINT64          logLSN );
 
   /*
@@ -486,7 +486,7 @@ protected:
   // free the rocksdb::Slice buffer, and clear that Slice
   void _freeAndClear( rocksdb::Slice & aSlice );
 
-  INT32 packFullIndexKey(const lsmKeyEntry &ke,
+  INT32 packFullIndexKey(const lsmPureKeyEntry &ke,
                          rocksdb::Slice &keySlice);
 
   // allocate and copy the content into a rocksdb::Slice
@@ -498,7 +498,7 @@ protected:
   // and copy the content of a keyEntry into that buffer
   INT32 _allocAndCopy( const BOOLEAN       bPackLogLSN,
                        const UINT64        logLSN,
-                       const lsmKeyEntry & keyEntry,
+                       const lsmPureKeyEntry & keyEntry,
                        rocksdb::Slice    & K ) ;
 
   INT32 _advance( const INT32 direction, lsmOwnedRecord & out ) ;
@@ -635,12 +635,12 @@ public:
 
    // reuse iterator instead of destroy / create each time
    INT32 advance( const INT32         direction,
-                  const lsmKeyEntry & searchKey,
+                  const lsmPureKeyEntry & searchKey,
                   lsmOwnedRecord       & out ) ;
 
    // this class is designed solely for read-only with isolation RR mode
    // so disable all update operations.
-   INT32 keyInsert( const lsmKeyEntry & keyEntry, const UINT64 logLSN )
+   INT32 keyInsert( const lsmPureKeyEntry & keyEntry, const UINT64 logLSN )
    {
       // FIX ME:
       // Create a proper error code
@@ -648,8 +648,8 @@ public:
    }
 
    INT32 keyDelete( const BOOLEAN            blsmIdx,
-                    const lsmKeyEntry      & origKeyEntry,
-                    const lsmKeyEntry      & keyEntry,
+                    const lsmPureKeyEntry      & origKeyEntry,
+                    const lsmPureKeyEntry      & keyEntry,
                     const UINT64             logLSN )
    {
       // FIX ME:
@@ -657,7 +657,7 @@ public:
       return SDB_OPTION_NOT_SUPPORT ;
    }
 
-   INT32 keyRemove( const lsmKeyEntry & keyEntry, const UINT64 logLSN )
+   INT32 keyRemove( const lsmPureKeyEntry & keyEntry, const UINT64 logLSN )
    {
       // FIX ME:
       // Create a proper error code

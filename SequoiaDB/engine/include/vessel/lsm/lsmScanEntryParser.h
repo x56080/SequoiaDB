@@ -37,7 +37,7 @@
 #define VESSEL_LSM_SCAN_ENTRY_PARSER_H_
 
 #include "vessel/indexScanEntryParser.h"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 
 namespace engine
 {
@@ -64,10 +64,6 @@ namespace vessel
          {
             return _lsmEntry.getRid();
          }
-         virtual DPS_TRANS_ID getTransID()const
-         {
-            return _lsmEntry.getTransID();
-         }
          
          virtual slice getKeySlice()const
          {
@@ -90,7 +86,7 @@ namespace vessel
             return _lsmEntry.isValid();
          }
       private:
-         lsmKeyEntry _lsmEntry;
+         lsmPureKeyEntry _lsmEntry;
          slice _fullEntry;
    };//class lsmScanEntryParser
 } // namespace vessel

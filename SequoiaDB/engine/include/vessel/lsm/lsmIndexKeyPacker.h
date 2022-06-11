@@ -35,9 +35,10 @@
 #ifndef VESSEL_LSM_INDEX_KEY_PACKER_H_
 #define VESSEL_LSM_INDEX_KEY_PACKER_H_
 
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "utilAllocator.hpp"
+#include "rocksdb/slice.h"
 
 namespace engine
 {
@@ -45,13 +46,27 @@ namespace vessel
 {
    class lsmIndexKeyPacker : public SDBObject
    {
+      public:
+         OSS_INLINE UINT32 getFullKeySliceSize(UINT32 ixmKeySize)const
+         {
+            return LSM_IDX_FIXED_KEY_SIZE + ixmKeySize;
+         }
+
+         INT32 pack(const lsmIdxFixedKey &fixedKey,
+                    const ixmKey &key,
+                    UINT32 bufferSize,
+                    CHAR *buffer)const;
+   };//class lsmIndexKeyPacker
+
+   class lsmIndexKeyStackPacker : public lsmIndexKeyPacker
+   {
       static constexpr UINT32 KEY_PACKER_STACK_BUF_SIZE = 512;
 
       public:
-         lsmIndexKeyPacker() = default;
-         ~lsmIndexKeyPacker();
-         lsmIndexKeyPacker(const lsmIndexKeyPacker &) = delete;
-         lsmIndexKeyPacker &operator=(const lsmIndexKeyPacker &) = delete;
+         lsmIndexKeyStackPacker() = default;
+         ~lsmIndexKeyStackPacker();
+         lsmIndexKeyStackPacker(const lsmIndexKeyStackPacker &) = delete;
+         lsmIndexKeyStackPacker &operator=(const lsmIndexKeyStackPacker &) = delete;
 
       public:
          void reset();
@@ -60,10 +75,9 @@ namespace vessel
                            const globalIndexID &idxId,
                            const orderingWrapper &ow,
                            const recordID &rid,
-                           UINT64 lsn,
-                           const DPS_TRANS_ID &transID);
+                           UINT64 lsn);
 
-         INT32 packFullKey(const lsmKeyEntry &key,
+         INT32 packFullKey(const lsmPureKeyEntry &key,
                            const lsmIndexMeta &meta);
 
          rocksdb::Slice getFullKeySlice()const;

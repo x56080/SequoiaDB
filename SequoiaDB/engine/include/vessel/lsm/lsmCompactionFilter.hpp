@@ -37,7 +37,7 @@
 
 #include "oss.hpp"
 #include "rocksdb/compaction_filter.h"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "../bson/util/builder.h"
 

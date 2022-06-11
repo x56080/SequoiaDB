@@ -65,22 +65,12 @@ namespace vessel
    {
       bool result = FALSE;
       INT32 rc = SDB_OK;
-      ixmKey currentIxmKey;
-      recordID currentRid;
-      globalIndexID currentIndexId;
-
-      ixmKey lastIxmKey;
-      recordID lastRid;
-      globalIndexID lastIndexId;
-
-      orderingWrapper ordering;
-      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
-      DPS_TRANS_ID transId;
-
       const lsmIndexValue *vl = NULL;
 
+      lsmIdxFullKeySlice fullKey(key.data(), key.size(), TRUE);
+
       // check if full key and value's size is valid
-      if (LSM_MIN_FULL_KEY_SIZE > key.size() || 
+      if (!fullKey.isValid() || 
           LSM_VALUE_SIZE != existing_value.size())
       {
          result = FALSE;
@@ -97,19 +87,6 @@ namespace vessel
          goto done;
       }
 
-      // unpack the current full key
-      rc = lsmUnpackIndexFullKey(key.data(), 
-                                 key.size(), 
-                                 currentIndexId, ordering, 
-                                 currentIxmKey, currentRid, 
-                                 lsn, transId);
-      if (SDB_OK != rc)
-      {
-         result = FALSE;
-         ++_invalidCount;
-         goto done;
-      }
-
       // check if current is the first latest version
       if (0 == _cachedFullKeyBuilder.len())
       {
@@ -118,20 +95,19 @@ namespace vessel
       else
       {
          // unpack the last full key
-         lsmUnpackIndexFullKey(_cachedFullKeyBuilder.buf(), 
-                               _cachedFullKeyBuilder.getSize(), 
-                               lastIndexId, ordering, 
-                               lastIxmKey, lastRid, 
-                               lsn, transId);
+         lsmIdxFullKeySlice lastFullKey(_cachedFullKeyBuilder.buf(),
+                                        _cachedFullKeyBuilder.getSize(), FALSE);
+         SDB_ASSERT(lastFullKey.isValid(), "impossible");
          if (vl->isDeleted())
          {
             result = TRUE;
          }
-         else if (currentIndexId != lastIndexId)
+         else if (fullKey.getFixedKey()->indexid != lastFullKey.getFixedKey()->indexid)
          {
             result = FALSE;
          }
-         else if (currentRid != lastRid || !currentIxmKey.woEqual(lastIxmKey))
+         else if (fullKey.getFixedKey()->rid != lastFullKey.getFixedKey()->rid ||
+                  !ixmKey(fullKey.getIxmKeyData()).woEqual(ixmKey(lastFullKey.getIxmKeyData())))
          {
             result = FALSE;
          }

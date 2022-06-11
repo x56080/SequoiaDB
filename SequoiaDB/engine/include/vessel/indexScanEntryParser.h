@@ -55,7 +55,6 @@ namespace vessel
          virtual INT32 parse(const slice &entryData) = 0;
          virtual INDEX_TYPE getType()const = 0;
          virtual recordID getRid()const = 0;
-         virtual DPS_TRANS_ID getTransID()const = 0;
          virtual slice getKeySlice()const = 0;
 
    };//class indexScanEntryParser

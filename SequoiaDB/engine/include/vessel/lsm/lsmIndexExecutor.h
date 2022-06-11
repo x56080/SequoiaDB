@@ -37,7 +37,7 @@
 
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 
 namespace engine
 {
@@ -55,7 +55,7 @@ namespace vessel
          void init(const lsmIndexMeta &meta);
          void fini();
 
-         INT32 put(const lsmKeyEntry &key);
+         INT32 put(const lsmPureKeyEntry &key);
          INT32 truncate();
 
          OSS_INLINE BOOLEAN isValid()const

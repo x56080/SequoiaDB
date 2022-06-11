@@ -608,11 +608,11 @@ namespace vessel
                         obj->getIndexId().getLogicalIndexId());
       lsmIndexMeta lsmMeta(gid, obj->getDescription().getPattern().getOrdering());
       lsmIndexExecutor exec;
-      lsmKeyEntry lsmEntry;
+      lsmPureKeyEntry lsmEntry;
 
       exec.init(lsmMeta);
 
-      lsmEntry.shallowCopy(key, rid, lsn, transID);
+      lsmEntry.set(key, rid, lsn);
       rc = exec.put(lsmEntry);
       if (SDB_OK != rc)
       {
@@ -923,11 +923,10 @@ namespace vessel
          for (; itr != ir->getKeysToInsert().end(); ++itr)
          {
             ixmKeyOwned key(*itr);
-            lsmKeyEntry ke;
+            lsmPureKeyEntry ke;
             lsmIndexValue vl;
-            ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
-                           context->getExecutor()->getTransID());
-            vl.reset(LSM_VALUE_TYPE_INSERT);
+            ke.set(key, context->getRid(), context->getDmlLSN());
+            vl.reset(LSM_IDX_VALUE_TYPE_INSERT);
             rc = batch.put(meta, ke, vl);
             if (SDB_OK != rc)
             {
@@ -940,11 +939,10 @@ namespace vessel
          for (; itr != ir->getKeysToRemove().end(); ++itr)
          {
             ixmKeyOwned key(*itr);
-            lsmKeyEntry ke;
+            lsmPureKeyEntry ke;
             lsmIndexValue vl;
-            ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
-                           context->getExecutor()->getTransID());
-            vl.reset(LSM_VALUE_TYPE_DELETE);
+            ke.set(key, context->getRid(), context->getDmlLSN());
+            vl.reset(LSM_IDX_VALUE_TYPE_DELETE);
             rc = batch.put(meta, ke, vl);
             if (SDB_OK != rc)
             {

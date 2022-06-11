@@ -36,7 +36,7 @@
 #ifndef VESSEL_LSM_OWNED_RECORD_H_
 #define VESSEL_LSM_OWNED_RECORD_H_
 
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "ixmKey.hpp"
 #include "rocksdb/slice.h"
@@ -66,7 +66,7 @@ namespace vessel
             return _key.isValid();
          }
       
-         OSS_INLINE const lsmKeyEntry &getKey()const
+         OSS_INLINE const lsmPureKeyEntry &getKey()const
          {
             return _key;
          }
@@ -77,7 +77,7 @@ namespace vessel
 
          INT32 copy(const lsmOwnedRecord &o);
       private:
-         lsmKeyEntry _key;
+         lsmPureKeyEntry _key;
          lsmIndexValue _value;
          memoryBlock _mb;
    };//class lsmOwnedRecord

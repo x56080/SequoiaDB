@@ -49,24 +49,8 @@ namespace vessel
    class indexScanEntry : public SDBObject
    {
       public:
-         indexScanEntry(){}
-         virtual ~indexScanEntry(){}
-         indexScanEntry(const indexScanEntry &o):
-         _type(o._type),
-         _rid(o._rid),
-         _transID(o._transID),
-         _keySlice(o._keySlice),
-         _entryData(o._entryData)
-         {}
-         indexScanEntry &operator=(const indexScanEntry &o)
-         {
-            _type = o._type;
-            _rid = o._rid;
-            _transID = o._transID;
-            _keySlice = o._keySlice;
-            _entryData = o._entryData;
-            return *this;
-         }
+         indexScanEntry() = default;
+         virtual ~indexScanEntry() = default;
 
       public:
          OSS_INLINE BOOLEAN isValid()const
@@ -81,10 +65,6 @@ namespace vessel
          OSS_INLINE const recordID &getRid()const
          {
             return _rid;
-         }
-         OSS_INLINE DPS_TRANS_ID getTransID()const
-         {
-            return _transID;
          }
          OSS_INLINE const slice &getKeySlice()const
          {
@@ -103,7 +83,6 @@ namespace vessel
       private:
          INDEX_TYPE _type = INVALID_INDEX_TYPE;
          recordID _rid;
-         DPS_TRANS_ID _transID;
          slice _keySlice;
          slice _entryData;
    };//class indexScanEntry

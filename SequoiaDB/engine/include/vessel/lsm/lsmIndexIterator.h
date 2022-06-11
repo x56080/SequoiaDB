@@ -38,7 +38,7 @@
 
 #include "vessel/indexIterator.h"
 #include "rocksdb/iterator.h"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/globalIndexID.h"
 #include "vessel/memoryBlock.h"
 #include "../bson/util/builder.h"
@@ -128,11 +128,11 @@ namespace vessel
          indexObject *_obj = NULL;
          globalIndexID _globalId;
          rocksdb::Iterator *_itr = NULL;
-         CHAR _lowBoundKey[LSM_LOW_BOUND_KEY_SIZE] = {};
-         CHAR _upperBoundKey[LSM_LOW_BOUND_KEY_SIZE] = {};
+         LSM_IDX_KEY_BOUNDARY _lowBound;
+         LSM_IDX_KEY_BOUNDARY _upBound;
          rocksdb::Slice _lowKey;
          rocksdb::Slice _upKey;
-         lsmKeyEntry _currentEntry;
+         lsmPureKeyEntry _currentEntry;
          bson::BufBuilder _builder;
          memoryBlock _backwardCurrentEntryCache;
          BOOLEAN _forward;

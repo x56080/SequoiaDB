@@ -277,15 +277,15 @@ constexpr UINT32 LSM_LOW_BOUND_KEY_SIZE = lsmEntryTypeSz + lsmIdxIDSz;
 // Return SDB LSM key comparator
 extern const rocksdb::Comparator* lsmIdxKeyComparator();
 
-class lsmKeyEntry : public SDBObject
+class lsmPureKeyEntry : public SDBObject
 {
 public:
-   lsmKeyEntry(){}
-   ~lsmKeyEntry() {}
+   lsmPureKeyEntry(){}
+   ~lsmPureKeyEntry() {}
 
-   lsmKeyEntry( const lsmKeyEntry & rhs ) = delete;
+   lsmPureKeyEntry( const lsmPureKeyEntry & rhs ) = delete;
 
-   lsmKeyEntry & operator= ( const lsmKeyEntry &rhs ) = delete;
+   lsmPureKeyEntry & operator= ( const lsmPureKeyEntry &rhs ) = delete;
 
    BOOLEAN isValid()const
    {
@@ -303,7 +303,7 @@ public:
       _transID = transID;
    }
 
-   void shallowCopy( const lsmKeyEntry &rhs )
+   void shallowCopy( const lsmPureKeyEntry &rhs )
    {
       _key.assign(rhs._key) ;
       _rid     = rhs._rid;

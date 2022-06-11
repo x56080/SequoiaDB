@@ -1,4 +1,4 @@
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "utilMemListPool.hpp"
 #include "pd.hpp"
 #include <string>
@@ -977,7 +977,7 @@ void lsmUpdateDataEntryToMostAdjacent( rocksdb::Slice a, INT32 direction )
    }
 }
 
-INT32 lsmKeyEntry::shallowCopy(const rocksdb::Slice &fullEntry)
+INT32 lsmPureKeyEntry::shallowCopy(const rocksdb::Slice &fullEntry)
 {
    INT32 rc = SDB_OK;
    globalIndexID indexId;

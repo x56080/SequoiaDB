@@ -33,7 +33,7 @@
 
 *******************************************************************************/
 #include "vessel/lsm/lsmDB.h"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmLobcKeyComparator.h"
 #include "vessel/lsm/lsmCompactionFilter.hpp"
 

@@ -41,6 +41,7 @@
 #include "vessel/lsm/lsmCompactionFilter.hpp"
 #include "vessel/lsm/lsmDB.h"
 #include <boost/filesystem.hpp>
+#include "vessel/lsm/lsmIndexKeyPacker.h"
 
 using namespace std;
 using namespace rocksdb;
@@ -98,25 +99,25 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
 
    CHAR fullKey[100] = {};
    CHAR indexValue[LSM_VALUE_SIZE] = {};
-   globalIndexID indexId;
 
    INT32 count = 0;
    CHAR keyData = 1;
-   orderingWrapper ordering;
-   recordID rid;
-   DPS_TRANS_ID transId;
 
    lsmIndexValue vl;
+   lsmIdxFixedKey fixedKey;
+   fixedKey.ordering = orderingWrapper(1, 1);
+   fixedKey.indexid.reset(0, 0, 0);
+   fixedKey.rid = recordID(0, 0);
 
    rc = ldb.open(LSM_PATH, &opt);
    ASSERT_EQ(SDB_OK, rc);
    
    // insert
-   vl.reset(LSM_VALUE_TYPE_INSERT);
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                           indexId, ordering, 
-                           ixmKey(&keyData), 
-                           rid, 1, transId);
+   vl.reset(LSM_IDX_VALUE_TYPE_INSERT);
+
+   fixedKey.lsn = 1;
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
@@ -126,23 +127,21 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    // delete
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                           indexId, ordering, 
-                           ixmKey(&keyData), 
-                           rid, 2, transId);
+   fixedKey.lsn = 2;
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
-   vl.reset(LSM_VALUE_TYPE_DELETE);
+   vl.reset(LSM_IDX_VALUE_TYPE_DELETE);
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
    ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
                                 Slice(indexValue, LSM_VALUE_SIZE),
                                 rocksdb::WriteOptions());
 
    // re-insert
-   vl.reset(LSM_VALUE_TYPE_INSERT);
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                           indexId, ordering, 
-                           ixmKey(&keyData), 
-                           rid, 3, transId);
+   vl.reset(LSM_IDX_VALUE_TYPE_INSERT);
+   fixedKey.lsn = 3;
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
@@ -210,23 +209,23 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    UINT32 count = 0;
    UINT32 insertCount = 50;
    CHAR keyData = 1;
-   orderingWrapper ordering;
-   recordID rid;
-   DPS_TRANS_ID transId;
+   lsmIdxFixedKey fixedKey;
+   fixedKey.ordering = orderingWrapper(1, 1);
+   fixedKey.indexid.reset(0, 0, 0);
+   fixedKey.rid = recordID(0, 0);
 
    lsmIndexValue vl;
 
 
    // insert
-   vl.reset(LSM_VALUE_TYPE_INSERT);
+   vl.reset(LSM_IDX_VALUE_TYPE_INSERT);
    for (UINT32 i = 0; i < insertCount; ++i)
    {  
-      rid.setPid(i+1);
-      rid.setPos((INT16)i+1);
-      rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                               indexId, ordering, 
-                               ixmKey(&keyData), 
-                               rid, 1, transId);
+      fixedKey.rid.setPid(i+1);
+      fixedKey.rid.setPos((INT16)i+1);
+      fixedKey.lsn = 1;
+      rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
       ASSERT_EQ(SDB_OK, rc);
 
       ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
@@ -237,15 +236,14 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    }
 
    // delete
-   vl.reset(LSM_VALUE_TYPE_DELETE);
+   vl.reset(LSM_IDX_VALUE_TYPE_DELETE);
    for (UINT32 i = 0; i < insertCount / 2; ++i)
    {
-      rid.setPid(i+1);
-      rid.setPos((INT16)i+1);
-      rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                               indexId, ordering, 
-                               ixmKey(&keyData), 
-                               rid, 2, transId);
+      fixedKey.rid.setPid(i+1);
+      fixedKey.rid.setPos((INT16)i+1);
+      fixedKey.lsn = 2;
+      rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
       ASSERT_EQ(SDB_OK, rc);
 
       ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
@@ -270,7 +268,7 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test2)
    ASSERT_NE(nullptr, itr);
    count = 0;
    UINT32 i = insertCount / 2 + 1;
-   lsmKeyEntry key;
+   lsmPureKeyEntry key;
 
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
@@ -316,22 +314,21 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
 
    CHAR fullKey[100] = {};
    CHAR indexValue[LSM_VALUE_SIZE] = {};
-   globalIndexID indexId;
 
    UINT32 count = 0;
    CHAR keyData1 = 1;
    CHAR keyData2 = 2;
-   orderingWrapper ordering;
-   recordID rid;
-   DPS_TRANS_ID transId;
+   lsmIdxFixedKey fixedKey;
+   fixedKey.ordering = orderingWrapper(1, 1);
+   fixedKey.indexid.reset(0, 0, 0);
+   fixedKey.rid = recordID(0, 0);
 
    lsmIndexValue vl;
    // insert
-   vl.reset(LSM_VALUE_TYPE_INSERT);
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                              indexId, ordering, 
-                              ixmKey(&keyData1), 
-                              rid, 1, transId);
+   vl.reset(LSM_IDX_VALUE_TYPE_INSERT);
+   fixedKey.lsn = 1;
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData1),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
@@ -340,10 +337,8 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
                                      rocksdb::WriteOptions());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                           indexId, ordering, 
-                           ixmKey(&keyData2), 
-                           rid, 1, transId);
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData2),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
    rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
                                      Slice(indexValue, LSM_VALUE_SIZE),
@@ -351,11 +346,10 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
    ASSERT_EQ(SDB_OK, rc);
 
    //delete
-   vl.reset(LSM_VALUE_TYPE_DELETE);
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                              indexId, ordering, 
-                              ixmKey(&keyData2), 
-                              rid, 2, transId);
+   vl.reset(LSM_IDX_VALUE_TYPE_DELETE);
+   fixedKey.lsn = 2;
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData2),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
 
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
@@ -380,7 +374,7 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test3)
    itr = ldb.getIdxColumnFamily().newIterator(rocksdb::ReadOptions());
    ASSERT_NE(nullptr, itr);
    count = 0;
-   lsmKeyEntry key;
+   lsmPureKeyEntry key;
    for (itr->SeekToFirst(); itr->Valid(); itr->Next())
    {
       rc = key.shallowCopy(itr->key());
@@ -422,10 +416,11 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
    CHAR indexValue[LSM_VALUE_SIZE] = {};
 
    CHAR keyData = 1;
-   orderingWrapper ordering;
    ixmKey key;
-   recordID rid;
-   DPS_TRANS_ID transId;
+   lsmIdxFixedKey fixedKey;
+   fixedKey.ordering = orderingWrapper(1, 1);
+   fixedKey.indexid.reset(0, 0, 0);
+   fixedKey.rid = recordID(0, 0);
 
    UINT32 count = 0;
 
@@ -436,12 +431,11 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
    lsmIndexValue vl;
 
    // insert
-   vl.reset(LSM_VALUE_TYPE_INSERT);
-   globalIndexID indexId1(1,2,3);
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                            indexId1, ordering, 
-                            ixmKey(&keyData), 
-                            rid, 1, transId);
+   vl.reset(LSM_IDX_VALUE_TYPE_INSERT);
+   fixedKey.indexid.reset(1, 2, 3);
+   fixedKey.lsn = 1;
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
    rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 
@@ -451,11 +445,9 @@ TEST_F(lsm_compaction_filter_test, base_compaction_filter_test4)
 
 
    // insert
-   globalIndexID indexId2(111,222,333);
-   rc = lsmPackIndexFullKey(fullKey, sizeof(fullKey), 
-                            indexId2, ordering, 
-                           ixmKey(&keyData), 
-                           rid, 1, transId);
+   fixedKey.indexid.reset(111, 222, 333);
+   rc = lsmIndexKeyPacker().pack(fixedKey, ixmKey(&keyData),
+                                 sizeof(fullKey), fullKey);
    ASSERT_EQ(SDB_OK, rc);
    ossMemcpy(indexValue, &vl, LSM_VALUE_SIZE);
    rc = ldb.getIdxColumnFamily().put(Slice(fullKey, sizeof(fullKey)), 

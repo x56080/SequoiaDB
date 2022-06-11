@@ -79,28 +79,41 @@ namespace vessel
             return !(*this == o);
          }
 
-         BOOLEAN operator<(const globalIndexID &o)const
+         INT32 compare(const globalIndexID &o)const
          {
             if (_csLid < o._csLid)
             {
-               return TRUE;
+               return -1;
             }
             else if (_csLid > o._csLid)
             {
-               return FALSE;
+               return 1;
             }
             else if (_clLid < o._clLid)
             {
-               return TRUE;
+               return -1;
             }
             else if (_clLid > o._clLid)
             {
-               return FALSE;
+               return 1;
+            }
+            else if (_indexLid < o._indexLid)
+            {
+               return -1;
+            }
+            else if (_indexLid > o._indexLid)
+            {
+               return 1;
             }
             else
             {
-               return _indexLid < o._indexLid;
+               return 0;
             }
+         }
+
+         BOOLEAN operator<(const globalIndexID &o)const
+         {
+            return compare(o) < 0;
          }
 
       public:

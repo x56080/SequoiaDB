@@ -33,24 +33,59 @@
 
 ******************************************************************************/
 #include "vessel/lsm/lsmIndexKeyPacker.h"
+#include "ixmKey.hpp"
+#include "ossLikely.hpp"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   lsmIndexKeyPacker::~lsmIndexKeyPacker()
+   INT32 lsmIndexKeyPacker::pack(const lsmIdxFixedKey &fixedKey,
+                                 const ixmKey &key,
+                                 UINT32 bufferSize,
+                                 CHAR *buffer)const
+   {
+      INT32 rc = SDB_OK;
+      strictBuffer b;
+      UINT32 size = 0;
+
+      if (OSS_UNLIKELY(!key.isValid() || nullptr == buffer))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      size = key.dataSize();
+      if (bufferSize < getFullKeySliceSize(size))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      b.makeWritable(bufferSize, buffer);
+      b.write(0, LSM_IDX_FIXED_KEY_SIZE, &fixedKey);
+      b.write(LSM_IDX_FIXED_KEY_SIZE, size, key.data());
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+////////////////lsmIndexKeyStackPacker
+   lsmIndexKeyStackPacker::~lsmIndexKeyStackPacker()
    {
       reset();
    }
 
-   INT32 lsmIndexKeyPacker::packFullKey(const ixmKey &key,
-                                        const globalIndexID &idxId,
-                                        const orderingWrapper &ow,
-                                        const recordID &rid,
-                                        UINT64 lsn,
-                                        const DPS_TRANS_ID &transID)
+   INT32 lsmIndexKeyStackPacker::packFullKey(const ixmKey &key,
+                                             const globalIndexID &idxId,
+                                             const orderingWrapper &ow,
+                                             const recordID &rid,
+                                             UINT64 lsn)
    {
       INT32 rc = SDB_OK;
+      lsmIdxFixedKey fixedKey;
 
       reset();
       if (!key.isValid() ||
@@ -60,7 +95,12 @@ namespace vessel
          goto error;
       }
 
-      _keySize = lsmCalFullDataKeyLen(key.dataSize());
+      fixedKey.indexid = idxId;
+      fixedKey.lsn = lsn;
+      fixedKey.rid = rid;
+      fixedKey.ordering = ow;
+
+      _keySize = getFullKeySliceSize(key.dataSize());
       _keyBuf = (CHAR *)_keyAllocator.malloc(_keySize);
       if (nullptr == _keyBuf)
       {
@@ -69,9 +109,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lsmPackIndexFullKey(_keyBuf, _keySize,
-                               idxId, ow, key,
-                               rid, lsn, transID);
+      rc = pack(fixedKey, key, _keySize, _keyBuf);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "pack index full key failed, rc:%d", rc);
@@ -85,8 +123,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexKeyPacker::packFullKey(const lsmKeyEntry &key,
-                                        const lsmIndexMeta &meta)
+   INT32 lsmIndexKeyStackPacker::packFullKey(const lsmPureKeyEntry &key,
+                                             const lsmIndexMeta &meta)
    {
       INT32 rc = SDB_OK;
 
@@ -102,8 +140,7 @@ namespace vessel
                        meta.getIdxId(),
                        meta.getOrdering(),
                        key.getRid(),
-                       key.getDataLsn(),
-                       key.getTransID());
+                       key.getDataLsn());
       if (SDB_OK != rc)  
       {
          PD_LOG(PDERROR, "pack full key failed, rc:%d", rc);
@@ -117,14 +154,14 @@ namespace vessel
       goto done;
    }
 
-   rocksdb::Slice lsmIndexKeyPacker::getFullKeySlice()const
+   rocksdb::Slice lsmIndexKeyStackPacker::getFullKeySlice()const
    {
       SDB_ASSERT(nullptr != _keyBuf, "can not be null");
       SDB_ASSERT(0 != _keySize, "can not be zero");
       return rocksdb::Slice(_keyBuf, _keySize);
    }
 
-   void lsmIndexKeyPacker::reset()
+   void lsmIndexKeyStackPacker::reset()
    {
       _keySize = 0;
       if (nullptr != _keyBuf)

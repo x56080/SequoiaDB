@@ -48,40 +48,15 @@ namespace vessel
    class orderingWrapper : public SDBObject
    {
       public:
-         orderingWrapper()
-         {
-            SDB_ASSERT(sizeof(orderingWrapper) == sizeof(bson::Ordering),
-                      "must be same");
-         }
-         ~orderingWrapper(){}
-         orderingWrapper(const orderingWrapper &o):
-         _bits(o._bits),
-         _nkeys(o._nkeys)
-         {
-            SDB_ASSERT(sizeof(orderingWrapper) == sizeof(bson::Ordering),
-                       "must be same");
-            SDB_ASSERT(0 < _nkeys, "can not be zero");
-            SDB_ASSERT(_nkeys <= 32, "can not be out of bound");
-         }
-
+         orderingWrapper() = default;
+         ~orderingWrapper() = default;
          explicit orderingWrapper(UINT32 b, UINT32 n):
          _bits(b),
          _nkeys(n)
          {
-            SDB_ASSERT(sizeof(orderingWrapper) == sizeof(bson::Ordering),
-                       "must be same");
             SDB_ASSERT(0 < _nkeys, "can not be zero");
             SDB_ASSERT(_nkeys <= 32, "can not be out of bound");
          }
-
-         orderingWrapper &operator=(const orderingWrapper &o)
-         {
-            _bits = o._bits;
-            _nkeys = o._nkeys;
-            
-            return *this;
-         }
-
       public:
          const bson::Ordering &toBsonOrdering()const
          {
@@ -94,6 +69,8 @@ namespace vessel
          UINT32 _bits = 0;
          UINT32 _nkeys = 0;
    };//class orderingWrapper
+
+   static_assert(sizeof(orderingWrapper) == sizeof(bson::Ordering), "must be same");
 }//namespace vessel
 }//namespace engine
 

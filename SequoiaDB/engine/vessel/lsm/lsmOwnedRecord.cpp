@@ -59,13 +59,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       fini();
-      globalIndexID indexId;
-      orderingWrapper ow;
-      ixmKey key;
-      recordID rid;
-      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
-      DPS_TRANS_ID transID;
       UINT32 keyDataSize = 0;
+      lsmIdxFullKeySlice fullKey;
 
       if (k.empty())
       {
@@ -78,16 +73,14 @@ namespace vessel
          goto error;
       }
 
-      rc = lsmUnpackIndexFullKey(k.data(), k.size(),
-                                 indexId, ow, key,
-                                 rid, lsn, transID);
-      if (SDB_OK != rc)
+      fullKey = lsmIdxFullKeySlice(k.data(), k.size(), TRUE);
+      if (!fullKey.isValid())
       {
          PD_LOG(PDERROR, "failed to unpack full key:%d", rc);
          goto error;
       }
 
-      keyDataSize = key.dataSize();
+      keyDataSize = ixmKey(fullKey.getIxmKeyData()).dataSize();
       if (MAX_INDEX_DEF_OBJ_SIZE <= keyDataSize)
       {
          PD_LOG(PDERROR, "invalid key data size[%d]", keyDataSize);
@@ -102,9 +95,10 @@ namespace vessel
          goto error;
       }
 
-      ossMemcpy(_mb.getBuffer(), key.data(), keyDataSize);
-      key.assign(ixmKey(_mb.getBuffer()));
-      _key.shallowCopy(key, rid, lsn, transID);
+      ossMemcpy(_mb.getBuffer(), fullKey.getIxmKeyData(), keyDataSize);
+      _key.set(ixmKey(_mb.getBuffer()),
+                      fullKey.getFixedKey()->rid,
+                      fullKey.getFixedKey()->lsn);
 
       if (!v.empty())
       {
@@ -135,8 +129,9 @@ namespace vessel
          goto error;
       }
 
-      _key.shallowCopy(ixmKey(_mb.getBuffer()), o._key.getRid(),
-                       o._key.getDataLsn(), o._key.getTransID());
+      _key.set(ixmKey(_mb.getBuffer()),
+                      o._key.getRid(),
+                       o._key.getDataLsn());
       _value = o._value;
    done:
       return rc;

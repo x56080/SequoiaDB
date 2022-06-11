@@ -63,10 +63,10 @@ namespace vessel
       _rOpt = rocksdb::ReadOptions();
    }
 
-   INT32 lsmIndexExecutor::put(const lsmKeyEntry &key)
+   INT32 lsmIndexExecutor::put(const lsmPureKeyEntry &key)
    {
       INT32 rc = SDB_OK;
-      lsmIndexKeyPacker packer;
+      lsmIndexKeyStackPacker packer;
       lsmIndexValue value;
       
       if (!isValid())
@@ -86,7 +86,7 @@ namespace vessel
          goto error;
       }
 
-      value.reset(LSM_VALUE_TYPE_INSERT);
+      value.reset(LSM_IDX_VALUE_TYPE_INSERT);
       rc = _cf.put(packer.getFullKeySlice(), value.getSlice(), _wOpt);
       if (SDB_OK != rc)
       {
@@ -105,8 +105,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       globalIndexID upIdxId;
-      CHAR lowKey[LSM_LOW_BOUND_KEY_SIZE];
-      CHAR upKey[LSM_LOW_BOUND_KEY_SIZE];
+      LSM_IDX_KEY_BOUNDARY low;
+      LSM_IDX_KEY_BOUNDARY up;
+      rocksdb::Slice lowSlice, upSlice;
 
       if (!isValid())
       {
@@ -114,18 +115,12 @@ namespace vessel
          goto error;
       }
 
-      lowKey[0] = LSM_ENTRY_TYPE_DATA;
-      *((globalIndexID*)(lowKey + 1)) = _meta.getIdxId();
+      low = _meta.getIdxId();
+      up.reset(low.getLogicalCSID(), low.getLogicalCLID(), low.getLogicalIndexID() + 1);
+      lowSlice = rocksdb::Slice((const CHAR *)(&low), LSM_IDX_BOUNDARY_SIZE);
+      upSlice = rocksdb::Slice((const CHAR *)(&up), LSM_IDX_BOUNDARY_SIZE);
 
-      upKey[0] = LSM_ENTRY_TYPE_DATA;
-      upIdxId.reset(_meta.getIdxId().getLogicalCSID(),
-                    _meta.getIdxId().getLogicalCLID(),
-                    _meta.getIdxId().getLogicalIndexID() + 1);
-      *((globalIndexID*)(upKey + 1)) = upIdxId;
-
-      rc = _cf.truncate(rocksdb::Slice(lowKey, sizeof(lowKey)),
-                        rocksdb::Slice(upKey, sizeof(upKey)),
-                        _wOpt);
+      rc = _cf.truncate(lowSlice, upSlice, _wOpt);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "truncate key-values in "

@@ -87,20 +87,20 @@ namespace engine
          INT32 _offset ;
    } ;//class _utilStackOnlyAllocator
 
-   class utilAllocatorBase : public SDBObject
+   class utilBaseAllocator : public SDBObject
    {
       public:
-         utilAllocatorBase() = default;
-         virtual ~utilAllocatorBase() = default;
-         utilAllocatorBase(const utilAllocatorBase &) = delete;
-         utilAllocatorBase &operator=(const utilAllocatorBase &) = delete;
+         utilBaseAllocator() = default;
+         virtual ~utilBaseAllocator() = default;
+         utilBaseAllocator(const utilBaseAllocator &) = delete;
+         utilBaseAllocator &operator=(const utilBaseAllocator &) = delete;
       public:
          virtual void *malloc(size_t size) = 0;
          virtual void free(void *p) = 0;
          virtual void *realloc(void *p, size_t size) = 0;
-   };//class utilAllocatorBase
+   };//class utilBaseAllocator
 
-   class utilPoolAllocator : public utilAllocatorBase
+   class utilPoolAllocator : public utilBaseAllocator
    {
       public:
          virtual void *malloc(size_t size) override
@@ -127,7 +127,7 @@ namespace engine
    };//utilPoolAllocator
 
    template<UINT32 STACK_SIZE=512>
-   class utilStackAllocator : public utilAllocatorBase
+   class utilStackAllocator : public utilBaseAllocator
    {
       public:
          virtual void *malloc(size_t size) override

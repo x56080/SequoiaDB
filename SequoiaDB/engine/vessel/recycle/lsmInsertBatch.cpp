@@ -48,7 +48,7 @@ namespace vessel
    }
 
    INT32 lsmInsertBatch::put(const lsmIndexMeta &meta,
-                             const lsmKeyEntry &ke,
+                             const lsmPureKeyEntry &ke,
                              const lsmIndexValue *value)
    {
       INT32 rc = SDB_OK;

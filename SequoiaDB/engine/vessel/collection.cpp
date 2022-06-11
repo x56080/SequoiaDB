@@ -4522,7 +4522,6 @@ namespace vessel
 
          if (o.indexCovered)
          {
-            transID = entry.getTransID();
             bson::BSONObj recordObj;
             ixmKey key(entry.getKeySlice().data());
             keyObjBuilder.reset();

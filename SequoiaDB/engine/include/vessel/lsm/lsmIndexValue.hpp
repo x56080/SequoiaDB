@@ -37,46 +37,29 @@
 #define LSM_INDEX_VALUE_HPP_
 
 #include "dms.hpp"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
+#include "dpsTransID.hpp"
 
 namespace engine
 {
 namespace vessel
 {
+   constexpr UINT8 LSM_IDX_VALUE_TYPE_INVALID = 0xFF;
+   constexpr UINT8 LSM_IDX_VALUE_TYPE_INSERT = 0x0;
+   constexpr UINT8 LSM_IDX_VALUE_TYPE_DELETE = 0x01;
+   constexpr UINT8 LSM_IDX_VALUE_TYPE_OLD_VER_INSERT = 0x02;
+
 #pragma pack(4)
    class lsmIndexValue : public SDBObject
    {
       public:
-         lsmIndexValue(){}
-         ~lsmIndexValue(){}
-
-         lsmIndexValue(const lsmIndexValue &o):
-         _type(o._type),
-         _flags(o._flags),
-         _rbsOffsetCL(o._rbsOffsetCL),
-         _rbsOffsetLid(o._rbsOffsetLid){}
-
-         lsmIndexValue &operator=(const lsmIndexValue &o)
-         {
-            _type = o._type;
-            _flags = o._flags;
-            _rbsOffsetCL = o._rbsOffsetCL;
-            _rbsOffsetLid = o._rbsOffsetLid;
-            return *this;
-         }
-
-      public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return  LSM_VALUE_TYPE_INVALID != _type &&
-                    (LSM_VALUE_TYPE_INSERT == _type ||
-                     LSM_VALUE_TYPE_DELETE == _type ||
-                     LSM_VALUE_TYPE_OLD_VER_INSERT == _type);
+            return LSM_IDX_VALUE_TYPE_INVALID != _type;
          }
          OSS_INLINE BOOLEAN isDeleted()const
          {
-            SDB_ASSERT(isValid(), "must be valid");
-            return LSM_VALUE_TYPE_DELETE == _type;
+            return LSM_IDX_VALUE_TYPE_DELETE == _type;
          }
          OSS_INLINE UINT8 getFlags()const
          {
@@ -94,26 +77,35 @@ namespace vessel
          {
             return rocksdb::Slice((const CHAR *)this, sizeof(lsmIndexValue));
          }
-         OSS_INLINE void reset(UINT8 type = LSM_VALUE_TYPE_INVALID,
+         OSS_INLINE const DPS_TRANS_ID &getTransID()const {return _transID;}
+
+         OSS_INLINE void reset(UINT8 type = LSM_IDX_VALUE_TYPE_INVALID,
                                UINT8 flags = 0,
                                UINT16 rbsOffsetCL = DMS_INVALID_CLID,
-                               INT16 rbsOffsetLid = -1)
+                               INT16 rbsOffsetLid = -1,
+                               const DPS_TRANS_ID &transID=DPS_TRANS_ID())
          {
+            _version = 0;
             _type = type;
             _flags = flags;
             _rbsOffsetCL = rbsOffsetCL;
             _rbsOffsetLid = rbsOffsetLid;
+            _transID = transID;
+            _flags = 0;
             return;
          }
 
       private:
-         UINT8 _type = LSM_VALUE_TYPE_INVALID;
-         UINT8 _flags = 0;
+         UINT8 _version = 0;
+         UINT8 _type = LSM_IDX_VALUE_TYPE_INVALID;
          UINT16 _rbsOffsetCL = DMS_INVALID_CLID;
          INT64 _rbsOffsetLid = -1;
+         DPS_TRANS_ID _transID;
+         UINT16 _flags = 0;
    };//class lsmIndexValue
 
    constexpr UINT32 LSM_VALUE_SIZE = sizeof(lsmIndexValue);
+   static_assert(24 == LSM_VALUE_SIZE, "invalid size");
 #pragma pack()
 }//namespace vessel
 }//namespace engine

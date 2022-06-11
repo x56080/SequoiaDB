@@ -141,7 +141,7 @@ INT32 lsmIndex::_allocAndCopy( const CHAR * keyAddr,
 }
 
 
-INT32 lsmIndex::packFullIndexKey(const lsmKeyEntry &ke,
+INT32 lsmIndex::packFullIndexKey(const lsmPureKeyEntry &ke,
                                  rocksdb::Slice &out)
 {
    INT32 rc = SDB_OK;
@@ -249,7 +249,7 @@ INT32 lsmIndex::locate( const INT32            direction,
    // key entry saved in rocksdb is sorted on lsn field in descending order
    UINT64 dataLsn = ( direction > 0 ) ? ((UINT64)(-1)) : 0 ;
    rocksdb::Slice searchSlice;
-   lsmKeyEntry entry;
+   lsmPureKeyEntry entry;
    exactlyMatched = FALSE;
 
    out.fini();
@@ -403,7 +403,7 @@ error:
    K3C 0_{cs:1,cl:2,idx:3}_{5,"t1",  1}_{pg:2,slt:1}_3_{sn:1,nd:3}
 */
 INT32 lsmIndex::advance( const INT32        direction,
-                         const lsmKeyEntry & searchKey,
+                         const lsmPureKeyEntry & searchKey,
                          lsmOwnedRecord    & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
@@ -589,7 +589,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
    // if is same key obj move to next when perform advance operation
    while( TRUE )
    {
-      lsmKeyEntry tmpKeyEntry;
+      lsmPureKeyEntry tmpKeyEntry;
       try
       {
          curKeyBson = _buildKeyObj( entryRecord.getKey().getKey().toBson(),
@@ -637,7 +637,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
    rc = SDB_IXM_EOC;
    while ( TRUE )
    {
-      lsmKeyEntry tmpKeyEntry;
+      lsmPureKeyEntry tmpKeyEntry;
       result = _ixmExtent::_keyCmp( entryRecord.getKey().getKey().toBson(),
                                     prevKeyBson,
                                     keepFieldsNum, skipToNext,
@@ -907,7 +907,7 @@ INT32 lsmIndex::_keyInsert( const rocksdb::Slice & key,
      SDB_OK: normal return
      otherwise any popped error code
 */
-INT32 lsmIndex::keyInsert(const lsmKeyEntry &key)
+INT32 lsmIndex::keyInsert(const lsmPureKeyEntry &key)
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
    INT32 rc   = SDB_OK;
@@ -1040,8 +1040,8 @@ INT32 lsmIndex::_keyDelete( const BOOLEAN blsmIdx,
 
 /*
 INT32 lsmIndex::keyDelete( const BOOLEAN            blsmIdx,
-                           const lsmKeyEntry      & origKeyEntry,
-                           const lsmKeyEntry      & keyEntry,
+                           const lsmPureKeyEntry      & origKeyEntry,
+                           const lsmPureKeyEntry      & keyEntry,
                            const UINT64             logLSN,
                            rocksdb::WriteBatch    * pBatch )
 {
@@ -1111,7 +1111,7 @@ INT32 lsmIndex::_keyRemove( const rocksdb::Slice & key,
      SDB_OK: normal return
      otherwise any popped error code
 */
-INT32 lsmIndex::keyRemove( const lsmKeyEntry   & keyEntry,
+INT32 lsmIndex::keyRemove( const lsmPureKeyEntry   & keyEntry,
                            const UINT64          logLSN )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
@@ -1178,7 +1178,7 @@ INT32 lsmIndex::dropIndex( UINT64 logLSN )
 */
 
 INT32 lsmIdxRepeatableReadOnly::advance( const INT32        direction,
-                                         const lsmKeyEntry & searchKey,
+                                         const lsmPureKeyEntry & searchKey,
                                          lsmOwnedRecord       & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );

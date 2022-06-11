@@ -1,5 +1,5 @@
 #include "vessel/lsm/lsmDB.hpp"
-#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmCompactionFilter.hpp"
 #include "pd.hpp"
 #include "rocksdb/status.h"
