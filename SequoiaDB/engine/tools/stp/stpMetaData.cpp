@@ -114,6 +114,9 @@ namespace engine
       // reset synchronize time
       _syncHWTime.reset() ;
 
+      // wake up watchers
+      wakeUpSyncWatchers() ;
+
       PD_TRACE_EXIT( SDB__STPMETADATA_INITIALIZE ) ;
    }
 
@@ -131,6 +134,9 @@ namespace engine
 
       // set synchronize time
       _syncHWTime.sampleMonotonic() ;
+
+      // wake up watchers
+      wakeUpSyncWatchers() ;
 
       PD_TRACE_EXIT( SDB__STPMETADATA_RESET ) ;
    }
@@ -582,6 +588,9 @@ namespace engine
                  _syncHWTime.toMicroSecond() ) ;
       }
 
+      // wake up watchers
+      wakeUpSyncWatchers() ;
+
       PD_TRACE_EXIT( SDB__STPMETADATA_ADJUSTLOGICALTIME ) ;
    }
 
@@ -667,6 +676,9 @@ namespace engine
                  oldOffset, _offset ) ;
       }
 
+      // wake up watchers
+      wakeUpSyncWatchers() ;
+
       PD_TRACE_EXIT( SDB__STPMETADATA_ADJUSTSLEWRATE ) ;
    }
 
@@ -717,6 +729,28 @@ namespace engine
       PD_TRACE_EXIT( SDB__STPMETADATA_NEWBUFFER ) ;
 
       return data ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_WATCHSYNC, "_stpMetaData::watchSync" )
+   void _stpMetaData::watchSync( INT32 oldWatcher, INT64 timeout ) const
+   {
+      PD_TRACE_ENTRY( SDB__STPMETADATA_WATCHSYNC ) ;
+
+      // watch on the synchronize time, which will be updated after synchronize
+      ossMemWatch( _syncHWTime.getWatchAddress(), oldWatcher, timeout ) ;
+
+      PD_TRACE_EXIT( SDB__STPMETADATA_WATCHSYNC ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_WAKEUPWATCHER, "_stpMetaData::wakeUpSyncWatchers" )
+   void _stpMetaData::wakeUpSyncWatchers()
+   {
+      PD_TRACE_ENTRY( SDB__STPMETADATA_WAKEUPWATCHER ) ;
+
+      // wake up the watchers on synchronize time
+      ossMemWakeUpWatchers( _syncHWTime.getWatchAddress() ) ;
+
+      PD_TRACE_EXIT( SDB__STPMETADATA_WAKEUPWATCHER ) ;
    }
 
 }

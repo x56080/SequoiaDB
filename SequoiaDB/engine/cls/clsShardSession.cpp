@@ -901,7 +901,8 @@ namespace engine
                           (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
-            agent.notifySync() ;
+            // NOTE: no need to wait, the COORD will wait
+            agent.notifySync( 0 ) ;
 
             // increase time error
             gtsAgent->incNodeTimeError( acceptTimeError ) ;
@@ -1041,7 +1042,8 @@ namespace engine
                           (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
-            agent.notifySync() ;
+            // NOTE: no need to wait, the COORD will wait
+            agent.notifySync( 0 ) ;
 
             rc = SDB_GLOB_TRANS_NOT_SYNC ;
             goto error ;

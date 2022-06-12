@@ -465,6 +465,9 @@ namespace engine
    // default timeout to reelect, 30 seconds
    #define STP_REELECT_DFT_TIMEOUT ( 30 )
 
+   // default wait synchronize timeout, 1 second
+   #define STP_NOTIFY_DFT_TIMEOUT  ( OSS_ONE_SEC )
+
 }
 
 #endif // STP_TOOL_COMMON_HPP__

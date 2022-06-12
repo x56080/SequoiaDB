@@ -97,6 +97,9 @@ namespace engine
       OSS_INLINE void setSyncHardwareTime( const stpHPTime &syncHWTime )
       {
          _syncHWTime = syncHWTime ;
+
+         // wake up watchers
+         wakeUpSyncWatchers() ;
       }
 
       OSS_INLINE const stpHPTime &getBaseHardwareTime() const
@@ -169,6 +172,9 @@ namespace engine
       {
          // update synchronize time with hardware time
          _syncHWTime.sampleMonotonic() ;
+
+         // wake up watchers
+         wakeUpSyncWatchers() ;
       }
 
    public:
@@ -230,6 +236,14 @@ namespace engine
       static stpMetaData *getBuffer( CHAR *buffer ) ;
       // construct meta data from shared memory buffer
       static stpMetaData *newBuffer( CHAR *buffer ) ;
+
+      void watchSync( INT32 oldWatcher, INT64 timeout ) const ;
+      void wakeUpSyncWatchers() ;
+
+      OSS_INLINE INT32 getSyncWatcher() const
+      {
+         return _syncHWTime.getWatchValue() ;
+      }
 
    protected:
       // get current logical time ( without time error )

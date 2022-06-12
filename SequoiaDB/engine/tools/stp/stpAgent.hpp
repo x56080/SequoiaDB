@@ -68,7 +68,7 @@ namespace engine
       INT32 checkAvailable() ;
 
       // notify the STP to synchronize with server
-      INT32 notifySync() ;
+      INT32 notifySync( INT64 timeout = STP_NOTIFY_DFT_TIMEOUT ) ;
 
       // get logical time in nanosecond in given timeout
       // output:
