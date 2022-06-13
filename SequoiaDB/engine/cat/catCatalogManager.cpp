@@ -1592,8 +1592,6 @@ namespace engine
       // first extract pQuery and find the options
       try
       {
-         BSONObj tempObj ;
-         BSONObj queryObj ;
          BSONObj insertObj ;
          BSONObj boQuery( pQuery );
          BSONObjBuilder ob ;

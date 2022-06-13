@@ -71,6 +71,7 @@ const SDB_LIST_RECYCLEBIN          = 27 ;
 const SDB_INSERT_CONTONDUP         = 1 ;
 const SDB_INSERT_RETURN_ID         = 0x10000000 ;
 const SDB_INSERT_REPLACEONDUP      = 4 ;
+const SDB_INSERT_UPDATEONDUP       = 0x00000008 ;
 
 const SDB_TRACE_FLW                = 0 ;
 const SDB_TRACE_FMT                = 1 ;

@@ -344,7 +344,6 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
 done:
    return rc ;
 error:
-
    if ( NULL != *node )
    {
       if ( NULL != (*node)->name )
@@ -1162,6 +1161,65 @@ error :
    goto done ;
 }
 
+static INT32 _clientAppendObj2Buff( CHAR *pBuffer, INT32 buffLen,
+                                    INT32 offset, const bson *object,
+                                    BOOLEAN endianConvert, INT32 *nextOffset )
+{
+   INT32 rc = SDB_OK ;
+   bson newObj ;
+   BOOLEAN bsonInit = FALSE ;
+   INT32 appendSize = 0 ;
+   INT32 objSize = bson_size( object ) ;
+
+   if ( offset + objSize > buffLen )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( endianConvert )
+   {
+      off_t off = 0 ;
+      bson_init( &newObj ) ;
+      bsonInit = TRUE ;
+      rc = bson_copy( &newObj, object ) ;
+      if ( rc )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !bson_endian_convert ( (char*)bson_data(&newObj), &off, TRUE ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossMemcpy ( &( pBuffer[ offset ] ), bson_data( &newObj ),
+                  bson_size( &newObj ) );
+      appendSize = ossRoundUpToMultipleX( bson_size(&newObj), 4 ) ;
+   }
+   else
+   {
+      ossMemcpy( &( pBuffer[ offset ] ), bson_data( object ), objSize ) ;
+      appendSize = ossRoundUpToMultipleX( objSize, 4 ) ;
+   }
+
+   if ( nextOffset )
+   {
+      *nextOffset = offset + appendSize ;
+   }
+
+done:
+   if ( bsonInit )
+   {
+      bson_destroy( &newObj ) ;
+   }
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 clientAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                               bson *insertor, BOOLEAN endianConvert )
 {
@@ -1169,9 +1227,10 @@ INT32 clientAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    MsgOpInsert *pInsert = (MsgOpInsert*)(*ppBuffer) ;
    INT32 offset         = 0 ;
    INT32 packetLength   = 0 ;
+   INT32 nextOffset     = 0 ;
    ossEndianConvertIf ( pInsert->header.messageLength, offset,
                         endianConvert ) ;
-   packetLength   = offset +
+   packetLength   = ossRoundUpToMultipleX( offset, 4 ) +
                     ossRoundUpToMultipleX( bson_size(insertor), 4 ) ;
    if ( packetLength < 0 )
    {
@@ -1189,44 +1248,17 @@ INT32 clientAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert = (MsgOpInsert*)(*ppBuffer) ;
    ossEndianConvertIf ( packetLength, pInsert->header.messageLength,
                         endianConvert ) ;
-   if( !endianConvert )
+
+   rc = _clientAppendObj2Buff( *ppBuffer, *bufferSize, offset,
+                               insertor, endianConvert, &nextOffset ) ;
+   if ( rc )
    {
-      ossMemcpy ( &((*ppBuffer)[offset]), bson_data(insertor),
-                                          bson_size(insertor));
-      offset += ossRoundUpToMultipleX ( bson_size(insertor), 4 ) ;
-   }
-   else
-   {
-      bson newinsertor ;
-      off_t off = 0 ;
-      bson_init ( &newinsertor ) ;
-      rc = bson_copy ( &newinsertor, insertor ) ;
-      if ( rc )
-      {
-         rc = SDB_INVALIDARG ;
-         goto endian_convert_done ;
-      }
-
-      if ( !bson_endian_convert ( (char*)bson_data(&newinsertor), &off, TRUE ) )
-      {
-         rc = SDB_INVALIDARG ;
-         goto endian_convert_done ;
-      }
-
-      ossMemcpy ( &((*ppBuffer)[offset]), bson_data(&newinsertor),
-                  bson_size(insertor));
-      offset += ossRoundUpToMultipleX( bson_size(insertor), 4 ) ;
-
-endian_convert_done :
-      bson_destroy ( &newinsertor ) ;
-
-      if ( rc )
-      {
-         goto error ;
-      }
+      ossPrintf( "Failed to append insertor to buffer, rc = %d"OSS_NEWLINE,
+                 rc ) ;
+      goto error ;
    }
 
-   if ( offset != packetLength )
+   if ( nextOffset != packetLength )
    {
       ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
       rc = SDB_SYS ;
@@ -1236,6 +1268,63 @@ endian_convert_done :
 done :
    return rc ;
 error :
+   goto done ;
+}
+
+INT32 clientAppendHint2InsertMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                  bson *hint, BOOLEAN endianConvert )
+{
+   INT32 rc = SDB_OK;
+   INT32 packetLength = 0 ;
+   INT32 offset = 0 ;
+   INT32 nextOffset = 0 ;
+   INT32 hintSize = bson_size( hint ) ;
+   MsgOpInsert *pInsert = (MsgOpInsert *)(*ppBuffer) ;
+
+   ossEndianConvertIf( pInsert->header.messageLength, offset, endianConvert ) ;
+   offset = ossRoundUpToMultipleX( offset, 4 ) ;
+   packetLength = offset + MSG_HINT_MARK_LEN +
+                  ossRoundUpToMultipleX( hintSize, 4 ) ;
+   if ( packetLength < 0 )
+   {
+      ossPrintf( "Packet size overflow"OSS_NEWLINE ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   rc = clientCheckBuffer( ppBuffer, bufferSize, packetLength ) ;
+   if ( rc )
+   {
+      ossPrintf( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
+
+   pInsert = (MsgOpInsert *)(*ppBuffer) ;
+   ossEndianConvertIf( packetLength, pInsert->header.messageLength,
+                       endianConvert ) ;
+
+   // Append prefix marking for insert: 4 bytes of value 0.
+   ossMemset( &(*ppBuffer)[offset], 0, MSG_HINT_MARK_LEN ) ;
+   offset += MSG_HINT_MARK_LEN ;
+
+   rc = _clientAppendObj2Buff( *ppBuffer, packetLength, offset, hint,
+                               endianConvert, &nextOffset ) ;
+   if ( rc )
+   {
+      ossPrintf( "Failed to append hint to buffer, rc = %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
+
+   if ( nextOffset != packetLength )
+   {
+      ossPrintf( "Invalid packet length"OSS_NEWLINE ) ;
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
    goto done ;
 }
 
@@ -1249,6 +1338,7 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc             = SDB_OK ;
    MsgOpInsert *pInsert = NULL ;
    INT32 offset         = 0 ;
+   INT32 nextOffset     = 0 ;
    INT32 nameLength     = 0 ;
    INT32 packetLength = ossRoundUpToMultipleX(offsetof(MsgOpInsert, name) +
                                               ossStrlen ( CollectionName ) + 1,
@@ -1287,54 +1377,46 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, nameLength ) ;
-   pInsert->name[nameLength]=0 ;
+   pInsert->name[nameLength] = 0 ;
    // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
                                    nameLength + 1,
                                    4 ) ;
-   if( !endianConvert )
+   if ( endianConvert )
    {
-      ossMemcpy ( &((*ppBuffer)[offset]), bson_data(insertor),
-                                          bson_size(insertor));
-      offset += ossRoundUpToMultipleX( bson_size(insertor), 4 ) ;
-   }
-   else
-   {
-      bson newinsertor ;
-      off_t off = 0 ;
-      bson_init ( &newinsertor ) ;
-      rc = bson_copy ( &newinsertor, insertor ) ;
-      if ( rc )
-      {
-         rc = SDB_INVALIDARG ;
-         goto endian_convert_done ;
-      }
       clientEndianConvertHeader ( &pInsert->header ) ;
+   }
 
-      if ( !bson_endian_convert( (char*)bson_data(&newinsertor), &off, TRUE ) )
-      {
-         rc = SDB_INVALIDARG ;
-         goto endian_convert_done ;
-      }
-      ossMemcpy ( &((*ppBuffer)[offset]), bson_data(&newinsertor),
-                                          bson_size(insertor));
-      offset += ossRoundUpToMultipleX( bson_size(insertor), 4 ) ;
+   rc = _clientAppendObj2Buff( *ppBuffer, *bufferSize, offset, insertor,
+                               endianConvert, &nextOffset ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
-endian_convert_done :
-      bson_destroy ( &newinsertor ) ;
+   offset = nextOffset ;
 
+   if ( hint )
+   {
+      rc = clientAppendHint2InsertMsg( ppBuffer, bufferSize,hint,
+                                       endianConvert ) ;
       if ( rc )
       {
          goto error ;
       }
    }
-   // sanity test
-   if ( offset != packetLength )
+   else
    {
-      ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
-      rc = SDB_SYS ;
-      goto error ;
+      // sanity test. If hint is specified, the check will be done when
+      // appending the hint.
+      if ( offset != packetLength )
+      {
+         ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
    }
+
 done :
    return rc ;
 error :
@@ -2658,6 +2740,19 @@ INT32 clientAppendInsertMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,
    rc = clientAppendInsertMsg ( ppBuffer, bufferSize,
                                 &bi, endianConvert ) ;
    bson_destroy ( &bi ) ;
+   return rc ;
+}
+
+INT32 clientAppendHint2InsertMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                     const CHAR *hint,
+                                     BOOLEAN endianConvert )
+{
+   INT32 rc = SDB_OK ;
+   bson bi ;
+   bson_init ( &bi ) ;
+   bson_init_finished_data ( &bi, hint ) ;
+   rc = clientAppendHint2InsertMsg( ppBuffer, bufferSize, &bi, endianConvert ) ;
+   bson_destroy( &bi ) ;
    return rc ;
 }
 

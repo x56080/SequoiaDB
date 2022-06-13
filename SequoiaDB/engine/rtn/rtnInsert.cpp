@@ -46,14 +46,17 @@
 #include "rtnTrace.hpp"
 #include "utilInsertResult.hpp"
 #include "pdSecure.hpp"
+#include "rtnInsertModifier.hpp"
+#include "rtnOprHandler.hpp"
 
-using namespace bson;
+using namespace bson ;
 
 namespace engine
 {
    #define RTN_INSERT_ONCE_NUM         (10)
 
-   static BSONObj generateUpdator( const BSONObj &record ) ;
+   static INT32 generateUpdator( const BSONObj &record, BOOLEAN isReplace,
+                                 BSONObj &updator ) ;
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINSERTREC, "_rtnInsertRecord" )
    static INT32 _rtnInsertRecord( dmsStorageUnit *su,
@@ -61,6 +64,7 @@ namespace engine
                                   const CHAR *clShortName,
                                   const BSONObj &record,
                                   INT32 flags,
+                                  const rtnInsertModifier *modifier,
                                   pmdEDUCB *cb,
                                   SDB_DMSCB *dmsCB,
                                   SDB_DPSCB *dpsCB,
@@ -69,7 +73,7 @@ namespace engine
                                   BOOLEAN canUnLock,
                                   dmsMBContext *context,
                                   INT64 position,
-                                  IOperationContext *opContext,
+                                  IRtnOprHandler *handler,
                                   utilInsertResult *insertResult )
    {
       INT32 rc = SDB_OK ;
@@ -82,8 +86,12 @@ namespace engine
       SDB_ASSERT( NULL != insertResult, "insert result is invalid" ) ;
 
       pdLogShield shield ;
-      if ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
-           OSS_BIT_TEST( FLG_INSERT_CONTONDUP,    flags ) )
+      BOOLEAN hasRetry = FALSE ;
+
+retry:
+      if ( ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
+             OSS_BIT_TEST( FLG_INSERT_CONTONDUP, flags ) ||
+             OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ) && !hasRetry )
       {
          shield.addRC( SDB_IXM_DUP_KEY ) ;
       }
@@ -94,7 +102,7 @@ namespace engine
       shield.clearRC() ;
 
       // check return code
-      if ( SDB_IXM_DUP_KEY == rc )
+      if ( SDB_IXM_DUP_KEY == rc && !hasRetry )
       {
          if ( FLG_INSERT_CONTONDUP & flags )
          {
@@ -103,14 +111,15 @@ namespace engine
             // skip duplicate key error
             rc = SDB_OK ;
          }
-         else if ( FLG_INSERT_REPLACEONDUP & flags )
+         else if ( FLG_INSERT_REPLACEONDUP & flags ||
+                   FLG_INSERT_UPDATEONDUP & flags )
          {
             // update record when duplicate key error
-            BSONObj hint ;
             BSONObj updator ;
             BSONObj matcher ;
             BSONObj shardingKey ;
             utilUpdateResult upResult ;
+            INT32 updateFlag = 0 ;
 
             utilIdxDupErrAssit dupErrAssit( insertResult->getIdxKeyPattern(),
                                             insertResult->getIdxValue() ) ;
@@ -122,31 +131,70 @@ namespace engine
             }
             insertResult->resetInfo() ;
 
-            if ( NULL != opContext )
+            if ( NULL != handler )
             {
-               rc = opContext->getShardingKey( clFullName, shardingKey ) ;
+               rc = handler->getShardingKey( clFullName, shardingKey ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get sharding key of "
                             "collection: %s, rc: %d", clFullName, rc ) ;
             }
 
-            updator = generateUpdator( record ) ;
-            rc = rtnUpdate( clFullName, matcher, updator, hint,
-                            0, cb, dmsCB, dpsCB, w, &upResult,
-                            shardingKey.isEmpty() ? NULL : &shardingKey ) ;
-            if ( rc )
             {
-               insertResult->setErrInfo( &upResult ) ;
+               BSONObj dummyObj ;
+               rtnQueryOptions options( matcher, dummyObj, dummyObj, dummyObj,
+                                        clFullName, 0, -1, updateFlag ) ;
+               if ( FLG_INSERT_REPLACEONDUP & flags )
+               {
+                  rc = generateUpdator( record, TRUE, updator ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Generate updator from insertor %s "
+                               "when replace on duplication failed[%d]",
+                               PD_SECURE_OBJ( record ), rc ) ;
+               }
+               else
+               {
+                  if ( modifier )
+                  {
+                     updator = modifier->getUpdator() ;
+                  }
 
-               PD_LOG( PDERROR, "Failed to update record[%s] in "
-                       "collection[%s] when insert exists duplicate key, "
-                       "rc: %d", PD_SECURE_OBJ( record ), clFullName, rc ) ;
-               goto error ;
-            }
-            else
-            {
-               // update success.
-               insertResult->incDuplicatedNum( upResult.updateNum() ) ;
-               rc = SDB_OK ;
+                  // If no updator specified in the hint, use the record to be
+                  // inserted as the updator. The field "_id" will be ignored,
+                  // in order to keep the original "_id".
+                  if ( updator.isEmpty() )
+                  {
+                     rc = generateUpdator( record, FALSE, updator ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Generate updator from insertor "
+                                  "%s when update on duplication failed[%d]",
+                                  PD_SECURE_OBJ( record ), rc ) ;
+                  }
+               }
+
+               rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, &upResult,
+                               shardingKey.isEmpty() ? NULL : &shardingKey,
+                               DPS_LOG_WRITE_MOD_INCREMENT, handler ) ;
+               if ( rc )
+               {
+                  insertResult->setErrInfo( &upResult ) ;
+
+                  PD_LOG( PDERROR, "Failed to update record[%s] in "
+                          "collection[%s] when insert exists duplicate key, "
+                          "rc: %d", PD_SECURE_OBJ( record), clFullName,
+                          rc ) ;
+                  goto error ;
+               }
+               else if ( 0 == upResult.updateNum() )
+               {
+                  // If no record is updated, the original record is removed.
+                  // Let's try to insert again.
+                  hasRetry = TRUE ;
+                  goto retry ;
+               }
+               else
+               {
+                  // update success.
+                  insertResult->incDuplicatedNum( upResult.updateNum() ) ;
+                  insertResult->incModifiedNum( upResult.modifiedNum() ) ;
+                  rc = SDB_OK ;
+               }
             }
          }
          else
@@ -169,8 +217,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
-                     INT32 flags, pmdEDUCB *cb, IOperationContext *opContext,
-                     utilInsertResult *pResult )
+                     INT32 flags, pmdEDUCB *cb, IRtnOprHandler *oprHandler,
+                     utilInsertResult *pResult,
+                     const rtnInsertModifier *modifier )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNINSERT1 ) ;
@@ -184,7 +233,7 @@ namespace engine
          dpsCB = NULL ;
       }
       rc = rtnInsert ( pCollectionName, objs, objNum, flags, cb,
-                       dmsCB, dpsCB, 1, opContext, pResult ) ;
+                       dmsCB, dpsCB, 1, oprHandler, pResult, modifier ) ;
       PD_TRACE_EXITRC ( SDB_RTNINSERT1, rc ) ;
 
       return rc ;
@@ -194,8 +243,9 @@ namespace engine
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                     SDB_DPSCB *dpsCB, INT16 w, IOperationContext *opContext,
-                     utilInsertResult *pResult )
+                     SDB_DPSCB *dpsCB, INT16 w, IRtnOprHandler *handler,
+                     utilInsertResult *pResult,
+                     const rtnInsertModifier *modifier )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNINSERT2 ) ;
@@ -264,8 +314,8 @@ namespace engine
             BSONObj record ( (const CHAR*)pDataPos ) ;
 
             rc = _rtnInsertRecord( su, pCollectionName, pCollectionShortName,
-                                   record, flags, cb, dmsCB, dpsCB, w, TRUE,
-                                   TRUE, NULL, -1, opContext, pResult ) ;
+                                   record, flags, modifier, cb, dmsCB, dpsCB,
+                                   w, TRUE, TRUE, NULL, -1, handler, pResult ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
                          "collection [%s], rc: %d", pCollectionName, rc ) ;
 
@@ -305,9 +355,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNREPLAYINERT, "rtnReplayInsert" )
    INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                          SDB_DPSCB *dpsCB, INT16 w,
-                          utilInsertResult *pResult,
-                          INT64 position )
+                          SDB_DPSCB *dpsCB, INT16 w, utilInsertResult *pResult,
+                          INT64 position, IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREPLAYINERT ) ;
@@ -363,8 +412,8 @@ namespace engine
          }
 
          rc = _rtnInsertRecord( su, pCollectionName, clShortName, obj, flags,
-                                cb, dmsCB, dpsCB, w, TRUE, TRUE, NULL, position,
-                                NULL, pResult ) ;
+                                NULL, cb, dmsCB, dpsCB, w, TRUE, TRUE, NULL,
+                                position, opHandler, pResult ) ;
          if ( SDB_OK != rc )
          {
             if ( DMS_STORAGE_CAPPED == su->type() )
@@ -411,10 +460,45 @@ namespace engine
       goto done ;
    }
 
-   BSONObj generateUpdator( const BSONObj &record )
+   // Generate and updator from a given record. The "_id" will be ignored.
+   INT32 generateUpdator( const BSONObj &record, BOOLEAN isReplace,
+                          BSONObj &updator )
    {
-      return BSON( "$replace" << record
-                   << "$keep" << BSON( DMS_ID_KEY_NAME << 1) ) ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         if ( isReplace )
+         {
+            updator = BSON( "$replace" << record
+                            << "$keep" << BSON( DMS_ID_KEY_NAME << 1 ) ) ;
+         }
+         else
+         {
+            BSONObjBuilder builder ;
+            BSONObjBuilder subBuilder( builder.subobjStart( "$set" ) ) ;
+            BSONObjIterator itr( record ) ;
+            while ( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               if ( 0 != ossStrcmp( ele.fieldName(), "_id" ) )
+               {
+                  subBuilder.append( ele ) ;
+               }
+            }
+            subBuilder.done() ;
+            updator = builder.obj() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }
-

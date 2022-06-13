@@ -64,13 +64,15 @@ do                                     \
 #define SDB_PAGESIZE_DEFAULT      0
 
 
-/** The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error */
+/** The flag represents whether insert continue(no errors were reported) when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP      0x00000001
-// The flag represent whether insert return detail result
+// The flag represents whether insert return detail result
 #define FLG_INSERT_RETURNNUM      0x00000002
-/** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
+/** The flag represents replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_REPLACEONDUP   0x00000004
-/** The flag represent whether insert return the "_id" field of the record for user */
+/** The flag represents updating the existing record by the specified updator and continuing when insert hitting index key duplicate error */
+#define FLG_INSERT_UPDATEONDUP    0x00000008
+/** The flag represents whether insert return the "_id" field of the record for user */
 #define FLG_INSERT_RETURN_OID     0x10000000
 
 // client socket timeout value
@@ -941,6 +943,8 @@ namespace sdbclient
                DuplicatedNum: The number of records ignored or replaced due to duplicate
                               key conflicts.
                <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
                LastGenerateID: The max value of all auto-increments that the inserted record
                                contains. The result will include this field if current
                                collection has auto-increments.
@@ -967,8 +971,10 @@ namespace sdbclient
                              bson::BSONObj *pResult = NULL )
           \brief Insert a bson object into current collection.
           \param [in] obj The bson object to be inserted.
-          \param [in] hint. Client and Query information. Default to be empty
-                            when not provided.
+          \param [in] hint Update rule to update the existing record when the
+                           insertion failed due to duplicate key error. The
+                           format is: { "$Modify": { "OP": "update", "Update":
+                           { updator } } }.
           \param [in] flags The flag to control the behavior of inserting. The
                             value of flag default to be 0, and it can choose
                             the follow values:
@@ -989,6 +995,11 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
+               <li>
+               FLG_INSERT_UPDATEONDUP:
+                                     if the record hit index key duplicate
+                                     error, database will update the existing
+                                     record by the updator in the hint.
           \param [out] pResult A BSONObj object whose contaions the insert details,
                                as follows:
                <ul>
@@ -998,6 +1009,8 @@ namespace sdbclient
                <li>
                DuplicatedNum: The number of records ignored or replaced due to duplicate
                               key conflicts.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
                <li>
                LastGenerateID: The max value of all auto-increments that the inserted record
                                contains. The result will include this field if current
@@ -1058,6 +1071,8 @@ namespace sdbclient
                DuplicatedNum: The number of records ignored or replaced due to duplicate
                               key conflicts.
                <li>
+               ModifiedNum: The number of records successfully updated with data changes.
+               <li>
                LastGenerateID: The max value of all auto-increments that the first record
                                inserted contains. The result will include this field if
                                current collection has auto-increments.
@@ -1084,8 +1099,10 @@ namespace sdbclient
                              bson::BSONObj *pResult = NULL )
           \brief Insert a bson object into current collection.
           \param [in] objs The bson objects to be inserted.
-          \param [in] hint. Client and Query information. Default to be empty
-                            when not provided.
+          \param [in] hint Update rule to update the existing record when the
+                           insertion failed due to duplicate key error. The
+                           format is: { "$Modify": { "OP": "update", "Update":
+                           { updator } } }.
           \param [in] flags The flag to control the behavior of inserting. The
                             value of flag default to be 0, and it can choose
                             the follow values:
@@ -1118,6 +1135,8 @@ namespace sdbclient
                <li>
                DuplicatedNum: The number of records ignored or replaced due to duplicate
                               key conflicts.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
                <li>
                LastGenerateID: The max value of all auto-increments that the first record
                                inserted contains. The result will include this field if
@@ -1179,6 +1198,8 @@ namespace sdbclient
                <li>
                DuplicatedNum: The number of records ignored or replaced due to duplicate
                               key conflicts.
+               <li>
+               ModifiedNum: The number of records successfully updated with data changes.
                <li>
                LastGenerateID: The max value of all auto-increments that the first record
                                inserted contains. The result will include this field if

@@ -18,7 +18,8 @@ testCommonFiles = [
       ]
 
 testFiles1 = [
-        "collection.cpp"
+        "collection.cpp",
+        "insert.cpp"
       ]
 testFiles2 = [
         "collectionspace.cpp"

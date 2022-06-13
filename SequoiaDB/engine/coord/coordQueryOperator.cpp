@@ -1045,9 +1045,9 @@ namespace engine
          // if DQL not command should check version
          if ( pCollectionName && CMD_ADMIN_PREFIX[0] != pCollectionName[0] )
          {
-            rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+            rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
+                      "check cat version failed, rc: %d", rc ) ;
          }
 
          if ( isUpdate && ( cataSel.getCataPtr()->isSharded() ||

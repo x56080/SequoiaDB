@@ -66,10 +66,11 @@ namespace engine
                                 public _IDmsOprHandler
    {
    public:
-      dmsTransLockCallback() ;
+      dmsTransLockCallback( IDmsOprHandler *handler = NULL ) ;
 
       dmsTransLockCallback( dpsTransCB *transCB,
-                            _pmdEDUCB  *eduCB ) ;
+                            _pmdEDUCB  *eduCB,
+                            IDmsOprHandler *handler = NULL ) ;
 
       void     clearStatus() ;
 
@@ -359,6 +360,7 @@ namespace engine
 
       // index bitmap to indicate which index is updated
       DMS_TRANS_INDEX_BITMAP _indexBitmap ;
+      IDmsOprHandler      *_opHandler ;
    } ;
 
 }

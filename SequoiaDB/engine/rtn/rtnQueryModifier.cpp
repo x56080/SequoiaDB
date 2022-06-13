@@ -37,26 +37,48 @@ using namespace bson ;
 
 namespace engine
 {
-   _rtnQueryModifier::_rtnQueryModifier( BOOLEAN isUpdate,
-                                         BOOLEAN isRemove,
-                                         BOOLEAN returnNew )
-   : _isUpdate( isUpdate ),
-   _isRemove ( isRemove ),
-   _returnNew ( returnNew )
+   _rtnQueryModifier::_rtnQueryModifier()
+   : _returnNew ( FALSE )
    {
-      SDB_ASSERT( _isUpdate || _isRemove, "neither update nor remove" ) ;
-      SDB_ASSERT( _isUpdate != _isRemove, "cannot be true in both" ) ;
    }
 
-   INT32 _rtnQueryModifier::loadUpdator( const BSONObj &updator )
+   INT32 _rtnQueryModifier::_parseModifyEle( const BSONElement &ele )
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( _isUpdate, "not update" ) ;
+      if ( 0 == ossStrcmp( FIELD_NAME_RETURNNEW, ele.fieldName() ) )
+      {
+         if ( !ele.isBoolean() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Field[%s] in hint should be bool[%d]",
+                    FIELD_NAME_RETURNNEW, rc ) ;
+            goto error ;
+         }
+         _returnNew = ele.boolean() ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
-      _updator = updator ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
-      if ( updator.isEmpty() )
+   INT32 _rtnQueryModifier::_onInit()
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( RTN_MODIFY_UPDATE != _modifyOp )
+      {
+         goto done ;
+      }
+
+      if ( _opOption.isEmpty() )
       {
          PD_LOG ( PDERROR, "modifier can't be empty" ) ;
          rc = SDB_INVALIDARG ;
@@ -65,15 +87,15 @@ namespace engine
 
       try
       {
-         rc = _modifier.loadPattern ( updator,
+         rc = _modifier.loadPattern ( _opOption,
                                       &_dollarList ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
-                      "%s", updator.toString().c_str() ) ;
+                                   "%s", _opOption.toString().c_str() ) ;
       }
       catch ( std::exception &e )
       {
          PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s: %s",
-                  updator.toString().c_str(), e.what() ) ;
+                  _opOption.toString().c_str(), e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }

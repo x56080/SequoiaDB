@@ -42,6 +42,7 @@
 #include "dmsTrace.hpp"
 #include "dmsTransLockCallback.hpp"
 #include "dmsStorageDataCommon.hpp"
+#include "dmsOprHandler.hpp"
 #include "dpsTransVersionCtrl.hpp"
 #include "rtnIXScanner.hpp"
 #include "utilLightJobBase.hpp"
@@ -361,15 +362,15 @@ namespace engine
       // comes in, the result is immediately avaliable. Thus at the time
       // those changes were made, we need to get rid of all old version
       // tree nodes associate with the rid so that index scan would not
-      // pick up any of those versions. 
+      // pick up any of those versions.
       if( pmdGetOptionCB()->mvccOn()        &&
           eduCB->getTransID().isInvalid()  &&
           ( lockId.isLeafLevel() )          &&
           ( DPS_TRANSLOCK_X == lockMode )   &&
-          nonTransNeedCleanup )   
+          nonTransNeedCleanup )
       {
 #ifdef _DEBUG
-         PD_LOG( PDDEBUG, 
+         PD_LOG( PDDEBUG,
                  "Cleanup old indexes for rid[%s] in mvcc for nontrans change"
                  "refCounter=%d, pExtData=%p, _data=%p",
                  lockId.toString().c_str(), refCounter, pExtData,
@@ -475,7 +476,7 @@ namespace engine
       return TRUE ;
    }
 
-   dmsTransLockCallback::dmsTransLockCallback()
+   dmsTransLockCallback::dmsTransLockCallback( IDmsOprHandler *handler )
    {
       _transCB    = NULL ;
       _oldVer     = NULL ;
@@ -493,13 +494,15 @@ namespace engine
       _nonTransNeedCleanup = FALSE ;
       _useLatestVersion = FALSE ;
       _pScanner    = NULL ;
+      _opHandler   = handler ;
 
       clearStatus() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_DMSTRANSLOCKCALLBACK, "dmsTransLockCallback::dmsTransLockCallback" )
    dmsTransLockCallback::dmsTransLockCallback( dpsTransCB *transCB,
-                                               _pmdEDUCB *eduCB )
+                                               _pmdEDUCB *eduCB,
+                                               IDmsOprHandler *handler )
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_DMSTRANSLOCKCALLBACK ) ;
 
@@ -519,6 +522,7 @@ namespace engine
       _clID       = DMS_INVALID_MBID ;
       _latchedIdxLid = DMS_INVALID_EXTENT ;
       _pScanner      = NULL ;
+      _opHandler     = handler ;
 
       clearStatus() ;
 
@@ -586,9 +590,9 @@ namespace engine
       _diskRecordTransID.reset() ;
    }
 
-   const dmsRBSOffset & dmsTransLockCallback::getRBSRecordOffset() 
+   const dmsRBSOffset & dmsTransLockCallback::getRBSRecordOffset()
    {
-      return _rbsRecordOffset ; 
+      return _rbsRecordOffset ;
    }
 
    const dmsTransRecordInfo* dmsTransLockCallback::getTransRecordInfo() const
@@ -596,7 +600,7 @@ namespace engine
       return &_recordInfo ;
    }
 
-   DPS_TRANS_ID dmsTransLockCallback::getRecordTransID() 
+   DPS_TRANS_ID dmsTransLockCallback::getRecordTransID()
    {
       DPS_TRANS_ID rv ;
       if ( _oldVer )
@@ -606,7 +610,7 @@ namespace engine
       return rv ;
    }
 
-   DPS_TRANS_ID dmsTransLockCallback::getOwnerTransID() 
+   DPS_TRANS_ID dmsTransLockCallback::getOwnerTransID()
    {
       DPS_TRANS_ID rv ;
       if ( _oldVer )
@@ -1384,7 +1388,7 @@ namespace engine
          {
             _recordOnDiskVisible = TRUE ;
             _eduCB->setExpireTranCache( _transCB->getExpiredVersion() ) ;
-            goto done ;            
+            goto done ;
          }
 
          if ( NULL != needData && _recordRW->isEmpty() )
@@ -1565,7 +1569,7 @@ namespace engine
          PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
                  "rid(%d, %d), ownertransid(%s), "
                  "recordTransID(%s)",
-                 rid._extent, rid._offset, 
+                 rid._extent, rid._offset,
                  dpsTransIDToString( transID ).c_str(),
                  dpsTransIDToString( pRecord->getGlobTransID() ).c_str() ) ;
 #endif
@@ -1591,7 +1595,7 @@ namespace engine
             {
                DPS_TRANS_ID recTransID = pRecord->getGlobTransID() ;
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
-                      ->rbsAppendRecord( _oldVer->getCSID(), 
+                      ->rbsAppendRecord( _oldVer->getCSID(),
                                          _oldVer->getCLID(),
                                          clLID,
                                          rid,
@@ -1600,10 +1604,10 @@ namespace engine
                                          obj, this ) ;
                if ( rc )
                {
-                  PD_LOG( PDERROR, 
+                  PD_LOG( PDERROR,
                           "Failed to save to RBS  :rid(%d, %d), tid(%s), "
                           "obj(%s)",
-                          rid._extent, rid._offset, 
+                          rid._extent, rid._offset,
                           dpsTransIDToString( transID ).c_str(),
                           _oldVer->getRecordObj().toString().c_str() ) ;
                   goto error ;
@@ -1707,10 +1711,10 @@ namespace engine
                }
             }
             PD_LOG ( PDERROR, "Insert index(%s) key(%s) with rid(%d, %d) "
-                     "found key(%s), failed, rc: %d", 
+                     "found key(%s), failed, rc: %d",
                      indexCB->getDef().toString().c_str(),
                      keyObj.toString().c_str(),
-                     rid._extent, rid._offset, 
+                     rid._extent, rid._offset,
                      idxValue.toString().c_str(), rc ) ;
             goto error ;
          }
@@ -1732,14 +1736,30 @@ namespace engine
                                                const _dmsRecordRW *pRecordRW,
                                                _pmdEDUCB* cb )
    {
+      INT32 rc = SDB_OK ;
+      if ( _opHandler )
+      {
+         rc = _opHandler->onInsertRecord( context,  object, rid,
+                                          pRecordRW, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       if ( _oldVer )
       {
          _oldVer->setRecordNew( cb->getTID() ) ;
       }
+
       // mark insert by self
       context->mbStat()->updateGlobTransIDWithComp( _eduCB->getTransID() ) ;
       _recordInfo._transInsert = TRUE ;
-      return SDB_OK ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 dmsTransLockCallback::onDeleteRecord( _dmsMBContext *context,
@@ -1750,6 +1770,17 @@ namespace engine
                                                _pmdEDUCB* cb )
    {
       INT32 rc = SDB_OK ;
+
+      if ( _opHandler )
+      {
+         rc = _opHandler->onDeleteRecord( context, object, rid, pRecordRW,
+                                          markDeleting, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       rc = saveOldVersionRecord( pRecordRW, rid, context->clLID(),
                                  object, cb->getTID() ) ;
       if ( SDB_OK == rc && markDeleting && _oldVer )
@@ -1771,7 +1802,11 @@ namespace engine
          _recordInfo._transInsertDeleted = FALSE ;
       }
       context->mbStat()->updateGlobTransIDWithComp( _eduCB->getTransID() ) ;
+
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    INT32 dmsTransLockCallback::onUpdateRecord( _dmsMBContext *context,
@@ -1781,9 +1816,25 @@ namespace engine
                                                const _dmsRecordRW *pRecordRW,
                                                _pmdEDUCB *cb )
    {
+      INT32 rc = SDB_OK ;
+      if ( _opHandler )
+      {
+         rc = _opHandler->onUpdateRecord( context, orignalObj, newObj, rid,
+                                          pRecordRW, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       context->mbStat()->updateGlobTransIDWithComp( _eduCB->getTransID() ) ;
-      return saveOldVersionRecord( pRecordRW, rid, context->clLID(),
-                                   orignalObj, cb->getTID() ) ;
+      rc = saveOldVersionRecord( pRecordRW, rid, context->clLID(),
+                                 orignalObj, cb->getTID() ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 dmsTransLockCallback::onInsertIndex( _dmsMBContext *context,
@@ -1798,6 +1849,16 @@ namespace engine
       INT32 rc = SDB_OK ;
       preIdxTreePtr treePtr ;
       _INSERT_CURSOR insertCursor = _INSERT_NONE ;
+
+      if ( _opHandler )
+      {
+         rc = _opHandler->onInsertIndex( context, indexCB, isUnique, isEnforce,
+                                         keySet, rid, cb, pResult ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
 
       if ( !_transCB || !_transCB->isTransOn() )
       {
@@ -1837,6 +1898,16 @@ namespace engine
       INT32 rc = SDB_OK ;
       preIdxTreePtr treePtr ;
       _INSERT_CURSOR insertCursor = _INSERT_NONE ;
+
+      if ( _opHandler )
+      {
+         rc = _opHandler->onInsertIndex( context, indexCB, isUnique, isEnforce,
+                                         keyObj, rid, cb, pResult ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
 
       if ( !_transCB || !_transCB->isTransOn() )
       {
@@ -1979,6 +2050,16 @@ namespace engine
       _DELETE_CURSOR deleteCursor = _DELETE_NONE ;
       preIdxTreePtr treePtr ;
 
+      if ( _opHandler )
+      {
+         rc = _opHandler->onDeleteIndex( context, indexCB, isUnique, keySet,
+                                         rid, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       if ( !_transCB || !_transCB->isTransOn() )
       {
          goto done ;
@@ -2022,6 +2103,17 @@ namespace engine
       _DELETE_CURSOR deleteCursor = _DELETE_NONE ;
       _INSERT_CURSOR insertCursor = _INSERT_NONE ;
       BOOLEAN hasChanged = FALSE ;
+
+      if ( _opHandler )
+      {
+         rc = _opHandler->onUpdateIndex( context, indexID, indexCB, isUnique,
+                                         isEnforce, oldKeySet, newKeySet, rid,
+                                         isRollback, cb, pResult ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
 
       /// not use transaction
       if ( !_transCB || !_transCB->isTransOn() )
@@ -2099,7 +2191,7 @@ namespace engine
                                     isUnique, *itori, rid, cb ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, 
+               PD_LOG ( PDERROR,
                         "checkDelete index keys(%s) failed, rc: %d",
                         itori->toString().c_str(), rc ) ;
                goto error ;
@@ -2118,6 +2210,17 @@ namespace engine
                                             const ixmIndexCB *indexCB,
                                             _pmdEDUCB *cb )
    {
+      INT32 rc = SDB_OK ;
+
+      if ( _opHandler )
+      {
+         rc = _opHandler->onDropIndex( context, indexCB, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       if ( _transCB && _transCB->getOldVCB() )
       {
          oldVersionCB *pOldVCB = _transCB->getOldVCB() ;
@@ -2125,7 +2228,10 @@ namespace engine
          pOldVCB->delIdxTree( gid, FALSE ) ;
       }
 
-      return SDB_OK ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    // when rebuild index, we need to build in memory old version index
@@ -2151,6 +2257,15 @@ namespace engine
       SDB_ASSERT( context && context->isMBLock(),
                   "Caller should hold mb lock" ) ;
       SDB_ASSERT( indexCB, "indexCB is invalid " ) ;
+
+      if ( _opHandler )
+      {
+         rc = _opHandler->onRebuildIndex( context, indexCB, cb, pResult ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
 
       if ( _transCB && _transCB->isTransOn() )
       {
@@ -2288,6 +2403,15 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_ONCREATEINDEX ) ;
       INT32   rc         = SDB_OK ;
 
+      if ( _opHandler )
+      {
+         rc = _opHandler->onCreateIndex( context, indexCB, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       // create in memory tree
       if ( _transCB && _transCB->isTransOn() )
       {
@@ -2320,6 +2444,11 @@ namespace engine
 
    void dmsTransLockCallback::onCSClosed( INT32 csID )
    {
+      if ( _opHandler )
+      {
+         _opHandler->onCSClosed( csID ) ;
+      }
+
       if ( _transCB && _transCB->getOldVCB() )
       {
          oldVersionCB *pOldVCB = _transCB->getOldVCB() ;
@@ -2332,6 +2461,11 @@ namespace engine
 
    void dmsTransLockCallback::onCLTruncated( INT32 csID, UINT16 clID )
    {
+      if ( _opHandler )
+      {
+         _opHandler->onCLTruncated( csID, clID ) ;
+      }
+
       if ( _transCB && _transCB->getOldVCB() )
       {
          oldVersionCB *pOldVCB = _transCB->getOldVCB() ;

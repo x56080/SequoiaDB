@@ -1165,12 +1165,22 @@ do                                                            \
          goto error ;
       }
 
-      flags |= FLG_INSERT_RETURNNUM ;
+      // Check strictly that the hint is used with FLG_INSERT_HASHINT together.
+      if ( hint.isEmpty() )
+      {
+         OSS_BIT_CLEAR( flags, FLG_INSERT_HASHINT ) ;
+      }
+      else
+      {
+         OSS_BIT_SET( flags, FLG_INSERT_HASHINT ) ;
+      }
+
+      OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM ) ;
 
       rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flags, 0,
                                      newObj.objdata(),
-                                     hint.objdata(),
+                                     hint.isEmpty() ? NULL : hint.objdata(),
                                      _connection->_endianConvert ) ;
 
       if ( rc )
@@ -1331,7 +1341,16 @@ do                                                            \
          goto done ;
       }
 
-      flags |= FLG_INSERT_RETURNNUM ;
+      if ( hint.isEmpty() )
+      {
+         OSS_BIT_CLEAR( flags, FLG_INSERT_HASHINT ) ;
+      }
+      else
+      {
+         OSS_BIT_SET( flags, FLG_INSERT_HASHINT ) ;
+      }
+
+      OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM ) ;
 
       for ( SINT32 count = 0 ; count < num ; ++count )
       {
@@ -1357,8 +1376,7 @@ do                                                            \
          {
             rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                            _collectionFullName, flags, 0,
-                                           newObj.objdata(),
-                                           hint.objdata(),
+                                           newObj.objdata(), NULL,
                                            _connection->_endianConvert ) ;
             if ( rc )
             {
@@ -1379,6 +1397,17 @@ do                                                            \
          }
       }
 
+      // Append hint to the end of the message.
+      if ( !hint.isEmpty() )
+      {
+         rc = clientAppendHint2InsertMsgCpp( &_pSendBuffer, &_sendBufferSize,
+                                             hint.objdata(),
+                                             _connection->_endianConvert ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
       sub.done() ;
 
       rc = _connection->_sendAndRecv( _pSendBuffer, &_pReceiveBuffer,
@@ -1445,7 +1474,8 @@ do                                                            \
          goto error ;
       }
 
-      flags |= FLG_INSERT_RETURNNUM ;
+      OSS_BIT_CLEAR( flags, FLG_INSERT_HASHINT ) ;
+      OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM );
 
       for ( SINT32 count = 0; count < size; ++count )
       {
@@ -1470,8 +1500,7 @@ do                                                            \
          {
             rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                            _collectionFullName, flags, 0,
-                                           newObj.objdata(),
-                                           (CHAR *)NULL,
+                                           newObj.objdata(), NULL,
                                            _connection->_endianConvert ) ;
             if ( rc )
             {
@@ -2394,7 +2423,7 @@ do                                                            \
                                      cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
-                          _collectionFullName, _version ) ;
+                           _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

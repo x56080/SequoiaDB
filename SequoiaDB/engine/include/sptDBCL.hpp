@@ -246,7 +246,7 @@ namespace engine
 
    private:
       INT32 _parseInsertOptions( const _sptArguments &arg, SINT32 &flags,
-                                 bson::BSONObj &detail ) ;
+                                 BSONObj &hint, bson::BSONObj &detail ) ;
 
       INT32 _createIndex( const _sptArguments &arg,
                           _sptReturnVal &rval,

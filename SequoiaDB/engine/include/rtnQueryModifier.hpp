@@ -37,26 +37,31 @@
 #include "oss.hpp"
 #include "../bson/bson.hpp"
 #include "mthModifier.hpp"
+#include "rtnHintModifier.hpp"
 
 using std::vector ;
 
 namespace engine
 {
-   class _rtnQueryModifier: public SDBObject
+   class _rtnQueryModifier: public rtnHintModifier
    {
    public:
-      _rtnQueryModifier( BOOLEAN isUpdate,
-                         BOOLEAN isRemove,
-                         BOOLEAN returnNew = FALSE ) ;
+      _rtnQueryModifier() ;
 
       ~_rtnQueryModifier()
       {
       }
 
-      INT32 loadUpdator( const bson::BSONObj &updator ) ;
+      inline BOOLEAN isUpdate() const
+      {
+         return RTN_MODIFY_UPDATE == _modifyOp ;
+      }
 
-      inline BOOLEAN isUpdate() const { return _isUpdate ; }
-      inline BOOLEAN isRemove() const { return _isRemove ; }
+      inline BOOLEAN isRemove() const
+      {
+         return RTN_MODIFY_REMOVE == _modifyOp ;
+      }
+
       inline BOOLEAN returnNew() const { return _returnNew ; }
       inline mthModifier& getModifier() { return _modifier ; }
       inline vector<INT64>* getDollarList() { return &_dollarList ; }
@@ -66,11 +71,11 @@ namespace engine
       _rtnQueryModifier( const _rtnQueryModifier& ) ;
       void operator=( const _rtnQueryModifier& ) ;
 
+      INT32 _parseModifyEle( const BSONElement &ele ) ;
+      INT32 _onInit() ;
+
    private:
-      BOOLEAN        _isUpdate ;
-      BOOLEAN        _isRemove ;
       BOOLEAN        _returnNew ;
-      bson::BSONObj  _updator ;
       mthModifier    _modifier ;
       vector<INT64>  _dollarList ;
    } ;
