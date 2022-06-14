@@ -146,7 +146,8 @@ namespace engine
 
       case NumberDecimal:
       {
-         hashCode = hashDecimalV3( hashCode, e.numberDecimal() ) ;
+         BSONDecimalElement decEle( e ) ;
+         hashCode = hashDecimalV3( hashCode, decEle.numberDecimal() ) ;
          break ;
       }
 
@@ -206,7 +207,8 @@ namespace engine
          case NumberDecimal:
          {
             HASH_COMBINE( hashCode, e.canonicalType() ) ;
-            hashCode = hashDecimal( hashCode, e.numberDecimal() ) ;
+            BSONDecimalElement decEle( e ) ;
+            hashCode = hashDecimal( hashCode, decEle.numberDecimal() ) ;
             break ;
          }
          default :
