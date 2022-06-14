@@ -40,8 +40,8 @@
 #include "vessel/lpageDescriptor.h"
 #include "vessel/metaDataUberBlock.h"
 #include "vessel/unitedBitmap.hpp"
+#include "vessel/lpageMappingRoot.h"
 
-#include <mutex>
 
 namespace engine
 {
@@ -50,7 +50,7 @@ namespace vessel
    class lpageMapping : public SDBObject
    {
       public:
-         lpageMapping();
+         lpageMapping() = default;
          ~lpageMapping() = default;
          lpageMapping(const lpageMapping &) = delete;
          lpageMapping &operator=(const lpageMapping &) = delete;
@@ -73,9 +73,10 @@ namespace vessel
 
       public:
          INT32 init(lpageMetaDataFile *mfile,
-                    lpmUberBlock *ub);
+                    PAGE_ID uberBlockPid);
          void fini();
 
+         /// not thread-safe
          INT32 ensureUnitSpace(UINT32 unitId);
 
          INT32 dumpUnitSme(UINT32 unitId,
@@ -134,11 +135,11 @@ namespace vessel
          {
             return lpid / LPID_UNIT_SIZE;
          }
+
       private:
-         std::mutex _mutex;
          lpageMetaDataFile *_mfile = nullptr;
-         lpmUberBlock *_lub = nullptr;
-         PAGE_ID _entries[lpmUberBlock::MAPPING_ENTRY_SIZE];
+         lpmUberBlock *_mmapBlock = nullptr;
+         lpageMappingRoot _root;
    };
 } // namespace vessel
 
