@@ -761,15 +761,8 @@ namespace vessel
    INT32 logicalPageSpace::_initPageMapping(BOOLEAN creating)
    {
       INT32 rc = SDB_OK;
-      strictBuffer buffer;
-      rc = _mfile.makeWritableBuffer(UBER_BLOCK_PID, buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get block buffer:%d", rc);
-         goto error;
-      }
 
-      rc = _lpm.init(&_mfile, buffer.getWritableObjPtr<lpmUberBlock>(0));
+      rc = _lpm.init(&_mfile, UBER_BLOCK_PID);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init lpage mapping:%d", rc);
