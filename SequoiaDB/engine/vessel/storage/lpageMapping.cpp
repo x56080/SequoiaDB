@@ -36,6 +36,7 @@
 #include "vessel/lpageMapping.h"
 #include "pdTrace.hpp"
 #include "vessel/strictBuffer.h"
+#include "ossLatchGuard.hpp"
 
 namespace engine
 {
@@ -44,29 +45,37 @@ namespace vessel
    /// we use pos << 3 instead of pos * 8
    static_assert(8 == sizeof(lpageDescriptor), "must be 8");
 
-   lpageMapping::lpageMapping()
-   {
-      ossMemset(_entries, 0xFF, sizeof(_entries));
-   }
-
    INT32 lpageMapping::init(lpageMetaDataFile *mfile,
-                            lpmUberBlock *ub)
+                            PAGE_ID uberBlockPid)
    {
       INT32 rc = SDB_OK;
+      strictBuffer buffer;
 
       fini();
       if (OSS_UNLIKELY(nullptr == mfile ||
                        !mfile->isOpen() ||
-                       nullptr == ub ||
-                       !ub->isVaild()))
+                       INVALID_PAGE_ID == uberBlockPid))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      rc = mfile->makeWritableBuffer(uberBlockPid, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to load uber block page at[%d], rc:%d", uberBlockPid, rc);
+         goto error;
+      }
+
       _mfile = mfile;
-      _lub = ub;
-      ossMemcpy(_entries, ub->mappingEntries, sizeof(_entries));
+      _mmapBlock = buffer.getWritableObjPtr<lpmUberBlock>(0);
+      if (nullptr == _mmapBlock || !_mmapBlock->isVaild())
+      {
+         PD_LOG(PDERROR, "failed to load uber block at[%d], rc:%d", uberBlockPid, rc);
+         goto error;
+      }
+      _root.init(_mmapBlock);
+
    done:
       return rc;
    error:
@@ -77,8 +86,8 @@ namespace vessel
    void lpageMapping::fini()
    {
       _mfile = nullptr;
-      _lub = nullptr;
-      ossMemset(_entries, 0xFF, sizeof(_entries));
+      _mmapBlock = nullptr;
+      _root.reset();
       return;
    }
 
@@ -134,6 +143,7 @@ namespace vessel
       }
       else
       {
+         
          UINT32 unitId = _getUnitId(lpid);
          PAGE_ID pid = INVALID_PAGE_ID;
          strictBuffer buffer;
@@ -429,22 +439,22 @@ namespace vessel
       UINT32 posInEntry = 0;
       UINT32 entryPos = _getEntryPosByUnitId(unitId, posInEntry);
       SDB_ASSERT(entryPos < lpmUberBlock::MAPPING_ENTRY_SIZE, "impossible");
-      PAGE_ID entryPid = _entries[entryPos];
+      PAGE_ID entryPid = _root.get(entryPos);
       strictBuffer buffer;
 
-      if (INVALID_PAGE_ID == entryPid)
-      {
-         goto done;
-      }
+      pid = INVALID_PAGE_ID;
 
-      rc = _mfile->makeReadableBuffer(entryPid, buffer);
-      if (SDB_OK != rc)
+      if (INVALID_PAGE_ID != entryPid)
       {
-         PD_LOG(PDERROR, "failed to make buffer of pid[%d], rc:%d", entryPid, rc);
-         goto error;
-      }
+         rc = _mfile->makeReadableBuffer(entryPid, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make buffer of pid[%d], rc:%d", entryPid, rc);
+            goto error;
+         }
 
-      pid = *(buffer.getReadableObjPtr<PAGE_ID>(posInEntry << 2));
+         pid = *(buffer.getReadableObjPtr<PAGE_ID>(posInEntry << 2));
+      }
    done:
       return rc;
    error:
@@ -458,10 +468,12 @@ namespace vessel
       UINT32 posInEntry = 0;
       UINT32 entryPos = _getEntryPosByUnitId(unitId, posInEntry);
       SDB_ASSERT(entryPos < lpmUberBlock::MAPPING_ENTRY_SIZE, "impossible");
-      PAGE_ID entryPid = _entries[entryPos];
+      PAGE_ID entryPid = _root.get(entryPos);
       PAGE_ID *descPidPtr = nullptr;
       strictBuffer buffer;
       PAGE_ID newPid = INVALID_PAGE_ID;
+
+      pid = INVALID_PAGE_ID;
 
       if (OSS_UNLIKELY(INVALID_PAGE_ID == entryPid))
       {
@@ -508,7 +520,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(pos < lpmUberBlock::MAPPING_ENTRY_SIZE, "out of bound");
-      SDB_ASSERT(INVALID_PAGE_ID == _entries[pos], "do not reinit");
+      SDB_ASSERT(INVALID_PAGE_ID == _root.get(pos), "do not recreate");
       pid = INVALID_PAGE_ID;
       
       mmapPagePointer ptr;
@@ -523,8 +535,8 @@ namespace vessel
 
       b.makeWritable(lpageMetaDataFile::PAGE_SIZE, ptr.getBuf());
       b.setBuffer(0xFF);
-      _lub->mappingEntries[pos] = pid;
-      _entries[pos] = pid;
+      _mmapBlock->mappingEntries[pos] = pid;
+      _root.set(pos, pid);
       
    done:
       return rc;
