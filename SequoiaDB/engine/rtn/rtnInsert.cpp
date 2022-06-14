@@ -91,7 +91,7 @@ namespace engine
 retry:
       if ( ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
              OSS_BIT_TEST( FLG_INSERT_CONTONDUP, flags ) ||
-             OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ) && !hasRetry )
+             OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flags ) ) && !hasRetry )
       {
          shield.addRC( SDB_IXM_DUP_KEY ) ;
       }
