@@ -55,11 +55,14 @@ namespace vessel
 
    INT32 storageFile::open(const strSlice &dir,
                            const storageFileName &fn,
-                           UINT32 flags)
+                           UINT32 flags,
+                           invalidFileReason &reason)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+
+      reason = invalidFileReason::NONE;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -97,7 +100,7 @@ namespace vessel
 
       _ctl = flags;
 
-      rc = openFileHead(fn);
+      rc = openFileHead(fn, reason);
       if (SDB_OK != rc)
       {
          goto error;
@@ -105,7 +108,7 @@ namespace vessel
 
       if (0 != _headInMem.reservedAreaSize)
       {
-         rc = openReservedArea();
+         rc = openReservedArea(reason);
          if (SDB_OK != rc)
          {
             goto error;
@@ -132,7 +135,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::openFileHead(const storageFileName &fn)
+   INT32 storageFile::openFileHead(const storageFileName &fn,
+                                   invalidFileReason &reason)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(fn.isValid(), "can not be invalid");
@@ -142,17 +146,19 @@ namespace vessel
       rc = ossMmapFile::size(fileSize);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get file size:%d", rc);
+         PD_LOG(PDERROR, "failed to get file[%s] size:%d", fn.getFileName(), rc);
          goto error;
       }
       /// crashed when creating file
       if (fileSize < SOTRAGE_FILE_TOTAL_HEAD_SIZE)
       {
          PD_LOG(PDERROR, "[%s]invalid file size:%lld", fn.getFileName(), fileSize);
-         rc = SDB_VESSEL_CRASHED_WHEN_CREATING;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::INVALID_HEADER_SIZE;
          goto error;
       }
 
+      /// map from offset 0
       rc = map(0, SOTRAGE_FILE_TOTAL_HEAD_SIZE, &headBuf);
       if (SDB_OK != rc)
       {
@@ -160,7 +166,7 @@ namespace vessel
          goto error;
       }
 
-      rc = validateHead(headBuf, fn);
+      rc = validateHead(headBuf, fn, reason);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate file[%s] head: %d",
@@ -179,7 +185,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::openReservedArea()
+   INT32 storageFile::openReservedArea(invalidFileReason &reason)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ossMmapFile::_file.isOpened(), "must be open");
@@ -194,7 +200,8 @@ namespace vessel
       {
          PD_LOG(PDERROR, "reserved size[%d] does not match the one in head[%d]",
                 _getReservedAreaSize(), _headInMem.reservedAreaSize);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::UNEXPECTED_HEADER_CONTENT;
          goto error;
       }
       
@@ -205,10 +212,11 @@ namespace vessel
          goto error;
       }
 
-      if (fileSize < (SOTRAGE_FILE_TOTAL_HEAD_SIZE + _headInMem.reservedAreaSize))
+      if (fileSize < ((UINT64)SOTRAGE_FILE_TOTAL_HEAD_SIZE + _headInMem.reservedAreaSize))
       {
          PD_LOG(PDERROR, "invalid file size to open reserved area");
-         rc = SDB_VESSEL_CRASHED_WHEN_CREATING;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::UNEXPECTED_FILE_SIZE;
          goto error;
       }
 
@@ -1054,7 +1062,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::validateHead(const void *head, const storageFileName &fn)const
+   INT32 storageFile::validateHead(const void *head,
+                                   const storageFileName &fn,
+                                   invalidFileReason &reason)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != head, "can not be null");
@@ -1066,7 +1076,8 @@ namespace vessel
                          sizeof(suHead->magicChars)))
       {
          PD_LOG(PDERROR, "invaid magic chars of head");
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::INVLAID_HEADER_MAGIC_CHARS;
          goto error;
       }
 
@@ -1075,21 +1086,24 @@ namespace vessel
       {
          PD_LOG(PDERROR, "invalid checksum, in file:%u, current:%u",
                 suHead->headChecksum, checksum);
-         rc = SDB_VESSEL_FILE_HEAD_CRASHED;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::INVALID_HEADER_CHECKSUM;
          goto error;
       }
 
       if (STORAGE_FILE_HEAD_VERSION != suHead->version)
       {
          PD_LOG(PDERROR, "invalid su version:%d", suHead->version);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::UNEXPECTED_HEADER_VERSION;
          goto error;
       }
 
       if (0 != ossStrcmp(fn.getFileName(), suHead->name))
       {
          PD_LOG(PDERROR, "file name not match:%s,%s", fn.getFileName(), suHead->name);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::UNEXPECTED_HEADER_CONTENT;
          goto error;
       }
 
@@ -1099,7 +1113,8 @@ namespace vessel
       if (!args.isValid())
       {
          PD_LOG(PDERROR, "invalid storage core args in head");
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_FILE;
+         reason = invalidFileReason::UNEXPECTED_HEADER_CONTENT;
          goto error;
       }
    done:

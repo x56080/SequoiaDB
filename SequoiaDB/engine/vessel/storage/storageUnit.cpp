@@ -432,8 +432,9 @@ namespace vessel
       controlFile file;
       UINT32 contentLen = 0;
       manifest.reset();
+      invalidFileReason reason = invalidFileReason::NONE;
 
-      rc = file.openToRead(path);
+      rc = file.openToRead(path, reason);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open manifest file[%s], rc:%d",

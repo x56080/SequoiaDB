@@ -41,6 +41,7 @@
 #include "vessel/storageFile.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/storageFileLoader.h"
+#include "vessel/invalidFileReason.h"
 
 namespace engine
 {
@@ -67,7 +68,8 @@ namespace vessel
                                  storageFile &file)const;
          INT32 openStorageFile(const storageFileName &fn,
                                UINT32 flags,
-                               storageFile &file)const;
+                               storageFile &file,
+                               invalidFileReason *reason=nullptr)const;
          INT32 removeStorageFile(const storageFileName &fn)const;
 
          ossPoolString buildFullPath(const storageFileName &fn)const;

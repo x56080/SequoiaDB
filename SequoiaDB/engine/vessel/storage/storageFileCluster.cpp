@@ -161,25 +161,25 @@ namespace vessel
          else if (fn.getFileType() != _manifest.ftype)
          {
             PD_LOG(PDERROR, "invalid file type:%s", fn.getFileName());
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
          else if (fn.getSpaceType() != _manifest.stype)
          {
             PD_LOG(PDERROR, "invalid space type:%s", fn.getFileName());
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
          else if (fn.hasShadowSuffix())
          {
             PD_LOG(PDERROR, "found file with shadow suffix:%s", fn.getFileName());
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
          else if (OSS_UNLIKELY(MAX_FILE_SEQUENCE <= fn.getSequence()))
          {
             PD_LOG(PDERROR, "found file with oversize sequence:%s", fn.getFileName());
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
 
@@ -202,7 +202,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "secret values do not match[%d,%d]",
                    file->getCommonHeadInMem().secretValue, _manifest.secretValue);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
 
@@ -210,7 +210,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "page size do not match[%d,%d]",
                    file->getCommonHeadInMem().pageSize, args.pageSize);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
 
@@ -218,7 +218,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "page count of segment do not match[%d,%d]",
                    file->getCommonHeadInMem().maxPageCountPerSeg, args.maxPageCountPerSeg);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
 
@@ -226,7 +226,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "segment count do not match[%d,%d]",
                    file->getCommonHeadInMem().maxSegmentCountPerFile, args.maxSegmentCountPerFile);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            rc = SDB_VESSEL_INVALID_FILE;
             goto error;
          }
 

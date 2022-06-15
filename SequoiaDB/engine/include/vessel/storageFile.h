@@ -44,6 +44,7 @@
 #include "vessel/slice.h"
 #include "vessel/mmapPagePointer.h"
 #include "vessel/strictBuffer.h"
+#include "vessel/invalidFileReason.h"
 
 namespace engine
 {
@@ -72,9 +73,11 @@ namespace vessel
                       const storageFileName &fn,
                       const createStorageFileOptions &options);
 
+         /// return SDB_VESSEL_INVALID_FILE if failed to validate.
          INT32 open(const strSlice &dir,
                     const storageFileName &fn,
-                    UINT32 flags);
+                    UINT32 flags,
+                    invalidFileReason &reason);
 
          void destroy();
          void close();
@@ -199,9 +202,9 @@ namespace vessel
                                  const storageFileName &fn,
                                  const createStorageFileOptions &options);
 
-         INT32 openFileHead(const storageFileName &fn);
+         INT32 openFileHead(const storageFileName &fn, invalidFileReason &reason);
 
-         INT32 openReservedArea();
+         INT32 openReservedArea(invalidFileReason &reason);
 
          INT32 openFileSegments();
 
@@ -212,7 +215,9 @@ namespace vessel
          INT32 extendFileAndMmap(UINT32 len, ossValuePtr *ptr);
          INT32 extendFile(UINT32 len);
 
-         INT32 validateHead(const void *head, const storageFileName &fn)const;
+         INT32 validateHead(const void *head,
+                            const storageFileName &fn,
+                            invalidFileReason &reason)const;
          UINT32 createChecksum(ossValuePtr headPtr)const;
 
       private:

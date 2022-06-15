@@ -282,7 +282,8 @@ namespace vessel
 
    INT32 storageFileMaintainer::openStorageFile(const storageFileName &fn,
                                                 UINT32 flags,
-                                                storageFile &file)const
+                                                storageFile &file,
+                                                invalidFileReason *reason)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be valid");
@@ -290,6 +291,12 @@ namespace vessel
 
       ossPoolString fullPath;
       strSlice pathSlice;
+      invalidFileReason invalidReason = invalidFileReason::NONE;
+
+      if (nullptr != reason)
+      {
+         *reason = invalidFileReason::NONE;
+      }
 
       if (OSS_UNLIKELY(!fn.isValid()))
       {
@@ -312,11 +319,15 @@ namespace vessel
       }
 
       pathSlice.reset(fullPath.c_str(), fullPath.size());
-      rc = file.open(pathSlice, fn, flags);
+      rc = file.open(pathSlice, fn, flags, invalidReason);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create file[%s] under dir[%s], rc:%d",
                 fn.getFileName(), fullPath.c_str(), rc);
+         if (nullptr != reason)
+         {
+            *reason = invalidReason;
+         }
          goto error;
       }
    done:

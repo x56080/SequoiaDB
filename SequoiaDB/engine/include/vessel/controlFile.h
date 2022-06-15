@@ -38,6 +38,7 @@
 
 #include "ossFile.hpp"
 #include "strSlice.h"
+#include "vessel/invalidFileReason.h"
 
 namespace engine
 {
@@ -85,7 +86,10 @@ namespace vessel
 
          void close();
 
-         INT32 openToRead(const strSlice &fullPath);
+         /// return SDB_VESSEL_INVALID_CONTROL_FILE if failed to validate file content.
+         /// any other else codes mean hard error.
+         INT32 openToRead(const strSlice &fullPath,
+                          invalidFileReason &reason);
 
          INT32 read(CHAR *buf, UINT32 size);
 
@@ -95,7 +99,7 @@ namespace vessel
          UINT64 getCreationTime()const;
 
       private:
-         INT32 validateFile(const CHAR *buf, UINT32 size);
+         INT32 validateFile(const CHAR *buf, UINT32 size, invalidFileReason &reason);
 
       private:
          OSSFILE _file;
