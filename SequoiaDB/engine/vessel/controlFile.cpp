@@ -177,13 +177,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::openToRead(const strSlice &fullPath)
+   INT32 controlFile::openToRead(const strSlice &fullPath,
+                                 invalidFileReason &reason)
    {
       INT32 rc = SDB_OK;
       INT64 lenRead = 0;
       CHAR* fileBuf = nullptr;
       INT64 fileSize = 0;
       strictBuffer buffer;
+
+      reason = invalidFileReason::NONE;
 
       close();
       if (OSS_UNLIKELY(fullPath.empty()))
@@ -203,15 +206,23 @@ namespace vessel
       rc = ossGetFileSize(&_file, &fileSize);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get file size, rcc:%d", rc);
+         PD_LOG(PDERROR, "failed to get size of file[%s], rc:%d",
+                fullPath.str(), rc);
          goto error;
       }
 
-      if (OSS_UNLIKELY(fileSize <= (INT64)sizeof(controlFileHead) ||
-                       fileSize > (INT64)MAX_CONTROL_FILE_LEN))
+      if (fileSize < (INT64)sizeof(controlFileHead))
       {
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         PD_LOG(PDERROR, "invalid file size, rc:%d", rc);
+         PD_LOG(PDERROR, "invalid size[%lld]", fileSize);
+         rc = SDB_VESSEL_INVALID_CONTROL_FILE;
+         reason = invalidFileReason::INVALID_HEADER_SIZE;
+         goto error;
+      }
+      else if ((INT64)MAX_CONTROL_FILE_LEN < fileSize)
+      {
+         PD_LOG(PDERROR, "invalid size[%lld]", fileSize);
+         rc = SDB_VESSEL_INVALID_CONTROL_FILE;
+         reason = invalidFileReason::UNEXPECTED_FILE_SIZE;
          goto error;
       }
 
@@ -229,14 +240,14 @@ namespace vessel
          PD_LOG(PDERROR, "failed to read control file, rc:%d", rc);
          goto error;
       }
-      else if(OSS_UNLIKELY((SINT64)fileSize != lenRead))
+      else if (OSS_UNLIKELY((SINT64)fileSize != lenRead))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "unexpected read length[%lld]", lenRead);
          goto error;
       }
       
-      rc = validateFile(fileBuf, fileSize);
+      rc = validateFile(fileBuf, fileSize, reason);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "invalid control file, rc:%d", rc);
@@ -254,6 +265,11 @@ namespace vessel
       return rc;
    error:
       close();
+      if (!fullPath.empty())
+      {
+         PD_LOG(PDERROR, "failed to open control file[%s], rc:%d, reason[%d]",
+                fullPath.str(), rc, (INT32)reason);
+      }
       goto done;
    }
 
@@ -304,11 +320,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::validateFile(const CHAR *buf, UINT32 size)
+   INT32 controlFile::validateFile(const CHAR *buf,
+                                   UINT32 size, 
+                                   invalidFileReason &reason)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != buf, "can not be null");
-      SDB_ASSERT(sizeof(controlFileHead) < size, "invalid file size");
+      SDB_ASSERT(sizeof(controlFileHead) <= size, "invalid file size");
       SDB_ASSERT(MAX_CONTROL_FILE_LEN >= size, "invalid file size");
       strictBuffer buffer;
       UINT32 checkSize = 0;
@@ -324,30 +342,35 @@ namespace vessel
 
       if (head->magicCode != getMagicCode())
       {
-         rc = SDB_VESSEL_FILE_HEAD_CRASHED;
+         rc = SDB_VESSEL_INVALID_CONTROL_FILE;
          PD_LOG(PDERROR, "invalid magic code");
+         reason = invalidFileReason::INVLAID_HEADER_MAGIC_CHARS;
          goto error;
       }
 
       if (head->headVersion != CONTROL_FILE_HEAD_VERSION)
       {
-         rc = SDB_VESSEL_FILE_HEAD_CRASHED;
+         rc = SDB_VESSEL_INVALID_CONTROL_FILE;
          PD_LOG(PDERROR, "invalid head version");
+         reason = invalidFileReason::UNEXPECTED_HEADER_VERSION;
          goto error;
       }
 
       if (head->contentLen != (size - sizeof(controlFileHead)))
       {
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_CONTROL_FILE;
          PD_LOG(PDERROR, "invalid content length");
+         reason = invalidFileReason::UNEXPECTED_FILE_SIZE;
          goto error;
       }
 
-      checkSize = sizeof(controlFileHead) - 8 + head->contentLen;
+      /// 8 is the size of data size not to check, 4 bytes magic code and 4 bytes checksum
+      checkSize = sizeof(controlFileHead) + head->contentLen - 8;
       if (head->checksum != utilCRC32(buffer.getReadablePtr(8, checkSize), checkSize))
       {
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_INVALID_CONTROL_FILE;
          PD_LOG(PDERROR, "invalid checksum");
+         reason = invalidFileReason::INVALID_HEADER_CHECKSUM;
          goto error;
       }
       

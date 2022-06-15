@@ -306,7 +306,7 @@ namespace vessel
          for (INT32 i = _rootDepth - 1; 0 <= i; --i)
          {
             const _TREE_NODE_VEC &nodes = _tree[i];
-            SDB_ASSERT(nextLevelBit < nodes.size(), "out of bound");
+            SDB_ASSERT(nextLevelBit < (INT32)nodes.size(), "out of bound");
             INT32 tmp = nodes.at(nextLevelBit).findFirst();
             SDB_ASSERT(0 <= tmp, "must be found");
             nextLevelBit = (nextLevelBit << _nodeSizeSquare) + tmp;
@@ -325,7 +325,7 @@ namespace vessel
    {
       UINT32 posInCurrentLevel = pos;
 
-      for (UINT32 i = 0; i <= _rootDepth; ++i)
+      for (INT32 i = 0; i <= _rootDepth; ++i)
       {
          UINT32 nodeId = getNodePos(posInCurrentLevel);
          UINT32 bit = getPosInNode(posInCurrentLevel);
@@ -356,7 +356,7 @@ namespace vessel
    {
       UINT32 posInCurrentLevel = pos;
 
-      for (UINT32 i = 0; i <= _rootDepth; ++i)
+      for (INT32 i = 0; i <= _rootDepth; ++i)
       {
          UINT32 nodeId = getNodePos(posInCurrentLevel);
          UINT32 bit = getPosInNode(posInCurrentLevel);

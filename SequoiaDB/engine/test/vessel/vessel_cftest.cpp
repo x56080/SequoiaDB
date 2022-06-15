@@ -113,15 +113,16 @@ TEST_F(vessel_cftest, base_read_test)
    INT32 rc = SDB_OK;
    const CHAR *content = "test";
    v::strSlice fullPath(FILE_PATH);
+   v::invalidFileReason reason = v::invalidFileReason::NONE;
 
    v::controlFile file;
-   rc = file.openToRead(fullPath);
+   rc = file.openToRead(fullPath, reason);
    ASSERT_EQ(SDB_FNE, rc);
 
    rc = v::controlFile::create(fullPath, content, ossStrlen(content), TRUE);
    ASSERT_EQ(SDB_OK ,rc);
 
-   rc = file.openToRead(fullPath);
+   rc = file.openToRead(fullPath, reason);
    ASSERT_EQ(SDB_OK, rc);
    
    UINT32 readSize = file.getContentLen();
@@ -138,7 +139,7 @@ TEST_F(vessel_cftest, base_read_test)
    rc = v::controlFile::create(fullPath, newContent, ossStrlen(newContent), TRUE);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = file.openToRead(fullPath);
+   rc = file.openToRead(fullPath, reason);
    ASSERT_EQ(SDB_OK, rc);
 
    readSize = file.getContentLen();
@@ -166,6 +167,7 @@ TEST_F(vessel_cftest, base_crash_test1)
    INT32 rc = SDB_OK;
    const CHAR *content = "test";
    v::strSlice fullPath(FILE_PATH);
+   v::invalidFileReason reason = v::invalidFileReason::NONE;
 
    v::controlFile file;
    rc = file.create(fullPath, content, ossStrlen(content), TRUE);
@@ -181,9 +183,9 @@ TEST_F(vessel_cftest, base_crash_test1)
    rc = ossClose(fileDesc);
    ASSERT_EQ(SDB_OK ,rc);
 
-   rc = file.openToRead(fullPath);
-   ASSERT_EQ(SDB_VESSEL_FILE_HEAD_CRASHED, rc);
-
+   rc = file.openToRead(fullPath, reason);
+   ASSERT_EQ(SDB_VESSEL_INVALID_CONTROL_FILE, rc);
+   ASSERT_EQ(v::invalidFileReason::INVLAID_HEADER_MAGIC_CHARS, reason);
 }
 
 /*
@@ -202,6 +204,7 @@ TEST_F(vessel_cftest, base_crash_test2)
    INT32 rc = SDB_OK;
    const CHAR *content = "test";
    v::strSlice fullPath(FILE_PATH);
+   v::invalidFileReason reason = v::invalidFileReason::NONE;
 
    v::controlFile file;
    rc = file.create(fullPath, content, ossStrlen(content), TRUE);
@@ -218,8 +221,9 @@ TEST_F(vessel_cftest, base_crash_test2)
    rc = ossClose(fileDesc);
    ASSERT_EQ(SDB_OK ,rc);
 
-   rc = file.openToRead(fullPath);
-   ASSERT_EQ(SDB_VESSEL_INVALID_VESSEL_FILE, rc);
+   rc = file.openToRead(fullPath, reason);
+   ASSERT_EQ(SDB_VESSEL_INVALID_CONTROL_FILE, rc);
+   ASSERT_EQ(v::invalidFileReason::UNEXPECTED_FILE_SIZE, reason);
 
 }
 
@@ -239,6 +243,7 @@ TEST_F(vessel_cftest, base_crash_test3)
    INT32 rc = SDB_OK;
    const CHAR *content = "test";
    v::strSlice fullPath(FILE_PATH);
+   v::invalidFileReason reason = v::invalidFileReason::NONE;
 
    v::controlFile file;
    rc = file.create(fullPath, content, ossStrlen(content), TRUE);
@@ -257,8 +262,9 @@ TEST_F(vessel_cftest, base_crash_test3)
    rc = ossClose(fileDesc);
    ASSERT_EQ(SDB_OK ,rc);
 
-   rc = file.openToRead(fullPath);
-   ASSERT_EQ(SDB_VESSEL_INVALID_VESSEL_FILE, rc);
+   rc = file.openToRead(fullPath, reason);
+   ASSERT_EQ(SDB_VESSEL_INVALID_CONTROL_FILE, rc);
+   ASSERT_EQ(v::invalidFileReason::INVALID_HEADER_CHECKSUM, reason);
 
 }
 
