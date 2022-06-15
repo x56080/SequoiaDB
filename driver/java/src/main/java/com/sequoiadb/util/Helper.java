@@ -36,7 +36,7 @@ public final class Helper {
 
     public static final String ENCODING_TYPE =  "UTF-8";
 
-    public static final long INVALID_LONG = -1L;
+    public static final long INIT_LONG = -1L;
 
     public static Object getValue( BSONObject srcObj, String key, Object defaultValue ){
         if ( srcObj == null ){
