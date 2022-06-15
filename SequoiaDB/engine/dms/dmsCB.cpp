@@ -697,14 +697,6 @@ namespace engine
          goto error ;
       }
 
-      extHandler = pCSCB->_su->data()->getExtDataHandler() ;
-      if ( extHandler )
-      {
-         rc = extHandler->onRenameCS( pName, pNewName, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "External operation on rename cs failed, "
-                                   "rc: %d", rc ) ;
-      }
-
       /// rename in map
       // 1) erase map must before reset the name, because map'key is CBCB's name
       _cscbNameMap.erase( pName ) ;
@@ -737,6 +729,13 @@ namespace engine
          _mutex.release () ;
          isLocked = FALSE ;
       }
+
+      extHandler = pCSCB->_su->data()->getExtDataHandler() ;
+      if ( extHandler )
+      {
+         extHandler->onRenameCS( pName, pNewName, cb, NULL ) ;
+      }
+
       pCSCB->_su->getEventHolder()->onRenameCS( DMS_EVENT_MASK_ALL, pName,
                                                 pNewName, cb, dpsCB ) ;
 
