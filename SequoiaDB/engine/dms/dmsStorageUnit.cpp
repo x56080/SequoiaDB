@@ -4694,6 +4694,7 @@ namespace engine
       OSSFILE file ;
       INT64 fileSize = 0 ;
       INT64 readSize = 0 ;
+      BOOLEAN isFileInvalid = FALSE ;
       CHAR fileName[ DMS_SU_FILENAME_SZ + 1 ] = { 0 } ;
       CHAR fullFilePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR eyeCatcher[DMS_HEADER_EYECATCHER_LEN + 1 ] = { 0 } ;
@@ -4719,8 +4720,12 @@ namespace engine
       if ( fileSize < DMS_HEADER_EYECATCHER_LEN )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "File size[ %lld ] is too small. Maybe the file is "
-                 "corrupted", fileSize ) ;
+         PD_LOG( PDERROR, "File[ %s ] size[ %lld ] is too small. Maybe the file is "
+                 "corrupted", fileName, fileSize ) ;
+         if ( 0 == fileSize )
+         {
+            isFileInvalid = TRUE ;
+         }
          goto error ;
       }
 
@@ -4747,6 +4752,15 @@ namespace engine
       if ( file.isOpened() )
       {
          ossClose( file ) ;
+      }
+      if ( isFileInvalid )
+      {
+         INT32 tmpRC = SDB_OK ;
+         tmpRC = dmsRenameInvalidFile( fullFilePath ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Fail to rename invalid file, rc:%d", tmpRC ) ;
+         }
       }
       PD_TRACE_EXITRC( SDB__DMSSU__GETTYPEFROMFILE, rc ) ;
       return rc ;

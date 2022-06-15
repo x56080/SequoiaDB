@@ -740,8 +740,22 @@ namespace engine
       rc = ossMmapFile::open ( _fullPathName, mode, OSS_RU|OSS_WU|OSS_RG ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to open %s, rc=%d", _fullPathName, rc ) ;
-         goto error ;
+         if ( SDB_FNE == rc && !createNew && _canRecreateNew() )
+         {
+            mode |= OSS_CREATEONLY ;
+            PD_LOG ( PDWARNING, "Try to recreate storage unit file[%s], "
+                     "mode:0x%08x", _fullPathName, mode ) ;
+            // open the file, create one if not exist
+            rc = ossMmapFile::open ( _fullPathName, mode, OSS_RU|OSS_WU|OSS_RG ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recreate storeage unit file: %s, "
+                         "rc: %d", _fullPathName, rc ) ;
+            createNew = TRUE ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Failed to open %s, rc=%d", _fullPathName, rc ) ;
+            goto error ;
+         }
       }
       if ( createNew )
       {

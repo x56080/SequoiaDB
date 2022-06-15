@@ -480,6 +480,11 @@ namespace engine
       }
    }
 
+   BOOLEAN _dmsStorageIndex::_canRecreateNew()
+   {
+      return _pDataSu && 0 == _pDataSu->getCollectionNum() && !isCrashed() ;
+   }
+
    // Find a free slot in mb index extent array for the new index. Duplication
    // of index name and definition will be checked.
    INT32 _dmsStorageIndex::_allocateIdxID( dmsMBContext *context,

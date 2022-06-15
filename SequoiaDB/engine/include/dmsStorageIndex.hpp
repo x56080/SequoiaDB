@@ -385,6 +385,8 @@ namespace engine
 
          virtual void   _onRestore() ;
 
+         virtual BOOLEAN _canRecreateNew() ;
+
          INT32 _allocateIdxID( _dmsMBContext *context,
                                const CHAR *indexName,
                                const BSONObj &index,
