@@ -3159,34 +3159,16 @@
          <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
          <description>
             <en>forbidden operation because of holding wrong type latch</en>
-            <cn>由于没有持有对应的锁类型，操作被禁止</cn>
+            <cn>由于没有持有正确类型的锁，操作被禁止</cn>
          </description>
       </code>
 
       <code>
          <tag>vessel</tag>
-         <name>SDB_VESSEL_INVALID_VESSEL_FILE</name>
+         <name>SDB_VESSEL_INVALID_FILE</name>
          <description>
-            <en>invalid file</en>
-            <cn>非法的文件</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_FILE_HEAD_CRASHED</name>
-         <description>
-            <en>file head already crashed</en>
-            <cn>文件头损坏</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_CRASHED_WHEN_CREATING</name>
-         <description>
-            <en>crashing happend when creating file</en>
-            <cn>创建文件时发生了异常崩溃</cn>
+            <en>invalid file to load</en>
+            <cn>待加载文件校验不通过</cn>
          </description>
       </code>
 
@@ -3403,6 +3385,15 @@
          <description>
             <en>the target record not found</en>
             <cn>没有发现目标记录</cn>
+         </description>
+      </code>
+
+      <code>
+         <tag>vessel</tag>
+         <name>SDB_VESSEL_INVALID_CONTROL_FILE</name>
+         <description>
+            <en>invalid control file</en>
+            <cn>非法的控制文件</cn>
          </description>
       </code>
 
