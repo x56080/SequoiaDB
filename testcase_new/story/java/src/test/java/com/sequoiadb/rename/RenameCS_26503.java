@@ -86,16 +86,34 @@ public class RenameCS_26503 extends SdbTestBase {
     @Test
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
-        es.addWorker( new RenameCS() );
-        es.addWorker( new Insert() );
+        RenameCS renameCS = new RenameCS();
+        Insert insert = new Insert();
+        es.addWorker( renameCS );
+        es.addWorker( insert );
         es.run();
 
         Assert.assertTrue( sdb.isCollectionSpaceExist( newCSName ) );
         Assert.assertFalse( sdb.isCollectionSpaceExist( subCSName ) );
 
-        DBCollection maincl = sdb.getCollectionSpace( csName )
-                .getCollection( mainCLName );
-        RenameUtil.checkRecords( maincl, insertRecord, "{a:1}" );
+        if ( insert.getRetCode() == 0 ) {
+            DBCollection maincl = sdb.getCollectionSpace( csName )
+                    .getCollection( mainCLName );
+            RenameUtil.checkRecords( maincl, insertRecord, "{a:1}" );
+        } else {
+            if ( insert.getRetCode() != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                    && insert.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                            .getErrorCode()
+                    && insert.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && insert
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
+                Assert.fail( "insert.getRetCode() : " + insert.getRetCode() );
+            }
+            DBCollection subcl = sdb.getCollectionSpace( newCSName )
+                    .getCollection( subCLName2 );
+            RenameUtil.checkRecords( subcl, insertRecord, "{a:1}" );
+        }
     }
 
     @AfterClass
@@ -137,16 +155,7 @@ public class RenameCS_26503 extends SdbTestBase {
                 int insertNums = 20000;
                 insertRecord = insertDatas( maincl, insertNums );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
-                        .getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
-                                .getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
-                                .getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
-                                .getErrorCode() ) {
-                    throw e;
-                }
+                saveResult( e.getErrorCode(), e );
             }
         }
     }
