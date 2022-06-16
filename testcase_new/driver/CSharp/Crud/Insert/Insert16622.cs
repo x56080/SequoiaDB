@@ -87,7 +87,14 @@ namespace CSharp.Crud.Insert
 
             //other flag sunch as -2
             cl1.Truncate();
-            cl1.Insert(record, -2);
+            try
+            {
+                cl1.Insert(record, -2);
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual(e.ErrorCode, -6, e.ErrorCode + e.Message);
+            }
             Assert.AreEqual("{ \"_id\" : 2 }", doc.ToString());
 
             cs.DropCollection(clName1);
@@ -186,8 +193,15 @@ namespace CSharp.Crud.Insert
                             Add("name", "zhangsan" + i);
                 insertor.Add(obj);
             }
-            cl2.Insert(insertor, -2);
-            Assert.AreEqual(2, cl2.GetCount(null));
+            try
+            {
+                cl2.Insert(insertor, -2);
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual(e.ErrorCode, -6, e.ErrorCode + e.Message);
+            }
+            Assert.AreEqual(0, cl2.GetCount(null));
         }
     
     }
