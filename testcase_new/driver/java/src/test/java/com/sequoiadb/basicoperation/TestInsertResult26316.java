@@ -6,7 +6,6 @@ import java.util.List;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.options.InsertOption;
 import com.sequoiadb.base.result.InsertResult;
-import com.sequoiadb.exception.BaseException;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -20,7 +19,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * @description seqDB-26316:insert数据检查返回记录数
+ * @description seqDB-26316:insert数据检查返回记录数/seqDB-26620:insert返回结果集增加getModifiedNum
  * @author ZhangYanan
  * @createDate 2021.04.01
  * @updateUser ZhangYanan
@@ -58,6 +57,7 @@ public class TestInsertResult26316 extends SdbTestBase {
         InsertResult bulkInsertResult1 = cl.bulkInsert( bulkInsertList );
         Assert.assertEquals( bulkInsertResult1.getInsertNum(), insertNum );
         Assert.assertEquals( bulkInsertResult1.getDuplicatedNum(), 0 );
+        Assert.assertEquals( bulkInsertResult1.getModifiedNum(), 0 );
 
         checkRecords( cl, bulkInsertList, true );
 
@@ -65,6 +65,7 @@ public class TestInsertResult26316 extends SdbTestBase {
                 option.setFlag( InsertOption.FLG_INSERT_CONTONDUP ) );
         Assert.assertEquals( bulkInsertResult2.getInsertNum(), 0 );
         Assert.assertEquals( bulkInsertResult2.getDuplicatedNum(), insertNum );
+        Assert.assertEquals( bulkInsertResult2.getModifiedNum(), 0 );
         checkRecords( cl, bulkInsertList, true );
 
         BSONObject insertData = new BasicBSONObject();
@@ -73,6 +74,7 @@ public class TestInsertResult26316 extends SdbTestBase {
         InsertResult insertResult1 = cl.insertRecord( insertData );
         Assert.assertEquals( insertResult1.getInsertNum(), 1 );
         Assert.assertEquals( insertResult1.getDuplicatedNum(), 0 );
+        Assert.assertEquals( insertResult1.getModifiedNum(), 0 );
         bulkInsertList.add( insertData );
         checkRecords( cl, bulkInsertList, false );
 
@@ -80,6 +82,7 @@ public class TestInsertResult26316 extends SdbTestBase {
                 option.setFlag( InsertOption.FLG_INSERT_REPLACEONDUP ) );
         Assert.assertEquals( insertResult2.getInsertNum(), 1 );
         Assert.assertEquals( insertResult2.getDuplicatedNum(), 0 );
+        Assert.assertEquals( insertResult2.getModifiedNum(), 0 );
         bulkInsertList.add( insertData );
         checkRecords( cl, bulkInsertList, false );
     }
