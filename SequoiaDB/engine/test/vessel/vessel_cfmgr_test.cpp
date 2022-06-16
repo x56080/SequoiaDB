@@ -91,35 +91,52 @@ public:
 };
 
 BOOLEAN validateAndExtract(const std::string &path, UINT32 &version)
+{
+   constexpr UINT32 CONTROL_FILE_NAME_FORMAT_COLUMNS = 3;
+   constexpr UINT32 CONTROL_FILE_NAME_COLUMN_PREFIX = 0;
+   constexpr UINT32 CONTROL_FILE_NAME_COLUMN_CONTROL = 1;
+   constexpr UINT32 CONTROL_FILE_NAME_COLUMN_VERSION = 2;
+   constexpr UINT32 CONTROL_FILE_MAX_PREFIX_LEN = 64;
+   fs::path filePath(path);
+   std::vector<std::string> columns = utilStrSplit(filePath.filename().string(), ".");
+   if (columns.size() != CONTROL_FILE_NAME_FORMAT_COLUMNS)
    {
-      fs::path filePath(path);
-      std::vector<std::string> columns = utilStrSplit(filePath.filename().string(), ".");
-      if (filePath.filename().string().size() > CONTROL_FILE_MAX_NAME_LEN)
-      {
-         return FALSE;
-      }
-      if (columns.size() == CONTROL_FILE_NAME_FORMAT_COLUMNS)
-      {
-         return FALSE;
-      }
-      if (!utilStrIsDigit(columns.at(1).c_str()))
-      {
-         return FALSE;
-      }
-      if (columns.at(0).compare(controlFilePrefix))
-      {
-         return FALSE;
-      }
-      version = std::stoul(columns.at(1));
-      return TRUE;
+      return FALSE;
    }
+   if (!utilStrIsDigit(columns.at(CONTROL_FILE_NAME_COLUMN_VERSION).c_str()))
+   {
+      return FALSE;
+   }
+   UINT64 tmp = std::stoull(columns.at(CONTROL_FILE_NAME_COLUMN_VERSION));
+   if (tmp > UINT32_MAX)
+   {
+      return FALSE;
+   }
+   if (0 == columns.at(CONTROL_FILE_NAME_COLUMN_CONTROL).compare(CONTROL_FILE_NAME_CONTROL_STR))
+   {
+      return FALSE;
+   }
+   if (columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).size() <= CONTROL_FILE_MAX_PREFIX_LEN)
+   {
+      return FALSE;
+   }
+   if (0 == columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).compare(controlFilePrefix))
+   {
+      return FALSE;
+   }
+   version = tmp;
+   return TRUE;
+}
 
 void controlFileTestCreateThreeFiles()
 {
    INT32 rc = SDB_OK;
    multiControlFilesMgr mgr;
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
    mgr.setMaxValidFilesNum(3);
-   mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   rc = mgr.reload(TRUE);
+   ASSERT_EQ(SDB_OK, rc);
    const CHAR *buf = "control file content";
    rc = mgr.createFile(buf, strlen(buf));
    ASSERT_EQ(SDB_OK, rc);
@@ -152,18 +169,22 @@ void loadFilenamesAndCheckExtension(const std::vector<std::string> &versions)
 
 /*
 Name: base_create
-Description: 
+Description:
    multiControlMgr创建文件测试
    1. 创建control file并写入content
    2. 扫描目录中的文件
-Expected Result: 
+Expected Result:
    目录中存在版本号为0的文件
 */
 TEST_F(vessel_cfmgr_test, base_create)
 {
    INT32 rc = SDB_OK;
    multiControlFilesMgr mgr;
-   mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
+   mgr.setMaxValidFilesNum(3);
+   rc = mgr.reload(TRUE);
+   ASSERT_EQ(SDB_OK, rc);
    const CHAR *buf = "control file content";
    rc = mgr.createFile(buf, strlen(buf));
    ASSERT_EQ(SDB_OK, rc);
@@ -172,20 +193,21 @@ TEST_F(vessel_cfmgr_test, base_create)
 
 /*
 Name: base_create_overnum
-Description: 
+Description:
    multiControlMgr创建文件时，超出文件数量上限测试
    1. 设定文件数量上限为3
    2. 创建4个control file并写入content
    3. 扫描目录中的文件
-Expected Result: 
+Expected Result:
    目录中存在版本号为1,2,3的文件
 */
 TEST_F(vessel_cfmgr_test, base_create_overnum)
 {
    INT32 rc = SDB_OK;
    multiControlFilesMgr mgr;
+   mgr.init(controlFilePrefix, DATA_PATH);
    mgr.setMaxValidFilesNum(3);
-   rc = mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   rc = mgr.reload(TRUE);
    ASSERT_EQ(SDB_OK, rc);
    const CHAR *buf = "control file content";
    rc = mgr.createFile(buf, strlen(buf));
@@ -201,12 +223,12 @@ TEST_F(vessel_cfmgr_test, base_create_overnum)
 
 /*
 Name: base_reload
-Description: 
+Description:
    multiControlMgr重新载入时，已存在文件数超过文件数量上限
    1. 创建3个control file
    2. 用新的mgr重新载入，文件数量上限默认为1
    3. 扫描目录中的文件
-Expected Result: 
+Expected Result:
    目录中仅存在版本号为2的文件
 */
 TEST_F(vessel_cfmgr_test, base_reload)
@@ -215,20 +237,21 @@ TEST_F(vessel_cfmgr_test, base_reload)
    controlFileTestCreateThreeFiles();
    ASSERT_EQ(SDB_OK, rc);
    multiControlFilesMgr mgr;
-   rc = mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = mgr.reload(TRUE);
    ASSERT_EQ(SDB_OK, rc);
    loadFilenamesAndCheckExtension({".000002"});
 }
 
 /*
 Name: base_current_file
-Description: 
-   multiControlMgr载入时获取当前文件的内容(确定存在有效文件)
+Description:
+   multiControlMgr获取当前文件的内容
    1. 创建3个文件
-   2. 设定TRUE.currentFile
-   3. 使用此TRUE载入
-   4. 检查文件内容
-Expected Result: 
+   2. 获取文件内容
+   4. 校验文件内容
+Expected Result:
    文件内容与创建时的内容相同
 */
 TEST_F(vessel_cfmgr_test, base_current_file)
@@ -237,8 +260,10 @@ TEST_F(vessel_cfmgr_test, base_current_file)
    controlFileTestCreateThreeFiles();
    multiControlFilesMgr mgr;
    memoryBlock block;
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
    mgr.setMaxValidFilesNum(3);
-   rc = mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   rc = mgr.reload(TRUE);
    ASSERT_EQ(SDB_OK, rc);
    loadFilenamesAndCheckExtension({".000000", ".000001", ".000002"});
    rc = mgr.getCurrentVersionFileContent(block);
@@ -248,20 +273,23 @@ TEST_F(vessel_cfmgr_test, base_current_file)
 
 /*
 Name: base_list
-Description: 
+Description:
    multiControlMgr获取文件元数据列表
    1. 创建3个文件
    2. 获取元数据列表
    3. 检查元数据列表中的版本号
-Expected Result: 
+Expected Result:
    元数据列表中的版本号为0,1,2
 */
 TEST_F(vessel_cfmgr_test, base_list)
 {
    INT32 rc = SDB_OK;
    multiControlFilesMgr mgr;
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
    mgr.setMaxValidFilesNum(3);
-   rc = mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   rc = mgr.reload(TRUE);
+   ASSERT_EQ(SDB_OK, rc);
    const CHAR *buf = "control file content";
    rc = mgr.createFile(buf, strlen(buf));
    ASSERT_EQ(SDB_OK, rc);
@@ -284,70 +312,106 @@ TEST_F(vessel_cfmgr_test, base_list)
 
 /*
 Name: base_invalid_file
-Description: 
-   multiControlMgr获取文件元数据列表
+Description:
+   multiControlMgr载入时自动删除损坏文件
    1. 创建三个文件
    2. 修改version为1的文件内容
    3. 设置最大有效文件数为3,重新载入,且deleteInvalidFiles=TRUE
    4. 扫描目录中的文件
-Expected Result: 
+Expected Result:
    目录中仅存在版本号为0和2的文件
 */
 TEST_F(vessel_cfmgr_test, base_delete_invalid_file)
 {
    INT32 rc = SDB_OK;
-   multiControlFilesMgr mgr;
+   
    controlFileTestCreateThreeFiles();
    loadFilenamesAndCheckExtension({".000000", ".000001", ".000002"});
-   mgr.setMaxValidFilesNum(3);
-   std::string FILE_PATH(DATA_PATH);
-   FILE_PATH.append(controlFilePrefix);
-   FILE_PATH.append(".000001");
+   std::string file_path(DATA_PATH);
+   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_CONTROL_STR + ".000001";
    OSSFILE fileDesc;
-   rc = ossOpen(FILE_PATH.c_str(), OSS_READWRITE, OSS_DEFAULTFILE, fileDesc);
+   rc = ossOpen(file_path.c_str(), OSS_READWRITE, OSS_DEFAULTFILE, fileDesc);
    ASSERT_EQ(SDB_OK, rc);
    const CHAR *content = "Unexpected edit";
    rc = ossWriteN(&fileDesc, content, ossStrlen(content));
-   ASSERT_EQ(SDB_OK ,rc);
+   ASSERT_EQ(SDB_OK, rc);
    rc = ossClose(fileDesc);
-   ASSERT_EQ(SDB_OK ,rc);
-   rc = mgr.load(controlFilePrefix, DATA_PATH, TRUE);
+   ASSERT_EQ(SDB_OK, rc);
+   multiControlFilesMgr mgr;
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
+   mgr.setMaxValidFilesNum(3);
+   rc = mgr.reload(TRUE);
    ASSERT_EQ(SDB_OK, rc);
    loadFilenamesAndCheckExtension({".000000", ".000002"});
 }
 
 /*
 Name: base_not_delete_invalid_file
-Description: 
-   multiControlMgr获取文件元数据列表
+Description:
+   multiControlMgr载入时不删除损坏文件
    1. 创建三个文件
    2. 修改version为1的文件内容
    3. 设置最大有效文件数为3,重新载入,且deleteInvalidFiles=FALSE
    4. 扫描目录中的文件
    5. 获取mgr的当前有效文件数
-Expected Result: 
+Expected Result:
    目录中存在版本号为0,1,2的文件;当前有效文件数为2
 */
 TEST_F(vessel_cfmgr_test, base_not_delete_invalid_file)
 {
    INT32 rc = SDB_OK;
-   multiControlFilesMgr mgr;
    controlFileTestCreateThreeFiles();
    loadFilenamesAndCheckExtension({".000000", ".000001", ".000002"});
-   mgr.setMaxValidFilesNum(3);
-   std::string FILE_PATH(DATA_PATH);
-   FILE_PATH.append(controlFilePrefix);
-   FILE_PATH.append(".000001");
+   std::string file_path(DATA_PATH);
+   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_CONTROL_STR + ".000001";
    OSSFILE fileDesc;
-   rc = ossOpen(FILE_PATH.c_str(), OSS_READWRITE, OSS_DEFAULTFILE, fileDesc);
+   rc = ossOpen(file_path.c_str(), OSS_READWRITE, OSS_DEFAULTFILE, fileDesc);
    ASSERT_EQ(SDB_OK, rc);
    const CHAR *content = "Unexpected edit";
    rc = ossWriteN(&fileDesc, content, ossStrlen(content));
-   ASSERT_EQ(SDB_OK ,rc);
+   ASSERT_EQ(SDB_OK, rc);
    rc = ossClose(fileDesc);
-   ASSERT_EQ(SDB_OK ,rc);
-   rc = mgr.load(controlFilePrefix, DATA_PATH, FALSE);
+   ASSERT_EQ(SDB_OK, rc);
+   multiControlFilesMgr mgr;
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
+   mgr.setMaxValidFilesNum(3);
+   rc = mgr.reload(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    loadFilenamesAndCheckExtension({".000000", ".000001", ".000002"});
+   ASSERT_EQ(mgr.getValidFilesNum(), 2);
+}
+
+/*
+Name: base_not_delete_invalid_file
+Description:
+   multiControlMgr载入版本号为1000000以上的文件
+   1. 创建版本号为1000000,1000001的文件
+   2. 检查版本号为1000000,1000001的文件是否存在
+Expected Result:
+   目录中存在版本号为1000000,1000001的文件;当前有效文件数为2
+*/
+TEST_F(vessel_cfmgr_test, base_load_big_version)
+{
+   INT32 rc = SDB_OK;
+   const CHAR *buf = "control file content";
+   std::string file_path(DATA_PATH);
+   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_CONTROL_STR;
+   std::string file_path2(file_path);
+   file_path.append(".1000000");
+   file_path2.append(".1000001");
+   strSlice file1(file_path.c_str()), file2(file_path2.c_str());
+   rc = controlFile::create(file1, buf, strlen(buf));
+   ASSERT_EQ(SDB_OK, rc);
+   rc = controlFile::create(file2, buf, strlen(buf));
+   ASSERT_EQ(SDB_OK, rc);
+   multiControlFilesMgr mgr;
+   rc = mgr.init(controlFilePrefix, DATA_PATH);
+   ASSERT_EQ(SDB_OK, rc);
+   mgr.setMaxValidFilesNum(3);
+   rc = mgr.reload(FALSE);
+   ASSERT_EQ(SDB_OK, rc);
+   loadFilenamesAndCheckExtension({".1000000", ".1000001"});
    ASSERT_EQ(mgr.getValidFilesNum(), 2);
 }

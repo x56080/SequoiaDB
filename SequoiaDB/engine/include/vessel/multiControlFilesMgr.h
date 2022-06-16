@@ -45,11 +45,7 @@ namespace engine
 namespace vessel
 {
    constexpr UINT32 CONTROL_FILES_DEFAULT_NUMBER = 1;
-   constexpr UINT32 CONTROL_FILE_NAME_FORMAT_COLUMNS = 2;
-   // control file name: <prefix>.<version suffix>  eg: cfprefix.000001
-   constexpr UINT32 CONTROL_FILE_MAX_NAME_LEN = 64;
-   // Will not supplement zero if sequence has more than 6 digits.
-   constexpr UINT32 CONTROL_FILE_MIN_VERSION_SUFFIX_LEN = 6;
+   constexpr CHAR * const CONTROL_FILE_NAME_CONTROL_STR = "control";
    constexpr CHAR * const CONTROL_FILE_FILEDNAME_COMMIT_VERSION = "CommitVersion";
    constexpr CHAR * const CONTROL_FILE_FILEDNAME_PATH = "Path";
    constexpr CHAR * const CONTROL_FILE_FILEDNAME_CONTENT_LENGTH = "ContentLen";
@@ -80,9 +76,10 @@ namespace vessel
       };
 
    public:
+      INT32 init(const std::string &prefix, const std::string &path, UINT32 maxValidFilesNum = CONTROL_FILES_DEFAULT_NUMBER);
       void reset();
       // Automatically look for control files with the name prefix in the directory path and load them.
-      INT32 load(const std::string &prefix, const std::string &path, BOOLEAN deleteInvalidFiles = TRUE);
+      INT32 reload(BOOLEAN deleteInvalidFiles = TRUE);
       // Set the value of the number of valid control files.
       void setMaxValidFilesNum(UINT32);
       // Create control file with content with buffer.
@@ -102,22 +99,20 @@ namespace vessel
       // Scan files with specified prefix in specified directory.
       INT32 _scanFiles(BOOLEAN deleteInvalidFiles);
       // Deleta file with specified version.
-      INT32 _deleteFile(UINT32 version);
+      INT32 _deleteFile(const std::string &path);
       // Deleta the oldest files which go beyond max files number.
       INT32 _deleteDeprecatedFiles();
       // Read content of current file.
 
    private:
-      // Whether the mgr has been loaded
-      BOOLEAN _isLoaded = FALSE;
       // The number of control files. Whenever _versions.size() > _filesNum, delete the oldest files.
-      UINT32 _filesNumMax = CONTROL_FILES_DEFAULT_NUMBER;
+      UINT32 _maxValidFilesNum = CONTROL_FILES_DEFAULT_NUMBER;
       // The name prefix of control files.
       std::string _prefix;
       // The directory where control files is located.
       std::string _dirPath;
       // The list of all file meta.
-      std::list<controlFileMeta> _fileMetaList;
+      ossPoolList<controlFileMeta> _fileMetaList;
       
    };
 } // namespace vessel

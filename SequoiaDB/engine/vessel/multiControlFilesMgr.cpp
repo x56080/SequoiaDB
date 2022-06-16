@@ -39,6 +39,7 @@
 #include "utilStr.hpp"
 #include "vessel/fileNameLoader.h"
 #include "vessel/multiControlFilesMgr.h"
+#include <cstdint>
 #include <cstdio>
 #include <string>
 namespace fs = boost::filesystem;
@@ -46,11 +47,50 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 multiControlFilesMgr::load(const std::string &prefix, const std::string &path, BOOLEAN deleteInvalidFiles)
+   constexpr UINT32 CONTROL_FILE_NAME_FORMAT_COLUMNS = 3;
+   // control file name: <prefix>.control.<version suffix>  eg: cfprefix.control.000001
+   constexpr UINT32 CONTROL_FILE_NAME_COLUMN_PREFIX = 0;
+   constexpr UINT32 CONTROL_FILE_NAME_COLUMN_CONTROL = 1;
+   constexpr UINT32 CONTROL_FILE_NAME_COLUMN_VERSION = 2;
+   constexpr UINT32 CONTROL_FILE_MAX_PREFIX_LEN = 64;
+
+   INT32 multiControlFilesMgr::init(const std::string &prefix, const std::string &path, UINT32 maxValidFilesNum)
    {
       INT32 rc = SDB_OK;
+      if ( std::string::npos != prefix.find('.'))
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "the prefix of control files can not contain the '.' symbol");
+         goto error;
+      }
+      if (!fs::exists(path) || !fs::is_directory(path))
+      {
+         rc = SDB_FNE;
+         PD_LOG(PDERROR, "the directory does not exist, path: %s", path.c_str());
+      }
       _prefix = prefix;
       _dirPath = path;
+      _maxValidFilesNum = maxValidFilesNum;
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   void multiControlFilesMgr::reset()
+   {
+      _maxValidFilesNum = CONTROL_FILES_DEFAULT_NUMBER;
+      _prefix.clear();
+      _dirPath.clear();
+      _fileMetaList.clear();
+   }
+
+   INT32 multiControlFilesMgr::reload(BOOLEAN deleteInvalidFiles)
+   {
+      SDB_ASSERT(!_prefix.empty() && !_dirPath.empty(), "the mgr must be initialized first");
+      INT32 rc = SDB_OK;
+      _fileMetaList.clear();
       rc = _scanFiles(deleteInvalidFiles);
       if (SDB_OK != rc)
       {
@@ -61,7 +101,6 @@ namespace vessel
       {
          goto error;
       }
-      _isLoaded = TRUE;
    done:
       return rc;
    error:
@@ -70,11 +109,7 @@ namespace vessel
 
    void multiControlFilesMgr::setMaxValidFilesNum(UINT32 filesMaxNum)
    {
-      _filesNumMax = filesMaxNum;
-      if (_isLoaded)
-      {
-         _deleteDeprecatedFiles();
-      }
+      _maxValidFilesNum = filesMaxNum;
    }
 
    INT32 multiControlFilesMgr::_scanFiles(BOOLEAN deleteInvalidFiles)
@@ -117,7 +152,7 @@ namespace vessel
          {
             if (deleteInvalidFiles)
             {
-               rc = _deleteFile(version);
+               rc = _deleteFile(*(it->second));
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to delete file %s which is not validated", filePathStr);
@@ -140,14 +175,17 @@ namespace vessel
    done:
       return rc;
    error:
+      _fileMetaList.clear();
       goto done;
    }
 
    fs::path multiControlFilesMgr::_getPathFromVersion(UINT32 version) const
    {
       fs::path path(_dirPath);
-      CHAR filename[CONTROL_FILE_MAX_NAME_LEN];
-      std::sprintf(filename, "%s.%06d", _prefix.c_str(), version);
+      // CONTROL_FILE_MAX_PREFIX_LEN + strlen(CONTROL_FILE_NAME_CONTROL_STR) + 2(length of two '.') + 10(length of UINT32_MAX decimal digits), then align to 32.
+      constexpr UINT32 CONTROL_FILE_FILEDNAME_ARRAY_SIZE = 96;
+      CHAR filename[CONTROL_FILE_FILEDNAME_ARRAY_SIZE];
+      std::sprintf(filename, "%s.%s.%06d", _prefix.c_str(), CONTROL_FILE_NAME_CONTROL_STR, version);
       path /= filename;
       return std::move(path);
    }
@@ -168,23 +206,32 @@ namespace vessel
    {
       fs::path filePath(path);
       std::vector<std::string> columns = utilStrSplit(filePath.filename().string(), ".");
-      if (filePath.filename().string().size() > CONTROL_FILE_MAX_NAME_LEN)
-      {
-         return FALSE;
-      }
       if (columns.size() != CONTROL_FILE_NAME_FORMAT_COLUMNS)
       {
          return FALSE;
       }
-      if (!utilStrIsDigit(columns.at(1).c_str()) || columns.at(1).size() < CONTROL_FILE_MIN_VERSION_SUFFIX_LEN)
+      if (!utilStrIsDigit(columns.at(CONTROL_FILE_NAME_COLUMN_VERSION).c_str()))
       {
          return FALSE;
       }
-      if (columns.at(0).compare(_prefix))
+      UINT64 tmp = std::stoull(columns.at(CONTROL_FILE_NAME_COLUMN_VERSION));
+      if (tmp > UINT32_MAX)
       {
          return FALSE;
       }
-      version = std::stoul(columns.at(1));
+      if (0 != columns.at(CONTROL_FILE_NAME_COLUMN_CONTROL).compare(CONTROL_FILE_NAME_CONTROL_STR))
+      {
+         return FALSE;
+      }
+      if (columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).size() > CONTROL_FILE_MAX_PREFIX_LEN)
+      {
+         return FALSE;
+      }
+      if (0 != columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).compare(_prefix))
+      {
+         return FALSE;
+      }
+      version = tmp;
       return TRUE;
    }
 
@@ -208,17 +255,16 @@ namespace vessel
 
    UINT32 multiControlFilesMgr::getValidFilesNum() const
    {
-      SDB_ASSERT(_isLoaded, "the mgr must load control files first");
+      SDB_ASSERT(!_prefix.empty() && !_dirPath.empty(), "the mgr must be initialized first");
       return _fileMetaList.size();
    }
 
-   INT32 multiControlFilesMgr::_deleteFile(UINT32 version)
+   INT32 multiControlFilesMgr::_deleteFile(const std::string &path)
    {
       INT32 rc = SDB_OK;
-      fs::path filePath = _getPathFromVersion(version);
       try
       {
-         fs::remove(filePath);
+         fs::remove(path);
       }
       catch (exception e)
       {
@@ -226,7 +272,7 @@ namespace vessel
          rc = SDB_IO;
          goto error;
       }
-      PD_LOG(PDINFO, "removed control file:%s", filePath.c_str());
+      PD_LOG(PDINFO, "removed control file:%s", path.c_str());
 
    done:
       return rc;
@@ -237,11 +283,12 @@ namespace vessel
    INT32 multiControlFilesMgr::_deleteDeprecatedFiles()
    {
       INT32 rc = SDB_OK;
-      while (_fileMetaList.size() > _filesNumMax)
+      while (_fileMetaList.size() > _maxValidFilesNum)
       {
-         rc = _deleteFile(_fileMetaList.front().commitVersion);
+         rc = _deleteFile(_fileMetaList.front().path);
          if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to delete deprecated file %s, rc: %d",_fileMetaList.front().path.c_str(), rc);
             goto error;
          }
          _fileMetaList.pop_front();
@@ -255,7 +302,6 @@ namespace vessel
 
    INT32 multiControlFilesMgr::createFile(const CHAR *buf, UINT32 bufSize)
    {
-      SDB_ASSERT(_isLoaded, "the mgr must load control files first");
       INT32 rc = SDB_OK;
       UINT32 version = _getNextVersion();
       fs::path filePath = _getPathFromVersion(version);
@@ -265,6 +311,7 @@ namespace vessel
       rc = controlFile::create(fileSlice, buf, bufSize);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to create file %s", fileSlice.str());
          goto error;
       }
       rc = file.openToRead(fileSlice, reason);
@@ -274,6 +321,7 @@ namespace vessel
          goto error;
       }
       _pushBackFileMeta(version, filePath.string(), file.getContentLen(), file.getCreationTime());
+      file.close();
       rc = _deleteDeprecatedFiles();
       if (SDB_OK != rc)
       {
@@ -288,9 +336,10 @@ namespace vessel
    INT32 multiControlFilesMgr::getCurrentVersionFileContent(memoryBlock &block) const
    {
       INT32 rc = SDB_OK;
+      block.resize(0);
       if (_fileMetaList.size() == 0)
       {
-         rc = SDB_FNE;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
       else
@@ -301,14 +350,14 @@ namespace vessel
          rc = file.openToRead(fileSlice, reason);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to open current file %s, rc:%d", _fileMetaList.back().path.c_str(), rc);
+            PD_LOG(PDERROR, "failed to open current file %s, rc:%d", fileSlice.str(), rc);
             goto error;
          }
          block.resize(file.getContentLen());
          rc = file.read(block.getBuffer(), file.getContentLen());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to read current file %s content,rc:%d", _fileMetaList.back().path.c_str(), rc);
+            PD_LOG(PDERROR, "failed to read current file %s content,rc:%d", fileSlice.str(), rc);
             goto error;
          }
       }
@@ -316,12 +365,12 @@ namespace vessel
    done:
       return rc;
    error:
+      block.resize(0);
       goto done;
    }
 
    void multiControlFilesMgr::list(ossPoolList<bson::BSONObj> &l) const
    {
-      SDB_ASSERT(_isLoaded, "the mgr must load control files first");
       bson::BSONObjBuilder builder;
       for (auto it = _fileMetaList.begin(); it != _fileMetaList.end(); it++)
       {
