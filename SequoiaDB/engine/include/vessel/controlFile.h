@@ -82,7 +82,9 @@ namespace vessel
                              const CHAR *buf,
                              UINT32 bufSize,
                              BOOLEAN replace = FALSE,
-                             BOOLEAN chmod = TRUE);
+                             BOOLEAN chmod = TRUE,
+                             UINT32* contentLen = nullptr,
+                             UINT64* creationTime = nullptr);
 
          void close();
 

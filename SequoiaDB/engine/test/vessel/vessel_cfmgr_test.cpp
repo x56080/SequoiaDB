@@ -92,11 +92,13 @@ public:
 
 BOOLEAN validateAndExtract(const std::string &path, UINT32 &version)
 {
+   SDB_ASSERT(!path.empty(), "invalid argument: the path can not be empty");
    constexpr UINT32 CONTROL_FILE_NAME_FORMAT_COLUMNS = 3;
    constexpr UINT32 CONTROL_FILE_NAME_COLUMN_PREFIX = 0;
    constexpr UINT32 CONTROL_FILE_NAME_COLUMN_CONTROL = 1;
    constexpr UINT32 CONTROL_FILE_NAME_COLUMN_VERSION = 2;
    constexpr UINT32 CONTROL_FILE_MAX_PREFIX_LEN = 64;
+   version = 0;
    fs::path filePath(path);
    std::vector<std::string> columns = utilStrSplit(filePath.filename().string(), ".");
    if (columns.size() != CONTROL_FILE_NAME_FORMAT_COLUMNS)
@@ -112,15 +114,11 @@ BOOLEAN validateAndExtract(const std::string &path, UINT32 &version)
    {
       return FALSE;
    }
-   if (0 == columns.at(CONTROL_FILE_NAME_COLUMN_CONTROL).compare(CONTROL_FILE_NAME_CONTROL_STR))
+   if (0 != columns.at(CONTROL_FILE_NAME_COLUMN_CONTROL).compare(CONTROL_FILE_NAME_TYPE))
    {
       return FALSE;
    }
-   if (columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).size() <= CONTROL_FILE_MAX_PREFIX_LEN)
-   {
-      return FALSE;
-   }
-   if (0 == columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).compare(controlFilePrefix))
+   if (0 != columns.at(CONTROL_FILE_NAME_COLUMN_PREFIX).compare(controlFilePrefix))
    {
       return FALSE;
    }
@@ -324,11 +322,11 @@ Expected Result:
 TEST_F(vessel_cfmgr_test, base_delete_invalid_file)
 {
    INT32 rc = SDB_OK;
-   
+
    controlFileTestCreateThreeFiles();
    loadFilenamesAndCheckExtension({".000000", ".000001", ".000002"});
    std::string file_path(DATA_PATH);
-   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_CONTROL_STR + ".000001";
+   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_TYPE + ".000001";
    OSSFILE fileDesc;
    rc = ossOpen(file_path.c_str(), OSS_READWRITE, OSS_DEFAULTFILE, fileDesc);
    ASSERT_EQ(SDB_OK, rc);
@@ -364,7 +362,7 @@ TEST_F(vessel_cfmgr_test, base_not_delete_invalid_file)
    controlFileTestCreateThreeFiles();
    loadFilenamesAndCheckExtension({".000000", ".000001", ".000002"});
    std::string file_path(DATA_PATH);
-   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_CONTROL_STR + ".000001";
+   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_TYPE + ".000001";
    OSSFILE fileDesc;
    rc = ossOpen(file_path.c_str(), OSS_READWRITE, OSS_DEFAULTFILE, fileDesc);
    ASSERT_EQ(SDB_OK, rc);
@@ -397,7 +395,7 @@ TEST_F(vessel_cfmgr_test, base_load_big_version)
    INT32 rc = SDB_OK;
    const CHAR *buf = "control file content";
    std::string file_path(DATA_PATH);
-   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_CONTROL_STR;
+   file_path = file_path + controlFilePrefix + '.' + CONTROL_FILE_NAME_TYPE;
    std::string file_path2(file_path);
    file_path.append(".1000000");
    file_path2.append(".1000001");

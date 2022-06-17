@@ -57,7 +57,9 @@ namespace vessel
                              const CHAR *buf,
                              UINT32 bufSize,
                              BOOLEAN replace,
-                             BOOLEAN chmod)
+                             BOOLEAN chmod,
+                             UINT32* contentLen,
+                             UINT64* creationTime)
    {
       INT32 rc = SDB_OK;
       UINT32 mode = 0;
@@ -121,6 +123,15 @@ namespace vessel
       {
          PD_LOG(PDERROR, "failed to write content, rc:%d", rc);
          goto error;
+      }
+
+      if (nullptr != contentLen)
+      {
+         *contentLen = headPtr->contentLen;
+      }
+      if (nullptr != creationTime)
+      {
+         *creationTime = headPtr->creationTime;
       }
 
       headPtr->checksum = utilCRC32(buffer.getReadablePtr(8, fileSize - 8), fileSize - 8);
