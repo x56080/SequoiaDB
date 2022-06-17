@@ -57,7 +57,9 @@ namespace vessel
                              const CHAR *buf,
                              UINT32 bufSize,
                              BOOLEAN replace,
-                             BOOLEAN chmod)
+                             BOOLEAN chmod,
+                             UINT32* contentLen,
+                             UINT64* creationTime)
    {
       INT32 rc = SDB_OK;
       UINT32 mode = 0;
@@ -67,7 +69,9 @@ namespace vessel
       controlFileHead *headPtr = nullptr;
       strictBuffer buffer;
       BOOLEAN fileCreated = FALSE;
-      
+      *contentLen = 0;
+      *creationTime = 0;
+
       if (OSS_UNLIKELY(fullPath.empty() ||
                        nullptr == buf ||
                        0 == bufSize))
@@ -123,6 +127,15 @@ namespace vessel
          goto error;
       }
 
+      if (nullptr != contentLen)
+      {
+         *contentLen = headPtr->contentLen;
+      }
+      if (nullptr != creationTime)
+      {
+         *creationTime = headPtr->creationTime;
+      }
+      // The first 8 bytes of the file header do not be calculated for checksum
       headPtr->checksum = utilCRC32(buffer.getReadablePtr(8, fileSize - 8), fileSize - 8);
 
       rc = ossWriteN(&file, buffer.getReadablePtr(0, fileSize), fileSize);
