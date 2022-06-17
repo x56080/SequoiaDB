@@ -69,8 +69,14 @@ namespace vessel
       controlFileHead *headPtr = nullptr;
       strictBuffer buffer;
       BOOLEAN fileCreated = FALSE;
-      *contentLen = 0;
-      *creationTime = 0;
+      if (nullptr != contentLen)
+      {
+         *contentLen = 0;
+      }
+      if (nullptr != creationTime)
+      {
+         *creationTime = 0;
+      }
 
       if (OSS_UNLIKELY(fullPath.empty() ||
                        nullptr == buf ||
