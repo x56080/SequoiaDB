@@ -45,7 +45,7 @@ namespace engine
 namespace vessel
 {
    constexpr UINT32 CONTROL_FILES_DEFAULT_NUMBER = 1;
-   constexpr CHAR * const CONTROL_FILE_NAME_CONTROL_STR = "control";
+   constexpr CHAR * const CONTROL_FILE_NAME_TYPE = "control";
    constexpr CHAR * const CONTROL_FILE_FILEDNAME_COMMIT_VERSION = "CommitVersion";
    constexpr CHAR * const CONTROL_FILE_FILEDNAME_PATH = "Path";
    constexpr CHAR * const CONTROL_FILE_FILEDNAME_CONTENT_LENGTH = "ContentLen";
@@ -101,7 +101,7 @@ namespace vessel
       // Deleta file with specified version.
       INT32 _deleteFile(const std::string &path);
       // Deleta the oldest files which go beyond max files number.
-      INT32 _deleteDeprecatedFiles();
+      void _deleteDeprecatedFiles();
       // Read content of current file.
 
    private:
