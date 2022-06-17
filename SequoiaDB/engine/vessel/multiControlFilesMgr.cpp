@@ -60,7 +60,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       reset();
-      if (prefix.empty() || path.empty() || maxValidFilesNum == 0)
+      if (prefix.empty() || path.empty() || 0 == maxValidFilesNum)
       {
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "arguments can not be empty or zero");
@@ -108,13 +108,13 @@ namespace vessel
       if (_prefix.empty() || _dirPath.empty())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         PD_LOG(PDERROR,  "the mgr must be initialized first");
+         PD_LOG(PDERROR, "the mgr must be initialized first");
          goto error;
       }
       rc = _scanFiles(deleteInvalidFiles);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to scan files when reload, path: %s, rc:%d",_dirPath.c_str(), rc);
+         PD_LOG(PDERROR, "failed to scan files when reload, path: %s, rc:%d", _dirPath.c_str(), rc);
          goto error;
       }
       _deleteDeprecatedFiles();
@@ -203,17 +203,18 @@ namespace vessel
    {
       SDB_ASSERT(!_prefix.empty() && !_dirPath.empty(), "prefix or directory path can not be empty");
       fs::path path(_dirPath);
-      // CONTROL_FILE_MAX_PREFIX_LEN + strlen(CONTROL_FILE_NAME_TYPE) + 2(length of two '.') + 10(length of UINT32_MAX decimal digits) + terminator, then align to 32.
+      // CONTROL_FILE_MAX_PREFIX_LEN + strlen(CONTROL_FILE_NAME_TYPE) + 2(length of two '.') + 10(length of UINT32_MAX decimal digits) + terminator,
+      // then align to 32.
       constexpr UINT32 CONTROL_FILE_FILEDNAME_ARRAY_SIZE = 96;
       CHAR filename[CONTROL_FILE_FILEDNAME_ARRAY_SIZE];
-      ossSnprintf(filename, CONTROL_FILE_FILEDNAME_ARRAY_SIZE,"%s.%s.%06d", _prefix.c_str(), CONTROL_FILE_NAME_TYPE, version);
+      ossSnprintf(filename, CONTROL_FILE_FILEDNAME_ARRAY_SIZE, "%s.%s.%06d", _prefix.c_str(), CONTROL_FILE_NAME_TYPE, version);
       path /= filename;
       return std::move(path);
    }
 
    UINT32 multiControlFilesMgr::_getNextVersion() const
    {
-      if (_fileMetaList.size() == 0)
+      if (0 == _fileMetaList.size())
       {
          return 0;
       }
@@ -230,7 +231,7 @@ namespace vessel
       version = 0;
       fs::path filePath(path);
       std::vector<std::string> columns = utilStrSplit(filePath.filename().string(), ".");
-      if (columns.size() != CONTROL_FILE_NAME_FORMAT_COLUMNS)
+      if (CONTROL_FILE_NAME_FORMAT_COLUMNS != columns.size())
       {
          return FALSE;
       }
@@ -257,7 +258,7 @@ namespace vessel
 
    void multiControlFilesMgr::_pushBackFileMeta(UINT32 version, const std::string &path, UINT32 contentLen, UINT64 creationTime)
    {
-      if (_fileMetaList.size() != 0)
+      if (0 != _fileMetaList.size())
       {
          SDB_ASSERT(version > _fileMetaList.back().commitVersion, "version to be added must be greater than current max version");
       }
@@ -266,7 +267,7 @@ namespace vessel
 
    void multiControlFilesMgr::_pushFrontFileMeta(UINT32 version, const std::string &path, UINT32 contentLen, UINT64 creationTime)
    {
-      if (_fileMetaList.size() != 0)
+      if (0 != _fileMetaList.size())
       {
          SDB_ASSERT(version < _fileMetaList.front().commitVersion, "version to be added must be less than current min version");
       }
@@ -309,7 +310,7 @@ namespace vessel
          rc = _deleteFile(_fileMetaList.front().path);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDSEVERE, "failed to delete deprecated file %s, rc: %d",_fileMetaList.front().path.c_str(), rc);
+            PD_LOG(PDSEVERE, "failed to delete deprecated file %s, rc: %d", _fileMetaList.front().path.c_str(), rc);
          }
          _fileMetaList.pop_front();
       }
@@ -327,7 +328,7 @@ namespace vessel
       if (_prefix.empty() || _dirPath.empty())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         PD_LOG(PDERROR,  "the mgr must be initialized first");
+         PD_LOG(PDERROR, "the mgr must be initialized first");
          goto error;
       }
       if (nullptr == buf || 0 == bufSize)
@@ -355,10 +356,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       block.resize(0);
-      if (_prefix.empty() || _dirPath.empty() || _fileMetaList.size() == 0)
+      if (_prefix.empty() || _dirPath.empty() || 0 == _fileMetaList.size())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         PD_LOG(PDERROR,  "the mgr must be initialized first");
+         PD_LOG(PDERROR, "the mgr must be initialized first");
          goto error;
       }
       else
@@ -399,7 +400,7 @@ namespace vessel
          builder.append(CONTROL_FILE_FILEDNAME_PATH, it->path.c_str(), it->path.size());
          builder.appendNumber(CONTROL_FILE_FILEDNAME_CONTENT_LENGTH, static_cast<INT32>(it->contentLen));
          builder.appendTimestamp(CONTROL_FILE_FILEDNAME_CREATION_TIME, it->creationTime);
-         l.emplace_back(builder.obj());
+         l.push_back(builder.obj());
       }
    }
 } // namespace vessel
