@@ -144,7 +144,7 @@ namespace engine
       }
 
       // check if has a recycled collection space
-      rc = _recyBinMgr->getItem( (utilRecycleID)csUniqueID, cb, csItem ) ;
+      rc = _recyBinMgr->getItemByOrigID( csUniqueID, cb, csItem ) ;
       if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          // if not found, it is safe to drop
@@ -3364,5 +3364,115 @@ namespace engine
       goto done ;
    }
    
+    /*
+      _catDropCSItemChecker implement
+    */
+   _catDropCSItemChecker::_catDropCSItemChecker( _catRecycleBinManager *recyBinMgr,
+                                                 utilRecycleItem &item )
+   : _catRecycleBinProcessor( recyBinMgr, item )
+   {
+   }
+
+   _catDropCSItemChecker::~_catDropCSItemChecker()
+   {
+   }
+
+   const CHAR *_catDropCSItemChecker::getCollection() const
+   {
+      return catGetRecycleBinRecyCL( UTIL_RECYCLE_CL ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCSITEMCHK_GETMATCHER, "_catDropCSItemChecker::getMatcher" )
+   INT32 _catDropCSItemChecker::getMatcher( ossPoolList< BSONObj > &matcherList )
+   {
+      INT32  rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATDROPCSITEMCHK_GETMATCHER ) ;
+
+      try
+      {
+         utilCSUniqueID csUniqueID = (utilCSUniqueID)( _item.getOriginID() ) ;
+         BSONObjBuilder builder ;
+         BSONObj matcher ;
+
+         // check collections in the same collection space but in another
+         // recycle item
+         rc = utilGetCSBounds( CAT_CL_UNIQUEID, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get bounds with collection "
+                      "space unique ID [%u], rc: %d", csUniqueID, rc ) ;
+
+         builder.append( FIELD_NAME_RECYCLE_ID,
+                         BSON( "$ne" << (INT64)( _item.getRecycleID() ) ) ) ;
+
+         matcher = builder.obj() ;
+
+         matcherList.push_back( matcher ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for return checker, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATDROPCSITEMCHK_GETMATCHER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCSITEMCHK_PROCESSOBJ, "_catDropCSItemChecker::processObject" )
+   INT32 _catDropCSItemChecker::processObject( const BSONObj &object,
+                                               pmdEDUCB *cb,
+                                               INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATDROPCSITEMCHK_PROCESSOBJ ) ;
+
+      const CHAR *clName = NULL ;
+      utilRecycleID recycleID = UTIL_GLOBAL_NULL ;
+      utilRecycleItem item ;
+
+      // found recycled collection space, report error, we should not drop it
+      rc = rtnGetStringElement( object, CAT_COLLECTION_NAME, &clName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from object, "
+                   "rc: %d", CAT_COLLECTION_NAME, rc ) ;
+
+      rc = rtnGetNumberLongElement( object, FIELD_NAME_RECYCLE_ID,
+                                    (INT64 &)( recycleID ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from object, "
+                   "rc: %d", FIELD_NAME_RECYCLE_ID, rc ) ;
+
+      // check if has a recycled collection space
+      rc = _recyBinMgr->getItemByRecyID( recycleID, cb, item ) ;
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get recycle item [recycle ID %llu], "
+                 "which is missing for collection [%s]", recycleID, clName ) ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item "
+                   "[recycle ID %llu], rc: %d", recycleID, rc ) ;
+
+      PD_LOG_MSG_CHECK( FALSE, SDB_RECYCLE_CONFLICT, error, PDERROR,
+                        "Failed to drop collection space recycle item "
+                        "[origin %s, recycle %s], collection [%s] in recycle "
+                        "item [origin %s, recycle %s] is also in recycle bin",
+                        _item.getOriginName(), _item.getRecycleName(), clName,
+                        item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATDROPCSITEMCHK_PROCESSOBJ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 
 }

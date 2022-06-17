@@ -162,10 +162,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_GETITEM_ORIGID, "_rtnRecycleBinManager::getItem" )
-   INT32 _rtnRecycleBinManager::getItem( utilCLUniqueID originID,
-                                         pmdEDUCB *cb,
-                                         utilRecycleItem &item )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_GETITEM_ORIGID, "_rtnRecycleBinManager::getItemByOrigID" )
+   INT32 _rtnRecycleBinManager::getItemByOrigID( utilCLUniqueID originID,
+                                                 pmdEDUCB *cb,
+                                                 utilRecycleItem &item )
    {
       INT32 rc = SDB_OK ;
 
@@ -173,7 +173,7 @@ namespace engine
 
       BSONObj itemObject ;
 
-      rc = _getItemObject( originID, cb, itemObject ) ;
+      rc = _getItemObjectByOrigID( originID, cb, itemObject ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get recycle item "
                    "[origin ID: %llu], rc: %d", originID, rc ) ;
 
@@ -183,6 +183,33 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_GETITEM_ORIGID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+     // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR_GETITEM_RECYID, "_rtnRecycleBinManager::getItemByRecyID" )
+   INT32 _rtnRecycleBinManager::getItemByRecyID( utilGlobalID recycleID,
+                                                 pmdEDUCB *cb,
+                                                 utilRecycleItem &item )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR_GETITEM_RECYID ) ;
+
+      BSONObj itemObject ;
+
+      rc = _getItemObjectByRecyID( recycleID, cb, itemObject ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get recycle item "
+                   "[recycle ID: %llu], rc: %d", recycleID, rc ) ;
+
+      rc = item.fromBSON( itemObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item "
+                   "[recycle ID: %llu] from BSON, rc: %d", recycleID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR_GETITEM_RECYID, rc ) ;
       return rc ;
 
    error:
@@ -416,9 +443,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETITEMOBJ_ORIGID, "_rtnRecycleBinManager::_getItemObject" )
-   INT32 _rtnRecycleBinManager::_getItemObject( utilCLUniqueID originID,
-                                                pmdEDUCB *cb,
-                                                BSONObj &object )
+   INT32 _rtnRecycleBinManager::_getItemObjectByOrigID( utilCLUniqueID originID,
+                                                        pmdEDUCB *cb,
+                                                        BSONObj &object )
    {
       INT32 rc = SDB_OK ;
 
@@ -444,6 +471,41 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__GETITEMOBJ_ORIGID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+   
+    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETITEMOBJ_RECYID, "_rtnRecycleBinManager::_getItemObjectByRecyID" )
+   INT32 _rtnRecycleBinManager::_getItemObjectByRecyID( utilGlobalID recycleID,
+                                                        pmdEDUCB *cb,
+                                                        BSONObj &object )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNRECYBINMGR__GETITEMOBJ_RECYID ) ;
+
+      BSONObj matcher ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_RECYCLE_ID << (INT64)recycleID ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _getItemObject( matcher, cb, object ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get recycle item "
+                   "[recycle ID: %llu], rc: %d", recycleID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNRECYBINMGR__GETITEMOBJ_RECYID, rc ) ;
       return rc ;
 
    error:

@@ -775,6 +775,33 @@ namespace engine
 
    typedef class  _catRecycleSubCLLocker catRecycleSubCLLocker ;
 
+   /*
+      _catDropCSItemChecker define
+    */
+   // check if collections within another ( main collection ) recycle item is
+   // in a dropping collection space recycle item
+   class _catDropCSItemChecker : public _catRecycleBinProcessor
+   {
+   public:
+      _catDropCSItemChecker( _catRecycleBinManager *recyBinMgr,
+                             utilRecycleItem &item ) ;
+      virtual ~_catDropCSItemChecker() ;
+
+      virtual const CHAR *getCollection() const ;
+
+      virtual const CHAR *getName() const
+      {
+         return "DropCSItemChecker" ;
+      }
+
+      virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
+      virtual INT32 processObject( const bson::BSONObj &object,
+                                   pmdEDUCB *cb,
+                                   INT16 w ) ;
+   } ;
+
+   typedef class _catDropCSItemChecker catDropCSItemChecker ;
+
 
 }
 

@@ -84,15 +84,6 @@ namespace engine
                         pmdEDUCB *cb,
                         INT16 w ) ;
 
-      INT32 getRecycleObject( const utilRecycleItem &item,
-                              pmdEDUCB *cb,
-                              bson::BSONObj &recycleObject,
-                              const CHAR *origUIDField = FIELD_NAME_UNIQUEID ) ;
-      INT32 getRecycleCLObject( const utilRecycleItem &item,
-                                const CHAR *collectionName,
-                                pmdEDUCB *cb,
-                                bson::BSONObj &recycleObject ) ;
-
       INT32 dropItem( const utilRecycleItem &item,
                       pmdEDUCB *cb,
                       INT16 w ) ;
