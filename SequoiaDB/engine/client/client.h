@@ -3530,6 +3530,23 @@ SDB_EXPORT INT32 sdbCLGetIndexStat( sdbCollectionHandle cHandle,
                                     const CHAR *pIndexName,
                                     bson *result ) ;
 
+/** \fn INT32 sdbCLGetIndexStat1 ( sdbCollectionHandle cHandle,
+                                   const CHAR *pIndexName,
+                                   bson *result,
+                                   BOOLEAN detail )
+    \brief Get the statistics of the index.
+    \param [in] cHandle The collection handle
+    \param [in] pIndexName The name of index
+    \param [out] result The statistics of index
+    \param [in] detail Whether show the detail information
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCLGetIndexStat1( sdbCollectionHandle cHandle,
+                                     const CHAR *pIndexName,
+                                     bson *result,
+                                     BOOLEAN detail ) ;
+
 /* \fn INT32 sdbPop( sdbCollectionHandle cHandle, bson *options )
     \brief pop records from capped collection
     \param [in] cHandle The handle of connection

@@ -639,12 +639,34 @@ namespace engine
 
          INT32 toBSON( bson::BSONObj &obj ) ;
 
+         INT32 refine() ;
+
          BOOLEAN inited()
          {
             return ( _index[0] != 0 ) ;
          }
 
          void setCollectionFullName( const CHAR *fullName ) ;
+
+      private:
+         // Merging 200000 MCV samples may take about 1 second
+         static const UINT32 MCV_SAMPLE_RECORDS_LIMIT = 200000 ;
+         // 10000 is a reference to the maximum of MCV size of data node
+         static const UINT32 MCV_SIZE_LIMIT = 10000 ;
+
+         typedef std::pair< bson::BSONObj, UINT32 >   _coordValRecPair ;
+         typedef ossPoolList< _coordValRecPair >      _coordMCVList ;
+         typedef std::pair< UINT32, UINT32 >          _coordFrac2Dups ;
+         typedef ossPoolMap< UINT32, UINT32 >         _coordFrac2DupsMap ;
+
+      private:
+         INT32 _updateTopFrac( const UINT32 finalMCVSize,
+                               const UINT32 fracRec,
+                               UINT32 &minFracRec,
+                               _coordFrac2DupsMap &topFracMap ) ;
+
+         INT32 _compressMCV( const UINT32 finalMCVSize,
+                             _coordFrac2DupsMap &topFracMap ) ;
 
       private:
          CHAR           _collection[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
@@ -661,6 +683,9 @@ namespace engine
          UINT64         _undefRecords ;
          UINT64         _sampleRecords ;
          UINT64         _totalRecords ;
+         _coordMCVList  _mcvList ;
+         BOOLEAN        _hasMCV ;
+         UINT32         _mcvSampleRecords ;
    } ;
 
    _coordIndexStat::_coordIndexStat()
@@ -675,6 +700,8 @@ namespace engine
       _undefRecords = 0 ;
       _sampleRecords = 0 ;
       _totalRecords = 0 ;
+      _hasMCV = FALSE ;
+      _mcvSampleRecords = 0 ;
    }
 
    void _coordIndexStat::setCollectionFullName( const CHAR *fullName )
@@ -688,12 +715,18 @@ namespace engine
       BSONObjIterator iter( obj ) ;
       INT32 nullFrac = 0 ;
       INT32 undefFrac = 0 ;
+      BSONElement ele ;
 
       try
       {
+         ele = obj.getField( FIELD_NAME_SAMPLE_RECORDS ) ;
+         PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                   "Field '" FIELD_NAME_SAMPLE_RECORDS "' must be number" ) ;
+         _sampleRecords = ele.numberLong() ;
+
          while ( iter.more() )
          {
-            BSONElement ele = iter.next() ;
+            ele = iter.next() ;
             if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COLLECTION ) )
             {
                PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
@@ -737,12 +770,6 @@ namespace engine
                PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
                          "Field '" FIELD_NAME_KEY_PATTERN "' must be object" ) ;
                _keyPattern = ele.embeddedObject().getOwned() ;
-            }
-            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SAMPLE_RECORDS ) )
-            {
-               PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                         "Field '" FIELD_NAME_SAMPLE_RECORDS "' must be number" ) ;
-               _sampleRecords = ele.numberLong() ;
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_RECORDS ) )
             {
@@ -797,24 +824,54 @@ namespace engine
                PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                          "Field '" FIELD_NAME_NULL_FRAC "' must be number" ) ;
                nullFrac = ele.numberInt() ;
+               _nullRecords =
+                     ( _sampleRecords * nullFrac ) / DMS_STAT_FRACTION_SCALE ;
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UNDEF_FRAC ) )
             {
                PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                          "Field '" FIELD_NAME_UNDEF_FRAC "' must be number" ) ;
                undefFrac = ele.numberInt() ;
+               _undefRecords =
+                     ( _sampleRecords * undefFrac ) / DMS_STAT_FRACTION_SCALE ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MCV ) )
+            {
+               PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Field '" FIELD_NAME_MCV "' must be object" ) ;
+               {
+                  BSONObj mcvObj =  ele.embeddedObject() ;
+                  BSONObj valueArray =
+                        mcvObj.getField( FIELD_NAME_VALUES ).embeddedObject() ;
+                  BSONObjIterator valueIt( valueArray ) ;
+                  BSONObj fracArray =
+                        mcvObj.getField( FIELD_NAME_FRAC ).embeddedObject() ;
+                  BSONObjIterator fracIt( fracArray ) ;
+
+                  while ( valueIt.more() && fracIt.more() )
+                  {
+                     BSONObj value = valueIt.next().embeddedObject().getOwned() ;
+                     INT32 frac = fracIt.next().numberInt() ;
+                     FLOAT64 recInDouble = ( ( FLOAT64 ) _sampleRecords * frac )
+                           / DMS_STAT_FRACTION_SCALE ;
+                     UINT32 records = floor( recInDouble + 0.5 ) ;
+                     _coordValRecPair pair( value, records ) ;
+                     _mcvList.push_back( pair ) ;
+                  }
+
+                  _hasMCV = TRUE ;
+                  _mcvSampleRecords = _sampleRecords ;
+               }
             }
          }
       }
       catch (std::exception &e)
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception occured: %s", e.what() ) ;
          goto error ;
       }
 
-      _nullRecords = ( _sampleRecords * nullFrac ) / DMS_STAT_FRACTION_SCALE ;
-      _undefRecords = ( _sampleRecords * undefFrac ) / DMS_STAT_FRACTION_SCALE ;
    done:
       return rc ;
    error:
@@ -864,6 +921,38 @@ namespace engine
          }
          ob.append( FIELD_NAME_NULL_FRAC, nullFrac ) ;
          ob.append( FIELD_NAME_UNDEF_FRAC, undefFrac ) ;
+
+         if ( _hasMCV )
+         {
+            BSONObjBuilder mcvOB( ob.subobjStart( FIELD_NAME_MCV ) ) ;
+
+            _coordMCVList::iterator it ;
+            BSONArrayBuilder valueAB( mcvOB.subarrayStart( FIELD_NAME_VALUES ) ) ;
+            for ( it = _mcvList.begin(); it != _mcvList.end(); ++it )
+            {
+               valueAB.append( it->first ) ;
+            }
+            valueAB.done() ;
+
+            BSONArrayBuilder fracAB( mcvOB.subarrayStart( FIELD_NAME_FRAC ) ) ;
+            for ( it = _mcvList.begin(); it != _mcvList.end(); ++it )
+            {
+               if ( _mcvSampleRecords > 0 )
+               {
+                  INT32 frac = ( it->second * DMS_STAT_FRACTION_SCALE ) /
+                               _mcvSampleRecords ;
+                  frac = OSS_MAX( frac, 1 ) ;
+                  fracAB.append( frac ) ;
+               }
+               else
+               {
+                  fracAB.append( 0 ) ;
+               }
+            }
+            fracAB.done() ;
+
+            mcvOB.done() ;
+         }
 
          ob.append( FIELD_NAME_SAMPLE_RECORDS, ( INT64 )_sampleRecords ) ;
          ob.append( FIELD_NAME_TOTAL_RECORDS, ( INT64 )_totalRecords ) ;
@@ -942,20 +1031,302 @@ namespace engine
                *pNum = total ;
             }
          }
-      }
-      catch ( std::bad_alloc &ba )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "No memory to merge index statistics" ) ;
-         goto error ;
+
+         // For "MCV", union the result. And we set a maximum limit to prevent
+         // the cost from becoming too expensive.
+         if ( to._hasMCV && to._mcvSampleRecords < MCV_SAMPLE_RECORDS_LIMIT )
+         {
+            _coordMCVList::iterator toMCVIt ;
+            _coordMCVList::const_iterator fromMCVIt ;
+            toMCVIt = to._mcvList.begin() ;
+            fromMCVIt = from._mcvList.begin() ;
+
+            INT32 cmp = 0 ;
+
+            while ( fromMCVIt != from._mcvList.end() )
+            {
+               if ( to._mcvList.end() == toMCVIt )
+               {
+                  break ;
+               }
+
+               cmp = toMCVIt->first.woCompare( fromMCVIt->first, BSONObj(),
+                                               FALSE ) ;
+
+               if ( cmp < 0 )
+               {
+                  ++toMCVIt ;
+               }
+               else if ( 0 == cmp )
+               {
+                  toMCVIt->second += fromMCVIt->second ;
+                  ++toMCVIt ;
+                  ++fromMCVIt ;
+               }
+               else // cmp > 0
+               {
+                  to._mcvList.insert( toMCVIt, *fromMCVIt ) ;
+                  ++fromMCVIt ;
+               }
+            }
+
+            if ( to._mcvList.end() == toMCVIt )
+            {
+               while ( fromMCVIt != from._mcvList.end() )
+               {
+                  to._mcvList.push_back( *fromMCVIt ) ;
+                  ++fromMCVIt ;
+               }
+            }
+
+            to._mcvSampleRecords += from._mcvSampleRecords ;
+         }
       }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
          goto error ;
       }
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      1. Refine DistinctValNum by MCV info;
+      2. Compress MCV info, to avoid the large result;
+   */
+   INT32 _coordIndexStat::refine()
+   {
+      INT32 rc = SDB_OK ;
+      INT64 *distinctValNum = NULL ;
+      try
+      {
+         INT32 keyFieldNum = 0 ;
+         INT32 i = 0 ;
+         ossPoolList< _coordValRecPair >::iterator mcvIt ;
+         BSONObj *pLastValue = NULL ;
+
+         _coordFrac2DupsMap topFracMap ;
+         UINT32 finalMCVSize = OSS_MIN( _mcvList.size(), MCV_SIZE_LIMIT ) ;
+         UINT32 minFracRec = 0 ;
+
+         if ( _mcvList.empty() )
+         {
+            goto done ;
+         }
+
+         keyFieldNum = _keyPattern.nFields() ;
+
+         distinctValNum =
+               (INT64 *) SDB_POOL_ALLOC( keyFieldNum * sizeof( INT64 ) ) ;
+         if ( !distinctValNum )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "No memory to allocate the array" ) ;
+            goto error ;
+         }
+
+         for ( i = 0 ; i < keyFieldNum ; ++i )
+         {
+            distinctValNum[i] = 1 ;
+         }
+
+         mcvIt = _mcvList.begin() ;
+         pLastValue = &mcvIt->first ;
+         for ( ; mcvIt != _mcvList.end(); ++mcvIt )
+         {
+            i = 0 ;
+            BSONObj *pCurrValue = &mcvIt->first ;
+            BSONObjIterator currIter( *pCurrValue ) ;
+            BSONObjIterator lastIter( *pLastValue ) ;
+
+            while ( currIter.more() )
+            {
+               BSONElement currEle = currIter.next() ;
+               BSONElement lastEle = lastIter.next() ;
+               if ( currEle.woCompare( lastEle, FALSE ) != 0 )
+               {
+                  break ;
+               }
+               ++i ;
+            }
+
+            while ( i < keyFieldNum )
+            {
+               ++distinctValNum[i] ;
+               ++i ;
+            }
+
+            pLastValue = pCurrValue ;
+
+            rc = _updateTopFrac( finalMCVSize, mcvIt->second, minFracRec,
+                                 topFracMap ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update top fraction, rc: %d",
+                         rc ) ;
+         }
+
+         {
+            BSONArrayBuilder ab( 32 );
+            for (i = 0; i < keyFieldNum; ++i) {
+               ab.append( distinctValNum[i] );
+            }
+            _distinctValNum = ab.arr();
+         }
+
+         rc = _compressMCV( finalMCVSize, topFracMap ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to compress MCV, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      if ( distinctValNum )
+      {
+         SDB_POOL_FREE( distinctValNum ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      If MCV is too big, find out the elements with top fraction to
+      cut away the low fraction elements later. We only maintain the top N
+      fraction (N = finalMCVSize) to save the memory.
+   */
+   INT32 _coordIndexStat::_updateTopFrac( const UINT32 finalMCVSize,
+                                          const UINT32 fracRec,
+                                          UINT32 &minFracRec,
+                                          _coordFrac2DupsMap &topFracMap )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         if ( _mcvList.size() <= finalMCVSize )
+         {
+            goto done ;
+         }
+         if ( fracRec < minFracRec )
+         {
+            goto done ;
+         }
+         {
+            _coordFrac2Dups value( fracRec, 1 ) ;
+            std::pair< _coordFrac2DupsMap::iterator, bool > ret ;
+            ret = topFracMap.insert( value ) ;
+            if ( !ret.second )
+            {
+               ret.first->second += 1 ;
+            }
+            if ( topFracMap.size() > finalMCVSize )
+            {
+               topFracMap.erase( topFracMap.begin() ) ;
+               minFracRec = topFracMap.begin()->first ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      If MCV is too big, we would cut it away until the size less than
+      finalMCVSize. There are 2 principle:
+      1. More frequent, more important. The biggest fraction go first.
+      2. If fraction is the same, select them averagely.
+   */
+   INT32 _coordIndexStat::_compressMCV( const UINT32 finalMCVSize,
+                                        _coordFrac2DupsMap &topFracMap )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         _coordFrac2DupsMap::reverse_iterator mapRit ;
+         UINT32 currSize = 0 ;
+         ossPoolList< _coordValRecPair >::iterator mcvIt ;
+
+         if ( _mcvList.size() <= finalMCVSize )
+         {
+            goto done ;
+         }
+
+         for ( mapRit = topFracMap.rbegin();
+               mapRit != topFracMap.rend();
+               ++mapRit )
+         {
+            currSize += mapRit->second ;
+            if ( currSize >= finalMCVSize )
+            {
+               break ;
+            }
+         }
+
+         if ( currSize >= finalMCVSize )
+         {
+            UINT32 cutSize = currSize - finalMCVSize ;
+            UINT32 boundFracRec = mapRit->second ;
+            FLOAT64 stepLength =
+                ((FLOAT64) boundFracRec / ( boundFracRec - cutSize )) ;
+            FLOAT64 stepIter = 0 ;
+            UINT32 cutBound = mapRit->first ;
+
+            mcvIt = _mcvList.begin() ;
+            INT32 i = 0 ;
+            while ( mcvIt != _mcvList.end() &&
+                    _mcvList.size() > finalMCVSize )
+            {
+               UINT32 fracRec = mcvIt->second ;
+               BOOLEAN shouldCut = FALSE ;
+               if ( fracRec < cutBound )
+               {
+                  shouldCut = TRUE ;
+               }
+               else if ( fracRec == cutBound )
+               {
+                  if ( i != ( floor( stepIter + 0.5 ) ) )
+                  {
+                     shouldCut = TRUE ;
+                  }
+                  else
+                  {
+                     shouldCut = FALSE ;
+                     stepIter += stepLength ;
+                  }
+                  ++i ;
+               }
+
+               if ( shouldCut )
+               {
+                  mcvIt = _mcvList.erase( mcvIt ) ;
+               }
+               else
+               {
+                  ++mcvIt ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
    done:
       return rc ;
    error:
@@ -1027,6 +1398,10 @@ namespace engine
       {
          resStat.setCollectionFullName( _cataPtr->getName() ) ;
       }
+
+      rc = resStat.refine() ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to refine index statistics, rc: %d", rc ) ;
 
       rc = resStat.toBSON( obj ) ;
       PD_RC_CHECK( rc, PDERROR,

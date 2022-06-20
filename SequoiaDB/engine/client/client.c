@@ -12294,6 +12294,14 @@ SDB_EXPORT INT32 sdbCLGetIndexStat( sdbCollectionHandle cHandle,
                                     const CHAR *pIndexName,
                                     bson *result )
 {
+   return sdbCLGetIndexStat1( cHandle, pIndexName, result, FALSE ) ;
+}
+
+SDB_EXPORT INT32 sdbCLGetIndexStat1( sdbCollectionHandle cHandle,
+                                     const CHAR *pIndexName,
+                                     bson *result,
+                                     BOOLEAN detail )
+{
    INT32 rc                        = SDB_OK ;
    sdbCursorHandle cursor          = SDB_INVALID_HANDLE ;
    sdbConnectionStruct *connection = NULL ;
@@ -12315,10 +12323,23 @@ SDB_EXPORT INT32 sdbCLGetIndexStat( sdbCollectionHandle cHandle,
       goto error ;
    }
 
-   // { Collection: 'cl', Index: 'idx' }
+   // { Collection: 'cl', Index: 'idx', $Options: { Detail: false } }
    BSON_APPEND( hint, FIELD_NAME_COLLECTION,
                 cs->_collectionFullName, string ) ;
    BSON_APPEND( hint, FIELD_NAME_INDEX, pIndexName, string ) ;
+   rc = bson_append_start_object( &hint, CMD_ADMIN_PREFIX FIELD_NAME_OPTIONS ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
+   BSON_APPEND( hint, FIELD_NAME_DETAIL, detail, bool ) ;
+   rc = bson_append_finish_object( &hint ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
    BSON_FINISH ( hint ) ;
 
    rc = _runCommand2( cs->_connection,

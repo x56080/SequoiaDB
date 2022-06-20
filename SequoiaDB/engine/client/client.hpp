@@ -653,7 +653,9 @@ namespace sdbclient
 
       virtual INT32 getDetail ( sdbCursor &cursor ) = 0 ;
 
-      virtual INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result ) = 0 ;
+      virtual INT32 getIndexStat ( const CHAR *pIndexName,
+                                   bson::BSONObj &result,
+                                   BOOLEAN detail = FALSE ) = 0 ;
 
       virtual void setVersion( INT32 clVersion ) = 0;
       virtual INT32 getVersion() = 0;
@@ -2663,20 +2665,23 @@ namespace sdbclient
          return pCollection->getDetail( cursor ) ;
       }
 
-      /* \fn INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result )
+      /* \fn INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result,
+                                  BOOLEAN detail = FALSE )
           \brief Get the statistics of the index.
           \param [in] pIndexName The name of the index.
           \param [out] result The statistics of index.
+          \param [in] detail Whether show the detail information.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 getIndexStat( const CHAR *pIndexName, bson::BSONObj &result )
+      INT32 getIndexStat( const CHAR *pIndexName, bson::BSONObj &result,
+                          BOOLEAN detail = FALSE )
       {
          if ( !pCollection)
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->getIndexStat( pIndexName, result ) ;
+         return pCollection->getIndexStat( pIndexName, result, detail ) ;
       }
 
 	  /* \fn void setVersion ( INT32 clVersion )
