@@ -54,11 +54,11 @@
             <package name="com.sequoiadb.datasource"/>
             <package name="com.sequoiadb.snapshot" />
             <package name="com.sequoiadb.subcl.brokennetwork" />
-            <package name="com.sequoiadb.subcl.killnode"></package>
-            <package name="com.sequoiadb.subcl.restartnode"></package>
-            <package name="com.sequoiadb.clsmgr.brokennetwork"></package>
-            <package name="com.sequoiadb.split.killnode"></package>
-            <package name="com.sequoiadb.split.restartnode"></package>
+            <package name="com.sequoiadb.subcl.killnode"/>
+            <package name="com.sequoiadb.subcl.restartnode"/>
+            <package name="com.sequoiadb.clsmgr.brokennetwork"/>
+            <package name="com.sequoiadb.split.killnode"/>
+            <package name="com.sequoiadb.split.restartnode"/>
             <package name="com.sequoiadb.split.brokennetwork" />
             <package name="com.sequoiadb.metaopr.killnode" />
             <package name="com.sequoiadb.metaopr.networkfail.cl" />
@@ -79,6 +79,7 @@
             <package name="com.sequoiadb.compress" />
             <package name="com.sequoiadb.faulttolerance.restartnode" />
             <package name="com.sequoiadb.faulttolerance.slownode" />
+            <package name="com.sequoiadb.faulttolerance.killnode" />
         </packages>
     </test>
 
