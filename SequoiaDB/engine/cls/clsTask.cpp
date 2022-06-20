@@ -1162,13 +1162,13 @@ namespace engine
          // can't cancel finish status
          if ( CLS_TASK_STATUS_META == _status ||
               CLS_TASK_STATUS_CLEANUP == _status )
-         {  
+         {
             PD_LOG_MSG( PDERROR, "The task[%llu] status is %s, "
-                        "cannot be cancled", _taskID, clsTaskStatusStr( _status ) ) ;
+                        "cannot be canceled", _taskID, clsTaskStatusStr( _status ) ) ;
             rc = SDB_TASK_CANNOT_CANCEL ;
             goto error ;
-         }     
-         else if ( CLS_TASK_STATUS_FINISH == _status )   
+         }
+         else if ( CLS_TASK_STATUS_FINISH == _status )
          {
             PD_LOG_MSG( PDERROR, "The task[%llu] is already finished"
                         , _taskID ) ;
