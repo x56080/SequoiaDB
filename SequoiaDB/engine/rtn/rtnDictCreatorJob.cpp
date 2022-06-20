@@ -228,15 +228,30 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CREATEDICT ) ;
       _mthRecordGenerator generator ;
       dmsRecordID recordID ;
+      dmsExtentID lastExtentID = DMS_INVALID_EXTENT ;
       ossValuePtr recordDataPtr = 0 ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       UINT64 fetchNum = 0 ;
       UINT64 fetchSize = 0 ;
       BOOLEAN dictFull = FALSE ;
+      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
+      IDmsScannerChecker *checker = NULL ;
 
       SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
       dmsTBScanner tbScanner( sd, context, NULL ) ;
+      const CHAR *csName = sd->getSuName() ;
+      const CHAR *clShortName = context->mb()->_collectionName ;
+      rc = dmsCB->createScannerChecker( sd->logicalID(),
+                                        context->clLID(),
+                                        csName,
+                                        clShortName,
+                                        "create dictionary",
+                                        cb,
+                                        &checker ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to open storage unit checker for "
+                   "collection [%s.%s], rc: %d", csName, clShortName, rc ) ;
+
       /*
        * The loop will end either all records have been fetched, or the
        * dictionary is full.
@@ -261,6 +276,19 @@ namespace engine
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             rc = SDB_SYS ;
             goto error ;
+         }
+         if ( ( DMS_INVALID_EXTENT == lastExtentID ) ||
+              ( lastExtentID != recordID._extent ) )
+         {
+            if ( NULL != checker && checker->needInterrupt() )
+            {
+               PD_LOG( PDWARNING, "Scanner for collection [%s.%s] need "
+                       "interrupt", sd->getSuName(),
+                       context->mb()->_collectionName ) ;
+               rc = SDB_DMS_SCANNER_INTERRUPT ;
+               goto error ;
+            }
+            lastExtentID = recordID._extent ;
          }
       }
 
@@ -287,6 +315,10 @@ namespace engine
       }
 
    done:
+      if ( NULL != checker )
+      {
+         dmsCB->releaseScannerChecker( checker ) ;
+      }
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CREATEDICT, rc ) ;
       return rc ;
    error:

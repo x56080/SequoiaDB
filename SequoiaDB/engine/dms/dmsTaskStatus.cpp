@@ -989,6 +989,7 @@ namespace engine
          if ( 0 == ossStrncmp( clFullName, csName, csLen ) &&
               clFullName[csLen] == '.' )
          {
+            it->second->setStatus( DMS_TASK_STATUS_CANCELED ) ;
             _mapStatus.erase( it++ ) ;
          }
          else
@@ -1007,6 +1008,7 @@ namespace engine
       {
          if ( 0 == ossStrcmp( it->second->collectionName(), collection ) )
          {
+            it->second->setStatus( DMS_TASK_STATUS_CANCELED ) ;
             _mapStatus.erase( it++ ) ;
          }
          else

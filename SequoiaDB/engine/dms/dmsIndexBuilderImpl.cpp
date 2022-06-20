@@ -331,6 +331,12 @@ namespace engine
             }
          }
 
+         // check if scanner is interrupted
+         rc = _checkInterrupt() ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done:
@@ -387,6 +393,13 @@ namespace engine
          }
 
          rc = _sorter->sort() ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         // check if scanner is interrupted
+         rc = _checkInterrupt() ;
          if ( SDB_OK != rc )
          {
             goto error ;

@@ -2773,17 +2773,14 @@ namespace engine
    RTN_CTX_AUTO_REGISTER(_rtnContextTemp, RTN_CONTEXT_TEMP, "TEMP")
 
    _rtnContextTemp::_rtnContextTemp( INT64 contextID, UINT64 eduID )
-   :_rtnContextData( contextID, eduID )
+   :_rtnContextBase( contextID, eduID ),
+    _suLID( DMS_INVALID_LOGICCSID ),
+    _mbLID( DMS_INVALID_LOGICCLID )
    {
    }
 
    _rtnContextTemp::~_rtnContextTemp ()
    {
-      // release temp collection
-      if ( _dmsCB && _mbContext )
-      {
-         _dmsCB->getTempSUMgr()->release( _mbContext ) ;
-      }
    }
 
    const CHAR* _rtnContextTemp::name() const
@@ -2794,6 +2791,78 @@ namespace engine
    RTN_CONTEXT_TYPE _rtnContextTemp::getType () const
    {
       return RTN_CONTEXT_TEMP ;
+   }
+
+   INT32 _rtnContextTemp::open( UINT32 suLID,
+                                UINT32 mbLID,
+                                const CHAR *csName,
+                                const CHAR *clShortName,
+                                const CHAR *optrDesc )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _isOpened )
+      {
+         rc = SDB_DMS_CONTEXT_IS_OPEN ;
+         goto error ;
+      }
+
+      try
+      {
+         _processName.clear() ;
+         _optrDesc.clear() ;
+
+         if ( NULL != csName )
+         {
+            _processName.assign( csName ) ;
+            if ( NULL != clShortName )
+            {
+               _processName.append( "." ) ;
+               _processName.append( clShortName ) ;
+            }
+         }
+
+         if ( NULL != optrDesc )
+         {
+            _optrDesc.assign( optrDesc ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to open temp context for collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      _suLID = suLID ;
+      _mbLID = mbLID ;
+      _isOpened = TRUE ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextTemp::_prepareData( pmdEDUCB * cb )
+   {
+      SDB_ASSERT( FALSE, "should not be here" ) ;
+      return SDB_DMS_EOC ;
+   }
+
+   void _rtnContextTemp::_toString( stringstream &ss )
+   {
+      try
+      {
+         ss << ",Name:" << _processName << ",Detail:" << _optrDesc ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to build string for temp context, "
+                 "occur exception %s", e.what() ) ;
+      }
    }
 
 }

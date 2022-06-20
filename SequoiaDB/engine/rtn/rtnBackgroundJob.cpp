@@ -587,10 +587,22 @@ namespace engine
             rc = rcTmp ;
          }
 
-         if ( !_needRetry( rc ) )
+         if ( SDB_OK != rc )
          {
-            break ;
+            BOOLEAN retryLater = FALSE ;
+            if ( _needRetry( rc, retryLater ) )
+            {
+               if ( retryLater )
+               {
+                  goto done ;
+               }
+               ossSleep( OSS_ONE_SEC ) ;
+               PD_LOG ( PDWARNING, "Retry index job[%s] when failed[rc: %d]",
+                        name(), rc ) ;
+               continue ;
+            }
          }
+         break ;
       }
 
       // we should set finish after _onDoit()
@@ -600,16 +612,21 @@ namespace engine
          _taskStatusPtr->setStatus2Finish( rc, detail, &wResult ) ;
       }
 
+   done:
       PD_TRACE_EXITRC ( SDB__RTNINDEXJOB_DOIT, rc ) ;
       return rc ;
    }
 
-   BOOLEAN _rtnIndexJob::_needRetry( INT32 rc )
+   BOOLEAN _rtnIndexJob::_needRetry( INT32 rc, BOOLEAN &retryLater )
    {
       BOOLEAN needRetry = FALSE ;
 
+      retryLater = FALSE ;
+
       // if the collection is truncated when creating index, we can retry
-      if ( SDB_DMS_TRUNCATED == rc )
+      // if the scanner is interrupted when creating index, we can retry
+      if ( SDB_DMS_TRUNCATED == rc ||
+           SDB_DMS_SCANNER_INTERRUPT == rc )
       {
          needRetry = TRUE ;
          goto done ;
@@ -636,9 +653,6 @@ namespace engine
          {
             _taskStatusPtr->incRetryCnt() ;
          }
-         ossSleep( OSS_ONE_SEC ) ;
-         PD_LOG ( PDWARNING, "Retry index job[%s] when failed[rc: %d]",
-                  name(), rc ) ;
       }
       return needRetry ;
    }

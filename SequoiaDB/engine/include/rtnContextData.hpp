@@ -372,17 +372,52 @@ namespace engine
    /*
       _rtnContextTemp define
    */
-   class _rtnContextTemp : public _rtnContextData
+   class _rtnContextTemp : public _rtnContextBase
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTemp )
       public:
          _rtnContextTemp ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextTemp ();
 
+         INT32 open( UINT32 suLID,
+                     UINT32 mbLID,
+                     const CHAR *csName,
+                     const CHAR *clShortName,
+                     const CHAR *optrDesc ) ;
+
       public:
          virtual const CHAR*      name() const ;
          virtual RTN_CONTEXT_TYPE getType () const ;
 
+         virtual _dmsStorageUnit *getSU()
+         {
+            return NULL ;
+         }
+
+         virtual UINT32 getSULogicalID() const
+         {
+            return _suLID ;
+         }
+
+         virtual const CHAR *getProcessName() const
+         {
+            return _processName.c_str() ;
+         }
+
+      protected:
+         virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+         virtual void _toString( stringstream &ss ) ;
+
+      protected:
+         // logical ID of collection space which is being processed
+         UINT32 _suLID ;
+         // logical ID of collection which is being processed
+         UINT32 _mbLID ;
+         // name of the collection or collection space which is being processed
+         ossPoolString _processName ;
+         // description of operation which is processing the collection or
+         // collection space
+         ossPoolString _optrDesc ;
    } ;
    typedef _rtnContextTemp rtnContextTemp ;
 

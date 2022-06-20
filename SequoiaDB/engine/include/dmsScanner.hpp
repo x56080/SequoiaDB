@@ -575,6 +575,46 @@ namespace engine
 
    dmsExtScannerFactory* dmsGetScannerFactory() ;
 
+   /*
+      _IDmsScannerChecker define
+    */
+   // scanner checker to check if scanner is interrupted
+   class _IDmsScannerChecker
+   {
+   public:
+      _IDmsScannerChecker() {}
+      virtual ~_IDmsScannerChecker() {}
+
+   public:
+      virtual BOOLEAN needInterrupt() = 0 ;
+   } ;
+   typedef class _IDmsScannerChecker IDmsScannerChecker ;
+
+   /*
+      _IDmsScannerCheckerCreator define
+    */
+   class _IDmsScannerCheckerCreator
+   {
+   private:
+      // disallow copy and assign
+      _IDmsScannerCheckerCreator( const _IDmsScannerCheckerCreator& ) ;
+      void operator=( const _IDmsScannerCheckerCreator & ) ;
+
+   protected:
+      _IDmsScannerCheckerCreator() {}
+
+   public:
+      virtual ~_IDmsScannerCheckerCreator() {}
+      virtual INT32 createChecker( UINT32 suLID,
+                                   UINT32 mbLID,
+                                   const CHAR *csName,
+                                   const CHAR *clShortName,
+                                   const CHAR *optrDesc,
+                                   _pmdEDUCB *cb,
+                                   IDmsScannerChecker **ppChecker ) = 0 ;
+      virtual void releaseChecker( IDmsScannerChecker *pChecker ) = 0 ;
+   } ;
+   typedef class _IDmsScannerCheckerCreator IDmsScannerCheckerCreator ;
 
 }
 

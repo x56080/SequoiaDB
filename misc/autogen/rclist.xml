@@ -3097,7 +3097,7 @@
             <cn>回收站已满</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_IXM_CREATING</name>
          <description>
@@ -3105,7 +3105,7 @@
             <cn>索引正在创建</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_IXM_SAME_NAME_CREATING</name>
          <description>
@@ -3113,7 +3113,7 @@
             <cn>有一个同名的索引正在创建</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_IXM_COVER_CREATING</name>
          <description>
@@ -3121,7 +3121,7 @@
             <cn>有一个可以处理本场景的索引正在创建</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_IXM_DROPPING</name>
          <description>
@@ -3135,6 +3135,14 @@
          <description>
             <en>End of index advance section</en>
             <cn>当前索引范围结束</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_DMS_SCANNER_INTERRUPT</name>
+         <description>
+            <en>Data scanner is interrupted</en>
+            <cn>数据扫描被中断</cn>
          </description>
       </code>
 

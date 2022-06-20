@@ -38,6 +38,7 @@
 #include "dmsOprHandler.hpp"
 #include "clsRemoteOperator.hpp"
 #include "dmsTaskStatus.hpp"
+#include "dmsScanner.hpp"
 
 namespace engine
 {
@@ -113,6 +114,10 @@ namespace engine
       INT32 _checkIndexAfterLock( INT32 lockType ) ;
       INT32 _mbLockAndCheck( INT32 lockType ) ;
 
+      INT32 _checkInterrupt() ;
+      INT32 _createScannerChecker() ;
+      void _releaseScannerChecker() ;
+
    private:
       INT32 _init() ;
       INT32 _finish() ;
@@ -144,6 +149,9 @@ namespace engine
 
       // index key generator
       ixmIndexKeyGen     _keyGen ;
+
+      // scanner checker
+      IDmsScannerChecker * _checker ;
 
    public:
       static _dmsIndexBuilder* createInstance( _dmsStorageIndex* indexSU,

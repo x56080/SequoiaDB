@@ -69,6 +69,25 @@ namespace engine
    } ;
 
    /*
+      _dmsDefaultScannerChecker define
+    */
+   class _dmsDefaultScannerChecker : public IDmsScannerChecker
+   {
+   public:
+      _dmsDefaultScannerChecker() {}
+      virtual ~_dmsDefaultScannerChecker() {}
+      // never need interrupt
+      BOOLEAN needInterrupt() { return FALSE ; }
+   } ;
+   typedef class _dmsDefaultScannerChecker dmsDefaultScannerChecker ;
+
+   IDmsScannerChecker *_dmsGetDefaultScannerChecker()
+   {
+      static dmsDefaultScannerChecker s_defaultScannerChecker ;
+      return &s_defaultScannerChecker ;
+   }
+
+   /*
       _SDB_DMS_CSCB implement
    */
    _SDB_DMS_CSCB::~_SDB_DMS_CSCB()
@@ -100,7 +119,8 @@ namespace engine
     _statSUMgr( this ),
     _rbsSUMgr(),
     _localSUMgr( this ),
-    _ixmKeySorterCreator( NULL )
+    _ixmKeySorterCreator( NULL ),
+    _scannerCheckerCreator( NULL )
    {
       for ( UINT32 i = 0 ; i< DMS_MAX_CS_NUM ; ++i )
       {
@@ -3633,11 +3653,6 @@ namespace engine
       _ixmKeySorterCreator = creator ;
    }
 
-   dmsIxmKeySorterCreator* _SDB_DMSCB::getIxmKeySorterCreator()
-   {
-      return _ixmKeySorterCreator ;
-   }
-
    INT32 _SDB_DMSCB::createIxmKeySorter( INT64 bufSize,
                                          const _dmsIxmKeyComparer& comparer,
                                          dmsIxmKeySorter** ppSorter )
@@ -3654,6 +3669,59 @@ namespace engine
       if ( NULL != pSorter )
       {
          _ixmKeySorterCreator->releaseSorter( pSorter ) ;
+      }
+   }
+
+   void _SDB_DMSCB::setScannerCheckerCreator( IDmsScannerCheckerCreator *pCreator )
+   {
+      _scannerCheckerCreator = pCreator ;
+   }
+
+   INT32 _SDB_DMSCB::createScannerChecker( UINT32 suLID,
+                                           UINT32 mbLID,
+                                           const CHAR *csName,
+                                           const CHAR *clShortName,
+                                           const CHAR *optrDesc,
+                                           _pmdEDUCB *cb,
+                                           IDmsScannerChecker **ppChecker )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != ppChecker, "output checker is invalid" ) ;
+
+      if ( NULL != _scannerCheckerCreator )
+      {
+         rc = _scannerCheckerCreator->createChecker( suLID,
+                                                     mbLID,
+                                                     csName,
+                                                     clShortName,
+                                                     optrDesc,
+                                                     cb,
+                                                     ppChecker ) ;
+      }
+      else
+      {
+         // use the default checker
+         *ppChecker = _dmsGetDefaultScannerChecker() ;
+      }
+
+      return rc ;
+   }
+
+   void _SDB_DMSCB::releaseScannerChecker( IDmsScannerChecker *pChecker )
+   {
+      if ( NULL != pChecker )
+      {
+         if ( pChecker == _dmsGetDefaultScannerChecker() )
+         {
+            // default checker, do nothing
+         }
+         else
+         {
+            SDB_ASSERT( NULL != _scannerCheckerCreator,
+                        "scanner checker creator is invalid" ) ;
+            _scannerCheckerCreator->releaseChecker( pChecker ) ;
+         }
       }
    }
 

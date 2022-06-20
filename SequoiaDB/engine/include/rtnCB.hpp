@@ -55,6 +55,8 @@
 #include "ossMemPool.hpp"
 #include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
+#include "rtnIxmKeySorter.hpp"
+#include "rtnScannerChecker.hpp"
 #include "dmsTaskStatus.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
@@ -95,6 +97,9 @@ namespace engine
 
       ossPoolSet<ossPoolString> _unloadCSSet ;
       ossSpinSLatch             _csLatch ;
+
+      rtnIxmKeySorterCreator    _sorterCreator ;
+      rtnScannerCheckerCreator  _checkerCreator ;
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;

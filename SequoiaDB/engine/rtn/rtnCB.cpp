@@ -39,7 +39,6 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dmsCB.hpp"
-#include "rtnIxmKeySorter.hpp"
 #include "rtnBackgroundJob.hpp"
 #include "pmdLightJobMgr.hpp"
 #include "pmdController.hpp"
@@ -136,14 +135,6 @@ namespace engine
 
       pmdOptionsCB *optionCB = pmdGetOptionCB() ;
 
-      rtnIxmKeySorterCreator* creator = SDB_OSS_NEW _rtnIxmKeySorterCreator() ;
-      if ( NULL == creator )
-      {
-         PD_LOG ( PDERROR, "failed to create _rtnIxmKeySorterCreator" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
       _pLTMgr = SDB_OSS_NEW rtnLocalTaskMgr() ;
       if ( !_pLTMgr )
       {
@@ -155,7 +146,8 @@ namespace engine
       // register event handle
       pmdGetKRCB()->regEventHandler( this ) ;
 
-      sdbGetDMSCB()->setIxmKeySorterCreator( creator ) ;
+      sdbGetDMSCB()->setIxmKeySorterCreator( &_sorterCreator ) ;
+      sdbGetDMSCB()->setScannerCheckerCreator( &_checkerCreator ) ;
 
       // The error of initialization of APM could be ignore
       // Only data and catalog nodes could initialize plan cache
@@ -245,12 +237,8 @@ namespace engine
       // unregister event handle
       pmdGetKRCB()->unregEventHandler( this ) ;
 
-      dmsIxmKeySorterCreator* creator = sdbGetDMSCB()->getIxmKeySorterCreator() ;
-      if ( NULL != creator )
-      {
-         SDB_OSS_DEL( creator ) ;
-         sdbGetDMSCB()->setIxmKeySorterCreator( NULL ) ;
-      }
+      sdbGetDMSCB()->setIxmKeySorterCreator( NULL ) ;
+      sdbGetDMSCB()->setScannerCheckerCreator( NULL ) ;
 
       rtnJobMgr* jobMgr = rtnGetJobMgr() ;
       jobMgr->fini() ;
