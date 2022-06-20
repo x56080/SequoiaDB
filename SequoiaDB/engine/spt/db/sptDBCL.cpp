@@ -2645,6 +2645,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       string indexName ;
       bson::BSONObj result ;
+      BOOLEAN statDetail = FALSE ;
 
       rc = arg.getString( 0, indexName ) ;
       if( SDB_OUT_OF_BOUND == rc )
@@ -2658,7 +2659,17 @@ namespace engine
          goto error ;
       }
 
-      rc = _cl.getIndexStat( indexName.c_str(), result ) ;
+      rc = arg.getBoolean( 1, statDetail ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "detail must be boolean" ) ;
+      }
+
+      rc = _cl.getIndexStat( indexName.c_str(), result, statDetail ) ;
       if( SDB_OK != rc )
       {
          goto error ;

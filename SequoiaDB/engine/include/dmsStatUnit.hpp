@@ -60,7 +60,7 @@ namespace engine
 
    #define DMS_STAT_IDX_INDEX                  "Index"
 
-   #define DMS_STAT_IDX_MCV                    "MCV"
+   #define DMS_STAT_IDX_MCV                    FIELD_NAME_MCV
    #define DMS_STAT_CREATE_TIME                "CreateTime"
    #define DMS_STAT_IDX_INDEX_PAGES            "IndexPages"
    #define DMS_STAT_IDX_LEVELS                 "IndexLevels"
