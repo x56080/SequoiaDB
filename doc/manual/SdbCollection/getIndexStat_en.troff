@@ -8,18 +8,31 @@
 getIndexStat \- get statistics of the specified index
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.getIndexStat(<index name>)\f[]
+\f[B]db.collectionspace.collection.getIndexStat(<index name>, [detail])\f[]
 .SH CATEGORY
 .PP
-Collection
+SdbCollection
 .SH DESCRIPTION
 .PP
-Get statistics of the specified index.
+This function is used to get statistics of the specified index.
 .SH PARAMETERS
 .IP \[bu] 2
-index name ( \f[I]String\f[], \f[I]Required\f[] )
+index name ( \f[I]string, required\f[] )
+.RS 2
 .PP
 Name of the specified index.
+.RE
+.IP \[bu] 2
+detail ( \f[I]boolean, optional\f[] )
+.RS 2
+.PP
+Whether to get index details.
+The default value is false, which means not to get.
+.IP \[bu] 2
+Details will return MCV(Most Common Values) statistics of the index.
+.IP \[bu] 2
+Only valid in SequoiaDB v3.6.1 and above versions.
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it will return an aggregated statistics
@@ -30,7 +43,7 @@ When the function fails, an exception will be thrown and an error message will
 be printed.
 .SH ERRORS
 .PP
-Frequent exceptions of \f[C]getIndexStat()\f[]：
+The common expretions of \f[C]getIndexStat()\f[] function are as follows:
 .PP
 .TS
 tab(@);
@@ -90,7 +103,42 @@ For more details, refer to Troubleshooting.
 .PP
 v3.4.2 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Get the statistics of index ageIndex of collection sample.employee.
 .PP
-\f[C]> db.sample.employee.getIndexStat( "ageIndex" )\f[]
+Get the statistics of index ageIndex of collection "sample.employee".
+.IP
+.nf
+\f[C]
+> db.sample.employee.getIndexStat("ageIndex")
+\f[]
+.fi
+.PP
+The output is as follows:
+.IP
+.nf
+\f[C]
+{
+  "Collection": "sample.employee",
+  "Index": "ageIndex",
+  "Unique": false,
+  "KeyPattern": {
+    "age": 1
+  },
+  "TotalIndexLevels": 1,
+  "TotalIndexPages": 2,
+  "DistinctValNum": [
+    74
+  ],
+  "MinValue": {
+    "age": 18
+  },
+  "MaxValue": {
+    "age": 54
+  },
+  "NullFrac": 0,
+  "UndefFrac": 0,
+  "SampleRecords": 400,
+  "TotalRecords": 518,
+  "StatTimestamp": "2020\-07\-24\-16.15.08.347000"
+}
+\f[]
+.fi

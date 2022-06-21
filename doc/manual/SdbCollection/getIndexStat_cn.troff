@@ -8,7 +8,7 @@
 getIndexStat \- 获取指定索引的统计信息
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.getIndexStat(<index name>)\f[]
+\f[B]db.collectionspace.collection.getIndexStat(<index name>, [detail])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -17,9 +17,21 @@ SdbCollection
 该函数用于获取当前集合中指定索引的统计信息。
 .SH 参数
 .IP \[bu] 2
-index name ( \f[I]string\f[]， \f[I]必填\f[] )
+index name ( \f[I]string，必填\f[] )
+.RS 2
 .PP
-被指定索引的名称。
+被指定索引的名称
+.RE
+.IP \[bu] 2
+detail ( \f[I]boolean，选填\f[] )
+.RS 2
+.PP
+是否获取索引的详细信息，默认值为 false，表示不获取
+.IP \[bu] 2
+详细信息将返回索引的频繁数值集合（Most Common Values，MCV）统计信息
+.IP \[bu] 2
+仅在 SequoiaDB v3.6.1 及以上版本中生效
+.RE
 .SH 返回值
 .PP
 函数执行成功时，将返回一个 BSONObj
@@ -28,7 +40,7 @@ index name ( \f[I]string\f[]， \f[I]必填\f[] )
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]getIndexStat()\f[]函数常见异常如下：
+\f[C]getIndexStat()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -91,7 +103,7 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
-> db.sample.employee.getIndexStat( "ageIndex" )
+> db.sample.employee.getIndexStat("ageIndex")
 \f[]
 .fi
 .PP

@@ -4,21 +4,28 @@ getIndexStat - get statistics of the specified index
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.getIndexStat\(\<index name\>\)**
+**db.collectionspace.collection.getIndexStat(\<index name\>, [detail])**
 
 ##CATEGORY##
 
-Collection
+SdbCollection
 
 ##DESCRIPTION##
 
-Get statistics of the specified index.
+This function is used to get statistics of the specified index.
 
 ##PARAMETERS##
 
-* index name ( *String*, *Required* )
+* index name ( *string, required* )
 
-Name of the specified index.
+    Name of the specified index.
+
+* detail ( *boolean, optional* )
+
+    Whether to get index details. The default value is false, which means not to get.
+
+    - Details will return MCV(Most Common Values) statistics of the index.
+    - Only valid in SequoiaDB v3.6.1 and above versions.
 
 ##RETURN VALUE##
 
@@ -28,7 +35,7 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-Frequent exceptions of `getIndexStat()`：
+The common expretions of `getIndexStat()` function are as follows:
 
 |Error Code|Error Name|Causes|Solution|
 |----------|----------|------|--------|
@@ -42,11 +49,40 @@ v3.4.2 and above
 
 ##EXAMPLES##
 
-* Get the statistics of index ageIndex of collection sample.employee.
+Get the statistics of index ageIndex of collection "sample.employee".
 
-   ```
-   > db.sample.employee.getIndexStat( "ageIndex" )
-   ```
+```lang-javascript
+> db.sample.employee.getIndexStat("ageIndex")
+```
+
+The output is as follows:
+
+```lang-json
+{
+  "Collection": "sample.employee",
+  "Index": "ageIndex",
+  "Unique": false,
+  "KeyPattern": {
+    "age": 1
+  },
+  "TotalIndexLevels": 1,
+  "TotalIndexPages": 2,
+  "DistinctValNum": [
+    74
+  ],
+  "MinValue": {
+    "age": 18
+  },
+  "MaxValue": {
+    "age": 54
+  },
+  "NullFrac": 0,
+  "UndefFrac": 0,
+  "SampleRecords": 400,
+  "TotalRecords": 518,
+  "StatTimestamp": "2020-07-24-16.15.08.347000"
+}
+```
 
 [^_^]:
      本文使用的所有引用及链接
