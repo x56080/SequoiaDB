@@ -168,14 +168,16 @@ namespace engine
       _hasGenerated = FALSE ;
       _lastGenerateID = 0 ;
 
-      const static string s_insertStr("Insert" ) ;
-      setName( s_insertStr ) ;
-
       _pHint = NULL ;
    }
 
    _coordInsertOperator::~_coordInsertOperator()
    {
+   }
+
+   const CHAR* _coordInsertOperator::getName() const
+   {
+      return "Insert" ;
    }
 
    BOOLEAN _coordInsertOperator::isReadOnly() const

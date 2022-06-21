@@ -51,6 +51,8 @@ namespace engine
          _coordMsgOperator() ;
          virtual ~_coordMsgOperator() ;
 
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,

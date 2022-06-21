@@ -47,6 +47,8 @@ namespace engine
          _coordOpenLob() ;
          virtual ~_coordOpenLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -64,6 +66,8 @@ namespace engine
          _coordWriteLob() ;
          virtual ~_coordWriteLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -80,6 +84,8 @@ namespace engine
          _coordReadLob() ;
          virtual ~_coordReadLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -96,6 +102,8 @@ namespace engine
          _coordLockLob() ;
          virtual ~_coordLockLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -112,6 +120,8 @@ namespace engine
          _coordCloseLob() ;
          virtual ~_coordCloseLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -128,6 +138,8 @@ namespace engine
          _coordRemoveLob() ;
          virtual ~_coordRemoveLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -144,6 +156,8 @@ namespace engine
          _coordTruncateLob() ;
          virtual ~_coordTruncateLob() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -160,6 +174,8 @@ namespace engine
          _coordGetLobRTDetail() ;
          virtual ~_coordGetLobRTDetail() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -176,6 +192,8 @@ namespace engine
          _coordCreateLobID() ;
          virtual ~_coordCreateLobID() ;
       public:
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,

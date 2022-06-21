@@ -53,7 +53,8 @@ namespace engine
 
    #define COORD_DECLARE_CMD_AUTO_REGISTER() \
       public: \
-         static _coordOperator *newThis ()
+         static _coordOperator *newThis () ; \
+         virtual const CHAR* getName() const ;
 
    #define COORD_IMPLEMENT_CMD_AUTO_REGISTER(theClass, className, isReadOnly) \
       _coordOperator *theClass::newThis () \
@@ -61,7 +62,12 @@ namespace engine
          return SDB_OSS_NEW theClass() ;\
       } \
       _coordCommandAssit theClass##Assit ( className, isReadOnly, \
-            (COORD_NEW_OPERATOR)theClass::newThis )
+            (COORD_NEW_OPERATOR)theClass::newThis ) ; \
+      const CHAR* theClass::getName() const \
+      { \
+         return className ; \
+      }
+
 
    /*
       _coordFactoryItem define

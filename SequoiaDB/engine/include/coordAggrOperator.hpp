@@ -50,6 +50,8 @@ namespace engine
          _coordAggrOperator() ;
          virtual ~_coordAggrOperator() ;
 
+         virtual const CHAR* getName() const ;
+
          virtual INT32        execute( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
                                        INT64 &contextID,

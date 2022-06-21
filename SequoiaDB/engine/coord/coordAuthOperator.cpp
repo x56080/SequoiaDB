@@ -44,12 +44,15 @@ namespace engine
    */
    _coordAuthOperator::_coordAuthOperator()
    {
-      const static string s_name( "Auth" ) ;
-      setName( s_name ) ;
    }
 
    _coordAuthOperator::~_coordAuthOperator()
    {
+   }
+
+   const CHAR* _coordAuthOperator::getName() const
+   {
+      return "Auth" ;
    }
 
    BOOLEAN _coordAuthOperator::isReadOnly() const

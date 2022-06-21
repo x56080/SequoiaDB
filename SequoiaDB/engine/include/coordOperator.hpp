@@ -360,11 +360,9 @@ namespace engine
 
       protected:
          void                 setReadOnly( BOOLEAN isReadOnly ) ;
-         void                 setName( const string &name ) ;
 
       private:
          BOOLEAN              _isReadOnly ;
-         string               _strName ;
 
       protected:
          coordResource              *_pResource ;

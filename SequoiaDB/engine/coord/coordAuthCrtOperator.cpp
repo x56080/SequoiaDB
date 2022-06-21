@@ -45,12 +45,15 @@ namespace engine
    */
    _coordAuthCrtOperator::_coordAuthCrtOperator()
    {
-      const static string s_name( "AuthCreate" ) ;
-      setName( s_name ) ;
    }
 
    _coordAuthCrtOperator::~_coordAuthCrtOperator()
    {
+   }
+
+   const CHAR* _coordAuthCrtOperator::getName() const
+   {
+      return "AuthCreate" ;
    }
 
    BOOLEAN _coordAuthCrtOperator::isReadOnly() const

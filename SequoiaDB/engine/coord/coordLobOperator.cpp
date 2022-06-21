@@ -53,12 +53,15 @@ namespace engine
    */
    _coordOpenLob::_coordOpenLob()
    {
-      const static string s_name( "LobOpen" ) ;
-      setName( s_name ) ;
    }
 
    _coordOpenLob::~_coordOpenLob()
    {
+   }
+
+   const CHAR* _coordOpenLob::getName() const
+   {
+      return "LobOpen" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_OPENLOB_EXE, "_coordOpenLob::execute" )
@@ -121,12 +124,15 @@ namespace engine
    */
    _coordWriteLob::_coordWriteLob()
    {
-      const static string s_name( "WriteLob" ) ;
-      setName( s_name ) ;
    }
 
    _coordWriteLob::~_coordWriteLob()
    {
+   }
+
+   const CHAR* _coordWriteLob::getName() const
+   {
+      return "WriteLob" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_WRITELOB_EXE, "_coordWriteLob::execute" )
@@ -185,12 +191,15 @@ namespace engine
    */
    _coordReadLob::_coordReadLob()
    {
-      const static string s_name( "ReadLob" ) ;
-      setName( s_name ) ;
    }
 
    _coordReadLob::~_coordReadLob()
    {
+   }
+
+   const CHAR* _coordReadLob::getName() const
+   {
+      return "ReadLob" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_READLOB_EXE, "_coordReadLob::execute" )
@@ -246,12 +255,15 @@ namespace engine
    */
    _coordLockLob::_coordLockLob()
    {
-      const static string s_name( "LockLob" ) ;
-      setName( s_name ) ;
    }
 
    _coordLockLob::~_coordLockLob()
    {
+   }
+
+   const CHAR* _coordLockLob::getName() const
+   {
+      return "LockLob" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_LOCKLOB_EXE, "_coordLockLob::execute" )
@@ -297,12 +309,15 @@ namespace engine
    */
    _coordCloseLob::_coordCloseLob()
    {
-      const static string s_name( "CloseLob" ) ;
-      setName( s_name ) ;
    }
 
    _coordCloseLob::~_coordCloseLob()
    {
+   }
+
+   const CHAR* _coordCloseLob::getName() const
+   {
+      return "CloseLob" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_CLOSELOB_EXE, "_coordCloseLob::execute" )
@@ -349,12 +364,15 @@ namespace engine
    */
    _coordRemoveLob::_coordRemoveLob()
    {
-      const static string s_name( "RemoveLob" ) ;
-      setName( s_name ) ;
    }
 
    _coordRemoveLob::~_coordRemoveLob()
    {
+   }
+
+   const CHAR* _coordRemoveLob::getName() const
+   {
+      return "RemoveLob" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_REMOVELOB_EXE, "_coordRemoveLob::execute" )
@@ -454,12 +472,15 @@ namespace engine
    */
    _coordTruncateLob::_coordTruncateLob()
    {
-      const static string s_name( "TruncateLob" ) ;
-      setName( s_name ) ;
    }
 
    _coordTruncateLob::~_coordTruncateLob()
    {
+   }
+
+   const CHAR* _coordTruncateLob::getName() const
+   {
+      return "TruncateLob" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_TRUNCATELOB_EXE, "_coordTruncateLob::execute" )
@@ -572,12 +593,15 @@ namespace engine
    */
    _coordGetLobRTDetail::_coordGetLobRTDetail()
    {
-      const static string s_name( "GetLobRTDetail" ) ;
-      setName( s_name ) ;
    }
 
    _coordGetLobRTDetail::~_coordGetLobRTDetail()
    {
+   }
+
+   const CHAR* _coordGetLobRTDetail::getName() const
+   {
+      return "GetLobRTDetail" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_GETLOBRTDETAIL_EXE, "_coordGetLobRTDetail::execute" )
@@ -625,6 +649,11 @@ namespace engine
 
    _coordCreateLobID::~_coordCreateLobID()
    {
+   }
+
+   const CHAR* _coordCreateLobID::getName() const
+   {
+      return "CreateLobID" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_CREATELOBID_EXE, "_coordCreateLobID::execute" )

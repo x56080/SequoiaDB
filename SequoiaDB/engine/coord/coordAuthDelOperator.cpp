@@ -43,12 +43,15 @@ namespace engine
    */
    _coordAuthDelOperator::_coordAuthDelOperator()
    {
-      const static string s_name( "AuthDelete" ) ;
-      setName( s_name ) ;
    }
 
    _coordAuthDelOperator::~_coordAuthDelOperator()
    {
+   }
+
+   const CHAR* _coordAuthDelOperator::getName() const
+   {
+      return "AuthDelete" ;
    }
 
    BOOLEAN _coordAuthDelOperator::isReadOnly() const

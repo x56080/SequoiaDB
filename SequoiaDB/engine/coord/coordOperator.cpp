@@ -117,12 +117,7 @@ namespace engine
 
    const CHAR* _coordOperator::getName() const
    {
-      return _strName.c_str() ;
-   }
-
-   void _coordOperator::setName( const string &name )
-   {
-      _strName = name ;
+      return "" ;
    }
 
    void _coordOperator::setReadOnly( BOOLEAN isReadOnly )

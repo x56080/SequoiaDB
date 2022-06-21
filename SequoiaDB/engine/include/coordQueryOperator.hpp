@@ -77,6 +77,8 @@ namespace engine
          _coordQueryOperator( BOOLEAN readOnly = TRUE ) ;
          virtual ~_coordQueryOperator() ;
 
+         virtual const CHAR* getName() const ;
+
          virtual BOOLEAN needRollback() const ;
 
          virtual INT32 execute( MsgHeader *pMsg,

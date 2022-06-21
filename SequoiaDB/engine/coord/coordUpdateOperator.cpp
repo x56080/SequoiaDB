@@ -63,13 +63,16 @@ namespace engine
    */
    _coordUpdateOperator::_coordUpdateOperator()
    {
-      const static string s_name( "Update" ) ;
-      setName( s_name ) ;
    }
 
    _coordUpdateOperator::~_coordUpdateOperator()
    {
       SDB_ASSERT( 0 == _vecBlock.size(), "Block must be empty" ) ;
+   }
+
+   const CHAR* _coordUpdateOperator::getName() const
+   {
+      return "Update" ;
    }
 
    BOOLEAN _coordUpdateOperator::isReadOnly() const
