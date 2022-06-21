@@ -2,6 +2,7 @@ package com.sequoiadb.metadataconsistency.data;
 
 import java.util.Random;
 
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -28,10 +29,10 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class Index10213 extends SdbTestBase {
     private static Sequoiadb sdb = null;
     private String csName = "cs10213";
-    private String clName = "cs10213";
+    private String clName = "cl10213";
     private String mCLName = clName + "_m";
     private String sCLName = clName + "_s";
-    private String idxName = "idx";
+    private String idxName = "idx10213_";
 
     @BeforeClass
     public void setUp() {
@@ -86,14 +87,20 @@ public class Index10213 extends SdbTestBase {
                 String name = idxName;
                 Random i = new Random();
                 BSONObject opt = new BasicBSONObject();
-                opt.put( "a" + i.nextInt( 10000 ), 1 );
-                clDB.createIndex( name + i.nextInt( 10000 ), opt, false,
-                        false );
+                opt.put( "a" + i.nextInt( 10 ), 1 );
+                clDB.createIndex( name + i.nextInt( 10 ), opt, false, false );
             } catch ( BaseException e ) {
-                int eCode = e.getErrorCode();
-                if ( eCode != -247 // -247:Redefine index
-                        && eCode != -291 ) { // -291:Exist one index which can
-                                             // cover this scene
+                if ( e.getErrorCode() != SDBError.SDB_IXM_REDEF.getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_EXIST_COVERD_ONE
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_EXIST
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_COVER_CREATING
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_SAME_NAME_CREATING
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_IXM_CREATING
+                                .getErrorCode() ) {
                     throw e;
                 }
             }
