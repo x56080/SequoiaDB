@@ -4,7 +4,7 @@ getIndexStat - 获取指定索引的统计信息
 
 ##语法##
 
-**db.collectionspace.collection.getIndexStat\(\<index name\>\)**
+**db.collectionspace.collection.getIndexStat(\<index name\>, [detail])**
 
 ##类别##
 
@@ -16,9 +16,16 @@ SdbCollection
 
 ##参数##
 
-* index name ( *string*， *必填* )
+* index name ( *string，必填* )
 
- 被指定索引的名称。
+    被指定索引的名称
+
+* detail ( *boolean，选填* )
+
+    是否获取索引的详细信息，默认值为 false，表示不获取
+
+    - 详细信息将返回索引的频繁数值集合（Most Common Values，MCV）统计信息
+    - 仅在 SequoiaDB v3.6.1 及以上版本中生效
 
 ##返回值##
 
@@ -28,7 +35,7 @@ SdbCollection
 
 ##错误##
 
-`getIndexStat()`函数常见异常如下：
+`getIndexStat()` 函数常见异常如下：
 
 |错误码|错误名|可能发生的原因|解决办法|
 |------|------|--------------|--------|
@@ -45,7 +52,7 @@ v3.4.2 及以上版本
 获取集合 sample.employee 中 ageIndex 索引的统计信息
 
 ```lang-javascript
-> db.sample.employee.getIndexStat( "ageIndex" )
+> db.sample.employee.getIndexStat("ageIndex")
 ```
 
 输出结果如下：
