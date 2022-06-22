@@ -1219,24 +1219,6 @@
                            "en": "SDB_SNAP_SEQUENCES"
                         },
                         {
-                           "id": 1598034944,
-                           "file": "SDB_SNAP_QUERIES",
-                           "cn": "查询快照",
-                           "en": "SDB_SNAP_QUERIES"
-                        },
-                        {
-                           "id": 1598034972,
-                           "file": "SDB_SNAP_LOCKWAITS",
-                           "cn": "锁等待快照",
-                           "en": "SDB_SNAP_LOCKWAITS"
-                        },
-                        {
-                           "id": 1598034986,
-                           "file": "SDB_SNAP_LATCHWAITS",
-                           "cn": "闩锁等待快照",
-                           "en": "SDB_SNAP_LATCHWAITS"
-                        },
-                        {
                            "id": 1631066558,
                            "file": "SDB_SNAP_TRANSWAITS",
                            "cn": "事务等待快照",
@@ -5047,24 +5029,6 @@
                            "file": "SNAPSHOT_SEQUENCES",
                            "cn": "$SNAPSHOT_SEQUENCES",
                            "en": "$SNAPSHOT_SEQUENCES"
-                        },
-                        {
-                           "id": 1610432031,
-                           "file": "SNAPSHOT_QUERIES",
-                           "cn": "$SNAPSHOT_QUERIES",
-                           "en": "$SNAPSHOT_QUERIES"
-                        },
-                        {
-                           "id": 1610432032,
-                           "file": "SNAPSHOT_LOCKWAITS",
-                           "cn": "$SNAPSHOT_LOCKWAITS",
-                           "en": "$SNAPSHOT_LOCKWAITS"
-                        },
-                        {
-                           "id": 1610432033,
-                           "file": "SNAPSHOT_LATCHWAITS",
-                           "cn": "$SNAPSHOT_LATCHWAITS",
-                           "en": "$SNAPSHOT_LATCHWAITS"
                         },
                         {
                            "id": 1631086808,

@@ -59,7 +59,6 @@
 | Expand  |  bool/string  | [配置快照](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 是否扩展显示用户未配置的配置项，默认为 true，如 {"Expand":false} | 否 |
 | ShowError | string | ALL | 指定是否返回错误信息，默认为"show"，取值如下： <br>"show"：显示错误信息 <br>"only"：只显示错误信息，不显示其他快照信息 <br>"ignore"：不显示错误信息 <br>如 { "ShowError: "only" }  | 否 |
 | ShowErrorMode | string | ALL | 指定返回错误信息的格式,默认为"aggr"，取值如下： <br>"aggr"：错误信息聚合为一条记录显示<br>"flat"：一个错误节点对应一条记录显示 <br>如 {"ShowErrorMode":"flat"}  | 否 |
-| viewHistory | boolean/string | [查询快照](database_management/monitoring/snapshot/SDB_SNAP_QUERIES.md)、[锁等待快照](database_management/monitoring/snapshot/SDB_SNAP_LOCKWAITS.md)、[闩锁等待快照](database_management/monitoring/snapshot/SDB_SNAP_LATCHWAITS.md)   | 显示快照中保留的慢查询相关的历史信息，默认为 false<br>当前暂时只支持显示查询快照、锁等待快照和闩锁等待快照的历史信息，如 { "viewHistory": true }   | 否 |
 
 > **Note：**
 
@@ -218,39 +217,4 @@
   	"clustername": "xxx"
 	}
 	Return 1 row(s).
-   ```
-
-* 查看历史查询记录
-
-   ```lang-javascript
-   > db.snapshot(SDB_SNAP_QUERIES, new SdbSnapshotOption().options({"viewHistory":true}))
-   ```
-
-   输出结果如下：
-
-   ```lang-json
-   {
-     "NodeID": [
-       2,
-       4
-     ],
-     "StartTimestamp": "2020-06-12-11.02.27.429347",
-     "EndTimestamp": "2020-06-12-11.02.27.904392",
-     "TID": 10107,
-     "OpType": "QUERY",
-     "Name": "sbtest1.sbtest6",
-     "QueryTimeSpent": 0,
-     "ReturnNum": 0,
-     "TotalMsgSent": 1,
-     "LastOpInfo": "Collection:sbtest1.sbtest6, Matcher:{ \"id\": { \"$et\": 5014 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
-     "MsgSentTime": 0.046,
-     "RemoteNodeWaitTime": 0,
-     "ClientInfo": {
-       "ClientTID": 13971,
-       "ClientHost": "192.168.56.101"
-     },
-     "RelatedNode": [
-       1002
-     ]
-   }
    ```
