@@ -26,7 +26,7 @@
 
 > **Note:**
 >
-> 在用户将 SequoiaDB 由低版本滚动升级至 v3.6/5.0.3 及以上版本的过程中，禁止执行 [createIndex][createIndex]、[dropIndex][dropIndex]、[copyIndex][copyIndex] 和 [split][split] 操作。
+> 在用户将 SequoiaDB 由低版本滚动升级至 v3.6/5.0.3 及以上版本的过程中，禁止执行 [createIndex][createIndex]、[dropIndex][dropIndex]、[copyIndex][copyIndex]、[split][split] 等涉及索引和分区键的操作。
 
 
 [^_^]:
