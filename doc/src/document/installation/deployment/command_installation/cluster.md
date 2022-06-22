@@ -95,8 +95,12 @@
      > var node1 = cataRG.createNode("sdbserver2", 11800,"/opt/sequoiadb/database/cata/11800")
      > var node2 = cataRG.createNode("sdbserver3", 11800,"/opt/sequoiadb/database/cata/11800")
      ```
-  	>**Note:**  
-  	> createNode() 的第一个参数建议使用“主机名”。
+
+    >**Note:**  
+    >
+    > - 在 SequoiaDB v3.2.6 及以上版本中，getCatalogRG() 已更名为 getCataRG()，低版本的用户仍需使用 getCatalogRG()。
+    > - createNode() 的第一个参数建议使用“主机名”。
+    
   4. 启动编目节点组
 
      ```lang-javascript
