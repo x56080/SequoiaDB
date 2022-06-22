@@ -1,15 +1,18 @@
 package com.sequoiadb.baseconfigoption;
 
+import com.sequoiadb.datasource.DatasourceOptions;
+import com.sequoiadb.datasource.SequoiadbDatasource;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @descreption seqDB-26325:Prefered更正为Preferred验证
@@ -22,6 +25,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 public class TestSession26325 extends SdbTestBase {
     private Sequoiadb sdb = null;
+    private SequoiadbDatasource ds = null;
 
     @BeforeClass
     public void setSdb() {
@@ -33,7 +37,7 @@ public class TestSession26325 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         String preferred = "PreferredInstance";
         sdb.setSessionAttr( new BasicBSONObject( preferred, "-S" ) );
         Assert.assertEquals( sdb.getSessionAttr().get( preferred ), "-S" );
@@ -42,12 +46,28 @@ public class TestSession26325 extends SdbTestBase {
         sdb.setSessionAttr( new BasicBSONObject( preferredMode, "ordered" ) );
         Assert.assertEquals( sdb.getSessionAttr().get( preferredMode ),
                 "ordered" );
+
+        // 验证连接池接口
+        DatasourceOptions dsOpt = new DatasourceOptions();
+        List< String > preferredInstance = new ArrayList<>();
+        preferredInstance.add( "S" );
+        dsOpt.setPreferredInstance( preferredInstance );
+        dsOpt.setPreferredInstanceMode( "ordered" );
+        ds = new SequoiadbDatasource( SdbTestBase.coordUrl, "", "", dsOpt );
+        Assert.assertEquals( ds.getDatasourceOptions().getPreferredInstance(),
+                preferredInstance );
+        Assert.assertEquals(
+                ds.getDatasourceOptions().getPreferredInstanceMode(),
+                "ordered" );
     }
 
     @AfterClass
     public void closeSdb() {
         if ( sdb != null ) {
             sdb.close();
+        }
+        if ( ds != null ) {
+            ds.close();
         }
     }
 }
