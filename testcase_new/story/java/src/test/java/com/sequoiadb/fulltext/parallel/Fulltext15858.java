@@ -84,7 +84,8 @@ public class Fulltext15858 extends FullTestBase {
                         .getCollection( CL_NAME );
                 cl2.truncate();
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
                     throw e;
                 }
             }
