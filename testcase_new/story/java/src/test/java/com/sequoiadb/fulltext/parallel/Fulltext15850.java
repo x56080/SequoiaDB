@@ -109,7 +109,10 @@ public class Fulltext15850 extends FullTestBase {
                     cur.close();
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != -6 && e.getErrorCode() != -52
-                            && e.getErrorCode() != -34 && e.getErrorCode() != -10 ) {
+                            && e.getErrorCode() != -34
+                            && e.getErrorCode() != -10
+                            && e.getErrorCode() != -248
+                            && e.getErrorCode() != -36 ) {
                         throw e;
                     }
                 }
