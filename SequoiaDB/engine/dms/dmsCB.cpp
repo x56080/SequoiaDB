@@ -3223,6 +3223,7 @@ namespace engine
                                BOOLEAN sys, BOOLEAN dumpCL, BOOLEAN dumpIdx )
    {
       INT32 rc = SDB_OK ;
+      INT32 tmpRC = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPCSSIMPLE );
 
       ossPoolVector< ossPoolString > csNameVec ;
@@ -3240,13 +3241,13 @@ namespace engine
       {
          // As we do not take the cs metadata mutex here, so cs may have been
          // dropped after we get the names.
-         rc = nameToSUAndLock( itr->c_str(), suID, &su ) ;
-         if ( rc )
+         tmpRC = nameToSUAndLock( itr->c_str(), suID, &su ) ;
+         if ( tmpRC )
          {
-            if ( SDB_DMS_CS_NOTEXIST != rc )
+            if ( SDB_DMS_CS_NOTEXIST != tmpRC )
             {
-               PD_LOG( PDERROR, "Failed to lock collectionspace[%s], rc: %d",
-                       itr->c_str(), rc ) ;
+               PD_LOG( PDWARNING, "Failed to lock collectionspace[%s], rc: %d",
+                       itr->c_str(), tmpRC ) ;
             }
             continue ;
          }
