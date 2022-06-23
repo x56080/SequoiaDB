@@ -25,7 +25,8 @@ import java.util.List;
  */
 public class TestSession26325 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private SequoiadbDatasource ds = null;
+    private SequoiadbDatasource ds1 = null;
+    private SequoiadbDatasource ds2 = null;
 
     @BeforeClass
     public void setSdb() {
@@ -47,17 +48,37 @@ public class TestSession26325 extends SdbTestBase {
         Assert.assertEquals( sdb.getSessionAttr().get( preferredMode ),
                 "ordered" );
 
-        // 验证连接池接口
-        DatasourceOptions dsOpt = new DatasourceOptions();
+        preferred = "PreferedInstance";
+        sdb.setSessionAttr( new BasicBSONObject( preferred, "M" ) );
+        Assert.assertEquals( sdb.getSessionAttr().get( preferred ), "M" );
+
+        preferredMode = "PreferedInstanceMode";
+        sdb.setSessionAttr( new BasicBSONObject( preferredMode, "random" ) );
+        Assert.assertEquals( sdb.getSessionAttr().get( preferredMode ),
+                "random" );
+
+        // 验证连接池新接口
+        DatasourceOptions dsOpt1 = new DatasourceOptions();
         List< String > preferredInstance = new ArrayList<>();
         preferredInstance.add( "S" );
-        dsOpt.setPreferredInstance( preferredInstance );
-        dsOpt.setPreferredInstanceMode( "ordered" );
-        ds = new SequoiadbDatasource( SdbTestBase.coordUrl, "", "", dsOpt );
-        Assert.assertEquals( ds.getDatasourceOptions().getPreferredInstance(),
+        dsOpt1.setPreferredInstance( preferredInstance );
+        dsOpt1.setPreferredInstanceMode( "ordered" );
+        ds1 = new SequoiadbDatasource( SdbTestBase.coordUrl, "", "", dsOpt1 );
+        Assert.assertEquals( ds1.getDatasourceOptions().getPreferredInstance(),
                 preferredInstance );
         Assert.assertEquals(
-                ds.getDatasourceOptions().getPreferredInstanceMode(),
+                ds1.getDatasourceOptions().getPreferredInstanceMode(),
+                "ordered" );
+
+        // 验证连接池废弃接口
+        DatasourceOptions dsOpt2 = new DatasourceOptions();
+        dsOpt1.setPreferedInstance( preferredInstance );
+        dsOpt1.setPreferedInstanceMode( "ordered" );
+        ds2 = new SequoiadbDatasource( SdbTestBase.coordUrl, "", "", dsOpt2 );
+        Assert.assertEquals( ds1.getDatasourceOptions().getPreferedInstance(),
+                preferredInstance );
+        Assert.assertEquals(
+                ds1.getDatasourceOptions().getPreferedInstanceMode(),
                 "ordered" );
     }
 
@@ -66,8 +87,11 @@ public class TestSession26325 extends SdbTestBase {
         if ( sdb != null ) {
             sdb.close();
         }
-        if ( ds != null ) {
-            ds.close();
+        if ( ds1 != null ) {
+            ds1.close();
+        }
+        if ( ds2 != null ) {
+            ds2.close();
         }
     }
 }
