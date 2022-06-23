@@ -235,8 +235,8 @@ namespace engine
 
          // lock recycle item
          rc = _recycleBinMgr->tryLockItem( _recycleItem, cb, EXCLUSIVE, _lockMgr ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item  "
-                      "item [origin %s, recycle %s], rc: %d",
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item "
+                      "[origin %s, recycle %s], rc: %d",
                       _recycleItem.getOriginName(),
                       _recycleItem.getRecycleName(), rc ) ;
 

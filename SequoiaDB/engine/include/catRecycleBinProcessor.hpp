@@ -761,7 +761,7 @@ namespace engine
       {
          return "RecycleSubCLLocker" ;
       }
-   
+
       virtual INT32 getMatcher( ossPoolList< bson::BSONObj > &matcherList ) ;
       virtual INT32 processObject( const bson::BSONObj &object,
                                    pmdEDUCB *cb,

@@ -3293,6 +3293,7 @@ namespace engine
    error:
       goto done ;
    }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ, "_catRecycleSubCLLocker::processObject" )
    INT32  _catRecycleSubCLLocker::processObject( const BSONObj &object,
                                                  pmdEDUCB *cb,
@@ -3325,9 +3326,9 @@ namespace engine
          rc = originSet.updateCatSet( object ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse catalog for collection "
                       "[%s], rc: %d", _item.getOriginName(), rc ) ;
-      
+
          SDB_ASSERT( originSet.isSubCL(), "should be sub-collection" ) ;
-         
+
          if ( originSet.isSubCL() )
          {
             utilRecycleItem subItem ;
@@ -3335,7 +3336,7 @@ namespace engine
                              clName,
                              originSet.clUniqueID() ) ;
 
-            if ( ( _lockedCS == NULL || 
+            if ( ( _lockedCS == NULL ||
                   !_lockedCS->count( utilGetCSUniqueID( subItem.getOriginID() ) ) ) &&
                   !_lockedSubCLCS.count( utilGetCSUniqueID( subItem.getOriginID() ) ) )
             {
@@ -3354,16 +3355,15 @@ namespace engine
          rc = ossException2RC( &e ) ;
          goto error ;
       }
-      
-      
+
    done:
       PD_TRACE_EXITRC( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ, rc ) ;
-      return rc ;   
+      return rc ;
 
    error:
       goto done ;
    }
-   
+
     /*
       _catDropCSItemChecker implement
     */

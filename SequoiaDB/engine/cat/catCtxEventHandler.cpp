@@ -742,8 +742,8 @@ namespace engine
             // we need to drop recycle items inside this collection space
             // if we don't use recycle bin, so need to lock them
             rc = _recycleBinMgr->tryLockItem( _recycleItem, cb, EXCLUSIVE, _lockMgr ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items in collection space  "
-                         "item [origin %s, recycle %s], rc: %d",
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle items in collection space "
+                         "[origin %s, recycle %s], rc: %d",
                          _recycleItem.getOriginName(),
                          _recycleItem.getRecycleName(), rc ) ;
          }
