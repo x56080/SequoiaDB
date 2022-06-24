@@ -17,7 +17,6 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
@@ -64,8 +63,6 @@ public class DataSource22914 extends SdbTestBase {
         es.addWorker( useDataSrc );
         es.run();
 
-        Assert.assertEquals( useDataSrc.getRetCode(), 0 );
-        Assert.assertEquals( deleteSrcCS.getRetCode(), 0 );
         Assert.assertFalse( srcdb.isCollectionSpaceExist( srcCSName ) );
     }
 
@@ -83,39 +80,32 @@ public class DataSource22914 extends SdbTestBase {
         }
     }
 
-    private class DeleteSrcCS extends ResultStore {
+    private class DeleteSrcCS {
         @ExecuteOrder(step = 2)
         private void delete() {
-            try {
-                srcdb.dropCollectionSpace( srcCSName );
-            } catch ( BaseException e ) {
-                saveResult( e.getErrorCode(), e );
+            try ( Sequoiadb db = new Sequoiadb( DataSrcUtils.getSrcUrl(),
+                    DataSrcUtils.getUser(), DataSrcUtils.getPasswd() )) {
+                db.dropCollectionSpace( srcCSName );
             }
         }
     }
 
-    private class UseDataSrc extends ResultStore {
+    private class UseDataSrc {
         private ArrayList< BSONObject > insertRecords = new ArrayList< BSONObject >();
         private DBCollection dbcl = null;
+        private Sequoiadb db = null;
 
         @ExecuteOrder(step = 1)
         private void prepare() {
-            try {
-                dbcl = sdb.getCollectionSpace( csName ).getCollection( clName );
-                for ( int i = 0; i < 5000; i++ ) {
-                    BSONObject obj = new BasicBSONObject();
-                    obj.put( "testa", "test" + i );
-                    obj.put( "no", i );
-                    obj.put( "num", i );
-                    insertRecords.add( obj );
-                }
-            } catch ( BaseException e ) {
-                if ( e.getErrorCode() != SDBError.SDB_DMS_CS_DELETING
-                        .getErrorCode() ) {
-                    saveResult( e.getErrorCode(), e );
-                }
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            dbcl = db.getCollectionSpace( csName ).getCollection( clName );
+            for ( int i = 0; i < 5000; i++ ) {
+                BSONObject obj = new BasicBSONObject();
+                obj.put( "testa", "test" + i );
+                obj.put( "no", i );
+                obj.put( "num", i );
+                insertRecords.add( obj );
             }
-
         }
 
         @ExecuteOrder(step = 2)
@@ -127,8 +117,14 @@ public class DataSource22914 extends SdbTestBase {
                 if ( e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
                         .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DMS_CS_DELETING
                                 .getErrorCode() ) {
-                    saveResult( e.getErrorCode(), e );
+                    throw e;
+                }
+            } finally {
+                if ( db != null ) {
+                    db.close();
                 }
             }
         }
