@@ -2380,6 +2380,76 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_MON_SLOWQUERY_THRESHOLD</name>
+      <long>monslowquerythreshold</long>
+      <description>
+        <en>The threshold for a slow query (ms). Default is 300.</en>
+        <cn>慢查询监控的阈值，单位：毫秒，默认为300。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold for a slow query (ms). Default is 300.</en>
+        <cn>慢查询监控的阈值，单位：毫秒，默认为300。</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>num</typeofweb>
+      <default>300</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MON_GROUP_MASK</name>
+      <long>mongroupmask</long>
+      <description>
+        <en>Monitor group mask, '|' delimited string in the format of 'groupname':'loglevel'. Valid groupname: slowQuery, all. Valid loglevel: off,basic,detail. Default is all:off. </en>
+        <cn></cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>This specifies the group of activities to monitor within sequoiaDB, along with the loglevel for each group.<fig></fig>
+            1. Values are specified in the format of 'groupname':'loglevel', delimited by '|' if multiple groups are specified.<fig></fig>
+            2. Valid groups are "slowQuery" and "all", corresponding to monitor slow query or monitor all.<fig></fig>
+            3. loglevel can be "off","basic" or "detail".<fig></fig>
+            4. Valid value list includes: "all:off", "all:basic", "all:detail", "slowQuery:off", "slowQuery:basic" and "slowQuery:detail".<fig></fig>
+            5. Default value is "all:off".
+        </en>
+        <cn>用于设置监控组的详细监控级别的掩码。<fig></fig>
+            1. 格式为'groupname':'loglevel', 多组之间使用'|'作为分隔符。<fig></fig>
+            2. 有效的组值为“slowQuery”或者”all”，分别表示监控慢查询组和所有组。<fig></fig>
+            3. 有效的监控级别可以为“off”，“basic”或者“detail”。<fig></fig>
+            4. 有效取值列表包括："all:off", "all:basic", "all:detail", "slowQuery:off", "slowQuery:basic" 和 "slowQuery:detail"。<fig></fig>
+            5. 默认值为“all:off”。
+        </cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+      <hidden>true</hidden>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_MON_HIST_EVENT</name>
+      <long>monhistevent</long>
+      <description>
+        <en>The number of history events to keep in monitor archive. Default is 1000</en>
+        <cn>默认为1000</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>Specifies the number of history events to keep for a monitor component. Default is 1000</en>
+        <cn>默认为1000。</cn>
+      </detail>
+      <type>int</type>
+      <default>1000</default>
+      <hidden>true</hidden>
+   </opt>
+   <opt>
       <name>PMD_OPTION_FT_MASK</name>
       <long>ftmask</long>
       <description>
