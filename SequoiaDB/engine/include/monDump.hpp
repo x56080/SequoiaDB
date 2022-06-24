@@ -135,7 +135,7 @@ namespace engine
                              BSONObjBuilder &ob ) ;
 
    INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
-                             BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
+                             BSONObjBuilder &ob ) ;
 
    /*
       _monTransFetcher define

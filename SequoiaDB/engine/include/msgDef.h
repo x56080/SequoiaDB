@@ -618,7 +618,6 @@
 #define FIELD_NAME_FRAC                      "Frac"
 #define FIELD_NAME_NULL_FRAC                 "NullFrac"
 #define FIELD_NAME_UNDEF_FRAC                "UndefFrac"
-#define FIELD_NAME_MCV                       "MCV"
 #define FIELD_NAME_STAT_TIMESTAMP            "StatTimestamp"
 #define FIELD_NAME_KEY_PATTERN               "KeyPattern"
 #define FIELD_NAME_TOTAL_IDX_LEVELS          "TotalIndexLevels"

@@ -2286,12 +2286,11 @@ namespace engine
       goto done ;
    }
 
-   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
-                             BSONObjBuilder &ob, BOOLEAN detail )
+   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask, BSONObjBuilder &ob )
    {
       // Modify the following places to the original record:
       // 1. Append system info( like "NodeName"... )
-      // 2. Show features of MCV by fields:
+      // 2. Ignore the large orginal "MCV". Show it's features by fields:
       // "DistinctValNum", "MaxValue", "MinValue", "NullFrac", "UndefFrac".
       // 3. Rename some fields for interface unification:
       //    "CreateTime" => "StatTimestamp";
@@ -2300,7 +2299,6 @@ namespace engine
       //    "IndexLevels" => "TotalIndexLevels";
       //    "CollectionSpace" + "Collection" => "Collection";
       // 4. Ignore "_id"
-      // 5. If parameter detail is true, show the "MCV" field. Else ignore it.
 
       INT32 rc = SDB_OK ;
       BOOLEAN hasMCV = FALSE ;
@@ -2320,7 +2318,7 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
 
-            if ( ossStrcmp( ele.fieldName(), FIELD_NAME_MCV ) != 0 )
+            if ( ossStrcmp( ele.fieldName(), DMS_STAT_IDX_MCV ) != 0 )
             {
                if ( 0 == ossStrcmp( ele.fieldName(), DMS_ID_KEY_NAME ) )
                {
@@ -2527,11 +2525,6 @@ namespace engine
 
             ob.append( FIELD_NAME_NULL_FRAC, nullFrac ) ;
             ob.append( FIELD_NAME_UNDEF_FRAC, undefFrac ) ;
-
-            if ( detail )
-            {
-               ob.append( ele ) ;
-            }
          }
 
          // If no MCV, append an empty info.
@@ -2549,17 +2542,6 @@ namespace engine
             ob.appendNull( FIELD_NAME_MAX_VALUE ) ;
             ob.append( FIELD_NAME_NULL_FRAC, 0 ) ;
             ob.append( FIELD_NAME_UNDEF_FRAC, 0 ) ;
-            if ( detail )
-            {
-               BSONObjBuilder obMCV( ob.subobjStart( FIELD_NAME_MCV ) ) ;
-               BSONArrayBuilder abValues(
-                  obMCV.subarrayStart( FIELD_NAME_VALUES ) ) ;
-               abValues.doneFast() ;
-               BSONArrayBuilder abFrac(
-                  obMCV.subarrayStart( FIELD_NAME_FRAC ) ) ;
-               abFrac.doneFast() ;
-               obMCV.doneFast() ;
-            }
          }
       }
       catch ( std::bad_alloc &ba )

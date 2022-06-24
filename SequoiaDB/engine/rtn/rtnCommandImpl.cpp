@@ -494,8 +494,8 @@ namespace engine
       CHAR *pCollectionSpaceName = strCollectionFullName ;
       CHAR *pCollectionShortName = pDot + 1 ;
 
-      const CHAR *pIndexName = NULL ;
-      BOOLEAN detail = FALSE ;
+      BSONElement ele = options.getHint().getField( FIELD_NAME_INDEX ) ;
+      const CHAR *pIndexName = ele.valuestrsafe() ;
 
       rtnQueryOptions queryOptions ;
       queryOptions.setSelector( dummy ) ;
@@ -507,14 +507,6 @@ namespace engine
 
       try
       {
-         BSONObj hint = options.getHint() ;
-         pIndexName = hint.getField( FIELD_NAME_INDEX ).valuestrsafe() ;
-         BSONElement beOpt = hint.getField( CMD_ADMIN_PREFIX FIELD_NAME_OPTIONS ) ;
-         if ( beOpt.type() == Object )
-         {
-            detail = beOpt.embeddedObject().getField( FIELD_NAME_DETAIL ).booleanSafe() ;
-         }
-
          // { CollectionSpace: <cs>, Collection: <cl>, Index: <idx> }
          BSONObjBuilder queryOb( 128 ) ;
          queryOb.append( FIELD_NAME_COLLECTIONSPACE, pCollectionSpaceName ) ;
@@ -526,9 +518,15 @@ namespace engine
          hintOb.append( "", DMS_STAT_IDX_IDX_NAME ) ;
          queryOptions.setHint( hintOb.obj() ) ;
       }
+      catch ( std::bad_alloc &ba )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "No memory to build BSON object" ) ;
+         goto error ;
+      }
       catch ( std::exception &e )
       {
-         rc = ossException2RC( &e ) ;
+         rc = SDB_SYS ;
          PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
          goto error ;
       }
@@ -551,7 +549,7 @@ namespace engine
          BSONObj stat( buffObj.data() ) ;
          BSONObjBuilder ob ;
 
-         rc = monBuildStatResult( stat, 0, ob, detail ) ;
+         rc = monBuildStatResult( stat, 0, ob ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
 
          rc = context->monAppend( ob.obj() ) ;
