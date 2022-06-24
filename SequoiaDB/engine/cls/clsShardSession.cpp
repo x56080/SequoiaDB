@@ -323,6 +323,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONDETACH ) ;
       if ( _pEDUCB )
       {
+         _pEDUCB->setMonQueryCB( NULL ) ;
+
          INT64 contextID = -1 ;
          while ( -1 != ( contextID = _pEDUCB->contextPeek() ) )
          {

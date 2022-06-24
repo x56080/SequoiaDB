@@ -2524,6 +2524,7 @@ namespace engine
             eduMgr->waitEDU( cb ) ;
             //reset and clear
             cb->resetMon() ;
+            cb->setMonQueryCB( NULL ) ;
             //delete all leak context
             if( pCtxMgr )
             {

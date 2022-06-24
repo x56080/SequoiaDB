@@ -283,7 +283,8 @@ namespace engine
             // Which also means the original query this context
             // belongs to ends unexpectedly.
             // We need to clean the monQuery.
-            if ( cb->getMonQueryCB() != monQueryCB )
+            if ( ( NULL == cb ) ||
+                 ( cb->getMonQueryCB() != monQueryCB ) )
             {
                pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQueryCB ) ;
             }

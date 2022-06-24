@@ -1741,6 +1741,8 @@ namespace engine
          messenger->removeSession( eduCB() ) ;
       }
 
+      eduCB()->setMonQueryCB( NULL ) ;
+
       // delete all context
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
