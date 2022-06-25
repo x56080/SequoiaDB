@@ -656,6 +656,8 @@ namespace engine
          goto error ;
       }
 
+      // index defined conflicts with v3.6/v5.0
+      /*
       // create SYSCAT.SYSINDEXES
       rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION, cb ) ;
       if ( rc )
@@ -668,6 +670,7 @@ namespace engine
       {
          goto error ;
       }
+      */
 
       // create SYSCAT.SYSDOMAINS
       rc = _createSysCollection ( CAT_DOMAIN_COLLECTION, cb ) ;
