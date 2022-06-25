@@ -134,24 +134,26 @@ var TOTAL_FMT = new TotalCntFormator() ;
 var UPGRADE_CLUNIT_LIST = [] ;
 var SUBCLUNIT_LIST = [] ;
 var UPGRADE_MAINCLUNIT_LIST = [] ;
+var USER = null ;
 
 try
 {
    if ( CIPHER_FILE == "" )
    {
+      USER = new User( USERNAME, PASSWD );
       var db = new Sdb( HOSTNAME, SVCNAME, USERNAME, PASSWD ) ;
    }
    else
    {
       if ( CIPHER_FILE == "~/sequoiadb/passwd" )
       {
-         var user = new CipherUser(USERNAME).token(TOKEN) ;
+         USER = new CipherUser(USERNAME).token(TOKEN) ;
       }
       else
       {
-         var user = new CipherUser(USERNAME).token(TOKEN).cipherFile(CIPHER_FILE) ;
+         USER = new CipherUser(USERNAME).token(TOKEN).cipherFile(CIPHER_FILE) ;
       }
-      var db = new Sdb( HOSTNAME, SVCNAME, user ) ;
+      var db = new Sdb( HOSTNAME, SVCNAME, USER ) ;
    }
 }
 catch( e )
@@ -644,8 +646,11 @@ function checkLocalCL( clName, nodeNameList )
    // get every data-node's indexes
    for ( var i in nodeNameList )
    {
-      var nodeName = nodeNameList[i] ;
-      var dataDB = new Sdb( nodeName ) ;
+      var arr = nodeNameList[i].split( ":" ) ;
+      var hostname = arr[0] ;
+      var svcname = arr[1] ;
+      var dataDB = new Sdb( hostname, svcname, USER ) ;
+
       var collection = dataDB.getCS( csName ).getCL( clShortName ) ;
 
       var rc = collection.listIndexes() ;
@@ -694,8 +699,10 @@ function isCatalogUpgrade()
    // loop every node
    for ( var j in CATALOG_NODE_LIST )
    {
-      var nodeName = CATALOG_NODE_LIST[j] ;
-      var dataDb = new Sdb( nodeName ) ;
+      var arr = CATALOG_NODE_LIST[j].split( ":" ) ;
+      var hostname = arr[0] ;
+      var svcname = arr[1] ;
+      var dataDb = new Sdb( hostname, svcname, USER ) ;
 
       // loop every system collection
       var rc1 = dataDb.list( SDB_LIST_COLLECTIONS ) ;
@@ -725,7 +732,11 @@ function isCatalogUpgrade()
 
 function upgradeSysCollectionAtNode( nodeName )
 {
-   var dataDb = new Sdb( nodeName ) ;
+   var arr = nodeName.split( ":" ) ;
+   var hostname = arr[0] ;
+   var svcname = arr[1] ;
+   var dataDb = new Sdb( hostname, svcname, USER ) ;
+
    // loop every system collection
    var rc1 = dataDb.list( SDB_LIST_COLLECTIONS ) ;
    while( rc1.next() )
