@@ -21,10 +21,14 @@ MySQL 通过审计插件输出审计日志，因此在审计前需完成审计�
     $ mkdir -p auditlog/3306
     ```
 
-3. 创建审计配置文件，并根据实际情况调整配置参数的取值
+3. 编辑实例配置文件，并根据实际情况调整配置参数的取值
 
     ```lang-bash
-    $ cat >> database/3306/auto.cnf << EOF
+    $ vim /opt/sequoiasql/mysql/database/3306/auto.cnf
+    ```
+    在文件末尾添加以下内容：
+
+    ```lang-ini
     # 加载审计插件
     plugin-load=server_audit=server_audit.so
     # 开启审计功能
@@ -39,7 +43,6 @@ MySQL 通过审计插件输出审计日志，因此在审计前需完成审计�
     server_audit_file_rotations=20
     # 限制每行查询日志的大小为 100KB，若表比较复杂，对应的操作语句比较长，建议增大该值
     server_audit_query_log_limit=102400
-    EOF
     ```
 
     > **Note:**
@@ -55,13 +58,17 @@ MySQL 通过审计插件输出审计日志，因此在审计前需完成审计�
 5. 连接实例 myinst
 
     ```lang-bash
-    $ mysql --socket=/opt/sequoiasql/mysql/database/3306/mysqld.sock -u sdbadmin
+    $ bin/mysql --socket=/opt/sequoiasql/mysql/database/3306/mysqld.sock -u root
     ```
 
 6. 查看审计配置
 
     ```lang-sql
-    MariaDB [(none)]> show variables like 'server_audit%';
+    mysql> show variables like 'server_audit%';
+    ```
+    输出结果如下：
+
+    ```
     +-------------------------------+------------------------------------------------------------+
     | Variable_name                 | Value                                                      |
     +-------------------------------+------------------------------------------------------------+
@@ -88,10 +95,10 @@ MySQL 通过审计插件输出审计日志，因此在审计前需完成审计�
 
 下述以实例 myinst 为例，介绍具体卸载步骤。
 
-1. 编辑实例 myinst 对应的审计配置文件
+1. 编辑实例 myinst 对应的实例配置文件
 
     ```lang-bash
-    $ vim /opt/sequoiasql/mysql/auditlog/3306/server_audit.log
+    $ vim /opt/sequoiasql/mysql/database/3306/auto.cnf
     ```
     在文件末尾将以下内容删除：
 
@@ -121,13 +128,17 @@ MySQL 通过审计插件输出审计日志，因此在审计前需完成审计�
 3. 连接实例 myinst
 
     ```lang-bash
-    $ mysql --socket=/opt/sequoiasql/mysql/database/3306/mysqld.sock -u sdbadmin
+    $ bin/mysql --socket=/opt/sequoiasql/mysql/database/3306/mysqld.sock -u root
     ```
 
 4. 查看审计插件是否已卸载
 
     ```lang-bash
     mysql> show variables like 'server_audit%';
+    ```
+    输出如下信息表示已卸载：
+
+    ```
     Empty set (0.00 sec)
     ```
 	
