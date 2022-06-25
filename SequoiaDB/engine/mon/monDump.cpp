@@ -589,14 +589,15 @@ namespace engine
       INT32 rc             = SDB_OK ;
       INT32 memLoadPercent = 0 ;
       INT64 memTotalPhys   = 0 ;
+      INT64 memFreePhys    = 0 ;
       INT64 memAvailPhys   = 0 ;
       INT64 memTotalPF     = 0 ;
       INT64 memAvailPF     = 0 ;
       INT64 memTotalVirtual= 0 ;
       INT64 memAvailVirtual= 0 ;
 
-      rc = ossGetMemoryInfo( memLoadPercent, memTotalPhys, memAvailPhys,
-                             memTotalPF, memAvailPF,
+      rc = ossGetMemoryInfo( memLoadPercent, memTotalPhys, memFreePhys,
+                             memAvailPhys, memTotalPF, memAvailPF,
                              memTotalVirtual, memAvailVirtual ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info, rc = %d", rc ) ;
 
@@ -604,7 +605,8 @@ namespace engine
          BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
          memOb.append( FIELD_NAME_LOADPERCENT, memLoadPercent ) ;
          memOb.append( FIELD_NAME_TOTALRAM, memTotalPhys ) ;
-         memOb.append( FIELD_NAME_FREERAM, memAvailPhys ) ;
+         memOb.append( FIELD_NAME_FREERAM, memFreePhys ) ;
+         memOb.append( FIELD_NAME_AVAILABLERAM, memAvailPhys ) ;
          memOb.append( FIELD_NAME_TOTALSWAP, memTotalPF ) ;
          memOb.append( FIELD_NAME_FREESWAP, memAvailPF ) ;
          memOb.append( FIELD_NAME_TOTALVIRTUAL, memTotalVirtual ) ;
@@ -627,6 +629,7 @@ namespace engine
 
       INT32 loadPctRAM        = 0 ;
       INT64 totalRAM          = 0 ;
+      INT64 freeRAM           = 0 ;
       INT64 availRAM          = 0 ;
       INT64 totalSwap         = 0 ;
       INT64 availSwap         = 0 ;
@@ -644,7 +647,7 @@ namespace engine
       ossProcLimits *limInfo  = pmdGetLimit() ;
 
       // get memory of host
-      rc = ossGetMemoryInfo( loadPctRAM, totalRAM, availRAM,
+      rc = ossGetMemoryInfo( loadPctRAM, totalRAM, freeRAM, availRAM,
                              totalSwap, availSwap, totalVM, availVM,
                              overCommitMode, commitLimit, committedAS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of host, "
@@ -3864,6 +3867,7 @@ namespace engine
       INT64 cpuUser        = 0 ;
       INT64 cpuSys         = 0 ;
       INT64 cpuIdle        = 0 ;
+      INT64 cpuIOWait      = 0 ;
       INT64 cpuOther       = 0 ;
 
       if ( _hitEnd )
@@ -3873,7 +3877,7 @@ namespace engine
       }
 
       // cpu
-      rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuOther ) ;
+      rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuIOWait, cpuOther ) ;
        if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get cpu info, rc = %d", rc ) ;
@@ -3894,6 +3898,7 @@ namespace engine
             cpuOb.append ( FIELD_NAME_USER, ((FLOAT64)cpuUser)/1000 ) ;
             cpuOb.append ( FIELD_NAME_SYS, ((FLOAT64)cpuSys)/1000 ) ;
             cpuOb.append ( FIELD_NAME_IDLE, ((FLOAT64)cpuIdle)/1000 ) ;
+            cpuOb.append ( FIELD_NAME_IOWAIT, ((FLOAT64)cpuIOWait)/1000 ) ;
             cpuOb.append ( FIELD_NAME_OTHER, ((FLOAT64)cpuOther)/1000 ) ;
             cpuOb.done() ;
          }
