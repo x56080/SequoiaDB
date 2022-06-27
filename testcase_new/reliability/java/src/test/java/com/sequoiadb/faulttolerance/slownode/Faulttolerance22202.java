@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -50,7 +49,7 @@ public class Faulttolerance22202 extends SdbTestBase {
     private boolean insertSuccess = false;
 
     @BeforeClass
-    public void setUp() throws ReliabilityException {
+    public void setUp() throws Exception {
 
         groupMgr = GroupMgr.getInstance();
 
@@ -67,8 +66,10 @@ public class Faulttolerance22202 extends SdbTestBase {
         }
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
-        cs.createCollection( clName,
+        DBCollection dbcl = cs.createCollection( clName,
                 new BasicBSONObject( "Group", groupName ) );
+        int recordNum = 500000;
+        FaultToleranceUtils.insertData( dbcl, recordNum );
 
         cs.createCollection( testCLName,
                 new BasicBSONObject( "Group", groupName ).append( "ReplSize",
@@ -99,7 +100,7 @@ public class Faulttolerance22202 extends SdbTestBase {
     public void test() throws ReliabilityException, InterruptedException {
 
         TaskMgr mgr = new TaskMgr();
-        for ( int i = 0; i < 10; i++ ) {
+        for ( int i = 0; i < 5; i++ ) {
             mgr.addTask( new Insert() );
             mgr.addTask( new Update() );
             mgr.addTask( new PutLobTask() );
@@ -151,30 +152,23 @@ public class Faulttolerance22202 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                // 构造插入数据
-                ArrayList< BSONObject > records = new ArrayList<>();
-                for ( int j = 0; j < 5000; j++ ) {
-                    BSONObject record = new BasicBSONObject();
-                    record.put( "a", j );
-                    record.put( "b", j );
-                    record.put( "order", j );
-                    record.put( "str",
-                            "fjsldkfjlksdjflsdljfhjdshfjksdhfssdljfhjdshfjksdhfsdfhsdjdfhsdjkfhjkdshfj"
-                                    + "kdshfkjdshfkjsdhfkjshafdsdljfhjdshfjksdhfsdfhsdjkhasdikuhsdjfls"
-                                    + "hsdjkfhjskdhfkjsdhfjkdssdljfhjdshfjksdhfsdfhsdjhfjkdshfkjhsdjkf"
-                                    + "hsdkjfhsdsafnweuhfuiwnqsdljfhjdshfjksdhfsdfhsdjefiuokdjf" );
-                    records.add( record );
-                }
                 while ( !shutoff ) {
-                    // 当插入数据报错时不停止线程，只有shutoff为true时才停止线程
-                    try {
-                        cl.insert( records );
-                    } catch ( BaseException e ) {
-                        if ( e.getErrorCode() != SDBError.SDB_IXM_DUP_KEY
-                                .getErrorCode() ) {
-                            throw e;
-                        }
+                    // 构造插入数据
+                    ArrayList< BSONObject > records = new ArrayList<>();
+                    for ( int j = 0; j < 5000; j++ ) {
+                        BSONObject record = new BasicBSONObject();
+                        record.put( "a", j );
+                        record.put( "b", j );
+                        record.put( "order", j );
+                        record.put( "str",
+                                "fjsldkfjlksdjflsdljfhjdshfjksdhfssdljfhjdshfjksdhfsdfhsdjdfhsdjkfhjkdshfj"
+                                        + "kdshfkjdshfkjsdhfkjshafdsdljfhjdshfjksdhfsdfhsdjkhasdikuhsdjfls"
+                                        + "hsdjkfhjskdhfkjsdhfjkdssdljfhjdshfjksdhfsdfhsdjhfjkdshfkjhsdjkf"
+                                        + "hsdkjfhsdsafnweuhfuiwnqsdljfhjdshfjksdhfsdfhsdjefiuokdjf" );
+                        records.add( record );
                     }
+                    // 当插入数据报错时不停止线程，只有shutoff为true时才停止线程
+                    cl.insert( records );
                 }
             }
         }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 
@@ -207,6 +208,33 @@ public class FaultToleranceUtils {
             }
         }
         return nodes;
+    }
+
+    public static void insertData( DBCollection dbcl, int recordNum )
+            throws Exception {
+        int batchNum = 5000;
+        if ( recordNum < batchNum ) {
+            batchNum = recordNum;
+        }
+        int count = 0;
+        for ( int i = 0; i < recordNum / batchNum; i++ ) {
+            List< BSONObject > batchRecords = new ArrayList< BSONObject >();
+            for ( int j = 0; j < batchNum; j++ ) {
+                BSONObject obj = new BasicBSONObject();
+                obj.put( "a", j );
+                obj.put( "b", j );
+                obj.put( "order", j );
+                obj.put( "str",
+                        "fjsldkfjlksdjflsdljfhjdshfjksdhfssdljfhjdshfjksdhfsdfhsdjdfhsdjkfhjkdshfj"
+                                + "kdshfkjdshfkjsdhfkjshafdsdljfhjdshfjksdhfsdfhsdjkhasdikuhsdjfls"
+                                + "hsdjkfhjskdhfkjsdhfjkdssdljfhjdshfjksdhfsdfhsdjhfjkdshfkjhsdjkf"
+                                + "hsdkjfhsdsafnweuhfuiwnqsdljfhjdshfjksdhfsdfhsdjefiuokdjf" );
+                batchRecords.add( obj );
+            }
+            dbcl.insert( batchRecords );
+            batchRecords.clear();
+        }
+
     }
 
 }
