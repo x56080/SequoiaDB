@@ -1674,18 +1674,8 @@ namespace engine
       {
          // extend file size
       retry:
-         if ( _pStorageInfo->_enableSparse )
-         {
-#if defined( _LINUX )
-            rc = ossFallocate( &_file, 0, fileSize, incFileSize ) ;
-#else
-            rc = ossExtentBySparse( &_file, incFileSize ) ;
-#endif
-         }
-         else
-         {
-            rc = ossExtendFile( &_file, incFileSize ) ;
-         }
+         rc = ossExtend( &_file, fileSize, incFileSize,
+                         _pStorageInfo->_enableSparse ) ;
          if ( rc )
          {
             INT32 rc1 = SDB_OK ;

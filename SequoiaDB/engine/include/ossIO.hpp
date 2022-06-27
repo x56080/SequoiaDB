@@ -538,6 +538,11 @@ INT32 ossGetFileSizeByName ( const CHAR  *pFileName, INT64 *pFileSize );
   */
 INT32 ossGetFileSize(OSSFILE *pFile, INT64 *pfsize);
 
+INT32 ossExtend( OSSFILE * pFile,
+                 const INT64 fileSize,
+                 const INT64 incrementSize,
+                 BOOLEAN enableSparse,
+                 BOOLEAN isDirectIO = FALSE ) ;
 
 /*
  * Extend file with specified size(bytes)
@@ -553,10 +558,12 @@ INT32 ossGetFileSize(OSSFILE *pFile, INT64 *pfsize);
  *      SDB_INVALID_FILE_TYPE (invalid input arguments)
  */
 INT32 ossExtendFile( OSSFILE *pFile,
-                     const INT64 incrementSize ) ;
+                     const INT64 incrementSize,
+                     BOOLEAN isDirectIO = FALSE ) ;
 
 INT32 ossExtentBySparse( OSSFILE *pFile,
                          UINT64 incrementSize,
+                         BOOLEAN isDirectIO = FALSE,
                          UINT32 onceWrite = 512 ) ;
 
 INT32 ossTruncateFile ( OSSFILE *pFile, const INT64 fileLen ) ;

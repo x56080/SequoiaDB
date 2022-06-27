@@ -797,10 +797,7 @@ namespace engine
       SDB_ASSERT( 0 < len, "invalid extend size" ) ;
       SDB_ASSERT( 0 == len % OSS_FILE_DIRECT_IO_ALIGNMENT, "impossible" ) ;
       OSSFILE file ;
-      UINT32 mode = OSS_READWRITE | OSS_SHAREREAD  ;
-      /// free in done.
-      CHAR *extendBuf = NULL ;
-      UINT32 bufSize = DMS_LOBD_EXTEND_LEN ;
+      UINT32 mode = OSS_READWRITE | OSS_SHAREREAD ;
 
       if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
       {
@@ -838,77 +835,14 @@ namespace engine
       }
 #endif // _DEBUG
 
-      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_SPARSE ) &&
-           !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
+      rc = ossExtend( &file, _fileSz, len,
+                      OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_SPARSE ),
+                      OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) ) ;
+      if ( SDB_OK != rc )
       {
-         rc = ossExtendFile( &file, len ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to extend file:%d", rc ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         SINT64 extendSize = len ;
-
-         rc = ossSeek( &file, 0, OSS_SEEK_END ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to seek to the end of file:%d", rc ) ;
-            goto error ;
-         }
-
-         if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_SPARSE ) )
-         {
-            rc = ossSeek( &file,
-                          len - OSS_FILE_DIRECT_IO_ALIGNMENT,
-                          OSS_SEEK_CUR ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to seek offset[%lld](OSS_SEEK_CUR), rc:%d",
-                       len - OSS_FILE_DIRECT_IO_ALIGNMENT, rc ) ;
-               goto error ;
-            }
-            else
-            {
-               /// we only need to write some bytes at the end of file.
-               bufSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
-               extendSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
-            }
-         }
-
-         if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-         {
-            extendBuf = ( CHAR * )ossAlignedAlloc(
-                                          OSS_FILE_DIRECT_IO_ALIGNMENT,
-                                          bufSize ) ;
-         }
-         else
-         {
-            extendBuf = (CHAR*) SDB_OSS_MALLOC ( bufSize ) ;
-         }
-
-         if ( NULL == extendBuf )
-         {
-            PD_LOG( PDERROR, "failed to allcate mem." ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-         ossMemset( extendBuf, 0, bufSize ) ;
-
-         do
-         {
-            SINT64 writeSize = bufSize <= extendSize ?
-                               bufSize : extendSize ;
-            rc = ossWriteN( &file, extendBuf, writeSize ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to write file:%d", rc ) ;
-               goto error ;
-            }
-            extendSize -= writeSize ;
-         } while ( 0 < extendSize ) ;
+         PD_LOG( PDERROR, "failed to extend file:%s, rc:%d",
+                 _fileName.c_str(), rc ) ;
+         goto error ;
       }
 
 #ifdef _DEBUG
@@ -946,17 +880,6 @@ namespace engine
          }
       }
 
-      if ( NULL != extendBuf )
-      {
-         if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
-         {
-            SDB_OSS_ORIGINAL_FREE( extendBuf ) ;
-         }
-         else
-         {
-            SDB_OSS_FREE( extendBuf ) ;
-         }
-      }
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA__EXTEND, rc ) ;
       return rc ;
    truncate:
