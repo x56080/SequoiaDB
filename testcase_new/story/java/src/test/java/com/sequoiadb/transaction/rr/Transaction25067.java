@@ -14,6 +14,9 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * @Description seqDB-25067:RR隔离级别指定SDB_FLG_QUERY_FOR_SHARE走索引扫描
  * @Author liuli
@@ -29,12 +32,10 @@ public class Transaction25067 extends SdbTestBase {
     private String clName = "cl_25067";
     private String indexName = "index_25067";
     private boolean queryBlockingUseFlags = true;
-    private boolean beginQueryUseFlags = false;
-    private boolean beginUpdata = false;
-    private boolean endUpdata = false;
-    private boolean updateTransCommit = false;
     private boolean runSuccess = false;
-    private final static Object syncObj = new Object();
+    private final static Object queryObj = new Object();
+    private final static Object updateObj = new Object();
+    private final static AtomicInteger count = new AtomicInteger( 0 );
 
     @BeforeClass
     public void setUp() {
@@ -93,6 +94,7 @@ public class Transaction25067 extends SdbTestBase {
                     "" )) {
                 DBCursor cursor;
                 db.beginTransaction();
+                System.out.println( "Transaction25067 1、begin trans t1" );
                 DBCollection dbcl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 BasicBSONObject matcher = new BasicBSONObject();
@@ -102,6 +104,7 @@ public class Transaction25067 extends SdbTestBase {
                 hint.put( "", indexName );
 
                 // 事务t1不指定flags读取一条数据
+                System.out.println( "Transaction25067 2、query one data" );
                 cursor = dbcl.query( matcher, null, null, hint );
                 while ( cursor.hasNext() ) {
                     BSONObject record = cursor.getNext();
@@ -110,26 +113,16 @@ public class Transaction25067 extends SdbTestBase {
                 }
                 cursor.close();
 
-                beginUpdata = true;
-                // 唤醒更新线程
-                synchronized ( syncObj ) {
-                    if ( beginUpdata ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
-                    }
-                }
-
-                // 事务t2更新完数据后再查询
-                synchronized ( syncObj ) {
-                    if ( endUpdata ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
+                // count < 2则等待更新线程执行完成后再往下执行
+                count.incrementAndGet();
+                synchronized ( queryObj ) {
+                    if ( count.get() < 2 ) {
+                        queryObj.wait();
                     }
                 }
 
                 // 更新数据后事务t1不指定flags读取一条数据
+                System.out.println( "Transaction25067 4、query not used flags" );
                 cursor = dbcl.query( matcher, null, null, hint );
                 while ( cursor.hasNext() ) {
                     BSONObject record = cursor.getNext();
@@ -138,16 +131,17 @@ public class Transaction25067 extends SdbTestBase {
                 }
                 cursor.close();
 
-                beginQueryUseFlags = true;
-                // 唤醒更新线程校验flags查询卡住
-                synchronized ( syncObj ) {
-                    if ( beginQueryUseFlags ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
+                // 准备使用flags查询时唤醒更新线程
+                count.incrementAndGet();
+                synchronized ( updateObj ) {
+                    if ( count.get() == 3 ) {
+                        updateObj.notify();
                     }
                 }
 
+                System.out.println(
+                        "Transaction25067 5、query with flags begin -- "
+                                + new Date() );
                 // 更新数据后事务t1指定flags为FLG_QUERY_FOR_SHARE，读取一条数据
                 cursor = dbcl.query( matcher, null, null, hint,
                         DBQuery.FLG_QUERY_FOR_SHARE );
@@ -157,18 +151,15 @@ public class Transaction25067 extends SdbTestBase {
                     queryBlockingUseFlags = false;
                     Assert.assertEquals( record, new BasicBSONObject( "a", 1 )
                             .append( "b", 1 ).append( "_id", 1 ) );
+                    System.out.println(
+                            "Transaction25067 7、query with flags end -- "
+                                    + new Date() );
                 }
                 cursor.close();
 
                 // 事务t2提交后再次读取数据
-                synchronized ( syncObj ) {
-                    if ( updateTransCommit ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
-                    }
-                }
-
+                System.out.println(
+                        "Transaction25067 8、query not used flags again" );
                 cursor = dbcl.query( matcher, null, null, hint );
                 while ( cursor.hasNext() ) {
                     BSONObject record = cursor.getNext();
@@ -179,15 +170,10 @@ public class Transaction25067 extends SdbTestBase {
 
                 db.commit();
             } catch ( BaseException e ) {
-                System.out.println( "e ------- " + e );
-                // 将所有控制变量置位true，然后唤醒线程，防止一个线程执行失败后另一个线程卡住
-                beginQueryUseFlags = true;
-                beginUpdata = true;
-                endUpdata = true;
-                updateTransCommit = true;
-                synchronized ( syncObj ) {
-                    syncObj.notifyAll();
-                }
+                System.out.println( "Transaction25067 e ------- " + e );
+                // count增加到大于3，并将更新线程唤醒防止卡住
+                count.addAndGet( 3 );
+                updateObj.notify();
                 throw e;
             }
         }
@@ -200,67 +186,43 @@ public class Transaction25067 extends SdbTestBase {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 db.beginTransaction();
+                System.out.println( "Transaction25067 1、begin trans t2" );
                 DBCollection dbcl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 BasicBSONObject modifier = new BasicBSONObject();
                 modifier.put( "$set", new BasicBSONObject( "b", 1 ) );
 
-                // 更新线程等待被唤醒
-                synchronized ( syncObj ) {
-                    if ( beginUpdata ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
-                    }
-                }
+                System.out.println( "Transaction25067 3、update" );
                 dbcl.update( null, modifier, null );
 
-                endUpdata = true;
-                // 更新结束后事务t1再次开始查询数据
-                synchronized ( syncObj ) {
-                    if ( endUpdata ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
+                // count = 2 更新完成后唤醒查询线程
+                count.incrementAndGet();
+                synchronized ( queryObj ) {
+                    if ( count.get() == 2 ) {
+                        queryObj.notify();
                     }
                 }
 
-                // 更新数据后开始使用flags查询数据再往下执行
-                synchronized ( syncObj ) {
-                    if ( beginQueryUseFlags ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
+                // 未指定flags查询时，更新线程进入等待状态
+                synchronized ( updateObj ) {
+                    if ( count.get() < 3 ) {
+                        updateObj.wait();
                     }
                 }
 
                 // 等待5s，确认使用flags卡住至少5s
                 Thread.sleep( 5000 );
-
                 // 确认使用flags查询卡住
                 Assert.assertTrue( queryBlockingUseFlags );
 
                 // 提交事务
                 db.commit();
-
-                updateTransCommit = true;
-                synchronized ( syncObj ) {
-                    if ( updateTransCommit ) {
-                        syncObj.notifyAll();
-                    } else {
-                        syncObj.wait();
-                    }
-                }
+                System.out.println( "Transaction25067 6、commit trans t2" );
             } catch ( BaseException e ) {
-                System.out.println( "e ------- " + e );
-                // 将所有控制变量置位true，然后唤醒线程，防止一个线程执行失败后另一个线程卡住
-                beginQueryUseFlags = true;
-                beginUpdata = true;
-                endUpdata = true;
-                updateTransCommit = true;
-                synchronized ( syncObj ) {
-                    syncObj.notifyAll();
-                }
+                System.out.println( "Transaction25067 e ------- " + e );
+                // count增加到大于3，并将查询线程唤醒防止卡住
+                count.addAndGet( 3 );
+                queryObj.notify();
                 throw e;
             }
         }
