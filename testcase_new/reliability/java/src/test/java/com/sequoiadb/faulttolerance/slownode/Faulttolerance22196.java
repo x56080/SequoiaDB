@@ -6,7 +6,6 @@ import java.util.List;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.commlib.GroupWrapper;
-import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -46,7 +45,7 @@ public class Faulttolerance22196 extends SdbTestBase {
     private boolean runSuccess = false;
 
     @BeforeClass
-    public void setUp() throws ReliabilityException {
+    public void setUp() throws Exception {
         groupMgr = GroupMgr.getInstance();
 
         // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
@@ -62,8 +61,11 @@ public class Faulttolerance22196 extends SdbTestBase {
         }
 
         CollectionSpace cs = sdb.createCollectionSpace( csName );
-        cs.createCollection( clName2,
+        DBCollection dbcl = cs.createCollection( clName2,
                 new BasicBSONObject( "Group", groupName ) );
+
+        int recordNum = 500000;
+        FaultToleranceUtils.insertData( dbcl, recordNum );
 
         for ( int i = 0; i < replSizes.length; i++ ) {
             cs.createCollection( clName + "_" + i,
@@ -107,7 +109,7 @@ public class Faulttolerance22196 extends SdbTestBase {
     public void test() throws ReliabilityException, InterruptedException {
 
         TaskMgr mgr = new TaskMgr();
-        for ( int i = 0; i < 10; i++ ) {
+        for ( int i = 0; i < 5; i++ ) {
             mgr.addTask( new Insert() );
             mgr.addTask( new Update() );
             mgr.addTask( new PutLobTask() );
@@ -151,28 +153,21 @@ public class Faulttolerance22196 extends SdbTestBase {
                     "" )) {
                 CollectionSpace dbcs = db.getCollectionSpace( csName );
                 DBCollection cl2 = dbcs.getCollection( clName2 );
-                ArrayList< BSONObject > records = new ArrayList<>();
-                for ( int j = 0; j < 5000; j++ ) {
-                    BSONObject record = new BasicBSONObject();
-                    record.put( "a", j );
-                    record.put( "b", j );
-                    record.put( "order", j );
-                    record.put( "str",
-                            "fjsldkfjlksdjflsdljfhjdshfjksdjflsdljfhjdshfjksdhfsdfhsdjkhfsdfhsdjkfhjkdshfj"
-                                    + "kdshfkjdshfkjsdhfkjshajflsdljfhjdshfjksdhfsdfhsdjkfdkhasdikuhsdjfls"
-                                    + "hsdjkfhjskdhfkjsdhfjkjflsdljfhjdshfjksdhfsdfhsdjkdshfjkdshfkjhsdjkf"
-                                    + "hsdkjfhsdsafnweuhfuiwjflsdljfhjdshfjksdhfsdfhsdjknqefiuokdjf" );
-                    records.add( record );
-                }
                 while ( !shutoff ) {
-                    try {
-                        cl2.insert( records );
-                    } catch ( BaseException e ) {
-                        if ( e.getErrorCode() != SDBError.SDB_IXM_DUP_KEY
-                                .getErrorCode() ) {
-                            throw e;
-                        }
+                    ArrayList< BSONObject > records = new ArrayList<>();
+                    for ( int j = 0; j < 5000; j++ ) {
+                        BSONObject record = new BasicBSONObject();
+                        record.put( "a", j );
+                        record.put( "b", j );
+                        record.put( "order", j );
+                        record.put( "str",
+                                "fjsldkfjlksdjflsdljfhjdshfjksdjflsdljfhjdshfjksdhfsdfhsdjkhfsdfhsdjkfhjkdshfj"
+                                        + "kdshfkjdshfkjsdhfkjshajflsdljfhjdshfjksdhfsdfhsdjkfdkhasdikuhsdjfls"
+                                        + "hsdjkfhjskdhfkjsdhfjkjflsdljfhjdshfjksdhfsdfhsdjkdshfjkdshfkjhsdjkf"
+                                        + "hsdkjfhsdsafnweuhfuiwjflsdljfhjdshfjksdhfsdfhsdjknqefiuokdjf" );
+                        records.add( record );
                     }
+                    cl2.insert( records );
                 }
             }
         }
