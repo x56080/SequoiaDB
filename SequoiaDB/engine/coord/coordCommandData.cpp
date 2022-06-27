@@ -5222,6 +5222,7 @@ namespace engine
       PD_TRACE_ENTRY( COORDIDXHELP_EXECST ) ;
       UINT64 taskID = CLS_INVALID_TASKID ;
       INT32 retryCnt = 0 ;
+      INT32 tmpRc = SDB_OK;
 
       rc = _createTaskInCata( pMsg, cb, buf, taskID ) ;
       if ( rc )
@@ -5248,7 +5249,23 @@ namespace engine
          PD_LOG_MSG( PDERROR,
                      "Failed to notify data node to do task[%llu], rc: %d",
                      taskID, rc ) ;
-         _cancelTask( taskID, rc, buf, cb ) ;
+
+         tmpRc = _cancelTask( taskID, rc, buf, cb ) ;
+         if ( tmpRc )
+         {
+            PD_LOG( PDWARNING, "Failed to cancel task[%llu], rc: %d",
+                    taskID, tmpRc ) ;
+         }
+         else if ( !_isAsync() )
+         {
+            tmpRc = _waitTask( taskID, cb, contextID, buf ) ;
+            if ( tmpRc )
+            {
+               PD_LOG( PDWARNING, "Failed to wait task[%llu], rc: %d",
+                       taskID, tmpRc ) ;
+            }
+         }
+
          goto error ;
       }
 
