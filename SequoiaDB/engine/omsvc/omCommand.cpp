@@ -10636,7 +10636,7 @@ checking system firewall for blocked ports" ) ;
       if ( taskName.empty() )
       {
           _errorDetail = string( "Failed to get the field("
-                                 OM_REST_FIELD_TASK_NAME")" ) ;
+                                 OM_REST_FIELD_TASK_NAME ")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
@@ -10683,7 +10683,7 @@ checking system firewall for blocked ports" ) ;
       if ( taskName.empty() )
       {
           _errorDetail = string( "Failed to get the field("
-                                 OM_REST_FIELD_TASK_NAME")" ) ;
+                                 OM_REST_FIELD_TASK_NAME ")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
@@ -10749,7 +10749,7 @@ checking system firewall for blocked ports" ) ;
       if ( taskName.empty() )
       {
           _errorDetail = string( "Failed to get the field("
-                                 OM_REST_FIELD_TASK_NAME")" ) ;
+                                 OM_REST_FIELD_TASK_NAME ")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }

@@ -102,7 +102,7 @@ INT32 fileCreatingMgr::init(sequoiaFS* fs,
          catch(std::exception &e1)
          {
             PD_LOG(PDERROR, "Failed to new thread. error=%s", e1.what());
-            ossPrintf("Failed to new thread. error=%s"OSS_NEWLINE, e1.what());
+            ossPrintf("Failed to new thread. error=%s" OSS_NEWLINE, e1.what());
             rc = SDB_SYS; 
             goto error;
          }
@@ -168,7 +168,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
          {
             PD_LOG(PDERROR, "get files failed, _filePath:%s. rc=%d", 
                              _fileWorkPath.c_str(), rc);
-            ossPrintf("get files failed, _filePath:%s. rc=%d"OSS_NEWLINE, 
+            ossPrintf("get files failed, _filePath:%s. rc=%d" OSS_NEWLINE, 
                        _fileWorkPath.c_str(), rc);
             goto error;
          }
@@ -178,7 +178,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
          {
             rc = SDB_OOM ;
             PD_LOG(PDERROR, "buf malloc failed");
-            ossPrintf("malloc failed, size:%d. rc=%d"OSS_NEWLINE, 
+            ossPrintf("malloc failed, size:%d. rc=%d" OSS_NEWLINE, 
                        CACHE_META_SIZE + CACHE_DATA_SIZE, rc);
             goto error;
          }
@@ -195,7 +195,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
                   {
                      PD_LOG(PDERROR, "Move conflict file failed, filename:%s. rc=%d", 
                                       it->second.c_str(), rc);
-                     ossPrintf("Move conflict file failed, filename:%s. rc=%d"OSS_NEWLINE,
+                     ossPrintf("Move conflict file failed, filename:%s. rc=%d" OSS_NEWLINE,
                                 it->second.c_str(), rc);
                      goto error;
                   }
@@ -204,7 +204,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
                {
                   PD_LOG(PDERROR, "upload tmp file to db failed, filename:%s. rc=%d", 
                                    it->second.c_str(), rc);
-                  ossPrintf("upload tmp file to db failed, filename:%s. rc=%d"OSS_NEWLINE, 
+                  ossPrintf("upload tmp file to db failed, filename:%s. rc=%d" OSS_NEWLINE, 
                              it->second.c_str(), rc);
                   goto error;
                }
@@ -216,7 +216,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
          //goto error;
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "filecreatecachepath must be specified, rc=%d", rc);
-         ossPrintf("filecreatecachepath must be specified. rc=%d"OSS_NEWLINE, rc);
+         ossPrintf("filecreatecachepath must be specified. rc=%d" OSS_NEWLINE, rc);
          goto error;
       }
    }
@@ -230,7 +230,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
          {
             PD_LOG(PDERROR, "get files failed. path(%s). rc=%d", 
                              _filePath.c_str(), rc);
-            ossPrintf("get files failed. path(%s). rc=%d"OSS_NEWLINE,
+            ossPrintf("get files failed. path(%s). rc=%d" OSS_NEWLINE,
                        _filePath.c_str(), rc);
             goto error;
          }
@@ -239,7 +239,7 @@ INT32 fileCreatingMgr::_checkAndUploadTmpFiles()
          {
             rc = SDB_INVALIDARG;
             PD_LOG(PDERROR, "Path(%s) is not empty. rc=%d", _filePath.c_str(), rc);
-            ossPrintf("Path[%s] is not empty. rc=%d"OSS_NEWLINE,
+            ossPrintf("Path[%s] is not empty. rc=%d" OSS_NEWLINE,
                        _filePath.c_str(), rc);
             goto error;
          }
@@ -268,7 +268,7 @@ INT32 fileCreatingMgr::_checkAndMkDir(string dirName)
          {
             PD_LOG( PDERROR, "Make filePath[%s] failed. rc=%d", 
                               dirName.c_str(), rc);
-            ossPrintf("Make filePath[%s] failed. rc=%d"OSS_NEWLINE,
+            ossPrintf("Make filePath[%s] failed. rc=%d" OSS_NEWLINE,
                        dirName.c_str(), rc);
             goto error;
          }
@@ -276,7 +276,7 @@ INT32 fileCreatingMgr::_checkAndMkDir(string dirName)
       else 
       {
          PD_LOG( PDERROR, "Access filePath[%s] failed. rc=%d", dirName.c_str(), rc);
-         ossPrintf("Access filePath[%s] failed. rc=%d"OSS_NEWLINE,
+         ossPrintf("Access filePath[%s] failed. rc=%d" OSS_NEWLINE,
                     dirName.c_str(), rc);
          goto error;
       }
@@ -286,7 +286,7 @@ INT32 fileCreatingMgr::_checkAndMkDir(string dirName)
    {
       rc = SDB_INVALIDARG;
       PD_LOG( PDERROR, "Path[%s] is not a directory. rc=%d", dirName.c_str(), rc);
-      ossPrintf("Path[%s] is not a directory. rc=%d"OSS_NEWLINE,
+      ossPrintf("Path[%s] is not a directory. rc=%d" OSS_NEWLINE,
                  dirName.c_str(), rc);
       goto error;
    }

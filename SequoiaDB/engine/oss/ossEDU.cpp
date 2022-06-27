@@ -365,7 +365,7 @@ namespace  engine
       {
          CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          ossSprintVersion( "Version: ", verText, OSS_MAX_PATHSIZE, FALSE ) ;
-         trapFile->fWrite( "%s"OSS_NEWLINE, verText ) ;
+         trapFile->fWrite( "%s" OSS_NEWLINE, verText ) ;
       }
       PD_TRACE_EXIT ( SDB_OSSDMPDBINFO );
    }

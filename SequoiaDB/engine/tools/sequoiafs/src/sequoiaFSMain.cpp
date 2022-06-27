@@ -417,7 +417,7 @@ INT32 fsEnableSignalEvent()
    if ( sigaction ( OSS_STACK_DUMP_SIGNAL, &newact, NULL ) )
    {
       PD_LOG ( PDERROR, "Failed to setup signal handler for dump signal" ) ;
-      ossPrintf("Failed to setup signal handler for dump signal, exit."OSS_NEWLINE);
+      ossPrintf("Failed to setup signal handler for dump signal, exit." OSS_NEWLINE);
       rc = SDB_SYS ;
       goto error ;
    }
@@ -440,7 +440,7 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
       if(SDB_OK != rc)
       {
          PD_LOG( PDERROR, "Open pid file(%s) failed, rc=%d", pidName, rc);
-         ossPrintf("Open pid file(%s) failed, rc=%d. exit."OSS_NEWLINE, 
+         ossPrintf("Open pid file(%s) failed, rc=%d. exit." OSS_NEWLINE, 
                     pidName, rc);
          goto error;
       }
@@ -456,7 +456,7 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
                           "has been locked by other process(%s), rc=%d", 
                            pidName, oldPid, rc);
          ossPrintf("Lock pid file(%s) failed, maybe the pid file has "
-                   "been locked by other process(%s), exit."OSS_NEWLINE, 
+                   "been locked by other process(%s), exit." OSS_NEWLINE, 
                     pidName, oldPid);
          goto error;
       }
@@ -469,7 +469,7 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
    if(SDB_OK != rc)
    {
       PD_LOG( PDERROR, "Failed to create pid file(%s), rc=%d", pidName, rc) ;
-      ossPrintf("Failed to create pid file(%s), rc=%d. exit."OSS_NEWLINE, 
+      ossPrintf("Failed to create pid file(%s), rc=%d. exit." OSS_NEWLINE, 
                  pidName, rc);
       goto error;
    }
@@ -479,7 +479,7 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
    {
       engine::removePIDFile( pidName ) ;
       PD_LOG( PDERROR, "Open pid file(%s) failed, rc=%d.", pidName, rc);
-      ossPrintf("Open pid file(%s) failed, rc=%d. exit."OSS_NEWLINE, 
+      ossPrintf("Open pid file(%s) failed, rc=%d. exit." OSS_NEWLINE, 
                  pidName, rc);
       goto error;
    }
@@ -489,7 +489,7 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
       ossClose( pidFile );
       engine::removePIDFile(pidName);
       PD_LOG( PDERROR, "Lock pid file(%s) failed, rc=%d.", pidName, rc);
-      ossPrintf("Lock pid file(%s) failed, rc=%d. exit."OSS_NEWLINE, 
+      ossPrintf("Lock pid file(%s) failed, rc=%d. exit." OSS_NEWLINE, 
                  pidName, rc);
       goto error;
    }
@@ -517,7 +517,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = sfsOptInitArgs(&fuseArgs);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to init args(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init args(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
    ossMemset(optionTemp, 0, OSS_MAX_PATHSIZE);
@@ -531,7 +531,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       sfs.buildDialogPathStartPD();
       if(SDB_OK != rc)
       {
-         ossPrintf("Failed to build dialog and start PD. rc=%d, exit."OSS_NEWLINE, rc);
+         ossPrintf("Failed to build dialog and start PD. rc=%d, exit." OSS_NEWLINE, rc);
          goto error;
       }
       //create pid file
@@ -542,7 +542,7 @@ INT32 main(INT32 argc, CHAR *argv[])
          if(SDB_OK != rc)
          {
             PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc);
-            ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
+            ossPrintf("get pidName failed, rc: %d." OSS_NEWLINE, rc);
             goto error;
          }
    
@@ -576,7 +576,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    }
    else if(SDB_OK != rc)
    {
-      ossPrintf("Failed to resolving arguments(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to resolving arguments(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
   
@@ -589,7 +589,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = fuse_opt_parse(&fuseArgs, &lobFuseOption, lobOptions, sfsProcessArg);
    if(-1 == rc)
    {
-      ossPrintf("Failed to parse fuse option(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to parse fuse option(rc=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -603,7 +603,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       rc = fuse_opt_add_arg(&fuseArgs, "--help");
       if(0 != rc) 
       {
-         ossPrintf("Failed to add arg:\"%s\" (rc=%d), exit."OSS_NEWLINE, "--help", rc);
+         ossPrintf("Failed to add arg:\"%s\" (rc=%d), exit." OSS_NEWLINE, "--help", rc);
          goto error;
       }
    }
@@ -615,7 +615,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(0 != rc)
       {
          PD_LOG( PDERROR, "Failed to add arg:%s, rc:%d", lobFuseOption.mountpoint, rc ) ;
-         ossPrintf("Failed to add arg:%s (rc=%d), exit."OSS_NEWLINE,
+         ossPrintf("Failed to add arg:%s (rc=%d), exit." OSS_NEWLINE,
                    lobFuseOption.mountpoint, rc);
          goto error;
       }
@@ -625,7 +625,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       {
          PD_LOG( PDERROR, "Failed to write map history collection, rc:%d", rc ) ;
          ossPrintf("Failed to write map history collection(rc=%d), "
-                   "exit."OSS_NEWLINE, rc);
+                   "exit." OSS_NEWLINE, rc);
          goto error;
       }
 
@@ -641,14 +641,14 @@ INT32 main(INT32 argc, CHAR *argv[])
          if (SDB_OK != rc)
          {
             PD_LOG( PDERROR, "mount query failed. cmd:(%s), rc:%d",  mount, rc ) ;
-            ossPrintf("mount query failed. cmd:(%s). errorcode:(%d), exit."OSS_NEWLINE, mount, rc);
+            ossPrintf("mount query failed. cmd:(%s). errorcode:(%d), exit." OSS_NEWLINE, mount, rc);
             rc = SDB_OPERATION_CONFLICT;
             goto error;
          }
          if ( SDB_OK == exitCode )
          {
             PD_LOG( PDERROR, "The alias(%s) is already in use.",  (sfs.getOptionMgr())->getAlias() ) ;
-            ossPrintf("The alias(%s) is already in use, exit."OSS_NEWLINE, (sfs.getOptionMgr())->getAlias() );
+            ossPrintf("The alias(%s) is already in use, exit." OSS_NEWLINE, (sfs.getOptionMgr())->getAlias() );
             rc = SDB_OPERATION_CONFLICT;
             goto error;
          }
@@ -656,7 +656,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    }
    else if(!lobFuseOption.is_help && !lobFuseOption.is_version)
    {
-      ossPrintf("The mountpoint must be specified, exit."OSS_NEWLINE);
+      ossPrintf("The mountpoint must be specified, exit." OSS_NEWLINE);
       rc = SDB_INVALIDARG;
       goto error;
    }
@@ -665,7 +665,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    if(SDB_OK != rc && !lobFuseOption.is_help && !lobFuseOption.is_version)
    {
       PD_LOG( PDERROR, "Failed to start fuse main, rc:%d.", rc ) ;
-      ossPrintf("Failed to start fuse main(rc=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to start fuse main(rc=%d), exit." OSS_NEWLINE, rc);
    }
 
 done:

@@ -132,7 +132,7 @@ namespace engine
                               stpPathName ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Build engine path name failed: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Build engine path name failed: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -145,7 +145,7 @@ namespace engine
                                  tmpPath ) ;
          if ( SDB_OK != rc )
          {
-            ossPrintf( "Failed to build config path: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Failed to build config path: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
          configPath.assign( tmpPath ) ;
@@ -159,7 +159,7 @@ namespace engine
       if ( SDB_OK == rc && !serviceName.empty() &&
            _stpGetServiceNode( serviceName.c_str(), info ) )
       {
-         ossPrintf( "Success: %s(%s) is already started (%d)"OSS_NEWLINE,
+         ossPrintf( "Success: %s(%s) is already started (%d)" OSS_NEWLINE,
                     utilDBTypeStr( SDB_TYPE_STP ), serviceName.c_str(),
                     info._pid ) ;
          goto done ;
@@ -176,7 +176,7 @@ namespace engine
       if ( SDB_OK != tmpRC )
       {
          rc = tmpRC ;
-         ossPrintf( "Error: Start %s(%s) failed, rc: %d(%s)"OSS_NEWLINE,
+         ossPrintf( "Error: Start %s(%s) failed, rc: %d(%s)" OSS_NEWLINE,
                     utilDBTypeStr( SDB_TYPE_STP ), serviceName.c_str(), tmpRC,
                     getErrDesp( rc ) ) ;
          goto error ;
@@ -194,7 +194,7 @@ namespace engine
 
       if ( SDB_OK == tmpRC )
       {
-         ossPrintf( "Success: %s(%s) is successfully started (%d)"OSS_NEWLINE,
+         ossPrintf( "Success: %s(%s) is successfully started (%d)" OSS_NEWLINE,
                     utilDBTypeStr( SDB_TYPE_STP ), serviceName.c_str(),
                     info._pid ) ;
       }
@@ -214,7 +214,7 @@ namespace engine
 #endif // _WINDOWS
             if ( !outString.empty() )
             {
-               ossPrintf( "%s: %u bytes out==>%s%s%s<=="OSS_NEWLINE,
+               ossPrintf( "%s: %u bytes out==>%s%s%s<==" OSS_NEWLINE,
                           info._svcname.c_str(),
                           (UINT32)( outString.length() +
                                     ossStrlen( OSS_NEWLINE ) * 2 ),
@@ -230,7 +230,7 @@ namespace engine
          {
             rc = exitCode ;
          }
-         ossPrintf( "Error: Start %s(%s) failed, rc: %d(%s)"OSS_NEWLINE,
+         ossPrintf( "Error: Start %s(%s) failed, rc: %d(%s)" OSS_NEWLINE,
                     utilDBTypeStr( SDB_TYPE_STP ), serviceName.c_str(), rc,
                     getErrDesp( utilShellRC2RC( rc ) ) ) ;
       }

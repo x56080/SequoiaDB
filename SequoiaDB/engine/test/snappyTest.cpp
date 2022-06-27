@@ -158,7 +158,7 @@ INT32 bsonAddField ( INT32 level, INT32 &fieldID, BSONType type,
          CHAR *pStrBuffer = (CHAR*)SDB_OSS_MALLOC ( STR_MAX_LEN ) ;
          if ( !pStrBuffer )
          {
-            ossPrintf ( "Failed to allocate memory for %d bytes"OSS_NEWLINE,
+            ossPrintf ( "Failed to allocate memory for %d bytes" OSS_NEWLINE,
                         STR_MAX_LEN ) ;
             rc = SDB_OOM ;
             goto error ;
@@ -196,7 +196,7 @@ INT32 bsonAddField ( INT32 level, INT32 &fieldID, BSONType type,
          CHAR *pStrBuffer = (CHAR*)SDB_OSS_MALLOC ( STR_MAX_LEN ) ;
          if ( !pStrBuffer )
          {
-            ossPrintf ( "Failed to allocate memory for %d bytes"OSS_NEWLINE,
+            ossPrintf ( "Failed to allocate memory for %d bytes" OSS_NEWLINE,
                         STR_MAX_LEN ) ;
             rc = SDB_OOM ;
             goto error ;
@@ -301,7 +301,7 @@ BSONObj bsonGen ( INT32 level, INT32 &fieldID, BOOLEAN isArray )
       rc = bsonAddField ( level, fieldID, type, ob, isArray ) ;
       if ( rc )
       {
-         ossPrintf ( "Failed to add field for type %d"OSS_NEWLINE,
+         ossPrintf ( "Failed to add field for type %d" OSS_NEWLINE,
                      fieldList[pos] ) ;
          goto error ;
       }
@@ -338,18 +338,18 @@ INT32 testUncompress ( BOOLEAN compress )
                     OSS_RU|OSS_WU ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to open file %s, rc = %d"OSS_NEWLINE, TEMPFILE, rc ) ;
+      ossPrintf ( "Failed to open file %s, rc = %d" OSS_NEWLINE, TEMPFILE, rc ) ;
       goto error ;
    }
    rc = file.size ( fileSize ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to get file size, rc = %d"OSS_NEWLINE, rc ) ;
+      ossPrintf ( "Failed to get file size, rc = %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
    SDB_ASSERT ( fileSize < 0xFFFFFFFF,
                 "mmap doesn't support single segment greater than 4GB" ) ;
-   ossPrintf ( "Uncompress from file ( size = %llu )"OSS_NEWLINE,
+   ossPrintf ( "Uncompress from file ( size = %llu )" OSS_NEWLINE,
                fileSize ) ;
    rc = file.map ( 0, (UINT32)fileSize, (void**)&pAddress ) ;
    if ( rc )
@@ -365,7 +365,7 @@ INT32 testUncompress ( BOOLEAN compress )
                                    &uncompressedLength ) ;
       if ( FALSE == rc )
       {
-         ossPrintf ( "Failed to parse compressed buffer"OSS_NEWLINE ) ;
+         ossPrintf ( "Failed to parse compressed buffer" OSS_NEWLINE ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -375,7 +375,7 @@ INT32 testUncompress ( BOOLEAN compress )
       pUncompressedBuffer = (CHAR*)SDB_OSS_MALLOC(uncompressedLength*2 ) ;
       if ( !pUncompressedBuffer )
       {
-         ossPrintf ( "Failed to allocate memory for %d bytes"OSS_NEWLINE,
+         ossPrintf ( "Failed to allocate memory for %d bytes" OSS_NEWLINE,
                      (INT32)uncompressedLength * 2 ) ;
          rc = SDB_OOM ;
          goto error ;
@@ -397,7 +397,7 @@ INT32 testUncompress ( BOOLEAN compress )
          rc = GetUncompressedLength ( pCurrent+4, 5, &finalLength ) ;
          if ( FALSE == rc )
          {
-            ossPrintf ( "Failed to parse compressed buffer"OSS_NEWLINE );
+            ossPrintf ( "Failed to parse compressed buffer" OSS_NEWLINE );
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -407,7 +407,7 @@ INT32 testUncompress ( BOOLEAN compress )
                               pUncompressedBuffer ) ;
          if ( FALSE == rc )
          {
-            ossPrintf ( "Failed to uncompress buffer at round %d"OSS_NEWLINE,
+            ossPrintf ( "Failed to uncompress buffer at round %d" OSS_NEWLINE,
                         loopRound );
             rc = SDB_SYS ;
             goto error ;
@@ -453,7 +453,7 @@ INT32 testCompress ( INT32 bsonLevel, INT32 loopRound, BOOLEAN compress )
                   OSS_RU|OSS_WU, file ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to open file %s, rc = %d"OSS_NEWLINE, TEMPFILE, rc ) ;
+      ossPrintf ( "Failed to open file %s, rc = %d" OSS_NEWLINE, TEMPFILE, rc ) ;
       goto error ;
    }
 
@@ -464,7 +464,7 @@ INT32 testCompress ( INT32 bsonLevel, INT32 loopRound, BOOLEAN compress )
       obj = bsonGen ( bsonLevel, FALSE ) ;
       if ( 0 == i )
       {
-         ossPrintf ( "level: %d"OSS_NEWLINE"avgSize: %d"OSS_NEWLINE,
+         ossPrintf ( "level: %d" OSS_NEWLINE"avgSize: %d" OSS_NEWLINE,
                      bsonLevel, obj.objsize() ) ;
          recordSize = obj.objsize() ;
       }
@@ -473,7 +473,7 @@ INT32 testCompress ( INT32 bsonLevel, INT32 loopRound, BOOLEAN compress )
          rc = ossWrite ( &file, obj.objdata(), obj.objsize(), &fileWritten ) ;
          if ( rc )
          {
-            ossPrintf ( "Failed to write into file %s, rc = %d"OSS_NEWLINE,
+            ossPrintf ( "Failed to write into file %s, rc = %d" OSS_NEWLINE,
                         TEMPFILE, rc ) ;
             goto error ;
          }
@@ -507,14 +507,14 @@ INT32 testCompress ( INT32 bsonLevel, INT32 loopRound, BOOLEAN compress )
                          &fileWritten ) ;
          if ( rc )
          {
-            ossPrintf ( "Failed to write into file %s, rc = %d"OSS_NEWLINE,
+            ossPrintf ( "Failed to write into file %s, rc = %d" OSS_NEWLINE,
                         TEMPFILE, rc ) ;
             goto error ;
          }
          if ( compressedLength+4 != (size_t)fileWritten )
          {
             ossPrintf ( "Length written doesn't match obj size. "
-                        "Expected %d, actually %lld"OSS_NEWLINE,
+                        "Expected %d, actually %lld" OSS_NEWLINE,
                         (INT32)compressedLength+4, fileWritten ) ;
             rc = SDB_IO ;
             goto error ;
@@ -530,11 +530,11 @@ INT32 testCompress ( INT32 bsonLevel, INT32 loopRound, BOOLEAN compress )
    rc = ossGetFileSize ( &file, &fileSize ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to get file size, rc = %lld"OSS_NEWLINE,
+      ossPrintf ( "Failed to get file size, rc = %lld" OSS_NEWLINE,
                   fileSize ) ;
       goto error ;
    }
-   ossPrintf ( "File size for %d records is %lld ( saved %%%lld )"OSS_NEWLINE,
+   ossPrintf ( "File size for %d records is %lld ( saved %%%lld )" OSS_NEWLINE,
                loopRound, fileSize,
                100-100*fileSize/(recordSize * loopRound ) ) ;
 done :
@@ -642,7 +642,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    {
       if ( SDB_PMD_HELP_ONLY != rc )
       {
-         ossPrintf ( "Invalid argument"OSS_NEWLINE ) ;
+         ossPrintf ( "Invalid argument" OSS_NEWLINE ) ;
          displayArg ( desc ) ;
       }
       goto done ;
@@ -650,21 +650,21 @@ INT32 main ( INT32 argc, CHAR **argv )
    rc = testCompress ( gLevels, gNumRecords, gCompress ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to test func %s compress, rc = %d"OSS_NEWLINE,
+      ossPrintf ( "Failed to test func %s compress, rc = %d" OSS_NEWLINE,
                   gCompress?"with":"without", rc ) ;
       goto error ;
    }
    rc = testUncompress ( gCompress ) ;
    if ( rc )
    {
-      ossPrintf ( "Failed to test func %s compress, rc = %d"OSS_NEWLINE,
+      ossPrintf ( "Failed to test func %s compress, rc = %d" OSS_NEWLINE,
                   gCompress?"with":"without", rc ) ;
       goto error ;
    }
 done :
    return rc==SDB_OK?0:1 ;
 error :
-   ossPrintf ( "error: rc = %d"OSS_NEWLINE,
+   ossPrintf ( "error: rc = %d" OSS_NEWLINE,
                rc ) ;
    goto done ;
 }

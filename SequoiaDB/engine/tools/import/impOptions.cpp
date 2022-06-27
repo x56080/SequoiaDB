@@ -169,8 +169,8 @@ namespace import
    #define IMP_GENERAL_OPTIONS \
       (IMP_OPTION_HELP",h",             /* no arg */     IMP_EXPLAIN_HELP) \
       (IMP_OPTION_VERSION",V",          /* no arg */     IMP_EXPLAIN_VERSION) \
-      (IMP_OPTION_HOSTNAME",s",        _TYPE(string),    IMP_EXPLAIN_HOSTNAME) \
-      (IMP_OPTION_SVCNAME",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
+      (IMP_OPTION_HOSTNAME ",s",        _TYPE(string),    IMP_EXPLAIN_HOSTNAME) \
+      (IMP_OPTION_SVCNAME ",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
       (IMP_OPTION_HOSTS,               _TYPE(string),    IMP_EXPLAIN_HOSTS) \
       (IMP_OPTION_USER",u",            _TYPE(string),    IMP_EXPLAIN_USER) \
       (IMP_OPTION_PASSWORD",w", po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), IMP_EXPLAIN_PASSWORD) \

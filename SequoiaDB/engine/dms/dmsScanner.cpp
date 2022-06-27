@@ -403,12 +403,12 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDWARNING,
-                     "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
-                     "Conflict ( representative ):"OSS_NEWLINE
-                     "   EDUID:  %llu"OSS_NEWLINE
-                     "   TID:    %u"OSS_NEWLINE
-                     "   LockId: %s"OSS_NEWLINE
-                     "   Mode:   %s"OSS_NEWLINE,
+                     "Failed to get CS/CL lock, rc: %d" OSS_NEWLINE
+                     "Conflict ( representative ):" OSS_NEWLINE
+                     "   EDUID:  %llu" OSS_NEWLINE
+                     "   TID:    %u" OSS_NEWLINE
+                     "   LockId: %s" OSS_NEWLINE
+                     "   Mode:   %s" OSS_NEWLINE,
                      rc,
                      lockConflict._eduID,
                      lockConflict._tid,
@@ -798,15 +798,15 @@ namespace engine
             if ( rc )
             {
                PD_LOG( PDERROR,
-                       "Failed to get record lock, rc: %d"OSS_NEWLINE
-                       "Request Mode:   %s"OSS_NEWLINE
-                       "Conflict ( representative ):"OSS_NEWLINE
-                       "   EDUID:  %llu"OSS_NEWLINE
-                       "   TID:    %u"OSS_NEWLINE
-                       "   LockId: %s"OSS_NEWLINE
-                       "   Mode:   %s"OSS_NEWLINE
-                       "WaitLock: %s"OSS_NEWLINE
-                       "Isolation: %d"OSS_NEWLINE,
+                       "Failed to get record lock, rc: %d" OSS_NEWLINE
+                       "Request Mode:   %s" OSS_NEWLINE
+                       "Conflict ( representative ):" OSS_NEWLINE
+                       "   EDUID:  %llu" OSS_NEWLINE
+                       "   TID:    %u" OSS_NEWLINE
+                       "   LockId: %s" OSS_NEWLINE
+                       "   Mode:   %s" OSS_NEWLINE
+                       "WaitLock: %s" OSS_NEWLINE
+                       "Isolation: %d" OSS_NEWLINE,
                        rc,
                        lockModeToString( _recordLock ),
                        lockConflict._eduID,
@@ -1855,12 +1855,12 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDWARNING,
-                      "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
-                      "Conflict ( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "Failed to get CS/CL lock, rc: %d" OSS_NEWLINE
+                      "Conflict ( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -2231,15 +2231,15 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR,
-                    "Failed to get record lock, rc: %d"OSS_NEWLINE
-                    "Request Mode:   %s"OSS_NEWLINE
-                    "Conflict ( representative ):"OSS_NEWLINE
-                    "   EDUID:  %llu"OSS_NEWLINE
-                    "   TID:    %u"OSS_NEWLINE
-                    "   LockId: %s"OSS_NEWLINE
-                    "   Mode:   %s"OSS_NEWLINE
-                    "WaitLock: %s"OSS_NEWLINE
-                    "Isolation: %d"OSS_NEWLINE,
+                    "Failed to get record lock, rc: %d" OSS_NEWLINE
+                    "Request Mode:   %s" OSS_NEWLINE
+                    "Conflict ( representative ):" OSS_NEWLINE
+                    "   EDUID:  %llu" OSS_NEWLINE
+                    "   TID:    %u" OSS_NEWLINE
+                    "   LockId: %s" OSS_NEWLINE
+                    "   Mode:   %s" OSS_NEWLINE
+                    "WaitLock: %s" OSS_NEWLINE
+                    "Isolation: %d" OSS_NEWLINE,
                     rc,
                     lockModeToString( _recordLock ),
                     lockConflict._eduID,

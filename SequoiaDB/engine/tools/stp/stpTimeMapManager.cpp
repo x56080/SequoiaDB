@@ -65,54 +65,54 @@ namespace engine
    // CREATE TABLE IF NOT EXISTS time_map
    //    ( logical_time INTEGER, real_time INTEGER )
    #define STP_TIME_MAP_CRTTBL_COMMAND \
-         "CREATE TABLE IF NOT EXISTS "STP_TIME_MAP_TABLE_NAME" ( "\
-         STP_TIME_MAP_LT_COLUMN_NAME" INTEGER, " \
-         STP_TIME_MAP_RT_COLUMN_NAME" INTEGER )"
+         "CREATE TABLE IF NOT EXISTS " STP_TIME_MAP_TABLE_NAME " ( "\
+         STP_TIME_MAP_LT_COLUMN_NAME " INTEGER, " \
+         STP_TIME_MAP_RT_COLUMN_NAME " INTEGER )"
 
    // create time map ( logical time ) index command
    #define STP_TIME_MAP_CRTLTIDX_COMMAND \
-         "CREATE UNIQUE INDEX IF NOT EXISTS "STP_TIME_MAP_LT_INDEX_NAME \
-         " ON "STP_TIME_MAP_TABLE_NAME" ( " \
-         " "STP_TIME_MAP_LT_COLUMN_NAME" )"
+         "CREATE UNIQUE INDEX IF NOT EXISTS " STP_TIME_MAP_LT_INDEX_NAME \
+         " ON " STP_TIME_MAP_TABLE_NAME " ( " \
+         " " STP_TIME_MAP_LT_COLUMN_NAME " )"
 
    // create time map ( real time ) index command
    #define STP_TIME_MAP_CRTRTIDX_COMMAND \
-         "CREATE UNIQUE INDEX IF NOT EXISTS "STP_TIME_MAP_RT_INDEX_NAME \
-         " ON "STP_TIME_MAP_TABLE_NAME" ( " \
-         " "STP_TIME_MAP_RT_COLUMN_NAME" )"
+         "CREATE UNIQUE INDEX IF NOT EXISTS " STP_TIME_MAP_RT_INDEX_NAME \
+         " ON " STP_TIME_MAP_TABLE_NAME " ( " \
+         " " STP_TIME_MAP_RT_COLUMN_NAME " )"
 
    // prepared INSERT command to save record into time map
    // INSERT INTO time_map VALUES ( ?, ? )
    #define STP_TIME_MAP_SAVEREC_COMMAND \
-         "INSERT INTO "STP_TIME_MAP_TABLE_NAME" VALUES ( ?, ? )"
+         "INSERT INTO " STP_TIME_MAP_TABLE_NAME " VALUES ( ?, ? )"
 
    // SELECT query to get records by given time
    // SELECT logical_time, real_time FROM time_map
    //    WHERE <time_name> [<|>|<=|>=|=] <real_time>
    //    ORDER BY real_time [DESC|ASC] LIMIT <N>
    #define STP_TIME_MAP_GETRECBYTIME_QUERY \
-         "SELECT "STP_TIME_MAP_LT_COLUMN_NAME", "STP_TIME_MAP_RT_COLUMN_NAME \
-         " FROM "STP_TIME_MAP_TABLE_NAME \
+         "SELECT " STP_TIME_MAP_LT_COLUMN_NAME ", " STP_TIME_MAP_RT_COLUMN_NAME \
+         " FROM " STP_TIME_MAP_TABLE_NAME \
          " WHERE %s %s %llu" \
-         " ORDER BY "STP_TIME_MAP_RT_COLUMN_NAME" %s LIMIT %u"
+         " ORDER BY " STP_TIME_MAP_RT_COLUMN_NAME " %s LIMIT %u"
 
    // SELECT query to get latest or first records
    // SELECT logical_time, real_time FROM time_map
    //    ORDER BY real_time [DESC|ASC] LIMIT <N>
    #define STP_TIME_MAP_GETREC_QUERY \
-         "SELECT "STP_TIME_MAP_LT_COLUMN_NAME", "STP_TIME_MAP_RT_COLUMN_NAME \
-         " FROM "STP_TIME_MAP_TABLE_NAME \
-         " ORDER BY "STP_TIME_MAP_LT_COLUMN_NAME" %s LIMIT %u"
+         "SELECT " STP_TIME_MAP_LT_COLUMN_NAME ", " STP_TIME_MAP_RT_COLUMN_NAME \
+         " FROM " STP_TIME_MAP_TABLE_NAME \
+         " ORDER BY " STP_TIME_MAP_LT_COLUMN_NAME " %s LIMIT %u"
 
    // SELECT query to get count of records in time map
    // SELECT count(*) FROM time_map
    #define STP_TIME_MAP_GETCNT_QUERY \
-         "SELECT count(*) FROM "STP_TIME_MAP_TABLE_NAME
+         "SELECT count(*) FROM " STP_TIME_MAP_TABLE_NAME
 
    // DELETE command to clear all records from time map
    // DELETE FROM time_map
    #define STP_TIME_MAP_CLRALL_COMMAND \
-         "DELETE FROM "STP_TIME_MAP_TABLE_NAME
+         "DELETE FROM " STP_TIME_MAP_TABLE_NAME
 
    // DELETE command to clear N expired records from time map
    // NOTE:
@@ -122,11 +122,11 @@ namespace engine
    //    ( SELECT logical_time FROM time_map
    //         ORDER BY logical_time ASC LIMIT <N> )
    #define STP_TIME_MAP_CLREXP_COMMAND \
-         "DELETE FROM "STP_TIME_MAP_TABLE_NAME \
-         " WHERE "STP_TIME_MAP_LT_COLUMN_NAME" IN (" \
-         " SELECT "STP_TIME_MAP_LT_COLUMN_NAME \
-         " FROM "STP_TIME_MAP_TABLE_NAME \
-         " ORDER BY "STP_TIME_MAP_LT_COLUMN_NAME" ASC" \
+         "DELETE FROM " STP_TIME_MAP_TABLE_NAME \
+         " WHERE " STP_TIME_MAP_LT_COLUMN_NAME " IN (" \
+         " SELECT " STP_TIME_MAP_LT_COLUMN_NAME \
+         " FROM " STP_TIME_MAP_TABLE_NAME \
+         " ORDER BY " STP_TIME_MAP_LT_COLUMN_NAME " ASC" \
          " LIMIT %u )"
 
    /*
