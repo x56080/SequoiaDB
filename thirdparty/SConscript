@@ -658,6 +658,7 @@ class RocksDBCompiler(CompilerBase):
            # mkCmd = ' make dbg '
         else:
            mkCmd = 'USE_RTTI=1 DEBUG_LEVEL=0 make static_lib '
+        mkCmd += ' -j ' + str(GetOption('num_jobs'))
 
         self.append_cmd( compCmd,  mkCmd )
 
