@@ -2259,12 +2259,6 @@ namespace engine
       BOOLEAN isNotSysInfoMsg =
          ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength ) ;
 
-      // Heartbeat and heartbeat response should be handled in the network frame
-      // itself. Only when it's not the sysinfo message can we check the opCode.
-      BOOLEAN handleByme = isNotSysInfoMsg &&
-            ( MSG_HEARTBEAT == pMsg->opCode ||
-              MSG_HEARTBEAT_RES == pMsg->opCode )  ;
-
       if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) )
       {
          // The convertor should have been enabled in the net event handler, if
@@ -2292,7 +2286,10 @@ namespace engine
          }
       }
 
-      if ( handleByme )
+      // Heartbeat and heartbeat response should be handled in the network frame
+      // itself. Only when it's not the sysinfo message can we check the opCode.
+      if ( isNotSysInfoMsg && ( MSG_HEARTBEAT == pMsg->opCode ||
+                                MSG_HEARTBEAT_RES == pMsg->opCode ) )
       {
          if ( MSG_HEARTBEAT == pMsg->opCode )
          {
