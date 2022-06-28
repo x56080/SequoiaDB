@@ -259,19 +259,19 @@ function checkCpuTime ( cmd, info )
    // 转为秒数后比较，微秒有误差（去除小数部分）
    if( !isApproEqual( ( userTime + niceTime ) / 100, info.User / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check user time" + userTime + niceTime + info.User );
+      throw new Error( "checkCpuTime fail,system's user time:" + ( userTime + niceTime ) / 100 + ",getCpuInfo's user time:" + info.User / 1000 );
    }
    if( !isApproEqual( systemTime / 100, info.Sys / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check sys time" + systemTime + info.Sys );
+      throw new Error( "checkCpuTime fail,system's sys time:" + systemTime / 100 + ",getCpuInfo's sys time:" + info.Sys / 1000 );
    }
    if( !isApproEqual( idleTime / 100, info.Idle / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check idle time" + idleTime + info.Idle );
+      throw new Error( "checkCpuTime fail,system's idle time" + idleTime / 100 + ",getCpuInfo's idle time:" + info.Idle / 1000 );
    }
-   if( !isApproEqual( ( iowaitTime + irqTime + softirqTime ) / 100, info.Other / 1000 ) )
+   if( !isApproEqual( ( irqTime + softirqTime ) / 100, info.Other / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check other time" + iowaitTime + irqTime + softirqTime + info.Other );
+      throw new Error( "checkCpuTime fail,system's other time:" + ( irqTime + softirqTime ) / 100 + ",getCpuInfo's other time:" + info.Other / 1000 );
    }
 }
 
