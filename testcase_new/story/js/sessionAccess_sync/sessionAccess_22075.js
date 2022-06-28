@@ -3,18 +3,19 @@
 @author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
-
-var group = commGetGroups( db )[0];
-var primaryPos = group[0].PrimaryPos;
-var groupName = group[0]["GroupName"];
+testConf.skipExistOneNodeGroup = true;
 testConf.clName = CHANGEDPREFIX + "_22075";
-testConf.clOpt = { Group: groupName, ReplSize: 0 };
-var primaryNode = group[primaryPos].HostName + ":" + group[primaryPos].svcname
+testConf.clOpt = { ReplSize: 0 };
+testConf.useSrcGroup = true;
 
 main( test );
 
 function test ( testPara )
 {
+   var groupName = testPara.srcGroupName;
+   var group = commGetGroups( db, "", groupName )[0];
+   var primaryPos = group[0].PrimaryPos;
+   var primaryNode = group[primaryPos].HostName + ":" + group[primaryPos].svcname
    //preferedPeriod为0
    db.setSessionAttr( { PreferedInstance: "s", PreferedPeriod: 0 } );
    insertData( testPara.testCL );

@@ -3,19 +3,19 @@
 @author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
-testConf.skipOneDuplicatePerGroup = true;
-
-var group = commGetGroups( db )[0];
-var groupName = group[0].GroupName;
-var primaryPos = group[0].PrimaryPos;
-var primaryNode = group[primaryPos]["HostName"] + ":" + group[primaryPos]["svcname"];
+testConf.skipExistOneNodeGroup = true;
 testConf.clName = CHANGEDPREFIX + "_14082";
-testConf.clOpt = { Group: groupName, ReplSize: 0 };
+testConf.clOpt = { ReplSize: 0 };
+testConf.useSrcGroup = true;
 
 main( test );
 
 function test ( testPara )
 {
+   var groupName = testPara.srcGroupName;
+   var group = commGetGroups( db, "", groupName )[0];
+   var primaryPos = group[0].PrimaryPos;
+   var primaryNode = group[primaryPos]["HostName"] + ":" + group[primaryPos]["svcname"];
    insertData( testPara.testCL );
 
    var options = { PreferedInstance: "M" };

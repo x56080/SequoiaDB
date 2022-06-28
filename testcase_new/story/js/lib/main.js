@@ -6,9 +6,12 @@
 
 /*
 入参配置项：
+testConf.skipTest = true;                       跳过测试，在commlib.js中指定可跳过当前目录下的所有用例，用于屏蔽用例使用
 testConf.skipStandAlone = true;                 跳过独立模式
 testConf.skipOneGroup = true;                   跳过只有一个组的环境
+testConf.skipGroupLessThanThree = true;         跳过数据组小于三个的环境，指定为true时skipOneGroup将被忽略不生效
 testConf.skipOneDuplicatePerGroup = true;       跳过每组一个节点的环境
+testConf.skipExistOneNodeGroup = true;          跳过存在一个节点复制组的环境，指定为true时skipOneDuplicatePerGroup将被忽略不生效
 testConf.useSrcGroup = true;                    存储创建的 cl 所在组
 testConf.useDstGroup = true;                    存储创建的 cl 不在的组
 testConf.csName  = COMMCSNAME + "_xxx";         指定框架创建的 cs 名
@@ -26,11 +29,12 @@ testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testCon
 */
 
 var testConf = {
-   skipStandAlone: false, skipOneDuplicatePerGroup: false,
-   skipOneGroup: false, useSrcGroup: false, useDstGroup: false
+   skipStandAlone: false, skipOneDuplicatePerGroup: false, skipOneGroup: false,
+   useSrcGroup: false, useDstGroup: false, skipGroupLessThanThree: false, skipExistOneNodeGroup: false,
+   skipTest: false
 };
-// e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096}} };
-// e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} } ;
+// e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096} ;
+// e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} ;
 // e.g. testConf.useSrcGroup = true  设置为true获取CL所在组；设置true后在测试方法中获取，如test( arg ){ arg.srcGroupName ...}
 // e.g. testConf.useDstGroup = true  设置为true返回CL所在组外的所有组，设置true后在测试方法中获取，如test( arg ){ arg.dstGroupNames ...}
 
@@ -39,15 +43,26 @@ var testPara = {};
 
 var oneGroup = 1;
 var nodeNum = 1;
+var threeGroup = 3;
 function checkEnv ( db, testConf )
 {
+   if( testConf.skipTest )
+   {
+      throw new Error( "skip test" );
+   }
    if( testConf.skipStandAlone && commIsStandalone( db ) )
    {
       throw new Error( "standalone" );
    }
-
    testPara.groups = commGetGroups( db );
-   if( testConf.skipOneGroup )
+   if( testConf.skipGroupLessThanThree )
+   {
+      if( testPara.groups.length < threeGroup )
+      {
+         throw new Error( "group less than three" );
+      }
+   }
+   else if( testConf.skipOneGroup )
    {
       if( testPara.groups.length === oneGroup )
       {
@@ -55,7 +70,22 @@ function checkEnv ( db, testConf )
       }
    }
 
-   if( testConf.skipOneDuplicatePerGroup )
+   if( testConf.skipExistOneNodeGroup )
+   {
+      for( var i = 0; i < testPara.groups.length; ++i )
+      {
+         if( testPara.groups[i].length - 1 == nodeNum )
+         {
+            break;
+         }
+      }
+
+      if( i != testPara.groups.length )
+      {
+         throw new Error( "exist one node group" );
+      }
+   }
+   else if( testConf.skipOneDuplicatePerGroup )
    {
       for( var i = 0; i < testPara.groups.length; ++i )
       {
@@ -246,7 +276,10 @@ function main ()
       {
          if( e.message === "standalone" ||
             e.message === "one data group" ||
-            e.message === "one duplicate per group" )
+            e.message === "one duplicate per group" ||
+            e.message === "group less than three" ||
+            e.message === "exist one node group" ||
+            e.message === "skip test" )
          {
             return;
          }

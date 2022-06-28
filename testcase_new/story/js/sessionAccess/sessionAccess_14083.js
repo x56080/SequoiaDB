@@ -3,16 +3,16 @@
 @author: 2018-1-22 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
-
-var group = commGetGroups( db )[0];
-var groupName = group[0]["GroupName"];
+testConf.clOpt = { ReplSize: 0 };
 testConf.clName = CHANGEDPREFIX + "_14083";
-testConf.clOpt = { Group: groupName, ReplSize: 0 };
+testConf.useSrcGroup = true;
 
 main( test );
 
 function test ( testPara )
 {
+   var groupName = testPara.srcGroupName;
+   var group = commGetGroups( db, "", groupName )[0];
    insertData( testPara.testCL );
 
    var instanceid = 40;

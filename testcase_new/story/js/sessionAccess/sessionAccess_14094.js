@@ -3,6 +3,7 @@
 @author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 
