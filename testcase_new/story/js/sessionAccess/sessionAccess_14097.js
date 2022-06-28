@@ -9,7 +9,7 @@ main( test );
 
 function test ()
 {
-   var groups = getGroupsWithNodeNum( 3 );
+   var groups = getGroupsWithNodeNum( 2 );
    if( groups.length === 0 )
    {
       return;
