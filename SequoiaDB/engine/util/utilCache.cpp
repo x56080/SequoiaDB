@@ -248,6 +248,11 @@ namespace engine
       }
 
       SDB_ASSERT( lastLen == 0, "Last len must be 0" ) ;
+      // if the page is dirty, the data should be loaded as one piece
+      SDB_ASSERT( ( 0 == _dirtyLength ) ||
+                  ( ( offset <= _length ) &&
+                    ( offset + len >= _start ) ),
+                  "should be loaded as one piece" ) ;
 
       /// update meta
       ossGetCurrentTime( t ) ;
@@ -1837,12 +1842,6 @@ namespace engine
          {
             readPage = TRUE ;
          }
-         else if ( offset + len <= _pPage->start() ||
-                   _pPage->length() <= offset )
-         {
-            /// read from file
-            readPage = FALSE ;
-         }
          else if ( _pPage->isDirty() )
          {
             /// load the data
@@ -1870,6 +1869,11 @@ namespace engine
                }
             }
             readPage = TRUE ;
+         }
+         else
+         {
+            /// read from file
+            readPage = FALSE ;
          }
       }
 
