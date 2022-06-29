@@ -35,14 +35,18 @@
 #ifndef VESSEL_LSM_DB_H_
 #define VESSEL_LSM_DB_H_
 
+#include "dpsDef.hpp"
+#include "interface/IDataJournal.h"
 #include "vessel/lsm/lsmDBDef.h"
 #include "vessel/lsm/lsmColumnFamily.h"
+#include "vessel/lsm/lsmWriteBatch.h"
 #include "rocksdb/db.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class lsmColumnFamilyContext;
    class lsmDB : public SDBObject
    {
       public:
@@ -58,18 +62,66 @@ namespace vessel
 
       public:
          BOOLEAN isOpen()const;
-         rocksdb::DB *getDBPtr();
          lsmColumnFamily getIdxColumnFamily();
          lsmColumnFamily getLobcColumnFamily();
+      
+      public:
+         INT32 put(LSM_CF_ID id,
+                   const rocksdb::Slice &key,
+                   const rocksdb::Slice &value);
+         
+         INT32 get(LSM_CF_ID id,
+                   const rocksdb::Slice &key,
+                   std::string &value,
+                   BOOLEAN &notFound);
+
+         INT32 remove(LSM_CF_ID id,
+                      const rocksdb::Slice &key);
+         
+         INT32 truncate(LSM_CF_ID id,
+                        const rocksdb::Slice &lowKey,
+                        const rocksdb::Slice &upKey);
+
+         INT32 compact(LSM_CF_ID id,
+                       const rocksdb::Slice *lowKey = nullptr,
+                       const rocksdb::Slice *upKey = nullptr);
+
+         void openBatch(LSM_CF_ID id, lsmWriteBatch &batch);
+
+         INT32 write(lsmWriteBatch &batch);
+         
+         rocksdb::Iterator *newIterator(LSM_CF_ID id,
+                                        const rocksdb::ReadOptions &opt);
+
+         INT32 flush(LSM_CF_ID id = LSM_INVALID_CF_ID);
+
+      public:
+         void setMinDirtyLsn(LSM_CF_ID id,
+                             DPS_LSN_OFFSET lsn);
+
+         DPS_LSN_OFFSET getMinDirtyLsn(LSM_CF_ID id = LSM_INVALID_CF_ID) const;
+
+         void setJournal(IDataJournal *journal);
+
+      public:
+         void onFlush(DPS_LSN_OFFSET maxLsn);
 
       private:
-         rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_TYPE type,
+         rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID type,
                                                         const rocksdb::Options &opt);
 
+         INT32 _flushDB();
+
+         INT32 _flushCF(LSM_CF_ID id);
+
       private:
-         rocksdb::DB *_lsmDB = nullptr;
-         std::vector<rocksdb::ColumnFamilyHandle *> _lsmCFHandles;
-   };
+         rocksdb::DB *_db = nullptr;
+         IDataJournal *_journal = nullptr;
+         std::vector<lsmColumnFamilyContext *> _contexts;
+   }; // class lsmDB
+
+   extern lsmColumnFamily GET_INDEX_COLUMN_FAMILY();
+   extern lsmColumnFamily GET_LOB_CHUNK_COLUMN_FAMILY();
 } // namespace vessel
 } // namespace engine
 

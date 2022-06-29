@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmDBDef.h
+   Source File Name = lsmLsnTracker.h
 
    Descriptive Name = 
 
@@ -27,33 +27,45 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          04/20/2022  LYC  Initial Draft
+          06/24/2022  LYC  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef VESSEL_LSM_DB_DEF_H_
-#define VESSEL_LSM_DB_DEF_H_
+#ifndef VESSEL_LSM_LSN_TRACKER_H_
+#define VESSEL_LSM_LSN_TRACKER_H_
 
 #include "oss.hpp"
+#include "dpsDef.hpp"
+#include <atomic>
+
 namespace engine
 {
 namespace vessel
 {
-   enum LSM_CF_ID
+   class lsmLsnTracker : public SDBObject
    {
-      LSM_INVALID_CF_ID = -1,
-      LSM_DEFAULT_CF_ID = 0,
-      LSM_INDEX_CF_ID = 1,
-      LSM_LOB_CHUNK_CF_ID = 2,
-      LSM_MAX_CF_ID = LSM_LOB_CHUNK_CF_ID
-   };
+      public:
+         lsmLsnTracker() = default;
+         ~lsmLsnTracker() = default;
+         lsmLsnTracker(const lsmLsnTracker &) = delete;
+         lsmLsnTracker &operator= (const lsmLsnTracker &) = delete;
 
-   // The first column family name must be 'default'.
-   constexpr CHAR *LSM_DEFAULT_CF_NAME = "default";
-   constexpr CHAR *LSM_INDEX_CF_NAME = "sdb.lsmIndex";
-   constexpr CHAR *LSM_LOB_CHUNK_CF_NAME = "sdb.lsmLobChunk";
+      public:
+         DPS_LSN_OFFSET beginToFlush();
+
+         void endToFlush(BOOLEAN flushDone); 
+
+         void setMinWriteLsn(DPS_LSN_OFFSET lsn);
+
+         DPS_LSN_OFFSET getMinDirtyLsn() const;
+
+      private:
+         std::atomic_ullong _minWriteLsn = {DPS_INVALID_LSN_OFFSET};
+         std::atomic_ullong _minFlushLsn = {DPS_INVALID_LSN_OFFSET};
+   }; // class lsmLsnTracker
+ 
 } // namespace vessel
 } // namespace engine
 
-#endif // VESSEL_LSM_DB_DEF_H_
+#endif // VESSEL_LSM_LSN_TRACKER_H_

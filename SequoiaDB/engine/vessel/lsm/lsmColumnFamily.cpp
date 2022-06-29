@@ -28,6 +28,7 @@
    defect Date        Who Description
    ====== =========== === ==============================================
           04/20/2022  LYC  Initial Draft
+          06/25/2022  ZHY  Reimplementation
 
    Last Changed =
 
@@ -41,30 +42,30 @@ namespace engine
 {
 namespace vessel
 {
-   lsmColumnFamily::lsmColumnFamily(lsmDB *db,
-                                    rocksdb::ColumnFamilyHandle *handle)
+   lsmColumnFamily::lsmColumnFamily(lsmDB *db, LSM_CF_ID cfId)
    {
       SDB_ASSERT(nullptr != db, "can not be null");
-      SDB_ASSERT(nullptr != handle, "can not be null");
+      SDB_ASSERT(LSM_INVALID_CF_ID != cfId, "can not be invalid");
       _db = db;
-      _handle = handle;
+      _cfId = cfId;
    }
 
    INT32 lsmColumnFamily::put(const rocksdb::Slice &key,
                               const rocksdb::Slice &value,
-                              const rocksdb::WriteOptions &o)
+                              DPS_LSN_OFFSET lsn) const
    {
+      SDB_ASSERT(isValid(), "must be valid");
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      rocksdb::Status s;
-
-      s = _db->getDBPtr()->Put(o, _handle, key, value);
-      if (!s.ok())
+      rc = _db->put(_cfId, key, value);
+      if (SDB_OK != rc)
       {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "put key-value into RocksDB failed, status info:[%s]",
-                s.ToString().c_str());
+         PD_LOG(PDERROR, "failed to put, cf[%d], rc: %d", _cfId, rc);
          goto error;
+      }
+      
+      if (DPS_INVALID_LSN_OFFSET != lsn)
+      {
+         _db->setMinDirtyLsn(_cfId, lsn);
       }
 
    done:
@@ -75,52 +76,36 @@ namespace vessel
 
    INT32 lsmColumnFamily::get(const rocksdb::Slice &key,
                               std::string &value,
-                              BOOLEAN &notFound,
-                              const rocksdb::ReadOptions &o)
+                              BOOLEAN &notFound) const
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      rocksdb::Status s;
-
+      SDB_ASSERT(isValid(), "must be valid");
       value.clear();
-      notFound = FALSE;
-      s = _db->getDBPtr()->Get(o, _handle, key, &value);
-      if (s.IsNotFound())
+      notFound = TRUE;
+      INT32 rc = SDB_OK;
+      rc = _db->get(_cfId, key, value, notFound);
+      if (SDB_OK != rc)
       {
-         notFound = TRUE;
-         value.clear();
-         goto done;
-      }
-      else if (!s.ok())
-      {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "get specified value in RocksDB failed, "
-                "status info:[%s]", s.ToString().c_str());
+         PD_LOG(PDERROR, "failed to get, cf[%d], rc: %d", _cfId, rc);
          goto error;
       }
-
    done:
       return rc;
    error:
+      value.clear();
+      notFound = TRUE;
       goto done;
    }
 
-   INT32 lsmColumnFamily::remove(const rocksdb::Slice &key,
-                                 const rocksdb::WriteOptions &o)
+   INT32 lsmColumnFamily::remove(const rocksdb::Slice &key) const
    {
+      SDB_ASSERT(isValid(), "must be valid");
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      rocksdb::Status s;
-
-      s = _db->getDBPtr()->Delete(o, _handle, key);
-      if (!s.ok())
+      rc = _db->remove(_cfId, key);
+      if (SDB_OK != rc)
       {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "delete specified key-value in RocksDB failed, "
-                "status info:[%s]", s.ToString().c_str());
+         PD_LOG(PDERROR, "failed to remove, cf[%d], rc: %d", _cfId, rc);
          goto error;
       }
-
    done:
       return rc;
    error:
@@ -128,129 +113,71 @@ namespace vessel
    }
 
    INT32 lsmColumnFamily::truncate(const rocksdb::Slice &lowKey,
-                                   const rocksdb::Slice &upKey,
-                                   const rocksdb::WriteOptions &o)
+                                   const rocksdb::Slice &upKey) const
    {
+      SDB_ASSERT(isValid(), "must be valid");
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      rocksdb::Status s;
-
-      s = _db->getDBPtr()->DeleteRange(o, _handle, lowKey, upKey);
-      if (!s.ok())
+      rc = _db->truncate(_cfId, lowKey, upKey);
+      if (SDB_OK != rc)
       {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "range delete key-values in RocksDB failed, "
-                "status info:[%s]", s.ToString().c_str());
+         PD_LOG(PDERROR, "failed to truncate, cf[%d], rc: %d", _cfId, rc);
          goto error;
       }
-      
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 lsmColumnFamily::compact(const rocksdb::Slice *beginKey,
-                                  const rocksdb::Slice *endKey,
-                                  const rocksdb::CompactRangeOptions &o)
+   INT32 lsmColumnFamily::compact(const rocksdb::Slice *lowKey,
+                                  const rocksdb::Slice *upKey) const
    {
+      SDB_ASSERT(isValid(), "must be valid");
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      rocksdb::Status s;
-
-      s = _db->getDBPtr()->CompactRange(o, _handle, beginKey, endKey);
-      if (!s.ok())
+      rc = _db->compact(_cfId, lowKey, upKey);
+      if (SDB_OK != rc)
       {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "compact key-values failed, status info:[%s]",
-                s.ToString().c_str());
+         PD_LOG(PDERROR, "failed to compact, cf[%d], rc: %d", _cfId, rc);
          goto error;
       }
-
    done:
       return rc;
    error:
       goto done;
    }
 
-   rocksdb::Iterator *lsmColumnFamily::newIterator(const rocksdb::ReadOptions &o)
+   rocksdb::Iterator *lsmColumnFamily::newIterator(const rocksdb::ReadOptions &opt)
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      return _db->getDBPtr()->NewIterator(o, _handle);
+      SDB_ASSERT(isValid(), "must be valid");
+      return _db->newIterator(_cfId, opt);
    }
 
-   void lsmColumnFamily::openBatch(writeBatch &batch)
+   INT32 lsmColumnFamily::flush() const
    {
-      batch.reset();
-      batch._db = _db->getDBPtr();
-      batch._handle = _handle;
-      batch._wOpt.disableWAL = TRUE;
-   }
-
-   lsmColumnFamily::writeBatch::~writeBatch()
-   {
-      reset();
-   }
-
-   void lsmColumnFamily::writeBatch::reset()
-   {
-      _db = nullptr;
-      _handle = nullptr;
-      _batch.Clear();
-      _wOpt = rocksdb::WriteOptions();
-   }
-
-   INT32 lsmColumnFamily::writeBatch::put(const rocksdb::Slice &key,
-                                          const rocksdb::Slice &value)
-   {
+      SDB_ASSERT(isValid(), "must be valid");
       INT32 rc = SDB_OK;
-      rocksdb::Status s;
-      
-      if (!isOpen())
+      rc = _db->flush(_cfId);
+      if (SDB_OK != rc)
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         PD_LOG(PDERROR, "failed to flush, cf[%d], rc: %d", _cfId, rc);
          goto error;
       }
-
-      s = _batch.Put(_handle, key, value);
-      if (!s.ok())
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "put key-value into batch failed, status info:[%s]",
-                s.ToString().c_str());
-         goto error;
-      }
-
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 lsmColumnFamily::writeBatch::commit()
+   void lsmColumnFamily::openBatch(lsmWriteBatch &batch)
    {
-      INT32 rc = SDB_OK;
-      rocksdb::Status s;
-      
-      if (!isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
+      SDB_ASSERT(isValid(), "must be valid");
+      _db->openBatch(_cfId, batch);
+   }
 
-      s = _db->Write(_wOpt, &_batch);
-      if (!s.ok())
-      {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "write batch into rocksdb failed, status info:[%s]",
-                s.ToString().c_str());
-         goto error;
-      }
-   
-   done:
-      return rc;
-   error:
-      goto done;
+   DPS_LSN_OFFSET lsmColumnFamily::getMinDirtyLsn() const
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      return _db->getMinDirtyLsn(_cfId);
    }
 
 } // namespace vessel

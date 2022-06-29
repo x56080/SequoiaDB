@@ -36,31 +36,26 @@
 #include "vessel/lsm/lsmIndexExecutor.h"
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
-#include "vessel/instanceEnv.h"
-#include "vessel/threadContext.h"
 #include "vessel/lsm/lsmIndexKeyPacker.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void lsmIndexExecutor::init(const lsmIndexMeta &meta)
+   void lsmIndexExecutor::init(const lsmColumnFamily &cf,
+                               const lsmIndexMeta &meta)
    {
+      SDB_ASSERT(cf.isValid(), "can not be invalid");
       SDB_ASSERT(meta.isValid(), "can not be invalid");
-      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
-      SDB_ASSERT(nullptr != tc, "can not be null");
       fini();
-      _cf = tc->getEnv()->lsm->getIdxColumnFamily();
+      _cf = cf;
       _meta = meta;
-      _wOpt.disableWAL = TRUE;
    }
 
    void lsmIndexExecutor::fini()
    {
       _cf = lsmColumnFamily();
       _meta = lsmIndexMeta();
-      _wOpt = rocksdb::WriteOptions();
-      _rOpt = rocksdb::ReadOptions();
    }
 
    INT32 lsmIndexExecutor::put(const lsmPureKeyEntry &key)
@@ -87,7 +82,9 @@ namespace vessel
       }
 
       value.reset(LSM_IDX_VALUE_TYPE_INSERT);
-      rc = _cf.put(packer.getFullKeySlice(), value.getSlice(), _wOpt);
+      rc = _cf.put(packer.getFullKeySlice(),
+                   value.getSlice(),
+                   key.getDataLsn());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "put key-value into index column family failed, rc:%d", rc);
@@ -120,7 +117,7 @@ namespace vessel
       lowSlice = rocksdb::Slice((const CHAR *)(&low), LSM_IDX_BOUNDARY_SIZE);
       upSlice = rocksdb::Slice((const CHAR *)(&up), LSM_IDX_BOUNDARY_SIZE);
 
-      rc = _cf.truncate(lowSlice, upSlice, _wOpt);
+      rc = _cf.truncate(lowSlice, upSlice);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "truncate key-values in "

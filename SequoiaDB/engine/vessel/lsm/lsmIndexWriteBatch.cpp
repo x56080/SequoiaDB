@@ -33,8 +33,6 @@
 
 ******************************************************************************/
 #include "vessel/lsm/lsmIndexWriteBatch.h"
-#include "vessel/threadContext.h"
-#include "vessel/instanceEnv.h"
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexKeyPacker.h"
 
@@ -42,13 +40,6 @@ namespace engine
 {
 namespace vessel
 {
-   void lsmIndexWriteBatch::open()
-   {
-      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
-      SDB_ASSERT(nullptr != tc, "can not be null");
-      tc->getEnv()->lsm->getIdxColumnFamily().openBatch(*this);
-   }
-
    INT32 lsmIndexWriteBatch::put(const lsmIndexMeta &meta,
                                  const lsmPureKeyEntry &key,
                                  const lsmIndexValue &value)
@@ -74,8 +65,9 @@ namespace vessel
          goto error;
       }
 
-      rc = lsmColumnFamily::writeBatch::put(packer.getFullKeySlice(),
-                                            value.getSlice());
+      rc = lsmWriteBatch::put(packer.getFullKeySlice(),
+                              value.getSlice(),
+                              key.getDataLsn());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "put key-value into batch failed, rc:%d", rc);

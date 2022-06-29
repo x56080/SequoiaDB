@@ -35,27 +35,21 @@
 #include "vessel/lsm/lsmLobcMetaStorage.h"
 #include "vessel/lsm/lsmLobChunkValue.h"
 #include "vessel/lsm/lsmDB.h"
-#include "vessel/instanceEnv.h"
-#include "vessel/threadContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void lsmLobcMetaStorage::init()
+   void lsmLobcMetaStorage::init(const lsmColumnFamily &cf)
    {
-      THREAD_CONTEXT *tc =  GET_THREAD_CONTEXT();
-      SDB_ASSERT(nullptr != tc, "can not be null");
+      SDB_ASSERT(cf.isValid(), "can not be invalid");
       fini();
-      _cf = tc->getEnv()->lsm->getLobcColumnFamily();
-      _wOpt.disableWAL = TRUE;
+      _cf = cf;
    }
 
    void lsmLobcMetaStorage::fini()
    {
       _cf = lsmColumnFamily();
-      _wOpt = rocksdb::WriteOptions();
-      _rOpt = rocksdb::ReadOptions();
    }
 
    INT32 lsmLobcMetaStorage::put(const lsmLobChunkKey &key,
@@ -76,8 +70,7 @@ namespace vessel
       }
 
       rc = _cf.put(key.getSlice(),
-                   rocksdb::Slice(obj.objdata(), obj.objsize()),
-                   _wOpt);
+                   rocksdb::Slice(obj.objdata(), obj.objsize()));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "put lob chunk into column family failed, rc:%d", rc);
@@ -109,7 +102,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _cf.get(key.getSlice(), res, notFound, _rOpt);
+      rc = _cf.get(key.getSlice(), res, notFound);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "get specified value in column family failed, rc:%d", rc);
@@ -150,7 +143,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _cf.remove(key.getSlice(), _wOpt);
+      rc = _cf.remove(key.getSlice());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "remove specified key-value in column family failed, rc:%d");
@@ -184,8 +177,7 @@ namespace vessel
       upKey.setAsUpKey(csid);
 
       rc = _cf.truncate(lowKey.getSlice(),
-                        upKey.getSlice(),
-                        _wOpt);
+                        upKey.getSlice());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "truncate key-values in column family failed, rc:%d", rc);
@@ -222,8 +214,7 @@ namespace vessel
       upKey.setAsUpKey(csid, clid);
 
       rc = _cf.truncate(lowKey.getSlice(),
-                        upKey.getSlice(),
-                        _wOpt);
+                        upKey.getSlice());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "truncate key-values in column family failed, rc:%d", rc);
