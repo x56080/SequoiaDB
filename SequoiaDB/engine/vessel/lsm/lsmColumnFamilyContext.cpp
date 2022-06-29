@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexExecutor.h
+   Source File Name = lsmColumnFamilyContext.cpp
 
    Descriptive Name =
 
@@ -27,50 +27,49 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          04/20/2022  LYC  Initial Draft
+          06/24/2022  LYC  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
-#ifndef VESSEL_LSM_INDEX_EXECUTOR_H_
-#define VESSEL_LSM_INDEX_EXECUTOR_H_
 
-#include "vessel/lsm/lsmColumnFamily.h"
-#include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIndexKey.h"
+#include "vessel/lsm/lsmColumnFamilyContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class lsmIndexExecutor : public SDBObject
+   lsmColumnFamilyContext::lsmColumnFamilyContext(rocksdb::ColumnFamilyHandle *handle,
+                                                  const rocksdb::WriteOptions &opt)
    {
-      public:
-         lsmIndexExecutor() = default;
-         ~lsmIndexExecutor() = default;
-         lsmIndexExecutor(const lsmIndexExecutor&) = delete;
-         lsmIndexExecutor &operator=(const lsmIndexExecutor&) = delete;
-      
-      public:
-         void init(const lsmColumnFamily &cf, const lsmIndexMeta &meta);
-         void fini();
+      SDB_ASSERT(nullptr != handle, "can not be null");
+      _handle = handle;
+      _wOpt = opt;
+   }
 
-         INT32 put(const lsmPureKeyEntry &key);
-         INT32 truncate();
+   DPS_LSN_OFFSET lsmColumnFamilyContext::beginToFlush()
+   {
+      SDB_ASSERT(nullptr != _handle, "can not be null");
+      return _tracker.beginToFlush();
+   }
 
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return _cf.isValid() &&
-                   _meta.isValid();
-         }
+   void lsmColumnFamilyContext::endToFlush(BOOLEAN flushDone)
+   {
+      SDB_ASSERT(nullptr != _handle, "can not be null");
+      _tracker.endToFlush(flushDone);
+   }
 
-      private:
-         lsmColumnFamily _cf;
-         lsmIndexMeta _meta;
-      
-   }; // class lsmIndexExecutor
+   void lsmColumnFamilyContext::setMinDirtyLsn(DPS_LSN_OFFSET lsn)
+   {
+      SDB_ASSERT(nullptr != _handle, "can not be null");
+      _tracker.setMinWriteLsn(lsn);
+   }
+
+   DPS_LSN_OFFSET lsmColumnFamilyContext::getMinDirtyLsn() const
+   {
+      SDB_ASSERT(nullptr != _handle, "can not be null");
+      return _tracker.getMinDirtyLsn();
+   }
 
 } // namespace vessel
 } // namespace engine
-#endif // VESSEL_LSM_INDEX_EXECUTOR_H_
-

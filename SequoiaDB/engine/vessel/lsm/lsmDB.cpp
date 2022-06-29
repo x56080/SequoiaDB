@@ -32,10 +32,15 @@
    Last Changed =
 
 *******************************************************************************/
+#include "vessel/instanceEnv.h"
+#include "vessel/threadContext.h"
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmLobcKeyComparator.h"
 #include "vessel/lsm/lsmCompactionFilter.hpp"
+#include "vessel/lsm/lsmColumnFamilyContext.h"
+#include "vessel/lsm/lsmCollector.h"
+#include "vessel/lsm/lsmEventListener.h"
 
 namespace engine
 {
@@ -48,8 +53,8 @@ namespace vessel
 
    BOOLEAN lsmDB::isOpen()const
    {
-      return _lsmDB &&
-             !_lsmCFHandles.empty();
+      return nullptr != _db &&
+             !_contexts.empty();
    }
 
    INT32 lsmDB::open(const CHAR *dbPath,
@@ -60,6 +65,7 @@ namespace vessel
       rocksdb::Status s;
       rocksdb::Options opt;
       std::vector<rocksdb::ColumnFamilyDescriptor> descs;
+      std::vector<rocksdb::ColumnFamilyHandle *> cfHandles;
 
       close();
 
@@ -70,20 +76,37 @@ namespace vessel
       opt.create_if_missing = TRUE;
       opt.create_missing_column_families = TRUE;
       opt.atomic_flush = TRUE;
+      opt.listeners.emplace_back(newLsmEventListener(this));
 
       // configure column family names and options
-      for (UINT32 i = LSM_DEFAULT_CF; i <= LSM_MAX_CF_TYPE; ++i)
+      for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
       {
-         descs.push_back(_getDescriptor(static_cast<LSM_CF_TYPE>(i), opt));
+         descs.push_back(_getDescriptor(static_cast<LSM_CF_ID>(i), opt));
       }
 
-      s = rocksdb::DB::Open(opt, dbPath, descs, &_lsmCFHandles, &_lsmDB);
+      s = rocksdb::DB::Open(opt, dbPath, descs, &cfHandles, &_db);
       if (!s.ok())
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "open rocksdb failed, status info:[%s]",
                 s.ToString().c_str());
          goto error;
+      }
+
+      for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+      {
+         rocksdb::WriteOptions opt;
+         opt.disableWAL = TRUE;
+         lsmColumnFamilyContext *context = 
+               SDB_OSS_NEW lsmColumnFamilyContext(cfHandles[i],
+                                                  opt);
+         if (nullptr == context)
+         {
+            rc = SDB_OOM;
+            PD_LOG(PDERROR, "out of memory");
+            goto error;
+         }
+         _contexts.emplace_back(context);
       }
 
    done:
@@ -96,63 +119,435 @@ namespace vessel
    void lsmDB::close()
    {
       rocksdb::Status s;
-      if (nullptr != _lsmDB)
+      if (isOpen())
       {
-         for (UINT32 i = LSM_DEFAULT_CF; i <= LSM_MAX_CF_TYPE; ++i)
+         for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
          {
-            s = _lsmDB->DestroyColumnFamilyHandle(_lsmCFHandles[i]);
+            s = _db->DestroyColumnFamilyHandle(_contexts[i]->getHandle());
             SDB_ASSERT(s.ok(), "failed to destroy column family handle");
+            SAFE_OSS_DELETE(_contexts[i]);
          }
-         _lsmDB->Close();
-         delete _lsmDB;
-         _lsmDB = nullptr;
-         _lsmCFHandles.clear();
+         _db->Close();
+         delete _db;
+         _db = nullptr;
+         _journal = nullptr;
+         _contexts.clear();
       }
-
-   }
-
-   rocksdb::DB *lsmDB::getDBPtr()
-   {
-      SDB_ASSERT(isOpen(), "must be open");
-      return _lsmDB;
    }
 
    lsmColumnFamily lsmDB::getIdxColumnFamily()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return lsmColumnFamily(this, _lsmCFHandles[LSM_INDEX_CF]);
+      return lsmColumnFamily(this, LSM_INDEX_CF_ID);
    }
 
    lsmColumnFamily lsmDB::getLobcColumnFamily()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return lsmColumnFamily(this, _lsmCFHandles[LSM_LOB_CHUNK_CF]);
+      return lsmColumnFamily(this, LSM_LOB_CHUNK_CF_ID);
    }
 
-   rocksdb::ColumnFamilyDescriptor lsmDB::_getDescriptor(LSM_CF_TYPE type,
+   INT32 lsmDB::put(LSM_CF_ID id,
+                    const rocksdb::Slice &key,
+                    const rocksdb::Slice &value)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (LSM_INVALID_CF_ID == id)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      s = _db->Put(_contexts[id]->getWriteOpt(),
+                   _contexts[id]->getHandle(),
+                   key, value);
+      if (!s.ok())
+      {
+         rc = SDB_IO;
+         PD_LOG(PDERROR, "put key-value into lsmDB failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::get(LSM_CF_ID id,
+                    const rocksdb::Slice &key,
+                    std::string &value,
+                    BOOLEAN &notFound)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+
+      value.clear();
+      notFound = FALSE;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (LSM_INVALID_CF_ID == id)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      s = _db->Get(rocksdb::ReadOptions(),
+                   _contexts[id]->getHandle(),
+                   key, &value);
+      if (s.IsNotFound())
+      {
+         value.clear();
+         notFound = TRUE;
+         goto done;
+      }
+      else if (!s.ok())
+      {
+         rc = SDB_IO;
+         PD_LOG(PDERROR, "get specified value in RocksDB failed, "
+                "status info:[%s]", s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      value.clear();
+      notFound = TRUE;
+      goto done;
+   }
+
+   INT32 lsmDB::remove(LSM_CF_ID id,
+                       const rocksdb::Slice &key)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (LSM_INVALID_CF_ID == id)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      s = _db->Delete(_contexts[id]->getWriteOpt(),
+                      _contexts[id]->getHandle(),
+                      key);
+      if (!s.ok())
+      {
+         rc = SDB_IO;
+         PD_LOG(PDERROR, "delete specified key-value in RocksDB failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::truncate(LSM_CF_ID id,
+                         const rocksdb::Slice &lowKey,
+                         const rocksdb::Slice &upKey)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (LSM_INVALID_CF_ID == id)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      s = _db->DeleteRange(_contexts[id]->getWriteOpt(),
+                           _contexts[id]->getHandle(),
+                           lowKey, upKey);
+      if (!s.ok())
+      {
+         rc = SDB_IO;
+         PD_LOG(PDERROR, "range delete key-values in RocksDB failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::compact(LSM_CF_ID id,
+                        const rocksdb::Slice *lowKey,
+                        const rocksdb::Slice *upKey)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (LSM_INVALID_CF_ID == id)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      s = _db->CompactRange(rocksdb::CompactRangeOptions(),
+                            _contexts[id]->getHandle(),
+                            lowKey, upKey);
+      if (!s.ok())
+      {
+         rc = SDB_IO;
+         PD_LOG(PDERROR, "compact key-values in RocksDB failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done; 
+   }
+
+   rocksdb::Iterator *lsmDB::newIterator(LSM_CF_ID id,
+                                         const rocksdb::ReadOptions &opt)
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be invalid");
+      return _db->NewIterator(opt, _contexts[id]->getHandle());
+   }
+
+   void lsmDB::openBatch(LSM_CF_ID id, lsmWriteBatch &batch)
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be invalid");
+   
+      batch._db = this;
+      batch._handle = _contexts[id]->getHandle();
+      batch._batch.Clear();
+      batch._minDirtyLsn = DPS_INVALID_LSN_OFFSET;
+   }
+
+   INT32 lsmDB::write(lsmWriteBatch &batch)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      
+      s = _db->Write(_contexts[batch._handle->GetID()]->getWriteOpt(),
+                     &batch._batch);
+      if (!s.ok())
+      {
+         rc = SDB_IO;
+         PD_LOG(PDERROR, "write batch into RocksDB failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::flush(LSM_CF_ID id)
+   {
+      INT32 rc = SDB_OK;
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      if (LSM_INVALID_CF_ID != id)
+      {
+         rc = _flushCF(id);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "flush column family[%d] failed, rc:%d",
+                   id, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _flushDB();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "flush lsmDB failed, rc:%d",
+                   id, rc);
+            goto error;
+         }
+      }
+   
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void lsmDB::onFlush(DPS_LSN_OFFSET maxLsn)
+   {
+      SDB_ASSERT(nullptr != _journal, "can not be null");
+      _journal->flush(maxLsn);
+   }
+
+   void lsmDB::setMinDirtyLsn(LSM_CF_ID id,
+                              DPS_LSN_OFFSET lsn)
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be null");
+      _contexts[id]->setMinDirtyLsn(lsn);
+   }
+
+   DPS_LSN_OFFSET lsmDB::getMinDirtyLsn(LSM_CF_ID id) const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      if (LSM_INVALID_CF_ID != id)
+      {
+         return _contexts[id]->getMinDirtyLsn();
+      }
+      else
+      {
+         DPS_LSN_OFFSET r = DPS_INVALID_LSN_OFFSET;
+         for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+         {
+            DPS_LSN_OFFSET tmp = _contexts[i]->getMinDirtyLsn();
+            if (tmp < r)
+            {
+               r = tmp;
+            }
+         }
+         return r;
+      }
+   }
+
+   void lsmDB::setJournal(IDataJournal *journal)
+   {
+      SDB_ASSERT(nullptr != journal, "can not be nullptr");
+      _journal=journal;
+   }
+
+   INT32 lsmDB::_flushDB()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+      {
+         rc = _flushCF(static_cast<LSM_CF_ID>(i));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "flush column family[%d] failed, rc:%d", i, rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::_flushCF(LSM_CF_ID id)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status s;
+      DPS_LSN_OFFSET tmpLsn = DPS_INVALID_LSN_OFFSET;
+      BOOLEAN flushDone = FALSE;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be invalid");
+      std::unique_lock<std::mutex> lock(_contexts[id]->getFlushLock());
+
+      tmpLsn = _contexts[id]->beginToFlush();
+      if (DPS_INVALID_LSN_OFFSET != tmpLsn)
+      {
+         s = _db->Flush(rocksdb::FlushOptions(),
+                        _contexts[id]->getHandle());
+         if (!s.ok())
+         {
+            rc = SDB_IO;
+            PD_LOG(PDERROR, "flush column family[%d] failed, status info:[%s]",
+                  s.ToString().c_str());
+            goto error;
+         }
+      }
+      flushDone = TRUE;
+
+   done:
+      _contexts[id]->endToFlush(flushDone);
+      return rc;
+   error:
+      goto done;
+   }
+
+   rocksdb::ColumnFamilyDescriptor lsmDB::_getDescriptor(LSM_CF_ID type,
                                                          const rocksdb::Options &opt)
    {
       std::string cfName;
       rocksdb::ColumnFamilyOptions cfOpt(opt);
 
-      if (LSM_DEFAULT_CF == type)
+      if (LSM_DEFAULT_CF_ID == type)
       {
          cfName = LSM_DEFAULT_CF_NAME;
       }
-      if (LSM_INDEX_CF == type)
+      if (LSM_INDEX_CF_ID == type)
       {
          cfName = LSM_INDEX_CF_NAME;
          cfOpt.comparator = lsmIdxKeyComparator();
          cfOpt.compaction_filter_factory = createIdxCompactionFilterFactory();
+         cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
          ///TODO: prefix_extractor
       }
-      else if (LSM_LOB_CHUNK_CF == type)
+      else if (LSM_LOB_CHUNK_CF_ID == type)
       {
          cfName = LSM_LOB_CHUNK_CF_NAME;
          cfOpt.comparator = lsmLobcKeyComparator();
       }
 
       return rocksdb::ColumnFamilyDescriptor(cfName, cfOpt);
+   }
+
+   lsmColumnFamily GET_INDEX_COLUMN_FAMILY()
+   {
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->getEnv()->lsm->getIdxColumnFamily();
+   }
+
+   lsmColumnFamily GET_LOB_CHUNK_COLUMN_FAMILY()
+   {
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->getEnv()->lsm->getLobcColumnFamily();
    }
 
 } // namespace vessel

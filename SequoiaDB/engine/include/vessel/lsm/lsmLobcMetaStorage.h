@@ -50,7 +50,7 @@ namespace vessel
          lsmLobcMetaStorage &operator= (const lsmLobcMetaStorage &) = delete;
 
       public:
-         void init();
+         void init(const lsmColumnFamily &cf);
          void fini();
 
          OSS_INLINE BOOLEAN isValid()
@@ -76,8 +76,6 @@ namespace vessel
       
       private:
          lsmColumnFamily _cf;
-         rocksdb::WriteOptions _wOpt;
-         rocksdb::ReadOptions _rOpt;
 
    }; // class lsmLobcMetaStorage
 } // namespace vessel
