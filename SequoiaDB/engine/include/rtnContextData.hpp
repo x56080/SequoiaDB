@@ -112,7 +112,7 @@ namespace engine
    /*
       _rtnContextData define
    */
-   class _rtnContextData : public _rtnContextBase
+   class _rtnContextData : public _rtnContextBase, public _IMthMatchEventHandler
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
 
@@ -187,6 +187,11 @@ namespace engine
          INT32   setAdvanceSection ( const BSONObj &arg ) ;
 
          virtual INT32 validate ( const BSONObj &record ) ;
+         virtual INT32 onMatchDone( const bson::BSONObj &record,
+                                    BOOLEAN isMatched )
+         {
+            return ( isMatched ) ? ( SDB_OK ) : ( validate( record ) ) ;
+         }
 
       protected:
          INT32 _queryModify( _pmdEDUCB* eduCB,
@@ -267,6 +272,11 @@ namespace engine
                                     const BSONElement &eNum,
                                     const BSONElement &eVal,
                                     const BSONElement &eIndexValueInc );
+
+         BOOLEAN  _needValidate() const
+         {
+            return !( _advanceSectionList.empty() ) ;
+         }
 
       protected:
          _SDB_DMSCB                 *_dmsCB ;

@@ -176,11 +176,7 @@ namespace engine
                orgObj = &obj ;
             }
             rc = _contextValidator->validate( *orgObj ) ;
-            if ( SDB_IXM_ADVANCE_EOC == rc )
-            {
-               goto done ;
-            }
-            else if ( rc )
+            if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to validate record, rc: %d", rc ) ;
                goto error ;
@@ -654,11 +650,7 @@ namespace engine
       }
 
       rc = _buffer.append( result, orgResult ) ;
-      if ( SDB_IXM_ADVANCE_EOC == rc )
-      {
-         goto done ;
-      }
-      else if ( SDB_OK != rc )
+      if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to append obj to context buffer, rc: "
                            "%d", rc ) ;
@@ -998,6 +990,9 @@ namespace engine
          UINT64 startDataRead = cb->getMonAppCB()->totalDataRead ;
          UINT64 startIndexRead = cb->getMonAppCB()->totalIndexRead ;
 
+         pdLogShield logShield ;
+         logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
+
          while ( TRUE )
          {
             if ( _canPrepareMoreData() )
@@ -1012,6 +1007,7 @@ namespace engine
             // For Data node: cl.query.sort(...).hint("$Range":{ ... })
             if ( rc == SDB_IXM_ADVANCE_EOC )
             {
+               pdClearLastError() ;
                rc = _prepareDoAdvance( cb ) ;
                if ( SDB_DMS_EOC == rc )
                {

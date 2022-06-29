@@ -175,7 +175,8 @@ void pdcheck( const CHAR* string, const CHAR* func,
 #define pdcheck(str1,str2,str3,str4)
 #endif
 
-#define LOG_MASK_IXM_DUP_KEY 0x0000000000000001
+#define LOG_MASK_IXM_DUP_KEY     ( 0x0000000000000001 )
+#define LOG_MASK_IXM_ADVANCE_EOC ( 0x0000000000000002 )
 
 void pdEnableDiaglogSecure() ;
 void pdDisableDiaglogSecure() ;

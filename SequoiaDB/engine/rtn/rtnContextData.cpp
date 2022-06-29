@@ -790,7 +790,7 @@ namespace engine
                {
                   if ( !sec.startIncluded )
                   {
-                     rc = SDB_IXM_ADVANCE_EOC ;
+                     rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
                      PD_LOG( PDINFO, "Advance to the next section for scanning "
                                      "record, rc: %d", rc ) ;
                      goto error ;
@@ -832,7 +832,7 @@ namespace engine
                }
                else
                {
-                  rc = SDB_IXM_ADVANCE_EOC ;
+                  rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
                   PD_LOG( PDINFO, "Advance to the next section for scanning "
                                   "record, rc: %d", rc ) ;
                   goto error ;
@@ -850,7 +850,7 @@ namespace engine
 
       if ( !matched )
       {
-         rc = SDB_IXM_ADVANCE_EOC ;
+         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
          goto error ;
       }
 
@@ -1656,10 +1656,6 @@ namespace engine
       }
 
       rc = append( selObj, &obj ) ;
-      if ( SDB_IXM_ADVANCE_EOC == rc )
-      {
-         goto done ;
-      }
       PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                    selObj.toString().c_str(), rc ) ;
 
@@ -1682,10 +1678,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "get next record failed:rc=%d", rc ) ;
 
          rc = _selectAndAppend( selector, record ) ;
-         if ( SDB_IXM_ADVANCE_EOC == rc )
-         {
-            goto done ;
-         }
          PD_RC_CHECK( rc, PDERROR, "selectAndAppend failed:rc=%d", rc ) ;
       }
 
@@ -1745,7 +1737,7 @@ namespace engine
 
       while ( numRecords() == startNumRecords )
       {
-         _mthMatchTreeContext mthContext ;
+         _mthMatchTreeContext mthContext( NULL ) ;
          if ( NULL != dollarList )
          {
             mthContext.enableDollarList() ;
@@ -1937,7 +1929,7 @@ namespace engine
       // loop until we read something in the buffer
       while ( numRecords() == startNumRecords )
       {
-         _mthMatchTreeContext mthContext ;
+         _mthMatchTreeContext mthContext( _needValidate() ? this : NULL ) ;
          if ( NULL != dollarList )
          {
             mthContext.enableDollarList() ;
@@ -2013,10 +2005,10 @@ namespace engine
                   rc = _innerAppend( selector, generator ) ;
                   if ( SDB_IXM_ADVANCE_EOC == rc )
                   {
+                     // stop the scanner, so we can restart later
                      secScanner.stop () ;
                      goto done ;
                   }
-
                   PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
 
                   // make sure we still have room to read another
@@ -2055,6 +2047,12 @@ namespace engine
 
          if ( rc && SDB_DMS_EOC != rc )
          {
+            if ( SDB_IXM_ADVANCE_EOC == rc )
+            {
+               // stop the scanner, so we can restart later
+               secScanner.stop () ;
+               goto done ;
+            }
             PD_LOG( PDERROR, "Extent scanner failed, rc: %d", rc ) ;
             goto error ;
          }

@@ -551,13 +551,15 @@ static UINT32 s_shieldLogCnt[PD_MAX_SHIELD_RC_COUNT] = { 0 } ;
 
 struct _pdRCMaskItem
 {
-   INT32  _rc ;
-   UINT64 _mask ;
+   INT32    _rc ;
+   BOOLEAN  _needStats ;
+   UINT64   _mask ;
 } ;
 
 static _pdRCMaskItem s_rcMaskMap[] =
 {
-   { SDB_IXM_DUP_KEY, LOG_MASK_IXM_DUP_KEY }
+   { SDB_IXM_DUP_KEY, TRUE, LOG_MASK_IXM_DUP_KEY },
+   { SDB_IXM_ADVANCE_EOC, FALSE, LOG_MASK_IXM_ADVANCE_EOC }
 } ;
 
 static UINT64 _pdRC2Mask( INT32 rc )
@@ -582,7 +584,8 @@ static void _pdIncShieldLogCntByRC( INT32 rc )
       _pdRCMaskItem& item = s_rcMaskMap[i] ;
       if ( item._rc == rc )
       {
-         if ( !OSS_BIT_TEST( s_hasIncCntMask, item._mask ) )
+         if ( ( item._needStats ) &&
+              ( !OSS_BIT_TEST( s_hasIncCntMask, item._mask ) ) )
          {
             if ( i < PD_MAX_SHIELD_RC_COUNT )
             {
