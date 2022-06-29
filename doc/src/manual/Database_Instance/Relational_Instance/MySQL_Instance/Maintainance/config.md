@@ -234,6 +234,15 @@
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
+**sequoiadb_stats_cache_level**
+
+该参数可以配置 SequoiaDB 统计信息加载到 MySQL 缓存的级别。取值为 1 时，表示加载基础的索引统计信息，加载快且内存占用少，可以用于简单均匀数据模型的估算。取值为 2 时，表示加载索引频繁数值集合（Most Common Values，MCV）统计信息，可以用于基于样本的估算，使多种数据模型下的估算都更加准确。
+
++ 类型：uint32
++ 默认值：2
++ 作用范围：Global, Session
++ 是否支持在线修改生效：是
+
 ###配置 SequoiaDB 节点优先级###
 
 **sequoiadb_preferred_instance**
