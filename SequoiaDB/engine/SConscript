@@ -24,6 +24,7 @@ Import("snappy_lib")
 Import("rocksdb_lib")
 Import("zstd_lib")
 Import("bzip2_lib")
+Import("rocksdbLibName")
 
 def add_exe( v ):
     return "${PROGPREFIX}%s${PROGSUFFIX}" % v
@@ -995,7 +996,7 @@ env.StaticLibrary('omsvc', omsvcFiles)
 env.StaticLibrary('stpagent', stpAgentFiles)
 env.StaticLibrary('stpclient', stpClientFiles)
 #rocksdb
-env.StaticLibrary('rocksdb', rocksdb_lib)
+env.StaticLibrary(rocksdbLibName, rocksdb_lib)
 #zstd
 env.StaticLibrary('zstd', zstd_lib)
 #bzip2
@@ -1022,7 +1023,7 @@ vesseltest = env.Object('vesseltest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
-         LIBDEPS=["qgm","bar","rest","dps","cat","coord","cls",snappy_lib,lz4_lib,zlib_lib,"pcre","bson","oss","bps","ixm","pmd","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql", "auth","mig", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2"],
+         LIBDEPS=["qgm","bar","rest","dps","cat","coord","cls",snappy_lib,lz4_lib,zlib_lib,"pcre","bson","oss","bps","ixm","pmd","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql", "auth","mig", "aggr", "spd", "omsvc", "stpagent", "stpclient", rocksdbLibName, "vessel", "zstd","bzip2"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
    env.Install( '#/bin', engine )
@@ -1176,7 +1177,7 @@ if hasTool:
 # Vessel
 if hasVessel or hasTestcase:
    vesselTest = env.Program("vesselTest", [ vesselTestFiles, vesseltest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2", "vessel_unit_test_common"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", rocksdbLibName, "vessel","zstd","bzip2", "vessel_unit_test_common"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 
