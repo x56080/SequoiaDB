@@ -2131,9 +2131,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to check conflict unique ID "
                    "collection [%s], rc: %d", clName, rc ) ;
 
-      rc = _checkDomain( catSet, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check domain of "
-                   "collection [%s], rc: %d", clName, rc ) ;
+      if ( UTIL_INVALID_DS_UID == catSet.getDataSourceID() )
+      {
+         rc = _checkDomain( catSet, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check domain of "
+                      "collection [%s], rc: %d", clName, rc ) ;
+      }
 
       rc = _groupHandler.addGroups( *( catSet.getAllGroupID() ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to save groups for "
