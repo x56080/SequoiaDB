@@ -489,11 +489,11 @@ namespace engine
          PD_LOG( PDDEBUG,
                  "Resuming, was from %d side but cursor(%d,%d) changed:"
                  OSS_NEWLINE
-                 "left side:"OSS_NEWLINE
-                 "  savedObj(%s)  savedRID(%d, %d),"OSS_NEWLINE
-                 "  curKeyObj(%s) with rid(%d, %d),"OSS_NEWLINE
-                 "right side:"OSS_NEWLINE
-                 "  savedObj(%s)  savedRID(%d, %d),"OSS_NEWLINE
+                 "left side:" OSS_NEWLINE
+                 "  savedObj(%s)  savedRID(%d, %d)," OSS_NEWLINE
+                 "  curKeyObj(%s) with rid(%d, %d)," OSS_NEWLINE
+                 "right side:" OSS_NEWLINE
+                 "  savedObj(%s)  savedRID(%d, %d)," OSS_NEWLINE
                  "  curKeyObj(%s) with rid(%d, %d)",
                  _fromDir, lIsSame, rIsSame,
                  _leftIXScanner->getSavedObj()->toString().c_str(),

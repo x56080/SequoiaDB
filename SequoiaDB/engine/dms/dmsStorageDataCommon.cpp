@@ -2399,12 +2399,12 @@ namespace engine
                {
                   PD_LOG( PDDEBUG,
                           "Failed to test X lock on collection slot, "
-                          "rc: %d"OSS_NEWLINE
-                          "Conflict( representative ):"OSS_NEWLINE
-                          "   EDUID:  %llu"OSS_NEWLINE
-                          "   TID:    %u"OSS_NEWLINE
-                          "   LockId: %s"OSS_NEWLINE
-                          "   Mode:   %s"OSS_NEWLINE,
+                          "rc: %d" OSS_NEWLINE
+                          "Conflict( representative ):" OSS_NEWLINE
+                          "   EDUID:  %llu" OSS_NEWLINE
+                          "   TID:    %u" OSS_NEWLINE
+                          "   LockId: %s" OSS_NEWLINE
+                          "   Mode:   %s" OSS_NEWLINE,
                           testTransLockRC,
                           lockConflict._eduID,
                           lockConflict._tid,
@@ -2684,12 +2684,12 @@ namespace engine
          rc = pTransCB->transLockTryZ( cb, clItem._logicCSID, clItem._mbID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
-                      "Conflict( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
+                      "Conflict( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -2921,12 +2921,12 @@ namespace engine
          rc = pTransCB->transLockTryZ( cb, clItem._logicCSID, clItem._mbID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
-                      "Conflict( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
+                      "Conflict( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -3267,12 +3267,12 @@ namespace engine
          rc = pTransCB->transLockTrySAgainstWrite( cb, _logicalCSID, mbID,
                                                    NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
-                      "Conflict( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
+                      "Conflict( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -3740,12 +3740,12 @@ namespace engine
          rc = transCB->transLockTryX( cb, _logicalCSID, recyMBID, NULL,
                                       &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
-                      "Conflict( representative ):"OSS_NEWLINE
-                      "   EDUID:  %llu"OSS_NEWLINE
-                      "   TID:    %u"OSS_NEWLINE
-                      "   LockId: %s"OSS_NEWLINE
-                      "   Mode:   %s"OSS_NEWLINE,
+                      "Failed to lock the collection, rc: %d" OSS_NEWLINE
+                      "Conflict( representative ):" OSS_NEWLINE
+                      "   EDUID:  %llu" OSS_NEWLINE
+                      "   TID:    %u" OSS_NEWLINE
+                      "   LockId: %s" OSS_NEWLINE
+                      "   Mode:   %s" OSS_NEWLINE,
                       rc,
                       lockConflict._eduID,
                       lockConflict._tid,
@@ -4258,12 +4258,12 @@ namespace engine
                                              &callback ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to insert the record, get "
                            "transaction-X-lock of record failed, "
-                           "rc: %d"OSS_NEWLINE
-                           "Conflict( representative ):"OSS_NEWLINE
-                           "   EDUID:  %llu"OSS_NEWLINE
-                           "   TID:    %u"OSS_NEWLINE
-                           "   LockId: %s"OSS_NEWLINE
-                           "   Mode:   %s"OSS_NEWLINE,
+                           "rc: %d" OSS_NEWLINE
+                           "Conflict( representative ):" OSS_NEWLINE
+                           "   EDUID:  %llu" OSS_NEWLINE
+                           "   TID:    %u" OSS_NEWLINE
+                           "   LockId: %s" OSS_NEWLINE
+                           "   Mode:   %s" OSS_NEWLINE,
                            rc,
                            lockConflict._eduID,
                            lockConflict._tid,

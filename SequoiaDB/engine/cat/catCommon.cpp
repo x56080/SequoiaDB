@@ -8347,35 +8347,35 @@ namespace engine
               oldConf.getEnable() != newConf.getEnable() )
          {
             subBuilder.appendBool(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_ENABLE,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_ENABLE,
                   newConf.getEnable() ) ;
          }
          if ( rewriteAll ||
               oldConf.getExpireTime() != newConf.getExpireTime() )
          {
             subBuilder.append(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_EXPIRETIME,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_EXPIRETIME,
                   newConf.getExpireTime() ) ;
          }
          if ( rewriteAll ||
               oldConf.getMaxItemNum() != newConf.getMaxItemNum() )
          {
             subBuilder.append(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_MAXITEMNUM,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXITEMNUM,
                   newConf.getMaxItemNum() ) ;
          }
          if ( rewriteAll ||
               oldConf.getMaxVersionNum() != newConf.getMaxVersionNum() )
          {
             subBuilder.append(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_MAXVERNUM,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXVERNUM,
                   newConf.getMaxVersionNum() ) ;
          }
          if ( rewriteAll ||
               oldConf.getAutoDrop() != newConf.getAutoDrop() )
          {
             subBuilder.appendBool(
-                  FIELD_NAME_RECYCLEBIN"."FIELD_NAME_AUTODROP,
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_AUTODROP,
                   newConf.getAutoDrop() ) ;
          }
          subBuilder.doneFast() ;
@@ -8759,7 +8759,7 @@ namespace engine
          recycleID += 1 ;
 
          updator = BSON( "$set" <<
-                         BSON( FIELD_NAME_RECYCLEBIN"."FIELD_NAME_RECYCLEIDHWM <<
+                         BSON( FIELD_NAME_RECYCLEBIN "." FIELD_NAME_RECYCLEIDHWM <<
                                (INT64)recycleID ) ) ;
          rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
                          dummy, 0, cb, dmsCB, dpsCB, w ) ;

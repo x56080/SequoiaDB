@@ -39,7 +39,7 @@
 namespace engine
 {
    #define AUTH_SPACE                     "SYSAUTH"
-   #define AUTH_USR_COLLECTION            AUTH_SPACE".SYSUSRS"
+   #define AUTH_USR_COLLECTION            AUTH_SPACE ".SYSUSRS"
    /// AUTH_USR_COLLECTION SCHEMA
    /// {User:"", Passwd:""}
 

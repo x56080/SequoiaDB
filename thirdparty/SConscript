@@ -652,12 +652,12 @@ class RocksDBCompiler(CompilerBase):
         compCmd += 'export CPATH=../lz4/src:../lz4/include:$CPATH ; '
         compCmd += 'export CPATH=../zstd/lib/dictBuilder:../zstd/lib:$CPATH ; '
         if debugBuild:
-           mkCmd = ' DEBUG_LEVEL=2 make static_lib '
+           mkCmd = 'USE_RTTI=1 DEBUG_LEVEL=2 make static_lib '
            # if gflags is installed and want to build debuggable lib,
            # tools, and rocksdb built-in testing programs, then
            # mkCmd = ' make dbg '
         else:
-           mkCmd = ' DEBUG_LEVEL=0 make static_lib '
+           mkCmd = 'USE_RTTI=1 DEBUG_LEVEL=0 make static_lib '
 
         self.append_cmd( compCmd,  mkCmd )
 

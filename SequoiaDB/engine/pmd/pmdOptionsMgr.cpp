@@ -2892,7 +2892,7 @@ done:
          if ( !_exePath.empty() )
          {
             rc = utilBuildFullPath( _exePath.c_str(),
-                                    ".."OSS_FILE_SEP PMD_OPTION_WWW_PATH_DIR,
+                                    ".." OSS_FILE_SEP PMD_OPTION_WWW_PATH_DIR,
                                     OSS_MAX_PATHSIZE, wwwPath ) ;
          }
          else

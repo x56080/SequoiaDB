@@ -150,7 +150,7 @@ namespace import
       rc = _setSessionAttr() ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Failed to set session attributes"OSS_NEWLINE ) ;
+         ossPrintf( "Failed to set session attributes" OSS_NEWLINE ) ;
          PD_LOG( PDERROR, "Failed to set session attributes, rc = %d", rc ) ;
          goto error ;
       }
@@ -161,7 +161,7 @@ namespace import
       {
          if ( SDB_DMS_CS_NOTEXIST == rc )
          {
-            ossPrintf( "Collection space %s does not exist"OSS_NEWLINE,
+            ossPrintf( "Collection space %s does not exist" OSS_NEWLINE,
                        _csname.c_str() ) ;
             PD_LOG( PDERROR, "Collection space %s does not exist, rc = %d",
                     _csname.c_str(), rc ) ;
@@ -181,7 +181,7 @@ namespace import
       {
          if ( SDB_DMS_NOTEXIST == rc )
          {
-            ossPrintf( "Collection %s does not exist."OSS_NEWLINE,
+            ossPrintf( "Collection %s does not exist." OSS_NEWLINE,
                        _clname.c_str() ) ;
             PD_LOG( PDERROR, "Collection %s does not exist, rc = %d",
                     _clname.c_str(), rc ) ;

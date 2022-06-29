@@ -108,32 +108,32 @@ namespace engine
          BSONElement e = it.next() ;
          if( e.type() == String )
          {
-            ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, e.fieldName(),
+            ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, e.fieldName(),
                        e.valuestr() ) ;
          }
          else if( e.type() == NumberInt )
          {
-            ossPrintf( "   %-18.18s: %d"OSS_NEWLINE, e.fieldName(),
+            ossPrintf( "   %-18.18s: %d" OSS_NEWLINE, e.fieldName(),
                        e.numberInt() ) ;
          }
          else if( e.type() == NumberLong )
          {
-            ossPrintf( "   %-18.18s: %lld"OSS_NEWLINE, e.fieldName(),
+            ossPrintf( "   %-18.18s: %lld" OSS_NEWLINE, e.fieldName(),
                        e.numberLong() ) ;
          }
          else if( e.type() == NumberDouble )
          {
-            ossPrintf( "   %-18.18s: %f"OSS_NEWLINE, e.fieldName(),
+            ossPrintf( "   %-18.18s: %f" OSS_NEWLINE, e.fieldName(),
                        e.numberDouble() ) ;
          }
          else if( e.type() == Bool )
          {
-            ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, e.fieldName(),
+            ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, e.fieldName(),
                        (e.boolean() ? "TRUE" : "FALSE" ) ) ;
          }
          else
          {
-            ossPrintf( "   %-18.18s: %s"OSS_NEWLINE, e.fieldName(), "-" ) ;
+            ossPrintf( "   %-18.18s: %s" OSS_NEWLINE, e.fieldName(), "-" ) ;
          }
       }
    }
@@ -154,7 +154,7 @@ namespace engine
 
       if ( !showLong )
       {
-         ossPrintf( "%s(%s) (%s) %s"OSS_NEWLINE,
+         ossPrintf( "%s(%s) (%s) %s" OSS_NEWLINE,
                     utilDBTypeStr( (SDB_TYPE)node._type ),
                     node._svcname.c_str(), tmpPID,
                     utilDBRoleShortStr( (SDB_ROLE)node._role ) ) ;
@@ -233,7 +233,7 @@ namespace engine
                               stpConfPath ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error:Get STP config path failed: %d"OSS_NEWLINE,
+         ossPrintf( "Error:Get STP config path failed: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -247,7 +247,7 @@ namespace engine
                                        &isConfFileValid ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error:Get STP config file failed: %d"OSS_NEWLINE,
+         ossPrintf( "Error:Get STP config file failed: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -388,7 +388,7 @@ namespace engine
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {
-        ossPrintf( "Error:Get module self path failed: %d"OSS_NEWLINE, rc ) ;
+        ossPrintf( "Error:Get module self path failed: %d" OSS_NEWLINE, rc ) ;
         goto error ;
       }
 
@@ -407,7 +407,7 @@ namespace engine
       if ( showLong )
       {
          // print title
-         ossPrintf( "%s"OSS_NEWLINE, PMD_LIST_TITLE ) ;
+         ossPrintf( "%s" OSS_NEWLINE, PMD_LIST_TITLE ) ;
       }
       // print
       for ( UINT32 i = 0 ; i < listNodes.size() ; ++i )
@@ -416,7 +416,7 @@ namespace engine
          _printfAll( rootPath, listNodes[ i ], detail, expand, showLong ) ;
       }
 
-      ossPrintf ( "Total: %d"OSS_NEWLINE, total ) ;
+      ossPrintf ( "Total: %d" OSS_NEWLINE, total ) ;
 
    done :
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )

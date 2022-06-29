@@ -63,11 +63,11 @@ namespace engine
    #define STPSTOP_EXE_FILE_NAME    STPSTOP_NAME
 #elif defined (_WINDOWS)
    // name of executable file of STP
-   #define STP_EXE_FILE_NAME        STP_NAME".exe"
+   #define STP_EXE_FILE_NAME        STP_NAME ".exe"
    // name of executable file of stpstart
-   #define STPSTART_EXE_FILE_NAME   STPSTART_NAME".exe"
+   #define STPSTART_EXE_FILE_NAME   STPSTART_NAME ".exe"
    // name of executable file of stpstop
-   #define STPSTOP_EXE_FILE_NAME    STPSTOP_NAME".exe"
+   #define STPSTOP_EXE_FILE_NAME    STPSTOP_NAME ".exe"
 #endif
 
    // directory structure
@@ -81,15 +81,15 @@ namespace engine
    // name of stp directory
    #define STP_DIR_NAME             STP_NAME
    // name configure file of STP
-   #define STP_CFG_FILE_NAME        STP_NAME".conf"
+   #define STP_CFG_FILE_NAME        STP_NAME ".conf"
    // name of diagnostic log file of STP
-   #define STP_DIAGLOG_FILE_NAME    STP_NAME".log"
+   #define STP_DIAGLOG_FILE_NAME    STP_NAME ".log"
    // name of PID file of STP
-   #define STP_PID_FILE_NAME        STP_NAME".pid"
+   #define STP_PID_FILE_NAME        STP_NAME ".pid"
    // name of meta file of STP ( store meta LSN )
-   #define STP_META_FILE_NAME       STP_NAME".meta"
+   #define STP_META_FILE_NAME       STP_NAME ".meta"
    // name of sqlite database file of STP time mapping
-   #define STP_TIMEMAP_DB_FILE_NAME STP_NAME".timemap.db"
+   #define STP_TIMEMAP_DB_FILE_NAME STP_NAME ".timemap.db"
 
    // user and password for STP service sessions
    #define STP_USER                 "STP_ADMIN"

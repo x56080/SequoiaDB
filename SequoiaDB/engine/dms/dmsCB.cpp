@@ -2178,12 +2178,12 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR,
-                     "Failed to lock collection-space, rc:%d"OSS_NEWLINE
-                     "Conflict( representative ):"OSS_NEWLINE
-                     "   EDUID:  %llu"OSS_NEWLINE
-                     "   TID:    %u"OSS_NEWLINE
-                     "   LockId: %s"OSS_NEWLINE
-                     "   Mode:   %s"OSS_NEWLINE,
+                     "Failed to lock collection-space, rc:%d" OSS_NEWLINE
+                     "Conflict( representative ):" OSS_NEWLINE
+                     "   EDUID:  %llu" OSS_NEWLINE
+                     "   TID:    %u" OSS_NEWLINE
+                     "   LockId: %s" OSS_NEWLINE
+                     "   Mode:   %s" OSS_NEWLINE,
                      rc,
                      lockConflict._eduID,
                      lockConflict._tid,
@@ -2544,12 +2544,12 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR,
-                     "Failed to lock collection-space, rc:%d"OSS_NEWLINE
-                     "Conflict( representative ):"OSS_NEWLINE
-                     "   EDUID:  %llu"OSS_NEWLINE
-                     "   TID:    %u"OSS_NEWLINE
-                     "   LockId: %s"OSS_NEWLINE
-                     "   Mode:   %s"OSS_NEWLINE,
+                     "Failed to lock collection-space, rc:%d" OSS_NEWLINE
+                     "Conflict( representative ):" OSS_NEWLINE
+                     "   EDUID:  %llu" OSS_NEWLINE
+                     "   TID:    %u" OSS_NEWLINE
+                     "   LockId: %s" OSS_NEWLINE
+                     "   Mode:   %s" OSS_NEWLINE,
                      rc,
                      lockConflict._eduID,
                      lockConflict._tid,
@@ -3118,12 +3118,12 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR,
-                     "Failed to lock collection-space, rc:%d"OSS_NEWLINE
-                     "Conflict( representative ):"OSS_NEWLINE
-                     "   EDUID:  %llu"OSS_NEWLINE
-                     "   TID:    %u"OSS_NEWLINE
-                     "   LockId: %s"OSS_NEWLINE
-                     "   Mode:   %s"OSS_NEWLINE,
+                     "Failed to lock collection-space, rc:%d" OSS_NEWLINE
+                     "Conflict( representative ):" OSS_NEWLINE
+                     "   EDUID:  %llu" OSS_NEWLINE
+                     "   TID:    %u" OSS_NEWLINE
+                     "   LockId: %s" OSS_NEWLINE
+                     "   Mode:   %s" OSS_NEWLINE,
                      rc,
                      lockConflict._eduID,
                      lockConflict._tid,

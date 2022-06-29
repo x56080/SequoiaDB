@@ -667,7 +667,9 @@ if guess_os == "linux":
     lz4_lib = join(lz4_lib_dir, 'liblz4.a')
     snappy_lib = join(snappy_lib_dir, 'libsnappy.a')
     # rocksdb
+    rocksdbLibName = "rocksdb"
     if debugBuild :
+       rocksdbLibName = "rocksdb_debug"
        rocksdb_lib = join(rocksdb_lib_dir,'librocksdb_debug.a')
     else :
        rocksdb_lib = join(rocksdb_lib_dir,'librocksdb.a')
@@ -1042,6 +1044,7 @@ Export("rocksdb_lib_dir")
 Export("zstd_lib_dir")
 Export("bzip2_lib_dir")
 Export("sqlite_dir")
+Export("rocksdbLibName")
 
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
