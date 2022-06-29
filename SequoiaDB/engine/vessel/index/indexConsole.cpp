@@ -53,6 +53,7 @@
 #include "vessel/clIndexMbpIniter.h"
 #include "vessel/clIndexMbpAccessor.h"
 #include "vessel/clIndexMetaBlockPage.h"
+#include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndexExecutor.h"
 #include "vessel/btreeAccessor.h"
@@ -610,7 +611,7 @@ namespace vessel
       lsmIndexExecutor exec;
       lsmPureKeyEntry lsmEntry;
 
-      exec.init(lsmMeta);
+      exec.init(GET_INDEX_COLUMN_FAMILY(), lsmMeta);
 
       lsmEntry.set(key, rid, lsn);
       rc = exec.put(lsmEntry);
@@ -682,7 +683,7 @@ namespace vessel
       lsmIndexMeta meta(gid, obj->getDescription().getPattern().getOrdering());
       lsmIndexExecutor exec;
 
-      exec.init(meta);
+      exec.init(GET_INDEX_COLUMN_FAMILY(), meta);
 
       rc = exec.truncate();
       if (SDB_OK != rc)
@@ -902,7 +903,7 @@ namespace vessel
 
       lsmIndexWriteBatch batch;
       UINT32 size = ra.getSize();
-      batch.open();
+      GET_INDEX_COLUMN_FAMILY().openBatch(batch);
       for (UINT32 i = 0; i < size; ++i)
       {
          const dmlIndexRequest *ir = ra.get(i);

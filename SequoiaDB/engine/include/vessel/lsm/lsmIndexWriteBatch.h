@@ -44,14 +44,15 @@ namespace engine
 {
 namespace vessel
 {
-   class lsmIndexWriteBatch : public lsmColumnFamily::writeBatch
+   class lsmIndexWriteBatch : public lsmWriteBatch
    {
       public:
          lsmIndexWriteBatch() = default;
          ~lsmIndexWriteBatch() = default;
+         lsmIndexWriteBatch(const lsmIndexWriteBatch &) = delete;
+         lsmIndexWriteBatch &operator=(const lsmIndexWriteBatch &) = delete;
 
       public:
-         void open();
          INT32 put(const lsmIndexMeta &meta,
                    const lsmPureKeyEntry &key,
                    const lsmIndexValue &value);

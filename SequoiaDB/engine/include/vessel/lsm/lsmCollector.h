@@ -1,0 +1,119 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = lsmCollector.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          06/21/2022  ZHY  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+#ifndef VESSEL_LSM_COLLECTOR_H_
+#define VESSEL_LSM_COLLECTOR_H_
+
+#include "dpsDef.hpp"
+#include "oss.hpp"
+#include "rocksdb/table_properties.h"
+#include "vessel/globalIndexID.h"
+#include <memory>
+namespace engine
+{
+namespace vessel
+{
+   class lsmDummyCollector : public rocksdb::TablePropertiesCollector
+   {
+      virtual const CHAR *Name() const override
+      {
+         return "sdb.lsmDummyCollector";
+      }
+
+      virtual rocksdb::Status Finish(
+          rocksdb::UserCollectedProperties *properties) override
+      {
+         return rocksdb::Status::OK();
+      }
+
+      virtual rocksdb::UserCollectedProperties GetReadableProperties()
+          const override
+      {
+         return {};
+      }
+   };
+
+   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_LSN = "sdb_min_lsn";
+   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MAX_LSN = "sdb_max_lsn";
+   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID = "sdb_min_global_id";
+   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID = "sdb_max_global_id";
+
+   class lsmIndexPropertiesCollector : public rocksdb::TablePropertiesCollector
+   {
+   public:
+      virtual const CHAR *Name() const override
+      {
+         return "sdb.lsmIndexPropertiesCollector";
+      }
+
+      virtual rocksdb::Status AddUserKey(const rocksdb::Slice &key,
+                                         const rocksdb::Slice &value,
+                                         rocksdb::EntryType type,
+                                         rocksdb::SequenceNumber seq,
+                                         uint64_t file_size) override;
+
+      virtual rocksdb::Status Finish(
+          rocksdb::UserCollectedProperties *properties) override;
+
+      virtual rocksdb::UserCollectedProperties GetReadableProperties()
+          const override;
+
+   private:
+      DPS_LSN_OFFSET _extractLsnFromKey(const rocksdb::Slice &key) const;
+      void _extractIndexIdFromKey(const rocksdb::Slice &key, globalIndexID &globalID) const;
+
+   private:
+      DPS_LSN_OFFSET _minLsn = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET _maxLsn = DPS_INVALID_LSN_OFFSET;
+      globalIndexID _minGlobalID;
+      globalIndexID _maxGlobalID;
+   };
+
+   class lsmCollectorFactory : public rocksdb::TablePropertiesCollectorFactory
+   {
+   public:
+      virtual rocksdb::TablePropertiesCollector *CreateTablePropertiesCollector(
+          TablePropertiesCollectorFactory::Context context) override;
+
+      const char *Name() const override
+      {
+         return "sdb.lsmCollectorFactory";
+      }
+   };
+
+   extern std::shared_ptr<lsmCollectorFactory> newLsmCollectorFactory();
+} // namespace vessel
+} // namespace engine
+
+#endif // VESSEL_LSM_COLLECTOR_H_

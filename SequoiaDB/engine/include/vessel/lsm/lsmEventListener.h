@@ -16,9 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmDBDef.h
+   Source File Name = lsmEventListener.h
 
-   Descriptive Name = 
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -27,33 +27,46 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          04/20/2022  LYC  Initial Draft
+          06/21/2022  ZHY  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef VESSEL_LSM_DB_DEF_H_
-#define VESSEL_LSM_DB_DEF_H_
+#ifndef VESSEL_LSM_EVENT_LISTENER_H_
+#define VESSEL_LSM_EVENT_LISTENER_H_
 
-#include "oss.hpp"
+#include "ossTypes.h"
+#include "rocksdb/listener.h"
+#include "vessel/lsm/lsmDB.h"
+#include <memory>
+
 namespace engine
 {
 namespace vessel
 {
-   enum LSM_CF_ID
+   class lsmEventListener : public rocksdb::EventListener
    {
-      LSM_INVALID_CF_ID = -1,
-      LSM_DEFAULT_CF_ID = 0,
-      LSM_INDEX_CF_ID = 1,
-      LSM_LOB_CHUNK_CF_ID = 2,
-      LSM_MAX_CF_ID = LSM_LOB_CHUNK_CF_ID
+   public:
+      lsmEventListener() = delete;
+      virtual ~lsmEventListener() = default;
+      lsmEventListener(lsmDB *db);
+
+   public:
+      const CHAR *Name() const override
+      {
+         return "sdb.lsmEventListener";
+      }
+
+      virtual void OnTableFileCreated(
+          const rocksdb::TableFileCreationInfo &info) override;
+
+   private:
+      lsmDB *_db;
    };
 
-   // The first column family name must be 'default'.
-   constexpr CHAR *LSM_DEFAULT_CF_NAME = "default";
-   constexpr CHAR *LSM_INDEX_CF_NAME = "sdb.lsmIndex";
-   constexpr CHAR *LSM_LOB_CHUNK_CF_NAME = "sdb.lsmLobChunk";
+   extern std::shared_ptr<lsmEventListener> newLsmEventListener(lsmDB *db);
+
 } // namespace vessel
 } // namespace engine
 
-#endif // VESSEL_LSM_DB_DEF_H_
+#endif // VESSEL_LSM_EVENT_LISTENER_H_

@@ -1167,6 +1167,7 @@ namespace vessel
          goto error;
       }
 
+      _env.lsm->setJournal(_env.resource.journal);
       rc = _env.lsm->open(options.path.lsmPath.c_str());
       if (SDB_OK != rc)
       {
