@@ -392,11 +392,12 @@ namespace engine
    struct _dmsMBStatInfo
    {
       UINT64      _totalRecords ;
+      UINT32      _writePtrCount ;
       UINT32      _totalDataPages ;
       UINT32      _totalIndexPages ;
+      UINT32      _totalLobPages ;
       UINT64      _totalDataFreeSpace ;
       UINT64      _totalIndexFreeSpace ;
-      UINT32      _totalLobPages ;
       UINT64      _totalLobs ;
       UINT8       _uniqueIdxNum ;
       UINT8       _textIdxNum ;
@@ -444,6 +445,7 @@ namespace engine
       void reset()
       {
          _totalRecords           = 0 ;
+         _writePtrCount          = 0 ;
          _totalDataPages         = 0 ;
          _totalIndexPages        = 0 ;
          _totalDataFreeSpace     = 0 ;
@@ -1132,6 +1134,10 @@ namespace engine
 
          OSS_INLINE _dmsCompressorEntry *getCompressorEntry( UINT16 mbID ) ;
 
+         virtual void incWritePtrCount( INT32 collectionID ) ;
+
+         virtual void decWritePtrCount( INT32 collectionID ) ;
+
          /*
             Caller must hold the mbContext
          */
@@ -1272,7 +1278,8 @@ namespace engine
 
          virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                             BOOLEAN sync,
-                                            UINT64 lastTime ) ;
+                                            UINT64 lastTime,
+                                            BOOLEAN &setHeadCommFlgValid ) ;
 
          virtual INT32  _onMarkHeaderInvalid( INT32 collectionID ) ;
 
