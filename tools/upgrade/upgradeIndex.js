@@ -530,7 +530,9 @@ function checkMainCL( clName, shardingKey, subCLNameList )
          if ( clUnit.idxUnitList.length < 
               subCLUnitList[posOfLeastIdxCL].idxUnitList.length )
          {
-            posOfLeastIdxCL = i ;
+            // mark the position of the sub-collection with least
+            // number of indexes in subCLUnitList
+            posOfLeastIdxCL = subCLUnitList.length - 1 ;
          }
       }
       if ( subCLUnitList.length == subCLNameList.length )
