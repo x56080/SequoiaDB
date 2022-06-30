@@ -271,21 +271,30 @@ SDB_RESTORE_NOT_IN_
 T}@T{
 集群未开启恢复
 T}@T{
-执行 \f[C]db.| |||PROGRESS|模式|restorePrepare()\f[] 命
+执行 db.
+T}
+T{
+T}@T{
+T}@T{
+PROGRESS
+T}@T{
+模式
+T}@T{
+restorePrepare() 命令
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-令开启集群的还
+开启集群的还原
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-原模式
+模式
 T}
 T{
 3
