@@ -336,7 +336,8 @@ namespace engine
 
    INT32 _dmsStorageIndex::_onMarkHeaderValid( UINT64 &lastLSN,
                                                BOOLEAN sync,
-                                               UINT64 lastTime )
+                                               UINT64 lastTime,
+                                               BOOLEAN &setHeadCommFlgValid )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needFlush = FALSE ;
