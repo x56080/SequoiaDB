@@ -4202,7 +4202,8 @@ do                                                            \
    }
 
    INT32 _sdbCollectionImpl::getIndexStat ( const CHAR *pIndexName,
-                                            bson::BSONObj &result )
+                                            bson::BSONObj &result,
+                                            BOOLEAN detail )
    {
       INT32 rc = SDB_OK ;
       BSONObj hint ;
@@ -4219,11 +4220,15 @@ do                                                            \
          goto error ;
       }
 
-      // { Collection: 'cl', Index: 'idx' }
+      // { Collection: 'cl', Index: 'idx', $Options: { Detail: false } }
       {
          BSONObjBuilder builder( 128 ) ;
          builder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
          builder.append( FIELD_NAME_INDEX, pIndexName ) ;
+         BSONObjBuilder subBuilder(
+               builder.subobjStart( CMD_ADMIN_PREFIX FIELD_NAME_OPTIONS ) ) ;
+         subBuilder.appendBool( FIELD_NAME_DETAIL, detail ) ;
+         subBuilder.done() ;
          hint = builder.obj() ;
       }
 
