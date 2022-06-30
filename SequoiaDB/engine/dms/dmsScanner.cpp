@@ -2735,6 +2735,10 @@ namespace engine
                rc = matcher->matches( obj, result, mthContext, parameters ) ;
                if ( rc )
                {
+                  if ( SDB_IXM_ADVANCE_EOC == rc )
+                  {
+                     goto done ;
+                  }
                   PD_LOG( PDERROR, "Failed to match record, rc: %d", rc ) ;
                   goto error ;
                }
