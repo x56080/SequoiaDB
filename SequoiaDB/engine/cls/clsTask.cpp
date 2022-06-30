@@ -3077,6 +3077,7 @@ namespace engine
             INT32 resultCode = SDB_OK ;
             const CHAR* groupName = NULL ;
             const CHAR* detail = NULL ;
+            MAP_GROUP_INFO_IT it ;
 
             BSONElement ele = iter.next() ;
             PD_CHECK( ele.type() == Object, SDB_SYS, error,
@@ -3089,6 +3090,13 @@ namespace engine
                          "Failed to get field[%s] from obj[%s], rc: %d",
                          FIELD_NAME_GROUPNAME, obj.toString().c_str(), rc ) ;
 
+            // find the group from map
+            it = _mapGroupInfo.find( groupName ) ;
+            if ( it == _mapGroupInfo.end() )
+            {
+               continue ;
+            }
+
             rc = rtnGetIntElement( obj, FIELD_NAME_RESULTCODE, resultCode ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field[%s] from obj[%s], rc: %d",
@@ -3098,12 +3106,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field[%s] from obj[%s], rc: %d",
                          FIELD_NAME_DETAIL, obj.toString().c_str(), rc ) ;
-
-            // find the group from map
-            MAP_GROUP_INFO_IT it = _mapGroupInfo.find( groupName ) ;
-            PD_CHECK( it != _mapGroupInfo.end(), SDB_SYS, error, PDERROR,
-                      "Failed to find out group[%s] from task[%llu]",
-                      groupName, _taskID ) ;
 
             pGroup = &(it->second) ;
 
