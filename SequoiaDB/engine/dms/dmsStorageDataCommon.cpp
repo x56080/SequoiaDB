@@ -429,7 +429,6 @@ namespace engine
    {
    }
 
-
    _dmsRecordRW::~_dmsRecordRW()
    {
    }
@@ -1180,7 +1179,8 @@ namespace engine
 
    INT32 _dmsStorageDataCommon::_onMarkHeaderValid( UINT64 &lastLSN,
                                                     BOOLEAN sync,
-                                                    UINT64 lastTime )
+                                                    UINT64 lastTime,
+                                                    BOOLEAN &setHeadCommFlgValid )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needFlush = FALSE ;
@@ -1201,7 +1201,18 @@ namespace engine
             {
                _dmsMME->_mbList[i]._commitLSN = tmpLSN ;
                _dmsMME->_mbList[i]._commitTime = lastTime ;
-               _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
+
+               if ( _mbStatInfo[i]._writePtrCount > 0 && !isClosed() )
+               {
+                  // Don't set _dmsMME->_mbList[i]._commitFlag to 1
+                  // Don't set header commitFlag to 1
+                  // Because the current write op has not completed( _writePtrCount > 0 )
+                  setHeadCommFlgValid = FALSE ;
+               }
+               else
+               {
+                  _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
+               }
                needFlush = TRUE ;
             }
 
@@ -1272,6 +1283,22 @@ namespace engine
          rc = flushMME( isSyncDeep() ) ;
       }
       return rc ;
+   }
+
+   void _dmsStorageDataCommon::incWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         ++_mbStatInfo[ collectionID ]._writePtrCount ;
+      }
+   }
+
+   void _dmsStorageDataCommon::decWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         --_mbStatInfo[ collectionID ]._writePtrCount ;
+      }
    }
 
    UINT64 _dmsStorageDataCommon::_getOldestWriteTick() const

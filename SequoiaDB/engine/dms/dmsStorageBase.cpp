@@ -238,6 +238,7 @@ namespace engine
       _extentID = -1 ;
       _collectionID = -1 ;
       _attr = 0 ;
+      _hasIncWriteCount = FALSE ;
       _pBase = NULL ;
       _ptr   = ( ossValuePtr ) 0 ;
    }
@@ -246,9 +247,35 @@ namespace engine
    : _extentID( extRW._extentID ),
      _collectionID( extRW._collectionID ),
      _attr( extRW._attr ),
+     _hasIncWriteCount( FALSE ),
      _ptr( extRW._ptr ),
      _pBase( extRW._pBase )
    {
+      /*
+      If _hasIncWriteCount is FALSE, we must inc writePtrCount,
+      _pBase._mbStatInfo[collectionID]._writePtrCount.
+
+      If we don't inc writePtrCount, then the following problems will occur.
+      eg:
+      {
+         _dmsExtRW a ;
+         // now writePtrCount is 0, _hasIncWriteCount is TRUE
+         a.writePtr() ;
+         // now writePtrCount is 1, _hasIncWriteCount is FALSE
+         _dmsExtRW b( a ) ;
+         ...
+         ~a() ;
+         // now writePtrCount is 0
+         ~b() ;
+         // now writePtrCount is (UINT32)0 - 1
+      }
+      */
+
+      if ( extRW._hasIncWriteCount )
+      {
+         _pBase->incWritePtrCount( extRW._collectionID ) ;
+         _hasIncWriteCount = TRUE ;
+      }
    }
 
    _dmsExtRW::~_dmsExtRW()
@@ -256,6 +283,12 @@ namespace engine
       if ( _pBase && isDirty() )
       {
          _pBase->markDirty( _collectionID, _extentID, DMS_CHG_AFTER ) ;
+      }
+
+      if ( _hasIncWriteCount )
+      {
+         _pBase->decWritePtrCount( _collectionID ) ;
+         _hasIncWriteCount = FALSE ;
       }
    }
 
@@ -316,6 +349,11 @@ namespace engine
       }
       _markDirty() ;
       _pBase->markDirty( _collectionID, _extentID, DMS_CHG_BEFORE ) ;
+      if ( !_hasIncWriteCount )
+      {
+         _pBase->incWritePtrCount( _collectionID ) ;
+         _hasIncWriteCount = TRUE ;
+      }
       return ( CHAR* )_ptr + offset ;
    }
 
@@ -2210,6 +2248,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__MARKHEADEERVALID ) ;
+      BOOLEAN setHeadCommFlgValid = TRUE ;
 
       if ( _dmsHeader )
       {
@@ -2227,14 +2266,18 @@ namespace engine
             ossScopedLock lock( &_commitLatch ) ;
             if ( _commitFlag || force )
             {
-               _onMarkHeaderValid( lastLSN, sync, lastTime ) ;
+               _onMarkHeaderValid( lastLSN, sync, lastTime,
+                                   setHeadCommFlgValid ) ;
 
                tmpCommitFlag = _isCrash ? 0 : _commitFlag ;
                if ( hasFlushedData ||
                     tmpCommitFlag != _dmsHeader->_commitFlag ||
                     lastLSN != _dmsHeader->_commitLsn )
                {
-                  _dmsHeader->_commitFlag = tmpCommitFlag ;
+                  if ( setHeadCommFlgValid )
+                  {
+                     _dmsHeader->_commitFlag = tmpCommitFlag ;
+                  }
                   _dmsHeader->_commitLsn = lastLSN ;
                   _dmsHeader->_commitTime = lastTime ;
                   /// flush header

@@ -332,6 +332,7 @@ namespace engine
          INT32                _extentID ;
          INT32                _collectionID ;
          UINT32               _attr ;
+         BOOLEAN              _hasIncWriteCount ;
          ossValuePtr          _ptr ;
          _dmsStorageBase      *_pBase ;
    } ;
@@ -505,6 +506,16 @@ namespace engine
          virtual void  syncMemToMmap () {}
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
+         virtual void incWritePtrCount( INT32 collectionID )
+         {
+            return ;
+         }
+
+         virtual void decWritePtrCount( INT32 collectionID )
+         {
+            return ;
+         }
+
       private:
          void _resetInfoByName( const CHAR *csName ) ;
 
@@ -529,6 +540,7 @@ namespace engine
                                           UINT32 &numSeg,
                                           UINT64 &incFileSize,
                                           UINT32 &incPageNum ) ;
+
          /*
             For Persistence
          */
@@ -540,7 +552,8 @@ namespace engine
 
          virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                             BOOLEAN sync,
-                                            UINT64 lastTime )
+                                            UINT64 lastTime,
+                                            BOOLEAN &setHeadCommFlgValid )
          {
             return SDB_OK ;
          }

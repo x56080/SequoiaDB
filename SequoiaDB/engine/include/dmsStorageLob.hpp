@@ -240,7 +240,8 @@ namespace engine
 
       virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                          BOOLEAN sync,
-                                         UINT64 lastTime ) ;
+                                         UINT64 lastTime,
+                                         BOOLEAN &setHeadCommFlgValid ) ;
 
       virtual INT32  _onMarkHeaderInvalid( INT32 collectionID ) ;
 
