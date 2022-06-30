@@ -21,6 +21,15 @@
 |BSON(嵌套对象)|StructType|struct\<field:type,…\>|
 |array|ArrayType|array\<type\>|
 
+>**Note:**
+> 
+> 关于 SparkSQL 日期、Timestamp 类型取值范围：
+>
+> - DATE 类型取值范围为：0000-01-01 至 9999-12-31
+> - TIMESTAMP 类型取值范围为：0000-01-01 00:00:00.000000 至 9999-12-31 12:59:59.999999
+> 
+> 注意：SparkSQL 中 TIMESTAMP 类型取值范围大于 SequoiaDB 中 timestamp 类型取值范围（1902-01-01 00:00:00.000000 至 2037-12-31 23:59:59.999999），如果写入数据超出 SequoiaDB timestamp 类型取值范围则会发生溢出导致数据不准确。
+
 ##SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性##
 
 Y 表示兼容，N 表示不兼容

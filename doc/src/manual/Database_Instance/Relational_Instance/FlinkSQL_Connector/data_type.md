@@ -19,6 +19,17 @@
 |   binary            | BINARY/VARBINARY/BYTES  |
 |   null              |         不支持           |
 
+>**Note:**
+> 
+> 关于 FlinkSQL 日期、Timestamp 类型取值范围：
+>
+> - DATE 类型取值范围为：0000-01-01 至 9999-12-31
+> - TIMESTAMP_LTZ 类型取值范围为：0000-01-01 00:00:00.000000000 +14:59 至 9999-12-31 23:59:59.999999999 -14:59
+> - TIMESTAMP 类型取值范围为：0000-01-01 00:00:00.000000000 至 9999-12-31 12:59:59.999999999
+> 
+> 注意：Flink SQL 中 TIMESTAMP_LTZ/TIMESTAMP 类型取值范围大于 SequoiaDB 中 timestamp 类型取值范围（1902-01-01 00:00:00.000000 至 2037-12-31 23:59:59.999999），如果写入数据超出 SequoiaDB timestamp 类型取值范围则会发生溢出导致数据不准确。
+
+
 ##数据类型兼容表##
 
 |SequoiaDB\FlinkSQL|TINYINT|SMALLINT|INT|BIGINT|FLOAT|DOUBLE|DATE|TIMESTAMP_LTZ/TIMESTAMP|BOOLEAN|DECIMAL|CHAR/VARCHAR/STRING|BINARY/VARBINARY/BYTES|
