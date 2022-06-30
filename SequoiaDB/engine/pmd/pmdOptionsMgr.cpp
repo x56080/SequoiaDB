@@ -115,8 +115,8 @@ namespace engine
    #define PMD_RDX_WITH_ALIAS( formalName, aliasName, rdxFunc, pEX, ... ) \
       if ( pEX->isLoad() ) \
       { \
-         if ( pEX->isWhole() && (!pEX->hasField( formalName ) || \
-                                 !pEX->hasField( aliasName ) ) ) \
+         if ( pEX->isWhole() && ( !pEX->hasField( formalName ) || \
+                                  !pEX->hasField( aliasName ) ) ) \
          { \
             if ( !pEX->hasField( formalName ) ) \
             { \
@@ -129,20 +129,25 @@ namespace engine
          } \
          else \
          { \
+            if ( PMD_CFG_STEP_INIT == pEX->getCfgStep() && \
+                 !pEX->hasField( formalName ) && !pEX->hasField( aliasName ) ) \
+            { \
+               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
+            } \
             if ( pEX->hasField( aliasName ) ) \
             { \
-               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
+               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
             } \
             if ( pEX->hasField( formalName ) ) \
             { \
-               rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
+               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
             } \
          } \
       } \
       else \
       { \
-         rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
-         rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
+         rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
+         rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
       }
 
    /*
@@ -171,17 +176,17 @@ namespace engine
                                       BOOLEAN load,
                                       PMD_CFG_STEP step,
                                       UINT32 mask )
-      :_pMapKeyField( pMapField ), _pMapColdKeyField(pMapColdField),
-      _cfgStep( step ),  _isLoad( load ), _dataObj( dataObj ), _mask( mask )
-      {
-         _dataType   = PMD_CFG_DATA_BSON ;
-         _pVMFile    = NULL ;
-         _pVMCmd     = NULL ;
-         _isWhole    = FALSE ;
+   :_pMapKeyField( pMapField ), _pMapColdKeyField( pMapColdField ),
+   _cfgStep( step ),  _isLoad( load ), _dataObj( dataObj ), _mask( mask )
+   {
+      _dataType   = PMD_CFG_DATA_BSON ;
+      _pVMFile    = NULL ;
+      _pVMCmd     = NULL ;
+      _isWhole    = FALSE ;
 
-         SDB_ASSERT( _pMapKeyField, "Map key field can't be NULL" ) ;
-         SDB_ASSERT( _pMapColdKeyField, "Map cold key field can't be NULL" ) ;
-      }
+      SDB_ASSERT( _pMapKeyField, "Map key field can't be NULL" ) ;
+      SDB_ASSERT( _pMapColdKeyField, "Map cold key field can't be NULL" ) ;
+   }
 
    _pmdCfgExchange::_pmdCfgExchange( MAP_K2V *pMapField,
                                      po::variables_map *pVMCmd,
