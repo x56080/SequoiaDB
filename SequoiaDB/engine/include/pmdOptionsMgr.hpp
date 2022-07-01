@@ -282,6 +282,21 @@ namespace engine
          _pmdCfgRecord () ;
          virtual ~_pmdCfgRecord () ;
 
+      public:
+         struct controlParams : public SDBObject
+         {
+            BOOLEAN isForce ;
+            controlParams() 
+            : isForce( FALSE )
+            {
+            }
+            controlParams( BOOLEAN isForce ) 
+            : isForce( isForce )
+            {
+            }
+         } ;
+         
+      public:
          void  setConfigHandler( IConfigHandle *pConfigHandler ) ;
          IConfigHandle* getConfigHandler() const ;
 
@@ -296,6 +311,7 @@ namespace engine
 
          INT32 update( const bson::BSONObj &userConfig,
                        BOOLEAN setForRestore,
+                       const controlParams &cp,
                        bson::BSONObj &errorObj ) ;
 
          INT32 toBSON ( bson::BSONObj &objData,
@@ -334,10 +350,12 @@ namespace engine
                                 const CHAR *pValue,
                                 PMD_CFG_CHANGE changeLevel ) ;
          void  _purgeFieldMap( MAP_K2V &mapKeyField ) ;
-         INT32  _saveUpdateChange( MAP_K2V &mapKeyField,
-                                   MAP_K2V &mapColdKeyField,
-                                   BOOLEAN setForRestore,
-                                   bson::BSONObj &errorObj ) ;
+         BOOLEAN _shouldUpdateMKV( MAP_K2V &mapKeyField,
+                                   BOOLEAN isForce ) const ;
+         INT32 _saveUpdateChange( MAP_K2V &mapKeyField,
+                                  MAP_K2V &mapColdKeyField,
+                                  BOOLEAN setForRestore,
+                                  bson::BSONObj &errorObj ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;

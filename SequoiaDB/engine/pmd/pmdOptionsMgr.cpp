@@ -798,6 +798,7 @@ namespace engine
 
    INT32 _pmdCfgRecord::update( const BSONObj &userConfig,
                                 BOOLEAN setForRestore,
+                                const controlParams &cp,
                                 BSONObj &errorObj )
    {
       INT32 rc = SDB_OK ;
@@ -834,6 +835,12 @@ namespace engine
 
       /// make kv map
       ex.getKVMap() ;
+
+      if ( !_shouldUpdateMKV( mapKeyField, cp.isForce ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
       rc = _saveUpdateChange( mapKeyField, mapColdKeyField,
                               setForRestore, errorObj ) ;
@@ -1126,6 +1133,36 @@ done:
             ++itSelf ;
          }
       }
+   }
+
+   BOOLEAN _pmdCfgRecord::_shouldUpdateMKV( MAP_K2V &mapKeyField,
+                                            BOOLEAN isForce ) const
+   {
+      if ( !isForce )
+      {
+         MAP_K2V::iterator iter ;
+         for ( iter = mapKeyField.begin(); iter != mapKeyField.end(); ++iter )
+         {
+            if ( !iter->second._hasMapped )
+            {
+               #ifdef SDB_ENGINE
+               PD_LOG_MSG(
+                   PDERROR,
+                   "Error: config[%s] is not an official configuration, "
+                   "check its spelling or add Force:true to options.",
+                   iter->first.c_str() ) ;
+               #else
+               PD_LOG( 
+                   PDERROR,
+                   "Error: config[%s] is not an official configuration, "
+                   "check its spelling or add Force:true to options.",
+                   iter->first.c_str() ) ;
+               #endif
+               return FALSE ;
+            }
+         }
+      }
+      return TRUE ;
    }
 
    INT32 _pmdCfgRecord::_saveUpdateChange( MAP_K2V &mapKeyField,

@@ -1052,6 +1052,7 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
       private:
          BSONObj _newCfgObj ;
+         BOOLEAN _isForce ;
    } ;
 
    class _rtnDeleteConfig : public _configOprBase
@@ -1075,6 +1076,7 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
       private:
          BSONObj _newCfgObj ;
+         BOOLEAN _isForce ;
    } ;
 
    class _rtnTraceStart : public _rtnCommand

@@ -693,6 +693,7 @@
 #define FIELD_NAME_HOLDER_RELATED_GROUPID    "HolderRelatedGroupID"
 #define FIELD_NAME_WAITER_SESSIONID          "WaiterSessionID"
 #define FIELD_NAME_HOLDER_SESSIONID          "HolderSessionID"
+#define FIELD_NAME_FORCE                     "Force"
 
 /// strategy field begin
 #define FIELD_NAME_NICE                      "Nice"

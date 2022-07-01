@@ -2365,7 +2365,8 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnUpdateConfig)
 
-   _rtnUpdateConfig::_rtnUpdateConfig()
+   _rtnUpdateConfig::_rtnUpdateConfig() 
+   : _isForce( FALSE )
    {
    }
 
@@ -2394,6 +2395,7 @@ error:
       BSONObj options = BSONObj( pMatcherBuff ) ;
       BSONObj cfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
       _newCfgObj.getOwned() ;
+      _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
       BSONObjBuilder newObjBuilder ;
 
       try
@@ -2444,7 +2446,7 @@ error:
       BSONObj returnObj ;
       pmdOptionsCB tmpOptionsCB ;
       BSONObj userConfig ;
-
+      pmdCfgRecord::controlParams cp( _isForce ) ;
       // check config value validity
       rc = tmpOptionsCB.restore( _newCfgObj, NULL ) ;
       if ( rc )
@@ -2464,7 +2466,7 @@ error:
 
       rc = optCB->update( userConfig, FALSE, returnObj ) ;
       */
-      rc = optCB->update( _newCfgObj, FALSE, returnObj ) ;
+      rc = optCB->update( _newCfgObj, FALSE, cp, returnObj ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Update config[%s] failed, rc: %d",
@@ -2491,7 +2493,8 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDeleteConfig)
 
-   _rtnDeleteConfig::_rtnDeleteConfig()
+   _rtnDeleteConfig::_rtnDeleteConfig() 
+   : _isForce( TRUE )
    {
    }
 
@@ -2519,7 +2522,7 @@ error:
       BSONObj options = BSONObj( pMatcherBuff ) ;
       _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
       _newCfgObj.getOwned() ;
-
+      _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
       return SDB_OK ;
    }
 
@@ -2532,6 +2535,7 @@ error:
       BSONObj returnObj ;
       BSONObj currentConf ;
       BSONObjBuilder deleteConfBuilder ;
+      pmdCfgRecord::controlParams cp( TRUE ) ;
 
       rc = optCB->toBSON( currentConf, 0 ) ;
       if ( rc )
@@ -2560,7 +2564,7 @@ error:
          goto error ;
       }
 
-      rc = optCB->update( deleteConfBuilder.obj(), TRUE, returnObj ) ;
+      rc = optCB->update( deleteConfBuilder.obj(), TRUE, cp, returnObj ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Delete config[%s] failed, rc: %d",

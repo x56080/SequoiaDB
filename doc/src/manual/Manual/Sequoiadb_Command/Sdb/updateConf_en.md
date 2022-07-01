@@ -12,7 +12,7 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to update the specified node configuration. The configuration with the effective type of "online effective" will take effect immediately after the update; the configuration with the effective type of "restart effective" will take effect after restarting the node. For the effective type of each configuration can refer to [parameter description][parameter].
+This function is used to update the specified node configuration. The configuration with the effective type of "online effective" will take effect immediately after the update; the configuration with the effective type of "restart effective" will take effect after restarting the node. For the effective type of each configuration can refer to [parameter description][parameter]. If you need to set unofficial configuration, must set the `Force` option to `true`.
 
 ##PARAMETERS##
 
@@ -56,6 +56,14 @@ v2.9 and above
     Some configuration changes didn't take effect:
     Config 'numpreload' require(s) restart to take effect.
     ```
+
+- Forced to set unoffficial configuration.
+	```lang-javascript
+	// connect to coord
+	> db = new Sdb( "localhost", 11810 )
+	> db.updateConf( { aaa: 10 }, { Force: true } )
+	```
+
 
 [^_^]:
      Links
