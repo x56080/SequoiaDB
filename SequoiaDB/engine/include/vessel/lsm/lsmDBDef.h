@@ -46,13 +46,15 @@ namespace vessel
       LSM_DEFAULT_CF_ID = 0,
       LSM_INDEX_CF_ID = 1,
       LSM_LOB_CHUNK_CF_ID = 2,
-      LSM_MAX_CF_ID = LSM_LOB_CHUNK_CF_ID
+      LSM_INDEX_META_CF_ID = 3,
+      LSM_MAX_CF_ID = LSM_INDEX_META_CF_ID
    };
 
    // The first column family name must be 'default'.
    constexpr CHAR *LSM_DEFAULT_CF_NAME = "default";
    constexpr CHAR *LSM_INDEX_CF_NAME = "sdb.lsmIndex";
    constexpr CHAR *LSM_LOB_CHUNK_CF_NAME = "sdb.lsmLobChunk";
+   constexpr CHAR *LSM_INDEX_META_CF_NAME = "sdb.lsmIndexMeta";
 } // namespace vessel
 } // namespace engine
 
