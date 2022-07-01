@@ -147,6 +147,12 @@ namespace vessel
       return lsmColumnFamily(this, LSM_LOB_CHUNK_CF_ID);
    }
 
+   lsmColumnFamily lsmDB::getIdxMetaColumnFamily()
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      return lsmColumnFamily(this, LSM_INDEX_META_CF_ID);
+   }
+
    INT32 lsmDB::put(LSM_CF_ID id,
                     const rocksdb::Slice &key,
                     const rocksdb::Slice &value)
@@ -164,7 +170,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      
+
       s = _db->Put(_contexts[id]->getWriteOpt(),
                    _contexts[id]->getHandle(),
                    key, value);
@@ -509,17 +515,17 @@ namespace vessel
       goto done;
    }
 
-   rocksdb::ColumnFamilyDescriptor lsmDB::_getDescriptor(LSM_CF_ID type,
+   rocksdb::ColumnFamilyDescriptor lsmDB::_getDescriptor(LSM_CF_ID id,
                                                          const rocksdb::Options &opt)
    {
       std::string cfName;
       rocksdb::ColumnFamilyOptions cfOpt(opt);
 
-      if (LSM_DEFAULT_CF_ID == type)
+      if (LSM_DEFAULT_CF_ID == id)
       {
          cfName = LSM_DEFAULT_CF_NAME;
       }
-      if (LSM_INDEX_CF_ID == type)
+      if (LSM_INDEX_CF_ID == id)
       {
          cfName = LSM_INDEX_CF_NAME;
          cfOpt.comparator = lsmIdxKeyComparator();
@@ -527,10 +533,15 @@ namespace vessel
          cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
          ///TODO: prefix_extractor
       }
-      else if (LSM_LOB_CHUNK_CF_ID == type)
+      else if (LSM_LOB_CHUNK_CF_ID == id)
       {
          cfName = LSM_LOB_CHUNK_CF_NAME;
          cfOpt.comparator = lsmLobcKeyComparator();
+      }
+      else if (LSM_INDEX_META_CF_ID == id)
+      {
+         cfName = LSM_INDEX_META_CF_NAME;
+         cfOpt.write_buffer_size = 64 * 1024;
       }
 
       return rocksdb::ColumnFamilyDescriptor(cfName, cfOpt);
@@ -548,6 +559,13 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       return tc->getEnv()->lsm->getLobcColumnFamily();
+   }
+
+   lsmColumnFamily GET_INDEX_META_COLUMN_FAMILY()
+   {
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      return tc->getEnv()->lsm->getIdxMetaColumnFamily();
    }
 
 } // namespace vessel

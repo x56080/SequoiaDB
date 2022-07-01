@@ -64,6 +64,7 @@ namespace vessel
          BOOLEAN isOpen()const;
          lsmColumnFamily getIdxColumnFamily();
          lsmColumnFamily getLobcColumnFamily();
+         lsmColumnFamily getIdxMetaColumnFamily();
       
       public:
          INT32 put(LSM_CF_ID id,
@@ -107,7 +108,7 @@ namespace vessel
          void onFlush(DPS_LSN_OFFSET maxLsn);
 
       private:
-         rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID type,
+         rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID id,
                                                         const rocksdb::Options &opt);
 
          INT32 _flushDB();
@@ -122,6 +123,7 @@ namespace vessel
 
    extern lsmColumnFamily GET_INDEX_COLUMN_FAMILY();
    extern lsmColumnFamily GET_LOB_CHUNK_COLUMN_FAMILY();
+   extern lsmColumnFamily GET_INDEX_META_COLUMN_FAMILY();
 } // namespace vessel
 } // namespace engine
 
