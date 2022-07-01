@@ -1068,16 +1068,16 @@ UINT32 ossHexDumpBuffer
    UINT32     *   pBytesProcessed = NULL
 ) ;
 
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,   INT64 &availPhys,
-                         INT64 &totalPF,     INT64 &availPF,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
+                         INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual,
                          INT32 &overCommitMode,
                          INT64 &commitLimit,  INT64 &committedAS ) ;
 
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,   INT64 &availPhys,
-                         INT64 &totalPF,     INT64 &availPF,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
+                         INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual ) ;
 
 INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
@@ -1108,7 +1108,8 @@ INT32 ossReadlink ( const CHAR *pPath, CHAR *pLinkedPath, INT32 maxLen ) ;
 INT32 ossGetDiskIOStat ( const CHAR *pDriverName, ossDiskIOStat &ioStat ) ;
 
 INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
-                      SINT64 &idle, SINT64 &other ) ;
+                      SINT64 &idle, SINT64 &iowait,
+                      SINT64 &other ) ;
 
 typedef struct _ossProcMemInfo
 {

@@ -716,7 +716,8 @@ namespace engine
          SINT64 sys = 0 ;
          SINT64 idle = 0 ;
          SINT64 other = 0 ;
-         rc = ossGetCPUInfo( user, sys, idle, other ) ;
+         SINT64 iowait = 0 ;
+         rc = ossGetCPUInfo( user, sys, idle, iowait, other ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -724,6 +725,7 @@ namespace engine
          builder.appendNumber( CMD_USR_SYSTEM_USER, user ) ;
          builder.appendNumber( CMD_USR_SYSTEM_SYS, sys ) ;
          builder.appendNumber( CMD_USR_SYSTEM_IDLE, idle ) ;
+         builder.appendNumber( CMD_USR_SYSTEM_IOWAIT, iowait ) ;
          builder.appendNumber( CMD_USR_SYSTEM_OTHER, other ) ;
       }
       retObj = builder.obj() ;
@@ -780,8 +782,9 @@ namespace engine
          SINT64 user = 0 ;
          SINT64 sys = 0 ;
          SINT64 idle = 0 ;
+         SINT64 iowait = 0 ;
          SINT64 other = 0 ;
-         rc = ossGetCPUInfo( user, sys, idle, other ) ;
+         rc = ossGetCPUInfo( user, sys, idle, iowait, other ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -790,6 +793,7 @@ namespace engine
          builder.appendNumber( CMD_USR_SYSTEM_USER, user ) ;
          builder.appendNumber( CMD_USR_SYSTEM_SYS, sys ) ;
          builder.appendNumber( CMD_USR_SYSTEM_IDLE, idle ) ;
+         builder.appendNumber( CMD_USR_SYSTEM_IOWAIT, iowait ) ;
          builder.appendNumber( CMD_USR_SYSTEM_OTHER, other ) ;
       }
       retObj = builder.obj() ;
@@ -803,12 +807,13 @@ namespace engine
    INT32 _sptUsrSystemCommon::snapshotCpuInfo( string &err,
                                                BSONObj &retObj )
    {
-      INT32 rc     = SDB_OK ;
-      SINT64 user  = 0 ;
-      SINT64 sys   = 0 ;
-      SINT64 idle  = 0 ;
-      SINT64 other = 0 ;
-      rc = ossGetCPUInfo( user, sys, idle, other ) ;
+      INT32 rc      = SDB_OK ;
+      SINT64 user   = 0 ;
+      SINT64 sys    = 0 ;
+      SINT64 idle   = 0 ;
+      SINT64 iowait = 0 ;
+      SINT64 other  = 0 ;
+      rc = ossGetCPUInfo( user, sys, idle, iowait, other ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get cpuinfo:%d", rc ) ;
@@ -824,6 +829,7 @@ namespace engine
          builder.appendNumber( CMD_USR_SYSTEM_USER, user ) ;
          builder.appendNumber( CMD_USR_SYSTEM_SYS, sys ) ;
          builder.appendNumber( CMD_USR_SYSTEM_IDLE, idle ) ;
+         builder.appendNumber( CMD_USR_SYSTEM_IOWAIT, iowait ) ;
          builder.appendNumber( CMD_USR_SYSTEM_OTHER, other ) ;
 
          retObj = builder.obj() ;
@@ -853,14 +859,15 @@ namespace engine
       {
          INT32 loadPercent = 0 ;
          INT64 totalPhys = 0 ;
+         INT64 freePhys  = 0 ;
          INT64 availPhys = 0 ;
          INT64 totalPF = 0 ;
          INT64 availPF = 0 ;
          INT64 totalVirtual = 0 ;
          INT64 availVirtual = 0 ;
-         rc = ossGetMemoryInfo( loadPercent, totalPhys, availPhys,
-                                totalPF, availPF, totalVirtual,
-                                availVirtual ) ;
+         rc = ossGetMemoryInfo( loadPercent, totalPhys, freePhys,
+                                availPhys, totalPF, availPF,
+                                totalVirtual, availVirtual ) ;
          if ( rc )
          {
             stringstream ss ;
@@ -872,7 +879,8 @@ namespace engine
          builder.append( CMD_USR_SYSTEM_SIZE, (INT32)(totalPhys/CMD_MB_SIZE) ) ;
          builder.append( CMD_USR_SYSTEM_USED,
                          (INT32)((totalPhys-availPhys)/CMD_MB_SIZE) ) ;
-         builder.append( CMD_USR_SYSTEM_FREE,(INT32)(availPhys/CMD_MB_SIZE) ) ;
+         builder.append( CMD_USR_SYSTEM_FREE, (INT32)(freePhys/CMD_MB_SIZE) ) ;
+         builder.append( CMD_USR_SYSTEM_AVAILABLE, (INT32)(availPhys/CMD_MB_SIZE) ) ;
          builder.append( CMD_USR_SYSTEM_UNIT, "M" ) ;
          retObj = builder.obj() ;
          goto done ;

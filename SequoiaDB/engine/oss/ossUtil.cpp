@@ -1141,6 +1141,7 @@ exit :
 #define OSS_GET_MEM_INFO_OVERCOMMIT_FILE  "/proc/sys/vm/overcommit_memory"
 #define OSS_GET_MEM_INFO_MEMTOTAL         "MemTotal"
 #define OSS_GET_MEM_INFO_MEMFREE          "MemFree"
+#define OSS_GET_MEM_INFO_MEMAVAILABLE     "MemAvailable"
 #define OSS_GET_MEM_INFO_SWAPTOTAL        "SwapTotal"
 #define OSS_GET_MEM_INFO_SWAPFREE         "SwapFree"
 #define OSS_GET_MEM_INFO_COMMITLIM        "CommitLimit"
@@ -1150,8 +1151,8 @@ exit :
 #define OSS_GET_MEM_INFO_AMPLIFIER        1024LL
 #endif
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETMEMINFO, "ossGetMemoryInfo" )
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,    INT64 &availPhys,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
                          INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual,
                          INT32 &overCommitMode,
@@ -1178,6 +1179,7 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
       loadPercent  = statex.dwMemoryLoad ;
       totalPhys    = statex.ullTotalPhys ;
       availPhys    = statex.ullAvailPhys ;
+      freePhys     = availPhys ;
       totalPF      = statex.ullTotalPageFile ;
       availPF      = statex.ullAvailPageFile ;
       totalVirtual = statex.ullTotalVirtual ;
@@ -1208,6 +1210,7 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
    while ( fgets ( lineBuffer, OSS_PROC_PATH_LEN_MAX, fp ) &&
            ( totalPhys   == -1 ||
              availPhys   == -1 ||
+             freePhys    == -1 ||
              totalPF     == -1 ||
              availPF     == -1 ||
              commitLimit == -1 ||
@@ -1224,12 +1227,20 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
          totalPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
       }
       else if ( ossStrncmp ( lineBuffer,
+                             OSS_GET_MEM_INFO_MEMAVAILABLE,
+                             ossStrlen ( OSS_GET_MEM_INFO_MEMAVAILABLE ) ) == 0 )
+      {
+         sscanf ( &lineBuffer[ossStrlen ( OSS_GET_MEM_INFO_MEMAVAILABLE )+1],
+                  "%d", &inputNum ) ;
+         availPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
+      }
+      else if ( ossStrncmp ( lineBuffer,
                              OSS_GET_MEM_INFO_MEMFREE,
                              ossStrlen ( OSS_GET_MEM_INFO_MEMFREE ) ) == 0 )
       {
          sscanf ( &lineBuffer[ossStrlen ( OSS_GET_MEM_INFO_MEMFREE )+1],
                   "%d", &inputNum ) ;
-         availPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
+         freePhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
       }
       else if (  ossStrncmp ( lineBuffer,
                               OSS_GET_MEM_INFO_SWAPTOTAL,
@@ -1316,8 +1327,8 @@ error :
    goto done ;
 }
 
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,    INT64 &availPhys,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
                          INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual )
 {
@@ -1325,8 +1336,8 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
    INT64 commitLimit = 0 ;
    INT64 committedAS = 0 ;
 
-   return ossGetMemoryInfo ( loadPercent,
-                             totalPhys, availPhys,
+   return ossGetMemoryInfo ( loadPercent, totalPhys,
+                             freePhys, availPhys,
                              totalPF, availPF,
                              totalVirtual, availVirtual,
                              overCommitMode,
@@ -1812,7 +1823,8 @@ typedef NTSTATUS (__stdcall *NTQUERYSYSTEMINFORMATION)
 // output is based on milliseconds
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETCPUINFO, "ossGetCPUInfo" )
 INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
-                      SINT64 &idle, SINT64 &other )
+                      SINT64 &idle, SINT64 &iowait,
+                      SINT64 &other )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSGETCPUINFO );
@@ -1833,6 +1845,7 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
    // sys time also includes idle time
    sys -= idle ;
    user /= 10000 ;
+   iowait = 0 ;
 #elif defined (_LINUX) || defined (_AIX)
    CHAR pathName [ OSS_PROC_PATH_LEN_MAX + 1 ] = { 0 } ;
    CHAR buffer [ OSS_PROC_PATH_LEN_MAX + 1 ] = { 0 } ;
@@ -1882,7 +1895,9 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
              ( ( userTime + nicedTime ) % clkTck ) * numMicrosecPerClkTck/1000;
       idle = idleTime / clkTck * 1000 +
              ( idleTime % clkTck ) * numMicrosecPerClkTck / 1000 ;
-      otherTime = ( waitTime + irqTime + softirqTime ) ;
+      iowait = waitTime / clkTck * 1000 +
+             ( waitTime % clkTck ) * numMicrosecPerClkTck / 1000 ;
+      otherTime = ( irqTime + softirqTime ) ;
       other = otherTime / clkTck * 1000 +
               ( otherTime % clkTck ) * numMicrosecPerClkTck / 1000 ;
       fclose ( fp ) ;
