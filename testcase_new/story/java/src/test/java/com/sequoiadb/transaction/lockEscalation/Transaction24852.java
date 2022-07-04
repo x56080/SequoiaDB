@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
  * @Author Yang Qincheng
  * @Date 2021.12.13
  */
-@Test( groups = "lockEscalation" )
+@Test(groups = "lockEscalation")
 public class Transaction24852 extends SdbTestBase {
     private Sequoiadb db;
     private final String clName = "cl_24852";
@@ -48,15 +48,21 @@ public class Transaction24852 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" ) ) {
-                DBCollection cl = db.getCollectionSpace( csName ).getCollection( clName );
+            try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" )) {
+                DBCollection cl = db.getCollectionSpace( csName )
+                        .getCollection( clName );
                 for ( int i = 0; i < cycleNum; i++ ) {
                     try {
                         cl.truncate();
                     } catch ( BaseException e ) {
-                        if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE.getErrorCode() ) {
+                        if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode()
+                                || e.getErrorCode() == SDBError.SDB_LOCK_FAILED
+                                        .getErrorCode() ) {
                             break;
-                        } else if ( e.getErrorCode() == SDBError.SDB_DMS_TRUNCATED.getErrorCode() ) {
+                        } else if ( e
+                                .getErrorCode() == SDBError.SDB_DMS_TRUNCATED
+                                        .getErrorCode() ) {
                             continue;
                         }
                         throw e;
