@@ -50,7 +50,6 @@ namespace CSharp.Transaction
 
             //设置config和事务隔离级别为RU，超时时间为120秒
             BsonDocument config = new BsonDocument();
-            config.Add("PreferedInstance", "A");
             option = new BsonDocument();
             config.Add("transisolation", 0);
             config.Add("transactiontimeout", 120);
@@ -81,12 +80,10 @@ namespace CSharp.Transaction
         {
             //还原配置项
             BsonDocument config = new BsonDocument();
-            config.Add("PreferedInstance", "M");
             BsonDocument option = new BsonDocument();
             config.Add("transisolation", 1);
             config.Add("transactiontimeout", 60);
-            option.Add("Global", true);
-            sdb.UpdateConfig(config, option);
+            sdb.DeleteConfig(config, option);
             if (sdb != null)
             {
                 sdb.Disconnect();
