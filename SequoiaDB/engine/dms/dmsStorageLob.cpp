@@ -2149,6 +2149,22 @@ namespace engine
       return rc ;
    }
 
+   void _dmsStorageLob::incWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         ++_dmsData->_mbStatInfo[ collectionID ]._writePtrCount ;
+      }
+   }
+
+   void _dmsStorageLob::decWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         --_dmsData->_mbStatInfo[ collectionID ]._writePtrCount ;
+      }
+   }
+
    INT32 _dmsStorageLob::_onMarkHeaderValid( UINT64 &lastLSN,
                                              BOOLEAN sync,
                                              UINT64 lastTime,
@@ -2173,7 +2189,15 @@ namespace engine
             {
                _dmsData->_dmsMME->_mbList[i]._lobCommitLSN = tmpLSN ;
                _dmsData->_dmsMME->_mbList[i]._lobCommitTime = lastTime ;
-               _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = tmpCommitFlag ;
+
+               if ( _dmsData->_mbStatInfo[i]._writePtrCount > 0 && !isClosed() )
+               {
+                  setHeadCommFlgValid = FALSE ;
+               }
+               else
+               {
+                  _dmsData->_dmsMME->_mbList[i]._lobCommitFlag = tmpCommitFlag ;
+               }
                needFlush = TRUE ;
             }
 
