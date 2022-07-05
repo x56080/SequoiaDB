@@ -246,7 +246,16 @@ namespace engine
             PD_LOG_MSG_CHECK( SDB_OK == rc, rc, error, PDERROR,
                               "Failed to parse recycle item name [%s], "
                               "rc: %d", _recycleItemName, rc ) ;
+
+            BSONElement e1  = _options.getField(  FIELD_NAME_RECURSIVE ) ;
+            PD_CHECK( Bool == e1.type() || EOO == e1.type(), SDB_INVALIDARG, 
+                      error, PDERROR, "Failed to parse message, failed to "
+                      "get field [%s] from options", FIELD_NAME_RECURSIVE ) ;
          }
+         BSONElement e2 = _options.getField( FIELD_NAME_ASYNC ) ;
+         PD_CHECK( Bool == e2.type() || EOO == e2.type(), SDB_INVALIDARG, 
+                   error, PDERROR, "Failed to parse message, failed to "
+                   "get field [%s] from options", FIELD_NAME_ASYNC ) ;
       }
       catch ( exception &e )
       {
