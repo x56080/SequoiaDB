@@ -687,7 +687,7 @@ function getACoordAddr()
  * @return null
  *
  */
-function checkSequoiadbConf( aNodeConf, line )
+function checkSequoiadbConf( aNodeConf, line, isRepeatAddr )
 {
    var dbRole      = aNodeConf[0] ;
    var groupName   = aNodeConf[1] ;
@@ -701,6 +701,14 @@ function checkSequoiadbConf( aNodeConf, line )
    {
       println( "Invalid configure file[sequoiadb.conf], line[" + line +
                "]: wrong role" ) ;
+      throw "ERROR" ;
+   }
+
+   // check hostName + serviceName is repeat
+   if ( isRepeatAddr.indexOf( hostname + serviceName ) !== -1 )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+          "]: repeated hostName:serviceName" ) ;
       throw "ERROR" ;
    }
 
@@ -806,6 +814,7 @@ function getSequoiadbConf( replaceInstallPath )
    // loop each line
    var nodesConf = [] ;
    var iLine = 1 ;
+   var isRepeatAddr = [] ;
    while( true )
    {
       var aLine ;
@@ -830,7 +839,9 @@ function getSequoiadbConf( replaceInstallPath )
 
       var aNode = aLine.split( "," ) ;
 
-      checkSequoiadbConf( aNode, iLine ) ;
+      checkSequoiadbConf( aNode, iLine, isRepeatAddr ) ;
+      isRepeatAddr.push( aNode[2] + aNode[3] ) ;
+      iLine++ ;
 
       // replace 'localhost' to real hostname
       aNode[2] = aNode[2].replace( /localhost/g, MY_HOSTNAME ) ;
