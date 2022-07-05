@@ -2949,6 +2949,7 @@ namespace engine
       UINT32 len = 0 ;
       CHAR *pBuff = NULL ;
       UINT32 offset = 0 ;
+      UINT32 dirtyStart = 0 ;
       UINT32 lastLen = 0 ;
       BOOLEAN hasSync = FALSE ;
       BOOLEAN myBlkLock = FALSE ;
@@ -2960,7 +2961,6 @@ namespace engine
          myBlkLock = TRUE ;
       }
 
-      lastLen = pPage->dirtyLength() ;
       if ( !pPage->isDirty() )
       {
          goto done ;
@@ -2987,7 +2987,12 @@ namespace engine
          }
       }
 
-      /// clear the dirty
+      /// save dirty info first
+      dirtyStart = pPage->dirtyStart() ;
+      lastLen = pPage->dirtyLength() ;
+
+      /// clear the dirty, so writes on the same page won't
+      /// lost during sync
       hasSync = TRUE ;
       pPage->clearDirty() ;
       decDirtyPages( pBucket ) ;
@@ -3016,15 +3021,15 @@ namespace engine
          pos = pPage->beginBlock() ;
          while( NULL != ( pBuff = pPage->nextBlock( len, pos ) ) )
          {
-            if ( pPage->dirtyStart() > offset + len )
+            if ( dirtyStart > offset + len )
             {
                offset += len ;
                lastLen -= len ;
                continue ;
             }
-            else if ( pPage->dirtyStart() > offset )
+            else if ( dirtyStart > offset )
             {
-               UINT32 pageOffset = pPage->dirtyStart() - offset ;
+               UINT32 pageOffset = dirtyStart - offset ;
                pBuff += pageOffset ;
                lastLen -= pageOffset ;
                offset += pageOffset ;
