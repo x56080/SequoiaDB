@@ -2,8 +2,8 @@
  * @Description   : seqDB-22894:设置会话属性访问数据源，其中数据源配置会话属性不同
  * @Author        : Wu Yan
  * @CreateTime    : 2021.05.06
- * @LastEditTime  : 2021.06.07
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.07.05
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -17,8 +17,8 @@ function test ()
    var csName = "DS_22894";
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
-   commCreateCS( datasrcDB, srcCSName );  
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 } , ReplSize: -1} );
+   commCreateCS( datasrcDB, srcCSName );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1 } );
    var groupNames = commGetCLGroups( datasrcDB, srcCSName + "." + clName );
    var groupName = groupNames[0];
 
@@ -34,19 +34,19 @@ function test ()
    try
    {
       var instanceidConf = 200;
-      updateConf( datasrcDB, { instanceid: instanceid, PreferedInstance: instanceidConf }, { NodeName: node.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      updateConf( datasrcDB, { instanceid: instanceid, preferedinstance: instanceidConf }, { NodeName: node.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
       node.stop();
       node.start();
       commCheckBusinessStatus( datasrcDB );
       datasrcDB.invalidateCache();
 
       var options = { PreferedInstance: instanceid };
-      var expAccessNodes = [ node.toString() ];
+      var expAccessNodes = [node.toString()];
       checkAccessNodes( dbcl, expAccessNodes, options );
    }
    finally
    {
-      deleteConf( datasrcDB, { instanceid: 1, PreferedInstance: 1 }, { NodeName: node.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1, preferedinstance: 1 }, { NodeName: node.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
       node.stop();
       node.start();
       commCheckBusinessStatus( datasrcDB );
