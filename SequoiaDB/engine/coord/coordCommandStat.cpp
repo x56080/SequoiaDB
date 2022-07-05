@@ -684,6 +684,10 @@ namespace engine
          UINT64         _sampleRecords ;
          UINT64         _totalRecords ;
          _coordMCVList  _mcvList ;
+         // Here maintains a counter instead of using std::list::size().
+         // Because the low version(<=4.3) std::list::size() iterates all nodes
+         // to get this size. That is quite slow!
+         UINT32         _mcvListSize ;
          BOOLEAN        _hasMCV ;
          UINT32         _mcvSampleRecords ;
    } ;
@@ -700,6 +704,7 @@ namespace engine
       _undefRecords = 0 ;
       _sampleRecords = 0 ;
       _totalRecords = 0 ;
+      _mcvListSize = 0 ;
       _hasMCV = FALSE ;
       _mcvSampleRecords = 0 ;
    }
@@ -857,6 +862,7 @@ namespace engine
                      UINT32 records = floor( recInDouble + 0.5 ) ;
                      _coordValRecPair pair( value, records ) ;
                      _mcvList.push_back( pair ) ;
+                     ++_mcvListSize ;
                   }
 
                   _hasMCV = TRUE ;
@@ -1066,6 +1072,7 @@ namespace engine
                else // cmp > 0
                {
                   to._mcvList.insert( toMCVIt, *fromMCVIt ) ;
+                  ++to._mcvListSize ;
                   ++fromMCVIt ;
                }
             }
@@ -1075,6 +1082,7 @@ namespace engine
                while ( fromMCVIt != from._mcvList.end() )
                {
                   to._mcvList.push_back( *fromMCVIt ) ;
+                  ++to._mcvListSize ;
                   ++fromMCVIt ;
                }
             }
@@ -1111,7 +1119,7 @@ namespace engine
          BSONObj *pLastValue = NULL ;
 
          _coordFrac2DupsMap topFracMap ;
-         UINT32 finalMCVSize = OSS_MIN( _mcvList.size(), MCV_SIZE_LIMIT ) ;
+         UINT32 finalMCVSize = OSS_MIN( _mcvListSize, MCV_SIZE_LIMIT ) ;
          UINT32 minFracRec = 0 ;
 
          if ( _mcvList.empty() )
@@ -1209,7 +1217,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       try
       {
-         if ( _mcvList.size() <= finalMCVSize )
+         if ( _mcvListSize <= finalMCVSize )
          {
             goto done ;
          }
@@ -1260,7 +1268,7 @@ namespace engine
          UINT32 currSize = 0 ;
          ossPoolList< _coordValRecPair >::iterator mcvIt ;
 
-         if ( _mcvList.size() <= finalMCVSize )
+         if ( _mcvListSize  <= finalMCVSize )
          {
             goto done ;
          }
@@ -1288,7 +1296,7 @@ namespace engine
             mcvIt = _mcvList.begin() ;
             INT32 i = 0 ;
             while ( mcvIt != _mcvList.end() &&
-                    _mcvList.size() > finalMCVSize )
+                    _mcvListSize > finalMCVSize )
             {
                UINT32 fracRec = mcvIt->second ;
                BOOLEAN shouldCut = FALSE ;
@@ -1313,6 +1321,7 @@ namespace engine
                if ( shouldCut )
                {
                   mcvIt = _mcvList.erase( mcvIt ) ;
+                  --_mcvListSize ;
                }
                else
                {
