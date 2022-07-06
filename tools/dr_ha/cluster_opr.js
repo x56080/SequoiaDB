@@ -1307,44 +1307,45 @@ function prepareEnv( filename, keepHosts ) {
 ***************************************************************************** */
 function splitCluster( cataAddrs, keepHosts, active ) {
    var newAddrLine = makeAddrLineWithKeepHosts( CATAADDRLINE, keepHosts ) ;
-   for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
-      /* 1. Change catalog to standalone */
-      if ( change2Standalone( cataAddrs[ i ] ) ) {
-         println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
-      } else {
-         println( "Change " + cataAddrs[ i ] + " to standalone failed"  ) ;
-         return false ;
-      }
-      /* 2. Update catalog groups info (kick the hosts) */
-      if ( updateGroupsInCatalog( cataAddrs[i], keepHosts ) ) {
-         println( "Update " + cataAddrs[ i ] + " catalog's info succeed"  ) ;
-      } else {
-         println( "Update " + cataAddrs[ i ] + " catalog's info failed"  ) ;
-         return false ;
-      }
-      /* 3. Update catalog datacenter readonly property */
-      if ( updateDCInfoInCatalog( cataAddrs[i], newAddrLine, active ) ) {
-         println( "Update " + cataAddrs[i] + " catalog's readonly property succeed" ) ;
-      } else {
-         println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
-         return false ;
-      }
-      /* 4. Restore to catalog */
-      if ( change2Catalog( cataAddrs[ i ] ) ) {
-         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
-      } else {
-         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
-         return false ;
-      }
-   }
 
-   /* 5. Update all node's addr--kick host */
+   /* 1. Update all node's addr--kick host */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
       println( "Update all nodes' catalogaddr to " + newAddrLine + " succeed" ) ;
    } else {
       println( "Update all nodes' catalogaddr to " + newAddrLine + " failed" ) ;
       return false ;
+   }
+
+   for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
+      /* 2. Change catalog to standalone */
+      if ( change2Standalone( cataAddrs[ i ] ) ) {
+         println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
+      } else {
+         println( "Change " + cataAddrs[ i ] + " to standalone failed"  ) ;
+         return false ;
+      }
+      /* 3. Update catalog groups info (kick the hosts) */
+      if ( updateGroupsInCatalog( cataAddrs[i], keepHosts ) ) {
+         println( "Update " + cataAddrs[ i ] + " catalog's info succeed"  ) ;
+      } else {
+         println( "Update " + cataAddrs[ i ] + " catalog's info failed"  ) ;
+         return false ;
+      }
+      /* 4. Update catalog datacenter readonly property */
+      if ( updateDCInfoInCatalog( cataAddrs[i], newAddrLine, active ) ) {
+         println( "Update " + cataAddrs[i] + " catalog's readonly property succeed" ) ;
+      } else {
+         println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
+         return false ;
+      }
+      /* 5. Restore to catalog */
+      if ( change2Catalog( cataAddrs[ i ] ) ) {
+         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
+      } else {
+         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
+         return false ;
+      }
    }
 
    /* 6. Restart all keepHosts's nodes */
