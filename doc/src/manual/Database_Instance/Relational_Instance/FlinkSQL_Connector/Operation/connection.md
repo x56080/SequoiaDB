@@ -32,7 +32,7 @@ Flink 与 SequoiaDB 通过映射表进行数据交互。
 2. 在 Flink 中创建映射表 employee，映射对象为协调节点 `sdbserver1:11810` 所在集群的集合 sample.employee
 
    ```lang-sql
-   Flink SQL> CREATE TABLE employee (id INT, name STRING, age INT)
+   Flink SQL> CREATE TABLE employee (id INT PRIMARY KEY, name STRING, age INT)
    WITH (
     'connector' = 'sequoiadb',
     'hosts' = 'sdbserver1:11810',
