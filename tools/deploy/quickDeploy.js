@@ -684,10 +684,11 @@ function getACoordAddr()
  *
  * @param  aNodeConf   sequoiadb node configuration
  * @param  line        number of rows for aNodeConf in the conf file
+ * @Param  sdbAddrList check for repeat hostName:serviceName in conf file
  * @return null
  *
  */
-function checkSequoiadbConf( aNodeConf, line, isRepeatAddr )
+function checkSequoiadbConf( aNodeConf, line, sdbAddrList )
 {
    var dbRole      = aNodeConf[0] ;
    var groupName   = aNodeConf[1] ;
@@ -701,14 +702,6 @@ function checkSequoiadbConf( aNodeConf, line, isRepeatAddr )
    {
       println( "Invalid configure file[sequoiadb.conf], line[" + line +
                "]: wrong role" ) ;
-      throw "ERROR" ;
-   }
-
-   // check hostName + serviceName is repeat
-   if ( isRepeatAddr.indexOf( hostname + serviceName ) !== -1 )
-   {
-      println( "Invalid configure file[sequoiadb.conf], line[" + line +
-          "]: repeated hostName:serviceName" ) ;
       throw "ERROR" ;
    }
 
@@ -766,6 +759,14 @@ function checkSequoiadbConf( aNodeConf, line, isRepeatAddr )
       }
    }
 
+   // check hostName + serviceName is repeat
+   if ( sdbAddrList.indexOf( hostname + ":" + serviceName ) !== -1 )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+          "]: repeated hostName:serviceName" ) ;
+      throw "ERROR" ;
+   }
+
    // check dbPath
    if ( "undefined" == typeof( dbPath ) )
    {
@@ -814,7 +815,7 @@ function getSequoiadbConf( replaceInstallPath )
    // loop each line
    var nodesConf = [] ;
    var iLine = 1 ;
-   var isRepeatAddr = [] ;
+   var sdbAddrList = [] ;
    while( true )
    {
       var aLine ;
@@ -839,8 +840,8 @@ function getSequoiadbConf( replaceInstallPath )
 
       var aNode = aLine.split( "," ) ;
 
-      checkSequoiadbConf( aNode, iLine, isRepeatAddr ) ;
-      isRepeatAddr.push( aNode[2] + aNode[3] ) ;
+      checkSequoiadbConf( aNode, iLine, sdbAddrList ) ;
+      sdbAddrList.push( aNode[2] + ":" + aNode[3] ) ;
       iLine++ ;
 
       // replace 'localhost' to real hostname
