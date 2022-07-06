@@ -2397,6 +2397,7 @@ error:
       _newCfgObj.getOwned() ;
       _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
       BSONObjBuilder newObjBuilder ;
+      CHAR *lowerFieldName = NULL ;
 
       try
       {
@@ -2404,13 +2405,19 @@ error:
          while ( iter.more() )
          {
             BSONElement ele = iter.next() ;
+            const CHAR *srcFieldName = ele.fieldName() ;
+            INT32 rc = utilStrToLower( srcFieldName, lowerFieldName ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
             if ( ele.isNumber() || String == ele.type() )
             {
-               newObjBuilder.append( ele ) ;
+               newObjBuilder.appendAs( ele, lowerFieldName ) ;
             }
             else if ( Bool == ele.type() )
             {
-               newObjBuilder.append( ele.fieldName(), ele.Bool() ?
+               newObjBuilder.append( lowerFieldName, ele.Bool() ?
                                      "TRUE" : "FALSE" ) ;
             }
             else
@@ -2421,20 +2428,33 @@ error:
                rc = SDB_INVALIDARG ;
                goto error ;
             }
+
+            if ( NULL != lowerFieldName )
+            {
+               SDB_OSS_FREE( lowerFieldName ) ;
+               lowerFieldName = NULL ;
+            }
          }
       }
       catch ( std::exception &e )
       {
          PD_LOG( PDWARNING, "Exception during updateConf init: %s",
                  e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
       _newCfgObj = newObjBuilder.obj() ;
 
-      done:
-         return rc ;
-      error:
-         goto done ;
+   done:
+      if ( NULL != lowerFieldName )
+      {
+         SDB_OSS_FREE( lowerFieldName ) ;
+         lowerFieldName = NULL ;
+      }
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _rtnUpdateConfig::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,

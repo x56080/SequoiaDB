@@ -94,6 +94,8 @@ namespace engine
 
    INT32 utilStrToUpper( const CHAR *src, CHAR *&upper ) ;
 
+   INT32 utilStrToLower( const CHAR *src, CHAR *&lower ) ;
+
    BOOLEAN utilStrIsDigit( const string& str ) ;
 
    BOOLEAN utilStrIsDigit( const char *str ) ;
