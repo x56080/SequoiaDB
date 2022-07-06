@@ -514,6 +514,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION_PARSE ) ;
       INT32 rc = SDB_OK ;
+      CHAR *pFuncName = NULL;
       _qgmAggrSelector selector ;
       if ( SQL_GRAMMAR::FUNC == field.type )
       {
@@ -529,7 +530,6 @@ namespace engine
          }
 
          isFunc = TRUE ;
-         CHAR *pFuncName = NULL;
          rc = utilStrToUpper( field.value.attr().begin(), pFuncName ) ;
          if ( SDB_OK != rc )
          {
@@ -555,6 +555,11 @@ namespace engine
 
       _selector.push_back( selector ) ;
    done:
+      if ( NULL != pFuncName )
+      {
+         SDB_OSS_FREE( pFuncName ) ;
+         pFuncName = NULL ;
+      }
       PD_TRACE_EXITRC( SDB__QGMOPTIAGGREGATION_PARSE, rc ) ;
       return rc ;
    error:
