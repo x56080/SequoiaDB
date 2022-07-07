@@ -1,5 +1,6 @@
 ﻿import( "../lib/main.js" );
 import( "../lib/lobSubCL_commlib.js" );
+import( "../lib/basic_operation/commlib.js" );
 /******************************************************************************
  用例IP配置说明：datasrcIp 是用 runtest.sh 传入
  如需运行全部用例需要进行如下配置并放开用例中main()的注释：datasrcIp 和 datasrcIp1 是同一集群的不同IP
