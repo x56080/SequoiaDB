@@ -684,11 +684,11 @@ function getACoordAddr()
  *
  * @param  aNodeConf   sequoiadb node configuration
  * @param  line        number of rows for aNodeConf in the conf file
- * @Param  sdbAddrList check for repeat hostName:serviceName in conf file
+ * @Param  nodeNameList check for repeat hostName:serviceName in conf file
  * @return null
  *
  */
-function checkSequoiadbConf( aNodeConf, line, sdbAddrList )
+function checkSequoiadbConf( aNodeConf, line, nodeNameList )
 {
    var dbRole      = aNodeConf[0] ;
    var groupName   = aNodeConf[1] ;
@@ -760,7 +760,7 @@ function checkSequoiadbConf( aNodeConf, line, sdbAddrList )
    }
 
    // check hostName + serviceName is repeat
-   if ( sdbAddrList.indexOf( hostname + ":" + serviceName ) !== -1 )
+   if ( nodeNameList.indexOf( hostname + ":" + serviceName ) !== -1 )
    {
       println( "Invalid configure file[sequoiadb.conf], line[" + line +
           "]: repeated hostName:serviceName" ) ;
@@ -815,7 +815,7 @@ function getSequoiadbConf( replaceInstallPath )
    // loop each line
    var nodesConf = [] ;
    var iLine = 1 ;
-   var sdbAddrList = [] ;
+   var nodeNameList = [] ;
    while( true )
    {
       var aLine ;
@@ -840,8 +840,8 @@ function getSequoiadbConf( replaceInstallPath )
 
       var aNode = aLine.split( "," ) ;
 
-      checkSequoiadbConf( aNode, iLine, sdbAddrList ) ;
-      sdbAddrList.push( aNode[2] + ":" + aNode[3] ) ;
+      checkSequoiadbConf( aNode, iLine, nodeNameList ) ;
+      nodeNameList.push( aNode[2] + ":" + aNode[3] ) ;
       iLine++ ;
 
       // replace 'localhost' to real hostname
