@@ -45,6 +45,7 @@
 #include "clsMainCLMonAggregator.hpp"
 #include "monDump.hpp"
 #include "dmsStatUnit.hpp"
+#include "utilMinHeap.hpp"
 
 using namespace bson ;
 
@@ -628,7 +629,14 @@ namespace engine
    class _coordIndexStat : public utilPooledObject
    {
       public:
-         static INT32 merge( const _coordIndexStat &from, _coordIndexStat &to ) ;
+         static INT32 mergeWithoutMCV( const _coordIndexStat &from,
+                                       _coordIndexStat &to ) ;
+
+         static INT32 mergeMCV( ossPoolVector< _coordIndexStat > &vec,
+                                _coordIndexStat &result ) ;
+
+         static INT32 merge( ossPoolVector< _coordIndexStat > &vec,
+                             _coordIndexStat &result ) ;
 
       public:
          _coordIndexStat() ;
@@ -639,14 +647,12 @@ namespace engine
 
          INT32 toBSON( bson::BSONObj &obj ) ;
 
-         INT32 refine() ;
+         INT32 refine( const CoordCataInfoPtr &cataPtr ) ;
 
-         BOOLEAN inited()
+         BOOLEAN inited() const
          {
             return ( _index[0] != 0 ) ;
          }
-
-         void setCollectionFullName( const CHAR *fullName ) ;
 
       private:
          // Merging 200000 MCV samples may take about 1 second
@@ -658,6 +664,20 @@ namespace engine
          typedef ossPoolList< _coordValRecPair >      _coordMCVList ;
          typedef std::pair< UINT32, UINT32 >          _coordFrac2Dups ;
          typedef ossPoolMap< UINT32, UINT32 >         _coordFrac2DupsMap ;
+         typedef std::pair< _coordMCVList*, _coordMCVList::iterator > _coordListItPair ;
+
+         class _coordListItCmp
+         {
+         public:
+            BOOLEAN operator()( const _coordListItPair l,
+                                const _coordListItPair r ) const
+            {
+               const _coordMCVList::iterator &lIt = l.second ;
+               const _coordMCVList::iterator &rIt = r.second ;
+               return 0 > ( lIt->first.woCompare( rIt->first, BSONObj(), FALSE ) ) ;
+            }
+         } ;
+
 
       private:
          INT32 _updateTopFrac( const UINT32 finalMCVSize,
@@ -707,11 +727,6 @@ namespace engine
       _mcvListSize = 0 ;
       _hasMCV = FALSE ;
       _mcvSampleRecords = 0 ;
-   }
-
-   void _coordIndexStat::setCollectionFullName( const CHAR *fullName )
-   {
-      ossStrncpy( _collection, fullName, sizeof( _collection ) ) ;
    }
 
    INT32 _coordIndexStat::fromBSON( const BSONObj &obj )
@@ -977,9 +992,51 @@ namespace engine
       goto done ;
    }
 
+   INT32 _coordIndexStat::merge( ossPoolVector< _coordIndexStat > &vec,
+                                 _coordIndexStat &result )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         result = vec[ 0 ] ;
+         for ( UINT32 i = 1; i < vec.size(); ++i )
+         {
+            rc = mergeWithoutMCV( vec[ i ], result ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to merge statistics, rc: %d", rc ) ;
+
+            if ( vec[ i ]._hasMCV )
+            {
+               result._hasMCV = TRUE ;
+            }
+         }
+
+         if ( result._hasMCV )
+         {
+            result._mcvList.clear() ;
+            result._mcvSampleRecords = 0 ;
+
+            rc = mergeMCV( vec, result ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to merge MCV, rc: %d", rc ) ;
+         }
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // Here we merge two statistics info into one. However, some field of it
    // can't easily be counted. We'll choose the max or min instead.
-   INT32 _coordIndexStat::merge( const _coordIndexStat &from, _coordIndexStat &to )
+   // This merge doesn't handle the field "MCV"
+   INT32 _coordIndexStat::mergeWithoutMCV( const _coordIndexStat &from,
+                                           _coordIndexStat &to )
    {
       INT32 rc = SDB_OK ;
       try
@@ -1037,57 +1094,83 @@ namespace engine
                *pNum = total ;
             }
          }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
 
-         // For "MCV", union the result. And we set a maximum limit to prevent
-         // the cost from becoming too expensive.
-         if ( to._hasMCV && to._mcvSampleRecords < MCV_SAMPLE_RECORDS_LIMIT )
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // For "MCV", union the result.
+   INT32 _coordIndexStat::mergeMCV( ossPoolVector< _coordIndexStat > &vec,
+                                    _coordIndexStat &result )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         SDB_ASSERT( !vec.empty(), "Vector shouldn't be empty" ) ;
+
+         _coordListItCmp cmp ;
+         _utilMinHeap< _coordListItPair, _coordListItCmp > heap( cmp ) ;
+         _coordMCVList::iterator it ;
+
+         for ( UINT32 i = 0; i < vec.size(); ++i )
          {
-            _coordMCVList::iterator toMCVIt ;
-            _coordMCVList::const_iterator fromMCVIt ;
-            toMCVIt = to._mcvList.begin() ;
-            fromMCVIt = from._mcvList.begin() ;
-
-            INT32 cmp = 0 ;
-
-            while ( fromMCVIt != from._mcvList.end() )
+            _coordMCVList *pList = &vec[ i ]._mcvList ;
+            if ( pList->empty() )
             {
-               if ( to._mcvList.end() == toMCVIt )
-               {
-                  break ;
-               }
-
-               cmp = toMCVIt->first.woCompare( fromMCVIt->first, BSONObj(),
-                                               FALSE ) ;
-
-               if ( cmp < 0 )
-               {
-                  ++toMCVIt ;
-               }
-               else if ( 0 == cmp )
-               {
-                  toMCVIt->second += fromMCVIt->second ;
-                  ++toMCVIt ;
-                  ++fromMCVIt ;
-               }
-               else // cmp > 0
-               {
-                  to._mcvList.insert( toMCVIt, *fromMCVIt ) ;
-                  ++to._mcvListSize ;
-                  ++fromMCVIt ;
-               }
+               continue ;
+            }
+            // Here set a limit to prevent the cost from becoming too expensive.
+            if ( result._mcvSampleRecords > MCV_SAMPLE_RECORDS_LIMIT )
+            {
+               pList->clear() ;
+               vec[ i ]._mcvSampleRecords = 0 ;
+               continue ;
             }
 
-            if ( to._mcvList.end() == toMCVIt )
+            it = pList->begin() ;
+            _coordListItPair p( pList, it ) ;
+            rc = heap.push( p ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to make heap, rc: %d", rc ) ;
+
+            result._mcvSampleRecords += vec[ i ]._mcvSampleRecords ;
+         }
+
+         while ( heap.more() )
+         {
+            _coordListItPair p ;
+            _coordMCVList::reverse_iterator last ;
+
+            rc = heap.pop( p ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to pop from heap, rc: %d", rc ) ;
+
+            it = p.second ;
+            last = result._mcvList.rbegin() ;
+            if ( last != result._mcvList.rend() &&
+                 0 == last->first.woCompare( it->first, BSONObj(), FALSE ) )
             {
-               while ( fromMCVIt != from._mcvList.end() )
-               {
-                  to._mcvList.push_back( *fromMCVIt ) ;
-                  ++to._mcvListSize ;
-                  ++fromMCVIt ;
-               }
+               last->second += it->second ;
+            }
+            else
+            {
+               result._mcvList.push_back( *it ) ;
+               ++result._mcvListSize ;
             }
 
-            to._mcvSampleRecords += from._mcvSampleRecords ;
+            it = p.first->erase( it ) ;
+            if ( it != p.first->end() )
+            {
+               p.second = it ;
+               heap.push( p ) ;
+            }
          }
       }
       catch ( std::exception &e )
@@ -1106,8 +1189,9 @@ namespace engine
    /**
       1. Refine DistinctValNum by MCV info;
       2. Compress MCV info, to avoid the large result;
+      3. Fix the name as main-CL name if it's main-sub-CL
    */
-   INT32 _coordIndexStat::refine()
+   INT32 _coordIndexStat::refine( const CoordCataInfoPtr &cataPtr )
    {
       INT32 rc = SDB_OK ;
       INT64 *distinctValNum = NULL ;
@@ -1121,6 +1205,11 @@ namespace engine
          _coordFrac2DupsMap topFracMap ;
          UINT32 finalMCVSize = OSS_MIN( _mcvListSize, MCV_SIZE_LIMIT ) ;
          UINT32 minFracRec = 0 ;
+
+         if ( cataPtr->isMainCL() )
+         {
+            ossStrncpy( _collection, cataPtr->getName(), sizeof( _collection ) ) ;
+         }
 
          if ( _mcvList.empty() )
          {
@@ -1356,6 +1445,35 @@ namespace engine
    {
    }
 
+   INT32 _coordCMDGetIndexStat::_getResultCount( UINT32 &resCount, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      if ( _cataPtr->isMainCL() )
+      {
+         CoordSubCLlist subCLList ;
+         CoordSubCLlist::iterator it ;
+         rc = _cataPtr->getSubCLList( subCLList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sub cl list, rc: %d", rc ) ;
+
+         for ( it = subCLList.begin(); it != subCLList.end(); ++it )
+         {
+            _coordCataSel subSel ;
+            rc = subSel.bind( _pResource, it->c_str(), cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get sub cl[%s] catalog, "
+                         "rc: %d", it->c_str(), rc ) ;
+            resCount += subSel.getCataPtr()->getGroupNum() ;
+         }
+      }
+      else
+      {
+         resCount = _cataPtr->getGroupNum() ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_INDEX_STAT_GENRESULT, "_coordCMDGetIndexStat::generateResult" )
    INT32 _coordCMDGetIndexStat::generateResult( rtnContext *pContext,
                                                 pmdEDUCB *cb )
@@ -1366,59 +1484,63 @@ namespace engine
       rtnContextBuf buffObj ;
       _coordIndexStat resStat ;
       BSONObj obj ;
+      UINT32 resCount = 0 ;
+      UINT32 currCount = 0 ;
+      ossPoolVector< _coordIndexStat > vec ;
 
-      // Aggregate all statistics into one.
-      while ( TRUE )
+      try
       {
-         _coordIndexStat newStat ;
-         rc = pContext->getMore( 1, buffObj, cb ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-            break ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get more detail, rc: %d", rc ) ;
+         // calculate the expect sharding count to allocate vector
+         rc = _getResultCount( resCount, cb ) ;
+         vec.reserve( resCount ) ;
 
+         // Aggregate all statistics into one.
+         while ( TRUE )
          {
+            rc = pContext->getMore( 1, buffObj, cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get more detail, rc: %d", rc ) ;
+
+            vec.push_back( _coordIndexStat() ) ;
+            _coordIndexStat &stat = vec[ currCount ] ;
             BSONObj boTmp( buffObj.data() ) ;
-            rc = newStat.fromBSON( boTmp ) ;
+            rc = stat.fromBSON( boTmp ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to initialize statistics "
                          "from BSON, rc: %d", rc ) ;
-         }
-
-         if ( resStat.inited() )
-         {
-            rc = _coordIndexStat::merge( newStat, resStat ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to merge index statistics, "
-                         "rc: %d", rc ) ;
-         }
-         else
-         {
-            resStat = newStat ;
+            ++currCount ;
          }
       }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
 
-      if ( !resStat.inited() ) // Nothing was returned.
+      if ( 0 == currCount ) // Nothing was returned.
       {
          goto done ;
       }
 
-      if ( _cataPtr->isMainCL() )
-      {
-         resStat.setCollectionFullName( _cataPtr->getName() ) ;
-      }
+      rc = _coordIndexStat::merge( vec, resStat ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to merge index statistics, rc: %d", rc ) ;
 
-      rc = resStat.refine() ;
+      rc = resStat.refine( _cataPtr ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to refine index statistics, rc: %d", rc ) ;
 
       rc = resStat.toBSON( obj ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to convert index statistics to BSON, rc: %d", rc ) ;
+
       rc = pContext->append( obj ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to append cl detail to context, rc: %d", rc ) ;
-
    done:
       PD_TRACE_EXITRC ( COORD_GET_INDEX_STAT_GENRESULT, rc ) ;
       return rc ;
