@@ -37,7 +37,6 @@
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmLobcKeyComparator.h"
-#include "vessel/lsm/lsmCompactionFilter.hpp"
 #include "vessel/lsm/lsmColumnFamilyContext.h"
 #include "vessel/lsm/lsmCollector.h"
 #include "vessel/lsm/lsmEventListener.h"
@@ -79,7 +78,7 @@ namespace vessel
       opt.listeners.emplace_back(newLsmEventListener(this));
 
       // configure column family names and options
-      for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+      for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
       {
          descs.push_back(_getDescriptor(static_cast<LSM_CF_ID>(i), opt));
       }
@@ -93,7 +92,7 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+      for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
       {
          rocksdb::WriteOptions opt;
          opt.disableWAL = TRUE;
@@ -121,7 +120,7 @@ namespace vessel
       rocksdb::Status s;
       if (isOpen())
       {
-         for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+         for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
          {
             s = _db->DestroyColumnFamilyHandle(_contexts[i]->getHandle());
             SDB_ASSERT(s.ok(), "failed to destroy column family handle");
@@ -135,22 +134,22 @@ namespace vessel
       }
    }
 
-   lsmColumnFamily lsmDB::getIdxColumnFamily()
+   lsmColumnFamily lsmDB::getHitColumnFamily()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return lsmColumnFamily(this, LSM_INDEX_CF_ID);
+      return lsmColumnFamily(this, LSM_CF_HYBRID_INDEX);
    }
 
-   lsmColumnFamily lsmDB::getLobcColumnFamily()
+   lsmColumnFamily lsmDB::getLobmColumnFamily()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return lsmColumnFamily(this, LSM_LOB_CHUNK_CF_ID);
+      return lsmColumnFamily(this, LSM_CF_LOBM);
    }
 
    lsmColumnFamily lsmDB::getIdxMetaColumnFamily()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      return lsmColumnFamily(this, LSM_INDEX_META_CF_ID);
+      return lsmColumnFamily(this, LSM_CF_INDEX_META);
    }
 
    INT32 lsmDB::put(LSM_CF_ID id,
@@ -165,7 +164,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (LSM_INVALID_CF_ID == id)
+      else if (LSM_CF_INVALID == id)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -203,7 +202,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (LSM_INVALID_CF_ID == id)
+      else if (LSM_CF_INVALID == id)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -245,7 +244,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (LSM_INVALID_CF_ID == id)
+      else if (LSM_CF_INVALID == id)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -280,7 +279,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (LSM_INVALID_CF_ID == id)
+      else if (LSM_CF_INVALID == id)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -315,7 +314,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (LSM_INVALID_CF_ID == id)
+      else if (LSM_CF_INVALID == id)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -342,14 +341,14 @@ namespace vessel
                                          const rocksdb::ReadOptions &opt)
    {
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be invalid");
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
       return _db->NewIterator(opt, _contexts[id]->getHandle());
    }
 
    void lsmDB::openBatch(LSM_CF_ID id, lsmWriteBatch &batch)
    {
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be invalid");
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
    
       batch._db = this;
       batch._handle = _contexts[id]->getHandle();
@@ -394,7 +393,7 @@ namespace vessel
          goto error;
       }
 
-      if (LSM_INVALID_CF_ID != id)
+      if (LSM_CF_INVALID != id)
       {
          rc = _flushCF(id);
          if (SDB_OK != rc)
@@ -431,21 +430,21 @@ namespace vessel
                               DPS_LSN_OFFSET lsn)
    {
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be null");
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be null");
       _contexts[id]->setMinDirtyLsn(lsn);
    }
 
    DPS_LSN_OFFSET lsmDB::getMinDirtyLsn(LSM_CF_ID id) const
    {
       SDB_ASSERT(isOpen(), "must be open");
-      if (LSM_INVALID_CF_ID != id)
+      if (LSM_CF_INVALID != id)
       {
          return _contexts[id]->getMinDirtyLsn();
       }
       else
       {
          DPS_LSN_OFFSET r = DPS_INVALID_LSN_OFFSET;
-         for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+         for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
          {
             DPS_LSN_OFFSET tmp = _contexts[i]->getMinDirtyLsn();
             if (tmp < r)
@@ -467,7 +466,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      for (UINT32 i = LSM_DEFAULT_CF_ID; i <= LSM_MAX_CF_ID; ++i)
+      for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
       {
          rc = _flushCF(static_cast<LSM_CF_ID>(i));
          if (SDB_OK != rc)
@@ -490,7 +489,7 @@ namespace vessel
       DPS_LSN_OFFSET tmpLsn = DPS_INVALID_LSN_OFFSET;
       BOOLEAN flushDone = FALSE;
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(LSM_INVALID_CF_ID != id, "can not be invalid");
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
       std::unique_lock<std::mutex> lock(_contexts[id]->getFlushLock());
 
       tmpLsn = _contexts[id]->beginToFlush();
@@ -521,24 +520,23 @@ namespace vessel
       std::string cfName;
       rocksdb::ColumnFamilyOptions cfOpt(opt);
 
-      if (LSM_DEFAULT_CF_ID == id)
+      if (LSM_CF_DEFAULT == id)
       {
          cfName = LSM_DEFAULT_CF_NAME;
       }
-      if (LSM_INDEX_CF_ID == id)
+      if (LSM_CF_HYBRID_INDEX == id)
       {
-         cfName = LSM_INDEX_CF_NAME;
+         cfName = LSM_HYBRID_INDEX_CF_NAME;
          cfOpt.comparator = lsmIdxKeyComparator();
-         cfOpt.compaction_filter_factory = createIdxCompactionFilterFactory();
          cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
          ///TODO: prefix_extractor
       }
-      else if (LSM_LOB_CHUNK_CF_ID == id)
+      else if (LSM_CF_LOBM == id)
       {
-         cfName = LSM_LOB_CHUNK_CF_NAME;
+         cfName = LSM_LOBM_CF_NAME;
          cfOpt.comparator = lsmLobcKeyComparator();
       }
-      else if (LSM_INDEX_META_CF_ID == id)
+      else if (LSM_CF_INDEX_META == id)
       {
          cfName = LSM_INDEX_META_CF_NAME;
          cfOpt.write_buffer_size = 64 * 1024;
@@ -547,18 +545,18 @@ namespace vessel
       return rocksdb::ColumnFamilyDescriptor(cfName, cfOpt);
    }
 
-   lsmColumnFamily GET_INDEX_COLUMN_FAMILY()
+   lsmColumnFamily GET_HYBRID_INDEX_COLUMN_FAMILY()
    {
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
-      return tc->getEnv()->lsm->getIdxColumnFamily();
+      return tc->getEnv()->lsm->getHitColumnFamily();
    }
 
-   lsmColumnFamily GET_LOB_CHUNK_COLUMN_FAMILY()
+   lsmColumnFamily GET_LOBM_COLUMN_FAMILY()
    {
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
-      return tc->getEnv()->lsm->getLobcColumnFamily();
+      return tc->getEnv()->lsm->getLobmColumnFamily();
    }
 
    lsmColumnFamily GET_INDEX_META_COLUMN_FAMILY()

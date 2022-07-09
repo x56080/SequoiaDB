@@ -43,34 +43,27 @@ namespace engine
 {
 namespace vessel
 {
-   typedef UINT16 INDEX_TYPE;
-   static const INDEX_TYPE INVALID_INDEX_TYPE = 65535;
-   static const INDEX_TYPE INDEX_TYPE_LSM = 0;
-   static const INDEX_TYPE INDEX_TYPE_BTREE = 1;
-
-   static const UINT32 INVALID_LOGICAL_INDEX_ID = (UINT32)(-1);
-
-   static const UINT32 MAX_INDEX_COUNT_PER_CL = 64;
-
-   OSS_INLINE BOOLEAN isValidIndexSlot(INT32 slot)
+   enum INDEX_TYPE : UINT16
    {
-      return 0 <= slot && slot < (INT32)MAX_INDEX_COUNT_PER_CL;
-   }
+      INDEX_TYPE_BTREE = 0,
+      INDEX_TYPE_LSM = 1,
+      INDEX_TYPE_HYBRID_TREE = 2,
+      INDEX_TYPE_INVALID = 65535
+   };//enum INDEX_TYPE
 
-   static const UINT32 MAX_INDEX_KEY_COLUMNS = 32;
+   constexpr UINT32 INVALID_LOGICAL_INDEX_ID = (UINT32)(-1);
 
-   static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 0;
-   //static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 0;
+   constexpr UINT32 MAX_INDEX_COUNT_PER_CL = 64;
 
-   static const UINT32 MAX_INDEX_KEY_SIZE = 1024;
+   constexpr UINT32 MAX_INDEX_KEY_COLUMNS = 32;
 
-   /// btree only
-   //static const UINT32 BTREE_COMPRESSION_MIN_DEPTH = 2;
-   static const FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
+   constexpr UINT32 MAX_INDEX_KEY_SIZE = 1024;
 
-   /// btree only end
+   constexpr UINT32 MAX_INDEX_META_ENTRY_SIZE = 4096;
 
-   enum INDEX_STATUS
+   constexpr FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
+
+   enum INDEX_STATUS : UINT16
    {
       INDEX_STATUS_INVALID = 0,
       INDEX_STATUS_BUILDING = 1,
@@ -79,12 +72,6 @@ namespace vessel
       INDEX_STATUS_REMOVING = 4,
       INDEX_STATUS_ABNORMAL = 5,
    };// enum INDEX_STATUS
-
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_ID = "LogicalIndexId";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_SLOT = "IndexSlot";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_STATUS = "status";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_CREATED_TIME = "CreatedTime";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_ALTERED_TIME = "AlteredTime";
 }//namespace vessel
 }//namespace engine
 

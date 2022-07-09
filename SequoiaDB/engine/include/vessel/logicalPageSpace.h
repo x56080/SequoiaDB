@@ -97,6 +97,12 @@ namespace vessel
                                          const ossSharedLatchMode &mode,
                                          logicalPageBuffer &lpb);
 
+         /// get buffer without lpid lock.
+         /// for now, the buffer will also be readonly.
+         INT32 getUnprotectedBuffer(requestContext *context,
+                                    PAGE_ID lpid,
+                                    logicalPageBuffer &lpb);
+
          ///WARNING: user should lock lpid out side if necessary.
          /// return ok but invalid desc if unmapped.
          INT32 testLogicalPageMapping(PAGE_ID lpid,

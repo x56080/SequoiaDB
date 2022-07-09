@@ -66,6 +66,7 @@ namespace vessel
       {
          goto error;
       }
+
    done:
       context.close();
       return rc;

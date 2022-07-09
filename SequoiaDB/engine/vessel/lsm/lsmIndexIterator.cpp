@@ -35,47 +35,55 @@
 
 #include "vessel/lsm/lsmIndexIterator.h"
 #include "rocksdb/options.h"
-#include "ixmKey.hpp"
-#include "vessel/instanceEnv.h"
 #include "vessel/indexUtils.h"
-#include "vessel/lsm/lsmDB.h"
-#include "vessel/lsm/lsmIndexValue.hpp"
-#include "vessel/lsm/lsmScanEntryParser.h"
-#include "vessel/collectionProperties.h"
 #include "vessel/lsm/lsmIndexKeyPacker.h"
+#include "vessel/lsm/lsmIndexEntryValue.h"
+#include "vessel/indexObject.h"
+#include "vessel/threadContext.h"
 
 namespace engine
 {
 namespace vessel
 {
+   lsmIndexIterator::lsmIndexIterator()
+   {
+      SDB_ASSERT(nullptr != GET_THREAD_CONTEXT(), "can not be invalid");
+   }
+
    lsmIndexIterator::~lsmIndexIterator()
    {
-      if (NULL != _itr)
+      if (nullptr != _itr)
       {
          delete _itr;
       }
+
+      if (nullptr != _backwardEntryCache)
+      {
+         GET_THREAD_CONTEXT()->releaseBuffer(_backwardEntryCache);
+      }
    }
 
-   void lsmIndexIterator::_close()
+   void lsmIndexIterator::reset()
    {
-      _context = NULL;
-      _obj = NULL;
+      _o = options();
+      _cf = lsmColumnFamily();
+      _obj = nullptr;
       _globalId.reset();
-      if (NULL != _itr)
+      if (nullptr != _itr)
       {
          delete _itr;
-         _itr = NULL;
+         _itr = nullptr;
       }
       _lowKey = rocksdb::Slice();
       _upKey = rocksdb::Slice();
       _currentEntry.reset();
-      _builder.reset();
-      return;
-   }
-
-   void lsmIndexIterator::close()
-   {
-      _close();
+      if (nullptr != _backwardEntryCache)
+      {
+         GET_THREAD_CONTEXT()->releaseBuffer(_backwardEntryCache);
+         _backwardEntryCache = nullptr;
+      }
+      _backwardEntryCacheSize = 0;
+      _backwardEntrySize = 0;
       return;
    }
 
@@ -89,72 +97,57 @@ namespace vessel
       return _currentEntry.isValid();
    }
 
-   BOOLEAN lsmIndexIterator::isOpen()const
-   {
-      return NULL != _context;
-   }
-
-   INT32 lsmIndexIterator::open(requestContext *context,
-                                indexObject *obj,
+   INT32 lsmIndexIterator::init(const lsmColumnFamily &cf,
+                                const globalLogicalClId &cl,
+                                const indexObject *obj,
                                 const options &o)
    {
       INT32 rc = SDB_OK;
       rocksdb::ReadOptions opt;
       globalIndexID indexId;
-      globalCollectionId gcid;
-      const CHAR *boundPtr = nullptr;
                         
-      _close();
+      reset();
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isClPropertiesSet() ||
-                       NULL == obj ||
-                       !obj->isValid() ||
-                       INDEX_TYPE_LSM != obj->getDescription().getType()))
+      if (OSS_UNLIKELY(!cf.isValid() ||
+                       !cl.isValid() ||
+                       nullptr == obj ||
+                       !obj->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _context = context;
+      _o = o;
+      _cf = cf;
       _obj = obj;
+      _globalId.reset(cl.getLogicalCSID(),
+                      cl.getLogicalCLID(),
+                      obj->getLogicalID());
+      _initKeyBoundWhenOpen(_globalId);
 
-      gcid = context->getClProperties()->getGlobalId();
-
-      indexId = globalIndexID(gcid.getCSLid(),
-                              gcid.getCLLid(),
-                              obj->getIndexId().getLogicalIndexId());
-      _initKeyBoundWhenOpen(indexId);
-
-      _forward = o.isForward();
-      _globalId = indexId;
-      boundPtr = (const CHAR *)(&_lowBound);
-      _lowKey = rocksdb::Slice(boundPtr, LSM_IDX_BOUNDARY_SIZE);
-      boundPtr = (const CHAR *)(&_upBound);
-      _upKey = rocksdb::Slice(boundPtr, LSM_IDX_BOUNDARY_SIZE);
       opt.iterate_lower_bound = &_lowKey;
       opt.iterate_upper_bound = &_upKey;
       opt.auto_prefix_mode = TRUE;
-      _itr = context->getEnv()->lsm->getIdxColumnFamily().newIterator(opt);
-      if (NULL == _itr)
+      _itr = _cf.newIterator(opt);
+      if (OSS_UNLIKELY(nullptr == _itr))
       {
          PD_LOG(PDERROR, "failed to allocate new itr");
          rc = SDB_OOM;
          goto error;
       }
-      _context = context;
+
    done:
       return rc;
    error:
-      _close();
+      reset();
       goto done;
    }
 
-   INT32 lsmIndexIterator::fastNext(const bson::BSONObj &prevKey,
-                                    INT32 fieldCountToCmpInPrev,
-                                    const VEC_ELE_CMP &matchEles,
-                                    const inclusiveVec &matchInclusive,
-                                    const seekOptions &o)
+   INT32 lsmIndexIterator::advance(const bson::BSONObj &prevKey,
+                                   INT32 fieldCountToCmpInPrev,
+                                   const VEC_ELE_CMP &matchEles,
+                                   const inclusiveVec &matchInclusive,
+                                   const seekOptions &o)
    {
       return seek(prevKey, fieldCountToCmpInPrev,
                   matchEles, matchInclusive, o);
@@ -167,13 +160,11 @@ namespace vessel
                                 const seekOptions &o)
    {
       INT32 rc = SDB_OK;
-      bson::BSONObj keyObj;
-      seekOptions so(o);
-      so.setInclusive(o.isInclusive() && matchInclusive.allInclusive());
+      seekOptions so;
+      so.inclusive = o.inclusive && matchInclusive.allInclusive();
       
-      _builder.reset();
-      keyObj = indexUtils::buildKeyToSeek(prevKey, fieldCountToCmpInPrev,
-                                          matchEles, &_builder);
+      bson::BSONObj keyObj = indexUtils::buildKeyToSeek(prevKey, fieldCountToCmpInPrev,
+                                                        matchEles, nullptr);
       rc = seekKey(ixmKeyOwned(keyObj), so);
       if (SDB_OK != rc)
       {
@@ -184,48 +175,6 @@ namespace vessel
    done:
       return rc;
    error:
-      close();
-      goto done;
-   }
-
-   INT32 lsmIndexIterator::contains(const ixmKey &key, recordID &rid)
-   {
-      INT32 rc = SDB_OK;
-      seekOptions o(TRUE);
-      rid = recordID();
-
-      if (OSS_UNLIKELY(!key.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = seekKey(key, o);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to seek key:%d", rc);
-         goto error;
-      }
-
-      if (_isReadyToRead())
-      {
-         if (_currentEntry.getKey().woEqual(key))
-         {
-            rid = _currentEntry.getRid();
-         }
-      }
-
-      _currentEntry.reset();
-   done:
-      return rc;
-   error:
-      close();
-      rid = recordID();
       goto done;
    }
 
@@ -242,27 +191,27 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(!_isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      if (_forward)
+      if (_o.forward)
       {
-         rid = o.isInclusive() ?
+         rid = o.inclusive ?
                recordID::createMinRid() :
                recordID::createMaxRid();
       }
       else
       {
-         rid = o.isInclusive() ?
+         rid = o.inclusive ?
                recordID::createMaxRid() :
                recordID::createMinRid();
       }
 
       rc = packer.packFullKey(key, _globalId,
-                              _obj->getDescription().getPattern().getOrdering(),
+                              _obj->getProperties().getPattern().getOrdering(),
                               rid, lsn);
       if (SDB_OK != rc)
       {
@@ -270,7 +219,7 @@ namespace vessel
          goto error;
       }
 
-      rc = seekFullKey(packer.getFullKeySlice());
+      rc = seekFullKey(packer.getFullKeySlice(), !_o.forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
@@ -285,54 +234,54 @@ namespace vessel
       }
 
    done:
-      packer.reset();
       return rc;
    error:
-      close();
+      reset();
       goto done;
    }
 
-   INT32 lsmIndexIterator::moveToTheNextOfEntry(const slice &entry)
+   INT32 lsmIndexIterator::locate(const slice &encodedKey,
+                                  const recordID &rid,
+                                  const seekOptions &o)
    {
       INT32 rc = SDB_OK;
       lsmIndexKeyStackPacker packer;
-      lsmScanEntryParser parser;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
-      if (OSS_UNLIKELY(!isOpen()))
+      if (OSS_UNLIKELY(!_isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      else if (OSS_UNLIKELY(0 == encodedKey.getSize() ||
+                            !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      } 
 
       _currentEntry.reset();
 
-      rc = parser.parse(entry);
-      if (SDB_OK != rc)
+      if (_o.forward)
       {
-         PD_LOG(PDERROR, "failed to parse entry data:%d", rc);
-         goto error;
-      }
-
-      if (_forward)
-      {
-         lsn = 0;
+         lsn = o.inclusive ? OSS_UINT64_MAX : 0;
       }
       else
       {
-         lsn = DPS_INVALID_LSN_OFFSET;
+         lsn = OSS_UINT64_MAX;
       }
 
-      rc = packer.packFullKey(parser.getKey(), _globalId,
-                              _obj->getDescription().getPattern().getOrdering(),
-                              parser.getRid(), lsn);
+      rc = packer.packFullKey(ixmKey(encodedKey.data()), _globalId,
+                              _obj->getProperties().getPattern().getOrdering(),
+                              rid, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "pack index full key by packer failed, rc:%d", rc);
          goto error;
       }
 
-      rc = seekFullKey(packer.getFullKeySlice());
+      rc = seekFullKey(packer.getFullKeySlice(),
+                       !o.inclusive && !_o.forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
@@ -347,21 +296,21 @@ namespace vessel
       }
 
    done:
-      packer.reset();
       return rc;
    error:
-      close();
+      reset();
       goto done;
    }
 
-   INT32 lsmIndexIterator::seekFullKey(const rocksdb::Slice &fullKey)
+   INT32 lsmIndexIterator::seekFullKey(const rocksdb::Slice &fullKey,
+                                       BOOLEAN forPrev)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _itr, "can not be null");
       SDB_ASSERT(0 < fullKey.size(), "can not be empty");
       _currentEntry.reset();
 
-      if (_forward)
+      if (!forPrev)
       {
          _itr->Seek(fullKey);
       }
@@ -372,11 +321,10 @@ namespace vessel
       
       if (_itr->Valid())
       {
-         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
-             LSM_VALUE_SIZE != _itr->value().size())
+         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size())
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "invalid key or value:%d", rc);
+            PD_LOG(PDERROR, "invalid key:%d", rc);
             goto error;
          }
       }
@@ -388,12 +336,16 @@ namespace vessel
 
    BOOLEAN lsmIndexIterator::_isMarkedRemoved(rocksdb::Iterator *itr)const
    {
-      const lsmIndexValue * lsmValue = NULL;
       BOOLEAN r = FALSE;
       rocksdb::Slice value = itr->value();
-      SDB_ASSERT(sizeof(lsmIndexValue) == value.size(), "impossible");
-      lsmValue = (const lsmIndexValue *)(value.data());
-      r = lsmValue->isDeleted();
+      if (!value.empty())
+      {
+         SDB_ASSERT(LSM_INDEX_ENTRY_VALUE_SIZE <= value.size(), "invalid size");
+         const lsmIndexEntryValue * val =
+               reinterpret_cast<const lsmIndexEntryValue *>(value.data());
+         SDB_ASSERT(val->isValid(), "can not be invalid");
+         r = val->isDeleted();
+      }
       return r;
    }
 
@@ -412,9 +364,15 @@ namespace vessel
    DPS_TRANS_ID lsmIndexIterator::getTransID()const
    {
       SDB_ASSERT(_isReadyToRead(), "must be valid");
-      const lsmIndexValue *value = reinterpret_cast<const lsmIndexValue *>
+      DPS_TRANS_ID transID;
+      if (LSM_INDEX_ENTRY_VALUE_SIZE <= _itr->value().size())
+      {
+         const lsmIndexEntryValue *value = reinterpret_cast<const lsmIndexEntryValue *>
                                   (_itr->value().data());
-      return value->getTransID();
+         transID = value->transID;
+      }
+      
+      return transID;
    }
 
    recordID lsmIndexIterator::getRid()const
@@ -423,84 +381,10 @@ namespace vessel
       return _currentEntry.getRid();
    }
 
-/*
-   indexScanEntry lsmIndexIterator::getCurrentEntry()const
+   BOOLEAN lsmIndexIterator::equals(const ixmKey &key)const
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
-      indexScanEntry entry;
-      slice entryData = slice(_itr->key().size(), _itr->key().data());
-      lsmScanEntryParser parser;
-
-      rc = entry.init(entryData, &parser);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to parse entry data:%d", rc);
-      }
-      return entry;
-   }*/
-
-   UINT32 lsmIndexIterator::getCurrentEntrySize()const
-   {
-      if (_backwardCurrentEntryCache.isEmpty())
-      {
-         return _itr->key().size();
-      }
-      else
-      {
-         return _backwardCurrentEntryCache.getSize();
-      }
-
-   }
-
-   INT32 lsmIndexIterator::pushCurrentEntryToBatch(rowBatch &batch)const
-   {
-      INT32 rc = SDB_OK;
-      slice entry;
-
-      if (!_isReadyToRead())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      if (_backwardCurrentEntryCache.isEmpty())
-      {
-         entry = slice(_itr->key().size(), _itr->key().data());
-         rc = batch.pushRow(entry);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         entry = slice(_backwardCurrentEntryCache.getSize(),
-                       _backwardCurrentEntryCache.getBuffer());
-         rc = batch.pushRow(entry);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);
-            goto error;
-         }
-      }
-
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   BOOLEAN lsmIndexIterator::equalToCurrentKey(const ixmKey &key)const
-   {
-      return isReadyToRead() && _currentEntry.getKey().woEqual(key);
-   }
-
-   void lsmIndexIterator::pause()
-   {
-      return;
+      SDB_ASSERT(_isReadyToRead(), "must be valid");
+      return _isReadyToRead() && _currentEntry.getKey().woEqual(key);
    }
 
    INT32 lsmIndexIterator::next()
@@ -524,6 +408,13 @@ namespace vessel
       goto done;
    }
 
+   slice lsmIndexIterator::getEncodedKey()const
+   {
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");
+      return slice(_currentEntry.getKey().dataSize(),
+                   _currentEntry.getKey().data());
+   }
+
    INT32 lsmIndexIterator::moveIterator(BOOLEAN forward)
    {
       INT32 rc = SDB_OK;
@@ -539,11 +430,10 @@ namespace vessel
 
       if (_itr->Valid())
       {
-         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
-             LSM_VALUE_SIZE != _itr->value().size())
+         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size())
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "invalid key or value:%d", rc);
+            PD_LOG(PDERROR, "invalid key:%d", rc);
             goto error;
          }
       }
@@ -616,7 +506,7 @@ namespace vessel
    done:
       return rc;
    error:
-      _close();
+      reset();
       goto done;
    }
 
@@ -626,15 +516,14 @@ namespace vessel
       SDB_ASSERT(_itr->Valid(), "can not be invalid");
 
       _currentEntry.reset();
-      _backwardCurrentEntryCache.resize(0);
+      _backwardEntrySize = 0;
       while (_itr->Valid())
       {
          lsmPureKeyEntry entryInItr;
          lsmPureKeyEntry entryInCache;
          BOOLEAN removedFlag = _isMarkedRemoved(_itr);
 
-         rc = _backwardCurrentEntryCache.copy(_itr->key().size(),
-                                              _itr->key().data());
+         rc = _cacheBackwardEntry(_itr->key());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to cache entry:%d", rc);
@@ -652,19 +541,19 @@ namespace vessel
          {
             if (removedFlag)
             {
-               _backwardCurrentEntryCache.resize(0);
+               _backwardEntrySize = 0;
             }
             break;
          }
          else if (removedFlag)
          {
-            _backwardCurrentEntryCache.resize(0);
+            _backwardEntrySize = 0;
          }
          else
          {
             rc = entryInCache.shallowCopy(
-                     rocksdb::Slice(_backwardCurrentEntryCache.getBuffer(),
-                                    _backwardCurrentEntryCache.getSize()));
+                     rocksdb::Slice(_backwardEntryCache,
+                                    _backwardEntrySize));
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to cache entry%d", rc);
@@ -690,11 +579,11 @@ namespace vessel
          }
       } 
 
-      if (!_backwardCurrentEntryCache.isEmpty())
+      if (0 < _backwardEntrySize)
       {
          rc = _currentEntry.shallowCopy(
-                  rocksdb::Slice(_backwardCurrentEntryCache.getBuffer(),
-                                 _backwardCurrentEntryCache.getSize()));
+                  rocksdb::Slice(_backwardEntryCache,
+                                 _backwardEntrySize));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to update current entry:%d", rc);
@@ -704,7 +593,7 @@ namespace vessel
    done:
       return rc;
    error:
-      _close();
+      reset();
       goto done;
 
    }
@@ -715,7 +604,7 @@ namespace vessel
 
       if (_itr->Valid())
       {
-         if (_forward)
+         if (_o.forward)
          {
             rc = forwardToNextVisiblePostion();
             if (SDB_OK != rc)
@@ -737,7 +626,7 @@ namespace vessel
       else
       {
          _currentEntry.reset();
-         _backwardCurrentEntryCache.resize(0);
+         _backwardEntrySize = 0;
       }
 
    done:
@@ -752,7 +641,7 @@ namespace vessel
 
       if (_itr->Valid())
       {
-         if (_forward)
+         if (_o.forward)
          {
             _currentEntry.shallowCopy(_itr->key());
             if (SDB_OK != rc)
@@ -784,7 +673,7 @@ namespace vessel
       else
       {
          _currentEntry.reset();
-         _backwardCurrentEntryCache.resize(0);
+         _backwardEntrySize = 0;
       }
 
    done:
@@ -801,7 +690,59 @@ namespace vessel
       _upBound.reset(id.getLogicalCSID(),
                      id.getLogicalCLID(),
                      id.getLogicalIndexID() + 1);
+      _lowKey = rocksdb::Slice((const CHAR *)(&_lowBound), LSM_IDX_BOUNDARY_SIZE);
+      _upKey = rocksdb::Slice((const CHAR *)(&_upBound), LSM_IDX_BOUNDARY_SIZE);
       return;
+   }
+
+   INT32 lsmIndexIterator::_cacheBackwardEntry(const rocksdb::Slice &s)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < s.size(), "can not be invalid");
+      _backwardEntrySize = 0;
+
+      rc = _ensureBackwardEntryCache(s.size());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure cache:%d", rc);
+         goto error;
+      }
+
+      ossMemcpy(_backwardEntryCache, s.data(), s.size());
+      _backwardEntrySize = s.size();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::_ensureBackwardEntryCache(UINT32 size)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < size, "can not be invalid");
+      if (_backwardEntryCacheSize < size)
+      {
+         THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+         if (nullptr != _backwardEntryCache)
+         {
+            tc->releaseBuffer(_backwardEntryCache);
+            _backwardEntryCache = nullptr;
+         }
+
+         _backwardEntryCache = tc->allocateBuffer(size);
+         if (OSS_UNLIKELY(nullptr == _backwardEntryCache))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+         _backwardEntryCacheSize = size;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

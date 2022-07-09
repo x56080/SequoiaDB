@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = clIndexMbpIniter.h
+   Source File Name = metaDataUberBlock.cpp
 
    Descriptive Name =
 
@@ -27,31 +27,31 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          03/16/2022  LYC  Initial Draft
+          09/08/2020  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
 
-#ifndef VESSEL_CL_INDEX_META_BLOCK_PAGE_INITER_
-#define VESSEL_CL_INDEX_META_BLOCK_PAGE_INITER_
-
-#include "vessel/pageInitializer.h"
+#include "vessel/metaDataUberBlock.h"
+#include <boost/crc.hpp>
 
 namespace engine
 {
 namespace vessel
 {
-   class clIndexMbpIniter : public pageInitializer
+   UINT32 lpmUberBlock::createChecksum()const
    {
-      public:
-         virtual INT32 initPage(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_SNAPSHOT_VERION psv,
-                                runtimePageBuffer *rpb);
-   }; // class clIndexMbpIniter
+      boost::crc_32_type crc;
+      crc.process_bytes(&smeEntryPid, sizeof(smeEntryPid));
+      crc.process_bytes(mappingEntries, sizeof(mappingEntries));
+      return crc.checksum();
+   }
 
+   BOOLEAN inspectUberBlockChecksum(const lpmUberBlock &ub)
+   {
+      return ub.isVaild() && (ub.checksum == ub.createChecksum());
+   }
 } // namespace vessel
-} // namespace engine
 
-#endif //VESSEL_CL_INDEX_META_BLOCK_PAGE_INITER_
+} // namespace engine

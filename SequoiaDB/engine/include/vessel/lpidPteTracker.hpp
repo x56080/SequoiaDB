@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexScanEntry.h
+   Source File Name = lpidPteTracker.hpp
 
    Descriptive Name =
 
@@ -33,62 +33,59 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_SCAN_ENTRY_H_
-#define VESSEL_INDEX_SCAN_ENTRY_H_
+#ifndef VESSEL_LPID_PTE_TRACKER_H_
+#define VESSEL_LPID_PTE_TRACKER_H_
 
-#include "vessel/recordID.h"
-#include "vessel/indexDef.h"
-#include "dpsTransID.hpp"
-#include "vessel/slice.h"
-#include "vessel/indexScanEntryParser.h"
+#include "ossMemPool.hpp"
+#include "vessel/fixedBitset.hpp"
+#include "vessel/pageIdentifier.h"
+
+#include <memory>
 
 namespace engine
 {
 namespace vessel
 {
-   class indexScanEntry : public SDBObject
+   template<UINT32 UNIT_SIZE>
+   class lpidPteTracker : public SDBObject
    {
       public:
-         indexScanEntry() = default;
-         virtual ~indexScanEntry() = default;
+         lpidPteTracker();
+         ~lpidPteTracker() = default;
+         lpidPteTracker(const lpidPteTracker &) = delete;
+         lpidPteTracker &operator=(const lpidPteTracker &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return INVALID_INDEX_TYPE != _type;
-         }
-         OSS_INLINE INDEX_TYPE getType()const
-         {
-            return _type;
-         }
-
-         OSS_INLINE const recordID &getRid()const
-         {
-            return _rid;
-         }
-         OSS_INLINE const slice &getKeySlice()const
-         {
-            return _keySlice;
-         }
-         OSS_INLINE const slice getEntryData()const
-         {
-            return _entryData;
-         }
-
-         INT32 init(INDEX_TYPE type, const slice &entryData);
-         INT32 init(const slice &data, indexScanEntryParser *parser);
-         void reset();
-
+         void reset() {_tmap.clear();}
 
       private:
-         INDEX_TYPE _type = INVALID_INDEX_TYPE;
-         recordID _rid;
-         slice _keySlice;
-         slice _entryData;
-   };//class indexScanEntry
+         using _TRACKER_UNIT = fixedBitset<UNIT_SIZE>;
+         using _TRACKER_UNIT_PTR = std::unique_ptr<_TRACKER_UNIT>;
+         using _TRACKER_UNIT_MAP = ossPoolMap<UINT32, _TRACKER_UNIT_PTR>;
+
+         UINT32 _getUnitId(PAGE_ID lpid)const
+         {
+            return lpid >> _sequare;
+         }
+         UINT32 _getUnitPos(PAGE_ID lpid)const
+         {
+            return lpid & (UNIT_SIZE - 1);
+         }
+
+      private:
+         UINT32 _sequare = 0;
+         _TRACKER_UNIT_MAP _tmap;
+   };//class class lpidPteTracker
+
+   template<UINT32 UNIT_SIZE>
+   lpidPteTracker<UNIT_SIZE>::lpidPteTracker()
+   {
+      BOOLEAN r = ossIsPowerOf2(UNIT_SIZE, &_sequare);
+      SDB_ASSERT(r, "must be power of 2");
+   }
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_INDEX_SCAN_ENTRY_H_
+#endif//VESSEL_LPID_PTE_TRACKER_H_

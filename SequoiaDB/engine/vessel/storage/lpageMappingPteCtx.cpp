@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexWriteBatch.h
+   Source File Name = lpageMappingPteCtx.h
 
    Descriptive Name =
 
@@ -27,38 +27,30 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          04/20/2022  LYC  Initial Draft
+          09/08/2020  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
-#ifndef VESSEL_LSM_INDEX_WRITE_BATCH_H_
-#define VESSEL_LSM_INDEX_WRITE_BATCH_H_
 
-#include "vessel/lsm/lsmColumnFamily.h"
-#include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIndexKey.h"
-#include "vessel/lsm/lsmIndexValue.hpp"
+#include "vessel/lpageMappingPteCtx.h"
+#include "ossLikely.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class lsmIndexWriteBatch : public lsmWriteBatch
+   BOOLEAN lpageMappingPteCtx::none()const
    {
-      public:
-         lsmIndexWriteBatch() = default;
-         ~lsmIndexWriteBatch() = default;
-         lsmIndexWriteBatch(const lsmIndexWriteBatch &) = delete;
-         lsmIndexWriteBatch &operator=(const lsmIndexWriteBatch &) = delete;
+      return _root.none();
+   }
 
-      public:
-         INT32 put(const lsmIndexMeta &meta,
-                   const lsmPureKeyEntry &key,
-                   const lsmIndexValue &value);
+   void lpageMappingPteCtx::reset()
+   {
+      _root.reset();
+   }
 
-   }; // class lsmIndexWriteBatch   
-} // namespace vessel
+} // namespace vesel
+
 } // namespace engine
-
-#endif // VESSEL_LSM_INDEX_WRITE_BATCH_H_

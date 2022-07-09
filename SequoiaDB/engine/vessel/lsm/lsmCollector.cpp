@@ -129,7 +129,7 @@ namespace vessel
    lsmCollectorFactory::CreateTablePropertiesCollector(
            TablePropertiesCollectorFactory::Context context)
    {
-      if (LSM_INDEX_CF_ID == context.column_family_id &&
+      if (LSM_CF_HYBRID_INDEX == context.column_family_id &&
           0 == context.level_at_creation)
       {
          lsmIndexPropertiesCollector *p = new(std::nothrow) lsmIndexPropertiesCollector();

@@ -127,6 +127,35 @@ namespace vessel
          UINT16 _pad = 0;
    };//class collectionSpaceId
 
+   class globalLogicalClId : public SDBObject
+   {
+      public:
+         globalLogicalClId() = default;
+         ~globalLogicalClId() = default;
+         globalLogicalClId(const globalLogicalClId &) = default;
+         globalLogicalClId &operator=(const globalLogicalClId &) = default;
+         explicit globalLogicalClId(UINT32 lcsid, UINT32 lclid):
+         _lcsid(lcsid),
+         _lclid(lclid){}
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return DMS_INVALID_LOGICCSID != _lcsid &&
+                   DMS_INVALID_LOGICCLID != _lclid;
+         }
+         OSS_INLINE UINT32 getLogicalCSID()const {return _lcsid;}
+         OSS_INLINE UINT32 getLogicalCLID()const {return _lclid;}
+         OSS_INLINE void reset(UINT32 lcsid=DMS_INVALID_LOGICCSID,
+                               UINT32 lclid=DMS_INVALID_LOGICCLID)
+         {
+            _lcsid = lcsid;
+            _lclid = lclid;
+         }
+      private:
+         UINT32 _lcsid = DMS_INVALID_LOGICCSID;
+         UINT32 _lclid = DMS_INVALID_LOGICCLID;
+   };//class globalLogicalClId
+
    class globalCollectionId : public SDBObject
    {
       public:
@@ -207,38 +236,35 @@ namespace vessel
    {
       public:
          indexIdentifier() = default;
-         explicit indexIdentifier(INT32 slot, UINT32 lid, utilIdxInnerID innerID):
-         _indexSlot(slot), _indexLid(lid), _indexInnerID(innerID){}
+         explicit indexIdentifier(UINT32 lid):
+         _logicalIndexId(lid){}
          ~indexIdentifier() = default;
+         indexIdentifier(const indexIdentifier &) = default;
+         indexIdentifier &operator=(const indexIdentifier &) = default;
 
-         BOOLEAN operator==(const indexIdentifier &o)const
+         OSS_INLINE BOOLEAN operator==(const indexIdentifier &o)const
          {
-            return _indexSlot == o._indexSlot &&
-                   _indexLid == o._indexLid;
+            return _logicalIndexId == o._logicalIndexId;
+         }
+         OSS_INLINE BOOLEAN operator<(const indexIdentifier &o)const
+         {
+            return _logicalIndexId < o._logicalIndexId;
          }
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return isValidIndexSlot(_indexSlot) &&
-                   INVALID_LOGICAL_INDEX_ID != _indexLid;
+            return INVALID_LOGICAL_INDEX_ID != _logicalIndexId;
          }
-         OSS_INLINE INT32 getIndexSlot()const {return _indexSlot;}
-         OSS_INLINE UINT32 getLogicalIndexId()const {return _indexLid;}
-         OSS_INLINE void reset(INT32 slot=-1,
-                               UINT32 lid=INVALID_LOGICAL_INDEX_ID,
-                               utilIdxInnerID innerID=UTIL_UNIQUEID_NULL)
+         OSS_INLINE UINT32 getLogicalIndexId()const {return _logicalIndexId;}
+         OSS_INLINE void reset(UINT32 lid=INVALID_LOGICAL_INDEX_ID)
          {
-            _indexSlot = slot;
-            _indexLid = lid;
-            _indexInnerID = innerID;
+            _logicalIndexId = lid;
             return;
          }
 
       private:
-         INT32 _indexSlot = -1;
-         UINT32 _indexLid = INVALID_LOGICAL_INDEX_ID;
-         utilIdxInnerID _indexInnerID = UTIL_UNIQUEID_NULL;
+         UINT32 _logicalIndexId = INVALID_LOGICAL_INDEX_ID;
    };//class indexIdentifier
 
 #pragma pack()

@@ -42,7 +42,6 @@
 #include "vessel/slice.h"
 #include "vessel/indexDef.h"
 #include "vessel/indexEntryPage.h"
-#include "vessel/indexDescription.h"
 
 namespace engine
 {
@@ -69,15 +68,6 @@ namespace vessel
                                UINT32 indexId,
                                PAGE_ID root,
                                logicalPageBuffer *lpb)const;
-
-         INT32 getIndexDescription(requestContext *context,
-                                   const logicalPageBuffer *lpb,
-                                   indexDescription &desc,
-                                   indexEntryPageHead *out = NULL)const;
-
-         INT32 dump(requestContext *context,
-                    const logicalPageBuffer *lpb,
-                    bson::BSONObjBuilder &builder)const;
 
          /// do not release buffer when accessing head.
          INT32 getIndexDefPageHead(requestContext *context,

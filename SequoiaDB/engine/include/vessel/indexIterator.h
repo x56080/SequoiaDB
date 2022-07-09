@@ -40,13 +40,12 @@
 #include "utilPooledObject.hpp"
 #include "ixmKey.hpp"
 #include "dms.hpp"
-#include "vessel/requestContext.h"
 #include "inclusiveVec.h"
 #include "vessel/slice.h"
 #include "rtnPredicate.hpp"
-#include "vessel/indexScanContext.h"
-#include "vessel/rowBatch.h"
-#include "vessel/indexObject.h"
+#include "../bson/util/builder.h"
+#include "dpsDef.hpp"
+#include "vessel/recordID.h"
 
 namespace engine
 {
@@ -55,89 +54,30 @@ namespace vessel
    class indexIterator : public _utilPooledObject
    {
       public:
-         indexIterator(){}
-         virtual ~indexIterator(){}
+         indexIterator() = default;
+         virtual ~indexIterator() = default;
          indexIterator(const indexIterator &) = delete;
          indexIterator &operator=(const indexIterator &) = delete;
 
       public:
-         virtual INDEX_TYPE getIndexType()const = 0;
-
-      public:
-         class options : public SDBObject
+         struct options
          {
-            public:
-               options(){}
-               explicit options(BOOLEAN mvccOn, BOOLEAN forward):
-                        _mvccOn(mvccOn),
-                        _forward(forward){}
-               ~options(){}
-               options(const options &b):
-               _mvccOn(b._mvccOn),
-               _forward(b._forward){}
-               options &operator=(const options &b)
-               {
-                  _mvccOn = b._mvccOn;
-                  _forward = b._forward;
-                  return *this;
-               }
-            
-            public:
-               OSS_INLINE BOOLEAN isMultipleVersions()const
-               {
-                  return _mvccOn;
-               }
-               OSS_INLINE BOOLEAN isForward()const
-               {
-                  return _forward;
-               }
-               OSS_INLINE INT32 getDirection()const
-               {
-                  return _forward ? 1 : -1;
-               }
+            OSS_INLINE INT32 getDirection()const
+            {
+               return forward ? 1 : -1;
+            }
 
-            private:
-               BOOLEAN _mvccOn = FALSE;
-               BOOLEAN _forward = TRUE;
+            BOOLEAN forward = TRUE;
          };//class options
 
-         class seekOptions : public SDBObject
+         struct seekOptions
          {
-            public:
-               seekOptions(){}
-               explicit seekOptions(BOOLEAN inclusive):
-                        _inclusive(inclusive){}
-               ~seekOptions(){}
-               seekOptions(const seekOptions &b):
-               _inclusive(b._inclusive){}
-
-               seekOptions &operator=(const seekOptions &b)
-               {
-                  _inclusive = b._inclusive;
-                  return *this;
-               }
-
-            public:
-               OSS_INLINE BOOLEAN isInclusive()const
-               {
-                  return _inclusive;
-               }
-               OSS_INLINE void setInclusive(BOOLEAN inclusive)
-               {
-                  _inclusive = inclusive;
-               }
-            private:
-               BOOLEAN _inclusive = TRUE;
+            BOOLEAN inclusive = TRUE;
          };//class seekOptions
 
       public:
-         virtual INT32 open(requestContext *context,
-                            indexObject *obj,
-                            const options &o) = 0;
-
-         virtual BOOLEAN isOpen()const = 0;
-
-         virtual void close() = 0;
+         virtual const CHAR *getName()const = 0;
+         virtual void reset() = 0;
 
          virtual INT32 seek(const bson::BSONObj &prevKey,
                             INT32 fieldCountToCmpInPrev,
@@ -148,35 +88,31 @@ namespace vessel
          virtual INT32 seekKey(const ixmKey &key,
                                const seekOptions &o) = 0;
 
+         virtual INT32 locate(const slice &encodedKey,
+                              const recordID &rid,
+                              const seekOptions &o) = 0;
+
          virtual INT32 next() = 0;
 
-         virtual INT32 fastNext(const bson::BSONObj &prevKey,
-                                INT32 fieldCountToCmpInPrev,
-                                const VEC_ELE_CMP &matchEles,
-                                const inclusiveVec &matchInclusive,
-                                const seekOptions &o) = 0;
+         virtual INT32 advance(const bson::BSONObj &prevKey,
+                               INT32 fieldCountToCmpInPrev,
+                               const VEC_ELE_CMP &matchEles,
+                               const inclusiveVec &matchInclusive,
+                               const seekOptions &o) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
-         virtual void pause() = 0;
-
-         virtual INT32 contains(const ixmKey &key, recordID &rid) = 0;
-
-         virtual INT32 moveToTheNextOfEntry(const slice &entry) = 0;
-
       public:
-         /// The functions to access current tuple saved in iterator.
-         /// User should always call 'isReadyToRead' first.
+         /// Access valid data saved in iterator.
+         /// User should always ensure 'isReadyToRead' first.
          virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const = 0;
-         virtual DPS_LSN_OFFSET getLSN()const = 0;
-         virtual DPS_TRANS_ID getTransID()const = 0;
+         virtual slice getEncodedKey()const = 0;
+         virtual DPS_LSN_OFFSET getLSN()const {return DPS_INVALID_LSN_OFFSET;}
+         virtual DPS_TRANS_ID getTransID()const {return DPS_TRANS_ID();}
          virtual recordID getRid()const = 0;
-         virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const = 0;
-         virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const = 0;
-         virtual UINT32 getCurrentEntrySize()const = 0;
+         virtual BOOLEAN equals(const ixmKey &key)const = 0;
    };//class indexIterator
 
-   extern indexIterator *createIndexIterator(INDEX_TYPE type);
 }//namespace vessel
 }//namespace engine
 

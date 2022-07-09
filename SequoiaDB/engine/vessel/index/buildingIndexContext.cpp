@@ -35,118 +35,98 @@
 
 #include "vessel/buildingIndexContext.h"
 #include "pdTrace.hpp"
-#include "ossLatchGuard.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   buildingIndexContext::~buildingIndexContext()
+   buildingIndexContext::buildingIndexContext(indexObject *obj):
+   _obj(obj)
    {
-      _mrl.clear();
+      SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
    }
 
-   void buildingIndexContext::fini()
-   {
-      _low.reset();
-      _high.reset();
-      _mrl.clear();
-      return;
-   }
-
-   INT32 buildingIndexContext::merge(dmlContext *context,
-                                     dmlIndexRequest *ir)
+   INT32 buildingIndexContext::merge(dmlIndexRequest *ir,
+                                     UINT32 seq,
+                                     const recordID &rid,
+                                     const DPS_LSN_OFFSET &lsn,
+                                     const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       INT32 buildingRes = 0;
-      indexMergingRecord *mr = NULL;
-      ossXLatchGuard guard(&_latch, FALSE);
+      INDEX_MERGING_RECORD record;
+      std::unique_lock<std::mutex> lock(_mutex, std::defer_lock);
 
-      scanEntry entry;
-      recordID rid;
-      DPS_TRANS_ID transID;
-      BOOLEAN isUniqueIndex = FALSE;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       NULL == ir ||
-                       !ir->isValid()))
+      if (OSS_UNLIKELY(nullptr == ir ||
+                       !ir->isValid() ||
+                       !rid.isValid() ||
+                       DPS_INVALID_LSN_OFFSET == lsn))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      SDB_ASSERT(ir->getObject() == _obj, "must be same");
       SDB_ASSERT(!ir->isExecuted(), "already been executed");
-      rid = context->getRid();
-      entry = context->getScanEntry();
-      if (!rid.isValid())
-      {
-         PD_LOG(PDERROR, "dml rid not set");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      isUniqueIndex = ir->getObject()->getDescription().isUnique();
 
-      guard.lock();
+      lock.lock();
 
-      buildingRes = getEntryBuildingStatus(entry);
+      buildingRes = _getBuildingStatus(seq);
       if (0 < buildingRes)
       {
-         /// not builded yet, pretend to be pushed.
+         /// not builded yet, pretend to be executed.
          ir->setExecuted();
          goto done;
       }
-      else if (buildingRes < 0 && !isUniqueIndex)
+      else if (buildingRes < 0 && !_obj->getProperties().isUnique())
       {
+         /// always insert non-uniuqe index entries by dml thread.
          goto done;
       }
        
 
-      /// building or (enforce && builded)
-      mr = SDB_OSS_NEW indexMergingRecord();
-      if (OSS_UNLIKELY(NULL == mr))
+      /// building or (unique && builded)
+      record.reset(SDB_OSS_NEW indexMergingRecord());
+      if (OSS_UNLIKELY(!record))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      mr->entry = entry;
-      mr->lpid = rid.getPid();
-      mr->lsn = context->getDmlLSN();
-      mr->transID = transID;
-      
+      ir->setExecuted();
+      record->rid = rid;
+      record->lsn = lsn;
+      record->transID = transID;
       
       for (ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeysToInsert().begin();
            itr != ir->getKeysToInsert().end(); ++itr)
       {
-         /// Can not use getOwned to save keys here.
-         /// We do not know when key obj released by user thread.
-         mr->inserting.push_back(itr->copy());
+         record->inserting.push_back(itr->getOwned());
       }
       
       for (ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeysToRemove().begin();
            itr != ir->getKeysToRemove().end(); ++itr)
       {
-         /// Can not use getOwned to save keys here.
-         /// We do not know when key obj released by user thread.
-         mr->discarded.push_back(itr->copy());
+         record->discarded.push_back(itr->getOwned());
       }
 
-      _mrl.rl.push_back(mr);
+      _ml.push_back(std::move(record));
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 buildingIndexContext::getEntryBuildingStatus(const scanEntry &entry)const
+   INT32 buildingIndexContext::_getBuildingStatus(UINT32 seq)const
    {
-      if (entry < _low)
+      if (seq < _low)
       {
-         ///already scanned
+         ///already builded
          return -1;
       }
-      else if(entry < _high)
+      else if(seq < _high)
       {
          /// scanning
          return 0;
@@ -158,17 +138,15 @@ namespace vessel
       }
    }
 
-   BOOLEAN buildingIndexContext::endToBuildCurrentRange(indexMergingRecordList &mrl)
+   BOOLEAN buildingIndexContext::endToBuildCurrentRange(INDEX_MERGING_LIST &ml)
    {
-      SDB_ASSERT(_low != _high, "already ended");
-      SDB_ASSERT(mrl.rl.empty(), "must be empty");
-      ossXLatchGuard guard(&_latch);
-
-      BOOLEAN r = _mrl.rl.empty();
+      std::unique_lock<std::mutex> lock(_mutex);
+      SDB_ASSERT(isScanning(), "not scanning");
+      BOOLEAN r = _ml.empty();
       
       if (!r)
       {
-         mrl.rl = std::move(_mrl.rl);
+         ml.splice(ml.end(), _ml);
       }
       else
       {
@@ -178,22 +156,12 @@ namespace vessel
       return r;
    }
 
-   void buildingIndexContext::updateBuildingHighBound(const scanEntry &entry)
+   UINT32 buildingIndexContext::slideHigh(UINT32 size)
    {
-      ossXLatchGuard guard(&_latch);
-      SDB_ASSERT(_high < entry, "must be over current high");
-      _high = entry;
-      return;
-   }
-
-   BOOLEAN buildingIndexContext::getNextBuildingBound(scanEntry &bound)const
-   {
-      if (_low != _high)
-      {
-         return FALSE;
-      }
-      bound = _low;
-      return TRUE;
+      SDB_ASSERT(0 < size, "can not be invalid");
+      std::unique_lock<std::mutex> lock(_mutex);
+      _high += size;
+      return _high;
    }
 } // namespace vessel
 

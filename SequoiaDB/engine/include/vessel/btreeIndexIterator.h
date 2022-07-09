@@ -53,53 +53,40 @@ namespace vessel
          virtual ~btreeIndexIterator();
 
       public:
-         virtual INDEX_TYPE getIndexType()const {return INDEX_TYPE_BTREE;}
+         virtual const CHAR *getName()const override {return "btreeIndexIterator";}
 
-      public:
-         virtual BOOLEAN isOpen()const
-         {
-            return NULL != _context;
-         }
-
-         virtual INT32 open(requestContext *context,
-                            indexObject *obj,
-                            const options &o);
-
-         virtual void close();
+         virtual void reset() override;
 
          virtual INT32 seek(const bson::BSONObj &prevKey,
                             INT32 fieldCountToCmpInPrev,
                             const VEC_ELE_CMP &matchEles,
                             const inclusiveVec &matchInclusive,
-                            const seekOptions &o);
+                            const seekOptions &o) override;
 
          virtual INT32 seekKey(const ixmKey &key,
-                               const seekOptions &o);
+                               const seekOptions &o) override;
 
-         virtual INT32 next();
+         virtual INT32 locate(const slice &encodedKey,
+                              const recordID &rid,
+                              const recordID &pos,
+                              const seekOptions &o) override;
 
-         virtual INT32 fastNext(const bson::BSONObj &prevKey,
-                                INT32 fieldCountToCmpInPrev,
-                                const VEC_ELE_CMP &matchEles,
-                                const inclusiveVec &matchInclusive,
-                                const seekOptions &o);
+         virtual INT32 next() override;
+
+         virtual INT32 advance(const bson::BSONObj &prevKey,
+                               INT32 fieldCountToCmpInPrev,
+                               const VEC_ELE_CMP &matchEles,
+                               const inclusiveVec &matchInclusive,
+                               const seekOptions &o) override;
 
          virtual BOOLEAN isReadyToRead()const;
 
-         virtual INT32 contains(const ixmKey &key, recordID &rid);
-
-         virtual void pause();
-
-         virtual INT32 moveToTheNextOfEntry(const slice &entry);
       public:
-         virtual UINT64 getLSN()const;
-         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const;
-         virtual DPS_TRANS_ID getTransID()const;
-         virtual recordID getRid()const;
-         virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
-         virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const;
-         virtual UINT32 getCurrentEntrySize()const;
-         //virtual indexScanEntry getCurrentEntry()const;
+         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const  override;
+         virtual recordID getRid()const override;
+         virtual BOOLEAN equals(const ixmKey &key)const override;
+         virtual recordID getPosition()const override;
+         virtual slice getEncodedKey()const override;
 
       private:
          OSS_INLINE BOOLEAN hasLocation()const
@@ -158,12 +145,12 @@ namespace vessel
          recordID getCurrentIndexRid()const;
 
       private:
+         options _o;
          requestContext *_context = NULL;
          btreeAccessContext _bac;
          RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
          btreeIndexItem _item;
          bson::BufBuilder _builder;
-         BOOLEAN _forward = TRUE;
    };//class btreeIndexIterator
 } // namespace vessel
 

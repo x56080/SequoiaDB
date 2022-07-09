@@ -123,37 +123,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexKeyStackPacker::packFullKey(const lsmPureKeyEntry &key,
-                                             const lsmIndexMeta &meta)
-   {
-      INT32 rc = SDB_OK;
-
-      reset();
-      if (!key.isValid() ||
-          !meta.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = packFullKey(key.getKey(),
-                       meta.getIdxId(),
-                       meta.getOrdering(),
-                       key.getRid(),
-                       key.getDataLsn());
-      if (SDB_OK != rc)  
-      {
-         PD_LOG(PDERROR, "pack full key failed, rc:%d", rc);
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      reset();
-      goto done;
-   }
-
    rocksdb::Slice lsmIndexKeyStackPacker::getFullKeySlice()const
    {
       SDB_ASSERT(nullptr != _keyBuf, "can not be null");

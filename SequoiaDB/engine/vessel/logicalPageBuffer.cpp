@@ -58,6 +58,7 @@ namespace vessel
       _context = NULL;
       _lps = NULL;
       _psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      _flags = 0;
       return;
    }
 
@@ -67,6 +68,11 @@ namespace vessel
       if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(isReadonly()))
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 

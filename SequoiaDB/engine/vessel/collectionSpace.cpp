@@ -46,8 +46,6 @@
 #include "vessel/clMetaBlockPageIniter.h"
 #include "vessel/csMetaBlockPageAccessor.h"
 #include "vessel/storageFileMaintainer.h"
-#include "vessel/clIndexMbpIniter.h"
-#include "vessel/clIndexMetaBlockPage.h"
 #include "vessel/csMetaBlockPageIniter.h"
 
 namespace engine
@@ -1015,54 +1013,6 @@ namespace vessel
       return rc;
    error:
       goto done; 
-   }
-
-   INT32 collectionSpace::ensureCLIndexMetaBlockPage(requestContext *context,
-                                                     CL_MB_ID mbID)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(nullptr != context, "can not be null");
-      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-
-      indexSpace &is = _su->getIndexSpace();
-      UINT32 pageSize = _su->getManifest().idxArgs.pageSize;
-      clIndexMbpIniter initer;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      BOOLEAN locked = FALSE;
-      PAGE_ID lpid = getIndexMetaBlockPageLpid(pageSize, mbID);
-
-      if (INVALID_PAGE_ID == lpid)
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "failed to get cl index meta block page "
-                "lpid of mbid[%d], rc:%d", mbID, rc);
-         goto error;
-      }
-
-      rc = context->lockLpid(is.getSpaceType(), lpid, mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock index meta block page lpid, rc:%d", rc);
-         goto error;
-      }
-      locked = TRUE;
-
-      rc = is.ensureReservedPageMapped(context, lpid, &initer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure index meta block page mapped, rc:%d", rc);
-         goto error;
-      }
-
-   done:
-      if (locked)
-      {
-         context->unlockLpid(is.getSpaceType(), lpid);
-      }
-      return rc;
-   error:
-      goto done;
    }
 
    INT32 collectionSpace::reserveCL(requestContext *context,

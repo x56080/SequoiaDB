@@ -778,12 +778,7 @@
 #define IXM_FIELD_NAME_GLOBAL_OPTION         "GlobalOption"
 #define IXM_FIELD_NAME_NOTARRAY              "NotArray"
 #define IXM_FIELD_NAME_TYPE                  "Type"
-#define IXM_FIELD_NAME_BTREE_COMPRESSION     "BtreeCompression"
 #define IXM_FIELD_NAME_MAX_PREFIX_FIELDS     "MaxPrefixFields"
-#define IXM_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH  "_BtreeMinCompressionDepth"
-#define IXM_FIELD_NAME_LSM_COLUMN_FAMILY     "ColumnFamily"
-#define IXM_FIELD_NAME_LSM                   "lsm"
-#define IXM_FIELD_NAME_BTREE                 "btree"
 
 // global logical time to create index ( add meta data to collection )
 #define IXM_FIELD_NAME_CREATETIME            "CreateTime"

@@ -97,7 +97,7 @@ BOOLEAN validateAndExtract(const std::string &path, UINT32 &version)
    constexpr UINT32 CONTROL_FILE_NAME_COLUMN_PREFIX = 0;
    constexpr UINT32 CONTROL_FILE_NAME_COLUMN_CONTROL = 1;
    constexpr UINT32 CONTROL_FILE_NAME_COLUMN_VERSION = 2;
-   constexpr UINT32 CONTROL_FILE_MAX_PREFIX_LEN = 64;
+
    version = 0;
    fs::path filePath(path);
    std::vector<std::string> columns = utilStrSplit(filePath.filename().string(), ".");

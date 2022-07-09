@@ -43,13 +43,13 @@ namespace vessel
 {
    void dmlIndexRequest::fini()
    {
-      _index = NULL;
+      _index = nullptr;
       _toInsert.clear();
       _toRemove.clear();
       _flags = 0;
    }
 
-   INT32 dmlIndexRequest::init(indexObject *index,
+   INT32 dmlIndexRequest::init(const indexObject *index,
                                const bson::BSONObjSet *toInsert,
                                const bson::BSONObjSet *toRemove)
    {
@@ -137,7 +137,7 @@ namespace vessel
       _building = 0;
    }
 
-   INT32 dmlIndexRequestArray::append(indexObject *index,
+   INT32 dmlIndexRequestArray::append(const indexObject *index,
                                       const bson::BSONObjSet *keysToInsert,
                                       const bson::BSONObjSet *keysToRemove)
    {

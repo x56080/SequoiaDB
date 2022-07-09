@@ -149,11 +149,11 @@ TEST_F(index_lsm_test, test1)
    for (UINT32 i = 0; i < count; ++i)
    {
       const bson::BSONObj &obj = indexes.at(i);
-      ASSERT_EQ(0, ossStrcmp(IXM_LSM_FIELD, obj.getStringField(IXM_TYPE_FIELD)));
+      ASSERT_EQ(0, ossStrcmp(IXM_LSM_TREE, obj.getStringField(IXM_TYPE_FIELD)));
       std::stringstream ss;
       ss << "index" << i;
       ASSERT_EQ(0, ss.str().compare(obj.getStringField(IXM_NAME_FIELD)));
-      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
+      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(IXM_STATUS_FIELD));
    }
 
    cl->close();
@@ -173,11 +173,11 @@ TEST_F(index_lsm_test, test1)
    for (UINT32 i = 0; i < count; ++i)
    {
       const bson::BSONObj &obj = indexes.at(i);
-      ASSERT_EQ(0, ossStrcmp(IXM_LSM_FIELD, obj.getStringField(IXM_TYPE_FIELD)));
+      ASSERT_EQ(0, ossStrcmp(IXM_LSM_TREE, obj.getStringField(IXM_TYPE_FIELD)));
       std::stringstream ss;
       ss << "index" << i;
       ASSERT_EQ(0, ss.str().compare(obj.getStringField(IXM_NAME_FIELD)));
-      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
+      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(IXM_STATUS_FIELD));
    }
 
    cl->close();
@@ -255,10 +255,10 @@ TEST_F(index_lsm_test, test2)
       std::stringstream ss;
       ss << "index" << i;
       const bson::BSONObj &obj = indexes.at(i);
-      ASSERT_EQ(0, ossStrcmp(IXM_LSM_FIELD, obj.getStringField(IXM_TYPE_FIELD)));
+      ASSERT_EQ(0, ossStrcmp(IXM_LSM_TREE, obj.getStringField(IXM_TYPE_FIELD)));
       std::string name = ss.str();
       ASSERT_EQ(0, name.compare(obj.getStringField(IXM_NAME_FIELD)));
-      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
+      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(IXM_STATUS_FIELD));
    }
 
    cl->close();
@@ -280,10 +280,10 @@ TEST_F(index_lsm_test, test2)
       std::stringstream ss;
       ss << "index" << i;
       const bson::BSONObj &obj = indexes.at(i);
-      ASSERT_EQ(0, ossStrcmp(IXM_LSM_FIELD, obj.getStringField(IXM_TYPE_FIELD)));
+      ASSERT_EQ(0, ossStrcmp(IXM_LSM_TREE, obj.getStringField(IXM_TYPE_FIELD)));
       std::string name = ss.str();
       ASSERT_EQ(0, name.compare(obj.getStringField(IXM_NAME_FIELD)));
-      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
+      ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(IXM_STATUS_FIELD));
    }
 
    cl->close();

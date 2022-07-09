@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = unstableIndexContext.h
+   Source File Name = lpageMappingPteCtx.h
 
    Descriptive Name =
 
@@ -33,25 +33,45 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_UNSTABLE_INDEX_CONTEXT_H_
-#define VESSEL_UNSTABLE_INDEX_CONTEXT_H_
+#ifndef VESSEL_LPAGE_MAPPING_PTE_CTX_H_
+#define VESSEL_LPAGE_MAPPING_PTE_CTX_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/lpageMappingRoot.h"
+#include "vessel/fixedBitset.hpp"
+#include "ossMemPool.hpp"
+
+#include <mutex>
 
 namespace engine
 {
 namespace vessel
 {
-   class unstableIndexContext : public SDBObject
+   class lpageMappingPteCtx : public SDBObject
    {
+      friend class lpageMapping;
       public:
-         unstableIndexContext(){}
-         virtual ~unstableIndexContext(){}
-         unstableIndexContext(const unstableIndexContext &) = delete;
-         unstableIndexContext &operator=(const unstableIndexContext &) = delete;
-   };//class unstableIndexContext
-}//namespace vessel
-}//namespace engine
+         lpageMappingPteCtx() = default;
+         ~lpageMappingPteCtx();
+         lpageMappingPteCtx(const lpageMappingPteCtx &) = delete;
+         lpageMappingPteCtx &operator=(const lpageMappingPteCtx &) = delete;
 
-#endif//VESSEL_UNSTABLE_INDEX_CONTEXT_H_
+      public:
+         BOOLEAN none()const;
+         void reset();
+
+      private:
+
+      private:
+         std::mutex _privatePathLocker;
+         lpageMappingRoot _root;
+
+         /// pids of meta file to be free after publishing.
+         /// protected by _privatePathLocker
+         ossPoolSet<PAGE_ID> _obsoleteSet; 
+   };//class lpageMappingPteCtx
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_LPAGE_MAPPING_PTE_CTX_H_

@@ -59,7 +59,7 @@ namespace vessel
 
    void lsmEventListener::OnTableFileCreated(const TableFileCreationInfo &info)
    {
-      if (LSM_INDEX_CF_ID == info.table_properties.column_family_id &&
+      if (LSM_CF_HYBRID_INDEX == info.table_properties.column_family_id &&
           TableFileCreationReason::kFlush == info.reason)
       {
          const UserCollectedProperties &ucp =

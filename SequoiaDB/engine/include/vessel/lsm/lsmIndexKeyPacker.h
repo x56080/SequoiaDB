@@ -36,7 +36,6 @@
 #define VESSEL_LSM_INDEX_KEY_PACKER_H_
 
 #include "vessel/lsm/lsmIndexKey.h"
-#include "vessel/lsm/lsmIndexMeta.hpp"
 #include "utilAllocator.hpp"
 #include "rocksdb/slice.h"
 
@@ -76,9 +75,6 @@ namespace vessel
                            const orderingWrapper &ow,
                            const recordID &rid,
                            UINT64 lsn);
-
-         INT32 packFullKey(const lsmPureKeyEntry &key,
-                           const lsmIndexMeta &meta);
 
          rocksdb::Slice getFullKeySlice()const;
 

@@ -60,14 +60,12 @@ namespace vessel
          _btreeMaxPrefix(o._btreeMaxPrefix),
          _innerID(o._innerID)
          {
-            _pattern.getOwned();
          }
 
          indexProperties &operator=(const indexProperties &o)
          {
             _name = o._name;
             _pattern = o._pattern;
-            _pattern.getOwned();
             _type = o._type;
             _flags = o._flags;
             _btreeMaxPrefix = o._btreeMaxPrefix;
@@ -111,6 +109,16 @@ namespace vessel
          OSS_INLINE BOOLEAN isNotArray()const
          {
             return 0 != OSS_BIT_TEST(_flags, _FLAG_NOT_ARRAY);
+         }
+
+         /// btree only
+         OSS_INLINE BOOLEAN isPrefixCompressionEnabled()const
+         {
+            return 0 != _btreeMaxPrefix;
+         }
+         OSS_INLINE UINT32 getMinCompressionDepth()const
+         {
+            return 0;
          }
 
       private:

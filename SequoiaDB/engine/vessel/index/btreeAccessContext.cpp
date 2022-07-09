@@ -58,7 +58,7 @@ namespace vessel
                                  indexSpace *is)
    {
       SDB_ASSERT(NULL != obj && obj->isValid(), "can not be invalid");
-      SDB_ASSERT(obj->getDescription().getType() == INDEX_TYPE_BTREE, "msut be btree");
+      SDB_ASSERT(obj->getProperties().getType() == INDEX_TYPE_BTREE, "msut be btree");
       SDB_ASSERT(NULL != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(NULL != is && is->isOpen(), "can not be invalid");
 
@@ -661,10 +661,10 @@ namespace vessel
          goto error;
       }
 
-      if (_obj->getIndexId().getLogicalIndexId() != head->indexId)
+      if (_obj->getLogicalID() != head->indexId)
       {
          PD_LOG(PDERROR, "different logical index ids found[%d,%d] on page[%s]",
-                _obj->getIndexId().getLogicalIndexId(), 
+                _obj->getLogicalID(), 
                 head->indexId, rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;

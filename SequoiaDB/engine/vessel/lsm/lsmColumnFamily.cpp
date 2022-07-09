@@ -45,7 +45,7 @@ namespace vessel
    lsmColumnFamily::lsmColumnFamily(lsmDB *db, LSM_CF_ID cfId)
    {
       SDB_ASSERT(nullptr != db, "can not be null");
-      SDB_ASSERT(LSM_INVALID_CF_ID != cfId, "can not be invalid");
+      SDB_ASSERT(LSM_CF_INVALID != cfId, "can not be invalid");
       _db = db;
       _cfId = cfId;
    }

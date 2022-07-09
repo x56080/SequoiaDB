@@ -302,7 +302,7 @@ class indexTestUtil
       bson::BSONObjBuilder builder;
       builder.append(IXM_NAME_FIELD, name);
       const CHAR *typeStr = INDEX_TYPE_BTREE == type ?
-                            IXM_BTREE_FIELD : IXM_LSM_FIELD;
+                            IXM_BTREE : IXM_LSM_TREE;
       builder.append(IXM_TYPE_FIELD, typeStr);
       builder.append(IXM_KEY_FIELD, pattern);
       builder.appendBool(IXM_UNIQUE_FIELD, unique);

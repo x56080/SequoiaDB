@@ -210,6 +210,17 @@ namespace vessel
          freePid(pids[0]);
       }
    }
+
+   void baseMetaDataFile::freePids(const ossPoolSet<PAGE_ID> &set)
+   {
+      SDB_ASSERT(_scanner.isReady(), "can not be invalid");
+      std::unique_lock<std::mutex> guard(_mutex);
+      for (auto itr = set.cbegin(); itr != set.cend(); ++itr)
+      {
+         _scanner.setBit(*itr, FALSE);
+      }
+      return;
+   }  
 } // namespace vessel
 
 } // namespace engine

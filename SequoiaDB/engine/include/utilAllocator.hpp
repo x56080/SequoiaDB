@@ -98,6 +98,7 @@ namespace engine
          virtual void *malloc(size_t size) = 0;
          virtual void free(void *p) = 0;
          virtual void *realloc(void *p, size_t size) = 0;
+         virtual BOOLEAN isMovable()const = 0;
    };//class utilBaseAllocator
 
    class utilPoolAllocator : public utilBaseAllocator
@@ -123,6 +124,11 @@ namespace engine
          virtual void free(void *p) override
          {
             SDB_THREAD_FREE(p);
+         }
+
+         virtual BOOLEAN isMovable()const override
+         {
+            return TRUE;
          }
    };//utilPoolAllocator
 
@@ -185,6 +191,11 @@ namespace engine
          BOOLEAN isStackBuffer(const void *p)
          {
             return _statckBuf == (const CHAR *)p;
+         }
+
+         virtual BOOLEAN isMovable()const override
+         {
+            return FALSE;
          }
       
       private:

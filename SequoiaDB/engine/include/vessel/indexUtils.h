@@ -39,8 +39,8 @@
 #include "vessel/strSlice.h"
 #include "vessel/indexKeyPattern.h"
 #include "../bson/bson.hpp"
-#include "vessel/indexDescription.h"
 #include "rtnPredicate.hpp"
+#include "vessel/indexProperties.h"
 
 namespace engine
 {

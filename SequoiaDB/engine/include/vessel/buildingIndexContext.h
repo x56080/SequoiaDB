@@ -36,45 +36,56 @@
 #ifndef VESSEL_BUILDING_INDEX_CONTEXT_H_
 #define VESSEL_BUILDING_INDEX_CONTEXT_H_
 
-#include "vessel/unstableIndexContext.h"
 #include "vessel/indexMergingRecord.h"
-#include "vessel/dmlContext.h"
 #include "vessel/dmlIndexRequest.h"
+
+#include <mutex>
 
 namespace engine
 {
 namespace vessel
 {
-   class buildingIndexContext : public unstableIndexContext
+   class indexObject;
+   class buildingIndexContext : public SDBObject
    {
       public:
-         buildingIndexContext(){}
-         virtual ~buildingIndexContext();
+         buildingIndexContext(indexObject *obj);
+         ~buildingIndexContext() = default;
+         buildingIndexContext(const buildingIndexContext &) = delete;
+         buildingIndexContext &operator=(const buildingIndexContext &) = delete;
 
       public:
-         INT32 merge(dmlContext *context,
-                     dmlIndexRequest *ir);
+         OSS_INLINE const indexObject *getIndexObj()const {return _obj;}
+         OSS_INLINE indexObject *getIndexObj() {return _obj;}
+         OSS_INLINE BOOLEAN isScanning()const {return _low < _high;}
+         OSS_INLINE UINT32 getLow()const {return _low;}
+         OSS_INLINE UINT32 getHigh()const {return _high;}
+      
+      public:
+         INT32 merge(dmlIndexRequest *ir,
+                     UINT32 seq,
+                     const recordID &rid,
+                     const DPS_LSN_OFFSET &lsn,
+                     const DPS_TRANS_ID &transID);
 
-         void fini();
+         BOOLEAN endToBuildCurrentRange(INDEX_MERGING_LIST &ml);
          
+         UINT32 slideHigh(UINT32 size=1);
+
+      private:
          /// res < 0: builded
          /// res == 0: building
          /// res > 0: not builded 
-         INT32 getEntryBuildingStatus(const scanEntry &entry)const;
-
-         BOOLEAN endToBuildCurrentRange(indexMergingRecordList &mrl);
-
-         void updateBuildingHighBound(const scanEntry &entry);
-
-         BOOLEAN getNextBuildingBound(scanEntry &bound)const;
+         INT32 _getBuildingStatus(UINT32 seq)const;
 
       private:
-         ossSpinXLatch _latch;
+         indexObject *_obj = nullptr;
+         std::mutex _mutex;
          /// scanning range is [_low, _high)
-         scanEntry _low;
-         scanEntry _high;
+         UINT32 _low = 0;
+         UINT32 _high = 0;
 
-         indexMergingRecordList _mrl;
+         INDEX_MERGING_LIST _ml;
    };//class buildingIndexContext
 } // namespace vessel
   

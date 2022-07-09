@@ -39,7 +39,7 @@
 #include "oss.hpp"
 #include "dms.hpp"
 #include "vessel/indexDef.h"
-#include "vessel/lsm/lsmColumnFamily.h"
+#include "vessel/indexObjectMap.h"
 
 namespace engine
 {
@@ -49,6 +49,7 @@ namespace vessel
    {
       public:
          indexMetaStorage() = default;
+         indexMetaStorage(UINT32 lcsid, UINT32 lclid);
          ~indexMetaStorage() = default;
          indexMetaStorage(const indexMetaStorage &) = delete;
          indexMetaStorage &operator=(const indexMetaStorage &) = delete;
@@ -59,20 +60,30 @@ namespace vessel
          
          OSS_INLINE BOOLEAN isValid() const
          {
-            return _cf.isValid() &&
-                   DMS_INVALID_LOGICCSID != _csLid &&
+            return DMS_INVALID_LOGICCSID != _csLid &&
                    DMS_INVALID_LOGICCLID != _clLid;
          }
 
       public:
+         INT32 commit(UINT32 indexLid,
+                      const indexObjectMap &im,
+                      BOOLEAN commitManifest);
+
+         INT32 reload(indexObjectMap &im);
+
+      public:
+         INT32 upsert(UINT32 indexLid,
+                      const bson::BSONObj &indexEntry);
+
          INT32 upsert(UINT32 indexLid,
                       const bson::BSONObj &indexEntry,
-                      const bson::BSONObj *manifest = nullptr);
+                      const bson::BSONObj &manifest);
 
          INT32 getIndexEntry(UINT32 indexLid,
                              bson::BSONObj &obj);
 
-         INT32 getIndexManifest(bson::BSONObj &obj);
+         INT32 getIndexManifest(BOOLEAN &found,
+                                bson::BSONObj &obj);
 
          INT32 list(ossPoolList<bson::BSONObj> &objs);
 
@@ -81,7 +92,14 @@ namespace vessel
          INT32 destroy();
 
       private:
-         lsmColumnFamily _cf;
+         INT32 _upsert(UINT32 indexLid,
+                       const bson::BSONObj &indexEntry,
+                       const bson::BSONObj &manifest);
+
+      private:
+         bson::BSONObj _getManifestEntry(const indexObjectMap &im)const;
+
+      private:
          UINT32 _csLid = DMS_INVALID_LOGICCSID;
          UINT32 _clLid = DMS_INVALID_LOGICCLID;
    };
