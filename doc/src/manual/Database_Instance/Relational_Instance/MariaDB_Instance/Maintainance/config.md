@@ -151,6 +151,16 @@
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
+**optimizer_limit_pushdown_threshold**
+
+该参数可以配置 limit 下压的阈值。当查询语句是带有 order by 和 limit 子句的块驱动关联查询时，允许 limit 下压可以减少内表扫描的次数，以提升性能。该阈值需根据查询语句中 limit 的取值（limit_num），以及 order by 列所在的表经评估后确定的检查行数（rows）进行配置。当 rows/limit_num 大于阈值时，limit 子句将被下压。用户可根据实际场景调整该参数，找到适配场景的最优取值，保证集群的高性能运行。
+
++ 类型：uint32 
++ 默认值：100 
++ 取值范围为[1, 2^32 -1]
++ 作用范围：Global,Session 
++ 是否支持在线修改生效：是 
+
 ###配置事务功能###
 
 **sequoiadb_use_transaction**
