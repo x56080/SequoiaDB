@@ -156,7 +156,7 @@
     本文使用到的所有链接及引用。
 [sharding_database]:manual/Distributed_Engine/Architecture/Sharding/architecture.md#数据库分区
 [sharding_collection]:manual/Distributed_Engine/Architecture/Sharding/architecture.md#表分区
-[create_collection]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
+[create_collection]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [split]:manual/Manual/Sequoiadb_Command/SdbCollection/split.md
 [attach_command]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md
 [snapshot]:manual/Manual/Snapshot/Readme.md

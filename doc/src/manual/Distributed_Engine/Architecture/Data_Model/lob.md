@@ -86,7 +86,7 @@ LOBM 和 LOBD 的存储结构如图 1 所示。
     }
     ```
 
-3. 将集合 sample.employee 中 OID 为"435e7b69487faa663000897"的 LOB 下载到本地文件 `video_2019_02_26_1_bak.avi` 中
+3. 将集合 sample.employee 中 OID 为"5435e7b69487faa663000897"的 LOB 下载到本地文件 `video_2019_02_26_1_bak.avi` 中
 
     ```lang-bash
     > db.sample.employee.getLob('5435e7b69487faa663000897', '/opt/video_2019_02_26_1_bak.avi')
