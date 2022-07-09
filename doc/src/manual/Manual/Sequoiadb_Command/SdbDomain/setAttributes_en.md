@@ -63,7 +63,7 @@ v3.4 and above
     > var domain = db.createDomain('mydomain', ['group1', 'group2'])
     ```
 
-    Modify the replication group contained in the domain to "group1" and group3.
+    Modify the replication group contained in the domain to "group1" and "group3".
 
     ```lang-javascript
     > domain.setAttributes({Groups: ['group1', 'group3']})

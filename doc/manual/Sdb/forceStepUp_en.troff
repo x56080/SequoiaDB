@@ -60,7 +60,7 @@ v3.4 and above
 Connect to catalog node 11800.
 .nf
 \f[C]
-> var cata = new Sdb("localhost", 30000)
+> var cata = new Sdb("localhost", 11800)
 \f[]
 .fi
 .RS

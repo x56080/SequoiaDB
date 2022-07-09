@@ -49,7 +49,7 @@ v3.4 及以上版本
 1. 连接编目节点 11800
 
     ```lang-javascript
-    > var cata = new Sdb("localhost", 30000)
+    > var cata = new Sdb("localhost", 11800)
     ```
 
     >**Note:**

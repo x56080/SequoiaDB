@@ -49,7 +49,7 @@ v3.4 and above
 1. Connect to catalog node 11800.
 
     ```lang-javascript
-    > var cata = new Sdb("localhost", 30000)
+    > var cata = new Sdb("localhost", 11800)
     ```
 
     >**Note:**

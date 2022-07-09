@@ -176,7 +176,7 @@ exists in the replication groups.
 \f[]
 .fi
 .PP
-Modify the replication group contained in the domain to "group1" and group3.
+Modify the replication group contained in the domain to "group1" and "group3".
 .IP
 .nf
 \f[C]
