@@ -47,6 +47,7 @@
 #include "ossMemPool.hpp"
 #include "pdSecure.hpp"
 #include "rtnHintModifier.hpp"
+#include "utilCommon.hpp"
 
 using namespace bson ;
 
@@ -432,7 +433,7 @@ namespace engine
                          "DuplicatedNum:%llu, ObjNum:%u, Insertor:%s, Hint:%s, "
                          "Flag:0x%08x(%u)",
                          _inResult.insertedNum(), _inResult.duplicatedNum(),
-                         count, BSONObj(pInsertor).toPoolString().c_str(),
+                         count, utilPrintBSONBatch( pInsertor, count ).c_str(),
                          BSONObj(_pHint).toPoolString().c_str(),
                          oldFlag, oldFlag ) ;
          }
@@ -443,7 +444,7 @@ namespace engine
                          "DuplicatedNum:%llu, ObjNum:%u, Insertor:%s, "
                          "Flag:0x%08x(%u)",
                          _inResult.insertedNum(), _inResult.duplicatedNum(),
-                         count, BSONObj(pInsertor).toPoolString().c_str(),
+                         count, utilPrintBSONBatch( pInsertor, count ).c_str(),
                          oldFlag, oldFlag ) ;
          }
       }
