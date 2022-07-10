@@ -635,6 +635,47 @@ namespace engine
       return _retObj[ SDB_MAX_ERROR + flags ] ;
    }
 
+#if defined( SDB_ENGINE )
+   ossPoolString utilPrintBSONBatch( const CHAR * detail, const INT32 count )
+   {
+      StringBuilder ss ;
+      INT32 pos = 0 ;
+      INT32 i = 0 ;
+      INT32 looptimes = count < 3 ? count : 3 ;
+      SDB_ASSERT( detail, "detail can't be null" ) ;
+
+      try
+      {
+         for ( ; i < looptimes ; ++i )
+         {
+            BSONObj objIn( detail + pos ) ;
+            ss << objIn.toPoolString() ;
+            // BSON size greater than pd log string max, need to be truncated
+            if ( PD_LOG_STRINGMAX < ss.len() )
+            {
+               break ;
+            }
+
+            if ( i + 1 != looptimes )
+            {
+               ss << "," ;
+            }
+            pos += ossRoundUpToMultipleX( objIn.objsize(), 4 ) ;
+         }
+         if ( i < count )
+         {
+            ss << "..." ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to parse detail from char"
+                 " to bson, occur exception: %s", e.what() ) ;
+      }
+      return ss.poolStr() ;
+   }
+#endif
+
    struct _utilShellRCItem
    {
       UINT32      _src ;
