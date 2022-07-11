@@ -65,6 +65,11 @@ namespace vessel
             return *((const bson::Ordering *)this);
          }
 
+         UINT32 getNkeys() const
+         {
+            return _nkeys;
+         }
+
       private:
          UINT32 _bits = 0;
          UINT32 _nkeys = 0;
