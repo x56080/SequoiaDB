@@ -1146,7 +1146,8 @@ namespace engine
          {
             SDB_ASSERT( SDB_OOM == rc ||
                         SDB_NOSPC == rc ||
-                        SDB_IXM_DUP_KEY == rc,
+                        SDB_IXM_DUP_KEY == rc ||
+                        SDB_APP_INTERRUPT == rc,
                         "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;
