@@ -748,7 +748,16 @@ namespace engine
          MAP_IDSTATUS_IT it = _mapStatus.find( taskID ) ;
          if ( it == _mapStatus.end() )
          {
-            statusPtr = dmsIdxTaskStatusPtr( pItem ) ;
+            try
+            {
+               statusPtr = dmsIdxTaskStatusPtr( pItem ) ;
+            }
+            catch( std::exception &e )
+            {  
+               pItem = NULL ;
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+            }
             // shared_ptr takes over pItem's memory
             pItem = NULL ;
             _mapStatus[taskID] = statusPtr ;
