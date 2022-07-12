@@ -427,4 +427,15 @@ public class RandomWriteLobUtil {
                     { 1024 * 1024 * 100 } };
         }
     }
+
+    public static void checkShareLobResult( DBCollection dbcl, ObjectId oid,
+                                            int lobSize, byte[] expData ) {
+        DBLob lob = dbcl.openLob( oid, DBLob.SDB_LOB_READ );
+        byte[] actData = new byte[ lobSize ];
+        lob.read( actData );
+        lob.close();
+        RandomWriteLobUtil.assertByteArrayEqual( actData, expData,
+                "lob data is wrong" );
+    }
+
 }
