@@ -34,7 +34,7 @@ public class TestLob26713 extends SdbTestBase {
     private int lobSize = 1024 * 1024;
     private int writeSize = 1024 * 700;
     private int lobNum = 30;
-    byte[] lobBuff;
+    private byte[] lobBuff;
     private List< ObjectId > ids = new ArrayList<>();
 
     @BeforeClass
