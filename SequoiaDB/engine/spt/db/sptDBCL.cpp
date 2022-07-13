@@ -2901,6 +2901,7 @@ namespace engine
       else if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "detail must be boolean" ) ;
+         goto error ;
       }
 
       rc = _cl.getIndexStat( indexName.c_str(), result, statDetail ) ;
