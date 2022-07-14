@@ -99,6 +99,7 @@ namespace engine
          virtual void free(void *p) = 0;
          virtual void *realloc(void *p, size_t size) = 0;
          virtual BOOLEAN isMovable()const = 0;
+         virtual UINT32 getFastAllocSize()const {return 0;}
    };//class utilBaseAllocator
 
    class utilPoolAllocator : public utilBaseAllocator
@@ -136,12 +137,18 @@ namespace engine
    class utilStackAllocator : public utilBaseAllocator
    {
       public:
+         UINT32 getMaxStackBufSize()const {return STACK_SIZE;}
+
+         virtual UINT32 getFastAllocSize()const override {return STACK_SIZE;}
+
          virtual void *malloc(size_t size) override
          {
             void *buf = nullptr;
-            if (size <= STACK_SIZE)
+            /// stack buffer is allocated exclusively.
+            if (0 == _offset && size <= STACK_SIZE)
             {
                buf = _statckBuf;
+               _offset = size;
             }
             else
             {
@@ -153,24 +160,25 @@ namespace engine
          virtual void *realloc(void *p, size_t size) override
          {
             void *buf = nullptr;
-            if (p == _statckBuf)
+            if (nullptr == p)
+            {
+               buf = this->malloc(size);
+            }
+            else if (isStackBuffer(p))
             {
                if (size <= STACK_SIZE)
                {
                   buf = _statckBuf;
+                  _offset = size;
                }
                else
                {
                   buf = _pallocator.malloc(size);
                   if (nullptr != buf)
                   {
-                     ossMemcpy(buf, _statckBuf, STACK_SIZE);
+                     ossMemcpy(buf, _statckBuf, _offset);
                   }
                }
-            }
-            else if (nullptr == p)
-            {
-               buf = this->malloc(size);
             }
             else
             {
@@ -181,14 +189,22 @@ namespace engine
 
          virtual void free(void *p) override
          {
-            if (p != _statckBuf && nullptr != p)
+            if (nullptr != p)
             {
-               _pallocator.free(p);
+               if (isStackBuffer(p))
+               {
+                  _offset = 0;
+               }
+               else
+               {
+                  _pallocator.free(p);
+               }
             }
+
             return;
          }
 
-         BOOLEAN isStackBuffer(const void *p)
+         BOOLEAN isStackBuffer(const void *p)const
          {
             return _statckBuf == (const CHAR *)p;
          }
@@ -199,7 +215,8 @@ namespace engine
          }
       
       private:
-         CHAR _statckBuf[STACK_SIZE];
+         CHAR _statckBuf[STACK_SIZE] = {};
+         UINT32 _offset = 0;
          utilPoolAllocator _pallocator;
    };//
 }
