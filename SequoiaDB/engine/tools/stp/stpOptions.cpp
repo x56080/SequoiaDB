@@ -37,6 +37,7 @@
 *******************************************************************************/
 
 #include "stpOptions.hpp"
+#include "stpToolUtil.hpp"
 #include "ossVer.h"
 #include "pmdEnv.hpp"
 
@@ -647,7 +648,45 @@ namespace engine
       // parse role
       if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_CLIENT ) )
       {
-         _role = STP_ROLE_CLIENT ;
+         if ( PMD_CFG_STEP_CHG == step && _serverList.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Server list is empty, can not change to client" ) ;
+            goto error ;
+         }
+         else if( PMD_CFG_STEP_CHG == step && 0 < _serverList.size() )
+         {
+            CHAR hostName [ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+            UINT32 localIP = 0 ;
+            UINT32 loopbackIP = 0 ;
+            rc = ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get local host name, rc: %d", rc ) ;
+            rc = stpGetLocalIP( localIP ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get local IP address, rc: %d", rc ) ;
+            rc = stpGetLocalIP( loopbackIP ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get local IP address, rc: %d", rc ) ;
+            for ( vector<pmdAddrPair>::iterator itr = _serverList.begin() ;
+                  itr != _serverList.end() ;
+                  ++itr )
+            {
+               UINT32 tmpIP = 0 ;
+               rc = stpGetIP( tmpIP, itr->_host ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get IP address, rc: %d", rc ) ;
+               if ( tmpIP == localIP || tmpIP == loopbackIP ||
+                    0 == ossStrcasecmp( itr->_host, hostName ) ||
+                    0 == ossStrcasecmp( itr->_host, OSS_LOCALHOST ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Fail to change to client, server[%s] can "
+                              "not be a client at the same time", itr->_host ) ;
+                  goto error ;
+               }
+            }
+         }
+         else
+         {
+            _role = STP_ROLE_CLIENT ;
+         }
       }
       else if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_SERVER ) )
       {
@@ -664,6 +703,20 @@ namespace engine
       // reset role
       if ( _serverList.empty() )
       {
+         CHAR hostName [ OSS_MAX_HOSTNAME + 1 ] = { 0 };
+         rc = ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get local host name, rc: %d", rc ) ;
+         ossSnprintf( _serverListString, PMD_MAX_LONG_STR_LEN, 
+                      "%s:%s", hostName, _serviceName ) ;
+         rc = parseAddressLine( _serverListString, _serverList, ",", ":",
+                                CLS_REPLSET_MAX_NODE_SIZE ) ;
+         if ( SDB_OK != rc )
+         {
+            cerr << "Invalid serverlist: " << _serverListString << endl ;
+            PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                              "Failed to parse server list [%s]",
+                              _serverListString ) ;
+         }
          PD_LOG( PDEVENT, "Server list is empty, change to server" ) ;
          _role = STP_ROLE_SERVER ;
       }

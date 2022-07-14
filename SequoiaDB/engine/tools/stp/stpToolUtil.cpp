@@ -52,9 +52,12 @@
 #include "pmdStartup.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 using namespace std ;
 using namespace boost::algorithm ;
+using namespace boost::asio::ip ;
 
 namespace engine
 {
@@ -286,6 +289,80 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   INT32 stpGetLocalIP( UINT32 &ipAddress )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasFound = FALSE ;
+
+      try
+      {
+         boost::asio::io_service io_srv ;
+         tcp::resolver resolver( io_srv ) ;
+         tcp::resolver::query query( host_name(), "" ) ;
+         tcp::resolver::iterator itr = resolver.resolve( query ) ;
+         tcp::resolver::iterator end ;
+         for ( ; itr != end; itr++ )
+         {
+            tcp::endpoint ep = *itr ;
+            if ( ep.address().is_v4() )
+            {
+               ipAddress = ep.address().to_v4().to_ulong() ;
+               hasFound = TRUE ;
+               break ;
+            }
+         }
+         if ( !hasFound )
+         {
+            rc = SDB_NET_ROUTE_NOT_FOUND ;
+            PD_LOG( PDERROR, "Can not get local ip, rc:%d", rc ) ;
+         }
+      }
+      catch ( std::exception &e)
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 stpGetIP( UINT32 &ipAddress, const CHAR *hostname )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasFound = FALSE ;
+
+      try
+      {
+         boost::asio::io_service io_srv ;
+         tcp::resolver resolver( io_srv ) ;
+         tcp::resolver::query query( hostname, "" ) ;
+         tcp::resolver::iterator itr = resolver.resolve( query ) ;
+         tcp::resolver::iterator end ;
+         for ( ; itr != end; itr++ )
+         {
+            tcp::endpoint ep = *itr ;
+            if ( ep.address().is_v4() )
+            {
+               ipAddress = ep.address().to_v4().to_ulong() ;
+               hasFound = TRUE ;
+               break ;
+            }
+         }
+         if ( !hasFound )
+         {
+            rc = SDB_NET_ROUTE_NOT_FOUND ;
+            PD_LOG( PDERROR, "Can not get local ip, rc:%d", rc ) ;
+         }
+      }
+      catch ( std::exception &e)
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
 }
