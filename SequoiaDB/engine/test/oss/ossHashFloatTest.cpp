@@ -75,7 +75,7 @@ void getExpectMD5()
    md5_state_t st ;
    md5::md5digest digest ;
    md5_init( &st );
-   
+
    for ( UINT32 idx = 0 ; idx < nums.size() ; idx++ )
    {
       for ( INT32 i = -range ; i < range ; i++ )
@@ -110,7 +110,7 @@ void getExpectMD5()
 
    md5_finish( &st, digest ) ;
    printmd5( (UINT64*)digest ) ;
-   
+
 }
 
 TEST( ossTest, ossHashFloat64_test )
@@ -157,10 +157,15 @@ TEST( ossTest, ossHashFloat64_test )
       nums.push_back(39223372036854775808.12345 * e ) ;
    }
 
-   //testcase10: other special value NaN ,inf -inf
+#if defined (_LINUX) || defined (_AIX)
+   //in windows environment does not support divided by 0 to get NaN,inf,-inf
+   //so we just add testcast10 in linux
+   //testcase10: other special value NaN, inf, -inf
    specialnums.push_back( 0.0/0.0 ) ;
    specialnums.push_back( 1.0/0.0 ) ;
    specialnums.push_back( -1.0/0.0 ) ;
+#endif
+
 
    //getExpectMD5();
 
@@ -171,11 +176,11 @@ TEST( ossTest, ossHashFloat64_test )
       FLOAT64 temp ;
       UINT32 n1 ;
       UINT64 n2 ;
-      
+
       md5_state_t st ;
       md5::md5digest digest ;
       md5_init( &st ) ;
-      
+
       for ( UINT32 idx = 0 ; idx < nums.size() ; idx++ )
       {
          for ( INT32 i = -range ; i < range ; i++ )
@@ -210,7 +215,7 @@ TEST( ossTest, ossHashFloat64_test )
 
       md5_finish( &st, digest ) ;
       printmd5( (UINT64*)digest ) ;
-      
+
       ASSERT_TRUE( _checkResult( (UINT64*)digest ) ) ;
 
    }
