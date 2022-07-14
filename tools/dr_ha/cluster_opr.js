@@ -43,6 +43,7 @@ var SDBLIST  = SEQPATH + "bin/sdblist" ;
 var SDBSHELL = SEQPATH + "bin/sdb" ;
 var CONFLOCAL= SEQPATH + "conf/local" ;
 var INITFILE = SEQPATH + "datacenter_init.info" ;
+var ALLHOSTS = [] ;
 var CURHOSTS = [] ;
 var CURCATAS = [] ;   // only catalog
 var CURDATAS = [] ;   // only data
@@ -51,6 +52,8 @@ var CATAADDRLINE = "" ;
 var READSIZE = 655360 ;
 var VERSION_DIVIDE = "3.2" ;
 var NEW_VERSION = false ;
+var NODE_CONF_CATALOGADDR = "catalogaddr" ;
+var NODE_CONF_ROLE = "role" ;
 
 /* *****************************************************************************
 @discription: 从地址中分解出Hostname和SvcName
@@ -247,6 +250,9 @@ function checkArgs() {
       println( "CURHOSTS is empty, should need to set SUB1HOSTS and SUB2HOSTS" ) ;
       return false ;
    }
+
+   ALLHOSTS = mergeArrayWithoutRepeat( SUB1HOSTS, SUB2HOSTS ) ;
+
    /* Check current host is wether in CURHOSTS */
    var curHost = System.getHostName() ;
    if ( -1 == CURHOSTS.indexOf( curHost ) ) {
@@ -1064,34 +1070,6 @@ function change2Standalone( cataAddr ) {
 }
 
 /* *****************************************************************************
-@discription: 将Catalog节点改为Catalog角色模式启动，仅支持 NEW_VERSION 及以上版本
-@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
-@author: QinCheng Yang
-@return: true/false
-***************************************************************************** */
-function change2CatalogNew( cataAddr ) {
-   var options = "--role catalog" ;
-   return restartNodeWithCmd( cataAddr, options ) ;
-}
-
-/* *****************************************************************************
-@discription: 将Catalog节点改为Catalog角色模式启动
-@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
-@author: QinCheng Yang
-@return: true/false
-***************************************************************************** */
-function change2Catalog( cataAddr ) {
-   if ( NEW_VERSION ) {
-      /* In new version. we should write the parameters '--role catalog' to the node
-      configuration file. */
-      return change2CatalogNew( cataAddr ) ;
-   } else {
-      /* In the older version dose not need */
-      return true ;
-   }
-}
-
-/* *****************************************************************************
 @discription: 重启所有主机中的所有SequoiaDB节点
 @hostnameArr : String Array[]
 @author: Jiaming Wu
@@ -1310,7 +1288,7 @@ function splitCluster( cataAddrs, keepHosts, active ) {
 
    /* 1. Update all node's addr--kick host */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
-   if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
+   if ( updateNodesConfig( allNodes, NODE_CONF_CATALOGADDR, newAddrLine ) ) {
       println( "Update all nodes' catalogaddr to " + newAddrLine + " succeed" ) ;
    } else {
       println( "Update all nodes' catalogaddr to " + newAddrLine + " failed" ) ;
@@ -1339,13 +1317,14 @@ function splitCluster( cataAddrs, keepHosts, active ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
          return false ;
       }
-      /* 5. Restore to catalog */
-      if ( change2Catalog( cataAddrs[ i ] ) ) {
-         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
-      } else {
-         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
-         return false ;
-      }
+   }
+
+   /* 5. Restore catalog from standalone to normal*/
+   if ( updateNodesConfig( cataAddrs, NODE_CONF_ROLE, "catalog" ) ) {
+      println( "Restore [" + cataAddrs + "] to catalog succeed" ) ;
+   } else {
+      println( "Restore [" + cataAddrs + "] to catalog failed" ) ;
+      return false ;
    }
 
    /* 6. Restart all keepHosts's nodes */
@@ -1529,7 +1508,7 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
    }
 
    for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
-      /* 1. Change catalog to standalone */
+      /* 1. Change catalog node to standalone */
       if ( change2Standalone( cataAddrs[ i ] ) ) {
          println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
       } else {
@@ -1550,18 +1529,19 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
          return false ;
       }
-      /* 4. Restore to catalog */
-      if ( change2Catalog( cataAddrs[ i ] ) ) {
-         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
-      } else {
-         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
-         return false ;
-      }
+   }
+
+   /* 4. Restore catalog from standalone to normal*/
+   if ( updateNodesConfig( cataAddrs, NODE_CONF_ROLE, "catalog" ) ) {
+      println( "Restore [" + cataAddrs + "] to catalog succeed" ) ;
+   } else {
+      println( "Restore [" + cataAddrs + "] to catalog failed" ) ;
+      return false ;
    }
 
    /* 5. Update all nodes' addr */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
-   if ( updateNodesConfig( allNodes, "catalogaddr", CATAADDRLINE ) ) {
+   if ( updateNodesConfig( allNodes, NODE_CONF_CATALOGADDR, CATAADDRLINE ) ) {
       println( "Update all nodes' catalogaddr to " + CATAADDRLINE + " succeed" ) ;
    } else {
       println( "Update all nodes' catalogaddr to " + CATAADDRLINE + " failed" ) ;
@@ -2328,11 +2308,11 @@ function main() {
       }
    } else if ( "merge" == CUROPR ) {
       println( "Begin to merge cluster..." ) ;
-      if ( !prepareEnv( INITFILE, CURHOSTS ) ) {
+      if ( !prepareEnv( INITFILE, ALLHOSTS ) ) {
          println( "Prepare env failed" ) ;
          return false ;
       }
-      if ( mergeCluster( CURCATAS, CURHOSTS, INITFILE, ACTIVE ) ) {
+      if ( mergeCluster( CURCATAS, ALLHOSTS, INITFILE, ACTIVE ) ) {
          println( "Done" ) ;
       } else {
          println( "Failed" ) ;
