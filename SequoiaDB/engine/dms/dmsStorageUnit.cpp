@@ -1360,6 +1360,7 @@ namespace engine
       if ( type < DMS_CACHE_TYPE_NUM &&
            NULL == _pSUCaches[ type ] )
       {
+         BOOLEAN needCreate = TRUE ;
          switch ( type )
          {
             case DMS_CACHE_TYPE_STAT :
@@ -1367,6 +1368,11 @@ namespace engine
                if ( !isSysSU() )
                {
                   _pSUCaches[ type ] = SDB_OSS_NEW dmsStatCache( this ) ;
+               }
+               else
+               {
+                  needCreate = FALSE ;
+
                }
                break ;
             }
@@ -1385,9 +1391,10 @@ namespace engine
          {
             created = TRUE ;
          }
-         else
+         else if ( needCreate )
          {
-            PD_LOG( PDWARNING, "Failed to create cache unit [%u]", type ) ;
+            PD_LOG( PDWARNING, "Failed to create cache unit [%u] for CS %s",
+                    type, getCSName() ) ;
          }
       }
 
