@@ -1,6 +1,7 @@
 #ifndef KEY_SLICE_BUILDER_H_
 #define KEY_SLICE_BUILDER_H_
 
+#include "vessel/keyStringDef.h"
 #include "../bson/bsonDecimal.h"
 #include "../bson/bsonelement.h"
 #include "../bson/bsontypes.h"
@@ -13,6 +14,8 @@
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
 #include "vessel/keyString.h"
+#include "utilSharedPtrMaker.hpp"
+
 #include <iomanip>
 #include <limits>
 #include <memory>
@@ -157,8 +160,6 @@ namespace vessel
          utilStackAllocator<32> _allocator;
    };
 
-   constexpr UINT8 BASIC_KEY_STRING_VERSION = 1;
-
    template <typename Allocator = utilStackAllocator<>>
    class keyStringBuilder : public SDBObject
    {
@@ -253,10 +254,11 @@ namespace vessel
          INT32 done();
          UINT8 getVersion() const
          {
-            return BASIC_KEY_STRING_VERSION;
+            return KEY_STRING_VERSION_1;
          }
-         keyString getKeyString() const;
-         INT32 moveToKeyString(keyStringOwned &key);
+         keyString getShallowKeyString() const;
+
+         INT32 reapOwnedKeyString(keyString &ks);
 
       protected:
          INT32 _appendBool(BOOLEAN val, BOOLEAN invert);
@@ -1977,47 +1979,51 @@ namespace vessel
    }
 
    template <typename Allocator>
-   keyString keyStringBuilder<Allocator>::getKeyString() const
+   keyString keyStringBuilder<Allocator>::getShallowKeyString() const
    {
-      slice data(_bufSize, _buf);
-      return keyString(data);
+      SDB_ASSERT(builderStatus::appendedMetaBlock == _status, "can not be invalid");
+      return keyString(slice(_bufSize, _buf));
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::moveToKeyString(keyStringOwned &key)
+   INT32 keyStringBuilder<Allocator>::reapOwnedKeyString(keyString &ks)
    {
       INT32 rc = SDB_OK;
-      slice data(_bufSize, _buf);
-      BOOLEAN isMovable = _allocator.isMovable(_buf);
+      ks.reset();
 
-      key.reset();
-      if (isMovable)
+      if (builderStatus::appendedMetaBlock != _status)
       {
-         rc = key.adopt(_buf, _bufSize, _bufSize);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (!_allocator.isMovable(_buf))
+      {
+         ks = keyString(slice(_bufSize, _buf));
+         rc = ks.getOwned();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "adopt key string buffer failed, rc:%d", rc);
             goto error;
          }
+         reset();
       }
       else
       {
-         slice s(_bufSize, _buf);
-         rc = key.own(keyString(s));
-         if (SDB_OK != rc)
+         keyString::KEY_STRING_HOLER holder = keyString::makeHolder(_buf, _capacity);
+         if (!holder)
          {
-            PD_LOG(PDERROR, "adopt key string buffer failed, rc:%d", rc);
+            rc = SDB_OOM;
             goto error;
          }
-      }
 
-      _buf = nullptr;
-      _bufSize = 0;
-      _capacity = 0;
+         ks = std::move(keyString(std::move(holder), _bufSize));
+         _buf = nullptr;
+         reset();
+      }
 
    done:
       return rc;
    error:
+      ks.reset();
       goto done;
    }
 

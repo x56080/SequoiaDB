@@ -38,6 +38,8 @@
 
 #include "vessel/slice.h"
 
+#include <memory>
+
 namespace engine
 {
 namespace vessel
@@ -45,73 +47,60 @@ namespace vessel
    class keyString : public SDBObject
    {
       public:
+         class holder : public SDBObject
+         {
+            public:
+               holder() = delete;
+               explicit holder(CHAR *buffer, UINT32 bufferSize);
+               ~holder();
+               holder(const holder &) = delete;
+               holder &operator=(const holder &) = delete;
+
+            public:
+               OSS_INLINE const CHAR *getBuffer()const {return _buffer;}
+               OSS_INLINE UINT32 getBufferSize()const {return _bufferSize;}
+               
+            private:
+               CHAR *_buffer = nullptr;
+               UINT32 _bufferSize = 0;
+         };//class holder
+
+         using KEY_STRING_HOLER = std::shared_ptr<holder>;
+
+         static KEY_STRING_HOLER makeHolder(CHAR *buffer, UINT32 bufSize);
+
+      public:
          keyString() = default;
          ~keyString() = default;
-         keyString(const slice &s):
-         _data(s)
-         {}
-         keyString(const keyString &k):
-         _data(k._data)
-         {}
-         keyString &operator=(const keyString &k)
-         {
-            _data = k._data;
-            return *this;
-         }
+         explicit keyString(const slice &s);
+         explicit keyString(KEY_STRING_HOLER &&holder, UINT32 size);
+         keyString(const keyString &);
+         keyString &operator=(const keyString &);
+         keyString(keyString &&);
+         keyString &operator=(keyString &&);
 
       public:
          OSS_INLINE void reset()
          {
-            _data.reset();
+            _ref = slice();
+            _holder.reset();
          }
-
          OSS_INLINE BOOLEAN isValid() const
          {
-            return _data.isValid();
+            return _ref.isValid();
          }
-
-         OSS_INLINE const CHAR *getData() const
-         {
-            return _data.getData();
-         }
-
-         OSS_INLINE UINT32 getSize() const
-         {
-            return _data.getSize();
-         }
+         OSS_INLINE BOOLEAN isOwned()const {return !!_holder;}
 
          OSS_INLINE const slice &getDataSlice() const
          {
-            return _data;
+            return _ref;
          }
 
+         INT32 getOwned();
       protected:
-         slice _data;  
-   };
-
-   class keyStringOwned : public keyString
-   {
-      public:
-         keyStringOwned() = default;
-         ~keyStringOwned();
-         keyStringOwned(const keyStringOwned &k) = delete;
-         keyStringOwned &operator=(const keyStringOwned &k) = delete;
-         keyStringOwned(keyStringOwned &&k);
-         keyStringOwned &operator=(keyStringOwned &&k);
-
-      public:
-         INT32 own(const keyString &k);
-
-         INT32 adopt(CHAR *buf,
-                     UINT32 bufSize,
-                     UINT32 keyStringSize);
-
-         void reset();
-
-      private:
-         CHAR *_buf = nullptr;
-         UINT32 _bufSize = 0;
-   };
+         slice _ref;  
+         KEY_STRING_HOLER _holder;
+   };//class keyString
 
 } // namespace vessel
 } // namespace engine

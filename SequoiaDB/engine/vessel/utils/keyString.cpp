@@ -34,107 +34,141 @@
 ******************************************************************************/
 
 #include "vessel/keyString.h"
-#include "pd.hpp"
-#include "ossUtil.h"
-#include "utilMemListPool.hpp"
+#include "pdTrace.hpp"
+#include "utilAllocator.hpp"
+#include "utilSharedPtrMaker.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-
-   keyStringOwned::~keyStringOwned()
+///////////keyString::holder
+   keyString::holder::holder(CHAR *buffer, UINT32 bufferSize):
+   _buffer(buffer),
+   _bufferSize(bufferSize)
    {
-      reset();
+      SDB_ASSERT(nullptr != _buffer, "can not be invalid");
+      SDB_ASSERT(0 < _bufferSize, "can not be invalid");
    }
 
-   keyStringOwned::keyStringOwned(keyStringOwned &&k)
+   keyString::holder::~holder()
    {
-      _data = k._data;
-      _buf = k._buf;
-      _bufSize = k._bufSize;
-      k.reset();
+      if (nullptr != _buffer)
+      {
+         utilPoolAllocator allocator;
+         allocator.free(_buffer);
+      }
+   }   
+
+///////////keyString::holder end
+
+   keyString::keyString(const slice &s):
+   _ref(s)
+   {
+      SDB_ASSERT(_ref.isValid(), "can not be invalid");
    }
 
-   keyStringOwned &keyStringOwned::operator=(keyStringOwned &&k)
+   keyString::keyString(KEY_STRING_HOLER &&holder, UINT32 size):
+   _holder(std::move(holder))
    {
-      reset();
-      _data = k._data;
-      _buf = k._buf;
-      _bufSize = k._bufSize;
-      k.reset();
+      SDB_ASSERT(_holder, "can not be invalid");
+      SDB_ASSERT(0 < size && size <= holder->getBufferSize(), "can not be invalid");
+      _ref = slice(size, _holder->getBuffer());
+   }
+
+   keyString::keyString(const keyString &o)
+   {
+      _holder = o._holder;
+      if (_holder)
+      {
+         _ref = slice(o._ref.getSize(), _holder->getBuffer());
+      }
+   }
+
+   keyString &keyString::operator=(const keyString &o)
+   {
+      _holder = o._holder;
+      if (_holder)
+      {
+         _ref = slice(o._ref.getSize(), _holder->getBuffer());
+      }
+      else
+      {
+         _ref.reset();
+      }
       return *this;
    }
 
-   void keyStringOwned::reset()
+   keyString::keyString(keyString &&o)
    {
-      keyString::reset();
-      if (nullptr != _buf)
+      _holder = std::move(o._holder);
+      if (_holder)
       {
-         SDB_THREAD_FREE(_buf);
-         _buf = nullptr;
+         _ref.reset(o._ref.getSize(), _holder->getBuffer());
       }
-      _bufSize = 0;
+      o.reset();
    }
 
-   INT32 keyStringOwned::own(const keyString &k)
+   keyString &keyString::operator=(keyString &&o)
+   {
+      _holder = std::move(o._holder);
+      if (_holder)
+      {
+         _ref.reset(o._ref.getSize(), _holder->getBuffer());
+      }
+      else
+      {
+         _ref.reset();
+      }
+      o.reset();
+      return *this;
+   }
+
+   INT32 keyString::getOwned()
    {
       INT32 rc = SDB_OK;
 
-      if (!k.isValid())
+      if (!isValid())
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      if (_bufSize < k.getSize())
+      else if (!isOwned())
       {
-         reset();
-         _buf = (CHAR *)SDB_THREAD_ALLOC(k.getSize());
-         if (nullptr == _buf)
+         utilPoolAllocator allocator;
+         CHAR *buffer = (CHAR *)allocator.malloc(_ref.getSize());
+         if (OSS_UNLIKELY(nullptr == buffer))
          {
+            PD_LOG(PDERROR, "failed to allocate mem.");
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "out of memory");
             goto error;
          }
-         _bufSize = k.getSize();
-      }
+         else
+         {
+            _holder = makeSharedPtrFromPool<keyString::holder>(buffer, _ref.getSize());
+            if (OSS_UNLIKELY(!_holder))
+            {
+               allocator.free(buffer);
+               PD_LOG(PDERROR, "failed to allocate mem.");
+               rc = SDB_OOM;
+               goto error;
+            }
+         }
 
-      ossMemcpy(_buf, k.getData(), k.getSize());
-      _data = slice(k.getSize(), _buf);
-      
+         ossMemcpy(buffer, _ref.data(), _ref.getSize());
+         _ref.reset(_ref.getSize(), buffer);
+      }
    done:
       return rc;
    error:
-      reset();
       goto done;
    }
 
-   INT32 keyStringOwned::adopt(CHAR *buf,
-                               UINT32 bufSize,
-                               UINT32 keyStringSize)
+   keyString::KEY_STRING_HOLER keyString::makeHolder(CHAR *buffer, UINT32 bufSize)
    {
-      INT32 rc = SDB_OK;
-      
-      if (nullptr == buf ||
-          0 == bufSize ||
-          0 == keyStringSize ||
-          keyStringSize > bufSize)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      reset();
-      _buf = buf;
-      _bufSize = bufSize;
-      _data = slice(keyStringSize, _buf);
-
-   done:
-      return rc;
-   error:
-      reset();
-      goto done;
+      SDB_ASSERT(nullptr != buffer && 0 < bufSize, "can not be invalid");
+      return makeSharedPtrFromPool<keyString::holder>(buffer, bufSize);
    }
 } // namespace vessel
 } // namespace engine
