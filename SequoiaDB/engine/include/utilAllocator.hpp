@@ -177,6 +177,7 @@ namespace engine
                   if (nullptr != buf)
                   {
                      ossMemcpy(buf, _statckBuf, _offset);
+                     _offset = 0;
                   }
                }
             }
