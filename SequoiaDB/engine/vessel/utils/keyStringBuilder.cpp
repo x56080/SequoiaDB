@@ -86,11 +86,19 @@ namespace vessel
 
    /////////////////////////////////////////////////////////////////////////////
    // typeBits begin
+   typeBits::~typeBits()
+   {
+      reset();
+   }
+
    void typeBits::reset()
    {
-      _allocator.free(_buf);
       _curBit = 0;
-      _buf = nullptr;
+      if (nullptr != _buf)
+      {
+         _allocator.free(_buf);
+         _buf = nullptr;
+      }
       _bufSize = 0;
       _capacity = 0;
    }

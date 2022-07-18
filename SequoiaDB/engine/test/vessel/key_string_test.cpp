@@ -13,7 +13,7 @@ namespace engine
 {
 namespace vessel
 {
-   std::string double_bits(double num)
+   std::string double_bits(FLOAT64 num)
    {
       UINT64 encoded;
       memcpy(&encoded, &num, sizeof(encoded));

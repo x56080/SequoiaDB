@@ -49,7 +49,7 @@ namespace vessel
    // First FLOAT64 that is not an int64
    constexpr FLOAT64 minLargeFloat64 = 1ULL << 63;
    constexpr INT32 DOUBLE_PRECISION_10 =
-       std::numeric_limits<double>::max_digits10;
+       std::numeric_limits<FLOAT64>::max_digits10;
 
    enum class EncodedType : UINT8
    {
@@ -97,59 +97,64 @@ namespace vessel
    };
    static_assert(
        EncodedType::numericPositiveLargeMagnitude < EncodedType::stringLike,
-       "kNumericPositiveLargeMagnitude must be less than kStringLike");
+       "NumericPositiveLargeMagnitude must be less than StringLike");
 
    EncodedType bsonTypeToSupertype(bson::BSONType type);
    INT32 countLeadingZeros64(UINT64 num);
 
    class typeBits : public SDBObject
    {
+      public:
+         typeBits() = default;
+         ~typeBits();
+         typeBits operator=(const typeBits &) = delete;
+         typeBits(const typeBits &) = delete;
 
-   private:
-      enum bits : UINT8
-      {
-         stringBit = 0b0,
-         symbolBit = 0b1,
+      private:
+         enum bits : UINT8
+         {
+            stringBit = 0b0,
+            symbolBit = 0b1,
 
-         intBits = 0b00,
-         longBits = 0b01,
-         doubleBits = 0b10,
-         decimalBits = 0b11,
-         positiveDoubleZero = 0b0,
-         negativeDoubleZero = 0b1
-      };
+            intBits = 0b00,
+            longBits = 0b01,
+            doubleBits = 0b10,
+            decimalBits = 0b11,
+            positiveDoubleZero = 0b0,
+            negativeDoubleZero = 0b1
+         };
 
-   public:
-      void reset();
-      INT32 appendBit(UINT8 oneOrZero);
-      INT32 appendString();
-      INT32 appendSymbol();
-      INT32 appendNumberDouble();
-      INT32 appendNumberInt();
-      INT32 appendNumberLong();
-      INT32 appendNumberDecimal();
-      INT32 appendPositiveZero();
-      INT32 appendNegativeZero();
-      INT32 appendBits(const CHAR *bytes, const UINT32 bytesSize);
-      INT32 appendDecimalMeta(const bson::bsonDecimal &dec);
-      const CHAR *getBuf() const
-      {
-         return _buf;
-      }
-      UINT32 getBufSize() const
-      {
-         return _bufSize;
-      }
+      public:
+         void reset();
+         INT32 appendBit(UINT8 oneOrZero);
+         INT32 appendString();
+         INT32 appendSymbol();
+         INT32 appendNumberDouble();
+         INT32 appendNumberInt();
+         INT32 appendNumberLong();
+         INT32 appendNumberDecimal();
+         INT32 appendPositiveZero();
+         INT32 appendNegativeZero();
+         INT32 appendBits(const CHAR *bytes, const UINT32 bytesSize);
+         INT32 appendDecimalMeta(const bson::bsonDecimal &dec);
+         const CHAR *getBuf() const
+         {
+            return _buf;
+         }
+         UINT32 getBufSize() const
+         {
+            return _bufSize;
+         }
 
-   private:
-      INT32 _ensureBytes(UINT32 length);
+      private:
+         INT32 _ensureBytes(UINT32 length);
 
-   private:
-      UINT32 _curBit = 0;
-      CHAR *_buf = nullptr;
-      UINT32 _bufSize = 0;
-      UINT32 _capacity = 0;
-      utilStackAllocator<32> _allocator;
+      private:
+         UINT32 _curBit = 0;
+         CHAR *_buf = nullptr;
+         UINT32 _bufSize = 0;
+         UINT32 _capacity = 0;
+         utilStackAllocator<32> _allocator;
    };
 
    constexpr UINT8 BASIC_KEY_STRING_VERSION = 1;
@@ -157,191 +162,190 @@ namespace vessel
    template <typename Allocator = utilStackAllocator<>>
    class keyStringBuilder : public SDBObject
    {
-   public:
-      keyStringBuilder() = default;
-      keyStringBuilder operator=(const keyStringBuilder &) = delete;
-      keyStringBuilder(const keyStringBuilder &) = delete;
-      virtual ~keyStringBuilder()
-      {
-         if (_buf)
+      public:
+         keyStringBuilder() = default;
+         keyStringBuilder operator=(const keyStringBuilder &) = delete;
+         keyStringBuilder(const keyStringBuilder &) = delete;
+         virtual ~keyStringBuilder()
          {
-            _allocator.free(_buf);
+            if (_buf)
+            {
+               _allocator.free(_buf);
+            }
          }
-      }
 
-   private:
-      enum class builderStatus
-      {
-         empty,
-         beforeElements,
-         appendingElements,
-         appendedTypeBits,
-         appendedMetaBlock
-      };
-
-      enum class DecimalContinuationMarker : UINT8
-      {
-         hasNoContinuation = 0b0,
-         hasContinuation = 0b1,
-      };
-
-   public:
-      using stringTransformFn =
-          std::function<std::string(const bson::StringData &)>;
-      void reset();
-      void resetTypeBits(const typeBits &tb);
-      INT32 appendBSONElement(const bson::BSONElement &elem,
-                              BOOLEAN isDescending = FALSE,
-                              const stringTransformFn &f = nullptr);
-      INT32 appendAllElements(const bson::BSONObj &obj,
-                              orderingWrapper ord,
-                              const stringTransformFn &f = nullptr);
-      template <
-          typename T,
-          class = typename std::enable_if<std::is_unsigned<T>::value>::type>
-      INT32 appendUnsignedWithoutType(const T &val,
-                                      BOOLEAN isDescending = FALSE)
-      {
-         INT32 rc = SDB_OK;
-         _transition(builderStatus::beforeElements);
-         rc = _append(nativeToBigEndian(val), isDescending);
-         if (SDB_OK != rc)
+      private:
+         enum class builderStatus
          {
-            PD_LOG(PDERROR, "failed to append unsigned fixed field, rc:%d", rc);
-            goto error;
-         }
-         SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
-         _sizeAheadElements += sizeof(val);
-      done:
-         return rc;
-      error:
-         reset();
-         goto done;
-      }
+            empty,
+            beforeElements,
+            appendingElements,
+            appendedTypeBits,
+            appendedMetaBlock
+         };
 
-      template <typename T,
-                class = typename std::enable_if<std::is_signed<T>::value>::type>
-      INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
-      {
-         INT32 rc = SDB_OK;
-         _transition(builderStatus::beforeElements);
-         T mask = std::numeric_limits<T>::min();
-         T tmp = val;
-         tmp ^= mask;
-         rc = _append(nativeToBigEndian(tmp), isDescending);
-         if (SDB_OK != rc)
+         enum class DecimalContinuationMarker : UINT8
          {
-            PD_LOG(PDERROR, "failed to append signed fixed field, rc:%d", rc);
-            goto error;
+            hasNoContinuation = 0b0,
+            hasContinuation = 0b1,
+         };
+
+      public:
+         using stringTransformFn =
+            std::function<std::string(const bson::StringData &)>;
+         void reset();
+         void resetTypeBits(const typeBits &tb);
+         INT32 appendBSONElement(const bson::BSONElement &elem,
+                                 BOOLEAN isDescending = FALSE,
+                                 const stringTransformFn &f = nullptr);
+         INT32 appendAllElements(const bson::BSONObj &obj,
+                                 orderingWrapper ord,
+                                 const stringTransformFn &f = nullptr);
+         template <typename T,
+            class = typename std::enable_if<std::is_unsigned<T>::value>::type>
+         INT32 appendUnsignedWithoutType(const T &val,
+                                       BOOLEAN isDescending = FALSE)
+         {
+            INT32 rc = SDB_OK;
+            _transition(builderStatus::beforeElements);
+            rc = _append(nativeToBigEndian(val), isDescending);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append unsigned fixed field, rc:%d", rc);
+               goto error;
+            }
+            SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
+                     "size ahead key string must be equal or less than 255");
+            _sizeAheadElements += sizeof(val);
+         done:
+            return rc;
+         error:
+            reset();
+            goto done;
          }
-         SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
-         _sizeAheadElements += sizeof(val);
-      done:
-         return rc;
-      error:
-         reset();
-         goto done;
-      }
 
-   public:
-      INT32 done();
-      UINT8 getVersion() const
-      {
-         return BASIC_KEY_STRING_VERSION;
-      }
-      keyString getKeyString() const;
-      INT32 moveToKeyString(keyStringOwned &key);
+         template <typename T,
+                  class = typename std::enable_if<std::is_signed<T>::value>::type>
+         INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
+         {
+            INT32 rc = SDB_OK;
+            _transition(builderStatus::beforeElements);
+            T mask = std::numeric_limits<T>::min();
+            T tmp = val;
+            tmp ^= mask;
+            rc = _append(nativeToBigEndian(tmp), isDescending);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append signed fixed field, rc:%d", rc);
+               goto error;
+            }
+            SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
+                     "size ahead key string must be equal or less than 255");
+            _sizeAheadElements += sizeof(val);
+         done:
+            return rc;
+         error:
+            reset();
+            goto done;
+         }
 
-   protected:
-      INT32 _appendBool(BOOLEAN val, BOOLEAN invert);
-      INT32 _appendDate(const bson::Date_t &val, BOOLEAN invert);
-      INT32 _appendTimestamp(INT64 val, BOOLEAN invert);
-      INT32 _appendOID(const bson::OID &val, BOOLEAN invert);
-      INT32 _appendString(const bson::StringData &val,
-                          BOOLEAN invert,
-                          const stringTransformFn &f = nullptr);
-      INT32 _appendSymbol(const bson::StringData &val, BOOLEAN invert);
-      INT32 _appendCode(const bson::StringData &val, BOOLEAN invert);
-      INT32 _appendCodeWScope(const bson::StringData &code,
-                              const bson::BSONObj &scope,
+      public:
+         INT32 done();
+         UINT8 getVersion() const
+         {
+            return BASIC_KEY_STRING_VERSION;
+         }
+         keyString getKeyString() const;
+         INT32 moveToKeyString(keyStringOwned &key);
+
+      protected:
+         INT32 _appendBool(BOOLEAN val, BOOLEAN invert);
+         INT32 _appendDate(const bson::Date_t &val, BOOLEAN invert);
+         INT32 _appendTimestamp(INT64 val, BOOLEAN invert);
+         INT32 _appendOID(const bson::OID &val, BOOLEAN invert);
+         INT32 _appendString(const bson::StringData &val,
+                           BOOLEAN invert,
+                           const stringTransformFn &f = nullptr);
+         INT32 _appendSymbol(const bson::StringData &val, BOOLEAN invert);
+         INT32 _appendCode(const bson::StringData &val, BOOLEAN invert);
+         INT32 _appendCodeWScope(const bson::StringData &code,
+                                 const bson::BSONObj &scope,
+                                 BOOLEAN invert);
+         INT32 _appendBinData(const CHAR *data,
+                              UINT32 dataSize,
+                              bson::BinDataType type,
                               BOOLEAN invert);
-      INT32 _appendBinData(const CHAR *data,
-                           UINT32 dataSize,
-                           bson::BinDataType type,
+         INT32 _appendRegex(const bson::StringData &regex,
+                           const bson::StringData &flags,
                            BOOLEAN invert);
-      INT32 _appendRegex(const bson::StringData &regex,
-                         const bson::StringData &flags,
-                         BOOLEAN invert);
-      INT32 _appendDBRef(const bson::StringData &dbrefNS,
-                         const bson::OID &dbrefOID,
-                         BOOLEAN invert);
-      INT32 _appendArray(const bson::BSONArray &val,
-                         BOOLEAN invert,
-                         const stringTransformFn &f = nullptr);
-      INT32 _appendObject(const bson::BSONObj &val,
-                          BOOLEAN invert,
-                          const stringTransformFn &f = nullptr);
-      INT32 _appendNumberDouble(const FLOAT64 num, BOOLEAN invert);
-      INT32 _appendNumberInt(const INT32 num, BOOLEAN invert);
-      INT32 _appendNumberLong(const INT64 num, BOOLEAN invert);
-      INT32 _appendNumberDecimal(const bson::bsonDecimal &dec, BOOLEAN invert);
-      INT32 _appendDecimalEncoding(const bson::bsonDecimal &dec,
-                                   BOOLEAN invert);
-      INT32 _appendBsonValue(const bson::BSONElement &elem,
-                             const bson::StringData *name,
-                             BOOLEAN invert,
-                             const stringTransformFn &f = nullptr);
+         INT32 _appendDBRef(const bson::StringData &dbrefNS,
+                           const bson::OID &dbrefOID,
+                           BOOLEAN invert);
+         INT32 _appendArray(const bson::BSONArray &val,
+                           BOOLEAN invert,
+                           const stringTransformFn &f = nullptr);
+         INT32 _appendObject(const bson::BSONObj &val,
+                           BOOLEAN invert,
+                           const stringTransformFn &f = nullptr);
+         INT32 _appendNumberDouble(const FLOAT64 num, BOOLEAN invert);
+         INT32 _appendNumberInt(const INT32 num, BOOLEAN invert);
+         INT32 _appendNumberLong(const INT64 num, BOOLEAN invert);
+         INT32 _appendNumberDecimal(const bson::bsonDecimal &dec, BOOLEAN invert);
+         INT32 _appendDecimalEncoding(const bson::bsonDecimal &dec,
+                                    BOOLEAN invert);
+         INT32 _appendBsonValue(const bson::BSONElement &elem,
+                              const bson::StringData *name,
+                              BOOLEAN invert,
+                              const stringTransformFn &f = nullptr);
 
-      INT32 _appendStringLike(const bson::StringData &str, BOOLEAN invert);
-      INT32 _appendBson(const bson::BSONObj &obj,
-                        BOOLEAN invert,
-                        const stringTransformFn &f = nullptr);
-      INT32 _appendSmallDouble(FLOAT64 value,
-                               DecimalContinuationMarker dcm,
-                               BOOLEAN invert);
-      INT32 _appendLargeDouble(FLOAT64 value,
-                               DecimalContinuationMarker dcm,
-                               BOOLEAN invert);
-      INT32 _appendInteger(const INT64 num, BOOLEAN invert);
-      INT32 _appendPreshiftedInteger(UINT64 value,
-                                     BOOLEAN isNegative,
-                                     BOOLEAN invert);
+         INT32 _appendStringLike(const bson::StringData &str, BOOLEAN invert);
+         INT32 _appendBson(const bson::BSONObj &obj,
+                           BOOLEAN invert,
+                           const stringTransformFn &f = nullptr);
+         INT32 _appendSmallDouble(FLOAT64 value,
+                                 DecimalContinuationMarker dcm,
+                                 BOOLEAN invert);
+         INT32 _appendLargeDouble(FLOAT64 value,
+                                 DecimalContinuationMarker dcm,
+                                 BOOLEAN invert);
+         INT32 _appendInteger(const INT64 num, BOOLEAN invert);
+         INT32 _appendPreshiftedInteger(UINT64 value,
+                                       BOOLEAN isNegative,
+                                       BOOLEAN invert);
 
-      INT32 _appendDoubleWithoutTypeBits(FLOAT64 num,
-                                         DecimalContinuationMarker dcm,
-                                         BOOLEAN invert);
-      INT32 _appendHugeDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
-                                              BOOLEAN invert);
-      INT32 _appendTinyDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
-                                              FLOAT64 bin,
-                                              BOOLEAN invert);
-      INT32 _appendEnd();
-      INT32 _appendBytes(const void *source, UINT32 len, BOOLEAN invert);
+         INT32 _appendDoubleWithoutTypeBits(FLOAT64 num,
+                                          DecimalContinuationMarker dcm,
+                                          BOOLEAN invert);
+         INT32 _appendHugeDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
+                                                BOOLEAN invert);
+         INT32 _appendTinyDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
+                                                FLOAT64 bin,
+                                                BOOLEAN invert);
+         INT32 _appendEnd();
+         INT32 _appendBytes(const void *source, UINT32 len, BOOLEAN invert);
 
-      template <typename T>
-      INT32 _append(const T &t, BOOLEAN invert)
-      {
-         return _appendBytes(&t, sizeof(t), invert);
-      }
+         template <typename T>
+         INT32 _append(const T &t, BOOLEAN invert)
+         {
+            return _appendBytes(&t, sizeof(t), invert);
+         }
 
-      INT32 _appendTypeBits();
-      INT32 _appendMetaBlock();
+         INT32 _appendTypeBits();
+         INT32 _appendMetaBlock();
 
-      void _verifyStatus();
-      void _transition(builderStatus to);
-      INT32 _ensureBytes(UINT32 length);
+         void _verifyStatus();
+         void _transition(builderStatus to);
+         INT32 _ensureBytes(UINT32 length);
 
-   private:
-      builderStatus _status = builderStatus::empty;
-      typeBits _typeBits;
-      CHAR *_buf = nullptr;
-      UINT32 _bufSize = 0;
-      UINT8 _sizeAheadElements = 0;
-      UINT32 _capacity = 0;
-      INT8 _elemCount = 0;
-      Allocator _allocator;
+      private:
+         builderStatus _status = builderStatus::empty;
+         typeBits _typeBits;
+         CHAR *_buf = nullptr;
+         UINT32 _bufSize = 0;
+         UINT8 _sizeAheadElements = 0;
+         UINT32 _capacity = 0;
+         INT8 _elemCount = 0;
+         Allocator _allocator;
    };
 
    template <typename Allocator> void keyStringBuilder<Allocator>::reset()
