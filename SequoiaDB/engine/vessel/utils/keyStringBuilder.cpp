@@ -378,25 +378,6 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN keyString::isOwned()
-   {
-      return _buf != nullptr;
-   }
-
-   const CHAR *keyString::getDataBuf()
-   {
-      return isOwned() ? _buf : _data.getData();
-   }
-
-   UINT32 keyString::getDataSize()
-   {
-      return isOwned() ? _bufSize : _data.getSize();
-   }
-
-   INT32 keyString::getOwned(CHAR* _buf)
-   {
-      
-   }
 
 } // namespace vessel
 } // namespace engine

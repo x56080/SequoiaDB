@@ -12,6 +12,7 @@
 #include "utilAllocator.hpp"
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
+#include "vessel/keyString.h"
 #include <iomanip>
 #include <limits>
 #include <memory>
@@ -152,23 +153,6 @@ namespace vessel
    };
 
    constexpr UINT8 BASIC_KEY_STRING_VERSION = 1;
-   class keyString : public SDBObject
-   {
-   public:
-      keyString() = default;
-      keyString(slice data) : _data(data)
-      {
-      }
-      BOOLEAN isOwned();
-      INT32 getOwned(CHAR *buf);
-      const CHAR *getDataBuf();
-      UINT32 getDataSize();
-
-   private:
-      slice _data;
-      CHAR *_buf = 0;
-      UINT32 _bufSize = 0;
-   };
 
    template <typename Allocator = utilStackAllocator<>>
    class keyStringBuilder : public SDBObject
@@ -267,7 +251,8 @@ namespace vessel
       {
          return BASIC_KEY_STRING_VERSION;
       }
-      keyString getKeyString();
+      keyString getKeyString() const;
+      INT32 moveToKeyString(keyStringOwned &key);
 
    protected:
       INT32 _appendBool(BOOLEAN val, BOOLEAN invert);
@@ -1386,11 +1371,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1399,11 +1380,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1412,11 +1389,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1425,11 +1398,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1438,11 +1407,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1451,11 +1416,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1466,11 +1427,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1481,11 +1438,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1496,11 +1449,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1510,11 +1459,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(FALSE, "todo");
-
-   done:
       return rc;
-   error:
-      goto done;
    }
 
    template <typename Allocator>
@@ -1557,7 +1502,12 @@ namespace vessel
          }
       }
 
-      _typeBits.appendString();
+      rc = _typeBits.appendString();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append type bits failed, rc:%d", rc);
+         goto error;
+      }
 
    done:
       return rc;
@@ -2023,10 +1973,48 @@ namespace vessel
    }
 
    template <typename Allocator>
-   keyString keyStringBuilder<Allocator>::getKeyString()
+   keyString keyStringBuilder<Allocator>::getKeyString() const
    {
       slice data(_bufSize, _buf);
       return keyString(data);
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::moveToKeyString(keyStringOwned &key)
+   {
+      INT32 rc = SDB_OK;
+      slice data(_bufSize, _buf);
+      BOOLEAN isMovable = _allocator.isMovable(_buf);
+
+      key.reset();
+      if (isMovable)
+      {
+         rc = key.adopt(_buf, _bufSize, _bufSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "adopt key string buffer failed, rc:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         slice s(_bufSize, _buf);
+         rc = key.own(keyString(s));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "adopt key string buffer failed, rc:%d", rc);
+            goto error;
+         }
+      }
+
+      _buf = nullptr;
+      _bufSize = 0;
+      _capacity = 0;
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator> INT32 keyStringBuilder<Allocator>::done()

@@ -32,11 +32,11 @@ namespace vessel
       rc = ksb.appendAllElements(obj.obj(), ord);
       ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getKeyString();
-      EXPECT_EQ(42, ks.getDataSize());
+      EXPECT_EQ(42, ks.getSize());
       rc = ksb.done();
       ASSERT_EQ(SDB_OK, rc);
       ks = ksb.getKeyString();
-      EXPECT_EQ(53, ks.getDataSize());
+      EXPECT_EQ(53, ks.getSize());
    }
 
    TEST(key_string_test, base_ahead_key)
@@ -56,7 +56,7 @@ namespace vessel
       rc = ksb.appendSignedWithoutType(255);
       ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getKeyString();
-      const CHAR *buf = ks.getDataBuf();
+      const CHAR *buf = ks.getData();
       for (UINT32 i = 0; i < 4; ++i)
       {
          ASSERT_LT(memcmp(buf + i * 4, buf + (i + 1) * 4, 4), 0);
