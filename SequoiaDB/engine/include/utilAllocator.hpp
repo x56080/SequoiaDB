@@ -99,6 +99,7 @@ namespace engine
          virtual void free(void *p) = 0;
          virtual void *realloc(void *p, size_t size) = 0;
          virtual BOOLEAN isMovable()const = 0;
+         virtual BOOLEAN isMovable(const void *p)const = 0;
          virtual UINT32 getFastAllocSize()const {return 0;}
    };//class utilBaseAllocator
 
@@ -128,6 +129,11 @@ namespace engine
          }
 
          virtual BOOLEAN isMovable()const override
+         {
+            return TRUE;
+         }
+
+         virtual BOOLEAN isMovable(const void *p)const override
          {
             return TRUE;
          }
@@ -177,6 +183,7 @@ namespace engine
                   if (nullptr != buf)
                   {
                      ossMemcpy(buf, _statckBuf, _offset);
+                     _offset = 0;
                   }
                }
             }
@@ -212,6 +219,11 @@ namespace engine
          virtual BOOLEAN isMovable()const override
          {
             return FALSE;
+         }
+
+         virtual BOOLEAN isMovable(const void *p)const override
+         {
+            return !isStackBuffer(p);
          }
       
       private:
