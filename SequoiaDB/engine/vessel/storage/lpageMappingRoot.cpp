@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexIterator.cpp
+   Source File Name = lpageMappingRoot.cpp
 
    Descriptive Name =
 
@@ -33,34 +33,51 @@
 
 ******************************************************************************/
 
-#include "vessel/indexIterator.h"
-#include "vessel/indexUtils.h"
-#include "vessel/instanceEnv.h"
-#include "ossLikely.hpp"
-#include "pdTrace.hpp"
-#include "vessel/lsm/lsmIndexIterator.h"
-#include "vessel/btreeIndexIterator.h"
+#include "vessel/lpageMappingRoot.h"
 
 namespace engine
 {
 namespace vessel
 {
-   indexIterator *createIndexIterator(INDEX_TYPE type)
+   BOOLEAN lpageMappingRoot::none()const
    {
-      if (INDEX_TYPE_LSM == type)
+      BOOLEAN r = TRUE;
+      for (UINT32 i = 0; i < _entries.size(); ++i)
       {
-         return SDB_OSS_NEW lsmIndexIterator();
+         if (INVALID_PAGE_ID != _entries.at(i))
+         {
+            r = FALSE;
+            break;
+         }
       }
-      else if (INDEX_TYPE_BTREE)
+
+      return r;
+   }
+
+   void lpageMappingRoot::init(const lpmUberBlock *uberBlock)
+   {
+      reset();
+      if (nullptr != uberBlock)
       {
-         return SDB_OSS_NEW btreeIndexIterator();
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "invalid type");
-         return NULL;
+         for (UINT32 i = 0; i < _entries.size(); ++i)
+         {
+            _entries[i] = uberBlock->mappingEntries[i];
+         }
       }
    }
 
-}//namespace vessel
-}//namespace engine
+   
+   void lpageMappingRoot::merge(const lpageMappingRoot &o)
+   {
+      for (UINT32 i = 0; i < _entries.size(); ++i)
+      {
+         if (INVALID_PAGE_ID != o._entries[i])
+         {
+            _entries[i] = o._entries[i];
+         }
+      }
+      return;
+   }
+} // namespace vessel
+
+} // namespace engine

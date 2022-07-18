@@ -36,8 +36,10 @@
 #ifndef VESSEL_INDEX_OBJECT_MAP_H_
 #define VESSEL_INDEX_OBJECT_MAP_H_
 
-#include "vessel/unstableIndexContext.h"
 #include "vessel/indexObject.h"
+#include "vessel/fixedBitset.hpp"
+#include "vessel/buildingIndexContext.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -46,8 +48,8 @@ namespace vessel
    class indexObjectMap : public SDBObject
    {
       public:
-         indexObjectMap(){}
-         ~indexObjectMap();
+         indexObjectMap() = default;
+         ~indexObjectMap() = default;
          indexObjectMap(const indexObjectMap &) = delete;
          indexObjectMap &operator=(const indexObjectMap &) = delete;
 
@@ -56,7 +58,7 @@ namespace vessel
          {
             return _maxIndexLid;
          }
-         UINT32 getNextIndexLid();
+         UINT32 getNextIndexLid()const;
 
          OSS_INLINE BOOLEAN isEmpty()const
          {
@@ -64,53 +66,60 @@ namespace vessel
          }
          BOOLEAN isAllowedToCreateMore()const;
 
-      public:
-         void fini();
+         INT32 init(UINT32 maxLogicalId, const ossPoolList<bson::BSONObj> &objs);
 
-         INT32 findFreeIndexSlot()const;         
+         void reset();    
 
-         INT32 insert(INT32 indexSlot,
-                      UINT32 indexLid,
-                      PAGE_ID lpid,
-                      const indexDescription &desc,
-                      INDEX_STATUS status,
-                      PAGE_ID btreeRoot = INVALID_PAGE_ID);
-
-         void erase(INT32 indexSlot);
+         void destroy(UINT32 indexLid, BOOLEAN recycleLid=FALSE);
                      
-         /// when filter is invalid, return index object found with any status.
-         indexObject *find(const indexIdentifier &indexId,
-                           INDEX_STATUS filter=INDEX_STATUS_INVALID)const;
+         indexObject *getIndexObj(UINT32 indexLid);
+
+         const indexObject *getIndexObj(UINT32 indexLid)const;
+
+         indexObject *getIndexObj(const strSlice &name);
+
+         indexObject *getIndexObjByInnerId(utilIdxInnerID innerId);
+
+         buildingIndexContext *getBuildingCtx(UINT32 indexLid);
 
          void setMaxIndexLid(UINT32 indexLid);
 
-         BOOLEAN isMetaBlockEverCreated()const;
+         BOOLEAN isIndexDuplicated(const indexProperties &properties)const;
+
+         INT32 createObjWithBuildingCtx(const indexProperties &properties,
+                                        indexObject **obj);
+
+         indexObject *abortCreating(UINT32 indexLid);
+
+         void finishCreating(UINT32 indexLid);
+
+         ossPoolList<bson::BSONObj> getObjEntries()const;
+
+         INT32 insert(std::unique_ptr<indexObject> &&obj);
 
       private:
-         BOOLEAN isIndexSlotFree(INT32 indexSlot);
-         void unfreeIndexSlot(INT32 indexSlot);
-         void freeIndexSlot(INT32 indexSlot);
+         using _UNIQUE_OBJ_PTR = std::unique_ptr<indexObject>;
+         using _OBJECT_PTR_MAP = std::map<UINT32, _UNIQUE_OBJ_PTR>;
 
-         INT32 insert(indexObject *ic);
-         
-
-      private:
-         typedef ossPoolMap<INT32, indexObject*> _OBJECT_MAP;
+         using _BUILDING_CTX_PTR = std::unique_ptr<buildingIndexContext>;
+         using _BUILDING_CTX_MAP = ossPoolMap<UINT32, _BUILDING_CTX_PTR>;
 
       public:
-         typedef _OBJECT_MAP::const_iterator CONST_ITERATOR;
-         CONST_ITERATOR begin()const {return _objects.begin();}
-         CONST_ITERATOR end()const {return _objects.end();}
+         const _OBJECT_PTR_MAP &getObjectMap()const {return _objects;}
 
-         typedef _OBJECT_MAP::iterator ITERATOR;
+         using ITERATOR = _OBJECT_PTR_MAP::iterator;
+         using CONST_ITERATOR = _OBJECT_PTR_MAP::const_iterator;
+
          ITERATOR begin() {return _objects.begin();}
+         CONST_ITERATOR cbegin()const {return _objects.cbegin();}
+
          ITERATOR end() {return _objects.end();}
+         CONST_ITERATOR cend()const {return _objects.cend();}
+
       private:
          UINT32 _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
-         UINT64 _freeIndexSlots = OSS_UINT64_MAX;
-
-         _OBJECT_MAP _objects;
-          
+         _OBJECT_PTR_MAP _objects;
+         _BUILDING_CTX_MAP _buildingMap;
    };//class indexObjectMap
 }//namespace vessel
 }//nemespace engine

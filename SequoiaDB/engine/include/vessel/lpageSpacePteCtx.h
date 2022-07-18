@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexScanEntryParser.h
+   Source File Name = lpageSpacePteCtx.h
 
    Descriptive Name =
 
@@ -33,34 +33,31 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_SCAN_ENTRY_PARSER_H_
-#define VESSEL_INDEX_SCAN_ENTRY_PARSER_H_
+#ifndef VESSEL_LPAGE_SPACE_PTE_CTX_H_
+#define VESSEL_LPAGE_SPACE_PTE_CTX_H_
 
-#include "vessel/indexDef.h"
-#include "vessel/slice.h"
-#include "vessel/recordID.h"
+#include "vessel/lpageMappingPteCtx.h"
+#include <chrono>
 
 namespace engine
 {
 namespace vessel
 {
-   class indexScanEntryParser : public SDBObject
+   class lpageSpacePteCtx : public SDBObject
    {
       public:
-         indexScanEntryParser(){}
-         virtual ~indexScanEntryParser(){}
+         lpageSpacePteCtx();
+         ~lpageSpacePteCtx();
+         lpageSpacePteCtx(const lpageSpacePteCtx &) = delete;
+         lpageSpacePteCtx &operator=(const lpageSpacePteCtx &) = delete;
 
-      public:
-         virtual void reset() = 0;
-         virtual INT32 parse(const slice &entryData) = 0;
-         virtual INDEX_TYPE getType()const = 0;
-         virtual recordID getRid()const = 0;
-         virtual slice getKeySlice()const = 0;
-
-   };//class indexScanEntryParser
+      private:
+         std::chrono::steady_clock _lastPublishTime;
+         lpageMappingPteCtx _mappingCtx;
+   };//class lpageSpacePteCtx
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_INDEX_SCAN_ENTRY_PARSER_H_
+#endif//VESSEL_LPAGE_SPACE_PTE_CTX_H_

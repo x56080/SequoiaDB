@@ -69,33 +69,9 @@ namespace vessel
          OSS_INLINE void set(UINT32 pos, PAGE_ID pid) {_entries[pos] = pid;}
 
       public:
-         BOOLEAN none()const
-         {
-            BOOLEAN r = TRUE;
-            for (UINT32 i = 0; i < _entries.size(); ++i)
-            {
-               if (INVALID_PAGE_ID != _entries.at(i))
-               {
-                  r = FALSE;
-                  break;
-               }
-            }
-
-            return r;
-         }
-
-         void init(const lpmUberBlock *uberBlock)
-         {
-            reset();
-            if (nullptr != uberBlock)
-            {
-               for (UINT32 i = 0; i < _entries.size(); ++i)
-               {
-                  _entries[i] = uberBlock->mappingEntries[i];
-               }
-            }
-         }
-
+         BOOLEAN none()const;
+         void init(const lpmUberBlock *uberBlock);
+         void merge(const lpageMappingRoot &o);
       private:
          _ROOT_ENTRIES _entries;
    };//class lpageMappingRoot

@@ -77,7 +77,7 @@ namespace vessel
       }
       
       _context = context;
-      _iterator = createIndexIterator(obj->getDescription().getType());
+      _iterator = createIndexIterator(obj->getProperties().getType());
       if (NULL == _iterator)
       {
          PD_LOG(PDERROR, "failed to create new itr obj");
@@ -89,7 +89,7 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open iterator of index[%s], rc:%d",
-                obj->getDescription().getName().c_str(), rc);
+                obj->getProperties().getName().c_str(), rc);
          goto error;
       }
 

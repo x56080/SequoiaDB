@@ -71,7 +71,7 @@ namespace vessel
                        !context->isClPropertiesSet() ||
                        NULL == obj ||
                        !obj->isValid() ||
-                       obj->getDescription().getType() != INDEX_TYPE_BTREE))
+                       obj->getProperties().getType() != INDEX_TYPE_BTREE))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -388,7 +388,7 @@ namespace vessel
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
-                         _obj->getIndexId().getLogicalIndexId(), 
+                         _obj->getLogicalID(), 
                          node.getBuffer()->getLogicalPid(), rc);
                   goto error;
                }
@@ -705,7 +705,7 @@ namespace vessel
                  "must be same");
 
       initer._logicalCLID = _context->getLogicalClId();
-      initer._indexId = _obj->getIndexId().getLogicalIndexId();
+      initer._indexId = _obj->getLogicalID();
       initer._isLeaf = FALSE;
       initer._isRoot = TRUE;
       rc = _is->allocatePage(_context, &initer, newRoot);
@@ -849,7 +849,7 @@ namespace vessel
       }
 
       initer._logicalCLID = _context->getLogicalClId();
-      initer._indexId = _obj->getIndexId().getLogicalIndexId();
+      initer._indexId = _obj->getLogicalID();
       initer._isLeaf = TRUE;
       initer._isRoot = TRUE;
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
@@ -860,7 +860,7 @@ namespace vessel
       }
 
       rc = accessor.updateBtreeRoot(_context,
-                                    _obj->getIndexId().getLogicalIndexId(),
+                                    _obj->getLogicalID(),
                                     lpid, &entryBuffer);
       if (SDB_OK != rc)
       {
@@ -1238,7 +1238,7 @@ namespace vessel
       SDB_ASSERT((UINT32)pos <= node.getItemCount(), "out of bound");
 
       initer._logicalCLID = _context->getLogicalClId();
-      initer._indexId = _obj->getIndexId().getLogicalIndexId();
+      initer._indexId = _obj->getLogicalID();
       initer._isLeaf = TRUE;
       initer._isRoot = FALSE;
 

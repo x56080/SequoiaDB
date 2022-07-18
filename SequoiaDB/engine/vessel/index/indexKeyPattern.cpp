@@ -105,7 +105,8 @@ namespace vessel
          goto error;
       }
 
-      _pattern = obj;
+      _pattern = obj.getOwned();
+
    done:
       return rc;
    error:
@@ -128,14 +129,6 @@ namespace vessel
              0 == _pattern.woCompare(o._pattern);
    }
 
-   void indexKeyPattern::getOwned()
-   {
-      if (!_pattern.isOwned())
-      {
-         _pattern = _pattern.getOwned();
-      }
-   }
-
    orderingWrapper indexKeyPattern::getOrdering()const
    {
       return orderingWrapper(_ordering, _keyCount);
@@ -156,18 +149,13 @@ namespace vessel
          goto done;
       }
 
-      for (UINT32 i = 0; i < MAX_INDEX_KEY_COLUMNS; ++i)
+      for (UINT32 i = 0; i < _keyCount; ++i)
       {
          bson::BSONElement ele0;
          bson::BSONElement ele1;
          UINT32 ordering0 = 0;
          UINT32 ordering1 = 0;
          UINT32 mask = (UINT32)1 << i;
-
-         if (_keyCount == i)
-         {
-            break;
-         }
 
          ordering0 = (mask & _ordering);
          ordering1 = (mask & other._ordering);

@@ -46,8 +46,6 @@
 #include "vessel/freeSpaceMap.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
-#include "vessel/indexDescription.h"
-#include "vessel/indexObjectMap.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
 #include "vessel/modifyRecordContext.h"
@@ -247,9 +245,6 @@ namespace vessel
                                BOOLEAN &duplicated,
                                utilInsertResult *res)const;
 
-         INT32 insertIndexRequests(dmlContext *context,
-                                   const dmlIndexRequestArray &ra);
-
          INT32 mergeIntoBuildingContext(dmlContext *context,
                                         dmlIndexRequestArray &ra);
 
@@ -427,86 +422,53 @@ namespace vessel
          UINT32 getDataPageSize()const;
 
       private:
+         INT32 _createNewIndex(requestContext *context,
+                               const bson::BSONObj &adjunct,
+                               UINT32 &logicalIndexId);
 
-         INT32 _createIndex(requestContext *context,
-                            const indexDescription &desc,
-                            indexIdentifier &indexId);
+         INT32 _abortCreatingIndex(requestContext *context,
+                                   UINT32 logicalIndexId,
+                                   INT32 reason);
 
-         INT32 rollbackCreatingIndex(requestContext *context,
-                                     const indexIdentifier &indexId,
-                                     INT32 reason);
+         /// building context must be created first.
+         INT32 _buildIndex(requestContext *context,
+                           UINT32 logicalIndexId,
+                           const dmsBuildIndexOptions &o);
 
-         INT32 buildIndexInContext(requestContext *context,
-                                   const indexIdentifier &indexId,
-                                   INDEX_TYPE type,
-                                   const dmsBuildIndexOptions &o);
-
-         /// unstable context must be created first.
-         INT32 onlineBuildIndex(requestContext *context,
-                                const indexIdentifier &indexId);
-
-         /// unstable context must be created first.
-         INT32 onlineBuildIndexBySorting(requestContext *context,
-                                         const indexIdentifier &indexId,
-                                         UINT64 sortBufferSize);
+         INT32 _buildIndexOnline(requestContext *context,
+                                 UINT32 logicalIndexId);
 
          /// mark index removing and return index Id;
          /// if index is building, building thread will be terminated.
          /// if index is neither normal nor building, return error. 
-         INT32 markIndexRemovingByName(requestContext *context,
-                                       const strSlice &indexName,
-                                       indexIdentifier &indexId);
-
-         /// always mark index removing first and truncate it.
-         /// at last, release all resources.
-         INT32 releaseIndexObjectAndEntryPage(requestContext *context,
-                                              const indexIdentifier &indexId);
-
-         INT32 markIndexRemovingBySlot(requestContext *context,
-                                       const indexIdentifier &indexId);
+         INT32 _setIndexRemoving(requestContext *context,
+                                 const strSlice &indexName,
+                                 UINT32 &logicalIndexId);
                                     
-         INT32 truncateIndex(requestContext *context,
-                             const indexIdentifier &indexId);
+         INT32 _truncateIndexEntries(requestContext *context,
+                                     UINT32 logicalIndexId);
 
-         INT32 removeAllIndexes(requestContext *context);
+         INT32 _endToRemoveIndex(requestContext *context,
+                                 UINT32 logicalIndexId);
 
-         INT32 truncateAllIndexes(requestContext *context);
+         INT32 _removeAllIndexes(requestContext *context);
 
-      private:/// need protection by dml latch
+         INT32 _truncateAllIndexes(requestContext *context);
 
-         INT32 testIfIndexDuplicated(requestContext *context,
-                                     const strSlice &indexName,
-                                     const indexKeyPattern &pattern,
-                                     BOOLEAN &duplicated);
+      private:/// need protection by op lock
+         INT32 _buildIndexInWindow(requestContext *context,
+                                   buildingIndexContext *buildingCtx);
 
-         /// get x latch first
-         INT32 indexBuildDone(requestContext *context,
-                              indexObject *obj);
+         INT32 _endToBuildCurrrentWindow(requestContext *context,
+                                         buildingIndexContext *buildingCtx);
 
-         INT32 buildIndexBySortingAndUpdateContext(requestContext *context,
-                                                   indexObject *obj,
-                                                   UINT32 maxRdpCount,
-                                                   memoryBlock &sortBuffer);
+         /// hold x lock first
+         INT32 _finishIndexBuilding(requestContext *context,
+                                    UINT32 logicalIndexId);
 
-         INT32 buildIndexAndUpdateContext(requestContext *context,
-                                          indexObject *obj,
-                                          UINT32 maxRdpCount);
+         INT32 _initIndexesWhenOpen(requestContext *context);
 
-         INT32 fillSorterAndUpdateEntry(requestContext *context,
-                                        indexObject *obj,
-                                        BTREE_SORTOR *sortor,
-                                        UINT32 maxRdpCount);
-
-         INT32 mergeSorterAndContextIntoIndex(requestContext *context,
-                                              indexObject *obj,
-                                              BTREE_SORTOR *sorter);
-
-         INT32 endToBuildCurrentRange(requestContext *context,
-                                      buildingIndexContext *buildingContext);
-
-         INT32 initIndexesWhenOpen(requestContext *context);
-
-         INT32 fixUnstatbleIndexesWhenOpen(requestContext *context);
+         INT32 _fixUnstatbleIndexesWhenOpen(requestContext *context);
 
       private:
          void initProperties(const clMetaBlock &block);

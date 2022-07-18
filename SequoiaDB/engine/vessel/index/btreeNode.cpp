@@ -64,7 +64,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != _buffer && _buffer->isValid(), "can not be invalid");
       SDB_ASSERT(NULL != _obj && _obj->isValid(), "can not be invalid");
-      SDB_ASSERT(_obj->getDescription().getType() == INDEX_TYPE_BTREE, "must be btree");
+      SDB_ASSERT(_obj->getProperties().getType() == INDEX_TYPE_BTREE, "must be btree");
    }
 
    BOOLEAN btreeNode::isRoot()const
@@ -160,8 +160,8 @@ namespace vessel
    BOOLEAN btreeNode::isCompressionDisabled()const
    {
       return !isLeaf() ||
-             !_obj->getDescription().isPrefixCompressionEnabled() ||
-             _depth < _obj->getDescription().getMinCompressionDepth();
+             !_obj->getProperties().isPrefixCompressionEnabled() ||
+             _depth < _obj->getProperties().getMinCompressionDepth();
    }
 
    UINT32 btreeNode::getKeyDataOffsetToWrite(const btreeNodePageHead *head,
@@ -665,7 +665,7 @@ namespace vessel
       SDB_ASSERT(0 < getItemCount(), "can not be empty");
       SDB_ASSERT(!hasCompressedKeys(), "TODO");
 
-      ow = _obj->getDescription().getPattern().getOrdering();
+      ow = _obj->getProperties().getPattern().getOrdering();
       low = 0;
       high = getItemCount() - 1;
       bound = forward ? low : high;
@@ -802,7 +802,7 @@ namespace vessel
       }
 
       SDB_ASSERT(0 < getItemCount(), "can not be empty");
-      ow = _obj->getDescription().getPattern().getOrdering();
+      ow = _obj->getProperties().getPattern().getOrdering();
 
       if (forward)
       {
@@ -905,7 +905,7 @@ namespace vessel
       }
 
       head = getReadableHead();
-      ow = _obj->getDescription().getPattern().getOrdering();
+      ow = _obj->getProperties().getPattern().getOrdering();
       high = (INT32)(head->totalSlotCount) - 1;
       middle = (low + high) >> 1;
 
@@ -1373,7 +1373,7 @@ namespace vessel
          goto error;
       }
 
-      initer._indexId = _obj->getIndexId().getLogicalIndexId();
+      initer._indexId = _obj->getLogicalID();
       initer._key.reset(keySize, key.data());
       rc = lps->allocatePage(_buffer->getContext(),
                              &initer, extp);
@@ -1451,7 +1451,7 @@ namespace vessel
       buffer = lpb.getReadableBodyBuffer();
       head = buffer.getReadableObjPtr<btreeExternalKeyPageHead>(0);
       if (head->size != slot->data.key.size ||
-          head->indexId != _obj->getIndexId().getLogicalIndexId())
+          head->indexId != _obj->getLogicalID())
       {
          PD_LOG(PDERROR, "unexpected page head found[%d]",
                 getReadableHead()->externalKeyPage);
@@ -1556,7 +1556,7 @@ namespace vessel
 
       ixmKeyCompressor::result res;
       ixmKeyCompressor compressor;
-      rc = compressor.initPrefix(_obj->getDescription().getMaxPrefixFields(),
+      rc = compressor.initPrefix(_obj->getProperties().getBtreeMaxPrefix(),
                                  prefix.data());
       if (SDB_OK != rc)
       {
@@ -1835,7 +1835,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert key after node[%d,%d] split:%d",
-                   _obj->getIndexId().getLogicalIndexId(), 
+                   _obj->getLogicalID(), 
                    _buffer->getLogicalPid(), rc);
             ossPanic();
             goto error;
@@ -1860,7 +1860,7 @@ namespace vessel
          {
             buffer.fini();
             PD_LOG(PDSEVERE, "failed to insert key into right node[%d,%d]:%d",
-                   _obj->getIndexId().getLogicalIndexId(), rightNode, rc);
+                   _obj->getLogicalID(), rightNode, rc);
             ossPanic();
             goto error;
          }
@@ -2503,7 +2503,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert raised key into right node[%d,%d]:%d",
-                   _obj->getIndexId().getLogicalIndexId(), rightNode, rc);
+                   _obj->getLogicalID(), rightNode, rc);
             buffer.fini();
             ossPanic();
             goto error;
@@ -2631,7 +2631,7 @@ namespace vessel
 
       INT32 direction = forward ? 1 : -1;
       btreeIndexItem item;
-      orderingWrapper ow = _obj->getDescription().getPattern().getOrdering();
+      orderingWrapper ow = _obj->getProperties().getPattern().getOrdering();
 
       pos = INVALID_RECORD_SLOT_POS;
 

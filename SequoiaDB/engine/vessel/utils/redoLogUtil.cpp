@@ -44,6 +44,7 @@
 #include "vessel/atomicOperationList.h"
 #include "dpsJournalPad.hpp"
 #include "vessel/instanceEnv.h"
+#include "vessel/threadContext.h"
 
 namespace engine
 {
@@ -70,32 +71,33 @@ namespace vessel
       return;
    }
 
-   INT32 commitCreateIndexLog(requestContext *context,
-                              const strSlice &fullName,
-                              UINT32 indexId,
-                              INT32 indexSlot,
-                              const slice &indexDef)
+   INT32 commitCreateIndexLog(const ossPoolString &fullName,
+                              UINT32 indexLogicalId,
+                              const bson::BSONObj &obj,
+                              DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-
-      IDataJournal *journal = nullptr;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      IDataJournal *journal = tc->getEnv()->resource.journal;
       dpsStackJournalPad jpad;
       dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
 
-      if (NULL == context ||
-          fullName.empty() ||
-          !indexDef.isValid())
+      lsn = DPS_INVALID_LSN_OFFSET;
+
+      if (fullName.empty() ||
+          !obj.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      journal = context->getEnv()->resource.journal;
       jpad.setType(LOG_TYPE_IX_CRT);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
       rc = jpad.append(DPS_LOG_PUBLIC_FULLNAME,
-                       fullName.strLen() + 1,
-                       fullName.str());
+                       fullName.size() + 1,
+                       fullName.c_str());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append full name:%d", rc);
@@ -103,8 +105,8 @@ namespace vessel
       }
 
       rc = jpad.append(DPS_LOG_IXCRT_IX_DEF_OBJ,
-                       indexDef.getSize(),
-                       indexDef.getData());
+                       obj.objsize(),
+                       obj.objdata());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append index def:%d", rc);
@@ -113,11 +115,61 @@ namespace vessel
 
       jrequest = jpad.done();
 
-      rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
+      }
+
+      lsn = jres._lsn;
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 commitCreateIndexEndLog(const ossPoolString &fullName,
+                                 const std::string &indexName,
+                                 UINT32 indexId,
+                                 INT32 result,
+                                 DPS_LSN_OFFSET *lsn)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      IDataJournal *journal = tc->getEnv()->resource.journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+
+      if (nullptr != lsn)
+      {
+         *lsn = DPS_INVALID_LSN_OFFSET;
+      }
+
+      if (fullName.empty() ||
+          indexName.empty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      jpad.setType(LOG_TYPE_IX_CRT);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+
+      if (nullptr != lsn)
+      {
+         *lsn = jres._lsn;
       }
 
    done:
@@ -126,38 +178,38 @@ namespace vessel
       goto done;
    }
 
-   INT32 commitCreateIndexEndLog(requestContext *context,
-                                 const strSlice &fullName,
-                                 const strSlice &indexName,
-                                 UINT32 indexId,
-                                 INT32 indexSlot,
-                                 INT32 result)
+   INT32 commitRemoveIndexLog(const ossPoolString &fullName,
+                              const std::string &indexName,
+                              UINT32 indexId,
+                              DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      IDataJournal *journal = nullptr;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      IDataJournal *journal = tc->getEnv()->resource.journal;
       dpsStackJournalPad jpad;
       dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
 
-      if (NULL == context ||
-          fullName.empty() ||
+      if (fullName.empty() ||
           indexName.empty())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      journal = context->getEnv()->resource.journal;
-
-      jpad.setType(LOG_TYPE_IX_CRT);
+      jpad.setType(LOG_TYPE_IX_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       jrequest = jpad.done();
-      rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
          goto error;
       }
+
+      lsn = jres._lsn;
 
    done:
       return rc;

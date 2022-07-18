@@ -41,12 +41,12 @@
 #include "vessel/metaDataUberBlock.h"
 #include "vessel/unitedBitmap.hpp"
 #include "vessel/lpageMappingRoot.h"
-
+#include "vessel/lpageMappingPteCtx.h"
 
 namespace engine
 {
 namespace vessel
-{
+{   
    class lpageMapping : public SDBObject
    {
       public:
@@ -104,13 +104,57 @@ namespace vessel
                           const PAGE_ID *lpids,
                           lpageDescriptor *oldVals=nullptr);
 
+      public:///WARNING: make sure there is at most one active ctx at one time!
+         INT32 set(lpageMappingPteCtx &ctx,
+                   PAGE_ID lpid,
+                   const lpageDescriptor &desc);
+
+         INT32 setBatchPrivately(lpageMappingPteCtx &ctx,
+                                 PAGE_SNAPSHOT_VERION psv,
+                                 UINT32 size,
+                                 const PAGE_ID *lpids,
+                                 const PAGE_ID *pids);
+
+         INT32 isPathOverwrittenPrivately(const lpageMappingPteCtx &ctx,
+                                          PAGE_ID lpid,
+                                          BOOLEAN &overwritten);
+
+         /// return ok but invalid desc if lpid not mapped.
+         INT32 get(const lpageMappingPteCtx &ctx,
+                   PAGE_ID lpid,
+                   lpageDescriptor &desc);
+
+         INT32 reset(lpageMappingPteCtx &ctx,
+                     PAGE_ID lpid);
+
+         INT32 getPrivatePrior(const lpageMappingPteCtx &ctx,
+                               PAGE_ID lpid,
+                               lpageDescriptor &desc,
+                               BOOLEAN &isPrivate);
+
+         /// make pid list to free out side first.
+         /// old lpid descriptors will be destroyed after commit.
+         INT32 publish(BOOLEAN fsync,
+                       lpageMappingPteCtx &ctx);
+
       private:
          void _free(UINT32 size, const PAGE_ID *lpids);
          INT32 _ensureDescriptorPage(UINT32 unitId, PAGE_ID &pid);
-         INT32 _getDescriptorPage(UINT32 unitId, PAGE_ID &pid);
+         INT32 _getDescriptorPage(const lpageMappingRoot *pte,
+                                  UINT32 unitId, PAGE_ID &pid);
          INT32 _createEntry(UINT32 pos, PAGE_ID &pid);
 
          void _reset(UINT32 size, lpageDescriptor *descriptors);
+
+      private:
+         INT32 _ensurePrivatePath(lpageMappingPteCtx &ctx,
+                                  UINT32 unitId,
+                                  PAGE_ID &descPid);
+
+         INT32 _ensurePrivateRootEntry(UINT32 pos, lpageMappingPteCtx &ctx);
+
+         INT32 _createObsoleteSet(const ossPoolSet<UINT32> &units,
+                                  ossPoolSet<PAGE_ID> &set);
 
       private:
 
@@ -137,6 +181,7 @@ namespace vessel
          }
 
       private:
+         PAGE_ID _uberBlockPid = INVALID_PAGE_ID;
          lpageMetaDataFile *_mfile = nullptr;
          lpmUberBlock *_mmapBlock = nullptr;
          lpageMappingRoot _root;

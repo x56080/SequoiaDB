@@ -37,70 +37,66 @@
 #define VESSEL_LSM_INDEX_ITERATOR_H_
 
 #include "vessel/indexIterator.h"
-#include "rocksdb/iterator.h"
 #include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/globalIndexID.h"
-#include "vessel/memoryBlock.h"
-#include "../bson/util/builder.h"
-#include "vessel/indexObject.h"
+#include "vessel/lsm/lsmColumnFamily.h"
 
 namespace engine
 {
 namespace vessel
-{
+{  
+   class indexObject;
+
    class lsmIndexIterator : public indexIterator
    {
       public:
-         lsmIndexIterator(){}
+         lsmIndexIterator();
          virtual ~lsmIndexIterator();
 
       public:
-         virtual INDEX_TYPE getIndexType()const {return INDEX_TYPE_LSM;}
+         INT32 init(const lsmColumnFamily &cf,
+                    const globalLogicalClId &cl,
+                    const indexObject *obj,
+                    const options &o);
          
       public:
-         virtual INT32 open(requestContext *context,
-                            indexObject *ic,
-                            const options &o);
+         virtual const CHAR *getName()const override {return "lsmIndexIterator";}
 
-         virtual BOOLEAN isOpen()const;
+         virtual void reset() override;
 
-         virtual void close();
-
-         virtual BOOLEAN isReadyToRead()const;
+         virtual BOOLEAN isReadyToRead()const override;
 
          virtual INT32 seek(const bson::BSONObj &prevKey,
                             INT32 fieldCountToCmpInPrev,
                             const VEC_ELE_CMP &matchEles,
                             const inclusiveVec &matchInclusive,
-                            const seekOptions &o);
+                            const seekOptions &o) override;
 
          virtual INT32 seekKey(const ixmKey &key,
-                               const seekOptions &o);
+                               const seekOptions &o) override;
 
-         virtual INT32 fastNext(const bson::BSONObj &prevKey,
-                                INT32 fieldCountToCmpInPrev,
-                                const VEC_ELE_CMP &matchEles,
-                                const inclusiveVec &matchInclusive,
-                                const seekOptions &o);
+         virtual INT32 locate(const slice &encodedKey,
+                              const recordID &rid,
+                              const seekOptions &o) override;
 
-         virtual INT32 next();
+         virtual INT32 next() override;
 
-         virtual void pause();
-
-         virtual INT32 contains(const ixmKey &key, recordID &rid);
-
-         virtual INT32 moveToTheNextOfEntry(const slice &entry);
+         virtual INT32 advance(const bson::BSONObj &prevKey,
+                               INT32 fieldCountToCmpInPrev,
+                               const VEC_ELE_CMP &matchEles,
+                               const inclusiveVec &matchInclusive,
+                               const seekOptions &o) override;
       public:
-         virtual DPS_LSN_OFFSET getLSN()const;
-         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const;
-         virtual DPS_TRANS_ID getTransID()const;
-         virtual recordID getRid()const;
-         virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
-         //virtual indexScanEntry getCurrentEntry()const;
-         virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const;
-         virtual UINT32 getCurrentEntrySize()const;
+         virtual DPS_LSN_OFFSET getLSN()const override;
+         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const override;
+         virtual DPS_TRANS_ID getTransID()const override;
+         virtual recordID getRid()const override;
+         virtual BOOLEAN equals(const ixmKey &key)const override;
+         virtual slice getEncodedKey()const override;
+
       private:
-         INT32 seekFullKey(const rocksdb::Slice &fullKey);
+         INT32 seekFullKey(const rocksdb::Slice &fullKey,
+                           BOOLEAN forPrev);
 
          INT32 moveIterator(BOOLEAN forward);
 
@@ -112,30 +108,32 @@ namespace vessel
 
          INT32 ensureVisiblePosition();
 
-
-      private:
-         void _close();
+         OSS_INLINE BOOLEAN _isValid()const {return nullptr != _itr;}
 
          BOOLEAN _isReadyToRead()const;
 
          BOOLEAN _isMarkedRemoved(rocksdb::Iterator *itr)const;
 
-      private:
          void _initKeyBoundWhenOpen(const globalIndexID &id);
 
+         INT32 _cacheBackwardEntry(const rocksdb::Slice &s);
+
+         INT32 _ensureBackwardEntryCache(UINT32 size);
+
       private:
-         requestContext *_context = NULL;
-         indexObject *_obj = NULL;
+         options _o;
+         lsmColumnFamily _cf;
+         const indexObject *_obj = nullptr;
          globalIndexID _globalId;
-         rocksdb::Iterator *_itr = NULL;
+         rocksdb::Iterator *_itr = nullptr;
          LSM_IDX_KEY_BOUNDARY _lowBound;
          LSM_IDX_KEY_BOUNDARY _upBound;
          rocksdb::Slice _lowKey;
          rocksdb::Slice _upKey;
          lsmPureKeyEntry _currentEntry;
-         bson::BufBuilder _builder;
-         memoryBlock _backwardCurrentEntryCache;
-         BOOLEAN _forward;
+         CHAR *_backwardEntryCache = nullptr;
+         UINT32 _backwardEntryCacheSize = 0;
+         UINT32 _backwardEntrySize = 0;
    };//class lsmIndexIterator
 }//namespace vessel
 }//namespace engine

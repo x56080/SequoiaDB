@@ -42,55 +42,28 @@
 #include "../bson/bson.hpp"
 #include "dpsDef.hpp"
 
+#include <memory>
+
 namespace engine
 {
 namespace vessel
 {
    struct indexMergingRecord : public _utilPooledObject
    {
-      indexMergingRecord(){}
-      ~indexMergingRecord(){}
+      indexMergingRecord() = default;
+      ~indexMergingRecord() = default;
       indexMergingRecord(const indexMergingRecord &) = delete;
       indexMergingRecord &operator=(const indexMergingRecord &) = delete;
 
-      scanEntry entry;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+      recordID rid;
       DPS_TRANS_ID transID;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       ossPoolList<bson::BSONObj> inserting;
       ossPoolList<bson::BSONObj> discarded;
    };//struct indexMergingRecord
 
-   struct indexMergingRecordList : public SDBObject
-   {
-      indexMergingRecordList(){}
-      ~indexMergingRecordList()
-      {
-         clear();
-      }
-
-      indexMergingRecordList(const indexMergingRecordList &) = delete;
-      indexMergingRecordList &operator=(const indexMergingRecordList &) = delete;
-
-      typedef ossPoolList<indexMergingRecord *> IDX_MERGING_RECORD_LIST;
-
-      void clear()
-      {
-         IDX_MERGING_RECORD_LIST::const_iterator itr = rl.begin();
-         for (; itr != rl.end(); ++itr)
-         {
-            if (NULL != *itr)
-            {
-               SDB_OSS_DEL *itr;
-            }
-         }
-         rl.clear();
-      }
-
-      
-      IDX_MERGING_RECORD_LIST rl;
-
-   };//struct indexMergingRecordList
+   using INDEX_MERGING_RECORD = std::unique_ptr<indexMergingRecord>;
+   using INDEX_MERGING_LIST = ossPoolList<INDEX_MERGING_RECORD>;
 } // namespace vessel
 
 } // namespace engine

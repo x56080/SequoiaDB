@@ -62,8 +62,8 @@ namespace vessel
 
       public:
          BOOLEAN isOpen()const;
-         lsmColumnFamily getIdxColumnFamily();
-         lsmColumnFamily getLobcColumnFamily();
+         lsmColumnFamily getHitColumnFamily();
+         lsmColumnFamily getLobmColumnFamily();
          lsmColumnFamily getIdxMetaColumnFamily();
       
       public:
@@ -94,13 +94,14 @@ namespace vessel
          rocksdb::Iterator *newIterator(LSM_CF_ID id,
                                         const rocksdb::ReadOptions &opt);
 
-         INT32 flush(LSM_CF_ID id = LSM_INVALID_CF_ID);
+         INT32 flush(LSM_CF_ID id = LSM_CF_INVALID);
 
       public:
          void setMinDirtyLsn(LSM_CF_ID id,
                              DPS_LSN_OFFSET lsn);
 
-         DPS_LSN_OFFSET getMinDirtyLsn(LSM_CF_ID id = LSM_INVALID_CF_ID) const;
+         /// return global min dirty lsn if id not specified.
+         DPS_LSN_OFFSET getMinDirtyLsn(LSM_CF_ID id = LSM_CF_INVALID) const;
 
          void setJournal(IDataJournal *journal);
 
@@ -121,9 +122,7 @@ namespace vessel
          std::vector<lsmColumnFamilyContext *> _contexts;
    }; // class lsmDB
 
-   extern lsmColumnFamily GET_INDEX_COLUMN_FAMILY();
-   extern lsmColumnFamily GET_LOB_CHUNK_COLUMN_FAMILY();
-   extern lsmColumnFamily GET_INDEX_META_COLUMN_FAMILY();
+
 } // namespace vessel
 } // namespace engine
 

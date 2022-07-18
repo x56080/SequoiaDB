@@ -44,86 +44,133 @@ namespace engine
 {
 namespace vessel
 {
-   indexObject::indexObject()
-   {}
-
-   indexObject::~indexObject()
-   {
-      fini();
-   }
-
-   INT32 indexObject::init(INT32 indexSlot,
-                           UINT32 indexLid,
-                           const indexDescription &desc,
-                           INDEX_STATUS status,
-                           PAGE_ID lpid,
-                           PAGE_ID btreeRoot)
+   INT32 indexObject::init(UINT32 indexLid,
+                           const indexProperties &properties,
+                           INDEX_STATUS status)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
-                       INVALID_LOGICAL_INDEX_ID == indexLid ||
-                       !desc.isValid() ||
-                       INDEX_STATUS_INVALID == status||
-                       INVALID_PAGE_ID == lpid))
+      reset();
+
+      if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexLid ||
+                       !properties.isValid() ||
+                       INDEX_STATUS_INVALID == status))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _indexId.reset(indexSlot, indexLid, desc.getInnerID());
-      _desc = desc;
-      _entryLpid = lpid;
-      _btreeRoot = btreeRoot;
-
-      if (INDEX_STATUS_BUILDING == status)
-      {
-         _unstatbleContext = SDB_OSS_NEW buildingIndexContext();
-         if (OSS_UNLIKELY(NULL == _unstatbleContext))
-         {
-            PD_LOG(PDERROR, "failed to alocate mem");
-            rc = SDB_OOM;
-            goto error;
-         }
-      }
-
+      _logicalID = indexLid;
+      _properties = properties;
       _status = status;
    done:
       return rc;
    error:
-      fini();
+      reset();
       goto done;
    }
 
-   void indexObject::fini()
+   void indexObject::reset()
    {
-      _indexId.reset();
-      _desc.reset();
+      _logicalID = INVALID_LOGICAL_INDEX_ID;
+      _rebornLSN = DPS_INVALID_LSN_OFFSET;
+      _properties.reset();
       _status = INDEX_STATUS_INVALID;
-      _entryLpid = INVALID_PAGE_ID;
-      _btreeRoot = INVALID_PAGE_ID;
-      _btreeRootSplitTimes = 0;
-      SAFE_OSS_DELETE(_unstatbleContext);
+      _btreeEntryAddr = INVALID_PAGE_ID;
       return;
    }
 
-   void indexObject::removeUnstableContext()
-   {
-      SAFE_OSS_DELETE(_unstatbleContext);
-   }
-
-   void indexObject::updateStatus(INDEX_STATUS status)
-   {
-      SDB_ASSERT(INDEX_STATUS_INVALID != status, "can not be invalid");
-      _status = status;
-   }
-
-   void indexObject::dump(bson::BSONObjBuilder &builder)const
+   bson::BSONObj indexObject::toBson()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_SLOT, _indexId.getIndexSlot());
-      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_ID, _indexId.getLogicalIndexId());
-      _desc.exportToBson(builder);
-      builder.append(VESSEL_INDEX_FIELD_NAME_STATUS, _status);
+      bson::BSONObjBuilder builder;
+      builder.append(IXM_LOGICALID_FIELD, _logicalID);
+      builder.append(IXM_REBORN_LSN, (long long)_rebornLSN);
+      bson::BSONObjBuilder subBuilder(builder.subobjStart(IXM_PROPERTIES));
+      _properties.dump(subBuilder);
+      subBuilder.done();
+      builder.append(IXM_STATUS_FIELD, (INT32)_status);
+      if (INVALID_PAGE_ID != _btreeEntryAddr)
+      {
+         builder.append(IXM_BTREE_ENTRY, _btreeEntryAddr);
+      }
+
+      return builder.obj();
+   }
+
+   INT32 indexObject::initFromBson(const bson::BSONObj &obj)
+   {
+      INT32 rc = SDB_OK;
+      reset();
+
+      {
+         bson::BSONElement e = obj.getField(IXM_LOGICALID_FIELD);
+         if (NumberInt != e.type())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         _logicalID = e.Int();
+      }
+
+      {
+         bson::BSONElement e = obj.getField(IXM_REBORN_LSN);
+         if (NumberLong != e.type())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         _rebornLSN = e.Long();
+      }
+
+      {
+         bson::BSONElement e = obj.getField(IXM_STATUS_FIELD);
+         if (NumberInt != e.type())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         _status = (INDEX_STATUS)e.Int();
+      }
+
+      {
+         bson::BSONElement e = obj.getField(IXM_BTREE_ENTRY);
+         if (e.eoo())
+         {
+            _btreeEntryAddr = INVALID_PAGE_ID;
+         }
+         else if (NumberInt != e.type())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         _btreeEntryAddr = e.Int();
+      }
+
+      {
+         bson::BSONElement e = obj.getField(IXM_PROPERTIES);
+         if (Object != e.type())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         rc = _properties.init(e.embeddedObject());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init properties:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      PD_LOG(PDERROR, "failed to init index obj from[%s]", obj.toPoolString().c_str());
+      reset();
+      goto done;
    }
 
    BOOLEAN indexObject::associates(const CHAR *fieldName)const
@@ -132,7 +179,7 @@ namespace vessel
       SDB_ASSERT(NULL != fieldName, "can not be null");
 
       BOOLEAN r = FALSE;
-      const bson::BSONObj pattern = _desc.getPattern().getPattern();
+      const bson::BSONObj &pattern = _properties.getPattern().getPattern();
       bson::BSONObjIterator itr(pattern);
       while (itr.more())
       {
@@ -146,36 +193,6 @@ namespace vessel
 
    done:
       return r;
-   }
-
-   void indexObject::updateBtreeRoot(PAGE_ID root,
-                                     UINT32 splitTimes)
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
-      SDB_ASSERT(INDEX_TYPE_BTREE == _desc.getType(), "must be btree");
-      _btreeRoot = root;
-      _btreeRootSplitTimes = splitTimes;
-      
-      return;
-   }
-
-   void indexObject::updateBtreeRootSplitTimes(UINT32 splitTimes)
-   {
-      _btreeRootSplitTimes = splitTimes;
-   }
-
-   BOOLEAN indexObject::hasBtreeRoot()const
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INDEX_TYPE_BTREE == _desc.getType(), "must be btree");
-      return INVALID_PAGE_ID != _btreeRoot;
-   }
-
-   void indexObject::removeBtreeRoot()
-   {
-      _btreeRoot = INVALID_PAGE_ID;
-      _btreeRootSplitTimes = 0;
    }
 
 } // namespace vessel

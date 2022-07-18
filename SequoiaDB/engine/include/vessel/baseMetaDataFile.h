@@ -38,6 +38,7 @@
 
 #include "vessel/storageFile.h"
 #include "vessel/bitmapScanner.h"
+#include "ossMemPool.hpp"
 
 #include <mutex>//c++11
 
@@ -55,6 +56,7 @@ namespace vessel
          INT32 reservePid(PAGE_ID &pid, mmapPagePointer *ptr=nullptr);
          void freePid(PAGE_ID pid);
          void freePids(UINT32 size, const PAGE_ID *pids);
+         void freePids(const ossPoolSet<PAGE_ID> &set);
 
       private:
          virtual void _close() override;

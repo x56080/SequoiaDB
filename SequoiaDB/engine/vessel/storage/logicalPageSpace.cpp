@@ -464,6 +464,12 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(lpb.isReadonly()))
+      {
+         SDB_ASSERT(FALSE, "readonly buffer");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
       else if (OSS_UNLIKELY(!lpb._mode.isExclusiveOrUpgrade()))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;

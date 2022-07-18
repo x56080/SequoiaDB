@@ -36,7 +36,6 @@
 #include "vessel/btreeIndexIterator.h"
 #include "vessel/indexUtils.h"
 #include "ixmKey.hpp"
-#include "vessel/btreeScanEntryParser.h"
 #include "vessel/instanceEnv.h"
 
 namespace engine
@@ -72,7 +71,7 @@ namespace vessel
                        !context->isClPropertiesSet() ||
                        NULL == obj ||
                        !obj->isValid() ||
-                       INDEX_TYPE_BTREE != obj->getDescription().getType()))
+                       INDEX_TYPE_BTREE != obj->getProperties().getType()))
       {
          rc = SDB_INVALIDARG;
          goto error;

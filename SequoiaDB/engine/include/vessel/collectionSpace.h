@@ -217,9 +217,6 @@ namespace vessel
          INT32 ensureCLMetaBlockPage(requestContext *context,
                                      CL_MB_ID mbID);
 
-         INT32 ensureCLIndexMetaBlockPage(requestContext *context,
-                                          CL_MB_ID mbID);
-
          INT32 reserveCL(requestContext *context,
                          const strSlice &clName,
                          utilCLInnerID innerID,

@@ -218,7 +218,7 @@ namespace engine
 
          virtual BOOLEAN isMovable()const override
          {
-            return TRUE;
+            return FALSE;
          }
 
          virtual BOOLEAN isMovable(const void *p)const override

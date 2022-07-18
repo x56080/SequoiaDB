@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexExecutor.h
+   Source File Name = logicalPageSpacePte.h
 
    Descriptive Name =
 
@@ -27,50 +27,37 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          04/20/2022  LYC  Initial Draft
+          09/08/2020  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
-#ifndef VESSEL_LSM_INDEX_EXECUTOR_H_
-#define VESSEL_LSM_INDEX_EXECUTOR_H_
 
-#include "vessel/lsm/lsmColumnFamily.h"
-#include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIndexKey.h"
+#ifndef VESSEL_LPS_PTE_H_
+#define VESSEL_LPS_PTE_H_
+
+#include "vessel/logicalPageSpace.h"
+#include "ossRWMutex.hpp"
+
+#include <chrono>
 
 namespace engine
 {
 namespace vessel
 {
-   class lsmIndexExecutor : public SDBObject
+   class logicalPageSpacePte : public logicalPageSpace
    {
       public:
-         lsmIndexExecutor() = default;
-         ~lsmIndexExecutor() = default;
-         lsmIndexExecutor(const lsmIndexExecutor&) = delete;
-         lsmIndexExecutor &operator=(const lsmIndexExecutor&) = delete;
-      
-      public:
-         void init(const lsmColumnFamily &cf, const lsmIndexMeta &meta);
-         void fini();
-
-         INT32 put(const lsmPureKeyEntry &key);
-         INT32 truncate();
-
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return _cf.isValid() &&
-                   _meta.isValid();
-         }
+         logicalPageSpacePte();
+         virtual ~logicalPageSpacePte();
 
       private:
-         lsmColumnFamily _cf;
-         lsmIndexMeta _meta;
-      
-   }; // class lsmIndexExecutor
-
+         ossRWMutex _publishLock;
+         std::chrono::steady_clock _lastPublishTime;
+   };//class logicalPageSpacePte
 } // namespace vessel
-} // namespace engine
-#endif // VESSEL_LSM_INDEX_EXECUTOR_H_
 
+} // namespace engine
+
+
+#endif//VESSEL_LPS_PTE_H_

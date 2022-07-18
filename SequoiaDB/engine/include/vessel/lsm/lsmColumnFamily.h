@@ -62,7 +62,7 @@ namespace vessel
       OSS_INLINE BOOLEAN isValid() const
       {
          return nullptr != _db &&
-                LSM_INVALID_CF_ID != _cfId;
+                LSM_CF_INVALID != _cfId;
       }
 
    public:
@@ -84,8 +84,12 @@ namespace vessel
 
    public:
       lsmDB *_db = nullptr;
-      LSM_CF_ID _cfId = LSM_INVALID_CF_ID;
+      LSM_CF_ID _cfId = LSM_CF_INVALID;
    };
+
+   extern lsmColumnFamily GET_HYBRID_INDEX_COLUMN_FAMILY();
+   extern lsmColumnFamily GET_LOBM_COLUMN_FAMILY();
+   extern lsmColumnFamily GET_INDEX_META_COLUMN_FAMILY();
 } // namespace vessel
 } // namespace engine
 
