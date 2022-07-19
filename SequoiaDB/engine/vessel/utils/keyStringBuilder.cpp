@@ -302,23 +302,22 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 needSize = _capacity + length;
-      UINT64 allocatedSize = 1ull << (64 - countLeadingZeros64(needSize - 1));
 
       if (nullptr == _buf)
       {
-         _buf = static_cast<CHAR *>(_allocator.malloc(allocatedSize));
+         _buf = static_cast<CHAR *>(_allocator.malloc(needSize));
          if (nullptr == _buf)
          {
             rc = SDB_OOM;
             PD_LOG(PDERROR, "out of memory");
             goto error;
          }
-         _capacity = allocatedSize;
+         _capacity = needSize;
       }
       else if ((_capacity - _bufSize) < length)
       {
          CHAR *ptr =
-             static_cast<CHAR *>(_allocator.realloc(_buf, allocatedSize));
+             static_cast<CHAR *>(_allocator.realloc(_buf, needSize));
          if (nullptr == ptr)
          {
             rc = SDB_OOM;
@@ -327,7 +326,7 @@ namespace vessel
          }
 
          _buf = ptr;
-         _capacity = allocatedSize;
+         _capacity = needSize;
       }
 
    done:

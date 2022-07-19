@@ -477,7 +477,6 @@ namespace vessel
                  _status == BUILDER_STATUS::BEFORE_ELEMENTS ||
                  _status == BUILDER_STATUS::APPENDING_ELEMENTS,
                  "Unexpected appending state");
-
       if (_status == BUILDER_STATUS::EMPTY)
       {
          _sizeAheadElements = 0;
@@ -1984,6 +1983,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       bson::BSONObjIterator it;
+      _verifyStatus();
+      SDB_ASSERT(!obj.isEmpty(), "can not be empty");
 
       if (obj.isEmpty())
       {
