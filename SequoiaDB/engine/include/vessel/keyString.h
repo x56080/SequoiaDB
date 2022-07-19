@@ -38,8 +38,6 @@
 
 #include "vessel/slice.h"
 
-#include <memory>
-
 namespace engine
 {
 namespace vessel
@@ -47,59 +45,42 @@ namespace vessel
    class keyString : public SDBObject
    {
       public:
-         class holder : public SDBObject
-         {
-            public:
-               holder() = delete;
-               explicit holder(CHAR *buffer, UINT32 bufferSize);
-               ~holder();
-               holder(const holder &) = delete;
-               holder &operator=(const holder &) = delete;
-
-            public:
-               OSS_INLINE const CHAR *getBuffer()const {return _buffer;}
-               OSS_INLINE UINT32 getBufferSize()const {return _bufferSize;}
-               
-            private:
-               CHAR *_buffer = nullptr;
-               UINT32 _bufferSize = 0;
-         };//class holder
-
-         using KEY_STRING_HOLER = std::shared_ptr<holder>;
-
-         static KEY_STRING_HOLER makeHolder(CHAR *buffer, UINT32 bufSize);
-
-      public:
          keyString() = default;
-         ~keyString() = default;
+         ~keyString();
          explicit keyString(const slice &s);
-         explicit keyString(KEY_STRING_HOLER &&holder, UINT32 size);
+
+         /// transfer buffer ownership to keyString
+         explicit keyString(CHAR *buffer,
+                            UINT32 bufferSize,
+                            UINT32 ksSize);
+
+         ///WARNING: shallow copy!
          keyString(const keyString &);
          keyString &operator=(const keyString &);
+
          keyString(keyString &&);
          keyString &operator=(keyString &&);
 
       public:
-         OSS_INLINE void reset()
-         {
-            _ref = slice();
-            _holder.reset();
-         }
          OSS_INLINE BOOLEAN isValid() const
          {
             return _ref.isValid();
          }
-         OSS_INLINE BOOLEAN isOwned()const {return !!_holder;}
+         OSS_INLINE BOOLEAN isOwned()const {return nullptr != _bufferOwned;}
 
          OSS_INLINE const slice &getDataSlice() const
          {
             return _ref;
          }
 
+      public:
+         void reset();
          INT32 getOwned();
+         void adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
       protected:
          slice _ref;  
-         KEY_STRING_HOLER _holder;
+         CHAR *_bufferOwned = nullptr;
+         UINT32 _bufferSize = 0;
    };//class keyString
 
 } // namespace vessel

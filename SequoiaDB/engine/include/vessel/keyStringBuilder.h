@@ -257,8 +257,7 @@ namespace vessel
             return KEY_STRING_VERSION_1;
          }
          keyString getShallowKeyString() const;
-
-         INT32 reapOwnedKeyString(keyString &ks);
+         keyString reap();
 
       protected:
          INT32 _appendBool(BOOLEAN val, BOOLEAN invert);
@@ -1986,45 +1985,14 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::reapOwnedKeyString(keyString &ks)
+   keyString keyStringBuilder<Allocator>::reap()
    {
-      INT32 rc = SDB_OK;
-      ks.reset();
-
-      if (builderStatus::appendedMetaBlock != _status)
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      else if (!_allocator.isMovable(_buf))
-      {
-         ks = keyString(slice(_bufSize, _buf));
-         rc = ks.getOwned();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         reset();
-      }
-      else
-      {
-         keyString::KEY_STRING_HOLER holder = keyString::makeHolder(_buf, _capacity);
-         if (!holder)
-         {
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         ks = std::move(keyString(std::move(holder), _bufSize));
-         _buf = nullptr;
-         reset();
-      }
-
-   done:
-      return rc;
-   error:
-      ks.reset();
-      goto done;
+      SDB_ASSERT(builderStatus::appendedMetaBlock == _status, "can not be invalid");
+      SDB_ASSERT(_allocator.isMovable(), "must be movable");
+      keyString ks(_buf, _capacity, _bufSize);
+      _buf = nullptr;
+      reset();
+      return std::move(ks);
    }
 
    template <typename Allocator> INT32 keyStringBuilder<Allocator>::done()
