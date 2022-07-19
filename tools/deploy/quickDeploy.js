@@ -541,6 +541,7 @@ function getSqlConf( dbType, installedPath )
       }
 
       // check line
+      iLine++ ;
       if ( aLine == "" ) continue ;
 
       if ( aLine.substr( 0,1 ) == "#" ) continue ;   // this line is a note
@@ -551,7 +552,6 @@ function getSqlConf( dbType, installedPath )
 
       instanceConfChecked = checkSqlConf( confFile, instanceConf, iLine,
                                           installedPath ) ;
-      iLine++ ;
 
       // replace installed path
       instanceConfChecked[2] = instanceConfChecked[2].replace( /\[installPath\]/g,
@@ -823,13 +823,14 @@ function getSequoiadbConf( replaceInstallPath )
       }
 
       // check line
+      iLine++ ;
       if ( aLine == "" ) continue ;
 
       if ( aLine.substr( 0,1 ) == "#" ) continue ;   // this line is a note
 
       var aNode = aLine.split( "," ) ;
+
       checkSequoiadbConf( aNode, iLine ) ;
-      iLine++ ;
 
       // replace 'localhost' to real hostname
       aNode[2] = aNode[2].replace( /localhost/g, MY_HOSTNAME ) ;
