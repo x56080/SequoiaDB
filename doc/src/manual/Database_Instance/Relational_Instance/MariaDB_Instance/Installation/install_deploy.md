@@ -128,10 +128,10 @@
     $ bin/sdb_maria_ctl addinst myinst -D database/6101/
     ```
     
-    若端口号 6101 被占用，用户可以使用 -p 参数指定实例端口号
+    若端口号 6101 被占用，用户可以使用 -P 参数指定实例端口号
     
     ```lang-bash
-    $ bin/sdb_maria_ctl addinst myinst -D database/6102/ -p 6102
+    $ bin/sdb_maria_ctl addinst myinst -D database/6102/ -P 6102
     ```
     
     > **Note:**
