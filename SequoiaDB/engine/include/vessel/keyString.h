@@ -37,6 +37,8 @@
 #define VESSEL_KEY_STRING_H_
 
 #include "vessel/slice.h"
+#include "vessel/keyStringMetaBlock.h"
+#include "../bson/bsonobj.h"
 
 namespace engine
 {
@@ -77,10 +79,27 @@ namespace vessel
          void reset();
          INT32 getOwned();
          void adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
+
+      public:
+         slice getKeySlice() const;
+         slice getSliceFromKeyTo(UINT32 bytesAfterKey) const;
+         slice getSliceBeforeKey() const;
+         slice getSliceAfterKey() const;
+         slice getTypeBits() const;
+         bson::BSONObj toBSON(const bson::BSONObj &pattern,
+                              BOOLEAN withFieldName = FALSE);
+         bson::BSONObj toBSON(const bson::BSONObj &pattern,
+                              bson::BSONObjBuilder &builder,
+                              BOOLEAN withFieldName = FALSE);
+
+      public:
+         INT32 compare(const keyString &ks) const;
+
       protected:
          slice _ref;  
          CHAR *_bufferOwned = nullptr;
          UINT32 _bufferSize = 0;
+         keyStringMetaBlock _block;
    };//class keyString
 
 } // namespace vessel

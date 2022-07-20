@@ -1251,5 +1251,16 @@ UINT32 ossGetNonZeroBitCount64(UINT64 bits);
 
 UINT32 ossGetNonZeroBitCount32(UINT32 bits);
 
+template <typename T> T ossNativeToBigEndian(T in)
+{
+#ifdef SDB_BIG_ENDIAN
+   return in;
+#else
+   T out;
+   ossEndianConvertIf(in, out, TRUE);
+   return out;
+#endif
+}
+
 #endif  //OSSUTIL_HPP_
 
