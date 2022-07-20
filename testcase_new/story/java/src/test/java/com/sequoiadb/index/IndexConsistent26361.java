@@ -95,7 +95,7 @@ public class IndexConsistent26361 extends SdbTestBase {
             // 创建索引(indexName1,{"testno":1})成功，其他失败
             if ( createIndex2.getRetCode() != SDBError.SDB_IXM_COVER_CREATING
                     .getErrorCode()
-                    && createIndex1
+                    && createIndex2
                             .getRetCode() != SDBError.SDB_IXM_EXIST_COVERD_ONE
                                     .getErrorCode() ) {
                 Assert.fail( "not expected error, createIndex2.getRetCode : "
@@ -104,7 +104,7 @@ public class IndexConsistent26361 extends SdbTestBase {
             if ( createIndex3
                     .getRetCode() != SDBError.SDB_IXM_SAME_NAME_CREATING
                             .getErrorCode()
-                    && createIndex1.getRetCode() != SDBError.SDB_IXM_EXIST
+                    && createIndex3.getRetCode() != SDBError.SDB_IXM_EXIST
                             .getErrorCode() ) {
                 Assert.fail( "not expected error, createIndex3.getRetCode : "
                         + createIndex3.getRetCode() );
