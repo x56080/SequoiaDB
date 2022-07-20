@@ -189,16 +189,26 @@ namespace vessel
          template <typename T,
             class = typename std::enable_if<std::is_unsigned<T>::value>::type>
          INT32 appendUnsignedWithoutType(const T &val,
-                                       BOOLEAN isDescending = FALSE)
+                                         BOOLEAN isDescending = FALSE)
          {
             INT32 rc = SDB_OK;
-            if (BUILDER_STATUS::EMPTY == _status)
+            if (BUILDER_STATUS::DONE == _status)
+            {
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               PD_LOG(PDERROR, "building process has already done");
+               goto error;
+            }
+            else if (BUILDER_STATUS::EMPTY == _status)
             {
                _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
             }
-            else
+            else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
             {
                _transition(BUILDER_STATUS::AFTER_ELEMENTS);
+            }
+            else
+            {
+               /// do nothing
             }
 
             rc = _append(ossNativeToBigEndian(val), isDescending);
@@ -222,13 +232,23 @@ namespace vessel
          INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
          {
             INT32 rc = SDB_OK;
-            if (BUILDER_STATUS::EMPTY == _status)
+            if (BUILDER_STATUS::DONE == _status)
+            {
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               PD_LOG(PDERROR, "building process has already done");
+               goto error;
+            }
+            else if (BUILDER_STATUS::EMPTY == _status)
             {
                _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
             }
-            else
+            else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
             {
                _transition(BUILDER_STATUS::AFTER_ELEMENTS);
+            }
+            else
+            {
+               /// do nothing
             }
 
             T mask = std::numeric_limits<T>::min();
