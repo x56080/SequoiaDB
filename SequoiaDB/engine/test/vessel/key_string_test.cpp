@@ -81,7 +81,6 @@ namespace vessel
 
    TEST(key_string_test, base_object)
    {
-
    }
 
    TEST(key_string_test, base_string)
@@ -92,85 +91,16 @@ namespace vessel
       bson::BSONObj obj1 = BSON("a" << "foobar");
       bson::BSONObj obj2 = BSON("a" << "foobar1");
       orderingWrapper o(0, 1);
-
-
       rc = ksb1.appendAllElements(obj1, o);
       ASSERT_EQ(SDB_OK, rc);
       rc = ksb1.done();
       ASSERT_EQ(SDB_OK, rc);
 
       rc = ksb2.appendAllElements(obj2, o);
-      ASSERT_EQ(SDB_OK, rc);
-      rc = ksb2.done();
-      ASSERT_EQ(SDB_OK, rc);
-      keyString ks1 = ksb1.getShallowKeyString();
-      keyString ks2 = ksb2.getShallowKeyString();
-
-      INT32 res = ks1.compare(ks2);
-      ASSERT_LT(res, 0);
-   }
-
-   TEST(key_string_test, base_symbol)
-   {
-
-   }
-
-
-   TEST(key_string_test, base_bool)
-   {
-      INT32 rc = SDB_OK;
-      keyStringBuilder<> ksb;
-      bson::BSONObjBuilder ob;
-      ob.appendBool("foo1", 1);
-      ob.appendBool("foo2", 0);
-      orderingWrapper o(0, 2);
-      rc = ksb.appendAllElements(ob.done(), o);
-      ASSERT_EQ(SDB_OK, rc);
-      rc = ksb.done();
-      ASSERT_EQ(SDB_OK, rc);
-      keyString ks = ksb.getShallowKeyString();
-      
-
-   }
-
-   TEST(key_string_test, base_date)
-   {
-      INT32 rc = SDB_OK;
-      keyStringBuilder<> ksb1;
-      keyStringBuilder<> ksb2;
-
-      bson::Date_t d1(1658216048);
-      bson::Date_t d2(1658216050);
-      orderingWrapper o(0, 1);
-
-      bson::BSONObj obj1 = BSON("a" << d1);
-      bson::BSONObj obj2 = BSON("a" << d2);
-
-
-      rc = ksb1.appendAllElements(obj1, o);
-      ASSERT_EQ(SDB_OK, rc);
-      rc = ksb1.done();
-      ASSERT_EQ(SDB_OK, rc);
-
-      rc = ksb2.appendAllElements(obj2, o);
-      ASSERT_EQ(SDB_OK, rc);
-      rc = ksb2.done();
-      ASSERT_EQ(SDB_OK, rc);
-
-
-      keyString ks1 = ksb1.getShallowKeyString();
-      keyString ks2 = ksb1.getShallowKeyString();
-
-   }
-
-   TEST(key_string_test, base_timestamp)
-   {
-      INT32 rc = SDB_OK;
       keyStringBuilder<> ksb;
       bson::BSONObjBuilder ob;
       bson::OpTime time(1658216048, 0);
       ob.appendTimestamp("foo", time.asDate());
-      orderingWrapper o(0, 1);
       rc = ksb.appendAllElements(ob.done(), o);
       ASSERT_EQ(SDB_OK, rc);
       rc = ksb.done();
