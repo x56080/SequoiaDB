@@ -238,6 +238,8 @@ namespace vessel
          INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
          {
             INT32 rc = SDB_OK;
+            T mask = std::numeric_limits<T>::min();
+            T tmp = val;
             if (BUILDER_STATUS::DONE == _status)
             {
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -257,8 +259,6 @@ namespace vessel
                /// do nothing
             }
 
-            T mask = std::numeric_limits<T>::min();
-            T tmp = val;
             tmp ^= mask;
             rc = _append(ossNativeToBigEndian(tmp), isDescending);
             if (SDB_OK != rc)
