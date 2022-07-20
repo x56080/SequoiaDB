@@ -66,7 +66,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid() const
          {
-            return _ref.isValid();
+            return _ref.isValid() && _block.isValid();
          }
          OSS_INLINE BOOLEAN isOwned()const {return nullptr != _bufferOwned;}
 

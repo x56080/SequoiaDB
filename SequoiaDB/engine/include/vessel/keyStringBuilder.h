@@ -91,13 +91,13 @@ namespace vessel
    EncodedType bsonTypeToSupertype(bson::BSONType type);
    INT32 countLeadingZeros64(UINT64 num);
 
-   class typeBits : public SDBObject
+   class typeBitsBuilder : public SDBObject
    {
       public:
-         typeBits() = default;
-         ~typeBits();
-         typeBits operator=(const typeBits &) = delete;
-         typeBits(const typeBits &) = delete;
+         typeBitsBuilder() = default;
+         ~typeBitsBuilder();
+         typeBitsBuilder operator=(const typeBitsBuilder &) = delete;
+         typeBitsBuilder(const typeBitsBuilder &) = delete;
 
       private:
          enum bits : UINT8
@@ -133,6 +133,12 @@ namespace vessel
          UINT32 getBufSize() const
          {
             return _bufSize;
+         }
+
+         OSS_INLINE BOOLEAN isEmpty() const
+         {
+            return nullptr == _buf ||
+                   0 == _bufSize;
          }
 
       private:
@@ -181,7 +187,7 @@ namespace vessel
          using stringTransformFn =
             std::function<std::string(const bson::StringData &)>;
          void reset();
-         void resetTypeBits(const typeBits &tb);
+         void resetTypeBits(const typeBitsBuilder &tb);
          INT32 appendBSONElement(const bson::BSONElement &elem,
                                  BOOLEAN isDescending = FALSE);
          INT32 appendAllElements(const bson::BSONObj &obj,
@@ -232,6 +238,8 @@ namespace vessel
          INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
          {
             INT32 rc = SDB_OK;
+            T mask = std::numeric_limits<T>::min();
+            T tmp = val;
             if (BUILDER_STATUS::DONE == _status)
             {
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -251,8 +259,6 @@ namespace vessel
                /// do nothing
             }
 
-            T mask = std::numeric_limits<T>::min();
-            T tmp = val;
             tmp ^= mask;
             rc = _append(ossNativeToBigEndian(tmp), isDescending);
             if (SDB_OK != rc)
@@ -285,8 +291,8 @@ namespace vessel
          INT32 _appendTimestamp(INT64 val, BOOLEAN invert);
          INT32 _appendOID(const bson::OID &val, BOOLEAN invert);
          INT32 _appendString(const bson::StringData &val,
-                           BOOLEAN invert,
-                           const stringTransformFn &f = nullptr);
+                             BOOLEAN invert,
+                             const stringTransformFn &f = nullptr);
          INT32 _appendSymbol(const bson::StringData &val, BOOLEAN invert);
          INT32 _appendCode(const bson::StringData &val, BOOLEAN invert);
          INT32 _appendCodeWScope(const bson::StringData &code,
@@ -306,8 +312,8 @@ namespace vessel
                            BOOLEAN invert,
                            const stringTransformFn &f = nullptr);
          INT32 _appendObject(const bson::BSONObj &val,
-                           BOOLEAN invert,
-                           const stringTransformFn &f = nullptr);
+                             BOOLEAN invert,
+                             const stringTransformFn &f = nullptr);
          INT32 _appendNumberDouble(const FLOAT64 num, BOOLEAN invert);
          INT32 _appendNumberInt(const INT32 num, BOOLEAN invert);
          INT32 _appendNumberLong(const INT64 num, BOOLEAN invert);
@@ -315,34 +321,33 @@ namespace vessel
          INT32 _appendDecimalEncoding(const bson::bsonDecimal &dec,
                                     BOOLEAN invert);
          INT32 _appendBsonValue(const bson::BSONElement &elem,
-                              const bson::StringData *name,
-                              BOOLEAN invert,
-                              const stringTransformFn &f = nullptr);
+                                const bson::StringData *name,
+                                BOOLEAN invert,
+                                const stringTransformFn &f = nullptr);
 
          INT32 _appendStringLike(const bson::StringData &str, BOOLEAN invert);
          INT32 _appendBson(const bson::BSONObj &obj,
                            BOOLEAN invert,
                            const stringTransformFn &f = nullptr);
          INT32 _appendSmallDouble(FLOAT64 value,
-                                 DecimalContinuationMarker dcm,
-                                 BOOLEAN invert);
+                                  DecimalContinuationMarker dcm,
+                                  BOOLEAN invert);
          INT32 _appendLargeDouble(FLOAT64 value,
-                                 DecimalContinuationMarker dcm,
-                                 BOOLEAN invert);
+                                  DecimalContinuationMarker dcm,
+                                  BOOLEAN invert);
          INT32 _appendInteger(const INT64 num, BOOLEAN invert);
          INT32 _appendPreshiftedInteger(UINT64 value,
-                                       BOOLEAN isNegative,
-                                       BOOLEAN invert);
+                                        BOOLEAN isNegative,
+                                        BOOLEAN invert);
 
          INT32 _appendDoubleWithoutTypeBits(FLOAT64 num,
-                                          DecimalContinuationMarker dcm,
-                                          BOOLEAN invert);
+                                            DecimalContinuationMarker dcm,
+                                            BOOLEAN invert);
          INT32 _appendHugeDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
-                                                BOOLEAN invert);
+                                                 BOOLEAN invert);
          INT32 _appendTinyDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
-                                                FLOAT64 bin,
-                                                BOOLEAN invert);
-         INT32 _appendEnd();
+                                                 FLOAT64 bin,
+                                                 BOOLEAN invert);
          INT32 _appendBytes(const void *source, UINT32 len, BOOLEAN invert);
 
          template <typename T>
@@ -360,7 +365,7 @@ namespace vessel
 
       private:
          BUILDER_STATUS _status = BUILDER_STATUS::EMPTY;
-         typeBits _typeBits;
+         typeBitsBuilder _typeBits;
          CHAR *_buf = nullptr;
          UINT32 _bufSize = 0;
          UINT8 _sizeAheadElements = 0;
@@ -430,23 +435,22 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 needSize = _capacity + length;
-      UINT64 allocatedSize = 1ull << (64 - countLeadingZeros64(needSize - 1));
 
       if (nullptr == _buf)
       {
-         _buf = static_cast<CHAR *>(_allocator.malloc(allocatedSize));
+         _buf = static_cast<CHAR *>(_allocator.malloc(needSize));
          if (nullptr == _buf)
          {
             rc = SDB_OOM;
             PD_LOG(PDERROR, "out of memory");
             goto error;
          }
-         _capacity = allocatedSize;
+         _capacity = needSize;
       }
       else if ((_capacity - _bufSize) < length)
       {
          CHAR *ptr =
-             static_cast<CHAR *>(_allocator.realloc(_buf, allocatedSize));
+             static_cast<CHAR *>(_allocator.realloc(_buf, needSize));
          if (nullptr == ptr)
          {
             rc = SDB_OOM;
@@ -455,7 +459,7 @@ namespace vessel
          }
 
          _buf = ptr;
-         _capacity = allocatedSize;
+         _capacity = needSize;
       }
 
    done:
@@ -469,12 +473,12 @@ namespace vessel
    template <typename Allocator>
    void keyStringBuilder<Allocator>::_verifyStatus()
    {
-      SDB_ASSERT(_status == BUILDER_STATUS::empty ||
+      SDB_ASSERT(_status == BUILDER_STATUS::EMPTY ||
                  _status == BUILDER_STATUS::BEFORE_ELEMENTS ||
                  _status == BUILDER_STATUS::APPENDING_ELEMENTS,
                  "Unexpected appending state");
 
-      if (_status == BUILDER_STATUS::empty)
+      if (_status == BUILDER_STATUS::EMPTY)
       {
          _sizeAheadElements = 0;
          _transition(BUILDER_STATUS::APPENDING_ELEMENTS);
@@ -502,26 +506,24 @@ namespace vessel
 
          switch (_status)
          {
-         case BUILDER_STATUS::empty:
+         case BUILDER_STATUS::EMPTY:
             SDB_ASSERT(to == BUILDER_STATUS::BEFORE_ELEMENTS ||
-                       to == BUILDER_STATUS::APPENDING_ELEMENTS,
+                       to == BUILDER_STATUS::APPENDING_ELEMENTS ||
+                       to == BUILDER_STATUS::DONE,
                        "Invalid builder status");
             break;
          case BUILDER_STATUS::BEFORE_ELEMENTS:
-            SDB_ASSERT(to == BUILDER_STATUS::APPENDING_ELEMENTS,
+            SDB_ASSERT(to == BUILDER_STATUS::APPENDING_ELEMENTS ||
+                       to == BUILDER_STATUS::DONE,
                        "Invalid builder status");
             break;
          case BUILDER_STATUS::APPENDING_ELEMENTS:
             SDB_ASSERT(to == BUILDER_STATUS::AFTER_ELEMENTS ||
-                       to == BUILDER_STATUS::APPENDED_TYPEBITS,
+                       to == BUILDER_STATUS::DONE,
                        "Invalid builder status");
             break;
          case BUILDER_STATUS::AFTER_ELEMENTS:
-            SDB_ASSERT(to == BUILDER_STATUS::APPENDED_TYPEBITS,
-                       "Invalid builder status");
-            break;
-         case BUILDER_STATUS::APPENDED_TYPEBITS:
-            SDB_ASSERT(to == BUILDER_STATUS::APPENDED_META_BLOCK,
+            SDB_ASSERT(to == BUILDER_STATUS::DONE,
                        "Invalid builder status");
             break;
          default:
@@ -550,8 +552,8 @@ namespace vessel
       while (it.more())
       {
          auto elem = it.next();
-         BOOLEAN invert = ord.toBsonOrdering().get(elemCount) == -1;
-         rc = appendBSONElement(elem, invert, f);
+         BOOLEAN invert = o.toBsonOrdering().get(elemCount) == -1;
+         rc = appendBSONElement(elem, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "append bson elements failed, rc:%d", rc);
@@ -559,7 +561,7 @@ namespace vessel
          }
          elemCount += 1;
       }
-      if (elemCount > ord.getNkeys())
+      if (elemCount > o.getNkeys())
       {
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "append bson elements failed, rc:%d", rc);
@@ -587,7 +589,7 @@ namespace vessel
       }
 
       _verifyStatus();
-      rc = _appendBsonValue(elem, nullptr, invert, f);
+      rc = _appendBsonValue(elem, nullptr, isDescending);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append bson element failed, rc:%d", rc);
@@ -826,7 +828,7 @@ namespace vessel
       }
 
       case bson::Timestamp: {
-         rc = _appendTimestamp(elem.timestampTime(), invert);
+         rc = _appendTimestamp(elem._opTime().asDate(), invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR,
@@ -1398,8 +1400,27 @@ namespace vessel
                                                   BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      INT64 encoded = 0;
+      _verifyStatus();
+      rc = _append(EncodedType::date, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      encoded = val.millis ^ (1ull << 63);
+      rc = _append(ossNativeToBigEndian(encoded), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append date value failed, rc:%d", rc);
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1407,8 +1428,25 @@ namespace vessel
                                                        BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      _verifyStatus();
+      rc = _append(EncodedType::timestamp, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _append(ossNativeToBigEndian(val), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append timestamp value failed, rc:%d", rc);
+         goto error;
+      }
+   
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1416,8 +1454,31 @@ namespace vessel
                                                  BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (!val.isSet())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::oid, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _append(val, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append OID value failed, rc:%d", rc);
+         goto error;
+      }
+   
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1425,8 +1486,38 @@ namespace vessel
                                                     BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (nullptr == val.data())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _typeBits.appendSymbol();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append type bits failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _append(EncodedType::stringLike, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _appendStringLike(val, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append symbol data failed ,rc:%d", rc);
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1434,8 +1525,38 @@ namespace vessel
                                                   BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (nullptr == val.data())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::code, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _append(EncodedType::stringLike, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }      
+
+      rc = _appendStringLike(val, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append code data failed ,rc:%d", rc);
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1443,8 +1564,46 @@ namespace vessel
        const bson::StringData &code, const bson::BSONObj &scope, BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (nullptr == code.data() ||
+          scope.isEmpty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::codeWithScope, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _append(EncodedType::code, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      rc = _appendStringLike(code, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append code value failed, rc:%d");
+         goto error;
+      }
+
+      rc = _appendBson(scope, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append code scope failed, rc:%d", rc);
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1454,8 +1613,66 @@ namespace vessel
                                                      BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (nullptr == data ||
+          0 == dataSize)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::binData, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         goto error;
+      }
+
+      if (0xff > dataSize)
+      {
+         rc = _append(static_cast<UINT8>(dataSize), invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "append data size failed, rc:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _append(static_cast<INT8>(0xff), invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "append bit failed, rc:%d", rc);
+            goto error;
+         }
+
+         rc = _append(ossNativeToBigEndian(static_cast<UINT32>(dataSize)),
+                                           invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "append data size failed, rc:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = _append(type, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append bin data type failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(data, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append bin data value failed, rc:%d");
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1465,8 +1682,53 @@ namespace vessel
        BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (nullptr == regex.data() ||
+          nullptr == flags.data())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::regEx, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(regex, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append regex value failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(static_cast<INT8>(0), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append bit failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(flags, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append flags value failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(static_cast<INT8>(0), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append bit failed, rc:%d");
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1476,8 +1738,47 @@ namespace vessel
        BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      if (nullptr == dbrefNS.data() ||
+          !dbrefOID.isSet())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::dbRef, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(ossNativeToBigEndian(static_cast<UINT32>(dbrefNS.size())),
+                   invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append dbref namespace size failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(dbrefNS.data(), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append dbref namespace value failed, rc:%d");
+         goto error;
+      }
+
+      rc = _append(dbrefOID, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append dbref oid value failed, rc:%d");
+         goto error;
+      }
+
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1486,8 +1787,44 @@ namespace vessel
                                                    const stringTransformFn &f)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
+      bson::BSONObjIterator it;
+      if (val.isEmpty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _verifyStatus();
+      rc = _append(EncodedType::array, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append encoded type failed, rc:%d");
+         goto error;
+      }
+
+      it = bson::BSONObjIterator(val);
+      while (it.more())
+      {
+         bson::BSONElement e = it.next();
+         rc = _appendBsonValue(e, nullptr, invert, f);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "append bson element failed, rc:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = _append(static_cast<INT8>(0), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append bit failed, rc:%d");
+         goto error;
+      }
+   
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    template <typename Allocator>
@@ -1496,7 +1833,6 @@ namespace vessel
                                                     const stringTransformFn &f)
    {
       INT32 rc = SDB_OK;
-
       if (nullptr == val.data())
       {
          rc = SDB_INVALIDARG;
@@ -1504,6 +1840,13 @@ namespace vessel
       }
 
       _verifyStatus();
+      rc = _typeBits.appendString();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append type bits failed, rc:%d", rc);
+         goto error;
+      }
+
       rc = _append(EncodedType::stringLike, invert);
       if (SDB_OK != rc)
       {
@@ -1528,13 +1871,6 @@ namespace vessel
             PD_LOG(PDERROR, "append string data failed ,rc:%d", rc);
             goto error;
          }
-      }
-
-      rc = _typeBits.appendString();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "append type bits failed, rc:%d", rc);
-         goto error;
       }
 
    done:
@@ -1643,262 +1979,34 @@ namespace vessel
                                                   const stringTransformFn &f)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(BUILDER_STATUS::APPENDING_ELEMENTS == _status,
-                 "unexpected state");
-      SDB_ASSERT(!obj.isEmpty(), "can not be empty");
+      bson::BSONObjIterator it;
 
-      bson::BSONObjIterator itr = bson::BSONObjIterator(obj);
-      while (itr.more())
+      if (obj.isEmpty())
       {
-         bson::BSONElement elem = itr.next();
-         switch (elem.type())
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      it = bson::BSONObjIterator(obj);
+      while (it.more())
+      {
+         bson::BSONElement e = it.next();
+         rc = _append(bsonTypeToSupertype(e.type()), invert);
+         if (SDB_OK != rc)
          {
-         case bson::MinKey:
-         case bson::MaxKey:
-         case bson::EOO:
-         case bson::Undefined:
-         case bson::jstNULL: {
-            rc = _append(bsonTypeToSupertype(elem.type()), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-            }
-            break;
-         }
-
-         case bson::NumberDouble: {
-            rc = _appendNumberDouble(elem._numberDouble(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::String: {
-            rc = _appendString(elem.String(), invert, f);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Object: {
-            rc = _appendObject(elem.Obj(), invert, f);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Array: {
-            rc = _appendArray(bson::BSONArray(elem.Obj()), invert, f);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::BinData: {
-            INT32 len;
-            const CHAR *data = elem.binData(len);
-            rc = _appendBinData(data, len, elem.binDataType(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::jstOID: {
-            rc = _appendOID(elem.__oid(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Bool: {
-            rc = _appendBool(elem.boolean(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Date: {
-            rc = _appendDate(elem.date(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::RegEx: {
-            rc = _appendRegex(elem.regex(), elem.regexFlags(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::DBRef: {
-            rc = _appendDBRef(elem.dbrefNS(), elem.dbrefOID(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Symbol: {
-            rc = _appendSymbol(elem.String(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Code: {
-            rc = _appendCode(elem.code(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::CodeWScope: {
-            rc = _appendCodeWScope(
-                elem.codeWScopeCode(), elem.codeWScopeObject(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::NumberInt: {
-            rc = _appendNumberInt(elem._numberInt(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::Timestamp: {
-            rc = _appendTimestamp(elem.timestampTime(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::NumberLong: {
-            rc = _appendNumberLong(elem._numberLong(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         case bson::NumberDecimal: {
-            rc = _appendNumberDecimal(elem.Decimal(), invert);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR,
-                      "failed to append bson element[%d], rc:%d",
-                      elem.type(),
-                      rc);
-               goto error;
-            }
-            break;
-         }
-
-         default: {
-            rc = SDB_INVALIDARG;
+            PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
             goto error;
          }
-         } // switch(elem.type)
+
+         bson::StringData name(e.fieldName());
+         rc = _appendBsonValue(e, &name, invert, f);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "append element value failed, rc:%d", rc);
+            goto error;
+         }
       }
+
    done:
       return rc;
    error:
@@ -2001,14 +2109,14 @@ namespace vessel
    template <typename Allocator>
    keyString keyStringBuilder<Allocator>::getShallowKeyString() const
    {
-      SDB_ASSERT(BUILDER_STATUS::APPENDED_META_BLOCK == _status, "can not be invalid");
+      SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
       return keyString(slice(_bufSize, _buf));
    }
 
    template <typename Allocator>
    keyString keyStringBuilder<Allocator>::reap()
    {
-      SDB_ASSERT(builderStatus::appendedMetaBlock == _status, "can not be invalid");
+      SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
       SDB_ASSERT(_allocator.isMovable(), "must be movable");
       keyString ks(_buf, _capacity, _bufSize);
       _buf = nullptr;
@@ -2019,12 +2127,16 @@ namespace vessel
    template <typename Allocator> INT32 keyStringBuilder<Allocator>::done()
    {
       INT32 rc = SDB_OK;
-      rc = _appendTypeBits();
-      if (SDB_OK != rc)
+      if (!_typeBits.isEmpty())
       {
-         PD_LOG(PDERROR, "failed to append typebits, rc:%d", rc);
-         goto error;
+         rc = _appendTypeBits();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append typebits, rc:%d", rc);
+            goto error;
+         }
       }
+
       rc = _appendMetaBlock();
       if (SDB_OK != rc)
       {

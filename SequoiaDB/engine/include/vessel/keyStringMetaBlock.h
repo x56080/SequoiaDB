@@ -45,13 +45,25 @@ namespace vessel
 #pragma pack(4)
    struct keyStringMetaBlock : public SDBObject
    {
+      keyStringMetaBlock() = default;
+      ~keyStringMetaBlock() = default;
+      keyStringMetaBlock(const keyStringMetaBlock &b) = default;
+      keyStringMetaBlock &operator=(const keyStringMetaBlock &b) = default;
+
       INT32 init(const slice &s);
+      void reset();
+
+      OSS_INLINE BOOLEAN isValid() const
+      {
+         return 0 != version && 0 != blockSize;
+      }
       
       UINT8 version = 0;
       UINT8 metaByte = 0;
       UINT8 blockSize = 0;
       UINT8 sizeBeforeKey = 0;
       UINT32 keySize = 0;
+      UINT32 sizeAfterKey = 0;
       UINT32 typeBitsSize = 0;
    }; // struct keyStringMetaBlock
 #pragma pack()

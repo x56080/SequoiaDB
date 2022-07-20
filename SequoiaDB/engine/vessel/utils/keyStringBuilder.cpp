@@ -266,7 +266,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(positiveDoubleZero);
+      rc = appendBit(positiveZero);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -284,7 +284,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(negativeDoubleZero);
+      rc = appendBit(negativeZero);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
