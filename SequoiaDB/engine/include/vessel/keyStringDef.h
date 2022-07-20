@@ -18,7 +18,7 @@
 
    Source File Name = keyStringDef.h
 
-   Descriptive Name = 
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -38,19 +38,92 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "pd.hpp"
 
 namespace engine
 {
 namespace vessel
-{  
+{
    enum KEY_STRING_VERSION : UINT8
    {
       KEY_STRING_VERSION_INVALID = 0x0,
       KEY_STRING_VERSION_1 = 0x01,
    };
+
+   enum class EncodedType : UINT8
+   {
+      minKey = 10,
+      undefined = 15,
+      nullish = 20,
+      numeric = 30,
+      numericNaN = numeric + 0,
+      numericNegativeLargeMagnitude = numeric + 1,
+      numericNegative8ByteInt = numeric + 2,
+      numericNegative7ByteInt = numeric + 3,
+      numericNegative6ByteInt = numeric + 4,
+      numericNegative5ByteInt = numeric + 5,
+      numericNegative4ByteInt = numeric + 6,
+      numericNegative3ByteInt = numeric + 7,
+      numericNegative2ByteInt = numeric + 8,
+      numericNegative1ByteInt = numeric + 9,
+      numericNegativeSmallMagnitude = numeric + 10,
+      numericZero = numeric + 11,
+      numericPositiveSmallMagnitude = numeric + 12,
+      numericPositive1ByteInt = numeric + 13,
+      numericPositive2ByteInt = numeric + 14,
+      numericPositive3ByteInt = numeric + 15,
+      numericPositive4ByteInt = numeric + 16,
+      numericPositive5ByteInt = numeric + 17,
+      numericPositive6ByteInt = numeric + 18,
+      numericPositive7ByteInt = numeric + 19,
+      numericPositive8ByteInt = numeric + 20,
+      numericPositiveLargeMagnitude = numeric + 21,
+      stringLike = 60,
+      object = 70,
+      array = 80,
+      binData = 90,
+      oid = 100,
+      boolean = 110,
+      booleanFalse = boolean + 0,
+      booleanTrue = boolean + 1,
+      date = 120,
+      timestamp = 130,
+      regEx = 140,
+      dbRef = 150,
+      code = 160,
+      codeWithScope = 170,
+      maxKey = 240
+   };
+
+   EncodedType operator-(const EncodedType &l, const EncodedType r)
+   {
+      return static_cast<EncodedType>(static_cast<UINT8>(l) -
+                                      static_cast<UINT8>(r));
+   }
+   EncodedType operator+(const EncodedType &l, UINT8 r)
+   {
+      return static_cast<EncodedType>(static_cast<UINT8>(l) - r);
+   }
+
+   static_assert(EncodedType::numericPositiveLargeMagnitude <
+                     EncodedType::stringLike,
+                 "NumericPositiveLargeMagnitude must be less than StringLike");
+
+   enum typeBitsType : UINT8
+   {
+      stringBit = 0b0,
+      symbolBit = 0b1,
+
+      intBits = 0b00,
+      longBits = 0b01,
+      doubleBits = 0b10,
+      decimalBits = 0b11,
+      positiveZero = 0b0,
+      negativeZero = 0b1
+   };
+
 } // namespace vessel
 
 } // namespace engine
 
-
-#endif//VESSEL_KEY_STRING_DEF_H_
+#endif // VESSEL_KEY_STRING_DEF_H_

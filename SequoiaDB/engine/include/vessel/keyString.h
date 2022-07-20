@@ -18,7 +18,7 @@
 
    Source File Name = keyString.h
 
-   Descriptive Name = 
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -36,14 +36,43 @@
 #ifndef VESSEL_KEY_STRING_H_
 #define VESSEL_KEY_STRING_H_
 
+#include "../bson/bsonobj.h"
+#include "../bson/bsonobjbuilder.h"
+#include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
 #include "vessel/keyStringMetaBlock.h"
 #include "../bson/bsonobj.h"
+#include "vessel/keyStringDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+   UINT32 neededBytesNumForInteger(EncodedType type);
+   
+   class typeBitsReader : public SDBObject
+   {
+      public:
+         typeBitsReader() = default;
+         ~typeBitsReader();
+         typeBitsReader operator=(const typeBitsReader &) = delete;
+         typeBitsReader(const typeBitsReader &) = delete;
+
+      public:
+         typeBitsType readNumeric();
+         typeBitsType readZero();
+         typeBitsType readStringLike();
+         void readBitsAndAssign(CHAR* dst, UINT32 bytesSize);
+   
+      private:
+         UINT8 _readBit();
+
+      private:
+         const CHAR* _buf = nullptr;
+         UINT32 _curBit = 0;
+   };
+
+
    class keyString : public SDBObject
    {
       template <typename T> friend class keyStringBuilder;
@@ -94,6 +123,10 @@ namespace vessel
       public:
          INT32 compare(const keyString &ks) const;
 
+      private:
+         void _toBsonValue(UINT32 &offset, bson::BSONObjBuilder &builder, typeBitsReader &typeReader);
+         void _toNumeric(UINT32 &offset, bson::BSONObjBuilder &builder, typeBitsReader &typeReader);
+
       protected:
          slice _ref;  
 
@@ -102,7 +135,6 @@ namespace vessel
          UINT32 _bufferSize = 0;
          keyStringMetaBlock _block;
    };//class keyString
-
 } // namespace vessel
 } // namespace engine
 #endif // VESSEL_KEY_STRING_H_
