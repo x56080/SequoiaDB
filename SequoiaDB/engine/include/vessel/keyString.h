@@ -46,15 +46,11 @@ namespace vessel
 {
    class keyString : public SDBObject
    {
+      template <typename T> friend class keyStringBuilder;
       public:
          keyString() = default;
          ~keyString();
          explicit keyString(const slice &s);
-
-         /// transfer buffer ownership to keyString
-         explicit keyString(CHAR *buffer,
-                            UINT32 bufferSize,
-                            UINT32 ksSize);
 
          ///WARNING: shallow copy!
          keyString(const keyString &);
@@ -77,8 +73,11 @@ namespace vessel
 
       public:
          void reset();
+         INT32 init(const slice &s);
          INT32 getOwned();
-         void adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
+      
+      private:
+         void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
       public:
          slice getKeySlice() const;

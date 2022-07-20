@@ -56,14 +56,10 @@ namespace vessel
    {
       SDB_ASSERT(_ref.isValid(), "can not be invalid");
       _block.init(s);
-      SDB_ASSERT(_block.isValid(), "can not be invalid");
-   }
-
-   keyString::keyString(CHAR *buffer,
-                        UINT32 bufferSize,
-                        UINT32 ksSize)
-   {
-      adopt(buffer, bufferSize, ksSize);
+      if (!_block.isValid())
+      {
+         reset();
+      }
    }
 
    keyString::keyString(const keyString &o):
@@ -123,6 +119,33 @@ namespace vessel
       return;
    }
 
+   INT32 keyString::init(const slice &s)
+   {
+      INT32 rc = SDB_OK;
+
+      if (!s.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid slice");
+         goto error;
+      }
+
+      rc = _block.init(s);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "init key string meta block failed, rc:%d", rc);
+         goto error;
+      }
+
+      _ref = s;      
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
    INT32 keyString::getOwned()
    {
       INT32 rc = SDB_OK;
@@ -153,7 +176,7 @@ namespace vessel
       goto done;
    }
 
-   void keyString::adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize)
+   void keyString::_adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize)
    {
       SDB_ASSERT(nullptr != buffer && 0 < bufferSize, "can not be invalid");
       SDB_ASSERT(0 < ksSize && ksSize <= bufferSize, "invalid key string size");
@@ -169,6 +192,7 @@ namespace vessel
    slice keyString::getKeySlice() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(0 != _block.keySize, "can not be zero");
       const CHAR* buf = _ref.getData() + _block.sizeBeforeKey;
       return slice(_block.keySize, buf);
    }
@@ -176,21 +200,25 @@ namespace vessel
    slice keyString::getSliceFromKeyTo(UINT32 bytesAfterKey) const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(0 != _block.keySize, "can not be zero");
       SDB_ASSERT(bytesAfterKey < (_ref.getSize() - _block.sizeBeforeKey),
                  "invalid bytes");
       const CHAR* buf = _ref.getData() + _block.sizeBeforeKey;
-      return slice(_block.keySize, buf);
+      return slice(_block.keySize + bytesAfterKey, buf);
    }
 
    slice keyString::getSliceBeforeKey() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(0 != _block.sizeBeforeKey, "can not be zero");
       return slice(_block.sizeBeforeKey, _ref.getData());
    }
 
    slice keyString::getSliceAfterKey() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(0 != _block.keySize && 0 != _block.sizeAfterKey,
+                 "can not be zero");
       const CHAR* buf = _ref.getData() + 
                         _block.sizeBeforeKey +
                         _block.keySize;
@@ -200,11 +228,21 @@ namespace vessel
    slice keyString::getTypeBits() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(0 != _block.keySize && 0 != _block.typeBitsSize,
+                 "can not be zero");
       const CHAR* buf = _ref.getData() + 
                         _block.sizeBeforeKey +
                         _block.keySize +
                         _block.sizeAfterKey;
       return slice(_block.typeBitsSize, buf);
+   }
+
+   INT32 keyString::compare(const keyString &s) const
+   {
+      SDB_ASSERT(isValid() && s.isValid(), "can not be invalid");
+      UINT32 cmpSize = _ref.getSize() < s.getDataSlice().getSize() ?
+                       _ref.getSize() : s.getDataSlice().getSize();
+      return ossMemcmp(_ref.getData(), s.getDataSlice().getData(), cmpSize);
    }
 
 } // namespace vessel

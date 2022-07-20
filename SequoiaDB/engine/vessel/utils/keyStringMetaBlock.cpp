@@ -58,7 +58,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       const CHAR *ksData = nullptr;
       UINT32 offset = 0;
-      UINT32 bSize = 2;
+      UINT32 bSize = 0;
+
       if (OSS_UNLIKELY(!s.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -76,16 +77,19 @@ namespace vessel
          PD_LOG(PDERROR, "invalid key string version");
          goto error;
       }
-
       offset--;
-      /// get meta byte
-      metaByte = static_cast<UINT8>(*(ksData + offset));
+      bSize++;
+
       if (KEY_STRING_VERSION_1 == version)
       {
-
          BOOLEAN hasSliceBeforeKey = FALSE;
          BOOLEAN isLargeKeySize = FALSE;
          BOOLEAN isLargeTypeBitsSize = FALSE;
+
+         /// get meta byte
+         metaByte = static_cast<UINT8>(*(ksData + offset));
+         bSize++;
+
          /// parse meta byte
          if (1 == (metaByte & 0x01))
          {
@@ -127,14 +131,7 @@ namespace vessel
             offset--;
             bSize++;
          }
-
          keySize = static_cast<UINT32>(*(ksData + offset));
-         if (OSS_UNLIKELY(0 == keySize))
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid key size");
-            goto error;
-         }
 
          /// get type bits size
          if (isLargeTypeBitsSize)
@@ -147,14 +144,7 @@ namespace vessel
             offset--;
             bSize++;
          }
-
          typeBitsSize = static_cast<UINT32>(*(ksData + offset));
-         if (OSS_UNLIKELY(0 == keySize))
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid type bits size");
-            goto error;
-         }
 
          /// get block size and size after key
          blockSize = bSize;
