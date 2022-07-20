@@ -25,20 +25,6 @@ namespace engine
 {
 namespace vessel
 {
-   template <typename T> T nativeToBigEndian(T in)
-   {
-#ifdef SDB_BIG_ENDIAN
-      return in;
-#else
-      T out;
-      UINT32 size = sizeof(in);
-      SDB_ASSERT(size % 2 == 0 && size <= 8,
-                 "the size of value to be converted must be 2, 4, 6 or 8");
-      ossEndianConvertIf(in, out, TRUE);
-      return out;
-#endif
-   }
-
    constexpr FLOAT64 pow256[] = {
        1.0,                                            // 2**0
        1.0 * 256,                                      // 2**8
@@ -123,8 +109,8 @@ namespace vessel
             longBits = 0b01,
             doubleBits = 0b10,
             decimalBits = 0b11,
-            positiveDoubleZero = 0b0,
-            negativeDoubleZero = 0b1
+            positiveZero = 0b0,
+            negativeZero = 0b1
          };
 
       public:
@@ -176,13 +162,13 @@ namespace vessel
          }
 
       private:
-         enum class builderStatus
+         enum class BUILDER_STATUS : UINT16
          {
-            empty,
-            beforeElements,
-            appendingElements,
-            appendedTypeBits,
-            appendedMetaBlock
+            EMPTY = 0,
+            BEFORE_ELEMENTS = 1,
+            APPENDING_ELEMENTS = 2,
+            AFTER_ELEMENTS = 3,
+            DONE = 4
          };
 
          enum class DecimalContinuationMarker : UINT8
@@ -197,19 +183,25 @@ namespace vessel
          void reset();
          void resetTypeBits(const typeBits &tb);
          INT32 appendBSONElement(const bson::BSONElement &elem,
-                                 BOOLEAN isDescending = FALSE,
-                                 const stringTransformFn &f = nullptr);
+                                 BOOLEAN isDescending = FALSE);
          INT32 appendAllElements(const bson::BSONObj &obj,
-                                 orderingWrapper ord,
-                                 const stringTransformFn &f = nullptr);
+                                 const orderingWrapper &o);
          template <typename T,
             class = typename std::enable_if<std::is_unsigned<T>::value>::type>
          INT32 appendUnsignedWithoutType(const T &val,
                                        BOOLEAN isDescending = FALSE)
          {
             INT32 rc = SDB_OK;
-            _transition(builderStatus::beforeElements);
-            rc = _append(nativeToBigEndian(val), isDescending);
+            if (BUILDER_STATUS::EMPTY == _status)
+            {
+               _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
+            }
+            else
+            {
+               _transition(BUILDER_STATUS::AFTER_ELEMENTS);
+            }
+
+            rc = _append(ossNativeToBigEndian(val), isDescending);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to append unsigned fixed field, rc:%d", rc);
@@ -230,11 +222,19 @@ namespace vessel
          INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
          {
             INT32 rc = SDB_OK;
-            _transition(builderStatus::beforeElements);
+            if (BUILDER_STATUS::EMPTY == _status)
+            {
+               _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
+            }
+            else
+            {
+               _transition(BUILDER_STATUS::AFTER_ELEMENTS);
+            }
+
             T mask = std::numeric_limits<T>::min();
             T tmp = val;
             tmp ^= mask;
-            rc = _append(nativeToBigEndian(tmp), isDescending);
+            rc = _append(ossNativeToBigEndian(tmp), isDescending);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to append signed fixed field, rc:%d", rc);
@@ -335,11 +335,11 @@ namespace vessel
          INT32 _appendMetaBlock();
 
          void _verifyStatus();
-         void _transition(builderStatus to);
+         void _transition(BUILDER_STATUS to);
          INT32 _ensureBytes(UINT32 length);
 
       private:
-         builderStatus _status = builderStatus::empty;
+         BUILDER_STATUS _status = BUILDER_STATUS::EMPTY;
          typeBits _typeBits;
          CHAR *_buf = nullptr;
          UINT32 _bufSize = 0;
@@ -351,7 +351,7 @@ namespace vessel
 
    template <typename Allocator> void keyStringBuilder<Allocator>::reset()
    {
-      _status = builderStatus::empty;
+      _status = BUILDER_STATUS::EMPTY;
       _typeBits.reset();
       if (nullptr != _buf)
       {
@@ -449,28 +449,28 @@ namespace vessel
    template <typename Allocator>
    void keyStringBuilder<Allocator>::_verifyStatus()
    {
-      SDB_ASSERT(_status == builderStatus::empty ||
-                     _status == builderStatus::beforeElements ||
-                     _status == builderStatus::appendingElements,
+      SDB_ASSERT(_status == BUILDER_STATUS::empty ||
+                 _status == BUILDER_STATUS::BEFORE_ELEMENTS ||
+                 _status == BUILDER_STATUS::APPENDING_ELEMENTS,
                  "Unexpected appending state");
 
-      if (_status == builderStatus::empty)
+      if (_status == BUILDER_STATUS::empty)
       {
          _sizeAheadElements = 0;
-         _transition(builderStatus::appendingElements);
+         _transition(BUILDER_STATUS::APPENDING_ELEMENTS);
       }
-      else if (_status == builderStatus::beforeElements)
+      else if (_status == BUILDER_STATUS::BEFORE_ELEMENTS)
       {
          _sizeAheadElements = _bufSize;
-         _transition(builderStatus::appendingElements);
+         _transition(BUILDER_STATUS::APPENDING_ELEMENTS);
       }
    }
 
    template <typename Allocator>
-   void keyStringBuilder<Allocator>::_transition(builderStatus to)
+   void keyStringBuilder<Allocator>::_transition(BUILDER_STATUS to)
    {
       {
-         if (to == builderStatus::empty)
+         if (to == BUILDER_STATUS::EMPTY)
          {
             _status = to;
             return;
@@ -482,26 +482,31 @@ namespace vessel
 
          switch (_status)
          {
-         case builderStatus::empty:
-            SDB_ASSERT(to == builderStatus::beforeElements ||
-                           to == builderStatus::appendingElements,
+         case BUILDER_STATUS::empty:
+            SDB_ASSERT(to == BUILDER_STATUS::BEFORE_ELEMENTS ||
+                       to == BUILDER_STATUS::APPENDING_ELEMENTS,
                        "Invalid builder status");
             break;
-         case builderStatus::beforeElements:
-            SDB_ASSERT(to == builderStatus::appendingElements,
+         case BUILDER_STATUS::BEFORE_ELEMENTS:
+            SDB_ASSERT(to == BUILDER_STATUS::APPENDING_ELEMENTS,
                        "Invalid builder status");
             break;
-         case builderStatus::appendingElements:
-            SDB_ASSERT(to == builderStatus::appendedTypeBits,
+         case BUILDER_STATUS::APPENDING_ELEMENTS:
+            SDB_ASSERT(to == BUILDER_STATUS::AFTER_ELEMENTS ||
+                       to == BUILDER_STATUS::APPENDED_TYPEBITS,
                        "Invalid builder status");
             break;
-         case builderStatus::appendedTypeBits:
-            SDB_ASSERT(to == builderStatus::appendedMetaBlock,
+         case BUILDER_STATUS::AFTER_ELEMENTS:
+            SDB_ASSERT(to == BUILDER_STATUS::APPENDED_TYPEBITS,
+                       "Invalid builder status");
+            break;
+         case BUILDER_STATUS::APPENDED_TYPEBITS:
+            SDB_ASSERT(to == BUILDER_STATUS::APPENDED_META_BLOCK,
                        "Invalid builder status");
             break;
          default:
             SDB_ASSERT(FALSE, "Invalid builder status");
-         } // switch (_state)
+         } // switch (_status)
          _status = to;
       }
    }
@@ -509,8 +514,7 @@ namespace vessel
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::appendAllElements(
        const bson::BSONObj &obj,
-       orderingWrapper ord,
-       const stringTransformFn &f)
+       const orderingWrapper &o)
    {
       INT32 rc = SDB_OK;
       bson::BSONObjIterator it(obj);
@@ -552,8 +556,7 @@ namespace vessel
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::appendBSONElement(
        const bson::BSONElement &elem,
-       BOOLEAN invert,
-       const stringTransformFn &f)
+       BOOLEAN isDescending)
    {
       INT32 rc = SDB_OK;
 
@@ -950,7 +953,7 @@ namespace vessel
       const UINT32 bytesNeeded = (64 - countLeadingZeros64(value) + 7) / 8;
 
       // Append the low bytes of value in big endian order.
-      value = nativeToBigEndian(value);
+      value = ossNativeToBigEndian(value);
       const void *firstUsedByte =
           reinterpret_cast<const char *>((&value) + 1) - bytesNeeded;
 
@@ -1108,7 +1111,7 @@ namespace vessel
          encoding += (integerPart + 1) << (fractionalBytes * 8);
          SDB_ASSERT((encoding & 0x3ULL) == 0, "must be zero");
          encoding |= static_cast<UINT8>(dcm);
-         encoding = nativeToBigEndian(encoding);
+         encoding = ossNativeToBigEndian(encoding);
          rc = _append(encoding, isNegative ? !invert : invert);
          if (SDB_OK != rc)
          {
@@ -1151,7 +1154,7 @@ namespace vessel
       memcpy(&encoding, &magnitude, sizeof(encoding));
       encoding <<= 1;
       encoding |= static_cast<UINT8>(dcm);
-      rc = _append(nativeToBigEndian(encoding), isNegative ? !invert : invert);
+      rc = _append(ossNativeToBigEndian(encoding), isNegative ? !invert : invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append encoded bytes, rc:%d", rc);
@@ -1191,7 +1194,7 @@ namespace vessel
       {
          encoding = ~0ULL; // infinity
       }
-      encoding = nativeToBigEndian(encoding);
+      encoding = ossNativeToBigEndian(encoding);
       rc = _append(encoding, isNegative ? !invert : invert);
       if (SDB_OK != rc)
       {
@@ -1300,7 +1303,7 @@ namespace vessel
       {
          integerPartNDigit = 0;
       }
-      rc = _append(nativeToBigEndian(integerPartNDigit), invert);
+      rc = _append(ossNativeToBigEndian(integerPartNDigit), invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append integer part ndigit, rc:%d", rc);
@@ -1309,7 +1312,7 @@ namespace vessel
 
       for (UINT32 i = 0; i < integerPartNDigit; ++i)
       {
-         rc = _append(nativeToBigEndian(digits[i]), invert);
+         rc = _append(ossNativeToBigEndian(digits[i]), invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append integer part digits, rc:%d", rc);
@@ -1320,7 +1323,7 @@ namespace vessel
       if (weight < 0)
       {
          UINT16 fractionPartNdigit = static_cast<UINT16>(-weight);
-         rc = _append(nativeToBigEndian(fractionPartNdigit), !invert);
+         rc = _append(ossNativeToBigEndian(fractionPartNdigit), !invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append fraction part ndigit, rc:%d", rc);
@@ -1335,7 +1338,7 @@ namespace vessel
          {
             absDigit |= 0b1;
          }
-         rc = _append(nativeToBigEndian(static_cast<UINT16>(absDigit)), invert);
+         rc = _append(ossNativeToBigEndian(static_cast<UINT16>(absDigit)), invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append fraction part digits, rc:%d", rc);
@@ -1559,7 +1562,7 @@ namespace vessel
        const bson::StringData &str, BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(builderStatus::appendingElements == _status,
+      SDB_ASSERT(BUILDER_STATUS::APPENDING_ELEMENTS == _status,
                  "unexpected state");
       const CHAR *data = nullptr;
 
@@ -1620,7 +1623,7 @@ namespace vessel
                                                   const stringTransformFn &f)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(builderStatus::appendingElements == _status,
+      SDB_ASSERT(BUILDER_STATUS::APPENDING_ELEMENTS == _status,
                  "unexpected state");
       SDB_ASSERT(!obj.isEmpty(), "can not be empty");
 
@@ -1893,7 +1896,6 @@ namespace vessel
          PD_LOG(PDERROR, "failed to append typebits buffer, rc:%d", rc);
          goto error;
       }
-      _transition(builderStatus::appendedTypeBits);
    done:
       return rc;
    error:
@@ -1970,7 +1972,6 @@ namespace vessel
          PD_LOG(PDERROR, "failed to append version, rc:%d", rc);
          goto error;
       }
-      _transition(builderStatus::appendedMetaBlock);
    done:
       return rc;
    error:
@@ -1980,7 +1981,7 @@ namespace vessel
    template <typename Allocator>
    keyString keyStringBuilder<Allocator>::getShallowKeyString() const
    {
-      SDB_ASSERT(builderStatus::appendedMetaBlock == _status, "can not be invalid");
+      SDB_ASSERT(BUILDER_STATUS::APPENDED_META_BLOCK == _status, "can not be invalid");
       return keyString(slice(_bufSize, _buf));
    }
 
@@ -2010,6 +2011,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to append meta block, rc:%d", rc);
          goto error;
       }
+      _transition(BUILDER_STATUS::DONE);
    done:
       return rc;
    error:

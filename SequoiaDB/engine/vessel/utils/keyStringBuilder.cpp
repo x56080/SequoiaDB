@@ -85,13 +85,13 @@ namespace vessel
    }
 
    /////////////////////////////////////////////////////////////////////////////
-   // typeBits begin
-   typeBits::~typeBits()
+   // typeBitsBuilder begin
+   typeBitsBuilder::~typeBitsBuilder()
    {
       reset();
    }
 
-   void typeBits::reset()
+   void typeBitsBuilder::reset()
    {
       _curBit = 0;
       if (nullptr != _buf)
@@ -103,7 +103,7 @@ namespace vessel
       _capacity = 0;
    }
 
-   INT32 typeBits::appendBit(UINT8 oneOrZero)
+   INT32 typeBitsBuilder::appendBit(UINT8 oneOrZero)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(oneOrZero == 0 || oneOrZero == 1,
@@ -133,7 +133,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendString()
+   INT32 typeBitsBuilder::appendString()
    {
       INT32 rc = SDB_OK;
 
@@ -151,7 +151,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendSymbol()
+   INT32 typeBitsBuilder::appendSymbol()
    {
       INT32 rc = SDB_OK;
 
@@ -169,7 +169,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendNumberDouble()
+   INT32 typeBitsBuilder::appendNumberDouble()
    {
       INT32 rc = SDB_OK;
       rc = appendBit(doubleBits >> 1);
@@ -191,7 +191,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendNumberInt()
+   INT32 typeBitsBuilder::appendNumberInt()
    {
       INT32 rc = SDB_OK;
       rc = appendBit(intBits >> 1);
@@ -213,7 +213,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendNumberLong()
+   INT32 typeBitsBuilder::appendNumberLong()
    {
       INT32 rc = SDB_OK;
 
@@ -237,7 +237,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendNumberDecimal()
+   INT32 typeBitsBuilder::appendNumberDecimal()
    {
       INT32 rc = SDB_OK;
 
@@ -262,7 +262,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendPositiveZero()
+   INT32 typeBitsBuilder::appendPositiveZero()
    {
       INT32 rc = SDB_OK;
 
@@ -280,7 +280,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendNegativeZero()
+   INT32 typeBitsBuilder::appendNegativeZero()
    {
       INT32 rc = SDB_OK;
 
@@ -298,7 +298,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::_ensureBytes(UINT32 length)
+   INT32 typeBitsBuilder::_ensureBytes(UINT32 length)
    {
       INT32 rc = SDB_OK;
       UINT32 needSize = _capacity + length;
@@ -336,7 +336,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendBits(const CHAR *bytes, const UINT32 bytesSize)
+   INT32 typeBitsBuilder::appendBits(const CHAR *bytes, const UINT32 bytesSize)
    {
       INT32 rc = SDB_OK;
       for (UINT32 i = 0; i < bytesSize * 8; i++)
@@ -357,7 +357,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBits::appendDecimalMeta(const bson::bsonDecimal &dec)
+   INT32 typeBitsBuilder::appendDecimalMeta(const bson::bsonDecimal &dec)
    {
       INT32 rc = SDB_OK;
       INT32 typemod = dec.getTypemod();
