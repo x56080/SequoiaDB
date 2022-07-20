@@ -97,6 +97,8 @@ namespace vessel
 
       protected:
          slice _ref;  
+
+      private:
          CHAR *_bufferOwned = nullptr;
          UINT32 _bufferSize = 0;
          keyStringMetaBlock _block;
