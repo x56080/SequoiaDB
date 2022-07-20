@@ -126,7 +126,6 @@ namespace vessel
       utilStackAllocator<32> _allocator;
    };
 
-   
    template <typename Allocator = utilStackAllocator<>>
    class keyStringBuilder : public SDBObject
    {
@@ -150,12 +149,6 @@ namespace vessel
          APPENDING_ELEMENTS = 2,
          AFTER_ELEMENTS = 3,
          DONE = 4
-      };
-
-      enum class DecimalContinuationMarker : UINT8
-      {
-         hasNoContinuation = 0b0,
-         hasContinuation = 0b1,
       };
 
    public:
@@ -377,12 +370,7 @@ namespace vessel
 
       if (invert)
       {
-         CHAR *offset = _buf + _bufSize;
-         const CHAR *in = static_cast<const CHAR *>(source);
-         for (UINT32 i = 0; i < len; ++i)
-         {
-            *offset++ = ~(*in++);
-         }
+         ossMemcpyFlipBits(_buf + _bufSize, source, len);
       }
       else
       {
@@ -933,8 +921,8 @@ namespace vessel
    INT32 keyStringBuilder<Allocator>::_appendPreshiftedInteger(
        UINT64 value, BOOLEAN isNegative, BOOLEAN invert)
    {
-      SDB_ASSERT(value != 0ULL, "Unexcepted value");
-      SDB_ASSERT(value != 1ULL, "Unexcepted value");
+      SDB_ASSERT(value != 0ULL, "Unexpected value");
+      SDB_ASSERT(value != 1ULL, "Unexpected value");
 
       INT32 rc = SDB_OK;
       const UINT32 bytesNeeded = (64 - countLeadingZeros64(value) + 7) / 8;
@@ -1127,7 +1115,7 @@ namespace vessel
       UINT64 encoding = 0;
       FLOAT64 magnitude = isNegative ? -value : value;
       SDB_ASSERT(!std::isnan(value) && value != 0 && magnitude < 1,
-                 "Unexcepted value");
+                 "Unexpected value");
 
       rc = _append(isNegative ? EncodedType::numericNegativeSmallMagnitude
                               : EncodedType::numericPositiveSmallMagnitude,
@@ -1245,7 +1233,7 @@ namespace vessel
          if (decFromDouble.compare(dec) > 0)
          {
             *(UINT64 *)(&floorDouble) -= 1;
-            std::stringstream ss;
+            ss.clear();
             ss << std::setprecision(DOUBLE_PRECISION_10) << floorDouble;
             bson::bsonDecimal decFromDouble;
             decFromDouble.fromString(ss.str().c_str());

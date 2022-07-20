@@ -1,3 +1,38 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = keyStringBuilder.cpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          07/11/2022  ZHY  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
 #include "ossErr.h"
 #include "ossTypes.h"
 #include "ossTypes.hpp"
@@ -81,7 +116,7 @@ namespace vessel
       case MaxKey:
          return EncodedType::maxKey;
       }
-      SDB_ASSERT(FALSE, "Unexcepted bson type");
+      SDB_ASSERT(FALSE, "Unexpected bson type");
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -137,7 +172,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(stringBit);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::STRING));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -155,7 +190,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(symbolBit);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::SYMBOL));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -172,13 +207,13 @@ namespace vessel
    INT32 typeBitsBuilder::appendNumberDouble()
    {
       INT32 rc = SDB_OK;
-      rc = appendBit(doubleBits >> 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::DOUBLE) >> 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
          goto error;
       }
-      rc = appendBit(doubleBits & 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::DOUBLE) & 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", NumberInt, rc);
@@ -194,13 +229,13 @@ namespace vessel
    INT32 typeBitsBuilder::appendNumberInt()
    {
       INT32 rc = SDB_OK;
-      rc = appendBit(intBits >> 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::INT) >> 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
          goto error;
       }
-      rc = appendBit(intBits & 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::INT) & 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -217,14 +252,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(longBits >> 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::LONG) >> 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
          goto error;
       }
 
-      rc = appendBit(longBits & 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::LONG) & 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -241,14 +276,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(decimalBits >> 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::DECIMAL) >> 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
          goto error;
       }
 
-      rc = appendBit(decimalBits & 1);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::DECIMAL) & 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -266,7 +301,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(positiveZero);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::POSITIVE_ZERO));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -284,7 +319,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      rc = appendBit(negativeZero);
+      rc = appendBit(static_cast<UINT8>(typeBitsType::NEGATIVE_ZERO));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
@@ -316,8 +351,7 @@ namespace vessel
       }
       else if ((_capacity - _bufSize) < length)
       {
-         CHAR *ptr =
-             static_cast<CHAR *>(_allocator.realloc(_buf, needSize));
+         CHAR *ptr = static_cast<CHAR *>(_allocator.realloc(_buf, needSize));
          if (nullptr == ptr)
          {
             rc = SDB_OOM;
@@ -361,7 +395,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       INT32 typemod = dec.getTypemod();
       INT16 ndigit = dec.getNdigit();
-      INT16 weight = dec.getWeight();
       rc =
           appendBits(reinterpret_cast<const CHAR *>(&typemod), sizeof(typemod));
       if (SDB_OK != rc)
@@ -377,14 +410,13 @@ namespace vessel
              PDERROR, "failed to append decimal ndigit to typebits, rc%d", rc);
          goto error;
       }
-      
+
    done:
       return rc;
    error:
       reset();
       goto done;
    }
-
 
 } // namespace vessel
 } // namespace engine

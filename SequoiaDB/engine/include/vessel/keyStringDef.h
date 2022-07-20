@@ -95,31 +95,27 @@ namespace vessel
       maxKey = 240
    };
 
-   EncodedType operator-(const EncodedType &l, const EncodedType r)
-   {
-      return static_cast<EncodedType>(static_cast<UINT8>(l) -
-                                      static_cast<UINT8>(r));
-   }
-   EncodedType operator+(const EncodedType &l, UINT8 r)
-   {
-      return static_cast<EncodedType>(static_cast<UINT8>(l) - r);
-   }
-
    static_assert(EncodedType::numericPositiveLargeMagnitude <
                      EncodedType::stringLike,
                  "NumericPositiveLargeMagnitude must be less than StringLike");
 
-   enum typeBitsType : UINT8
+   enum class DecimalContinuationMarker : UINT8
    {
-      stringBit = 0b0,
-      symbolBit = 0b1,
+      hasNoContinuation = 0b0,
+      hasContinuation = 0b1,
+   };
 
-      intBits = 0b00,
-      longBits = 0b01,
-      doubleBits = 0b10,
-      decimalBits = 0b11,
-      positiveZero = 0b0,
-      negativeZero = 0b1
+   enum class typeBitsType : UINT8
+   {
+      STRING = 0b0,
+      SYMBOL = 0b1,
+
+      INT = 0b00,
+      LONG = 0b01,
+      DOUBLE = 0b10,
+      DECIMAL = 0b11,
+      POSITIVE_ZERO = 0b0,
+      NEGATIVE_ZERO = 0b1
    };
 
 } // namespace vessel

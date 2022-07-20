@@ -19,6 +19,93 @@ namespace vessel
       memcpy(&encoded, &num, sizeof(encoded));
       return std::bitset<64>(encoded).to_string();
    }
+
+   TEST(key_string_test, base_int)
+   {
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", 1);
+      bsb.appendNumber("b", -1);
+      bson::BSONObj pattern = bsb.obj();
+      bsb.reset();
+      vector<pair<const CHAR *, UINT32>> buffers;
+      vector<vector<INT32>> numbers = {{std::numeric_limits<INT32>::min(),
+                                        std::numeric_limits<INT32>::min()},
+                                       {-255, -255},
+                                       {-1, -1},
+                                       {0, 0},
+                                       {1, 1},
+                                       {255, 255},
+                                       {std::numeric_limits<INT32>::max(),
+                                        std::numeric_limits<INT32>::max()}};
+      for (UINT32 i = 0; i < numbers.size(); i++)
+      {
+         for (UINT32 j = 0; j < numbers[i].size(); j++)
+         {
+            bsb.appendNumber("a", numbers[i][j]);
+            bsb.appendNumber("b", numbers[i][j]);
+            keyStringBuilder<> ksb;
+            orderingWrapper ord(0, 2);
+            bson::BSONObj obj = bsb.obj();
+            ksb.appendAllElements(obj, ord);
+            ksb.done();
+            keyString ks = ksb.getShallowKeyString();
+            ks.getOwned();
+            buffers.emplace_back(ks.getKeySlice().data(),
+                                 ks.getKeySlice().getSize());
+            bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+            EXPECT_EQ(obj.woCompare(objFromKey), 0);
+            bsb.reset();
+         }
+      }
+   }
+
+   TEST(key_string_test, base_long)
+   {
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", 1);
+      bsb.appendNumber("b", -1);
+      bson::BSONObj pattern = bsb.obj();
+      bsb.reset();
+      vector<pair<const CHAR *, UINT32>> buffers;
+      vector<vector<INT64>> numbers = {{std::numeric_limits<INT64>::min(),
+                                        std::numeric_limits<INT64>::min()},
+                                       {-255, -255},
+                                       {-1, -1},
+                                       {0, 0},
+                                       {1, 1},
+                                       {255, 255},
+                                       {std::numeric_limits<INT64>::max(),
+                                        std::numeric_limits<INT64>::max()}};
+      for (UINT32 i = 0; i < numbers.size(); i++)
+      {
+         for (UINT32 j = 0; j < numbers[i].size(); j++)
+         {
+            bsb.appendNumber("a", static_cast<INT64>(numbers[i][j]));
+            bsb.appendNumber("b", static_cast<INT64>(numbers[i][j]));
+            keyStringBuilder<> ksb;
+            orderingWrapper ord(0, 2);
+            bson::BSONObj obj = bsb.obj();
+            ksb.appendAllElements(obj, ord);
+            ksb.done();
+            keyString ks = ksb.getShallowKeyString();
+            ks.getOwned();
+            buffers.emplace_back(ks.getKeySlice().data(),
+                                 ks.getKeySlice().getSize());
+            bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+            EXPECT_EQ(obj.woCompare(objFromKey), 0);
+            bsb.reset();
+         }
+      }
+   }
+
+   TEST(key_string_test, base_double)
+   {
+   }
+
+   TEST(key_string_test, base_decimal)
+   {
+   }
+
    TEST(key_string_test, base_number)
    {
       INT32 rc = SDB_OK;
@@ -78,7 +165,6 @@ namespace vessel
       keyString ks = ksb.getShallowKeyString();
    }
 
-
    TEST(key_string_test, base_object)
    {
    }
@@ -114,7 +200,8 @@ namespace vessel
       keyStringBuilder<> ksb;
       bson::BSONObjBuilder ob;
       const CHAR *byteArray = "foobar";
-      ob.appendBinData("bin", sizeof(byteArray), 
+      ob.appendBinData("bin",
+                       strlen(byteArray),
                        bson::BinDataType::BinDataGeneral,
                        byteArray);
       orderingWrapper o(0, 1);
@@ -127,9 +214,6 @@ namespace vessel
 
    TEST(key_string_test, base_code)
    {
-
-
-
    }
 
    TEST(key_string_test, base_keyslice)
@@ -193,4 +277,4 @@ namespace vessel
 
 
 } // namespace vessel
-} // namespace engin
+} // namespace engine

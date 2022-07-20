@@ -38,6 +38,7 @@
 
 #include "../bson/bsonobj.h"
 #include "../bson/bsonobjbuilder.h"
+#include "../bson/bsonobjiterator.h"
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
 #include "vessel/keyStringMetaBlock.h"
@@ -49,29 +50,30 @@ namespace engine
 namespace vessel
 {
    UINT32 neededBytesNumForInteger(EncodedType type);
-   
+
    class typeBitsReader : public SDBObject
    {
-      public:
-         typeBitsReader() = default;
-         ~typeBitsReader();
-         typeBitsReader operator=(const typeBitsReader &) = delete;
-         typeBitsReader(const typeBitsReader &) = delete;
+   public:
+      typeBitsReader() = default;
+      typeBitsReader(const CHAR *buf, UINT32 bufSize);
+      ~typeBitsReader();
+      typeBitsReader operator=(const typeBitsReader &) = delete;
+      typeBitsReader(const typeBitsReader &) = delete;
 
-      public:
-         typeBitsType readNumeric();
-         typeBitsType readZero();
-         typeBitsType readStringLike();
-         void readBitsAndAssign(CHAR* dst, UINT32 bytesSize);
-   
-      private:
-         UINT8 _readBit();
+   public:
+      typeBitsType readNumeric();
+      typeBitsType readZero();
+      typeBitsType readStringLike();
+      void readBitsAndAssign(CHAR *dst, UINT32 bytesSize);
 
-      private:
-         const CHAR* _buf = nullptr;
-         UINT32 _curBit = 0;
+   private:
+      UINT8 _readBit();
+
+   private:
+      const CHAR *_buf = nullptr;
+      UINT32 _bufSize = 0;
+      UINT32 _curBit = 0;
    };
-
 
    class keyString : public SDBObject
    {
@@ -85,8 +87,8 @@ namespace vessel
          keyString(const keyString &);
          keyString &operator=(const keyString &);
 
-         keyString(keyString &&);
-         keyString &operator=(keyString &&);
+      keyString(keyString &&);
+      keyString &operator=(keyString &&);
 
       public:
          OSS_INLINE BOOLEAN isValid() const
@@ -95,10 +97,10 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isOwned()const {return nullptr != _bufferOwned;}
 
-         OSS_INLINE const slice &getDataSlice() const
-         {
-            return _ref;
-         }
+      OSS_INLINE const slice &getDataSlice() const
+      {
+         return _ref;
+      }
 
       public:
          void reset();
@@ -108,24 +110,38 @@ namespace vessel
       private:
          void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
-      public:
-         slice getKeySlice() const;
-         slice getSliceFromKeyTo(UINT32 bytesAfterKey) const;
-         slice getSliceBeforeKey() const;
-         slice getSliceAfterKey() const;
-         slice getTypeBits() const;
-         bson::BSONObj toBSON(const bson::BSONObj &pattern,
-                              BOOLEAN withFieldName = FALSE);
-         bson::BSONObj toBSON(const bson::BSONObj &pattern,
-                              bson::BSONObjBuilder &builder,
-                              BOOLEAN withFieldName = FALSE);
+   public:
+      slice getKeySlice() const;
+      slice getSliceFromKeyTo(UINT32 bytesAfterKey) const;
+      slice getSliceBeforeKey() const;
+      slice getSliceAfterKey() const;
+      slice getTypeBits() const;
+      bson::BSONObj toBSON(const bson::BSONObj &pattern,
+                           BOOLEAN withFieldName = FALSE);
+      bson::BSONObj toBSON(const bson::BSONObj &pattern,
+                           bson::BSONObjBuilder &builder,
+                           BOOLEAN withFieldName = FALSE);
 
-      public:
-         INT32 compare(const keyString &ks) const;
+   public:
+      INT32 compare(const keyString &ks) const;
 
-      private:
-         void _toBsonValue(UINT32 &offset, bson::BSONObjBuilder &builder, typeBitsReader &typeReader);
-         void _toNumeric(UINT32 &offset, bson::BSONObjBuilder &builder, typeBitsReader &typeReader);
+   private:
+      template <typename T> T _read(UINT32 &offset, BOOLEAN inverted);
+      void _toBsonValue(EncodedType type,
+                        UINT32 &offset,
+                        BOOLEAN inverted,
+                        bson::BSONObjBuilder &builder,
+                        typeBitsReader &typeReader,
+                        const CHAR *fieldName = nullptr);
+      void _toNumeric(EncodedType type,
+                      UINT32 &offset,
+                      BOOLEAN inverted,
+                      bson::BSONObjBuilder &builder,
+                      typeBitsReader &typeReader,
+                      const CHAR *fieldName = nullptr);
+      bson::bsonDecimal _decodeDecimal(UINT32 &offset,
+                                       BOOLEAN isNegative,
+                                       BOOLEAN inverted);
 
       protected:
          slice _ref;  
