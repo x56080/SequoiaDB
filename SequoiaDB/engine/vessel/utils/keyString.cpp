@@ -55,6 +55,8 @@ namespace vessel
    _ref(s)
    {
       SDB_ASSERT(_ref.isValid(), "can not be invalid");
+      _block.init(s);
+      SDB_ASSERT(_block.isValid(), "can not be invalid");
    }
 
    keyString::keyString(CHAR *buffer,
@@ -65,15 +67,17 @@ namespace vessel
    }
 
    keyString::keyString(const keyString &o):
-   _ref(o._ref)
+   _ref(o._ref),
+   _block(o._block)
    {
-      
+
    }
 
    keyString &keyString::operator=(const keyString &o)
    {
       reset();
       _ref = o._ref;
+      _block = o._block;
       return *this;
    }
 
@@ -84,6 +88,7 @@ namespace vessel
          _bufferOwned = o._bufferOwned;
          _bufferSize = o._bufferSize;
          _ref = o._ref;
+         _block = o._block;
          o._bufferOwned = nullptr;
       }
       o.reset();
@@ -97,6 +102,7 @@ namespace vessel
          _bufferOwned = o._bufferOwned;
          _bufferSize = o._bufferSize;
          _ref = o._ref;
+         _block = o._block;
          o._bufferOwned = nullptr;
       }
       o.reset();
@@ -113,6 +119,7 @@ namespace vessel
          _bufferOwned = nullptr;
       }
       _bufferSize = 0;
+      _block.reset();
       return;
    }
 
@@ -154,6 +161,8 @@ namespace vessel
       _bufferOwned = buffer;
       _bufferSize = bufferSize;
       _ref.reset(ksSize, _bufferOwned);
+      _block.init(_ref);
+      SDB_ASSERT(_block.isValid(), "can not be invalid");
       return;
    }
 
