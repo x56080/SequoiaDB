@@ -80,14 +80,15 @@ namespace vessel
    class keyString : public SDBObject
    {
       template <typename T> friend class keyStringBuilder;
-      public:
-         keyString() = default;
-         ~keyString();
-         explicit keyString(const slice &s);
 
-         ///WARNING: shallow copy!
-         keyString(const keyString &);
-         keyString &operator=(const keyString &);
+   public:
+      keyString() = default;
+      ~keyString();
+      explicit keyString(const slice &s);
+
+      /// WARNING: shallow copy!
+      keyString(const keyString &);
+      keyString &operator=(const keyString &);
 
       keyString(keyString &&);
       keyString &operator=(keyString &&);
@@ -107,13 +108,13 @@ namespace vessel
          return _ref;
       }
 
-      public:
-         void reset();
-         INT32 init(const slice &s);
-         INT32 getOwned();
-      
-      private:
-         void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
+   public:
+      void reset();
+      INT32 init(const slice &s);
+      INT32 getOwned();
+
+   private:
+      void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
    public:
       slice getKeySlice() const;
@@ -132,11 +133,22 @@ namespace vessel
 
    private:
       template <typename T> T _read(UINT32 &offset, BOOLEAN inverted);
+      template <typename T> T _peek(UINT32 offset, BOOLEAN inverted) const;
       void _readBytes(UINT32 &offset,
                       BOOLEAN inverted,
                       CHAR *bytes,
                       UINT32 len);
       bson::StringData _readCString(UINT32 &offset, BOOLEAN inverted);
+      void _toBSON(UINT32 &offset,
+                            BOOLEAN inverted,
+                            bson::BSONObjBuilder &builder,
+                            typeBitsReader &typeReader,
+                            const CHAR *fieldName = nullptr);
+      bson::BSONObj _toBSON(UINT32 &offset,
+                            BOOLEAN inverted,
+                            typeBitsReader &typeReader,
+                            BOOLEAN withFieldName);
+      
       void _toBsonValue(EncodedType type,
                         UINT32 &offset,
                         BOOLEAN inverted,
@@ -149,10 +161,7 @@ namespace vessel
                       bson::BSONObjBuilder &builder,
                       typeBitsReader &typeReader,
                       const CHAR *fieldName = nullptr);
-      bson::StringData _decodeStringLike(UINT32 &offset,
-                             BOOLEAN inverted,
-                             bson::BSONObjBuilder &builder,
-                             typeBitsReader &typeReader);
+      bson::StringData _decodeStringLike(UINT32 &offset, BOOLEAN inverted);
       bson::bsonDecimal _decodeDecimal(UINT32 &offset,
                                        BOOLEAN inverted,
                                        BOOLEAN isNegative,
