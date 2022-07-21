@@ -168,7 +168,7 @@ namespace vessel
          buffers.emplace_back(ks.getDataSlice().data(),
                               ks.getDataSlice().getSize());
          bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
-         std::cout<< i << endl << obj.toString(0,0,0) << endl << objFromKey.toString(0,0,0) <<endl;
+         //std::cout<< i << endl << obj.toString(0,0,0) << endl << objFromKey.toString(0,0,0) <<endl;
          EXPECT_EQ(obj.woCompare(objFromKey), 0);
          bsb.reset();
       }
