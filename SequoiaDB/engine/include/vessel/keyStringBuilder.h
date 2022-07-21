@@ -172,7 +172,7 @@ namespace vessel
          {
             _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
          }
-         else
+         else if(BUILDER_STATUS::APPENDING_ELEMENTS == _status)
          {
             _transition(BUILDER_STATUS::AFTER_ELEMENTS);
          }
@@ -213,10 +213,6 @@ namespace vessel
          else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
          {
             _transition(BUILDER_STATUS::AFTER_ELEMENTS);
-         }
-         else
-         {
-            /// do nothing
          }
 
          tmp ^= mask;
@@ -328,6 +324,7 @@ namespace vessel
       CHAR *_buf = nullptr;
       UINT32 _bufSize = 0;
       UINT8 _sizeAheadElements = 0;
+      UINT32 _sizeOfElements = 0;
       UINT32 _capacity = 0;
       INT8 _elemCount = 0;
       Allocator _allocator;
@@ -462,7 +459,7 @@ namespace vessel
             SDB_ASSERT(to == BUILDER_STATUS::BEFORE_ELEMENTS ||
                            to == BUILDER_STATUS::APPENDING_ELEMENTS ||
                            to == BUILDER_STATUS::DONE,
-                       "Invalid builder status");
+                       "Invalid builder status");  
             break;
          case BUILDER_STATUS::BEFORE_ELEMENTS:
             SDB_ASSERT(to == BUILDER_STATUS::APPENDING_ELEMENTS ||
