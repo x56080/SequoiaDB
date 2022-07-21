@@ -2122,7 +2122,8 @@ namespace vessel
    {
       SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
       SDB_ASSERT(_allocator.isMovable(), "must be movable");
-      keyString ks(_buf, _capacity, _bufSize);
+      keyString ks;
+      ks._adopt(_buf, _capacity, _bufSize);
       _buf = nullptr;
       reset();
       return std::move(ks);

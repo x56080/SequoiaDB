@@ -91,7 +91,7 @@ namespace vessel
       keyStringBuilder<> ksb2;
       bson::BSONObj obj1 = BSON("a" << "foobar");
       bson::BSONObj obj2 = BSON("a" << "foobar1");
-      orderingWrapper o(1, 1);
+      orderingWrapper o(0, 1);
 
 
       rc = ksb1.appendAllElements(obj1, o);
@@ -234,9 +234,9 @@ namespace vessel
       ksb2.reset();
       std::string str('x', 200);
       bson::BSONObjBuilder ob;
-      ob << "name" << str << "foo" << str << "int" << 123;
+      ob << "name" << str << "foo" << str << "int" << 123 << "ss" << str;
       obj = ob.obj();
-      orderingWrapper ord(0, 3);
+      orderingWrapper ord(0, 4);
       rc = ksb1.appendUnsignedWithoutType(keyBefore);
       ASSERT_EQ(SDB_OK, rc);
       rc = ksb1.appendAllElements(obj, ord);
@@ -257,6 +257,7 @@ namespace vessel
       ASSERT_EQ(res, 0);
 
    }
+
 
 
 

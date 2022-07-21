@@ -59,6 +59,9 @@ namespace vessel
       const CHAR *ksData = nullptr;
       UINT32 offset = 0;
       UINT32 bSize = 0;
+      BOOLEAN hasSliceBeforeKey = FALSE;
+      BOOLEAN isLargeKeySize = FALSE;
+      BOOLEAN isLargeTypeBitsSize = FALSE;
 
       if (OSS_UNLIKELY(!s.isValid()))
       {
@@ -71,7 +74,7 @@ namespace vessel
       offset = s.getSize() - 1;
       /// get version
       version = static_cast<UINT8>(*(ksData + offset));
-      if (OSS_UNLIKELY(KEY_STRING_VERSION_INVALID == version))
+      if (OSS_UNLIKELY(KEY_STRING_VERSION_1 != version))
       {
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "invalid key string version");
@@ -80,78 +83,71 @@ namespace vessel
       offset--;
       bSize++;
 
-      if (KEY_STRING_VERSION_1 == version)
+      /// get meta byte
+      metaByte = static_cast<UINT8>(*(ksData + offset));
+      bSize++;
+
+      /// parse meta byte
+      if (1 == (metaByte & 0x01))
       {
-         BOOLEAN hasSliceBeforeKey = FALSE;
-         BOOLEAN isLargeKeySize = FALSE;
-         BOOLEAN isLargeTypeBitsSize = FALSE;
-
-         /// get meta byte
-         metaByte = static_cast<UINT8>(*(ksData + offset));
-         bSize++;
-
-         /// parse meta byte
-         if (1 == (metaByte & 0x01))
-         {
-            hasSliceBeforeKey = TRUE;
-         }
-
-         if (1 == (metaByte & (0x01 << 1)))
-         {
-            isLargeKeySize = TRUE;
-         }
-
-         if (1 ==  (metaByte & (0x01 << 2)))
-         {
-            isLargeTypeBitsSize = TRUE;
-         }
-
-         /// get size before key
-         if (hasSliceBeforeKey)
-         {
-            offset--;
-            sizeBeforeKey = static_cast<UINT8>(*(ksData + offset));
-            if (OSS_UNLIKELY(0 == sizeBeforeKey))
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid size before key");
-               goto error;
-            }
-            bSize++;
-         }
-
-         /// get key size
-         if (isLargeKeySize)
-         {
-            offset -= 4;
-            bSize += 4;
-         }
-         else
-         {
-            offset--;
-            bSize++;
-         }
-         keySize = static_cast<UINT32>(*(ksData + offset));
-
-         /// get type bits size
-         if (isLargeTypeBitsSize)
-         {
-            offset -= 4;
-            bSize += 4;
-         }
-         else
-         {
-            offset--;
-            bSize++;
-         }
-         typeBitsSize = static_cast<UINT32>(*(ksData + offset));
-
-         /// get block size and size after key
-         blockSize = bSize;
-         sizeAfterKey = s.getSize() -
-                        (sizeBeforeKey + keySize + 
-                         typeBitsSize + blockSize);
+         hasSliceBeforeKey = TRUE;
       }
+
+      if (1 == ((metaByte >> 1) & 0x01))
+      {
+         isLargeKeySize = TRUE;
+      }
+
+      if (1 == ((metaByte >> 2) & 0x01))
+      {
+         isLargeTypeBitsSize = TRUE;
+      }
+
+      /// get size before key
+      if (hasSliceBeforeKey)
+      {
+         offset--;
+         sizeBeforeKey = static_cast<UINT8>(*(ksData + offset));
+         if (OSS_UNLIKELY(0 == sizeBeforeKey))
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG(PDERROR, "invalid size before key");
+            goto error;
+         }
+         bSize++;
+      }
+
+      /// get key size
+      if (isLargeKeySize)
+      {
+         offset -= 4;
+         bSize += 4;
+      }
+      else
+      {
+         offset--;
+         bSize++;
+      }
+      keySize = (*(ksData + offset));
+
+      /// get type bits size
+      if (isLargeTypeBitsSize)
+      {
+         offset -= 4;
+         bSize += 4;
+      }
+      else
+      {
+         offset--;
+         bSize++;
+      }
+      typeBitsSize = static_cast<UINT8>(*(ksData + offset));
+
+      /// get block size and size after key
+      blockSize = bSize;
+      sizeAfterKey = s.getSize() -
+                     (sizeBeforeKey + keySize + 
+                        typeBitsSize + blockSize);
 
    done:
       return rc;
