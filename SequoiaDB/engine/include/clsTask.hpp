@@ -196,6 +196,11 @@ namespace engine
 
          virtual INT32       toErrInfo( BSONObjBuilder& builder ) ;
 
+         virtual CLS_TASK_STATUS getTaskStatusByGroup( const CHAR* groupName )
+         {
+            return _status ;
+         }
+
       protected:
          UINT64                  _taskID ;
          CLS_TASK_TYPE           _taskType ;
@@ -257,6 +262,8 @@ namespace engine
          UINT32      taskCountByCL( const CHAR *pCLName ) ;
          UINT32      taskCountByCS( const CHAR *pCSName ) ;
          INT32       waitTaskEvent( INT64 millisec = OSS_ONE_SEC ) ;
+
+         UINT32      idxTaskCount() ;
 
          INT32       addTask ( _clsTask *pTask,
                                UINT32 locationID,
@@ -545,6 +552,8 @@ namespace engine
                                              const CHAR* groupName,
                                              BSONObj& updator,
                                              BSONObj& matcher ) ;
+
+         virtual CLS_TASK_STATUS getTaskStatusByGroup( const CHAR* groupName ) ;
 
       protected:
          virtual INT32 _init( const CHAR *objdata ) = 0 ;

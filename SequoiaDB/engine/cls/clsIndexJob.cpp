@@ -240,7 +240,7 @@ namespace engine
       if ( CLS_INDEX_NORMAL == _threadMode || CLS_INDEX_RESTART == _threadMode )
       {
          rc = _startCatalogTask( _taskStatusPtr->taskID() ) ;
-         if ( SDB_DMS_EOC == rc || SDB_CAT_TASK_NOTFOUND == rc  )
+         if ( SDB_DMS_EOC == rc || SDB_CAT_TASK_NOTFOUND == rc )
          {
             _taskStatusPtr->setStatus2Finish( rc ) ;
             PD_LOG( PDWARNING,
@@ -928,6 +928,7 @@ namespace engine
       pmdEDUMgr* pEduMgr = pmdGetKRCB()->getEDUMgr() ;
       ossEvent* event    = _pClsCB->getTaskEvent() ;
       INT16 cntEmpty     = 0 ;
+      BOOLEAN needStartTaskCheck = FALSE ;
 
       PD_LOG( PDDEBUG, "Start job[%s]", name() ) ;
 
@@ -939,6 +940,7 @@ namespace engine
          event->wait( CLS_REPORT_TASK_INFO_INTERVAL ) ;
          pEduMgr->activateEDU( cb ) ;
          event->reset() ;
+         needStartTaskCheck = FALSE ;
 
          if ( PMD_IS_DB_DOWN() || !pmdIsPrimary() || cb->isForced() )
          {
@@ -962,6 +964,7 @@ namespace engine
          else
          {
             cntEmpty = 0 ;
+            needStartTaskCheck = TRUE ;
          }
 
          /// loop every task and update task progress to catalog
@@ -978,6 +981,13 @@ namespace engine
                PD_LOG( PDWARNING, "Failed to update task[%llu] info, rc: %d",
                        it->first, rc ) ;
             }
+         }
+
+         if ( needStartTaskCheck &&
+              !_pTaskStatMgr->hasTaskToReport() &&
+              0 == _pClsCB->getTaskMgr()->idxTaskCount() )
+         {
+            _pClsCB->startAllTaskCheck() ;
          }
       }
 

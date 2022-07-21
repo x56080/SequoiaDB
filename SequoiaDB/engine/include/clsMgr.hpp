@@ -269,6 +269,7 @@ namespace engine
          INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
          INT32  startIdxTaskCheckByCS( utilCSUniqueID csUniqueID ) ;
          INT32  startAllSplitTaskCheck() ;
+         INT32  startAllIdxTaskCheck() ;
          INT32  startAllTaskCheck() ;
 
          INT32  stopTask ( UINT64 taskID ) ;

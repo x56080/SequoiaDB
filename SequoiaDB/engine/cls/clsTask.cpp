@@ -373,6 +373,28 @@ namespace engine
       return taskCount ;
    }
 
+   UINT32 _clsTaskMgr::idxTaskCount()
+   {
+      UINT32 taskCount = 0 ;
+
+      ossScopedLock lock ( &_taskLatch, SHARED ) ;
+
+      std::map<UINT32, PAIR_TASK_CNT>::iterator it = _taskMap.begin() ;
+      while ( it != _taskMap.end() )
+      {
+         clsTask *pTask = it->second.first ;
+         if ( CLS_TASK_CREATE_IDX == pTask->taskType() ||
+              CLS_TASK_DROP_IDX == pTask->taskType() ||
+              CLS_TASK_COPY_IDX == pTask->taskType() )
+         {
+            ++taskCount ;
+         }
+         ++it ;
+      }
+
+      return taskCount ;
+   }
+
    INT32 _clsTaskMgr::waitTaskEvent( INT64 millisec )
    {
       return _taskEvent.wait( millisec ) ;
@@ -2092,6 +2114,19 @@ namespace engine
       goto done ;
    }
 
+   CLS_TASK_STATUS _clsIdxTask::getTaskStatusByGroup( const CHAR* groupName )
+   {
+      SDB_ASSERT( groupName, "group name can't be NULL" ) ;
+
+      MAP_GROUP_INFO::iterator itr = _mapGroupInfo.find( groupName ) ;
+      if ( itr != _mapGroupInfo.end() )
+      {
+         return itr->second.status ;
+      }
+
+      return CLS_TASK_STATUS_FINISH ;
+   }
+
    BSONObj _clsIdxTask::toBson( UINT32 mask )
    {
       BSONObjBuilder builder ;
@@ -3018,6 +3053,13 @@ namespace engine
             _changedGroupMask |= CLS_IDX_MASK_STATUS ;
             _changedMask |= CLS_IDX_MASK_GROUPS ;
          }
+         else if( CLS_TASK_STATUS_FINISH == groupUnit->status )
+         {
+            rc = SDB_TASK_ALREADY_FINISHED ;
+            PD_LOG( PDINFO, "Task[%llu] on group[%s] has been finished, "
+                    "do not start thread", _taskID, groupName ) ;
+            goto done ;
+         }
 
          // change sub-task's status
          if ( _isMainTask )
@@ -3395,7 +3437,8 @@ namespace engine
       }
 
       if ( CLS_TASK_STATUS_FINISH == it->second.status &&
-           newGroupInfo.resultCode == it->second.resultCode )
+           ( newGroupInfo.resultCode == it->second.resultCode ||
+             newGroupInfo.resultCode == SDB_TASK_ALREADY_FINISHED  ) )
       {
          // 'finish + ok' can convert to 'finish + -243'
          goto done ;

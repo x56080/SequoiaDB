@@ -624,6 +624,7 @@ namespace engine
          case MSG_CAT_PAIMARY_CHANGE_RES:
          {
             INT32 result = MSG_GET_INNER_REPLY_RC( msg ) ;
+
             if ( SDB_CLS_NOT_PRIMARY == result )
             {
                shardCB *pShardCB = _clsCB->getShardCB() ;
@@ -635,6 +636,11 @@ namespace engine
             else if ( SDB_OK == result )
             {
                _cata.remove( msg, result ) ;
+
+               if ( _cata.isCallOver( msg ) && 0 == _clsCB->getTaskMgr()->taskCount() )
+               {
+                  _clsCB->startAllTaskCheck() ;
+               }
             }
             break ;
          }

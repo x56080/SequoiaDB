@@ -93,6 +93,8 @@ namespace engine
 
       void handleTimeout( const UINT32 &millisec ) ;
 
+      BOOLEAN isCallOver( const MsgHeader *header ) ;
+
    private:
       callerMeta _meta ;
 
