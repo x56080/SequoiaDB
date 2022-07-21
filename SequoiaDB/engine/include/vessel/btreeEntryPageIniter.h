@@ -1,4 +1,4 @@
-   /*******************************************************************************
+/*******************************************************************************
 
 
    Copyright (C) 2011-2018 SequoiaDB Ltd.
@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexScanContext.cpp
+   Source File Name = btreeEntryPageIniter.h
 
    Descriptive Name =
 
@@ -33,46 +33,32 @@
 
 ******************************************************************************/
 
-#include "vessel/indexScanContext.h"
-#include "vessel/instanceEnv.h"
-#include "vessel/indexScanCursor.h"
-#include "pdTrace.hpp"
+#ifndef VESSEL_BTREE_ENTRY_PAGE_INITER_H_
+#define VESSEL_BTREE_ENTRY_PAGE_INITER_H_
+
+#include "vessel/pageInitializer.h"
+#include "vessel/indexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void indexScanContext::_onClose()
+   class btreeEntryPageIniter : public pageInitializer
    {
-      _cursor = NULL;
-      return;
-   }
+      public:
+         btreeEntryPageIniter(UINT32 logicalIndexId);
+         virtual ~btreeEntryPageIniter() = default;
 
-   void indexScanContext::attachIndexScanCursor(indexScanCursor *cursor)
-   {
-      SDB_ASSERT(NULL != cursor, "can not be null");
-      _cursor = cursor;
-   }
+      public:
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb);
 
-   indexIdentifier indexScanContext::getIndexId()const
-   {
-      return isCursorAttached() ? _cursor->getIndexId() : indexIdentifier();
-   }
-   
-   rtnPredicateListIterator *indexScanContext::getPredicate()const
-   {
-      SDB_ASSERT(isCursorAttached(), "must be attached");
-      return _cursor->getPredicate();
-   }
+      private:
+         UINT32 _logicalIndexId = INVALID_LOGICAL_INDEX_ID;
+   };//class btreeEntryPageIniter
+}//namespace vessel
+}//namespace engine
 
-
-   const dmsIndexScanOptions &indexScanContext::getOptions()const
-   {
-      SDB_ASSERT(isCursorAttached(), "must be attached");
-      return _cursor->getOptions();
-   }
-
-
-} // namespace vessel
-
-} // namespace engine
+#endif//VESSEL_BTREE_ENTRY_PAGE_INITER_H_

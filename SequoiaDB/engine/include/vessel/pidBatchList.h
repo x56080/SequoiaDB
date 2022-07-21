@@ -49,7 +49,14 @@ namespace vessel
          ~pidBatchList(){}
          pidBatchList(const pidBatchList &) = delete;
          pidBatchList &operator=(const pidBatchList &) = delete;
-
+         pidBatchList(pidBatchList &&o)
+         :_bl(std::move(o._bl)){}
+         pidBatchList &operator=(pidBatchList &&o)
+         {
+            clear();
+            _bl = std::move(o._bl);
+            return *this;
+         }
 
       public:
          typedef ossPoolVector<PAGE_ID> BATCH;

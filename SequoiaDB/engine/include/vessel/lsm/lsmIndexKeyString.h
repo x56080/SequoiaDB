@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = stackAllocatorRowBatch.h
+   Source File Name = lsmIndexKeyString.h
 
    Descriptive Name =
 
@@ -27,47 +27,42 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/08/2020  WY  Initial Draft
+          02/12/2021  WY  Initial Draft
 
    Last Changed =
 
-******************************************************************************/
+*******************************************************************************/
 
-#ifndef VESSEL_STACK_ALLOCATOR_ROW_BATCH_H_
-#define VESSEL_STACK_ALLOCATOR_ROW_BATCH_H_
+#ifndef VESSEL_LSM_INDEX_KEY_STRING_H_
+#define VESSEL_LSM_INDEX_KEY_STRING_H_
 
-#include "vessel/rowBatch.h"
-#include "../../bson/util/builder.h"
-#include "ossMemPool.hpp"
+#include "vessel/keyString.h"
+#include "vessel/globalIndexID.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class stackAllocatorRowBatch : public rowBatch
+   class lsmIndexKeyString : public keyString
    {
       public:
-         stackAllocatorRowBatch(){}
-         virtual ~stackAllocatorRowBatch();
+         lsmIndexKeyString() = default;
+         lsmIndexKeyString(const slice &s):
+         keyString(s){}
+
+         lsmIndexKeyString(CHAR *buffer,
+                          UINT32 bufferSize,
+                          UINT32 ksSize):
+         keyString(buffer, bufferSize, ksSize){}
+
       public:
-         virtual UINT32 getRowCount()const {return _tags.size();}
-         virtual BOOLEAN isFreeToPush(UINT32 rowSize)const;
-         virtual INT32 pushRow(const slice &row);
-         virtual INT32 pushRowFragments(std::initializer_list<slice> il);
-         virtual slice getRow(UINT32 pos)const;
-         virtual void fini();
-         virtual void clearRows();
-
-      private:
-         /// <offset, size>
-         typedef std::pair<UINT32, UINT32> _TAG;
-         ossPoolVector<_TAG> _tags;
-         bson::StackBufBuilder _builder;
-
-   };//class stackAllocatorRowBatch
+         recordID getRid()const;
+         globalIndexID getGlobalIndexId()const;
+   };//class lsmIndexKeyString
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_STACK_ALLOCATOR_ROW_BATCH_H_
+#endif//VESSEL_LSM_INDEX_KEY_STRING_H_

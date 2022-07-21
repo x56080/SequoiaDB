@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = logicalPageSpacePte.h
+   Source File Name = btreeStatistics.h
 
    Descriptive Name =
 
@@ -33,31 +33,33 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LPS_PTE_H_
-#define VESSEL_LPS_PTE_H_
+#ifndef VESSEL_BTREE_STATISTICS_H_
+#define VESSEL_BTREE_STATISTICS_H_
 
-#include "vessel/logicalPageSpace.h"
-#include "ossRWMutex.hpp"
-
-#include <chrono>
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class logicalPageSpacePte : public logicalPageSpace
+   struct btreeStatistics : public SDBObject
    {
-      public:
-         logicalPageSpacePte();
-         virtual ~logicalPageSpacePte();
+      void reset()
+      {
+         nonleafPagNum = 0;
+         leafPageNum = 0;
+         return;
+      }
 
-      private:
-         ossRWMutex _publishLock;
-         std::chrono::steady_clock _lastPublishTime;
-   };//class logicalPageSpacePte
-} // namespace vessel
+      UINT32 nonleafPagNum = 0;
+      UINT32 leafPageNum = 0;
+   };//struct btreeStatistics
+} // namespace vesel
 
 } // namespace engine
 
 
-#endif//VESSEL_LPS_PTE_H_
+
+#endif//VESSEL_BTREE_STATISTICS_H_
+

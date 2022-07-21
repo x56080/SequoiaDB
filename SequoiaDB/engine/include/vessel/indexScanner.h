@@ -43,8 +43,8 @@ namespace engine
 {
 namespace vessel
 {
-   class indexScanContext;
-   class indexObject;
+   class indexScanCursor;
+   class requestContext;
 
    class indexScanner : public SDBObject
    {
@@ -57,35 +57,41 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _iterator;
+            return nullptr != _cursor;
          }
       public:
-         INT32 open(indexScanContext *context,
-                    indexObject *obj);
+         ///WARNING: scanner does not own the cursor
+         INT32 open(indexScanCursor *cursor,
+                    INDEX_ITERATOR_UPTR &&iterator);
 
          void close();
 
-         /// hold rid latch or record lock and put entry into batch.
          /// return SDB_IXM_EOC when hit the end.
-         /// always clear batch outside first
-         /// init row limit outside first
-         INT32 batchNext(rowBatch &entryBatch);
+         INT32 next(requestContext *context);
+
+      public:
+         recordID getRid()const;
+         DPS_LSN_OFFSET getLSN()const;
+         DPS_TRANS_ID getTransID()const;
+         slice getKeyString()const;
 
       private:
-         INT32 fillBatch(rowBatch &entryBatch);
+         INT32 _pauseUntilRidReady(requestContext *context,
+                                   const recordID &rid);
 
-         INT32 pauseAndRescan();
+         INT32 _beginToScan();
+         INT32 _fetchNextAndLock(requestContext *context);
 
-         INT32 beginToScan();
-         INT32 moveIterator();
-
-         INT32 tryLockRecord(const recordID &rid, BOOLEAN &locked);
+         INT32 _tryLockRecord(requestContext *context,
+                              const recordID &rid,
+                              BOOLEAN &locked);
       
-         INT32 waitRecord(const recordID &rid);        
+         INT32 _waitRecord(requestContext *context,
+                           const recordID &rid);        
       private:
-         indexScanContext *_context = NULL;
-         indexIterator *_iterator = NULL;
-         const indexObject *_obj = NULL;
+         indexScanCursor *_cursor = nullptr;
+         INDEX_ITERATOR_UPTR _iterator;
+         BOOLEAN _scanning = FALSE;
          bson::BufBuilder _keyBuilder;
    };//class indexScanner
 

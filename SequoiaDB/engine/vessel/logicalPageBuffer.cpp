@@ -46,6 +46,37 @@ namespace vessel
       fini();
    }
 
+   logicalPageBuffer::logicalPageBuffer(logicalPageBuffer &&o):
+   _lpid(o._lpid),
+   _mode(o._mode),
+   _context(o._context),
+   _lps(o._lps),
+   _rpb(std::move(o._rpb)),
+   _psv(o._psv)
+   {
+      o._lpid = INVALID_PAGE_ID;/// reset lpid first to avoid unlocking.
+      o.fini();
+   }
+
+   logicalPageBuffer &logicalPageBuffer::operator=(logicalPageBuffer &&o)
+   {
+      fini();
+      if (o.isValid())
+      {
+         _lpid = o._lpid;
+         _mode = o._mode;
+         _context = o._context;
+         _lps = o._lps;
+         _rpb = std::move(o._rpb);
+         _psv = o._psv;
+
+         o._lpid = INVALID_PAGE_ID;
+         o.fini();
+      }
+
+      return *this;
+   }  
+
    void logicalPageBuffer::fini()
    {
       _rpb.fini();
@@ -58,7 +89,6 @@ namespace vessel
       _context = NULL;
       _lps = NULL;
       _psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      _flags = 0;
       return;
    }
 
@@ -68,11 +98,6 @@ namespace vessel
       if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(isReadonly()))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
@@ -211,42 +236,42 @@ namespace vessel
       goto done;
    }
 
-   void logicalPageBuffer::destroy()
-   {
-      INT32 rc = SDB_OK;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      logicalPageSpace *lps = nullptr;
-      requestContext *context = nullptr;
+   // void logicalPageBuffer::destroy()
+   // {
+   //    INT32 rc = SDB_OK;
+   //    PAGE_ID lpid = INVALID_PAGE_ID;
+   //    logicalPageSpace *lps = nullptr;
+   //    requestContext *context = nullptr;
 
-      if (!isValid())
-      {
-         SDB_ASSERT(FALSE, "invalid buffer");
-         goto done;
-      }
-      else if (!_mode.isExclusive())
-      {
-         SDB_ASSERT(FALSE, "invalid locking mode");
-         goto done;
-      }
+   //    if (!isValid())
+   //    {
+   //       SDB_ASSERT(FALSE, "invalid buffer");
+   //       goto done;
+   //    }
+   //    else if (!_mode.isExclusive())
+   //    {
+   //       SDB_ASSERT(FALSE, "invalid locking mode");
+   //       goto done;
+   //    }
 
-      lpid = _lpid;
-      lps = _lps;
-      context = _context;
+   //    lpid = _lpid;
+   //    lps = _lps;
+   //    context = _context;
 
-      /// do not unlock when fini
-      _mode.setNone();
+   //    /// do not unlock when fini
+   //    _mode.setNone();
 
-      fini();
-      rc = lps->releasePage(context, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", lpid, rc);
-         SDB_ASSERT(FALSE, "failed to release lpid");
-      }
+   //    fini();
+   //    rc = lps->releasePage(context, lpid);
+   //    if (SDB_OK != rc)
+   //    {
+   //       PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", lpid, rc);
+   //       SDB_ASSERT(FALSE, "failed to release lpid");
+   //    }
 
-      context->unlockLpid(lps->getSpaceType(), lpid);
-   done:
-      return;
-   }
+   //    context->unlockLpid(lps->getSpaceType(), lpid);
+   // done:
+   //    return;
+   // }
 }//namespace vessel
 }//namespace engine

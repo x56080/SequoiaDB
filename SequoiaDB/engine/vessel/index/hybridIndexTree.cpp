@@ -42,11 +42,24 @@
 #include "vessel/lsm/lsmIndexKeyPacker.h"
 #include "vessel/collectionProperties.h"
 #include "vessel/lsm/lsmIndexEntryValue.h"
+#include "vessel/indexSpace.h"
 
 namespace engine
 {
 namespace vessel
 {
+   hybridIndexTree::hybridIndexTree(indexSpace *is):
+   _is(is)
+   {
+      SDB_ASSERT(nullptr != is && is->isOpen(), "can not be invalid");
+   }
+
+   void hybridIndexTree::init(indexSpace *is)
+   {
+      SDB_ASSERT(nullptr != is && is->isOpen(), "can not be invalid");
+      _is = is;
+   }
+
    INT32 hybridIndexTree::insert(requestContext *context,
                                  const indexObject *obj,
                                  const bson::BSONObjSet &keys,
@@ -360,6 +373,12 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   INDEX_ITERATOR_UPTR hybridIndexTree::createIterator(indexObject *obj)
+   {
+      SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
+      return std::move(INDEX_ITERATOR_UPTR());
    }
 } // namespace vessel
 

@@ -36,7 +36,6 @@
 #include "vessel/lsm/lsmIndexIterator.h"
 #include "rocksdb/options.h"
 #include "vessel/indexUtils.h"
-#include "vessel/lsm/lsmIndexKeyPacker.h"
 #include "vessel/lsm/lsmIndexEntryValue.h"
 #include "vessel/indexObject.h"
 #include "vessel/threadContext.h"
@@ -184,7 +183,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       recordID rid;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      lsmIndexKeyStackPacker packer;
 
       if (OSS_UNLIKELY(!key.isValid()))
       {
@@ -240,21 +238,20 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::locate(const slice &encodedKey,
-                                  const recordID &rid,
-                                  const seekOptions &o)
+   INT32 lsmIndexIterator::locate(const indexEntryLocation *location)
    {
       INT32 rc = SDB_OK;
-      lsmIndexKeyStackPacker packer;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+      keyString target;
+      const lsmIndexEntryLocation *lsmLocation = nullptr;
 
       if (OSS_UNLIKELY(!_isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 == encodedKey.getSize() ||
-                            !rid.isValid()))
+      else if (OSS_UNLIKELY(nullptr == location ||
+                            IDX_ENTRY_LOCATION_TYPE::LSM != location->getType() ||
+                            location->hitTheEnd()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -262,26 +259,15 @@ namespace vessel
 
       _currentEntry.reset();
 
-      if (_o.forward)
-      {
-         lsn = o.inclusive ? OSS_UINT64_MAX : 0;
-      }
-      else
-      {
-         lsn = OSS_UINT64_MAX;
-      }
-
-      rc = packer.packFullKey(ixmKey(encodedKey.data()), _globalId,
-                              _obj->getProperties().getPattern().getOrdering(),
-                              rid, lsn);
+      lsmLocation = static_cast<const lsmIndexEntryLocation *>(location);
+      rc = target.init(lsmLocation->getKeySlice());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "pack index full key by packer failed, rc:%d", rc);
+         PD_LOG(PDERROR, "failed to init key string:%d", rc);
          goto error;
       }
 
-      rc = seekFullKey(packer.getFullKeySlice(),
-                       !o.inclusive && !_o.forward);
+      rc = seekFullKey(target.getDataSlice(), FALSE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
@@ -302,32 +288,25 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::seekFullKey(const rocksdb::Slice &fullKey,
+   INT32 lsmIndexIterator::seekFullKey(const slice &fullKey,
                                        BOOLEAN forPrev)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _itr, "can not be null");
-      SDB_ASSERT(0 < fullKey.size(), "can not be empty");
+      SDB_ASSERT(0 < fullKey.getSize(), "can not be empty");
       _currentEntry.reset();
+
+      rocksdb::Slice s(fullKey.getData(), fullKey.getSize());
 
       if (!forPrev)
       {
-         _itr->Seek(fullKey);
+         _itr->Seek(s);
       }
       else
       {
-         _itr->SeekForPrev(fullKey);
+         _itr->SeekForPrev(s);
       }
       
-      if (_itr->Valid())
-      {
-         if (LSM_IDX_MIN_FULL_KEY_SIZE > _itr->key().size())
-         {
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "invalid key:%d", rc);
-            goto error;
-         }
-      }
    done:
       return rc;
    error:
@@ -352,13 +331,14 @@ namespace vessel
    UINT64 lsmIndexIterator::getLSN()const
    {
       SDB_ASSERT(_isReadyToRead(), "must be valid");
-      return _currentEntry.getDataLsn();
-   }
-
-   bson::BSONObj lsmIndexIterator::getKeyObj(bson::BufBuilder *builder)const
-   {
-      SDB_ASSERT(_isReadyToRead(), "must be valid");
-      return _currentEntry.getKey().toBson(builder);
+      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
+      if (LSM_INDEX_ENTRY_VALUE_SIZE <= _itr->value().size())
+      {
+         const lsmIndexEntryValue *value =
+                  reinterpret_cast<const lsmIndexEntryValue *>(_itr->value().data());
+         lsn = value->lsn;
+      }
+      return lsn;
    }
 
    DPS_TRANS_ID lsmIndexIterator::getTransID()const
@@ -686,12 +666,10 @@ namespace vessel
    void lsmIndexIterator::_initKeyBoundWhenOpen(const globalIndexID &id)
    {
       SDB_ASSERT(id.isValid(), "can not be invalid");
-      _lowBound = id;
-      _upBound.reset(id.getLogicalCSID(),
-                     id.getLogicalCLID(),
-                     id.getLogicalIndexID() + 1);
-      _lowKey = rocksdb::Slice((const CHAR *)(&_lowBound), LSM_IDX_BOUNDARY_SIZE);
-      _upKey = rocksdb::Slice((const CHAR *)(&_upBound), LSM_IDX_BOUNDARY_SIZE);
+      _lowBound.init(id);
+      _upBound.initAsUpKey(id);
+      _lowKey = rocksdb::Slice(_lowBound.getData(), _lowBound.getSize());
+      _upKey = rocksdb::Slice((_upBound.getData(), _upBound.getSize());
       return;
    }
 

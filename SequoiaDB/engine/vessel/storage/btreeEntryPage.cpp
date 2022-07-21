@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmInsertBatch.h
+   Source File Name = indexEntryPage.cpp
 
    Descriptive Name =
 
@@ -33,47 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSE_LSM_INSERT_BATCH_H_
-#define VESSE_LSM_INSERT_BATCH_H_
-
-#include "vessel/lsm/lsmIndexKey.h"
-#include "vessel/lsm/lsmIndexMeta.hpp"
-#include "vessel/lsm/lsmIndexValue.hpp"
-#include "rocksdb/write_batch.h"
+#include "vessel/btreeEntryPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class lsmInsertBatch : public SDBObject
+   BOOLEAN initBtreeEntryPage(UINT32 pageSize,
+                              PAGE_ID pid,
+                              PAGE_ID lpid,
+                              PAGE_SNAPSHOT_VERION psv,
+                              UINT32 logicalIndexId,
+                              CHAR *buf)
    {
-      public:
-         lsmInsertBatch(){}
-         ~lsmInsertBatch();
-         lsmInsertBatch(const lsmInsertBatch &) = delete;
-         lsmInsertBatch &operator=(const lsmInsertBatch &) = delete;
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
+      btreeEntryPageHead *headPtr = NULL;
+      btreeEntryPageHead head;
 
-      public:
-         OSS_INLINE BOOLEAN isEmpty()const
-         {
-            return 0 == _batch.Count();
-         }
+      r = initCommonPage(PAGE_TYPE_BTREE_ENTRY, pageSize,
+                         pid, lpid, psv, buf);
+      if (!r)
+      {
+         goto done;
+      }
 
-         INT32 put(const lsmIndexMeta &meta,
-                   const lsmPureKeyEntry &ke,
-                   const lsmIndexValue *value=NULL);
-
-         void clear();
-
-         rocksdb::WriteBatch *getBatch()
-         {
-            return &_batch;
-         }
-
-      private:
-         rocksdb::WriteBatch _batch;
-   };//class lsmInsertBatch
+      headPtr = (btreeEntryPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
+      headPtr->version = BTREE_ENTRY_PAGE_VERSION;
+      headPtr->logicalIndexId = logicalIndexId;
+      headPtr->btreeRoot = INVALID_PAGE_ID;
+      headPtr->replayTick = 0;
+   done:
+      return r;
+   }
 }//namespace vessel
-}//namesapce engine
-
-#endif//VESSE_LSM_INSERT_BATCH_H_
+}//namespace engine

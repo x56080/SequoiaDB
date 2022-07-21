@@ -38,6 +38,7 @@
 
 #include "oss.hpp"
 #include "ossTypes.hpp"
+#include "ossUtil.h"
 
 namespace engine
 {
@@ -97,6 +98,25 @@ namespace vessel
                s.reset(size, _data + offset);
             }
             return s;
+         }
+
+         OSS_INLINE INT32 compare(const slice &o)const
+         {
+            UINT32 n = OSS_MIN(_size, o._size);
+            INT32 res = ossMemcmp(_data, o._data, n);
+            if (0 == res)
+            {
+               if (_size < o._size)
+               {
+                  res = -1;
+               }
+               else if (_size > o._size)
+               {
+                  res = 1;
+               }
+            }
+
+            return res;
          }
       private:
          UINT32 _size = 0;

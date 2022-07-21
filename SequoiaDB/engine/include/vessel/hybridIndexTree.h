@@ -42,6 +42,7 @@
 #include "../../bson/bson.hpp"
 #include "ossMemPool.hpp"
 #include "vessel/objectIdentifier.h"
+#include "vessel/indexIterator.h"
 
 namespace engine
 {
@@ -52,16 +53,20 @@ namespace vessel
    class indexObject;
    class dmlIndexRequest;
    class lsmWriteBatch;
+   class indexSpace;
 
    class hybridIndexTree : public SDBObject
    {
       public:
          hybridIndexTree() = default;
+         hybridIndexTree(indexSpace *is);
          ~hybridIndexTree() = default;
          hybridIndexTree(const hybridIndexTree &) = delete;
          hybridIndexTree &operator=(const hybridIndexTree &) = delete;
 
       public:
+         void init(indexSpace *is);
+
          INT32 insert(requestContext *context,
                       const indexObject *obj,
                       const bson::BSONObjSet &keys,
@@ -93,6 +98,8 @@ namespace vessel
          INT32 handleDmlRequests(dmlContext *context,
                                  const ossPoolVector<dmlIndexRequest *> &requests);
 
+         INDEX_ITERATOR_UPTR createIterator(indexObject *obj);
+
       private:
          INT32 _fillBatch(const globalLogicalClId &clid,
                           const indexObject *obj,
@@ -102,6 +109,9 @@ namespace vessel
                           const recordID &rid,
                           const DPS_TRANS_ID &transID,
                           lsmWriteBatch *batch);
+
+      private:
+         indexSpace *_is = nullptr;
    };//class indexEntryStore
 } // namespace vessel
 

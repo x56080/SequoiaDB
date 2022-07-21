@@ -64,6 +64,8 @@ namespace vessel
          {
             return rocksdb::Slice(_data, sizeof(_data));
          }
+         OSS_INLINE const CHAR *getData()const {return _data;}
+         OSS_INLINE UINT32 getSize()const {return sizeof(_data);}
 
       public:
          void reset();

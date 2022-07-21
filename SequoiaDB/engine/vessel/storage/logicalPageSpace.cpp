@@ -73,7 +73,36 @@ namespace vessel
       rpb.initWithMmap(gpid, pageSize, ptr);
    }
 
+   void logicalPageSpace::
+         _runtimePageBufferIniter::banWrite(runtimePageBuffer &rpb)
+   {
+      SDB_ASSERT(rpb.isValid(), "can not be invalid");
+      rpb.setWritingBanned();
+   }
+
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
+
+///////////////logicalPageSpace::_logicalPageBufferIniter
+   void logicalPageSpace::
+        _logicalPageBufferIniter::init(PAGE_ID lpid,
+                                       ossSharedLatchMode mode,
+                                       requestContext *context,
+                                       logicalPageSpace *lps,
+                                       runtimePageBuffer &&rpb,
+                                       PAGE_SNAPSHOT_VERION psv,
+                                       logicalPageBuffer &lpb)
+   {
+      lpb.fini();
+      lpb._lpid = lpid;
+      lpb._mode = mode;
+      lpb._context = context;
+      lpb._lps = lps;
+      lpb._rpb = std::move(rpb);
+      lpb._psv = psv;
+      return;
+   }
+
+///////////////logicalPageSpace::_logicalPageBufferIniter end
 
    logicalPageSpace::logicalPageSpace(const storageUnitManifest *manifest):
    _manifest(manifest)
@@ -83,14 +112,7 @@ namespace vessel
 
    logicalPageSpace::~logicalPageSpace()
    {
-      if (isOpen())
-      {
-         _smgr.fini();
-         _fcluster.close();
-         _lpm.fini();
-         _mfile.fsync();
-         _mfile.close();
-      }
+
    }
 
    INT32 logicalPageSpace::create()
@@ -241,11 +263,20 @@ namespace vessel
       if (isOpen())
       {
          _onClosingStarted();
+
+         INT32 rc = _updateUberBlockOnDisk();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to update uber block on disk:%d", rc);
+            ossPanic();
+         }
+
          _smgr.fini();
          _fcluster.close();
          _lpm.fini();
          _mfile.fsync();
          _mfile.close();
+         _allocator.fini();
          _onClosingFinished();
       }
       return;
@@ -260,6 +291,7 @@ namespace vessel
          _fcluster.destroy();
          _lpm.fini();
          _mfile.destroy();
+         _allocator.fini();
          _onDestroyFinished();
       }
 
@@ -464,7 +496,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(lpb.isReadonly()))
+      else if (OSS_UNLIKELY(lpb._rpb.isWritingBanned()))
       {
          SDB_ASSERT(FALSE, "readonly buffer");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -767,8 +799,15 @@ namespace vessel
    INT32 logicalPageSpace::_initPageMapping(BOOLEAN creating)
    {
       INT32 rc = SDB_OK;
+      strictBuffer buffer;
+      rc = _mfile.makeReadableBuffer(UBER_BLOCK_PID, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get uber block buffer:%d", rc);
+         goto error;
+      }
 
-      rc = _lpm.init(&_mfile, UBER_BLOCK_PID);
+      rc = _lpm.init(&_mfile, buffer.getReadableObjPtr<lpmUberBlock>(0));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init lpage mapping:%d", rc);
@@ -840,6 +879,7 @@ namespace vessel
       block->reset();
       block->version = lpmUberBlock::VERSION;
       block->smeEntryPid = smePid;
+      block->refillChecksum();
    done:
       return rc;
    error:
@@ -1355,6 +1395,32 @@ namespace vessel
          }
       }
       return;
+   }
+
+   INT32 logicalPageSpace::_updateUberBlockOnDisk()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      lpmUberBlock *ub = nullptr;
+
+      strictBuffer buffer;
+      rc = _mfile.makeWritableBuffer(UBER_BLOCK_PID, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer of uber block:%d", rc);
+         goto error;
+      }
+
+      ub = buffer.getWritableObjPtr<lpmUberBlock>(0);
+      SDB_ASSERT(nullptr != ub, "can not be invalid");
+      if (_lpm.getRoot().update(ub))
+      {
+         ub->refillChecksum();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace vessel
 

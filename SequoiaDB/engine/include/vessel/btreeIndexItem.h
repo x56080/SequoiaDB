@@ -63,15 +63,15 @@ namespace vessel
             return _slot;
          }
 
-         /// key data may be null
-         OSS_INLINE const CHAR *getSavingKeyData()const
+         /// key slice may be empty
+         OSS_INLINE const slice &getKeySlice() const
          {
-            return _keyData;
+            return _keySlice;
          }
 
-         OSS_INLINE const CHAR *getPrefixData()const
+         OSS_INLINE const slice &getPrefix()const
          {
-            return _prefixData;
+            return _prefix;
          }
 
          OSS_INLINE recordID getRid()const
@@ -86,28 +86,17 @@ namespace vessel
             return isValidRecordSlotPosition(_slotPos);
          }
 
-         void fini();
+         void reset();
 
          /// not compressed and not ext key
          void initWhenNormal(RECORD_SLOT_POS slotPos,
-                             const btreeItemSlot *slot,
-                             const CHAR *keyData);
+                             const btreeItemSlot &slot,
+                             const slice &key);
 
          void initWhenCompressed(RECORD_SLOT_POS slotPos,
-                                 const btreeItemSlot *slot,
-                                 const CHAR *suffixData,
-                                 const CHAR *prefix);
-
-         INT32 initWhenExtKey(RECORD_SLOT_POS slotPos,
-                              const btreeItemSlot *slot,
-                              UINT32 keySize,
-                              const CHAR *keyData);
-
-         UINT32 getSavingSize()const;
-
-         /// WARNING: when key is compressed, key size is suffix size actually;
-         ///          when key is external, key size is size of external key;
-         UINT32 getSavedKeyDataSize()const;
+                                 const btreeItemSlot &slot,
+                                 const slice &prefix,
+                                 const slice &suffix);
 
          UINT32 getOriginalKeySize()const;
 
@@ -118,14 +107,11 @@ namespace vessel
 
          void exportOriginalKey(bson::StackBufBuilder &builder)const;
 
-         //void cacheOriginalKey();
-
       private:
          RECORD_SLOT_POS _slotPos = INVALID_RECORD_SLOT_POS;
          btreeItemSlot _slot;
-         const CHAR *_keyData = NULL;
-         const CHAR *_prefixData = NULL;
-         memoryBlock _extKeyBuffer;
+         slice _prefix;
+         slice _keySlice;
    };//class btreeIndexItem
 } // namespace vessel
 

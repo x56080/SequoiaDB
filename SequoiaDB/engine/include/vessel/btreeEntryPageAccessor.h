@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexEntryPageIniter.cpp
+   Source File Name = btreeEntryPageAccessor.h
 
    Descriptive Name =
 
@@ -33,48 +33,40 @@
 
 ******************************************************************************/
 
-#include "vessel/indexEntryPageIniter.h"
-#include "vessel/runtimePageBuffer.h"
-#include "vessel/indexEntryPage.h"
+#ifndef VESSEL_BTREE_ENTRY_PAGE_ACCESSOR_H_
+#define VESSEL_BTREE_ENTRY_PAGE_ACCESSOR_H_
+
+#include "vessel/pageAccessor.h"
+#include "vessel/indexKeyPattern.h"
+#include "vessel/logicalPageBuffer.h"
+#include "vessel/slice.h"
+#include "vessel/indexDef.h"
+#include "vessel/btreeEntryPage.h"
+#include "vessel/btreeStatistics.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 indexEntryPageIniter::initPage(requestContext *context,
-                                       PAGE_ID lpid,
-                                       PAGE_SNAPSHOT_VERION psv,
-                                       runtimePageBuffer *rpb)
+   class btreeEntryPageAccessor : public pageAccessor
    {
-      INT32 rc = SDB_OK;
+      public:
+         btreeEntryPageAccessor(UINT32 lid);
+         ~btreeEntryPageAccessor() = default;
 
-      if (NULL == context ||
-          INVALID_PAGE_ID == lpid ||
-          INVALID_PAGE_SNAPSHOT_VERSION == psv ||
-          NULL == rpb ||
-          !rpb->isWritingPrepared())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      public:
+         /// root may be invalid
+         INT32 resetBtreeRoot(requestContext *context,
+                              PAGE_ID root,
+                              logicalPageBuffer *lpb)const;
 
-      SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
-
-      if (!initIndexEntryPage(rpb->getPageSize(),
-                           rpb->getGlobalPid().page(),
-                           lpid, psv, rpb->getWritableBuffer().getWPtr()))
-      {
-         PD_LOG(PDERROR, "failed to init index def page[%s]",
-                rpb->getGlobalPid().toString().c_str());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rpb->commit(DPS_INVALID_LSN_OFFSET);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
+         INT32 load(logicalPageBuffer *lpb,
+                    PAGE_ID &root,
+                    btreeStatistics &stats);
+      private:
+         UINT32 _indexLid = INVALID_LOGICAL_INDEX_ID;
+   };//class btreeEntryPageAccessor 
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_BTREE_ENTRY_PAGE_ACCESSOR_H_

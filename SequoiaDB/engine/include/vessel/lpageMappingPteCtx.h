@@ -51,22 +51,18 @@ namespace vessel
       friend class lpageMapping;
       public:
          lpageMappingPteCtx() = default;
-         ~lpageMappingPteCtx();
+         ~lpageMappingPteCtx() = default;
          lpageMappingPteCtx(const lpageMappingPteCtx &) = delete;
          lpageMappingPteCtx &operator=(const lpageMappingPteCtx &) = delete;
 
       public:
-         BOOLEAN none()const;
          void reset();
-
       private:
-
-      private:
-         std::mutex _privatePathLocker;
+         std::mutex _pathLock;
          lpageMappingRoot _root;
 
          /// pids of meta file to be free after publishing.
-         /// protected by _privatePathLocker
+         /// protected by _pathLock
          ossPoolSet<PAGE_ID> _obsoleteSet; 
    };//class lpageMappingPteCtx
 } // namespace vessel

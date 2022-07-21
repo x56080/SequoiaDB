@@ -44,6 +44,7 @@
 #include "vessel/objectIdentifier.h"
 #include "dmsEngineOptions.hpp"
 #include "../bson/util/builder.h"
+#include "vessel/indexEntryLocation.h"
 
 namespace engine
 {
@@ -63,7 +64,7 @@ namespace vessel
          _indexId(indexId)
          {}
 
-         virtual ~indexScanCursor();
+         virtual ~indexScanCursor() = default;
 
       public:
          virtual const CHAR *getName()const override
@@ -111,15 +112,15 @@ namespace vessel
             return _o;
          }
 
-         void saveEntry(const slice &entryData);
-         OSS_INLINE BOOLEAN hasEntry()const
-         {
-            return 0 < _entry.len();
-         }
-         slice getEntryData()const;
-
          BOOLEAN markRidScanned(const recordID &rid);
          BOOLEAN testRidScanned(const recordID &rid)const;
+
+         void resetEntryLocation()
+         {
+            _location.reset();
+         }
+         OSS_INLINE BOOLEAN hasLocation()const {return !!_location;}
+         OSS_INLINE IDX_ENTRY_LOCATION_UPTR &getLocation() {return _location;}
 
       private:
          dmsIndexScanOptions _o;
@@ -127,7 +128,7 @@ namespace vessel
          globalCollectionId _gcid;
          indexIdentifier _indexId;
          UNORDERED_RID_SET _scanned;
-         bson::StackBufBuilder _entry;
+         IDX_ENTRY_LOCATION_UPTR _location;
    };//class indexScanCursor
 } // namespace vessel
 

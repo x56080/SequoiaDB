@@ -45,8 +45,12 @@ namespace vessel
    /// we use pos << 3 instead of pos * 8
    static_assert(8 == sizeof(lpageDescriptor), "must be 8");
 
+   const UINT32 lpageMapping::_UNIT_SIZE_SQUARE = std::log2(lpageMapping::LPID_UNIT_SIZE);
+   const UINT32 lpageMapping::_MAPPING_CAPACITY_SQUARE =
+                     std::log2(lpageMapping::MAPPING_ENTRY_CAPACITY);
+
    INT32 lpageMapping::init(lpageMetaDataFile *mfile,
-                            PAGE_ID uberBlockPid)
+                            const lpmUberBlock *ub)
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
@@ -54,28 +58,15 @@ namespace vessel
       fini();
       if (OSS_UNLIKELY(nullptr == mfile ||
                        !mfile->isOpen() ||
-                       INVALID_PAGE_ID == uberBlockPid))
+                       nullptr == ub ||
+                       !ub->isVaild()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = mfile->makeWritableBuffer(uberBlockPid, buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to load uber block page at[%d], rc:%d", uberBlockPid, rc);
-         goto error;
-      }
-
-      _uberBlockPid = uberBlockPid;
       _mfile = mfile;
-      _mmapBlock = buffer.getWritableObjPtr<lpmUberBlock>(0);
-      if (nullptr == _mmapBlock || !_mmapBlock->isVaild())
-      {
-         PD_LOG(PDERROR, "failed to load uber block at[%d], rc:%d", uberBlockPid, rc);
-         goto error;
-      }
-      _root.init(_mmapBlock);
+      _root.init(ub);
 
    done:
       return rc;
@@ -86,9 +77,7 @@ namespace vessel
 
    void lpageMapping::fini()
    {
-      _uberBlockPid = INVALID_PAGE_ID;
       _mfile = nullptr;
-      _mmapBlock = nullptr;
       _root.reset();
       return;
    }
@@ -538,7 +527,6 @@ namespace vessel
 
       b.makeWritable(lpageMetaDataFile::PAGE_SIZE, ptr.getBuf());
       b.setBuffer(0xFF);
-      _mmapBlock->mappingEntries[pos] = pid;
       _root.set(pos, pid);
       
    done:
@@ -643,8 +631,8 @@ namespace vessel
          lpageDescriptor *descPtr = nullptr;
          PAGE_ID descPid = INVALID_PAGE_ID;
          strictBuffer buffer;
-         UINT32 unitId = _getUnitId(lpid);
-         rc = _ensurePrivatePath(ctx, unitId, descPid);
+
+         rc = _ensurePrivatePath(ctx, _getUnitId(lpid), descPid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure private path:%d", rc);
@@ -662,7 +650,6 @@ namespace vessel
          descPtr = buffer.getWritableObjPtr<lpageDescriptor>(_getDescPos(lpid) << 3);
          SDB_ASSERT(!descPtr->isValid(), "reset it first");
          *descPtr = desc;
-         ctx.setPrivate(lpid);
       }
    done:
       return rc;
@@ -670,11 +657,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 lpageMapping::setBatchPrivately(lpageMappingPteCtx &ctx,
-                                         PAGE_SNAPSHOT_VERION psv,
-                                         UINT32 size,
-                                         const PAGE_ID *lpids,
-                                         const PAGE_ID *pids)
+   INT32 lpageMapping::setBatch(lpageMappingPteCtx &ctx,
+                                PAGE_SNAPSHOT_VERION psv,
+                                UINT32 size,
+                                const PAGE_ID *lpids,
+                                const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isValid()))
@@ -693,11 +680,20 @@ namespace vessel
 
       for (UINT32 i = 0; i < size; ++i)
       {
+         PAGE_ID descPid = INVALID_PAGE_ID;
+
          if (INVALID_PAGE_ID == lpids[i] ||
              isOutOfMaxBound(lpids[i]) ||
              INVALID_PAGE_ID == pids[i])
          {
             rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         rc = _ensurePrivatePath(ctx, _getUnitId(lpids[i]), descPid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to ensure private path:%d", rc);
             goto error;
          }
       }
@@ -708,8 +704,9 @@ namespace vessel
          lpageDescriptor desc(pids[i], psv);
          PAGE_ID descPid = INVALID_PAGE_ID;
          strictBuffer buffer;
-         UINT32 unitId = _getUnitId(lpid);
-         rc = _ensurePrivatePath(ctx, unitId, descPid);
+         lpageDescriptor *descPtr = nullptr;
+
+         rc = _ensurePrivatePath(ctx, _getUnitId(lpid), descPid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure private path:%d", rc);
@@ -724,8 +721,11 @@ namespace vessel
          }
 
          static_assert(8 == sizeof(lpageDescriptor), "must be 8");
-         *(buffer.getWritableObjPtr<lpageDescriptor>(_getDescPos(lpid) << 3)) = desc;
-         ctx.setPrivate(lpid);
+         
+         descPtr = buffer.getWritableObjPtr<lpageDescriptor>(_getDescPos(lpid) << 3);
+         SDB_ASSERT(nullptr != descPtr, "can not be invalid");
+         SDB_ASSERT(INVALID_PAGE_ID == descPtr->pid, "reset it first");
+         *descPtr = desc;
       }
 
    done:
@@ -734,9 +734,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 lpageMapping::get(const lpageMappingPteCtx &ctx,
-                           PAGE_ID lpid,
-                           lpageDescriptor &desc)
+   INT32 lpageMapping::getPtePrior(const lpageMappingPteCtx &ctx,
+                                   PAGE_ID lpid,
+                                   lpageDescriptor &desc)
    {
       INT32 rc = SDB_OK;
       desc.reset();
@@ -787,52 +787,17 @@ namespace vessel
    error:
       goto done;
    }
-
-   INT32 lpageMapping::getPrivatePrior(const lpageMappingPteCtx &ctx,
-                                       PAGE_ID lpid,
-                                       lpageDescriptor &desc,
-                                       BOOLEAN &isPrivate)
-   {
-      INT32 rc = SDB_OK;
-      BOOLEAN isPrivatePath = FALSE;
-      desc.reset();
-      isPrivate = FALSE;
-
-      rc = isPathOverwrittenPrivately(ctx, lpid, isPrivatePath);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (isPrivatePath)
-      {
-         rc = getPrivately(ctx, lpid, desc);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         isPrivate = ctx.isPrivate(lpid);
-      }
-      else
-      {
-         rc = get(lpid, desc);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
+   
    INT32 lpageMapping::reset(lpageMappingPteCtx &ctx,
-                             PAGE_ID lpid)
+                             PAGE_ID lpid,
+                             lpageDescriptor *oldVal)
    {
       INT32 rc = SDB_OK;
+
+      if (nullptr != oldVal)
+      {
+         oldVal->reset();
+      }
 
       if (OSS_UNLIKELY(!isValid()))
       {
@@ -854,8 +819,8 @@ namespace vessel
          lpageDescriptor *descPtr = nullptr;
          PAGE_ID descPid = INVALID_PAGE_ID;
          strictBuffer buffer;
-         UINT32 unitId = _getUnitId(lpid);
-         rc = _ensurePrivatePath(ctx, unitId, descPid);
+
+         rc = _ensurePrivatePath(ctx, _getUnitId(lpid), descPid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure private path:%d", rc);
@@ -872,15 +837,11 @@ namespace vessel
          static_assert(8 == sizeof(lpageDescriptor), "must be 8");
          descPtr = buffer.getWritableObjPtr<lpageDescriptor>(_getDescPos(lpid) << 3);
          SDB_ASSERT(nullptr != descPtr, "impossible");
-         if (!descPtr->isValid())
+         if (nullptr != oldVal)
          {
-            PD_LOG(PDERROR, "lpid[%d] not mapped", lpid);
-            rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
-            goto error;
+            *oldVal = *descPtr;
          }
-
          descPtr->reset();
-         ctx.setPrivate(lpid);
       }
    done:
       return rc;
@@ -888,67 +849,71 @@ namespace vessel
       goto done;
    }
 
-   INT32 lpageMapping::publish(BOOLEAN fsync,
-                               lpageMappingPteCtx &ctx)
+   INT32 lpageMapping::publish(lpageMappingPteCtx &ctx)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   INT32 lpageMapping::revert(lpageMappingPteCtx &ctx,
+                              PAGE_ID lpid,
+                              lpageDescriptor &beforeRevert,
+                              lpageDescriptor &afterRevert)
    {
       INT32 rc = SDB_OK;
-      ossPoolSet<UINT32> tracker;
-      ossPoolSet<PAGE_ID> obsolete;
+      beforeRevert.reset();
+      afterRevert.reset();
 
       if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      if (fsync)
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
       {
-         rc = _mfile->fsync();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fsync meta file:%d", rc);
-            goto error;
-         }
-      }
-
-      tracker = ctx.exportPrivateUnits(LPID_UNIT_SIZE);
-      rc = _createObsoleteSet(tracker, obsolete);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create obsolete set:%d", rc);
+         rc = SDB_INVALIDARG;
          goto error;
       }
-
-      for (UINT32 i = 0; i < _root.getEntrySize(); ++i)
+      else if (OSS_UNLIKELY(isOutOfMaxBound(lpid)))
       {
-         PAGE_ID pid = ctx._root.get(i);
-         if (INVALID_PAGE_ID != pid)
-         {
-            if (INVALID_PAGE_ID != _root.get(i))
-            {
-               obsolete.insert(_root.get(i));
-            }
-            _root.set(i, pid);
-            _mmapBlock->mappingEntries[i] = pid;
-         }
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
       }
-
-      if (fsync)
+      else
       {
-         rc = _mfile->fsyncPage(_uberBlockPid);
+         lpageDescriptor *descPtr = nullptr;
+         lpageDescriptor publishedDesc;
+         PAGE_ID descPid = INVALID_PAGE_ID;
+         strictBuffer buffer;
+
+         rc = get(lpid, publishedDesc);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to fsync uber block:%d", rc);
+            PD_LOG(PDERROR, "failed to get published descriptor of lpid[%d], rc:%d", lpid, rc);
             goto error;
          }
-      }
 
-      for (auto itr = obsolete.cbegin(); itr != obsolete.cend(); ++itr)
-      {
-         _mfile->freePid(*itr);
-      }
+         rc = _getDescriptorPage(&(ctx._root), _getUnitId(lpid), descPid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to ensure private path:%d", rc);
+            goto error;
+         }
 
-      ctx.reset();
+         rc = _mfile->makeWritableBuffer(descPid, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make writable buffer of pid[%d], rc:%d", descPid, rc);
+            goto error;
+         }
+
+         static_assert(8 == sizeof(lpageDescriptor), "must be 8");
+         descPtr = buffer.getWritableObjPtr<lpageDescriptor>(_getDescPos(lpid) << 3);
+         SDB_ASSERT(nullptr != descPtr, "impossible");
+         beforeRevert = *descPtr;
+         afterRevert = publishedDesc;
+         *descPtr = publishedDesc;
+      }
    done:
       return rc;
    error:
@@ -999,7 +964,8 @@ namespace vessel
       {
          strictBuffer buffer;
          PAGE_ID publicDescriptorPid = INVALID_PAGE_ID;
-         std::unique_lock<std::mutex> guard(ctx._privatePathLocker);
+         std::unique_lock<std::mutex> guard(ctx._pathLock);
+
          descriptorPid = *(mappingBuffer.getReadableObjPtr<PAGE_ID>(posInEntry << 2));
          if (INVALID_PAGE_ID != descriptorPid)
          {
@@ -1060,7 +1026,7 @@ namespace vessel
       strictBuffer buffer;
       PAGE_ID reservedPid = INVALID_PAGE_ID;
 
-      std::unique_lock<std::mutex> guard(ctx._privatePathLocker);
+      std::unique_lock<std::mutex> guard(ctx._pathLock);
       
       if (INVALID_PAGE_ID != ctx._root.get(pos))
       {
@@ -1102,58 +1068,6 @@ namespace vessel
       {
          _mfile->freePid(reservedPid);
       }
-      goto done;
-   }
-
-   INT32 lpageMapping::_createObsoleteSet(const ossPoolSet<UINT32> &units,
-                                          ossPoolSet<PAGE_ID> &set)
-   {
-      INT32 rc = SDB_OK;
-
-      for (auto itr = units.cbegin(); itr != units.cend(); ++itr)
-      {
-         PAGE_ID pid = INVALID_PAGE_ID;
-         rc = _getDescriptorPage(*itr, pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get descriptor pid of unit[%d], rc:%d",
-                   *itr, rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 lpageMapping::isPathOverwrittenPrivately(const lpageMappingPteCtx &ctx,
-                                                  PAGE_ID lpid,
-                                                  BOOLEAN &overwritten)
-   {
-      INT32 rc = SDB_OK;
-      PAGE_ID pid = INVALID_PAGE_ID;
-
-      overwritten = FALSE;
-
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _getDescriptorPage(&(ctx._root), _getUnitId(lpid), pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get descriptor pid:%d", rc);
-         goto error;
-      }
-
-      overwritten = (INVALID_PAGE_ID != pid);
-
-   done:
-      return rc;
-   error:
       goto done;
    }
 } // namespace vessel

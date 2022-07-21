@@ -37,6 +37,13 @@
 #define VESSEL_INDEX_SPACE_H_
 
 #include "vessel/logicalPageSpace.h"
+#include "ossRWMutex.hpp"
+#include "vessel/lpageMappingPteCtx.h"
+#include "vessel/sparsePidBitmap.h"
+#include "vessel/indexSpaceAccessCtx.h"
+
+#include <chrono>
+#include <atomic>
 
 namespace engine
 {
@@ -70,8 +77,55 @@ namespace vessel
                                                 PAGE_ID newPid,
                                                 runtimePageBuffer &rpb);
                                                 
+      public:
+         INT32 openAccessCtx(requestContext *context,
+                             indexSpaceAccessCtx &ac);
+
+         void abort(indexSpaceAccessCtx &ctx);
+
+         INT32 getLogicalPageBuffer(indexSpaceAccessCtx &ctx,
+                                    PAGE_ID lpid,
+                                    BOOLEAN pteEnabled,
+                                    logicalPageBuffer &buffer);
+
+         INT32 allocate(indexSpaceAccessCtx &ctx,
+                        pageInitializer *initer,
+                        PAGE_ID &lpid);
+
+         INT32 makePrivateBuffer(indexSpaceAccessCtx &ctx,
+                                 logicalPageBuffer &lpb);
+
+         INT32 removePage(indexSpaceAccessCtx &ctx,
+                          PAGE_ID lpid);
+
+      public:
+         void incPtePageNum()
+         {
+            _totalPtePageNum.fetch_add(1, std::memory_order_relaxed);
+         }
+         void resetPtePageNum()
+         {
+            _totalPtePageNum.store(0, std::memory_order_relaxed);
+         }
+         UINT32 getPtePageNum()const
+         {
+            return _totalPtePageNum.load(std::memory_order_relaxed);
+         }
+
       private:
-         virtual UINT32 _getReservedLpidUnits()const override {return 1;}
+         void _rollbackPagesReserved(indexSpaceAccessCtx &ctx);
+         void _rollbackPageRemapped(indexSpaceAccessCtx &ctx);
+
+      private:
+         ossRWMutex _mutex;
+         std::atomic_uint _totalPtePageNum{0};
+         std::chrono::steady_clock _lastPublishTime;
+         lpageMappingPteCtx _mappingCtx;
+
+         ossSpinSLatchPOSIX _lpidsToFreeLatch;
+         sparsePidBitmap _lpidsToFree{&_lpidsToFreeLatch};
+         ossSpinSLatchPOSIX _ppidsToFreeLatch;
+         sparsePidBitmap _ppidsToFree{&_ppidsToFreeLatch};
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

@@ -34,13 +34,14 @@
 ******************************************************************************/
 
 #include "vessel/metaDataUberBlock.h"
+#include "pdTrace.hpp"
 #include <boost/crc.hpp>
 
 namespace engine
 {
 namespace vessel
 {
-   UINT32 lpmUberBlock::createChecksum()const
+   UINT32 lpmUberBlock::generateChecksum()const
    {
       boost::crc_32_type crc;
       crc.process_bytes(&smeEntryPid, sizeof(smeEntryPid));
@@ -48,9 +49,16 @@ namespace vessel
       return crc.checksum();
    }
 
+   void lpmUberBlock::refillChecksum()
+   {
+      SDB_ASSERT(isVaild(), "can not be invalid");
+      checksum = generateChecksum();
+      return;
+   }
+
    BOOLEAN inspectUberBlockChecksum(const lpmUberBlock &ub)
    {
-      return ub.isVaild() && (ub.checksum == ub.createChecksum());
+      return ub.isVaild() && (ub.checksum == ub.generateChecksum());
    }
 } // namespace vessel
 

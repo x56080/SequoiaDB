@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexEntryPage.cpp
+   Source File Name = btreeEntryPage.h
 
    Descriptive Name =
 
@@ -33,33 +33,47 @@
 
 ******************************************************************************/
 
-#include "vessel/indexEntryPage.h"
+#ifndef VESSEL_BTREE_ENTRY_PAGE_H_
+#define VESSEL_BTREE_ENTRY_PAGE_H_
+
+#include "vessel/indexDef.h"
+#include "vessel/pageDef.h"
+#include "vessel/vesselIdDef.h"
+#include "dms.hpp"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initIndexEntryPage(UINT32 pageSize,
+   constexpr UINT32 BTREE_ENTRY_PAGE_VERSION = 1;
+
+
+#pragma pack(4)
+   struct btreeEntryPageHead
+   {
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return BTREE_ENTRY_PAGE_VERSION == version &&
+                INVALID_LOGICAL_INDEX_ID != logicalIndexId;
+      }
+
+      UINT32 version = 0;
+      UINT32 logicalIndexId = INVALID_LOGICAL_INDEX_ID;
+      UINT32 btreeRoot = INVALID_PAGE_ID;
+      UINT32 replayTick = 0;
+   };//struct btreeEntryPageHead
+
+   constexpr UINT32 BTREE_ENTRY_PAGE_HEAD_SIZE = sizeof(btreeEntryPageHead);
+
+#pragma pack()
+   BOOLEAN initBtreeEntryPage(UINT32 pageSize,
                               PAGE_ID pid,
                               PAGE_ID lpid,
                               PAGE_SNAPSHOT_VERION psv,
-                              CHAR *buf)
-   {
-      BOOLEAN r = FALSE;
-      indexEntryPageHead *headPtr = NULL;
-      indexEntryPageHead head;
-
-      r = initCommonPage(PAGE_TYPE_INDEX_ENTRY, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
-
-      headPtr = (indexEntryPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, INDEX_ENTRY_PAGE_HEAD_SIZE);
-   done:
-      return r;
-   }
+                              UINT32 logicalIndexId,
+                              CHAR *buf);
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_BTREE_ENTRY_PAGE_H_

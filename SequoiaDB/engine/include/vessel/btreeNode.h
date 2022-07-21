@@ -39,7 +39,6 @@
 #include "vessel/btreeNodePage.h"
 #include "ixmKey.hpp"
 #include "vessel/btreeIndexItem.h"
-#include "vessel/btreeNodeCompressedKey.h"
 #include "vessel/btreeItemLocation.h"
 #include "ossSharedLatch.hpp"
 #include "vessel/btreeSplitRaisedKey.h"
@@ -51,51 +50,38 @@ namespace engine
 namespace vessel
 {
    class logicalPageBuffer;
-   class indexObject;
+   class btreeAccessContext;
+   class indexProperties;
 
    class btreeNode : public SDBObject
    {
       public:
-         btreeNode(){}
+         btreeNode() = default;
+          ~btreeNode() = default;
 
-         explicit btreeNode(logicalPageBuffer *buffer,
-                            UINT32 depth,
-                            const indexObject *ic);
-
-         ~btreeNode(){}
-         btreeNode(const btreeNode &o):
-         _buffer(o._buffer),
-         _depth(o._depth),
-         _obj(o._obj)
-         {}
-         btreeNode &operator=(const btreeNode &o)
-         {
-            _buffer = o._buffer;
-            _depth = o._depth;
-            _obj = o._obj;
-            return *this;
-         }
+         explicit btreeNode(UINT32 depth,
+                            logicalPageBuffer *buffer,
+                            btreeAccessContext *ctx);
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _buffer;
+            return nullptr != _buffer &&
+                   nullptr != _ctx;
          }
 
          OSS_INLINE void reset()
          {
             _depth = 0;
-            _buffer = NULL;
-            _obj = NULL;
+            _buffer = nullptr;
+            _ctx = nullptr;
             return;
          }
 
       public:
          BOOLEAN isRoot()const;
-         BOOLEAN hasExternalKey()const;
-         PAGE_ID getExternalKeyPage()const;
          BOOLEAN isLeaf()const;
-         
+         INT32 getBirthNodeLevel()const;
          UINT32 getItemCount()const;
          UINT32 getNodeSize()const;
          ossSharedLatchMode getLockingMode()const;
@@ -106,7 +92,6 @@ namespace vessel
          PAGE_ID getLeftChild(RECORD_SLOT_POS pos)const;
          PAGE_ID getChild(RECORD_SLOT_POS pos)const;
          DPS_TRANS_ID getTransID()const;
-         UINT32 getSplitedTimes()const;
 
          BOOLEAN becameEmptyAfterRemoving(RECORD_SLOT_POS pos)const;
 
@@ -129,9 +114,7 @@ namespace vessel
       public:
 
          BOOLEAN hasFreeSpaceToInsert(UINT32 keySize,
-                                       BOOLEAN *needCompact=NULL)const;
-         BOOLEAN hasFreeSpaceToInsertRaisedKey(UINT32 keySize,
-                                               BOOLEAN *needCompact=NULL)const;
+                                      BOOLEAN *needCompact=NULL)const;
          /// leaf node only
          INT32 leafInsert(const ixmKey &key,
                            const recordID &rid);
@@ -144,8 +127,6 @@ namespace vessel
          /// non-leaf node only
          INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey);
 
-         INT32 insertRaisedKeyAsExtKey(const btreeSplitRaisedKey &raisedKey);
-
          INT32 splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
                                        btreeSplitRaisedKey &raisedKey);
 
@@ -153,8 +134,6 @@ namespace vessel
 
          /// non-leaf node only
          INT32 reactiveRemovedKey(const btreeItemLocation &location);
-
-         INT32 exchangeWithNewRoot(btreeNode &newRoot);
 
          INT32 resetRemovedChild(RECORD_SLOT_POS pos,
                                  PAGE_ID child);
@@ -201,6 +180,7 @@ namespace vessel
                           bson::BufBuilder *bb=NULL);
 
       private:
+         const indexProperties *getProperties()const;
          OSS_INLINE UINT32 getSizeToSaveInNode(UINT32 keySize)const
          {
             return BTREE_NODE_SLOT_SIZE + keySize;
@@ -221,6 +201,9 @@ namespace vessel
          BOOLEAN isVainPrefixRegen()const;
          BOOLEAN hasCompressedKeys()const;
          BOOLEAN hasPrefix()const;
+         UINT32 getFrontOffset()const;
+         UINT32 getBackOffset()const;
+         UINT32 getContinuousFreeSpace()const;
 
          const btreeNodePageHead *getReadableHead()const;
 
@@ -257,20 +240,8 @@ namespace vessel
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                  RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
 
-         INT32 _insertExternalKey(const btreeSplitRaisedKey &raisedKey,
-                                  RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
-
-
          INT32 _splitAndCompact(RECORD_SLOT_POS pivot,
                                 PAGE_ID &rightNode);
-
-         INT32 insertExternalKey(RECORD_SLOT_POS pos,
-                                 const ixmKey &key,
-                                 const recordID &rid,
-                                 PAGE_ID leftChild);
-
-         INT32 getItemWithExtKey(RECORD_SLOT_POS pos,
-                                 btreeIndexItem &item)const;
 
          INT32 buildRightNodeWhenSplit(RECORD_SLOT_POS begin,
                                        strictBuffer &node)const;
@@ -295,24 +266,10 @@ namespace vessel
 
          INT32 _markRemoved(RECORD_SLOT_POS pos);
 
-      private:/// leaf node only
-         INT32 tryToCompressKeyInserting(RECORD_SLOT_POS pos,
-                                          const ixmKey &key,
-                                          btreeNodeCompressedKey &ck)const;
-         INT32 tryToCompressKey(const ixmKey &key,
-                                 UINT32 prefixPos,
-                                 const ixmKey &prefix,
-                                 btreeNodeCompressedKey &ck)const;
-
-         INT32 insertCompressedKey(RECORD_SLOT_POS pos,
-                                    const btreeNodeCompressedKey &ck,
-                                    const recordID &rid);
-
-         INT32 recompress(BOOLEAN &recompressed);
       private:
-         logicalPageBuffer *_buffer = NULL;
          UINT32 _depth = 0;
-         const indexObject *_obj = NULL;
+         logicalPageBuffer *_buffer = nullptr;
+         btreeAccessContext *_ctx = nullptr;
    };//class btreeNode
 } // namespace vessel
 

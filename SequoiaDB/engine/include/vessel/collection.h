@@ -72,7 +72,6 @@ namespace vessel
    class scanCLCursor;
    class dmlContext;
    class buildingIndexContext;
-   class indexScanContext;
    class indexScanCursor;
    class bigRecordStream;
    
@@ -172,7 +171,8 @@ namespace vessel
          INT32 getTotalRecordCount(requestContext *context,
                                    UINT64 &count);
 
-         INT32 getMoreWhenIndexScan(indexScanContext *context);
+         INT32 getMoreWhenIndexScan(requestContext *context,
+                                    indexScanCursor *cursor);
 
       public:
          INT32 insert(dmlContext *context,
@@ -223,8 +223,9 @@ namespace vessel
                             dmsLobChunkProfile *profile);
 
       private:
-         INT32 _getMoreWhenIndexScan(indexScanContext *context,
-                                     indexObject *obj);
+         INT32 _getMoreWhenIndexScan(requestContext *context,
+                                     indexObject *obj,
+                                     indexScanCursor *cursor);
 
       private:
          INT32 buildDmlIndexRequests(requestContext *context,

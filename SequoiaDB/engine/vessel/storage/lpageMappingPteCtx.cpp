@@ -41,14 +41,10 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN lpageMappingPteCtx::none()const
-   {
-      return _root.none();
-   }
-
    void lpageMappingPteCtx::reset()
    {
       _root.reset();
+      _obsoleteSet.clear();
    }
 
 } // namespace vesel

@@ -42,7 +42,7 @@
 #include "sdbInterface.hpp"
 #include "interface/IDataCursor.h"
 #include "vessel/cursorOptions.h"
-#include "vessel/elasticBlockRowBatch.h"
+#include "vessel/elasticBlockRowBatch.hpp"
 
 namespace engine
 {
@@ -101,7 +101,7 @@ namespace vessel
          vesselImpl *_db = NULL;
 
          INT64 _fetched = 0;
-         elasticBlockRowBatch _batch;
+         ELASTIC_BLOCK_ROW_BATCH _batch;
          INT32 _pos = -1;
    };//class cursorKernal
 }//namespace vessel

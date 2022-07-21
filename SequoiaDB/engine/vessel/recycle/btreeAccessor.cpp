@@ -41,7 +41,6 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/indexSpace.h"
 #include "vessel/btreeNodePage.h"
-#include "vessel/indexEntryPageAccessor.h"
 #include "vessel/btreeNodePageIniter.h"
 #include "vessel/btreeAccessPathNode.h"
 

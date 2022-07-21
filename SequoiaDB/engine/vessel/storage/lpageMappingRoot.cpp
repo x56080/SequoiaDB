@@ -34,6 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/lpageMappingRoot.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -66,6 +67,20 @@ namespace vessel
       }
    }
 
+   BOOLEAN lpageMappingRoot::update(lpmUberBlock *uberBlock)const
+   {
+      SDB_ASSERT(nullptr != uberBlock, "can not be invalid");
+      BOOLEAN r = FALSE;
+      for (UINT32 i = 0; i < _entries.size(); ++i)
+      {
+         if (uberBlock->mappingEntries[i] != _entries[i])
+         {
+            uberBlock->mappingEntries[i] = _entries[i];
+            r = TRUE;
+         }
+      }
+      return r;
+   }
    
    void lpageMappingRoot::merge(const lpageMappingRoot &o)
    {

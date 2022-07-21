@@ -66,6 +66,7 @@ namespace vessel
       UINT8 version = 0;
       UINT8 type = LSM_INDEX_ENTRY_TYPE_INVALID;
       DPS_TRANS_ID transID;
+      UINT64 lsn = ~0;
    };//struct lsmHitEntryValue
    constexpr UINT32 LSM_INDEX_ENTRY_VALUE_SIZE = sizeof(lsmIndexEntryValue);
 

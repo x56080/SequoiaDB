@@ -46,6 +46,9 @@
 #include "../bson/util/builder.h"
 #include "dpsDef.hpp"
 #include "vessel/recordID.h"
+#include "vessel/indexEntryLocation.h"
+
+#include <memory>
 
 namespace engine
 {
@@ -76,7 +79,7 @@ namespace vessel
          };//class seekOptions
 
       public:
-         virtual const CHAR *getName()const = 0;
+         virtual INDEX_ITERATOR_TYPE getType() const = 0;
          virtual void reset() = 0;
 
          virtual INT32 seek(const bson::BSONObj &prevKey,
@@ -85,15 +88,14 @@ namespace vessel
                             const inclusiveVec &matchInclusive,
                             const seekOptions &o) = 0;
 
-         virtual INT32 seekKey(const ixmKey &key,
+         virtual INT32 seekKey(const bson::BSONObj &key,
                                const seekOptions &o) = 0;
 
-         virtual INT32 locate(const slice &encodedKey,
-                              const recordID &rid,
-                              const seekOptions &o) = 0;
+         virtual INT32 locate(const indexEntryLocation *location) = 0;
 
          virtual INT32 next() = 0;
 
+         /// reseek from current pos, to fast skip unmatched entries.
          virtual INT32 advance(const bson::BSONObj &prevKey,
                                INT32 fieldCountToCmpInPrev,
                                const VEC_ELE_CMP &matchEles,
@@ -102,16 +104,23 @@ namespace vessel
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
+         virtual INT32 pause(IDX_ENTRY_LOCATION_UPTR &location) = 0;
+
+         virtual INT32 resume(const indexEntryLocation *location) = 0;
+
       public:
          /// Access valid data saved in iterator.
          /// User should always ensure 'isReadyToRead' first.
-         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const = 0;
-         virtual slice getEncodedKey()const = 0;
-         virtual DPS_LSN_OFFSET getLSN()const {return DPS_INVALID_LSN_OFFSET;}
-         virtual DPS_TRANS_ID getTransID()const {return DPS_TRANS_ID();}
+         virtual slice getKeyString()const = 0;
+         virtual DPS_LSN_OFFSET getLSN()const = 0;
+         virtual DPS_TRANS_ID getTransID()const = 0;
          virtual recordID getRid()const = 0;
          virtual BOOLEAN equals(const ixmKey &key)const = 0;
+         virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const = 0;
+
    };//class indexIterator
+
+   using INDEX_ITERATOR_UPTR = std::unique_ptr<indexIterator>;
 
 }//namespace vessel
 }//namespace engine

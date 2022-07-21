@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeExtKeyPageIniter.cpp
+   Source File Name = btreeEntryPageIniter.cpp
 
    Descriptive Name =
 
@@ -33,20 +33,27 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeExtKeyPageIniter.h"
+#include "vessel/btreeEntryPageIniter.h"
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/btreeExternalKeyPage.h"
+#include "vessel/btreeEntryPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 btreeExtKeyPageIniter::initPage(requestContext *context,
-                                         PAGE_ID lpid,
-                                         PAGE_SNAPSHOT_VERION psv,
-                                         runtimePageBuffer *rpb)
+   btreeEntryPageIniter::btreeEntryPageIniter(UINT32 logicalIndexId):
+   _logicalIndexId(logicalIndexId)
+   {
+      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != _logicalIndexId, "can not be invalid");
+   }
+
+   INT32 btreeEntryPageIniter::initPage(requestContext *context,
+                                       PAGE_ID lpid,
+                                       PAGE_SNAPSHOT_VERION psv,
+                                       runtimePageBuffer *rpb)
    {
       INT32 rc = SDB_OK;
+
       if (NULL == context ||
           INVALID_PAGE_ID == lpid ||
           INVALID_PAGE_SNAPSHOT_VERSION == psv ||
@@ -56,22 +63,16 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (INVALID_LOGICAL_INDEX_ID == _indexId ||
-               !_key.isValid())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
       SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
 
-      if (!initBtreeExtKeyPage(rpb->getPageSize(),
-                               rpb->getGlobalPid().page(),
-                               lpid, psv, _indexId,
-                               _key.getSize(), _key.data(),
-                               rpb->getWritableBuffer().getWPtr()))
+      if (!initBtreeEntryPage(rpb->getPageSize(),
+                              rpb->getGlobalPid().page(),
+                              lpid, psv, _logicalIndexId,
+                              rpb->getWritableBuffer().getWPtr()))
       {
-         PD_LOG(PDERROR, "failed to init page");
+         PD_LOG(PDERROR, "failed to init index def page[%s]",
+                rpb->getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -80,9 +81,7 @@ namespace vessel
    done:
       return rc;
    error:
-      goto done;  
+      goto done;
    }
-} // namespace vessel
-
-} // namespace engine
-
+}//namespace vessel
+}//namespace engine

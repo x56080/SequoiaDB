@@ -106,28 +106,25 @@ namespace vessel
       OSS_INLINE BOOLEAN isValid()const
       {
          return BTREE_NODE_PAGE_HEAD_VERSION == version &&
-                DMS_INVALID_LOGICCLID != clLogicalID &&
                 INVALID_LOGICAL_INDEX_ID != indexId;
       }
 
       UINT32 version = 0;
-      UINT32 clLogicalID = DMS_INVALID_LOGICCLID;
       UINT32 indexId = INVALID_LOGICAL_INDEX_ID;
       UINT32 flags = 0;
       UINT16 totalFreeSpace = 0;
-      UINT16 freeSapceAfterLastSlot = 0;
       UINT16 totalSlotCount = 0;
+      UINT16 backOffset = 0;
       UINT16 prefixCount = 0;
       UINT16 compressedItemCount = 0;
       UINT16 appendingFactor = 0;
       UINT32 rightChild = INVALID_PAGE_ID;
-      UINT32 splitedTimes = 0;
-      UINT32 externalKeyPage = INVALID_PAGE_ID;
+      INT32 birthNodeLevel = -1;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
       CHAR pad[22] = {};
    };//struct btreeNodeHead
-   static const UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
+   constexpr UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
    
 #pragma pack()
 
@@ -135,8 +132,8 @@ namespace vessel
 #pragma pack(4)
    struct btreeItemSlot
    {  
-      OSS_INLINE btreeItemSlot(){}
-      OSS_INLINE ~btreeItemSlot(){}
+      btreeItemSlot() = default;
+      ~btreeItemSlot() = default;
       OSS_INLINE btreeItemSlot(const btreeItemSlot &o):
                  flags(o.flags),
                  ridPos(o.ridPos),
@@ -153,11 +150,10 @@ namespace vessel
          return *this;
       }
 
-      static const UINT16 FLAG_IN_USED = 0x01;
-      static const UINT16 FLAG_MARKED_DELETED = 0x02;
-      static const UINT16 FLAG_KEY_IN_EXTERNAL_PAGE = 0x04;
-      static const UINT16 FLAG_KEY_COMPRESSESD = 0x08;
-      static const UINT16 FLAG_MAX = 0x2000;
+      static constexpr UINT16 FLAG_IN_USED = 0x01;
+      static constexpr UINT16 FLAG_MARKED_DELETED = 0x02;
+      static constexpr UINT16 FLAG_KEY_COMPRESSESD = 0x04;
+      static constexpr UINT16 FLAG_MAX = 0x2000;
 
       /// 0x4000, 0x8000 for prefix slot pos.
 
@@ -176,8 +172,7 @@ namespace vessel
       void initAsNonLeafFormat(const recordID &rid,
                                UINT16 offset,
                                UINT16 size,
-                               PAGE_ID leftChild,
-                               BOOLEAN isExternalKey);
+                               PAGE_ID leftChild);
 
       void initAsLeafFormat(const recordID &rid,
                             UINT16 offset,
@@ -192,10 +187,6 @@ namespace vessel
       OSS_INLINE void markDeleted()
       {
          OSS_BIT_SET(flags, FLAG_MARKED_DELETED);
-      }
-      OSS_INLINE BOOLEAN isKeyInExtPage()const
-      {
-         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_IN_EXTERNAL_PAGE);
       }
       OSS_INLINE BOOLEAN hasPrefixSlot()const
       {
@@ -243,16 +234,16 @@ namespace vessel
    };//struct btreeItemSlot
 #pragma pack()
 
-   static const UINT32 BTREE_NODE_SLOT_SIZE = sizeof(btreeItemSlot);
+   constexpr UINT32 BTREE_NODE_SLOT_SIZE = sizeof(btreeItemSlot);
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,
                              PAGE_ID pid,
                              PAGE_ID lpid,
                              PAGE_SNAPSHOT_VERION psv,
-                             UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
                              BOOLEAN isRoot,
+                             INT32 birthNodeLevel,
                              CHAR *buf);
 
 

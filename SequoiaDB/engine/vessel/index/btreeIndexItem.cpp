@@ -42,82 +42,45 @@ namespace engine
 {
 namespace vessel
 {
-   void btreeIndexItem::fini()
+   void btreeIndexItem::reset()
    {
       _slotPos = INVALID_RECORD_SLOT_POS;
       _slot.reset();
-      _keyData = NULL;
-      _prefixData = NULL;
-      _extKeyBuffer.release();
+      _prefix = slice();
+      _keySlice = slice();
       return;
    }
 
    void btreeIndexItem::initWhenNormal(RECORD_SLOT_POS slotPos,
-                                       const btreeItemSlot *slot,
-                                       const CHAR *keyData)
+                                       const btreeItemSlot &slot,
+                                       const slice &key)
    {
       SDB_ASSERT(isValidRecordSlotPosition(slotPos), "can not be invalid");
-      SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
-      SDB_ASSERT(!slot->isKeyCompressed() || !slot->isKeyInExtPage(), "can not be invalid");
-      SDB_ASSERT(NULL != keyData, "can not be invalid");
+      SDB_ASSERT(slot.isValid(), "can not be invalid");
+      SDB_ASSERT(!slot.isKeyCompressed(), "can not be invalid");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
       _slotPos = slotPos;
-      _slot = *slot;
-      _keyData = keyData;
-      _prefixData = NULL;
-      _extKeyBuffer.release();
-
+      _slot = slot;
+      _keySlice = key;
+      _prefix = slice();
       return;
    }
 
    void btreeIndexItem::initWhenCompressed(RECORD_SLOT_POS slotPos,
-                                           const btreeItemSlot *slot,
-                                           const CHAR *suffixData,
-                                           const CHAR *prefix)
+                                           const btreeItemSlot &slot,
+                                           const slice &prefix,
+                                           const slice &suffix)
    {
       SDB_ASSERT(isValidRecordSlotPosition(slotPos), "can not be invalid");
-      SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
-      SDB_ASSERT(slot->isKeyCompressed(), "must be compressed");
-      SDB_ASSERT(NULL != prefix, "can not be null");
-      SDB_ASSERT(!(slot->data.key.size < 0 && NULL == suffixData), "can not be invlaid");
+      SDB_ASSERT(slot.isValid(), "can not be invalid");
+      SDB_ASSERT(slot.isKeyCompressed(), "must be compressed");
+      SDB_ASSERT(prefix.isValid(), "can not be null");
+      SDB_ASSERT(!(0 < slot.data.key.size && !suffix.isValid()), "can not be invlaid");
       _slotPos = slotPos;
-      _slot = *slot;
-      _keyData = suffixData;
-      _prefixData = prefix;
-      _extKeyBuffer.release();
+      _slot = slot;
+      _prefix = prefix;
+      _keySlice = suffix;
       return;
-   }
-
-   INT32 btreeIndexItem::initWhenExtKey(RECORD_SLOT_POS slotPos,
-                                        const btreeItemSlot *slot,
-                                        UINT32 keySize,
-                                        const CHAR *keyData)
-   {
-      SDB_ASSERT(isValidRecordSlotPosition(slotPos), "can not be invalid");
-      SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
-      SDB_ASSERT(slot->isKeyInExtPage(), "must be ext key");
-      SDB_ASSERT(0 < keySize && NULL != keyData, "can not be invalid");
-      INT32 rc = SDB_OK;
-      _slotPos = slotPos;
-      _slot = *slot;
-      rc = _extKeyBuffer.copy(keySize, keyData);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to copy ext key:%d", rc);
-         goto error;
-      }
-
-      _keyData = _extKeyBuffer.getBuffer();
-      _prefixData = NULL;
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   UINT32 btreeIndexItem::getSavingSize()const
-   {      
-      return isValid() ? (BTREE_NODE_SLOT_SIZE + getSavedKeyDataSize()) : 0;
    }
 
    INT32 btreeIndexItem::woCompare(const ixmKey &key,
@@ -134,8 +97,8 @@ namespace vessel
       }
       else
       {
-         SDB_ASSERT(NULL != _keyData, "impossible");
-         r = ixmKey(_keyData).woCompare(key, ordering);
+         SDB_ASSERT(_keySlice.isValid(), "impossible");
+         r = ixmKey(_keySlice.data()).woCompare(key, ordering);
       }
 
       return r;
@@ -146,66 +109,23 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
-      return key.woEqual(ixmKey(_keyData));
-   }
-
-   UINT32 btreeIndexItem::getSavedKeyDataSize()const
-   {
-      if (isValid())
-      {
-         return _slot.isKeyInExtPage() ?
-                _extKeyBuffer.getSize() : _slot.data.key.size;
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "can not be invalid");
-         return 0;
-      }
+      return key.woEqual(ixmKey(_keySlice.data()));
    }
 
    UINT32 btreeIndexItem::getOriginalKeySize()const
    {
-      if (isValid())
-      {
-         if (_slot.isKeyInExtPage())
-         {
-            return _extKeyBuffer.getSize();
-         }
-         else if (_slot.isKeyCompressed())
-         {
-            return ixmKey(_prefixData).dataSize() +
-                   _slot.data.key.size;
-         }
-         else
-         {
-            return _slot.data.key.size;
-         }
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "can not be invalid");
-         return 0;
-      }
+      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
+      return _keySlice.getSize();
    }
 
    void btreeIndexItem::exportOriginalKey(StackBufBuilder &builder)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
-      builder.appendBuf(_keyData, getSavedKeyDataSize());
+      builder.appendBuf(_keySlice.data(), _keySlice.getSize());
       return;
    }
 
-/*
-   void btreeIndexItem::cacheOriginalKey()
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
-      if (0 == _keyBuffer.len())
-      {
-         exportOriginalKey(_keyBuffer);
-      }
-   }*/
 } // namespace vessel
 
 } // namespace engine

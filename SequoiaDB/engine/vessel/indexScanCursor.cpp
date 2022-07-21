@@ -39,26 +39,6 @@ namespace engine
 {
 namespace vessel
 {
-   indexScanCursor::~indexScanCursor()
-   {
-      
-   }
-
-   void indexScanCursor::saveEntry(const slice &entryData)
-   {
-      SDB_ASSERT(isOpen() && entryData.isValid(), "can not be invalid");
-
-      _entry.reset();
-      _entry.appendBuf(entryData.data(), entryData.getSize());
-      return;
-   }
-
-   slice indexScanCursor::getEntryData()const
-   {
-      SDB_ASSERT(isOpen() && hasEntry(), "can not be invalid");
-      return slice(_entry.len(), _entry.buf());
-   }
-
    BOOLEAN indexScanCursor::markRidScanned(const recordID &rid)
    {
       return _scanned.insert(rid).second;

@@ -71,6 +71,9 @@ namespace vessel
       public:
          BOOLEAN none()const;
          void init(const lpmUberBlock *uberBlock);
+
+         /// return false if nothing changed.
+         BOOLEAN update(lpmUberBlock *uberBlock)const;
          void merge(const lpageMappingRoot &o);
       private:
          _ROOT_ENTRIES _entries;

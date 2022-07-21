@@ -49,17 +49,15 @@
 #include "vessel/atomicOperationList.h"
 #include "vessel/rdpIniter.h"
 #include "vessel/indexUtils.h"
-#include "vessel/indexEntryPage.h"
 #include "vessel/redoLogUtil.h"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
 #include "vessel/rdpRecordScanner.h"
 #include "vessel/indexScanner.h"
 #include "vessel/buildingIndexContext.h"
-#include "vessel/indexScanContext.h"
 #include "vessel/indexScanCursor.h"
 #include "interface/IRecordUpdater.h"
-#include "vessel/stackAllocatorRowBatch.h"
+#include "vessel/elasticBlockRowBatch.hpp"
 #include "ixm_common.hpp"
 #include "dmsLobDef.hpp"
 #include "vessel/hybridIndexTree.h"
@@ -1211,7 +1209,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getMoreWhenIndexScan(indexScanContext *context)
+   INT32 collection::getMoreWhenIndexScan(requestContext *context,
+                                          indexScanCursor *cursor)
    {
       INT32 rc = SDB_OK;
       indexObject *obj = nullptr;
@@ -1224,8 +1223,8 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(nullptr == context ||
-                            !context->isCursorAttached() ||
-                            !context->getCursor()->getIndexId().isValid()))
+                            nullptr == cursor ||
+                            !cursor->getIndexId().isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1233,7 +1232,7 @@ namespace vessel
 
       guard.autoLock();
       context->setClProperties(_entryBlock.getProperties());
-      indexId = context->getCursor()->getIndexId();
+      indexId = cursor->getIndexId();
 
       obj =_entryBlock._indexes.getIndexObj(indexId.getLogicalIndexId());
       if (nullptr == obj)
@@ -1249,7 +1248,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _getMoreWhenIndexScan(context, obj);
+      rc = _getMoreWhenIndexScan(context, obj, cursor);
       if (SDB_OK != rc)
       {
          if (SDB_IXM_EOC != rc)
@@ -2954,7 +2953,7 @@ namespace vessel
 
       ossScopedRWLock guard(_entryBlock.getOpLock(), EXCLUSIVE);
       
-      if ((INT32)MAX_INDEX_DEF_OBJ_SIZE < adjunct.objsize())
+      if ((INT32)MAX_INDEX_META_ENTRY_SIZE < adjunct.objsize())
       {
          PD_LOG(PDERROR, "index def obj size over max size:%d", adjunct.objsize());
          rc = SDB_INVALIDARG;
@@ -3836,149 +3835,108 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::_getMoreWhenIndexScan(indexScanContext *context,
-                                           indexObject *obj)
+   INT32 collection::_getMoreWhenIndexScan(requestContext *context,
+                                           indexObject *obj,
+                                           indexScanCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != context && context->isCursorAttached(), "can not be invalid");
-      SDB_ASSERT(context->isClPropertiesSet(), "must be attached");
-      SDB_ASSERT(nullptr != obj && obj->isNormal(), "must be normal");
-      
-      const dmsIndexScanOptions &o = context->getOptions();
-      indexScanCursor *cursor = context->getCursor();
-      indexScanner scanner;
-      bson::BSONObjBuilder keyObjBuilder;
-      UINT32 pushed = 0;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-      stackAllocatorRowBatch batch;
-      BOOLEAN scanForNone = (DMS_SCAN_FOR_NONE == o.scanFor);
-      
-      batch.setRowLimit(cursor->getBaseOptions().stepSize);
+      SDB_ASSERT(nullptr != cursor, "can not be invalid");
 
-      rc = scanner.open(context, obj);
+      const dmsIndexScanOptions &o = cursor->getOptions();
+      UINT32 maxFetching = o.rowCountLimit;
+      UINT32 fetched = 0;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
+      indexScanner scanner;
+      INDEX_ITERATOR_UPTR iterator = hit.createIterator(obj);
+      if (!iterator)
+      {
+         PD_LOG(PDERROR, "failed to create iterator:%d", rc);
+         goto error;
+      }
+
+      rc = scanner.open(cursor, std::move(iterator));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index scanner:%d", rc);
          goto error;
       }
-
-      rc = scanner.batchNext(batch);
-      if (SDB_IXM_EOC == rc)
+      
+      while (fetched < maxFetching)
       {
-         rc = SDB_OK;
-         cursor->setEOC();
-         goto done;
-      }
-      else if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get next rid from scanner:%d", rc);
-         goto error;
-      }
+         rc = scanner.next(context);
+         if (SDB_OK == rc)
+         {   
+            slice recordData;
+            DPS_TRANS_ID transID;
+            recordID rid = scanner.getRid();
+            dmsRecordID dmsRid = rid.toDMSRid();
+            slice keySlice = scanner.getKeyString();  
 
-      scanner.close();
-
-      SDB_ASSERT(!batch.isEmpty(), "impossible");
-      for (UINT32 i = 0; i < batch.getRowCount(); ++i)
-      {
-         dmsRecordID rid;
-         DPS_TRANS_ID transID;
-         rdpRecordScanner recordScanner;
-         slice recordBody;
-         indexScanEntry entry;
-         rc = entry.init(obj->getProperties().getType(), batch[i]);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
-            goto error;
-         }
-
-         rid = entry.getRid().toDMSRid();
-
-         if (o.indexCovered)
-         {
-            bson::BSONObj recordObj;
-            ixmKey key(entry.getKeySlice().data());
-            keyObjBuilder.reset();
-            rc = key.toRecord(obj->getProperties().getPattern().getPattern(), 
-                              keyObjBuilder);
-            if (SDB_OK != rc)
+            if (o.indexCovered)
             {
-               PD_LOG(PDERROR, "failed to build key obj:%d", rc);
+               bson::BSONObj recordObj;
+               transID = scanner.getTransID();
+               recordData.reset(recordObj.objsize(), recordObj.objdata());
+            } 
+            else
+            {
+               rdpRecordScanner rdpScanner;
+               rc = rdpScanner.openToRead(context, rid);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to read record[%s], rc:%d",
+                         rid.toString().c_str(), rc);
+                  goto error;
+               }
+
+               transID = rdpScanner.getCurrentTransID();
+               recordData = rdpScanner.getCurrentRecord();
+            }
+
+            rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &dmsRid),
+                                            slice(sizeof(DPS_TRANS_ID), &transID),
+                                            recordData});
+            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+            {
+               rc = SDB_OK;
+               break;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
                goto error;
             }
 
-            recordObj = keyObjBuilder.done();
-            recordBody = slice(recordObj.objsize(), recordObj.objdata());
+            ++fetched;
+            cursor->markRidScanned(rid);
+            if (DMS_SCAN_FOR_NONE == cursor->getOptions().scanFor)
+            {
+               context->unlockRid(rid);
+            }
+
+         }
+         else if (SDB_IXM_EOC != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch next:%d", rc);
+            goto error;
          }
          else
          {
-            rc = recordScanner.openToRead(context, entry.getRid());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to read record[%s], rc:%d",
-                      entry.getRid().toString().c_str(), rc);
-               goto error;
-            }
-
-            SDB_ASSERT(recordScanner.isReadyToRead(), "must be ready to read");
-            transID = recordScanner.getCurrentTransID();
-            recordBody = recordScanner.getCurrentRecord();
-         }
-
-         rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &rid),
-                                         slice(sizeof(DPS_TRANS_ID), &transID),
-                                         recordBody});
-         if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-         {
+            cursor->setEOC();
             rc = SDB_OK;
             break;
          }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
-            goto error;
-         }
-
-         recordScanner.close();
-         if (scanForNone)
-         {
-            context->unlockRid(entry.getRid());
-         }
-         ++pushed;
       }
-
-      if (OSS_UNLIKELY(0 == pushed))
-      {
-         PD_LOG(PDERROR, "nothing pushed into cursor");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      context->getCursor()->saveEntry(batch[pushed - 1]);
 
    done:
       scanner.close();
-      if (scanForNone)
-      {
-         context->unlockRids();
-      }
-      else
-      {
-         for (UINT32 i = pushed; i < batch.getRowCount(); ++i)
-         {
-            indexScanEntry entry;
-            rc = entry.init(obj->getProperties().getType(), batch[i]);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
-               continue;
-            }
-
-            context->releaseTransLock(entry.getRid());
-         }
-      }
+      context->unlockRids();
       return rc;
    error:
+      if (DMS_SCAN_FOR_NONE != cursor->getOptions().scanFor)
+      {
+         context->releaseAllTransLock();
+      }
       goto done;
    }
 

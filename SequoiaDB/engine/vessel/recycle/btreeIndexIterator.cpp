@@ -35,62 +35,56 @@
 
 #include "vessel/btreeIndexIterator.h"
 #include "vessel/indexUtils.h"
-#include "ixmKey.hpp"
-#include "vessel/instanceEnv.h"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
 namespace vessel
 {
-   btreeIndexIterator::btreeIndexIterator()
-   {}
-
    btreeIndexIterator::~btreeIndexIterator()
    {
-      _bac.fini();
+      _bac.reset();
    }
 
-   void btreeIndexIterator::close()
+   void btreeIndexIterator::reset()
    {
       _bac.fini();
-      _context = NULL;
-      _item.fini();
+      _o = options();
+      _item.reset();
       _pos = INVALID_RECORD_SLOT_POS;
       _builder.reset();
       return;
    }
 
-   INT32 btreeIndexIterator::open(requestContext *context,
+   INT32 btreeIndexIterator::init(const options &o,
                                   indexObject *obj,
-                                  const options &o)
+                                  indexSpaceAccessCtx &&ctx)
    {
       INT32 rc = SDB_OK;
-      logicalPageSpace *lps = NULL;
-      close();
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isClPropertiesSet() ||
-                       NULL == obj ||
+      reset();
+      
+      if (OSS_UNLIKELY(nullptr == obj ||
                        !obj->isValid() ||
-                       INDEX_TYPE_BTREE != obj->getProperties().getType()))
+                       !ctx.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = context->getEnv()->dms.getLogicalPageSpace(context->getSpaceID(),
-                                                      SPACE_TYPE_IDX, &lps);
+      rc = _ctx.init(TRUE, obj, std::move(ctx));
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lps[%d], rc:%d", context->getSpaceID(), rc);
+         PD_LOG(PDERROR, "failed to init btree context:%d", rc);
          goto error;
       }
-      _forward = o.isForward();
-      _context = context;
-      _bac.init(obj, context, static_cast<indexSpace *>(lps));
+
+      _o = o;
    done:
       return rc;
    error:
-      close();
+      reset();
       goto done;
    }
 

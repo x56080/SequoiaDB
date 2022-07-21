@@ -47,22 +47,20 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT16 INVALID_PAGE_VERSION = 0;
-   const UINT16 PAGE_VERSION_1 = 1;
+   constexpr UINT16 INVALID_PAGE_VERSION = 0;
+   constexpr UINT16 PAGE_VERSION_1 = 1;
 
-   const UINT32 PAGE_COUNT_IN_EXTENT = 8;
+   constexpr UINT32 PAGE_COUNT_IN_EXTENT = 8;
 
    typedef UINT16 PAGE_TYPE;
-   const static PAGE_TYPE INVALID_PAGE_TYPE = 65535;
+   constexpr PAGE_TYPE INVALID_PAGE_TYPE = 65535;
 
-   const static PAGE_TYPE PAGE_TYPE_CS_META = 0;
-   const static PAGE_TYPE PAGE_TYPE_CL_META = 1;
-   const static PAGE_TYPE PAGE_TYPE_ROUTE = 2;
-   const static PAGE_TYPE PAGE_TYPE_RECORD = 3;
-   const static PAGE_TYPE PAGE_TYPE_INDEX_ENTRY = 1000;
-   const static PAGE_TYPE PAGE_TYPE_INDEX_META_BLOCK = 1001;
-   const static PAGE_TYPE PAGE_TYPE_BTREE_NODE = 1002;
-   const static PAGE_TYPE PAGE_TYPE_BTREE_EXTERNAL_KEY = 1003;
+   constexpr PAGE_TYPE PAGE_TYPE_CS_META = 0;
+   constexpr PAGE_TYPE PAGE_TYPE_CL_META = 1;
+   constexpr PAGE_TYPE PAGE_TYPE_ROUTE = 2;
+   constexpr PAGE_TYPE PAGE_TYPE_RECORD = 3;
+   constexpr PAGE_TYPE PAGE_TYPE_BTREE_ENTRY = 1000;
+   constexpr PAGE_TYPE PAGE_TYPE_BTREE_NODE = 1001;
 
    OSS_INLINE void getPageEyeCatcher(CHAR &e0, CHAR &e1)
    {
@@ -140,8 +138,8 @@ namespace vessel
       UINT64 reserved = 0;
    };// struct pageHead
 #pragma pack()
-   static const UINT32 PAGE_HEAD_SIZE = sizeof(pageHead);
-   static const UINT32 PAGE_TAIL_SIZE = sizeof(UINT64);
+   constexpr UINT32 PAGE_HEAD_SIZE = sizeof(pageHead);
+   constexpr UINT32 PAGE_TAIL_SIZE = sizeof(UINT64);
 
    UINT32 getPageBodySize(UINT32 pageSize);
 

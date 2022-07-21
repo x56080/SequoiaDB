@@ -44,16 +44,24 @@ namespace engine
 {
 namespace vessel
 {
-   class requestContext;
+   class indexObject;
 
    class btreeIndexIterator : public indexIterator
    {
       public:
-         btreeIndexIterator();
+         btreeIndexIterator() = default;
          virtual ~btreeIndexIterator();
 
       public:
-         virtual const CHAR *getName()const override {return "btreeIndexIterator";}
+         INT32 init(const options &o,
+                    indexObject *obj,
+                    indexSpaceAccessCtx &&ctx);
+
+      public:
+         virtual INDEX_ITERATOR_TYPE getType() const override
+         {
+            return INDEX_ITERATOR_TYPE::BTREE;
+         }
 
          virtual void reset() override;
 
@@ -66,9 +74,8 @@ namespace vessel
          virtual INT32 seekKey(const ixmKey &key,
                                const seekOptions &o) override;
 
-         virtual INT32 locate(const slice &encodedKey,
-                              const recordID &rid,
-                              const recordID &pos,
+         virtual INT32 locate(const slice &keyString,
+                              const bson::BSONObj &info,
                               const seekOptions &o) override;
 
          virtual INT32 next() override;
@@ -83,10 +90,12 @@ namespace vessel
 
       public:
          virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const  override;
+         virtual slice getKeyString()const override;
+         virtual DPS_LSN_OFFSET getLSN()const override;
+         virtual DPS_TRANS_ID getTransID()const override;
          virtual recordID getRid()const override;
          virtual BOOLEAN equals(const ixmKey &key)const override;
-         virtual recordID getPosition()const override;
-         virtual slice getEncodedKey()const override;
+         virtual bson::BSONObj getLocationInfo()const override;
 
       private:
          OSS_INLINE BOOLEAN hasLocation()const
@@ -146,8 +155,7 @@ namespace vessel
 
       private:
          options _o;
-         requestContext *_context = NULL;
-         btreeAccessContext _bac;
+         btreeAccessContext _ctx;
          RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
          btreeIndexItem _item;
          bson::BufBuilder _builder;

@@ -35,7 +35,6 @@
 
 #include "vessel/indexScanHandler.h"
 #include "vessel/indexScanCursor.h"
-#include "vessel/indexScanContext.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/collection.h"
 #include "vessel/instanceEnv.h"
@@ -49,7 +48,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       collectionSpace *cs = nullptr;
       collection *cl = nullptr;
-      indexScanContext context;
+      requestContext context;
 
       if (OSS_UNLIKELY(nullptr == cursor ||
                        !cursor->isOpen() ||
@@ -76,9 +75,7 @@ namespace vessel
          goto error;
       }
 
-      context.attachIndexScanCursor(cursor);
-
-      rc = cl->getMoreWhenIndexScan(&context);
+      rc = cl->getMoreWhenIndexScan(&context, cursor);
       if (SDB_OK != rc)
       {
          goto error;

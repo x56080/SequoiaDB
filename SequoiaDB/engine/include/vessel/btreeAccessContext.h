@@ -36,18 +36,18 @@
 #ifndef VESSEL_BTREE_ACCESS_CONTEXT_H_
 #define VESSEL_BTREE_ACCESS_CONTEXT_H_
 
-#include "utilArray.hpp"
 #include "vessel/btreeAccessPathNode.h"
 #include "vessel/btreeNode.h"
+#include "vessel/logicalPageBuffer.h"
+#include "ossMemPool.hpp"
+#include "vessel/indexSpaceAccessCtx.h"
+#include "vessel/btreeStatistics.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestContext;
-   class logicalPageBuffer;
    class indexObject;
-   class indexSpace;
 
    class btreeAccessContext : public SDBObject
    {
@@ -60,99 +60,68 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _obj;
+            return nullptr != _obj;
+         }
+
+         OSS_INLINE indexObject *getIndexObject()
+         {
+            return _obj;
          }
 
          OSS_INLINE BOOLEAN isPathEmpty()const
          {
             return _path.empty();
          }
-         OSS_INLINE BOOLEAN isPessimistic()const
-         {
-            return _pessimistic;
-         }
-         OSS_INLINE void setPessimistic(BOOLEAN v)
-         {
-            _pessimistic = v;
-         }
 
-         OSS_INLINE BOOLEAN isReadonly()const
-         {
-            return _readonly;
-         }
-         OSS_INLINE void setReadonly(BOOLEAN v)
-         {
-            _readonly = v;
-         }
-         OSS_INLINE indexObject *getIndexObject()
-         {
-            return _obj;
-         }
+         OSS_INLINE indexSpaceAccessCtx &getSpaceCtx() {return _ictx;}
 
       public:
-         void init(indexObject *obj,
-                   requestContext *context,
-                   indexSpace *is);
-         void fini();
+         INT32 init(BOOLEAN nonpte,
+                    indexObject *obj,
+                    indexSpaceAccessCtx &&ctx);
+                   
+         void reset();
 
-         INT32 pushRootIntoPath(btreeNode *node=NULL);
+         void abort();
+
+         /// ensure has btree root first.
+         /// will reset whole path inside first.
+         INT32 pushRootIntoPath(btreeNode *node=nullptr);
 
          INT32 pushChildNodeIntoPath(PAGE_ID lpid,
                                      const btreePathFootprint &footprint,
-                                     btreeNode *node=NULL);
-         
-         INT32 tryToReaccessNode(UINT32 depth,
-                                 const ossSharedLatchMode &mode,
-                                 BOOLEAN &obstructed);
+                                     btreeNode *node=nullptr);
 
-         void clearAccessPath();
-
-         void endToAccessNonPathEndNodes();
-
-         void endToAccessPreNodeInPath(UINT32 maxAccessingNum);
+         void resetPath();
 
          void popEnd();
 
          void popEnds(UINT32 n);
 
-         void destroyEnd();
-
-         void destroyEnds(UINT32 n);
-
          btreeNode getEndNodeInPath();
          UINT32 getPathSize()const;
          btreeNode getNodeInPath(UINT32 depth);
-         BOOLEAN isStillAccessing(UINT32 depth)const;
-
-         INT32 prepareToReadAncestors(BOOLEAN forward,
-                                      BOOLEAN &obstructed,
-                                      BOOLEAN &footPrintIsFaithful);
 
          const btreeAccessPathNode &getPathNode(UINT32 depth)const;
 
-      private:
-         INT32 pushIntoPath(logicalPageBuffer *buffer);
-         INT32 validateBtreePage(const logicalPageBuffer &buffer)const;
-         ossSharedLatchMode estimateRootMode()const;
-         ossSharedLatchMode estimateChildMode()const;
-         logicalPageBuffer *allocateBuffer();
-         void releaseBuffer(logicalPageBuffer *buffer);
-      private:
-         typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFERS;
+         OSS_INLINE BOOLEAN isNonPte()const {return _nonpte;}
+         OSS_INLINE BOOLEAN hasBtreeRoot()const {return INVALID_PAGE_ID != _btreeRoot;}
 
       private:
-         indexObject *_obj = NULL;
-         requestContext *_context = NULL;
-         indexSpace *_is = NULL;
+         INT32 _cacheRootAndStats();
+         INT32 _pushIntoPath(PAGE_ID lpid);
+         INT32 _validateBtreeNode(const logicalPageBuffer &buffer)const;
+      private:
+         using _BTREE_PATH = ossPoolVector<btreeAccessPathNode>;
 
-         BOOLEAN _readonly = TRUE;
-         BOOLEAN _pessimistic = FALSE;
-
-         _utilArray<btreeAccessPathNode, 4> _path;
-         _FREE_BUFFERS _free;
-
-         
-   };//class btreeAccessContext
+      private:
+         BOOLEAN _nonpte = TRUE;
+         indexObject *_obj = nullptr;
+         indexSpaceAccessCtx _ictx;
+         PAGE_ID _btreeRoot = INVALID_PAGE_ID;
+         btreeStatistics _stats;
+         _BTREE_PATH _path;
+   };//class btreeAccessContextbt
 } // namespace vessel
 
 } // namespace engine

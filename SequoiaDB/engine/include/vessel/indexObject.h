@@ -86,14 +86,7 @@ namespace vessel
          OSS_INLINE PAGE_ID getBtreeEntryAddr()const {return _btreeEntryAddr;}
          OSS_INLINE BOOLEAN hasBtreeEntryAddr()const {return INVALID_PAGE_ID != _btreeEntryAddr;}
          OSS_INLINE void resetBtreeEntryAddr(PAGE_ID entry) {_btreeEntryAddr = entry;}
-      public:
-         OSS_INLINE PAGE_ID getBtreeRoot()const {return INVALID_PAGE_ID;}
-         OSS_INLINE void removeBtreeRoot() {}
-         OSS_INLINE UINT32 getBtreeRootSplitTimes() {return 0;}
-         OSS_INLINE BOOLEAN hasBtreeRoot()const {return FALSE;}
-         OSS_INLINE PAGE_ID getEntryLpid()const {return INVALID_PAGE_ID;}
-         OSS_INLINE void updateBtreeRootSplitTimes(UINT32 n){}
-         OSS_INLINE void updateBtreeRoot(PAGE_ID pid, UINT32 n) {}
+
       public:
          INT32 init(UINT32 indexLid,
                     const indexProperties &properties,

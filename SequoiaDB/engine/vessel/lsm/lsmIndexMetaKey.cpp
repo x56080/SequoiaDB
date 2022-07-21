@@ -51,9 +51,12 @@ namespace vessel
       UINT32 csLid = id.getLogicalCSID();
       UINT32 clLid = id.getLogicalCLID();
       UINT32 indexLid = id.getLogicalIndexID();
-      ossEndianConvert4(csLid, _data);
-      ossEndianConvert4(clLid, _data + sizeof(csLid));
-      ossEndianConvert4(indexLid, _data + sizeof(csLid) + sizeof(clLid));
+      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
+      ossEndianConvert4(csLid, (*val));
+      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
+      ossEndianConvert4(clLid, (*val));
+      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid) + sizeof(clLid));
+      ossEndianConvert4(indexLid, (*val));
 #endif
    }
 
@@ -70,9 +73,12 @@ namespace vessel
       UINT32 csLid = upID.getLogicalCSID();
       UINT32 clLid = upID.getLogicalCLID();
       UINT32 indexLid = upID.getLogicalIndexID();
-      ossEndianConvert4(csLid, _data);
-      ossEndianConvert4(clLid, _data + sizeof(csLid));
-      ossEndianConvert4(indexLid, _data + sizeof(csLid) + sizeof(clLid));
+      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
+      ossEndianConvert4(csLid, (*val));
+      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
+      ossEndianConvert4(clLid, (*val));
+      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid) + sizeof(clLid));
+      ossEndianConvert4(indexLid, (*val));
 #endif
    }
 
@@ -90,8 +96,10 @@ namespace vessel
       dataPtr = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
       *dataPtr = clLid;
 #else
-      ossEndianConvert4(csLid, _data);
-      ossEndianConvert4(clLid, _data + sizeof(csLid));
+      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
+      ossEndianConvert4(csLid, (*val));
+      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
+      ossEndianConvert4(clLid, (*val));
 #endif
    }
 
@@ -106,8 +114,10 @@ namespace vessel
       dataPtr = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
       *dataPtr = upCLLid;
 #else
-      ossEndianConvert4(csLid, _data);
-      ossEndianConvert4(upCLLid, _data + sizeof(upCLLid));
+      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
+      ossEndianConvert4(csLid, (*val));
+      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
+      ossEndianConvert4(upCLLid, (*val));
 #endif
    }
 

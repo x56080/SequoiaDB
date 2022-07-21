@@ -211,6 +211,26 @@ class ossRWMutexGuard : public SDBObject
 
       ossRWMutexGuard(const ossRWMutexGuard &) = delete;
       ossRWMutexGuard &operator=(const ossRWMutexGuard &) = delete;
+      ossRWMutexGuard(ossRWMutexGuard &&o):
+      _mutex(o._mutex),
+      _mode(o._mode),
+      _locked(o._locked)
+      {
+         o._mutex = nullptr;
+         o._mode = SHARED;
+         o._locked = FALSE;
+      }
+      ossRWMutexGuard &operator=(ossRWMutexGuard &&o)
+      {
+         autoUnlock();
+         _mutex = o._mutex;
+         _mode = o._mode;
+         _locked = o._locked;
+         o._mutex = nullptr;
+         o._mode = SHARED;
+         o._locked = FALSE;
+         return *this;
+      }
 
    public:
       void autoLock()

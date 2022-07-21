@@ -116,10 +116,6 @@ namespace vessel
          {
             return 0 != _btreeMaxPrefix;
          }
-         OSS_INLINE UINT32 getMinCompressionDepth()const
-         {
-            return 0;
-         }
 
       private:
          OSS_INLINE void setAsUnique()

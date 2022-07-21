@@ -55,6 +55,8 @@ namespace vessel
          ~logicalPageBuffer();
          logicalPageBuffer(const logicalPageBuffer &) = delete;
          logicalPageBuffer &operator=(const logicalPageBuffer &) = delete;
+         logicalPageBuffer(logicalPageBuffer &&);
+         logicalPageBuffer &operator=(logicalPageBuffer &&);
 
       public:
          OSS_INLINE PAGE_ID getLogicalPid()const
@@ -114,7 +116,7 @@ namespace vessel
          strictBuffer getWritableBodyBuffer();
 
          /// release lpid and pid
-         void destroy();
+//         void destroy();
 
       public:
          /// must hold shared lock first
@@ -125,33 +127,6 @@ namespace vessel
 
          /// must hold upgrade lock first
          void lockExclusiveFromUpgrade();
-      
-      private:
-         enum _BUFFER_FLAG : UINT32
-         {
-            _BUFFER_FLAG_UNPROTECTED = 0x01,
-            _BUFFER_FLAG_READONLY = 0x02,
-            _BUFFER_FLAG_PRIVATE = 0x04,
-         };//enum _BUFFER_FLAG
-
-      public:
-         OSS_INLINE BOOLEAN isUnprotected()const
-         {
-            return 0 != OSS_BIT_TEST(_flags, _BUFFER_FLAG_UNPROTECTED);
-         }
-         OSS_INLINE BOOLEAN isReadonly()const
-         {
-            return 0 != OSS_BIT_TEST(_flags, _BUFFER_FLAG_READONLY);
-         }
-         OSS_INLINE BOOLEAN isPrivate()const
-         {
-            return 0 != OSS_BIT_TEST(_flags, _BUFFER_FLAG_PRIVATE);
-         }
-
-      private:
-         void _setUnprotected() {OSS_BIT_SET(_flags, _BUFFER_FLAG_UNPROTECTED);}
-         void _setReadonly() {OSS_BIT_SET(_flags, _BUFFER_FLAG_READONLY);}
-         void _setPrivate() {OSS_BIT_SET(_flags, _BUFFER_FLAG_PRIVATE);}
 
       private:
          PAGE_ID _lpid = INVALID_PAGE_ID;
@@ -160,7 +135,6 @@ namespace vessel
          logicalPageSpace *_lps = NULL;
          runtimePageBuffer _rpb;
          PAGE_SNAPSHOT_VERION _psv = INVALID_PAGE_SNAPSHOT_VERSION;
-         UINT32 _flags = 0;
    };//class logicalPageBuffer
 }//namespace vessel
 }//namespace engine

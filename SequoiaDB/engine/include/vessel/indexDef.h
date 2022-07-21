@@ -72,6 +72,14 @@ namespace vessel
       INDEX_STATUS_REMOVING = 4,
       INDEX_STATUS_ABNORMAL = 5,
    };// enum INDEX_STATUS
+
+   enum class INDEX_ITERATOR_TYPE : INT32
+   {
+      BTREE = 0,
+      LSM = 1,
+      HYBRID_TREE = 2,
+   }; //class INDEX_ITERATOR_TYPE
+
 }//namespace vessel
 }//namespace engine
 

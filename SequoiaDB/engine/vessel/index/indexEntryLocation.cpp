@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeAccessPathNode.cpp
+   Source File Name = indexEntryLocation.cpp
 
    Descriptive Name =
 
@@ -33,43 +33,26 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeAccessPathNode.h"
-#include "vessel/logicalPageBuffer.h"
-#include "pdTrace.hpp"
-#include "vessel/btreeNodePage.h"
+#include "vessel/indexEntryLocation.h"
 
 namespace engine
 {
 namespace vessel
 {
-   btreeAccessPathNode::btreeAccessPathNode(logicalPageBuffer *lpb)
+/////////////////////btreeIndexEntryLocation
+   void btreeIndexEntryLocation::init(ossPoolString &&key,
+                                      UINT32 replayTick,
+                                      ossPoolVector<UINT64> &&path,
+                                      RECORD_SLOT_POS pos)
    {
-      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
-      _lpid = lpb->getLogicalPid();
-      _lpb = lpb;
-      const btreeNodePageHead *head = lpb->getReadableBodyBuffer().getReadableObjPtr<btreeNodePageHead>(0);
-      SDB_ASSERT(NULL != head, "can not be null");
-      _splitedTimes = head->splitedTimes;
-   }
-
-   void btreeAccessPathNode::setChildFootprint(const btreePathFootprint &fp)
-   {
-      SDB_ASSERT(isAccessing(), "must be accessing");
-      SDB_ASSERT(fp.isValid(), "can not be invalid");
-      _footprint = fp;
+      _key = std::move(key);
+      _replayTick = replayTick;
+      _path = std::move(path);
+      _pos = pos;
       return;
    }
 
-   void btreeAccessPathNode::reaccess(logicalPageBuffer *lpb)
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
-      SDB_ASSERT(lpb->getLogicalPid() == _lpid, "must be same");
-      SDB_ASSERT(NULL == _lpb, "must be null");
-      _lpb = lpb;
-      return;
-   }
-      
+/////////////////////btreeIndexEntryLocation end
 } // namespace vessel
-  
+
 } // namespace engine

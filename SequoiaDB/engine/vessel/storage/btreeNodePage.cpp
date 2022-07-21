@@ -46,12 +46,11 @@ namespace vessel
    void btreeItemSlot::initAsNonLeafFormat(const recordID &rid,
                                           UINT16 offset,
                                           UINT16 size,
-                                          PAGE_ID leftChild,
-                                          BOOLEAN isExternalKey)
+                                          PAGE_ID leftChild)
    {
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       SDB_ASSERT(0 != size, "can not be invalid");
-      SDB_ASSERT(!(!isExternalKey && 0 == offset), "can not be invalid");
+
       reset();
       OSS_BIT_SET(flags, (FLAG_IN_USED));
       ridPos = rid.getPos();
@@ -59,10 +58,6 @@ namespace vessel
       data.key.offset = offset;
       data.key.size = size;
       data.nlf.leftChild = leftChild;
-      if (isExternalKey)
-      {
-         OSS_BIT_SET(flags, FLAG_KEY_IN_EXTERNAL_PAGE);
-      }
       return;
    }
 
@@ -97,10 +92,10 @@ namespace vessel
                              PAGE_ID pid,
                              PAGE_ID lpid,
                              PAGE_SNAPSHOT_VERION psv,
-                             UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
                              BOOLEAN isRoot,
+                             INT32 birthNodeLevel,
                              CHAR *buf)
    {
       BOOLEAN r = FALSE;
@@ -109,8 +104,8 @@ namespace vessel
    
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
-      if (OSS_UNLIKELY(DMS_INVALID_LOGICCLID == cllid ||
-                       INVALID_LOGICAL_INDEX_ID == indexId))
+      if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexId ||
+                       birthNodeLevel < 0))
       {
          goto done;
       }
@@ -125,11 +120,11 @@ namespace vessel
       headPtr = (btreeNodePageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
       ossMemcpy(headPtr, &head, BTREE_NODE_PAGE_HEAD_SIZE);
       headPtr->version = BTREE_NODE_PAGE_HEAD_VERSION;
-      headPtr->clLogicalID = cllid;
       headPtr->indexId = indexId;
       headPtr->rightChild = INVALID_PAGE_ID;
       headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
-      headPtr->freeSapceAfterLastSlot = headPtr->totalFreeSpace;
+      headPtr->backOffset = getPageBodySize(pageSize);
+      headPtr->birthNodeLevel = birthNodeLevel;
       headPtr->flags = 0;
       if (isLeaf)
       {

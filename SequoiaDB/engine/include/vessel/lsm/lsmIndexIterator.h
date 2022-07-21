@@ -40,6 +40,9 @@
 #include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/globalIndexID.h"
 #include "vessel/lsm/lsmColumnFamily.h"
+#include "vessel/objectIdentifier.h"
+#include "vessel/lsm/lsmIndexMetaKey.h"
+#include "vessel/lsm/lsmIndexKeyString.h"
 
 namespace engine
 {
@@ -60,7 +63,7 @@ namespace vessel
                     const options &o);
          
       public:
-         virtual const CHAR *getName()const override {return "lsmIndexIterator";}
+         virtual INDEX_ITERATOR_TYPE getType() const override {return INDEX_ITERATOR_TYPE::LSM;}
 
          virtual void reset() override;
 
@@ -75,9 +78,7 @@ namespace vessel
          virtual INT32 seekKey(const ixmKey &key,
                                const seekOptions &o) override;
 
-         virtual INT32 locate(const slice &encodedKey,
-                              const recordID &rid,
-                              const seekOptions &o) override;
+         virtual INT32 locate(const indexEntryLocation *location) override;
 
          virtual INT32 next() override;
 
@@ -86,16 +87,19 @@ namespace vessel
                                const VEC_ELE_CMP &matchEles,
                                const inclusiveVec &matchInclusive,
                                const seekOptions &o) override;
+
+         virtual INT32 pause(IDX_ENTRY_LOCATION_UPTR &location);
+         virtual INT32 resume(const indexEntryLocation *location);
       public:
+         virtual slice getKeyString()const override;
          virtual DPS_LSN_OFFSET getLSN()const override;
-         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const override;
          virtual DPS_TRANS_ID getTransID()const override;
          virtual recordID getRid()const override;
          virtual BOOLEAN equals(const ixmKey &key)const override;
-         virtual slice getEncodedKey()const override;
+         virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const override;
 
       private:
-         INT32 seekFullKey(const rocksdb::Slice &fullKey,
+         INT32 seekFullKey(const slice &fullKey,
                            BOOLEAN forPrev);
 
          INT32 moveIterator(BOOLEAN forward);
@@ -126,11 +130,11 @@ namespace vessel
          const indexObject *_obj = nullptr;
          globalIndexID _globalId;
          rocksdb::Iterator *_itr = nullptr;
-         LSM_IDX_KEY_BOUNDARY _lowBound;
-         LSM_IDX_KEY_BOUNDARY _upBound;
+         lsmIndexIdKey _lowBound;
+         lsmIndexIdKey _upBound;
          rocksdb::Slice _lowKey;
          rocksdb::Slice _upKey;
-         lsmPureKeyEntry _currentEntry;
+         lsmIndexKeyString _currentEntry;
          CHAR *_backwardEntryCache = nullptr;
          UINT32 _backwardEntryCacheSize = 0;
          UINT32 _backwardEntrySize = 0;

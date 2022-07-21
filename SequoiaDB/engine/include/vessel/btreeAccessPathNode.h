@@ -37,9 +37,11 @@
 #define VESSEL_BTREE_ACCESS_PATH_NODE_H_
 
 #include "vessel/pageIdentifier.h"
-#include "ossSharedLatch.hpp"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/btreePathFootprint.h"
+#include "pdTrace.hpp"
+
+#include <memory>
 
 namespace engine
 {
@@ -48,75 +50,59 @@ namespace vessel
    class btreeAccessPathNode : public SDBObject
    {
       public:
-         btreeAccessPathNode(){}
-         ~btreeAccessPathNode(){}
-         explicit btreeAccessPathNode(logicalPageBuffer *lpb);
-         btreeAccessPathNode(const btreeAccessPathNode &o):
-         _lpid(o._lpid),
-         _splitedTimes(o._splitedTimes),
-         _lpb(o._lpb),
-         _footprint(o._footprint){}
-         btreeAccessPathNode &operator=(const btreeAccessPathNode &o)
+         btreeAccessPathNode() = default;
+         ~btreeAccessPathNode() = default;
+         explicit btreeAccessPathNode(std::unique_ptr<logicalPageBuffer> &&ptr):
+         _lpb(std::move(ptr))
          {
-            _lpid = o._lpid;
-            _splitedTimes = o._splitedTimes;
-            _lpb = o._lpb;
-            _footprint = o._footprint;
-            return *this;
+            SDB_ASSERT(nullptr != _lpb.get() && _lpb->isValid(), "can not be invalid");
+         }
+         btreeAccessPathNode(btreeAccessPathNode &&o):
+         _lpb(std::move(o._lpb)),
+         _footprint(o._footprint)
+         {
+            o.resetChildFootprint();
          }
 
+         btreeAccessPathNode &operator=(btreeAccessPathNode &&o)
+         {
+            _lpb = std::move(o._lpb);
+            _footprint = o._footprint;
+            o.resetChildFootprint();
+            return *this;
+         }
       public:
-         OSS_INLINE PAGE_ID getLogicalPageId()const
-         {
-            return _lpid;
-         }
-         OSS_INLINE UINT32 getSplitedTimes()const
-         {
-            return _splitedTimes;
-         }
+         
          OSS_INLINE logicalPageBuffer *getPageBuffer()
          {
-            return _lpb;
-         }
-         OSS_INLINE const logicalPageBuffer *getPageBuffer()const
-         {
-            return _lpb;
+            return _lpb.get();
          }
       
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_PAGE_ID != _lpid;
+            return nullptr != _lpb;
          }
-         OSS_INLINE BOOLEAN isAccessing()const
-         {
-            return NULL != _lpb;
-         }
-         OSS_INLINE void endToAccess()
-         {
-            _lpb = NULL;
-         }
-         void reaccess(logicalPageBuffer *lpb);
-         
-         OSS_INLINE ossSharedLatchMode getNodeMode()const
-         {
-            SDB_ASSERT(isAccessing(), "must be accessing");
-            return _lpb->getLockingMode();
-         }
-
          OSS_INLINE const btreePathFootprint &getChildFootprint()const
          {
             return _footprint;
          }
-         void setChildFootprint(const btreePathFootprint &fp);
-         void clearChildFootprint()
+         void resetChildFootprint(const btreePathFootprint &fp=btreePathFootprint())
          {
-            _footprint = btreePathFootprint();
+            SDB_ASSERT(isValid(), "can not be invalid");
+            _footprint = fp;
+            return;
+         }
+
+         UINT64 encoding()const
+         {
+            UINT64 c = _footprint.encoding();
+            c <<= 32;
+            c |= (_lpb ? _lpb->getLogicalPid() : INVALID_PAGE_ID);
+            return c;
          }
          
       private:
-         PAGE_ID _lpid = INVALID_PAGE_ID;
-         UINT32 _splitedTimes = 0;
-         logicalPageBuffer *_lpb = NULL;
+         std::unique_ptr<logicalPageBuffer> _lpb;
          btreePathFootprint _footprint;
    };//btreeAccessPathNode
 } // namespace vessel

@@ -39,7 +39,6 @@
 #include "vessel/lpageMetaDataFile.h"
 #include "vessel/lpageDescriptor.h"
 #include "vessel/metaDataUberBlock.h"
-#include "vessel/unitedBitmap.hpp"
 #include "vessel/lpageMappingRoot.h"
 #include "vessel/lpageMappingPteCtx.h"
 
@@ -64,16 +63,21 @@ namespace vessel
                          lpmUberBlock::MAPPING_ENTRY_SIZE * MAPPING_ENTRY_CAPACITY;
          static constexpr UINT32 MAX_LPID_COUNT = MAX_UNIT_COUNT * LPID_UNIT_SIZE;
 
+      private:
+         static const UINT32 _UNIT_SIZE_SQUARE;
+         static const UINT32 _MAPPING_CAPACITY_SQUARE;
+
       public:
          OSS_INLINE BOOLEAN isValid()const {return nullptr != _mfile;}
          OSS_INLINE BOOLEAN isOutOfMaxBound(PAGE_ID lpid)const
          {
             return MAX_LPID_COUNT <= lpid;
          }
+         OSS_INLINE const lpageMappingRoot &getRoot()const {return _root;}
 
       public:
          INT32 init(lpageMetaDataFile *mfile,
-                    PAGE_ID uberBlockPid);
+                    const lpmUberBlock *ub);
          void fini();
 
          /// not thread-safe
@@ -109,33 +113,28 @@ namespace vessel
                    PAGE_ID lpid,
                    const lpageDescriptor &desc);
 
-         INT32 setBatchPrivately(lpageMappingPteCtx &ctx,
-                                 PAGE_SNAPSHOT_VERION psv,
-                                 UINT32 size,
-                                 const PAGE_ID *lpids,
-                                 const PAGE_ID *pids);
-
-         INT32 isPathOverwrittenPrivately(const lpageMappingPteCtx &ctx,
-                                          PAGE_ID lpid,
-                                          BOOLEAN &overwritten);
+         INT32 setBatch(lpageMappingPteCtx &ctx,
+                        PAGE_SNAPSHOT_VERION psv,
+                        UINT32 size,
+                        const PAGE_ID *lpids,
+                        const PAGE_ID *pids);
 
          /// return ok but invalid desc if lpid not mapped.
-         INT32 get(const lpageMappingPteCtx &ctx,
-                   PAGE_ID lpid,
-                   lpageDescriptor &desc);
+         INT32 getPtePrior(const lpageMappingPteCtx &ctx,
+                           PAGE_ID lpid,
+                           lpageDescriptor &desc);
 
          INT32 reset(lpageMappingPteCtx &ctx,
-                     PAGE_ID lpid);
+                     PAGE_ID lpid,
+                     lpageDescriptor *oldVal=nullptr);
 
-         INT32 getPrivatePrior(const lpageMappingPteCtx &ctx,
-                               PAGE_ID lpid,
-                               lpageDescriptor &desc,
-                               BOOLEAN &isPrivate);
+         /// revert to published mapping
+         INT32 revert(lpageMappingPteCtx &ctx,
+                      PAGE_ID lpid,
+                      lpageDescriptor &beforeRevert,
+                      lpageDescriptor &afterRevert);
 
-         /// make pid list to free out side first.
-         /// old lpid descriptors will be destroyed after commit.
-         INT32 publish(BOOLEAN fsync,
-                       lpageMappingPteCtx &ctx);
+         INT32 publish(lpageMappingPteCtx &ctx);
 
       private:
          void _free(UINT32 size, const PAGE_ID *lpids);
@@ -153,21 +152,18 @@ namespace vessel
 
          INT32 _ensurePrivateRootEntry(UINT32 pos, lpageMappingPteCtx &ctx);
 
-         INT32 _createObsoleteSet(const ossPoolSet<UINT32> &units,
-                                  ossPoolSet<PAGE_ID> &set);
-
       private:
 
          OSS_INLINE UINT32 _getEntryPosByLpid(PAGE_ID lpid, UINT32 &posInEntry)const
          {
-            UINT32 unitId = lpid / LPID_UNIT_SIZE;
+            UINT32 unitId = _getUnitId(lpid);
             return _getEntryPosByUnitId(unitId, posInEntry);
          }  
 
          OSS_INLINE UINT32 _getEntryPosByUnitId(UINT32 unitId, UINT32 &posInEntry)const
          {
             posInEntry = unitId & (MAPPING_ENTRY_CAPACITY - 1);
-            return unitId / MAPPING_ENTRY_CAPACITY;
+            return unitId >> _MAPPING_CAPACITY_SQUARE;
          }
 
          OSS_INLINE UINT32 _getDescPos(PAGE_ID lpid)const
@@ -177,13 +173,11 @@ namespace vessel
 
          OSS_INLINE UINT32 _getUnitId(PAGE_ID lpid)const
          {
-            return lpid / LPID_UNIT_SIZE;
+            return lpid >> _UNIT_SIZE_SQUARE;
          }
 
       private:
-         PAGE_ID _uberBlockPid = INVALID_PAGE_ID;
          lpageMetaDataFile *_mfile = nullptr;
-         lpmUberBlock *_mmapBlock = nullptr;
          lpageMappingRoot _root;
    };
 } // namespace vessel

@@ -86,7 +86,9 @@ namespace vessel
          }
       }
 
-      UINT32 createChecksum()const;
+      UINT32 generateChecksum()const;
+
+      void refillChecksum();
 
       UINT32 version = 0;
       UINT32 checksum = 0;
