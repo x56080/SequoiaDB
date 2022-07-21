@@ -840,7 +840,7 @@ namespace engine
                       OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to extend file:%s, rc:%d",
+         PD_LOG( PDWARNING, "failed to extend file:%s, rc:%d",
                  _fileName.c_str(), rc ) ;
          goto error ;
       }

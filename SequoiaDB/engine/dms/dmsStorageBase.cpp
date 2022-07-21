@@ -1705,7 +1705,7 @@ namespace engine
          if ( rc )
          {
             INT32 rc1 = SDB_OK ;
-            PD_LOG ( PDERROR, "Failed to extend storage unit for %llu "
+            PD_LOG ( PDWARNING, "Failed to extend storage unit for %llu "
                      "bytes, sparse:%s, rc: %d", incFileSize,
                      _pStorageInfo->_enableSparse ? "TRUE" : "FALSE", rc ) ;
 
