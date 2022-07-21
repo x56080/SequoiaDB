@@ -150,72 +150,6 @@ namespace engine
    typedef _restSessionInfo restSessionInfo ;
 
 
-   class RestToMSGTransfer ;
-
-   /*
-      _pmdRestSession define
-   */
-   class _pmdRestSession : public _pmdSession
-   {
-      public:
-         _pmdRestSession( SOCKET fd ) ;
-         virtual ~_pmdRestSession () ;
-
-         virtual INT32     getServiceType() const ;
-         virtual SDB_SESSION_TYPE sessionType() const ;
-
-         virtual INT32     run() ;
-
-      public:
-         CHAR*             getFixBuff() ;
-         INT32             getFixBuffSize () const ;
-
-         BOOLEAN           isAuthOK() ;
-         string            getLoginUserName() ;
-         const CHAR*       getSessionID() ;
-
-         void              doLogout () ;
-         INT32             doLogin ( const string &username,
-                                     UINT32 localIP ) ;
-
-         INT32             _dealWithLoginReq( INT32 result,
-                                              restRequest &request,
-                                              restResponse &response ) ;
-
-      protected:
-         virtual void      _onAttach () ;
-         virtual void      _onDetach () ;
-
-         void              restoreSession() ;
-
-      protected:
-
-         INT32             _fetchOneContext( SINT64 &contextID,
-                                             rtnContextBuf &contextBuff ) ;
-         virtual INT32     _processMsg( restRequest &request,
-                                        restResponse &response ) ;
-         INT32             _processBusinessMsg( restAdaptor *pAdaptor,
-                                                restRequest &request,
-                                                restResponse &response ) ;
-         INT32             _translateMSG( restAdaptor *pAdaptor,
-                                          restRequest &request,
-                                          MsgHeader **msg ) ;
-         INT32             _checkAuth( restRequest *request ) ;
-      protected:
-         CHAR*             _pFixBuff ;
-
-         restSessionInfo*  _pSessionInfo ;
-
-         string            _wwwRootPath ;
-
-         _SDB_RTNCB        *_pRTNCB ;
-
-         RestToMSGTransfer *_pRestTransfer ;
-
-   } ;
-   typedef _pmdRestSession pmdRestSession ;
-
-
    #define REST_CMD_NAME_QUERY         "query"
    #define REST_CMD_NAME_INSERT        "insert"
    #define REST_CMD_NAME_UPDATE        "update"
@@ -247,7 +181,7 @@ namespace engine
    class RestToMSGTransfer : public SDBObject
    {
       public:
-         RestToMSGTransfer( pmdRestSession *session ) ;
+         RestToMSGTransfer() ;
          ~RestToMSGTransfer() ;
 
       public:
@@ -567,11 +501,74 @@ namespace engine
                                                     MsgHeader **msg ) ;
 
       private:
-         pmdRestSession    *_restSession ;
          std::map< string, restTransFunc > _mapTransFunc ;
          typedef std::map< string, restTransFunc >::value_type _value_type ;
          typedef std::map< string, restTransFunc >::iterator _iterator ;
    } ;
+
+
+   /*
+      _pmdRestSession define
+   */
+   class _pmdRestSession : public _pmdSession
+   {
+      public:
+         _pmdRestSession( SOCKET fd ) ;
+         virtual ~_pmdRestSession () ;
+
+         virtual INT32     getServiceType() const ;
+         virtual SDB_SESSION_TYPE sessionType() const ;
+
+         virtual INT32     run() ;
+
+      public:
+         CHAR*             getFixBuff() ;
+         INT32             getFixBuffSize () const ;
+
+         BOOLEAN           isAuthOK() ;
+         string            getLoginUserName() ;
+         const CHAR*       getSessionID() ;
+
+         void              doLogout () ;
+         INT32             doLogin ( const string &username,
+                                     UINT32 localIP ) ;
+
+         INT32             _dealWithLoginReq( INT32 result,
+                                              restRequest &request,
+                                              restResponse &response ) ;
+
+      protected:
+         virtual void      _onAttach () ;
+         virtual void      _onDetach () ;
+
+         void              restoreSession() ;
+
+      protected:
+
+         INT32             _fetchOneContext( SINT64 &contextID,
+                                             rtnContextBuf &contextBuff ) ;
+         virtual INT32     _processMsg( restRequest &request,
+                                        restResponse &response ) ;
+         INT32             _processBusinessMsg( restAdaptor *pAdaptor,
+                                                restRequest &request,
+                                                restResponse &response ) ;
+         INT32             _translateMSG( restAdaptor *pAdaptor,
+                                          restRequest &request,
+                                          MsgHeader **msg ) ;
+         INT32             _checkAuth( restRequest *request ) ;
+      protected:
+         CHAR*             _pFixBuff ;
+
+         restSessionInfo*  _pSessionInfo ;
+
+         string            _wwwRootPath ;
+
+         _SDB_RTNCB        *_pRTNCB ;
+
+         RestToMSGTransfer _restTransfer ;
+
+   } ;
+   typedef _pmdRestSession pmdRestSession ;
 
    void _sendOpError2Web ( INT32 rc, restAdaptor *pAdptor,
                            restResponse &response, pmdRestSession *pRestSession,
