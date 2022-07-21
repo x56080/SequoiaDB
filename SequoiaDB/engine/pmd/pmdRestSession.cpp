@@ -187,8 +187,7 @@ namespace engine
       _pRTNCB           = NULL ;
 
       _wwwRootPath      = pmdGetOptionCB()->getWWWPath() ;
-      _pRestTransfer    = SDB_OSS_NEW RestToMSGTransfer( this ) ;
-      _pRestTransfer->init() ;
+      _restTransfer.init() ;
    }
 
    _pmdRestSession::~_pmdRestSession()
@@ -197,12 +196,6 @@ namespace engine
       {
          sdbGetPMDController()->releaseFixBuf( _pFixBuff ) ;
          _pFixBuff = NULL ;
-      }
-
-      if ( NULL != _pRestTransfer )
-      {
-         SDB_OSS_DEL _pRestTransfer ;
-         _pRestTransfer = NULL ;
       }
    }
 
@@ -438,7 +431,7 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg can't be null" ) ;
 
       INT32 rc = SDB_OK ;
-      rc = _pRestTransfer->trans( pAdaptor, request, msg ) ;
+      rc = _restTransfer.trans( pAdaptor, request, msg ) ;
       if ( SDB_OK != rc )
       {
          //PD_LOG( PDERROR, "transfer rest message failed:rc=%d", rc ) ;
@@ -884,8 +877,7 @@ namespace engine
       restTransFunc func ;
    } restCommand2Func ;
 
-   RestToMSGTransfer::RestToMSGTransfer( pmdRestSession *session )
-                     :_restSession( session )
+   RestToMSGTransfer::RestToMSGTransfer()
    {
    }
 
