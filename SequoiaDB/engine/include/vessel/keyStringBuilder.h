@@ -1230,12 +1230,6 @@ namespace vessel
          if (decFromDouble.compare(dec) > 0)
          {
             *(UINT64 *)(&floorDouble) -= 1;
-            ss.clear();
-            ss << std::setprecision(DOUBLE_PRECISION_10) << floorDouble;
-            bson::bsonDecimal decFromDouble;
-            decFromDouble.fromString(ss.str().c_str());
-            SDB_ASSERT(decFromDouble.compare(dec) < 0,
-                       "Excepted value that rounded toward zero");
          }
          rc = _appendDoubleWithoutTypeBits(
              floorDouble, DecimalContinuationMarker::hasContinuation, invert);
@@ -1264,7 +1258,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       INT32 weight = dec.getWeight();
-      INT32 ndigit = dec.getNdigit();
+      UINT32 ndigit = static_cast<UINT32>(dec.getNdigit());
       const INT16 *digits = dec.getDigits();
       UINT32 integerPartNDigit = 0;
       invert = dec.getSign() == SDB_DECIMAL_NEG ? !invert : invert;
@@ -1867,7 +1861,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(BUILDER_STATUS::APPENDING_ELEMENTS == _status,
-                 "unexpected state");
+                 "unexpected status");
       const CHAR *data = nullptr;
 
       if (nullptr == str.data())
@@ -1982,7 +1976,7 @@ namespace vessel
 
    // MetaBlock
    // TypeBits size: 1 or 4 bytes
-   // key string size: 1, 2 or 4 bytes
+   // key string size: 1 or 4 bytes
    // Size ahead key string: 0 or 1 byte
    // metaByte: 1 byte whose 1 bit to indicate size ahead key string, 1 bit to
    // indicate size of key string and 1 bit to indicate size of TypeBits.

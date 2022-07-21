@@ -56,7 +56,7 @@ namespace vessel
    public:
       typeBitsReader() = default;
       typeBitsReader(const CHAR *buf, UINT32 bufSize);
-      ~typeBitsReader();
+      ~typeBitsReader() = default;
       typeBitsReader operator=(const typeBitsReader &) = delete;
       typeBitsReader(const typeBitsReader &) = delete;
 
@@ -65,6 +65,8 @@ namespace vessel
       typeBitsType readZero();
       typeBitsType readStringLike();
       void readBitsAndAssign(CHAR *dst, UINT32 bytesSize);
+      UINT8 readByte();
+      template <typename T> T read();
 
    private:
       UINT8 _readBit();
@@ -90,12 +92,15 @@ namespace vessel
       keyString(keyString &&);
       keyString &operator=(keyString &&);
 
-      public:
-         OSS_INLINE BOOLEAN isValid() const
-         {
-            return _ref.isValid() && _block.isValid();
-         }
-         OSS_INLINE BOOLEAN isOwned()const {return nullptr != _bufferOwned;}
+   public:
+      OSS_INLINE BOOLEAN isValid() const
+      {
+         return _ref.isValid() && _block.isValid();
+      }
+      OSS_INLINE BOOLEAN isOwned() const
+      {
+         return nullptr != _bufferOwned;
+      }
 
       OSS_INLINE const slice &getDataSlice() const
       {
@@ -127,6 +132,11 @@ namespace vessel
 
    private:
       template <typename T> T _read(UINT32 &offset, BOOLEAN inverted);
+      void _readBytes(UINT32 &offset,
+                      BOOLEAN inverted,
+                      CHAR *bytes,
+                      UINT32 len);
+      bson::StringData _readCString(UINT32 &offset, BOOLEAN inverted);
       void _toBsonValue(EncodedType type,
                         UINT32 &offset,
                         BOOLEAN inverted,
@@ -139,18 +149,36 @@ namespace vessel
                       bson::BSONObjBuilder &builder,
                       typeBitsReader &typeReader,
                       const CHAR *fieldName = nullptr);
+      bson::StringData _decodeStringLike(UINT32 &offset,
+                             BOOLEAN inverted,
+                             bson::BSONObjBuilder &builder,
+                             typeBitsReader &typeReader);
       bson::bsonDecimal _decodeDecimal(UINT32 &offset,
+                                       BOOLEAN inverted,
                                        BOOLEAN isNegative,
-                                       BOOLEAN inverted);
+                                       typeBitsReader &typeReader);
 
-      protected:
-         slice _ref;  
+   protected:
+      slice _ref;
 
-      private:
-         CHAR *_bufferOwned = nullptr;
-         UINT32 _bufferSize = 0;
-         keyStringMetaBlock _block;
-   };//class keyString
+   private:
+      CHAR *_bufferOwned = nullptr;
+      UINT32 _bufferSize = 0;
+      keyStringMetaBlock _block;
+   }; // class keyString
+
+   template <typename T> T typeBitsReader::read()
+   {
+      T t;
+      UINT8 *ptr = reinterpret_cast<UINT8 *>(&t);
+      for (UINT32 i = 0; i < sizeof(t); i++)
+      {
+         UINT8 byte = readByte();
+         ossMemcpy(ptr + i, &byte, 1);
+      }
+      return t;
+   }
+
 } // namespace vessel
 } // namespace engine
 #endif // VESSEL_KEY_STRING_H_

@@ -53,7 +53,7 @@ namespace vessel
       int highbit = 0;
       for (UINT32 i = 1; i <= 63; ++i)
       {
-         if (num >= (1 << i))
+         if (num >= (1ULL << i))
          {
             highbit = i;
          }

@@ -39,23 +39,21 @@ namespace vessel
                                         std::numeric_limits<INT32>::max()}};
       for (UINT32 i = 0; i < numbers.size(); i++)
       {
-         for (UINT32 j = 0; j < numbers[i].size(); j++)
-         {
-            bsb.appendNumber("a", numbers[i][j]);
-            bsb.appendNumber("b", numbers[i][j]);
-            keyStringBuilder<> ksb;
-            orderingWrapper ord(0, 2);
-            bson::BSONObj obj = bsb.obj();
-            ksb.appendAllElements(obj, ord);
-            ksb.done();
-            keyString ks = ksb.getShallowKeyString();
-            ks.getOwned();
-            buffers.emplace_back(ks.getKeySlice().data(),
-                                 ks.getKeySlice().getSize());
-            bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
-            EXPECT_EQ(obj.woCompare(objFromKey), 0);
-            bsb.reset();
-         }
+
+         bsb.appendNumber("a", numbers[i][0]);
+         bsb.appendNumber("b", numbers[i][1]);
+         keyStringBuilder<> ksb;
+         orderingWrapper ord(0b10, 2);
+         bson::BSONObj obj = bsb.obj();
+         ksb.appendAllElements(obj, ord);
+         ksb.done();
+         keyString ks = ksb.getShallowKeyString();
+         ks.getOwned();
+         buffers.emplace_back(ks.getDataSlice().data(),
+                              ks.getDataSlice().getSize());
+         bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+         EXPECT_EQ(obj.woCompare(objFromKey), 0);
+         bsb.reset();
       }
    }
 
@@ -78,32 +76,102 @@ namespace vessel
                                         std::numeric_limits<INT64>::max()}};
       for (UINT32 i = 0; i < numbers.size(); i++)
       {
-         for (UINT32 j = 0; j < numbers[i].size(); j++)
-         {
-            bsb.appendNumber("a", static_cast<INT64>(numbers[i][j]));
-            bsb.appendNumber("b", static_cast<INT64>(numbers[i][j]));
-            keyStringBuilder<> ksb;
-            orderingWrapper ord(0, 2);
-            bson::BSONObj obj = bsb.obj();
-            ksb.appendAllElements(obj, ord);
-            ksb.done();
-            keyString ks = ksb.getShallowKeyString();
-            ks.getOwned();
-            buffers.emplace_back(ks.getKeySlice().data(),
-                                 ks.getKeySlice().getSize());
-            bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
-            EXPECT_EQ(obj.woCompare(objFromKey), 0);
-            bsb.reset();
-         }
+         bsb.appendNumber("a", static_cast<INT64>(numbers[i][0]));
+         bsb.appendNumber("b", static_cast<INT64>(numbers[i][1]));
+         keyStringBuilder<> ksb;
+         orderingWrapper ord(0b10, 2);
+         bson::BSONObj obj = bsb.obj();
+         ksb.appendAllElements(obj, ord);
+         ksb.done();
+         keyString ks = ksb.getShallowKeyString();
+         ks.getOwned();
+         buffers.emplace_back(ks.getDataSlice().data(),
+                              ks.getDataSlice().getSize());
+         bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+         EXPECT_EQ(obj.woCompare(objFromKey), 0);
+         bsb.reset();
       }
    }
 
    TEST(key_string_test, base_double)
    {
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", 1);
+      bsb.appendNumber("b", -1);
+      bson::BSONObj pattern = bsb.obj();
+      bsb.reset();
+      vector<pair<const CHAR *, UINT32>> buffers;
+      vector<vector<FLOAT64>> numbers = {
+          {std::numeric_limits<FLOAT64>::denorm_min(),
+           std::numeric_limits<FLOAT64>::denorm_min()},
+          {-172.8 - 172.8},
+          {-172.5, -172.5},
+          {-172.3, -172.3},
+          {-0.0, -0.0},
+          {0.0, 0.0},
+          {172.3, 172.3},
+          {172.5, 172.5},
+          {172.8, -172.8},
+          {minLargeFloat64, minLargeFloat64},
+          {std::numeric_limits<FLOAT64>::max(),
+           std::numeric_limits<FLOAT64>::max()}};
+      for (UINT32 i = 0; i < numbers.size(); i++)
+      {
+         bsb.appendNumber("a", static_cast<FLOAT64>(numbers[i][0]));
+         bsb.appendNumber("b", static_cast<FLOAT64>(numbers[i][1]));
+         keyStringBuilder<> ksb;
+         orderingWrapper ord(0b10, 2);
+         bson::BSONObj obj = bsb.obj();
+         ksb.appendAllElements(obj, ord);
+         ksb.done();
+         keyString ks = ksb.getShallowKeyString();
+         ks.getOwned();
+         buffers.emplace_back(ks.getDataSlice().data(),
+                              ks.getDataSlice().getSize());
+         bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+         EXPECT_EQ(obj.woCompare(objFromKey), 0);
+         bsb.reset();
+      }
    }
 
    TEST(key_string_test, base_decimal)
    {
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", 1);
+      bsb.appendNumber("b", -1);
+      bson::BSONObj pattern = bsb.obj();
+      bsb.reset();
+      vector<pair<const CHAR *, UINT32>> buffers;
+      vector<vector<string>> numbers = {
+          {"-172172.839651", "-172172.839651"},
+          {"-172.8", "-172.8"},
+          {"-172.5", "-172.5"},
+          {"-172.3", "-172.3"},
+          {"-0.0", "-0.0"},
+          {"0.0", "0.0"},
+          {"172.3", "172.3"},
+          {"172.5", "172.5"},
+          {"172.8", "172.8"},
+          {"172172.839651", "172172.839651"},
+          {to_string(minLargeFloat64), to_string(minLargeFloat64)}};
+      for (UINT32 i = 0; i < numbers.size(); i++)
+      {
+         bsb.appendDecimal("a", numbers[i][0]);
+         bsb.appendDecimal("b", numbers[i][1]);
+         keyStringBuilder<> ksb;
+         orderingWrapper ord(0b10, 2);
+         bson::BSONObj obj = bsb.obj();
+         ksb.appendAllElements(obj, ord);
+         ksb.done();
+         keyString ks = ksb.getShallowKeyString();
+         ks.getOwned();
+         buffers.emplace_back(ks.getDataSlice().data(),
+                              ks.getDataSlice().getSize());
+         bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+         std::cout<< i << endl << obj.toString(0,0,0) << endl << objFromKey.toString(0,0,0) <<endl;
+         EXPECT_EQ(obj.woCompare(objFromKey), 0);
+         bsb.reset();
+      }
    }
 
    TEST(key_string_test, base_number)
