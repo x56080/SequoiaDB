@@ -3847,6 +3847,7 @@ namespace vessel
       UINT32 fetched = 0;
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       indexScanner scanner;
+      bson::BufBuilder buf;
       INDEX_ITERATOR_UPTR iterator = hit.createIterator(obj);
       if (!iterator)
       {
@@ -3866,20 +3867,32 @@ namespace vessel
          rc = scanner.next(context);
          if (SDB_OK == rc)
          {   
-            slice recordData;
-            DPS_TRANS_ID transID;
-            recordID rid = scanner.getRid();
-            dmsRecordID dmsRid = rid.toDMSRid();
-            slice keySlice = scanner.getKeyString();  
+            recordID rid = scanner.current()->getRid();
+            dmsRecordID dmsRid = rid.toDMSRid(); 
 
             if (o.indexCovered)
-            {
-               bson::BSONObj recordObj;
-               transID = scanner.getTransID();
-               recordData.reset(recordObj.objsize(), recordObj.objdata());
+            { 
+               DPS_TRANS_ID transID = scanner.current()->getTransID();
+               buf.reset();
+               bson::BSONObj recordObj = scanner.current()->getKeyObj(TRUE, &buf);
+               slice recordData(recordObj.objsize(), recordObj.objdata());
+               rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &dmsRid),
+                                               slice(sizeof(DPS_TRANS_ID), &transID),
+                                               recordData});
+               if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+               {
+                  rc = SDB_OK;
+                  break;
+               }
+               else if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
+                  goto error;
+               }
             } 
             else
             {
+               DPS_TRANS_ID transID;
                rdpRecordScanner rdpScanner;
                rc = rdpScanner.openToRead(context, rid);
                if (SDB_OK != rc)
@@ -3890,21 +3903,19 @@ namespace vessel
                }
 
                transID = rdpScanner.getCurrentTransID();
-               recordData = rdpScanner.getCurrentRecord();
-            }
-
-            rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &dmsRid),
-                                            slice(sizeof(DPS_TRANS_ID), &transID),
-                                            recordData});
-            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-            {
-               rc = SDB_OK;
-               break;
-            }
-            else if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
-               goto error;
+               rc = cursor->pushDataFragments({slice(sizeof(dmsRecordID), &dmsRid),
+                                               slice(sizeof(DPS_TRANS_ID), &transID),
+                                               rdpScanner.getCurrentRecord()});
+               if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+               {
+                  rc = SDB_OK;
+                  break;
+               }
+               else if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
+                  goto error;
+               }
             }
 
             ++fetched;
@@ -3926,7 +3937,7 @@ namespace vessel
             rc = SDB_OK;
             break;
          }
-      }
+      }//while (fetched < maxFetching)
 
    done:
       scanner.close();

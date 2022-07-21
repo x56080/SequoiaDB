@@ -70,10 +70,7 @@ namespace vessel
          INT32 next(requestContext *context);
 
       public:
-         recordID getRid()const;
-         DPS_LSN_OFFSET getLSN()const;
-         DPS_TRANS_ID getTransID()const;
-         slice getKeyString()const;
+         const indexIterator *current()const {return _iterator.get();}
 
       private:
          INT32 _pauseUntilRidReady(requestContext *context,

@@ -123,30 +123,6 @@ namespace vessel
       goto done;
    }
 
-   recordID indexScanner::getRid()const
-   {
-      SDB_ASSERT(!!_iterator && _iterator->isReadyToRead(), "can not be invalid");
-      return _iterator->getRid();
-   }
-
-   DPS_LSN_OFFSET indexScanner::getLSN()const
-   {
-      SDB_ASSERT(!!_iterator && _iterator->isReadyToRead(), "can not be invalid");
-      return _iterator->getLSN();
-   }
-
-   DPS_TRANS_ID indexScanner::getTransID()const
-   {
-      SDB_ASSERT(!!_iterator && _iterator->isReadyToRead(), "can not be invalid");
-      return _iterator->getTransID();
-   }
-
-   slice indexScanner::getKeyString()const
-   {
-      SDB_ASSERT(!!_iterator && _iterator->isReadyToRead(), "can not be invalid");
-      return _iterator->getKeyString();
-   }
-
    INT32 indexScanner::_pauseUntilRidReady(requestContext *context,
                                            const recordID &rid)
    {
@@ -283,12 +259,7 @@ namespace vessel
       else
       {
          const rtnPredicateListIterator *predicate = _cursor->getPredicate();
-         indexIterator::seekOptions o;
-         o.inclusive = TRUE;
-
-         rc = _iterator->seek(bson::BSONObj(),
-                              0, predicate->cmp(),
-                              predicate->inc(), o);
+         rc = _iterator->seek(predicate->cmp(), predicate->inc());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek predicate:%d", rc);
@@ -327,8 +298,9 @@ namespace vessel
          }
          else
          {
-            bson::BSONObj keyObj;
             _keyBuilder.reset();
+            bson::BSONObj keyObj = _iterator->getKeyObj(FALSE, &_keyBuilder);
+
             INT32 res = predicate->advance(keyObj);
             if (-2 == res)
             {
@@ -336,10 +308,9 @@ namespace vessel
             }
             else if (0 <= res)
             {
-               indexIterator::seekOptions o;
-               o.inclusive = predicate->after();
-               rc = _iterator->advance(keyObj, rc, predicate->cmp(),
-                                       predicate->inc(), o);
+               rc = _iterator->advance(keyObj, rc,
+                                       predicate->cmp(),
+                                       predicate->inc());
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reseek key:%d", rc);

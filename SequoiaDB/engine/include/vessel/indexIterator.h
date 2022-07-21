@@ -73,23 +73,15 @@ namespace vessel
             BOOLEAN forward = TRUE;
          };//class options
 
-         struct seekOptions
-         {
-            BOOLEAN inclusive = TRUE;
-         };//class seekOptions
-
       public:
          virtual INDEX_ITERATOR_TYPE getType() const = 0;
          virtual void reset() = 0;
 
-         virtual INT32 seek(const bson::BSONObj &prevKey,
-                            INT32 fieldCountToCmpInPrev,
-                            const VEC_ELE_CMP &matchEles,
-                            const inclusiveVec &matchInclusive,
-                            const seekOptions &o) = 0;
+         virtual INT32 seek(const VEC_ELE_CMP &matchEles,
+                            const inclusiveVec &matchInclusive) = 0;
 
-         virtual INT32 seekKey(const bson::BSONObj &key,
-                               const seekOptions &o) = 0;
+         virtual INT32 seek(const bson::BSONObj &key,
+                            const inclusiveVec &matchInclusive) = 0;
 
          virtual INT32 locate(const indexEntryLocation *location) = 0;
 
@@ -99,8 +91,7 @@ namespace vessel
          virtual INT32 advance(const bson::BSONObj &prevKey,
                                INT32 fieldCountToCmpInPrev,
                                const VEC_ELE_CMP &matchEles,
-                               const inclusiveVec &matchInclusive,
-                               const seekOptions &o) = 0;
+                               const inclusiveVec &matchInclusive) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
@@ -111,11 +102,13 @@ namespace vessel
       public:
          /// Access valid data saved in iterator.
          /// User should always ensure 'isReadyToRead' first.
-         virtual slice getKeyString()const = 0;
+
+         /// return builder.done() if buf is not null
+         virtual bson::BSONObj getKeyObj(BOOLEAN withFieldName,
+                                         bson::BufBuilder *buf)const = 0;
          virtual DPS_LSN_OFFSET getLSN()const = 0;
          virtual DPS_TRANS_ID getTransID()const = 0;
          virtual recordID getRid()const = 0;
-         virtual BOOLEAN equals(const ixmKey &key)const = 0;
          virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const = 0;
 
    };//class indexIterator
