@@ -81,15 +81,7 @@ namespace vessel
 
    TEST(key_string_test, base_object)
    {
-      INT32 rc = SDB_OK;
-      keyStringBuilder<> ksb;
-      bson::BSONObjBuilder ob;
-      orderingWrapper o(0, 1);
-      rc = ksb.appendAllElements(ob.done(), o);
-      ASSERT_EQ(SDB_OK, rc);
-      rc = ksb.done();
-      ASSERT_EQ(SDB_OK, rc);
-      keyString ks = ksb.getShallowKeyString();
+
    }
 
    TEST(key_string_test, base_string)
@@ -99,7 +91,7 @@ namespace vessel
       keyStringBuilder<> ksb2;
       bson::BSONObj obj1 = BSON("a" << "foobar");
       bson::BSONObj obj2 = BSON("a" << "foobar1");
-      orderingWrapper o(1, 1);
+      orderingWrapper o(0, 1);
 
 
       rc = ksb1.appendAllElements(obj1, o);
@@ -114,24 +106,13 @@ namespace vessel
       keyString ks1 = ksb1.getShallowKeyString();
       keyString ks2 = ksb2.getShallowKeyString();
 
-      INT32 res = ossMemcmp(ks1.getDataSlice().getData(),
-                            ks2.getDataSlice().getData(),
-                            ks1.getDataSlice().getSize());
+      INT32 res = ks1.compare(ks2);
       ASSERT_LT(res, 0);
    }
 
    TEST(key_string_test, base_symbol)
    {
-      INT32 rc = SDB_OK;
-      keyStringBuilder<> ksb;
-      bson::BSONObjBuilder ob;
-      ob.appendSymbol("tmp", "foobar");
-      orderingWrapper o(0, 1);
-      rc = ksb.appendAllElements(ob.done(), o);
-      ASSERT_EQ(SDB_OK, rc);
-      rc = ksb.done();
-      ASSERT_EQ(SDB_OK, rc);
-      keyString ks = ksb.getShallowKeyString();
+
    }
 
 
@@ -220,6 +201,65 @@ namespace vessel
 
 
    }
+
+   TEST(key_string_test, base_keyslice)
+   {
+      INT32 rc = SDB_OK;
+      bson::BSONObj obj = BSON("a" << "foobar");
+      UINT32 keyBefore = 123;
+      orderingWrapper o(0, 1);
+
+      keyStringBuilder<> ksb1;
+      rc = ksb1.appendUnsignedWithoutType(keyBefore);
+      ASSERT_EQ(SDB_OK, rc);
+      ksb1.appendAllElements(obj, o);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb1.done();
+      ASSERT_EQ(SDB_OK, rc);
+      keyString ks1 = ksb1.getShallowKeyString();
+      
+      keyStringBuilder<> ksb2;
+      ksb2.appendAllElements(obj, o);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb2.done();
+      ASSERT_EQ(SDB_OK, rc);
+      keyString ks2 = ksb2.getShallowKeyString();
+
+      INT32 res = ossMemcmp(ks1.getKeySlice().getData(),
+                            ks2.getKeySlice().getData(),
+                            ks1.getKeySlice().getSize());
+      EXPECT_EQ(res, 0);
+
+      ksb1.reset();
+      ksb2.reset();
+      std::string str('x', 200);
+      bson::BSONObjBuilder ob;
+      ob << "name" << str << "foo" << str << "int" << 123 << "ss" << str;
+      obj = ob.obj();
+      orderingWrapper ord(0, 4);
+      rc = ksb1.appendUnsignedWithoutType(keyBefore);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb1.appendAllElements(obj, ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb1.done();
+      ASSERT_EQ(SDB_OK, rc);
+      ks1 = ksb1.getShallowKeyString();
+      
+      rc = ksb2.appendAllElements(obj, ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb2.done();
+      ASSERT_EQ(SDB_OK, rc);
+      ks2 = ksb2.getShallowKeyString();
+
+      res = ossMemcmp(ks1.getKeySlice().getData(),
+                      ks2.getKeySlice().getData(),
+                      ks1.getKeySlice().getSize());
+      ASSERT_EQ(res, 0);
+
+   }
+
+
+
 
 
 } // namespace vessel

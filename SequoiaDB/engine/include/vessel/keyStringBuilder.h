@@ -330,28 +330,27 @@ namespace vessel
                            BOOLEAN invert,
                            const stringTransformFn &f = nullptr);
          INT32 _appendSmallDouble(FLOAT64 value,
-                                  DecimalContinuationMarker dcm,
-                                  BOOLEAN invert);
+                                    DecimalContinuationMarker dcm,
+                                    BOOLEAN invert);
          INT32 _appendLargeDouble(FLOAT64 value,
-                                  DecimalContinuationMarker dcm,
-                                  BOOLEAN invert);
+                                    DecimalContinuationMarker dcm,
+                                    BOOLEAN invert);
          INT32 _appendInteger(const INT64 num, BOOLEAN invert);
          INT32 _appendPreshiftedInteger(UINT64 value,
-                                        BOOLEAN isNegative,
-                                        BOOLEAN invert);
+                                          BOOLEAN isNegative,
+                                          BOOLEAN invert);
 
          INT32 _appendDoubleWithoutTypeBits(FLOAT64 num,
-                                            DecimalContinuationMarker dcm,
-                                            BOOLEAN invert);
+                                             DecimalContinuationMarker dcm,
+                                             BOOLEAN invert);
          INT32 _appendHugeDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
-                                                 BOOLEAN invert);
+                                                   BOOLEAN invert);
          INT32 _appendTinyDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
-                                                 FLOAT64 bin,
-                                                 BOOLEAN invert);
+                                                   FLOAT64 bin,
+                                                   BOOLEAN invert);
          INT32 _appendBytes(const void *source, UINT32 len, BOOLEAN invert);
 
-         template <typename T>
-         INT32 _append(const T &t, BOOLEAN invert)
+         template <typename T> INT32 _append(const T &t, BOOLEAN invert)
          {
             return _appendBytes(&t, sizeof(t), invert);
          }
@@ -369,6 +368,7 @@ namespace vessel
          CHAR *_buf = nullptr;
          UINT32 _bufSize = 0;
          UINT8 _sizeAheadElements = 0;
+         UINT32 _sizeOfElements = 0;
          UINT32 _capacity = 0;
          INT8 _elemCount = 0;
          Allocator _allocator;
@@ -567,6 +567,7 @@ namespace vessel
          PD_LOG(PDERROR, "append bson elements failed, rc:%d", rc);
          goto error;
       }
+      _sizeOfElements = _bufSize - _sizeAheadElements;
 
    done:
       return rc;
@@ -596,6 +597,7 @@ namespace vessel
          goto error;
       }
       _elemCount++;
+      _sizeOfElements = _bufSize - _sizeAheadElements;
    done:
       return rc;
    error:
@@ -934,16 +936,17 @@ namespace vessel
       if (num == std::numeric_limits<INT64>::min())
       {
          FLOAT64 doubleVal = static_cast<FLOAT64>(num);
-         SDB_ASSERT(doubleVal == minLargeFloat64, "must be equal");
+         SDB_ASSERT(-doubleVal == minLargeFloat64, "must be equal");
          rc = _appendLargeDouble(
-             doubleVal, DecimalContinuationMarker::hasContinuation, invert);
+             doubleVal, DecimalContinuationMarker::hasNoContinuation, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append large double", rc);
             goto error;
          }
+         goto done;
       }
-      if (num == 0)
+      else if (num == 0)
       {
          rc = _append(EncodedType::numericZero, invert);
          if (SDB_OK != rc)
@@ -951,6 +954,7 @@ namespace vessel
             PD_LOG(PDERROR, "failed to append encoded type", rc);
             goto error;
          }
+         goto done;
       }
       rc = _appendPreshiftedInteger(magnitude << 1, isNegative, invert);
       if (SDB_OK != rc)
@@ -1356,7 +1360,7 @@ namespace vessel
       for (UINT32 i = integerPartNDigit; i < ndigit; ++i)
       {
          UINT16 absDigit = digits[i] << 1;
-         if (i == ndigit - 1)
+         if (i != ndigit - 1)
          {
             absDigit |= 0b1;
          }
@@ -2065,11 +2069,11 @@ namespace vessel
 
       if (keyBytesNeeded == 1)
       {
-         rc = _append(static_cast<UINT8>(_bufSize), FALSE);
+         rc = _append(static_cast<UINT8>(_sizeOfElements), FALSE);
       }
       else
       {
-         rc = _append(static_cast<UINT32>(_bufSize), FALSE);
+         rc = _append(static_cast<UINT32>(_sizeOfElements), FALSE);
       }
       if (SDB_OK != rc)
       {
@@ -2118,7 +2122,8 @@ namespace vessel
    {
       SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
       SDB_ASSERT(_allocator.isMovable(), "must be movable");
-      keyString ks(_buf, _capacity, _bufSize);
+      keyString ks;
+      ks._adopt(_buf, _capacity, _bufSize);
       _buf = nullptr;
       reset();
       return std::move(ks);
