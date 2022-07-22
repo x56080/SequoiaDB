@@ -52,7 +52,8 @@ Specific configuration can refer to parameter description.
 .RE
 .SH RETURN VALUE
 .PP
-When the function executes successfully, there is no return value.
+When the function executes successfully, it will return an object of type
+SdbNode.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
