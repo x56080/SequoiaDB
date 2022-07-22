@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -33,6 +34,9 @@ public class RenameCL_20302 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Skip testCase on standalone" );
+        }
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = cs.createCollection( clName );
         RenameUtil.insertData( cl, recordNum );
