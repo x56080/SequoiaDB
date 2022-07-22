@@ -183,6 +183,11 @@ namespace engine
             _hitEnd = TRUE ;
             goto error ;
          }
+         else if ( SDB_LOB_SEQUENCE_NOT_EXIST == rc )
+         {
+            // Ignore the concurrency during deleteLob and listLobs operations
+            continue ;
+         }
          else if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get lob data:%d", rc ) ;
