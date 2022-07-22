@@ -2,10 +2,12 @@ package com.sequoiadb.rename;
 
 import java.util.ArrayList;
 
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -37,6 +39,9 @@ public class RenameCS_16283 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Skip testCase on standalone" );
+        }
         RenameUtil.removeCS( sdb, csName );
         RenameUtil.removeCS( sdb, newCSName );
 
