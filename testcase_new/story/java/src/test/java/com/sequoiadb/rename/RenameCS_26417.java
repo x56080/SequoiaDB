@@ -1,9 +1,11 @@
 package com.sequoiadb.rename;
 
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -31,6 +33,9 @@ public class RenameCS_26417 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Skip testCase on standalone" );
+        }
         if ( sdb.isCollectionSpaceExist( csName1 ) ) {
             sdb.dropCollectionSpace( csName1 );
         }
