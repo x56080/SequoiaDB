@@ -159,7 +159,8 @@ namespace vessel
       INT32 appendBSONElement(const bson::BSONElement &elem,
                               BOOLEAN isDescending = FALSE);
       INT32 appendAllElements(const bson::BSONObj &obj,
-                              const orderingWrapper &o);
+                              const orderingWrapper &o,
+                              Discriminator d = Discriminator::INCLUSIVE);
       template <
           typename T,
           class = typename std::enable_if<std::is_unsigned<T>::value>::type>
@@ -172,7 +173,7 @@ namespace vessel
          {
             _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
          }
-         else if(BUILDER_STATUS::APPENDING_ELEMENTS == _status)
+         else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
          {
             _transition(BUILDER_STATUS::AFTER_ELEMENTS);
          }
@@ -223,7 +224,7 @@ namespace vessel
             goto error;
          }
          SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                  "size ahead key string must be equal or less than 255");
+                    "size ahead key string must be equal or less than 255");
          _sizeAheadElements += sizeof(val);
       done:
          return rc;
@@ -311,6 +312,7 @@ namespace vessel
          return _appendBytes(&t, sizeof(t), invert);
       }
 
+      INT32 _appendDiscriminator(Discriminator d);
       INT32 _appendTypeBits();
       INT32 _appendMetaBlock();
 
@@ -459,7 +461,7 @@ namespace vessel
             SDB_ASSERT(to == BUILDER_STATUS::BEFORE_ELEMENTS ||
                            to == BUILDER_STATUS::APPENDING_ELEMENTS ||
                            to == BUILDER_STATUS::DONE,
-                       "Invalid builder status");  
+                       "Invalid builder status");
             break;
          case BUILDER_STATUS::BEFORE_ELEMENTS:
             SDB_ASSERT(to == BUILDER_STATUS::APPENDING_ELEMENTS ||
@@ -483,7 +485,7 @@ namespace vessel
 
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::appendAllElements(
-       const bson::BSONObj &obj, const orderingWrapper &o)
+       const bson::BSONObj &obj, const orderingWrapper &o, Discriminator d)
    {
       INT32 rc = SDB_OK;
       bson::BSONObjIterator it(obj);
@@ -514,6 +516,7 @@ namespace vessel
          PD_LOG(PDERROR, "append bson elements failed, rc:%d", rc);
          goto error;
       }
+      _appendDiscriminator(d);
       _sizeOfElements = _bufSize - _sizeAheadElements;
 
    done:
@@ -1755,11 +1758,10 @@ namespace vessel
             goto error;
          }
       }
-
-      rc = _append(static_cast<INT8>(0), invert);
+      rc = _append(static_cast<UINT8>(0), invert);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "append bit failed, rc:%d");
+         PD_LOG(PDERROR, "failed to append Null, rc:%d", rc);
          goto error;
       }
 
@@ -1950,7 +1952,45 @@ namespace vessel
             goto error;
          }
       }
+      rc = _append(static_cast<UINT8>(0), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append Null, rc:%d", rc);
+         goto error;
+      }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::_appendDiscriminator(Discriminator d)
+   {
+      INT32 rc = SDB_OK;
+      if (Discriminator::EXCLUSIVE_BEFORE == d)
+      {
+         rc = _append(DiscriminatorValue::LESS, FALSE);
+      }
+      else if (Discriminator::EXCLUSIVE_AFTER == d)
+      {
+         rc = _append(DiscriminatorValue::GREATER, FALSE);
+      }
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append Discriminator, rc:%d", rc);
+         goto error;
+      }
+      // else Discriminator::Inclusive, No discriminator byte
+
+      // append the end byte in all cases
+      rc = _append(DiscriminatorValue::END, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append End, rc:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:

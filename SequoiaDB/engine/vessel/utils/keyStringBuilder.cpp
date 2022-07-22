@@ -115,8 +115,10 @@ namespace vessel
 
       case MaxKey:
          return EncodedType::maxKey;
+      default:
+         SDB_ASSERT(FALSE, "Unexpected bson type");
+         return EncodedType::numeric;
       }
-      SDB_ASSERT(FALSE, "Unexpected bson type");
    }
 
    /////////////////////////////////////////////////////////////////////////////

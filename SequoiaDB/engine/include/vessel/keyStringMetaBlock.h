@@ -38,6 +38,7 @@
 
 #include "ossTypes.h"
 #include "vessel/slice.h"
+#include <limits>
 namespace engine
 {
 namespace vessel

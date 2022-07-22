@@ -118,6 +118,19 @@ namespace vessel
       NEGATIVE_ZERO = 0b1
    };
 
+   enum class Discriminator : UINT8
+   {
+      INCLUSIVE,
+      EXCLUSIVE_BEFORE,
+      EXCLUSIVE_AFTER
+   };
+
+   enum class DiscriminatorValue : UINT8
+   {
+      LESS = 1,
+      GREATER = 254,
+      END = 4
+   };
 } // namespace vessel
 
 } // namespace engine

@@ -2487,10 +2487,10 @@ UINT32 ossGetNonZeroBitCount32(UINT32 bits)
 
 void ossMemcpyFlipBits(void* dst, const void* src, size_t len)
 {
-   const char* input = static_cast<const char*>(src);
-    char* output = static_cast<char*>(dst);
-    for (UINT32 i = 0; i < len; ++i)
-         {
-            *output++ = ~(*input++);
-         }
+   const CHAR *input = static_cast<const CHAR *>(src);
+   char *output = static_cast<CHAR *>(dst);
+   for (UINT32 i = 0; i < len; ++i)
+   {
+      *output++ = ~(*input++);
+   }
 }
