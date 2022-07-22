@@ -46,7 +46,7 @@ namespace vessel
    {
       if (reverse)
       {
-         _offset = reverse ? 0 : (static_cast<INT64>(_bytes.getSize()) - 1);
+         _offset = static_cast<INT64>(_bytes.getSize()) - 1;
       }
    }
 

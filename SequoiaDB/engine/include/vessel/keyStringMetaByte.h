@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = keyStringMetaBlock.h
+   Source File Name = keyStringMetaByte.h
 
    Descriptive Name = 
 
@@ -33,8 +33,8 @@
 
 *******************************************************************************/
 
-#ifndef VESSEL_KEY_STRING_META_BLOCK_H_
-#define VESSEL_KEY_STRING_META_BLOCK_H_
+#ifndef VESSEL_KEY_STRING_META_BYTE_H_
+#define VESSEL_KEY_STRING_META_BYTE_H_
 
 #include "ossTypes.h"
 #include "vessel/slice.h"
@@ -43,33 +43,6 @@ namespace engine
 {
 namespace vessel
 {
-#pragma pack(4)
-   struct keyStringMetaBlock : public SDBObject
-   {
-      keyStringMetaBlock() = default;
-      ~keyStringMetaBlock() = default;
-      keyStringMetaBlock(const keyStringMetaBlock &b) = default;
-      keyStringMetaBlock &operator=(const keyStringMetaBlock &b) = default;
-
-      INT32 init(const slice &s);
-      void reset();
-
-      OSS_INLINE BOOLEAN isValid() const
-      {
-         return 0 != version && 0 != blockSize;
-      }
-      
-      UINT8 version = 0;
-      UINT8 metaByte = 0;
-      UINT8 blockSize = 0;
-      UINT8 sizeBeforeKey = 0;
-      UINT32 keySize = 0;
-      UINT32 sizeAfterKey = 0;
-      UINT32 typeBitsSize = 0;
-   }; // struct keyStringMetaBlock
-
-#pragma pack()
-
 #pragma pack(1)
    class keyStringMetaByte
    {
@@ -103,9 +76,28 @@ namespace vessel
          };
 
       public:
+         void init(UINT8 b) {_b = b;}
+
+      public:
          void setHasDataBeforeKey() {OSS_BIT_SET(_b, HAS_DATA_BEFORE_KEY);}
          void setWideKeySizeWord() {OSS_BIT_SET(_b, WIDE_KEY_SIZE_WORD);}
          void setWideTypeBitsSizeWord() {OSS_BIT_SET(_b, WIDE_TYPE_BITS_SIZE_WORD);}
+
+      public:
+         BOOLEAN hasDataBeforeKey() const
+         {
+            return 0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY);
+         }
+         
+         BOOLEAN isWideKeySizeWord() const
+         {
+            return 0 != OSS_BIT_TEST(_b, WIDE_KEY_SIZE_WORD);
+         }
+
+         BOOLEAN isWideTypeBitsSizeWord() const
+         {
+            return 0 != OSS_BIT_TEST(_b, WIDE_TYPE_BITS_SIZE_WORD);
+         }
 
       public:
          UINT32 getBeforeKeySizeWordWidth()const
@@ -145,14 +137,15 @@ namespace vessel
                    getTypeBitsSizeWordWidth();
          }
 
+
          UINT8 getByte()const {return _b;}
 
       private:
          UINT8 _b = 0;
-   };//struct keyStringMetaBlockDescriptor
+   };//class keyStringMetaByte
 
 #pragma pack()
 
 } // namespace vessel
 } // namespace engine
-#endif // VESSEL_KEY_STRING_META_BLOCK_H_
+#endif // VESSEL_KEY_STRING_META_BYTE_H_

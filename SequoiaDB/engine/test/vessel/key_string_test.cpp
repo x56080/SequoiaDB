@@ -412,10 +412,8 @@ namespace vessel
       ASSERT_EQ(SDB_OK, rc);
       keyString ks2 = ksb2.getShallowKeyString();
 
-      INT32 res = ossMemcmp(ks1.getKeySlice().getData(),
-                            ks2.getKeySlice().getData(),
-                            ks1.getKeySlice().getSize());
-      EXPECT_EQ(res, 0);
+      INT32 res = ks1.getKeySlice().compare(ks2.getKeySlice());
+      ASSERT_EQ(res, 0);
 
       ksb1.reset();
       ksb2.reset();
@@ -438,9 +436,7 @@ namespace vessel
       ASSERT_EQ(SDB_OK, rc);
       ks2 = ksb2.getShallowKeyString();
 
-      res = ossMemcmp(ks1.getKeySlice().getData(),
-                      ks2.getKeySlice().getData(),
-                      ks1.getKeySlice().getSize());
+      res = ks1.getKeySlice().compare(ks2.getKeySlice());
       ASSERT_EQ(res, 0);
    }
 
