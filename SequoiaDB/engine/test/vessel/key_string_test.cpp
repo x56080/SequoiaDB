@@ -6,6 +6,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include "vessel/keyString.h"
 #include "vessel/keyStringBuilder.h"
 #include "../bson/bsonobjbuilder.h"
 
@@ -168,8 +169,113 @@ namespace vessel
          buffers.emplace_back(ks.getDataSlice().data(),
                               ks.getDataSlice().getSize());
          bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
-         //std::cout<< i << endl << obj.toString(0,0,0) << endl << objFromKey.toString(0,0,0) <<endl;
+         // std::cout<< i << endl << obj.toString(0,0,0) << endl <<
+         // objFromKey.toString(0,0,0) <<endl;
          EXPECT_EQ(obj.woCompare(objFromKey), 0);
+         bsb.reset();
+      }
+   }
+
+   TEST(key_string_test, base_object)
+   {
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("int", 1);
+      bsb.appendNumber("object", 1);
+      bsb.appendNumber("double", 1);
+      bson::BSONObj pattern = bsb.obj();
+      bsb.reset();
+
+      bsb.appendNumber("x",272);
+      bsb.appendNumber("y",272.5);
+      bson::BSONObj subObj = bsb.obj();
+      bsb.reset();
+
+      keyStringBuilder<> ksb;
+      orderingWrapper ord(0, 3);
+      bsb.appendNumber("int", 172);
+      bsb.appendObject("object", subObj.objdata());
+      bsb.appendNumber("double", 172.5);
+      bson::BSONObj obj = bsb.obj();
+      ksb.appendAllElements(obj, ord);
+      ksb.done();
+      keyString ks = ksb.getShallowKeyString();
+      ks.getOwned();
+      bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+      //std::cout<< endl << obj.toString(0,0,0) << endl <<
+      //   objFromKey.toString(0,0,0) <<endl;
+      EXPECT_EQ(objFromKey.woCompare(obj),0);
+   }
+
+   TEST(key_string_test, base_discriminator)
+   {
+      orderingWrapper ord(0, 2);
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", -1);
+      keyStringBuilder<> ksb;
+      ksb.appendAllElements(bsb.done(), ord, Discriminator::EXCLUSIVE_BEFORE);
+      ksb.done();
+      keyString lessQuery = ksb.getShallowKeyString();
+      lessQuery.getOwned();
+      ksb.reset();
+      bsb.reset();
+
+      bsb.appendNumber("a", -1);
+      ksb.appendAllElements(bsb.done(), ord, Discriminator::EXCLUSIVE_AFTER);
+      ksb.done();
+      keyString greaterQuery = ksb.getShallowKeyString();
+      greaterQuery.getOwned();
+      ksb.reset();
+      bsb.reset();
+      vector<vector<int>> numbers = {{-172, 5},
+                                     {-1, -3},
+                                     {-1, -2},
+                                     {-1, -1},
+                                     {0, 1},
+                                     {0, 2},
+                                     {0, 3},
+                                     {1, 1},
+                                     {1, 2},
+                                     {1, 3},
+                                     {2, 5}};
+
+      for (UINT32 i = 0; i < numbers.size(); i++)
+      {
+         bsb.appendNumber("a", numbers[i][0]);
+         bsb.appendNumber("b", numbers[i][1]);
+         keyStringBuilder<> ksb;
+         bson::BSONObj obj = bsb.obj();
+         ksb.appendAllElements(obj, ord);
+         ksb.done();
+         keyString ks = ksb.getShallowKeyString();
+         ks.getOwned();
+         if (i < 1)
+         {
+            EXPECT_LE(ossMemcmp(ks.getDataSlice().data(),
+                                lessQuery.getDataSlice().data(),
+                                lessQuery.getKeySlice().getSize()),
+                      0);
+         }
+         else
+         {
+            EXPECT_GT(ossMemcmp(ks.getDataSlice().data(),
+                                lessQuery.getDataSlice().data(),
+                                lessQuery.getKeySlice().getSize()),
+                      0);
+         }
+         if (i < 4)
+         {
+            EXPECT_LE(ossMemcmp(ks.getDataSlice().data(),
+                                greaterQuery.getDataSlice().data(),
+                                greaterQuery.getKeySlice().getSize()),
+                      0);
+         }
+         else
+         {
+            EXPECT_GT(ossMemcmp(ks.getDataSlice().data(),
+                                greaterQuery.getDataSlice().data(),
+                                greaterQuery.getKeySlice().getSize()),
+                      0);
+         }
          bsb.reset();
       }
    }
@@ -233,17 +339,15 @@ namespace vessel
       keyString ks = ksb.getShallowKeyString();
    }
 
-   TEST(key_string_test, base_object)
-   {
-   }
-
    TEST(key_string_test, base_string)
    {
       INT32 rc = SDB_OK;
       keyStringBuilder<> ksb1;
       keyStringBuilder<> ksb2;
-      bson::BSONObj obj1 = BSON("a" << "foobar");
-      bson::BSONObj obj2 = BSON("a" << "foobar1");
+      bson::BSONObj obj1 = BSON("a"
+                                << "foobar");
+      bson::BSONObj obj2 = BSON("a"
+                                << "foobar1");
       orderingWrapper o(0, 1);
       rc = ksb1.appendAllElements(obj1, o);
       ASSERT_EQ(SDB_OK, rc);
@@ -287,7 +391,8 @@ namespace vessel
    TEST(key_string_test, base_keyslice)
    {
       INT32 rc = SDB_OK;
-      bson::BSONObj obj = BSON("a" << "foobar");
+      bson::BSONObj obj = BSON("a"
+                               << "foobar");
       UINT32 keyBefore = 123;
       orderingWrapper o(0, 1);
 
@@ -299,7 +404,7 @@ namespace vessel
       rc = ksb1.done();
       ASSERT_EQ(SDB_OK, rc);
       keyString ks1 = ksb1.getShallowKeyString();
-      
+
       keyStringBuilder<> ksb2;
       ksb2.appendAllElements(obj, o);
       ASSERT_EQ(SDB_OK, rc);
@@ -314,7 +419,7 @@ namespace vessel
 
       ksb1.reset();
       ksb2.reset();
-      std::string str('x', 200);
+      std::string str(200, 'x');
       bson::BSONObjBuilder ob;
       ob << "name" << str << "foo" << str << "int" << 123 << "ss" << str;
       obj = ob.obj();
@@ -326,7 +431,7 @@ namespace vessel
       rc = ksb1.done();
       ASSERT_EQ(SDB_OK, rc);
       ks1 = ksb1.getShallowKeyString();
-      
+
       rc = ksb2.appendAllElements(obj, ord);
       ASSERT_EQ(SDB_OK, rc);
       rc = ksb2.done();
@@ -337,12 +442,7 @@ namespace vessel
                       ks2.getKeySlice().getData(),
                       ks1.getKeySlice().getSize());
       ASSERT_EQ(res, 0);
-
    }
-
-
-
-
 
 } // namespace vessel
 } // namespace engine

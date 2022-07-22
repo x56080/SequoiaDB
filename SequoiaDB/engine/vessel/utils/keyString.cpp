@@ -315,7 +315,7 @@ namespace vessel
       typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
       UINT32 offset = _block.sizeBeforeKey;
       bson::BSONObjIterator it(pattern);
-      while (offset - _block.sizeBeforeKey < keySize)
+      while (offset - _block.sizeBeforeKey < keySize && it.more())
       {
          bson::BSONElement ele = it.next();
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
@@ -328,6 +328,9 @@ namespace vessel
                       typeReader,
                       withFieldName ? ele.fieldName() : nullptr);
       }
+      SDB_ASSERT(1 ==  _block.sizeBeforeKey + keySize - offset ||
+                     2 == _block.sizeBeforeKey + keySize - offset,
+                 "Unexpected size");
       return builder.obj();
    }
 
@@ -339,7 +342,7 @@ namespace vessel
       typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
       UINT32 offset = _block.sizeBeforeKey;
       bson::BSONObjIterator it(pattern);
-      while (offset - _block.sizeBeforeKey < keySize)
+      while (offset - _block.sizeBeforeKey < keySize && it.more())
       {
          bson::BSONElement ele = it.next();
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
@@ -352,6 +355,9 @@ namespace vessel
                       typeReader,
                       withFieldName ? ele.fieldName() : nullptr);
       }
+      SDB_ASSERT(1 == _block.sizeBeforeKey + keySize - offset ||
+                     2 == _block.sizeBeforeKey + keySize - offset,
+                 "Unexpected size");
       builder.doneFast();
       return builder.done();
    }
