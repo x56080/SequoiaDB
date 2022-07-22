@@ -117,6 +117,7 @@ namespace vessel
       POSITIVE_ZERO = 0b0,
       NEGATIVE_ZERO = 0b1
    };
+   constexpr UINT32 KEY_STRING_MIN_META_BLOCK_SIZE = 4;
 
    enum class Discriminator : UINT8
    {

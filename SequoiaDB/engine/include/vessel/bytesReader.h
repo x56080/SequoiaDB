@@ -79,7 +79,7 @@ namespace vessel
       private:
          OSS_INLINE BOOLEAN _isOutOfBound(UINT32 size)const
          {
-            return 0 <= _offset && (_offset + size) <= static_cast<INT64>(_bytes.getSize());
+            return 0 > _offset || (_offset + size) > static_cast<INT64>(_bytes.getSize());
          }
       private:
          BOOLEAN _reverse = FALSE;
@@ -91,7 +91,7 @@ namespace vessel
    template<class T>
    BOOLEAN bytesReader::isReadale()const
    {
-      return _isOutOfBound(sizeof(T));
+      return !_isOutOfBound(sizeof(T));
    }
 
    template<class T>

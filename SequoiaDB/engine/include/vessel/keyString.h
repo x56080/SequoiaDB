@@ -41,7 +41,6 @@
 #include "../bson/bsonobjiterator.h"
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
-#include "vessel/keyStringMetaBlock.h"
 #include "../bson/bsonobj.h"
 #include "vessel/keyStringDef.h"
 
@@ -96,7 +95,7 @@ namespace vessel
    public:
       OSS_INLINE BOOLEAN isValid() const
       {
-         return _ref.isValid() && _block.isValid();
+         return _ref.isValid();
       }
       OSS_INLINE BOOLEAN isOwned() const
       {
@@ -113,9 +112,6 @@ namespace vessel
       INT32 init(const slice &s);
       INT32 getOwned();
 
-   private:
-      void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
-
    public:
       slice getKeySlice() const;
       slice getSliceFromKeyTo(UINT32 bytesAfterKey) const;
@@ -129,7 +125,18 @@ namespace vessel
                            BOOLEAN withFieldName = FALSE);
 
    public:
+      UINT32 getComparableSize() const;
+      UINT32 getKeySize() const;
+      UINT32 getSizeBeforeKey() const;
+      UINT32 getSizeAfterKey() const;
+      UINT32 getTypeBitsSize() const;
+
+   public:
       INT32 compare(const keyString &ks) const;
+
+   private:
+      BOOLEAN _validate(const slice &s) const;
+      void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
    private:
       template <typename T> T _read(UINT32 &offset, BOOLEAN inverted);
@@ -173,7 +180,6 @@ namespace vessel
    private:
       CHAR *_bufferOwned = nullptr;
       UINT32 _bufferSize = 0;
-      keyStringMetaBlock _block;
    }; // class keyString
 
    template <typename T> T typeBitsReader::read()
