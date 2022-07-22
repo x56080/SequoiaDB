@@ -49,7 +49,10 @@
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
 #include "vessel/keyString.h"
-#include "utilSharedPtrMaker.hpp"
+#include "vessel/recordID.h"
+#include "inclusiveVec.h"
+#include "vessel/globalIndexID.h"
+#include "dpsDef.hpp"
 
 #include <iomanip>
 #include <limits>
@@ -233,6 +236,26 @@ namespace vessel
          goto done;
       }
 
+      INT32 appendRid(const recordID &rid, BOOLEAN force=FALSE);
+      INT32 appendIndexId(const globalIndexID &indexId, BOOLEAN force=FALSE);
+      INT32 appendLSN(UINT64 lsn, BOOLEAN force=FALSE);
+
+      INT32 buildPredicate(const ossPoolVector<const BSONElement *> &elements,
+                           const orderingWrapper &o,
+                           const inclusiveVec &iv,
+                           BOOLEAN forward);
+
+      INT32 buildPredicate(const bson::BSONObj &key,
+                           const orderingWrapper &o,
+                           const inclusiveVec &iv,
+                           BOOLEAN forward);
+
+      INT32 buildIndexEntryKey(const bson::BSONObj &key,
+                               const orderingWrapper &o,
+                               const recordID &rid,
+                               const globalIndexID *indexid=nullptr,
+                               const UINT64 *lsn=nullptr);
+
    public:
       INT32 done();
       UINT8 getVersion() const
@@ -331,6 +354,9 @@ namespace vessel
       INT8 _elemCount = 0;
       Allocator _allocator;
    };
+
+   using STACK_KEY_STRING_BUILDER = keyStringBuilder<utilStackAllocator<>>;
+   using KEY_STRING_BUILDER = keyStringBuilder<utilPoolAllocator>;
 
    template <typename Allocator> void keyStringBuilder<Allocator>::reset()
    {
@@ -2132,6 +2158,138 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::appendRid(const recordID &rid, BOOLEAN force)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 pid = INVALID_PAGE_ID;
+      INT16 pos = -1;
+
+      if (!force && !rid.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      pid = rid.getPid();
+      pos = rid.getPos();
+      rc = appendUnsignedWithoutType(pid, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append pid:%d", rc);
+         goto error;
+      }
+
+      rc = appendSignedWithoutType(pos, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append rid pos:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::appendIndexId(const globalIndexID &indexId, BOOLEAN force)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 val = 0;
+
+      if (!force && indexId.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      val = indexId.getLogicalCSID();
+      rc = appendUnsignedWithoutType(val, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append logical cs id:%d", rc);
+         goto error;
+      }
+
+      val = indexId.getLogicalCLID();
+      rc = appendUnsignedWithoutType(val, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append logical cl id:%d", rc);
+         goto error;
+      }
+
+      val = indexId.getLogicalIndexID();
+      rc = appendUnsignedWithoutType(val, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append logical index id:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::appendLSN(UINT64 lsn, BOOLEAN force)
+   {
+      INT32 rc = SDB_OK;
+      if (!force && DPS_INVALID_LSN_OFFSET == lsn)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = appendUnsignedWithoutType(lsn, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append lsn:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::buildPredicate(const ossPoolVector<const BSONElement *> &elements,
+                                                     const orderingWrapper &o,
+                                                     const inclusiveVec &iv,
+                                                     BOOLEAN forward)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::buildPredicate(const bson::BSONObj &key,
+                                                     const orderingWrapper &o,
+                                                     const inclusiveVec &iv,
+                                                     BOOLEAN forward)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::buildIndexEntryKey(const bson::BSONObj &key,
+                                                         const orderingWrapper &o,
+                                                         const recordID &rid,
+                                                         const globalIndexID *indexid,
+                                                         const UINT64 *lsn)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
    }
 
 } // namespace vessel
