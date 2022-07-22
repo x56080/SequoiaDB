@@ -66,6 +66,90 @@ namespace vessel
       UINT32 sizeAfterKey = 0;
       UINT32 typeBitsSize = 0;
    }; // struct keyStringMetaBlock
+
+#pragma pack()
+
+#pragma pack(1)
+   class keyStringMetaByte
+   {
+      public:
+         keyStringMetaByte() = default;
+         keyStringMetaByte(UINT32 bytesBeforeKey, UINT32 keySize, UINT32 typeBitsSize):
+         _b(0)
+         {
+            if (0 < bytesBeforeKey)
+            {
+               setHasDataBeforeKey();
+            }
+            if (std::numeric_limits<UINT8>::max() < keySize)
+            {
+               setWideKeySizeWord();
+            }
+            if (std::numeric_limits<UINT8>::max() < typeBitsSize)
+            {
+               setWideTypeBitsSizeWord();
+            }
+         }
+         keyStringMetaByte(UINT8 b):
+         _b(b){}
+
+      public:
+         enum FLAG : UINT8
+         {
+            HAS_DATA_BEFORE_KEY = 0x01,
+            WIDE_KEY_SIZE_WORD = 0x02,
+            WIDE_TYPE_BITS_SIZE_WORD = 0x04,
+         };
+
+      public:
+         void setHasDataBeforeKey() {OSS_BIT_SET(_b, HAS_DATA_BEFORE_KEY);}
+         void setWideKeySizeWord() {OSS_BIT_SET(_b, WIDE_KEY_SIZE_WORD);}
+         void setWideTypeBitsSizeWord() {OSS_BIT_SET(_b, WIDE_TYPE_BITS_SIZE_WORD);}
+
+      public:
+         UINT32 getBeforeKeySizeWordWidth()const
+         {
+            return (0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY)) ?
+                    sizeof(UINT8) : 0;
+         }
+         INT32 getBeforeKeySizeWordOffset()const
+         {
+            return (0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY)) ?
+                   0 : -1;
+         }
+         UINT32 getKeySizeWordWidth()const
+         {
+            return (0 != OSS_BIT_TEST(_b, WIDE_KEY_SIZE_WORD)) ?
+                   sizeof(UINT32) : sizeof(UINT8);
+         }
+         UINT32 getKeySizeWordOffset()const
+         {
+            return getBeforeKeySizeWordWidth() + getKeySizeWordWidth();
+         }
+         UINT32 getTypeBitsSizeWordWidth()const
+         {
+            return (0 != OSS_BIT_TEST(_b, WIDE_TYPE_BITS_SIZE_WORD)) ?
+                   sizeof(UINT32) : sizeof(UINT8);
+         }
+         UINT32 getTypeBitsSizeWordOffset()const
+         {
+            return getTypeBitsSizeWordWidth() +
+                   getKeySizeWordOffset();
+         }
+
+         UINT32 getTotalSizeWidth()const
+         {
+            return getBeforeKeySizeWordWidth() +
+                   getKeySizeWordWidth() +
+                   getTypeBitsSizeWordWidth();
+         }
+
+         UINT8 getByte()const {return _b;}
+
+      private:
+         UINT8 _b = 0;
+   };//struct keyStringMetaBlockDescriptor
+
 #pragma pack()
 
 } // namespace vessel
