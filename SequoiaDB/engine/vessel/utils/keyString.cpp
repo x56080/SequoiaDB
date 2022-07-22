@@ -574,7 +574,7 @@ namespace vessel
       return ossMemcmp(_ref.getData(), s.getDataSlice().getData(), cmpSize);
    }
 
-   template <typename T> T keyString::_read(UINT32 &offset, BOOLEAN inverted)
+   template <typename T> T keyString::_read(UINT32 &offset, BOOLEAN inverted) const
    {
       UINT32 size = sizeof(T);
       T t;
@@ -607,7 +607,7 @@ namespace vessel
    }
 
    bson::BSONObj keyString::toBSON(const bson::BSONObj &pattern,
-                                   BOOLEAN withFieldName)
+                                   BOOLEAN withFieldName) const
    {
       bson::BSONObjBuilder builder;
       UINT32 keySize = getKeySlice().getSize();
@@ -634,9 +634,10 @@ namespace vessel
    }
 
    bson::BSONObj keyString::toBSON(const bson::BSONObj &pattern,
-                                   bson::BSONObjBuilder &builder,
-                                   BOOLEAN withFieldName)
+                                   bson::BufBuilder &builder,
+                                   BOOLEAN withFieldName) const
    {
+      bson::BSONObjBuilder b(builder);
       UINT32 keySize = getKeySlice().getSize();
       typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
       UINT32 offset = getSizeBeforeKey();
@@ -650,22 +651,22 @@ namespace vessel
          _toBsonValue(type,
                       offset,
                       inverted,
-                      builder,
+                      b,
                       typeReader,
                       withFieldName ? ele.fieldName() : nullptr);
       }
       SDB_ASSERT(1 == getSizeBeforeKey() + keySize - offset ||
                      2 == getSizeBeforeKey() + keySize - offset,
                  "Unexpected size");
-      builder.doneFast();
-      return builder.done();
+      b.doneFast();
+      return b.done();
    }
 
    void keyString::_toBSON(UINT32 &offset,
                            BOOLEAN inverted,
                            bson::BSONObjBuilder &builder,
                            typeBitsReader &typeReader,
-                           const CHAR *fieldName)
+                           const CHAR *fieldName) const
    {
       bson::BSONObjBuilder newObjBuilder;
       while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
@@ -686,7 +687,7 @@ namespace vessel
    bson::BSONObj keyString::_toBSON(UINT32 &offset,
                                     BOOLEAN inverted,
                                     typeBitsReader &typeReader,
-                                    BOOLEAN withFieldName)
+                                    BOOLEAN withFieldName) const
    {
       bson::BSONObjBuilder newObjBuilder;
       while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
@@ -707,7 +708,7 @@ namespace vessel
                                 BOOLEAN inverted,
                                 bson::BSONObjBuilder &builder,
                                 typeBitsReader &typeReader,
-                                const CHAR *fieldName)
+                                const CHAR *fieldName) const
    {
       switch (type)
       {
@@ -877,7 +878,7 @@ namespace vessel
                               BOOLEAN inverted,
                               bson::BSONObjBuilder &builder,
                               typeBitsReader &typeReader,
-                              const CHAR *fieldName)
+                              const CHAR *fieldName) const
    {
 
       typeBitsType originalType = typeReader.readNumeric();
@@ -1108,7 +1109,7 @@ namespace vessel
    }
 
    bson::StringData keyString::_decodeStringLike(UINT32 &offset,
-                                                 BOOLEAN inverted)
+                                                 BOOLEAN inverted) const
    {
       ossPoolString s;
       s.append(_readCString(offset, inverted).data());
@@ -1124,7 +1125,7 @@ namespace vessel
    bson::bsonDecimal keyString::_decodeDecimal(UINT32 &offset,
                                                BOOLEAN inverted,
                                                BOOLEAN isNegative,
-                                               typeBitsReader &typeReader)
+                                               typeBitsReader &typeReader) const
    {
       bson::bsonDecimal dec;
       const UINT32 integerPartNdigit =
@@ -1187,7 +1188,7 @@ namespace vessel
    void keyString::_readBytes(UINT32 &offset,
                               BOOLEAN inverted,
                               CHAR *bytes,
-                              UINT32 len)
+                              UINT32 len) const
    {
       if (inverted)
       {
@@ -1200,7 +1201,7 @@ namespace vessel
       offset += len;
    }
 
-   bson::StringData keyString::_readCString(UINT32 &offset, BOOLEAN inverted)
+   bson::StringData keyString::_readCString(UINT32 &offset, BOOLEAN inverted) const
    {
       const CHAR *start =
           static_cast<const CHAR *>(getDataSlice().data() + offset);
