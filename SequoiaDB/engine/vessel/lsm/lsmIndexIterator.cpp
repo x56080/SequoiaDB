@@ -325,11 +325,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ks.isValid(), "can not be invalid");
+      keyStringModifier modifier(ks);
       keyString target;
 
       if (_o.forward)
       {
-         keyStringModifier modifier(ks);
          rc = modifier.incRid();
          if (SDB_OK != rc)
          {
@@ -344,7 +344,7 @@ namespace vessel
          target = ks;
       }
 
-      rc = _seekKeyString(ks, !_o.forward);
+      rc = _seekKeyString(target, !_o.forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek key string:%d", rc);

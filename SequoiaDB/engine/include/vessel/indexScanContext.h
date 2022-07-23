@@ -61,7 +61,7 @@ namespace vessel
       public:
          BOOLEAN isForward()const {return 0 <= _predicates.getDirection();}
          rtnPredicateListIterator *getPredicate() {return &_predicate;}
-         BOOLEAN isPointGet()const {return _predicates.isAllEqual();}
+         BOOLEAN isPointGet()const {return _predicates.isPointGet();}
          IDX_ENTRY_LOCATION_UPTR &getLocation() {return _location;}
          BOOLEAN hasLocation()const {return !!_location;}
          void resetLocation() {_location.reset();}
