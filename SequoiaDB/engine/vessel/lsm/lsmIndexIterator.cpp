@@ -40,6 +40,7 @@
 #include "vessel/indexObject.h"
 #include "ossLikely.hpp"
 #include "vessel/keyStringBuilder.h"
+#include "vessel/keyStringModifier.h"
 
 namespace engine
 {
@@ -64,6 +65,8 @@ namespace vessel
          delete _itr;
          _itr = nullptr;
       }
+      _lowBound.reset();
+      _upBound.reset();
       _lowKey = rocksdb::Slice();
       _upKey = rocksdb::Slice();
       _ks.reset();
@@ -82,11 +85,9 @@ namespace vessel
 
    INT32 lsmIndexIterator::init(const lsmColumnFamily &cf,
                                 const globalLogicalClId &cl,
-                                const indexObject *obj,
-                                const options &o)
+                                const indexObject *obj)
    {
       INT32 rc = SDB_OK;
-      rocksdb::ReadOptions opt;
       globalIndexID indexId;
                         
       reset();
@@ -100,28 +101,12 @@ namespace vessel
          goto error;
       }
 
-      _o = o;
       _cf = cf;
       _obj = obj;
       _globalId.reset(cl.getLogicalCSID(),
                       cl.getLogicalCLID(),
                       obj->getLogicalID());
       _initKeyBoundWhenOpen(_globalId);
-
-      opt.iterate_lower_bound = &_lowKey;
-      opt.iterate_upper_bound = &_upKey;
-      opt.auto_prefix_mode = FALSE;
-      opt.total_order_seek = TRUE;
-      ///TODO: table filter
-
-      _itr = _cf.newIterator(opt);
-      if (OSS_UNLIKELY(nullptr == _itr))
-      {
-         PD_LOG(PDERROR, "failed to allocate new itr");
-         rc = SDB_OOM;
-         goto error;
-      }
-
    done:
       return rc;
    error:
@@ -138,44 +123,244 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 lsmIndexIterator::seek(const VEC_ELE_CMP &matchEles,
-                                const inclusiveVec &matchInclusive)
+   INT32 lsmIndexIterator::seek(const VEC_ELE_CMP &eles,
+                                const inclusiveVec &iv,
+                                const options &o)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(matchEles.empty()))
+      STACK_KEY_STRING_BUILDER builder;
+
+      if (OSS_UNLIKELY(eles.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(_isValid()))
+      else if (OSS_UNLIKELY(!_isInited()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _reinitIterator(o, iv.allInclusive());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
+         goto error;
+      }
+
+      rc = builder.buildPredicate(eles,
+                                  _obj->getProperties().getPattern().getOrdering(),
+                                  iv, _o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+         goto error;
+      }
+
+      rc = _seekKeyString(builder.getShallowKeyString(), !_o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key string:%d", rc);
          goto error;
       }
 
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
    INT32 lsmIndexIterator::seek(const bson::BSONObj &key,
-                                const inclusiveVec &matchInclusive)
+                                const inclusiveVec &iv,
+                                const options &o)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      STACK_KEY_STRING_BUILDER builder;
+
+      if (OSS_UNLIKELY(!key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_isInited()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _reinitIterator(o, iv.allInclusive());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
+         goto error;
+      }
+
+      rc = builder.buildPredicate(key,
+                                  _obj->getProperties().getPattern().getOrdering(),
+                                  iv, _o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+         goto error;
+      }
+
+      rc = _seekKeyString(builder.getShallowKeyString(), !_o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key string:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 
-   INT32 lsmIndexIterator::locate(const indexEntryLocation *location)
+   INT32 lsmIndexIterator::locateNext(const indexEntryLocation *location,
+                                      const options &o)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      
+      if (OSS_UNLIKELY(nullptr == location ||
+                       IDX_ENTRY_LOCATION_TYPE::LSM != location->getType() ||
+                       !location->isValidToLocate()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!_isInited()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else
+      {
+         const lsmIndexEntryLocation *lsmLocation = static_cast<const lsmIndexEntryLocation *>(location);
+         keyString ks(lsmLocation->getKeySlice());
+         if (!ks.isValid())
+         {
+            PD_LOG(PDERROR, "failed to load key string");
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         rc = _reinitIterator(o, o.pointGetOnly);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
+            goto error;
+         }
+
+         rc = _locateNextEntry(ks);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to locate entry key:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 
-   BOOLEAN lsmIndexIterator::_isMarkedRemoved(rocksdb::Iterator *itr)const
+   INT32 lsmIndexIterator::equal(const bson::BSONObj &key)
+   {
+      INT32 rc = SDB_OK;
+      STACK_KEY_STRING_BUILDER builder;
+      options opt;
+      inclusiveVec iv;
+      SDB_ASSERT(iv.allInclusive(), "impossible");
+
+      if (OSS_UNLIKELY(!key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_isInited()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      opt.forward = TRUE;
+      opt.pointGetOnly = TRUE;
+
+      rc = _reinitIterator(opt, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
+         goto error;
+      }
+
+      rc = builder.buildPredicate(key,
+                                  _obj->getProperties().getPattern().getOrdering(),
+                                  iv, _o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+         goto error;
+      }
+
+      rc = _seekKeyString(builder.getShallowKeyString(), !_o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key string:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::_locateNextEntry(const keyString &ks)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(ks.isValid(), "can not be invalid");
+      keyString target;
+
+      if (_o.forward)
+      {
+         keyStringModifier modifier(ks);
+         rc = modifier.incRid();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to inc rid of entry:%d", rc);
+            goto error;
+         }
+
+         target = modifier.getShallowKeyString();
+      }
+      else
+      {
+         target = ks;
+      }
+
+      rc = _seekKeyString(ks, !_o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key string:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   BOOLEAN lsmIndexIterator::isMarkedRemoved()const
    {
       BOOLEAN r = FALSE;
-      rocksdb::Slice value = itr->value();
+      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
+      rocksdb::Slice value = _itr->value();
       if (!value.empty())
       {
          SDB_ASSERT(LSM_INDEX_ENTRY_VALUE_SIZE <= value.size(), "invalid size");
@@ -229,41 +414,87 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+
+      rc = _moveIterator();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to move iterator:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 lsmIndexIterator::pause(IDX_ENTRY_LOCATION_UPTR &location)
+   INT32 lsmIndexIterator::pause()
    {
-      SDB_ASSERT(FALSE, "TODO"); 
-      return SDB_OK;
-   }
+      INT32 rc = SDB_OK;
 
-   INT32 lsmIndexIterator::resume(const indexEntryLocation *location)
-   {
-      SDB_ASSERT(FALSE, "TODO"); 
-      return SDB_OK;
+      if (OSS_UNLIKELY(!_isInited()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (nullptr != _itr)
+      {
+         _resetCurrentEntry();
+         delete _itr;
+         _itr = nullptr;
+      }
+   
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    bson::BSONObj lsmIndexIterator::getKeyObj(BOOLEAN withFieldName,
                                              bson::BufBuilder *buf)const
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return bson::BSONObj();
+      SDB_ASSERT(_isReadyToRead(), "must be valid");
+      const bson::BSONObj &pattern = _obj->getProperties().getPattern().getPattern();
+      return nullptr == buf ?
+             _ks.toBSON(pattern, withFieldName):
+             _ks.toBSON(pattern, *buf, withFieldName);
    }
 
    INT32 lsmIndexIterator::initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const
    {
-      SDB_ASSERT(FALSE, "TODO"); 
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      lsmIndexEntryLocation *l = nullptr;
+      
+      if (OSS_UNLIKELY(!_isReadyToRead()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!location)
+      {
+         location.reset(SDB_OSS_NEW lsmIndexEntryLocation());
+         if (OSS_UNLIKELY(!location))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+      }
+
+      l = static_cast<lsmIndexEntryLocation *>(location.get());
+      l->assign(_ks.getDataSlice());
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
-   void lsmIndexIterator::_moveIterator()
+   INT32 lsmIndexIterator::_moveIterator()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != _itr && _itr->Valid(), "can not be invalid");
+      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
+
+      _resetCurrentEntry();
+
       if (_o.forward)
       {
          _itr->Next();
@@ -272,6 +503,27 @@ namespace vessel
       {
          _itr->Prev();
       }
+
+      if (!_itr->Valid() && _itr->status().ok())
+      {
+         PD_LOG(PDERROR, "failed to move iterator:%s", _itr->status().getState());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (_itr->Valid())
+      {
+         rc = _initCurrentEntry(_itr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init current entry cache:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    void lsmIndexIterator::_initKeyBoundWhenOpen(const globalIndexID &id)
@@ -284,5 +536,107 @@ namespace vessel
       return;
    }
 
+   INT32 lsmIndexIterator::_seekKeyString(const keyString &ks,
+                                          BOOLEAN forPrev)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(ks.isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != _itr, "can not be invalid");
+
+      rocksdb::Slice s(ks.getDataSlice().getData(), ks.getDataSlice().getSize());
+      _resetCurrentEntry();
+
+      if (!forPrev)
+      {
+         _itr->Seek(s);
+      }
+      else
+      {
+         _itr->SeekForPrev(s);
+      }
+
+      if (!_itr->Valid() && !_itr->status().ok())
+      {
+         PD_LOG(PDERROR, "failed to seek key:%s", _itr->status().getState());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (_itr->Valid())
+      {
+         rc = _initCurrentEntry(_itr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init current entry cache:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void lsmIndexIterator::_resetCurrentEntry()
+   {
+      _ks.reset();
+   }
+
+   INT32 lsmIndexIterator::_initCurrentEntry(const rocksdb::Iterator *itr)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != itr && itr->Valid(), "can not be invalid");
+      slice s(itr->key().size(), itr->key().data());
+      rc = _ks.init(s);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to parse key string:%d", rc);
+         goto error;
+      }
+
+      ///TODO: validate value
+   done:
+      return rc;
+   error:
+      _ks.reset();
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::_reinitIterator(const options &o, BOOLEAN allInclusive)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_isInited(), "can not be invalid");
+      rocksdb::ReadOptions options;
+
+      _ks.reset();
+
+      if (nullptr != _itr)
+      {
+         delete _itr;
+         _itr = nullptr;
+      }
+
+      _o = o;
+      if (_o.pointGetOnly && !allInclusive)
+      {
+         _o.pointGetOnly = FALSE;
+      }
+
+      options.iterate_lower_bound = &_lowKey;
+      options.iterate_upper_bound = &_upKey;
+      options.auto_prefix_mode = TRUE;
+      options.prefix_same_as_start = _o.pointGetOnly;
+
+      _itr = _cf.newIterator(options);
+      if (OSS_UNLIKELY(nullptr == _itr))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

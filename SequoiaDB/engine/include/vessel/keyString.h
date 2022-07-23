@@ -43,6 +43,7 @@
 #include "vessel/slice.h"
 #include "../bson/bsonobj.h"
 #include "vessel/keyStringDef.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
@@ -125,11 +126,15 @@ namespace vessel
                            BOOLEAN withFieldName = FALSE) const;
 
    public:
+      UINT32 getTotalSize()const {return _ref.getSize();}
       UINT32 getComparableSize() const;
       UINT32 getKeySize() const;
       UINT32 getSizeBeforeKey() const;
       UINT32 getSizeAfterKey() const;
       UINT32 getTypeBitsSize() const;
+
+   public:
+      recordID getRid()const;
 
    public:
       INT32 compare(const keyString &ks) const;

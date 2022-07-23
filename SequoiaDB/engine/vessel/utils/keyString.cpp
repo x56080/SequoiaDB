@@ -43,6 +43,8 @@
 #include "pdTrace.hpp"
 #include "utilAllocator.hpp"
 #include "ossLikely.hpp"
+#include "vessel/keyStringCoder.h"
+
 #include <cstring>
 #include <iomanip>
 #include <sstream>
@@ -1221,6 +1223,23 @@ namespace vessel
       }
       return s;
    }
+
+   recordID keyString::getRid()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      recordID rid;
+      slice data = getSliceAfterKey();
+      if (data.getSize() <= sizeof(recordID))
+      {
+         rid = keyStringCoder().decodeToRid(data.getData());
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "invalid data size after key");
+      }
+      return rid;
+   }
+///////////////////////////////
 
    typeBitsReader::typeBitsReader(const CHAR *buf, UINT32 bufSize)
        : _buf(buf), _bufSize(bufSize)

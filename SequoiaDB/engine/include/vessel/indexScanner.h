@@ -38,6 +38,7 @@
 
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
+#include "vessel/indexScanContext.h"
 
 namespace engine
 {
@@ -49,7 +50,7 @@ namespace vessel
    class indexScanner : public SDBObject
    {
       public:
-         indexScanner(){}
+         indexScanner() = default;
          ~indexScanner();
          indexScanner(const indexScanner &) = delete;
          indexScanner &operator=(const indexScanner &) = delete;
@@ -61,7 +62,7 @@ namespace vessel
          }
       public:
          ///WARNING: scanner does not own the cursor
-         INT32 open(indexScanCursor *cursor,
+         INT32 open(indexScanCursor *ctx,
                     INDEX_ITERATOR_UPTR &&iterator);
 
          void close();

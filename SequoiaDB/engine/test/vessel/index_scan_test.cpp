@@ -500,7 +500,6 @@ void test4(INDEX_TYPE type)
    mthMatchTree mt;
    dmsIndexScanOptions o;
    o.indexCovered = FALSE;
-   o.forward = FALSE;
 
    {
       

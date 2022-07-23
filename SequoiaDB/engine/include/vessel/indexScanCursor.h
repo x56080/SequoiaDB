@@ -43,8 +43,7 @@
 #include "vessel/slice.h"
 #include "vessel/objectIdentifier.h"
 #include "dmsEngineOptions.hpp"
-#include "../bson/util/builder.h"
-#include "vessel/indexEntryLocation.h"
+#include "vessel/indexScanContext.h"
 
 namespace engine
 {
@@ -59,9 +58,9 @@ namespace vessel
                          const globalCollectionId &gcid,
                          const indexIdentifier &indexId):
          _o(o),
-         _predicate(predicateList),
          _gcid(gcid),
-         _indexId(indexId)
+         _indexId(indexId),
+         _ctx(predicateList)
          {}
 
          virtual ~indexScanCursor() = default;
@@ -98,37 +97,16 @@ namespace vessel
          {
             return _gcid;
          }
-
-         OSS_INLINE rtnPredicateListIterator *getPredicate()
-         {
-            return &_predicate;
-         }
-         OSS_INLINE const rtnPredicateListIterator *getPredicate()const
-         {
-            return &_predicate;
-         }
          OSS_INLINE const dmsIndexScanOptions &getOptions()const
          {
             return _o;
          }
-
-         BOOLEAN markRidScanned(const recordID &rid);
-         BOOLEAN testRidScanned(const recordID &rid)const;
-
-         void resetEntryLocation()
-         {
-            _location.reset();
-         }
-         OSS_INLINE BOOLEAN hasLocation()const {return !!_location;}
-         OSS_INLINE IDX_ENTRY_LOCATION_UPTR &getLocation() {return _location;}
-
+         OSS_INLINE indexScanContext &getCtx() {return _ctx;}
       private:
          dmsIndexScanOptions _o;
-         rtnPredicateListIterator _predicate;
          globalCollectionId _gcid;
          indexIdentifier _indexId;
-         UNORDERED_RID_SET _scanned;
-         IDX_ENTRY_LOCATION_UPTR _location;
+         indexScanContext _ctx;
    };//class indexScanCursor
 } // namespace vessel
 

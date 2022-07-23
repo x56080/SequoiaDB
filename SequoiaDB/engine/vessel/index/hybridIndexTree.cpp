@@ -39,10 +39,11 @@
 #include "vessel/dmlContext.h"
 #include "vessel/indexObject.h"
 #include "ossLikely.hpp"
-#include "vessel/lsm/lsmIndexKeyPacker.h"
 #include "vessel/collectionProperties.h"
 #include "vessel/lsm/lsmIndexEntryValue.h"
 #include "vessel/indexSpace.h"
+#include "vessel/keyStringBuilder.h"
+#include "vessel/sliceTransfer.h"
 
 namespace engine
 {
@@ -87,45 +88,42 @@ namespace vessel
       }
       else
       {
+         STACK_KEY_STRING_BUILDER builder;
          globalLogicalClId glcl = context->getClProperties()->getGlobalLogicalId();
          globalIndexID indexId(glcl.getLogicalCSID(),
                                glcl.getLogicalCLID(),
                                obj->getLogicalID());
          orderingWrapper ow = obj->getProperties().getPattern().getOrdering();
-         rocksdb::Slice valueSlice;
+
          lsmIndexEntryValue value;
-         if (transID.isValid())
-         {
-            value.type = LSM_INDEX_ENTRY_TYPE_INSERT;
-            value.transID = transID;
-            valueSlice = rocksdb::Slice((const CHAR *)(&value), LSM_INDEX_ENTRY_VALUE_SIZE);
-         }
+         value.type = LSM_INDEX_ENTRY_TYPE_INSERT;
+         value.transID = transID;
+         value.lsn = lsn;
+         rocksdb::Slice valueSlice = rocksdb::Slice((const CHAR *)(&value), LSM_INDEX_ENTRY_VALUE_SIZE);
       
-         lsmIndexKeyStackPacker packer;
          lsmWriteBatch batch;
          cf.openBatch(batch);
 
          for (auto itr = keys.cbegin(); itr != keys.cend(); ++itr)
          {
-            
-            
-            ixmKeyOwned key(*itr);
-            rc = packer.packFullKey(key, indexId, ow, rid, lsn);
+            keyString ks;
+
+            rc = builder.buildIndexEntryKey(*itr, ow, rid, &indexId);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to pack full key:%d", rc);
+               PD_LOG(PDERROR, "failed to build entry key string:%d", rc);
                goto error;
             }
 
-            rc = batch.put(packer.getFullKeySlice(), valueSlice);
+            ks = builder.getShallowKeyString();
+
+            rc = batch.put(toRocksdbSlice(ks.getDataSlice()), valueSlice);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to put entry into batch:%d", rc);
                goto error;
             }
-
-            packer.reset();
-         }//for (auto itr = keys.cbegin(); itr != keys.cend(); ++itr)
+         }
 
          batch.setMinDirtyLsn(lsn);
          rc = batch.commit();
@@ -308,33 +306,35 @@ namespace vessel
                             clid.getLogicalCLID(),
                             obj->getLogicalID());
       orderingWrapper ow = obj->getProperties().getPattern().getOrdering();
-      lsmIndexKeyStackPacker packer;
+      STACK_KEY_STRING_BUILDER builder;
 
       if (nullptr != remove)
       {
          lsmIndexEntryValue value;
          value.type = LSM_INDEX_ENTRY_TYPE_DELETE;
          value.transID = transID;
+         value.lsn = lsn;
          rocksdb::Slice valueSlice((const CHAR *)(&value), LSM_INDEX_ENTRY_VALUE_SIZE);
          
          for (auto itr = remove->cbegin(); itr != remove->cend(); ++itr)
          {
-            ixmKeyOwned key(*itr);
-            rc = packer.packFullKey(key, indexId, ow, rid, lsn);
+            keyString ks;
+
+            rc = builder.buildIndexEntryKey(*itr, ow, rid, &indexId);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to pack full key:%d", rc);
+               PD_LOG(PDERROR, "failed to build entry key string:%d", rc);
                goto error;
             }
 
-            rc = batch->put(packer.getFullKeySlice(), valueSlice);
+            ks = builder.getShallowKeyString();
+
+            rc = batch->put(toRocksdbSlice(ks.getDataSlice()), valueSlice);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to put entry into batch:%d", rc);
                goto error;
             }
-
-            packer.reset();
          }
       }
 
@@ -342,33 +342,34 @@ namespace vessel
       {
          rocksdb::Slice valueSlice;
          lsmIndexEntryValue value;
-         if (transID.isValid())
-         {
-            value.type = LSM_INDEX_ENTRY_TYPE_INSERT;
-            value.transID = transID;
-            valueSlice = rocksdb::Slice((const CHAR *)(&value), LSM_INDEX_ENTRY_VALUE_SIZE);
-         }
+         value.type = LSM_INDEX_ENTRY_TYPE_INSERT;
+         value.transID = transID;
+         value.lsn = lsn;
+         valueSlice = rocksdb::Slice((const CHAR *)(&value), LSM_INDEX_ENTRY_VALUE_SIZE);
          
-         for (auto itr = remove->cbegin(); itr != remove->cend(); ++itr)
+         for (auto itr = insert->cbegin(); itr != insert->cend(); ++itr)
          {
-            ixmKeyOwned key(*itr);
-            rc = packer.packFullKey(key, indexId, ow, rid, lsn);
+            keyString ks;
+
+            rc = builder.buildIndexEntryKey(*itr, ow, rid, &indexId);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to pack full key:%d", rc);
+               PD_LOG(PDERROR, "failed to build entry key string:%d", rc);
                goto error;
             }
 
-            rc = batch->put(packer.getFullKeySlice(), valueSlice);
+            ks = builder.getShallowKeyString();
+
+            rc = batch->put(toRocksdbSlice(ks.getDataSlice()), valueSlice);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to put entry into batch:%d", rc);
                goto error;
             }
-
-            packer.reset();
          }
       }
+
+      batch->setMinDirtyLsn(lsn);
    done:
       return rc;
    error:
@@ -377,6 +378,7 @@ namespace vessel
 
    INDEX_ITERATOR_UPTR hybridIndexTree::createIterator(indexObject *obj)
    {
+      SDB_ASSERT(nullptr != _is, "can not be invalid");
       SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
       return std::move(INDEX_ITERATOR_UPTR());
    }

@@ -71,19 +71,33 @@ namespace vessel
             }
 
             BOOLEAN forward = TRUE;
+            BOOLEAN pointGetOnly = FALSE;
          };//class options
 
       public:
          virtual INDEX_ITERATOR_TYPE getType() const = 0;
          virtual void reset() = 0;
 
-         virtual INT32 seek(const VEC_ELE_CMP &matchEles,
-                            const inclusiveVec &matchInclusive) = 0;
 
+      public:/// init iterator location. 
+         virtual INT32 seek(const VEC_ELE_CMP &eles,
+                            const inclusiveVec &iv,
+                            const options &o) = 0;
+                            
          virtual INT32 seek(const bson::BSONObj &key,
-                            const inclusiveVec &matchInclusive) = 0;
+                            const inclusiveVec &iv,
+                            const options &o) = 0;
 
-         virtual INT32 locate(const indexEntryLocation *location) = 0;
+         ///TODO: seek range interface
+
+         //virtual INT32 equal(const VEC_ELE_CMP &matchEles) = 0;
+         virtual INT32 equal(const bson::BSONObj &key) = 0;
+
+         /// locate
+         virtual INT32 locateNext(const indexEntryLocation *location,
+                                  const options &o) = 0;
+
+      public:
 
          virtual INT32 next() = 0;
 
@@ -91,13 +105,11 @@ namespace vessel
          virtual INT32 advance(const bson::BSONObj &prevKey,
                                INT32 fieldCountToCmpInPrev,
                                const VEC_ELE_CMP &matchEles,
-                               const inclusiveVec &matchInclusive) = 0;
+                               const inclusiveVec &iv) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
-         virtual INT32 pause(IDX_ENTRY_LOCATION_UPTR &location) = 0;
-
-         virtual INT32 resume(const indexEntryLocation *location) = 0;
+         virtual INT32 pause() = 0;
 
       public:
          /// Access valid data saved in iterator.

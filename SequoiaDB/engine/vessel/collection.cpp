@@ -1172,7 +1172,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             /// is scan for none, will release rids at last
-            if (DMS_SCAN_FOR_NONE != o.so.scanFor)
+            if (DMS_SCAN_FOR::NONE != o.so.scanFor)
             {
                context->releaseTransLock(scanner.getCurrentRid());
             }
@@ -3919,8 +3919,8 @@ namespace vessel
             }
 
             ++fetched;
-            cursor->markRidScanned(rid);
-            if (DMS_SCAN_FOR_NONE == cursor->getOptions().scanFor)
+            cursor->getCtx().markRidScanned(rid);
+            if (DMS_SCAN_FOR::NONE == cursor->getOptions().scanFor)
             {
                context->unlockRid(rid);
             }
@@ -3944,7 +3944,7 @@ namespace vessel
       context->unlockRids();
       return rc;
    error:
-      if (DMS_SCAN_FOR_NONE != cursor->getOptions().scanFor)
+      if (DMS_SCAN_FOR::NONE != cursor->getOptions().scanFor)
       {
          context->releaseAllTransLock();
       }

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexScanCursor.cpp
+   Source File Name = sliceTransfer.h
 
    Descriptive Name =
 
@@ -27,27 +27,34 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/08/2020  WY  Initial Draft
+          04/20/2022  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
 
-#include "vessel/indexScanCursor.h"
+#ifndef VESSEL_SLICE_TRANSFER_H_
+#define VESSEL_SLICE_TRANSFER_H_
+
+#include "vessel/slice.h"
+#include "rocksdb/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN indexScanCursor::markRidScanned(const recordID &rid)
+   OSS_INLINE rocksdb::Slice toRocksdbSlice(const slice &o)
    {
-      return _scanned.insert(rid).second;
+      return rocksdb::Slice(o.getData(), o.getSize());
    }
 
-   BOOLEAN indexScanCursor::testRidScanned(const recordID &rid)const
+   OSS_INLINE slice toSlice(const rocksdb::Slice &o)
    {
-      return 0 < _scanned.count(rid);
+      return slice(o.size(), o.data());
    }
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_SLICE_TRANSFER_H_

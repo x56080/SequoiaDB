@@ -37,7 +37,6 @@
 #define VESSEL_LSM_INDEX_ITERATOR_H_
 
 #include "vessel/indexIterator.h"
-#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/globalIndexID.h"
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/objectIdentifier.h"
@@ -59,8 +58,7 @@ namespace vessel
       public:
          INT32 init(const lsmColumnFamily &cf,
                     const globalLogicalClId &cl,
-                    const indexObject *obj,
-                    const options &o);
+                    const indexObject *obj);
          
       public:
          virtual INDEX_ITERATOR_TYPE getType() const override {return INDEX_ITERATOR_TYPE::LSM;}
@@ -69,13 +67,18 @@ namespace vessel
 
          virtual BOOLEAN isReadyToRead()const override;
 
-         virtual INT32 seek(const VEC_ELE_CMP &matchEles,
-                            const inclusiveVec &matchInclusive) override;
+         virtual INT32 seek(const VEC_ELE_CMP &eles,
+                            const inclusiveVec &iv,
+                            const options &o) override;
 
          virtual INT32 seek(const bson::BSONObj &key,
-                            const inclusiveVec &matchInclusive) override;
+                            const inclusiveVec &iv,
+                            const options &o) override;
 
-         virtual INT32 locate(const indexEntryLocation *location) override;
+         virtual INT32 equal(const bson::BSONObj &key) override;
+
+         virtual INT32 locateNext(const indexEntryLocation *location,
+                                  const options &o) override;
 
          virtual INT32 next() override;
 
@@ -84,8 +87,8 @@ namespace vessel
                                const VEC_ELE_CMP &matchEles,
                                const inclusiveVec &matchInclusive) override;
 
-         virtual INT32 pause(IDX_ENTRY_LOCATION_UPTR &location);
-         virtual INT32 resume(const indexEntryLocation *location);
+         virtual INT32 pause() override;
+
       public:
          virtual bson::BSONObj getKeyObj(BOOLEAN withFieldName,
                                          bson::BufBuilder *buf)const;
@@ -94,16 +97,32 @@ namespace vessel
          virtual recordID getRid()const override;
          virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const override;
 
-      private:
-         void _moveIterator();
+      public:
+         BOOLEAN isMarkedRemoved()const;
 
-         OSS_INLINE BOOLEAN _isValid()const {return nullptr != _itr;}
+      private:
+         INT32 _reinitIterator(const options &o, BOOLEAN allInclusive);
+
+         INT32 _moveIterator();
+
+         OSS_INLINE BOOLEAN _isInternalItrReady()const {return nullptr != _itr;}
+
+         OSS_INLINE BOOLEAN _isInited()const {return nullptr != _obj;}
 
          BOOLEAN _isReadyToRead()const;
 
          BOOLEAN _isMarkedRemoved(rocksdb::Iterator *itr)const;
 
          void _initKeyBoundWhenOpen(const globalIndexID &id);
+
+         INT32 _seekKeyString(const keyString &ks,
+                              BOOLEAN forPrev);
+
+         void _resetCurrentEntry();
+
+         INT32 _initCurrentEntry(const rocksdb::Iterator *itr);
+
+         INT32 _locateNextEntry(const keyString &entryKey);
 
       private:
          options _o;

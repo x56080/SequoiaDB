@@ -596,7 +596,6 @@ void backward_delete(INDEX_TYPE type)
 
    mthMatchTree mt;
    dmsIndexScanOptions o;
-   o.forward = FALSE;
    // scan
    {
       builder.reset();

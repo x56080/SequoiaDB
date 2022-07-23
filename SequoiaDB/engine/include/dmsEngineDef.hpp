@@ -40,11 +40,11 @@
 
 namespace engine
 {
-   enum DMS_SCAN_FOR
+   enum class DMS_SCAN_FOR : INT32
    {
-      DMS_SCAN_FOR_NONE = 0,
-      DMS_SCAN_FOR_SHARE = 1,
-      DMS_SCAN_FOR_UPDATE = 2,
+      NONE = 0,
+      SHARE = 1,
+      UPDATE = 2,
    };//enum DMS_SCAN_FOR
 
    class dmsEngineDescriptor : public SDBObject

@@ -3045,6 +3045,27 @@ namespace engine
       return TRUE ;
    }
 
+   BOOLEAN _rtnPredicateList::isAllEqual() const
+   {
+      for ( RTN_PREDICATE_LIST::const_iterator iter = _predicates.begin() ;
+            iter != _predicates.end() ;
+            ++ iter )
+      {
+         if ( !iter->isAllEqual() )
+         {
+            return FALSE;
+         }
+      }
+      return TRUE;
+   }
+
+   BOOLEAN _rtnPredicateList::isPointGet() const
+   {
+      return 1 == _predicates.size() &&
+             1 == _predicates.begin()->_startStopKeys.size() &&
+             _predicates.begin()->isAllEqual();
+   }
+
    // whether an element matches the i'th column
    // even result means the element is contained within a valid range
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATLOWELE, "_rtnPredicateList::matchingLowElement" )

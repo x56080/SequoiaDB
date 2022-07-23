@@ -111,6 +111,21 @@ namespace vessel
          }
       }
 
+      if (!_iterator->isReadyToRead())
+      {
+         rc = SDB_IXM_EOC;
+         goto error;
+      }
+      else
+      {
+         rc = _iterator->initOrUpdateLocation(_cursor->getCtx().getLocation());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update entry location:%d", rc);
+            goto error;
+         }
+      }
+
       rc = _fetchNextAndLock(context);
       if (SDB_OK != rc)
       {
@@ -130,9 +145,8 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
       SDB_ASSERT(_iterator->isReadyToRead(), "can not be invalid");
-      IDX_ENTRY_LOCATION_UPTR location;
 
-      rc = _iterator->pause(location);
+      rc = _iterator->pause();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to pause iterator:%d", rc);
@@ -145,11 +159,10 @@ namespace vessel
          PD_LOG(PDERROR, "failed to wait record:%d", rc);
          goto error;
       }
-   
-      rc = _iterator->resume(location.get());
+
+      rc = _beginToScan();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to resume iterator:%d", rc);
          goto error;
       }
    done:
@@ -168,7 +181,7 @@ namespace vessel
       const dmsIndexScanOptions &o = _cursor->getOptions();
       locked = FALSE;
 
-      if (DMS_SCAN_FOR_NONE == o.scanFor)
+      if (DMS_SCAN_FOR::NONE == o.scanFor)
       {
          ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
          rc = context->tryLockRid(rid, mode, locked);
@@ -178,7 +191,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (DMS_SCAN_FOR_UPDATE == o.scanFor)
+      else if (DMS_SCAN_FOR::UPDATE == o.scanFor)
       {
          rc = context->tryAcquireTransLock(rid, DPS_TRANSLOCK_U, locked);
          if (SDB_OK != rc)
@@ -212,13 +225,13 @@ namespace vessel
       
       const dmsIndexScanOptions &o = _cursor->getOptions();
 
-      if (DMS_SCAN_FOR_NONE == o.scanFor)
+      if (DMS_SCAN_FOR::NONE == o.scanFor)
       {
          context->waitRid(rid, ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED));
       }
       else
       {
-         DPS_TRANSLOCK_TYPE mode = DMS_SCAN_FOR_UPDATE == o.scanFor ?
+         DPS_TRANSLOCK_TYPE mode = DMS_SCAN_FOR::UPDATE == o.scanFor ?
                                    DPS_TRANSLOCK_U : DPS_TRANSLOCK_S;
          rc = context->waitTransLock(rid, mode);
          if (SDB_OK != rc)
@@ -239,17 +252,13 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
+      indexIterator::options o;
+      o.forward = _cursor->getCtx().isForward();
+      o.pointGetOnly = _cursor->getCtx().isPointGet();
 
-      if (_cursor->getLocation())
+      if (_cursor->getCtx().getLocation())
       {
-         const indexEntryLocation *location = _cursor->getLocation().get();
-         if (location->hitTheEnd())
-         {
-            rc = SDB_IXM_EOC;
-            goto error;
-         }
-
-         rc = _iterator->locate(location);
+         rc = _iterator->locateNext(_cursor->getCtx().getLocation().get(), o);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to locate entry:%d", rc);
@@ -258,8 +267,8 @@ namespace vessel
       }
       else
       {
-         const rtnPredicateListIterator *predicate = _cursor->getPredicate();
-         rc = _iterator->seek(predicate->cmp(), predicate->inc());
+         const rtnPredicateListIterator *predicate = _cursor->getCtx().getPredicate();
+         rc = _iterator->seek(predicate->cmp(), predicate->inc(), o);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek predicate:%d", rc);
@@ -278,15 +287,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_scanning, "must be scanning");
-      rtnPredicateListIterator *predicate = _cursor->getPredicate();
+      rtnPredicateListIterator *predicate = _cursor->getCtx().getPredicate();
       SDB_ASSERT(nullptr != predicate, "can not be invalid");
-      IDX_ENTRY_LOCATION_UPTR &location = _cursor->getLocation();
       BOOLEAN fetched = FALSE;
 
       while (_iterator->isReadyToRead())
       {
          recordID rid = _iterator->getRid();
-         if (_cursor->testRidScanned(rid))
+         if (_cursor->getCtx().testRidScanned(rid))
          {
             rc = _iterator->next();
             if (SDB_OK != rc)
@@ -330,13 +338,6 @@ namespace vessel
                }
                else if (locked)
                {
-                  rc = _iterator->initOrUpdateLocation(location);
-                  if (SDB_OK != rc)
-                  {
-                     PD_LOG(PDERROR, "failed to update entry location:%d", rc);
-                     goto error;
-                  }
-
                   fetched = TRUE;
                   break;
                }

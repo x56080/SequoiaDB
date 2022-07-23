@@ -61,7 +61,7 @@ namespace vessel
 
       public:
          virtual IDX_ENTRY_LOCATION_TYPE getType()const = 0;
-         virtual BOOLEAN hitTheEnd()const = 0;
+         virtual BOOLEAN isValidToLocate()const = 0;
    };
    using IDX_ENTRY_LOCATION_UPTR = std::unique_ptr<indexEntryLocation>;
 
@@ -76,9 +76,9 @@ namespace vessel
          {
             return IDX_ENTRY_LOCATION_TYPE::BTREE;
          }
-         virtual BOOLEAN hitTheEnd()const override
+         virtual BOOLEAN isValidToLocate()const override
          {
-            return _key.empty();
+            return !_key.empty();
          }
       public:
          OSS_INLINE const ossPoolString &getKey()const {return _key;}
@@ -111,9 +111,9 @@ namespace vessel
          {
             return IDX_ENTRY_LOCATION_TYPE::LSM;
          }
-         virtual BOOLEAN hitTheEnd()const override
+         virtual BOOLEAN isValidToLocate()const override
          {
-            return _key.empty();
+            return !_key.empty();
          }
       public:
          OSS_INLINE const ossPoolString &getKey()const {return _key;}

@@ -184,6 +184,16 @@ namespace vessel
             return std::move(str.poolStr());
          }
 
+         OSS_INLINE BOOLEAN isMinRid()const
+         {
+            return createMinRid() == *this;
+         }
+
+         OSS_INLINE BOOLEAN isMaxRid()const
+         {
+            return createMaxRid() == *this;
+         }
+
          static recordID createMinRid()
          {
             return recordID(0, OSS_SINT16_MIN);
