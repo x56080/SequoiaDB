@@ -152,15 +152,15 @@ namespace vessel
                       UINT32 len) const;
       bson::StringData _readCString(UINT32 &offset, BOOLEAN inverted) const;
       void _toBSON(UINT32 &offset,
-                            BOOLEAN inverted,
-                            bson::BSONObjBuilder &builder,
-                            typeBitsReader &typeReader,
-                            const CHAR *fieldName = nullptr) const;
+                   BOOLEAN inverted,
+                   bson::BSONObjBuilder &builder,
+                   typeBitsReader &typeReader,
+                   const CHAR *fieldName = nullptr) const;
       bson::BSONObj _toBSON(UINT32 &offset,
                             BOOLEAN inverted,
                             typeBitsReader &typeReader,
                             BOOLEAN withFieldName) const;
-      
+                            
       void _toBsonValue(EncodedType type,
                         UINT32 &offset,
                         BOOLEAN inverted,
@@ -173,11 +173,12 @@ namespace vessel
                       bson::BSONObjBuilder &builder,
                       typeBitsReader &typeReader,
                       const CHAR *fieldName = nullptr) const;
-      bson::StringData _decodeStringLike(UINT32 &offset, BOOLEAN inverted)const;
+      bson::StringData _decodeStringLike(UINT32 &offset,
+                                         BOOLEAN inverted) const;
       bson::bsonDecimal _decodeDecimal(UINT32 &offset,
                                        BOOLEAN inverted,
                                        BOOLEAN isNegative,
-                                       typeBitsReader &typeReader)const;
+                                       typeBitsReader &typeReader) const;
 
    protected:
       slice _ref;
