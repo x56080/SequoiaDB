@@ -119,8 +119,47 @@ namespace vessel
                                    const VEC_ELE_CMP &matchEles,
                                    const inclusiveVec &matchInclusive)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 <= fieldCountToCmpInPrev, "can not be invalid");
+      inclusiveVec iv;
+      bson::BSONObj obj;
+      STACK_KEY_STRING_BUILDER builder;
+
+      if (matchEles.empty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!_isReadyToRead())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(!_o.pointGetOnly, "can not be point get");
+      obj = indexUtils::buildKeyToSeek(prevKey, fieldCountToCmpInPrev, matchEles);
+      iv = matchInclusive;
+      iv.setBatch(0, fieldCountToCmpInPrev, TRUE);
+
+      rc = builder.buildPredicate(obj,
+                                 _obj->getOrderingWrapper(),
+                                 iv, _o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+         goto error;
+      }
+
+      rc = _seekKeyString(builder.getShallowKeyString(), !_o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key string:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 lsmIndexIterator::seek(const VEC_ELE_CMP &eles,
@@ -275,7 +314,7 @@ namespace vessel
       STACK_KEY_STRING_BUILDER builder;
       options opt;
       inclusiveVec iv;
-      SDB_ASSERT(iv.allInclusive(), "impossible");
+      SDB_ASSERT(iv.allInclusive(), "can not be invalid");
 
       if (OSS_UNLIKELY(!key.isValid()))
       {
@@ -299,6 +338,58 @@ namespace vessel
       }
 
       rc = builder.buildPredicate(key,
+                                  _obj->getProperties().getPattern().getOrdering(),
+                                  iv, _o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+         goto error;
+      }
+
+      rc = _seekKeyString(builder.getShallowKeyString(), !_o.forward);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key string:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::equal(const VEC_ELE_CMP &matchEles)
+   {
+      INT32 rc = SDB_OK;
+      STACK_KEY_STRING_BUILDER builder;
+      options opt;
+      inclusiveVec iv;
+      SDB_ASSERT(iv.allInclusive(), "can not be invalid");
+
+      if (OSS_UNLIKELY(matchEles.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_isInited()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      opt.forward = TRUE;
+      opt.pointGetOnly = TRUE;
+
+      rc = _reinitIterator(opt, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
+         goto error;
+      }
+
+      rc = builder.buildPredicate(matchEles,
                                   _obj->getProperties().getPattern().getOrdering(),
                                   iv, _o.forward);
       if (SDB_OK != rc)
@@ -402,8 +493,7 @@ namespace vessel
    recordID lsmIndexIterator::getRid()const
    {
       SDB_ASSERT(_isReadyToRead(), "must be valid");
-      SDB_ASSERT(FALSE, "TODO"); 
-      return recordID();
+      return _ks.getRid();
    }
 
    INT32 lsmIndexIterator::next()

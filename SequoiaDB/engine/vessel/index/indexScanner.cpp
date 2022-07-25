@@ -265,6 +265,15 @@ namespace vessel
             goto error;
          }
       }
+      else if (_cursor->getCtx().getPredicates().isPointGet())
+      {
+         rc = _iterator->equal(_cursor->getCtx().getPredicate()->cmp());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to seek specified key:%d", rc);
+            goto error;
+         }
+      }
       else
       {
          const rtnPredicateListIterator *predicate = _cursor->getCtx().getPredicate();

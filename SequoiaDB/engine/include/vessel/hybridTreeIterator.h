@@ -37,12 +37,68 @@
 #define VESSEL_HYBRID_TREE_ITERATOR_H_
 
 #include "vessel/indexIterator.h"
+#include "vessel/lsm/lsmIndexIterator.h"
 
 namespace engine
 {
 namespace vessel
 {
-   
+   class hybridTreeIterator : public indexIterator
+   {
+      public:
+         hybridTreeIterator() = default;
+         virtual ~hybridTreeIterator();
+
+      public:
+         INT32 init(const lsmColumnFamily &cf,
+                    const globalLogicalClId &cl,
+                    const indexObject *obj);
+
+      public:
+          virtual INDEX_ITERATOR_TYPE getType() const override {return INDEX_ITERATOR_TYPE::HYBRID_TREE;} 
+          virtual void reset() override;
+
+      public:/// init iterator location. 
+         virtual INT32 seek(const VEC_ELE_CMP &eles,
+                            const inclusiveVec &iv,
+                            const options &o) override;
+                            
+         virtual INT32 seek(const bson::BSONObj &key,
+                            const inclusiveVec &iv,
+                            const options &o) override;
+
+         virtual INT32 equal(const VEC_ELE_CMP &matchEles) override;
+         virtual INT32 equal(const bson::BSONObj &key) override;
+
+         /// locate
+         virtual INT32 locateNext(const indexEntryLocation *location,
+                                  const options &o) override;
+
+      public:
+         virtual INT32 next();
+
+         /// reseek from current pos, to fast skip unmatched entries.
+         virtual INT32 advance(const bson::BSONObj &prevKey,
+                               INT32 fieldCountToCmpInPrev,
+                               const VEC_ELE_CMP &matchEles,
+                               const inclusiveVec &iv) override;
+
+         virtual BOOLEAN isReadyToRead()const override;
+
+         virtual INT32 pause();
+
+      public:
+         virtual bson::BSONObj getKeyObj(BOOLEAN withFieldName,
+                                         bson::BufBuilder *buf)const override;
+         virtual DPS_LSN_OFFSET getLSN()const override;
+         virtual DPS_TRANS_ID getTransID()const override;
+         virtual recordID getRid()const override;
+         virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const override;
+
+      private:
+         lsmIndexIterator _lsm;
+
+   };//class hybridTreeIterator
 } // namespace vessel
 
 } // namespace engine

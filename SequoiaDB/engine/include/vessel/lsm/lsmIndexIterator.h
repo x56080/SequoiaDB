@@ -75,6 +75,7 @@ namespace vessel
                             const inclusiveVec &iv,
                             const options &o) override;
 
+         virtual INT32 equal(const VEC_ELE_CMP &matchEles) override;
          virtual INT32 equal(const bson::BSONObj &key) override;
 
          virtual INT32 locateNext(const indexEntryLocation *location,

@@ -39,6 +39,7 @@
 #include "oss.hpp"
 #include "vessel/globalIndexID.h"
 #include "rocksdb/slice.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -58,6 +59,10 @@ namespace vessel
             ossMemcpy(_data, key._data, sizeof(_data));
             return *this;
          }
+         OSS_INLINE INT32 compare(const lsmIndexIdKey &o)const
+         {
+            return ossMemcmp(_data, o._data, sizeof(_data));
+         }
 
       public:
          OSS_INLINE rocksdb::Slice getKeySlice() const
@@ -74,6 +79,8 @@ namespace vessel
 
          void initAsUpKey(const globalIndexID &id);
 
+         globalIndexID toGlobalIndexId()const;
+
       private:
          /// big endian store
          /// 0-3: CS Logical ID
@@ -81,8 +88,6 @@ namespace vessel
          /// 8-11: Index Logical ID
          CHAR _data[12] = {};
    };
-   static_assert(12 == sizeof(globalIndexID), "invalid size");
-
 
    class lsmIndexManifestKey : public SDBObject
    {
@@ -112,6 +117,7 @@ namespace vessel
 
          void initAsUpKey(UINT32 csLid, UINT32 clLid);
 
+         globalLogicalClId toClId()const;
       private:
          /// big endian store
          /// 0-3: CS Logical Id

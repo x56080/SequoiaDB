@@ -695,7 +695,7 @@ namespace vessel
 
       if (!ra.isEmpty())
       {
-         hybridIndexTree hit;
+         hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
          rc = hit.handleDmlRequests(context, ra.getRequests());
          if (SDB_OK != rc)
          {
@@ -735,7 +735,7 @@ namespace vessel
       recordID rid;
       slice targetRecord;
       slice newRecord;
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -852,7 +852,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       dmlIndexRequestArray ra;
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -3212,7 +3212,7 @@ namespace vessel
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       const indexObject *obj = buildingCtx->getIndexObj();
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "can not be invalid");
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
 
       for (UINT32 i = buildingCtx->getLow(); i < buildingCtx->getHigh(); ++i)
       {
@@ -3298,7 +3298,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != buildingCtx && buildingCtx->isScanning(), "can not be invalid");
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       INDEX_MERGING_LIST ml;
       indexObject *obj = buildingCtx->getIndexObj();
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "can not be invalid");
@@ -3596,7 +3596,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
 
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       recordID rid;
       duplicated = FALSE;
 
@@ -3763,7 +3763,7 @@ namespace vessel
       indexObject *obj =_entryBlock._indexes.getIndexObj(logicalIndexId);
       SDB_ASSERT(nullptr != obj, "can not be invalid");
       SDB_ASSERT(obj->isTruncating() || obj->isRemoving(), "can not be invalid");
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
 
       rc = hit.truncate(context, obj);
       if (SDB_OK != rc)
@@ -3786,7 +3786,7 @@ namespace vessel
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
 
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
@@ -3816,7 +3816,7 @@ namespace vessel
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
 
-      hybridIndexTree hit;
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
@@ -3848,8 +3848,9 @@ namespace vessel
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       indexScanner scanner;
       bson::BufBuilder buf;
-      INDEX_ITERATOR_UPTR iterator = hit.createIterator(obj);
-      if (!iterator)
+      INDEX_ITERATOR_UPTR iterator;
+      rc = hit.createIterator(context, obj, iterator);
+      if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create iterator:%d", rc);
          goto error;

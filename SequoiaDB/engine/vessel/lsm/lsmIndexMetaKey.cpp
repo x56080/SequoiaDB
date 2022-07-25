@@ -36,6 +36,7 @@
 #include "vessel/lsm/lsmIndexMetaKey.h"
 #include "ossTypes.h"
 #include "dpsDef.hpp"
+#include "vessel/keyStringCoder.h"
 
 namespace engine
 {
@@ -44,42 +45,21 @@ namespace vessel
    ///////////////////////////// lsmIndexIdKey
    void lsmIndexIdKey::init(const globalIndexID &id)
    {
-#ifdef SDB_BIG_ENDIAN
-      globalIndexID *dataPtr = reinterpret_cast<globalIndexID *>(_data);
-      *dataPtr = id;
-#else
-      UINT32 csLid = id.getLogicalCSID();
-      UINT32 clLid = id.getLogicalCLID();
-      UINT32 indexLid = id.getLogicalIndexID();
-      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
-      ossEndianConvert4(csLid, (*val));
-      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
-      ossEndianConvert4(clLid, (*val));
-      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid) + sizeof(clLid));
-      ossEndianConvert4(indexLid, (*val));
-#endif
+      keyStringCoder coder;
+      coder.encodeUnsignedNative<UINT32>(id.getLogicalCSID(), FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(id.getLogicalCLID(), FALSE, _data + sizeof(UINT32));
+      coder.encodeUnsignedNative<UINT32>(id.getLogicalIndexID(),
+                                         FALSE, _data + (sizeof(UINT32) << 1));
    }
 
    void lsmIndexIdKey::initAsUpKey(const globalIndexID &id)
    {
-      SDB_ASSERT(id.isValid(), "can not be invalid");
-      globalIndexID upID(id.getLogicalCSID(),
-                         id.getLogicalCLID(),
-                         id.getLogicalIndexID() + 1);
-#ifdef SDB_BIG_ENDIAN
-      globalIndexID *dataPtr = reinterpret_cast<globalIndexID *>(_data);
-      *dataPtr = id;
-#else
-      UINT32 csLid = upID.getLogicalCSID();
-      UINT32 clLid = upID.getLogicalCLID();
-      UINT32 indexLid = upID.getLogicalIndexID();
-      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
-      ossEndianConvert4(csLid, (*val));
-      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
-      ossEndianConvert4(clLid, (*val));
-      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid) + sizeof(clLid));
-      ossEndianConvert4(indexLid, (*val));
-#endif
+      SDB_ASSERT(id.getLogicalIndexID() != OSS_UINT32_MAX, "out of bound");
+      keyStringCoder coder;
+      coder.encodeUnsignedNative<UINT32>(id.getLogicalCSID(), FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(id.getLogicalCLID(), FALSE, _data + sizeof(UINT32));
+      coder.encodeUnsignedNative<UINT32>(id.getLogicalIndexID() + 1,
+                                         FALSE, _data + (sizeof(UINT32) << 1));
    }
 
    void lsmIndexIdKey::reset()
@@ -87,43 +67,43 @@ namespace vessel
       ossMemset(_data, 0, sizeof(_data));
    }
 
+   globalIndexID lsmIndexIdKey::toGlobalIndexId()const
+   {
+      keyStringCoder coder;
+      UINT32 cs = coder.decodeToUnsignedNative<UINT32>(_data, FALSE);
+      UINT32 cl = coder.decodeToUnsignedNative<UINT32>(_data + sizeof(UINT32), FALSE);
+      UINT32 index = coder.decodeToUnsignedNative<UINT32>(_data + (sizeof(UINT32) << 1), FALSE);
+      return globalIndexID(cs, cl, index);
+   }
+
    //////////////////////////////// lsmCLIndexKey
    void lsmIndexManifestKey::init(UINT32 csLid, UINT32 clLid)
    {
-#ifdef SDB_BIG_ENDIAN
-      UINT32 *dataPtr = reinterpret_cast<UINT32 *>(_data);
-      *dataPtr = csLid;
-      dataPtr = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
-      *dataPtr = clLid;
-#else
-      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
-      ossEndianConvert4(csLid, (*val));
-      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
-      ossEndianConvert4(clLid, (*val));
-#endif
+      keyStringCoder coder;
+      coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(clLid, FALSE, _data);
+      return;
    }
 
    void lsmIndexManifestKey::initAsUpKey(UINT32 csLid, UINT32 clLid)
    {
-      SDB_ASSERT(DMS_INVALID_LOGICCSID != csLid, "can not be invalid");
-      SDB_ASSERT(DMS_INVALID_LOGICCLID != clLid, "can not be invalid");
-      UINT32 upCLLid = clLid + 1;
-#ifdef SDB_BIG_ENDIAN
-      UINT32 *dataPtr = reinterpret_cast<UINT32 *>(_data);
-      *dataPtr = csLid;
-      dataPtr = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
-      *dataPtr = upCLLid;
-#else
-      UINT32 *val = reinterpret_cast<UINT32 *>(_data);
-      ossEndianConvert4(csLid, (*val));
-      val = reinterpret_cast<UINT32 *>(_data + sizeof(csLid));
-      ossEndianConvert4(upCLLid, (*val));
-#endif
+      SDB_ASSERT(clLid != OSS_UINT32_MAX, "out of bound");
+      keyStringCoder coder;
+      coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(clLid + 1, FALSE, _data);
    }
 
    void lsmIndexManifestKey::reset()
    {
       ossMemset(_data, 0, sizeof(_data));
+   }
+
+   globalLogicalClId lsmIndexManifestKey::toClId()const
+   {
+      keyStringCoder coder;
+      UINT32 cs = coder.decodeToUnsignedNative<UINT32>(_data, FALSE);
+      UINT32 cl = coder.decodeToUnsignedNative<UINT32>(_data + sizeof(UINT32), FALSE);
+      return globalLogicalClId(cs, cl);
    }
 
 } // namespace vessel

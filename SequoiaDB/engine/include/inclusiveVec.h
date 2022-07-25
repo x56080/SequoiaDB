@@ -51,13 +51,7 @@ namespace engine
          ~inclusiveVec() = default;
          explicit inclusiveVec(UINT32 size, BOOLEAN inclusive)
          {
-            if (!inclusive)
-            {
-               for (UINT32 i = 0; i < size; ++i)
-               {
-                  _bs.set(i);
-               }
-            }
+
          }
 
       public:
@@ -74,8 +68,8 @@ namespace engine
          OSS_INLINE void setAll(UINT32 size, BOOLEAN inclusive)
          {
             SDB_ASSERT(size <= _bs.size(), "out of bound");
-            _bs.reset();
 
+            reset();
             if (!inclusive)
             {
                for (UINT32 i = 0; i < size; ++i)
@@ -105,6 +99,14 @@ namespace engine
                setExclusive(pos);
             }
          }
+         OSS_INLINE void setBatch(UINT32 begin, UINT32 end, BOOLEAN inclusive)
+         {
+            for (UINT32 i = 0; i < end; ++i)
+            {
+               set(i, inclusive);
+            }
+         }
+
          OSS_INLINE BOOLEAN allInclusive()const
          {
             return _bs.none();

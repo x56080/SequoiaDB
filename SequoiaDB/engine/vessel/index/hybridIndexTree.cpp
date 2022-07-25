@@ -44,6 +44,7 @@
 #include "vessel/indexSpace.h"
 #include "vessel/keyStringBuilder.h"
 #include "vessel/sliceTransfer.h"
+#include "vessel/hybridTreeIterator.h"
 
 namespace engine
 {
@@ -201,7 +202,45 @@ namespace vessel
                                    const bson::BSONObj &key,
                                    recordID &rid)
    {
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      hybridTreeIterator iterator;
+      rid.reset();
+
+      if (OSS_UNLIKELY(nullptr != context ||
+                       !context->isClPropertiesSet() ||
+                       nullptr == obj ||
+                       !obj->isValid() ||
+                       !key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = iterator.init(GET_HYBRID_INDEX_COLUMN_FAMILY(),
+                         context->getClProperties()->getGlobalLogicalId(),
+                         obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init iterator:%d", rc);
+         goto error;
+      }
+
+      rc = iterator.equal(key);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find key:%d", rc);
+         goto error;
+      }
+
+      if (iterator.isReadyToRead())
+      {
+         rid = iterator.getRid();
+      }
+   done:
+      iterator.reset();
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 hybridIndexTree::contains(requestContext *context,
@@ -209,13 +248,85 @@ namespace vessel
                                    const bson::BSONObjSet &keys,
                                    recordID &rid)
    {
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      hybridTreeIterator iterator;
+      rid.reset();
+
+      if (OSS_UNLIKELY(nullptr != context ||
+                       !context->isClPropertiesSet() ||
+                       nullptr == obj ||
+                       !obj->isValid() ||
+                       keys.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = iterator.init(GET_HYBRID_INDEX_COLUMN_FAMILY(),
+                         context->getClProperties()->getGlobalLogicalId(),
+                         obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init iterator:%d", rc);
+         goto error;
+      }
+
+      for (auto itr = keys.cbegin(); itr != keys.cend(); ++itr)
+      {
+         rc = iterator.equal(*itr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find key:%d", rc);
+            goto error;
+         }
+
+         if (iterator.isReadyToRead())
+         {
+            rid = iterator.getRid();
+            break;
+         }
+
+         iterator.reset();
+      }
+
+   done:
+      iterator.reset();
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 hybridIndexTree::truncate(requestContext *context,
                                    indexObject *obj)
    {
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isClPropertiesSet() ||
+                       nullptr == obj ||
+                       !obj->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else
+      {
+         lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+         globalLogicalClId gclid = context->getClProperties()->getGlobalLogicalId();
+         globalIndexID indexId(gclid, obj->getLogicalID());
+         lsmIndexIdKey low, up;
+         low.init(indexId),
+         up.initAsUpKey(indexId);
+         rc = cf.truncate(low.getKeySlice(), up.getKeySlice());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to truncate column family:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 hybridIndexTree::handleDmlRequests(dmlContext *context,
@@ -376,11 +487,50 @@ namespace vessel
       goto done;
    }
 
-   INDEX_ITERATOR_UPTR hybridIndexTree::createIterator(indexObject *obj)
+   INT32 hybridIndexTree::createIterator(requestContext *context,
+                                         indexObject *obj,
+                                         INDEX_ITERATOR_UPTR &ptr)
    {
+      INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != _is, "can not be invalid");
       SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
-      return std::move(INDEX_ITERATOR_UPTR());
+
+      hybridTreeIterator *itr = nullptr;
+      ptr.reset();
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !context->isClPropertiesSet() ||
+                       nullptr == obj ||
+                       !obj->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      itr = SDB_OSS_NEW hybridTreeIterator();
+      if (OSS_UNLIKELY(nullptr == itr))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = itr->init(GET_HYBRID_INDEX_COLUMN_FAMILY(),
+                     context->getClProperties()->getGlobalLogicalId(),
+                     obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init hybrid tree iterator:%d", rc);
+         goto error;
+      }
+
+      ptr.reset(itr);
+
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(itr);
+      goto done;
    }
 } // namespace vessel
 

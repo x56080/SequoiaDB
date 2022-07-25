@@ -59,6 +59,7 @@ namespace vessel
          indexScanContext &operator=(const indexScanContext &) = delete;
 
       public:
+         const rtnPredicateList &getPredicates()const {return _predicates;}
          BOOLEAN isForward()const {return 0 <= _predicates.getDirection();}
          rtnPredicateListIterator *getPredicate() {return &_predicate;}
          BOOLEAN isPointGet()const {return _predicates.isPointGet();}

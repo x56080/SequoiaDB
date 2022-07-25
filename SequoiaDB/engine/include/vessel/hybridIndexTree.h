@@ -98,7 +98,9 @@ namespace vessel
          INT32 handleDmlRequests(dmlContext *context,
                                  const ossPoolVector<dmlIndexRequest *> &requests);
 
-         INDEX_ITERATOR_UPTR createIterator(indexObject *obj);
+         INT32 createIterator(requestContext *context,
+                              indexObject *obj,
+                              INDEX_ITERATOR_UPTR &ptr);
 
       private:
          INT32 _fillBatch(const globalLogicalClId &clid,

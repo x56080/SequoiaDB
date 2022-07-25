@@ -90,7 +90,7 @@ namespace vessel
 
          ///TODO: seek range interface
 
-         //virtual INT32 equal(const VEC_ELE_CMP &matchEles) = 0;
+         virtual INT32 equal(const VEC_ELE_CMP &matchEles) = 0;
          virtual INT32 equal(const bson::BSONObj &key) = 0;
 
          /// locate
