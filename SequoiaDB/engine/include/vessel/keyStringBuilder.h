@@ -249,12 +249,14 @@ namespace vessel
       INT32 buildPredicate(const ossPoolVector<const BSONElement *> &elements,
                            const orderingWrapper &o,
                            const inclusiveVec &iv,
-                           BOOLEAN forward);
+                           BOOLEAN forward,
+                           const globalIndexID *indexid = nullptr);
 
       INT32 buildPredicate(const bson::BSONObj &key,
                            const orderingWrapper &o,
                            const inclusiveVec &iv,
-                           BOOLEAN forward);
+                           BOOLEAN forward,
+                           const globalIndexID *indexid = nullptr);
 
       INT32 buildIndexEntryKey(const bson::BSONObj &key,
                                const orderingWrapper &o,
@@ -2145,6 +2147,10 @@ namespace vessel
    template <typename Allocator> INT32 keyStringBuilder<Allocator>::done()
    {
       INT32 rc = SDB_OK;
+      if (BUILDER_STATUS::DONE == _status)
+      {
+         goto done;
+      }
       if (!_typeBits.isEmpty())
       {
          rc = _appendTypeBits();
@@ -2276,7 +2282,8 @@ namespace vessel
        const ossPoolVector<const BSONElement *> &elements,
        const orderingWrapper &o,
        const inclusiveVec &iv,
-       BOOLEAN forward)
+       BOOLEAN forward,
+       const globalIndexID *indexid)
    {
       INT32 rc = SDB_OK;
       if (elements.empty())
@@ -2289,8 +2296,17 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      if (indexid)
+      {
+         rc = appendIndexId(*indexid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append index id, rc:%d", rc);
+            goto error;
+         }
+      }
       _verifyStatus();
-      for (UINT32 i = 0;i < elements.size(); i++)
+      for (UINT32 i = 0; i < elements.size(); i++)
       {
          BOOLEAN invert = o.toBsonOrdering().get(i) == -1;
          rc = appendBSONElement(*elements[i], invert);
@@ -2299,16 +2315,30 @@ namespace vessel
             PD_LOG(PDERROR, "failed to append bson elements , rc:%d", rc);
             goto error;
          }
-
-         if (iv.isInclusive(i) && !forward)
+         if (forward)
          {
-            rc = _append(DiscriminatorValue::GREATER, FALSE);
-            break;
+            if(iv.isExclusive(i))
+            {
+               rc = _append(DiscriminatorValue::GREATER, FALSE);
+               break;
+            }
+            else
+            {
+               continue;
+            }
          }
-         else if (iv.isExclusive(i) && forward)
+         else
          {
-            rc = _append(DiscriminatorValue::GREATER, FALSE);
-            break;
+            if(iv.isExclusive(i))
+            {
+               rc = _append(DiscriminatorValue::LESS, FALSE);
+               break;
+            }
+            else
+            {
+               rc = _append(DiscriminatorValue::GREATER, FALSE);
+               break;
+            }
          }
       }
       if (SDB_OK != rc)
@@ -2323,6 +2353,12 @@ namespace vessel
          goto error;
       }
       _sizeOfElements = _bufSize - _sizeAheadElements;
+      rc = done();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to be done , rc:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -2331,10 +2367,12 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::buildPredicate(const bson::BSONObj &key,
-                                                     const orderingWrapper &o,
-                                                     const inclusiveVec &iv,
-                                                     BOOLEAN forward)
+   INT32 keyStringBuilder<Allocator>::buildPredicate(
+       const bson::BSONObj &key,
+       const orderingWrapper &o,
+       const inclusiveVec &iv,
+       BOOLEAN forward,
+       const globalIndexID *indexid)
    {
       INT32 rc = SDB_OK;
       bson::BSONObjIterator it(key);
@@ -2343,6 +2381,15 @@ namespace vessel
       {
          rc = SDB_INVALIDARG;
          goto error;
+      }
+      if (indexid)
+      {
+         rc = appendIndexId(*indexid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append index id, rc:%d", rc);
+            goto error;
+         }
       }
       _verifyStatus();
       while (it.more())
@@ -2357,15 +2404,30 @@ namespace vessel
          }
 
          elemCount += 1;
-         if (iv.isInclusive(elemCount - 1) && !forward)
+         if (forward)
          {
-            rc = _append(DiscriminatorValue::GREATER, FALSE);
-            break;
+            if(iv.isExclusive(elemCount - 1))
+            {
+               rc = _append(DiscriminatorValue::GREATER, FALSE);
+               break;
+            }
+            else
+            {
+               continue;
+            }
          }
-         else if (iv.isExclusive(elemCount - 1) && forward)
+         else
          {
-            rc = _append(DiscriminatorValue::GREATER, FALSE);
-            break;
+            if(iv.isExclusive(elemCount - 1))
+            {
+               rc = _append(DiscriminatorValue::LESS, FALSE);
+               break;
+            }
+            else
+            {
+               rc = _append(DiscriminatorValue::GREATER, FALSE);
+               break;
+            }
          }
       }
       if (SDB_OK != rc)
@@ -2380,6 +2442,12 @@ namespace vessel
          goto error;
       }
       _sizeOfElements = _bufSize - _sizeAheadElements;
+      rc = done();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to be done , rc:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -2428,6 +2496,13 @@ namespace vessel
             PD_LOG(PDERROR, "failed to append lsn, rc:%d", rc);
             goto error;
          }
+      }
+
+      rc = done();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to be done , rc:%d", rc);
+         goto error;
       }
 
    done:
