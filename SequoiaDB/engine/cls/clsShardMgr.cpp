@@ -160,6 +160,7 @@ namespace engine
       _pGTSAgent = NULL ;
 
       _catVerion = 0 ;
+      _active = FALSE ;
       _nodeID.value = 0 ;
       _upCatHandle = NET_INVALID_HANDLE ;
       _remoteEndpointHandle = NET_INVALID_HANDLE ;
@@ -295,11 +296,13 @@ namespace engine
 
    INT32 _clsShardMgr::active ()
    {
+      _active = TRUE ;
       return SDB_OK ;
    }
 
    INT32 _clsShardMgr::deactive ()
    {
+      _active = FALSE ;
       return SDB_OK ;
    }
 
@@ -1544,9 +1547,12 @@ namespace engine
             setCatlogInfo( nodeItem._id,
                            nodeItem._host,
                            nodeItem._service[MSG_ROUTE_CAT_SERVICE] ) ;
-            optCB->setCatAddr( nodeItem._host,
-                               nodeItem._service[
-                               MSG_ROUTE_CAT_SERVICE].c_str() ) ;
+            if ( _active )
+            {
+               optCB->setCatAddr( nodeItem._host,
+                                  nodeItem._service[
+                                  MSG_ROUTE_CAT_SERVICE].c_str() ) ;
+            }
             ++it ;
          }
 
@@ -1593,15 +1599,17 @@ namespace engine
             // total refresh must be done by restarting database
             ++it ;
          }
-         // convert new optcb to string
-         optCB->toString( newCfg ) ;
-         // if old and new are different, let's flush
-         if ( oldCfg != newCfg )
+         if ( _active )
          {
-            // refresh to config file
-            optCB->reflush2File() ;
+            // convert new optcb to string
+            optCB->toString( newCfg ) ;
+            // if old and new are different, let's flush
+            if ( oldCfg != newCfg )
+            {
+               // refresh to config file
+               optCB->reflush2File() ;
+            }
          }
-
          _shardLatch.release () ;
       }
 

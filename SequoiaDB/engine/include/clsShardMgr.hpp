@@ -292,6 +292,7 @@ namespace engine
          ossSpinSLatch                 _shardLatch ;
 
          MsgRouteID                    _nodeID ;
+         BOOLEAN                       _active ;
 
          // Currently remote endpoint refers to the search engine adapter.
          // It works as a client for indexing and server for searching.
