@@ -285,6 +285,9 @@ public class SDBSinkClient implements SDBClient {
             for (String key : pks){
                 uniqueIndexes.put(key, 1);
             }
+            if(ShardingKey != null) {
+                uniqueIndexes.putAllUnique((BSONObject) JSON.parse(ShardingKey));
+            }
             cl.createIndex(PRIMARY_KEY, uniqueIndexes, true, false);
         }
         return cl;
