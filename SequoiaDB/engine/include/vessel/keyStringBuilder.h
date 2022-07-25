@@ -189,7 +189,10 @@ namespace vessel
          }
          SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
                     "size ahead key string must be equal or less than 255");
-         _sizeAheadElements += sizeof(val);
+         if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
+         {
+            _sizeAheadElements += sizeof(val);
+         }
       done:
          return rc;
       error:
@@ -228,7 +231,10 @@ namespace vessel
          }
          SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
                     "size ahead key string must be equal or less than 255");
-         _sizeAheadElements += sizeof(val);
+         if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
+         {
+            _sizeAheadElements += sizeof(val);
+         }
       done:
          return rc;
       error:
@@ -236,9 +242,9 @@ namespace vessel
          goto done;
       }
 
-      INT32 appendRid(const recordID &rid, BOOLEAN force=FALSE);
-      INT32 appendIndexId(const globalIndexID &indexId, BOOLEAN force=FALSE);
-      INT32 appendLSN(UINT64 lsn, BOOLEAN force=FALSE);
+      INT32 appendRid(const recordID &rid, BOOLEAN force = FALSE);
+      INT32 appendIndexId(const globalIndexID &indexId, BOOLEAN force = FALSE);
+      INT32 appendLSN(UINT64 lsn, BOOLEAN force = FALSE);
 
       INT32 buildPredicate(const ossPoolVector<const BSONElement *> &elements,
                            const orderingWrapper &o,
@@ -253,8 +259,8 @@ namespace vessel
       INT32 buildIndexEntryKey(const bson::BSONObj &key,
                                const orderingWrapper &o,
                                const recordID &rid,
-                               const globalIndexID *indexid=nullptr,
-                               const UINT64 *lsn=nullptr);
+                               const globalIndexID *indexid = nullptr,
+                               const UINT64 *lsn = nullptr);
 
    public:
       INT32 done();
@@ -348,10 +354,9 @@ namespace vessel
       typeBitsBuilder _typeBits;
       CHAR *_buf = nullptr;
       UINT32 _bufSize = 0;
-      UINT8 _sizeAheadElements = 0;
+      UINT32 _sizeAheadElements = 0;
       UINT32 _sizeOfElements = 0;
       UINT32 _capacity = 0;
-      INT8 _elemCount = 0;
       Allocator _allocator;
    };
 
@@ -370,7 +375,6 @@ namespace vessel
       _bufSize = 0;
       _capacity = 0;
       _sizeAheadElements = 0;
-      _elemCount = 0;
    }
 
    template <typename Allocator>
@@ -542,7 +546,12 @@ namespace vessel
          PD_LOG(PDERROR, "append bson elements failed, rc:%d", rc);
          goto error;
       }
-      _appendDiscriminator(d);
+      rc = _appendDiscriminator(d);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append discriminator, rc:%d", rc);
+         goto error;
+      }
       _sizeOfElements = _bufSize - _sizeAheadElements;
 
    done:
@@ -571,7 +580,6 @@ namespace vessel
          PD_LOG(PDERROR, "append bson element failed, rc:%d", rc);
          goto error;
       }
-      _elemCount++;
       _sizeOfElements = _bufSize - _sizeAheadElements;
    done:
       return rc;
@@ -1152,7 +1160,7 @@ namespace vessel
          goto error;
       }
 
-      memcpy(&encoding, &magnitude, sizeof(encoding));
+      ossMemcpy(&encoding, &magnitude, sizeof(encoding));
       encoding <<= 1;
       encoding |= static_cast<UINT8>(dcm);
       rc = _append(ossNativeToBigEndian(encoding),
@@ -1186,7 +1194,7 @@ namespace vessel
          goto error;
       }
       UINT64 encoding;
-      memcpy(&encoding, &value, sizeof(encoding));
+      ossMemcpy(&encoding, &value, sizeof(encoding));
       if (std::isfinite(value))
       {
          encoding <<= 1;
@@ -2161,7 +2169,8 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::appendRid(const recordID &rid, BOOLEAN force)
+   INT32 keyStringBuilder<Allocator>::appendRid(const recordID &rid,
+                                                BOOLEAN force)
    {
       INT32 rc = SDB_OK;
       UINT32 pid = INVALID_PAGE_ID;
@@ -2172,7 +2181,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      
+
       pid = rid.getPid();
       pos = rid.getPos();
       rc = appendUnsignedWithoutType(pid, FALSE);
@@ -2197,12 +2206,13 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::appendIndexId(const globalIndexID &indexId, BOOLEAN force)
+   INT32 keyStringBuilder<Allocator>::appendIndexId(
+       const globalIndexID &indexId, BOOLEAN force)
    {
       INT32 rc = SDB_OK;
       UINT32 val = 0;
 
-      if (!force && indexId.isValid())
+      if (!force && !indexId.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -2248,7 +2258,7 @@ namespace vessel
          goto error;
       }
 
-      rc = appendUnsignedWithoutType(lsn, FALSE);
+      rc = appendUnsignedWithoutType(lsn, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append lsn:%d", rc);
@@ -2262,13 +2272,62 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::buildPredicate(const ossPoolVector<const BSONElement *> &elements,
-                                                     const orderingWrapper &o,
-                                                     const inclusiveVec &iv,
-                                                     BOOLEAN forward)
+   INT32 keyStringBuilder<Allocator>::buildPredicate(
+       const ossPoolVector<const BSONElement *> &elements,
+       const orderingWrapper &o,
+       const inclusiveVec &iv,
+       BOOLEAN forward)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      if (elements.empty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      if (o.getNkeys() < elements.size())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      _verifyStatus();
+      for (UINT32 i = 0;i < elements.size(); i++)
+      {
+         BOOLEAN invert = o.toBsonOrdering().get(i) == -1;
+         rc = appendBSONElement(*elements[i], invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append bson elements , rc:%d", rc);
+            goto error;
+         }
+
+         if (iv.isInclusive(i) && !forward)
+         {
+            rc = _append(DiscriminatorValue::GREATER, FALSE);
+            break;
+         }
+         else if (iv.isExclusive(i) && forward)
+         {
+            rc = _append(DiscriminatorValue::GREATER, FALSE);
+            break;
+         }
+      }
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append discriminator, rc:%d", rc);
+         goto error;
+      }
+      rc = _append(DiscriminatorValue::END, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append End, rc:%d", rc);
+         goto error;
+      }
+      _sizeOfElements = _bufSize - _sizeAheadElements;
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 
    template <typename Allocator>
@@ -2277,19 +2336,105 @@ namespace vessel
                                                      const inclusiveVec &iv,
                                                      BOOLEAN forward)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      bson::BSONObjIterator it(key);
+      UINT32 elemCount = 0;
+      if (key.isEmpty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      _verifyStatus();
+      while (it.more())
+      {
+         auto elem = it.next();
+         BOOLEAN invert = o.toBsonOrdering().get(elemCount) == -1;
+         rc = appendBSONElement(elem, invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append bson elements, rc:%d", rc);
+            goto error;
+         }
+
+         elemCount += 1;
+         if (iv.isInclusive(elemCount - 1) && !forward)
+         {
+            rc = _append(DiscriminatorValue::GREATER, FALSE);
+            break;
+         }
+         else if (iv.isExclusive(elemCount - 1) && forward)
+         {
+            rc = _append(DiscriminatorValue::GREATER, FALSE);
+            break;
+         }
+      }
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append discriminator, rc:%d", rc);
+         goto error;
+      }
+      rc = _append(DiscriminatorValue::END, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append End, rc:%d", rc);
+         goto error;
+      }
+      _sizeOfElements = _bufSize - _sizeAheadElements;
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::buildIndexEntryKey(const bson::BSONObj &key,
-                                                         const orderingWrapper &o,
-                                                         const recordID &rid,
-                                                         const globalIndexID *indexid,
-                                                         const UINT64 *lsn)
+   INT32 keyStringBuilder<Allocator>::buildIndexEntryKey(
+       const bson::BSONObj &key,
+       const orderingWrapper &o,
+       const recordID &rid,
+       const globalIndexID *indexid,
+       const UINT64 *lsn)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      if (indexid)
+      {
+         rc = appendIndexId(*indexid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append index id, rc:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = appendAllElements(key, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append bson elements, rc:%d", rc);
+         goto error;
+      }
+
+      rc = appendRid(rid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append record id, rc:%d", rc);
+         goto error;
+      }
+
+      if (lsn)
+      {
+         rc = appendLSN(*lsn);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append lsn, rc:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 
 } // namespace vessel

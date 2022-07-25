@@ -85,7 +85,7 @@ namespace vessel
    static UINT32 GET_META_BLOCK_SIZE(const keyStringMetaByte &mb)
    {
       /// '2' means 1 byte version and 1 byte meta byte
-      return mb.getTotalSizeWidth() +
+      return mb.getTotalSizeWidth() + 
              sizeof(KEY_STRING_VERSION) +
              sizeof(UINT8);
    }
@@ -249,7 +249,6 @@ namespace vessel
          sizeBeforeKey = reader.getUINT8();
       }
 
-      
       if (!reader.slide(mb.getKeySizeWordWidth()))
       {
          goto done;
@@ -278,12 +277,12 @@ namespace vessel
          typeBitsSize = reader.getUINT8();
       }
 
-      if (OSS_UNLIKELY(s.getSize() < 
+      if (OSS_UNLIKELY(s.getSize() <
                        (sizeBeforeKey + keySize + typeBitsSize + blockSize)))
       {
          goto done;
       }
-      
+
       res = TRUE;
 
    done:
@@ -328,8 +327,7 @@ namespace vessel
 
       UINT32 keySize = getKeySize();
       UINT32 sizeBeforeKey = getSizeBeforeKey();
-      if (OSS_UNLIKELY(bytesAfterKey > 
-                       (_ref.getSize() - sizeBeforeKey)))
+      if (OSS_UNLIKELY(bytesAfterKey > (_ref.getSize() - sizeBeforeKey)))
       {
          return slice();
       }
@@ -362,8 +360,7 @@ namespace vessel
 
       UINT32 sizeBeforeKey = getSizeBeforeKey();
       UINT32 keySize = getKeySize();
-      if (OSS_UNLIKELY(0 == sizeBeforeKey ||
-                       0 == keySize))
+      if (OSS_UNLIKELY(0 == sizeBeforeKey || 0 == keySize))
       {
          return slice();
       }
@@ -381,26 +378,20 @@ namespace vessel
 
       UINT32 keySize = getKeySize();
       UINT32 typeBitsSize = getTypeBitsSize();
-      if (OSS_UNLIKELY(0 == keySize ||
-                       0 == typeBitsSize))
+      if (OSS_UNLIKELY(0 == keySize || 0 == typeBitsSize))
       {
          return slice();
       }
 
       UINT32 sizeBeforeKey = getSizeBeforeKey();
       UINT32 sizeAfterKey = getSizeAfterKey();
-      const CHAR *buf = _ref.getData() +
-                        sizeBeforeKey +
-                        keySize +
-                        sizeAfterKey;
+      const CHAR *buf = _ref.getData() + sizeBeforeKey + keySize + sizeAfterKey;
       return slice(typeBitsSize, buf);
    }
 
    UINT32 keyString::getComparableSize() const
    {
-      UINT32 res = getSizeBeforeKey() +
-                   getKeySize() +
-                   getSizeAfterKey();
+      UINT32 res = getSizeBeforeKey() + getKeySize() + getSizeAfterKey();
       return res;
    }
 
@@ -453,7 +444,7 @@ namespace vessel
       /// skip version
       ++reader;
       mb.init(reader.getUINT8());
-      
+
       if (mb.hasDataBeforeKey())
       {
          if (OSS_UNLIKELY(!reader.slide(mb.getBeforeKeySizeWordWidth())))
@@ -464,7 +455,7 @@ namespace vessel
       }
 
    done:
-      return res;   
+      return res;
    }
 
    UINT32 keyString::getSizeAfterKey() const
@@ -576,7 +567,8 @@ namespace vessel
       return ossMemcmp(_ref.getData(), s.getDataSlice().getData(), cmpSize);
    }
 
-   template <typename T> T keyString::_read(UINT32 &offset, BOOLEAN inverted) const
+   template <typename T>
+   T keyString::_read(UINT32 &offset, BOOLEAN inverted) const
    {
       UINT32 size = sizeof(T);
       T t;
@@ -586,7 +578,7 @@ namespace vessel
       }
       else
       {
-         memcpy(&t, getDataSlice().data() + offset, size);
+         ossMemcpy(&t, getDataSlice().data() + offset, size);
       }
       offset += size;
       return t;
@@ -603,7 +595,7 @@ namespace vessel
       }
       else
       {
-         memcpy(&t, getDataSlice().data() + offset, size);
+         ossMemcpy(&t, getDataSlice().data() + offset, size);
       }
       return t;
    }
@@ -622,6 +614,12 @@ namespace vessel
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
          EncodedType type =
              static_cast<EncodedType>(_read<UINT8>(offset, inverted));
+         DiscriminatorValue dv = static_cast<DiscriminatorValue>(type);
+         if (DiscriminatorValue::END == dv || DiscriminatorValue::LESS == dv ||
+             DiscriminatorValue::GREATER == dv)
+         {
+            break;
+         }
          _toBsonValue(type,
                       offset,
                       inverted,
@@ -629,9 +627,22 @@ namespace vessel
                       typeReader,
                       withFieldName ? ele.fieldName() : nullptr);
       }
-      SDB_ASSERT(1 ==  getSizeBeforeKey() + keySize - offset ||
+      SDB_ASSERT(1 == getSizeBeforeKey() + keySize - offset ||
                      2 == getSizeBeforeKey() + keySize - offset,
                  "Unexpected size");
+      if (2 == getSizeBeforeKey() + keySize - offset)
+      {
+         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
+         SDB_ASSERT(DiscriminatorValue::LESS == dv ||
+                        DiscriminatorValue::GREATER == dv,
+                    "Unexpected discriminator byte");
+      }
+      if (1 == getSizeBeforeKey() + keySize - offset)
+      {
+         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
+         SDB_ASSERT(DiscriminatorValue::END == dv,
+                    "Unexpected discriminator byte");
+      }
       return builder.obj();
    }
 
@@ -650,6 +661,12 @@ namespace vessel
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
          EncodedType type =
              static_cast<EncodedType>(_read<UINT8>(offset, inverted));
+         DiscriminatorValue dv = static_cast<DiscriminatorValue>(type);
+         if (DiscriminatorValue::END == dv || DiscriminatorValue::LESS == dv ||
+             DiscriminatorValue::GREATER == dv)
+         {
+            break;
+         }
          _toBsonValue(type,
                       offset,
                       inverted,
@@ -660,6 +677,19 @@ namespace vessel
       SDB_ASSERT(1 == getSizeBeforeKey() + keySize - offset ||
                      2 == getSizeBeforeKey() + keySize - offset,
                  "Unexpected size");
+      if (2 == getSizeBeforeKey() + keySize - offset)
+      {
+         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
+         SDB_ASSERT(DiscriminatorValue::LESS == dv ||
+                        DiscriminatorValue::GREATER == dv,
+                    "Unexpected discriminator byte");
+      }
+      if (1 == getSizeBeforeKey() + keySize - offset)
+      {
+         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
+         SDB_ASSERT(DiscriminatorValue::END == dv,
+                    "Unexpected discriminator byte");
+      }
       b.doneFast();
       return b.done();
    }
@@ -1203,14 +1233,13 @@ namespace vessel
       offset += len;
    }
 
-   bson::StringData keyString::_readCString(UINT32 &offset, BOOLEAN inverted) const
+   bson::StringData keyString::_readCString(UINT32 &offset,
+                                            BOOLEAN inverted) const
    {
       const CHAR *start =
           static_cast<const CHAR *>(getDataSlice().data() + offset);
-      const CHAR *end = static_cast<const CHAR *>(
-          memchr(start,
-                 '\0',
-                 getSizeBeforeKey() + getKeySlice().getSize() - offset));
+      const CHAR *end = static_cast<const CHAR *>(memchr(
+          start, '\0', getSizeBeforeKey() + getKeySlice().getSize() - offset));
       UINT32 bytesNum = end - start;
       offset += (bytesNum + 1);
       std::string s(start, bytesNum);
@@ -1224,7 +1253,7 @@ namespace vessel
       return s;
    }
 
-   recordID keyString::getRid()const
+   recordID keyString::getRid() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       recordID rid;
