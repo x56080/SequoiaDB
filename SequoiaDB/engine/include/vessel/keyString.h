@@ -118,6 +118,7 @@ namespace vessel
       slice getSliceFromKeyTo(UINT32 bytesAfterKey) const;
       slice getSliceBeforeKey() const;
       slice getSliceAfterKey() const;
+      slice getComparableSlice() const;
       slice getTypeBits() const;
       bson::BSONObj toBSON(const bson::BSONObj &pattern,
                            BOOLEAN withFieldName = FALSE) const;
@@ -129,6 +130,7 @@ namespace vessel
       UINT32 getTotalSize()const {return _ref.getSize();}
       UINT32 getComparableSize() const;
       UINT32 getKeySize() const;
+      BOOLEAN hasKeyPart()const;
       UINT32 getSizeBeforeKey() const;
       UINT32 getSizeAfterKey() const;
       UINT32 getTypeBitsSize() const;

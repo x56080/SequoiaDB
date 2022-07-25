@@ -65,8 +65,6 @@ namespace vessel
          delete _itr;
          _itr = nullptr;
       }
-      _lowBound.reset();
-      _upBound.reset();
       _lowKey = rocksdb::Slice();
       _upKey = rocksdb::Slice();
       _ks.reset();
@@ -619,10 +617,29 @@ namespace vessel
    void lsmIndexIterator::_initKeyBoundWhenOpen(const globalIndexID &id)
    {
       SDB_ASSERT(id.isValid(), "can not be invalid");
-      _lowBound.init(id);
-      _upBound.initAsUpKey(id);
-      _lowKey = rocksdb::Slice(_lowBound.getData(), _lowBound.getSize());
-      _upKey = rocksdb::Slice(_upBound.getData(), _upBound.getSize());
+      globalIndexID upperId(id.getLogicalCSID(),
+                            id.getLogicalCLID(),
+                            id.getLogicalIndexID() + 1);
+      STACK_KEY_STRING_BUILDER builder;
+      INT32 rc = builder.appendIndexId(id, FALSE);
+      SDB_ASSERT(SDB_OK == rc, "must be ok");
+      rc = builder.done();
+      SDB_ASSERT(SDB_OK == rc, "must be ok");
+      slice lowBoundSlice = builder.getShallowKeyString().getDataSlice();
+      SDB_ASSERT(sizeof(_lowBound) >= lowBoundSlice.getSize(), "must be same");
+      ossMemcpy(_lowBound, lowBoundSlice.data(), lowBoundSlice.getSize());
+
+      builder.reset();
+      rc = builder.appendIndexId(upperId);
+      SDB_ASSERT(SDB_OK == rc, "must be ok");
+      rc = builder.done();
+      SDB_ASSERT(SDB_OK == rc, "must be ok");
+      slice upBoundSlice = builder.getShallowKeyString().getDataSlice();
+      SDB_ASSERT(sizeof(_upBound) >= upBoundSlice.getSize(), "must be same");
+      ossMemcpy(_upBound, upBoundSlice.data(), upBoundSlice.getSize());
+
+      _lowKey = rocksdb::Slice(_lowBound, lowBoundSlice.getSize());
+      _upKey = rocksdb::Slice(_upBound, upBoundSlice.getSize());
       return;
    }
 

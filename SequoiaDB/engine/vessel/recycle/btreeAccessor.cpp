@@ -58,39 +58,41 @@ namespace vessel
    }
 
    INT32 btreeAccessor::init(requestContext *context,
-                             indexObject *obj,
-                             const DPS_TRANS_ID &transID)
+                             indexSpace *is,
+                             indexObject *obj)
    {
       INT32 rc = SDB_OK;
-      logicalPageSpace *lps = NULL;
+      indexSpaceAccessCtx ctx;
 
       fini();
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isClPropertiesSet() ||
-                       NULL == obj ||
-                       !obj->isValid() ||
-                       obj->getProperties().getType() != INDEX_TYPE_BTREE))
+                       nullptr == is ||
+                       !is->isOpen() ||
+                       nullptr == obj ||
+                       !obj->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _context = context;
+      _is = is;
       _obj = obj;
 
-      rc = context->getEnv()->dms.getLogicalPageSpace(context->getSpaceID(),
-                                                      SPACE_TYPE_IDX,
-                                                      &lps);
+      rc = _is->openAccessCtx(context, ctx);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get index space[%d]:%d", context->getSpaceID(), rc);
+         PD_LOG(PDERROR, "failed to open accessing context:%d", rc);
          goto error;
       }
 
-      _is = static_cast<indexSpace *>(lps);
-      _bac.init(obj, _context, _is);
-      _transID = transID;
+      rc = _bac.init(FALSE, _obj, std::move(ctx));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init btree context:%d", rc);
+         goto error;
+      }
       
    done:
       return rc;
@@ -101,11 +103,9 @@ namespace vessel
 
    void btreeAccessor::fini()
    {
-      _context = NULL;
-      _is = NULL;
-      _obj = NULL;
+      _is = nullptr;
+      _obj = nullptr;
       _bac.fini();
-      _transID = DPS_TRANS_ID();
       return;
    }
 
@@ -113,8 +113,6 @@ namespace vessel
                                const recordID &rid)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN checkpointBlocked = FALSE;
-      BOOLEAN obstructed = FALSE;
 
       if (OSS_UNLIKELY(!isValid()))
       {
@@ -134,13 +132,10 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->blockCheckpoint(_context);
-      if (SDB_OK != rc)
+      if (!_obj->hasBtreeEntryAddr())
       {
-         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
-         goto error;
+
       }
-      checkpointBlocked = TRUE;
 
       rc = createRootIfNotExists();
       if (SDB_OK != rc)
@@ -1455,6 +1450,19 @@ namespace vessel
       {
          _context->unblockCheckpoint();
       }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::_initBtreeEntryAndRoot()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_obj->hasBtreeEntryAddr(), "do not reinit");
+
+      
+   done:
       return rc;
    error:
       goto done;

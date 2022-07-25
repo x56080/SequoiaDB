@@ -369,6 +369,11 @@ namespace vessel
       return slice(getSizeAfterKey(), buf);
    }
 
+   slice keyString::getComparableSlice() const
+   {
+      return isValid() ? _ref.getSlice(0, getComparableSize()) : slice();
+   }
+
    slice keyString::getTypeBits() const
    {
       if (OSS_UNLIKELY(!isValid()))
@@ -427,6 +432,11 @@ namespace vessel
 
    done:
       return res;
+   }
+
+   BOOLEAN keyString::hasKeyPart()const
+   {
+      return 0 < getKeySize();
    }
 
    UINT32 keyString::getSizeBeforeKey() const

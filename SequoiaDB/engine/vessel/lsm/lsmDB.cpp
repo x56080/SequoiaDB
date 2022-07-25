@@ -45,6 +45,8 @@ namespace engine
 {
 namespace vessel
 {
+   extern const rocksdb::Comparator* getHitComparator();
+
    lsmDB::~lsmDB()
    {
       close();
@@ -527,7 +529,7 @@ namespace vessel
       if (LSM_CF_HYBRID_INDEX == id)
       {
          cfName = LSM_HYBRID_INDEX_CF_NAME;
-         cfOpt.comparator = lsmIdxKeyComparator();
+         cfOpt.comparator = getHitComparator();
          cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
          ///TODO: prefix_extractor
       }

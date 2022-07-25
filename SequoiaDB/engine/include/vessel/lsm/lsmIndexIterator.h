@@ -131,8 +131,9 @@ namespace vessel
          const indexObject *_obj = nullptr;
          globalIndexID _globalId;
          rocksdb::Iterator *_itr = nullptr;
-         lsmIndexIdKey _lowBound;
-         lsmIndexIdKey _upBound;
+         static constexpr UINT32 _BOUND_BUF_SIZE = 16;
+         CHAR _lowBound[_BOUND_BUF_SIZE] = {};
+         CHAR _upBound[_BOUND_BUF_SIZE] = {};
          rocksdb::Slice _lowKey;
          rocksdb::Slice _upKey;
          keyString _ks;

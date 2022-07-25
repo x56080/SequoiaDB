@@ -36,8 +36,6 @@
 #ifndef VESSEL_BTREE_ACCESSOR_H_
 #define VESSEL_BTREE_ACCESSOR_H_
 
-#include "vessel/btreeNode.h"
-#include "vessel/logicalPageBuffer.h"
 #include "vessel/btreeAccessContext.h"
 
 namespace engine
@@ -59,12 +57,12 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _context;
+            return nullptr != _is;
          }
 
          INT32 init(requestContext *context,
-                    indexObject *obj,
-                    const DPS_TRANS_ID &transID);
+                    indexSpace *is,
+                    indexObject *obj);
          void fini();
 
          INT32 insert(const ixmKey &key,
@@ -82,7 +80,7 @@ namespace vessel
                                      BOOLEAN &obstructed);
 
          INT32 insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey);
-         INT32 createRootIfNotExists();
+         INT32 _initBtreeEntryAndRoot();
 
          INT32 insertWhenPathEndIsLeaf(const ixmKey &key,
                                        const recordID &rid,
@@ -132,11 +130,9 @@ namespace vessel
          INT32 atomicReleaseNonLeafPathEnd();
 
       private:
-         requestContext *_context = NULL;
-         indexSpace *_is = NULL;
-         indexObject *_obj = NULL;
+         indexSpace *_is = nullptr;
+         indexObject *_obj = nullptr;
          btreeAccessContext _bac;
-         DPS_TRANS_ID _transID;
    };//class btreeAccessor
 } // namespace vessel
 
