@@ -103,10 +103,10 @@ namespace vessel
          /// return global min dirty lsn if id not specified.
          DPS_LSN_OFFSET getMinDirtyLsn(LSM_CF_ID id = LSM_CF_INVALID) const;
 
-         void setJournal(IDataJournal *journal);
+         // void setJournal(IDataJournal *journal);
 
       public:
-         void onFlush(DPS_LSN_OFFSET maxLsn);
+      //    void onFlush(DPS_LSN_OFFSET maxLsn);
 
       private:
          rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID id,
@@ -118,7 +118,7 @@ namespace vessel
 
       private:
          rocksdb::DB *_db = nullptr;
-         IDataJournal *_journal = nullptr;
+         // IDataJournal *_journal = nullptr;
          std::vector<lsmColumnFamilyContext *> _contexts;
    }; // class lsmDB
 

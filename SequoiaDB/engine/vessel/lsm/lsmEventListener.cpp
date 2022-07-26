@@ -71,7 +71,7 @@ namespace vessel
                 *reinterpret_cast<const DPS_LSN_OFFSET *>(it->second.data());
             if (DPS_INVALID_LSN_OFFSET != maxLsn)
             {
-               _db->onFlush(maxLsn);
+               // _db->onFlush(maxLsn);
             }
          }
       }
