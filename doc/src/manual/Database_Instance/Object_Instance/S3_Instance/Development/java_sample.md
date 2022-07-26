@@ -1,5 +1,5 @@
 
-本文档主要介绍 AWS SDK for Java 的程序样例。用户可以下载 AWS 的开发工具包，利用工具包中的接口更快捷地发送 S3 请求。建议用户下载 v1.11.x 版本的 Java AWS 开发工具包：[https://aws.amazon.com/cn/sdk-for-java](https://aws.amazon.com/cn/sdk-for-java)。
+本文档主要介绍 AWS SDK for Java 的程序样例。用户可以下载 AWS 的开发工具包，利用工具包中的接口更快捷地发送 S3 请求。建议用户下载 v1.11.x 版本的 [Java AWS 开发工具包][download_java]。
 
 示例
 ----
@@ -153,6 +153,6 @@
 
 
 [^_^]:
-    相关连接
-
+     本文使用的所有引用及链接
+[download_java]:https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/1.11.343/aws-java-sdk-s3-1.11.343.jar
 [engine_download]:manual/Database_Instance/Object_Instance/S3_Instance/Development/engine_download.md
