@@ -46,20 +46,14 @@ namespace vessel
    void lsmIndexIdKey::init(const globalIndexID &id)
    {
       keyStringCoder coder;
-      coder.encodeUnsignedNative<UINT32>(id.getLogicalCSID(), FALSE, _data);
-      coder.encodeUnsignedNative<UINT32>(id.getLogicalCLID(), FALSE, _data + sizeof(UINT32));
-      coder.encodeUnsignedNative<UINT32>(id.getLogicalIndexID(),
-                                         FALSE, _data + (sizeof(UINT32) << 1));
+      coder.encodeGlobalIndexId(id, FALSE, _data);
    }
 
    void lsmIndexIdKey::initAsUpKey(const globalIndexID &id)
    {
       SDB_ASSERT(id.getLogicalIndexID() != OSS_UINT32_MAX, "out of bound");
       keyStringCoder coder;
-      coder.encodeUnsignedNative<UINT32>(id.getLogicalCSID(), FALSE, _data);
-      coder.encodeUnsignedNative<UINT32>(id.getLogicalCLID(), FALSE, _data + sizeof(UINT32));
-      coder.encodeUnsignedNative<UINT32>(id.getLogicalIndexID() + 1,
-                                         FALSE, _data + (sizeof(UINT32) << 1));
+      coder.encodeGlobalIndexId(id, TRUE, _data);
    }
 
    void lsmIndexIdKey::reset()

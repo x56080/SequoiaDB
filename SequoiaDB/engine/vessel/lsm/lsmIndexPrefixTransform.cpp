@@ -33,9 +33,9 @@
 
 *******************************************************************************/
 
-#include "rocksdb/slice_transform.h"
 #include "vessel/keyString.h"
 #include "vessel/sliceTransfer.h"
+#include "rocksdb/slice_transform.h"
 
 namespace engine
 {

@@ -50,6 +50,17 @@ namespace vessel
       KEY_STRING_VERSION_1 = 0x01,
    };
 
+#pragma pack(1)
+   struct minimalKeyStringMetaBlock
+   {
+      UINT8 beforeKeySize = 0;
+      UINT8 keySize = 0;
+      UINT8 metaByte = 0;
+      UINT8 version = 0;
+   };
+   constexpr UINT32 KEY_STRING_MIN_META_BLOCK_SIZE = sizeof(minimalKeyStringMetaBlock);
+#pragma pack()
+
    enum class EncodedType : UINT8
    {
       minKey = 10,
@@ -117,7 +128,7 @@ namespace vessel
       POSITIVE_ZERO = 0b0,
       NEGATIVE_ZERO = 0b1
    };
-   constexpr UINT32 KEY_STRING_MIN_META_BLOCK_SIZE = 4;
+ 
 
    enum class Discriminator : UINT8
    {

@@ -247,7 +247,7 @@ namespace vessel
 
       lsmWriteBatch batch;
       lsmIndexIdKey indexKey;
-      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
       {
@@ -303,7 +303,7 @@ namespace vessel
       lsmIndexIdKey indexKey;
       BOOLEAN notFound = FALSE;
 
-      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
       {
@@ -369,7 +369,7 @@ namespace vessel
       std::string res;
       lsmIndexManifestKey mKey;
       BOOLEAN notFound = FALSE;
-      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
       {
@@ -430,7 +430,7 @@ namespace vessel
       rocksdb::Slice lowKeySlice;
       rocksdb::Slice upKeySlice;
 
-      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
       {
@@ -490,7 +490,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       lsmIndexIdKey indexKey;
-      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
       {
@@ -531,7 +531,7 @@ namespace vessel
       lsmIndexManifestKey upKey;
       rocksdb::Slice lowKeySlice;
       rocksdb::Slice upKeySlice;
-      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
       {

@@ -313,10 +313,28 @@ namespace vessel
          lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
          globalLogicalClId gclid = context->getClProperties()->getGlobalLogicalId();
          globalIndexID indexId(gclid, obj->getLogicalID());
-         lsmIndexIdKey low, up;
-         low.init(indexId),
-         up.initAsUpKey(indexId);
-         rc = cf.truncate(low.getKeySlice(), up.getKeySlice());
+         CHAR lowBound[16];
+         UINT32 lowBoundSize = 0;
+         CHAR upBound[16];
+         UINT32 upBoundSize = 0;
+
+         rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(indexId, FALSE, sizeof(lowBound), lowBound, lowBoundSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build low bound key:%d", rc);
+            goto error;
+         }
+
+         rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(indexId, TRUE, sizeof(upBound), upBound, upBoundSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build low bound key:%d", rc);
+            goto error;
+         }
+
+
+         rc = cf.truncate(rocksdb::Slice(lowBound, lowBoundSize),
+                          rocksdb::Slice(upBound, upBoundSize));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to truncate column family:%d", rc);

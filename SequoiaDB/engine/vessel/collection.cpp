@@ -2973,6 +2973,13 @@ namespace vessel
          goto error;
       }
 
+      if (INDEX_TYPE_HYBRID_TREE != properties.getType())
+      {
+         PD_LOG(PDERROR, "invalid index type:%d", properties.getType());
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       rc = indexMap.createObjWithBuildingCtx(properties, &obj);
       if (SDB_OK != rc)
       {

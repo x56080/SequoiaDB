@@ -65,6 +65,15 @@ namespace vessel
       return decodeToUnsignedNative<UINT64>(buf, TRUE);
    }
 
+   void keyStringCoder::encodeGlobalIndexId(const globalIndexID &id, BOOLEAN asUpperKey, void *buf)
+   {
+      CHAR *data = (CHAR *)buf;
+      encodeUnsignedNative<UINT32>(id.getLogicalCSID(), FALSE, data);
+      encodeUnsignedNative<UINT32>(id.getLogicalCLID(), FALSE, data + sizeof(UINT32));
+      encodeUnsignedNative<UINT32>(asUpperKey ? id.getLogicalIndexID() + 1 : id.getLogicalIndexID(),
+                                   FALSE, data + (sizeof(UINT32) << 1));
+   }
+
    globalIndexID keyStringCoder::decodeToIndexId(const void *buf)const
    {
       UINT32 cs = decodeToUnsignedNative<UINT32>(buf, FALSE);

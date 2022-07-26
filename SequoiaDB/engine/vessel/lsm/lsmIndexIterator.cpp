@@ -141,7 +141,7 @@ namespace vessel
 
       rc = builder.buildPredicate(obj,
                                  _obj->getOrderingWrapper(),
-                                 iv, _o.forward);
+                                 iv, _o.forward, &_globalId);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build predicate:%d", rc);
@@ -187,7 +187,7 @@ namespace vessel
 
       rc = builder.buildPredicate(eles,
                                   _obj->getProperties().getPattern().getOrdering(),
-                                  iv, _o.forward);
+                                  iv, _o.forward, &_globalId);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build predicate:%d", rc);
@@ -235,7 +235,7 @@ namespace vessel
 
       rc = builder.buildPredicate(key,
                                   _obj->getProperties().getPattern().getOrdering(),
-                                  iv, _o.forward);
+                                  iv, _o.forward, &_globalId);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build predicate:%d", rc);
@@ -337,7 +337,7 @@ namespace vessel
 
       rc = builder.buildPredicate(key,
                                   _obj->getProperties().getPattern().getOrdering(),
-                                  iv, _o.forward);
+                                  iv, _o.forward, &_globalId);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build predicate:%d", rc);
@@ -389,7 +389,7 @@ namespace vessel
 
       rc = builder.buildPredicate(matchEles,
                                   _obj->getProperties().getPattern().getOrdering(),
-                                  iv, _o.forward);
+                                  iv, _o.forward, &_globalId);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build predicate:%d", rc);
@@ -616,30 +616,18 @@ namespace vessel
 
    void lsmIndexIterator::_initKeyBoundWhenOpen(const globalIndexID &id)
    {
-      SDB_ASSERT(id.isValid(), "can not be invalid");
-      globalIndexID upperId(id.getLogicalCSID(),
-                            id.getLogicalCLID(),
-                            id.getLogicalIndexID() + 1);
-      STACK_KEY_STRING_BUILDER builder;
-      INT32 rc = builder.appendIndexId(id, FALSE);
+      SDB_ASSERT(id.isValid(), "can not be invalid");      
+      UINT32 size = 0;
+      INT32 rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(id, FALSE, sizeof(_lowBound), _lowBound, size);
       SDB_ASSERT(SDB_OK == rc, "must be ok");
-      rc = builder.done();
-      SDB_ASSERT(SDB_OK == rc, "must be ok");
-      slice lowBoundSlice = builder.getShallowKeyString().getDataSlice();
-      SDB_ASSERT(sizeof(_lowBound) >= lowBoundSlice.getSize(), "must be same");
-      ossMemcpy(_lowBound, lowBoundSlice.data(), lowBoundSlice.getSize());
+      SDB_ASSERT(sizeof(_lowBound) == size, "must be same");
 
-      builder.reset();
-      rc = builder.appendIndexId(upperId);
+      rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(id, TRUE, sizeof(_upBound), _upBound, size);
       SDB_ASSERT(SDB_OK == rc, "must be ok");
-      rc = builder.done();
-      SDB_ASSERT(SDB_OK == rc, "must be ok");
-      slice upBoundSlice = builder.getShallowKeyString().getDataSlice();
-      SDB_ASSERT(sizeof(_upBound) >= upBoundSlice.getSize(), "must be same");
-      ossMemcpy(_upBound, upBoundSlice.data(), upBoundSlice.getSize());
+      SDB_ASSERT(sizeof(_upBound) == size, "must be same");
 
-      _lowKey = rocksdb::Slice(_lowBound, lowBoundSlice.getSize());
-      _upKey = rocksdb::Slice(_upBound, upBoundSlice.getSize());
+      _lowKey = rocksdb::Slice(_lowBound, size);
+      _upKey = rocksdb::Slice(_upBound, size);
       return;
    }
 
@@ -722,16 +710,23 @@ namespace vessel
          _itr = nullptr;
       }
 
-      _o = o;
-      if (_o.pointGetOnly && !allInclusive)
-      {
-         _o.pointGetOnly = FALSE;
-      }
+      _o.forward = o.forward;
+      _o.pointGetOnly = o.pointGetOnly && o.forward && allInclusive;
 
       options.iterate_lower_bound = &_lowKey;
       options.iterate_upper_bound = &_upKey;
-      options.auto_prefix_mode = TRUE;
-      options.prefix_same_as_start = _o.pointGetOnly;
+
+      if (_o.pointGetOnly)
+      {
+         options.auto_prefix_mode = TRUE;
+         options.prefix_same_as_start = TRUE;
+      }
+      else
+      {
+         options.auto_prefix_mode = FALSE;
+         options.total_order_seek = TRUE;
+         options.prefix_same_as_start = FALSE;
+      }
 
       _itr = _cf.newIterator(options);
       if (OSS_UNLIKELY(nullptr == _itr))

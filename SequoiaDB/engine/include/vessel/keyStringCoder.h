@@ -98,6 +98,8 @@ namespace vessel
       void encodeLSN(UINT64 lsn, void *buf);
       UINT64 decodeToLSN(const void *buf)const;
 
+      static constexpr UINT32 INDEX_ID_ENCODEING_SIZE = 12;
+      void encodeGlobalIndexId(const globalIndexID &id, BOOLEAN asUpperKey, void *buf);
       globalIndexID decodeToIndexId(const void *buf)const;
    };//struct keyStringCoder
 } // namespace vessel

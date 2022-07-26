@@ -526,7 +526,7 @@ namespace vessel
       {
          cfName = LSM_DEFAULT_CF_NAME;
       }
-      if (LSM_CF_HYBRID_INDEX == id)
+      else if (LSM_CF_HYBRID_INDEX == id)
       {
          cfName = LSM_HYBRID_INDEX_CF_NAME;
          cfOpt.comparator = getHitComparator();

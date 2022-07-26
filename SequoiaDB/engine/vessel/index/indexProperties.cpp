@@ -43,6 +43,8 @@ namespace engine
 namespace vessel
 {
    constexpr CHAR * _LOWER_HYBRID_TREE_VALUE = "hybridtree";
+   constexpr CHAR * _LOWER_BTREE_VALUE = "btree";
+   constexpr CHAR * _LOWER_LSM_TREE_VALUE = "lsm";
 
    INT32 indexProperties::init(const bson::BSONObj &obj)
    {
@@ -82,14 +84,25 @@ namespace vessel
          {
             ossPoolString typeStr(e.valuestr());
             std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), ::tolower);
-            if (0 != typeStr.compare(_LOWER_HYBRID_TREE_VALUE))
+
+            if (0 == typeStr.compare(_LOWER_HYBRID_TREE_VALUE))
+            {
+               _type = INDEX_TYPE_HYBRID_TREE;
+            }
+            else if (0 == typeStr.compare(_LOWER_BTREE_VALUE))
+            {
+               _type = INDEX_TYPE_BTREE;
+            }
+            else if (0 == typeStr.compare(_LOWER_LSM_TREE_VALUE))
+            {
+               _type = INDEX_TYPE_LSM;
+            }
+            else
             {
                PD_LOG(PDERROR, "invalid index type:%s", e.valuestr());
                rc = SDB_INVALIDARG;
                goto error;
             }
-
-            _type = INDEX_TYPE_HYBRID_TREE;
          }
       }
 

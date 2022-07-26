@@ -209,12 +209,7 @@ void remove_index1(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, base_remove_1_1)
 {
-   remove_index1(INDEX_TYPE_BTREE);
-}
-
-TEST_F(index_ddl_test, base_remove_1_2)
-{
-   remove_index1(INDEX_TYPE_LSM);
+   remove_index1(INDEX_TYPE_HYBRID_TREE);
 }
 
 
@@ -312,12 +307,7 @@ void remove_index2(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, base_remove_2_1)
 {
-   remove_index2(INDEX_TYPE_BTREE);
-}
-
-TEST_F(index_ddl_test, base_remove_2_2)
-{
-   remove_index2(INDEX_TYPE_LSM);
+   remove_index2(INDEX_TYPE_HYBRID_TREE);
 }
 
 /*
@@ -445,12 +435,7 @@ void remove_index_test3(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, base_remove_index_test3_1)
 {
-   remove_index_test3(INDEX_TYPE_BTREE);
-}
-
-TEST_F(index_ddl_test, base_remove_index_test3_2)
-{
-   remove_index_test3(INDEX_TYPE_LSM);
+   remove_index_test3(INDEX_TYPE_HYBRID_TREE);
 }
 
 /*
@@ -582,13 +567,9 @@ void create_index_test1(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, base_create_index_test1_1)
 {
-   create_index_test1(INDEX_TYPE_BTREE);
+   create_index_test1(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(index_ddl_test, base_create_index_test1_2)
-{
-   create_index_test1(INDEX_TYPE_LSM);
-}
 
 
 /*
@@ -692,13 +673,9 @@ void create_index_test2(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, base_create_index_test2_1)
 {
-   create_index_test2(INDEX_TYPE_BTREE);
+   create_index_test2(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(index_ddl_test, base_create_index_test2_2)
-{
-   create_index_test2(INDEX_TYPE_LSM);
-}
 
 /*
 Name: advanced_create_index_test1
@@ -852,13 +829,9 @@ void advanced_create_test1(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, advanced_create_index_test1_1)
 {
-   advanced_create_test1(INDEX_TYPE_BTREE);
+   advanced_create_test1(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(index_ddl_test, advanced_create_index_test1_2)
-{
-   advanced_create_test1(INDEX_TYPE_LSM);
-}
 
 /*
 Name: advanced_create_index_test2
@@ -1016,12 +989,7 @@ void advanced_create_test2(INDEX_TYPE type)
 
 TEST_F(index_ddl_test, advanced_create_index_test2_1)
 {
-   advanced_create_test2(INDEX_TYPE_BTREE);
-}
-
-TEST_F(index_ddl_test, advanced_create_index_test2_2)
-{
-   advanced_create_test2(INDEX_TYPE_LSM);
+   advanced_create_test2(INDEX_TYPE_HYBRID_TREE);
 }
 
 /*
@@ -1086,7 +1054,7 @@ TEST_F(index_ddl_test, advanced_create_index_test3)
       {
          string indexName = indexNamePrefix + to_string(i);
          bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-         bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, 
+         bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, 
                                                                 indexName.c_str(),
                                                                 FALSE, pattern);
          rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
@@ -1145,7 +1113,7 @@ TEST_F(index_ddl_test, advanced_create_index_test3)
 
       string indexName = "index";
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, indexName.c_str(),
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, indexName.c_str(),
                                                              FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);

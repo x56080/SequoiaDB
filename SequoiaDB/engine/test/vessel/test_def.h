@@ -301,8 +301,23 @@ class indexTestUtil
    {
       bson::BSONObjBuilder builder;
       builder.append(IXM_NAME_FIELD, name);
-      const CHAR *typeStr = INDEX_TYPE_BTREE == type ?
-                            IXM_BTREE : IXM_LSM_TREE;
+      const CHAR *typeStr = nullptr;
+      if (INDEX_TYPE_BTREE == type)
+      {
+         typeStr = IXM_BTREE;
+      }
+      else if (INDEX_TYPE_LSM == type)
+      {
+         typeStr = IXM_LSM_TREE;
+      }
+      else if (INDEX_TYPE_HYBRID_TREE == type)
+      {
+         typeStr = IXM_HYBRID_TREE;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "invalid index type");
+      }
       builder.append(IXM_TYPE_FIELD, typeStr);
       builder.append(IXM_KEY_FIELD, pattern);
       builder.appendBool(IXM_UNIQUE_FIELD, unique);

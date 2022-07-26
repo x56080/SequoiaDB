@@ -53,6 +53,7 @@
 #include "inclusiveVec.h"
 #include "vessel/globalIndexID.h"
 #include "dpsDef.hpp"
+#include "vessel/keyStringCoder.h"
 
 #include <iomanip>
 #include <limits>
@@ -263,6 +264,12 @@ namespace vessel
                                const recordID &rid,
                                const globalIndexID *indexid = nullptr,
                                const UINT64 *lsn = nullptr);
+
+      static INT32 buildBoundaryKey(const globalIndexID &indexId,
+                                    BOOLEAN asUpBound,
+                                    UINT32 bufSize,
+                                    CHAR *buf,
+                                    UINT32 &size);
 
    public:
       INT32 done();
@@ -2509,6 +2516,44 @@ namespace vessel
       return rc;
    error:
       reset();
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::buildBoundaryKey(const globalIndexID &indexId,
+                                                       BOOLEAN asUpBound,
+                                                       UINT32 bufSize,
+                                                       CHAR *buf,
+                                                       UINT32 &size)
+   {
+      INT32 rc = SDB_OK;
+
+      /// 4bytes cs id + 4bytes cl id + 4bytes index id
+      constexpr UINT32 _MIN_BUF_SIZE = keyStringCoder::INDEX_ID_ENCODEING_SIZE + KEY_STRING_MIN_META_BLOCK_SIZE;
+      keyStringCoder coder;
+      minimalKeyStringMetaBlock *block = nullptr;
+
+      if (!indexId.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (nullptr == buf || bufSize < _MIN_BUF_SIZE)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      coder.encodeGlobalIndexId(indexId, asUpBound, buf);
+      block = reinterpret_cast<minimalKeyStringMetaBlock *>(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE);
+      block->version = KEY_STRING_VERSION_1;
+      block->metaByte = 0;
+      block->keySize = 0;
+      block->beforeKeySize = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      size = _MIN_BUF_SIZE;
+   done:
+      return rc;
+   error:
       goto done;
    }
 
