@@ -38,7 +38,7 @@
 #include "dpsDef.hpp"
 #include "oss.hpp"
 #include "rocksdb/table_properties.h"
-#include "vessel/globalIndexID.h"
+#include "vessel/keyStringCoder.h"
 #include <memory>
 namespace engine
 {
@@ -96,8 +96,9 @@ namespace vessel
    private:
       DPS_LSN_OFFSET _minLsn = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET _maxLsn = DPS_INVALID_LSN_OFFSET;
-      globalIndexID _minGlobalID;
-      globalIndexID _maxGlobalID;
+      CHAR _minIndexId[keyStringCoder::INDEX_ID_ENCODEING_SIZE] = {};
+      CHAR _maxIndexId[keyStringCoder::INDEX_ID_ENCODEING_SIZE] = {};
+      BOOLEAN _indexIdInited = FALSE;
    };
 
    class lsmCollectorFactory : public rocksdb::TablePropertiesCollectorFactory
