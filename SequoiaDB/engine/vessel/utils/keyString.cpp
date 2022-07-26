@@ -28,7 +28,7 @@
    defect Date        Who Description
    ====== =========== === ==============================================
           07/16/2022  LYC  Initial Draft
-
+          07/20/2022  ZHY  Implement
    Last Changed =
 
 ******************************************************************************/
@@ -48,6 +48,7 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 namespace engine
 {
@@ -85,8 +86,7 @@ namespace vessel
    static UINT32 GET_META_BLOCK_SIZE(const keyStringMetaByte &mb)
    {
       /// '2' means 1 byte version and 1 byte meta byte
-      return mb.getTotalSizeWidth() + 
-             sizeof(KEY_STRING_VERSION) +
+      return mb.getTotalSizeWidth() + sizeof(KEY_STRING_VERSION) +
              sizeof(UINT8);
    }
 
@@ -527,8 +527,8 @@ namespace vessel
 
       blockSize = GET_META_BLOCK_SIZE(mb);
 
-      res = _ref.getSize() -
-            (blockSize + sizeBeforeKey + keySize + typeBitsSize);
+      res =
+          _ref.getSize() - (blockSize + sizeBeforeKey + keySize + typeBitsSize);
 
    done:
       return res;
@@ -713,7 +713,8 @@ namespace vessel
       bson::BSONObjBuilder newObjBuilder;
       while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
       {
-         bson::StringData name = _readCString(offset, inverted);
+         ossPoolString name;
+         _readCString(offset, inverted, name);
          _toBsonValue(_read<EncodedType>(offset, inverted),
                       offset,
                       inverted,
@@ -734,7 +735,8 @@ namespace vessel
       bson::BSONObjBuilder newObjBuilder;
       while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
       {
-         bson::StringData name = _readCString(offset, inverted);
+         ossPoolString name;
+         _readCString(offset, inverted, name);
          _toBsonValue(_read<EncodedType>(offset, inverted),
                       offset,
                       inverted,
@@ -789,14 +791,12 @@ namespace vessel
          _toNumeric(type, offset, inverted, builder, typeReader, fieldName);
          break;
       case EncodedType::stringLike: {
-         bson::StringData s = _decodeStringLike(offset, inverted);
+         ossPoolString s;
+         _decodeStringLike(offset, inverted, s);
          typeBitsType originalType = typeReader.readStringLike();
          if (typeBitsType::STRING == originalType)
          {
-            fieldName
-                ? builder.appendStrWithNoTerminating(
-                      fieldName, s.data(), s.size())
-                : builder.appendStrWithNoTerminating("", s.data(), s.size());
+            fieldName ? builder.append(fieldName, s) : builder.append("", s);
          }
          else
          {
@@ -811,16 +811,22 @@ namespace vessel
       }
       case EncodedType::array: {
          bson::BSONObjBuilder arrayBuilder;
-         while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
+         EncodedType type = _read<EncodedType>(offset, inverted);
+         UINT32 elemCount = 0;
+         while (0 != static_cast<UINT8>(type))
          {
-            _toBsonValue(_read<EncodedType>(offset, inverted),
+            _toBsonValue(type,
                          offset,
                          inverted,
                          arrayBuilder,
                          typeReader,
-                         nullptr);
+                         std::to_string(elemCount).c_str());
+            elemCount++;
+            type = _read<EncodedType>(offset, inverted);
          }
-         builder.appendArray(fieldName, arrayBuilder.done());
+         BSONArray arr(arrayBuilder.obj());
+         fieldName ? builder.appendArray(fieldName, arr)
+                   : builder.appendArray("", arr);
          break;
       }
 
@@ -836,7 +842,7 @@ namespace vessel
             binDataLen = firstByteLen;
          }
          bson::BinDataType binDataType =
-             _read<bson::BinDataType>(offset, inverted);
+             static_cast<bson::BinDataType>(_read<UINT8>(offset, inverted));
          CHAR data[binDataLen];
          _readBytes(offset, inverted, data, binDataLen);
          fieldName
@@ -848,7 +854,6 @@ namespace vessel
          bson::OID oid = _read<bson::OID>(offset, inverted);
          fieldName ? builder.appendOID(fieldName, &oid)
                    : builder.appendOID("", &oid);
-         offset += sizeof(oid);
          break;
       }
       case EncodedType::booleanFalse: {
@@ -876,8 +881,10 @@ namespace vessel
          break;
       }
       case EncodedType::regEx: {
-         bson::StringData regex = _readCString(offset, inverted);
-         bson::StringData flags = _readCString(offset, inverted);
+         ossPoolString regex;
+         _readCString(offset, inverted, regex);
+         ossPoolString flags;
+         _readCString(offset, inverted, flags);
          fieldName ? builder.appendRegex(fieldName, regex, flags)
                    : builder.appendRegex("", regex, flags);
          break;
@@ -895,7 +902,8 @@ namespace vessel
       case EncodedType::code: {
          EncodedType type = _read<EncodedType>(offset, inverted);
          SDB_ASSERT(EncodedType::stringLike == type, "Unexpected encoded type");
-         bson::StringData code = _decodeStringLike(offset, inverted);
+         ossPoolString code;
+         _decodeStringLike(offset, inverted, code);
          fieldName ? builder.appendCode(fieldName, code)
                    : builder.appendCode("", code);
          break;
@@ -903,7 +911,8 @@ namespace vessel
       case EncodedType::codeWithScope: {
          EncodedType type = _read<EncodedType>(offset, inverted);
          SDB_ASSERT(EncodedType::stringLike == type, "Unexpected encoded type");
-         bson::StringData code = _decodeStringLike(offset, inverted);
+         ossPoolString code;
+         _decodeStringLike(offset, inverted, code);
          bson::BSONObj scope = _toBSON(offset, inverted, typeReader, TRUE);
          fieldName ? builder.appendCodeWScope(fieldName, code, scope)
                    : builder.appendCodeWScope("", code, scope);
@@ -911,6 +920,9 @@ namespace vessel
       }
       case EncodedType::maxKey:
          fieldName ? builder.appendMaxKey(fieldName) : builder.appendMaxKey("");
+         break;
+      default:
+         SDB_ASSERT(FALSE, "Unexpected encoded type");
          break;
       }
    }
@@ -1150,18 +1162,18 @@ namespace vessel
       }
    }
 
-   bson::StringData keyString::_decodeStringLike(UINT32 &offset,
-                                                 BOOLEAN inverted) const
+   void keyString::_decodeStringLike(UINT32 &offset,
+                                     BOOLEAN inverted,
+                                     ossPoolString &s) const
    {
-      ossPoolString s;
-      s.append(_readCString(offset, inverted).data());
+      _readCString(offset, inverted, s);
       while (offset != getSizeBeforeKey() + getKeySize() &&
-             0xFF != _peek<UINT8>(offset, inverted))
+             0xFF == _peek<UINT8>(offset, inverted))
       {
          offset += 1;
-         s.append(_readCString(offset, inverted).data());
+         s.append("\x00", 1);
+         _readCString(offset, inverted, s);
       }
-      return s;
    }
 
    bson::bsonDecimal keyString::_decodeDecimal(UINT32 &offset,
@@ -1234,33 +1246,37 @@ namespace vessel
    {
       if (inverted)
       {
-         ossMemcpyFlipBits(&bytes, getDataSlice().data() + offset, len);
+         ossMemcpyFlipBits(bytes, getDataSlice().data() + offset, len);
       }
       else
       {
-         ossMemcpy(&bytes, getDataSlice().data() + offset, len);
+         ossMemcpy(bytes, getDataSlice().data() + offset, len);
       }
       offset += len;
    }
 
-   bson::StringData keyString::_readCString(UINT32 &offset,
-                                            BOOLEAN inverted) const
+   void keyString::_readCString(UINT32 &offset,
+                                BOOLEAN inverted,
+                                ossPoolString &s) const
    {
+      UINT32 strOldSize = s.size();
+      const UINT8 endChar = inverted ? 0xFF : 0;
       const CHAR *start =
           static_cast<const CHAR *>(getDataSlice().data() + offset);
-      const CHAR *end = static_cast<const CHAR *>(memchr(
-          start, '\0', getSizeBeforeKey() + getKeySlice().getSize() - offset));
+      const CHAR *end = static_cast<const CHAR *>(
+          memchr(start,
+                 endChar,
+                 getSizeBeforeKey() + getKeySlice().getSize() - offset));
       UINT32 bytesNum = end - start;
       offset += (bytesNum + 1);
-      std::string s(start, bytesNum);
+      s.append(start, bytesNum);
       if (inverted)
       {
-         for (UINT32 i = 0; i < s.size(); i++)
+         for (UINT32 i = strOldSize; i < s.size(); i++)
          {
             s[i] = ~s[i];
          }
       }
-      return s;
    }
 
    recordID keyString::getRid() const
@@ -1278,7 +1294,7 @@ namespace vessel
       }
       return rid;
    }
-///////////////////////////////
+   ///////////////////////////////
 
    typeBitsReader::typeBitsReader(const CHAR *buf, UINT32 bufSize)
        : _buf(buf), _bufSize(bufSize)
