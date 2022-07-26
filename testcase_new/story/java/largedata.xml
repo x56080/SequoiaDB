@@ -38,7 +38,8 @@
      <test name="index" parallel="classes" thread-count="5">
         <packages>
             <package name="com.sequoiadb.index"/>
-        </packages>        
+            <package name="com.sequoiadb.split.largedata"/>
+        </packages>
     </test>
     
 </suite>
