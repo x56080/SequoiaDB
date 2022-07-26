@@ -690,7 +690,7 @@ namespace vessel
 
       case bson::BinData: {
          INT32 len;
-         const CHAR *data = elem.binData(len);
+         const CHAR *data = elem.binDataClean(len);
          rc = _appendBinData(data, len, elem.binDataType(), invert);
          if (SDB_OK != rc)
          {
@@ -769,7 +769,9 @@ namespace vessel
       }
 
       case bson::Symbol: {
-         rc = _appendSymbol(elem.String(), invert);
+         rc = _appendSymbol(
+             {elem.valuestr(), static_cast<UINT32>(elem.valuestrsize() - 1)},
+             invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR,
@@ -1570,7 +1572,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _append(EncodedType::code, invert);
+      rc = _append(EncodedType::stringLike, invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
@@ -1645,14 +1647,14 @@ namespace vessel
          }
       }
 
-      rc = _append(type, invert);
+      rc = _append(static_cast<UINT8>(type), invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append bin data type failed, rc:%d");
          goto error;
       }
 
-      rc = _append(data, invert);
+      rc = _appendBytes(data, dataSize, invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append bin data value failed, rc:%d");
@@ -1686,7 +1688,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _append(regex, invert);
+      rc = _appendBytes(regex.data(), regex.size(), invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append regex value failed, rc:%d");
@@ -1700,7 +1702,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _append(flags, invert);
+      rc = _appendBytes(flags.data(), flags.size(), invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append flags value failed, rc:%d");
@@ -1749,7 +1751,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _append(dbrefNS.data(), invert);
+      rc = _appendBytes(dbrefNS.data(), dbrefNS.size(), invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append dbref namespace value failed, rc:%d");
@@ -1905,9 +1907,9 @@ namespace vessel
        const bson::StringData &str, BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(BUILDER_STATUS::APPENDING_ELEMENTS == _status,
-                 "unexpected status");
-      const CHAR *data = nullptr;
+      _verifyStatus();
+      const CHAR *data = str.data();
+      UINT32 size = str.size();
 
       if (nullptr == str.data())
       {
@@ -1915,13 +1917,12 @@ namespace vessel
          goto error;
       }
 
-      data = str.data();
       while (TRUE)
       {
-         INT32 firstNul = bson::strnlen(str.data(), str.size());
+         INT32 firstNul = bson::strnlen(data, size);
          if (-1 == firstNul)
          {
-            firstNul = str.size();
+            firstNul = size;
          }
 
          rc = _appendBytes(data, static_cast<UINT32>(firstNul), invert);
@@ -1931,7 +1932,7 @@ namespace vessel
             goto error;
          }
 
-         if (firstNul == static_cast<INT32>(str.size()) ||
+         if (firstNul == static_cast<INT32>(size) ||
              firstNul == static_cast<INT32>(std::string::npos))
          {
             rc = _append(static_cast<INT8>(0), invert);
@@ -1944,7 +1945,7 @@ namespace vessel
             break;
          }
 
-         rc = _appendBytes("\0x00\0xff", 2, invert);
+         rc = _appendBytes("\x00\xff", 2, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "append bytes failed, rc:%d", rc);
@@ -1952,6 +1953,7 @@ namespace vessel
          }
 
          data = data + firstNul + 1;
+         size = size - firstNul - 1;
       }
 
    done:
@@ -2324,7 +2326,7 @@ namespace vessel
          }
          if (forward)
          {
-            if(iv.isExclusive(i))
+            if (iv.isExclusive(i))
             {
                rc = _append(DiscriminatorValue::GREATER, FALSE);
                break;
@@ -2336,7 +2338,7 @@ namespace vessel
          }
          else
          {
-            if(iv.isExclusive(i))
+            if (iv.isExclusive(i))
             {
                rc = _append(DiscriminatorValue::LESS, FALSE);
                break;
@@ -2413,7 +2415,7 @@ namespace vessel
          elemCount += 1;
          if (forward)
          {
-            if(iv.isExclusive(elemCount - 1))
+            if (iv.isExclusive(elemCount - 1))
             {
                rc = _append(DiscriminatorValue::GREATER, FALSE);
                break;
@@ -2425,7 +2427,7 @@ namespace vessel
          }
          else
          {
-            if(iv.isExclusive(elemCount - 1))
+            if (iv.isExclusive(elemCount - 1))
             {
                rc = _append(DiscriminatorValue::LESS, FALSE);
                break;

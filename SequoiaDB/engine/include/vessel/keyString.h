@@ -28,7 +28,7 @@
    defect Date        Who Description
    ====== =========== === ==============================================
           07/15/2022  LYC  Initial Draft
-
+          07/20/2022  ZHY  Implement
    Last Changed =
 
 *******************************************************************************/
@@ -39,6 +39,7 @@
 #include "../bson/bsonobj.h"
 #include "../bson/bsonobjbuilder.h"
 #include "../bson/bsonobjiterator.h"
+#include "ossMemPool.hpp"
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
 #include "../bson/bsonobj.h"
@@ -127,7 +128,10 @@ namespace vessel
                            BOOLEAN withFieldName = FALSE) const;
 
    public:
-      UINT32 getTotalSize()const {return _ref.getSize();}
+      UINT32 getTotalSize() const
+      {
+         return _ref.getSize();
+      }
       UINT32 getComparableSize() const;
       UINT32 getKeySize() const;
       BOOLEAN hasKeyPart()const;
@@ -136,7 +140,7 @@ namespace vessel
       UINT32 getTypeBitsSize() const;
 
    public:
-      recordID getRid()const;
+      recordID getRid() const;
 
    public:
       INT32 compare(const keyString &ks) const;
@@ -152,7 +156,9 @@ namespace vessel
                       BOOLEAN inverted,
                       CHAR *bytes,
                       UINT32 len) const;
-      bson::StringData _readCString(UINT32 &offset, BOOLEAN inverted) const;
+      void _readCString(UINT32 &offset,
+                        BOOLEAN inverted,
+                        ossPoolString &s) const;
       void _toBSON(UINT32 &offset,
                    BOOLEAN inverted,
                    bson::BSONObjBuilder &builder,
@@ -162,7 +168,7 @@ namespace vessel
                             BOOLEAN inverted,
                             typeBitsReader &typeReader,
                             BOOLEAN withFieldName) const;
-                            
+
       void _toBsonValue(EncodedType type,
                         UINT32 &offset,
                         BOOLEAN inverted,
@@ -175,8 +181,9 @@ namespace vessel
                       bson::BSONObjBuilder &builder,
                       typeBitsReader &typeReader,
                       const CHAR *fieldName = nullptr) const;
-      bson::StringData _decodeStringLike(UINT32 &offset,
-                                         BOOLEAN inverted) const;
+      void _decodeStringLike(UINT32 &offset,
+                             BOOLEAN inverted,
+                             ossPoolString &s) const;
       bson::bsonDecimal _decodeDecimal(UINT32 &offset,
                                        BOOLEAN inverted,
                                        BOOLEAN isNegative,
