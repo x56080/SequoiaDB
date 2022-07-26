@@ -1765,7 +1765,8 @@ namespace engine
    {
       INT32 rc                      = SDB_OK ;
       UINT32 attribute              = 0 ;
-      BOOLEAN isMainCL              = FALSE;
+      BOOLEAN isMainCL              = FALSE ;
+      BOOLEAN hasFoundIdx           = FALSE ;
       UINT32 groupCount             = 0 ;
       utilCLUniqueID clUniqueID     = UTIL_UNIQUEID_NULL ;
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
@@ -1842,6 +1843,7 @@ namespace engine
                                  IXM_ID_KEY_NAME ) )
             {
                idIdxDef = *itIdx ;
+               hasFoundIdx = TRUE ;
                break ;
             }
          }
@@ -1885,7 +1887,7 @@ namespace engine
          rc = rtnCreateCollectionCommand( clFullName, attribute,
                                           _pEDUCB, _pDmsCB, _pDpsCB, clUniqueID,
                                           compType, 0, FALSE, &extOptions,
-                                          &idIdxDef ) ;
+                                          hasFoundIdx ? &idIdxDef : NULL ) ;
          if ( SDB_DMS_EXIST == rc )
          {
             rc = SDB_OK ;
@@ -2948,7 +2950,7 @@ namespace engine
          if ( pCommand->writable () )
          {
             // Only restore commands are allowed if in restoring state
-            if ( ( rc = _checkRestoring() ) && 
+            if ( ( rc = _checkRestoring() ) &&
                  ( SDB_RESTORE_IN_PROGRESS != rc ||
                    !( CMD_RESTORE_TO_TIME == pCommand->type() ||
                       CMD_RESTORE_ABORT   == pCommand->type() ||
