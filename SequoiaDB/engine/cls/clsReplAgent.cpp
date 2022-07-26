@@ -409,7 +409,16 @@ namespace engine
       {
          _clsSharingStatus &status = itr->second ;
          _info.mtx.lock_w() ;
-         _info.alives.insert( make_pair( itr->first, &status ) ) ;
+         try
+         {
+            _info.alives.insert( make_pair( itr->first, &status ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            _info.mtx.release_w() ;
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
          _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
          _info.mtx.release_w() ;
 
