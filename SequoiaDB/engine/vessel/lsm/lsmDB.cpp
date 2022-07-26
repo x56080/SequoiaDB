@@ -40,12 +40,16 @@
 #include "vessel/lsm/lsmColumnFamilyContext.h"
 #include "vessel/lsm/lsmCollector.h"
 #include "vessel/lsm/lsmEventListener.h"
+#include "rocksdb/table.h"
+#include "rocksdb/filter_policy.h"
+#include "rocksdb/slice_transform.h"
 
 namespace engine
 {
 namespace vessel
 {
    extern const rocksdb::Comparator* getHitComparator();
+   extern const rocksdb::SliceTransform *getLsmIndexPrefixTransform();
 
    lsmDB::~lsmDB()
    {
@@ -76,8 +80,7 @@ namespace vessel
       }
       opt.create_if_missing = TRUE;
       opt.create_missing_column_families = TRUE;
-      opt.atomic_flush = TRUE;
-      opt.listeners.emplace_back(newLsmEventListener(this));
+      // opt.listeners.emplace_back(newLsmEventListener(this));
 
       // configure column family names and options
       for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
@@ -131,7 +134,7 @@ namespace vessel
          _db->Close();
          delete _db;
          _db = nullptr;
-         _journal = nullptr;
+         // _journal = nullptr;
          _contexts.clear();
       }
    }
@@ -422,11 +425,11 @@ namespace vessel
       goto done;
    }
 
-   void lsmDB::onFlush(DPS_LSN_OFFSET maxLsn)
-   {
-      SDB_ASSERT(nullptr != _journal, "can not be null");
-      _journal->flush(maxLsn);
-   }
+   // void lsmDB::onFlush(DPS_LSN_OFFSET maxLsn)
+   // {
+   //    SDB_ASSERT(nullptr != _journal, "can not be null");
+   //    _journal->flush(maxLsn);
+   // }
 
    void lsmDB::setMinDirtyLsn(LSM_CF_ID id,
                               DPS_LSN_OFFSET lsn)
@@ -458,11 +461,11 @@ namespace vessel
       }
    }
 
-   void lsmDB::setJournal(IDataJournal *journal)
-   {
-      SDB_ASSERT(nullptr != journal, "can not be nullptr");
-      _journal=journal;
-   }
+   // void lsmDB::setJournal(IDataJournal *journal)
+   // {
+   //    SDB_ASSERT(nullptr != journal, "can not be nullptr");
+   //    _journal=journal;
+   // }
 
    INT32 lsmDB::_flushDB()
    {
@@ -531,7 +534,14 @@ namespace vessel
          cfName = LSM_HYBRID_INDEX_CF_NAME;
          cfOpt.comparator = getHitComparator();
          cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
-         ///TODO: prefix_extractor
+         cfOpt.prefix_extractor.reset(getLsmIndexPrefixTransform());
+         cfOpt.level0_slowdown_writes_trigger = 1024;
+         cfOpt.level0_stop_writes_trigger = 1536;
+
+         rocksdb::BlockBasedTableOptions tableOpt;
+         tableOpt.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
+         tableOpt.whole_key_filtering = FALSE;
+         cfOpt.table_factory.reset(rocksdb::NewBlockBasedTableFactory(tableOpt));
       }
       else if (LSM_CF_LOBM == id)
       {

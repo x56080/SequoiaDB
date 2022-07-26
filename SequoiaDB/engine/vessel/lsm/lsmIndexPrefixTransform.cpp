@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexPrefixTransform.h
+   Source File Name = lsmIndexPrefixTransform.cpp
 
    Descriptive Name = 
 
