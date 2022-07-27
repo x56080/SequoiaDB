@@ -1891,14 +1891,15 @@ namespace engine
    INT32 _dmsStorageBase::_findFreeSpace( UINT16 numPages, SINT32 & foundPage,
                                           dmsContext *context )
    {
-      UINT32 segmentSize = 0 ;
+      UINT32 totalDataPageNum = 0 ;
       INT32 rc = SDB_OK ;
       INT32 rc1 = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
 
       while ( TRUE )
       {
-         rc = _smeMgr.reservePages( numPages, foundPage, &segmentSize ) ;
+         totalDataPageNum = _pageNum ;
+         rc = _smeMgr.reservePages( numPages, foundPage ) ;
          if ( rc )
          {
             goto error ;
@@ -1913,7 +1914,9 @@ namespace engine
          // then we should call extendSegments
          if ( ossTestAndLatch( _segmentLatch.get(), EXCLUSIVE ) )
          {
-            if ( segmentSize != _smeMgr.segmentNum() )
+            // double check to avoid extending segment multiple times,
+            // _pageNum will be updated if extending segment has happened
+            if ( totalDataPageNum != _pageNum  )
             {
                ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
                continue ;
