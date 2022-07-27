@@ -37,6 +37,7 @@
 #include "rocksdb/options.h"
 #include "vessel/indexUtils.h"
 #include "vessel/lsm/lsmIndexEntryValue.h"
+#include "vessel/lsm/lsmTableFilter.h"
 #include "vessel/indexObject.h"
 #include "ossLikely.hpp"
 #include "vessel/keyStringBuilder.h"
@@ -727,6 +728,9 @@ namespace vessel
          options.total_order_seek = TRUE;
          options.prefix_same_as_start = FALSE;
       }
+
+      options.table_filter = lsmTableFilter(rocksdb::Slice(_lowKey.data(),
+                                 keyStringCoder::INDEX_ID_ENCODEING_SIZE));
 
       _itr = _cf.newIterator(options);
       if (OSS_UNLIKELY(nullptr == _itr))
