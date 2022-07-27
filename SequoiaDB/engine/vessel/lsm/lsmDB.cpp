@@ -99,11 +99,10 @@ namespace vessel
 
       for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
       {
-         rocksdb::WriteOptions opt;
-         opt.disableWAL = TRUE;
          lsmColumnFamilyContext *context = 
-               SDB_OSS_NEW lsmColumnFamilyContext(cfHandles[i],
-                                                  opt);
+               SDB_OSS_NEW lsmColumnFamilyContext(cfHandles[i], 
+                                                  _getDefaultWriteOptions(
+                                                     static_cast<LSM_CF_ID>(i)));
          if (nullptr == context)
          {
             rc = SDB_OOM;
@@ -520,7 +519,7 @@ namespace vessel
    }
 
    rocksdb::ColumnFamilyDescriptor lsmDB::_getDescriptor(LSM_CF_ID id,
-                                                         const rocksdb::Options &opt)
+                                             const rocksdb::Options &opt)const
    {
       std::string cfName;
       rocksdb::ColumnFamilyOptions cfOpt(opt);
@@ -555,6 +554,24 @@ namespace vessel
       }
 
       return rocksdb::ColumnFamilyDescriptor(cfName, cfOpt);
+   }
+
+   rocksdb::WriteOptions lsmDB::_getDefaultWriteOptions(LSM_CF_ID id)const
+   {
+      rocksdb::WriteOptions wOpt;
+      if (LSM_CF_HYBRID_INDEX == id)
+      {
+         wOpt.disableWAL = TRUE;
+      }
+      else if (LSM_CF_LOBM == id)
+      {
+         wOpt.disableWAL = TRUE;
+      }
+      else if (LSM_CF_INDEX_META == id)
+      {
+      }
+
+      return wOpt; 
    }
 
    lsmColumnFamily GET_HYBRID_INDEX_COLUMN_FAMILY()
