@@ -61,7 +61,7 @@ namespace vessel
             }
             if (std::numeric_limits<UINT8>::max() < typeBitsSize)
             {
-               setWideTypeBitsSizeWord();
+               setHasDataAfterKey();
             }
          }
          keyStringMetaByte(UINT8 b):
@@ -72,7 +72,7 @@ namespace vessel
          {
             HAS_DATA_BEFORE_KEY = 0x01,
             WIDE_KEY_SIZE_WORD = 0x02,
-            WIDE_TYPE_BITS_SIZE_WORD = 0x04,
+            HAS_DATA_AFTER_KEY = 0x04,
          };
 
       public:
@@ -81,7 +81,7 @@ namespace vessel
       public:
          void setHasDataBeforeKey() {OSS_BIT_SET(_b, HAS_DATA_BEFORE_KEY);}
          void setWideKeySizeWord() {OSS_BIT_SET(_b, WIDE_KEY_SIZE_WORD);}
-         void setWideTypeBitsSizeWord() {OSS_BIT_SET(_b, WIDE_TYPE_BITS_SIZE_WORD);}
+         void setHasDataAfterKey() {OSS_BIT_SET(_b, HAS_DATA_AFTER_KEY);}
 
       public:
          BOOLEAN hasDataBeforeKey() const
@@ -94,9 +94,9 @@ namespace vessel
             return 0 != OSS_BIT_TEST(_b, WIDE_KEY_SIZE_WORD);
          }
 
-         BOOLEAN isWideTypeBitsSizeWord() const
+         BOOLEAN hasDataAfterKey() const
          {
-            return 0 != OSS_BIT_TEST(_b, WIDE_TYPE_BITS_SIZE_WORD);
+            return 0 != OSS_BIT_TEST(_b, HAS_DATA_AFTER_KEY);
          }
 
       public:
@@ -119,22 +119,21 @@ namespace vessel
          {
             return getBeforeKeySizeWordWidth() + getKeySizeWordWidth();
          }
-         UINT32 getTypeBitsSizeWordWidth()const
-         {
-            return (0 != OSS_BIT_TEST(_b, WIDE_TYPE_BITS_SIZE_WORD)) ?
-                   sizeof(UINT32) : sizeof(UINT8);
-         }
-         UINT32 getTypeBitsSizeWordOffset()const
-         {
-            return getTypeBitsSizeWordWidth() +
-                   getKeySizeWordOffset();
-         }
 
+         UINT32 getAfterKeySizeWordWidth()const
+         {
+            return (0 != OSS_BIT_TEST(_b, HAS_DATA_AFTER_KEY)) ?
+                    sizeof(UINT8) : 0;
+         }
+         INT32 getAfterKeySizeWordOffset()const
+         {
+            return getKeySizeWordOffset() + getAfterKeySizeWordWidth();
+         }
+         
          UINT32 getTotalSizeWidth()const
          {
             return getBeforeKeySizeWordWidth() +
-                   getKeySizeWordWidth() +
-                   getTypeBitsSizeWordWidth();
+                   getKeySizeWordWidth();
          }
 
 

@@ -39,11 +39,15 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <string>
+#include "ossTypes.h"
+#include "ossUtil.h"
 #include "vessel/globalIndexID.h"
 #include "vessel/keyString.h"
 #include "vessel/keyStringBuilder.h"
 #include "../bson/bsonobjbuilder.h"
+#include "vessel/orderingWrapper.h"
 #include "vessel/recordID.h"
 
 namespace engine
@@ -479,12 +483,15 @@ namespace vessel
 
    TEST_F(key_string_test, base_date)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       Date_t dt(2132134321);
       bsb.appendDate("a", dt);
       bsb.appendDate("b", dt);
-      ksb.appendAllElements(bsb.done(), ord);
-      ksb.done();
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -492,11 +499,14 @@ namespace vessel
 
    TEST_F(key_string_test, base_timestamp)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       bsb.appendTimestamp("a", 72192821020281);
       bsb.appendTimestamp("b", 72192821020281);
-      ksb.appendAllElements(bsb.done(), ord);
-      ksb.done();
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -504,13 +514,16 @@ namespace vessel
 
    TEST_F(key_string_test, base_regex)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       StringData pattern("^.*[]?");
       StringData flags("foobar");
       bsb.appendRegex("a", pattern, flags);
       bsb.appendRegex("b", pattern, flags);
-      ksb.appendAllElements(bsb.done(), ord);
-      ksb.done();
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -518,13 +531,16 @@ namespace vessel
 
    TEST_F(key_string_test, base_dbref)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       StringData ns = "db1.cl1";
       OID oid = OID::gen();
       bsb.appendDBRef("a", ns, oid);
       bsb.appendDBRef("b", ns, oid);
-      ksb.appendAllElements(bsb.done(), ord);
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
       ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -532,12 +548,15 @@ namespace vessel
 
    TEST_F(key_string_test, base_code)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       StringData code = "()=>{}";
       bsb.appendCode("a", code);
       bsb.appendCode("b", code);
-      ksb.appendAllElements(bsb.done(), ord);
-      ksb.done();
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -545,13 +564,16 @@ namespace vessel
 
    TEST_F(key_string_test, base_codewscope)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       StringData code = "()=>{}";
       BSONObj scope = BSON("1" << 1);
       bsb.appendCodeWScope("a", code, scope);
       bsb.appendCodeWScope("b", code, scope);
-      ksb.appendAllElements(bsb.done(), ord);
-      ksb.done();
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -559,11 +581,14 @@ namespace vessel
 
    TEST_F(key_string_test, base_maxkey)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
       bsb.appendMaxKey("a");
       bsb.appendMaxKey("b");
-      ksb.appendAllElements(bsb.done(), ord);
-      ksb.done();
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
       BSONObj objFromKey = ks.toBSON(BSON("a" << 1 << "b" << -1), TRUE);
       EXPECT_EQ(objFromKey.woCompare(bsb.done()), 0);
@@ -571,19 +596,26 @@ namespace vessel
 
    TEST_F(key_string_test, base_discriminator)
    {
+      INT32 rc = SDB_OK;
       orderingWrapper ord(0, 2);
       bson::BSONObjBuilder bsb;
       bsb.appendNumber("a", -1);
-      ksb.appendAllElements(bsb.done(), ord, Discriminator::EXCLUSIVE_BEFORE);
-      ksb.done();
+      rc = ksb.appendAllElements(
+          bsb.done(), ord, Discriminator::EXCLUSIVE_BEFORE);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString lessQuery = ksb.getShallowKeyString();
       lessQuery.getOwned();
       ksb.reset();
       bsb.reset();
 
       bsb.appendNumber("a", -1);
-      ksb.appendAllElements(bsb.done(), ord, Discriminator::EXCLUSIVE_AFTER);
-      ksb.done();
+      rc = ksb.appendAllElements(
+          bsb.done(), ord, Discriminator::EXCLUSIVE_AFTER);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
       keyString greaterQuery = ksb.getShallowKeyString();
       greaterQuery.getOwned();
       ksb.reset();
@@ -605,8 +637,10 @@ namespace vessel
          bsb.appendNumber("a", numbers[i][0]);
          bsb.appendNumber("b", numbers[i][1]);
          bson::BSONObj obj = bsb.obj();
-         ksb.appendAllElements(obj, ord);
-         ksb.done();
+         rc = ksb.appendAllElements(obj, ord);
+         ASSERT_EQ(SDB_OK, rc);
+         rc = ksb.done();
+         ASSERT_EQ(SDB_OK, rc);
          keyString ks = ksb.getShallowKeyString();
          ks.getOwned();
          UINT32 comparableSize =
@@ -682,6 +716,128 @@ namespace vessel
       rc = ksb.done();
       ASSERT_EQ(SDB_OK, rc);
       keyString ks = ksb.getShallowKeyString();
+   }
+
+   void buildObjs(vector<BSONObj> &v_obj, vector<unique_ptr<keyString>> &v_key)
+   {
+      return;
+   }
+
+   template <typename T, typename... Args>
+   void buildObjs(vector<BSONObj> &v_obj,
+                  vector<unique_ptr<keyString>> &v_key,
+                  const T &val,
+                  const Args &...args)
+   {
+      INT32 rc = SDB_OK;
+      orderingWrapper ord(0, 1);
+      BSONObjBuilder bsb;
+      bsb.append("", val);
+      BSONObj obj = bsb.obj();
+      keyStringBuilder<> ksb;
+      rc = ksb.appendAllElements(obj, ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
+      v_obj.push_back(obj);
+      unique_ptr<keyString> ks_ptr(new keyString);
+      *ks_ptr = ksb.getShallowKeyString();
+      ks_ptr->getOwned();
+      v_key.push_back(std::move(ks_ptr));
+      buildObjs(v_obj, v_key, args...);
+   }
+
+   bsonDecimal getDecimalFromString(const CHAR* s)
+   {
+      bsonDecimal dec;
+      dec.fromString(s);
+      return dec;
+   }
+
+   TEST_F(key_string_test, test_move)
+   {
+      orderingWrapper ord(0, 2);
+      BSONObj obj = BSON("a"<<1 << "b" << 1);
+      ksb.appendAllElements(obj, ord);
+      ksb.done();
+      vector<keyString> v;
+      keyString ks = ksb.getShallowKeyString();
+      for(UINT32 i = 0 ;i< 100;i++)
+      {
+         v.push_back(ks);
+         v.rbegin()->getOwned();
+      }
+   }
+
+   TEST_F(key_string_test, base_cmp_numbers)
+   {
+      vector<BSONObj> v_obj;
+      vector<unique_ptr<keyString>> v_key;
+      buildObjs(v_obj,
+                v_key,
+                -std::numeric_limits<FLOAT64>::max(),
+                std::numeric_limits<INT64>::min(),
+                (FLOAT64)(std::numeric_limits<INT32>::min()),
+                std::numeric_limits<INT32>::min(),
+                -173.0,
+                -172.8,
+                getDecimalFromString("-172.8"),
+                getDecimalFromString("-172.5"),
+                -172.5,
+                getDecimalFromString("-172.5"),
+                -172.3,
+                getDecimalFromString("-172.3"),
+                getDecimalFromString("-172.0"),
+                -172.0,
+                -172,
+                -172LL,
+                getDecimalFromString("-172.0"),
+                -0.8,
+                -0.5,
+                -0.3,
+                -std::numeric_limits<FLOAT64>::min(),
+                -std::numeric_limits<FLOAT64>::denorm_min(),
+                getDecimalFromString("-0.0"),
+                -0.0,
+                0,
+                0.0,
+                getDecimalFromString("0.0"),
+                std::numeric_limits<FLOAT64>::denorm_min(),
+                std::numeric_limits<FLOAT64>::min(),
+                0.1,
+                0.4,
+                0.6,
+                0.7,
+                0.9,
+                172,
+                172LL,
+                172.0,
+                172.2,
+                getDecimalFromString("172.2"),
+                getDecimalFromString("172.4"),
+                172.4,
+                172.6,
+                getDecimalFromString("172.6"),
+                getDecimalFromString("172.8"),
+                172.8,
+                173.0,
+                (FLOAT64)(std::numeric_limits<INT32>::max()),
+                std::numeric_limits<INT32>::max(),
+                std::numeric_limits<INT64>::max(),
+                minLargeFloat64,
+                std::numeric_limits<FLOAT64>::max());
+
+      ASSERT_EQ(v_obj.size(), v_key.size());
+      for (UINT32 i = 0; i < v_obj.size() - 1; i++)
+      {
+         INT32 wocmp = v_obj[i].woCompare(v_obj[i + 1]);
+         UINT32 comparableSize = std::min(v_key[i]->getComparableSize(), v_key[i+1]->getComparableSize());
+         const CHAR* buf1 = v_key[i]->getDataSlice().data();
+         const CHAR* buf2 = v_key[i+1]->getDataSlice().data();
+         INT32 bytecmp = ossMemcmp(buf1, buf2, comparableSize);
+         EXPECT_LE(wocmp, 0);
+         EXPECT_LE(bytecmp, 0);
+      }
    }
 
    TEST_F(key_string_test, base_keyslice)

@@ -210,26 +210,26 @@ namespace vessel
 
    BOOLEAN keyString::_validate(const slice &s) const
    {
-      BOOLEAN res = FALSE;
       bytesReader reader;
       keyStringMetaByte mb;
       UINT32 blockSize = 0;
-      UINT32 keySize = 0;
       UINT32 sizeBeforeKey = 0;
-      UINT32 typeBitsSize = 0;
+      UINT32 keySize = 0;
+      UINT32 sizeAfterKey = 0;
+      UINT32 typeBitsSize = getTypeBitsSize();
       if (OSS_UNLIKELY(!s.isValid()))
       {
-         goto done;
+         return FALSE;
       }
 
       reader.init(s, TRUE);
       if (KEY_STRING_VERSION_1 != reader.getUINT8())
       {
-         goto done;
+         return FALSE;
       }
       else if (s.getSize() < KEY_STRING_MIN_META_BLOCK_SIZE)
       {
-         goto done;
+         return FALSE;
       }
 
       ++reader;
@@ -237,21 +237,21 @@ namespace vessel
       blockSize = GET_META_BLOCK_SIZE(mb);
       if (s.getSize() < blockSize)
       {
-         goto done;
+         return FALSE;
       }
 
       if (mb.hasDataBeforeKey())
       {
          if (!reader.slide(mb.getBeforeKeySizeWordWidth()))
          {
-            goto done;
+            return FALSE;
          }
          sizeBeforeKey = reader.getUINT8();
       }
 
       if (!reader.slide(mb.getKeySizeWordWidth()))
       {
-         goto done;
+         return FALSE;
       }
 
       if (mb.isWideKeySizeWord())
@@ -260,33 +260,28 @@ namespace vessel
       }
       else
       {
-         sizeBeforeKey = reader.getUINT8();
+         keySize = reader.getUINT8();
       }
 
-      if (!reader.slide(mb.getTypeBitsSizeWordWidth()))
+      if (mb.hasDataAfterKey())
       {
-         goto done;
+         if (!reader.slide(mb.getAfterKeySizeWordWidth()))
+         {
+            return FALSE;
+         }
+         sizeAfterKey = reader.getUINT8();
       }
 
-      if (mb.isWideTypeBitsSizeWord())
-      {
-         typeBitsSize = reader.get<UINT32>();
-      }
-      else
-      {
-         typeBitsSize = reader.getUINT8();
-      }
-
+      UINT32 typeBitsSizeWidth = getTypeBitsSizeWidth();
+      SDB_ASSERT(typeBitsSizeWidth != 0, "Unexpected typebits size width");
+      
       if (OSS_UNLIKELY(s.getSize() <
-                       (sizeBeforeKey + keySize + typeBitsSize + blockSize)))
+                       (sizeBeforeKey + keySize + +sizeAfterKey + typeBitsSizeWidth + typeBitsSize + blockSize)))
       {
-         goto done;
+         return FALSE;
       }
 
-      res = TRUE;
-
-   done:
-      return res;
+   return TRUE;
    }
 
    void keyString::_adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize)
@@ -382,7 +377,7 @@ namespace vessel
       }
 
       UINT32 keySize = getKeySize();
-      UINT32 typeBitsSize = getTypeBitsSize();
+      UINT32 typeBitsSize = getTypeBitsSizeWidth();
       if (OSS_UNLIKELY(0 == keySize || 0 == typeBitsSize))
       {
          return slice();
@@ -390,7 +385,8 @@ namespace vessel
 
       UINT32 sizeBeforeKey = getSizeBeforeKey();
       UINT32 sizeAfterKey = getSizeAfterKey();
-      const CHAR *buf = _ref.getData() + sizeBeforeKey + keySize + sizeAfterKey;
+      const CHAR *buf = _ref.getData() + sizeBeforeKey + keySize +
+                        sizeAfterKey + typeBitsSize;
       return slice(typeBitsSize, buf);
    }
 
@@ -434,7 +430,7 @@ namespace vessel
       return res;
    }
 
-   BOOLEAN keyString::hasKeyPart()const
+   BOOLEAN keyString::hasKeyPart() const
    {
       return 0 < getKeySize();
    }
@@ -470,17 +466,12 @@ namespace vessel
 
    UINT32 keyString::getSizeAfterKey() const
    {
-      UINT32 res = 0;
       bytesReader reader;
       keyStringMetaByte mb;
-      UINT32 blockSize = 0;
-      UINT32 sizeBeforeKey = 0;
-      UINT32 keySize = 0;
-      UINT32 typeBitsSize = 0;
 
       if (OSS_UNLIKELY(!isValid()))
       {
-         goto done;
+         return 0;
       }
 
       reader.init(_ref, TRUE);
@@ -488,84 +479,52 @@ namespace vessel
       ++reader;
       mb.init(reader.getUINT8());
 
-      if (mb.hasDataBeforeKey())
+      if (!mb.hasDataAfterKey())
       {
-         if (OSS_UNLIKELY(!reader.slide(mb.getBeforeKeySizeWordWidth())))
-         {
-            goto done;
-         }
-         sizeBeforeKey = reader.getUINT8();
+         return 0;
       }
 
-      if (OSS_UNLIKELY(!reader.slide(mb.getKeySizeWordWidth())))
+      if (OSS_UNLIKELY(!reader.slide(mb.getAfterKeySizeWordOffset())))
       {
-         goto done;
+         return 0;
       }
-
-      if (mb.isWideKeySizeWord())
-      {
-         keySize = reader.get<UINT32>();
-      }
-      else
-      {
-         keySize = reader.getUINT8();
-      }
-
-      if (OSS_UNLIKELY(!reader.slide(mb.getTypeBitsSizeWordWidth())))
-      {
-         goto done;
-      }
-
-      if (mb.isWideTypeBitsSizeWord())
-      {
-         typeBitsSize = reader.get<UINT32>();
-      }
-      else
-      {
-         typeBitsSize = reader.getUINT8();
-      }
-
-      blockSize = GET_META_BLOCK_SIZE(mb);
-
-      res =
-          _ref.getSize() - (blockSize + sizeBeforeKey + keySize + typeBitsSize);
-
-   done:
-      return res;
+      return reader.getUINT8();
    }
 
    UINT32 keyString::getTypeBitsSize() const
    {
-      UINT32 res = 0;
-      bytesReader reader;
-      keyStringMetaByte mb;
-
+      UINT32 offset = getComparableSize();
+      UINT8 firstByte = *(UINT8 *)(_ref.data() + offset);
       if (OSS_UNLIKELY(!isValid()))
       {
-         goto done;
+         return 0;
       }
-
-      reader.init(_ref, TRUE);
-      /// skip version
-      ++reader;
-      mb.init(reader.getUINT8());
-
-      if (OSS_UNLIKELY(!reader.slide(mb.getTypeBitsSizeWordOffset())))
+      if (0xff == firstByte)
       {
-         goto done;
-      }
-
-      if (mb.isWideTypeBitsSizeWord())
-      {
-         res = reader.get<UINT32>();
+         return *(UINT32 *)(_ref.data() + offset + 1);
       }
       else
       {
-         res = reader.getUINT8();
+         return firstByte;
       }
+   }
 
-   done:
-      return res;
+   UINT32 keyString::getTypeBitsSizeWidth() const
+   {
+      UINT32 offset = getComparableSize();
+      UINT8 firstByte = *(UINT8 *)(_ref.data() + offset);
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         return 0;
+      }
+      if (0xff == firstByte)
+      {
+         return 5;
+      }
+      else
+      {
+         return 1;
+      }
    }
 
    INT32 keyString::compare(const keyString &s) const

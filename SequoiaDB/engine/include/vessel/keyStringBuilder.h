@@ -1236,15 +1236,16 @@ namespace vessel
       INT32 rc = SDB_OK;
       std::stringstream ss;
       bson::bsonDecimal decFromDouble;
+      BOOLEAN isNegative = dec.getSign() == SDB_DECIMAL_NEG;
       if (dec.isZero())
       {
          _typeBits.appendNumberDecimal();
          _append(EncodedType::numericZero, invert);
          goto done;
       }
-      FLOAT64 floorDouble;
-      dec.toDouble(&floorDouble);
-      ss << std::setprecision(DOUBLE_PRECISION_10) << floorDouble;
+      FLOAT64 doubleTowardZero;
+      dec.toDouble(&doubleTowardZero);
+      ss << std::setprecision(DOUBLE_PRECISION_10) << doubleTowardZero;
       decFromDouble.fromString(ss.str().c_str());
 
       rc = _typeBits.appendNumberDecimal();
@@ -1266,7 +1267,9 @@ namespace vessel
       if (decFromDouble.compare(dec) == 0)
       {
          rc = _appendDoubleWithoutTypeBits(
-             floorDouble, DecimalContinuationMarker::hasNoContinuation, invert);
+             doubleTowardZero,
+             DecimalContinuationMarker::hasNoContinuation,
+             invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
@@ -1275,12 +1278,15 @@ namespace vessel
       }
       else
       {
-         if (decFromDouble.compare(dec) > 0)
+         if ((decFromDouble.compare(dec) > 0 && !isNegative) ||
+             (decFromDouble.compare(dec) < 0 && isNegative))
          {
-            *(UINT64 *)(&floorDouble) -= 1;
+            *(UINT64 *)(&doubleTowardZero) -= 1;
          }
          rc = _appendDoubleWithoutTypeBits(
-             floorDouble, DecimalContinuationMarker::hasContinuation, invert);
+             doubleTowardZero,
+             DecimalContinuationMarker::hasContinuation,
+             invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
@@ -2041,18 +2047,47 @@ namespace vessel
    error:
       goto done;
    }
-
+   // TypeBits size: 1 or 5 bytes
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::_appendTypeBits()
    {
       INT32 rc = SDB_OK;
-      const UINT32 bufSize = _typeBits.getBufSize();
-      rc = _appendBytes(_typeBits.getBuf(), bufSize, FALSE);
-      if (SDB_OK != rc)
+      const UINT32 tbBufSize = _typeBits.getBufSize();
+      if (tbBufSize < std::numeric_limits<UINT8>::max())
       {
-         PD_LOG(PDERROR, "failed to append typebits buffer, rc:%d", rc);
-         goto error;
+         rc = _append(static_cast<UINT8>(tbBufSize), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
+            goto error;
+         }
       }
+      else
+      {
+         rc = _append(std::numeric_limits<UINT8>::max(), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
+            goto error;
+         }
+         rc = _append(tbBufSize, FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
+            goto error;
+         }
+      }
+
+      if (tbBufSize > 0)
+      {
+         rc = _appendBytes(_typeBits.getBuf(), tbBufSize, FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append typebits buffer, rc:%d", rc);
+            goto error;
+         }
+      }
+      
    done:
       return rc;
    error:
@@ -2060,37 +2095,20 @@ namespace vessel
    }
 
    // MetaBlock
-   // TypeBits size: 1 or 4 bytes
    // key string size: 1 or 4 bytes
    // Size ahead key string: 0 or 1 byte
    // metaByte: 1 byte whose 1 bit to indicate size ahead key string, 1 bit to
-   // indicate size of key string and 1 bit to indicate size of TypeBits.
+   // indicate size of key string.
    // version: 1 byte.
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::_appendMetaBlock()
    {
       INT32 rc = SDB_OK;
       UINT32 keyBytesNeeded = _bufSize > 0xff ? 4 : 1;
-      UINT32 typeBitsBytesNeeded = _typeBits.getBufSize() > 0xff ? 4 : 1;
 
       UINT8 metaByte = 0;
       metaByte |= (_sizeAheadElements != 0 ? 1 : 0);
       metaByte |= ((_bufSize > 0xff ? 1 : 0) << 1);
-      metaByte |= ((_typeBits.getBufSize() > 0xff ? 1 : 0) << 2);
-
-      if (typeBitsBytesNeeded == 1)
-      {
-         rc = _append(static_cast<UINT8>(_typeBits.getBufSize()), FALSE);
-      }
-      else
-      {
-         rc = _append(static_cast<UINT32>(_typeBits.getBufSize()), FALSE);
-      }
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
-         goto error;
-      }
 
       if (keyBytesNeeded == 1)
       {
@@ -2160,14 +2178,11 @@ namespace vessel
       {
          goto done;
       }
-      if (!_typeBits.isEmpty())
+      rc = _appendTypeBits();
+      if (SDB_OK != rc)
       {
-         rc = _appendTypeBits();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append typebits, rc:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to append typebits, rc:%d", rc);
+         goto error;
       }
 
       rc = _appendMetaBlock();
@@ -2522,16 +2537,18 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::buildBoundaryKey(const globalIndexID &indexId,
-                                                       BOOLEAN asUpBound,
-                                                       UINT32 bufSize,
-                                                       CHAR *buf,
-                                                       UINT32 &size)
+   INT32 keyStringBuilder<Allocator>::buildBoundaryKey(
+       const globalIndexID &indexId,
+       BOOLEAN asUpBound,
+       UINT32 bufSize,
+       CHAR *buf,
+       UINT32 &size)
    {
       INT32 rc = SDB_OK;
 
       /// 4bytes cs id + 4bytes cl id + 4bytes index id
-      constexpr UINT32 _MIN_BUF_SIZE = keyStringCoder::INDEX_ID_ENCODEING_SIZE + KEY_STRING_MIN_META_BLOCK_SIZE;
+      constexpr UINT32 _MIN_BUF_SIZE = keyStringCoder::INDEX_ID_ENCODEING_SIZE +
+                                       KEY_STRING_MIN_META_BLOCK_SIZE;
       keyStringCoder coder;
       minimalKeyStringMetaBlock *block = nullptr;
 
@@ -2547,11 +2564,12 @@ namespace vessel
       }
 
       coder.encodeGlobalIndexId(indexId, asUpBound, buf);
-      block = reinterpret_cast<minimalKeyStringMetaBlock *>(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE);
+      block = reinterpret_cast<minimalKeyStringMetaBlock *>(
+          buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE);
       block->version = KEY_STRING_VERSION_1;
       block->metaByte = 0;
       block->keySize = 0;
-      block->beforeKeySize = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      //block->beforeKeySize = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
       size = _MIN_BUF_SIZE;
    done:
       return rc;
