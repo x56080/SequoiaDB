@@ -743,6 +743,8 @@ namespace engine
                   segmentID, start, numPages, rc ) ;
          goto error ;
       }
+      // try to adjust the available position of segment to a lower position
+      _freePos.swapLesserThan( segmentID ) ;
       _totalFree.add( numPages ) ;
 
    done :
