@@ -53,7 +53,6 @@ namespace vessel
 #pragma pack(1)
    struct minimalKeyStringMetaBlock
    {
-      UINT8 beforeKeySize = 0;
       UINT8 keySize = 0;
       UINT8 metaByte = 0;
       UINT8 version = 0;
