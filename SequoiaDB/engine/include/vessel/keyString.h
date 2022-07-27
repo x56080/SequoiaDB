@@ -138,7 +138,6 @@ namespace vessel
       UINT32 getSizeBeforeKey() const;
       UINT32 getSizeAfterKey() const;
       UINT32 getTypeBitsSize() const;
-      UINT32 getTypeBitsSizeWidth() const;
 
    public:
       recordID getRid() const;
@@ -189,6 +188,7 @@ namespace vessel
                                        BOOLEAN inverted,
                                        BOOLEAN isNegative,
                                        typeBitsReader &typeReader) const;
+      UINT32 _getTypeBitsSizeWidth() const;
 
    protected:
       slice _ref;
