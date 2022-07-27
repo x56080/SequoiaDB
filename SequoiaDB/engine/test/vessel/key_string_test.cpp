@@ -718,19 +718,19 @@ namespace vessel
       keyString ks = ksb.getShallowKeyString();
    }
 
-   void buildObjs(vector<BSONObj> &v_obj, vector<unique_ptr<keyString>> &v_key)
+   void buildObjs(orderingWrapper ord, vector<BSONObj> &v_obj, vector<unique_ptr<keyString>> &v_key)
    {
       return;
    }
 
    template <typename T, typename... Args>
-   void buildObjs(vector<BSONObj> &v_obj,
+   void buildObjs(orderingWrapper ord,
+                  vector<BSONObj> &v_obj,
                   vector<unique_ptr<keyString>> &v_key,
                   const T &val,
                   const Args &...args)
    {
       INT32 rc = SDB_OK;
-      orderingWrapper ord(0, 1);
       BSONObjBuilder bsb;
       bsb.append("", val);
       BSONObj obj = bsb.obj();
@@ -744,7 +744,7 @@ namespace vessel
       *ks_ptr = ksb.getShallowKeyString();
       ks_ptr->getOwned();
       v_key.push_back(std::move(ks_ptr));
-      buildObjs(v_obj, v_key, args...);
+      buildObjs(ord, v_obj, v_key, args...);
    }
 
    bsonDecimal getDecimalFromString(const CHAR* s)
@@ -754,26 +754,20 @@ namespace vessel
       return dec;
    }
 
-   TEST_F(key_string_test, test_move)
+   bsonDecimal getDecimalFromDouble(FLOAT64 value)
    {
-      orderingWrapper ord(0, 2);
-      BSONObj obj = BSON("a"<<1 << "b" << 1);
-      ksb.appendAllElements(obj, ord);
-      ksb.done();
-      vector<keyString> v;
-      keyString ks = ksb.getShallowKeyString();
-      for(UINT32 i = 0 ;i< 100;i++)
-      {
-         v.push_back(ks);
-         v.rbegin()->getOwned();
-      }
+      bsonDecimal dec;
+      dec.fromDouble(value);
+      return dec;
    }
 
-   TEST_F(key_string_test, base_cmp_numbers)
+   void cmpNumbers(BOOLEAN isDescending)
    {
       vector<BSONObj> v_obj;
       vector<unique_ptr<keyString>> v_key;
-      buildObjs(v_obj,
+      orderingWrapper ord(isDescending ? 1 : 0, 1);
+      buildObjs(ord,
+                v_obj,
                 v_key,
                 -std::numeric_limits<FLOAT64>::max(),
                 std::numeric_limits<INT64>::min(),
@@ -825,7 +819,9 @@ namespace vessel
                 std::numeric_limits<INT32>::max(),
                 std::numeric_limits<INT64>::max(),
                 minLargeFloat64,
-                std::numeric_limits<FLOAT64>::max());
+                std::numeric_limits<FLOAT64>::max(),
+                getDecimalFromDouble(std::numeric_limits<FLOAT64>::max()),
+                std::numeric_limits<FLOAT64>::infinity());
 
       ASSERT_EQ(v_obj.size(), v_key.size());
       for (UINT32 i = 0; i < v_obj.size() - 1; i++)
@@ -836,8 +832,40 @@ namespace vessel
          const CHAR* buf2 = v_key[i+1]->getDataSlice().data();
          INT32 bytecmp = ossMemcmp(buf1, buf2, comparableSize);
          EXPECT_LE(wocmp, 0);
-         EXPECT_LE(bytecmp, 0);
+         if (!isDescending)
+         {
+            EXPECT_LE(bytecmp, 0);
+         }
+         else
+         {
+            EXPECT_GE(bytecmp, 0);
+         }
       }
+   }
+
+   TEST_F(key_string_test, test_move)
+   {
+      orderingWrapper ord(0, 2);
+      BSONObj obj = BSON("a"<<1 << "b" << 1);
+      ksb.appendAllElements(obj, ord);
+      ksb.done();
+      vector<keyString> v;
+      keyString ks = ksb.getShallowKeyString();
+      for(UINT32 i = 0 ;i< 100;i++)
+      {
+         v.push_back(ks);
+         v.rbegin()->getOwned();
+      }
+   }
+
+   TEST_F(key_string_test, base_cmp_numbers_asc)
+   {
+      cmpNumbers(FALSE);
+   }
+
+   TEST_F(key_string_test, base_cmp_numbers_desc)
+   {
+      cmpNumbers(TRUE);
    }
 
    TEST_F(key_string_test, base_large_keysize)
@@ -848,9 +876,36 @@ namespace vessel
       ksb.appendAllElements(obj, ord);
       ksb.done();
       keyString ks = ksb.getShallowKeyString();
-      EXPECT_EQ(ks.getKeySize(), 303);
+      EXPECT_EQ(ks.getKeySize(), 303u);
       slice ref = ks.getDataSlice();
       EXPECT_EQ(ref.data()[ref.getSize() - 2], 2);
+   }
+
+   TEST_F(key_string_test, base_size_ahead_key)
+   {
+      orderingWrapper ord(0, 1);
+      for (int i = 0; i< 10; i++)
+      {
+         ksb.appendUnsignedWithoutType(32u);
+      }
+      ksb.done();
+      keyString ks = ksb.getShallowKeyString();
+      slice ref = ks.getDataSlice();
+      EXPECT_EQ(ref.data()[ref.getSize() - 2], 1);
+   }
+
+   TEST_F(key_string_test, base_size_after_key)
+   {
+      orderingWrapper ord(0, 1);
+      ksb.appendAllElements(BSON("a" << 1), ord);
+      for (int i = 0; i< 10; i++)
+      {
+         ksb.appendUnsignedWithoutType(32u);
+      }
+      ksb.done();
+      keyString ks = ksb.getShallowKeyString();
+      slice ref = ks.getDataSlice();
+      EXPECT_EQ(ref.data()[ref.getSize() - 2], 4);
    }
 
    TEST_F(key_string_test, base_keyslice)
