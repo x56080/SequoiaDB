@@ -272,16 +272,17 @@ namespace vessel
          sizeAfterKey = reader.getUINT8();
       }
 
-      UINT32 typeBitsSizeWidth = getTypeBitsSizeWidth();
+      UINT32 typeBitsSizeWidth = _getTypeBitsSizeWidth();
       SDB_ASSERT(typeBitsSizeWidth != 0, "Unexpected typebits size width");
-      
+
       if (OSS_UNLIKELY(s.getSize() <
-                       (sizeBeforeKey + keySize + +sizeAfterKey + typeBitsSizeWidth + typeBitsSize + blockSize)))
+                       (sizeBeforeKey + keySize + +sizeAfterKey +
+                        typeBitsSizeWidth + typeBitsSize + blockSize)))
       {
          return FALSE;
       }
 
-   return TRUE;
+      return TRUE;
    }
 
    void keyString::_adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize)
@@ -377,7 +378,7 @@ namespace vessel
       }
 
       UINT32 keySize = getKeySize();
-      UINT32 typeBitsSize = getTypeBitsSizeWidth();
+      UINT32 typeBitsSize = getTypeBitsSize();
       if (OSS_UNLIKELY(0 == keySize || 0 == typeBitsSize))
       {
          return slice();
@@ -386,7 +387,7 @@ namespace vessel
       UINT32 sizeBeforeKey = getSizeBeforeKey();
       UINT32 sizeAfterKey = getSizeAfterKey();
       const CHAR *buf = _ref.getData() + sizeBeforeKey + keySize +
-                        sizeAfterKey + typeBitsSize;
+                        sizeAfterKey + _getTypeBitsSizeWidth();
       return slice(typeBitsSize, buf);
    }
 
@@ -509,7 +510,7 @@ namespace vessel
       }
    }
 
-   UINT32 keyString::getTypeBitsSizeWidth() const
+   UINT32 keyString::_getTypeBitsSizeWidth() const
    {
       UINT32 offset = getComparableSize();
       UINT8 firstByte = *(UINT8 *)(_ref.data() + offset);

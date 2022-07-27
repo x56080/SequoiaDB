@@ -188,11 +188,17 @@ namespace vessel
             PD_LOG(PDERROR, "failed to append unsigned fixed field, rc:%d", rc);
             goto error;
          }
-         SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
          if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
          {
+            SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
             _sizeAheadElements += sizeof(val);
+         }
+         else if (BUILDER_STATUS::AFTER_ELEMENTS == _status)
+         {
+            SDB_ASSERT(_sizeAfterElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
+            _sizeAfterElements += sizeof(val);
          }
       done:
          return rc;
@@ -230,11 +236,17 @@ namespace vessel
             PD_LOG(PDERROR, "failed to append signed fixed field, rc:%d", rc);
             goto error;
          }
-         SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
          if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
          {
+            SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
             _sizeAheadElements += sizeof(val);
+         }
+         else if (BUILDER_STATUS::AFTER_ELEMENTS == _status)
+         {
+            SDB_ASSERT(_sizeAfterElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
+            _sizeAfterElements += sizeof(val);
          }
       done:
          return rc;
@@ -365,6 +377,7 @@ namespace vessel
       UINT32 _bufSize = 0;
       UINT32 _sizeAheadElements = 0;
       UINT32 _sizeOfElements = 0;
+      UINT32 _sizeAfterElements = 0;
       UINT32 _capacity = 0;
       Allocator _allocator;
    };
@@ -2106,9 +2119,21 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 keyBytesNeeded = _bufSize > 0xff ? 4 : 1;
 
+
       UINT8 metaByte = 0;
       metaByte |= (_sizeAheadElements != 0 ? 1 : 0);
       metaByte |= ((_bufSize > 0xff ? 1 : 0) << 1);
+      metaByte |= ((_sizeAfterElements != 0 ? 1 : 0) << 2);
+
+      if (_sizeAfterElements != 0)
+      {
+         rc = _append(static_cast<UINT8>(_sizeAfterElements), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append size after key string , rc:%d", rc);
+            goto error;
+         }
+      }
 
       if (keyBytesNeeded == 1)
       {
@@ -2129,7 +2154,7 @@ namespace vessel
          rc = _append(static_cast<UINT8>(_sizeAheadElements), FALSE);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append key string size, rc:%d", rc);
+            PD_LOG(PDERROR, "failed to append size ahead key string size, rc:%d", rc);
             goto error;
          }
       }

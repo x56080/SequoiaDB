@@ -133,7 +133,8 @@ namespace vessel
          UINT32 getTotalSizeWidth()const
          {
             return getBeforeKeySizeWordWidth() +
-                   getKeySizeWordWidth();
+                   getKeySizeWordWidth() + 
+                   getAfterKeySizeWordWidth();
          }
 
 

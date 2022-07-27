@@ -840,6 +840,19 @@ namespace vessel
       }
    }
 
+   TEST_F(key_string_test, base_large_keysize)
+   {
+      orderingWrapper ord(0, 1);
+      std::string s(300, 'x');
+      BSONObj obj = BSON("a" << s);
+      ksb.appendAllElements(obj, ord);
+      ksb.done();
+      keyString ks = ksb.getShallowKeyString();
+      EXPECT_EQ(ks.getKeySize(), 303);
+      slice ref = ks.getDataSlice();
+      EXPECT_EQ(ref.data()[ref.getSize() - 2], 2);
+   }
+
    TEST_F(key_string_test, base_keyslice)
    {
       INT32 rc = SDB_OK;
