@@ -1,4 +1,4 @@
-SequoiaDB 巨杉数据库能够通过 MySQL 原生的 SQL 解析器与分布式引擎层的整合，达到 100% 兼容 MySQL。
+SequoiaDB 巨杉数据库能够通过 MySQL 原生的 SQL 解析器与分布式引擎层的整合，达到协议级兼容 MySQL。
 
 本章主要介绍 MySQL 实例的相关操作：
 
