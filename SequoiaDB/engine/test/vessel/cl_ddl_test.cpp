@@ -418,13 +418,13 @@ TEST_F(cl_ddl_test, base_remove_cl_2)
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObj indexDef;
-   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE,
+   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE,
                                             "index1", FALSE,
                                             BSON("a" << 1));
    rc = cl->createIndex(&executor, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
-   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM,
+   indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE,
                                             "index2", FALSE,
                                             BSON("b" << 1));
    rc = cl->createIndex(&executor, dmsBuildIndexOptions(), indexDef);

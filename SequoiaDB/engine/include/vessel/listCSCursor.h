@@ -67,29 +67,15 @@ namespace vessel
             return CURSOR_TYPE_LIST_COLLECTION_SPACE;
          }
 
-         OSS_INLINE void setLastName(const CHAR *name)
+         OSS_INLINE void setFetched(UINT32 lid)
          {
-            ossStrcpy(_csName, name);
+            _fetched = lid;
          }
 
-         OSS_INLINE const CHAR *getCSName()const
-         {
-            return _csName;
-         }
-
-         OSS_INLINE void markLIdPushed(UINT32 lid)
-         {
-            _pushedLIds.insert(lid);
-         }
-
-         OSS_INLINE BOOLEAN isPushed(UINT32 lid)const
-         {
-            return 0 < _pushedLIds.count(lid);
-         }
+         OSS_INLINE UINT32 getFetched()const {return _fetched;}
 
       private:
-         CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
-         ossPoolSet<UINT32> _pushedLIds;
+         UINT32 _fetched = DMS_INVALID_LOGICCSID;
    };//class listCSCursor
 }//namespace vessel
 }//namespace engine

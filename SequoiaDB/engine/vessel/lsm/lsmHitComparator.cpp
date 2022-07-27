@@ -47,13 +47,14 @@ namespace vessel
          virtual INT32 Compare(const rocksdb::Slice & a,
                                const rocksdb::Slice & b)const override
          {
-            keyString aks(toSlice(a));
-            keyString bks(toSlice(b));
-            SDB_ASSERT(aks.isValid() && bks.isValid(), "can not be invalid");
-            return aks.getComparableSlice().compare(bks.getComparableSlice());
+            // keyString aks(toSlice(a));
+            // keyString bks(toSlice(b));
+            // SDB_ASSERT(aks.isValid() && bks.isValid(), "can not be invalid");
+            // return aks.getComparableSlice().compare(bks.getComparableSlice());
+            return a.compare(b);
          }
 
-         virtual const char* Name() const override { return "sdb.lsmIdxKeyComparator"; }
+         virtual const char* Name() const override { return "sdb.lsmHitComparator"; }
          void FindShortestSeparator(std::string*,const rocksdb::Slice&)const override{}
          void FindShortSuccessor(std::string*) const override {}
    };//class lsmHitComparator

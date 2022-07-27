@@ -44,7 +44,7 @@ namespace vessel
 {
    constexpr CHAR * _LOWER_HYBRID_TREE_VALUE = "hybridtree";
    constexpr CHAR * _LOWER_BTREE_VALUE = "btree";
-   constexpr CHAR * _LOWER_LSM_TREE_VALUE = "lsm";
+   constexpr CHAR * _LOWER_LSM_TREE_VALUE = "lsmtree";
 
    INT32 indexProperties::init(const bson::BSONObj &obj)
    {

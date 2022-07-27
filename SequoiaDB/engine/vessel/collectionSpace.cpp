@@ -455,8 +455,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::dump(requestContext *context,
-                               bson::BSONObj &record)
+   INT32 collectionSpace::dump(bson::BSONObj &record)
    {
       INT32 rc = SDB_OK;
 

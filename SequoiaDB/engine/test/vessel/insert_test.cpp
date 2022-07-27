@@ -739,12 +739,7 @@ void insert_test_nonunique_index(INDEX_TYPE type)
 /// insert with nonunique index
 TEST_F(insert_test, test8_1_1)
 {
-   insert_test_nonunique_index(INDEX_TYPE_LSM);
-}
-
-TEST_F(insert_test, test8_1_2)
-{
-   insert_test_nonunique_index(INDEX_TYPE_BTREE);
+   insert_test_nonunique_index(INDEX_TYPE_HYBRID_TREE);
 }
 
 
@@ -805,13 +800,9 @@ void insert_test_unique_index(INDEX_TYPE type)
 /// insert with unique index
 TEST_F(insert_test, test8_2_1)
 {
-   insert_test_unique_index(INDEX_TYPE_LSM);
+   insert_test_unique_index(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(insert_test, test8_2_2)
-{
-   insert_test_unique_index(INDEX_TYPE_BTREE);
-}
 
 void death_thread_insert(vesselImpl *db,
                          const CHAR *fullName,
@@ -955,7 +946,7 @@ TEST_F(insert_test, DISABLED_death_test_2)
    rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, "index", 
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
                                                           FALSE, BSON("a" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
@@ -1136,7 +1127,7 @@ TEST_F(insert_test, DISABLED_death_test_4)
    ASSERT_EQ(SDB_OK, rc);
 
    {
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, "index", 
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
                                                           FALSE, BSON("a" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
@@ -1144,7 +1135,7 @@ TEST_F(insert_test, DISABLED_death_test_4)
 
    /*
    {
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, "index", 
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
                                                           FALSE, BSON("b" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);

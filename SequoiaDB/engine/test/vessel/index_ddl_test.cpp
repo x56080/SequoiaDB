@@ -1185,7 +1185,7 @@ TEST_F(index_ddl_test, DISABLED_death_create_index_test1)
       {
          string indexName = indexNamePrefix + to_string(i);
          bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-         bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, indexName.c_str(),
+         bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, indexName.c_str(),
                                                                FALSE, pattern);
          rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
          if (SDB_OK == rc)
@@ -1243,7 +1243,7 @@ TEST_F(index_ddl_test, DISABLED_death_create_index_test1)
 
       string indexName = "index";
       bson::BSONObj pattern = BSON(indexName.c_str() << 1);
-      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, indexName.c_str(),
+      bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, indexName.c_str(),
                                                             FALSE, pattern);
       rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
       ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);

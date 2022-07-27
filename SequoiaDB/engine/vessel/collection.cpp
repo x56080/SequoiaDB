@@ -3363,6 +3363,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
 
+      indexMetaStorage metaStore(_cs->getLogicalID(), getLogicalID());
       indexObject *obj = _entryBlock._indexes.getIndexObj(logicalIndexId);
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "must be building");
 
@@ -3377,7 +3378,14 @@ namespace vessel
          goto error;
       }
 
-     _entryBlock._indexes.finishCreating(logicalIndexId);
+      _entryBlock._indexes.finishCreating(logicalIndexId);
+      rc = metaStore.upsert(obj->getLogicalID(), obj->toBson());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index meta data:%d", rc);
+         SDB_ASSERT(FALSE, "TODO");
+         goto error;
+      }
    done:
       return rc;
    error:

@@ -50,8 +50,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       collectionSpace *obj = nullptr;
       SDB_ASSERT(nullptr != cursor, "can not be null");
-      SPACE_ID sid = INVALID_SPACE_ID;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
       requestContext context;
 
       if (OSS_UNLIKELY(nullptr == cursor || !cursor->isOpen()))
@@ -60,16 +58,9 @@ namespace vessel
          goto error;
       }
 
-      sid = cursor->getIdentifier().getSpaceId();
-      logicalID = cursor->getIdentifier().getLid();
-
-      rc = context.lockSpaceID(sid, SHARED);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = context.getEnv()->dms.getCSByLockedSpaceID(&context, logicalID, &obj);
+      rc = context.getEnv()->dms.getCSByCollectionSpaceId(&context,
+                                                          cursor->getIdentifier(),
+                                                          SHARED, &obj);
       if (SDB_OK != rc)
       {
          goto error;

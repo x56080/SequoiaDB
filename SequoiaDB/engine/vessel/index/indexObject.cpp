@@ -87,7 +87,7 @@ namespace vessel
       builder.append(IXM_REBORN_LSN, (long long)_rebornLSN);
       bson::BSONObjBuilder subBuilder(builder.subobjStart(IXM_PROPERTIES));
       _properties.dump(subBuilder);
-      subBuilder.done();
+      subBuilder.doneFast();
       builder.append(IXM_STATUS_FIELD, (INT32)_status);
       if (INVALID_PAGE_ID != _btreeEntryAddr)
       {
@@ -146,8 +146,10 @@ namespace vessel
             rc = SDB_INVALIDARG;
             goto error;
          }
-
-         _btreeEntryAddr = e.Int();
+         else
+         {
+            _btreeEntryAddr = e.Int();
+         }
       }
 
       {

@@ -240,12 +240,7 @@ void test1(INDEX_TYPE type)
 
 TEST_F(index_scan_test, test1_1)
 {
-   test1(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_scan_test, test1_2)
-{
-   test1(INDEX_TYPE_BTREE);
+   test1(INDEX_TYPE_HYBRID_TREE);
 }
 
 void test2(INDEX_TYPE type)
@@ -337,12 +332,7 @@ void test2(INDEX_TYPE type)
 
 TEST_F(index_scan_test, test2_1)
 {
-   test2(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_scan_test, test2_2)
-{
-   test2(INDEX_TYPE_BTREE);
+   test2(INDEX_TYPE_HYBRID_TREE);
 }
 
 void test3(INDEX_TYPE type)
@@ -443,12 +433,7 @@ void test3(INDEX_TYPE type)
 
 TEST_F(index_scan_test, test3_1)
 {
-   test3(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_scan_test, test3_2)
-{
-   test3(INDEX_TYPE_BTREE);
+   test3(INDEX_TYPE_HYBRID_TREE);
 }
 
 void test4(INDEX_TYPE type)
@@ -543,12 +528,7 @@ void test4(INDEX_TYPE type)
 ///backword scan
 TEST_F(index_scan_test, test4_1)
 {
-   test4(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_scan_test, test4_2)
-{
-   test4(INDEX_TYPE_BTREE);
+   test4(INDEX_TYPE_HYBRID_TREE);
 }
 
 void test5(INDEX_TYPE type)
@@ -639,12 +619,7 @@ void test5(INDEX_TYPE type)
 /// index covered
 TEST_F(index_scan_test, test5_1)
 {
-   test5(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_scan_test, test5_2)
-{
-   test5(INDEX_TYPE_BTREE);
+   test5(INDEX_TYPE_HYBRID_TREE);
 }
 
 void multi_index_scan_test(INDEX_TYPE type)
@@ -740,10 +715,5 @@ void multi_index_scan_test(INDEX_TYPE type)
 
 TEST_F(index_scan_test, test6_1)
 {
-   multi_index_scan_test(INDEX_TYPE_BTREE);
-}
-
-TEST_F(index_scan_test, test6_2)
-{
-   multi_index_scan_test(INDEX_TYPE_LSM);
+   multi_index_scan_test(INDEX_TYPE_HYBRID_TREE);
 }

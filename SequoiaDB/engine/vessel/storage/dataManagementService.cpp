@@ -72,7 +72,7 @@ namespace vessel
       SDB_ASSERT(!isOpen(), "do not reinit");
       ossPoolList<SPACE_ID> list;
 
-      if (NULL == context)
+      if (nullptr == context)
       {
          goto error;
       }
@@ -118,13 +118,12 @@ namespace vessel
       _nextLogicalID = 0;
       _suAllocator.clear();
 
-      for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
+      for (auto itr = _mainIndex.begin();
            itr != _mainIndex.end(); ++itr)
       {
          storageUnit *su = itr->second->getSU();
          itr->second->close();
          su->close();
-         SDB_OSS_DEL itr->second;
       }
       _mainIndex.clear();
       
@@ -139,7 +138,7 @@ namespace vessel
                                                     logicalPageSpace **lps)const
    {
       INT32 rc = SDB_OK;
-      storageUnit *su = NULL;
+      storageUnit *su  = nullptr;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -148,7 +147,7 @@ namespace vessel
       }
       else if (INVALID_SPACE_ID == sid ||
                INVALID_SPACE_TYPE == type ||
-               NULL == lps)
+               nullptr == lps)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -185,7 +184,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       out.reset();
-      logicalPageSpace *ptr = NULL;
+      logicalPageSpace *ptr  = nullptr;
       rc = getLogicalPageSpace(sid, type, &ptr);
       if (SDB_OK != rc)
       {
@@ -209,11 +208,11 @@ namespace vessel
       SPACE_ID sid = INVALID_SPACE_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       spaceIDLockHelper lh(context);
-      collectionSpace *obj = NULL;
+      _CS_UNIQUE_PTR obj;
 
       identifier.reset();
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        context->isSpaceIdLocked() ||
                        csName.empty()))
       {
@@ -246,7 +245,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createCS(context, csName, identifier, options, &obj);
+      rc = _createCS(context, csName, identifier, options, obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs obj[%s], rc:%d", csName.str(), rc);
@@ -257,14 +256,14 @@ namespace vessel
       /// end:
       /// 1. Drop name and uid from tmp idex.
       /// 2. Add obj to formal index.
-      endToCreateCS(obj);
+      _endToCreateCS(std::move(obj));
       lh.unlock();
 
       
    done:
       return rc;
    error:
-      SDB_ASSERT(NULL == obj, "must be null");
+      SDB_ASSERT(nullptr == obj, "must be null");
       lh.unlock();
       if (INVALID_SPACE_ID != sid)
       {
@@ -323,20 +322,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataManagementService::createCS(requestContext *context,
-                                         const strSlice &csName,
-                                         const collectionSpaceId &id,
-                                         const dmsCreateCSOptions &options,
-                                         collectionSpace **out)
+   INT32 dataManagementService::_createCS(requestContext *context,
+                                          const strSlice &csName,
+                                          const collectionSpaceId &id,
+                                          const dmsCreateCSOptions &options,
+                                          std::unique_ptr<collectionSpace> &out)
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(id.isValid(), "can not be invalid");
-      SDB_ASSERT(NULL != out, "can not be null");
 
-      collectionSpace *obj = NULL;
-      storageUnit *su = NULL;
+      storageUnit *su  = nullptr;
 
       IDataJournal *journal = context->getEnv()->resource.journal;
       dpsStackJournalPad jpad;
@@ -344,6 +341,7 @@ namespace vessel
       dpsLogRecordHeader jres;
       dpsWriteOptions o;
       o.flushAtOnce = TRUE;
+      out.reset();
 
       /// dummy log
       jpad.setType(LOG_TYPE_CS_CRT);
@@ -371,15 +369,15 @@ namespace vessel
          goto error;
       }
 
-      obj = SDB_OSS_NEW collectionSpace();
-      if (NULL == obj)
+      out.reset(SDB_OSS_NEW collectionSpace());
+      if (!out)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = obj->create(context, csName, su, jres._lsn);
+      rc = out->create(context, csName, su, jres._lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs[%s], rc:%d",
@@ -387,14 +385,12 @@ namespace vessel
          goto error;
       }
 
-      *out = obj;
-
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(obj);
+      out.reset();
 
-      if (NULL != su)
+      if (nullptr != su)
       {
          su->destroy();
          _sus.release(id.getSpaceId());
@@ -417,11 +413,12 @@ namespace vessel
                                                      listCSCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      bson::BSONObj record;
-      BOOLEAN locked = FALSE;
+      ossRWMutexGuard guard(&_latch, SHARED, FALSE);
+      UINT32 lid = DMS_INVALID_LOGICCSID;
+      UINT32 count = 0;
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       NULL == cursor ||
+      if (OSS_UNLIKELY(nullptr == context ||
+                       nullptr == cursor ||
                        !cursor->isOpen() ||
                        context->isSpaceIdLocked()))
       {
@@ -433,152 +430,116 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      
+      guard.autoLock();
+      lid = cursor->getFetched();
 
       do
       {
-         UINT32 lid = DMS_INVALID_LOGICCSID;
-         SPACE_ID sid = INVALID_SPACE_ID;
-         collectionSpace *obj = NULL;
-         strSlice nameSlice;
-         BOOLEAN sidLocked = FALSE;
-         nameSlice.reset(cursor->getCSName());
-
-         if (!locked)
+         collectionSpace *obj = _upperBound(lid);
+         if (nullptr == obj)
          {
-            _latch.lock_r();
-            locked = TRUE;
+            break;
          }
 
-         if (!upperBoundCS(nameSlice, lid, sid, &obj))
-         {
-            cursor->setEOC();
-            goto done;
-         }
-
-         rc = context->tryLockSpaceID(sid, SHARED, sidLocked);
+         bson::BSONObj entry;
+         rc = obj->dump(entry);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to try lock sid[%d], rc:%d", sid, rc);
+            PD_LOG(PDERROR, "failed to dump cs info:%d", rc);
             goto error;
          }
 
-         if (sidLocked)
+         rc = cursor->pushData(entry.objsize(), entry.objdata());
+         if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
-            if (cursor->isPushed(obj->getLogicalID()))
-            {
-               cursor->setLastName(obj->getCSName());
-               context->close();
-               continue;
-            }
-
-            rc = obj->dump(context, record);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to dump cs[%d] record, rc:%d", sid, rc);
-               goto error;
-            }
-            else
-            {
-               rc = cursor->pushData(record.objsize(), record.objdata());
-               if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-               {
-                  rc = SDB_OK;
-                  goto done;
-               }
-               else if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to push record to cursor:%d", rc);
-                  goto error;
-               }
-               else
-               {
-                  cursor->setLastName(obj->getCSName());
-                  cursor->markLIdPushed(obj->getLogicalID());
-                  context->close();
-                  if (cursor->noMorePushThisLoop())
-                  {
-                     goto done;
-                  }
-               }
-            }
+            rc = SDB_OK;
+            SDB_ASSERT(0 < count, "impossible");
+            break;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
+            goto error;
          }
          else
          {
-            _latch.release_r();
-            locked = FALSE;
-            rc = context->lockSpaceID(sid, SHARED);
-            if (SDB_OK != rc)
+            ++count;
+            lid = obj->getLogicalID();
+            cursor->setFetched(lid);
+            if (cursor->noMorePushThisLoop())
             {
-               PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", sid, rc);
-               goto error;
+               break;
             }
-            context->close();
-            continue;
          }
             
       } while (TRUE);
+
+      if (0 == count)
+      {
+         cursor->setEOC();
+      }
    done:
-      if (context->isSpaceIdLocked())
-      {
-         context->close();
-      }
-      if (locked)
-      {
-         _latch.release_r();
-      }
       return rc;
    error:
       goto done;
    }
 
-   INT32 dataManagementService::removeCS(requestContext *context)
+   INT32 dataManagementService::removeCS(requestContext *context,
+                                         const collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *space = NULL;
+      collectionSpace *space  = nullptr;
       OSS_LATCH_MODE mode = SHARED;
-      storageUnit *su = NULL;
+      storageUnit *su  = nullptr;
       utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
       CHAR csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
       strSlice csNameSlice;
 
-      if (OSS_UNLIKELY(NULL == context))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
+      if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      if (!context->isSpaceIdLocked(&mode) ||
-          EXCLUSIVE != mode)
+      else if (OSS_UNLIKELY(nullptr == context ||
+                            !identifier.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!context->isSpaceIdLocked(&mode) ||
+               EXCLUSIVE != mode ||
+               context->getSpaceID() != identifier.getSpaceId())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      
-      space = getCS(context->getSpaceID());
-      if (NULL == space)
+      else
       {
-         PD_LOG(PDERROR, "failed to get cs obj of sid[%d]", context->getSpaceID());
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
+         ossRWMutexGuard guard(&_latch, SHARED);
+         space = _getCSByLid(identifier.getLid());
+         if (nullptr == space)
+         {
+            PD_LOG(PDERROR, "failed to get cs obj[%d]", identifier.getLid());
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
       }
 
+      SDB_ASSERT(nullptr != space, "can not be invalid");
       csNameSlice = space->getCSNameSlice();
       ossMemcpy(csName, csNameSlice.str(), csNameSlice.strLen());
       csNameSlice.reset(csName, csNameSlice.strLen());
-      uniqueId = space->getSpaceId();
+      uniqueId = space->getUniqueID();
       PD_LOG(PDINFO, "begin to remove cs[%s, %d]", csNameSlice.str(), context->getSpaceID());
 
-      prepareToDropCS(csNameSlice, uniqueId, context->getSpaceID());
+      /// do not goto error from here
+      _prepareToDropCS(space);
 
       su = space->getSU();
       space->close();
       SDB_OSS_DEL space;
-      space = NULL;
+      space  = nullptr;
 
       rc = su->destroy();
       if (SDB_OK != rc)
@@ -602,19 +563,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataManagementService::testCS(requestContext *context,
-                                       const strSlice &nameSlice,
+   INT32 dataManagementService::testCS(const strSlice &nameSlice,
                                        collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
-      UINT32 lid = DMS_INVALID_LOGICCSID;
-      SPACE_ID sid = INVALID_SPACE_ID;
-      collectionSpace *obj = NULL;
+      identifier.reset();
 
-      identifier = collectionSpaceId();
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       nameSlice.empty()))
+      if (OSS_UNLIKELY(nameSlice.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -624,16 +579,17 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
+      else
       {
-      ossScopedRWLock guard(&_latch, SHARED);
-      if (!testCS(nameSlice, lid, sid, &obj))
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
+         ossScopedRWLock guard(&_latch, SHARED);
+         collectionSpace *obj = _getCSByName(nameSlice);
+         if (nullptr == obj)
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
 
-      identifier = collectionSpaceId(lid, obj->getUniqueID(), sid);
+         identifier = obj->getIdentifier();
       }
 
    done:
@@ -642,16 +598,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataManagementService::testCS(requestContext *context,
-                                       utilCSUniqueID uniqueId,
-                                       UINT32 &logicalID,
-                                       SPACE_ID &sid)
+   INT32 dataManagementService::testCS(utilCSUniqueID uniqueID,
+                                       collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
-      
+      identifier.reset();
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       !UTIL_IS_VALID_CSUNIQUEID(uniqueId)))
+      if (OSS_UNLIKELY(!UTIL_IS_VALID_CSUNIQUEID(uniqueID)))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -661,79 +614,22 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      else
+      {
+         ossScopedRWLock guard(&_latch, SHARED);
+         collectionSpace *obj = _getCSByUid(uniqueID);
+         if (nullptr == obj)
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
 
-      {
-      ossScopedRWLock guard(&_latch, SHARED);
-      if (!testCS(uniqueId, logicalID, sid, NULL))
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
+         identifier = obj->getIdentifier();
       }
 
    done:
       return rc;
    error:
-      goto done;
-   }
-
-   INT32 dataManagementService::getCSBySpaceID(requestContext *context,
-                                               SPACE_ID sid,
-                                               UINT32 logicalID,
-                                               OSS_LATCH_MODE mode,
-                                               collectionSpace **out)
-   {
-      INT32 rc = SDB_OK;
-      collectionSpace *tmp = NULL;
-      BOOLEAN locked = FALSE;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            context->isSpaceIdLocked() ||
-                            INVALID_SPACE_ID == sid ||
-                            NULL == out))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = context->lockSpaceID(sid, mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", sid, rc);
-         goto error;
-      }
-      locked = TRUE;
-
-      {
-      ossScopedRWLock guard(&_latch, SHARED);
-      tmp = getCS(sid);
-      if (NULL == tmp)
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
-      }
-
-      if (DMS_INVALID_LOGICCSID != logicalID &&
-          logicalID != tmp->getLogicalID())
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
-
-      *out = tmp;
-   done:
-      return rc;
-   error:
-      if (locked)
-      {
-         context->close();
-      }
       goto done;
    }
 
@@ -743,103 +639,31 @@ namespace vessel
                                                          collectionSpace **out)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *tmp = NULL;
-      BOOLEAN locked = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
+      else if (OSS_UNLIKELY(nullptr == context ||
                             context->isSpaceIdLocked() ||
                             !id.isValid() ||
-                            NULL == out))
+                            nullptr == out))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else
+      {
+         rc = _lockAndGetCSByLid(context, id.getLid(), mode, out);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
 
-      rc = context->lockSpaceID(id.getSpaceId(), mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", id.getSpaceId(), rc);
-         goto error;
-      }
-      locked = TRUE;
-
-      {
-      ossScopedRWLock guard(&_latch, SHARED);
-      tmp = getCS(id.getSpaceId());
-      if (NULL == tmp)
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
+         SDB_ASSERT(id == (*out)->getIdentifier(), "must be same");
       }
 
-      if (id.getLid() != tmp->getLogicalID() ||
-          id.getUniqueId() != tmp->getUniqueID())
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
-
-      *out = tmp;
-   done:
-      return rc;
-   error:
-      if (locked)
-      {
-         context->close();
-      }
-      goto done;
-   }
-
-   INT32 dataManagementService::getCSByLockedSpaceID(requestContext *context,
-                                                     UINT32 logicalID,
-                                                     collectionSpace **obj)
-   {
-      INT32 rc = SDB_OK;
-      SPACE_ID sid = INVALID_SPACE_ID;
-      collectionSpace *tmp = NULL;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       NULL == obj))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!context->isSpaceIdLocked()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      sid = context->getSpaceID();
-      {
-      ossScopedRWLock guard(&_latch, SHARED);
-      tmp = getCS(sid);
-      if (NULL == tmp)
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
-      }
-
-      if (DMS_INVALID_LOGICCSID != logicalID &&
-          logicalID != tmp->getLogicalID())
-      {
-         rc = SDB_DMS_CS_NOTEXIST;
-         goto error;
-      }
-
-      *obj = tmp;
    done:
       return rc;
    error:
@@ -853,9 +677,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        nameSlice.empty() ||
-                       NULL == out))
+                       nullptr == out))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -871,7 +695,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _getCSByName(context, nameSlice, mode, out);
+      rc = _lockAndGetCSByName(context, nameSlice, mode, out);
       if (SDB_OK != rc)
       {
          goto error;
@@ -883,36 +707,33 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataManagementService::_getCSByName(requestContext *context,
-                                             const strSlice &nameSlice,
-                                             OSS_LATCH_MODE mode,
-                                             collectionSpace **out)
+   INT32 dataManagementService::_lockAndGetCSByName(requestContext *context,
+                                                    const strSlice &nameSlice,
+                                                    OSS_LATCH_MODE mode,
+                                                    collectionSpace **out)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(!nameSlice.empty(), "can not be empty");
-      SDB_ASSERT(NULL != out, "can not be null");
+      SDB_ASSERT(nullptr != out, "can not be null");
       SDB_ASSERT(!context->isSpaceIdLocked(), "can not be locked");
+      *out = nullptr;
 
-      ossRWMutexGuard guard(&_latch, SHARED, FALSE);
-   
       do
       {
-         collectionSpace *obj = NULL;
          SPACE_ID sid = INVALID_SPACE_ID;
-         UINT32 lid = DMS_INVALID_LOGICCSID;
          BOOLEAN sidLocked = FALSE;
-         
-         guard.autoLock();
-
-         if (!testCS(nameSlice, lid, sid, &obj))
+         ossRWMutexGuard guard(&_latch, SHARED);
+         collectionSpace *obj = _getCSByName(nameSlice);
+         if (nullptr == obj)
          {
             rc = SDB_DMS_CS_NOTEXIST;
             goto error;
          }
-
+         
+         sid = obj->getSpaceId();
          rc = context->tryLockSpaceID(sid, mode, sidLocked);
-         if (SDB_OK != rc)
+         if (OSS_UNLIKELY(SDB_OK != rc))
          {
             PD_LOG(PDERROR, "failed to try lock sid[%d], :%d", sid, rc);
             goto error;
@@ -927,30 +748,13 @@ namespace vessel
          }
          else
          {
-            obj = NULL;
-
-            rc = getCSBySpaceID(context, sid, DMS_INVALID_LOGICCSID, mode, &obj);
-            if (SDB_OK == rc)
+            rc = context->lockSpaceID(sid, mode);
+            if (SDB_OK != rc)
             {
-               if (0 == ossStrcmp(nameSlice.str(), obj->getCSName()))
-               {
-                  *out = obj;
-                  goto done;
-               }
-               context->close();
-            }
-            else if (SDB_DMS_CS_NOTEXIST == rc)
-            {
-               rc = SDB_OK;
-               context->close();
-               continue;
-            }
-            else
-            {
-               context->close();
-               PD_LOG(PDERROR, "failed to get cs obj:%d", rc);
+               PD_LOG(PDERROR, "failed to lock sid[%d], :%d", sid, rc);
                goto error;
             }
+            context->close();
          }
       } while (TRUE);
       
@@ -967,9 +771,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !UTIL_IS_VALID_CSUNIQUEID(uniqueID) ||
-                       NULL == obj))
+                       nullptr == obj))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -985,7 +789,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _getCSByUniqueId(context, uniqueID, mode, obj);
+      rc = _lockAndGetCSByUid(context, uniqueID, mode, obj);
       if (SDB_OK != rc)
       {
          goto error;
@@ -997,185 +801,229 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataManagementService::_getCSByUniqueId(requestContext *context,
-                                                 utilCSUniqueID uniqueId,
+   INT32 dataManagementService::getCSByLogicalID(requestContext *context,
+                                                 UINT32 logicalID,
                                                  OSS_LATCH_MODE mode,
                                                  collectionSpace **out)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(UTIL_IS_VALID_CSUNIQUEID(uniqueId), "can not be invalid");
-      SDB_ASSERT(NULL != out, "can not be null");
-      SDB_ASSERT(!context->isSpaceIdLocked(), "can not be locked");
-      BOOLEAN locked = FALSE;
-   
-      do
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       DMS_INVALID_LOGICCSID == logicalID ||
+                       nullptr == out))
       {
-         collectionSpace *obj = NULL;
-         SPACE_ID sid = INVALID_SPACE_ID;
-         UINT32 lid = DMS_INVALID_LOGICCSID;
-         BOOLEAN sidLocked = FALSE;
-         _latch.lock_r();
-         locked = TRUE;
-         if (!testCS(uniqueId, lid, sid, &obj))
-         {
-            rc = SDB_DMS_CS_NOTEXIST;
-            goto error;
-         }
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(context->isSpaceIdLocked()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
-         rc = context->tryLockSpaceID(sid, mode, sidLocked);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to try lock sid[%d], :%d", sid, rc);
-            goto error;
-         }
-
-         _latch.release_r();
-         locked = FALSE;
-
-         if (!sidLocked)
-         {
-            obj = NULL;
-            rc = context->lockSpaceID(sid, mode);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", sid, rc);
-               goto error;
-            }
-
-            rc = getCSByLockedSpaceID(context, DMS_INVALID_LOGICCSID, &obj);
-            if (SDB_OK == rc)
-            {
-               if (uniqueId == obj->getUniqueID())
-               {
-                  *out = obj;
-                  goto done;
-               }
-               context->close();
-            }
-            else if (SDB_DMS_CS_NOTEXIST == rc)
-            {
-               context->close();
-               rc = SDB_OK;
-               continue;
-            }
-            else
-            {
-               context->close();
-               PD_LOG(PDERROR, "failed to get cs obj:%d", rc);
-               goto error;
-            }
-         }
-
-         *out = obj;
-         break;
-      } while (TRUE);
+      rc = _lockAndGetCSByLid(context, logicalID, mode, out);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
       
    done:
-      if (locked)
-      {
-         _latch.release_r();
-      }
       return rc;
    error:
       goto done;
    }
 
-   BOOLEAN dataManagementService::testCS(utilCSUniqueID uniqueID,
-                                         UINT32 &logicalID,
-                                         SPACE_ID &sid,
-                                         collectionSpace **obj)const
+   INT32 dataManagementService::_lockAndGetCSByUid(requestContext *context,
+                                                   utilCSUniqueID uniqueId,
+                                                   OSS_LATCH_MODE mode,
+                                                   collectionSpace **out)
    {
-      BOOLEAN r = FALSE;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(UTIL_IS_VALID_CSUNIQUEID(uniqueId), "can not be invalid");
+      SDB_ASSERT(nullptr != out, "can not be null");
+      SDB_ASSERT(!context->isSpaceIdLocked(), "can not be locked");
+   
+      do
+      {
+         SPACE_ID sid = INVALID_SPACE_ID;
+         BOOLEAN sidLocked = FALSE;
+         ossRWMutexGuard guard(&_latch, SHARED);
+         collectionSpace *obj = _getCSByUid(uniqueId);
+         if (nullptr == obj)
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
+         
+         sid = obj->getSpaceId();
+         rc = context->tryLockSpaceID(sid, mode, sidLocked);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to try lock sid[%d], :%d", sid, rc);
+            goto error;
+         }
+
+         guard.autoUnlock();
+
+         if (sidLocked)
+         {
+            *out = obj;
+            break;
+         }
+         else
+         {
+            rc = context->lockSpaceID(sid, mode);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to lock sid[%d], :%d", sid, rc);
+               goto error;
+            }
+            context->close();
+         }
+      } while (TRUE);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataManagementService::_lockAndGetCSByLid(requestContext *context,
+                                                   UINT32 logicalId,
+                                                   OSS_LATCH_MODE mode,
+                                                   collectionSpace **out)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != context, "can not be null");
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalId, "can not be invalid");
+      SDB_ASSERT(nullptr != out, "can not be null");
+      SDB_ASSERT(!context->isSpaceIdLocked(), "can not be locked");
+   
+      do
+      {
+         SPACE_ID sid = INVALID_SPACE_ID;
+         BOOLEAN sidLocked = FALSE;
+         ossRWMutexGuard guard(&_latch, SHARED);
+         collectionSpace *obj = _getCSByLid(logicalId);
+         if (nullptr == obj)
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
+         
+         sid = obj->getSpaceId();
+         rc = context->tryLockSpaceID(sid, mode, sidLocked);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to try lock sid[%d], :%d", sid, rc);
+            goto error;
+         }
+
+         guard.autoUnlock();
+
+         if (sidLocked)
+         {
+            *out = obj;
+            break;
+         }
+         else
+         {
+            rc = context->lockSpaceID(sid, mode);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to lock sid[%d], :%d", sid, rc);
+               goto error;
+            }
+            context->close();
+         }
+      } while (TRUE);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   collectionSpace *dataManagementService::_getCSByUid(utilCSUniqueID uniqueID)
+   {
       SDB_ASSERT(UTIL_IS_VALID_CSUNIQUEID(uniqueID), "can not be invalid");
-
-      _UID_INDEX::const_iterator itr = _uidIndex.find(uniqueID);
-      if (_uidIndex.end() == itr)
-      {
-         goto done;
-      }
-
-      logicalID = itr->second->getLogicalID();
-      sid = itr->second->getSpaceId();
-      if (NULL != obj)
-      {
-         *obj = itr->second;
-      }
-      r = TRUE;
-   done:
-      return r;
-   }
-
-   BOOLEAN dataManagementService::testCS(const strSlice &csName,
-                                         UINT32 &logicalID,
-                                         SPACE_ID &sid,
-                                         collectionSpace **obj)const
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(!csName.empty(), "can not be empty");
-      _NAME_INDEX::const_iterator itr = _nameIndex.find(csName.str());
-      if (_nameIndex.end() == itr)
-      {
-         goto done;
-      }
-
-      logicalID = itr->second->getLogicalID();
-      sid = itr->second->getSpaceId();
-      if (NULL != obj)
-      {
-         *obj = itr->second;
-      }
-      r = TRUE;
-   done:
-      return r;
-   }
-
-   collectionSpace *dataManagementService::getCS(SPACE_ID sid)const
-   {
-      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-      collectionSpace *obj = NULL;
-      _SPACE_ID_INDEX::const_iterator itr = _mainIndex.find(sid);
-      if (_mainIndex.end() != itr)
+      collectionSpace *obj = nullptr;
+      auto itr = _uidIndex.find(uniqueID);
+      if (_uidIndex.end() != itr)
       {
          obj = itr->second;
+      }
+
+      return obj;
+   }
+
+   collectionSpace *dataManagementService::_getCSByName(const strSlice &csName)
+   {
+      SDB_ASSERT(!csName.empty(), "can not be empty");
+      collectionSpace *obj = nullptr;
+      auto itr = _nameIndex.find(csName.str());
+      if (_nameIndex.end() != itr)
+      {
+         obj = itr->second;
+      }
+
+      return obj;
+   }
+
+   collectionSpace *dataManagementService::_getCSByLid(UINT32 lid)
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != lid, "can not be invalid");
+      collectionSpace *obj  = nullptr;
+      auto itr = _mainIndex.find(lid);
+      if (_mainIndex.end() != itr)
+      {
+         obj = itr->second.get();
       }
       return obj;
    }
 
-   BOOLEAN dataManagementService::upperBoundCS(const strSlice &name,
-                                               UINT32 &logicalID,
-                                               SPACE_ID &sid,
-                                               collectionSpace **obj)const
+   collectionSpace *dataManagementService::_upperBound(UINT32 logicalId)
    {
-      BOOLEAN r = FALSE;
-      _NAME_INDEX::const_iterator itr = _nameIndex.upper_bound(name.str());
-      if (_nameIndex.end() != itr)
+      collectionSpace *obj = nullptr;
+      if (DMS_INVALID_LOGICCSID == logicalId)
       {
-         logicalID = itr->second->getLogicalID();
-         sid = itr->second->getSpaceId();
-         if (NULL != obj)
+         if (!_mainIndex.empty())
          {
-            *obj = itr->second;
+            obj = _mainIndex.begin()->second.get();
          }
-         r = TRUE;
       }
-      return r;
+      else
+      {
+         auto itr = _mainIndex.upper_bound(logicalId);
+         if (_mainIndex.end() != itr)
+         {
+            obj = itr->second.get();
+         }
+      }
+
+      return obj;
    }
 
    INT32 dataManagementService::loadCollectionSpaces(requestContext *context,
                                                      const ossPoolList<SPACE_ID> &sidList)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       UINT32 maxLogicalId = DMS_INVALID_LOGICCSID;
-      collectionSpace *obj = NULL;
 
       for (ossPoolList<SPACE_ID>::const_iterator itr = sidList.begin();
            itr != sidList.end(); ++itr)
       {
          spaceIDLockHelper lh(context);
-         collectionSpace *obj = NULL;
-         storageUnit *su = NULL;
+         _CS_UNIQUE_PTR obj;
+
+         storageUnit *su  = nullptr;
          rc = _sus.get(*itr, &su);
          if (SDB_OK != rc)
          {
@@ -1183,8 +1031,8 @@ namespace vessel
             goto error;
          }
 
-         obj = SDB_OSS_NEW collectionSpace();
-         if (NULL == obj)
+         obj.reset(SDB_OSS_NEW collectionSpace());
+         if (!obj)
          {
             PD_LOG(PDERROR, "failed to alloate mem");
             rc = SDB_OOM;
@@ -1214,14 +1062,12 @@ namespace vessel
             maxLogicalId = obj->getLogicalID();
          }
 
-         rc = insertIntoFormalIndex(obj);
+         rc = _insertIntoFormalIndex(std::move(obj));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert obj[%d] into index:%d", *itr, rc);
             goto error;
          }
-
-         obj = NULL;
       }
 
       _nextLogicalID = DMS_INVALID_LOGICCSID == maxLogicalId ?
@@ -1229,7 +1075,6 @@ namespace vessel
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(obj);
       goto done;
    }
 
@@ -1237,7 +1082,7 @@ namespace vessel
                                                  ossPoolList<SPACE_ID> &sidList)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(_sus.isInitialized(), "must be invalid");
       SDB_ASSERT(sidList.empty(), "must be empty");
       const storagePathOptions &path = context->getEnv()->options.path;
@@ -1258,7 +1103,7 @@ namespace vessel
          std::string name = dir_iter->path().filename().string();
          strSlice nameSlice(name.c_str(), name.length());
          SPACE_ID sid = INVALID_SPACE_ID;
-         storageUnit *su = NULL;
+         storageUnit *su  = nullptr;
 
          if (!fs::is_directory(dir_iter->status()))
          {
@@ -1413,10 +1258,10 @@ namespace vessel
       goto done;
    }
 
-   void dataManagementService::endToCreateCS(collectionSpace *obj)
+   void dataManagementService::_endToCreateCS(std::unique_ptr<collectionSpace> &&obj)
    {
       SDB_ASSERT(!_unformalNameIndex.empty(), "can not be empty");
-      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(!!obj, "can not be null");
       const CHAR *name = obj->getCSName();
       UINT32 uniqueId = obj->getUniqueID();
       ossScopedRWLock guard(&_latch, EXCLUSIVE);
@@ -1426,7 +1271,7 @@ namespace vessel
          _unformalUidIndex.erase(uniqueId);
       }
 
-      INT32 rc = insertIntoFormalIndex(obj);
+      INT32 rc = _insertIntoFormalIndex(std::move(obj));
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to insert obj[%s] to formal index:%d",
@@ -1461,28 +1306,21 @@ namespace vessel
    }
 
 
-   INT32 dataManagementService::insertIntoFormalIndex(collectionSpace *obj)
+   INT32 dataManagementService::_insertIntoFormalIndex(std::unique_ptr<collectionSpace> &&obj)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != obj, "can not be null");
-      SDB_ASSERT(obj->isOpen(), "must be open");
+      SDB_ASSERT(!!obj, "can not be invalid");
+      SDB_ASSERT(obj->isOpen(), "can not be invalid");
+
       SPACE_ID sid = obj->getSpaceId();
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       UINT32 uid = obj->getUniqueID();
       const CHAR *name = obj->getCSName();
-      SDB_ASSERT(NULL != name, "can not be null");
-      BOOLEAN rollbackMain = FALSE;
+      SDB_ASSERT(nullptr != name, "can not be null");
+      BOOLEAN rollbackUid = FALSE;
       BOOLEAN rollbackName = FALSE;
       
-      if (!_mainIndex.insert(std::make_pair(sid, obj)).second)
-      {
-         PD_LOG(PDERROR, "duplicated space id[%d]", sid);
-         rc = SDB_VESSEL_DUPLICATED_KEY;
-         goto error;
-      }
-      rollbackMain = TRUE;
-
-      if (!_nameIndex.insert(std::make_pair(name, obj)).second)
+      if (!_nameIndex.insert(std::make_pair(name, obj.get())).second)
       {
          PD_LOG(PDERROR, "duplicated name [%s]", name);
          rc = SDB_VESSEL_DUPLICATED_KEY;
@@ -1492,12 +1330,20 @@ namespace vessel
 
       if (UTIL_IS_VALID_CSUNIQUEID(uid))
       {
-         if (!_uidIndex.insert(std::make_pair(uid, obj)).second)
+         if (!_uidIndex.insert(std::make_pair(uid,  obj.get())).second)
          {
             PD_LOG(PDERROR, "duplicated unique id [%d]", uid);
             rc = SDB_VESSEL_DUPLICATED_KEY;
             goto error;
          }
+      }
+      rollbackUid = TRUE;
+
+      if (!_mainIndex.insert(std::make_pair(obj->getLogicalID(), std::move(obj))).second)
+      {
+         PD_LOG(PDERROR, "duplicated space id[%d]", sid);
+         rc = SDB_VESSEL_DUPLICATED_KEY;
+         goto error;
       }
    done:
       return rc;
@@ -1506,27 +1352,11 @@ namespace vessel
       {
          _nameIndex.erase(name);
       }
-      if (rollbackMain)
-      {
-         _mainIndex.erase(sid);
-      }
-      goto done;
-   }
-
-   void dataManagementService::removeFromFormalIndex(collectionSpace *obj)
-   {
-      UINT32 logicalId = obj->getLogicalID();
-      UINT32 uid = obj->getUniqueID();
-      const CHAR *name = obj->getCSName();
-      SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalId, "can not be invalid");
-      SDB_ASSERT(NULL != name, "can not be null");
-      if (UTIL_IS_VALID_CSUNIQUEID(uid))
+      if (rollbackUid)
       {
          _uidIndex.erase(uid);
       }
-      _nameIndex.erase(name);
-      _mainIndex.erase(logicalId);
-      return;
+      goto done;
    }
 
    PAGE_SNAPSHOT_VERION dataManagementService::getOnlinePageSnapshotVersion()
@@ -1547,7 +1377,7 @@ namespace vessel
                                                const UINT32 *pageSize)const
    {
       INT32 rc = SDB_OK;
-      storageUnit *su = NULL;
+      storageUnit *su  = nullptr;
       ptr.reset();
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -1630,7 +1460,7 @@ namespace vessel
    {
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SDB_ASSERT(isOpen(), "must be open");
-      storageUnit *su = NULL;
+      storageUnit *su  = nullptr;
       INT32 rc = _sus.get(sid, &su);
       if (SDB_OK != rc)
       {
@@ -1640,15 +1470,16 @@ namespace vessel
       return su;
    }
 
-   void dataManagementService::prepareToDropCS(const strSlice &csName,
-                                               utilCSUniqueID uniqueID,
-                                               SPACE_ID sid)
+   void dataManagementService::_prepareToDropCS(collectionSpace *obj)
    {
-      SDB_ASSERT(!csName.empty(), "can not be empty");
-      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(nullptr != obj, "can not be empty");
       
-      ossPoolString name(csName.str());
+      ossPoolString name(obj->getCSName());
+      utilCSUniqueID uniqueID = obj->getUniqueID();
+      UINT32 lid = obj->getLogicalID();
+      
       ossScopedRWLock guard(&_latch, EXCLUSIVE);
+      
       SDB_ASSERT(0 == _unformalNameIndex.count(name), "impossible");
       if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
       {
@@ -1656,10 +1487,14 @@ namespace vessel
          _unformalUidIndex.insert(uniqueID);
          _uidIndex.erase(uniqueID);
       }
-      _unformalNameIndex.insert(std::move(name));
-      _nameIndex.erase(csName.str());
 
-      _mainIndex.erase(sid);
+      _nameIndex.erase(name.c_str());
+      _unformalNameIndex.insert(std::move(name));
+      
+      auto itr = _mainIndex.find(lid);
+      SDB_ASSERT(_mainIndex.end() != itr, "impossible");
+      itr->second.release();
+      _mainIndex.erase(itr);
       
       return;
    }

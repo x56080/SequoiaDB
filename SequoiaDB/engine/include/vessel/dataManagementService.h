@@ -84,7 +84,8 @@ namespace vessel
                         const dmsCreateCSOptions &options,
                         collectionSpaceId &identifier);
 
-         INT32 removeCS(requestContext *context);
+         INT32 removeCS(requestContext *context,
+                        const collectionSpaceId &identifier);
 
          INT32 listCollectionSpaces(requestContext *context,
                                     listCSCursor *cursor);
@@ -92,14 +93,11 @@ namespace vessel
          UINT32 getCSCount();
 
       public:
-         INT32 testCS(requestContext *context,
-                      const strSlice &nameSlice,
+         INT32 testCS(const strSlice &nameSlice,
                       collectionSpaceId &identifier);
 
-         INT32 testCS(requestContext *context,
-                      utilCSUniqueID uniqueID,
-                      UINT32 &logicalID,
-                      SPACE_ID &sid);
+         INT32 testCS(utilCSUniqueID uniqueID,
+                      collectionSpaceId &identifier);
 
          INT32 getCSByName(requestContext *context,
                            const strSlice &nameSlice,
@@ -111,21 +109,10 @@ namespace vessel
                                OSS_LATCH_MODE mode,
                                collectionSpace **out);
 
-         /// if logicalID set as valid value,
-         /// will return error when the actual id of the object
-         /// does not match the parameter
-         INT32 getCSBySpaceID(requestContext *context,
-                              SPACE_ID sid,
-                              UINT32 logicalID,
-                              OSS_LATCH_MODE mode,
-                              collectionSpace **out);
-
-         /// if logicalID set as valid value,
-         /// will return error when the actual id of the object
-         /// does not match the parameter
-         INT32 getCSByLockedSpaceID(requestContext *context,
-                                    UINT32 logicalID,
-                                    collectionSpace **out);
+         INT32 getCSByLogicalID(requestContext *context,
+                                UINT32 logicalID,
+                                OSS_LATCH_MODE mode,
+                                collectionSpace **out);
 
          INT32 getCSByCollectionSpaceId(requestContext *context,
                                         const collectionSpaceId &id,
@@ -180,52 +167,45 @@ namespace vessel
                                   UINT32 logicalID,
                                   SPACE_ID sid); 
 
-         void endToCreateCS(collectionSpace *obj);
+         void _endToCreateCS(std::unique_ptr<collectionSpace> &&obj);
 
-         void prepareToDropCS(const strSlice &csName,
-                              utilCSUniqueID uniqueID,
-                              SPACE_ID sid);
+         /// obj will not managed by obj map!
+         /// user must release it outside.
+         void _prepareToDropCS(collectionSpace *obj);
 
          INT32 createSU(requestContext *context,
                         const collectionSpaceId &id,
                         const dmsCreateCSOptions &options,
                         storageUnit *su);
 
-         INT32 createCS(requestContext *context,
-                        const strSlice &csName,
-                        const collectionSpaceId &id,
-                        const dmsCreateCSOptions &options,
-                        collectionSpace **out);
+         INT32 _createCS(requestContext *context,
+                         const strSlice &csName,
+                         const collectionSpaceId &id,
+                         const dmsCreateCSOptions &options,
+                         std::unique_ptr<collectionSpace> &out);
 
-         INT32 _getCSByName(requestContext *context,
-                            const strSlice &nameSlice,
-                            OSS_LATCH_MODE mode,
-                            collectionSpace **out);
+         INT32 _lockAndGetCSByName(requestContext *context,
+                                   const strSlice &nameSlice,
+                                   OSS_LATCH_MODE mode,
+                                   collectionSpace **out);
 
-         INT32 _getCSByUniqueId(requestContext *context,
-                                utilCSUniqueID uniqueId,
-                                OSS_LATCH_MODE mode,
-                                collectionSpace **out);
+         INT32 _lockAndGetCSByUid(requestContext *context,
+                                  utilCSUniqueID uniqueId,
+                                  OSS_LATCH_MODE mode,
+                                  collectionSpace **out);
 
-         BOOLEAN testCS(const strSlice &csName,
-                        UINT32 &logicalID,
-                        SPACE_ID &sid,
-                        collectionSpace **obj)const;
+         INT32 _lockAndGetCSByLid(requestContext *context,
+                                  UINT32 logicalId,
+                                  OSS_LATCH_MODE mode,
+                                  collectionSpace **out);
 
-         BOOLEAN testCS(utilCSUniqueID uniqueID,
-                        UINT32 &logicalID,
-                        SPACE_ID &sid,
-                        collectionSpace **obj)const;
+         collectionSpace *_getCSByName(const strSlice &csName);
+         collectionSpace *_getCSByUid(utilCSUniqueID uniqueID);
+         collectionSpace *_getCSByLid(UINT32 lid);
 
-         BOOLEAN upperBoundCS(const strSlice &name,
-                              UINT32 &logicalID,
-                              SPACE_ID &sid,
-                              collectionSpace **obj)const;
+         collectionSpace *_upperBound(UINT32 logicalId); 
 
-         collectionSpace *getCS(SPACE_ID sid)const;
-
-         INT32 insertIntoFormalIndex(collectionSpace *obj);
-         void removeFromFormalIndex(collectionSpace *obj);
+         INT32 _insertIntoFormalIndex(std::unique_ptr<collectionSpace> &&obj);
 
 
       private:
@@ -237,13 +217,14 @@ namespace vessel
                return ossStrncmp(l, r, DMS_COLLECTION_SPACE_NAME_SZ) < 0;
             }
          };//struct _CS_NAME_LESS
-         typedef ossPoolMap<const CHAR *, collectionSpace *, _NAME_LESS> _NAME_INDEX;
-         typedef ossPoolMap<utilCSUniqueID, collectionSpace *> _UID_INDEX;
-         typedef ossPoolMap<SPACE_ID, collectionSpace *> _SPACE_ID_INDEX;
+         
+         using _CS_UNIQUE_PTR = std::unique_ptr<collectionSpace>;
+         using _CS_UPTR_INDEX = std::map<UINT32, _CS_UNIQUE_PTR>;
+         using _CS_UID_INDEX = std::map<utilCSUniqueID, collectionSpace*>;
+         using _CS_NAME_INDEX = std::map<const CHAR *, collectionSpace *, _NAME_LESS>;
 
-         typedef ossPoolSet<utilCSUniqueID> _UID_SET;
-         typedef ossPoolSet<ossPoolString> _NAME_SET;
-
+         using _TMP_UID_SET = ossPoolSet<utilCSUniqueID>;
+         using _TMP_NAME_SET = ossPoolSet<ossPoolString>;
 
       private:
          BOOLEAN _isOpen = FALSE;
@@ -251,14 +232,14 @@ namespace vessel
          UINT32 _nextLogicalID = 0;
 
          /// formal indexes
-         _SPACE_ID_INDEX _mainIndex;
+         _CS_UPTR_INDEX _mainIndex;
          /// Name should be readonly when obj exists in name index.
-         _NAME_INDEX _nameIndex;  
-         _UID_INDEX _uidIndex;
+         _CS_NAME_INDEX _nameIndex;  
+         _CS_UID_INDEX _uidIndex;
          
          ///unformal indexes, used when creating/removing.
-         _NAME_SET _unformalNameIndex;
-         _UID_SET _unformalUidIndex;
+         _TMP_NAME_SET _unformalNameIndex;
+         _TMP_UID_SET _unformalUidIndex;
 
          boost::dynamic_bitset<> _suAllocator;
          lazyArray<storageUnit> _sus;

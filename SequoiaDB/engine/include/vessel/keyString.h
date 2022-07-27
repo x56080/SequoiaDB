@@ -91,8 +91,8 @@ namespace vessel
       keyString(const keyString &);
       keyString &operator=(const keyString &);
 
-      keyString(keyString &&);
-      keyString &operator=(keyString &&);
+      keyString(keyString &&) noexcept;
+      keyString &operator=(keyString &&) noexcept;
 
    public:
       OSS_INLINE BOOLEAN isValid() const

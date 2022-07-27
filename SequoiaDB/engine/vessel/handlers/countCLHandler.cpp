@@ -57,10 +57,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.getEnv()->dms.getCSBySpaceID(&context,
-                                        gcid.getSpaceId(),
-                                        gcid.getCSLid(),
-                                        SHARED, &cs);
+      rc = context.getEnv()->dms.getCSByLogicalID(&context, gcid.getCSLid(), SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;

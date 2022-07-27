@@ -167,12 +167,7 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-TEST_F(index_write_test, test1_2)
-{
-   insert_test_nonunique_index(INDEX_TYPE_BTREE);
-}
-
 TEST_F(index_write_test, test1_1)
 {
-   insert_test_nonunique_index(INDEX_TYPE_LSM);
+   insert_test_nonunique_index(INDEX_TYPE_HYBRID_TREE);
 }

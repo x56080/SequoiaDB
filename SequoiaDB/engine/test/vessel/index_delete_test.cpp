@@ -185,13 +185,9 @@ void delete_test1(INDEX_TYPE type)
 
 TEST_F(index_delete_test, base_delete_test1)
 {
-   delete_test1(INDEX_TYPE_LSM);
+   delete_test1(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(index_delete_test, base_delete_test2)
-{
-   delete_test1(INDEX_TYPE_BTREE);
-}
 
 /*
 Name: base_delete_test3
@@ -364,13 +360,9 @@ void delete_test2(INDEX_TYPE type)
 
 TEST_F(index_delete_test, base_delete_test3)
 {
-   delete_test2(INDEX_TYPE_LSM);
+   delete_test2(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(index_delete_test, base_delete_test4)
-{
-   delete_test2(INDEX_TYPE_BTREE);
-}
 
 /*
 Name: base_delete_test5
@@ -498,12 +490,7 @@ void partial_delete(INDEX_TYPE type)
 
 TEST_F(index_delete_test, base_delete_test5)
 {
-   partial_delete(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_delete_test, base_delete_test6)
-{
-   partial_delete(INDEX_TYPE_BTREE);
+   partial_delete(INDEX_TYPE_HYBRID_TREE);
 }
 
 
@@ -639,10 +626,5 @@ void backward_delete(INDEX_TYPE type)
 
 TEST_F(index_delete_test, base_backward_delete_test1)
 {
-   backward_delete(INDEX_TYPE_LSM);
-}
-
-TEST_F(index_delete_test, base_backward_delete_test2)
-{
-   backward_delete(INDEX_TYPE_BTREE);
+   backward_delete(INDEX_TYPE_HYBRID_TREE);
 }

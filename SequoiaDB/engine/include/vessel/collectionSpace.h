@@ -142,8 +142,7 @@ namespace vessel
          INT32 listCollections(requestContext *context,
                                listCLCursor *cursor);
 
-         INT32 dump(requestContext *context,
-                    bson::BSONObj &record);
+         INT32 dump(bson::BSONObj &record);
 
          INT32 getCollectionByName(requestContext *context,
                                    const strSlice &clName, 

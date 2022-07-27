@@ -119,7 +119,7 @@ namespace vessel
       return *this;
    }
 
-   keyString::keyString(keyString &&o)
+   keyString::keyString(keyString &&o) noexcept
    {
       if (o.isValid())
       {
@@ -131,7 +131,7 @@ namespace vessel
       o.reset();
    }
 
-   keyString &keyString::operator=(keyString &&o)
+   keyString &keyString::operator=(keyString &&o) noexcept
    {
       reset();
       if (o.isValid())

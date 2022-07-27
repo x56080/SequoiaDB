@@ -62,6 +62,15 @@ namespace vessel
       {
          return {};
       }
+
+      virtual rocksdb::Status AddUserKey(const rocksdb::Slice &key,
+                                         const rocksdb::Slice &value,
+                                         rocksdb::EntryType type,
+                                         rocksdb::SequenceNumber seq,
+                                         uint64_t file_size) override
+      {
+         return rocksdb::Status::OK();
+      } 
    };
 
    constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_LSN = "sdb_min_lsn";

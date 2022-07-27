@@ -47,6 +47,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       requestContext context;
       collectionSpace *cs = nullptr;
+      collectionSpaceId id;
 
       if (OSS_UNLIKELY(name.empty()))
       {
@@ -60,12 +61,15 @@ namespace vessel
          goto error;
       }
 
+      id = cs->getIdentifier();
+      cs = nullptr;
       context.getEnv()->ioBufferPool.discard(context.getSpaceID());
       context.getEnv()->lobcBufferPool.discard(context.getSpaceID());
-      context.getEnv()->dms.removeCS(&context);
+
+      rc = context.getEnv()->dms.removeCS(&context, id);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to remove cs[%d], rc:%d", context.getSpaceID(), rc);
+         PD_LOG(PDERROR, "failed to remove cs[%s], rc:%d", name.str(), rc);
          goto error;
       }
    done:

@@ -286,7 +286,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
-      requestContext context;
       collectionSpaceId identifier;
 
       if (OSS_UNLIKELY(nullptr == executor ||
@@ -301,7 +300,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.dms.testCS(&context, strSlice(name), identifier);
+      rc = _env.dms.testCS(strSlice(name), identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -317,8 +316,32 @@ namespace vessel
    INT32 vesselImpl::testCS(IExecutor *executor,
                             const utilCSUniqueID &uniqueId)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+      collectionSpaceId identifier;
+
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       !UTIL_IS_VALID_CSUNIQUEID(uniqueId)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _env.dms.testCS(uniqueId, identifier);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 vesselImpl::listCS(IExecutor *executor,
@@ -440,7 +463,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       listCLCursor *listCursor = nullptr;
-      requestContext context;
       collectionSpaceId identifier;
       cursor.reset();
 
@@ -455,7 +477,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.dms.testCS(&context, strSlice(csName), identifier);
+      rc = _env.dms.testCS(strSlice(csName), identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -479,7 +501,6 @@ namespace vessel
 
       listCursor->setCollectionSpace(identifier);
    done:
-      context.close();
       return rc;
    error:
       cursor.reset();
@@ -788,7 +809,6 @@ namespace vessel
       collectionSpace *cs = nullptr;
       collection *cl = nullptr;
       requestContext context;
-      spaceIDLockHelper lh(&context);
 
       if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid()))
@@ -802,15 +822,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(gcid.getSpaceId(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", gcid.getSpaceId(), rc);
-         goto error;
-      }
-      rc = _env.dms.getCSByLockedSpaceID(&context,
-                                          gcid.getCSLid(),
-                                          &cs);
+      rc = _env.dms.getCSByLogicalID(&context, gcid.getCSLid(), SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -829,11 +841,7 @@ namespace vessel
          goto error;
       }
    done:
-      if (nullptr != cl)
-      {
-         context.unlockMB();
-      }
-      lh.unlock();
+      context.close();
       return rc;
    error:
       goto done;

@@ -64,10 +64,7 @@ namespace vessel
    globalIndexID lsmIndexIdKey::toGlobalIndexId()const
    {
       keyStringCoder coder;
-      UINT32 cs = coder.decodeToUnsignedNative<UINT32>(_data, FALSE);
-      UINT32 cl = coder.decodeToUnsignedNative<UINT32>(_data + sizeof(UINT32), FALSE);
-      UINT32 index = coder.decodeToUnsignedNative<UINT32>(_data + (sizeof(UINT32) << 1), FALSE);
-      return globalIndexID(cs, cl, index);
+      return coder.decodeToIndexId(_data);
    }
 
    //////////////////////////////// lsmCLIndexKey
@@ -75,7 +72,7 @@ namespace vessel
    {
       keyStringCoder coder;
       coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
-      coder.encodeUnsignedNative<UINT32>(clLid, FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(clLid, FALSE, _data + sizeof(UINT32));
       return;
    }
 
@@ -84,7 +81,7 @@ namespace vessel
       SDB_ASSERT(clLid != OSS_UINT32_MAX, "out of bound");
       keyStringCoder coder;
       coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
-      coder.encodeUnsignedNative<UINT32>(clLid + 1, FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(clLid + 1, FALSE, _data + sizeof(UINT32));
    }
 
    void lsmIndexManifestKey::reset()
