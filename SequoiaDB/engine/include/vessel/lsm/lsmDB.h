@@ -110,7 +110,8 @@ namespace vessel
 
       private:
          rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID id,
-                                                        const rocksdb::Options &opt);
+                                          const rocksdb::Options &opt) const;
+         rocksdb::WriteOptions _getDefaultWriteOptions(LSM_CF_ID id) const;
 
          INT32 _flushDB();
 
