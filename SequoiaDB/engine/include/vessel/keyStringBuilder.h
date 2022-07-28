@@ -322,6 +322,9 @@ namespace vessel
       _bufSize = 0;
       _capacity = 0;
       _sizeAheadElements = 0;
+      _sizeOfElements = 0;
+      _sizeAfterElements = 0;
+      return;
    }
 
    template <typename Allocator>
@@ -2362,6 +2365,8 @@ namespace vessel
        const globalIndexID *indexid)
    {
       INT32 rc = SDB_OK;
+      reset();
+
       if (elements.empty())
       {
          rc = SDB_INVALIDARG;
@@ -2453,6 +2458,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       bson::BSONObjIterator it(key);
       UINT32 elemCount = 0;
+
+      reset();
+
       if (key.isEmpty())
       {
          rc = SDB_INVALIDARG;
@@ -2540,6 +2548,7 @@ namespace vessel
        const UINT64 *lsn)
    {
       INT32 rc = SDB_OK;
+      reset();
       if (indexid)
       {
          rc = appendIndexId(*indexid);
