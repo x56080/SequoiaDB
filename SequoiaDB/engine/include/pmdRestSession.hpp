@@ -565,7 +565,7 @@ namespace engine
 
          _SDB_RTNCB        *_pRTNCB ;
 
-         RestToMSGTransfer _restTransfer ;
+         RestToMSGTransfer *_restTransfer ;
 
    } ;
    typedef _pmdRestSession pmdRestSession ;
