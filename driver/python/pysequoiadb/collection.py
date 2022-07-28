@@ -1076,12 +1076,13 @@ class collection(object):
         rc = sdb.cl_drop_index(self._cl, idx_name)
         raise_if_error(rc, "Failed to drop index")
 
-    def get_index_stat(self, idx_name):
+    def get_index_stat(self, idx_name, detail=False):
         """Get the statistics of the index.
 
         Parameters:
            Name         Type  Info:
            idx_name     str   The index name.
+           detail       bool  Whether show the detail information.
         Return values:
            a dict object of result
         Exceptions:
@@ -1089,8 +1090,10 @@ class collection(object):
         """
         if not isinstance(idx_name, str_type):
             raise SDBTypeError("index name must be an instance of str_type")
+        if not isinstance(detail, bool):
+            raise SDBTypeError("detail must be an instance of bool")
 
-        rc, result = sdb.cl_get_index_stat(self._cl, idx_name)
+        rc, result = sdb.cl_get_index_stat(self._cl, idx_name, detail)
         raise_if_error(rc, "Failed to get index statistics")
         record, size = bson._bson_to_dict(result, dict, False,
                                           bson.OLD_UUID_SUBTYPE, True)
