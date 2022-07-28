@@ -3397,5 +3397,13 @@
          </description>
       </code>
 
+      <code>
+         <tag>vessel</tag>
+         <name>SDB_VESSEL_INVALID_KEY_STR_DATA</name>
+         <description>
+            <en>invalid control key string data</en>
+            <cn>非法的键编码数据</cn>
+         </description>
+      </code>
    </codelist>
 </rclist>
