@@ -81,6 +81,7 @@ namespace vessel
       opt.create_if_missing = TRUE;
       opt.create_missing_column_families = TRUE;
       // opt.listeners.emplace_back(newLsmEventListener(this));
+      opt.max_background_jobs = 4;
 
       // configure column family names and options
       for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)

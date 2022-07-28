@@ -105,7 +105,8 @@ namespace vessel
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
       if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexId ||
-                       birthNodeLevel < 0))
+                       birthNodeLevel < 0 ||
+                       birthNodeLevel > std::numeric_limits<INT8>::max()))
       {
          goto done;
       }
@@ -124,7 +125,7 @@ namespace vessel
       headPtr->rightChild = INVALID_PAGE_ID;
       headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
       headPtr->backOffset = getPageBodySize(pageSize);
-      headPtr->birthNodeLevel = birthNodeLevel;
+      headPtr->birthLevel = birthNodeLevel;
       headPtr->flags = 0;
       if (isLeaf)
       {

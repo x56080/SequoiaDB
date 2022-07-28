@@ -594,7 +594,7 @@ namespace vessel
          _itr->Prev();
       }
 
-      if (!_itr->Valid() && _itr->status().ok())
+      if (!_itr->Valid() && !_itr->status().ok())
       {
          PD_LOG(PDERROR, "failed to move iterator:%s", _itr->status().getState());
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -720,13 +720,13 @@ namespace vessel
 
       if (_o.pointGetOnly)
       {
-         //options.auto_prefix_mode = TRUE;
+         options.auto_prefix_mode = FALSE;
          options.total_order_seek = FALSE;
          options.prefix_same_as_start = TRUE;
       }
       else
       {
-         //options.auto_prefix_mode = FALSE;
+         options.auto_prefix_mode = FALSE;
          options.total_order_seek = TRUE;
          options.prefix_same_as_start = FALSE;
       }

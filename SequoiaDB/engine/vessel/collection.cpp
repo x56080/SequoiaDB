@@ -822,11 +822,14 @@ namespace vessel
          }
       }
 
-      rc = hit.handleDmlRequests(context, ra.getRequests());
-      if (SDB_OK != rc)
+      if (!ra.isEmpty())
       {
-         PD_LOG(PDERROR, "failed to handle index requests:%d", rc);
-         goto error;
+         rc = hit.handleDmlRequests(context, ra.getRequests());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to handle index requests:%d", rc);
+            goto error;
+         }
       }
 
       if (nullptr != res)

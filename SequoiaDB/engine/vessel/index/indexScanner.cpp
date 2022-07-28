@@ -110,18 +110,19 @@ namespace vessel
             goto error;
          }
       }
-
-      if (!_iterator->isReadyToRead())
-      {
-         rc = SDB_IXM_EOC;
-         goto error;
-      }
-      else
+      else if (_iterator->isReadyToRead())
       {
          rc = _iterator->initOrUpdateLocation(_cursor->getCtx().getLocation());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to update entry location:%d", rc);
+            goto error;
+         }
+
+         rc = _iterator->next();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch next from iterator:%d", rc);
             goto error;
          }
       }

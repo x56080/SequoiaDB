@@ -81,7 +81,7 @@ namespace vessel
       public:
          BOOLEAN isRoot()const;
          BOOLEAN isLeaf()const;
-         INT32 getBirthNodeLevel()const;
+         INT32 getBirthLevel()const;
          UINT32 getItemCount()const;
          UINT32 getNodeSize()const;
          ossSharedLatchMode getLockingMode()const;

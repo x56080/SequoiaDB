@@ -82,9 +82,9 @@ namespace vessel
       return getReadableHead()->totalSlotCount;
    }
 
-   INT32 btreeNode::getBirthNodeLevel()const
+   INT32 btreeNode::getBirthLevel()const
    {
-      return getReadableHead()->birthNodeLevel;
+      return getReadableHead()->birthLevel;
    }
 
    BOOLEAN btreeNode::hasFreeSpaceToInsert(UINT32 keySize,
@@ -1456,7 +1456,7 @@ namespace vessel
       newHead->rightChild = head->rightChild;
       newHead->transSN = head->transSN;
       newHead->transNode = head->transNode;
-      newHead->birthNodeLevel = head->birthNodeLevel;
+      newHead->birthLevel = head->birthLevel;
 
       for (RECORD_SLOT_POS  i = begin; i < head->totalSlotCount; ++i)
       {

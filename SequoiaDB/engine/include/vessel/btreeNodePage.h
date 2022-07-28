@@ -98,11 +98,6 @@ namespace vessel
 
    struct btreeNodePageHead
    {
-      btreeNodePageHead(){}
-      ~btreeNodePageHead(){}
-      btreeNodePageHead(const btreeNodePageHead &) = delete;
-      btreeNodePageHead &operator=(const btreeNodePageHead &) = delete;
-
       OSS_INLINE BOOLEAN isValid()const
       {
          return BTREE_NODE_PAGE_HEAD_VERSION == version &&
@@ -117,12 +112,14 @@ namespace vessel
       UINT16 backOffset = 0;
       UINT16 prefixCount = 0;
       UINT16 compressedItemCount = 0;
-      UINT16 appendingFactor = 0;
+      UINT8 appendingFactor = 0;
+      INT8 birthLevel = -1;
       UINT32 rightChild = INVALID_PAGE_ID;
-      INT32 birthNodeLevel = -1;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
-      CHAR pad[22] = {};
+      UINT16 reserved0 = 0;
+      UINT64 reserved1 = 0;
+      UINT64 reserved2 = 0;
    };//struct btreeNodeHead
    constexpr UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
    
@@ -213,15 +210,19 @@ namespace vessel
 
          struct 
          {
-            UINT32 reserved;
-            UINT32 leftChild;
+            private:
+               UINT32 _key;
+            public:
+               UINT32 leftChild;
          } nlf; // non-leaf format
 
          struct
          {
-            UINT32 reserved;
-            INT16 prefixSlot;
-            UINT16 flags;
+            private:
+               UINT32 _key;
+            public:
+               INT16 prefixSlot;
+               UINT16 flags;
          }lf; // leaf format
 
          UINT64 value = 0;

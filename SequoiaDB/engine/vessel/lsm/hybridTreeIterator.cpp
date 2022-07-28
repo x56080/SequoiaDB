@@ -119,13 +119,14 @@ namespace vessel
             goto error;
          }
 
-         if (!_lsm.isReadyToRead())
-         {
-            break;
-         }
-         else if (_lsm.isMarkedRemoved())
+         if (_lsm.isReadyToRead() &&
+             _lsm.isMarkedRemoved())
          {
             continue;
+         }
+         else
+         {
+            break;
          }
       } while (TRUE);
       

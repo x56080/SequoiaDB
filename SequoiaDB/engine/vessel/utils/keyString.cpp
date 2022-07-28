@@ -177,6 +177,7 @@ namespace vessel
 
       _ref = s;
       rc = _parse(_ref, _desc);
+      if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to parese key stirng data:%d", rc);
          goto error;
