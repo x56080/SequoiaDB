@@ -39,6 +39,7 @@
 #include "../bson/bsonobj.h"
 #include "../bson/bsonobjbuilder.h"
 #include "../bson/bsonobjiterator.h"
+#include "oss.hpp"
 #include "ossMemPool.hpp"
 #include "vessel/orderingWrapper.h"
 #include "vessel/slice.h"
@@ -161,50 +162,52 @@ namespace vessel
                                  UINT32 sizeb,
                                  const CHAR *bufb);
 
+      class bodyReader : public SDBObject
+      {
+      public:
+         bodyReader(const CHAR *bodyBuf,
+                    UINT32 bufSize,
+                    const CHAR *typeBitsBuf,
+                    UINT32 typeBitsBufSize);
+
+      public:
+         bson::BSONObj toBSON(const bson::BSONObj &pattern,
+                              BSONObjBuilder &bufBuilder,
+                              BOOLEAN withFieldName = FALSE);
+         void toBsonValue(EncodedType type,
+                          BOOLEAN inverted,
+                          bson::BSONObjBuilder &builder,
+                          const CHAR *fieldName = nullptr);
+
+      private:
+         template <typename T> T _read(BOOLEAN inverted);
+         template <typename T> T _peek(BOOLEAN inverted) const;
+         void _readBytes(BOOLEAN inverted, CHAR *bytes, UINT32 len);
+         void _readCString(BOOLEAN inverted, ossPoolString &s);
+         void _toBSON(BOOLEAN inverted,
+                      bson::BSONObjBuilder &builder,
+                      const CHAR *fieldName = nullptr);
+         bson::BSONObj _toBSON(BOOLEAN inverted, BOOLEAN withFieldName);
+
+         void _toNumeric(EncodedType type,
+                         BOOLEAN inverted,
+                         bson::BSONObjBuilder &builder,
+                         const CHAR *fieldName = nullptr);
+         void _decodeStringLike(BOOLEAN inverted, ossPoolString &s);
+         bson::bsonDecimal _decodeDecimal(BOOLEAN inverted, BOOLEAN isNegative);
+
+      private:
+         const CHAR *_buf = nullptr;
+         UINT32 _bufSize = 0;
+         UINT32 _offset = 0;
+         typeBitsReader typeReader;
+      };
+
    private:
       INT32 _parse(const slice &s, keyStringDescriptor &desc)const;
       //void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
    private:
-      template <typename T> T _read(UINT32 &offset, BOOLEAN inverted) const;
-      template <typename T> T _peek(UINT32 offset, BOOLEAN inverted) const;
-      void _readBytes(UINT32 &offset,
-                      BOOLEAN inverted,
-                      CHAR *bytes,
-                      UINT32 len) const;
-      void _readCString(UINT32 &offset,
-                        BOOLEAN inverted,
-                        ossPoolString &s) const;
-      void _toBSON(UINT32 &offset,
-                   BOOLEAN inverted,
-                   bson::BSONObjBuilder &builder,
-                   typeBitsReader &typeReader,
-                   const CHAR *fieldName = nullptr) const;
-      bson::BSONObj _toBSON(UINT32 &offset,
-                            BOOLEAN inverted,
-                            typeBitsReader &typeReader,
-                            BOOLEAN withFieldName) const;
-
-      void _toBsonValue(EncodedType type,
-                        UINT32 &offset,
-                        BOOLEAN inverted,
-                        bson::BSONObjBuilder &builder,
-                        typeBitsReader &typeReader,
-                        const CHAR *fieldName = nullptr) const;
-      void _toNumeric(EncodedType type,
-                      UINT32 &offset,
-                      BOOLEAN inverted,
-                      bson::BSONObjBuilder &builder,
-                      typeBitsReader &typeReader,
-                      const CHAR *fieldName = nullptr) const;
-      void _decodeStringLike(UINT32 &offset,
-                             BOOLEAN inverted,
-                             ossPoolString &s) const;
-      bson::bsonDecimal _decodeDecimal(UINT32 &offset,
-                                       BOOLEAN inverted,
-                                       BOOLEAN isNegative,
-                                       typeBitsReader &typeReader) const;
-      
       BOOLEAN _loadSizeData(bytesReader &reader,
                             BOOLEAN nonzero,
                             UINT32 &size)const;
