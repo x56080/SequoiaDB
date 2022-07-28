@@ -48,6 +48,8 @@ final class SdbConstants {
     final static String FIELD_NAME_CELLECTIONSPACE = "CollectionSpace";
     final static String FIELD_NAME_AUTOINCREMENT = "AutoIncrement";
     final static String FIELD_NAME_AUTOINC_FIELD = "Field";
+    final static String FIELD_NAME_DETAIL = "Detail";
+    final static String FIELD_NAME_CMD_OPTIONS = "$Options";
 
     final static String FIELD_NAME_SESSION_ID = "SessionID";
 
