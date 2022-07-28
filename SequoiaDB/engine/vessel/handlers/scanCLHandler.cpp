@@ -71,9 +71,9 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, cursor->getCollectionId().getMbId(),
-                                   cursor->getCollectionId().getCLLid(),
-                                   SHARED, &cl);
+      rc = cs->getCollectionById(&context,
+                                 cursor->getCollectionId().getCLIdentifier(),
+                                 SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;

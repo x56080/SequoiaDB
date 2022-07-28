@@ -536,11 +536,13 @@ namespace vessel
          cfOpt.prefix_extractor.reset(getLsmIndexPrefixTransform());
          //cfOpt.level0_slowdown_writes_trigger = 1024;
          //cfOpt.level0_stop_writes_trigger = 1536;
+         cfOpt.compression = rocksdb::kNoCompression;
+         //cfOpt.compaction_style = rocksdb::kCompactionStyleNone;
 
-         // rocksdb::BlockBasedTableOptions tableOpt;
-         // tableOpt.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
-         // tableOpt.whole_key_filtering = FALSE;
-         // cfOpt.table_factory.reset(rocksdb::NewBlockBasedTableFactory(tableOpt));
+         rocksdb::BlockBasedTableOptions tableOpt;
+         tableOpt.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
+         tableOpt.whole_key_filtering = FALSE;
+         cfOpt.table_factory.reset(rocksdb::NewBlockBasedTableFactory(tableOpt));
       }
       else if (LSM_CF_LOBM == id)
       {

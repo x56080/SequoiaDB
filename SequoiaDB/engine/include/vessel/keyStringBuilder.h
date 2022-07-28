@@ -54,6 +54,8 @@
 #include "vessel/globalIndexID.h"
 #include "dpsDef.hpp"
 #include "vessel/keyStringCoder.h"
+#include "vessel/keyStringMetaBlock.h"
+#include "vessel/keyStringMetaByte.h"
 
 #include <iomanip>
 #include <limits>
@@ -2571,11 +2573,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      /// 4bytes cs id + 4bytes cl id + 4bytes index id
       constexpr UINT32 _MIN_BUF_SIZE = keyStringCoder::INDEX_ID_ENCODEING_SIZE +
-                                       KEY_STRING_MIN_META_BLOCK_SIZE;
+                                       sizeof(keyStringMetaBlock<1>) + 1;
       keyStringCoder coder;
-      minimalKeyStringMetaBlock *block = nullptr;
+      keyStringMetaBlock<1> *block = nullptr;
+      keyStringMetaByte b;
+      b.setHasDataBeforeKey();
 
       if (!indexId.isValid())
       {
@@ -2589,11 +2592,13 @@ namespace vessel
       }
 
       coder.encodeGlobalIndexId(indexId, asUpBound, buf);
-      block = reinterpret_cast<minimalKeyStringMetaBlock *>(
-          buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE);
+      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE) = 0;
+      block = reinterpret_cast<keyStringMetaBlock<1> *>(
+          buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 1);
       block->version = KEY_STRING_VERSION_1;
-      block->metaByte = 0;
+      block->metaByte = b.getByte();
       block->keySize = 0;
+      block->beforeKeySize =  keyStringCoder::INDEX_ID_ENCODEING_SIZE;
       //block->beforeKeySize = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
       size = _MIN_BUF_SIZE;
    done:

@@ -42,6 +42,7 @@
 #include "ossLikely.hpp"
 #include "vessel/keyStringBuilder.h"
 #include "vessel/keyStringModifier.h"
+#include "vessel/sliceTransfer.h"
 
 namespace engine
 {
@@ -320,7 +321,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(_isInited()))
+      else if (OSS_UNLIKELY(!_isInited()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -372,7 +373,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(_isInited()))
+      else if (OSS_UNLIKELY(!_isInited()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -570,7 +571,7 @@ namespace vessel
       }
 
       l = static_cast<lsmIndexEntryLocation *>(location.get());
-      l->assign(_ks.getDataSlice());
+      l->assign(_ks.getRawData());
    done:
       return rc;
    error:
@@ -639,7 +640,7 @@ namespace vessel
       SDB_ASSERT(ks.isValid(), "can not be invalid");
       SDB_ASSERT(nullptr != _itr, "can not be invalid");
 
-      rocksdb::Slice s(ks.getDataSlice().getData(), ks.getDataSlice().getSize());
+      rocksdb::Slice s = toRocksdbSlice(ks.getRawData());
       _resetCurrentEntry();
 
       if (!forPrev)

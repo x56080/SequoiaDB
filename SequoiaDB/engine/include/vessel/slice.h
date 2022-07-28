@@ -118,6 +118,7 @@ namespace vessel
 
             return res;
          }
+
       private:
          UINT32 _size = 0;
          const CHAR *_data = nullptr;

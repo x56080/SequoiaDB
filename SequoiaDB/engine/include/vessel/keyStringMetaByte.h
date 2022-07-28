@@ -127,7 +127,9 @@ namespace vessel
          }
          INT32 getAfterKeySizeWordOffset()const
          {
-            return getKeySizeWordOffset() + getAfterKeySizeWordWidth();
+            return (0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY)) ?
+                   (getKeySizeWordOffset() + getAfterKeySizeWordWidth()) :
+                   -1;
          }
          
          UINT32 getTotalSizeWidth()const
@@ -140,9 +142,16 @@ namespace vessel
 
          UINT8 getByte()const {return _b;}
 
+         OSS_INLINE static UINT8 getMetaBlockFormatNum(UINT8 b)
+         {
+            return 0x07 & b;
+         }
+
       private:
          UINT8 _b = 0;
    };//class keyStringMetaByte
+
+   static_assert(1 == sizeof(keyStringMetaByte), "invalid size");
 
 #pragma pack()
 

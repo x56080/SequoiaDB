@@ -92,6 +92,7 @@ namespace vessel
          return ossBigEndianToNative(val) ^ std::numeric_limits<T>::min();
       }
 
+      static constexpr UINT32 RID_ENCODING_SIZE = 6;/// 4bytes pid + 2bytes pos
       void encodeRid(const recordID &rid, void *buf);
       recordID decodeToRid(const void *buf) const;
       

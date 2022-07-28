@@ -76,12 +76,12 @@ namespace vessel
       csMetaBlock mb;
       SDB_ASSERT(!isOpen(), "do not recreate");
       
-      if (OSS_UNLIKELY(NULL == context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isSpaceIdLocked(&mode) ||
                        EXCLUSIVE != mode ||
                        DMS_COLLECTION_SPACE_NAME_SZ < name.strLen() ||
                        name.empty() ||
-                       NULL == su ||
+                       nullptr == su ||
                        !su->isOpen() ||
                        DPS_INVALID_LSN_OFFSET == lsn))
       {
@@ -135,8 +135,8 @@ namespace vessel
       csMetaBlock mb;
       
       SDB_ASSERT(!isOpen(), "do not reopen");
-      if (OSS_UNLIKELY(NULL == context ||
-                       NULL == su ||
+      if (OSS_UNLIKELY(nullptr == context ||
+                       nullptr == su ||
                        !su->isOpen()))
       {
          rc = SDB_INVALIDARG;
@@ -186,7 +186,7 @@ namespace vessel
    void collectionSpace::fini()
    {
       _isOpen = FALSE;
-      _su = NULL;
+      _su = nullptr;
       _properties.reset();
       _allocator.clearAll();
       _collections.fini();
@@ -206,8 +206,8 @@ namespace vessel
       SDB_ASSERT(isOpen(), "must be open");
       CL_MB_ID mbID = INVALID_CL_MB_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCLID;
-      _CL_HOLDER *holder = NULL;
-      collection *obj = NULL;
+      _CL_HOLDER *holder = nullptr;
+      collection *obj = nullptr;
       BOOLEAN locked = FALSE;
       
       if (OSS_UNLIKELY(!isOpen()))
@@ -215,7 +215,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
+      else if (OSS_UNLIKELY(nullptr == context ||
                             clName.empty() ||
                             DMS_COLLECTION_NAME_SZ < clName.strLen() ||
                             !options.isValid()))
@@ -230,7 +230,12 @@ namespace vessel
          goto error;
       }
 
-      getCollectionHolder(mbID, &holder);
+      rc = getCollectionHolder(mbID, &holder);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get collection holder:%d", rc);
+         goto error;
+      }
       SDB_ASSERT(nullptr != holder && !holder->isFree(), "impossible");
 
       context->lockMB(mbID, holder->getMutexPtr(), EXCLUSIVE);
@@ -276,7 +281,7 @@ namespace vessel
                                    const collectionId &identifier)
    {
       INT32 rc = SDB_OK;
-      collection *cl = NULL;
+      collection *cl = nullptr;
       ossPoolString clName;
       strSlice clNameSlice;
       utilCLInnerID innerId = UTIL_UNIQUEID_NULL;
@@ -288,7 +293,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
+      else if (OSS_UNLIKELY(nullptr == context ||
                             !identifier.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -310,15 +315,16 @@ namespace vessel
       innerId = cl->getInnerID();
       mbID = context->getMBID();
 
-      prepareToRemoveCL(clName, innerId);
+      prepareToRemoveCL(cl);
 
       rc = cl->destroy(context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove cl[%s], rc:%d", clName.c_str(), rc);
-         goto error;
+         SDB_ASSERT(FALSE, "TOOD");
+         //goto error;
       }
-      cl = NULL;
+      cl = nullptr;
 
       releaseCL(clNameSlice, innerId, mbID);
    done:
@@ -343,11 +349,10 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(!context->isMbLocked(), "can not be locked");
-
-      bson::BSONObj record;
-      ossSLatchGuard guard(&_latch, SHARED, FALSE);
+      UINT32 count = 0;
       
-      if (OSS_UNLIKELY(NULL == context && NULL == cursor))
+      if (OSS_UNLIKELY(nullptr == context ||
+                       nullptr == cursor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -360,20 +365,13 @@ namespace vessel
 
       do
       {
-         BOOLEAN mbLocked = FALSE;
-         if (!guard.isLocked())
+         bson::BSONObj entry;
+         _CL_HOLDER *holder = nullptr;
+         ossSLatchGuard guard(&_latch, SHARED);
+         CL_MB_ID mbID = _upperBoundCL(cursor->getScanned());
+         if (INVALID_CL_MB_ID == mbID)
          {
-            guard.lock();
-         }
-
-         _CL_HOLDER *holder = NULL;
-         CL_MB_ID mbID = INVALID_CL_MB_ID;
-         strSlice nameSlice(cursor->getCLName());
-
-         if (!upperBoundCLName(nameSlice, mbID))
-         {
-            cursor->setEOC();
-            goto done;
+            break;
          }
 
          rc = getCollectionHolder(mbID, &holder);
@@ -383,75 +381,43 @@ namespace vessel
             goto error;
          }
 
-         mbLocked = context->tryLockMB(mbID, holder->getMutexPtr(), SHARED);
-
-         if (mbLocked)
+         rc = holder->get()->dump(entry);
+         if (SDB_OK != rc)
          {
-            if (holder->isFree())
-            {
-               PD_LOG(PDERROR, "unexpected free holder[%d]", mbID);
-               rc = SDB_VESSEL_INTERNAL_ERR;
-               goto error;
-            }
-
-            if (cursor->isPushed(holder->get()->getLogicalID()))
-            {
-               cursor->setCLName(holder->get()->getName());
-               context->unlockMB();
-               continue;
-            }
-
-            rc = holder->get()->dump(context, record);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to dump collection:%d", rc);
-               goto error;
-            }
-
-            rc = cursor->pushData(record.objsize(), record.objdata());
-            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-            {
-               context->unlockMB();
-               rc = SDB_OK;
-               break;
-            }
-            else if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to push record to cursor:%d", rc);
-               goto error;
-            }
-
-            cursor->markLIdPushed(holder->get()->getLogicalID());
-            cursor->setCLName(holder->get()->getName());
-            context->unlockMB();
-            if (cursor->noMorePushThisLoop())
-            {
-               break;
-            }
-            else
-            {
-               continue;
-            }
+            PD_LOG(PDERROR, "failed to dump collection:%d", rc);
+            goto error;
          }
-         else /// failed to lock mb
+
+         rc = cursor->pushData(entry.objsize(), entry.objdata());
+         if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
-            guard.unlock();
-            holder->mutex().lock_r();
-            holder->mutex().release_r();
-            continue;
+            SDB_ASSERT(0 < count, "impossible");
+            rc = SDB_OK;
+            break;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
+            goto error;
+         }
+
+         cursor->setScanned(mbID);
+         ++count;
+         if (cursor->noMorePushThisLoop())
+         {
+            break;
          }
          
       } while (TRUE);
+
+      if (0 == count)
+      {
+         cursor->setEOC();
+      }
       
    done:
-      if (context->isMbLocked())
-      {
-         context->unlockMB();
-      }
-      guard.unlock();
       return rc;
    error:
-      
       goto done;
    }
 
@@ -485,27 +451,29 @@ namespace vessel
                                               collection **obj)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN mbLocked = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
+      else if (OSS_UNLIKELY(nullptr == context ||
                             clName.empty() ||
-                            NULL == obj))
+                            nullptr == obj))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      *obj = nullptr;
+
       do
       {
-         _CL_HOLDER *holder = NULL;
-         CL_MB_ID mbID = INVALID_CL_MB_ID;
+         BOOLEAN mbLocked = FALSE;
+         _CL_HOLDER *holder = nullptr;
          ossSLatchGuard guard(&_latch, SHARED);
-         if (!find(clName, mbID))
+         CL_MB_ID mbID = _findCLByName(clName);
+         if (INVALID_CL_MB_ID == mbID)
          {
             rc = SDB_DMS_NOTEXIST;
             goto error;
@@ -514,15 +482,21 @@ namespace vessel
          rc = getCollectionHolder(mbID, &holder);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get collection holder:%d", rc);
+            PD_LOG(PDERROR, "failed to get cl holder[%d], rc:%d", mbID, rc);
             goto error;
          }
 
          mbLocked = context->tryLockMB(mbID, holder->getMutexPtr(), mode);
+         guard.unlock();
 
-         if (!mbLocked)
+         if (mbLocked)
          {
-            guard.unlock();
+            SDB_ASSERT(!holder->isFree(), "impossible");
+            *obj = holder->get();
+            break;
+         }
+         else
+         {
             if (SHARED == mode)
             {
                holder->mutex().lock_r();
@@ -535,25 +509,10 @@ namespace vessel
             }
             continue;
          }
-
-         if (holder->isFree())
-         {
-            PD_LOG(PDERROR, "unexpected free holder[%d]", mbID);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         SDB_ASSERT(holder->get()->isOpen(), "impossible");
-         *obj = holder->get();
-         break;
       } while (TRUE);
    done:
       return rc;
    error:
-      if (mbLocked)
-      {
-         context->unlockMB();
-      }
       goto done;
    }
 
@@ -563,27 +522,29 @@ namespace vessel
                                                    collection **obj)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN mbLocked = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
+      else if (OSS_UNLIKELY(nullptr == context ||
                             !UTIL_IS_VALID_CL_INNERID(innerID) ||
-                            NULL == obj))
+                            nullptr == obj))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      *obj = nullptr;
+
       do
       {
-         _CL_HOLDER *holder = NULL;
-         CL_MB_ID mbID = INVALID_CL_MB_ID;
+         BOOLEAN mbLocked = FALSE;
+         _CL_HOLDER *holder = nullptr;
          ossSLatchGuard guard(&_latch, SHARED);
-         if (!find(innerID, mbID))
+         CL_MB_ID mbID = _findCLByInnerId(innerID);
+         if (INVALID_CL_MB_ID == mbID)
          {
             rc = SDB_DMS_NOTEXIST;
             goto error;
@@ -592,15 +553,21 @@ namespace vessel
          rc = getCollectionHolder(mbID, &holder);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get collection holder:%d", rc);
+            PD_LOG(PDERROR, "failed to get cl holder[%d], rc:%d", mbID, rc);
             goto error;
          }
 
          mbLocked = context->tryLockMB(mbID, holder->getMutexPtr(), mode);
+         guard.unlock();
 
-         if (!mbLocked)
+         if (mbLocked)
          {
-            guard.unlock();
+            SDB_ASSERT(!holder->isFree(), "impossible");
+            *obj = holder->get();
+            break;
+         }
+         else
+         {
             if (SHARED == mode)
             {
                holder->mutex().lock_r();
@@ -613,85 +580,84 @@ namespace vessel
             }
             continue;
          }
-
-         if (holder->isFree())
-         {
-            PD_LOG(PDERROR, "unexpected free holder[%d]", mbID);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         SDB_ASSERT(holder->get()->isOpen(), "impossible");
-         *obj = holder->get();
-         break;
       } while (TRUE);
 
    done:
       return rc;
    error:
-      if (mbLocked)
-      {
-         context->unlockMB();
-      }
       goto done;
    }
 
-   INT32 collectionSpace::getCollectionByMBID(requestContext *context,
-                                              CL_MB_ID mbID,
-                                              UINT32 logicalID,
-                                              OSS_LATCH_MODE mode,
-                                              collection **obj)
+   INT32 collectionSpace::getCollectionByLogicalId(requestContext *context,
+                                                   UINT32 logicalId,
+                                                   OSS_LATCH_MODE mode,
+                                                   collection **obj)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN locked = FALSE;
-      _CL_HOLDER *holder = NULL;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            INVALID_CL_MB_ID == mbID ||
-                            NULL == obj))
+      else if (OSS_UNLIKELY(nullptr == context ||
+                            DMS_INVALID_LOGICCLID == logicalId ||
+                            nullptr == obj))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = getCollectionHolder(mbID, &holder);
-      if (SDB_OK != rc)
+      *obj = nullptr;
+
+      do
       {
-         goto error;
-      }
+         BOOLEAN mbLocked = FALSE;
+         _CL_HOLDER *holder = nullptr;
+         ossSLatchGuard guard(&_latch, SHARED);
+         CL_MB_ID mbID = _findCLByLogicalId(logicalId);
+         if (INVALID_CL_MB_ID == mbID)
+         {
+            rc = SDB_DMS_NOTEXIST;
+            goto error;
+         }
 
-      context->lockMB(mbID, holder->getMutexPtr(), mode);
-      locked = TRUE;
+         rc = getCollectionHolder(mbID, &holder);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get cl holder[%d], rc:%d", mbID, rc);
+            goto error;
+         }
 
-      if (holder->isFree())
-      {
-         rc = SDB_DMS_NOTEXIST;
-         goto error;
-      }
+         mbLocked = context->tryLockMB(mbID, holder->getMutexPtr(), mode);
+         guard.unlock();
 
-      if (DMS_INVALID_LOGICCLID != logicalID &&
-          holder->get()->getLogicalID() != logicalID)
-      {
-         rc = SDB_DMS_NOTEXIST;
-         goto error;
-      }
+         if (mbLocked)
+         {
+            SDB_ASSERT(!holder->isFree(), "impossible");
+            *obj = holder->get();
+            break;
+         }
+         else
+         {
+            if (SHARED == mode)
+            {
+               holder->mutex().lock_r();
+               holder->mutex().release_r();
+            }
+            else
+            {
+               holder->mutex().lock_w();
+               holder->mutex().release_w();
+            }
+            continue;
+         }
+      } while (TRUE);
 
-      SDB_ASSERT(holder->get()->isOpen(), "impossible");
-
-      *obj = holder->get();
    done:
       return rc;
    error:
-      if (locked)
-      {
-         context->unlockMB();
-      }
-      goto done;
+      goto done;   
    }
 
    INT32 collectionSpace::getCollectionById(requestContext *context,
@@ -701,17 +667,17 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
-      _CL_HOLDER *holder = NULL;
+      _CL_HOLDER *holder = nullptr;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
+      else if (OSS_UNLIKELY(nullptr == context ||
                             !id.isValid() ||
                             context->isMbLocked() ||
-                            NULL == obj))
+                            nullptr == obj))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -755,7 +721,7 @@ namespace vessel
    INT32 collectionSpace::initCollectionsFromDisk(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _su, "can not be null");
+      SDB_ASSERT(nullptr != _su, "can not be null");
 
       UINT32 clmbpCapacity = 0;
       const storageCoreArgs &args = _su->getManifest().dataArgs;
@@ -933,10 +899,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(NULL != holder, "can not be null");
+      SDB_ASSERT(nullptr != holder, "can not be null");
       SDB_ASSERT(_collections.isInitialized(), "must be inited");
 
-      _CL_HOLDER_GROUP *group = NULL;
+      _CL_HOLDER_GROUP *group = nullptr;
       UINT32 i = mbID / _CL_HOLDER_GROUP::CAPACITY;
       UINT32 pos = mbID % _CL_HOLDER_GROUP::CAPACITY;
 
@@ -964,11 +930,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
 
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-      atomicOperationList *oplist = NULL;
+      atomicOperationList *oplist = nullptr;
       clMetaBlockPageIniter initer;
       BOOLEAN locked = FALSE;
       mainDataSpace &mds = _su->getMainDataSpace();
@@ -1001,7 +967,7 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != oplist)
+      if (nullptr != oplist)
       {
          context->attachOplist(oplist);
       }
@@ -1109,7 +1075,7 @@ namespace vessel
 
    void collectionSpace::endCreatingCL(collection *obj)
    {
-      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(nullptr != obj, "can not be null");
       strSlice nameSlice;
       nameSlice.reset(obj->getName());
       SDB_ASSERT(!nameSlice.empty(), "can not be empty");
@@ -1155,9 +1121,10 @@ namespace vessel
    INT32 collectionSpace::insertIntoFormalIndexes(collection *obj)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(nullptr != obj, "can not be null");
       const CHAR *name = obj->getName();
       utilCLInnerID innerId = obj->getInnerID();
+      UINT32 logicalId = obj->getLogicalID();
       if (!_clNameIndex.insert(std::make_pair(name, obj->getMBID())).second)
       {
          PD_LOG(PDERROR, "duplicated cl name:%s", name);
@@ -1174,6 +1141,18 @@ namespace vessel
             rc = SDB_VESSEL_DUPLICATED_KEY;
             goto error;
          }
+      }
+
+      if (!_lidIndex.insert(std::make_pair(logicalId, obj->getMBID())).second)
+      {
+         _clNameIndex.erase(name);
+         if (UTIL_IS_VALID_CL_INNERID(innerId))
+         {
+            _innerIdIndex.erase(innerId);
+         }
+         PD_LOG(PDERROR, "duplicated logical id[%d]", logicalId);
+         rc = SDB_VESSEL_DUPLICATED_KEY;
+         goto error; 
       }
 
    done:
@@ -1221,53 +1200,11 @@ namespace vessel
    done:
       return r;
    }
-
-   BOOLEAN collectionSpace::upperBoundCLName(const strSlice &clName,
-                                             CL_MB_ID &mbID)const
-   {
-      BOOLEAN r = FALSE;
-      NAME_INDEX::const_iterator itr = _clNameIndex.upper_bound(clName.str());
-      if (itr != _clNameIndex.end())
-      {
-         mbID = itr->second;
-         r = TRUE;
-      }
-
-      return r;
-   }
-
-   BOOLEAN collectionSpace::find(const strSlice &clName,
-                                 CL_MB_ID &mbID)const
-   {
-      BOOLEAN r = FALSE;
-      NAME_INDEX::const_iterator itr = _clNameIndex.find(clName.str());
-      if (itr != _clNameIndex.end())
-      {
-         mbID = itr->second;
-         r = TRUE;
-      }
-
-      return r;
-   }
-
-   BOOLEAN collectionSpace::find(utilCLInnerID innerID,
-                                 CL_MB_ID &mbID)const
-   {
-      SDB_ASSERT(UTIL_IS_VALID_CL_INNERID(innerID), "can not be invalid");
-      BOOLEAN r = FALSE;
-      ID_INDEX::const_iterator itr = _innerIdIndex.find(innerID);
-      if (_innerIdIndex.end() != itr)
-      {
-         mbID = itr->second;
-         r = TRUE;
-      }
-      return r;
-   }
    
    INT32 collectionSpace::createCSNameFile()const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
+      SDB_ASSERT(nullptr != _su && _su->isOpen(), "can not be invalid");
       SDB_ASSERT(!_properties.name.empty(), "can not be empty");
    
       ossPoolString fullPath;
@@ -1327,7 +1264,7 @@ namespace vessel
    INT32 collectionSpace::removeCSNameFile()const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
+      SDB_ASSERT(nullptr != _su && _su->isOpen(), "can not be invalid");
 
       ossPoolString fullPath;
       const storagePathOptions &po = GET_THREAD_CONTEXT()->getEnv()->options.path;
@@ -1355,23 +1292,24 @@ namespace vessel
       goto done;
    }
 
-   void collectionSpace::prepareToRemoveCL(const ossPoolString &clName,
-                                           utilCLInnerID innerId)
+   void collectionSpace::prepareToRemoveCL(collection *cl)
    {
-      SDB_ASSERT(!clName.empty(), "can not be empty");
+      SDB_ASSERT(nullptr != cl, "can not be invalid");
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
 
       BOOLEAN res = FALSE;
-      res = _unformalNameIndex.insert(clName).second;
+      res = _unformalNameIndex.insert(cl->getName()).second;
       SDB_ASSERT(res, "must be true");
-      _clNameIndex.erase(clName.c_str());
+      _clNameIndex.erase(cl->getName());
 
-      if (UTIL_IS_VALID_CL_INNERID(innerId))
+      if (UTIL_IS_VALID_CL_INNERID(cl->getInnerID()))
       {
-         res = _unformalInnerIdIndex.insert(innerId).second;
+         res = _unformalInnerIdIndex.insert(cl->getInnerID()).second;
          SDB_ASSERT(res, "must be true");
-         _innerIdIndex.erase(innerId);
+         _innerIdIndex.erase(cl->getInnerID());
       }
+
+      _lidIndex.erase(cl->getLogicalID());
    }
 
    INT32 collectionSpace::reserveCLObj(CL_MB_ID &mbID)
@@ -1610,6 +1548,64 @@ namespace vessel
       ossMemcpy(block.name, _properties.name.c_str(), _properties.name.size());
       block.maxCLLogicalID = _properties.maxCLLogicalID;
       return;  
+   }
+
+   CL_MB_ID collectionSpace::_upperBoundCL(UINT32 logicalId)const
+   {
+      CL_MB_ID mbid = INVALID_CL_MB_ID;
+      if (DMS_INVALID_LOGICCLID == logicalId)
+      {
+         if (!_lidIndex.empty())
+         {
+            mbid = _lidIndex.cbegin()->second;
+         }
+      }
+      else
+      {
+         auto itr = _lidIndex.upper_bound(logicalId);
+         if (_lidIndex.end() != itr)
+         {
+            mbid = itr->second;
+         }
+      }
+
+      return mbid;
+   }
+
+   CL_MB_ID collectionSpace::_findCLByName(const strSlice &clName) const
+   {
+      SDB_ASSERT(!clName.empty(), "can not be invalid");
+      CL_MB_ID mbid = INVALID_CL_MB_ID;
+      auto itr = _clNameIndex.find(clName.str());
+      if (_clNameIndex.end() != itr)
+      {
+         mbid = itr->second;
+      }
+      return mbid;
+   }
+
+   CL_MB_ID collectionSpace::_findCLByInnerId(utilCLInnerID innerId) const
+   {
+      SDB_ASSERT(UTIL_IS_VALID_CL_INNERID(innerId), "can not be invalid");
+      CL_MB_ID mbid = INVALID_CL_MB_ID;
+      auto itr = _innerIdIndex.find(innerId);
+      if (_innerIdIndex.end() != itr)
+      {
+         mbid = itr->second;
+      }
+      return mbid;
+   }
+
+   CL_MB_ID collectionSpace::_findCLByLogicalId(UINT32 logicalId) const
+   {
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalId, "can not be invalid");
+      CL_MB_ID mbid = INVALID_CL_MB_ID;
+      auto itr = _lidIndex.find(logicalId);
+      if (_lidIndex.end() != itr)
+      {
+         mbid = itr->second;
+      }
+      return mbid;
    }
 }//namespace vessel
 }//namespace engine

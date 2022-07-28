@@ -72,13 +72,16 @@ namespace vessel
       strictBuffer buffer;
       recordID rid;
       UINT32 bufferOffset = 0;
+      slice s;
 
       if (OSS_UNLIKELY(!_src.isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (_src.getSizeAfterKey() < sizeof(recordID))
+
+      s = _src.getSliceAfterKey();
+      if (s.getSize() < sizeof(recordID))
       {
          PD_LOG(PDERROR, "may not contain rid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -107,8 +110,8 @@ namespace vessel
       }
 
       buffer.makeWritable(_bufferSize, _buffer);
-      buffer.write(0, _src.getTotalSize(), _src.getDataSlice().data());
-      bufferOffset = _src.getSizeBeforeKey() + _src.getKeySize();
+      buffer.write(0, _src.getTotalSize(), _src.getRawData().data());
+      bufferOffset = _src.getComparableSize() - s.getSize();
       keyStringCoder().encodeRid(rid, buffer.getWritablePtr(bufferOffset, sizeof(recordID)));
    done:
       return rc;
@@ -122,13 +125,16 @@ namespace vessel
       strictBuffer buffer;
       recordID rid;
       UINT32 bufferOffset = 0;
+      slice s;
 
       if (OSS_UNLIKELY(!_src.isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (_src.getSizeAfterKey() < sizeof(recordID))
+
+      s = _src.getSliceAfterKey();
+      if (s.getSize() < sizeof(recordID))
       {
          PD_LOG(PDERROR, "may not contain rid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -157,8 +163,8 @@ namespace vessel
       }
 
       buffer.makeWritable(_bufferSize, _buffer);
-      buffer.write(0, _src.getTotalSize(), _src.getDataSlice().data());
-      bufferOffset = _src.getSizeBeforeKey() + _src.getKeySize();
+      buffer.write(0, _src.getTotalSize(), _src.getRawData().data());
+      bufferOffset = _src.getComparableSize() - s.getSize();
       keyStringCoder().encodeRid(rid, buffer.getWritablePtr(bufferOffset, sizeof(recordID)));
    done:
       return rc;

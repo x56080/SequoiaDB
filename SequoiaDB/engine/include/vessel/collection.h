@@ -121,6 +121,11 @@ namespace vessel
             return _entryBlock._properties.name.c_str();
          }
 
+         OSS_INLINE const std::string &getNameString()const
+         {
+            return _entryBlock._properties.name;
+         }
+
          OSS_INLINE const collectionProperties *getProperties()const
          {
             return _entryBlock.getProperties();
@@ -162,8 +167,7 @@ namespace vessel
                                indexIdentifier &indexId);
 
       public:
-         INT32 dump(requestContext *context,
-                    bson::BSONObj &record);
+         INT32 dump(bson::BSONObj &record);
 
          INT32 getMoreWhenScan(requestContext *context,
                                scanCLCursor *cursor);

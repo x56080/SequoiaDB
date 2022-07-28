@@ -50,16 +50,6 @@ namespace vessel
       KEY_STRING_VERSION_1 = 0x01,
    };
 
-#pragma pack(1)
-   struct minimalKeyStringMetaBlock
-   {
-      UINT8 keySize = 0;
-      UINT8 metaByte = 0;
-      UINT8 version = 0;
-   };
-   constexpr UINT32 KEY_STRING_MIN_META_BLOCK_SIZE = sizeof(minimalKeyStringMetaBlock);
-#pragma pack()
-
    enum class EncodedType : UINT8
    {
       minKey = 10,

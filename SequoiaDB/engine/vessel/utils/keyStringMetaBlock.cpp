@@ -16,9 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexPrefixTransform.cpp
+   Source File Name = keyStringMetaBlock.cpp
 
-   Descriptive Name = 
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -27,43 +27,36 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          07/23/2022  LYC  Initial Draft
+          07/15/2022  WY  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
 
-#include "vessel/keyString.h"
-#include "vessel/sliceTransfer.h"
-#include "rocksdb/slice_transform.h"
+#include "vessel/keyStringMetaBlock.h"
+#include "vessel/keyStringMetaByte.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class lsmIndexPrefixTransform : public rocksdb::SliceTransform
+   static const UINT32 _META_BLOCK_SIZE_ARRAY[] = 
    {
-      public:
-         virtual rocksdb::Slice Transform(const rocksdb::Slice &key) const override
-         {
-            keyString ks(key.size(), key.data());
-            SDB_ASSERT(ks.isValid(), "can not be invalid");
-            return toRocksdbSlice(ks.getFilterSlice());
-         }
-         virtual bool InDomain(const rocksdb::Slice &key) const override
-         {
-            keyString ks(toSlice(key));
-            return ks.isValid() && ks.hasKeyPart();
-         }
+      sizeof(keyStringMetaBlock<0>),
+      sizeof(keyStringMetaBlock<1>),
+      sizeof(keyStringMetaBlock<2>),
+      sizeof(keyStringMetaBlock<3>),
+      sizeof(keyStringMetaBlock<4>),
+      sizeof(keyStringMetaBlock<5>),
+      sizeof(keyStringMetaBlock<6>),
+      sizeof(keyStringMetaBlock<7>),
+   };
 
-      public:
-         virtual const CHAR *Name() const override {return "sdb.lsmIndexPrefixTransform";}
-   }; // class lsmIndexPrefixTransform
-
-   const rocksdb::SliceTransform *getLsmIndexPrefixTransform()
+   UINT32 GET_META_BLOCK_SIZE(UINT8 metabyte)
    {
-      return new(std::nothrow) lsmIndexPrefixTransform();
+      return _META_BLOCK_SIZE_ARRAY[
+                 keyStringMetaByte::getMetaBlockFormatNum(metabyte)];
    }
-
 } // namespace vessel
+
 } // namespace engine

@@ -44,6 +44,7 @@
 #include "utilAllocator.hpp"
 #include "ossLikely.hpp"
 #include "vessel/keyStringCoder.h"
+#include "vessel/keyStringMetaBlock.h"
 
 #include <cstring>
 #include <iomanip>
@@ -83,13 +84,6 @@ namespace vessel
           static_cast<UINT8>(EncodedType::numericPositive1ByteInt) + 1);
    }
 
-   static UINT32 GET_META_BLOCK_SIZE(const keyStringMetaByte &mb)
-   {
-      /// '2' means 1 byte version and 1 byte meta byte
-      return mb.getTotalSizeWidth() + sizeof(KEY_STRING_VERSION) +
-             sizeof(UINT8);
-   }
-
    keyString::~keyString()
    {
       if (nullptr != _bufferOwned)
@@ -99,10 +93,18 @@ namespace vessel
       }
    }
 
-   keyString::keyString(const slice &s) : _ref(s)
+   keyString::keyString(const slice &s, BOOLEAN validation) : _ref(s)
    {
-      SDB_ASSERT(_ref.isValid(), "can not be invalid");
-      if (!_validate(s))
+      if (validation && !_validate(_ref))
+      {
+         reset();
+      }
+   }
+
+   keyString::keyString(UINT32 size, const CHAR *data, BOOLEAN validation):
+   _ref(size, data)
+   {
+      if (validation && !_validate(_ref))
       {
          reset();
       }
@@ -162,13 +164,13 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       reset();
+      
       if (!_validate(s))
       {
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "invalid key string slice");
          goto error;
       }
-
       _ref = s;
 
    done:
@@ -210,79 +212,26 @@ namespace vessel
 
    BOOLEAN keyString::_validate(const slice &s) const
    {
-      bytesReader reader;
-      keyStringMetaByte mb;
       UINT32 blockSize = 0;
-      UINT32 sizeBeforeKey = 0;
-      UINT32 keySize = 0;
-      UINT32 sizeAfterKey = 0;
-      UINT32 typeBitsSize = getTypeBitsSize();
-      if (OSS_UNLIKELY(!s.isValid()))
+      _comparableSizeDesc desc;
+      
+      if (s.getSize() < KEY_STRING_META_BLOCK_MIN_SIZE)
+      {
+         return FALSE;
+      }
+      else if (KEY_STRING_VERSION_1 != _getVersionByte(s))
       {
          return FALSE;
       }
 
-      reader.init(s, TRUE);
-      if (KEY_STRING_VERSION_1 != reader.getUINT8())
-      {
-         return FALSE;
-      }
-      else if (s.getSize() < KEY_STRING_MIN_META_BLOCK_SIZE)
-      {
-         return FALSE;
-      }
-
-      ++reader;
-      mb.init(reader.getUINT8());
-      blockSize = GET_META_BLOCK_SIZE(mb);
+      blockSize = GET_META_BLOCK_SIZE(_getMetaByte(s));
       if (s.getSize() < blockSize)
       {
          return FALSE;
       }
 
-      if (mb.hasDataBeforeKey())
-      {
-         if (!reader.slide(mb.getBeforeKeySizeWordWidth()))
-         {
-            return FALSE;
-         }
-         sizeBeforeKey = reader.getUINT8();
-      }
-
-      if (!reader.slide(mb.getKeySizeWordWidth()))
-      {
-         return FALSE;
-      }
-
-      if (mb.isWideKeySizeWord())
-      {
-         keySize = reader.get<UINT32>();
-      }
-      else
-      {
-         keySize = reader.getUINT8();
-      }
-
-      if (mb.hasDataAfterKey())
-      {
-         if (!reader.slide(mb.getAfterKeySizeWordWidth()))
-         {
-            return FALSE;
-         }
-         sizeAfterKey = reader.getUINT8();
-      }
-
-      UINT32 typeBitsSizeWidth = _getTypeBitsSizeWidth();
-      SDB_ASSERT(typeBitsSizeWidth != 0, "Unexpected typebits size width");
-
-      if (OSS_UNLIKELY(s.getSize() <
-                       (sizeBeforeKey + keySize + +sizeAfterKey +
-                        typeBitsSizeWidth + typeBitsSize + blockSize)))
-      {
-         return FALSE;
-      }
-
-      return TRUE;
+      _getPartsSize(s, desc);
+      return (s.getSize() >= (desc.getComparableSize() + blockSize));
    }
 
    void keyString::_adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize)
@@ -293,7 +242,9 @@ namespace vessel
       _bufferOwned = buffer;
       _bufferSize = bufferSize;
       _ref.reset(ksSize, _bufferOwned);
+   #if defined(_DEBUG)
       SDB_ASSERT(_validate(_ref), "can not be invalid");
+   #endif
       return;
    }
 
@@ -303,38 +254,12 @@ namespace vessel
       {
          return slice();
       }
-
-      UINT32 keySize = getKeySize();
-      if (OSS_UNLIKELY(0 == keySize))
+      else
       {
-         return slice();
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return _ref.getSlice(desc.beforeKeySize, desc.keySize);
       }
-
-      const CHAR *buf = _ref.data() + getSizeBeforeKey();
-      return slice(keySize, buf);
-   }
-
-   slice keyString::getSliceFromKeyTo(UINT32 bytesAfterKey) const
-   {
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         return slice();
-      }
-
-      UINT32 keySize = getKeySize();
-      UINT32 sizeBeforeKey = getSizeBeforeKey();
-      if (OSS_UNLIKELY(bytesAfterKey > (_ref.getSize() - sizeBeforeKey)))
-      {
-         return slice();
-      }
-
-      if (OSS_UNLIKELY(0 == keySize))
-      {
-         return slice();
-      }
-
-      const CHAR *buf = _ref.getData() + getSizeBeforeKey();
-      return slice(keySize + bytesAfterKey, buf);
    }
 
    slice keyString::getSliceBeforeKey() const
@@ -343,8 +268,12 @@ namespace vessel
       {
          return slice();
       }
-
-      return slice(getSizeBeforeKey(), _ref.getData());
+      else
+      {
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return _ref.getSlice(0, desc.beforeKeySize);
+      }
    }
 
    slice keyString::getSliceAfterKey() const
@@ -353,21 +282,40 @@ namespace vessel
       {
          return slice();
       }
-
-      UINT32 sizeBeforeKey = getSizeBeforeKey();
-      UINT32 keySize = getKeySize();
-      if (OSS_UNLIKELY(0 == sizeBeforeKey || 0 == keySize))
+      else
       {
-         return slice();
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return _ref.getSlice(desc.beforeKeySize + desc.keySize, desc.afterKeySize);
       }
-
-      const CHAR *buf = _ref.getData() + sizeBeforeKey + keySize;
-      return slice(getSizeAfterKey(), buf);
    }
 
    slice keyString::getComparableSlice() const
    {
-      return isValid() ? _ref.getSlice(0, getComparableSize()) : slice();
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         return slice();
+      }
+      else
+      {
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return _ref.getSlice(0, desc.getComparableSize());
+      }
+   }
+
+   slice keyString::getFilterSlice()const
+   {
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         return slice();
+      }
+      else
+      {
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return _ref.getSlice(0, desc.beforeKeySize + desc.keySize);
+      }
    }
 
    slice keyString::getTypeBits() const
@@ -376,165 +324,78 @@ namespace vessel
       {
          return slice();
       }
-
-      UINT32 keySize = getKeySize();
-      UINT32 typeBitsSize = getTypeBitsSize();
-      if (OSS_UNLIKELY(0 == keySize || 0 == typeBitsSize))
+      else
       {
-         return slice();
-      }
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         UINT32 width = 0;
+         UINT32 typeBitsSize = _getTypeBitsSize(_ref.data() + desc.getComparableSize(), width);
 
-      UINT32 sizeBeforeKey = getSizeBeforeKey();
-      UINT32 sizeAfterKey = getSizeAfterKey();
-      const CHAR *buf = _ref.getData() + sizeBeforeKey + keySize +
-                        sizeAfterKey + _getTypeBitsSizeWidth();
-      return slice(typeBitsSize, buf);
+         return _ref.getSlice(desc.getComparableSize() + width,
+                              typeBitsSize);
+      }
    }
 
    UINT32 keyString::getComparableSize() const
    {
-      UINT32 res = getSizeBeforeKey() + getKeySize() + getSizeAfterKey();
-      return res;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         return 0;
+      }
+      else
+      {
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return desc.getComparableSize();
+      }
    }
 
    UINT32 keyString::getKeySize() const
    {
-      UINT32 res = 0;
-      bytesReader reader;
-      keyStringMetaByte mb;
-
       if (OSS_UNLIKELY(!isValid()))
       {
-         goto done;
-      }
-
-      reader.init(_ref, TRUE);
-      /// skip version
-      ++reader;
-      mb.init(reader.getUINT8());
-
-      if (OSS_UNLIKELY(!reader.slide(mb.getKeySizeWordOffset())))
-      {
-         goto done;
-      }
-
-      if (mb.isWideKeySizeWord())
-      {
-         res = reader.get<UINT32>();
+         return 0;
       }
       else
       {
-         res = reader.getUINT8();
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         return desc.keySize;
       }
-
-   done:
-      return res;
    }
 
    BOOLEAN keyString::hasKeyPart() const
    {
-      return 0 < getKeySize();
+      BOOLEAN r = FALSE;
+      if (isValid())
+      {
+         _comparableSizeDesc desc;
+         _getPartsSize(_ref, desc);
+         r = 0 < desc.keySize;
+      }
+      return r;
    }
 
-   UINT32 keyString::getSizeBeforeKey() const
+   UINT32 keyString::_getTypeBitsSize(const CHAR *data, UINT32 &width) const
    {
-      UINT32 res = 0;
-      bytesReader reader;
-      keyStringMetaByte mb;
-
-      if (OSS_UNLIKELY(!isValid()))
+      SDB_ASSERT(nullptr != data, "can not be invalid");
+      UINT8 first = data[0];
+      if (first < 0xFF)
       {
-         goto done;
-      }
-
-      reader.init(_ref, TRUE);
-      /// skip version
-      ++reader;
-      mb.init(reader.getUINT8());
-
-      if (mb.hasDataBeforeKey())
-      {
-         if (OSS_UNLIKELY(!reader.slide(mb.getBeforeKeySizeWordWidth())))
-         {
-            goto done;
-         }
-         res = reader.getUINT8();
-      }
-
-   done:
-      return res;
-   }
-
-   UINT32 keyString::getSizeAfterKey() const
-   {
-      bytesReader reader;
-      keyStringMetaByte mb;
-
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         return 0;
-      }
-
-      reader.init(_ref, TRUE);
-      /// skip version
-      ++reader;
-      mb.init(reader.getUINT8());
-
-      if (!mb.hasDataAfterKey())
-      {
-         return 0;
-      }
-
-      if (OSS_UNLIKELY(!reader.slide(mb.getAfterKeySizeWordOffset())))
-      {
-         return 0;
-      }
-      return reader.getUINT8();
-   }
-
-   UINT32 keyString::getTypeBitsSize() const
-   {
-      UINT32 offset = getComparableSize();
-      UINT8 firstByte = *(UINT8 *)(_ref.data() + offset);
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         return 0;
-      }
-      if (0xff == firstByte)
-      {
-         return *(UINT32 *)(_ref.data() + offset + 1);
+         width = sizeof(UINT8);
+         return first;
       }
       else
       {
-         return firstByte;
-      }
-   }
-
-   UINT32 keyString::_getTypeBitsSizeWidth() const
-   {
-      UINT32 offset = getComparableSize();
-      UINT8 firstByte = *(UINT8 *)(_ref.data() + offset);
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         return 0;
-      }
-      if (0xff == firstByte)
-      {
-         return 5;
-      }
-      else
-      {
-         return 1;
+         width = sizeof(UINT32) + sizeof(UINT8);
+         return *(reinterpret_cast<const UINT32 *>(data + 1));
       }
    }
 
    INT32 keyString::compare(const keyString &s) const
    {
       SDB_ASSERT(isValid() && s.isValid(), "can not be invalid");
-      UINT32 cmpSize = _ref.getSize() < s.getDataSlice().getSize()
-                           ? _ref.getSize()
-                           : s.getDataSlice().getSize();
-      return ossMemcmp(_ref.getData(), s.getDataSlice().getData(), cmpSize);
+      return getComparableSlice().compare(s.getComparableSlice());
    }
 
    template <typename T>
@@ -544,11 +405,11 @@ namespace vessel
       T t;
       if (inverted)
       {
-         ossMemcpyFlipBits(&t, getDataSlice().data() + offset, size);
+         ossMemcpyFlipBits(&t, getRawData().data() + offset, size);
       }
       else
       {
-         ossMemcpy(&t, getDataSlice().data() + offset, size);
+         ossMemcpy(&t, getRawData().data() + offset, size);
       }
       offset += size;
       return t;
@@ -561,11 +422,11 @@ namespace vessel
       T t;
       if (inverted)
       {
-         ossMemcpyFlipBits(&t, getDataSlice().data() + offset, size);
+         ossMemcpyFlipBits(&t, getRawData().data() + offset, size);
       }
       else
       {
-         ossMemcpy(&t, getDataSlice().data() + offset, size);
+         ossMemcpy(&t, getRawData().data() + offset, size);
       }
       return t;
    }
@@ -573,12 +434,15 @@ namespace vessel
    bson::BSONObj keyString::toBSON(const bson::BSONObj &pattern,
                                    BOOLEAN withFieldName) const
    {
+      SDB_ASSERT(isValid(), "can not be invalid");
       bson::BSONObjBuilder builder;
-      UINT32 keySize = getKeySlice().getSize();
+      _comparableSizeDesc desc;
+      _getPartsSize(_ref, desc);
+      UINT32 keySize = desc.keySize;
       typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
-      UINT32 offset = getSizeBeforeKey();
+      UINT32 offset = desc.beforeKeySize;
       bson::BSONObjIterator it(pattern);
-      while (offset - getSizeBeforeKey() < keySize && it.more())
+      while (offset - desc.beforeKeySize < keySize && it.more())
       {
          bson::BSONElement ele = it.next();
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
@@ -597,17 +461,17 @@ namespace vessel
                       typeReader,
                       withFieldName ? ele.fieldName() : nullptr);
       }
-      SDB_ASSERT(1 == getSizeBeforeKey() + keySize - offset ||
-                     2 == getSizeBeforeKey() + keySize - offset,
+      SDB_ASSERT(1 == desc.beforeKeySize + keySize - offset ||
+                     2 == desc.beforeKeySize + keySize - offset,
                  "Unexpected size");
-      if (2 == getSizeBeforeKey() + keySize - offset)
+      if (2 == desc.beforeKeySize + keySize - offset)
       {
          DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
          SDB_ASSERT(DiscriminatorValue::LESS == dv ||
                         DiscriminatorValue::GREATER == dv,
                     "Unexpected discriminator byte");
       }
-      if (1 == getSizeBeforeKey() + keySize - offset)
+      if (1 == desc.beforeKeySize + keySize - offset)
       {
          DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
          SDB_ASSERT(DiscriminatorValue::END == dv,
@@ -620,12 +484,15 @@ namespace vessel
                                    bson::BufBuilder &builder,
                                    BOOLEAN withFieldName) const
    {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      _comparableSizeDesc desc;
+      _getPartsSize(_ref, desc);
       bson::BSONObjBuilder b(builder);
       UINT32 keySize = getKeySlice().getSize();
       typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
-      UINT32 offset = getSizeBeforeKey();
+      UINT32 offset = desc.beforeKeySize;
       bson::BSONObjIterator it(pattern);
-      while (offset - getSizeBeforeKey() < keySize && it.more())
+      while (offset - desc.beforeKeySize < keySize && it.more())
       {
          bson::BSONElement ele = it.next();
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
@@ -644,17 +511,17 @@ namespace vessel
                       typeReader,
                       withFieldName ? ele.fieldName() : nullptr);
       }
-      SDB_ASSERT(1 == getSizeBeforeKey() + keySize - offset ||
-                     2 == getSizeBeforeKey() + keySize - offset,
+      SDB_ASSERT(1 == desc.beforeKeySize + keySize - offset ||
+                     2 == desc.beforeKeySize + keySize - offset,
                  "Unexpected size");
-      if (2 == getSizeBeforeKey() + keySize - offset)
+      if (2 == desc.beforeKeySize + keySize - offset)
       {
          DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
          SDB_ASSERT(DiscriminatorValue::LESS == dv ||
                         DiscriminatorValue::GREATER == dv,
                     "Unexpected discriminator byte");
       }
-      if (1 == getSizeBeforeKey() + keySize - offset)
+      if (1 == desc.beforeKeySize + keySize - offset)
       {
          DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
          SDB_ASSERT(DiscriminatorValue::END == dv,
@@ -1126,8 +993,10 @@ namespace vessel
                                      BOOLEAN inverted,
                                      ossPoolString &s) const
    {
+      _comparableSizeDesc desc;
+      _getPartsSize(_ref, desc);
       _readCString(offset, inverted, s);
-      while (offset != getSizeBeforeKey() + getKeySize() &&
+      while (offset != desc.beforeKeySize + desc.keySize &&
              0xFF == _peek<UINT8>(offset, inverted))
       {
          offset += 1;
@@ -1206,11 +1075,11 @@ namespace vessel
    {
       if (inverted)
       {
-         ossMemcpyFlipBits(bytes, getDataSlice().data() + offset, len);
+         ossMemcpyFlipBits(bytes, getRawData().data() + offset, len);
       }
       else
       {
-         ossMemcpy(bytes, getDataSlice().data() + offset, len);
+         ossMemcpy(bytes, getRawData().data() + offset, len);
       }
       offset += len;
    }
@@ -1219,14 +1088,16 @@ namespace vessel
                                 BOOLEAN inverted,
                                 ossPoolString &s) const
    {
+      _comparableSizeDesc desc;
+      _getPartsSize(_ref, desc);
       UINT32 strOldSize = s.size();
       const UINT8 endChar = inverted ? 0xFF : 0;
       const CHAR *start =
-          static_cast<const CHAR *>(getDataSlice().data() + offset);
+          static_cast<const CHAR *>(getRawData().data() + offset);
       const CHAR *end = static_cast<const CHAR *>(
           memchr(start,
                  endChar,
-                 getSizeBeforeKey() + getKeySlice().getSize() - offset));
+                 desc.beforeKeySize + desc.keySize - offset));
       UINT32 bytesNum = end - start;
       offset += (bytesNum + 1);
       s.append(start, bytesNum);
@@ -1254,6 +1125,45 @@ namespace vessel
       }
       return rid;
    }
+
+   void keyString::_getPartsSize(const slice &s,
+                                 _comparableSizeDesc &desc)const
+   {
+      UINT8 format = keyStringMetaByte::getMetaBlockFormatNum(_getMetaByte(s));
+      switch (format)
+      {
+      case 0:
+         _getPartsSize<keyStringMetaBlock<0>>(s, desc);
+         break;
+      case 1:
+         _getPartsSize<keyStringMetaBlock<1>>(s, desc);
+         break;
+      case 2:
+         _getPartsSize<keyStringMetaBlock<2>>(s, desc);
+         break;
+      case 3:
+         _getPartsSize<keyStringMetaBlock<3>>(s, desc);
+         break;
+      case 4:
+         _getPartsSize<keyStringMetaBlock<4>>(s, desc);
+         break;
+      case 5:
+         _getPartsSize<keyStringMetaBlock<5>>(s, desc);
+         break;
+      case 6:
+         _getPartsSize<keyStringMetaBlock<6>>(s, desc);
+         break;
+      case 7:
+         _getPartsSize<keyStringMetaBlock<7>>(s, desc);
+         break;
+      default:
+         SDB_ASSERT(FALSE, "invalid format");
+         break;
+      }
+
+      return;
+   }
+
    ///////////////////////////////
 
    typeBitsReader::typeBitsReader(const CHAR *buf, UINT32 bufSize)

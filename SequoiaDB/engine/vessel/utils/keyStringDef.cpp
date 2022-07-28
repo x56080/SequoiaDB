@@ -16,9 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexPrefixTransform.cpp
+   Source File Name = keyStringDef.cpp
 
-   Descriptive Name = 
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -27,43 +27,23 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          07/23/2022  LYC  Initial Draft
+          07/15/2022  WY  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
 
-#include "vessel/keyString.h"
-#include "vessel/sliceTransfer.h"
-#include "rocksdb/slice_transform.h"
+#include "vessel/keyStringDef.h"
+#include "vessel/keyStringCoder.h"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class lsmIndexPrefixTransform : public rocksdb::SliceTransform
-   {
-      public:
-         virtual rocksdb::Slice Transform(const rocksdb::Slice &key) const override
-         {
-            keyString ks(key.size(), key.data());
-            SDB_ASSERT(ks.isValid(), "can not be invalid");
-            return toRocksdbSlice(ks.getFilterSlice());
-         }
-         virtual bool InDomain(const rocksdb::Slice &key) const override
-         {
-            keyString ks(toSlice(key));
-            return ks.isValid() && ks.hasKeyPart();
-         }
-
-      public:
-         virtual const CHAR *Name() const override {return "sdb.lsmIndexPrefixTransform";}
-   }; // class lsmIndexPrefixTransform
-
-   const rocksdb::SliceTransform *getLsmIndexPrefixTransform()
-   {
-      return new(std::nothrow) lsmIndexPrefixTransform();
-   }
 
 } // namespace vessel
+  
 } // namespace engine
+

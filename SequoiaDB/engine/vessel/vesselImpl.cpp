@@ -828,8 +828,8 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
-                                   gcid.getCLLid(), SHARED, &cl);
+      rc = cs->getCollectionById(&context, gcid.getCLIdentifier(),
+                                 SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;

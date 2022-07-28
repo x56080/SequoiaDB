@@ -118,7 +118,7 @@ namespace vessel
 
             ks = builder.getShallowKeyString();
 
-            rc = batch.put(toRocksdbSlice(ks.getDataSlice()), valueSlice);
+            rc = batch.put(toRocksdbSlice(ks.getRawData()), valueSlice);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to put entry into batch:%d", rc);
@@ -206,7 +206,7 @@ namespace vessel
       hybridTreeIterator iterator;
       rid.reset();
 
-      if (OSS_UNLIKELY(nullptr != context ||
+      if (OSS_UNLIKELY(nullptr == context ||
                        !context->isClPropertiesSet() ||
                        nullptr == obj ||
                        !obj->isValid() ||
@@ -313,9 +313,9 @@ namespace vessel
          lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
          globalLogicalClId gclid = context->getClProperties()->getGlobalLogicalId();
          globalIndexID indexId(gclid, obj->getLogicalID());
-         CHAR lowBound[16];
+         CHAR lowBound[20];
          UINT32 lowBoundSize = 0;
-         CHAR upBound[16];
+         CHAR upBound[20];
          UINT32 upBoundSize = 0;
 
          rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(indexId, FALSE, sizeof(lowBound), lowBound, lowBoundSize);
@@ -458,7 +458,7 @@ namespace vessel
 
             ks = builder.getShallowKeyString();
 
-            rc = batch->put(toRocksdbSlice(ks.getDataSlice()), valueSlice);
+            rc = batch->put(toRocksdbSlice(ks.getRawData()), valueSlice);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to put entry into batch:%d", rc);
@@ -489,7 +489,7 @@ namespace vessel
 
             ks = builder.getShallowKeyString();
 
-            rc = batch->put(toRocksdbSlice(ks.getDataSlice()), valueSlice);
+            rc = batch->put(toRocksdbSlice(ks.getRawData()), valueSlice);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to put entry into batch:%d", rc);

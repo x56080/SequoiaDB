@@ -598,8 +598,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::dump(requestContext *context,
-                          bson::BSONObj &record)
+   INT32 collection::dump(bson::BSONObj &record)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(nullptr == _cs))
