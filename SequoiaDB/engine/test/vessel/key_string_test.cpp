@@ -73,7 +73,7 @@ namespace vessel
       bson::BSONObjBuilder bsb;
       keyStringBuilder<> ksb;
    };
-
+   
    TEST_F(key_string_test, base_minkey)
    {
       INT32 rc = SDB_OK;

@@ -36,6 +36,7 @@
 #ifndef KEY_SLICE_BUILDER_H_
 #define KEY_SLICE_BUILDER_H_
 
+#include "ossTypes.hpp"
 #include "vessel/keyStringDef.h"
 #include "../bson/bsonDecimal.h"
 #include "../bson/bsonelement.h"
@@ -168,93 +169,14 @@ namespace vessel
                               Discriminator d = Discriminator::INCLUSIVE);
       template <
           typename T,
-          class = typename std::enable_if<std::is_unsigned<T>::value>::type>
+          typename = typename std::enable_if<std::is_unsigned<T>::value>::type>
       INT32 appendUnsignedWithoutType(const T &val,
-                                      BOOLEAN isDescending = FALSE)
-      {
-         INT32 rc = SDB_OK;
-         if (BUILDER_STATUS::EMPTY == _status ||
-             BUILDER_STATUS::BEFORE_ELEMENTS == _status)
-         {
-            _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
-         }
-         else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
-         {
-            _transition(BUILDER_STATUS::AFTER_ELEMENTS);
-         }
+                                      BOOLEAN isDescending = FALSE);
 
-         rc = _append(ossNativeToBigEndian(val), isDescending);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append unsigned fixed field, rc:%d", rc);
-            goto error;
-         }
-         if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
-         {
-            SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
-            _sizeAheadElements += sizeof(val);
-         }
-         else if (BUILDER_STATUS::AFTER_ELEMENTS == _status)
-         {
-            SDB_ASSERT(_sizeAfterElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
-            _sizeAfterElements += sizeof(val);
-         }
-      done:
-         return rc;
-      error:
-         reset();
-         goto done;
-      }
-
-      template <typename T,
-                class = typename std::enable_if<std::is_signed<T>::value>::type>
-      INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE)
-      {
-         INT32 rc = SDB_OK;
-         T mask = std::numeric_limits<T>::min();
-         T tmp = val;
-         if (BUILDER_STATUS::DONE == _status)
-         {
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-            PD_LOG(PDERROR, "building process has already done");
-            goto error;
-         }
-         else if (BUILDER_STATUS::EMPTY == _status)
-         {
-            _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
-         }
-         else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
-         {
-            _transition(BUILDER_STATUS::AFTER_ELEMENTS);
-         }
-
-         tmp ^= mask;
-         rc = _append(ossNativeToBigEndian(tmp), isDescending);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append signed fixed field, rc:%d", rc);
-            goto error;
-         }
-         if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
-         {
-            SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
-            _sizeAheadElements += sizeof(val);
-         }
-         else if (BUILDER_STATUS::AFTER_ELEMENTS == _status)
-         {
-            SDB_ASSERT(_sizeAfterElements + sizeof(val) <= 0xff,
-                    "size ahead key string must be equal or less than 255");
-            _sizeAfterElements += sizeof(val);
-         }
-      done:
-         return rc;
-      error:
-         reset();
-         goto done;
-      }
+      template <
+          typename T,
+          typename = typename std::enable_if<std::is_signed<T>::value>::type>
+      INT32 appendSignedWithoutType(const T &val, BOOLEAN isDescending = FALSE);
 
       INT32 appendRid(const recordID &rid, BOOLEAN force = FALSE);
       INT32 appendIndexId(const globalIndexID &indexId, BOOLEAN force = FALSE);
@@ -418,7 +340,7 @@ namespace vessel
       rc = _ensureBytes(len);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "skip bytes failed, rc:%d", rc);
+         PD_LOG(PDERROR, "ensure bytes failed, rc:%d", rc);
          goto error;
       }
 
@@ -439,25 +361,137 @@ namespace vessel
    }
 
    template <typename Allocator>
+   template <typename T, typename>
+   INT32 keyStringBuilder<Allocator>::appendUnsignedWithoutType(
+       const T &val, BOOLEAN isDescending)
+   {
+      INT32 rc = SDB_OK;
+      if (BUILDER_STATUS::EMPTY == _status ||
+          BUILDER_STATUS::BEFORE_ELEMENTS == _status)
+      {
+         _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
+      }
+      else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
+      {
+         _transition(BUILDER_STATUS::AFTER_ELEMENTS);
+      }
+
+      rc = _append(ossNativeToBigEndian(val), isDescending);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append unsigned fixed field, rc:%d", rc);
+         goto error;
+      }
+      if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
+      {
+         SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
+         _sizeAheadElements += sizeof(val);
+      }
+      else if (BUILDER_STATUS::AFTER_ELEMENTS == _status)
+      {
+         SDB_ASSERT(_sizeAfterElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
+         _sizeAfterElements += sizeof(val);
+      }
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   template <typename Allocator>
+   template <typename T, typename>
+   INT32 keyStringBuilder<Allocator>::appendSignedWithoutType(
+       const T &val, BOOLEAN isDescending)
+   {
+      INT32 rc = SDB_OK;
+      T mask = std::numeric_limits<T>::min();
+      T tmp = val;
+      if (BUILDER_STATUS::DONE == _status)
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         PD_LOG(PDERROR, "building process has already done");
+         goto error;
+      }
+      else if (BUILDER_STATUS::EMPTY == _status)
+      {
+         _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
+      }
+      else if (BUILDER_STATUS::APPENDING_ELEMENTS == _status)
+      {
+         _transition(BUILDER_STATUS::AFTER_ELEMENTS);
+      }
+
+      tmp ^= mask;
+      rc = _append(ossNativeToBigEndian(tmp), isDescending);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append signed fixed field, rc:%d", rc);
+         goto error;
+      }
+      if (BUILDER_STATUS::BEFORE_ELEMENTS == _status)
+      {
+         SDB_ASSERT(_sizeAheadElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
+         _sizeAheadElements += sizeof(val);
+      }
+      else if (BUILDER_STATUS::AFTER_ELEMENTS == _status)
+      {
+         SDB_ASSERT(_sizeAfterElements + sizeof(val) <= 0xff,
+                    "size ahead key string must be equal or less than 255");
+         _sizeAfterElements += sizeof(val);
+      }
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::_ensureBytes(UINT32 length)
    {
       INT32 rc = SDB_OK;
-      UINT32 needSize = _capacity + length;
+      UINT32 needSize = _bufSize + length;
 
       if (nullptr == _buf)
       {
-         _buf = static_cast<CHAR *>(_allocator.malloc(needSize));
-         if (nullptr == _buf)
+         UINT32 fastAllocSize = _allocator.getFastAllocSize();
+         if (0 == fastAllocSize || fastAllocSize < needSize)
          {
-            rc = SDB_OOM;
-            PD_LOG(PDERROR, "out of memory");
-            goto error;
+            UINT32 alignSize = ossAlign4(needSize);
+            _buf = static_cast<CHAR *>(_allocator.malloc(alignSize));
+            if (nullptr == _buf)
+            {
+               rc = SDB_OOM;
+               PD_LOG(PDERROR, "out of memory");
+               goto error;
+            }
+            _capacity = alignSize;
          }
-         _capacity = needSize;
+         else
+         {
+            _buf = static_cast<CHAR *>(_allocator.malloc(fastAllocSize));
+            if (nullptr == _buf)
+            {
+               rc = SDB_OOM;
+               PD_LOG(PDERROR, "out of memory");
+               goto error;
+            }
+            _capacity = fastAllocSize;
+         }
       }
-      else if ((_capacity - _bufSize) < length)
+      else if (_capacity < needSize)
       {
-         CHAR *ptr = static_cast<CHAR *>(_allocator.realloc(_buf, needSize));
+         UINT32 newCapacity = 2 * _capacity;
+         while (newCapacity < needSize)
+         {
+            newCapacity *= 2;
+         }
+
+         CHAR *ptr = static_cast<CHAR *>(_allocator.realloc(_buf, newCapacity));
          if (nullptr == ptr)
          {
             rc = SDB_OOM;
@@ -466,12 +500,13 @@ namespace vessel
          }
 
          _buf = ptr;
-         _capacity = needSize;
+         _capacity = newCapacity;
       }
 
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -2078,7 +2113,7 @@ namespace vessel
             goto error;
          }
       }
-      
+
    done:
       return rc;
    error:
@@ -2095,10 +2130,10 @@ namespace vessel
    INT32 keyStringBuilder<Allocator>::_appendMetaBlock()
    {
       INT32 rc = SDB_OK;
-      UINT32 comparableSize = _sizeOfElements + _sizeAheadElements + _sizeAfterElements;
-      keyStringMetaByte mbyte(_sizeAheadElements,
-                              _sizeAfterElements,
-                              _typeBits.getBufSize());
+      UINT32 comparableSize =
+          _sizeOfElements + _sizeAheadElements + _sizeAfterElements;
+      keyStringMetaByte mbyte(
+          _sizeAheadElements, _sizeAfterElements, _typeBits.getBufSize());
 
       if (mbyte.hasTypeBits())
       {
@@ -2162,7 +2197,8 @@ namespace vessel
       SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
       keyString ks;
       ks._ref.reset(_bufSize, _buf);
-      ks._desc.keySize = _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
+      ks._desc.keySize =
+          _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
       ks._desc.keyHeadSize = _sizeAheadElements;
       ks._desc.keyTailSize = _sizeAfterElements;
       ks._desc.typeBitsSize = _typeBits.getBufSize();
@@ -2175,7 +2211,8 @@ namespace vessel
       SDB_ASSERT(_allocator.isMovable(), "must be movable");
       keyString ks;
       ks._ref.reset(_bufSize, _buf);
-      ks._desc.keySize = _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
+      ks._desc.keySize =
+          _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
       ks._desc.keyHeadSize = _sizeAheadElements;
       ks._desc.keyTailSize = _sizeAfterElements;
       ks._desc.typeBitsSize = _typeBits.getBufSize();
@@ -2561,10 +2598,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      constexpr UINT32 _MIN_BUF_SIZE = keyStringCoder::INDEX_ID_ENCODEING_SIZE +
-                                       KEY_STRING_MB_HEADER_SIZE +
-                                       KEY_STRING_TYNI_SWRORD_SIZE + /// key size word
-                                       KEY_STRING_TYNI_SWRORD_SIZE; /// key head size word;
+      constexpr UINT32 _MIN_BUF_SIZE =
+          keyStringCoder::INDEX_ID_ENCODEING_SIZE + KEY_STRING_MB_HEADER_SIZE +
+          KEY_STRING_TYNI_SWRORD_SIZE + /// key size word
+          KEY_STRING_TYNI_SWRORD_SIZE;  /// key head size word;
       keyStringCoder coder;
       keyStringMetaByte b;
       keyStringMetaBlockHeader *header = nullptr;
@@ -2581,11 +2618,13 @@ namespace vessel
       }
 
       coder.encodeGlobalIndexId(indexId, asUpBound, buf);
-      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE) = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
-      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 1) = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE) =
+          keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 1) =
+          keyStringCoder::INDEX_ID_ENCODEING_SIZE;
       header = reinterpret_cast<keyStringMetaBlockHeader *>(
           buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 2);
-      
+
       b.setHasKeyHead();
       header->version = KEY_STRING_VERSION_1;
       header->metaByte = b.getValue();
@@ -2597,7 +2636,8 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::_appendMetaBlockSizeWord(UINT32 size, BOOLEAN nonzero)
+   INT32 keyStringBuilder<Allocator>::_appendMetaBlockSizeWord(UINT32 size,
+                                                               BOOLEAN nonzero)
    {
       INT32 rc = SDB_OK;
       if (nonzero && 0 == size)
