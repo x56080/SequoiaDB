@@ -141,4 +141,28 @@ public class TestIndex {
         System.out.println("Case4 index is: " + indexObj.toString());
         cl.dropIndex(name4);
     }
+
+
+    @Test
+    public void testGetIndexStat(){
+        String indexName = "testGetIndexStat";
+        String errorIndex = "testGetIndexStatError";
+
+        // case 1, index exist
+        cl.createIndex(indexName, new BasicBSONObject(indexName, 1), null);
+        sdb.analyze();
+        BSONObject obj = cl.getIndexStat(indexName);
+        BSONObject objDetail = cl.getIndexStat(indexName, true);
+        Assert.assertEquals(indexName, obj.get("Index"));
+        Assert.assertEquals(cl.getFullName(), obj.get("Collection"));
+        Assert.assertNotNull(objDetail.get("MCV"));
+
+        // case 2, index no exist
+        try {
+            cl.getIndexStat(errorIndex);
+        }catch (BaseException e){
+            Assert.assertEquals(SDBError.SDB_IXM_STAT_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+    }
+
 }
