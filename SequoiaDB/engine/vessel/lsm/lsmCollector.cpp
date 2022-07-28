@@ -68,7 +68,7 @@ namespace vessel
 #if defined(_DEBUG) 
       keyString ks(toSlice(key));
       SDB_ASSERT(ks.isValid() &&
-                 keyStringCoder::INDEX_ID_ENCODEING_SIZE == ks.getSizeBeforeKey(),
+                 keyStringCoder::INDEX_ID_ENCODEING_SIZE == ks.getKeyHeadSize(),
                  "invalid key");
 #endif
 

@@ -397,8 +397,7 @@ namespace vessel
             slice();
    }
 
-
-   slice keyString::getFilterSlice()const
+   slice keyString::getFilterSlice() const
    {
       return isValid() && _desc.keyTailSize < _desc.keySize ?
              _ref.getSlice(0, _desc.keySize - _desc.keyTailSize) :
@@ -423,35 +422,42 @@ namespace vessel
       return getKeyBodySlice().compare(ks.getKeyBodySlice());
    }
 
-   template <typename T>
-   T keyString::_read(UINT32 &offset, BOOLEAN inverted) const
+   keyString::bodyReader::bodyReader(const CHAR *bodyBuf,
+                                     UINT32 bufSize,
+                                     const CHAR *typeBitsBuf,
+                                     UINT32 typeBitsBufSize)
+       : _buf(bodyBuf), _bufSize(bufSize),
+         typeReader(typeBitsBuf, typeBitsBufSize)
+   {
+   }
+
+   template <typename T> T keyString::bodyReader::_read(BOOLEAN inverted)
    {
       UINT32 size = sizeof(T);
       T t;
       if (inverted)
       {
-         ossMemcpyFlipBits(&t, getRawData().data() + offset, size);
+         ossMemcpyFlipBits(&t, _buf + _offset, size);
       }
       else
       {
-         ossMemcpy(&t, getRawData().data() + offset, size);
+         ossMemcpy(&t, _buf + _offset, size);
       }
-      offset += size;
+      _offset += size;
       return t;
    }
 
-   template <typename T>
-   T keyString::_peek(UINT32 offset, BOOLEAN inverted) const
+   template <typename T> T keyString::bodyReader::_peek(BOOLEAN inverted) const
    {
       UINT32 size = sizeof(T);
       T t;
       if (inverted)
       {
-         ossMemcpyFlipBits(&t, getRawData().data() + offset, size);
+         ossMemcpyFlipBits(&t, _buf + _offset, size);
       }
       else
       {
-         ossMemcpy(&t, getRawData().data() + offset, size);
+         ossMemcpy(&t, _buf + _offset, size);
       }
       return t;
    }
@@ -459,150 +465,108 @@ namespace vessel
    bson::BSONObj keyString::toBSON(const bson::BSONObj &pattern,
                                    BOOLEAN withFieldName) const
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      bson::BSONObjBuilder builder;
-      typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
-      const UINT32 keyBobySize = _desc.getKeyBodySize();
-      const UINT32 keyHeadSize = _desc.keyHeadSize;
-      UINT32 offset = keyHeadSize;
-      bson::BSONObjIterator it(pattern);
-      while (offset - keyHeadSize < keyBobySize && it.more())
-      {
-         bson::BSONElement ele = it.next();
-         BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
-         EncodedType type =
-             static_cast<EncodedType>(_read<UINT8>(offset, inverted));
-         DiscriminatorValue dv = static_cast<DiscriminatorValue>(type);
-         if (DiscriminatorValue::END == dv || DiscriminatorValue::LESS == dv ||
-             DiscriminatorValue::GREATER == dv)
-         {
-            break;
-         }
-         _toBsonValue(type,
-                      offset,
-                      inverted,
-                      builder,
-                      typeReader,
-                      withFieldName ? ele.fieldName() : nullptr);
-      }
-      SDB_ASSERT(1 == keyHeadSize + keyBobySize - offset ||
-                     2 == keyHeadSize + keyBobySize - offset,
-                 "Unexpected size");
-      if (2 == keyHeadSize + keyBobySize - offset)
-      {
-         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
-         SDB_ASSERT(DiscriminatorValue::LESS == dv ||
-                        DiscriminatorValue::GREATER == dv,
-                    "Unexpected discriminator byte");
-      }
-      if (1 == keyHeadSize + keyBobySize - offset)
-      {
-         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
-         SDB_ASSERT(DiscriminatorValue::END == dv,
-                    "Unexpected discriminator byte");
-      }
+      BSONObjBuilder builder;
+      SDB_ASSERT(isValid(), "must be valid");
+      bodyReader br(getKeyBodySlice().data(),
+                    getKeyBodySize(),
+                    getTypeBits().data(),
+                    getTypeBitsSize());
+      br.toBSON(pattern, builder, withFieldName);
       return builder.obj();
    }
 
    bson::BSONObj keyString::toBSON(const bson::BSONObj &pattern,
-                                   bson::BufBuilder &builder,
+                                   bson::BufBuilder &bufBuilder,
                                    BOOLEAN withFieldName) const
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      bson::BSONObjBuilder b(builder);
-      const UINT32 keyBodySize = _desc.getKeyBodySize();
-      const UINT32 keyHeadSize = _desc.keyHeadSize;
-      typeBitsReader typeReader(getTypeBits().data(), getTypeBits().getSize());
-      UINT32 offset = keyHeadSize;
+      BSONObjBuilder builder(bufBuilder);
+      SDB_ASSERT(isValid(), "must be valid");
+      bodyReader br(getKeyBodySlice().data(),
+                    getKeyBodySize(),
+                    getTypeBits().data(),
+                    getTypeBitsSize());
+      return br.toBSON(pattern, builder, withFieldName);
+   }
+
+   bson::BSONObj keyString::bodyReader::toBSON(const bson::BSONObj &pattern,
+                                               BSONObjBuilder &builder,
+                                               BOOLEAN withFieldName)
+   {
+      _offset = 0;
       bson::BSONObjIterator it(pattern);
-      while (offset - keyHeadSize < keyBodySize && it.more())
+      while (_offset < _bufSize && it.more())
       {
          bson::BSONElement ele = it.next();
          BOOLEAN inverted = ele.numberInt() == -1 ? TRUE : FALSE;
-         EncodedType type =
-             static_cast<EncodedType>(_read<UINT8>(offset, inverted));
+         EncodedType type = static_cast<EncodedType>(_read<UINT8>(inverted));
          DiscriminatorValue dv = static_cast<DiscriminatorValue>(type);
          if (DiscriminatorValue::END == dv || DiscriminatorValue::LESS == dv ||
              DiscriminatorValue::GREATER == dv)
          {
             break;
          }
-         _toBsonValue(type,
-                      offset,
-                      inverted,
-                      b,
-                      typeReader,
-                      withFieldName ? ele.fieldName() : nullptr);
+         toBsonValue(type,
+                     inverted,
+                     builder,
+                     withFieldName ? ele.fieldName() : nullptr);
       }
-      SDB_ASSERT(1 == keyHeadSize + keyBodySize - offset ||
-                     2 == keyHeadSize + keyBodySize - offset,
+      SDB_ASSERT(1 == _bufSize - _offset || 2 == _bufSize - _offset,
                  "Unexpected size");
-      if (2 == keyHeadSize + keyBodySize - offset)
+      if (2 == _bufSize - _offset)
       {
-         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
+         DiscriminatorValue dv = _read<DiscriminatorValue>(FALSE);
          SDB_ASSERT(DiscriminatorValue::LESS == dv ||
                         DiscriminatorValue::GREATER == dv,
                     "Unexpected discriminator byte");
       }
-      if (1 == keyHeadSize + keyBodySize - offset)
+      if (1 == _bufSize - _offset)
       {
-         DiscriminatorValue dv = _read<DiscriminatorValue>(offset, FALSE);
+         DiscriminatorValue dv = _read<DiscriminatorValue>(FALSE);
          SDB_ASSERT(DiscriminatorValue::END == dv,
                     "Unexpected discriminator byte");
       }
-      b.doneFast();
-      return b.done();
+      return builder.done();
    }
 
-   void keyString::_toBSON(UINT32 &offset,
-                           BOOLEAN inverted,
-                           bson::BSONObjBuilder &builder,
-                           typeBitsReader &typeReader,
-                           const CHAR *fieldName) const
+   void keyString::bodyReader::_toBSON(BOOLEAN inverted,
+                                       bson::BSONObjBuilder &builder,
+                                       const CHAR *fieldName)
    {
       bson::BSONObjBuilder newObjBuilder;
-      while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
+      while (0 != static_cast<UINT8>(_read<EncodedType>(inverted)))
       {
          ossPoolString name;
-         _readCString(offset, inverted, name);
-         _toBsonValue(_read<EncodedType>(offset, inverted),
-                      offset,
-                      inverted,
-                      newObjBuilder,
-                      typeReader,
-                      name.data());
+         _readCString(inverted, name);
+         toBsonValue(_read<EncodedType>(inverted),
+                     inverted,
+                     newObjBuilder,
+                     name.data());
       }
       fieldName
           ? builder.appendObject(fieldName, newObjBuilder.done().objdata())
           : builder.appendObject("", newObjBuilder.done().objdata());
    }
 
-   bson::BSONObj keyString::_toBSON(UINT32 &offset,
-                                    BOOLEAN inverted,
-                                    typeBitsReader &typeReader,
-                                    BOOLEAN withFieldName) const
+   bson::BSONObj keyString::bodyReader::_toBSON(BOOLEAN inverted,
+                                                BOOLEAN withFieldName)
    {
       bson::BSONObjBuilder newObjBuilder;
-      while (0 != static_cast<UINT8>(_read<EncodedType>(offset, inverted)))
+      while (0 != static_cast<UINT8>(_read<EncodedType>(inverted)))
       {
          ossPoolString name;
-         _readCString(offset, inverted, name);
-         _toBsonValue(_read<EncodedType>(offset, inverted),
-                      offset,
-                      inverted,
-                      newObjBuilder,
-                      typeReader,
-                      withFieldName ? name.data() : "");
+         _readCString(inverted, name);
+         toBsonValue(_read<EncodedType>(inverted),
+                     inverted,
+                     newObjBuilder,
+                     withFieldName ? name.data() : "");
       }
       return newObjBuilder.obj();
    }
 
-   void keyString::_toBsonValue(EncodedType type,
-                                UINT32 &offset,
-                                BOOLEAN inverted,
-                                bson::BSONObjBuilder &builder,
-                                typeBitsReader &typeReader,
-                                const CHAR *fieldName) const
+   void keyString::bodyReader::toBsonValue(EncodedType type,
+                                           BOOLEAN inverted,
+                                           bson::BSONObjBuilder &builder,
+                                           const CHAR *fieldName)
    {
       switch (type)
       {
@@ -638,11 +602,11 @@ namespace vessel
       case EncodedType::numericPositive7ByteInt:
       case EncodedType::numericPositive8ByteInt:
       case EncodedType::numericPositiveLargeMagnitude:
-         _toNumeric(type, offset, inverted, builder, typeReader, fieldName);
+         _toNumeric(type, inverted, builder, fieldName);
          break;
       case EncodedType::stringLike: {
          ossPoolString s;
-         _decodeStringLike(offset, inverted, s);
+         _decodeStringLike(inverted, s);
          typeBitsType originalType = typeReader.readStringLike();
          if (typeBitsType::STRING == originalType)
          {
@@ -656,23 +620,21 @@ namespace vessel
          break;
       }
       case EncodedType::object: {
-         _toBSON(offset, inverted, builder, typeReader, fieldName);
+         _toBSON(inverted, builder, fieldName);
          break;
       }
       case EncodedType::array: {
          bson::BSONObjBuilder arrayBuilder;
-         EncodedType type = _read<EncodedType>(offset, inverted);
+         EncodedType type = _read<EncodedType>(inverted);
          UINT32 elemCount = 0;
          while (0 != static_cast<UINT8>(type))
          {
-            _toBsonValue(type,
-                         offset,
-                         inverted,
-                         arrayBuilder,
-                         typeReader,
-                         std::to_string(elemCount).c_str());
+            toBsonValue(type,
+                        inverted,
+                        arrayBuilder,
+                        std::to_string(elemCount).c_str());
             elemCount++;
-            type = _read<EncodedType>(offset, inverted);
+            type = _read<EncodedType>(inverted);
          }
          BSONArray arr(arrayBuilder.obj());
          fieldName ? builder.appendArray(fieldName, arr)
@@ -681,27 +643,27 @@ namespace vessel
       }
 
       case EncodedType::binData: {
-         UINT8 firstByteLen = _read<UINT8>(offset, inverted);
+         UINT8 firstByteLen = _read<UINT8>(inverted);
          UINT32 binDataLen = 0;
          if (0xFF == firstByteLen)
          {
-            binDataLen = ossBigEndianToNative(_read<UINT32>(offset, inverted));
+            binDataLen = ossBigEndianToNative(_read<UINT32>(inverted));
          }
          else
          {
             binDataLen = firstByteLen;
          }
          bson::BinDataType binDataType =
-             static_cast<bson::BinDataType>(_read<UINT8>(offset, inverted));
+             static_cast<bson::BinDataType>(_read<UINT8>(inverted));
          CHAR data[binDataLen];
-         _readBytes(offset, inverted, data, binDataLen);
+         _readBytes(inverted, data, binDataLen);
          fieldName
              ? builder.appendBinData(fieldName, binDataLen, binDataType, data)
              : builder.appendBinData("", binDataLen, binDataType, data);
          break;
       }
       case EncodedType::oid: {
-         bson::OID oid = _read<bson::OID>(offset, inverted);
+         bson::OID oid = _read<bson::OID>(inverted);
          fieldName ? builder.appendOID(fieldName, &oid)
                    : builder.appendOID("", &oid);
          break;
@@ -717,7 +679,7 @@ namespace vessel
          break;
       }
       case EncodedType::date: {
-         INT64 encoded = ossBigEndianToNative(_read<INT64>(offset, inverted));
+         INT64 encoded = ossBigEndianToNative(_read<INT64>(inverted));
          encoded ^= (1ULL << 63);
          bson::Date_t dt(encoded);
          fieldName ? builder.appendDate(fieldName, dt)
@@ -725,45 +687,45 @@ namespace vessel
          break;
       }
       case EncodedType::timestamp: {
-         INT64 encoded = ossBigEndianToNative(_read<INT64>(offset, inverted));
+         INT64 encoded = ossBigEndianToNative(_read<INT64>(inverted));
          fieldName ? builder.appendTimestamp(fieldName, encoded)
                    : builder.appendTimestamp("", encoded);
          break;
       }
       case EncodedType::regEx: {
          ossPoolString regex;
-         _readCString(offset, inverted, regex);
+         _readCString(inverted, regex);
          ossPoolString flags;
-         _readCString(offset, inverted, flags);
+         _readCString(inverted, flags);
          fieldName ? builder.appendRegex(fieldName, regex, flags)
                    : builder.appendRegex("", regex, flags);
          break;
       }
       case EncodedType::dbRef: {
-         UINT32 nsLen = ossBigEndianToNative(_read<UINT32>(offset, inverted));
+         UINT32 nsLen = ossBigEndianToNative(_read<UINT32>(inverted));
          CHAR nsData[nsLen];
-         _readBytes(offset, inverted, nsData, nsLen);
-         bson::OID oid = _read<bson::OID>(offset, inverted);
+         _readBytes(inverted, nsData, nsLen);
+         bson::OID oid = _read<bson::OID>(inverted);
          fieldName ? builder.appendDBRef(fieldName, nsData, oid)
                    : builder.appendDBRef("", nsData, oid);
          break;
       }
 
       case EncodedType::code: {
-         EncodedType type = _read<EncodedType>(offset, inverted);
+         EncodedType type = _read<EncodedType>(inverted);
          SDB_ASSERT(EncodedType::stringLike == type, "Unexpected encoded type");
          ossPoolString code;
-         _decodeStringLike(offset, inverted, code);
+         _decodeStringLike(inverted, code);
          fieldName ? builder.appendCode(fieldName, code)
                    : builder.appendCode("", code);
          break;
       }
       case EncodedType::codeWithScope: {
-         EncodedType type = _read<EncodedType>(offset, inverted);
+         EncodedType type = _read<EncodedType>(inverted);
          SDB_ASSERT(EncodedType::stringLike == type, "Unexpected encoded type");
          ossPoolString code;
-         _decodeStringLike(offset, inverted, code);
-         bson::BSONObj scope = _toBSON(offset, inverted, typeReader, TRUE);
+         _decodeStringLike(inverted, code);
+         bson::BSONObj scope = _toBSON(inverted, TRUE);
          fieldName ? builder.appendCodeWScope(fieldName, code, scope)
                    : builder.appendCodeWScope("", code, scope);
          break;
@@ -777,12 +739,10 @@ namespace vessel
       }
    }
 
-   void keyString::_toNumeric(EncodedType type,
-                              UINT32 &offset,
-                              BOOLEAN inverted,
-                              bson::BSONObjBuilder &builder,
-                              typeBitsReader &typeReader,
-                              const CHAR *fieldName) const
+   void keyString::bodyReader::_toNumeric(EncodedType type,
+                                          BOOLEAN inverted,
+                                          bson::BSONObjBuilder &builder,
+                                          const CHAR *fieldName)
    {
 
       typeBitsType originalType = typeReader.readNumeric();
@@ -847,7 +807,7 @@ namespace vessel
          inverted = !inverted;
       case EncodedType::numericPositiveSmallMagnitude:
       case EncodedType::numericPositiveLargeMagnitude: {
-         UINT64 encoded = _read<UINT64>(offset, inverted);
+         UINT64 encoded = _read<UINT64>(inverted);
          encoded = ossBigEndianToNative(encoded);
          DecimalContinuationMarker dcm =
              static_cast<DecimalContinuationMarker>(encoded & 1ULL);
@@ -887,8 +847,7 @@ namespace vessel
          }
          else
          {
-            bson::bsonDecimal dec =
-                _decodeDecimal(offset, inverted, isNegative, typeReader);
+            bson::bsonDecimal dec = _decodeDecimal(inverted, isNegative);
             // Todo decimal meta
             fieldName ? builder.append(fieldName, dec)
                       : builder.append("", dec);
@@ -917,7 +876,7 @@ namespace vessel
          UINT32 integralNeededBytes = neededBytesNumForInteger(type);
          for (UINT32 i = integralNeededBytes; i; i--)
          {
-            integerPart = (integerPart << 8) | _read<UINT8>(offset, inverted);
+            integerPart = (integerPart << 8) | _read<UINT8>(inverted);
          }
 
          BOOLEAN hasFractionPart = (integerPart & 1ULL);
@@ -965,7 +924,7 @@ namespace vessel
          UINT64 encoded = integerPart;
          for (int i = frcationalBytes; i; i--)
          {
-            encoded = (encoded << 8) | _read<UINT8>(offset, inverted);
+            encoded = (encoded << 8) | _read<UINT8>(inverted);
          }
          DecimalContinuationMarker dcm =
              static_cast<DecimalContinuationMarker>(encoded & 1ULL);
@@ -998,8 +957,7 @@ namespace vessel
          }
          else
          {
-            bson::bsonDecimal dec =
-                _decodeDecimal(offset, inverted, isNegative, typeReader);
+            bson::bsonDecimal dec = _decodeDecimal(inverted, isNegative);
             // Todo decimal meta
             fieldName ? builder.append(fieldName, dec)
                       : builder.append("", dec);
@@ -1012,29 +970,24 @@ namespace vessel
       }
    }
 
-   void keyString::_decodeStringLike(UINT32 &offset,
-                                     BOOLEAN inverted,
-                                     ossPoolString &s) const
+   void keyString::bodyReader::_decodeStringLike(BOOLEAN inverted,
+                                                 ossPoolString &s)
    {
-      UINT32 keyBodySize = _desc.getKeyBodySize();
-      _readCString(offset, inverted, s);
-      while (offset != _desc.keyHeadSize + keyBodySize &&
-             0xFF == _peek<UINT8>(offset, inverted))
+      _readCString(inverted, s);
+      while (_offset != _bufSize && 0xFF == _peek<UINT8>(inverted))
       {
-         offset += 1;
+         _offset += 1;
          s.append("\x00", 1);
-         _readCString(offset, inverted, s);
+         _readCString(inverted, s);
       }
    }
 
-   bson::bsonDecimal keyString::_decodeDecimal(UINT32 &offset,
-                                               BOOLEAN inverted,
-                                               BOOLEAN isNegative,
-                                               typeBitsReader &typeReader) const
+   bson::bsonDecimal keyString::bodyReader::_decodeDecimal(BOOLEAN inverted,
+                                                           BOOLEAN isNegative)
    {
       bson::bsonDecimal dec;
       const UINT32 integerPartNdigit =
-          ossBigEndianToNative(_read<UINT32>(offset, inverted));
+          ossBigEndianToNative(_read<UINT32>(inverted));
       INT16 weight = 0;
       INT32 typemod = typeReader.read<INT32>();
       UINT16 ndigit = typeReader.read<UINT16>();
@@ -1046,14 +999,14 @@ namespace vessel
       if (0 == integerPartNdigit)
       {
          decStr.append("0.");
-         weight = ossBigEndianToNative(_read<INT16>(offset, inverted));
+         weight = ossBigEndianToNative(_read<INT16>(inverted));
          SDB_ASSERT(weight < 0, "Unexpected weight");
          const UINT16 fractionPartNdigit = -weight;
          UINT16 digit = 0;
          for (UINT16 i = fractionPartNdigit; i; i--)
          {
             digit = static_cast<UINT16>(
-                ossBigEndianToNative(_read<UINT16>(offset, inverted)) >> 1);
+                ossBigEndianToNative(_read<UINT16>(inverted)) >> 1);
             SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
                        "Unexpected digit value");
             CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
@@ -1066,7 +1019,7 @@ namespace vessel
          UINT16 digit = 0;
          for (UINT16 i = integerPartNdigit; i; i--)
          {
-            digit = ossBigEndianToNative(_read<UINT16>(offset, inverted));
+            digit = ossBigEndianToNative(_read<UINT16>(inverted));
             SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
                        "Unexpected digit value");
             CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
@@ -1077,7 +1030,7 @@ namespace vessel
          for (UINT16 i = ndigit - integerPartNdigit; i; i--)
          {
             digit = static_cast<UINT16>(
-                ossBigEndianToNative(_read<UINT16>(offset, inverted)) >> 1);
+                ossBigEndianToNative(_read<UINT16>(inverted)) >> 1);
             SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
                        "Unexpected digit value");
             CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
@@ -1090,36 +1043,30 @@ namespace vessel
       return dec;
    }
 
-   void keyString::_readBytes(UINT32 &offset,
-                              BOOLEAN inverted,
-                              CHAR *bytes,
-                              UINT32 len) const
+   void keyString::bodyReader::_readBytes(BOOLEAN inverted,
+                                          CHAR *bytes,
+                                          UINT32 len)
    {
       if (inverted)
       {
-         ossMemcpyFlipBits(bytes, getRawData().data() + offset, len);
+         ossMemcpyFlipBits(bytes, _buf + _offset, len);
       }
       else
       {
-         ossMemcpy(bytes, getRawData().data() + offset, len);
+         ossMemcpy(bytes, _buf + _offset, len);
       }
-      offset += len;
+      _offset += len;
    }
 
-   void keyString::_readCString(UINT32 &offset,
-                                BOOLEAN inverted,
-                                ossPoolString &s) const
+   void keyString::bodyReader::_readCString(BOOLEAN inverted, ossPoolString &s)
    {
       UINT32 strOldSize = s.size();
       const UINT8 endChar = inverted ? 0xFF : 0;
-      const CHAR *start =
-          static_cast<const CHAR *>(getRawData().data() + offset);
-      const CHAR *end = static_cast<const CHAR *>(
-          memchr(start,
-                 endChar,
-                _desc.keyHeadSize + _desc.getKeyBodySize() - offset));
+      const CHAR *start = static_cast<const CHAR *>(_buf + _offset);
+      const CHAR *end =
+          static_cast<const CHAR *>(memchr(start, endChar, _bufSize - _offset));
       UINT32 bytesNum = end - start;
-      offset += (bytesNum + 1);
+      _offset += (bytesNum + 1);
       s.append(start, bytesNum);
       if (inverted)
       {
