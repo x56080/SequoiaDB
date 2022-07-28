@@ -1575,12 +1575,29 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public BSONObject getIndexStat(String name) throws BaseException {
+        return this.getIndexStat(name, false);
+    }
+
+    /**
+     * Get the statistics of the index.
+     *
+     * @param name The index name.
+     * @param detail Whether to get additional MCV (Most Common Values) statistics of index.
+     * @return The statistics of the specified index.
+     * @throws BaseException If error happens.
+     */
+    public BSONObject getIndexStat(String name, boolean detail) throws BaseException {
         if (name == null || name.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "index name can not be null or empty");
         }
         BSONObject hint = new BasicBSONObject();
         hint.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
         hint.put(SdbConstants.FIELD_INDEX, name);
+
+        BSONObject options = new BasicBSONObject();
+        options.put(SdbConstants.FIELD_NAME_DETAIL, detail);
+        hint.put(SdbConstants.FIELD_NAME_CMD_OPTIONS, options);
+
         int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
         flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
