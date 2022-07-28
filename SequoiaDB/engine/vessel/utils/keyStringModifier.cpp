@@ -72,19 +72,16 @@ namespace vessel
       strictBuffer buffer;
       recordID rid;
       UINT32 bufferOffset = 0;
-      slice s;
 
       if (OSS_UNLIKELY(!_src.isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      s = _src.getSliceAfterKey();
-      if (s.getSize() < sizeof(recordID))
+      else if (_src.getKeyTailSize() < keyStringCoder::RID_ENCODING_SIZE)
       {
-         PD_LOG(PDERROR, "may not contain rid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         PD_LOG(PDERROR, "has no rid coded");
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
@@ -103,15 +100,15 @@ namespace vessel
       }
       rid.setPos(rid.getPos() + 1);
 
-      rc = _ensureBuffer(_src.getTotalSize());
+      rc = _ensureBuffer(_src.getRawDataSize());
       if (SDB_OK != rc)
       {
          goto error;
       }
 
+      bufferOffset = _src.getKeySizeExceptTail();
       buffer.makeWritable(_bufferSize, _buffer);
-      buffer.write(0, _src.getTotalSize(), _src.getRawData().data());
-      bufferOffset = _src.getComparableSize() - s.getSize();
+      buffer.write(0, _src.getRawDataSize(), _src.getRawData().data());
       keyStringCoder().encodeRid(rid, buffer.getWritablePtr(bufferOffset, sizeof(recordID)));
    done:
       return rc;
@@ -125,19 +122,16 @@ namespace vessel
       strictBuffer buffer;
       recordID rid;
       UINT32 bufferOffset = 0;
-      slice s;
 
       if (OSS_UNLIKELY(!_src.isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      s = _src.getSliceAfterKey();
-      if (s.getSize() < sizeof(recordID))
+      else if (_src.getKeyTailSize() < keyStringCoder::RID_ENCODING_SIZE)
       {
-         PD_LOG(PDERROR, "may not contain rid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         PD_LOG(PDERROR, "has no rid coded");
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
@@ -156,15 +150,15 @@ namespace vessel
       }
       rid.setPos(rid.getPos() - 1);
 
-      rc = _ensureBuffer(_src.getTotalSize());
+      rc = _ensureBuffer(_src.getRawDataSize());
       if (SDB_OK != rc)
       {
          goto error;
       }
 
+      bufferOffset = _src.getKeySizeExceptTail();
       buffer.makeWritable(_bufferSize, _buffer);
-      buffer.write(0, _src.getTotalSize(), _src.getRawData().data());
-      bufferOffset = _src.getComparableSize() - s.getSize();
+      buffer.write(0, _src.getRawDataSize(), _src.getRawData().data());
       keyStringCoder().encodeRid(rid, buffer.getWritablePtr(bufferOffset, sizeof(recordID)));
    done:
       return rc;

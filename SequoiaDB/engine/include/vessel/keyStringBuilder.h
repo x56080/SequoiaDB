@@ -54,7 +54,6 @@
 #include "vessel/globalIndexID.h"
 #include "dpsDef.hpp"
 #include "vessel/keyStringCoder.h"
-#include "vessel/keyStringMetaBlock.h"
 #include "vessel/keyStringMetaByte.h"
 
 #include <iomanip>
@@ -371,6 +370,8 @@ namespace vessel
       void _verifyStatus();
       void _transition(BUILDER_STATUS to);
       INT32 _ensureBytes(UINT32 length);
+
+      INT32 _appendMetaBlockSizeWord(UINT32 size, BOOLEAN nonzero);
 
    private:
       BUILDER_STATUS _status = BUILDER_STATUS::EMPTY;
@@ -2068,31 +2069,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       const UINT32 tbBufSize = _typeBits.getBufSize();
-      if (tbBufSize < std::numeric_limits<UINT8>::max())
-      {
-         rc = _append(static_cast<UINT8>(tbBufSize), FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         rc = _append(std::numeric_limits<UINT8>::max(), FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
-            goto error;
-         }
-         rc = _append(tbBufSize, FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append typebits size, rc:%d", rc);
-            goto error;
-         }
-      }
-
       if (tbBufSize > 0)
       {
          rc = _appendBytes(_typeBits.getBuf(), tbBufSize, FALSE);
@@ -2119,49 +2095,49 @@ namespace vessel
    INT32 keyStringBuilder<Allocator>::_appendMetaBlock()
    {
       INT32 rc = SDB_OK;
-      UINT32 keyBytesNeeded = _bufSize > 0xff ? 4 : 1;
+      UINT32 comparableSize = _sizeOfElements + _sizeAheadElements + _sizeAfterElements;
+      keyStringMetaByte mbyte(_sizeAheadElements,
+                              _sizeAfterElements,
+                              _typeBits.getBufSize());
 
-
-      UINT8 metaByte = 0;
-      metaByte |= (_sizeAheadElements != 0 ? 1 : 0);
-      metaByte |= ((_bufSize > 0xff ? 1 : 0) << 1);
-      metaByte |= ((_sizeAfterElements != 0 ? 1 : 0) << 2);
-
-      if (_sizeAfterElements != 0)
+      if (mbyte.hasTypeBits())
       {
-         rc = _append(static_cast<UINT8>(_sizeAfterElements), FALSE);
+         rc = _appendMetaBlockSizeWord(_typeBits.getBufSize(), TRUE);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append size after key string , rc:%d", rc);
+            PD_LOG(PDERROR, "failed to append type bits size:%d", rc);
             goto error;
          }
       }
 
-      if (keyBytesNeeded == 1)
+      if (mbyte.hasKeyTail())
       {
-         rc = _append(static_cast<UINT8>(_sizeOfElements), FALSE);
+         rc = _appendMetaBlockSizeWord(_sizeAfterElements, TRUE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append key tail size:%d", rc);
+            goto error;
+         }
       }
-      else
+
+      if (mbyte.hasKeyHead())
       {
-         rc = _append(static_cast<UINT32>(_sizeOfElements), FALSE);
+         rc = _appendMetaBlockSizeWord(_sizeAheadElements, TRUE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append key head size:%d", rc);
+            goto error;
+         }
       }
+
+      rc = _appendMetaBlockSizeWord(comparableSize, FALSE);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to append key string size, rc:%d", rc);
+         PD_LOG(PDERROR, "failed to append full key size:%d", rc);
          goto error;
       }
 
-      if (_sizeAheadElements != 0)
-      {
-         rc = _append(static_cast<UINT8>(_sizeAheadElements), FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append size ahead key string size, rc:%d", rc);
-            goto error;
-         }
-      }
-
-      rc = _append(metaByte, FALSE);
+      rc = _append(mbyte.getValue(), FALSE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append metaByte, rc:%d", rc);
@@ -2184,7 +2160,13 @@ namespace vessel
    keyString keyStringBuilder<Allocator>::getShallowKeyString() const
    {
       SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
-      return keyString(slice(_bufSize, _buf));
+      keyString ks;
+      ks._ref.reset(_bufSize, _buf);
+      ks._desc.keySize = _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
+      ks._desc.keyHeadSize = _sizeAheadElements;
+      ks._desc.keyTailSize = _sizeAfterElements;
+      ks._desc.typeBitsSize = _typeBits.getBufSize();
+      return std::move(ks);
    }
 
    template <typename Allocator> keyString keyStringBuilder<Allocator>::reap()
@@ -2192,7 +2174,13 @@ namespace vessel
       SDB_ASSERT(BUILDER_STATUS::DONE == _status, "can not be invalid");
       SDB_ASSERT(_allocator.isMovable(), "must be movable");
       keyString ks;
-      ks._adopt(_buf, _capacity, _bufSize);
+      ks._ref.reset(_bufSize, _buf);
+      ks._desc.keySize = _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
+      ks._desc.keyHeadSize = _sizeAheadElements;
+      ks._desc.keyTailSize = _sizeAfterElements;
+      ks._desc.typeBitsSize = _typeBits.getBufSize();
+      ks._bufferOwned = _buf;
+      ks._bufferSize = _capacity;
       _buf = nullptr;
       reset();
       return std::move(ks);
@@ -2574,11 +2562,12 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       constexpr UINT32 _MIN_BUF_SIZE = keyStringCoder::INDEX_ID_ENCODEING_SIZE +
-                                       sizeof(keyStringMetaBlock<1>) + 1;
+                                       KEY_STRING_MB_HEADER_SIZE +
+                                       KEY_STRING_TYNI_SWRORD_SIZE + /// key size word
+                                       KEY_STRING_TYNI_SWRORD_SIZE; /// key head size word;
       keyStringCoder coder;
-      keyStringMetaBlock<1> *block = nullptr;
       keyStringMetaByte b;
-      b.setHasDataBeforeKey();
+      keyStringMetaBlockHeader *header = nullptr;
 
       if (!indexId.isValid())
       {
@@ -2592,14 +2581,14 @@ namespace vessel
       }
 
       coder.encodeGlobalIndexId(indexId, asUpBound, buf);
-      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE) = 0;
-      block = reinterpret_cast<keyStringMetaBlock<1> *>(
-          buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 1);
-      block->version = KEY_STRING_VERSION_1;
-      block->metaByte = b.getByte();
-      block->keySize = 0;
-      block->beforeKeySize =  keyStringCoder::INDEX_ID_ENCODEING_SIZE;
-      //block->beforeKeySize = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE) = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      *(buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 1) = keyStringCoder::INDEX_ID_ENCODEING_SIZE;
+      header = reinterpret_cast<keyStringMetaBlockHeader *>(
+          buf + keyStringCoder::INDEX_ID_ENCODEING_SIZE + 2);
+      
+      b.setHasKeyHead();
+      header->version = KEY_STRING_VERSION_1;
+      header->metaByte = b.getValue();
       size = _MIN_BUF_SIZE;
    done:
       return rc;
@@ -2607,6 +2596,45 @@ namespace vessel
       goto done;
    }
 
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::_appendMetaBlockSizeWord(UINT32 size, BOOLEAN nonzero)
+   {
+      INT32 rc = SDB_OK;
+      if (nonzero && 0 == size)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (size < KEY_STRING_TYNI_SIZE_BOUND)
+      {
+         rc = _append(static_cast<UINT8>(size), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append tiny size word:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _append(static_cast<UINT32>(size), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append size word:%d", rc);
+            goto error;
+         }
+         rc = _append(static_cast<UINT8>(KEY_STRING_TYNI_SIZE_BOUND), FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append size word bound:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 } // namespace engine
 

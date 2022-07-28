@@ -53,7 +53,7 @@ namespace vessel
          virtual bool InDomain(const rocksdb::Slice &key) const override
          {
             keyString ks(toSlice(key));
-            return ks.isValid() && ks.hasKeyPart();
+            return ks.isValid() && ks.hasKeyBody();
          }
 
       public:

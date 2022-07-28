@@ -47,28 +47,8 @@ namespace vessel
          virtual INT32 Compare(const rocksdb::Slice & a,
                                const rocksdb::Slice & b)const override
          {
-            // UINT8 s1 = *(a.data() + a.size() - 4);
-            // s1 += *(a.data() + a.size() - 3);
-            // UINT8 s2 = *(b.data() + b.size() - 4);
-            // s2 += *(b.data() + b.size() - 3);
-            // UINT8 size = OSS_MIN(s1, s2);
-            // INT32 res = ossMemcmp(a.data(), b.data(), size);
-            // if (0 == res)
-            // {
-            //    if (s1 < s2)
-            //    {
-            //       res = -1;
-            //    }
-            //    else if (s1 > s2)
-            //    {
-            //       res = 1;
-            //    }
-            // }
-
-            // return res;
-            keyString aks(a.size(), a.data(), FALSE);
-            keyString bks(b.size(), b.data(), FALSE);
-            return aks.getComparableSlice().compare(bks.getComparableSlice());
+            return keyString::compareCoding(a.size(), a.data(),
+                                            b.size(), b.data());
          }
 
          virtual const char* Name() const override { return "sdb.lsmHitComparator"; }

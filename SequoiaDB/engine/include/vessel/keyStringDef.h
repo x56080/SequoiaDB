@@ -50,6 +50,80 @@ namespace vessel
       KEY_STRING_VERSION_1 = 0x01,
    };
 
+#pragma pack(2)
+   struct keyStringMetaBlockHeader
+   {
+      OSS_INLINE BOOLEAN isValid()const {return KEY_STRING_VERSION_1 == version;}
+      UINT8 metaByte = 0;
+      UINT8 version = 0;
+   };
+
+   constexpr UINT32 KEY_STRING_MB_HEADER_SIZE = sizeof(keyStringMetaBlockHeader);
+   static_assert(2 == KEY_STRING_MB_HEADER_SIZE, "invalid size");
+#pragma pack()
+   
+   constexpr UINT32 KEY_STRING_TYNI_SIZE_BOUND = 0xFF;
+   constexpr UINT32 KEY_STRING_TYNI_SWRORD_SIZE = sizeof(UINT8);
+   constexpr UINT32 KEY_STRING_SWORD_SIZE = sizeof(UINT32);
+   constexpr UINT32 KEY_STRING_EXT_SWORD_SIZE = KEY_STRING_TYNI_SWRORD_SIZE + KEY_STRING_SWORD_SIZE;
+
+   struct keyStringDescriptor : public SDBObject
+   {
+      OSS_INLINE void reset()
+      {
+         keySize = 0;
+         keyHeadSize = 0;
+         keyTailSize = 0;
+         typeBitsSize = 0;
+         return;   
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return ((UINT64)keyHeadSize + keyTailSize) <= (UINT64)keySize;
+      }
+      OSS_INLINE UINT32 getKeyBodySize()const
+      {
+         return keySize - (keyHeadSize + keyTailSize);
+      }
+      OSS_INLINE UINT32 getMetaBlockSize()const
+      {
+         UINT32 size = KEY_STRING_MB_HEADER_SIZE;
+         size += keySize < KEY_STRING_TYNI_SIZE_BOUND ?
+                 KEY_STRING_TYNI_SWRORD_SIZE:
+                 KEY_STRING_EXT_SWORD_SIZE;
+         if (0 < keyHeadSize)
+         {
+            size += keyHeadSize < KEY_STRING_TYNI_SIZE_BOUND ?
+                    KEY_STRING_TYNI_SWRORD_SIZE:
+                    KEY_STRING_EXT_SWORD_SIZE;
+         }
+         if (0 < keyTailSize)
+         {
+            size += keyTailSize < KEY_STRING_TYNI_SIZE_BOUND ?
+                    KEY_STRING_TYNI_SWRORD_SIZE:
+                    KEY_STRING_EXT_SWORD_SIZE;
+         }
+         if (0 < typeBitsSize)
+         {
+            size += typeBitsSize < KEY_STRING_TYNI_SIZE_BOUND ?
+                    KEY_STRING_TYNI_SWRORD_SIZE:
+                    KEY_STRING_EXT_SWORD_SIZE;
+         }
+
+         return size;
+      }
+      OSS_INLINE UINT32 getStringSizeExpected()const
+      {
+         return keySize + typeBitsSize + getMetaBlockSize();
+      }
+
+      UINT32 keySize = 0;
+      UINT32 keyHeadSize = 0;
+      UINT32 keyTailSize = 0;
+      UINT32 typeBitsSize = 0;
+   };
+
    enum class EncodedType : UINT8
    {
       minKey = 10,

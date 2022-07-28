@@ -45,6 +45,7 @@
 #include "../bson/bsonobj.h"
 #include "vessel/keyStringDef.h"
 #include "vessel/recordID.h"
+#include "vessel/bytesReader.h"
 
 namespace engine
 {
@@ -85,8 +86,8 @@ namespace vessel
    public:
       keyString() = default;
       ~keyString();
-      explicit keyString(const slice &s, BOOLEAN validation=TRUE);
-      explicit keyString(UINT32 size, const CHAR *data, BOOLEAN validation=TRUE);
+      explicit keyString(const slice &s);
+      explicit keyString(UINT32 size, const CHAR *data);
 
       /// WARNING: shallow copy!
       keyString(const keyString &);
@@ -121,12 +122,22 @@ namespace vessel
       INT32 getOwned();
 
    public:
+      OSS_INLINE UINT32 getRawDataSize()const {return _ref.getSize();}
+      OSS_INLINE UINT32 getComparableSize()const {return _desc.keySize;}
+      OSS_INLINE UINT32 getKeyHeadSize()const {return _desc.keyHeadSize;}
+      OSS_INLINE UINT32 getKeyTailSize()const {return _desc.keyTailSize;}
+      OSS_INLINE UINT32 getKeyBodySize()const {return _desc.getKeyBodySize();}
+      OSS_INLINE UINT32 getTypeBitsSize()const {return _desc.typeBitsSize;}
+      OSS_INLINE UINT32 getKeySizeExceptTail()const {return _desc.keySize - _desc.keyTailSize;}
+      OSS_INLINE BOOLEAN hasKeyHead()const {return 0 < getKeyHeadSize();}
+      OSS_INLINE BOOLEAN hasKeyBody()const {return 0 < getKeyBodySize();}
+      OSS_INLINE BOOLEAN hasKeyTail()const {return 0 < getKeyTailSize();}
+      OSS_INLINE BOOLEAN hasTypeBits()const {return 0 < getTypeBitsSize();}
       slice getKeySlice() const;
-      slice getSliceBeforeKey() const;
-      slice getSliceAfterKey() const;
-      slice getComparableSlice() const;
+      slice getKeyHeadSlice() const;
+      slice getKeyBodySlice() const;
+      slice getKeyTailSlice() const;
       slice getFilterSlice()const;
-      
       slice getTypeBits() const;
       bson::BSONObj toBSON(const bson::BSONObj &pattern,
                            BOOLEAN withFieldName = FALSE) const;
@@ -135,36 +146,24 @@ namespace vessel
                            BOOLEAN withFieldName = FALSE) const;
 
    public:
-      UINT32 getTotalSize() const
-      {
-         return _ref.getSize();
-      }
-      UINT32 getComparableSize() const;
-      UINT32 getKeySize() const;
-      BOOLEAN hasKeyPart()const;
-
-   public:
       recordID getRid() const;
 
    public:
+      ///WARNING: same code format only!
       INT32 compare(const keyString &ks) const;
 
-   private:
-      struct _comparableSizeDesc
-      {
-         OSS_INLINE UINT32 getComparableSize()const
-         {
-            return beforeKeySize + keySize + afterKeySize;
-         }
+      INT32 compareElements(const keyString &ks)const;
 
-         UINT32 beforeKeySize = 0;
-         UINT32 keySize = 0;
-         UINT32 afterKeySize = 0;
-      };
+      ///WARNING: same code format only!
+      ///WARNING: will not do any validation inside!
+      static INT32 compareCoding(UINT32 sizea,
+                                 const CHAR *bufa,
+                                 UINT32 sizeb,
+                                 const CHAR *bufb);
 
    private:
-      BOOLEAN _validate(const slice &s) const;
-      void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
+      INT32 _parse(const slice &s, keyStringDescriptor &desc)const;
+      //void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
    private:
       template <typename T> T _read(UINT32 &offset, BOOLEAN inverted) const;
@@ -205,39 +204,14 @@ namespace vessel
                                        BOOLEAN inverted,
                                        BOOLEAN isNegative,
                                        typeBitsReader &typeReader) const;
-      UINT32 _getTypeBitsSize(const CHAR *data, UINT32 &width) const;
-
-      void _getPartsSize(const slice &s,
-                         _comparableSizeDesc &desc)const;
-
-      template<class T>
-      const T *_getMetaBlockPtr(const slice &s)const
-      {
-         return reinterpret_cast<const T *>(s.getData() + s.getSize() - sizeof(T));
-      }
-
-      template<class T>
-      void _getPartsSize(const slice &s, _comparableSizeDesc &desc) const
-      {
-         const T *blk = _getMetaBlockPtr<T>(s);
-         desc.beforeKeySize = blk->getBeforeKeySize();
-         desc.keySize = blk->getKeySize();
-         desc.afterKeySize = blk->getAfterKeySize();
-         return;
-      }
-
-      OSS_INLINE UINT8 _getVersionByte(const slice &s)const 
-      {
-         return s.getData()[s.getSize() - 1];
-      }
-
-      OSS_INLINE UINT8 _getMetaByte(const slice &s)const
-      {
-         return s.getData()[s.getSize() - 2];
-      }
+      
+      BOOLEAN _loadSizeData(bytesReader &reader,
+                            BOOLEAN nonzero,
+                            UINT32 &size)const;
 
    protected:
       slice _ref;
+      keyStringDescriptor _desc;
 
    private:
       CHAR *_bufferOwned = nullptr;

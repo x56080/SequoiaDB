@@ -48,105 +48,54 @@ namespace vessel
    {
       public:
          keyStringMetaByte() = default;
-         keyStringMetaByte(UINT32 bytesBeforeKey, UINT32 keySize, UINT32 typeBitsSize):
+         explicit keyStringMetaByte(UINT32 keyHeadSize,
+                                    UINT32 keyTailSize,
+                                    UINT32 typeBitsSize):
          _b(0)
          {
-            if (0 < bytesBeforeKey)
+            if (0 < keyHeadSize)
             {
-               setHasDataBeforeKey();
+               setHasKeyHead();
             }
-            if (std::numeric_limits<UINT8>::max() < keySize)
+            if (0 < keyTailSize)
             {
-               setWideKeySizeWord();
+               setHasKeyTail();
             }
-            if (std::numeric_limits<UINT8>::max() < typeBitsSize)
+            if (0 < typeBitsSize)
             {
-               setHasDataAfterKey();
+               setHasTypeBits();
             }
          }
-         keyStringMetaByte(UINT8 b):
+         
+         explicit keyStringMetaByte(UINT8 b):
          _b(b){}
 
       public:
          enum FLAG : UINT8
          {
-            HAS_DATA_BEFORE_KEY = 0x01,
-            WIDE_KEY_SIZE_WORD = 0x02,
-            HAS_DATA_AFTER_KEY = 0x04,
+            HAS_KEY_HEAD = 0x01,
+            HAS_KEY_TAIL = 0x02,
+            HAS_TYPE_BITS = 0x04,
          };
 
       public:
-         void init(UINT8 b) {_b = b;}
-
-      public:
-         void setHasDataBeforeKey() {OSS_BIT_SET(_b, HAS_DATA_BEFORE_KEY);}
-         void setWideKeySizeWord() {OSS_BIT_SET(_b, WIDE_KEY_SIZE_WORD);}
-         void setHasDataAfterKey() {OSS_BIT_SET(_b, HAS_DATA_AFTER_KEY);}
-
-      public:
-         BOOLEAN hasDataBeforeKey() const
+         OSS_INLINE void init(UINT8 b) {_b = b;}
+         OSS_INLINE UINT8 getValue()const {return _b;}
+         OSS_INLINE void setHasKeyHead() {OSS_BIT_SET(_b, HAS_KEY_HEAD);}
+         OSS_INLINE BOOLEAN hasKeyHead() const
          {
-            return 0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY);
+            return 0 != OSS_BIT_TEST(_b, HAS_KEY_HEAD);
          }
-         
-         BOOLEAN isWideKeySizeWord() const
+         OSS_INLINE void setHasKeyTail() {OSS_BIT_SET(_b, HAS_KEY_TAIL);}
+         OSS_INLINE BOOLEAN hasKeyTail() const
          {
-            return 0 != OSS_BIT_TEST(_b, WIDE_KEY_SIZE_WORD);
+            return 0 != OSS_BIT_TEST(_b, HAS_KEY_TAIL);
          }
-
-         BOOLEAN hasDataAfterKey() const
+         OSS_INLINE void setHasTypeBits() {OSS_BIT_SET(_b, HAS_TYPE_BITS);}
+         OSS_INLINE BOOLEAN hasTypeBits() const
          {
-            return 0 != OSS_BIT_TEST(_b, HAS_DATA_AFTER_KEY);
+            return 0 != OSS_BIT_TEST(_b, HAS_TYPE_BITS);
          }
-
-      public:
-         UINT32 getBeforeKeySizeWordWidth()const
-         {
-            return (0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY)) ?
-                    sizeof(UINT8) : 0;
-         }
-         INT32 getBeforeKeySizeWordOffset()const
-         {
-            return (0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY)) ?
-                   0 : -1;
-         }
-         UINT32 getKeySizeWordWidth()const
-         {
-            return (0 != OSS_BIT_TEST(_b, WIDE_KEY_SIZE_WORD)) ?
-                   sizeof(UINT32) : sizeof(UINT8);
-         }
-         UINT32 getKeySizeWordOffset()const
-         {
-            return getBeforeKeySizeWordWidth() + getKeySizeWordWidth();
-         }
-
-         UINT32 getAfterKeySizeWordWidth()const
-         {
-            return (0 != OSS_BIT_TEST(_b, HAS_DATA_AFTER_KEY)) ?
-                    sizeof(UINT8) : 0;
-         }
-         INT32 getAfterKeySizeWordOffset()const
-         {
-            return (0 != OSS_BIT_TEST(_b, HAS_DATA_BEFORE_KEY)) ?
-                   (getKeySizeWordOffset() + getAfterKeySizeWordWidth()) :
-                   -1;
-         }
-         
-         UINT32 getTotalSizeWidth()const
-         {
-            return getBeforeKeySizeWordWidth() +
-                   getKeySizeWordWidth() + 
-                   getAfterKeySizeWordWidth();
-         }
-
-
-         UINT8 getByte()const {return _b;}
-
-         OSS_INLINE static UINT8 getMetaBlockFormatNum(UINT8 b)
-         {
-            return 0x07 & b;
-         }
-
       private:
          UINT8 _b = 0;
    };//class keyStringMetaByte
