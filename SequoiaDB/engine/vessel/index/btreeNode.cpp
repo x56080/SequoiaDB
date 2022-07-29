@@ -140,8 +140,7 @@ namespace vessel
 
    DPS_TRANS_ID btreeNode::getTransID()const
    {
-      const btreeNodePageHead *head = getReadableHead();
-      return DPS_TRANS_ID(head->transSN, head->transNode);
+      return getReadableHead()->transID;
    }
 
    btreeItemSlot btreeNode::getItemSlot(RECORD_SLOT_POS  pos)const
@@ -1454,8 +1453,7 @@ namespace vessel
       newHead->totalFreeSpace = getNodeSize() - BTREE_NODE_PAGE_HEAD_SIZE;
       newHead->backOffset = getNodeSize();
       newHead->rightChild = head->rightChild;
-      newHead->transSN = head->transSN;
-      newHead->transNode = head->transNode;
+      newHead->transID = head->transID;
       newHead->birthLevel = head->birthLevel;
 
       for (RECORD_SLOT_POS  i = begin; i < head->totalSlotCount; ++i)
@@ -1532,11 +1530,10 @@ namespace vessel
       {
          btreeNodePageHead *head = _buffer->getWritableBodyBuffer().
                                    getWritableObjPtr<btreeNodePageHead>(0);
-         if (DPS_INVALID_TRANSID_SN == head->transSN ||
-             head->transSN < transID.getSN())
+         if (!head->transID.isValid() ||
+             head->transID < transID)
          {
-            head->transSN = transID.getSN();
-            head->transNode = transID.getNodeID();
+            head->transID = transID;
          }
       }
    }
@@ -2380,8 +2377,7 @@ namespace vessel
       header->compressedItemCount = 0;
       header->appendingFactor = 0;
       header->rightChild = INVALID_PAGE_ID;
-      header->transSN = DPS_INVALID_TRANSID_SN;
-      header->transNode = DPS_INVALID_TRANSID_NODEID;
+      header->transID.reset();
       header->flags = 0;
       if (isRootNode)
       {
