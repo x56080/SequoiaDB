@@ -688,11 +688,11 @@ namespace engine
 
    BOOLEAN utilIsValidOID( const CHAR * pStr )
    {
-      if ( NULL == pStr || 24 > ossStrlen( pStr ) )
+      if ( NULL == pStr || UTIL_OID_LEN != ossStrlen( pStr ) )
       {
          return FALSE ;
       }
-      for ( UINT32 i = 0; i < 24; ++i )
+      for ( UINT32 i = 0; i < UTIL_OID_LEN; ++i )
       {
          if ( ! ( ( pStr[i] >= '0' && pStr[i] <= '9' ) ||
                   ( pStr[i] >= 'a' && pStr[i] <= 'f' ) ||

@@ -53,6 +53,8 @@
 #define UTIL_STR2NUM_HEX   0x00000100  // hexadecimal system
 #define UTIL_STR2NUM_ALL   0x11111111
 
+#define UTIL_OID_LEN       24
+
 using namespace std ;
 
 namespace engine
