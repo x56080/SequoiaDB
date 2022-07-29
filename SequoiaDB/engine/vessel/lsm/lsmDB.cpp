@@ -43,6 +43,7 @@
 #include "rocksdb/table.h"
 #include "rocksdb/filter_policy.h"
 #include "rocksdb/slice_transform.h"
+#include "rocksdb/statistics.h"
 
 namespace engine
 {
@@ -82,6 +83,10 @@ namespace vessel
       opt.create_missing_column_families = TRUE;
       // opt.listeners.emplace_back(newLsmEventListener(this));
       opt.max_background_jobs = 4;
+// #if defined(_DEBUG)
+//       opt.statistics = rocksdb::CreateDBStatistics();
+//       opt.stats_dump_period_sec = 10;
+// #endif 
 
       // configure column family names and options
       for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)

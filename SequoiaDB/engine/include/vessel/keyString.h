@@ -138,7 +138,7 @@ namespace vessel
       slice getKeyHeadSlice() const;
       slice getKeyBodySlice() const;
       slice getKeyTailSlice() const;
-      slice getFilterSlice()const;
+      slice getKeySliceExceptTail()const;
       slice getTypeBits() const;
       bson::BSONObj toBSON(const bson::BSONObj &pattern,
                            BOOLEAN withFieldName = FALSE) const;

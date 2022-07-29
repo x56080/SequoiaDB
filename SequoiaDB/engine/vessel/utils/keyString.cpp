@@ -398,7 +398,7 @@ namespace vessel
             slice();
    }
 
-   slice keyString::getFilterSlice() const
+   slice keyString::getKeySliceExceptTail() const
    {
       return isValid() && _desc.keyTailSize < _desc.keySize ?
              _ref.getSlice(0, _desc.keySize - _desc.keyTailSize) :

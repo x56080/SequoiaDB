@@ -3859,8 +3859,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != cursor, "can not be invalid");
 
-      const dmsIndexScanOptions &o = cursor->getOptions();
-      UINT32 maxFetching = o.rowCountLimit;
+      UINT32 maxFetching = cursor->getBaseOptions().stepSize;
       UINT32 fetched = 0;
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       indexScanner scanner;
@@ -3888,7 +3887,7 @@ namespace vessel
             recordID rid = scanner.current()->getRid();
             dmsRecordID dmsRid = rid.toDMSRid(); 
 
-            if (o.indexCovered)
+            if (cursor->getOptions().indexCovered)
             { 
                DPS_TRANS_ID transID = scanner.current()->getTransID();
                buf.reset();
