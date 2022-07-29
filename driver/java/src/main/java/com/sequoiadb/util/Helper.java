@@ -20,6 +20,7 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import com.sequoiadb.base.UserConfig;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.types.BSONDecimal;
@@ -392,5 +393,15 @@ public final class Helper {
             newFlags &= ~erasedFlag;
         }
         return newFlags;
+    }
+
+    public static String getPasswd( UserConfig userConfig ) {
+        if ( userConfig.getPassword() == null && userConfig.getCipherFile() != null ) {
+            SdbDecrypt decrypt = new SdbDecrypt();
+            SdbDecryptUserInfo userInfo = decrypt.parseCipherFile( userConfig.getUserName(), userConfig.getToken(), userConfig.getCipherFile() );
+            return userInfo.getPasswd();
+        } else {
+            return userConfig.getPassword();
+        }
     }
 }

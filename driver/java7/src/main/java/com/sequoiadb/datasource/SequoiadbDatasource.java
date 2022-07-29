@@ -22,6 +22,7 @@ import com.sequoiadb.base.UserConfig;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -406,7 +407,8 @@ public class SequoiadbDatasource {
     }
 
     private SequoiadbDatasource( Builder builder ) {
-        _init(builder.addressList, builder.userConfig.getUserName(), builder.userConfig.getPassword(),
+        String passwd = Helper.getPasswd( builder.userConfig );
+        _init(builder.addressList, builder.userConfig.getUserName(), passwd,
                 builder.configOptions, builder.datasourceOptions);
     }
 

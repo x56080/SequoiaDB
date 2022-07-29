@@ -66,15 +66,15 @@ public class Constants {
     // user information
     public final static String TEST_USER_NAME = "test_user";
     public final static String TEST_USER_PASSWORD = "123";
+    public final static String TEST_USER_TOKEN = "123";
+    public final static String TEST_USER_CIPHER_FILE = "./src/test/java/com/sequoiadb/testdata/cipher.txt";
 
     public static boolean isCluster() {
-        Sequoiadb sdb = new Sequoiadb(HOST + ":" + PORT, "", "");
-        try {
+        try ( Sequoiadb sdb = new Sequoiadb(HOST + ":" + PORT, "", "") ) {
             BSONObject empty = new BasicBSONObject();
             sdb.getList(7, empty, empty, empty);
         } catch (BaseException e) {
-            if (e.getErrorType().equals("SDB_RTN_COORD_ONLY")) ;
-            return false;
+            return !e.getErrorType().equals("SDB_RTN_COORD_ONLY");
         }
         return true;
     }

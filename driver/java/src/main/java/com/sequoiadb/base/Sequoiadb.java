@@ -484,8 +484,8 @@ public class Sequoiadb implements Closeable {
     }
 
     private Sequoiadb( Builder builder ) {
-        init( builder.addressList, builder.userConfig.getUserName(),
-                builder.userConfig.getPassword(), builder.configOptions );
+        String passwd = Helper.getPasswd( builder.userConfig );
+        init( builder.addressList, builder.userConfig.getUserName(), passwd, builder.configOptions );
     }
 
     /**

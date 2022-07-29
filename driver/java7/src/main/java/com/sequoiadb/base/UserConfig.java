@@ -17,21 +17,23 @@ package com.sequoiadb.base;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 
+import java.io.File;
 import java.util.Objects;
 
 /**
  * The user config of SequoiaDB
  */
 public class UserConfig {
-    private final String userName ;
-    private final String password ;
+    private final String userName;
+    private final String password;
+    private final File cipherFile;
+    private final String token;
 
     /**
      * Create an user config object with empty username and empty password.
      */
     public UserConfig() {
-        this.userName = "";
-        this.password = "";
+        this("", "");
     }
 
     /**
@@ -46,6 +48,43 @@ public class UserConfig {
         }
         this.userName = userName;
         this.password = password;
+        this.cipherFile = null;
+        this.token = null;
+    }
+
+    /**
+     * Create an user config object with username and cipher file.
+     *
+     * @param userName The user name
+     * @param cipherFile The cipher file
+     */
+    public UserConfig( String userName, File cipherFile ) {
+        this( userName, cipherFile, null );
+    }
+
+    /**
+     * Create an user config object with username, cipher file and token.
+     *
+     * @param userName The user name
+     * @param cipherFile The cipher file
+     * @param token The password encryption token
+     */
+    public UserConfig( String userName, File cipherFile, String token ) {
+        if ( userName == null || cipherFile == null) {
+            throw new BaseException( SDBError.SDB_INVALIDARG, "User name or cipher file is null" );
+        }
+        if ( !cipherFile.exists() ) {
+            throw new BaseException( SDBError.SDB_FNE,
+                    "File not exist: " + cipherFile.getAbsolutePath() );
+        }
+        if ( !cipherFile.isFile() ) {
+            throw new BaseException( SDBError.SDB_INVALIDARG,
+                    "It is not file: " + cipherFile.getAbsolutePath() );
+        }
+        this.userName = userName;
+        this.password = null;
+        this.cipherFile = cipherFile;
+        this.token = token;
     }
 
     /**
@@ -62,18 +101,34 @@ public class UserConfig {
         return password;
     }
 
+    /**
+     * @return The cipher file.
+     */
+    public File getCipherFile() {
+        return cipherFile;
+    }
+
+    /**
+     * @return The token.
+     */
+    public String getToken() {
+        return token;
+    }
+
     @Override
     public boolean equals( Object o ) {
         if ( this == o ) return true;
         if ( o == null || getClass() != o.getClass() ) return false;
         UserConfig user = ( UserConfig ) o;
         return Objects.equals( userName, user.userName ) &&
-                Objects.equals( password, user.password );
+                Objects.equals( password, user.password ) &&
+                Objects.equals( cipherFile, user.cipherFile ) &&
+                Objects.equals( token, user.token );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash( userName, password );
+        return Objects.hash( userName, password, cipherFile, token );
     }
 
     @Override
