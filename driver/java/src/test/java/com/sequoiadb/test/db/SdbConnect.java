@@ -8,6 +8,7 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -142,12 +143,22 @@ public class SdbConnect {
         Assert.assertEquals( "", userConfig.getUserName() );
         Assert.assertEquals( "", userConfig.getPassword() );
 
-        // case 2: connect by username and password
         try {
+            // case 2: connect by username and password
             sdb.createUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
             try ( Sequoiadb db = Sequoiadb.builder()
                     .serverAddress( Constants.COOR_NODE_CONN )
                     .userConfig( new UserConfig( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD ) )
+                    .build() ) {
+                Assert.assertTrue( db.isValid() );
+            }
+
+            // case 3: connect by cipher file
+            UserConfig userConfig3 = new UserConfig( Constants.TEST_USER_NAME,
+                    new File( Constants.TEST_USER_CIPHER_FILE ), Constants.TEST_USER_TOKEN );
+            try ( Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress( Constants.COOR_NODE_CONN )
+                    .userConfig( userConfig3 )
                     .build() ) {
                 Assert.assertTrue( db.isValid() );
             }
