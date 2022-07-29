@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
+import com.sequoiadb.base.UserConfig;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.types.BSONDecimal;
@@ -407,5 +408,15 @@ public final class Helper {
             arr[i] = data.get();
         }
         return Arrays.copyOf( md5.digest( arr ), length );
+    }
+
+    public static String getPasswd( UserConfig userConfig ) {
+        if ( userConfig.getPassword() == null && userConfig.getCipherFile() != null ) {
+            SdbDecrypt decrypt = new SdbDecrypt();
+            SdbDecryptUserInfo userInfo = decrypt.parseCipherFile( userConfig.getUserName(), userConfig.getToken(), userConfig.getCipherFile() );
+            return userInfo.getPasswd();
+        } else {
+            return userConfig.getPassword();
+        }
     }
 }
