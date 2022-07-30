@@ -180,14 +180,14 @@ namespace engine
       _pmdRestSession implement
    */
    _pmdRestSession::_pmdRestSession( SOCKET fd )
-   :_pmdSession( fd )
+   :_pmdSession( fd ),
+    _restTransfer( sdbGetPMDController()->getRestTransfer() )
    {
       _pFixBuff         = NULL ;
       _pSessionInfo     = NULL ;
       _pRTNCB           = NULL ;
 
       _wwwRootPath      = pmdGetOptionCB()->getWWWPath() ;
-      _restTransfer.init() ;
    }
 
    _pmdRestSession::~_pmdRestSession()
@@ -431,7 +431,7 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg can't be null" ) ;
 
       INT32 rc = SDB_OK ;
-      rc = _restTransfer.trans( pAdaptor, request, msg ) ;
+      rc = _restTransfer->trans( pAdaptor, request, msg ) ;
       if ( SDB_OK != rc )
       {
          //PD_LOG( PDERROR, "transfer rest message failed:rc=%d", rc ) ;
@@ -1051,8 +1051,18 @@ namespace engine
       len = sizeof( s_commandArray ) / sizeof( restCommand2Func ) ;
       for ( i = 0 ; i < len ; i++ )
       {
-         _mapTransFunc.insert( _value_type( s_commandArray[i].commandName,
-                                            s_commandArray[i].func ) ) ;
+         try
+         {
+            _mapTransFunc.insert( _value_type( s_commandArray[i].commandName,
+                                               s_commandArray[i].func ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Insert into _mapTransFunc occured exception: %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            break ;
+         }
       }
 
       return rc ;

@@ -183,6 +183,8 @@ namespace engine
       EDUID eduID = PMD_INVALID_EDUID ;
 
       _restAdptor.init( _fixBufSize, _maxRestBodySize, _restTimeout ) ;
+      rc = _restTransfer.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Fail to init restTransfer, rc: %d", rc ) ;
 
       // start time sync edu
       rc = pEDUMgr->startEDU( EDU_TYPE_SYNCCLOCK, NULL, &eduID ) ;
