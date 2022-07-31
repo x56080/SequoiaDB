@@ -74,6 +74,8 @@ namespace engine
 
    INT32 pmdParsePreferInstModeStr( const CHAR *instanceModeStr,
                                     PMD_PREFER_INSTANCE_MODE &instanceMode ) ;
+   
+   const CHAR* pmdGetConfigAliasName( const CHAR* config ) ;
 }
 
 #endif
