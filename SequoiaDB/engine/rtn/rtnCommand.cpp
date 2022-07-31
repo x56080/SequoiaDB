@@ -2365,7 +2365,7 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnUpdateConfig)
 
-   _rtnUpdateConfig::_rtnUpdateConfig() 
+   _rtnUpdateConfig::_rtnUpdateConfig()
    : _isForce( FALSE )
    {
    }
@@ -2513,7 +2513,7 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDeleteConfig)
 
-   _rtnDeleteConfig::_rtnDeleteConfig() 
+   _rtnDeleteConfig::_rtnDeleteConfig()
    : _isForce( TRUE )
    {
    }
@@ -2532,6 +2532,48 @@ error:
       return CMD_DELETE_CONFIG ;
    }
 
+   INT32 _rtnDeleteConfig::_fillAliasNameToDelConf()
+   {
+      INT32 rc = SDB_OK ;
+
+      if( _newCfgObj.isEmpty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         BSONObjBuilder newCfgBob ;
+         BSONObjIterator itr( _newCfgObj );
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            const CHAR* fieldName = ele.fieldName() ;
+            const CHAR* aliasName = pmdGetConfigAliasName( fieldName ) ;
+
+            if ( *aliasName &&
+                 !_newCfgObj.hasField( aliasName ) )
+            {
+               newCfgBob.append( aliasName, 1 ) ;
+            }
+            newCfgBob.append( ele ) ;
+         }
+         _newCfgObj = newCfgBob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when filling alias name "
+                 "to delete config: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _rtnDeleteConfig::init( INT32 flags, INT64 numToSkip,
                                  INT64 numToReturn,
                                  const CHAR *pMatcherBuff,
@@ -2539,11 +2581,31 @@ error:
                                  const CHAR * pOrderByBuff,
                                  const CHAR * pHintBuff )
    {
-      BSONObj options = BSONObj( pMatcherBuff ) ;
-      _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
-      _newCfgObj.getOwned() ;
-      _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj options = BSONObj( pMatcherBuff ) ;
+
+         _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
+         _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
+
+         rc = _fillAliasNameToDelConf() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to fill alias name to delete "
+                      "config, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when initing deleteConf "
+                 "command: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _rtnDeleteConfig::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,

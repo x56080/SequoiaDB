@@ -38,6 +38,7 @@
 
 #include "pmdOptionsParse.hpp"
 #include "msg.hpp"
+#include "pmdOptions.h"
 
 namespace engine
 {
@@ -245,6 +246,55 @@ namespace engine
             break ;
       }
       return "Unknown" ;
+   }
+
+   const CHAR* pmdGetConfigAliasName( const CHAR* config )
+   {
+      if ( NULL == config )
+      {
+         return "" ;
+      }
+
+      // preferedinstance / preferredinstance
+      if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST ) )
+      {
+         return PMD_OPTION_PREFINST ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST ) )
+      {
+         return PMD_OPTION_PREFERREDINST ;
+      }
+      // preferedinstancemode / preferredinstancemode
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST_MODE ) )
+      {
+         return PMD_OPTION_PREFINST_MODE ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST_MODE ) )
+      {
+         return PMD_OPTION_PREFERREDINST_MODE ;
+      }
+      // preferedstrict / preferredstrict
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST_STRICT ) )
+      {
+         return PMD_OPTION_PREFINST_STRICT ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST_STRICT ) )
+      {
+         return PMD_OPTION_PREFERREDINST_STRICT ;
+      }
+      // --preferedperiod / --preferredperiod
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST_PERIOD ) )
+      {
+         return PMD_OPTION_PREFINST_PERIOD ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST_PERIOD ) )
+      {
+         return PMD_OPTION_PREFERREDINST_PERIOD ;
+      }
+      else
+      {
+         return "" ;
+      }
    }
 }
 

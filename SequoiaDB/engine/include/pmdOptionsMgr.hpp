@@ -56,6 +56,8 @@
 #include <map>
 #include "../bson/bson.h"
 
+using namespace bson ;
+
 namespace engine
 {
    #define PMD_MAX_ENUM_STR_LEN        ( 32 )
@@ -142,13 +144,13 @@ namespace engine
 
       public:
          _pmdCfgExchange ( MAP_K2V *pMapField,
-                           const bson::BSONObj &dataObj,
+                           const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
          _pmdCfgExchange ( MAP_K2V *pMapField,
                            MAP_K2V *pMapColdField,
-                           const bson::BSONObj &dataObj,
+                           const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
@@ -225,8 +227,8 @@ namespace engine
 
          PMD_CFG_DATA_TYPE       _dataType ;
          //
-         bson::BSONObj           _dataObj ;
-         bson::BSONObjBuilder    _dataBuilder ;
+         BSONObj                 _dataObj ;
+         BSONObjBuilder          _dataBuilder ;
          po::variables_map       *_pVMFile ;
          po::variables_map       *_pVMCmd ;
          stringstream            _strStream ;
@@ -286,16 +288,16 @@ namespace engine
          struct controlParams : public SDBObject
          {
             BOOLEAN isForce ;
-            controlParams() 
+            controlParams()
             : isForce( FALSE )
             {
             }
-            controlParams( BOOLEAN isForce ) 
+            controlParams( BOOLEAN isForce )
             : isForce( isForce )
             {
             }
          } ;
-         
+
       public:
          void  setConfigHandler( IConfigHandle *pConfigHandler ) ;
          IConfigHandle* getConfigHandler() const ;
@@ -304,17 +306,17 @@ namespace engine
          void  resetResult () { _result = SDB_OK ; }
 
          INT32 init( po::variables_map *pVMFile, po::variables_map *pVMCMD ) ;
-         INT32 restore( const bson::BSONObj &objData,
+         INT32 restore( const BSONObj &objData,
                         po::variables_map *pVMCMD ) ;
-         INT32 change( const bson::BSONObj &objData,
+         INT32 change( const BSONObj &objData,
                        BOOLEAN isWhole = FALSE ) ;
 
-         INT32 update( const bson::BSONObj &userConfig,
+         INT32 update( const BSONObj &userConfig,
                        BOOLEAN setForRestore,
                        const controlParams &cp,
                        bson::BSONObj &errorObj ) ;
 
-         INT32 toBSON ( bson::BSONObj &objData,
+         INT32 toBSON ( BSONObj &objData,
                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
          INT32 toString( string &str,
                          UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
