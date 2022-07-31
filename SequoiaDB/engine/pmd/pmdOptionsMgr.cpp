@@ -113,44 +113,6 @@ namespace engine
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
 
-   #define PMD_RDX_WITH_ALIAS( formalName, aliasName, rdxFunc, pEX, ... ) \
-      if ( pEX->isLoad() ) \
-      { \
-         if ( pEX->isWhole() && ( !pEX->hasField( formalName ) || \
-                                  !pEX->hasField( aliasName ) ) ) \
-         { \
-            if ( !pEX->hasField( formalName ) ) \
-            { \
-               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
-            } \
-            if ( !pEX->hasField( aliasName ) ) \
-            { \
-               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
-            } \
-         } \
-         else \
-         { \
-            if ( PMD_CFG_STEP_INIT == pEX->getCfgStep() && \
-                 !pEX->hasField( formalName ) && !pEX->hasField( aliasName ) ) \
-            { \
-               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
-            } \
-            if ( pEX->hasField( aliasName ) ) \
-            { \
-               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
-            } \
-            if ( pEX->hasField( formalName ) ) \
-            { \
-               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
-            } \
-         } \
-      } \
-      else \
-      { \
-         rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
-         rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
-      }
-
    /*
       _pmdCfgExchange implement
    */
@@ -1150,7 +1112,7 @@ done:
                    "check its spelling or add Force:true to options.",
                    iter->first.c_str() ) ;
                #else
-               PD_LOG( 
+               PD_LOG(
                    PDERROR,
                    "Error: config[%s] is not an official configuration, "
                    "check its spelling or add Force:true to options.",
@@ -2242,23 +2204,27 @@ done:
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
                  sizeof( _syncStrategyStr ), FALSE, PMD_CFG_CHANGE_RUN, "", FALSE ) ;
       // --preferedinstance / --preferredinstance
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST, PMD_OPTION_PREFINST,
-                          rdxString, pEX, _prefInstStr, sizeof( _prefInstStr ),
-                          FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
+      rdxString( pEX, PMD_OPTION_PREFINST, _prefInstStr,
+                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
+      rdxString( pEX, PMD_OPTION_PREFERREDINST, _prefInstStr,
+                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, _prefInstStr ) ;
       // --preferedinstancemode / --preferredinstancemode
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_MODE,
-                          PMD_OPTION_PREFINST_MODE, rdxString, pEX,
-                          _prefInstModeStr, sizeof( _prefInstModeStr ), FALSE,
-                          PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_MODE ) ;
+      rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
+                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DFT_PREFINST_MODE ) ;
+      rdxString( pEX, PMD_OPTION_PREFERREDINST_MODE, _prefInstModeStr,
+                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
+                 _prefInstModeStr ) ;
       // --preferedstrict / --preferredstrict
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_STRICT,
-                          PMD_OPTION_PREFINST_STRICT, rdxBooleanS, pEX,
-                          _preferredStrict, FALSE, PMD_CFG_CHANGE_RUN, FALSE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferredStrict, FALSE,
+                   PMD_CFG_CHANGE_RUN, FALSE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_PREFERREDINST_STRICT, _preferredStrict, FALSE,
+                   PMD_CFG_CHANGE_RUN, _preferredStrict ) ;
       // --preferedperiod / --preferredperiod
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_PERIOD,
-                          PMD_OPTION_PREFINST_PERIOD, rdxInt, pEX,
-                          _preferredPeriod, FALSE, PMD_CFG_CHANGE_RUN,
-                          PMD_DFT_PREFINST_PERIOD, FALSE ) ;
+      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferredPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD ) ;
+      rdxInt( pEX, PMD_OPTION_PREFERREDINST_PERIOD, _preferredPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, _preferredPeriod ) ;
       rdvMinMax( pEX, _preferredPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
       // --preferredconstraint
       rdxString( pEX, PMD_OPTION_PREFERRED_CONSTRAINT, _prefConstraint,
