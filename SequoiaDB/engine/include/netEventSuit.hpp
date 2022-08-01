@@ -80,7 +80,7 @@ namespace engine
          io_service&    getIOService() ;
          _netFrame*     getFrame() { return _pFrame ; }
 
-         void           addHandle( const NET_HANDLE &handle ) ;
+         INT32          addHandle( const NET_HANDLE &handle ) ;
          void           delHandle( const NET_HANDLE &handle ) ;
          BOOLEAN        exist( const NET_HANDLE &handle ) ;
          INT32          getHandles( SET_HANDLE &setHandle ) ;

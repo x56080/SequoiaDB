@@ -73,9 +73,6 @@ namespace engine
      _state(NET_EVENT_HANDLER_STATE_HEADER)
    {
       _hasRecvMsg    = FALSE ;
-
-      /// attach
-      _evSuitPtr->addHandle( _handle ) ;
    }
 
    _netEventHandler::~_netEventHandler()
@@ -96,12 +93,23 @@ namespace engine
                                           const NET_HANDLE &handle )
    {
       NET_EH eh ;
+      INT32 rc = SDB_OK ;
 
       NET_TCP_EH tmpEH = NET_TCP_EH::allocRaw( ALLOC_POOL ) ;
       if ( NULL != tmpEH.get() &&
            NULL != new( tmpEH.get() ) netEventHandler( evSuitPtr, handle ) )
       {
-         eh = NET_EH::makeRaw( tmpEH.get(), ALLOC_POOL ) ;
+         // attach handle to evSuit if netEventHandler is created
+         rc = evSuitPtr->addHandle( handle ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Add handle[%d] to evSuit failed, rc: %d",
+                    handle, rc ) ;
+         }
+         else
+         {
+            eh = NET_EH::makeRaw( tmpEH.get(), ALLOC_POOL ) ;
+         }
       }
 
       return eh ;

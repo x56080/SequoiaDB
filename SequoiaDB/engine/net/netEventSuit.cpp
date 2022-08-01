@@ -83,10 +83,23 @@ namespace engine
       return _ioservice ;
    }
 
-   void _netEventSuit::addHandle( const NET_HANDLE &handle )
+   INT32 _netEventSuit::addHandle( const NET_HANDLE &handle )
    {
-      ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
-      _setHandle.insert( handle ) ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
+         _setHandle.insert( handle ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to insert handle set, occur exception: %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+      }
+
+      return rc ;
    }
 
    void _netEventSuit::delHandle( const NET_HANDLE &handle )
