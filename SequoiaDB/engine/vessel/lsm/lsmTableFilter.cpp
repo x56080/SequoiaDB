@@ -42,7 +42,7 @@ namespace vessel
 {
    bool lsmTableFilter::operator()(const rocksdb::TableProperties &t) const
    {
-      if (!filter.empty())
+      if (filter.empty())
       {
          return TRUE;
       }
