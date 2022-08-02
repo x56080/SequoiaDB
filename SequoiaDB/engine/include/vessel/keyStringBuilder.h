@@ -99,13 +99,15 @@ namespace vessel
       INT32 appendBit(UINT8 oneOrZero);
       INT32 appendString();
       INT32 appendSymbol();
+      INT32 appendDate();
+      INT32 appendTimestamp();
       INT32 appendNumberDouble();
       INT32 appendNumberInt();
       INT32 appendNumberLong();
       INT32 appendNumberDecimal();
       INT32 appendPositiveZero();
       INT32 appendNegativeZero();
-      INT32 appendBits(const CHAR *bytes, const UINT32 bytesSize);
+      INT32 appendBits(const UINT8 *bytes, const UINT32 bytesSize);
       INT32 appendDecimalMeta(const bson::bsonDecimal &dec);
       const CHAR *getBuf() const
       {
@@ -218,7 +220,8 @@ namespace vessel
    protected:
       INT32 _appendBool(BOOLEAN val, BOOLEAN invert);
       INT32 _appendDate(const bson::Date_t &val, BOOLEAN invert);
-      INT32 _appendTimestamp(INT64 val, BOOLEAN invert);
+      INT32 _appendTimestamp(const bson::BSONElement &elem, BOOLEAN invert);
+      INT32 _appendTime(INT64 seconds, UINT32 microseconds, BOOLEAN invert);
       INT32 _appendOID(const bson::OID &val, BOOLEAN invert);
       INT32 _appendString(const bson::StringData &val,
                           BOOLEAN invert,
@@ -260,10 +263,10 @@ namespace vessel
                         BOOLEAN invert,
                         const stringTransformFn &f = nullptr);
       INT32 _appendSmallDouble(FLOAT64 value,
-                               DecimalContinuationMarker dcm,
+                               ContinuationMarker dcm,
                                BOOLEAN invert);
       INT32 _appendLargeDouble(FLOAT64 value,
-                               DecimalContinuationMarker dcm,
+                               ContinuationMarker dcm,
                                BOOLEAN invert);
       INT32 _appendInteger(const INT64 num, BOOLEAN invert);
       INT32 _appendPreshiftedInteger(UINT64 value,
@@ -271,7 +274,7 @@ namespace vessel
                                      BOOLEAN invert);
 
       INT32 _appendDoubleWithoutTypeBits(FLOAT64 num,
-                                         DecimalContinuationMarker dcm,
+                                         ContinuationMarker dcm,
                                          BOOLEAN invert);
       INT32 _appendHugeDecimalWithoutTypeBits(const bson::bsonDecimal &dec,
                                               BOOLEAN invert);
@@ -744,7 +747,7 @@ namespace vessel
 
       case bson::BinData: {
          INT32 len;
-         const CHAR *data = elem.binDataClean(len);
+         const CHAR *data = elem.binData(len);
          rc = _appendBinData(data, len, elem.binDataType(), invert);
          if (SDB_OK != rc)
          {
@@ -810,7 +813,10 @@ namespace vessel
       }
 
       case bson::DBRef: {
-         rc = _appendDBRef(elem.dbrefNS(), elem.dbrefOID(), invert);
+         rc = _appendDBRef(
+             {elem.dbrefNS(), static_cast<UINT32>(elem.valuestrsize() - 1)},
+             elem.dbrefOID(),
+             invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR,
@@ -878,7 +884,7 @@ namespace vessel
       }
 
       case bson::Timestamp: {
-         rc = _appendTimestamp(elem._opTime().asDate(), invert);
+         rc = _appendTimestamp(elem, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR,
@@ -986,7 +992,7 @@ namespace vessel
          FLOAT64 doubleVal = static_cast<FLOAT64>(num);
          SDB_ASSERT(-doubleVal == minLargeFloat64, "must be equal");
          rc = _appendLargeDouble(
-             doubleVal, DecimalContinuationMarker::hasNoContinuation, invert);
+             doubleVal, ContinuationMarker::hasNoContinuation, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append large double", rc);
@@ -1094,7 +1100,7 @@ namespace vessel
                            : _typeBits.appendPositiveZero();
       }
       rc = _appendDoubleWithoutTypeBits(
-          num, DecimalContinuationMarker::hasNoContinuation, invert);
+          num, ContinuationMarker::hasNoContinuation, invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append double", rc);
@@ -1109,7 +1115,7 @@ namespace vessel
 
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::_appendDoubleWithoutTypeBits(
-       FLOAT64 num, DecimalContinuationMarker dcm, BOOLEAN invert)
+       FLOAT64 num, ContinuationMarker dcm, BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
       const BOOLEAN isNegative = num < 0.0;
@@ -1151,7 +1157,7 @@ namespace vessel
       {
          UINT64 integerPart = static_cast<UINT64>(magnitude);
          if (static_cast<FLOAT64>(integerPart) == magnitude &&
-             dcm == DecimalContinuationMarker::hasNoContinuation)
+             dcm == ContinuationMarker::hasNoContinuation)
          {
             // No fractional part
             rc = _appendPreshiftedInteger(integerPart << 1, isNegative, invert);
@@ -1206,8 +1212,9 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::_appendSmallDouble(
-       FLOAT64 value, DecimalContinuationMarker dcm, BOOLEAN invert)
+   INT32 keyStringBuilder<Allocator>::_appendSmallDouble(FLOAT64 value,
+                                                         ContinuationMarker dcm,
+                                                         BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
       BOOLEAN isNegative = value < 0;
@@ -1243,8 +1250,9 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::_appendLargeDouble(
-       FLOAT64 value, DecimalContinuationMarker dcm, BOOLEAN invert)
+   INT32 keyStringBuilder<Allocator>::_appendLargeDouble(FLOAT64 value,
+                                                         ContinuationMarker dcm,
+                                                         BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
       BOOLEAN isNegative = value < 0;
@@ -1321,9 +1329,7 @@ namespace vessel
       if (decFromDouble.compare(dec) == 0)
       {
          rc = _appendDoubleWithoutTypeBits(
-             doubleTowardZero,
-             DecimalContinuationMarker::hasNoContinuation,
-             invert);
+             doubleTowardZero, ContinuationMarker::hasNoContinuation, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
@@ -1338,9 +1344,7 @@ namespace vessel
             *(UINT64 *)(&doubleTowardZero) -= 1;
          }
          rc = _appendDoubleWithoutTypeBits(
-             doubleTowardZero,
-             DecimalContinuationMarker::hasContinuation,
-             invert);
+             doubleTowardZero, ContinuationMarker::hasContinuation, invert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
@@ -1454,20 +1458,47 @@ namespace vessel
                                                   BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      INT64 encoded = 0;
       _verifyStatus();
-      rc = _append(EncodedType::date, invert);
+      INT64 seconds = val / 1000;
+      UINT32 microSeconds = (val % 1000) * 1000;
+      rc = _typeBits.appendDate();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         PD_LOG(PDERROR, " failed to append type bits, rc:%d", rc);
          goto error;
       }
-
-      encoded = val.millis ^ (1ull << 63);
-      rc = _append(ossNativeToBigEndian(encoded), invert);
+      rc = _appendTime(seconds, microSeconds, invert);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "append date value failed, rc:%d", rc);
+         PD_LOG(PDERROR, "failed to append time, rc:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::_appendTimestamp(
+       const bson::BSONElement &elem, BOOLEAN invert)
+   {
+      INT32 rc = SDB_OK;
+      _verifyStatus();
+      INT64 seconds = (long long)elem.timestampTime() / 1000;
+      UINT32 microSeconds = elem.timestampInc();
+      seconds += microSeconds / 1000000;
+      microSeconds %= 1000000;
+      rc = _typeBits.appendTimestamp();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, " failed to append type bits, rc:%d", rc);
+         goto error;
+      }
+      rc = _appendTime(seconds, microSeconds, invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append time, rc:%d", rc);
          goto error;
       }
 
@@ -1478,25 +1509,31 @@ namespace vessel
    }
 
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::_appendTimestamp(INT64 val,
-                                                       BOOLEAN invert)
+   INT32 keyStringBuilder<Allocator>::_appendTime(INT64 seconds,
+                                                  UINT32 microseconds,
+                                                  BOOLEAN invert)
    {
       INT32 rc = SDB_OK;
-      _verifyStatus();
-      rc = _append(EncodedType::timestamp, invert);
+      INT64 encoded = seconds ^ std::numeric_limits<INT64>::min();
+      rc = _append(EncodedType::time, invert);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "append encoded type failed, rc:%d", rc);
+         PD_LOG(PDERROR, " failed to append encoded type, rc:%d", rc);
          goto error;
       }
 
-      rc = _append(ossNativeToBigEndian(val), invert);
+      rc = _append(ossNativeToBigEndian(encoded), invert);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "append timestamp value failed, rc:%d", rc);
          goto error;
       }
-
+      rc = _append(ossNativeToBigEndian(microseconds), invert);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "append timestamp value failed, rc:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -2101,7 +2138,7 @@ namespace vessel
    error:
       goto done;
    }
-   // TypeBits size: 1 or 5 bytes
+   // TypeBits size: 0, 1 or 5 bytes
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::_appendTypeBits()
    {
@@ -2124,10 +2161,11 @@ namespace vessel
    }
 
    // MetaBlock
-   // key string size: 1 or 4 bytes
-   // Size ahead key string: 0 or 1 byte
-   // metaByte: 1 byte whose 1 bit to indicate size ahead key string, 1 bit to
-   // indicate size of key string.
+   // key string size: 1 or 5 bytes
+   // Size ahead key string: 0, 1 or 5byte
+   // metaByte: 1 byte whose 1 bit to indicate existence ahead key string, 1 bit
+   // to indicate existence of key string, 1 bit to indicate existence of
+   // typebits size.
    // version: 1 byte.
    template <typename Allocator>
    INT32 keyStringBuilder<Allocator>::_appendMetaBlock()

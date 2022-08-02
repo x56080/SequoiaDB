@@ -99,8 +99,7 @@ namespace vessel
       }
    }
 
-   keyString::keyString(UINT32 size, const CHAR *data):
-   _ref(size, data)
+   keyString::keyString(UINT32 size, const CHAR *data) : _ref(size, data)
    {
       if (SDB_OK != _parse(_ref, _desc))
       {
@@ -108,9 +107,7 @@ namespace vessel
       }
    }
 
-   keyString::keyString(const keyString &o):
-   _ref(o._ref),
-   _desc(o._desc)
+   keyString::keyString(const keyString &o) : _ref(o._ref), _desc(o._desc)
    {
    }
 
@@ -168,7 +165,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       reset();
-      
+
       if (OSS_UNLIKELY(!s.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -220,7 +217,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 keyString::_parse(const slice &s, keyStringDescriptor &desc)const
+   INT32 keyString::_parse(const slice &s, keyStringDescriptor &desc) const
    {
       INT32 rc = SDB_OK;
       const keyStringMetaBlockHeader *header = nullptr;
@@ -240,8 +237,9 @@ namespace vessel
          goto error;
       }
 
-      header = reinterpret_cast<const keyStringMetaBlockHeader *>
-                   (s.getData() + s.getSize() - KEY_STRING_MB_HEADER_SIZE);///TODO: reverse slice
+      header = reinterpret_cast<const keyStringMetaBlockHeader *>(
+          s.getData() + s.getSize() -
+          KEY_STRING_MB_HEADER_SIZE); /// TODO: reverse slice
       if (!header->isValid())
       {
          PD_LOG(PDERROR, "invalid key string meta block header");
@@ -256,7 +254,7 @@ namespace vessel
       {
          PD_LOG(PDERROR, "failed to load key size");
          rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-         goto error; 
+         goto error;
       }
 
       if (mbyte.hasKeyHead())
@@ -267,12 +265,12 @@ namespace vessel
             rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
             goto error;
          }
-         
+
          if (!_loadSizeData(reader, TRUE, desc.keyHeadSize))
          {
             PD_LOG(PDERROR, "failed to load key head size");
             rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error; 
+            goto error;
          }
       }
 
@@ -284,12 +282,12 @@ namespace vessel
             rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
             goto error;
          }
-         
+
          if (!_loadSizeData(reader, TRUE, desc.keyTailSize))
          {
             PD_LOG(PDERROR, "failed to load key tail size");
             rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error; 
+            goto error;
          }
       }
 
@@ -301,12 +299,12 @@ namespace vessel
             rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
             goto error;
          }
-         
+
          if (!_loadSizeData(reader, TRUE, desc.typeBitsSize))
          {
             PD_LOG(PDERROR, "failed to load type bits size");
             rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error; 
+            goto error;
          }
       }
 
@@ -331,7 +329,7 @@ namespace vessel
 
    BOOLEAN keyString::_loadSizeData(bytesReader &reader,
                                     BOOLEAN nonzero,
-                                    UINT32 &size)const
+                                    UINT32 &size) const
    {
       SDB_ASSERT(!reader.isOutOfBound(), "can not be invalid");
       size = 0;
@@ -354,10 +352,8 @@ namespace vessel
    // void keyString::_adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize)
    // {
    //    SDB_ASSERT(nullptr != buffer && 0 < bufferSize, "can not be invalid");
-   //    SDB_ASSERT(0 < ksSize && ksSize <= bufferSize, "invalid key string size");
-   //    reset();
-   //    _bufferOwned = buffer;
-   //    _bufferSize = bufferSize;
+   //    SDB_ASSERT(0 < ksSize && ksSize <= bufferSize, "invalid key string
+   //    size"); reset(); _bufferOwned = buffer; _bufferSize = bufferSize;
    //    _ref.reset(ksSize, _bufferOwned);
    // #if defined(_DEBUG)
    //    SDB_ASSERT(_validate(_ref), "can not be invalid");
@@ -379,36 +375,37 @@ namespace vessel
 
    slice keyString::getKeyHeadSlice() const
    {
-      return isValid() && hasKeyHead() ?
-             _ref.getSlice(0, _desc.keyHeadSize) : slice();
+      return isValid() && hasKeyHead() ? _ref.getSlice(0, _desc.keyHeadSize)
+                                       : slice();
    }
 
    slice keyString::getKeyBodySlice() const
    {
-      return isValid() && hasKeyBody() ?
-             _ref.getSlice(_desc.keyHeadSize, _desc.getKeyBodySize()) :
-             slice();
+      return isValid() && hasKeyBody()
+                 ? _ref.getSlice(_desc.keyHeadSize, _desc.getKeyBodySize())
+                 : slice();
    }
 
    slice keyString::getKeyTailSlice() const
    {
-      return isValid() && hasKeyTail() ?
-             _ref.getSlice(_desc.keyHeadSize + _desc.getKeyBodySize(),
-                           _desc.keyTailSize) :
-            slice();
+      return isValid() && hasKeyTail()
+                 ? _ref.getSlice(_desc.keyHeadSize + _desc.getKeyBodySize(),
+                                 _desc.keyTailSize)
+                 : slice();
    }
 
    slice keyString::getKeySliceExceptTail() const
    {
-      return isValid() && _desc.keyTailSize < _desc.keySize ?
-             _ref.getSlice(0, _desc.keySize - _desc.keyTailSize) :
-             slice();
+      return isValid() && _desc.keyTailSize < _desc.keySize
+                 ? _ref.getSlice(0, _desc.keySize - _desc.keyTailSize)
+                 : slice();
    }
 
    slice keyString::getTypeBits() const
    {
-      return isValid() && hasTypeBits() ?
-             _ref.getSlice(_desc.keySize, _desc.typeBitsSize) : slice();
+      return isValid() && hasTypeBits()
+                 ? _ref.getSlice(_desc.keySize, _desc.typeBitsSize)
+                 : slice();
    }
 
    INT32 keyString::compare(const keyString &s) const
@@ -417,7 +414,7 @@ namespace vessel
       return getKeySlice().compare(s.getKeySlice());
    }
 
-   INT32 keyString::compareElements(const keyString &ks)const
+   INT32 keyString::compareElements(const keyString &ks) const
    {
       SDB_ASSERT(isValid() && ks.isValid(), "can not be invalid");
       return getKeyBodySlice().compare(ks.getKeyBodySlice());
@@ -658,9 +655,17 @@ namespace vessel
              static_cast<bson::BinDataType>(_read<UINT8>(inverted));
          CHAR data[binDataLen];
          _readBytes(inverted, data, binDataLen);
-         fieldName
+         if (binDataType == BinDataType::ByteArrayDeprecated)
+         {
+            fieldName
+             ? builder.appendBinDataArrayDeprecated(fieldName, data + 4, binDataLen - 4)
+             : builder.appendBinDataArrayDeprecated("", data + 4,  binDataLen - 4);
+         }
+         else{
+            fieldName
              ? builder.appendBinData(fieldName, binDataLen, binDataType, data)
              : builder.appendBinData("", binDataLen, binDataType, data);
+         }
          break;
       }
       case EncodedType::oid: {
@@ -679,18 +684,29 @@ namespace vessel
                    : builder.appendBool("", TRUE);
          break;
       }
-      case EncodedType::date: {
+      case EncodedType::time: {
+         typeBitsType originalType = typeReader.readTimestampOrDate();
          INT64 encoded = ossBigEndianToNative(_read<INT64>(inverted));
-         encoded ^= (1ULL << 63);
-         bson::Date_t dt(encoded);
-         fieldName ? builder.appendDate(fieldName, dt)
-                   : builder.appendDate("", dt);
-         break;
-      }
-      case EncodedType::timestamp: {
-         INT64 encoded = ossBigEndianToNative(_read<INT64>(inverted));
-         fieldName ? builder.appendTimestamp(fieldName, encoded)
-                   : builder.appendTimestamp("", encoded);
+         //ContinuationMarker cm = static_cast<ContinuationMarker>(encoded & 1ULL);
+         INT64 seconds = encoded ^ std::numeric_limits<INT64>::min();
+         UINT32 microseconds = ossBigEndianToNative(_read<UINT32>(inverted));
+         
+         if (originalType == typeBitsType::DATE)
+         { 
+            INT64 val = seconds * 1000 + microseconds / 1000;
+            Date_t dt(val);
+            fieldName ? builder.appendDate(fieldName, dt)
+                      : builder.appendDate("", dt);
+         }
+         else if(originalType == typeBitsType::TIMESTAMP)
+         {  
+            fieldName ? builder.appendTimestamp(fieldName, seconds * 1000, microseconds)
+                      : builder.appendTimestamp("", seconds * 1000, microseconds);
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "Reserved");
+         }
          break;
       }
       case EncodedType::regEx: {
@@ -704,11 +720,13 @@ namespace vessel
       }
       case EncodedType::dbRef: {
          UINT32 nsLen = ossBigEndianToNative(_read<UINT32>(inverted));
-         CHAR nsData[nsLen];
+         CHAR nsData[nsLen + 1];
          _readBytes(inverted, nsData, nsLen);
+         nsData[nsLen] = '\0';
+         bson::StringData s(nsData, nsLen);
          bson::OID oid = _read<bson::OID>(inverted);
-         fieldName ? builder.appendDBRef(fieldName, nsData, oid)
-                   : builder.appendDBRef("", nsData, oid);
+         fieldName ? builder.appendDBRef(fieldName, s, oid)
+                   : builder.appendDBRef("", s, oid);
          break;
       }
 
@@ -810,12 +828,12 @@ namespace vessel
       case EncodedType::numericPositiveLargeMagnitude: {
          UINT64 encoded = _read<UINT64>(inverted);
          encoded = ossBigEndianToNative(encoded);
-         DecimalContinuationMarker dcm =
-             static_cast<DecimalContinuationMarker>(encoded & 1ULL);
+         ContinuationMarker dcm =
+             static_cast<ContinuationMarker>(encoded & 1ULL);
          encoded >>= 1;
          FLOAT64 abs;
          ossMemcpy(&abs, &encoded, sizeof(abs));
-         if (dcm == DecimalContinuationMarker::hasNoContinuation)
+         if (dcm == ContinuationMarker::hasNoContinuation)
          {
             if (originalType == typeBitsType::DOUBLE)
             {
@@ -831,7 +849,10 @@ namespace vessel
                   << (isNegative ? -abs : abs);
                bson::bsonDecimal dec;
                dec.fromString(ss.str().c_str());
-               // Todo decimal meta
+               INT32 typemod = typeReader.read<INT32>();
+               INT16 ndigit = typeReader.read<UINT16>();
+               dec.updateTypemod(typemod);
+               SDB_ASSERT(dec.getNdigit() == ndigit, "Expected to be equal");
                fieldName ? builder.append(fieldName, dec)
                          : builder.append("", dec);
             }
@@ -849,7 +870,6 @@ namespace vessel
          else
          {
             bson::bsonDecimal dec = _decodeDecimal(inverted, isNegative);
-            // Todo decimal meta
             fieldName ? builder.append(fieldName, dec)
                       : builder.append("", dec);
          }
@@ -912,7 +932,10 @@ namespace vessel
             case typeBitsType::DECIMAL: {
                bson::bsonDecimal dec;
                dec.fromLong(integerValue);
-               // Todo decimal meta
+               INT32 typemod = typeReader.read<INT32>();
+               INT16 ndigit = typeReader.read<UINT16>();
+               dec.updateTypemod(typemod);
+               SDB_ASSERT(dec.getNdigit() == ndigit, "Expected to be equal");
                fieldName ? builder.append(fieldName, dec)
                          : builder.append("", dec);
                break;
@@ -927,9 +950,9 @@ namespace vessel
          {
             encoded = (encoded << 8) | _read<UINT8>(inverted);
          }
-         DecimalContinuationMarker dcm =
-             static_cast<DecimalContinuationMarker>(encoded & 1ULL);
-         if (dcm == DecimalContinuationMarker::hasNoContinuation)
+         ContinuationMarker dcm =
+             static_cast<ContinuationMarker>(encoded & 1ULL);
+         if (dcm == ContinuationMarker::hasNoContinuation)
          {
             FLOAT64 abs = static_cast<FLOAT64>((encoded &= (~1ULL)) *
                                                invPow256[frcationalBytes]);
@@ -947,7 +970,11 @@ namespace vessel
                   << (isNegative ? -abs : abs);
                bson::bsonDecimal decFromDouble;
                decFromDouble.fromString(ss.str().c_str());
-               // Todo decimal meta
+               INT32 typemod = typeReader.read<INT32>();
+               INT16 ndigit = typeReader.read<UINT16>();
+               decFromDouble.updateTypemod(typemod);
+               SDB_ASSERT(decFromDouble.getNdigit() == ndigit,
+                          "Expected to be equal");
                fieldName ? builder.append(fieldName, decFromDouble)
                          : builder.append("", decFromDouble);
             }
@@ -959,7 +986,6 @@ namespace vessel
          else
          {
             bson::bsonDecimal dec = _decodeDecimal(inverted, isNegative);
-            // Todo decimal meta
             fieldName ? builder.append(fieldName, dec)
                       : builder.append("", dec);
          }
@@ -991,7 +1017,7 @@ namespace vessel
           ossBigEndianToNative(_read<UINT32>(inverted));
       INT16 weight = 0;
       INT32 typemod = typeReader.read<INT32>();
-      UINT16 ndigit = typeReader.read<UINT16>();
+      INT16 ndigit = typeReader.read<UINT16>();
       ossPoolString decStr;
       if (isNegative)
       {
@@ -1000,9 +1026,13 @@ namespace vessel
       if (0 == integerPartNdigit)
       {
          decStr.append("0.");
-         weight = ossBigEndianToNative(_read<INT16>(inverted));
+         weight = -ossBigEndianToNative(_read<INT16>(!inverted));
          SDB_ASSERT(weight < 0, "Unexpected weight");
-         const UINT16 fractionPartNdigit = -weight;
+         while(weight++ < -1)
+         {
+            decStr.append("0000");
+         }
+         const UINT16 fractionPartNdigit = ndigit;
          UINT16 digit = 0;
          for (UINT16 i = fractionPartNdigit; i; i--)
          {
@@ -1094,7 +1124,6 @@ namespace vessel
       return rid;
    }
 
-
    INT32 keyString::compareCoding(UINT32 sizea,
                                   const CHAR *bufa,
                                   UINT32 sizeb,
@@ -1104,13 +1133,15 @@ namespace vessel
       UINT32 keySize1 = (UINT8)(bufb[sizeb - KEY_STRING_MB_HEADER_SIZE - 1]);
       if (keySize0 == KEY_STRING_TYNI_SIZE_BOUND)
       {
-         keySize0 = *((const UINT32 *)
-                      (bufa + sizea - KEY_STRING_MB_HEADER_SIZE - KEY_STRING_SWORD_SIZE));
+         keySize0 =
+             *((const UINT32 *)(bufa + sizea - KEY_STRING_MB_HEADER_SIZE -
+                                KEY_STRING_SWORD_SIZE));
       }
       if (keySize1 == KEY_STRING_TYNI_SIZE_BOUND)
       {
-         keySize1 = *((const UINT32 *)
-                      (bufb + sizeb - KEY_STRING_MB_HEADER_SIZE - KEY_STRING_SWORD_SIZE));
+         keySize1 =
+             *((const UINT32 *)(bufb + sizeb - KEY_STRING_MB_HEADER_SIZE -
+                                KEY_STRING_SWORD_SIZE));
       }
 
       INT32 res = ossMemcmp(bufa, bufb, OSS_MIN(keySize0, keySize1));
@@ -1171,6 +1202,13 @@ namespace vessel
    typeBitsType typeBitsReader::readStringLike()
    {
       return static_cast<typeBitsType>(_readBit());
+   }
+
+   typeBitsType typeBitsReader::readTimestampOrDate()
+   {
+      UINT8 output = 0;
+      output += ((_readBit() << 1) + _readBit());
+      return static_cast<typeBitsType>(output);
    }
 } // namespace vessel
 } // namespace engine

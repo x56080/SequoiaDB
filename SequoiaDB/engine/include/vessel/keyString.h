@@ -67,6 +67,7 @@ namespace vessel
       typeBitsType readNumeric();
       typeBitsType readZero();
       typeBitsType readStringLike();
+      typeBitsType readTimestampOrDate();
       void readBitsAndAssign(CHAR *dst, UINT32 bytesSize);
       UINT8 readByte();
       template <typename T> T read();

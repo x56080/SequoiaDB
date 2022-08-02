@@ -34,15 +34,20 @@
 
 #include "../bson/bsonDecimal.h"
 #include "common_decimal_fun.h"
+#include <algorithm>
 #include <bitset>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <random>
 #include <string>
+#include "oss.hpp"
 #include "ossTypes.h"
 #include "ossUtil.h"
+#include "pd.hpp"
+#include "utilBsongen.hpp"
 #include "vessel/globalIndexID.h"
 #include "vessel/keyString.h"
 #include "vessel/keyStringBuilder.h"
@@ -59,6 +64,8 @@ namespace vessel
    public:
       static void SetUpTestCase()
       {
+         sdbEnablePD("/opt/diaglog/sdb.log", 1, 1000);
+         setPDLevel(PDDEBUG);
       }
 
       static void TearDownTestCase()
@@ -73,7 +80,7 @@ namespace vessel
       bson::BSONObjBuilder bsb;
       keyStringBuilder<> ksb;
    };
-   
+
    TEST_F(key_string_test, base_minkey)
    {
       INT32 rc = SDB_OK;
@@ -256,8 +263,10 @@ namespace vessel
           {"-172.8", "-172.8"},
           {"-172.5", "-172.5"},
           {"-172.3", "-172.3"},
+          {"-0.00002342141", "-0.00002342141"},
           {"-0.0", "-0.0"},
           {"0.0", "0.0"},
+          {"0.00002342141", "0.00002342141"},
           {"172.3", "172.3"},
           {"172.5", "172.5"},
           {"172.8", "172.8"},
@@ -268,6 +277,38 @@ namespace vessel
          bsb.appendDecimal("a", numbers[i][0]);
          bsb.appendDecimal("b", numbers[i][1]);
          orderingWrapper ord(0b10, 2);
+         bson::BSONObj obj = bsb.obj();
+         rc = ksb.appendAllElements(obj, ord);
+         ASSERT_EQ(SDB_OK, rc);
+         rc = ksb.done();
+         ASSERT_EQ(SDB_OK, rc);
+         keyString ks = ksb.getShallowKeyString();
+         rc = ks.getOwned();
+         ASSERT_EQ(SDB_OK, rc);
+         bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
+         // std::cout<< i << endl << obj.toString(0,0,0) << endl <<
+         // objFromKey.toString(0,0,0) <<endl;
+         EXPECT_EQ(obj.woCompare(objFromKey), 0);
+         bsb.reset();
+         ksb.reset();
+      }
+   }
+
+   TEST_F(key_string_test, base_decimal_2)
+   {
+      INT32 rc = SDB_OK;
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", 1);
+      bsb.appendNumber("b", 1);
+      bson::BSONObj pattern = bsb.obj();
+      bsb.reset();
+      vector<vector<string>> numbers = {
+          {"0.497641455526188", "0.50776848753576"}};
+      for (UINT32 i = 0; i < numbers.size(); i++)
+      {
+         bsb.appendDecimal("a", numbers[i][0]);
+         bsb.appendDecimal("b", numbers[i][1]);
+         orderingWrapper ord(0, 2);
          bson::BSONObj obj = bsb.obj();
          rc = ksb.appendAllElements(obj, ord);
          ASSERT_EQ(SDB_OK, rc);
@@ -485,7 +526,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
-      Date_t dt(2132134321);
+      Date_t dt(0x7F123456FF123456);
       bsb.appendDate("a", dt);
       bsb.appendDate("b", dt);
       rc = ksb.appendAllElements(bsb.done(), ord);
@@ -501,8 +542,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       orderingWrapper ord(0b10, 2);
-      bsb.appendTimestamp("a", 72192821020281);
-      bsb.appendTimestamp("b", 72192821020281);
+      bsb.appendTimestamp(
+          "a",
+          static_cast<INT64>(std::numeric_limits<INT32>::max()) * 1000,
+          234);
+      bsb.appendTimestamp("b", 0x000000FF12345500, 234);
       rc = ksb.appendAllElements(bsb.done(), ord);
       ASSERT_EQ(SDB_OK, rc);
       rc = ksb.done();
@@ -718,7 +762,9 @@ namespace vessel
       keyString ks = ksb.getShallowKeyString();
    }
 
-   void buildObjs(orderingWrapper ord, vector<BSONObj> &v_obj, vector<unique_ptr<keyString>> &v_key)
+   void buildObjs(orderingWrapper ord,
+                  vector<BSONObj> &v_obj,
+                  vector<unique_ptr<keyString>> &v_key)
    {
       return;
    }
@@ -747,7 +793,7 @@ namespace vessel
       buildObjs(ord, v_obj, v_key, args...);
    }
 
-   bsonDecimal getDecimalFromString(const CHAR* s)
+   bsonDecimal getDecimalFromString(const CHAR *s)
    {
       bsonDecimal dec;
       dec.fromString(s);
@@ -827,9 +873,10 @@ namespace vessel
       for (UINT32 i = 0; i < v_obj.size() - 1; i++)
       {
          INT32 wocmp = v_obj[i].woCompare(v_obj[i + 1]);
-         UINT32 comparableSize = std::min(v_key[i]->getComparableSize(), v_key[i+1]->getComparableSize());
-         const CHAR* buf1 = v_key[i]->getDataSlice().data();
-         const CHAR* buf2 = v_key[i+1]->getDataSlice().data();
+         UINT32 comparableSize = std::min(v_key[i]->getComparableSize(),
+                                          v_key[i + 1]->getComparableSize());
+         const CHAR *buf1 = v_key[i]->getDataSlice().data();
+         const CHAR *buf2 = v_key[i + 1]->getDataSlice().data();
          INT32 bytecmp = ossMemcmp(buf1, buf2, comparableSize);
          EXPECT_LE(wocmp, 0);
          if (!isDescending)
@@ -846,12 +893,12 @@ namespace vessel
    TEST_F(key_string_test, test_move)
    {
       orderingWrapper ord(0, 2);
-      BSONObj obj = BSON("a"<<1 << "b" << 1);
+      BSONObj obj = BSON("a" << 1 << "b" << 1);
       ksb.appendAllElements(obj, ord);
       ksb.done();
       vector<keyString> v;
       keyString ks = ksb.getShallowKeyString();
-      for(UINT32 i = 0 ;i< 100;i++)
+      for (UINT32 i = 0; i < 100; i++)
       {
          v.push_back(ks);
          v.rbegin()->getOwned();
@@ -885,7 +932,7 @@ namespace vessel
    TEST_F(key_string_test, base_size_ahead_key)
    {
       orderingWrapper ord(0, 1);
-      for (int i = 0; i< 10; i++)
+      for (int i = 0; i < 10; i++)
       {
          ksb.appendUnsignedWithoutType(32u);
       }
@@ -899,7 +946,7 @@ namespace vessel
    {
       orderingWrapper ord(0, 1);
       ksb.appendAllElements(BSON("a" << 1), ord);
-      for (int i = 0; i< 10; i++)
+      for (int i = 0; i < 10; i++)
       {
          ksb.appendUnsignedWithoutType(32u);
       }
@@ -1015,6 +1062,331 @@ namespace vessel
       ks.getOwned();
       BSONObj objFromKey = ks.toBSON(pattern, TRUE);
       EXPECT_EQ(objFromKey.woCompare(obj), 0);
+   }
+
+   class bsonGenerator : public SDBObject
+   {
+   public:
+      bsonGenerator()
+      {
+         generator.seed(seed());
+      }
+
+   public:
+      BSONType randomBsonType()
+      {
+         std::uniform_int_distribution<UINT32> uint32_distrib;
+         constexpr BSONType bsonTypeCandidate[] = {MinKey,
+                                                   /*EOO,*/ NumberDouble,
+                                                   String,
+                                                   Object,
+                                                   Array,
+                                                   BinData,
+                                                   Undefined,
+                                                   jstOID,
+                                                   Bool,
+                                                   Date,
+                                                   jstNULL,
+                                                   RegEx,
+                                                   DBRef,
+                                                   Code,
+                                                   Symbol,
+                                                   //CodeWScope,
+                                                   NumberInt,
+                                                   Timestamp,
+                                                   NumberLong,
+                                                   NumberDecimal,
+                                                   MaxKey};
+         return bsonTypeCandidate[random<UINT32>(
+             0, (sizeof(bsonTypeCandidate) / sizeof(BSONType)) - 1)];
+      }
+
+      BinDataType randomBinDataType()
+      {
+         constexpr BinDataType binDataTypeCandidate[] = {BinDataGeneral,
+                                                         Function,
+                                                         ByteArrayDeprecated,
+                                                         bdtUUID,
+                                                         MD5Type,
+                                                         bdtCustom};
+         return binDataTypeCandidate[random<UINT32>(
+             0, (sizeof(binDataTypeCandidate) / sizeof(BinDataType)) - 1)];
+      }
+
+      FLOAT64 randomFloat64()
+      {
+         std::uniform_real_distribution<FLOAT64> float_distrib;
+         return float_distrib(generator);
+      }
+
+      template <typename T>
+      T random(T T_min = 0, T T_max = numeric_limits<T>::max())
+      {
+         std::uniform_int_distribution<T> distrib(T_min, T_max);
+         return distrib(generator);
+      }
+
+      std::string randomString(UINT32 maxLen = 50)
+      {
+         std::string output;
+         CHAR buf[maxLen];
+         for (UINT32 i = 0; i < maxLen; i++)
+         {
+            buf[i] = random<UINT8>(1);
+         }
+         output.append(buf, random<UINT32>(1, maxLen));
+         return output;
+      }
+
+      vector<BSONType> randomTypes(UINT32 nkeys)
+      {
+
+         vector<BSONType> v;
+         for (UINT32 i = 0; i < nkeys; i++)
+         {
+            v.push_back(randomBsonType());
+         }
+         return v;
+      }
+
+      INT64 randomSeconds()
+      {
+         std::uniform_int_distribution<INT64> distrib(1);
+         return distrib(generator);
+      }
+
+      INT32 randomMicroseconds()
+      {
+         std::uniform_int_distribution<INT32> distrib(1, 999999);
+         return distrib(generator);
+      }
+
+      BSONObj randomBson(vector<BSONType> typeList, INT32 depth = 3)
+      {
+         BSONObjBuilder bsb;
+         for (UINT32 i = 0; i < typeList.size(); i++)
+         {
+            BSONType t = typeList[i];
+
+            std::string str = std::to_string(i);
+            const CHAR *fieldName = str.c_str();
+            switch (t)
+            {
+            case MinKey:
+               bsb.appendMinKey(fieldName);
+               break;
+            case EOO:
+               bsb.appendNull(fieldName);
+               break;
+            case NumberDouble:
+               bsb.appendNumber(fieldName, randomFloat64());
+               break;
+            case String: {
+               std::string s = randomString();
+               bsb.appendStrWithNoTerminating(fieldName, s.data(), s.size());
+               break;
+            }
+            case Object:
+            case Array: {
+               if (depth > 0)
+               {
+                  BSONObj obj = randomBson(random<UINT32>(1, 5), depth - 1);
+                  bsb.appendObject(fieldName, obj.objdata(), obj.objsize());
+               }
+               else
+               {
+                  bsb.appendNull(fieldName);
+               }
+               break;
+            }
+            case BinData: {
+               std::string s = randomString();
+               bsb.appendBinData(
+                   fieldName, s.size(), randomBinDataType(), s.data());
+               break;
+            }
+            case Undefined:
+               bsb.appendUndefined(fieldName);
+               break;
+            case jstOID:
+               bsb.appendOID(fieldName, nullptr, TRUE);
+               break;
+            case Bool:
+               bsb.appendBool(fieldName, random<UINT32>(0, 1));
+               break;
+            case Date: {
+               Date_t dt(random<INT64>());
+               bsb.appendDate(fieldName, dt);
+               break;
+            }
+            case jstNULL:
+               bsb.appendNull(fieldName);
+               break;
+            case RegEx: {
+               std::string regex = randomString();
+               std::string flags = randomString();
+               bsb.appendRegex(fieldName, regex, flags);
+               break;
+            }
+            case DBRef: {
+               std::string ns = randomString(20);
+               OID oid;
+               oid.init();
+               bsb.appendDBRef(fieldName, ns, oid);
+               break;
+            }
+            case Code: {
+               std::string code = randomString(20);
+               bsb.appendCode(fieldName, code);
+               break;
+            }
+            case Symbol: {
+               std::string symbol = randomString();
+               bsb.appendSymbol(fieldName, symbol);
+               break;
+            }
+            case CodeWScope: {
+               std::string code = randomString(20);
+               BSONObj scope = BSON("0" << random<INT32>());
+               bsb.appendCodeWScope(fieldName, code, scope);
+               break;
+            }
+            case NumberInt:
+               bsb.appendNumber(fieldName, random<INT32>());
+               break;
+            case Timestamp:
+               bsb.appendTimestamp(
+                   fieldName, random<INT32>(1) * 1000, randomMicroseconds());
+               break;
+            case NumberLong:
+               bsb.appendNumber(fieldName, random<INT64>());
+               break;
+            case NumberDecimal: {
+               bsonDecimal dec;
+               dec.fromDouble(randomFloat64());
+               bsb.append(fieldName, dec);
+               break;
+            }
+            case MaxKey:
+               bsb.appendMaxKey(fieldName);
+               break;
+            default:
+               SDB_ASSERT(FALSE, "Unexpected bson type");
+               break;
+            }
+         }
+         return bsb.obj();
+      }
+
+      BSONObj randomBson(UINT32 nkeys, INT32 depth = 3)
+      {
+         vector<BSONType> typeList = randomTypes(nkeys);
+         return randomBson(typeList, depth);
+      }
+
+      random_device seed;
+      std::default_random_engine generator;
+   };
+
+   BSONObj getPatternFromOrd(orderingWrapper ord)
+   {
+      BSONObjBuilder bsb;
+      for (UINT32 i = 0; i < ord.getNkeys(); i++)
+      {
+         std::string str = std::to_string(i);
+         const CHAR *fieldName = str.c_str();
+         bsb.appendNumber(fieldName, ord.toBsonOrdering().get(i));
+      }
+      return bsb.obj();
+   }
+
+   void buildRandomObjs(UINT32 nkeys, UINT32 objNums = 1000)
+   {
+      INT32 rc = SDB_OK;
+      vector<BSONObj> v_obj;
+      vector<unique_ptr<keyString>> v_key;
+      keyStringBuilder<> ksb;
+      bsonGenerator bg;
+      orderingWrapper ord(bg.random<UINT32>(), nkeys);
+      BSONObj pattern = getPatternFromOrd(ord);
+
+      for (UINT32 i = 0; i < objNums; i++)
+      {
+         BSONObj obj = bg.randomBson(nkeys);
+         // std::cout << obj.toString() << std::endl;
+         v_obj.push_back(obj);
+         v_obj.rbegin()->getOwned();
+         ksb.reset();
+         rc = ksb.appendAllElements(obj, ord);
+         ASSERT_EQ(SDB_OK, rc);
+         rc = ksb.done();
+         ASSERT_EQ(SDB_OK, rc);
+         unique_ptr<keyString> ks_ptr(new keyString);
+         *ks_ptr = ksb.getShallowKeyString();
+         ks_ptr->getOwned();
+         BSONObj objTemp = ks_ptr->toBSON(pattern, TRUE);
+         INT32 result = objTemp.woCompare(obj);
+         if (result != 0)
+         {
+            cout << i << ": Reduction error ===============" << endl
+                 << objTemp.toString() << endl
+                 << obj.toString() << endl;
+         }
+         ASSERT_EQ(result, 0);
+
+         v_key.push_back(std::move(ks_ptr));
+      }
+
+      std::sort(v_obj.begin(),
+                v_obj.end(),
+                [&](const BSONObj &l, const BSONObj &r) -> INT32 {
+                   if (l.woCompare(r, ord.toBsonOrdering()) < 0)
+                   {
+                      return TRUE;
+                   }
+                   else
+                   {
+                      return FALSE;
+                   }
+                });
+      std::sort(v_key.begin(),
+                v_key.end(),
+                [&](const unique_ptr<keyString> &key1,
+                    const unique_ptr<keyString> &key2) -> INT32 {
+                   if (key1->compare(*key2) < 0)
+                   {
+                      return TRUE;
+                   }
+                   else
+                   {
+                      return FALSE;
+                   }
+                });
+      vector<BSONObj> v_obj_from_key;
+
+      for (auto &key : v_key)
+      {
+         v_obj_from_key.push_back(key->toBSON(pattern, TRUE));
+      }
+      for (UINT32 i = 0; i < objNums; i++)
+      {
+         INT32 result = v_obj_from_key[i].woCompare(v_obj[i]);
+         if (result != 0)
+         {
+            cout << i << " ===============" << endl
+                 << v_obj_from_key[i].toString() << endl
+                 << v_obj[i].toString() << endl;
+         }
+         ASSERT_EQ(result, 0);
+      }
+   }
+
+   TEST_F(key_string_test, advanced_random)
+   {
+      for (UINT32 nkeys = 1; nkeys <= 32; nkeys++)
+      {
+         buildRandomObjs(nkeys, 1000);
+      }
    }
 
 } // namespace vessel
