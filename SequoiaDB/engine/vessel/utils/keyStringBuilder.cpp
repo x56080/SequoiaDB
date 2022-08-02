@@ -100,9 +100,8 @@ namespace vessel
       case Bool:
          return EncodedType::boolean;
       case Date:
-         return EncodedType::date;
       case Timestamp:
-         return EncodedType::timestamp;
+         return EncodedType::time;
       case RegEx:
          return EncodedType::regEx;
       case DBRef:
@@ -196,6 +195,52 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   INT32 typeBitsBuilder::appendDate()
+   {
+      INT32 rc = SDB_OK;
+      rc = appendBit(static_cast<UINT8>(typeBitsType::DATE) >> 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
+         goto error;
+      }
+      rc = appendBit(static_cast<UINT8>(typeBitsType::DATE) & 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append bit, rc:%d", NumberInt, rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   INT32 typeBitsBuilder::appendTimestamp()
+   {
+      INT32 rc = SDB_OK;
+      rc = appendBit(static_cast<UINT8>(typeBitsType::TIMESTAMP) >> 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append bit, rc:%d", rc);
+         goto error;
+      }
+      rc = appendBit(static_cast<UINT8>(typeBitsType::TIMESTAMP) & 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append bit, rc:%d", NumberInt, rc);
          goto error;
       }
 
@@ -371,7 +416,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 typeBitsBuilder::appendBits(const CHAR *bytes, const UINT32 bytesSize)
+   INT32 typeBitsBuilder::appendBits(const UINT8 *bytes, const UINT32 bytesSize)
    {
       INT32 rc = SDB_OK;
       for (UINT32 i = 0; i < bytesSize * 8; i++)
@@ -397,15 +442,15 @@ namespace vessel
       INT32 rc = SDB_OK;
       INT32 typemod = dec.getTypemod();
       INT16 ndigit = dec.getNdigit();
-      rc =
-          appendBits(reinterpret_cast<const CHAR *>(&typemod), sizeof(typemod));
+      rc = appendBits(reinterpret_cast<const UINT8 *>(&typemod),
+                      sizeof(typemod));
       if (SDB_OK != rc)
       {
          PD_LOG(
              PDERROR, "failed to append decimal typemod to typebits, rc%d", rc);
          goto error;
       }
-      rc = appendBits(reinterpret_cast<const CHAR *>(&ndigit), sizeof(ndigit));
+      rc = appendBits(reinterpret_cast<const UINT8 *>(&ndigit), sizeof(ndigit));
       if (SDB_OK != rc)
       {
          PD_LOG(

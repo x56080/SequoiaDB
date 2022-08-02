@@ -160,8 +160,7 @@ namespace vessel
       boolean = 110,
       booleanFalse = boolean + 0,
       booleanTrue = boolean + 1,
-      date = 120,
-      timestamp = 130,
+      time = 130,
       regEx = 140,
       dbRef = 150,
       code = 160,
@@ -173,7 +172,7 @@ namespace vessel
                      EncodedType::stringLike,
                  "NumericPositiveLargeMagnitude must be less than StringLike");
 
-   enum class DecimalContinuationMarker : UINT8
+   enum class ContinuationMarker : UINT8
    {
       hasNoContinuation = 0b0,
       hasContinuation = 0b1,
@@ -189,7 +188,12 @@ namespace vessel
       DOUBLE = 0b10,
       DECIMAL = 0b11,
       POSITIVE_ZERO = 0b0,
-      NEGATIVE_ZERO = 0b1
+      NEGATIVE_ZERO = 0b1,
+
+      DATE = 0b00,
+      TIMESTAMP = 0b01,
+      TIMESTAMP2 = 0b10,
+      RESERVED = 0b11
    };
  
 
