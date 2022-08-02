@@ -405,6 +405,32 @@ namespace vessel
       goto done;
    }
 
+   INT32 indexSpace::removePages(indexSpaceAccessCtx &ctx,
+                                 UINT32 size,
+                                 const PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(0 == size || nullptr == lpids))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < size; ++i)
+      {
+         rc = removePage(ctx, lpids[i]);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove page[%d], rc:%d", lpids[i], rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 indexSpace::_getRuntimePageBuffer(requestContext *context,
                                            PAGE_ID pid,
                                            const ossSharedLatchMode &mode,

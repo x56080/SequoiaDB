@@ -48,7 +48,7 @@ namespace vessel
    class sparsePidBitmap : public SDBObject
    {
       public:
-         sparsePidBitmap(ossSLatch *latch):_latch(latch){}
+         sparsePidBitmap(ossSLatch *latch=nullptr):_latch(latch){}
          ~sparsePidBitmap() = default;
          sparsePidBitmap(const sparsePidBitmap &) = delete;
          sparsePidBitmap &operator=(const sparsePidBitmap &) = delete;

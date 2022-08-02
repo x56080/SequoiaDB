@@ -1113,7 +1113,7 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       recordID rid;
       slice data = getKeyTailSlice();
-      if (data.getSize() <= sizeof(recordID))
+      if (data.getSize() <= keyStringCoder::RID_ENCODING_SIZE)
       {
          rid = keyStringCoder().decodeToRid(data.getData());
       }

@@ -40,6 +40,7 @@
 #include "vessel/indexSpace.h"
 #include "vessel/requestContext.h"
 #include "vessel/btreeEntryPageAccessor.h"
+#include "vessel/pageInitializer.h"
 
 namespace engine
 {
@@ -202,6 +203,19 @@ namespace vessel
       goto done;
    }
 
+   btreePathFootprint btreeAccessContext::getEndNodeFootprint()const
+   {
+      if (OSS_LIKELY(1 < _path.size()))
+      {
+         return _path[_path.size() - 2].getChildFootprint();
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "invalid path");
+         return btreePathFootprint();
+      }
+   }
+
    INT32 btreeAccessContext::_pushIntoPath(PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
@@ -282,8 +296,7 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(!_path.empty(), "can not be empty");
       return _path.empty() ?
-             btreeNode() : btreeNode((INT32)_path.size() - 1,
-                                     _path.back().getPageBuffer(),
+             btreeNode() : btreeNode(_path.size() - 1,
                                      this);
    }
 
@@ -294,13 +307,25 @@ namespace vessel
       
       if (depth < _path.size())
       {
-         return btreeNode(depth,
-                          _path[depth].getPageBuffer(),
-                          this);
+         return btreeNode(depth, this);
       }
       else
       {
          return btreeNode();
+      }
+   }
+
+   logicalPageBuffer *btreeAccessContext::getBuffer(UINT32 depth)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      if (OSS_LIKELY(depth < _path.size()))
+      {
+         return _path[depth].getPageBuffer();
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+         return nullptr;
       }
    }
 
@@ -385,6 +410,118 @@ namespace vessel
    error:
       _stats.reset();
       _btreeRoot = INVALID_PAGE_ID;
+      goto done;
+   }
+
+   INT32 btreeAccessContext::allocateNewNode(pageInitializer *initer,
+                                             logicalPageBuffer &buffer)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(nullptr != initer, "can not be invalid");
+      PAGE_ID lpid = INVALID_PAGE_ID;
+
+      buffer.fini();
+
+      indexSpace *is = _ictx.getIndexSpace();
+      rc = is->allocate(_ictx, initer, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+         goto error;
+      }
+
+      rc = is->getLogicalPageBuffer(_ictx, lpid, TRUE, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page buffer of[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessContext::makeWritable(logicalPageBuffer &buffer)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!buffer.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _ictx.getIndexSpace()->makePrivateBuffer(_ictx, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessContext::destroyNode(logicalPageBuffer &buffer)
+   {
+      INT32 rc = SDB_OK;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+
+      if (OSS_UNLIKELY(!buffer.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      lpid = buffer.getLogicalPid();
+      buffer.fini();
+      rc = _ictx.getIndexSpace()->removePage(_ictx, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove page[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void btreeAccessContext::resetBtreeRoot(PAGE_ID root)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      _btreeRoot = root;
+   }
+
+   void btreeAccessContext::resetBtreeStats()
+   {
+      _stats.reset();
+   }
+
+   INT32 btreeAccessContext::destroyPathEnd()
+   {
+      INT32 rc = SDB_OK;
+      if (_path.empty())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else
+      {
+         btreeAccessPathNode &node = _path.back();
+         rc = destroyNode(*node.getPageBuffer());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to destroy node:%d", rc);
+            goto error;
+         }
+
+         popEnd();
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 } // namespace vessel

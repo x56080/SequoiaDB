@@ -37,13 +37,13 @@
 #define VESSEL_BTREE_NODE_H_
 
 #include "vessel/btreeNodePage.h"
-#include "ixmKey.hpp"
 #include "vessel/btreeIndexItem.h"
-#include "vessel/btreeItemLocation.h"
+#include "vessel/btreeNodeSeekResult.h"
 #include "ossSharedLatch.hpp"
 #include "vessel/btreeSplitRaisedKey.h"
 #include "rtnPredicate.hpp"
 #include "vessel/strictBuffer.h"
+#include "vessel/btreeKeyStringEntry.h"
 
 namespace engine
 {
@@ -59,6 +59,7 @@ namespace vessel
          btreeNode() = default;
           ~btreeNode() = default;
 
+         explicit btreeNode(UINT32 depth, btreeAccessContext *ctx);
          explicit btreeNode(UINT32 depth,
                             logicalPageBuffer *buffer,
                             btreeAccessContext *ctx);
@@ -81,17 +82,16 @@ namespace vessel
       public:
          BOOLEAN isRoot()const;
          BOOLEAN isLeaf()const;
-         INT32 getBirthLevel()const;
          UINT32 getItemCount()const;
          UINT32 getNodeSize()const;
-         ossSharedLatchMode getLockingMode()const;
-         BOOLEAN ensureExclusiveLocking();
          BOOLEAN isItemMarkedAsDeleted(RECORD_SLOT_POS pos)const;
          PAGE_ID getRightChild()const;
          BOOLEAN hasRightChild()const;
+         BOOLEAN isRightChildLeaf()const;
          PAGE_ID getLeftChild(RECORD_SLOT_POS pos)const;
          PAGE_ID getChild(RECORD_SLOT_POS pos)const;
          DPS_TRANS_ID getTransID()const;
+         BOOLEAN betterToBeDestroyed()const;
 
          BOOLEAN becameEmptyAfterRemoving(RECORD_SLOT_POS pos)const;
 
@@ -109,41 +109,36 @@ namespace vessel
          void dumpAllSubNodes(ossPoolVector<PAGE_ID> &nodes);
 
       public:
-         INT32 prepareToWrite();
 
-      public:
-
-         BOOLEAN hasFreeSpaceToInsert(UINT32 keySize,
-                                      BOOLEAN *needCompact=NULL)const;
+         BOOLEAN hasFreeSpaceToInsert(UINT32 entrySize,
+                                      BOOLEAN *needCompact=nullptr)const;
          /// leaf node only
-         INT32 leafInsert(const ixmKey &key,
-                           const recordID &rid);
+         INT32 leafInsert(const btreeKeyStringEntry &entry);
 
          /// leaf node only
-         INT32 splitLeafAndInsert(const ixmKey &key,
-                                  const recordID &rid,
+         INT32 splitLeafAndInsert(const btreeKeyStringEntry &entry,
                                   btreeSplitRaisedKey &raisedKey);
 
          /// non-leaf node only
          INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey);
 
          INT32 splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
-                                       btreeSplitRaisedKey &raisedKey);
+                                     btreeSplitRaisedKey &raisedKey);
 
-         INT32 split(btreeSplitRaisedKey &raisedKey);
+         // INT32 split(RECORD_SLOT_POS &pos,
+         //             btreeSplitRaisedKey &raisedKey);
 
          /// non-leaf node only
-         INT32 reactiveRemovedKey(const btreeItemLocation &location);
+         INT32 reactiveRemovedKey(RECORD_SLOT_POS pos);
 
          INT32 resetRemovedChild(RECORD_SLOT_POS pos,
-                                 PAGE_ID child);
+                                 PAGE_ID child,
+                                 BOOLEAN childIsLeaf);
 
          INT32 resetAsEmptyNode();
-      public:
-         /// non-leaf only
-         INT32 nonleafRemove(RECORD_SLOT_POS pos);
 
-         INT32 leafRemove(RECORD_SLOT_POS pos);
+      public:
+         INT32 removeEntry(RECORD_SLOT_POS pos);
 
          /// non-leaf node only
          /// when pos equals to item count in node,
@@ -151,33 +146,27 @@ namespace vessel
          INT32 removeChild(RECORD_SLOT_POS pos);
          
       public:
-         INT32 locateKeyAndRid(const ixmKey &key,
-                                 const recordID &rid,
-                                 btreeItemLocation &res)const;
+         INT32 locateEntry(const btreeKeyStringEntry &entry,
+                           btreeNodeSeekResult &res) const;
+
+         INT32 seek(const keyString &ks,
+                    btreeNodeSeekResult &res) const;
+
+         INT32 seek(const keyString &ks,
+                    RECORD_SLOT_POS pos,
+                    BOOLEAN forward,/// range: [pos, last] if forward, [first, pos] if backward
+                    btreeNodeSeekResult &res) const;
 
          INT32 getItem(RECORD_SLOT_POS pos,
-                        btreeIndexItem &item)const;
+                       btreeIndexItem &item)const;
 
-         INT32 keyLocate(const BSONObj &prevKey,
-                         INT32 fieldCountToCmpInPrev,
-                         const VEC_ELE_CMP &matchEle,
-                         const inclusiveVec &matchInclusive,
-                         BOOLEAN exclusive,
-                         BOOLEAN forward,
-                         btreeItemLocation &location,
-                         BOOLEAN &outOfBound,
-                         bson::BufBuilder *bb=NULL);
-
-         INT32 keyAdvance(RECORD_SLOT_POS pos,
-                          const BSONObj &prevKey,
-                          INT32 fieldCountToCmpInPrev,
-                          const VEC_ELE_CMP &matchEle,
-                          const inclusiveVec &matchInclusive,
-                          BOOLEAN exclusive,
-                          BOOLEAN forward,
-                          BOOLEAN &goBackToFather,
-                          btreeItemLocation &location,
-                          bson::BufBuilder *bb=NULL);
+      private:
+         struct _entryRef
+         {
+            OSS_INLINE BOOLEAN isValid()const {return nullptr != slot;}
+            const btreeItemSlot *slot = nullptr;
+            slice data;
+         };//struct _entryRef
 
       private:
          const indexProperties *getProperties()const;
@@ -211,16 +200,15 @@ namespace vessel
 
          BOOLEAN isRecentWriteOrdered()const;
 
-         INT32 find(RECORD_SLOT_POS low,
-                    RECORD_SLOT_POS high,
-                    const bson::BSONObj &prevKey,
-                    INT32 fieldCountToCmpInPrev,
-                    const VEC_ELE_CMP &matchEle,
-                    const inclusiveVec &matchInclusive,
-                    BOOLEAN exclusive,
-                    BOOLEAN forward,
-                    bson::BufBuilder &bb,
-                    RECORD_SLOT_POS &pos)const;
+         INT32 _locateEntry(const btreeKeyStringEntry &ks,
+                            btreeNodeSeekResult &res) const;
+
+         INT32 _seek(const keyString &ks,
+                     RECORD_SLOT_POS pos,
+                     BOOLEAN forward,
+                     btreeNodeSeekResult &res) const;
+
+         _entryRef _getEntryRef(RECORD_SLOT_POS pos) const;
 
       private:
          void commit();
@@ -228,35 +216,20 @@ namespace vessel
 
          INT32 _compact(UINT32 reserved);
 
-         INT32 _leafInsert(const ixmKey &key,
-                           const recordID &rid,
+         INT32 _leafInsert(const btreeKeyStringEntry &entry,
                            RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
 
          INT32 _insert(RECORD_SLOT_POS pos,
-                        const ixmKey &key,
-                        const recordID &rid,
-                        PAGE_ID leftChild=INVALID_PAGE_ID);
+                       const btreeKeyStringEntry &entry,
+                       PAGE_ID leftChild=INVALID_PAGE_ID);
 
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                  RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
-
-         INT32 _splitAndCompact(RECORD_SLOT_POS pivot,
-                                PAGE_ID &rightNode);
-
-         INT32 buildRightNodeWhenSplit(RECORD_SLOT_POS begin,
-                                       strictBuffer &node)const;
-
-         INT32 findSplitPivot(BOOLEAN idleRight,
-                              RECORD_SLOT_POS &pivot)const;
 
          INT32 truncate(RECORD_SLOT_POS max);
 
          void updateAppendingFactor(btreeNodePageHead *head,
                                     BOOLEAN isAppending);
-
-         btreeNode getRightNodeWhenSplit(PAGE_ID right, logicalPageBuffer &buffer);
-
-      private:
 
          INT32 _removeChild(RECORD_SLOT_POS pos);
 
@@ -267,9 +240,23 @@ namespace vessel
          INT32 _markRemoved(RECORD_SLOT_POS pos);
 
       private:
+         INT32 _split(RECORD_SLOT_POS pivot,
+                      logicalPageBuffer &rightNodeBuffer);
+
+         INT32 _buildRightNodeWhenSplit(RECORD_SLOT_POS begin,
+                                        strictBuffer &node)const;
+
+         INT32 _findSplitPivot(BOOLEAN idleRight,
+                               RECORD_SLOT_POS &pivot)const;
+
+         INT32 _saveRaisingEntry(RECORD_SLOT_POS pos,
+                                 btreeKeyStringEntry &entry) const;
+
+      private:
          UINT32 _depth = 0;
          logicalPageBuffer *_buffer = nullptr;
          btreeAccessContext *_ctx = nullptr;
+         BOOLEAN _inPath = FALSE;
    };//class btreeNode
 } // namespace vessel
 

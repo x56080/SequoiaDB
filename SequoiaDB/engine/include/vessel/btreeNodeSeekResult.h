@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDef.h
+   Source File Name = btreeNodeSeekResult.h
 
    Descriptive Name =
 
@@ -33,54 +33,45 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_DEF_H_
-#define VESSEL_INDEX_DEF_H_
+#ifndef VESSEL_BTREE_NODE_SEEK_RESULT_H_
+#define VESSEL_BTREE_NODE_SEEK_RESULT_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/recordID.h"
 
 namespace engine
 {
 namespace vessel
 {
-   enum INDEX_TYPE : UINT16
+   struct btreeNodeSeekResult : public SDBObject
    {
-      INDEX_TYPE_BTREE = 0,
-      INDEX_TYPE_LSM = 1,
-      INDEX_TYPE_HYBRID_TREE = 2,
-      INDEX_TYPE_INVALID = 65535
-   };//enum INDEX_TYPE
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return isValidRecordSlotPosition(slotPos);
+      }
+      OSS_INLINE void reset()
+      {
+         res = FALSE;
+         child = INVALID_PAGE_ID;
+         slotPos = INVALID_RECORD_SLOT_POS;
+         isUpperBound = FALSE;
+         return;
+      }
+      OSS_INLINE BOOLEAN isIdentical() const
+      {
+         return 0 == res && !isUpperBound;
+      }
+      OSS_INLINE BOOLEAN hasChild()const {return INVALID_PAGE_ID != child;}
 
-   constexpr UINT32 INVALID_LOGICAL_INDEX_ID = (UINT32)(-1);
+      INT32 res = 0;
+      PAGE_ID child = INVALID_PAGE_ID;
+      RECORD_SLOT_POS slotPos = INVALID_RECORD_SLOT_POS;
+      BOOLEAN isUpperBound = FALSE;
+   };//class btreeNodeSeekResult
 
-   constexpr UINT32 MAX_INDEX_COUNT_PER_CL = 64;
+   
+} // namespace vessel
 
-   constexpr UINT32 MAX_INDEX_KEY_COLUMNS = 32;
+} // namespace engine
 
-   constexpr UINT32 MAX_INDEX_KEY_SIZE = 4096;
 
-   constexpr UINT32 MAX_INDEX_META_ENTRY_SIZE = 4096;
-
-   constexpr FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
-
-   enum INDEX_STATUS : UINT16
-   {
-      INDEX_STATUS_INVALID = 0,
-      INDEX_STATUS_BUILDING = 1,
-      INDEX_STATUS_NORMAL = 2,
-      INDEX_STATUS_TRUNCATING = 3,
-      INDEX_STATUS_REMOVING = 4,
-      INDEX_STATUS_ABNORMAL = 5,
-   };// enum INDEX_STATUS
-
-   enum class INDEX_ITERATOR_TYPE : INT32
-   {
-      BTREE = 0,
-      LSM = 1,
-      HYBRID_TREE = 2,
-   }; //class INDEX_ITERATOR_TYPE
-
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_INDEX_DEF_H_
+#endif//VESSEL_BTREE_NODE_SEEK_RESULT_H_

@@ -57,18 +57,12 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (DMS_INVALID_LOGICCLID == _logicalCLID ||
-               INVALID_LOGICAL_INDEX_ID == _indexId)
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
       SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
       if (!initBtreeNodePage(rpb->getPageSize(),
                              rpb->getGlobalPid().page(),
                              lpid, psv,
-                             _logicalCLID, _indexId, _isLeaf, _isRoot,
+                             _indexId, _isLeaf, _isRoot,
                              rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init btree node page page[%s]",

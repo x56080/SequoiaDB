@@ -52,7 +52,7 @@ namespace vessel
    {
       friend class indexSpace;
       public:
-         indexSpaceAccessCtx();
+         indexSpaceAccessCtx() = default;
          ~indexSpaceAccessCtx();
          indexSpaceAccessCtx(const indexSpaceAccessCtx &) = delete;
          indexSpaceAccessCtx &operator=(const indexSpaceAccessCtx &) = delete;

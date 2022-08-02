@@ -139,7 +139,7 @@ namespace vessel
       SDB_ASSERT(!_o.pointGetOnly, "can not be point get");
       obj = indexUtils::buildKeyToSeek(prevKey, fieldCountToCmpInPrev, matchEles);
       iv = matchInclusive;
-      iv.setBatch(0, fieldCountToCmpInPrev, TRUE);
+      iv.setBatch(0, fieldCountToCmpInPrev - 1, TRUE);
 
       rc = builder.buildPredicate(obj,
                                  _obj->getOrderingWrapper(),

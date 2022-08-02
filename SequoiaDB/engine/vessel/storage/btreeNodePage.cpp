@@ -42,47 +42,80 @@ namespace engine
 {
 namespace vessel
 {
-////////btreeItemSlot
-   void btreeItemSlot::initAsNonLeafFormat(const recordID &rid,
-                                          UINT16 offset,
-                                          UINT16 size,
-                                          PAGE_ID leftChild)
+//////// btreeNodePageHead
+   void btreeNodePageHead::init(UINT32 pageSize,
+                                UINT32 indexId,
+                                BOOLEAN isRoot,
+                                BOOLEAN isLeaf)
    {
-      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexId, "can not be invalid");
+
+      reset();
+      this->version = BTREE_NODE_PAGE_HEAD_VERSION;
+      this->indexId = indexId;
+      this->backOffset = getPageBodySize(pageSize);
+      this->totalFreeSpace = this->backOffset - BTREE_NODE_PAGE_HEAD_SIZE;
+
+      if (isRoot)
+      {
+         OSS_BIT_SET(this->flags, BTREE_NODE_FLAG_IS_ROOT);
+      }
+      if (isLeaf)
+      {
+         OSS_BIT_SET(this->flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
+
+      return;
+   }  
+
+   void btreeNodePageHead::initAsRightNode(const btreeNodePageHead &src,
+                                           UINT32 pageSize)
+   {
+      SDB_ASSERT(src.isValid(), "can not be invalid");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      reset();
+
+      this->version = src.version;
+      this->indexId = src.indexId;
+      this->backOffset = getPageBodySize(pageSize);
+      this->totalFreeSpace = this->backOffset - BTREE_NODE_PAGE_HEAD_SIZE;
+      this->rightChild = src.rightChild;
+      this->transID = src.transID;
+
+      /// always ignore root flag when build right node
+      OSS_BIT_SET(this->flags, (src.flags & BTREE_NODE_FLAG_IS_LEAF));
+   }
+
+////////btreeItemSlot
+   void btreeItemSlot::initAsNonLeafFormat(UINT16 offset,
+                                           UINT16 size,
+                                           PAGE_ID leftChild)
+   {
       SDB_ASSERT(0 != size, "can not be invalid");
 
       reset();
       OSS_BIT_SET(flags, (FLAG_IN_USED));
-      ridPos = rid.getPos();
-      ridPage = rid.getPid();
       data.key.offset = offset;
       data.key.size = size;
       data.nlf.leftChild = leftChild;
       return;
    }
 
-   void btreeItemSlot::initAsLeafFormat(const recordID &rid,
-                                        UINT16 offset,
+   void btreeItemSlot::initAsLeafFormat(UINT16 offset,
                                         UINT16 size,
-                                        BOOLEAN compressed,
                                         RECORD_SLOT_POS prefixPos)
    {
-      SDB_ASSERT(rid.isValid(), "can not be invalid");
       reset();
       OSS_BIT_SET(flags, FLAG_IN_USED);
-      ridPos = rid.getPos();
-      ridPage = rid.getPid();
       data.key.offset = offset;
       data.key.size = size;
-      
-      if (compressed)
+      if (INVALID_RECORD_SLOT_POS != prefixPos)
       {
          OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
-         SDB_ASSERT(isValidRecordSlotPosition(prefixPos), "can not be invalid");
+         data.lf.prefixSlot = prefixPos;
       }
-      
-      data.lf.prefixSlot = prefixPos;
-
+   
       return;
    }
 
@@ -95,7 +128,6 @@ namespace vessel
                              UINT32 indexId,
                              BOOLEAN isLeaf,
                              BOOLEAN isRoot,
-                             INT32 birthNodeLevel,
                              CHAR *buf)
    {
       BOOLEAN r = FALSE;
@@ -104,9 +136,7 @@ namespace vessel
    
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
-      if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexId ||
-                       birthNodeLevel < 0 ||
-                       birthNodeLevel > std::numeric_limits<INT8>::max()))
+      if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexId))
       {
          goto done;
       }
@@ -119,22 +149,7 @@ namespace vessel
       }
 
       headPtr = (btreeNodePageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, BTREE_NODE_PAGE_HEAD_SIZE);
-      headPtr->version = BTREE_NODE_PAGE_HEAD_VERSION;
-      headPtr->indexId = indexId;
-      headPtr->rightChild = INVALID_PAGE_ID;
-      headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
-      headPtr->backOffset = getPageBodySize(pageSize);
-      headPtr->birthLevel = birthNodeLevel;
-      headPtr->flags = 0;
-      if (isLeaf)
-      {
-         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_LEAF);
-      }
-      if (isRoot)
-      {
-         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_ROOT);
-      }
+      headPtr->init(pageSize, indexId, isRoot, isLeaf);
       r = TRUE;
 
    done:

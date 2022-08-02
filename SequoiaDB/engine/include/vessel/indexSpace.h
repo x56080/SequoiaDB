@@ -98,6 +98,10 @@ namespace vessel
          INT32 removePage(indexSpaceAccessCtx &ctx,
                           PAGE_ID lpid);
 
+         INT32 removePages(indexSpaceAccessCtx &ctx,
+                           UINT32 size,
+                           const PAGE_ID *lpids);
+
       public:
          void incPtePageNum()
          {

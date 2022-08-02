@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeItemLocation.h
+   Source File Name = btreeKeyStringEntry.h
 
    Descriptive Name =
 
@@ -33,51 +33,30 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_ITEM_LOCATION_H_
-#define VESSEL_BTREE_ITEM_LOCATION_H_
+#ifndef VESSEL_BTREE_KEY_STRING_ENTRY_H_
+#define VESSEL_BTREE_KEY_STRING_ENTRY_H_
 
-#include "vessel/recordID.h"
+#include "vessel/keyString.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeItemLocation : public SDBObject
+   class btreeKeyStringEntry : public keyString
    {
       public:
-         btreeItemLocation(){}
-         ~btreeItemLocation(){}
-         btreeItemLocation(const btreeItemLocation &o):
-         identical(o.identical),
-         child(o.child),
-         slotPos(o.slotPos),
-         isUpperBound(o.isUpperBound){}
-         btreeItemLocation &operator=(const btreeItemLocation &o)
-         {
-            identical = o.identical;
-            child = o.child;
-            slotPos = o.slotPos;
-            isUpperBound = o.isUpperBound;
-            return *this;
-         }
+         btreeKeyStringEntry() = default;
+         ~btreeKeyStringEntry() = default;
+         btreeKeyStringEntry(const slice &s);
+         btreeKeyStringEntry(UINT32 size, const CHAR *data);
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return isValidRecordSlotPosition(slotPos);
-         }
-
-      public:
-         BOOLEAN identical = FALSE;
-         PAGE_ID child = INVALID_PAGE_ID;
-         RECORD_SLOT_POS slotPos = INVALID_RECORD_SLOT_POS;
-         BOOLEAN isUpperBound = FALSE;
-   };//class btreeItemLocation
-
-   
+         INT32 init(const slice &s);
+         recordID getRid() const;
+   };//class btreeKeyStringEntry
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_BTREE_ITEM_LOCATION_H_
+#endif//VESSEL_BTREE_KEY_STRING_ENTRY_H_

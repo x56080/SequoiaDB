@@ -37,9 +37,7 @@
 #define VESSEL_BTREE_INDEX_ITEM_H_
 
 #include "vessel/btreeNodePage.h"
-#include "ixmKey.hpp"
-#include "../bson/ordering.h"
-#include "vessel/memoryBlock.h"
+#include "vessel/keyString.h"
 
 namespace engine
 {
@@ -74,12 +72,6 @@ namespace vessel
             return _prefix;
          }
 
-         OSS_INLINE recordID getRid()const
-         {
-            return isValid() ?
-                   recordID(_slot.ridPage, _slot.ridPos) : recordID();
-         }
-
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
@@ -97,15 +89,10 @@ namespace vessel
                                  const btreeItemSlot &slot,
                                  const slice &prefix,
                                  const slice &suffix);
+                                 
+         INT32 getOwnedKeyString(keyString &ks) const;
 
-         UINT32 getOriginalKeySize()const;
-
-         INT32 woCompare(const ixmKey &key,
-                         const bson::Ordering &ordering)const;
-
-         BOOLEAN woEqual(const ixmKey &key)const;
-
-         void exportOriginalKey(bson::StackBufBuilder &builder)const;
+         keyString getOwnedKeyString() const;
 
       private:
          RECORD_SLOT_POS _slotPos = INVALID_RECORD_SLOT_POS;

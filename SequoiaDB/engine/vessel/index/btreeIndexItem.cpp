@@ -83,47 +83,52 @@ namespace vessel
       return;
    }
 
-   INT32 btreeIndexItem::woCompare(const ixmKey &key,
-                                   const bson::Ordering &ordering)const
+   INT32 btreeIndexItem::getOwnedKeyString(keyString &ks) const
    {
-      INT32 r = 0;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(key.isValid(), "can not be invalid");
-      ixmKey localKey;
+      INT32 rc = SDB_OK;
+      ks.reset();
 
-      if (_slot.isKeyCompressed())
+      if (OSS_UNLIKELY(!isValid()))
       {
-         SDB_ASSERT(FALSE, "TODO");
-      }
-      else
-      {
-         SDB_ASSERT(_keySlice.isValid(), "impossible");
-         r = ixmKey(_keySlice.data()).woCompare(key, ordering);
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
       }
 
-      return r;
+      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
+      rc = ks.init(_keySlice);
+      {
+         PD_LOG(PDERROR, "failed to init key string:%d", rc);
+         goto error;
+      }
+
+      rc = ks.getOwned();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get owned:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      ks.reset();
+      goto done;
    }
 
-   BOOLEAN btreeIndexItem::woEqual(const ixmKey &key)const
+   keyString btreeIndexItem::getOwnedKeyString() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(key.isValid(), "can not be invalid");
-      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
-      return key.woEqual(ixmKey(_keySlice.data()));
-   }
+      keyString ks(_keySlice);
+      if (ks.isValid())
+      {
+         INT32 rc = ks.getOwned();
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to get owned key string:%d", rc);
+            ks.reset();
+         }
+      }
 
-   UINT32 btreeIndexItem::getOriginalKeySize()const
-   {
-      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
-      return _keySlice.getSize();
-   }
-
-   void btreeIndexItem::exportOriginalKey(StackBufBuilder &builder)const
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
-      builder.appendBuf(_keySlice.data(), _keySlice.getSize());
-      return;
+      return std::move(ks);
    }
 
 } // namespace vessel

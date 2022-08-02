@@ -48,6 +48,7 @@ namespace engine
 namespace vessel
 {
    class indexObject;
+   class pageInitializer;
 
    class btreeAccessContext : public SDBObject
    {
@@ -75,6 +76,10 @@ namespace vessel
 
          OSS_INLINE indexSpaceAccessCtx &getSpaceCtx() {return _ictx;}
 
+         OSS_INLINE BOOLEAN isNonPte()const {return _nonpte;}
+         OSS_INLINE BOOLEAN hasBtreeRoot()const {return INVALID_PAGE_ID != _btreeRoot;}
+         OSS_INLINE PAGE_ID getBtreeRoot()const {return _btreeRoot;}
+
       public:
          INT32 init(BOOLEAN nonpte,
                     indexObject *obj,
@@ -92,6 +97,9 @@ namespace vessel
                                      const btreePathFootprint &footprint,
                                      btreeNode *node=nullptr);
 
+         /// get info saved in end node's father.
+         btreePathFootprint getEndNodeFootprint()const;
+
          void resetPath();
 
          void popEnd();
@@ -101,11 +109,24 @@ namespace vessel
          btreeNode getEndNodeInPath();
          UINT32 getPathSize()const;
          btreeNode getNodeInPath(UINT32 depth);
+         logicalPageBuffer *getBuffer(UINT32 depth);
 
          const btreeAccessPathNode &getPathNode(UINT32 depth)const;
 
-         OSS_INLINE BOOLEAN isNonPte()const {return _nonpte;}
-         OSS_INLINE BOOLEAN hasBtreeRoot()const {return INVALID_PAGE_ID != _btreeRoot;}
+
+
+         INT32 makeWritable(logicalPageBuffer &buffer);
+
+         INT32 allocateNewNode(pageInitializer *initer,
+                               logicalPageBuffer &buffer);
+
+         INT32 destroyNode(logicalPageBuffer &buffer);
+
+         INT32 destroyPathEnd();
+
+         void resetBtreeRoot(PAGE_ID root);
+
+         void resetBtreeStats();
 
       private:
          INT32 _cacheRootAndStats();

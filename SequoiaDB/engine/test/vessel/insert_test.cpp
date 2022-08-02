@@ -826,7 +826,7 @@ void death_thread_insert(vesselImpl *db,
       b << r << "aaaaaaaaaaaaaaaaaaaaaaaa";
       builder.append("a", b.poolStr());
       builder.append("b", i);
-      builder.append("c", pad, 1024);
+      //builder.append("c", pad, 1024);
       bson::BSONObj obj = builder.done();
       utilInsertResult res;
       rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
@@ -947,7 +947,7 @@ TEST_F(insert_test, DISABLED_death_test_2)
    ASSERT_EQ(SDB_OK, rc);
 
    bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
-                                                          FALSE, BSON("a" << 1));
+                                                          TRUE, BSON("a" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 

@@ -99,9 +99,9 @@ namespace engine
                setExclusive(pos);
             }
          }
-         OSS_INLINE void setBatch(UINT32 begin, UINT32 end, BOOLEAN inclusive)
+         OSS_INLINE void setBatch(INT32 begin, INT32 end, BOOLEAN inclusive)
          {
-            for (UINT32 i = 0; i < end; ++i)
+            for (INT32 i = 0; i <= end; ++i)
             {
                set(i, inclusive);
             }

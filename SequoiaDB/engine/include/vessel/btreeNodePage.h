@@ -90,10 +90,10 @@ namespace vessel
    /// btreeNode flags begin
    constexpr UINT32 BTREE_NODE_FLAG_IS_ROOT = 0x01;
    constexpr UINT32 BTREE_NODE_FLAG_IS_LEAF = 0x02;
-
    /// tried to generate(or regenerate) prefixes but failed.
    /// reset until next split.
    constexpr UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x04;
+   constexpr UINT32 BTREE_NODE_FLAG_RIGHT_CHILD_IS_LEAF = 0x08;
    /// btreeNode flags end
 
    struct btreeNodePageHead
@@ -101,8 +101,33 @@ namespace vessel
       OSS_INLINE BOOLEAN isValid()const
       {
          return BTREE_NODE_PAGE_HEAD_VERSION == version &&
-                INVALID_LOGICAL_INDEX_ID != indexId &&
-                0 <= birthLevel;
+                INVALID_LOGICAL_INDEX_ID != indexId;
+      }
+
+      void reset()
+      {
+         *this = btreeNodePageHead();
+      }
+
+      void init(UINT32 pageSize,
+                UINT32 indexId,
+                BOOLEAN isRoot,
+                BOOLEAN isLeaf);
+
+      void initAsRightNode(const btreeNodePageHead &src,
+                           UINT32 pageSize);
+
+      OSS_INLINE BOOLEAN isRoot()const
+      {
+         return 0 != OSS_BIT_TEST(flags, BTREE_NODE_FLAG_IS_ROOT);
+      }
+      OSS_INLINE void resetRoot()
+      {
+         OSS_BIT_CLEAR(flags, BTREE_NODE_FLAG_IS_ROOT);
+      }
+      OSS_INLINE BOOLEAN isRightChildLeaf()const 
+      {
+         return OSS_BIT_TEST(flags, BTREE_NODE_FLAG_RIGHT_CHILD_IS_LEAF);
       }
 
       UINT32 version = 0;
@@ -114,7 +139,6 @@ namespace vessel
       UINT16 prefixCount = 0;
       UINT16 compressedItemCount = 0;
       UINT16 appendingFactor = 0;
-      INT32 birthLevel = -1;
       UINT32 rightChild = INVALID_PAGE_ID;
       DPS_TRANS_ID_V1 transID;
       UINT16 reserved0 = 0;
@@ -132,33 +156,27 @@ namespace vessel
       btreeItemSlot() = default;
       ~btreeItemSlot() = default;
       OSS_INLINE btreeItemSlot(const btreeItemSlot &o):
-                 flags(o.flags),
-                 ridPos(o.ridPos),
-                 ridPage(o.ridPage)
+                 flags(o.flags)
                  {
                     data.value = o.data.value;
                  }
       OSS_INLINE btreeItemSlot &operator=(const btreeItemSlot &o)
       {
          flags = o.flags;
-         ridPos = o.ridPos;
-         ridPage = o.ridPage;
          data.value = o.data.value;
          return *this;
       }
 
-      static constexpr UINT16 FLAG_IN_USED = 0x01;
-      static constexpr UINT16 FLAG_MARKED_DELETED = 0x02;
-      static constexpr UINT16 FLAG_KEY_COMPRESSESD = 0x04;
-      static constexpr UINT16 FLAG_MAX = 0x2000;
+      static constexpr UINT32 FLAG_IN_USED = 0x01;
+      static constexpr UINT32 FLAG_MARKED_DELETED = 0x02;
+      static constexpr UINT32 FLAG_KEY_COMPRESSESD = 0x04;
+      static constexpr UINT32 FLAG_RAISED_FROM_LEAF = 0x08;
 
       /// 0x4000, 0x8000 for prefix slot pos.
 
       OSS_INLINE void reset()
       {
          flags = 0;
-         ridPos = 0;
-         ridPage = 0;
          data.value = 0;
       }
       OSS_INLINE BOOLEAN isValid()const
@@ -166,15 +184,12 @@ namespace vessel
          return 0 != OSS_BIT_TEST(flags, FLAG_IN_USED);
       }
 
-      void initAsNonLeafFormat(const recordID &rid,
-                               UINT16 offset,
+      void initAsNonLeafFormat(UINT16 offset,
                                UINT16 size,
                                PAGE_ID leftChild);
 
-      void initAsLeafFormat(const recordID &rid,
-                            UINT16 offset,
+      void initAsLeafFormat(UINT16 offset,
                             UINT16 size,
-                            BOOLEAN compressed,
                             RECORD_SLOT_POS prefixPos = INVALID_RECORD_SLOT_POS);
 
       OSS_INLINE BOOLEAN isMarkedDeleted()const
@@ -198,6 +213,18 @@ namespace vessel
       OSS_INLINE BOOLEAN isKeyPerfectlyCompressed()const
       {
          return isKeyCompressed() && 0 == data.key.size;
+      }
+      OSS_INLINE BOOLEAN isRaisedFromLeaf()const
+      {
+         return 0 != OSS_BIT_TEST(flags, FLAG_RAISED_FROM_LEAF);
+      }
+      OSS_INLINE void setRaisedFromLeaf()
+      {
+         OSS_BIT_SET(flags, FLAG_RAISED_FROM_LEAF);
+      }
+      OSS_INLINE void clearRaisedFromLeaf()
+      {
+         OSS_BIT_CLEAR(flags, FLAG_RAISED_FROM_LEAF);
       }
 
       union slotData
@@ -228,9 +255,7 @@ namespace vessel
          UINT64 value = 0;
       };//slotData
 
-      UINT16 flags = 0;
-      INT16 ridPos = 0;
-      UINT32 ridPage = 0;
+      UINT32 flags;
       slotData data;
    };//struct btreeItemSlot
 #pragma pack()
@@ -244,7 +269,6 @@ namespace vessel
                              UINT32 indexId,
                              BOOLEAN isLeaf,
                              BOOLEAN isRoot,
-                             INT32 birthNodeLevel,
                              CHAR *buf);
 
 
