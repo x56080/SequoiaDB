@@ -18,12 +18,15 @@ package com.sequoiadb.datasource;
 
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.base.UserConfig;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.base.ConfigOptions;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+
+import java.io.Closeable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -393,6 +396,20 @@ public class SequoiadbDatasource {
             }
             return addrList;
         }
+    }
+
+    /**
+     * Get a builder to create SequoiadbDatasource instance.
+     *
+     * @return A builder of SequoiadbDatasource
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private SequoiadbDatasource( Builder builder ) {
+        _init(builder.addressList, builder.userConfig.getUserName(), builder.userConfig.getPassword(),
+                builder.configOptions, builder.datasourceOptions);
     }
 
     /**
@@ -1657,6 +1674,117 @@ public class SequoiadbDatasource {
         // 2. connectTimeout, used to create connection, without updating
         // 3. socketTimeout, used for I/O socket read operations, need updating
         sdb.getConnProxy().setSoTimeout(config.getSocketTimeout());
+    }
+
+    /**
+     * The builder of SequoiadbDatasource.
+     *
+     * </p>
+     * Usage example:
+     * <pre>
+     * List<String> addressList = new ArrayList();
+     * addressList.add( "sdbserver1:11810" );
+     * addressList.add( "sdbserver2:11810" );
+     * addressList.add( "sdbserver3:11810" );
+     *
+     * SequoiadbDatasource ds = SequoiadbDatasource.builder()
+     *         .serverAddress( addressList )
+     *         .userConfig( new UserConfig( "admin", "admin" ) )
+     *         .build();
+     * </pre>
+     */
+    public static final class Builder {
+        private List<String> addressList = null;
+        private UserConfig userConfig = null;
+        private ConfigOptions configOptions = null;
+        private DatasourceOptions datasourceOptions = null;
+
+        private Builder() {
+        }
+
+        /**
+         * Set an address of SequoiaDB node, format: "Host:Port", eg: "sdbserver:11810"
+         *
+         * @param address The address of SequoiaDB node
+         */
+        public Builder serverAddress( String address ) {
+            if ( address == null ){
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address is null" );
+            }
+            this.addressList = new ArrayList<>();
+            this.addressList.add( address );
+            return this;
+        }
+
+        /**
+         * Set an address list of SequoiaDB node.
+         *
+         * @param addressList The address list of SequoiaDB node.
+         */
+        public Builder serverAddress( List<String> addressList ) {
+            if ( addressList == null || addressList.isEmpty() ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address list is null or empty" );
+            }
+            this.addressList = addressList;
+            return this;
+        }
+
+        /**
+         * Set the user config.
+         *
+         * @param userConfig The user config.
+         */
+        public Builder userConfig( UserConfig userConfig ) {
+            if ( userConfig == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The user config is null" );
+            }
+            this.userConfig = userConfig;
+            return this;
+        }
+
+        /**
+         * Set the options for connection.
+         *
+         * @param option The options for connection
+         */
+        public Builder configOptions( ConfigOptions option ) {
+            if ( option == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The connection options is null" );
+            }
+            this.configOptions = option;
+            return this;
+        }
+
+        /**
+         * Set the options for connection pool.
+         *
+         * @param option The options for connection pool
+         */
+        public Builder datasourceOptions( DatasourceOptions option ) {
+            if ( option == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The connection pool options is null" );
+            }
+            this.datasourceOptions = option;
+            return this;
+        }
+
+        /**
+         * Create a SequoiadbDatasource instance.
+         *
+         * @return The SequoiadbDatasource instance
+         */
+        public SequoiadbDatasource build() {
+            if ( userConfig == null ) {
+                userConfig = new UserConfig();
+            }
+            if ( configOptions == null ) {
+                configOptions = new ConfigOptions();
+            }
+            if ( datasourceOptions == null ) {
+                datasourceOptions = new DatasourceOptions();
+            }
+            return new SequoiadbDatasource( this );
+        }
     }
 }
 

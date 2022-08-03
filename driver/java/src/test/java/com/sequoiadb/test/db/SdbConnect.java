@@ -2,6 +2,7 @@ package com.sequoiadb.test.db;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -17,15 +18,10 @@ import static org.junit.Assert.assertTrue;
 public class SdbConnect {
 
     private static Sequoiadb sdb;
-    private static CollectionSpace cs;
-    private static DBCollection cl;
-    private static ReplicaGroup rg;
-    private static Node node;
-    private static DBCursor cursor;
+    private static final String ERROR_ADDRESS_CONN = "ErrorHost:11810";
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -36,21 +32,10 @@ public class SdbConnect {
 
     @Before
     public void setUp() throws Exception {
-        // cs
-        if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
-            sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
-            cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        } else
-            cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
-        BSONObject conf = new BasicBSONObject();
-        conf.put("ReplSize", 0);
-        cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
     }
 
     @After
     public void tearDown() throws Exception {
-        sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
     }
 
     @Test
@@ -99,5 +84,75 @@ public class SdbConnect {
         }
     }
 
+    @Test
+    public void sdbBuilderServerAddressTest() {
+        // case 1: default value
+        try {
+            Sequoiadb db1 = Sequoiadb.builder().build();
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
 
+        // case 2: ""
+        try {
+            Sequoiadb db2 = Sequoiadb.builder().serverAddress( "" ).build();
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+
+        // case 3: normal
+        try ( Sequoiadb db3 = Sequoiadb.builder().serverAddress( Constants.COOR_NODE_CONN ).build() ) {
+            Assert.assertTrue( db3.isValid() );
+        }
+
+        // case 4: address list
+        List<String> addressList = new ArrayList<>();
+        addressList.add( ERROR_ADDRESS_CONN );
+        addressList.add( Constants.COOR_NODE_CONN );
+        try ( Sequoiadb db4 = Sequoiadb.builder().serverAddress( addressList ).build() ) {
+            Assert.assertTrue( db4.isValid() );
+        }
+    }
+
+    @Test
+    public void sdbBuilderConfTest() {
+        long start = System.currentTimeMillis();
+        try {
+            ConfigOptions conf = new ConfigOptions();
+            conf.setConnectTimeout( 2000 );  // 2s
+            conf.setMaxAutoConnectRetryTime( 0 );
+
+            Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress( ERROR_ADDRESS_CONN )  // invalid address
+                    .configOptions( conf )
+                    .build();
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode(), e.getErrorCode() );
+            long time = System.currentTimeMillis() - start;
+            if ( time >= 3000 ) {
+                Assert.fail("The elapsed time dose no match the settings, the elapsed time: " + time + "ms");
+            }
+        }
+    }
+
+    @Test
+    public void sdbBuilderUserTest() {
+        // case 1: default username and password
+        UserConfig userConfig = new UserConfig();
+        Assert.assertEquals( "", userConfig.getUserName() );
+        Assert.assertEquals( "", userConfig.getPassword() );
+
+        // case 2: connect by username and password
+        try {
+            sdb.createUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
+            try ( Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress( Constants.COOR_NODE_CONN )
+                    .userConfig( new UserConfig( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD ) )
+                    .build() ) {
+                Assert.assertTrue( db.isValid() );
+            }
+        } finally {
+            sdb.removeUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
+        }
+    }
 }
