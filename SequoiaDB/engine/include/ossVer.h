@@ -88,9 +88,17 @@
 #ifdef SDB_ENTERPRISE
 
    #ifdef _DEBUG
-      #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise-Debug)"
+      #ifdef SDB_HYBRID
+         #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise Hybrid Debug)"
+      #else
+         #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise Debug)"
+      #endif // SDB_HYBRID
    #else
-      #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise)"
+      #ifdef SDB_HYBRID
+         #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise Hybrid)"
+      #else
+         #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise)"
+      #endif // SDB_HYBRID
    #endif // _DEBUG
 
 #else
