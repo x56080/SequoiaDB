@@ -495,6 +495,20 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
+     * Get a builder to create Sequoiadb instance.
+     *
+     * @return A builder of Sequoiadb
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private Sequoiadb( Builder builder ) {
+        init( builder.addressList, builder.userConfig.getUserName(),
+                builder.userConfig.getPassword(), builder.configOptions );
+    }
+
+    /**
      * Use server address "127.0.0.1:11810".
      *
      * @param username the user's name of the account
@@ -552,41 +566,7 @@ public class Sequoiadb implements Closeable {
      */
     public Sequoiadb(List<String> connStrings, String username, String password,
                      ConfigOptions options) throws BaseException {
-        if (connStrings == null) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "connStrings is null");
-        }
-
-        List<String> list = new ArrayList<String>();
-        for (String str : connStrings) {
-            if (str != null && !str.isEmpty()) {
-                list.add(str);
-            }
-        }
-
-        if (0 == list.size()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Address list has no valid address");
-        }
-
-        if (options == null) {
-            options = new ConfigOptions();
-        }
-
-        Random random = new Random();
-        while (list.size() > 0) {
-            int index = random.nextInt(list.size());
-            String str = list.get(index);
-            try {
-                init(str, username, password, options);
-                return;
-            } catch (BaseException e) {
-                if (e.getErrorCode() == SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode()) {
-                    throw e;
-                }
-                list.remove(index);
-            }
-        }
-
-        throw new BaseException(SDBError.SDB_NET_CANNOT_CONNECT, "No valid address");
+        init( connStrings, username, password, options );
     }
 
     /**
@@ -679,6 +659,44 @@ public class Sequoiadb implements Closeable {
         }
 
         init(host, port, username, password, options);
+    }
+
+    private void init(List<String> addressList, String username, String password, ConfigOptions options) {
+        if (addressList == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Server address list is null");
+        }
+
+        List<String> list = new ArrayList<String>();
+        for (String str : addressList) {
+            if (str != null && !str.isEmpty()) {
+                list.add(str);
+            }
+        }
+
+        if (list.size() == 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Address list has no valid address");
+        }
+
+        if (options == null) {
+            options = new ConfigOptions();
+        }
+
+        Random random = new Random();
+        while (list.size() > 0) {
+            int index = random.nextInt(list.size());
+            String str = list.get(index);
+            try {
+                init(str, username, password, options);
+                return;
+            } catch (BaseException e) {
+                if (e.getErrorCode() == SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode()) {
+                    throw e;
+                }
+                list.remove(index);
+            }
+        }
+
+        throw new BaseException(SDBError.SDB_NET_CANNOT_CONNECT, "No valid address");
     }
 
     private void authenticate(String username, String password) {
@@ -3590,6 +3608,94 @@ public class Sequoiadb implements Closeable {
                 }
             }
             return retType;
+        }
+    }
+    /**
+     * The builder of Sequoiadb.
+     *
+     * </p>
+     * Usage example:
+     * <pre>
+     * Sequoiadb db = Sequoiadb.builder()
+     *         .serverAddress( "sdbserver:11810" )
+     *         .userConfig( new UserConfig( "admin", "admin" ) )
+     *         .build();
+     * </pre>
+     */
+    public static final class Builder {
+        private List<String> addressList = null;
+        private UserConfig userConfig = null;
+        private ConfigOptions configOptions = null;
+
+        private Builder() {
+        }
+
+        /**
+         * Set an address of SequoiaDB node, format: "Host:Port", eg: "sdbserver:11810"
+         *
+         * @param address The address of SequoiaDB node
+         */
+        public Builder serverAddress( String address ) {
+            if ( address == null ){
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address is null" );
+            }
+            this.addressList = new ArrayList<>();
+            this.addressList.add( address );
+            return this;
+        }
+
+        /**
+         * Set an address list of SequoiaDB node.
+         *
+         * @param addressList The address list of SequoiaDB node.
+         */
+        public Builder serverAddress( List<String> addressList ) {
+            if ( addressList == null || addressList.isEmpty() ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address list is null or empty" );
+            }
+            this.addressList = addressList;
+            return this;
+        }
+
+        /**
+         * Set the user config.
+         *
+         * @param userConfig The user config.
+         */
+        public Builder userConfig( UserConfig userConfig ) {
+            if ( userConfig == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The user config is null" );
+            }
+            this.userConfig = userConfig;
+            return this;
+        }
+
+        /**
+         * Set the options for connection.
+         *
+         * @param option The options for connection
+         */
+        public Builder configOptions( ConfigOptions option ) {
+            if ( option == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The connection options is null" );
+            }
+            this.configOptions = option;
+            return this;
+        }
+
+        /**
+         * Create a Sequoiadb instance.
+         *
+         * @return The Sequoiadb instance
+         */
+        public Sequoiadb build() {
+            if ( userConfig == null ) {
+                userConfig = new UserConfig();
+            }
+            if ( configOptions == null ) {
+                configOptions = new ConfigOptions();
+            }
+            return new Sequoiadb( this );
         }
     }
 }
