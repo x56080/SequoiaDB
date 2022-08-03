@@ -385,11 +385,6 @@ namespace engine
       // index key pattern
       BSONObj              _keyPattern ;
 
-      // if key fields support array
-      BOOLEAN              _notArray ;
-
-      BOOLEAN              _isIDIndex ;
-
       // number of fields
       UINT32               _nFields ;
       // list of parsed key fields
@@ -462,16 +457,6 @@ namespace engine
                       ixmKeyBuilder *pBuilder = NULL ) ;
 
       static BOOLEAN validateKeyDef ( const BSONObj &keyDef ) ;
-
-      void  setNotArray ( const BOOLEAN notArray )
-      {
-         _notArray = notArray ;
-      }
-
-      void  setIsIDIndex ( const BOOLEAN isIDIndex )
-      {
-         _isIDIndex = isIDIndex ;
-      }
 
    protected:
       // disable copy

@@ -368,6 +368,7 @@ namespace engine
                                         BSONObj &newObj,
                                         dmsIndexWriteGuard &writeGuard,
                                         _pmdEDUCB *cb,
+                                        BOOLEAN isRollback,
                                         const ixmIdxHashBitmap &idxHashBitmap,
                                         utilWriteResult *pResult = NULL ) ;
 

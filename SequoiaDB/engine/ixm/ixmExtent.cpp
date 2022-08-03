@@ -1261,13 +1261,16 @@ namespace engine
          goto error ;
       }
 
+#if defined (_DEBUG)
       if ( indexCB->notNull() && key.hasNullOrUndefined() )
       {
+         SDB_ASSERT( FALSE, "should not be here" ) ;
          rc = SDB_IXM_KEY_NOTNULL ;
          PD_LOG ( PDERROR, "Any field of index key cannot be null "
                   "or does not exist, rc: %d", rc ) ;
          goto error ;
       }
+#endif
 
    retry :
       // try to locate where the insert should happen
