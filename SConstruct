@@ -280,6 +280,8 @@ add_option( "fap", "foreign access protocol", 0, False )
 #enterprise options
 add_option( "enterprise", "build enterprise sequoiadb ( with SSL )", 0, False )
 
+add_option( "hybrid", "build hybrid version( for both X86 and ARM )", 0, False )
+
 #gprof option
 add_option("gprof", "enable gprofile for sequoiadb", 0, False)
 
@@ -403,6 +405,7 @@ if guess_os == "win32":
 else:
     hasFap = has_option("fap")
 hasEnterprise = has_option("enterprise")
+hasHybrid = has_option("hybrid")
 hasGProf = has_option("gprof")
 hasSSL = False
 
@@ -410,6 +413,9 @@ hasSSL = False
 if hasEnterprise:
    hasSSL = True
    env.Append( CPPDEFINES=[ "SDB_ENTERPRISE" ] )
+
+if hasHybrid:
+   env.Append( CPPDEFINES=[ "SDB_HYBRID" ] )
 
 # if everything are set, let's set everything to true
 if hasAll:
