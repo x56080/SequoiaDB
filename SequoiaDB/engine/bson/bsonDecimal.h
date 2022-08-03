@@ -57,10 +57,10 @@ namespace bson {
       BOOLEAN        isZero() const ;
 
       void           setMin() ;
-      BOOLEAN        isMin() ;
+      BOOLEAN        isMin() const;
 
       void           setMax() ;
-      BOOLEAN        isMax() ;
+      BOOLEAN        isMax() const;
 
       INT32          fromInt( INT32 value ) ;
       INT32          toInt( INT32 *value ) const ;

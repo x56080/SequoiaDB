@@ -219,7 +219,7 @@ namespace vessel
       vector<vector<FLOAT64>> numbers = {
           {std::numeric_limits<FLOAT64>::denorm_min(),
            std::numeric_limits<FLOAT64>::denorm_min()},
-          {-172.8 - 172.8},
+          {-172.8, -172.8},
           {-172.5, -172.5},
           {-172.3, -172.3},
           {-0.0, -0.0},
@@ -259,19 +259,29 @@ namespace vessel
       bson::BSONObj pattern = bsb.obj();
       bsb.reset();
       vector<vector<string>> numbers = {
+          {"-inf","-inf"},
+          {"-5892408662145270000", "-5892408662145270000"},
           {"-172172.839651", "-172172.839651"},
+          {"-170000.000051", "-170000.000051"},
           {"-172.8", "-172.8"},
           {"-172.5", "-172.5"},
           {"-172.3", "-172.3"},
+          {"-172.00003", "-172.00003"},
           {"-0.00002342141", "-0.00002342141"},
           {"-0.0", "-0.0"},
           {"0.0", "0.0"},
           {"0.00002342141", "0.00002342141"},
+          {"0.497641455526188", "0.497641455526188"},
           {"172.3", "172.3"},
           {"172.5", "172.5"},
           {"172.8", "172.8"},
           {"172172.839651", "172172.839651"},
-          {to_string(minLargeFloat64), to_string(minLargeFloat64)}};
+          {"2147483647","2147483647"},                    // = INT32_MAX
+          {"5098916062350027066", "5098916062350027066"},
+          {"9223372036854775807","9223372036854775807"},  // = INT64_MAX
+          {"9223372036854780000","9223372036854780000"},  // > INT64_MAX
+          {to_string(minLargeFloat64), to_string(minLargeFloat64)},
+          {"inf","inf"},};
       for (UINT32 i = 0; i < numbers.size(); i++)
       {
          bsb.appendDecimal("a", numbers[i][0]);
@@ -294,37 +304,6 @@ namespace vessel
       }
    }
 
-   TEST_F(key_string_test, base_decimal_2)
-   {
-      INT32 rc = SDB_OK;
-      bson::BSONObjBuilder bsb;
-      bsb.appendNumber("a", 1);
-      bsb.appendNumber("b", 1);
-      bson::BSONObj pattern = bsb.obj();
-      bsb.reset();
-      vector<vector<string>> numbers = {
-          {"0.497641455526188", "0.50776848753576"}};
-      for (UINT32 i = 0; i < numbers.size(); i++)
-      {
-         bsb.appendDecimal("a", numbers[i][0]);
-         bsb.appendDecimal("b", numbers[i][1]);
-         orderingWrapper ord(0, 2);
-         bson::BSONObj obj = bsb.obj();
-         rc = ksb.appendAllElements(obj, ord);
-         ASSERT_EQ(SDB_OK, rc);
-         rc = ksb.done();
-         ASSERT_EQ(SDB_OK, rc);
-         keyString ks = ksb.getShallowKeyString();
-         rc = ks.getOwned();
-         ASSERT_EQ(SDB_OK, rc);
-         bson::BSONObj objFromKey = ks.toBSON(pattern, TRUE);
-         // std::cout<< i << endl << obj.toString(0,0,0) << endl <<
-         // objFromKey.toString(0,0,0) <<endl;
-         EXPECT_EQ(obj.woCompare(objFromKey), 0);
-         bsb.reset();
-         ksb.reset();
-      }
-   }
 
    TEST_F(key_string_test, base_string)
    {
@@ -815,6 +794,8 @@ namespace vessel
       buildObjs(ord,
                 v_obj,
                 v_key,
+                -std::numeric_limits<FLOAT64>::infinity(),
+                getDecimalFromString("-inf"),
                 -std::numeric_limits<FLOAT64>::max(),
                 std::numeric_limits<INT64>::min(),
                 (FLOAT64)(std::numeric_limits<INT32>::min()),
@@ -867,6 +848,7 @@ namespace vessel
                 minLargeFloat64,
                 std::numeric_limits<FLOAT64>::max(),
                 getDecimalFromDouble(std::numeric_limits<FLOAT64>::max()),
+                getDecimalFromString("inf"),
                 std::numeric_limits<FLOAT64>::infinity());
 
       ASSERT_EQ(v_obj.size(), v_key.size());
@@ -1091,7 +1073,7 @@ namespace vessel
                                                    DBRef,
                                                    Code,
                                                    Symbol,
-                                                   //CodeWScope,
+                                                   // CodeWScope,
                                                    NumberInt,
                                                    Timestamp,
                                                    NumberLong,
@@ -1263,7 +1245,35 @@ namespace vessel
                break;
             case NumberDecimal: {
                bsonDecimal dec;
-               dec.fromDouble(randomFloat64());
+               if (random<INT32>(0, 1) == 1)
+               {
+                  dec.fromDouble(randomFloat64());
+               }
+               else
+               {
+                  std::string decStr;
+                  if (random<INT32>(0, 1) == 1)
+                  {
+                     decStr.append("-");
+                  }
+
+                  if (random<INT32>(0, 1) == 1)
+                  {
+                     decStr.append(std::to_string(random<UINT64>()));
+                     if (random<INT32>(0, 1) == 1)
+                     {
+                        decStr.append(".");
+                        decStr.append(std::to_string(random<UINT64>()));
+                     }
+                  }
+                  else
+                  {
+                     decStr.append("0.");
+                     decStr.append(std::to_string(random<UINT64>()));
+                  }
+
+                  dec.fromString(decStr.c_str());
+               }
                bsb.append(fieldName, dec);
                break;
             }
