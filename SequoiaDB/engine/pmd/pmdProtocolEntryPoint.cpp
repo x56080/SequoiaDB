@@ -204,18 +204,35 @@ namespace engine
       }
       session->attach( cb ) ;
 
+      // Add try-catch to ensure the processor can be detached successfully 
       if ( pmdGetDBRole() == SDB_ROLE_COORD )
       {
          pmdCoordProcessor coordProcessor ;
          session->attachProcessor( &coordProcessor ) ;
-         rc = session->run() ;
+         try
+         {
+            rc = session->run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "fap session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          session->detachProcessor() ;
       }
       else
       {
          pmdDataProcessor dataProcessor ;
          session->attachProcessor( &dataProcessor ) ;
-         rc = session->run() ;
+         try
+         {
+            rc = session->run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "fap session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          session->detachProcessor() ;
       }
       session->detach() ;

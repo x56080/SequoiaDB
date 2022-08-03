@@ -55,18 +55,35 @@ namespace engine
       pmdLocalSession localSession( s ) ;
       localSession.attach( cb ) ;
 
+      // Add try-catch to ensure the processor can be detached successfully
       if ( pmdGetDBRole() == SDB_ROLE_COORD )
       {
          pmdCoordProcessor coordProcessor ;
          localSession.attachProcessor( &coordProcessor ) ;
-         rc = localSession.run() ;
+         try
+         {
+            rc = localSession.run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "local session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          localSession.detachProcessor() ;
       }
       else
       {
          pmdDataProcessor dataProcessor ;
          localSession.attachProcessor( &dataProcessor ) ;
-         rc = localSession.run() ;
+         try
+         {
+            rc = localSession.run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "local session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          localSession.detachProcessor() ;
       }
 
