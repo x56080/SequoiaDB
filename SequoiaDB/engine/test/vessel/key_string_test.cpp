@@ -905,7 +905,7 @@ namespace vessel
       ksb.appendAllElements(obj, ord);
       ksb.done();
       keyString ks = ksb.getShallowKeyString();
-      EXPECT_EQ(ks.getKeyBodySize(), 303u);
+      EXPECT_EQ(ks.getKeyElementsSize(), 303u);
       slice ref = ks.getDataSlice();
       EXPECT_EQ(ref.data()[ref.getSize() - 2], 0x04);
       EXPECT_EQ(ref.data()[ref.getSize() - 3], (CHAR)0xFF);
@@ -962,7 +962,7 @@ namespace vessel
       ASSERT_EQ(SDB_OK, rc);
       keyString ks2 = ksb2.getShallowKeyString();
 
-      INT32 res = ks1.getKeyBodySlice().compare(ks2.getKeyBodySlice());
+      INT32 res = ks1.getKeyElementsSlice().compare(ks2.getKeyElementsSlice());
       ASSERT_EQ(res, 0);
 
       ksb1.reset();
@@ -986,7 +986,7 @@ namespace vessel
       ASSERT_EQ(SDB_OK, rc);
       ks2 = ksb2.getShallowKeyString();
 
-      res = ks1.getKeyBodySlice().compare(ks2.getKeyBodySlice());
+      res = ks1.getKeyElementsSlice().compare(ks2.getKeyElementsSlice());
       ASSERT_EQ(res, 0);
    }
 

@@ -126,18 +126,19 @@ namespace vessel
    public:
       OSS_INLINE UINT32 getRawDataSize()const {return _ref.getSize();}
       OSS_INLINE UINT32 getComparableSize()const {return _desc.keySize;}
+      OSS_INLINE UINT32 getKeySize()const {return _desc.keySize;}
       OSS_INLINE UINT32 getKeyHeadSize()const {return _desc.keyHeadSize;}
       OSS_INLINE UINT32 getKeyTailSize()const {return _desc.keyTailSize;}
-      OSS_INLINE UINT32 getKeyBodySize()const {return _desc.getKeyBodySize();}
+      OSS_INLINE UINT32 getKeyElementsSize()const {return _desc.getKeyElementsSize();}
       OSS_INLINE UINT32 getTypeBitsSize()const {return _desc.typeBitsSize;}
       OSS_INLINE UINT32 getKeySizeExceptTail()const {return _desc.keySize - _desc.keyTailSize;}
       OSS_INLINE BOOLEAN hasKeyHead()const {return 0 < getKeyHeadSize();}
-      OSS_INLINE BOOLEAN hasKeyBody()const {return 0 < getKeyBodySize();}
+      OSS_INLINE BOOLEAN hasKeyElements()const {return 0 < _desc.getKeyElementsSize();}
       OSS_INLINE BOOLEAN hasKeyTail()const {return 0 < getKeyTailSize();}
       OSS_INLINE BOOLEAN hasTypeBits()const {return 0 < getTypeBitsSize();}
       slice getKeySlice() const;
       slice getKeyHeadSlice() const;
-      slice getKeyBodySlice() const;
+      slice getKeyElementsSlice() const;
       slice getKeyTailSlice() const;
       slice getKeySliceExceptTail()const;
       slice getTypeBits() const;

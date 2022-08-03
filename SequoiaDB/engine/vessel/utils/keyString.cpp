@@ -376,30 +376,31 @@ namespace vessel
 
    slice keyString::getKeyHeadSlice() const
    {
-      return isValid() && hasKeyHead() ? _ref.getSlice(0, _desc.keyHeadSize)
-                                       : slice();
+      return hasKeyHead() ?
+             _ref.getSlice(0, _desc.keyHeadSize)
+            : slice();
    }
 
-   slice keyString::getKeyBodySlice() const
+   slice keyString::getKeyElementsSlice() const
    {
-      return isValid() && hasKeyBody()
-                 ? _ref.getSlice(_desc.keyHeadSize, _desc.getKeyBodySize())
-                 : slice();
+      UINT32 size = getKeyElementsSize();
+      return 0 < size ?
+             _ref.getSlice(_desc.keyHeadSize, size):
+             slice();   
    }
 
    slice keyString::getKeyTailSlice() const
    {
-      return isValid() && hasKeyTail()
-                 ? _ref.getSlice(_desc.keyHeadSize + _desc.getKeyBodySize(),
-                                 _desc.keyTailSize)
-                 : slice();
+      return hasKeyTail() ?
+             _ref.getSlice(_desc.keySize - _desc.keyTailSize, _desc.keyTailSize) :
+             slice();
    }
 
    slice keyString::getKeySliceExceptTail() const
    {
-      return isValid() && _desc.keyTailSize < _desc.keySize
-                 ? _ref.getSlice(0, _desc.keySize - _desc.keyTailSize)
-                 : slice();
+      return _desc.keyTailSize < _desc.keySize ?
+             _ref.getSlice(0, _desc.keySize - _desc.keyTailSize)
+             : slice();
    }
 
    slice keyString::getTypeBits() const
@@ -418,7 +419,7 @@ namespace vessel
    INT32 keyString::compareElements(const keyString &ks) const
    {
       SDB_ASSERT(isValid() && ks.isValid(), "can not be invalid");
-      return getKeyBodySlice().compare(ks.getKeyBodySlice());
+      return getKeyElementsSlice().compare(ks.getKeyElementsSlice());
    }
 
    keyString::bodyReader::bodyReader(const CHAR *bodyBuf,
@@ -466,8 +467,9 @@ namespace vessel
    {
       BSONObjBuilder builder;
       SDB_ASSERT(isValid(), "must be valid");
-      bodyReader br(getKeyBodySlice().data(),
-                    getKeyBodySize(),
+      slice s = getKeyElementsSlice();
+      bodyReader br(s.data(),
+                    s.size(),
                     getTypeBits().data(),
                     getTypeBitsSize());
       br.toBSON(pattern, builder, withFieldName);
@@ -480,8 +482,9 @@ namespace vessel
    {
       BSONObjBuilder builder(bufBuilder);
       SDB_ASSERT(isValid(), "must be valid");
-      bodyReader br(getKeyBodySlice().data(),
-                    getKeyBodySize(),
+      slice s = getKeyElementsSlice();
+      bodyReader br(s.data(),
+                    s.size(),
                     getTypeBits().data(),
                     getTypeBitsSize());
       return br.toBSON(pattern, builder, withFieldName);
