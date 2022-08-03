@@ -177,9 +177,6 @@ namespace engine
       rc = _keyGen.setKeyPattern( _indexCB->keyPattern() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set key pattern, rc: %d", rc ) ;
 
-      _keyGen.setNotArray( _indexCB->notArray() ) ;
-      _keyGen.setIsIDIndex( _indexCB->isIDIndex() ) ;
-
       rc = _createScannerChecker() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create scanner checker, "
                    "rc: %d", rc ) ;
@@ -396,10 +393,15 @@ namespace engine
       try
       {
          BSONObj obj ( (CHAR*)recordDataPtr ) ;
+         BSONElement arrEle ;
 
-         rc = _keyGen.getKeys( obj, keySet ) ;
+         rc = _keyGen.getKeys( obj, keySet, &arrEle ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                        PD_SECURE_OBJ( obj ) ) ;
+
+         rc = _indexCB->checkKeys( keySet, arrEle ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object %s, "
+                      "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
       catch ( std::exception &e )
       {
