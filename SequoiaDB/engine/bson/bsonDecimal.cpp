@@ -126,7 +126,7 @@ namespace bson {
       sdb_decimal_set_min( &_decimal ) ;
    }
 
-   BOOLEAN bsonDecimal::isMin()
+   BOOLEAN bsonDecimal::isMin() const
    {
       return sdb_decimal_is_min( &_decimal ) ;
    }
@@ -136,7 +136,7 @@ namespace bson {
       sdb_decimal_set_max( &_decimal ) ;
    }
 
-   BOOLEAN bsonDecimal::isMax()
+   BOOLEAN bsonDecimal::isMax() const
    {
       return sdb_decimal_is_max( &_decimal ) ;
    }

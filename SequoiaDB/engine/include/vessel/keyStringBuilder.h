@@ -79,6 +79,9 @@ namespace vessel
    // First FLOAT64 that is not an int64
    constexpr FLOAT64 minLargeFloat64 = 1ULL << 63;
 
+   // Integers larger than this may not be representable as float64.
+   constexpr FLOAT64 maxIntegerForDouble = 1ULL << 53;
+
    constexpr INT32 DOUBLE_PRECISION_10 =
        std::numeric_limits<FLOAT64>::max_digits10;
 
@@ -1153,7 +1156,12 @@ namespace vessel
          }
          goto done;
       }
-      if (magnitude < minLargeFloat64)
+      if (magnitude >= minLargeFloat64)
+      {
+         _appendLargeDouble(num, dcm, invert);
+         goto done;
+      }
+      else
       {
          UINT64 integerPart = static_cast<UINT64>(magnitude);
          if (static_cast<FLOAT64>(integerPart) == magnitude &&
@@ -1172,36 +1180,42 @@ namespace vessel
 
          const UINT32 fractionalBytes =
              countLeadingZeros64(integerPart << 1) / 8;
-         const UINT8 type =
-             isNegative
-                 ? static_cast<UINT8>(EncodedType::numericNegative8ByteInt) +
-                       fractionalBytes
-                 : static_cast<UINT8>(EncodedType::numericPositive8ByteInt) -
-                       fractionalBytes;
-         rc = _append(type, invert);
-         if (SDB_OK != rc)
+         if (magnitude >= maxIntegerForDouble && fractionalBytes == 0)
          {
-            PD_LOG(PDERROR, "failed to append encoded type, rc:%d", rc);
-            goto error;
+            _appendPreshiftedInteger((integerPart << 1) |
+                                         static_cast<UINT8>(dcm),
+                                     isNegative,
+                                     invert);
          }
-         UINT64 encoding =
-             static_cast<UINT64>(magnitude * pow256[fractionalBytes]);
-         SDB_ASSERT(encoding == magnitude * pow256[fractionalBytes],
-                    "must be equal");
-         encoding += (integerPart + 1) << (fractionalBytes * 8);
-         SDB_ASSERT((encoding & 0x3ULL) == 0, "must be zero");
-         encoding |= static_cast<UINT8>(dcm);
-         encoding = ossNativeToBigEndian(encoding);
-         rc = _append(encoding, isNegative ? !invert : invert);
-         if (SDB_OK != rc)
+         else
          {
-            PD_LOG(PDERROR, "failed to append FLOAT64 encoding, rc:%d", rc);
-            goto error;
+            const UINT8 type =
+                isNegative
+                    ? static_cast<UINT8>(EncodedType::numericNegative8ByteInt) +
+                          fractionalBytes
+                    : static_cast<UINT8>(EncodedType::numericPositive8ByteInt) -
+                          fractionalBytes;
+            rc = _append(type, invert);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append encoded type, rc:%d", rc);
+               goto error;
+            }
+            UINT64 encoding =
+                static_cast<UINT64>(magnitude * pow256[fractionalBytes]);
+            SDB_ASSERT(encoding == magnitude * pow256[fractionalBytes],
+                       "must be equal");
+            encoding += (integerPart + 1) << (fractionalBytes * 8);
+            SDB_ASSERT((encoding & 0x1ULL) == 0, "must be zero");
+            encoding |= static_cast<UINT8>(dcm);
+            encoding = ossNativeToBigEndian(encoding);
+            rc = _append(encoding, isNegative ? !invert : invert);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append FLOAT64 encoding, rc:%d", rc);
+               goto error;
+            }
          }
-      }
-      else
-      {
-         _appendLargeDouble(num, dcm, invert);
       }
 
    done:
@@ -1299,17 +1313,6 @@ namespace vessel
       std::stringstream ss;
       bson::bsonDecimal decFromDouble;
       BOOLEAN isNegative = dec.getSign() == SDB_DECIMAL_NEG;
-      if (dec.isZero())
-      {
-         _typeBits.appendNumberDecimal();
-         _append(EncodedType::numericZero, invert);
-         goto done;
-      }
-      FLOAT64 doubleTowardZero;
-      dec.toDouble(&doubleTowardZero);
-      ss << std::setprecision(DOUBLE_PRECISION_10) << doubleTowardZero;
-      decFromDouble.fromString(ss.str().c_str());
-
       rc = _typeBits.appendNumberDecimal();
       if (SDB_OK != rc)
       {
@@ -1317,6 +1320,40 @@ namespace vessel
              PDERROR, "failed to append number decimal to typebits, rc:%d", rc);
          goto error;
       }
+      if (dec.isZero())
+      {
+         _append(EncodedType::numericZero, invert);
+         goto done;
+      }
+      if (dec.isMax())
+      {
+         rc = _appendDoubleWithoutTypeBits(
+             std::numeric_limits<FLOAT64>::infinity(),
+             ContinuationMarker::hasNoContinuation,
+             invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
+            goto error;
+         }
+         goto done;
+      }
+      else if (dec.isMin())
+      {
+         rc = _appendDoubleWithoutTypeBits(
+             -std::numeric_limits<FLOAT64>::infinity(),
+             ContinuationMarker::hasNoContinuation,
+             invert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
+            goto error;
+         }
+         goto done;
+      }
+      INT64 decLong;
+      dec.toLong(&decLong);
+
       rc = _typeBits.appendDecimalMeta(dec);
       if (SDB_OK != rc)
       {
@@ -1325,36 +1362,54 @@ namespace vessel
                 rc);
          goto error;
       }
-
-      if (decFromDouble.compare(dec) == 0)
+      if (decLong != 0 && dec.compareLong(decLong) == 0)
       {
-         rc = _appendDoubleWithoutTypeBits(
-             doubleTowardZero, ContinuationMarker::hasNoContinuation, invert);
+         UINT64 matitude = isNegative ? -decLong : decLong;
+         rc = _appendPreshiftedInteger(matitude << 1, isNegative, invert);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
+            PD_LOG(PDERROR, "failed to append preshift integer, rc:%d", rc);
             goto error;
          }
       }
       else
       {
-         if ((decFromDouble.compare(dec) > 0 && !isNegative) ||
-             (decFromDouble.compare(dec) < 0 && isNegative))
+         FLOAT64 doubleTowardZero;
+         dec.toDouble(&doubleTowardZero);
+         ss << std::setprecision(DOUBLE_PRECISION_10) << doubleTowardZero;
+         decFromDouble.fromString(ss.str().c_str());
+         if (decFromDouble.compare(dec) == 0)
          {
-            *(UINT64 *)(&doubleTowardZero) -= 1;
+            rc = _appendDoubleWithoutTypeBits(
+                doubleTowardZero,
+                ContinuationMarker::hasNoContinuation,
+                invert);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
+               goto error;
+            }
          }
-         rc = _appendDoubleWithoutTypeBits(
-             doubleTowardZero, ContinuationMarker::hasContinuation, invert);
-         if (SDB_OK != rc)
+         else
          {
-            PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
-            goto error;
-         }
-         rc = _appendDecimalEncoding(dec, invert);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to append decimal encoding, rc:%d", rc);
-            goto error;
+            if ((decFromDouble.compare(dec) > 0 && !isNegative) ||
+                (decFromDouble.compare(dec) < 0 && isNegative))
+            {
+               *(UINT64 *)(&doubleTowardZero) -= 1;
+            }
+            rc = _appendDoubleWithoutTypeBits(
+                doubleTowardZero, ContinuationMarker::hasContinuation, invert);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append double, rc:%d", rc);
+               goto error;
+            }
+            rc = _appendDecimalEncoding(dec, invert);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to append decimal encoding, rc:%d", rc);
+               goto error;
+            }
          }
       }
    done:
@@ -1373,14 +1428,18 @@ namespace vessel
       UINT32 ndigit = static_cast<UINT32>(dec.getNdigit());
       const INT16 *digits = dec.getDigits();
       UINT32 integerPartNDigit = 0;
+      UINT32 actualIntegerPartNDigit = 0;
       invert = dec.getSign() == SDB_DECIMAL_NEG ? !invert : invert;
       if (weight >= 0)
       {
          integerPartNDigit = weight + 1;
+         actualIntegerPartNDigit =
+             std::min(static_cast<UINT32>(weight + 1), ndigit);
       }
       else
       {
          integerPartNDigit = 0;
+         actualIntegerPartNDigit = 0;
       }
       rc = _append(ossNativeToBigEndian(integerPartNDigit), invert);
       if (SDB_OK != rc)
@@ -1389,7 +1448,7 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = 0; i < integerPartNDigit; ++i)
+      for (UINT32 i = 0; i < actualIntegerPartNDigit; ++i)
       {
          rc = _append(ossNativeToBigEndian(digits[i]), invert);
          if (SDB_OK != rc)
@@ -1410,7 +1469,7 @@ namespace vessel
          }
       }
 
-      for (UINT32 i = integerPartNDigit; i < ndigit; ++i)
+      for (UINT32 i = actualIntegerPartNDigit; i < ndigit; ++i)
       {
          UINT16 absDigit = digits[i] << 1;
          if (i != ndigit - 1)

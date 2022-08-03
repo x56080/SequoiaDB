@@ -46,6 +46,7 @@
 
 #include <cstring>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -657,14 +658,17 @@ namespace vessel
          _readBytes(inverted, data, binDataLen);
          if (binDataType == BinDataType::ByteArrayDeprecated)
          {
-            fieldName
-             ? builder.appendBinDataArrayDeprecated(fieldName, data + 4, binDataLen - 4)
-             : builder.appendBinDataArrayDeprecated("", data + 4,  binDataLen - 4);
+            fieldName ? builder.appendBinDataArrayDeprecated(
+                            fieldName, data + 4, binDataLen - 4)
+                      : builder.appendBinDataArrayDeprecated(
+                            "", data + 4, binDataLen - 4);
          }
-         else{
+         else
+         {
             fieldName
-             ? builder.appendBinData(fieldName, binDataLen, binDataType, data)
-             : builder.appendBinData("", binDataLen, binDataType, data);
+                ? builder.appendBinData(
+                      fieldName, binDataLen, binDataType, data)
+                : builder.appendBinData("", binDataLen, binDataType, data);
          }
          break;
       }
@@ -687,21 +691,22 @@ namespace vessel
       case EncodedType::time: {
          typeBitsType originalType = typeReader.readTimestampOrDate();
          INT64 encoded = ossBigEndianToNative(_read<INT64>(inverted));
-         //ContinuationMarker cm = static_cast<ContinuationMarker>(encoded & 1ULL);
          INT64 seconds = encoded ^ std::numeric_limits<INT64>::min();
          UINT32 microseconds = ossBigEndianToNative(_read<UINT32>(inverted));
-         
+
          if (originalType == typeBitsType::DATE)
-         { 
+         {
             INT64 val = seconds * 1000 + microseconds / 1000;
             Date_t dt(val);
             fieldName ? builder.appendDate(fieldName, dt)
                       : builder.appendDate("", dt);
          }
-         else if(originalType == typeBitsType::TIMESTAMP)
-         {  
-            fieldName ? builder.appendTimestamp(fieldName, seconds * 1000, microseconds)
-                      : builder.appendTimestamp("", seconds * 1000, microseconds);
+         else if (originalType == typeBitsType::TIMESTAMP)
+         {
+            fieldName
+                ? builder.appendTimestamp(
+                      fieldName, seconds * 1000, microseconds)
+                : builder.appendTimestamp("", seconds * 1000, microseconds);
          }
          else
          {
@@ -828,6 +833,28 @@ namespace vessel
       case EncodedType::numericPositiveLargeMagnitude: {
          UINT64 encoded = _read<UINT64>(inverted);
          encoded = ossBigEndianToNative(encoded);
+         if (encoded == ~0ULL)
+         {
+            if (originalType == typeBitsType::DOUBLE)
+            {
+               FLOAT64 num = std::numeric_limits<FLOAT64>::infinity();
+               fieldName
+                   ? builder.appendNumber(fieldName, isNegative ? -num : num)
+                   : builder.appendNumber("", isNegative ? -num : num);
+            }
+            else if (originalType == typeBitsType::DECIMAL)
+            {
+               bsonDecimal dec;
+               isNegative ? dec.setMin() : dec.setMax();
+               fieldName ? builder.append(fieldName, dec)
+                         : builder.append("", dec);
+            }
+            else
+            {
+               SDB_ASSERT(FALSE, "Unexpected original type");
+            }
+            break;
+         }
          ContinuationMarker dcm =
              static_cast<ContinuationMarker>(encoded & 1ULL);
          encoded >>= 1;
@@ -893,15 +920,15 @@ namespace vessel
       case EncodedType::numericPositive6ByteInt:
       case EncodedType::numericPositive7ByteInt:
       case EncodedType::numericPositive8ByteInt: {
-         UINT64 integerPart = 0;
+         UINT64 encoded = 0;
          UINT32 integralNeededBytes = neededBytesNumForInteger(type);
          for (UINT32 i = integralNeededBytes; i; i--)
          {
-            integerPart = (integerPart << 8) | _read<UINT8>(inverted);
+            encoded = (encoded << 8) | _read<UINT8>(inverted);
          }
 
-         BOOLEAN hasFractionPart = (integerPart & 1ULL);
-         INT64 integerValue = integerPart >>= 1;
+         BOOLEAN hasFractionPart = (encoded & 1ULL);
+         INT64 integerValue = encoded >> 1;
          if (!hasFractionPart)
          {
             if (isNegative)
@@ -933,9 +960,8 @@ namespace vessel
                bson::bsonDecimal dec;
                dec.fromLong(integerValue);
                INT32 typemod = typeReader.read<INT32>();
-               INT16 ndigit = typeReader.read<UINT16>();
+               /*INT16 ndigit = */ typeReader.read<UINT16>();
                dec.updateTypemod(typemod);
-               SDB_ASSERT(dec.getNdigit() == ndigit, "Expected to be equal");
                fieldName ? builder.append(fieldName, dec)
                          : builder.append("", dec);
                break;
@@ -945,16 +971,21 @@ namespace vessel
          }
          // Has fractional part
          UINT32 frcationalBytes = 8 - integralNeededBytes;
-         UINT64 encoded = integerPart;
+         UINT64 fractionalEncoded = integerValue;
          for (int i = frcationalBytes; i; i--)
          {
-            encoded = (encoded << 8) | _read<UINT8>(inverted);
+            fractionalEncoded =
+                (fractionalEncoded << 8) | _read<UINT8>(inverted);
          }
          ContinuationMarker dcm =
-             static_cast<ContinuationMarker>(encoded & 1ULL);
+             static_cast<ContinuationMarker>(fractionalEncoded & 1ULL);
+         if (0 == frcationalBytes)
+         {
+            dcm = static_cast<ContinuationMarker>(encoded & 1ULL);
+         }
          if (dcm == ContinuationMarker::hasNoContinuation)
          {
-            FLOAT64 abs = static_cast<FLOAT64>((encoded &= (~1ULL)) *
+            FLOAT64 abs = static_cast<FLOAT64>((fractionalEncoded &= (~1ULL)) *
                                                invPow256[frcationalBytes]);
             if (originalType == typeBitsType::DOUBLE)
             {
@@ -1028,7 +1059,7 @@ namespace vessel
          decStr.append("0.");
          weight = -ossBigEndianToNative(_read<INT16>(!inverted));
          SDB_ASSERT(weight < 0, "Unexpected weight");
-         while(weight++ < -1)
+         while (weight++ < -1)
          {
             decStr.append("0000");
          }
@@ -1048,25 +1079,45 @@ namespace vessel
       else
       {
          UINT16 digit = 0;
-         for (UINT16 i = integerPartNdigit; i; i--)
+         if (static_cast<UINT16>(ndigit) < integerPartNdigit)
          {
-            digit = ossBigEndianToNative(_read<UINT16>(inverted));
-            SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
-                       "Unexpected digit value");
-            CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
-            ossSnprintf(pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit);
-            decStr.append(pBuffers);
+            UINT16 i = 0;
+            for (; i < ndigit; i++)
+            {
+               digit = ossBigEndianToNative(_read<UINT16>(inverted));
+               SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
+                          "Unexpected digit value");
+               CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
+               ossSnprintf(pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit);
+               decStr.append(pBuffers);
+            }
+            for (; i < integerPartNdigit;i++)
+            {
+               decStr.append("0000");
+            }
          }
-         decStr.append(".");
-         for (UINT16 i = ndigit - integerPartNdigit; i; i--)
+         else
          {
-            digit = static_cast<UINT16>(
-                ossBigEndianToNative(_read<UINT16>(inverted)) >> 1);
-            SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
-                       "Unexpected digit value");
-            CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
-            ossSnprintf(pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit);
-            decStr.append(pBuffers);
+            for (UINT16 i = integerPartNdigit; i; i--)
+            {
+               digit = ossBigEndianToNative(_read<UINT16>(inverted));
+               SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
+                          "Unexpected digit value");
+               CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
+               ossSnprintf(pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit);
+               decStr.append(pBuffers);
+            }
+            decStr.append(".");
+            for (UINT16 i = ndigit - integerPartNdigit; i; i--)
+            {
+               digit = static_cast<UINT16>(
+                   ossBigEndianToNative(_read<UINT16>(inverted)) >> 1);
+               SDB_ASSERT(digit >= 0 && digit < SDB_DECIMAL_NBASE,
+                          "Unexpected digit value");
+               CHAR pBuffers[SDB_DECIMAL_DEC_DIGITS + 1] = {};
+               ossSnprintf(pBuffers, SDB_DECIMAL_DEC_DIGITS + 1, "%04d", digit);
+               decStr.append(pBuffers);
+            }
          }
       }
       dec.fromString(decStr.c_str());
