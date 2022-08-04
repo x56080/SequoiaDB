@@ -58,4 +58,21 @@ public class SDBConstant {
     public static final String INDEX_DEF = "IndexDef";
     public static final String UNIQUE = "unique";
     public static final String KEY = "key";
+
+    // BSON Matcher Type
+    public static final String AND = "$and";
+    public static final String OR = "$or";
+    public static final String IN = "$in";
+    public static final String NIN = "$nin";
+    public static final String NOT = "$not";
+    public static final String GT = "$gt";
+    public static final String GTE = "$gte";
+    public static final String LT = "$lt";
+    public static final String LTE = "$lte";
+    public static final String ET = "$et";
+    public static final String NE = "$ne";
+    public static final String IS_NULL = "$isnull";
+
+    public static final String IN_MERGE = "in";
+    public static final String NIN_MERGE = "nin";
 }
