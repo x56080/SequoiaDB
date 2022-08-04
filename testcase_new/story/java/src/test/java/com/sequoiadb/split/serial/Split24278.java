@@ -1,4 +1,4 @@
-package com.sequoiadb.split.largedata;
+package com.sequoiadb.split.serial;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -115,10 +115,8 @@ public class Split24278 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         try {
-            sdb.dropCollectionSpace( csName,
-                    new BasicBSONObject( "SkipRecycleBin", true ) );
-            sdb.dropCollectionSpace( csNameNew,
-                    new BasicBSONObject( "SkipRecycleBin", true ) );
+            sdb.dropCollectionSpace( csName );
+            sdb.dropCollectionSpace( csNameNew );
         } finally {
             if ( sdb != null ) {
                 sdb.close();
