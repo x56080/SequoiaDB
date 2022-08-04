@@ -1,4 +1,4 @@
-package com.sequoiadb.split.largedata;
+package com.sequoiadb.split.serial;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
