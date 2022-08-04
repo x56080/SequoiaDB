@@ -787,6 +787,8 @@ namespace vessel
          }
          else if (!outOfBound)
          {
+            ///TODO: should we think about go down to right/ first left child
+            /// if out of bound?
             break;
          }
          else

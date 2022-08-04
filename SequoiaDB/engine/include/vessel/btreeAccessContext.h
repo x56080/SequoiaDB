@@ -138,9 +138,9 @@ namespace vessel
          BOOLEAN _nonpte = TRUE;
          indexObject *_obj = nullptr;
          indexSpaceAccessCtx _ictx;
+         _BTREE_PATH _path;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
          btreeStatistics _stats;
-         _BTREE_PATH _path;
    };//class btreeAccessContextbt
 } // namespace vessel
 
