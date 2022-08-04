@@ -35,7 +35,6 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/threadContext.h"
 #include "vessel/lsm/lsmDB.h"
-#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmLobcKeyComparator.h"
 #include "vessel/lsm/lsmColumnFamilyContext.h"
 #include "vessel/lsm/lsmCollector.h"

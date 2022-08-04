@@ -48,12 +48,12 @@ namespace vessel
          {
             keyString ks(key.size(), key.data());
             SDB_ASSERT(ks.isValid(), "can not be invalid");
-            return toRocksdbSlice(ks.getKeyBodySlice());
+            return toRocksdbSlice(ks.getKeyElementsSlice());
          }
          virtual bool InDomain(const rocksdb::Slice &key) const override
          {
-            keyString ks(toSlice(key));
-            return ks.isValid() && ks.hasKeyBody();
+            keyString ks(key.size(), key.data());
+            return ks.isValid() && ks.hasKeyElements();
          }
 
       public:

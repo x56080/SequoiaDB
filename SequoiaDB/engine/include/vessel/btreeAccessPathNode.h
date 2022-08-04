@@ -77,6 +77,11 @@ namespace vessel
          {
             return _lpb.get();
          }
+
+         OSS_INLINE const logicalPageBuffer *getPageBuffer()const
+         {
+            return _lpb.get();
+         }
       
          OSS_INLINE BOOLEAN isValid()const
          {
@@ -93,12 +98,19 @@ namespace vessel
             return;
          }
 
-         UINT64 encoding()const
+         UINT64 encode()const
          {
-            UINT64 c = _footprint.encoding();
+            UINT64 c = _footprint.encode();
             c <<= 32;
             c |= (_lpb ? _lpb->getLogicalPid() : INVALID_PAGE_ID);
             return c;
+         }
+
+         static void decode(UINT64 c, PAGE_ID &addr, btreePathFootprint &fp)
+         {
+            addr = c;
+            fp.decodeFrom(c >> 32);
+            return;
          }
          
       private:

@@ -69,6 +69,7 @@ namespace vessel
 
          OSS_INLINE requestContext *getReqCtx() {return _rctx;}
          OSS_INLINE indexSpace *getIndexSpace() {return _is;}
+         OSS_INLINE UINT64 getPSN()const {return _psn;}
 
          void reset();
 
@@ -89,6 +90,7 @@ namespace vessel
          ossRWMutex *_mutex = nullptr;
          requestContext *_rctx = nullptr;
          indexSpace *_is = nullptr;
+         UINT64 _psn = 0;
          sparsePidBitmap _reserved; /// brandnew lpids
          sparsePidBitmap _remapped;///lpids which remapped or removed
    };//class indexSpaceAccessCtx

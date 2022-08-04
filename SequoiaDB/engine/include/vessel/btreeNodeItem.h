@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexItem.h
+   Source File Name = btreeNodeItem.h
 
    Descriptive Name =
 
@@ -33,75 +33,58 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_INDEX_ITEM_H_
-#define VESSEL_BTREE_INDEX_ITEM_H_
+#ifndef VESSEL_BTREE_NODE_ITEM_H_
+#define VESSEL_BTREE_NODE_ITEM_H_
 
 #include "vessel/btreeNodePage.h"
-#include "vessel/keyString.h"
+#include "vessel/btreeKeyStringEntry.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeIndexItem : public SDBObject
+   class btreeNodeItem : public SDBObject
    {
       public:
-         btreeIndexItem(){}
-         ~btreeIndexItem(){}
-         btreeIndexItem(const btreeIndexItem &o) = delete;
-         btreeIndexItem &operator=(const btreeIndexItem &o) = delete;
+         btreeNodeItem() = default;
+         ~btreeNodeItem() = default;
+         btreeNodeItem(const btreeNodeItem &o) = delete;
+         btreeNodeItem &operator=(const btreeNodeItem &o) = delete;
       public:
-         OSS_INLINE RECORD_SLOT_POS getSlotPos()const
+         OSS_INLINE const recordID &getIndexRid() const
          {
-            return _slotPos;
+            return _rid;
          }
 
-         OSS_INLINE const btreeItemSlot &getSlot()const
+         OSS_INLINE const btreeItemSlot &getSlot() const
          {
             return _slot;
          }
 
          /// key slice may be empty
-         OSS_INLINE const slice &getKeySlice() const
+         OSS_INLINE const btreeKeyStringEntry &getEntry() const
          {
-            return _keySlice;
+            return _entry;
          }
-
-         OSS_INLINE const slice &getPrefix()const
-         {
-            return _prefix;
-         }
-
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return isValidRecordSlotPosition(_slotPos);
+            return _rid.isValid();
          }
 
          void reset();
 
-         /// not compressed and not ext key
-         void initWhenNormal(RECORD_SLOT_POS slotPos,
-                             const btreeItemSlot &slot,
-                             const slice &key);
-
-         void initWhenCompressed(RECORD_SLOT_POS slotPos,
-                                 const btreeItemSlot &slot,
-                                 const slice &prefix,
-                                 const slice &suffix);
-                                 
-         INT32 getOwnedKeyString(keyString &ks) const;
-
-         keyString getOwnedKeyString() const;
-
+         void init(PAGE_ID lpid,
+                   RECORD_SLOT_POS pos,
+                   const btreeItemSlot &slot,
+                   const btreeKeyStringEntry &entry);
       private:
-         RECORD_SLOT_POS _slotPos = INVALID_RECORD_SLOT_POS;
          btreeItemSlot _slot;
-         slice _prefix;
-         slice _keySlice;
-   };//class btreeIndexItem
+         btreeKeyStringEntry _entry;
+         recordID _rid;/// index item rid
+   };//class btreeNodeItem
 } // namespace vessel
 
 } // namespace engine
 
-#endif//VESSEL_BTREE_INDEX_ITEM_H_
+#endif//VESSEL_BTREE_NODE_ITEM_H_

@@ -82,7 +82,7 @@ namespace vessel
       {
          return ((UINT64)keyHeadSize + keyTailSize) <= (UINT64)keySize;
       }
-      OSS_INLINE UINT32 getKeyBodySize()const
+      OSS_INLINE UINT32 getKeyElementsSize()const
       {
          return keySize - (keyHeadSize + keyTailSize);
       }

@@ -37,7 +37,7 @@
 #define VESSEL_BTREE_NODE_H_
 
 #include "vessel/btreeNodePage.h"
-#include "vessel/btreeIndexItem.h"
+#include "vessel/btreeNodeItem.h"
 #include "vessel/btreeNodeSeekResult.h"
 #include "ossSharedLatch.hpp"
 #include "vessel/btreeSplitRaisedKey.h"
@@ -149,16 +149,22 @@ namespace vessel
          INT32 locateEntry(const btreeKeyStringEntry &entry,
                            btreeNodeSeekResult &res) const;
 
+         /// compare key elements only!
          INT32 seek(const keyString &ks,
                     btreeNodeSeekResult &res) const;
 
+         /// compare key elements only!
          INT32 seek(const keyString &ks,
                     RECORD_SLOT_POS pos,
                     BOOLEAN forward,/// range: [pos, last] if forward, [first, pos] if backward
                     btreeNodeSeekResult &res) const;
 
+         INT32 isOutOfKeyBound(const keyString &ks,
+                               BOOLEAN forward,
+                               BOOLEAN &outOfBound) const;
+
          INT32 getItem(RECORD_SLOT_POS pos,
-                       btreeIndexItem &item)const;
+                       btreeNodeItem &item)const;
 
       private:
          struct _entryRef

@@ -609,12 +609,11 @@ namespace vessel
    }
 
    INT32 btreeNode::getItem(RECORD_SLOT_POS pos,
-                            btreeIndexItem &item)const
+                            btreeNodeItem &item)const
    {
       INT32 rc = SDB_OK;
-      const btreeNodePageHead *head = nullptr;
-      const btreeItemSlot *slot = nullptr;
-      strictBuffer buffer;
+      _entryRef ref;
+      btreeKeyStringEntry entry;
 
       item.reset();
 
@@ -623,50 +622,26 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_RECORD_SLOT_POS == pos))
+      else if (OSS_UNLIKELY(!isValidRecordSlotPosition(pos)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      buffer = _buffer->getReadableBodyBuffer();
-
-      head = getReadableHead();
-      if (head->totalSlotCount <= pos)
+      else if (OSS_UNLIKELY(getItemCount() <= (UINT32)pos))
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      slot = getReadableSlot(pos);
-      if (OSS_UNLIKELY(nullptr == slot))
+      ref = _getEntryRef(pos);
+      rc = entry.init(ref.data);
+      if (OSS_UNLIKELY(SDB_OK != rc))
       {
-         PD_LOG(PDERROR, "failed to get readable slot");
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to parse entry[%d] data:%d", pos, rc);
          goto error;
       }
 
-      if (slot->isKeyCompressed())
-      {
-         SDB_ASSERT(FALSE, "TODO");
-      }
-      else
-      {
-         slice keySlice;
-         const CHAR *keyData = buffer.getReadablePtr(slot->data.key.offset,
-                                                 slot->data.key.size);
-         if (OSS_UNLIKELY(nullptr == keyData))
-         {
-            PD_LOG(PDERROR, "failed to get key data[%d,%d]",
-                   slot->data.key.offset,
-                   slot->data.key.size);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         keySlice.reset(slot->data.key.size, keyData);
-         item.initWhenNormal(pos, *slot, keySlice);
-      }
+      item.init(_buffer->getLogicalPid(), pos, *ref.slot, entry);
    done:
       return rc;
    error:
@@ -1138,46 +1113,40 @@ namespace vessel
       {
          btreeItemSlot *slot = nullptr;
          UINT32 keyOffset = 0;
-         btreeIndexItem item;
-         rc = getItem(i, item);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get item[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         SDB_ASSERT(!item.getSlot().isKeyCompressed(), "TODO");
+         _entryRef ref = _getEntryRef(i);
+         SDB_ASSERT(ref.isValid(), "impossible");
+         SDB_ASSERT(!ref.slot->isKeyCompressed(), "TODO");
 
          if (newHead->backOffset <
-             (frontOffset + getSizeToSaveInNode(item.getKeySlice().getSize())))
+             (frontOffset + getSizeToSaveInNode(ref.data.size())))
          {
             PD_LOG(PDERROR, "not enough free space to save item");
             rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
             goto error;
          }
 
-         keyOffset = getKeyDataOffsetToWrite(newHead, item.getKeySlice().getSize());
-         rc = node.write(keyOffset, item.getKeySlice().getSize(), item.getKeySlice().data());
+         keyOffset = getKeyDataOffsetToWrite(newHead, ref.data.size());
+         rc = node.write(keyOffset, ref.data.size(), ref.data.data());
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             PD_LOG(PDERROR, "failed to write slice[%d,%d], rc:%d",
-                   keyOffset, item.getKeySlice().getSize(), rc);
+                   keyOffset, ref.data.size(), rc);
             goto error;
          }
 
          slot = node.getWritableObjPtr<btreeItemSlot>(frontOffset);
          if (isLeaf())
          {
-            slot->initAsLeafFormat(keyOffset, item.getKeySlice().getSize(), FALSE);
+            slot->initAsLeafFormat(keyOffset, ref.data.size(), FALSE);
          }
          else
          {
             slot->initAsNonLeafFormat(keyOffset,
-                                      item.getKeySlice().getSize(),
-                                      item.getSlot().data.nlf.leftChild);
+                                      ref.data.size(),
+                                      ref.slot->data.nlf.leftChild);
          }
          newHead->totalFreeSpace -= BTREE_NODE_SLOT_SIZE;
-         newHead->totalFreeSpace -= item.getKeySlice().getSize();
+         newHead->totalFreeSpace -= ref.data.size();
          newHead->backOffset = keyOffset;
          ++newHead->totalSlotCount;
          frontOffset += BTREE_NODE_SLOT_SIZE;
@@ -1278,16 +1247,12 @@ namespace vessel
 
       for (RECORD_SLOT_POS i = 0; i < rh->totalSlotCount; ++i)
       {
-         btreeIndexItem item;
-         const btreeItemSlot *slot = getReadableSlot(i);
-         SDB_ASSERT(!slot->isKeyCompressed(), "TODO");
-         const CHAR *keyData = writableBuffer.getReadablePtr(slot->data.key.offset,
-                                                             slot->data.key.size);
-         UINT32 keySize = slot->data.key.size;
-         SDB_ASSERT(nullptr != keyData && 0 < keySize, "can not be invalid");
-         btreeItemSlot newSlot;
+         _entryRef ref = _getEntryRef(i);
+         SDB_ASSERT(ref.isValid(), "can not be invalid");
+         SDB_ASSERT(!ref.slot->isKeyCompressed(), "TODO");
 
-         if (backOffset < (frontOffset + BTREE_NODE_SLOT_SIZE + keySize))
+         btreeItemSlot newSlot;
+         if (backOffset < (frontOffset + getSizeToSaveInNode(ref.data.size())))
          {
             PD_LOG(PDERROR, "not enough free space to insert item");
             SDB_ASSERT(FALSE, "impossible");
@@ -1295,10 +1260,10 @@ namespace vessel
             goto error;
          }
 
-         if (0 < keySize)
+         if (0 < ref.data.size())
          {
-            backOffset -= keySize;
-            rc = compactionBuffer.write(backOffset, keySize, keyData);
+            backOffset -= ref.data.size();
+            rc = compactionBuffer.write(backOffset, ref.data.size(), ref.data.data());
             if (OSS_UNLIKELY(SDB_OK != rc))
             {
                PD_LOG(PDERROR, "failed to copy key data:%d", rc);
@@ -1308,17 +1273,17 @@ namespace vessel
 
             if (isLeaf())
             {
-               newSlot.initAsLeafFormat(backOffset, keySize, FALSE);
+               newSlot.initAsLeafFormat(backOffset, ref.data.size(), FALSE);
             }
             else
             {
-               newSlot.initAsNonLeafFormat(backOffset, keySize,
-                                           slot->data.nlf.leftChild);
+               newSlot.initAsNonLeafFormat(backOffset, ref.data.size(),
+                                           ref.slot->data.nlf.leftChild);
             }
          }
          else
          {
-            newSlot = *slot;
+            newSlot = *ref.slot;
          }
 
          *(compactionBuffer.getWritableObjPtr<btreeItemSlot>(frontOffset)) = newSlot;
@@ -1876,6 +1841,8 @@ namespace vessel
                          btreeNodeSeekResult &res) const
    {
       INT32 rc = SDB_OK;
+      res.reset();
+      
       if (OSS_UNLIKELY(!ks.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -1927,6 +1894,55 @@ namespace vessel
             goto error;
          }
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeNode::isOutOfKeyBound(const keyString &ks,
+                                    BOOLEAN forward,
+                                    BOOLEAN &outOfBound) const
+   {
+      INT32 rc = SDB_OK;
+      RECORD_SLOT_POS pos = INVALID_RECORD_SLOT_POS;
+      INT32 direction = forward ? 1 : -1;
+      _entryRef ref;
+      btreeKeyStringEntry entry;
+      INT32 result = 0;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!ks.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (forward)
+      {
+         UINT32 count = getItemCount();
+         SDB_ASSERT(0 < count, "can not be invalid");
+         pos = count - 1;
+      }
+      else
+      {
+         pos = 0;
+      }
+
+      ref = _getEntryRef(pos);
+      SDB_ASSERT(ref.isValid(), "can not be invalid");
+      rc = entry.init(ref.data);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init btree entry:%d", rc);
+         goto error;
+      }
+
+      result = entry.compareElements(ks);
+      outOfBound = ((result * direction) < 0);
    done:
       return rc;
    error:

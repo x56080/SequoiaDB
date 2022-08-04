@@ -98,6 +98,7 @@ namespace vessel
                                      btreeNode *node=nullptr);
 
          /// get info saved in end node's father.
+         /// ensure path size is over 1
          btreePathFootprint getEndNodeFootprint()const;
 
          void resetPath();
@@ -112,8 +113,6 @@ namespace vessel
          logicalPageBuffer *getBuffer(UINT32 depth);
 
          const btreeAccessPathNode &getPathNode(UINT32 depth)const;
-
-
 
          INT32 makeWritable(logicalPageBuffer &buffer);
 

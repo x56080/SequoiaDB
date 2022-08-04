@@ -46,6 +46,18 @@ namespace vessel
    class btreePathFootprint : public SDBObject
    {
       public:
+         btreePathFootprint() = default;
+         ~btreePathFootprint() = default;
+         btreePathFootprint(RECORD_SLOT_POS pos, BOOLEAN isUpperBound):
+         _pos(pos)
+         {
+            if (isUpperBound)
+            {
+               setUpperBound();
+            }
+         }
+
+      public:
          OSS_INLINE BOOLEAN isValid()const
          {
             return isValidRecordSlotPosition(_pos);
@@ -80,12 +92,19 @@ namespace vessel
             return 0 != OSS_BIT_TEST(_flags, FLAG_IS_UPPER_BOUND);
          }
 
-         OSS_INLINE UINT32 encoding()const
+         OSS_INLINE UINT32 encode()const
          {
             UINT32 c = _flags;
             c <<= 16;
             c |= _pos;
             return c;
+         }
+
+         OSS_INLINE void decodeFrom(UINT32 c)
+         {
+            _pos = (RECORD_SLOT_POS)c;
+            _flags = c >> 16;
+            return;
          }
 
       private:

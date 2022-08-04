@@ -37,7 +37,6 @@
 #include "oss.h"
 #include "dpsDef.hpp"
 #include "vessel/lsm/lsmCollector.h"
-#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmDBDef.h"
 #include "vessel/lsm/lsmIndexEntryValue.h"
 #include "vessel/keyString.h"

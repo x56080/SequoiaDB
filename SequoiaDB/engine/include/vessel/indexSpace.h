@@ -122,6 +122,7 @@ namespace vessel
 
       private:
          ossRWMutex _mutex;
+         std::atomic<UINT64> _psn{0};
          std::atomic_uint _totalPtePageNum{0};
          std::chrono::steady_clock _lastPublishTime;
          lpageMappingPteCtx _mappingCtx;

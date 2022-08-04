@@ -67,6 +67,10 @@ namespace vessel
          {
             return _size;
          }
+         OSS_INLINE UINT32 size()const
+         {
+            return _size;
+         }
          OSS_INLINE const CHAR *getData()const
          {
             return _data;

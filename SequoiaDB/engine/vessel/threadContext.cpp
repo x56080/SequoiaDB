@@ -47,7 +47,7 @@ namespace vessel
       
    }
 
-   DPS_TRANS_ID threadContext::getTransIDOfExecutor()const
+   DPS_TRANS_ID threadContext::getTransID()const
    {
       SDB_ASSERT(nullptr != _executor, "can not be null");
       return _executor->getTransID().getOrigTransID();

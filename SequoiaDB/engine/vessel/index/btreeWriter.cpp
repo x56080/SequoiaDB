@@ -329,7 +329,7 @@ namespace vessel
             }
             else if (!res.hasChild())
             {
-               /// child may be remove when removing key
+               /// child may be removed when removing key
                PAGE_ID child = INVALID_PAGE_ID;
                rc = _recreateChildAsLeaf(node, res.slotPos, child);
                if (SDB_OK != rc)
