@@ -12,19 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.source.reader;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Queue;
 
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.iterator.SDBIterator;
 import com.sequoiadb.flink.source.split.SDBRecords;
 import com.sequoiadb.flink.source.split.SDBSplit;
-
 import org.apache.commons.compress.utils.Lists;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Queues;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
@@ -34,6 +29,10 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Queue;
 
 /**
  * SDBSplitReader is used to read records from {@link SDBSplit}.
@@ -56,10 +55,13 @@ public class SDBSplitReader implements SplitReader<byte[], SDBSplit> {
 
     private int offset = 0;
 
-    public SDBSplitReader(SDBSourceOptions sourceOptions, BSONObject selector, long limit) {
+    private BSONObject matcher;
+
+    public SDBSplitReader(SDBSourceOptions sourceOptions, BSONObject matcher, BSONObject selector, long limit) {
         this.sourceOptions = sourceOptions;
         pendingSplits = Queues.newArrayDeque();
 
+        this.matcher = matcher;
         this.selector = selector;
         this.limit = limit;
     }
@@ -138,15 +140,15 @@ public class SDBSplitReader implements SplitReader<byte[], SDBSplit> {
         }
 
         offset = 0;
-        currentIterator = new SDBIterator(currentSplit, sourceOptions, selector, limit);
+        currentIterator = new SDBIterator(currentSplit, sourceOptions, matcher, selector, limit);
     }
 
     /**
      * close current SDBIterator when there are no more records.
      * It also reset the following states of SDBSplitReader:
-     *  1. currentIterator
-     *  2. reading offset of currentIterator
-     *  3. currentSplit
+     * 1. currentIterator
+     * 2. reading offset of currentIterator
+     * 3. currentSplit
      */
     private void closeCurrentIterator() throws IOException {
         if (currentIterator != null) {

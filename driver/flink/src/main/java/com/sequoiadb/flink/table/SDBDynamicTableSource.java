@@ -12,33 +12,39 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.table;
+
+import com.sequoiadb.flink.codec.SDBDataConverter;
+import com.sequoiadb.flink.config.SDBSourceOptions;
+import com.sequoiadb.flink.source.SDBSource;
+import com.sequoiadb.flink.table.pushdown.FilterPushDownSupport;
+import org.apache.flink.table.connector.ChangelogMode;
+import org.apache.flink.table.connector.source.DynamicTableSource;
+import org.apache.flink.table.connector.source.ScanTableSource;
+import org.apache.flink.table.connector.source.SourceProvider;
+import org.apache.flink.table.connector.source.abilities.SupportsFilterPushDown;
+import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
+import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
+import org.apache.flink.table.expressions.ResolvedExpression;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
+import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.types.RowKind;
+import org.bson.BSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.sequoiadb.flink.codec.SDBDataConverter;
-import com.sequoiadb.flink.config.SDBSourceOptions;
-import com.sequoiadb.flink.source.SDBSource;
-
-import org.apache.flink.table.connector.ChangelogMode;
-import org.apache.flink.table.connector.source.*;
-import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
-import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
-import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
-import org.apache.flink.table.types.logical.LogicalType;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.types.RowKind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class SDBDynamicTableSource implements ScanTableSource,
         SupportsProjectionPushDown,
+        SupportsFilterPushDown,
         SupportsLimitPushDown {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBDynamicTableSource.class);
@@ -47,6 +53,8 @@ public class SDBDynamicTableSource implements ScanTableSource,
 
     private DataType producedDatatype;
     private long limit = -1;
+
+    private BSONObject matcher;
 
     public SDBDynamicTableSource(SDBSourceOptions sourceOptions,
                                  DataType produceDatatype) {
@@ -81,6 +89,7 @@ public class SDBDynamicTableSource implements ScanTableSource,
                 dataConverter,
                 sourceOptions,
                 ((RowType) producedDatatype.getLogicalType()).getFieldNames(),
+                matcher,
                 limit));
     }
 
@@ -131,7 +140,14 @@ public class SDBDynamicTableSource implements ScanTableSource,
                 new RowType(dataType.getLogicalType().isNullable(), updatedFields),
                 dataType.getConversionClass(),
                 updatedChildren
-                );
+        );
     }
 
+    @Override
+    public Result applyFilters(List<ResolvedExpression> resolvedExpressionList) {
+        matcher = FilterPushDownSupport.toBsonMatcher(resolvedExpressionList);
+
+        //return all expression to flink,internal processing returned expressions
+        return Result.of(new ArrayList<>(), resolvedExpressionList);
+    }
 }
