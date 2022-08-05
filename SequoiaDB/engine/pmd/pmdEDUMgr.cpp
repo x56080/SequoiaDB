@@ -1588,14 +1588,32 @@ namespace engine
       if ( it != _mapIdles.end() )
       {
          cb = it->second ;
-         _mapRuns[ cb->getID() ] = cb ;
-         _mapIdles.erase( it ) ;
+         // Make sure the cb is available
+         if ( cb->getTID() )
+         {
+            try
+            {
+               _mapRuns[ cb->getID() ] = cb ;
+            }
+            catch ( std::exception &e )
+            {
+               cb = NULL ;
+               PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+            _mapIdles.erase( it ) ;
 
-         cb->setType( type ) ;
-         SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
-         cb->setStatus( PMD_EDU_CREATING ) ;
+            cb->setType( type ) ;
+            SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
+            cb->setStatus( PMD_EDU_CREATING ) ;
+         }
+         else
+         {
+            cb = NULL ;
+         }
       }
 
+   done :
       if ( _mapIdles.size() < _calIdleLowSize( _mapRuns.size(),
                                                _mapIdles.size(),
                                                _mapSystemEdu.size(),
@@ -1604,8 +1622,9 @@ namespace engine
          /// Notify monitor thread
          _monitorEvent.signal() ;
       }
-
       return cb ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_STARTEDU, "_pmdEDUMgr::startEDU" )
@@ -1715,7 +1734,18 @@ namespace engine
          newID = _EDUID++ ;
          cb->setID( newID ) ;
          /// add to map
-         _mapIdles[ newID ] = cb ;
+         try
+         {
+            _mapIdles[ newID ] = cb ;
+         }
+         catch ( std::exception &e )
+         {
+            SDB_OSS_DEL cb ;
+            cb = NULL ;
+
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
 
       // create a new thread here
@@ -1820,18 +1850,33 @@ namespace engine
          ossScopedLock lock( &_latch, EXCLUSIVE ) ;
          newID = _EDUID++ ;
          cb->setID( newID ) ;
-         /// add to map
-         _mapRuns[ newID ] = cb ;
-         /// add to system map
-         if ( isSystem )
+         try
          {
-            _mapSystemEdu[ type ] = newID ;
+            /// add to map
+            _mapRuns[ newID ] = cb ;
+            /// add to system map
+            if ( isSystem )
+            {
+               _mapSystemEdu[ type ] = newID ;
+            }
+            /// post resume event before thread start
+            cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
+                                         PMD_EDU_MEM_NONE,
+                                         arg ) ) ;
          }
+         catch ( std::exception &e )
+         {
+            _mapRuns.erase( newID ) ;
+            if ( isSystem )
+            {
+               _mapSystemEdu.erase( type ) ;
+            }
+            SDB_OSS_DEL cb ;
+            cb = NULL ;
 
-         /// post resume event before thread start
-         cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
-                                      PMD_EDU_MEM_NONE,
-                                      arg ) ) ;
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
 
       // create a new thread here
