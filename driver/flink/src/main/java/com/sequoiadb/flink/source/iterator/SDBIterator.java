@@ -31,6 +31,7 @@ import com.sequoiadb.flink.config.SplitMode;
 import com.sequoiadb.flink.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
 
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -46,11 +47,13 @@ public class SDBIterator implements Iterator<byte[]>, Closeable {
     private DBCursor cursor;
     private Sequoiadb sdb;
 
-    public SDBIterator(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject selector, long limit) {
-        init(split, sourceOptions, selector, limit);
+    public SDBIterator(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject matcher, BSONObject selector,
+                       long limit) {
+        init(split, sourceOptions, matcher, selector, limit);
     }
 
-    private void init(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject selector, long limit) {
+    private void init(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject matcher, BSONObject selector,
+                      long limit) {
         sdb = new Sequoiadb(
                 split.getUrls(),
                 sourceOptions.getUsername(),
@@ -89,7 +92,7 @@ public class SDBIterator implements Iterator<byte[]>, Closeable {
             hint.put("$Meta", metaObj);
         }
 
-        cursor = cl.query(null, selector, null, hint, 0, limit, 0);
+        cursor = cl.query(matcher, selector, null, hint, 0, limit, 0);
     }
 
     @Override
