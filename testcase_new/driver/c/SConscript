@@ -134,6 +134,7 @@ testFiles = [
    [ "./meta/renameCS16565.cpp"],  # sync
    [ "./meta/renameCSFail16566_16567.cpp"],  # sync
    [ "./indexs/getIndextest_16780.cpp"],
+   [ "./indexs/getIndexStat_26670.cpp"],
    [ "./misc/getLastErrObj.cpp"],
    [ "./crud/autoIncrementSequence16623_16624_16654.cpp"],
    [ "./crud/insertReplaceondup18581.cpp" ],
