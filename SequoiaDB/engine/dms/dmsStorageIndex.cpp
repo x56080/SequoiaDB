@@ -1868,7 +1868,7 @@ namespace engine
       BSONObjSet keySet ;
       BOOLEAN allUndefined = FALSE ;
 
-      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
+      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, TRUE ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     PD_SECURE_OBJ( inputObj ) ) ;
       {
@@ -2115,7 +2115,7 @@ namespace engine
             BSONObjSet::iterator it ;
             BSONObjSet keySet ;
 
-            rc = indexCB.getKeysFromObject ( inputObj, keySet ) ;
+            rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, TRUE ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                           PD_SECURE_OBJ( inputObj ) ) ;
 
@@ -2293,7 +2293,8 @@ namespace engine
 
       rc = indexCB->getKeysFromObject ( newObj,
                                         keySetNew,
-                                        &newAllUndefined ) ;
+                                        &newAllUndefined,
+                                        !isRollback ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from new object %s",
@@ -2552,6 +2553,7 @@ namespace engine
                                                  BSONObj &originalObj,
                                                  BSONObj &newObj,
                                                  _pmdEDUCB *cb,
+                                                 BOOLEAN isRollback,
                                                  const ixmIdxHashBitmap &idxHashBitmap,
                                                  utilWriteResult *pResult )
    {
@@ -2601,7 +2603,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from org object %s",
                          PD_SECURE_OBJ( originalObj ) ) ;
 
-            rc = indexCB.getKeysFromObject( newObj, keySetNew ) ;
+            rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, !isRollback ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from new object %s",
                          PD_SECURE_OBJ( newObj ) ) ;
 
@@ -2715,7 +2717,7 @@ namespace engine
 
       // do global index first.
       rc = _globalIndexesUpdate( context, extLID, originalObj, newObj,
-                                 cb, idxHashBitmap, pResult ) ;
+                                 cb, isUndo, idxHashBitmap, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global index, rc: %d",
                    rc ) ;
 
