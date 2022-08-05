@@ -25,7 +25,7 @@ SdbCollection
     是否获取索引的详细信息，默认值为 false，表示不获取
 
     - 详细信息将返回索引的频繁数值集合（Most Common Values，MCV）统计信息
-    - 仅在 SequoiaDB v3.6.1 及以上版本中生效
+    - 仅在 SequoiaDB v5.0.4 及以上版本中生效
 
 ##返回值##
 

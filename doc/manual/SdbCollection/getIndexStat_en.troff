@@ -31,7 +31,7 @@ The default value is false, which means not to get.
 .IP \[bu] 2
 Details will return MCV(Most Common Values) statistics of the index.
 .IP \[bu] 2
-Only valid in SequoiaDB v3.6.1 and above versions.
+Only valid in SequoiaDB v5.0.4 and above versions.
 .RE
 .SH RETURN VALUE
 .PP
