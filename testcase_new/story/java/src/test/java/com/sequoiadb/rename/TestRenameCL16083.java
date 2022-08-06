@@ -1,5 +1,9 @@
 package com.sequoiadb.rename;
 
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.threadexecutor.ResultStore;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -12,7 +16,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * @FileName:TestRenameCL16083
@@ -40,36 +43,49 @@ public class TestRenameCL16083 extends SdbTestBase {
     }
 
     @Test
-    public void test16083() {
+    public void test16083() throws Exception {
+        ThreadExecutor es = new ThreadExecutor();
+
         RenameCLThread renameCLThread = new RenameCLThread();
         DropCLThread dropCLThread = new DropCLThread();
-        renameCLThread.start();
-        dropCLThread.start();
+        es.addWorker( renameCLThread );
+        es.addWorker( dropCLThread );
+        es.run();
 
-        if ( renameCLThread.isSuccess() && !dropCLThread.isSuccess() ) {
+        if ( dropCLThread.getRetCode() != 0 ) {
+            Assert.assertEquals( renameCLThread.getRetCode(), 0 );
             RenameUtil.checkRenameCLResult( sdb, SdbTestBase.csName, clName,
                     newclName );
-            Assert.assertEquals( cs.isCollectionExist( clName ), false );
-            BaseException e = ( BaseException ) dropCLThread.getExceptions()
-                    .get( 0 );
-            if ( e.getErrorCode() != -23 ) {
-                Assert.fail( "errcode not expected : " + e.getMessage() );
+            Assert.assertFalse( cs.isCollectionExist( clName ) );
+            if ( dropCLThread.getRetCode() != SDBError.SDB_DMS_NOTEXIST
+                    .getErrorCode()
+                    && dropCLThread.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && dropCLThread
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
+                Assert.fail(
+                        "errcode not expected : " + dropCLThread.getRetCode() );
             }
-        } else if ( !renameCLThread.isSuccess() && dropCLThread.isSuccess() ) {
-            Assert.assertEquals( cs.isCollectionExist( clName ), false );
-            Assert.assertEquals( cs.isCollectionExist( newclName ), false );
-            BaseException e = ( BaseException ) renameCLThread.getExceptions()
-                    .get( 0 );
-            if ( e.getErrorCode() != -23 ) {
-                Assert.fail( "errcode not expected : " + e.getMessage() );
+        } else if ( renameCLThread.getRetCode() != 0 ) {
+            Assert.assertEquals( dropCLThread.getRetCode(), 0 );
+            Assert.assertFalse( cs.isCollectionExist( clName ) );
+            Assert.assertFalse( cs.isCollectionExist( newclName ) );
+            if ( renameCLThread.getRetCode() != SDBError.SDB_DMS_NOTEXIST
+                    .getErrorCode()
+                    && renameCLThread.getRetCode() != SDBError.SDB_LOCK_FAILED
+                            .getErrorCode()
+                    && renameCLThread
+                            .getRetCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                    .getErrorCode() ) {
+                Assert.fail( "errcode not expected : "
+                        + renameCLThread.getRetCode() );
             }
-        } else if ( renameCLThread.isSuccess() && dropCLThread.isSuccess() ) {
-            System.out.println( "wo dou chenggong le " );
         } else {
-            Assert.fail( "renameCLThread and dropCLThread failed: "
-                    + renameCLThread.getErrorMsg()
-                    + dropCLThread.getErrorMsg() );
+            Assert.assertEquals( renameCLThread.getRetCode(), 0 );
+            Assert.assertEquals( dropCLThread.getRetCode(), 0 );
         }
+
     }
 
     @AfterClass
@@ -86,34 +102,34 @@ public class TestRenameCL16083 extends SdbTestBase {
         }
     }
 
-    private class RenameCLThread extends SdbThreadBase {
+    private class RenameCLThread extends ResultStore {
 
-        @Override
-        public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            try {
+        @ExecuteOrder(step = 1)
+        private void getCL() {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace localcs = db
                         .getCollectionSpace( SdbTestBase.csName );
                 localcs.renameCollection( clName, newclName );
-
-            } finally {
-                db.close();
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
             }
         }
     }
 
-    private class DropCLThread extends SdbThreadBase {
+    private class DropCLThread extends ResultStore {
 
-        @Override
-        public void exec() throws BaseException {
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            try {
+        @ExecuteOrder(step = 1)
+        private void getCL() {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
                 CollectionSpace localcs = db
                         .getCollectionSpace( SdbTestBase.csName );
                 localcs.dropCollection( clName );
-            } finally {
-                db.close();
+            } catch ( BaseException e ) {
+                saveResult( e.getErrorCode(), e );
             }
         }
     }
+
 }
