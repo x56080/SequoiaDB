@@ -46,7 +46,7 @@ namespace vessel
    keyStringModifier::keyStringModifier(const keyString &src):
    _src(src)
    {
-      SDB_ASSERT(_src.isValid(), "can not be invalid");
+      
    }
 
    keyStringModifier::~keyStringModifier()
@@ -57,8 +57,15 @@ namespace vessel
       }
    }
 
+   void keyStringModifier::init(const keyString &ks)
+   {
+      reset();
+      _src = ks;
+   }
+
    void keyStringModifier::reset()
    {
+      _src.reset();
       if (nullptr != _buffer)
       {
          _allocator.free(_buffer);

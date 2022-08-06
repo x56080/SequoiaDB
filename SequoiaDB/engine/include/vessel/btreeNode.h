@@ -149,11 +149,11 @@ namespace vessel
          INT32 locateEntry(const btreeKeyStringEntry &entry,
                            btreeNodeSeekResult &res) const;
 
-         /// compare key elements only!
+         /// key header will be ignored
          INT32 seek(const keyString &ks,
                     btreeNodeSeekResult &res) const;
 
-         /// compare key elements only!
+         /// key header will be ignored
          INT32 seek(const keyString &ks,
                     RECORD_SLOT_POS pos,
                     BOOLEAN forward,/// range: [pos, last] if forward, [first, pos] if backward

@@ -58,9 +58,10 @@ namespace vessel
          btreeIterator &operator=(const btreeIterator &) = delete;
          
       public:
+         OSS_INLINE BOOLEAN isValid() const {return _bac.isValid();}
          INT32 init(requestContext *context,
                     indexSpace *is,
-                    indexObject *obj);
+                    const indexObject *obj);
 
          void reset();
 
@@ -74,6 +75,10 @@ namespace vessel
          INT32 next(BOOLEAN forward=TRUE);
          INT32 advance(const keyString &ks, BOOLEAN forPrev=FALSE);
          OSS_INLINE const btreeNodeItem &getCurrent() const {return _item;}
+         OSS_INLINE const btreeKeyStringEntry &getEntry() const
+         {
+            return _item.getEntry();
+         }
          DPS_TRANS_ID getTransID() const;
          UINT64 getLSN() const;
 
@@ -87,7 +92,7 @@ namespace vessel
                location(const location &) = default;
                location &operator=(const location &) = default;
                location(location &&o):
-               _psn(o._psn),
+               _lsn(o._lsn),
                _path(std::move(o._path)),
                _pos(o._pos)
                {
@@ -96,7 +101,7 @@ namespace vessel
                location &operator=(location &&o)
                {
                   reset();
-                  _psn = o._psn;
+                  _lsn = o._lsn;
                   _path = std::move(o._path);
                   _pos = o._pos;
                   o.reset();
@@ -106,26 +111,25 @@ namespace vessel
             public:
                void reset()
                {
-                  _psn = 0;
+                  _lsn = 0;
                   _path.clear();
                   _pos = INVALID_RECORD_SLOT_POS;
                }
 
                OSS_INLINE BOOLEAN isValid()const {return isValidRecordSlotPosition(_pos);}
-               OSS_INLINE UINT64 getPSN()const {return _psn;}
+               OSS_INLINE UINT64 getLSN()const {return _lsn;}
                OSS_INLINE RECORD_SLOT_POS getPos() const {return _pos;}
 
             private:
-               UINT64 _psn = 0;
+               UINT64 _lsn = 0;
                ossPoolVector<UINT64> _path;
                RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
          };//class location
 
+         location getLocation() const;
          INT32 locate(const location &l);
 
       private:
-
-         OSS_INLINE BOOLEAN _isValid() const {return _bac.isValid();}
 
          INT32 _seekFromPathEnd(const keyString &ks,
                                 RECORD_SLOT_POS pos=0,

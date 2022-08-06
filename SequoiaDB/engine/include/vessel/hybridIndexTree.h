@@ -66,6 +66,7 @@ namespace vessel
 
       public:
          void init(indexSpace *is);
+         OSS_INLINE BOOLEAN isValid() const {return nullptr != _is;}
 
          INT32 insert(requestContext *context,
                       const indexObject *obj,

@@ -70,7 +70,7 @@ namespace vessel
             }
 
             BOOLEAN forward = TRUE;
-            BOOLEAN pointGetOnly = FALSE;
+            BOOLEAN pointGetOptimized = FALSE;
          };//class options
 
       public:
@@ -96,6 +96,9 @@ namespace vessel
          virtual INT32 locateNext(const indexEntryLocation *location,
                                   const options &o) = 0;
 
+         virtual INT32 pause() = 0;
+
+         virtual INT32 resume() = 0;
       public:
 
          virtual INT32 next() = 0;
@@ -107,8 +110,6 @@ namespace vessel
                                const inclusiveVec &iv) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
-
-         virtual INT32 pause() = 0;
 
       public:
          /// Access valid data saved in iterator.

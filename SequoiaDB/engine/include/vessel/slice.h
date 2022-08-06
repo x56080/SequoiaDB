@@ -123,6 +123,12 @@ namespace vessel
             return res;
          }
 
+         OSS_INLINE BOOLEAN equal(const slice &o)const
+         {
+            return _size == o._size &&
+                   0 == ossMemcmp(_data, o._data, _size);
+         }
+
       private:
          UINT32 _size = 0;
          const CHAR *_data = nullptr;

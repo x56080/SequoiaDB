@@ -52,7 +52,7 @@ namespace vessel
 
    INT32 btreeIterator::init(requestContext *context,
                              indexSpace *is,
-                             indexObject *obj)
+                             const indexObject *obj)
    {
       INT32 rc = SDB_OK;
       indexSpaceAccessCtx ac;
@@ -119,7 +119,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_isValid()))
+      else if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -169,7 +169,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_isValid()))
+      else if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -255,7 +255,7 @@ namespace vessel
    INT32 btreeIterator::advance(const keyString &ks, BOOLEAN forPrev)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!_isValid()))
+      if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -319,7 +319,7 @@ namespace vessel
    INT32 btreeIterator::locate(const location &l)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!_isValid()))
+      if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -329,9 +329,9 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_bac.getSpaceCtx().getPSN() != l.getPSN())
+      else if (_bac.getLSN() != l.getLSN())
       {
-         rc = SDB_VESSEL_DIFF_PSN;
+         rc = SDB_VESSEL_BTREE_LOCATION_EXPIRED;
          goto error;
       }
 
@@ -369,6 +369,16 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   btreeIterator::location btreeIterator::getLocation() const
+   {
+      SDB_ASSERT(_hasLocation(), "can not be invalid");
+      location l;
+      l._lsn = _bac.getLSN();
+      l._pos = _pos;
+      _bac.exportPathCoding(l._path);
+      return std::move(l);
    }
 
    void btreeIterator::_resetItemAndLocation()

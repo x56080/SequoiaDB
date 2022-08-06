@@ -48,9 +48,7 @@ namespace vessel
 {
    enum class IDX_ENTRY_LOCATION_TYPE : INT32
    {
-      BTREE = 0x01,
-      LSM = 0x02,
-      MERGED = 0x03,
+      HIT = 0x01,
    };
 
    class indexEntryLocation : public _utilPooledObject
@@ -61,107 +59,9 @@ namespace vessel
 
       public:
          virtual IDX_ENTRY_LOCATION_TYPE getType()const = 0;
-         virtual BOOLEAN isValidToLocate()const = 0;
+         virtual BOOLEAN isValid()const = 0;
    };
    using IDX_ENTRY_LOCATION_UPTR = std::unique_ptr<indexEntryLocation>;
-
-   class btreeIndexEntryLocation : public indexEntryLocation
-   {
-      public:
-         btreeIndexEntryLocation() = default;
-         virtual ~btreeIndexEntryLocation() = default;
-
-      public:
-         virtual IDX_ENTRY_LOCATION_TYPE getType()const override
-         {
-            return IDX_ENTRY_LOCATION_TYPE::BTREE;
-         }
-         virtual BOOLEAN isValidToLocate()const override
-         {
-            return !_key.empty();
-         }
-      public:
-         OSS_INLINE const ossPoolString &getKey()const {return _key;}
-         OSS_INLINE slice getKeySlice()const
-         {
-            return slice(_key.size(), _key.data());
-         }
-
-      public:
-         void init(ossPoolString &&key,
-                   UINT32 replayTick,
-                   ossPoolVector<UINT64> &&path,
-                   RECORD_SLOT_POS pos);
-
-      private:
-         ossPoolString _key;
-         UINT32 _replayTick = 0;
-         ossPoolVector<UINT64> _path;
-         RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
-   };//class btreeIndexEntryLocation
-
-   class lsmIndexEntryLocation : public indexEntryLocation
-   {
-      public:
-         lsmIndexEntryLocation() = default;
-         virtual ~lsmIndexEntryLocation() = default;
-
-      public:
-         virtual IDX_ENTRY_LOCATION_TYPE getType()const override
-         {
-            return IDX_ENTRY_LOCATION_TYPE::LSM;
-         }
-         virtual BOOLEAN isValidToLocate()const override
-         {
-            return !_key.empty();
-         }
-      public:
-         OSS_INLINE const ossPoolString &getKey()const {return _key;}
-         OSS_INLINE slice getKeySlice()const
-         {
-            return slice(_key.size(), _key.data());
-         }
-
-         void init(ossPoolString &&key) {_key = std::move(key);}
-
-         void assign(const slice &key)
-         {
-            _key.clear();
-            if (key.isValid())
-            {
-               _key.reserve(key.getSize());
-               _key.insert(0, key.getData(), key.getSize());
-            }
-         }
-
-      private:
-         ossPoolString _key;
-   };//class lsmIndexEntryLocation
-
-   class mergedIndexEntryLocation : public indexEntryLocation
-   {
-      public:
-         mergedIndexEntryLocation() = default;
-         virtual ~mergedIndexEntryLocation() = default;
-
-      public:
-         virtual IDX_ENTRY_LOCATION_TYPE getType()const override
-         {
-            return IDX_ENTRY_LOCATION_TYPE::MERGED;
-         }
-
-      public:
-         void init(IDX_ENTRY_LOCATION_UPTR &&left,
-                   IDX_ENTRY_LOCATION_UPTR &&right)
-         {
-            _left = std::move(left);
-            _right = std::move(right);
-         }
-
-      private:
-         IDX_ENTRY_LOCATION_UPTR _left;
-         IDX_ENTRY_LOCATION_UPTR _right;
-   };//class mergedIndexEntryLocation
 } // namespace vessel
 
 } // namespace engine

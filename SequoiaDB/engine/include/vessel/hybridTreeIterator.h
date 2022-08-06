@@ -37,7 +37,12 @@
 #define VESSEL_HYBRID_TREE_ITERATOR_H_
 
 #include "vessel/indexIterator.h"
-#include "vessel/lsm/lsmIndexIterator.h"
+#include "vessel/lsm/lsmTreeIterator.h"
+#include "vessel/btreeIterator.h"
+#include "vessel/keyString.h"
+#include "vessel/lsm/lsmIteratorBound.h"
+
+#include <array>
 
 namespace engine
 {
@@ -50,13 +55,19 @@ namespace vessel
          virtual ~hybridTreeIterator();
 
       public:
-         INT32 init(const lsmColumnFamily &cf,
-                    const globalLogicalClId &cl,
+         INT32 init(requestContext *context,
+                    indexSpace *is,
+                    const lsmColumnFamily &cf,
                     const indexObject *obj);
 
+         OSS_INLINE BOOLEAN isValid() const {return nullptr != _obj;}
+
       public:
-          virtual INDEX_ITERATOR_TYPE getType() const override {return INDEX_ITERATOR_TYPE::HYBRID_TREE;} 
-          virtual void reset() override;
+         virtual INDEX_ITERATOR_TYPE getType() const override
+         {
+            return INDEX_ITERATOR_TYPE::HYBRID_TREE;
+         } 
+         virtual void reset() override;
 
       public:/// init iterator location. 
          virtual INT32 seek(const VEC_ELE_CMP &eles,
@@ -74,6 +85,10 @@ namespace vessel
          virtual INT32 locateNext(const indexEntryLocation *location,
                                   const options &o) override;
 
+         virtual INT32 pause() override;
+
+         virtual INT32 resume() override;
+
       public:
          virtual INT32 next();
 
@@ -83,9 +98,12 @@ namespace vessel
                                const VEC_ELE_CMP &matchEles,
                                const inclusiveVec &iv) override;
 
-         virtual BOOLEAN isReadyToRead()const override;
+         virtual BOOLEAN isReadyToRead()const override
+         {
+            return _isReadyToRead();
+         }
 
-         virtual INT32 pause();
+         
 
       public:
          virtual bson::BSONObj getKeyObj(BOOLEAN withFieldName,
@@ -96,8 +114,109 @@ namespace vessel
          virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const override;
 
       private:
-         lsmIndexIterator _lsm;
+         enum _FILLING_STATUS : INT32
+         {
+            NONE_EXPECTED = 0x0,
+            LSM_EXPECTED = 0x01,
+            BTREE_EXPECTED = 0x02,
+            BOTH_EXPECTED = 0x03,
+         };
+         enum _RING_POS : INT32
+         {
+            INVALID = -1,
+            LSM = 0,
+            BTREE = 1,
+         };
 
+         struct _RING_PICK_RES : public SDBObject
+         {
+            OSS_INLINE BOOLEAN isPicked() const
+            {
+               return _RING_POS::INVALID != pos;
+            }
+            OSS_INLINE BOOLEAN needRefill() const
+            {
+               return _FILLING_STATUS::NONE_EXPECTED != status;
+            }
+
+            _RING_POS pos = _RING_POS::INVALID;
+            _FILLING_STATUS status = _FILLING_STATUS::NONE_EXPECTED;
+         };
+
+         static constexpr UINT32 _RING_SIZE = 2;
+         using _ENTRY_RING = std::array<keyString, _RING_SIZE>;
+
+      private:
+         class _location : public indexEntryLocation
+         {
+            public:
+               _location() = default;
+               virtual ~_location() = default;
+
+            public:
+               virtual IDX_ENTRY_LOCATION_TYPE getType() const override
+               {
+                  return IDX_ENTRY_LOCATION_TYPE::HIT;
+               }
+               virtual BOOLEAN isValid() const override
+               {
+                  return _RING_POS::INVALID != current &&
+                         !entry.empty();
+               }
+
+               void reset()
+               {
+                  current = _RING_POS::INVALID;
+                  entry.clear();
+                  bl.reset();
+               }
+
+            public:
+               _RING_POS current = _RING_POS::INVALID;
+               ossPoolString entry;
+               btreeIterator::location bl;
+         };//class _location
+
+      private:
+         INT32 _reinitInternalItrs();
+         void _resetInternalItrs();
+         INT32 _seek(const keyString &ks,
+                     BOOLEAN pointGetOptimized);
+         INT32 _seekForPrev(const keyString &ks);
+         void _resetRing();
+         INT32 _refillRingAndPick(BOOLEAN fetchNext);
+         INT32 _refillRing(BOOLEAN fetchNext);
+         _RING_PICK_RES _pickFromRing() const;
+         INT32 _locateNext(const _location *l, BOOLEAN pointGetOptimized);
+         INT32 _resumeBtreeLocation(const _location &l,
+                                    const keyString &ks);
+         INT32 _advance(const keyString &ks);
+
+         OSS_INLINE BOOLEAN _isReadyToRead() const
+         {
+            return _RING_POS::INVALID != _pos;
+         }
+         OSS_INLINE BOOLEAN _isPaused() const
+         {
+            return !_lsm.isValid();
+         }
+         OSS_INLINE const keyString &_getCurrent()const
+         {
+            return _ring[_pos];
+         }
+
+      private:
+         const indexObject *_obj = nullptr;
+         indexSpace *_is = nullptr;
+         requestContext *_context = nullptr;
+         lsmColumnFamily _cf;
+         lsmIteratorBound _bound;
+         lsmTreeIterator _lsm;
+         btreeIterator _btree;
+         BOOLEAN _forward = TRUE;
+         INT32 _status = _FILLING_STATUS::BOTH_EXPECTED;
+         _RING_POS _pos = _RING_POS::INVALID;
+         _ENTRY_RING _ring;
    };//class hybridTreeIterator
 } // namespace vessel
 

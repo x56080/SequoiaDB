@@ -45,6 +45,7 @@
 #include "vessel/keyStringBuilder.h"
 #include "vessel/sliceTransfer.h"
 #include "vessel/hybridTreeIterator.h"
+#include "vessel/lsm/lsmIteratorBound.h"
 
 namespace engine
 {
@@ -215,9 +216,14 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
-      rc = iterator.init(GET_HYBRID_INDEX_COLUMN_FAMILY(),
-                         context->getClProperties()->getGlobalLogicalId(),
+      rc = iterator.init(context, _is,
+                         GET_HYBRID_INDEX_COLUMN_FAMILY(),
                          obj);
       if (SDB_OK != rc)
       {
@@ -262,9 +268,9 @@ namespace vessel
          goto error;
       }
 
-      rc = iterator.init(GET_HYBRID_INDEX_COLUMN_FAMILY(),
-                         context->getClProperties()->getGlobalLogicalId(),
-                         obj);
+       rc = iterator.init(context, _is,
+                          GET_HYBRID_INDEX_COLUMN_FAMILY(),
+                          obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init iterator:%d", rc);
@@ -285,8 +291,6 @@ namespace vessel
             rid = iterator.getRid();
             break;
          }
-
-         iterator.reset();
       }
 
    done:
@@ -313,28 +317,16 @@ namespace vessel
          lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
          globalLogicalClId gclid = context->getClProperties()->getGlobalLogicalId();
          globalIndexID indexId(gclid, obj->getLogicalID());
-         CHAR lowBound[20];
-         UINT32 lowBoundSize = 0;
-         CHAR upBound[20];
-         UINT32 upBoundSize = 0;
-
-         rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(indexId, FALSE, sizeof(lowBound), lowBound, lowBoundSize);
-         if (SDB_OK != rc)
+         lsmIteratorBound bound;
+         rc = bound.init(indexId);
+         if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            PD_LOG(PDERROR, "failed to build low bound key:%d", rc);
+            PD_LOG(PDERROR, "failed to build key bound:%d", rc);
             goto error;
          }
 
-         rc = STACK_KEY_STRING_BUILDER::buildBoundaryKey(indexId, TRUE, sizeof(upBound), upBound, upBoundSize);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to build low bound key:%d", rc);
-            goto error;
-         }
-
-
-         rc = cf.truncate(rocksdb::Slice(lowBound, lowBoundSize),
-                          rocksdb::Slice(upBound, upBoundSize));
+         rc = cf.truncate(*bound.getLowBound(),
+                          *bound.getUpBound());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to truncate column family:%d", rc);
@@ -524,30 +516,31 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
-      itr = SDB_OSS_NEW hybridTreeIterator();
-      if (OSS_UNLIKELY(nullptr == itr))
+      ptr.reset(SDB_OSS_NEW hybridTreeIterator());
+      if (OSS_UNLIKELY(!ptr))
       {
          PD_LOG(PDERROR, "failed to allocate mem.");
          rc = SDB_OOM;
          goto error;
       }
+      itr = static_cast<hybridTreeIterator *>(ptr.get());
 
-      rc = itr->init(GET_HYBRID_INDEX_COLUMN_FAMILY(),
-                     context->getClProperties()->getGlobalLogicalId(),
-                     obj);
+      rc = itr->init(context, _is, GET_HYBRID_INDEX_COLUMN_FAMILY(), obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init hybrid tree iterator:%d", rc);
          goto error;
       }
-
-      ptr.reset(itr);
-
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(itr);
+      ptr.reset();
       goto done;
    }
 } // namespace vessel

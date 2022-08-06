@@ -1941,7 +1941,7 @@ namespace vessel
          goto error;
       }
 
-      result = entry.compareElements(ks);
+      result = entry.getKeySlice().compare(ks.getKeySliceAfterHeader());
       outOfBound = ((result * direction) < 0);
    done:
       return rc;
@@ -1964,7 +1964,8 @@ namespace vessel
       INT32 cmp = 0;
       INT16 count = 0;
       RECORD_SLOT_POS low = forward ? pos : 0;
-      RECORD_SLOT_POS high = forward ? head->totalSlotCount : pos;
+      RECORD_SLOT_POS high = forward ? head->totalSlotCount : pos + 1;
+      slice keySlice = ks.getKeySliceAfterHeader();
       res.reset();
 
       if (high <= low)
@@ -1992,8 +1993,8 @@ namespace vessel
             goto error;
          }
 
-         cmp = ks.compareElements(entry);
-         if (0 <= cmp)
+         cmp = keySlice.compare(entry.getKeySlice());
+         if (0 < cmp)
          {
             low = pos + 1;
             count -= (step + 1);

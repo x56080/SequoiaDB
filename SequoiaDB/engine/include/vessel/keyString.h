@@ -130,6 +130,7 @@ namespace vessel
       OSS_INLINE UINT32 getKeyHeadSize()const {return _desc.keyHeadSize;}
       OSS_INLINE UINT32 getKeyTailSize()const {return _desc.keyTailSize;}
       OSS_INLINE UINT32 getKeyElementsSize()const {return _desc.getKeyElementsSize();}
+      OSS_INLINE UINT32 getKeySizeAfterHeader()const {return getKeySize() - getKeyHeadSize();}
       OSS_INLINE UINT32 getTypeBitsSize()const {return _desc.typeBitsSize;}
       OSS_INLINE UINT32 getKeySizeExceptTail()const {return _desc.keySize - _desc.keyTailSize;}
       OSS_INLINE BOOLEAN hasKeyHead()const {return 0 < getKeyHeadSize();}
@@ -141,6 +142,7 @@ namespace vessel
       slice getKeyElementsSlice() const;
       slice getKeyTailSlice() const;
       slice getKeySliceExceptTail()const;
+      slice getKeySliceAfterHeader()const;
       slice getTypeBits() const;
       bson::BSONObj toBSON(const bson::BSONObj &pattern,
                            BOOLEAN withFieldName = FALSE) const;

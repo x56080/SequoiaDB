@@ -83,7 +83,7 @@ namespace vessel
          OSS_INLINE const indexProperties &getProperties()const {return _properties;}
          OSS_INLINE const orderingWrapper getOrderingWrapper()const {return _properties.getPattern().getOrdering();}
          OSS_INLINE DPS_LSN_OFFSET getRebornLSN()const {return _rebornLSN;}
-         OSS_INLINE void resetRebornLSN(const DPS_LSN_OFFSET &lsn) {_rebornLSN = lsn;}
+         OSS_INLINE void resetRebornLSN(DPS_LSN_OFFSET lsn) {_rebornLSN = lsn;}
          OSS_INLINE PAGE_ID getBtreeEntryAddr()const {return _btreeEntryAddr;}
          OSS_INLINE BOOLEAN hasBtreeEntryAddr()const {return INVALID_PAGE_ID != _btreeEntryAddr;}
          OSS_INLINE void resetBtreeEntryAddr(PAGE_ID entry) {_btreeEntryAddr = entry;}

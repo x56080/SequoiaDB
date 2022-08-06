@@ -47,11 +47,13 @@ namespace vessel
    {
       void reset()
       {
+         lsn = ~0;
          nonleafPagNum = 0;
          leafPageNum = 0;
          return;
       }
 
+      UINT64 lsn = ~0;
       UINT32 nonleafPagNum = 0;
       UINT32 leafPageNum = 0;
    };//struct btreeStatistics

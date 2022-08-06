@@ -46,12 +46,14 @@ namespace vessel
    class keyStringModifier : public SDBObject
    {
       public:
+         keyStringModifier() = default;
          keyStringModifier(const keyString &src);
          ~keyStringModifier();
          keyStringModifier(const keyStringModifier &) = delete;
          keyStringModifier &operator=(const keyStringModifier &) = delete;
 
       public:
+         void init(const keyString &ks);
          void reset();
 
          INT32 incRid(BOOLEAN force=FALSE);
@@ -63,7 +65,7 @@ namespace vessel
          INT32 _ensureBuffer(UINT32 size);
       
       private:
-         const keyString &_src;
+         keyString _src;
          CHAR *_buffer = nullptr;
          UINT32 _bufferSize = 0;
          utilStackAllocator<> _allocator;

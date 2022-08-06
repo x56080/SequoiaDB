@@ -229,7 +229,7 @@ namespace vessel
       logicalPageBuffer buffer;
       indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
       indexSpace *is = ac.getIndexSpace();
-      indexObject *obj = _bac.getIndexObject();
+      const indexObject *obj = _bac.getIndexObject();
       SDB_ASSERT(obj->hasBtreeEntryAddr(), "can not be invalid");
       btreeEntryPageAccessor accessor(obj->getLogicalID());
       SDB_ASSERT(_bac.hasBtreeRoot(), "can not be invalid");
@@ -384,7 +384,7 @@ namespace vessel
       btreeNodePageIniter initer;
       indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
       indexSpace *is = ac.getIndexSpace();
-      indexObject *obj = _bac.getIndexObject();
+      const indexObject *obj = _bac.getIndexObject();
       SDB_ASSERT(obj->hasBtreeEntryAddr(), "can not be invalid");
       btreeEntryPageAccessor accessor(obj->getLogicalID());
       SDB_ASSERT(!_bac.hasBtreeRoot(), "do not recreate root node");
@@ -640,7 +640,7 @@ namespace vessel
       btreeNodePageIniter initer;
       indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
       indexSpace *is = ac.getIndexSpace();
-      indexObject *obj = _bac.getIndexObject();
+      const indexObject *obj = _bac.getIndexObject();
 
       child = INVALID_PAGE_ID;
 

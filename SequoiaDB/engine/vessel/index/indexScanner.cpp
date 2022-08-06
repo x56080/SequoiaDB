@@ -161,6 +161,13 @@ namespace vessel
          goto error;
       }
 
+      rc = _iterator->resume();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to resume iterator:%d", rc);
+         goto error;
+      }
+
       rc = _beginToScan();
       if (SDB_OK != rc)
       {
@@ -255,7 +262,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       indexIterator::options o;
       o.forward = _cursor->getCtx().isForward();
-      o.pointGetOnly = _cursor->getCtx().isPointGet();
+      o.pointGetOptimized = _cursor->getCtx().isPointGet();
 
       if (_cursor->getCtx().getLocation())
       {

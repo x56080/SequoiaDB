@@ -64,7 +64,7 @@ namespace vessel
             return nullptr != _obj;
          }
 
-         OSS_INLINE indexObject *getIndexObject()
+         OSS_INLINE const indexObject *getIndexObject() const
          {
             return _obj;
          }
@@ -75,14 +75,16 @@ namespace vessel
          }
 
          OSS_INLINE indexSpaceAccessCtx &getSpaceCtx() {return _ictx;}
+         OSS_INLINE const indexSpaceAccessCtx &getSpaceCtx()const {return _ictx;}
 
          OSS_INLINE BOOLEAN isNonPte()const {return _nonpte;}
          OSS_INLINE BOOLEAN hasBtreeRoot()const {return INVALID_PAGE_ID != _btreeRoot;}
          OSS_INLINE PAGE_ID getBtreeRoot()const {return _btreeRoot;}
+         OSS_INLINE UINT64 getLSN()const {return _stats.lsn;}
 
       public:
          INT32 init(BOOLEAN nonpte,
-                    indexObject *obj,
+                    const indexObject *obj,
                     indexSpaceAccessCtx &&ctx);
                    
          void reset();
@@ -127,6 +129,8 @@ namespace vessel
 
          void resetBtreeStats();
 
+         void exportPathCoding(ossPoolVector<UINT64> &cv)const;
+
       private:
          INT32 _cacheRootAndStats();
          INT32 _pushIntoPath(PAGE_ID lpid);
@@ -136,7 +140,7 @@ namespace vessel
 
       private:
          BOOLEAN _nonpte = TRUE;
-         indexObject *_obj = nullptr;
+         const indexObject *_obj = nullptr;
          indexSpaceAccessCtx _ictx;
          _BTREE_PATH _path;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;

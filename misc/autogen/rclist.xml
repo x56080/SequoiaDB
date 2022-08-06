@@ -3405,5 +3405,14 @@
             <cn>非法的键编码数据</cn>
          </description>
       </code>
+
+      <code>
+         <tag>vessel</tag>
+         <name>SDB_VESSEL_BTREE_LOCATION_EXPIRED</name>
+         <description>
+            <en>the location of btree has been expired</en>
+            <cn>索引树的定位已经失效</cn>
+         </description>
+      </code>
    </codelist>
 </rclist>

@@ -381,6 +381,13 @@ namespace vessel
             : slice();
    }
 
+   slice keyString::getKeySliceAfterHeader() const
+   {
+      return _desc.keyHeadSize < _desc.keySize ?
+             _ref.getSlice(_desc.keyHeadSize, _desc.keySize - _desc.keyHeadSize) :
+             slice();
+   }
+
    slice keyString::getKeyElementsSlice() const
    {
       UINT32 size = getKeyElementsSize();

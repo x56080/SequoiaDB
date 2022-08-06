@@ -55,7 +55,7 @@ namespace vessel
    }
 
    INT32 btreeAccessContext::init(BOOLEAN nonpte,
-                                  indexObject *obj,
+                                  const indexObject *obj,
                                   indexSpaceAccessCtx &&ctx)
    {
       INT32 rc = SDB_OK;
@@ -523,6 +523,21 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void btreeAccessContext::exportPathCoding(ossPoolVector<UINT64> &cv)const
+   {
+      cv.clear();
+      if (!_path.empty())
+      {
+         cv.reserve(_path.size());
+         for (UINT32 i = 0; i < _path.size(); ++i)
+         {
+            cv.push_back(_path[i].encode());
+         }
+      }
+
+      return;
    }
 } // namespace vessel
 

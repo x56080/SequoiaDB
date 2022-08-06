@@ -191,19 +191,23 @@ namespace vessel
                            const orderingWrapper &o,
                            const inclusiveVec &iv,
                            BOOLEAN forward,
-                           const globalIndexID *indexid = nullptr);
+                           slice keyHeader=slice());
 
       INT32 buildPredicate(const bson::BSONObj &key,
                            const orderingWrapper &o,
                            const inclusiveVec &iv,
                            BOOLEAN forward,
-                           const globalIndexID *indexid = nullptr);
+                           slice keyHeader=slice());
 
       INT32 buildIndexEntryKey(const bson::BSONObj &key,
                                const orderingWrapper &o,
                                const recordID &rid,
                                const globalIndexID *indexid = nullptr,
                                const UINT64 *lsn = nullptr);
+
+      INT32 rebuildEntryKey(const keyString &ks,
+                            const recordID &rid,
+                            slice keyHeader=slice());
 
       static INT32 buildBoundaryKey(const globalIndexID &indexId,
                                     BOOLEAN asUpBound,
@@ -294,6 +298,10 @@ namespace vessel
       INT32 _appendDiscriminator(Discriminator d);
       INT32 _appendTypeBits();
       INT32 _appendMetaBlock();
+      INT32 _appendMetaBlock(UINT32 keyHeaderSize,
+                             UINT32 keyElementsSize,
+                             UINT32 keyTailSize,
+                             UINT32 typeBitsSize);
 
       void _verifyStatus();
       void _transition(BUILDER_STATUS to);
@@ -2227,17 +2235,20 @@ namespace vessel
    // typebits size.
    // version: 1 byte.
    template <typename Allocator>
-   INT32 keyStringBuilder<Allocator>::_appendMetaBlock()
+   INT32 keyStringBuilder<Allocator>::_appendMetaBlock(UINT32 keyHeaderSize,
+                                                       UINT32 keyElementsSize,
+                                                       UINT32 keyTailSize,
+                                                       UINT32 typeBitsSize)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(BUILDER_STATUS::DONE != _status, "can not be invalid");
       UINT32 comparableSize =
-          _sizeOfElements + _sizeAheadElements + _sizeAfterElements;
-      keyStringMetaByte mbyte(
-          _sizeAheadElements, _sizeAfterElements, _typeBits.getBufSize());
+          keyHeaderSize + keyElementsSize + keyTailSize;
+      keyStringMetaByte mbyte(keyHeaderSize, keyTailSize, typeBitsSize);
 
       if (mbyte.hasTypeBits())
       {
-         rc = _appendMetaBlockSizeWord(_typeBits.getBufSize(), TRUE);
+         rc = _appendMetaBlockSizeWord(typeBitsSize, TRUE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append type bits size:%d", rc);
@@ -2247,7 +2258,7 @@ namespace vessel
 
       if (mbyte.hasKeyTail())
       {
-         rc = _appendMetaBlockSizeWord(_sizeAfterElements, TRUE);
+         rc = _appendMetaBlockSizeWord(keyTailSize, TRUE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append key tail size:%d", rc);
@@ -2257,7 +2268,7 @@ namespace vessel
 
       if (mbyte.hasKeyHead())
       {
-         rc = _appendMetaBlockSizeWord(_sizeAheadElements, TRUE);
+         rc = _appendMetaBlockSizeWord(keyHeaderSize, TRUE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to append key head size:%d", rc);
@@ -2283,6 +2294,25 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append version, rc:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::_appendMetaBlock()
+   {
+      INT32 rc = SDB_OK;
+      rc = _appendMetaBlock(_sizeAheadElements,
+                            _sizeOfElements,
+                            _sizeAfterElements,
+                            _typeBits.getBufSize());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build meta block:%d", rc);
          goto error;
       }
    done:
@@ -2459,7 +2489,7 @@ namespace vessel
        const orderingWrapper &o,
        const inclusiveVec &iv,
        BOOLEAN forward,
-       const globalIndexID *indexid)
+       slice keyHeader)
    {
       INT32 rc = SDB_OK;
       reset();
@@ -2469,20 +2499,25 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      if (o.getNkeys() < elements.size())
+      else if (o.getNkeys() < elements.size())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      if (indexid)
+
+      if (keyHeader.isValid())
       {
-         rc = appendIndexId(*indexid);
+         rc = _ensureBytes(keyHeader.size());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append index id, rc:%d", rc);
+            PD_LOG(PDERROR, "failed to extend buf:%d", rc);
             goto error;
          }
+         ossMemcpy(_buf + _bufSize, keyHeader.data(), keyHeader.size());
+         _bufSize += keyHeader.size();
+         _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
       }
+
       _verifyStatus();
       for (UINT32 i = 0; i < elements.size(); i++)
       {
@@ -2550,7 +2585,7 @@ namespace vessel
        const orderingWrapper &o,
        const inclusiveVec &iv,
        BOOLEAN forward,
-       const globalIndexID *indexid)
+       slice keyHeader)
    {
       INT32 rc = SDB_OK;
       bson::BSONObjIterator it(key);
@@ -2563,15 +2598,20 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      if (indexid)
+      
+      if (keyHeader.isValid())
       {
-         rc = appendIndexId(*indexid);
+         rc = _ensureBytes(keyHeader.size());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append index id, rc:%d", rc);
+            PD_LOG(PDERROR, "failed to extend buf:%d", rc);
             goto error;
          }
+         ossMemcpy(_buf + _bufSize, keyHeader.data(), keyHeader.size());
+         _bufSize += keyHeader.size();
+         _transition(BUILDER_STATUS::BEFORE_ELEMENTS);
       }
+
       _verifyStatus();
       while (it.more())
       {
@@ -2779,6 +2819,81 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   template <typename Allocator>
+   INT32 keyStringBuilder<Allocator>::rebuildEntryKey(const keyString &ks,
+                                                      const recordID &rid,
+                                                      slice keyHeader)
+   {
+      INT32 rc = SDB_OK;
+      reset();
+      if ((!ks.isValid() || !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else
+      {
+         slice elements = ks.getKeyElementsSlice();
+         slice bits = ks.getTypeBits();
+
+         if (keyHeader.isValid())
+         {
+            rc = _ensureBytes(keyHeader.size());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to extend buffer:%d", rc);
+               goto error;
+            }
+            ossMemcpy(_buf + _bufSize, keyHeader.data(), keyHeader.size());
+            _bufSize += keyHeader.size();
+         }
+
+         rc = _ensureBytes(elements.size());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend buffer:%d", rc);
+            goto error;
+         }
+         ossMemcpy(_buf + _bufSize, elements.data(), elements.size());
+         _bufSize += elements.size();
+
+         rc = _ensureBytes(keyStringCoder::RID_ENCODING_SIZE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend buffer:%d", rc);
+            goto error;
+         }
+         keyStringCoder().encodeRid(rid, _buf + _bufSize);
+         _bufSize += keyStringCoder::RID_ENCODING_SIZE;
+
+         rc = _ensureBytes(bits.size());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend buffer:%d", rc);
+            goto error;
+         }
+         ossMemcpy(_buf + _bufSize, bits.data(), bits.size());
+         _bufSize += bits.size();
+         
+         rc = _appendMetaBlock(keyHeader.size(),
+                               elements.size(),
+                               keyStringCoder::RID_ENCODING_SIZE,
+                               bits.size());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build meta block:%d", rc);
+            goto error;
+         }
+
+         _transition(BUILDER_STATUS::DONE);
+      }
+   done:
+      return rc;
+   error:
+      reset();
       goto done;
    }
 } // namespace vessel
