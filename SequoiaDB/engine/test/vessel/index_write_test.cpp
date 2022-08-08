@@ -129,7 +129,7 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
-   std::atomic_llong counter;
+   std::atomic_llong counter = {0};
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
@@ -223,7 +223,7 @@ static void insert_test_unique_index(INDEX_TYPE type)
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
-   std::atomic_llong counter;
+   std::atomic_llong counter = {0};
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;

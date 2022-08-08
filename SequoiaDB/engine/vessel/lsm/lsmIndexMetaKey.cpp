@@ -43,45 +43,43 @@ namespace engine
 namespace vessel
 {
    ///////////////////////////// lsmIndexIdKey
-   void lsmIndexIdKey::init(const globalIndexID &id)
+   void lsmIndexMetaKey::init(const globalIndexID &id)
    {
       keyStringCoder coder;
       coder.encodeGlobalIndexId(id, FALSE, _data);
    }
 
-   void lsmIndexIdKey::initAsUpKey(const globalIndexID &id)
+   void lsmIndexMetaKey::initAsUpKey(const globalIndexID &id)
    {
       SDB_ASSERT(id.getLogicalIndexID() != OSS_UINT32_MAX, "out of bound");
       keyStringCoder coder;
       coder.encodeGlobalIndexId(id, TRUE, _data);
    }
 
-   void lsmIndexIdKey::reset()
+   void lsmIndexMetaKey::reset()
    {
       ossMemset(_data, 0, sizeof(_data));
    }
 
-   globalIndexID lsmIndexIdKey::toGlobalIndexId()const
+   globalIndexID lsmIndexMetaKey::toGlobalIndexId()const
    {
       keyStringCoder coder;
       return coder.decodeToIndexId(_data);
    }
 
-   //////////////////////////////// lsmCLIndexKey
-   void lsmIndexManifestKey::init(UINT32 csLid, UINT32 clLid)
+   //////////////////////////////// lsmIndexManifestKey
+   void lsmIndexManifestKey::init(UINT32 csLid)
    {
       keyStringCoder coder;
       coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
-      coder.encodeUnsignedNative<UINT32>(clLid, FALSE, _data + sizeof(UINT32));
       return;
    }
 
-   void lsmIndexManifestKey::initAsUpKey(UINT32 csLid, UINT32 clLid)
+   void lsmIndexManifestKey::initAsUpKey(UINT32 csLid)
    {
-      SDB_ASSERT(clLid != OSS_UINT32_MAX, "out of bound");
+      SDB_ASSERT(csLid != OSS_UINT32_MAX, "out of bound");
       keyStringCoder coder;
-      coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
-      coder.encodeUnsignedNative<UINT32>(clLid + 1, FALSE, _data + sizeof(UINT32));
+      coder.encodeUnsignedNative<UINT32>(csLid + 1, FALSE, _data);
    }
 
    void lsmIndexManifestKey::reset()
@@ -89,12 +87,25 @@ namespace vessel
       ossMemset(_data, 0, sizeof(_data));
    }
 
-   globalLogicalClId lsmIndexManifestKey::toClId()const
+   //////////////////////////////// lsmCLIdKey
+   void lsmCLIdKey::init(UINT32 csLid, UINT32 clLid)
    {
       keyStringCoder coder;
-      UINT32 cs = coder.decodeToUnsignedNative<UINT32>(_data, FALSE);
-      UINT32 cl = coder.decodeToUnsignedNative<UINT32>(_data + sizeof(UINT32), FALSE);
-      return globalLogicalClId(cs, cl);
+      coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(clLid, FALSE, _data + sizeof(UINT32));
+   }
+
+   void lsmCLIdKey::initAsUpKey(UINT32 csLid, UINT32 clLid)
+   {
+      SDB_ASSERT(clLid != OSS_UINT32_MAX, "out of bound");
+      keyStringCoder coder;
+      coder.encodeUnsignedNative<UINT32>(csLid, FALSE, _data);
+      coder.encodeUnsignedNative<UINT32>(clLid + 1, FALSE, _data + sizeof(UINT32));
+   }
+
+   void lsmCLIdKey::reset()
+   {
+      ossMemset(_data, 0, sizeof(_data));
    }
 
 } // namespace vessel

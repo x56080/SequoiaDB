@@ -54,23 +54,16 @@ namespace vessel
          indexObjectMap &operator=(const indexObjectMap &) = delete;
 
       public:
-         OSS_INLINE UINT32 getMaxIndexLid()const
-         {
-            return _maxIndexLid;
-         }
-         UINT32 getNextIndexLid()const;
-
          OSS_INLINE BOOLEAN isEmpty()const
          {
             return _objects.empty();
          }
-         BOOLEAN isAllowedToCreateMore()const;
 
          INT32 init(UINT32 maxLogicalId, const ossPoolList<bson::BSONObj> &objs);
 
          void reset();    
 
-         void destroy(UINT32 indexLid, BOOLEAN recycleLid=FALSE);
+         void destroy(UINT32 indexLid);
                      
          indexObject *getIndexObj(UINT32 indexLid);
 
@@ -82,12 +75,9 @@ namespace vessel
 
          buildingIndexContext *getBuildingCtx(UINT32 indexLid);
 
-         void setMaxIndexLid(UINT32 indexLid);
-
          BOOLEAN isIndexDuplicated(const indexProperties &properties)const;
 
-         INT32 createObjWithBuildingCtx(const indexProperties &properties,
-                                        indexObject **obj);
+         INT32 validateCreation(const indexProperties &properties) const;
 
          indexObject *abortCreating(UINT32 indexLid);
 
@@ -96,6 +86,8 @@ namespace vessel
          ossPoolList<bson::BSONObj> getObjEntries()const;
 
          INT32 insert(std::unique_ptr<indexObject> &&obj);
+
+         INT32 insertBuildingObject(std::unique_ptr<indexObject> &&obj);
 
       private:
          using _UNIQUE_OBJ_PTR = std::unique_ptr<indexObject>;
@@ -117,7 +109,6 @@ namespace vessel
          CONST_ITERATOR cend()const {return _objects.cend();}
 
       private:
-         UINT32 _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
          _OBJECT_PTR_MAP _objects;
          _BUILDING_CTX_MAP _buildingMap;
    };//class indexObjectMap

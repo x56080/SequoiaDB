@@ -45,21 +45,21 @@ namespace engine
 {
 namespace vessel
 {
-   class lsmIndexIdKey : public SDBObject
+   class lsmIndexMetaKey : public SDBObject
    {
       public:
-         lsmIndexIdKey() = default;
-         ~lsmIndexIdKey() = default;
-         lsmIndexIdKey(const lsmIndexIdKey &key)
+         lsmIndexMetaKey() = default;
+         ~lsmIndexMetaKey() = default;
+         lsmIndexMetaKey(const lsmIndexMetaKey &key)
          {
             ossMemcpy(_data, key._data, sizeof(_data));
          }
-         lsmIndexIdKey &operator=(const lsmIndexIdKey &key)
+         lsmIndexMetaKey &operator=(const lsmIndexMetaKey &key)
          {
             ossMemcpy(_data, key._data, sizeof(_data));
             return *this;
          }
-         OSS_INLINE INT32 compare(const lsmIndexIdKey &o)const
+         OSS_INLINE INT32 compare(const lsmIndexMetaKey &o)const
          {
             return ossMemcmp(_data, o._data, sizeof(_data));
          }
@@ -113,11 +113,44 @@ namespace vessel
       public:
          void reset();
 
+         void init(UINT32 csLid);
+
+         void initAsUpKey(UINT32 csLid);
+
+      private:
+         /// big endian store
+         /// 0-3: CS Logical Id
+         CHAR _data[4] = {};
+   };
+
+   class lsmCLIdKey : public SDBObject
+   {
+      public:
+         lsmCLIdKey() = default;
+         ~lsmCLIdKey() = default;
+         lsmCLIdKey(const lsmCLIdKey &key)
+         {
+            ossMemcpy(_data, key._data, sizeof(_data));
+         }
+         lsmCLIdKey &operator=(const lsmCLIdKey &key)
+         {
+            ossMemcpy(_data, key._data, sizeof(_data));
+            return *this;
+         }
+
+      public:
+         OSS_INLINE rocksdb::Slice getKeySlice() const
+         {
+            return rocksdb::Slice(_data, sizeof(_data));
+         }
+
+      public:
+         void reset();
+
          void init(UINT32 csLid, UINT32 clLid);
 
          void initAsUpKey(UINT32 csLid, UINT32 clLid);
 
-         globalLogicalClId toClId()const;
       private:
          /// big endian store
          /// 0-3: CS Logical Id

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexMetaStorage.h
+   Source File Name = clIndexMetaStorage.h
 
    Descriptive Name = 
 
@@ -33,8 +33,8 @@
 
 *******************************************************************************/
 
-#ifndef VESSEL_INDEX_META_STORAGE_H_
-#define VESSEL_INDEX_META_STORAGE_H_
+#ifndef VESSEL_CL_INDEX_META_STORAGE_H_
+#define VESSEL_CL_INDEX_META_STORAGE_H_
 
 #include "oss.hpp"
 #include "dms.hpp"
@@ -45,14 +45,14 @@ namespace engine
 {
 namespace vessel
 {
-   class indexMetaStorage : public SDBObject
+   class clIndexMetaStorage : public SDBObject
    {
       public:
-         indexMetaStorage() = default;
-         indexMetaStorage(UINT32 lcsid, UINT32 lclid);
-         ~indexMetaStorage() = default;
-         indexMetaStorage(const indexMetaStorage &) = delete;
-         indexMetaStorage &operator=(const indexMetaStorage &) = delete;
+         clIndexMetaStorage() = default;
+         clIndexMetaStorage(UINT32 lcsid, UINT32 lclid);
+         ~clIndexMetaStorage() = default;
+         clIndexMetaStorage(const clIndexMetaStorage &) = delete;
+         clIndexMetaStorage &operator=(const clIndexMetaStorage &) = delete;
 
       public:
          void init(UINT32 csLid,
@@ -65,39 +65,20 @@ namespace vessel
          }
 
       public:
-         INT32 commit(UINT32 indexLid,
-                      const indexObjectMap &im,
-                      BOOLEAN commitManifest);
-
-         INT32 reload(indexObjectMap &im);
+         INT32 reload(indexObjectMap &im) const;
 
       public:
          INT32 upsert(UINT32 indexLid,
-                      const bson::BSONObj &indexEntry);
-
-         INT32 upsert(UINT32 indexLid,
-                      const bson::BSONObj &indexEntry,
-                      const bson::BSONObj &manifest);
+                      const bson::BSONObj &indexEntry) const;
 
          INT32 getIndexEntry(UINT32 indexLid,
-                             bson::BSONObj &obj);
+                             bson::BSONObj &obj) const;
 
-         INT32 getIndexManifest(BOOLEAN &found,
-                                bson::BSONObj &obj);
+         INT32 list(ossPoolList<bson::BSONObj> &objs) const;
 
-         INT32 list(ossPoolList<bson::BSONObj> &objs);
+         INT32 removeEntry(UINT32 indexLid) const;
 
-         INT32 removeEntry(UINT32 indexLid);
-
-         INT32 destroy();
-
-      private:
-         INT32 _upsert(UINT32 indexLid,
-                       const bson::BSONObj &indexEntry,
-                       const bson::BSONObj &manifest);
-
-      private:
-         bson::BSONObj _getManifestEntry(const indexObjectMap &im)const;
+         INT32 destroy() const;
 
       private:
          UINT32 _csLid = DMS_INVALID_LOGICCSID;
@@ -107,4 +88,4 @@ namespace vessel
 } // namespace vessel
 } // namespace engine
 
-#endif // VESSEL_INDEX_META_STORAGE_H_
+#endif // VESSEL_CL_INDEX_META_STORAGE_H_
