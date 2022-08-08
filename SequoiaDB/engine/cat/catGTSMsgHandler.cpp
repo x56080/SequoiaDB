@@ -315,8 +315,9 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR,
-                 "Failed to send GTS reply message [%d], rc: %d",
-                 reply.header.opCode, rc ) ;
+                 "Failed to send GTS reply message[opCode:(%d)%d], rc: %d",
+                 IS_REPLY_TYPE( reply.header.opCode ),
+                 GET_REQUEST_TYPE( reply.header.opCode ), rc ) ;
          // no way to handle sending failure, do not jump to error
       }
 
@@ -343,8 +344,9 @@ namespace engine
          if ( SDB_OK != tempRc )
          {
             PD_LOG( PDERROR,
-                    "Failed to send GTS reply message [%d], rc: %d",
-                    reply.header.opCode, tempRc ) ;
+                    "Failed to send GTS reply message[opCode:(%d)%d], rc: %d",
+                    IS_REPLY_TYPE( reply.header.opCode ),
+                    GET_REQUEST_TYPE( reply.header.opCode ), tempRc ) ;
          }
       }
       goto done ;
@@ -373,8 +375,9 @@ namespace engine
       SDB_ASSERT( NULL != reply, "reply should be not null" ) ;
 
       PD_LOG( PDDEBUG,
-              "Sending reply message [%d] with rc [%d]",
-              reply->header.opCode, reply->flags ) ;
+              "Sending reply message[opCode:(%d)%d] with rc [%d]",
+              IS_REPLY_TYPE( reply->header.opCode ),
+              GET_REQUEST_TYPE( reply->header.opCode ), reply->flags ) ;              
 
       /// when error, but has no data, fill the error obj
       if ( reply->flags &&
@@ -402,8 +405,9 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING,
-                 "Failed to send reply message [%d], rc: %d",
-                 reply->header.opCode, rc ) ;
+                 "Failed to send reply message[opCode:(%d)%d], rc: %d",
+                 IS_REPLY_TYPE( reply->header.opCode ),
+                 GET_REQUEST_TYPE( reply->header.opCode ), rc ) ;
       }
 
       PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER_SEND_REPLY, rc ) ;
