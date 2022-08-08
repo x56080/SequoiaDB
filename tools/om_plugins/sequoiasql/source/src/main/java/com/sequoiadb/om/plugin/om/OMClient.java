@@ -109,14 +109,18 @@ public class OMClient implements ApplicationListener<EmbeddedServletContainerIni
         queryCondition.put("BusinessName", businessName);
 
         DBCursor cur = cl.query(queryCondition, null, null, null);
-        if (cur.hasNext()) {
-            BSONObject record = cur.getNext();
-            node.setHostName((String) record.get("HostName"));
-            BasicBSONList configs = (BasicBSONList) record.get("Config");
-            if (configs.size() > 0) {
-                BSONObject config = (BSONObject) configs.get(0);
-                node.setSvcName((String) config.get("port"));
+        try {
+            if (cur.hasNext()) {
+                BSONObject record = cur.getNext();
+                node.setHostName((String) record.get("HostName"));
+                BasicBSONList configs = (BasicBSONList) record.get("Config");
+                if (configs.size() > 0) {
+                    BSONObject config = (BSONObject) configs.get(0);
+                    node.setSvcName((String) config.get("port"));
+                }
             }
+        } finally {
+            cur.close();
         }
 
         return node;
@@ -134,21 +138,25 @@ public class OMClient implements ApplicationListener<EmbeddedServletContainerIni
         queryCondition.put("BusinessName", businessName);
 
         DBCursor cur = cl.query(queryCondition, null, null, null);
-        if (cur.hasNext()) {
-            BSONObject record = cur.getNext();
-            String passwd = (String) record.get("Passwd");
+        try {
+            if (cur.hasNext()) {
+                BSONObject record = cur.getNext();
+                String passwd = (String) record.get("Passwd");
 
-            if (record.containsField("Encryption") && passwd.length() > 0) {
-                Integer encryption = (Integer) record.get("Encryption");
+                if (record.containsField("Encryption") && passwd.length() > 0) {
+                    Integer encryption = (Integer) record.get("Encryption");
 
-                if (encryption == 1) {
-                    passwd = new SdbDecrypt().decryptPasswd(passwd, null);
+                    if (encryption == 1) {
+                        passwd = new SdbDecrypt().decryptPasswd(passwd, null);
+                    }
                 }
-            }
 
-            auth.setUser((String) record.get("User"));
-            auth.setPasswd(passwd);
-            auth.setDefaultDb((String) record.get("DbName"));
+                auth.setUser((String) record.get("User"));
+                auth.setPasswd(passwd);
+                auth.setDefaultDb((String) record.get("DbName"));
+            }
+        } finally {
+            cur.close();
         }
 
         if (auth.getUser() == null || auth.getUser().length() == 0) {
@@ -168,12 +176,19 @@ public class OMClient implements ApplicationListener<EmbeddedServletContainerIni
         BSONObject queryCondition = new BasicBSONObject();
         queryCondition.put("ClusterName", clusterName);
 
+        String username = null;
+
         DBCursor cur = cl.query(queryCondition, null, null, null);
-        if (cur.hasNext()) {
-            BSONObject record = cur.getNext();
-            return (String) record.get("SdbUser");
+        try {
+            if (cur.hasNext()) {
+                BSONObject record = cur.getNext();
+                username = (String) record.get("SdbUser");
+            }
+        } finally {
+            cur.close();
         }
-        return null;
+
+        return username;
     }
 
     private void connect() throws BaseException {

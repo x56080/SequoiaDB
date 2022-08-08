@@ -32,7 +32,7 @@ public abstract class SequoiaSQLOperations {
         }
 
         try {
-            c = DriverManager.getConnection(scheme + "://" + hostName + ":" + svcname + "/" + dbName, user, pwd);
+            c = DriverManager.getConnection(scheme + "://" + hostName + ":" + svcname + "/" + dbName + "?useSSL=false", user, pwd);
 
             stmt = c.createStatement();
 
