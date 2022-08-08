@@ -231,94 +231,103 @@ namespace engine
       // build new node with starting position for numPages page
       DMS_SEGMENT_NODE_SET ( newnode, relaStart, numPages ) ;
 
-      // if the list is empty, then we simply add it into list
-      if ( _freeSpaceList.empty () )
+      try
       {
-         SDB_ASSERT ( _maxNode == 0, "max node must be 0 when free space is "
-                      "empty" ) ;
-         // if the list is empty, we just need to insert
-         _freeSpaceList.push_back ( newnode ) ;
-         _maxNode = numPages ;
-         goto done ;
-      }
-
-      // loop through all free space and see if we can merge with any
-      for ( it = _freeSpaceList.begin(); ; ++it )
-      {
-         // if we hit the end, let's insert it to end and break the loop
-         if ( _freeSpaceList.end() == it )
+         // if the list is empty, then we simply add it into list
+         if ( _freeSpaceList.empty () )
          {
-            newSize = numPages ;
+            SDB_ASSERT ( _maxNode == 0, "max node must be 0 when free space is "
+                         "empty" ) ;
+            // if the list is empty, we just need to insert
             _freeSpaceList.push_back ( newnode ) ;
-            if ( newSize > _maxNode )
-            {
-               _maxNode = newSize ;
-            }
-
-            list<_dmsSegmentNode>::reverse_iterator rit =
-               _freeSpaceList.rbegin();
-            it1 = (++rit).base() ;
-            break ;
+            _maxNode = numPages ;
+            goto done ;
          }
 
-         // get the node
-         _dmsSegmentNode &node = (*it) ;
-         UINT16      nodeStart = DMS_SEGMENT_NODE_GETSTART( node ) ;
-         UINT16      nodeSize  = DMS_SEGMENT_NODE_GETSIZE( node ) ;
-         // run until we find the next one with bigger start id
-         if ( relaStart < nodeStart )
+         // loop through all free space and see if we can merge with any
+         for ( it = _freeSpaceList.begin(); ; ++it )
          {
-            if ( relaStart + numPages > nodeStart )
+            // if we hit the end, let's insert it to end and break the loop
+            if ( _freeSpaceList.end() == it )
+            {
+               newSize = numPages ;
+               _freeSpaceList.push_back ( newnode ) ;
+               if ( newSize > _maxNode )
+               {
+                  _maxNode = newSize ;
+               }
+
+               list<_dmsSegmentNode>::reverse_iterator rit =
+                  _freeSpaceList.rbegin();
+               it1 = (++rit).base() ;
+               break ;
+            }
+
+            // get the node
+            _dmsSegmentNode &node = (*it) ;
+            UINT16      nodeStart = DMS_SEGMENT_NODE_GETSTART( node ) ;
+            UINT16      nodeSize  = DMS_SEGMENT_NODE_GETSIZE( node ) ;
+            // run until we find the next one with bigger start id
+            if ( relaStart < nodeStart )
+            {
+               if ( relaStart + numPages > nodeStart )
+               {
+                  // something wrong
+                  // | start        ... <numPages>   |
+                  //                    | nodeStart    ...|
+                  // It's not valid to have overlap
+                  PD_LOG ( PDERROR, "Internal logic error" ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+               // we should merge into this node
+               else if ( relaStart + numPages == nodeStart )
+               {
+                  newSize = nodeSize + numPages ;
+                  DMS_SEGMENT_NODE_SET ( node, relaStart, newSize ) ;
+                  if ( newSize > _maxNode )
+                  {
+                     _maxNode = newSize ;
+                  }
+                  it1 = it ;
+               }
+               else
+               {
+                  // too bad we can't merge, then let's insert one node in the
+                  // middle
+                  newSize = numPages ;
+                  it1 = _freeSpaceList.insert ( it, newnode ) ;
+                  if ( newSize > _maxNode )
+                  {
+                     _maxNode = newSize ;
+                  }
+               }
+               break ;
+            } // if ( start < nodeStart )
+            else if ( relaStart == nodeStart ||
+                      nodeStart + nodeSize > relaStart )
             {
                // something wrong
-               // | start        ... <numPages>   |
-               //                    | nodeStart    ...|
+               // | start   ... <numPages>  |
+               // | nodeStart ....    |
+               // OR
+               //            | start ... <numPages> |
+               // |nodeStart ....<nodeSize>|
                // It's not valid to have overlap
                PD_LOG ( PDERROR, "Internal logic error" ) ;
                rc = SDB_SYS ;
                goto error ;
             }
-            // we should merge into this node
-            else if ( relaStart + numPages == nodeStart )
-            {
-               newSize = nodeSize + numPages ;
-               DMS_SEGMENT_NODE_SET ( node, relaStart, newSize ) ;
-               if ( newSize > _maxNode )
-               {
-                  _maxNode = newSize ;
-               }
-               it1 = it ;
-            }
-            else
-            {
-               // too bad we can't merge, then let's insert one node in the
-               // middle
-               newSize = numPages ;
-               it1 = _freeSpaceList.insert ( it, newnode ) ;
-               if ( newSize > _maxNode )
-               {
-                  _maxNode = newSize ;
-               }
-            }
-            break ;
-         } // if ( start < nodeStart )
-         else if ( relaStart == nodeStart ||
-                   nodeStart + nodeSize > relaStart )
-         {
-            // something wrong
-            // | start   ... <numPages>  |
-            // | nodeStart ....    |
-            // OR
-            //            | start ... <numPages> |
-            // |nodeStart ....<nodeSize>|
-            // It's not valid to have overlap
-            PD_LOG ( PDERROR, "Internal logic error" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         oldit = it ;
-         prevExist = TRUE ;
-      } // for ( it = _freeSpaceList.begin();
+            oldit = it ;
+            prevExist = TRUE ;
+         } // for ( it = _freeSpaceList.begin();
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
 
       // at last, let's try to merge the new node with previous one
       if ( prevExist )
@@ -499,7 +508,19 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            _segments.push_back( newspace ) ;
+
+            try
+            {
+               _segments.push_back( newspace ) ;
+            }
+            catch ( std::exception &e )
+            {
+               SDB_OSS_DEL newspace ;
+               newspace = NULL ;
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
             inUse = FALSE ;
             releaseBegin = i ;
          }
@@ -676,7 +697,20 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      _segments.push_back ( newspace ) ;
+
+      try
+      {
+         _segments.push_back ( newspace ) ;
+      }
+      catch ( std::exception &e )
+      {
+         SDB_OSS_DEL newspace ;
+         newspace = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
       rc = newspace->releasePages ( start, numPages, FALSE ) ;
       if ( rc )
       {
