@@ -95,7 +95,7 @@ public class PushdownTest {
 
     @Test
     public void time() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
                 "btime > '2021-07-22 03:04:46.209000'");
 
         BSONObject conditions = new BasicBSONObject();
@@ -115,7 +115,7 @@ public class PushdownTest {
 
     @Test
     public void localDate() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where atime > '2021-07-22'");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where atime > '2021-07-22'");
 
         BSONObject condition = new BasicBSONObject();
         BSONObject value = new BasicBSONObject();
@@ -134,7 +134,7 @@ public class PushdownTest {
 
     @Test
     public void localDateTime() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
                 "birth > '2021-07-22 10:15:54'");
 
         BSONObject condition = new BasicBSONObject();
@@ -154,7 +154,7 @@ public class PushdownTest {
 
     @Test
     public void and() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 1 and age > 10");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 and age > 10");
 
         BSONObject conditions = new BasicBSONObject();
         BasicBSONList andList = new BasicBSONList();
@@ -185,7 +185,7 @@ public class PushdownTest {
 
     @Test
     public void or() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 1 or " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 or " +
                 "age > 10.0 or property > 1081");
         CloseableIterator<Row> iterator = tableResult.collect();
 
@@ -222,7 +222,7 @@ public class PushdownTest {
 
     @Test
     public void orInOr() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 1 or (age > 10.0" +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 or (age > 10.0" +
                 " or (name = 'asdasd' or property > 15.5))");
         CloseableIterator<Row> iterator = tableResult.collect();
 
@@ -265,7 +265,7 @@ public class PushdownTest {
 
     @Test
     public void multiplex() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 1 and age > 10 " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 and age > 10 " +
                 "or property < 545665.135");
         CloseableIterator<Row> iterator = tableResult.collect();
 
@@ -319,7 +319,7 @@ public class PushdownTest {
 
     @Test
     public void valueEqualValue() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 1 and age > 10 " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 and age > 10 " +
                 "and 1=1");
 
         CloseableIterator<Row> iterator = tableResult.collect();
@@ -351,7 +351,7 @@ public class PushdownTest {
 
     @Test
     public void reverse() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where 1 < id");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where 1 < id");
 
         CloseableIterator<Row> iterator = tableResult.collect();
 
@@ -389,7 +389,7 @@ public class PushdownTest {
 
     @Test
     public void typeCast() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
                 "id > CAST('2121' AS INTEGER) and age > '25.5' and name = 'asdaqw' and property > '554546.54654'");
 
         CloseableIterator<Row> iterator = tableResult.collect();
@@ -433,7 +433,7 @@ public class PushdownTest {
 
     @Test
     public void in() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id in (1,2,3,4,5)");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id in (1,2,3,4,5)");
 
         CloseableIterator<Row> iterator = tableResult.collect();
 
@@ -482,7 +482,7 @@ public class PushdownTest {
 
     @Test
     public void isNull() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 10 or " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 10 or " +
                 "name IS NOT NULL or age > 10 and property > 100");
 
         CloseableIterator<Row> iterator = tableResult.collect();
@@ -548,8 +548,7 @@ public class PushdownTest {
 
     @Test
     public void notIn() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id not in (1,2,3,4,5) " +
-                "limit 10");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id not in (1,2,3,4,5)");
 
         CloseableIterator<Row> iterator = tableResult.collect();
 
@@ -598,7 +597,7 @@ public class PushdownTest {
 
     @Test
     public void complex() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where id > 1 or " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 or " +
                 "birth > '2021-01-01 10:11:10' and age > 10 or property > 1000 and btime > '2021-07-22 03:04:46.209000'" +
                 " or (name = 'asdasd' and address = 'asds')");
 
@@ -678,7 +677,7 @@ public class PushdownTest {
 
     @Test
     public void booleanTest() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where sex is false");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where sex is false");
 
         //down pressure condition is empty,which takes a long time
         CloseableIterator<Row> iterator = tableResult.collect();

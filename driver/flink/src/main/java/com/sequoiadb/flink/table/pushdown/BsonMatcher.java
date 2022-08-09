@@ -44,9 +44,13 @@ public class BsonMatcher {
         //filter null bson
         matchers = matchers.stream().filter(item -> null != item && !item.isEmpty()).collect(Collectors.toList());
 
-        BasicBSONList val = new BasicBSONList();
-        val.addAll(matchers);
-        result.put(SDBConstant.AND, val);
+        if(matchers.size() == 1){
+            result = matchers.get(0);
+        }else {
+            BasicBSONList val = new BasicBSONList();
+            val.addAll(matchers);
+            result.put(SDBConstant.AND, val);
+        }
         return result;
     }
 
@@ -96,6 +100,7 @@ public class BsonMatcher {
             BasicBSONList orList2 = (BasicBSONList) matcher1.get(SDBConstant.OR);
             orList1.addAll(orList2);
 
+            result.put(SDBConstant.OR, orList1);
             //or:field
         } else if (matcher1.get(SDBConstant.OR) != null) {
             BasicBSONList orList = (BasicBSONList) matcher1.get(SDBConstant.OR);
@@ -250,9 +255,14 @@ public class BsonMatcher {
             processMap(newList, inMap, SDBConstant.IN_MERGE);
             processMap(newList, ninMap, SDBConstant.NIN_MERGE);
 
-            result.put(SDBConstant.OR, newList);
-        }catch (Exception e){
-            throw new SDBException("cannot be converted to IN",e.getCause());
+            //single
+            if(newList.size() == 1){
+                result = (BSONObject) newList.get(0);
+            }else {
+                result.put(SDBConstant.OR, newList);
+            }
+        } catch (Exception e) {
+            throw new SDBException("cannot be converted to IN", e.getCause());
         }
         return result;
     }
