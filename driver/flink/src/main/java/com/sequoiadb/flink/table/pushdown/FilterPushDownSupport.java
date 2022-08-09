@@ -166,14 +166,14 @@ public class FilterPushDownSupport {
 
             // get literal and ensure it can be serialized
             result.putAll(func.apply(fieldReference.getName(), getLiteral(valueLiteral)));
-        // field on right ,value on left
+            // field on right ,value on left
         } else if (rExp instanceof FieldReferenceExpression && lExp instanceof ValueLiteralExpression) {
             valueLiteral = (ValueLiteralExpression) lExp;
             fieldReference = (FieldReferenceExpression) rExp;
 
             // get literal and ensure it can be serialized
             result.putAll(reverseFunc.apply(fieldReference.getName(), getLiteral(valueLiteral)));
-        //can't parse
+            //can't parse
         } else {
             LOG.warn("cannot processing expression:{}", callExpr);
             return null;

@@ -42,9 +42,9 @@ public class PushdownTest {
 
     private static final Sequoiadb sequoiadb = new Sequoiadb(con, username, password);
 
-    private static final CollectionSpace collectionSpace = sequoiadb.getCollectionSpace(cs);
+    private static final CollectionSpace collectionSpace;
 
-    private static final DBCollection dbCollection = collectionSpace.getCollection(cl);
+    private static final DBCollection dbCollection;
 
     static {
         //create a data source by datagen of Flink Connector
@@ -91,6 +91,9 @@ public class PushdownTest {
 
         tableEnvironment.executeSql("select * from sourceTable");
         tableEnvironment.executeSql("select * from SDBTable");
+
+        collectionSpace = sequoiadb.getCollectionSpace(cs);
+        dbCollection = collectionSpace.getCollection(cl);
     }
 
     @Test

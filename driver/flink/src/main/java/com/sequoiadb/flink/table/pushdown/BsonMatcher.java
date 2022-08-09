@@ -45,9 +45,11 @@ public class BsonMatcher {
         //filter null bson
         matchers = matchers.stream().filter(item -> null != item && !item.isEmpty()).collect(Collectors.toList());
 
-        if(matchers.size() == 1){
+        if (matchers.isEmpty()) {
+            result = null;
+        } else if (matchers.size() == 1) {
             result = matchers.get(0);
-        }else {
+        } else {
             BasicBSONList val = new BasicBSONList();
             val.addAll(matchers);
             result.put(SDBConstant.AND, val);
@@ -255,9 +257,9 @@ public class BsonMatcher {
             processMap(newList, ninMap, SDBConstant.NIN_MERGE);
 
             //single
-            if(newList.size() == 1){
+            if (newList.size() == 1) {
                 result = (BSONObject) newList.get(0);
-            }else {
+            } else {
                 result.put(SDBConstant.OR, newList);
             }
         } catch (Exception e) {
