@@ -110,14 +110,7 @@ public class FilterPushDownSupport {
             matchers.add(matcher);
         }
 
-        if(matchers.size() > 1){
-            //merge of and
-            return BsonMatcher.andMatcher(matchers);
-        }else if(matchers.size() == 1){
-            //return a single bson result
-            return matchers.get(0);
-        }
-        return new BasicBSONObject();
+        return BsonMatcher.andMatcher(matchers);
     }
 
     /**
