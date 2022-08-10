@@ -61,25 +61,25 @@ public class FilterPushDownSupport {
                             call -> convertBidirectionally(
                                     call,
                                     FilterPushDownSupport::convertGreaterThan,
-                                    FilterPushDownSupport::convertLessThanOrEqual))
+                                    FilterPushDownSupport::convertLessThan))
                     .put(
                             BuiltInFunctionDefinitions.GREATER_THAN_OR_EQUAL,
                             call -> convertBidirectionally(
                                     call,
                                     FilterPushDownSupport::convertGreaterThanOrEqual,
-                                    FilterPushDownSupport::convertLessThan))
+                                    FilterPushDownSupport::convertLessThanOrEqual))
                     .put(
                             BuiltInFunctionDefinitions.LESS_THAN,
                             call -> convertBidirectionally(
                                     call,
                                     FilterPushDownSupport::convertLessThan,
-                                    FilterPushDownSupport::convertGreaterThanOrEqual))
+                                    FilterPushDownSupport::convertGreaterThan))
                     .put(
                             BuiltInFunctionDefinitions.LESS_THAN_OR_EQUAL,
                             call -> convertBidirectionally(
                                     call,
                                     FilterPushDownSupport::convertLessThanOrEqual,
-                                    FilterPushDownSupport::convertGreaterThan))
+                                    FilterPushDownSupport::convertGreaterThanOrEqual))
                     .put(
                             BuiltInFunctionDefinitions.EQUALS,
                             call -> convertBidirectionally(
