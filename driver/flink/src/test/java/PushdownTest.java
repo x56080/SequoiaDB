@@ -97,8 +97,8 @@ public class PushdownTest {
     }
 
     @Test
-    public void time() {
-        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
+    public void localDateTime() {
+        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
                 "btime > '2021-07-22 03:04:46.209000'");
 
         BSONObject conditions = new BasicBSONObject();
@@ -136,8 +136,8 @@ public class PushdownTest {
     }
 
     @Test
-    public void localDateTime() {
-        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
+    public void date() {
+        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
                 "birth > '2021-07-22 10:15:54'");
 
         BSONObject condition = new BasicBSONObject();
