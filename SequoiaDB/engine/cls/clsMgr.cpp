@@ -2573,6 +2573,7 @@ namespace engine
       NodeID routeID ;
       clsRegAssit regAssit ;
       MsgCatRegisterRsp *rsp = (MsgCatRegisterRsp *)msg ;
+      BOOLEAN hasSendUpdateCatGroup = FALSE ;
 
       // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
@@ -2624,6 +2625,7 @@ namespace engine
             if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
             {
                _shdObj->updateCatGroup () ;
+               hasSendUpdateCatGroup = TRUE ;
             }
          }
          else if ( -1 != rsp->startFrom )
@@ -2631,11 +2633,18 @@ namespace engine
             if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
             {
                _shdObj->updateCatGroup() ;
+               hasSendUpdateCatGroup = TRUE ;
             }
          }
          else
          {
             // primary is unknown
+            _shdObj->updateCatGroup() ;
+            hasSendUpdateCatGroup = TRUE ;
+         }
+
+         if ( !hasSendUpdateCatGroup )
+         {
             _shdObj->updateCatGroup() ;
          }
 
@@ -2690,6 +2699,7 @@ namespace engine
          if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
          {
             _shdObj->updateCatGroup () ;
+            hasSendUpdateCatGroup = TRUE ;
          }
       }
       else if ( -1 != rsp->startFrom )
@@ -2697,11 +2707,18 @@ namespace engine
          if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
          {
             _shdObj->updateCatGroup() ;
+            hasSendUpdateCatGroup = TRUE ;
          }
       }
       else
       {
          // primary is unknown
+         _shdObj->updateCatGroup() ;
+         hasSendUpdateCatGroup = TRUE ;
+      }
+
+      if ( !hasSendUpdateCatGroup )
+      {
          _shdObj->updateCatGroup() ;
       }
 

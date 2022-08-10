@@ -1792,6 +1792,7 @@ namespace engine
       std::string groupName ;
       NET_ROUTE_MAP mapNodes ;
       MsgCatCatGroupRes *res = (MsgCatCatGroupRes*)msg ;
+      BOOLEAN businessOk = pmdGetKRCB()->isBusinessOK() ;
 
       // sanity check, make sure the response is OKAY
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(msg) )
@@ -1816,16 +1817,9 @@ namespace engine
       {
          _shardLatch.get () ;
 
-         pmdOptionsCB *optCB = pmdGetOptionCB() ;
-         string oldCfg, newCfg ;
-         // remember the old info
-         optCB->toString( oldCfg ) ;
          NET_ROUTE_MAP oldCatNodes = _mapNodes ;
          NodeID oldID ;
-
-         _catVerion = version ;
          _mapNodes.clear() ;
-         optCB->clearCatAddr() ;
          NET_ROUTE_MAP::iterator it = mapNodes.begin() ;
          // iterate for each nodes in catalog list
          while ( it != mapNodes.end() )
@@ -1834,9 +1828,6 @@ namespace engine
             setCatlogInfo( nodeItem._id,
                            nodeItem._host,
                            nodeItem._service[MSG_ROUTE_CAT_SERVICE] ) ;
-            optCB->setCatAddr( nodeItem._host,
-                               nodeItem._service[
-                               MSG_ROUTE_CAT_SERVICE].c_str() ) ;
             ++it ;
          }
 
@@ -1883,13 +1874,37 @@ namespace engine
             // total refresh must be done by restarting database
             ++it ;
          }
-         // convert new optcb to string
-         optCB->toString( newCfg ) ;
-         // if old and new are different, let's flush
-         if ( oldCfg != newCfg )
+
+         // the node is register successfully
+         if ( businessOk )
          {
-            // refresh to config file
-            optCB->reflush2File() ;
+            pmdOptionsCB *optCB = pmdGetOptionCB() ;
+            string oldCfg, newCfg ;
+
+            // remember the old info
+            optCB->toString( oldCfg ) ;
+            // unchange the catversion when businessOk is flase, avoid retry fail
+            _catVerion = version ;
+            optCB->clearCatAddr() ;
+
+            it = mapNodes.begin() ;
+            // iterate for each nodes in catalog list
+            while ( it != mapNodes.end() )
+            {
+               clsNodeItem &nodeItem = it->second ;
+               optCB->setCatAddr( nodeItem._host,
+                                  nodeItem._service[
+                                  MSG_ROUTE_CAT_SERVICE].c_str() ) ;
+               ++it ;
+            }
+            // convert new optcb to string
+            optCB->toString( newCfg ) ;
+            // if old and new are different, let's flush
+            if ( oldCfg != newCfg )
+            {
+               // refresh to config file
+               optCB->reflush2File() ;
+            }
          }
 
          _shardLatch.release () ;
@@ -1919,6 +1934,14 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR__ONCATGPRES, rc );
       return rc ;
    error:
+      // if the information is pulled from the standby node that
+      // has not been syncchronized, it will cause the problem
+      // that the group does no exist
+      // in this case , we need to retry
+      if ( SDB_CLS_GRP_NOT_EXIST == rc )
+      {
+         updateCatGroup() ;
+      }
       goto done ;
    }
 
