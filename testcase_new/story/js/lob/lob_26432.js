@@ -2,8 +2,8 @@
  * @Description   : seqDB-26432:指定lob oid长度不为24位
  * @Author        : Zhang Yanan
  * @CreateTime    : 2022.04.27
- * @LastEditTime  : 2022.06.10
- * @LastEditors   : Zhang Yanan
+ * @LastEditTime  : 2022.08.10
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26432";
 
@@ -43,10 +43,8 @@ function checkDifferentLobId ( cl, lobOid, lobPath )
       cl.deleteLob( lobOid );
    } );
 
-   // truncateLob接口验证暂时屏蔽，该问题由问题单http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-8392跟踪
-   /*assert.tryThrow( SDB_INVALIDARG, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.truncateLob( lobOid, 0 );
-   } );*/
+   } );
 }
-
