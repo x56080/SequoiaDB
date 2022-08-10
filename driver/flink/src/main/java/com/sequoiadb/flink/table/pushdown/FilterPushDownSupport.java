@@ -26,6 +26,7 @@ import org.apache.flink.table.types.DataType;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDate;
+import org.bson.types.BSONTimestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -388,9 +389,11 @@ public class FilterPushDownSupport {
         if (value instanceof LocalDate) {
             resultValue = BSONDate.valueOf((LocalDate) value);
         } else if (value instanceof LocalDateTime) {
-            resultValue = BSONDate.valueOf((LocalDateTime) value);
+            Timestamp timestamp = Timestamp.valueOf((LocalDateTime) value);
+            resultValue = new BSONTimestamp(timestamp);
         } else if (value instanceof Instant) {
-            resultValue = Timestamp.from((Instant) value);
+            Timestamp timestamp = Timestamp.from((Instant) value);
+            resultValue = new BSONTimestamp(timestamp);
         }
 
         return (Serializable) resultValue;
