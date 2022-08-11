@@ -35,8 +35,7 @@
 
 #include "vessel/clIndexMetaStorage.h"
 #include "vessel/globalIndexID.h"
-#include "vessel/objectIdentifier.h"
-#include "vessel/lsm/lsmIndexMetaKey.h"
+#include "vessel/lsm/lsmIndexMetaKeyBuilder.h"
 #include "ossLikely.hpp"
 #include "ixm_common.hpp"
 #include "vessel/lsm/lsmColumnFamily.h"
@@ -51,7 +50,7 @@ namespace vessel
    }
 
    void clIndexMetaStorage::init(UINT32 csLid,
-                               UINT32 clLid)
+                                 UINT32 clLid)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCSID != csLid, "can not be invalid");
       SDB_ASSERT(DMS_INVALID_LOGICCLID != clLid, "can not be invalid");
@@ -150,7 +149,7 @@ namespace vessel
                                     const bson::BSONObj &indexEntry) const
    {
       INT32 rc = SDB_OK;
-      lsmIndexMetaKey key;
+      lsmIndexMetaKeyBuilder key;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (!isValid())
@@ -171,8 +170,7 @@ namespace vessel
          goto error;
       }
 
-      key.init(globalIndexID(_csLid, _clLid, indexLid));
-      rc = cf.put(key.getKeySlice(),
+      rc = cf.put(key.build(globalIndexID(_csLid, _clLid, indexLid)),
                   rocksdb::Slice(indexEntry.objdata(),
                                  indexEntry.objsize()));
       if (SDB_OK != rc)
@@ -192,7 +190,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       std::string res;
-      lsmIndexMetaKey key;
+      lsmIndexMetaKeyBuilder key;
       BOOLEAN notFound = FALSE;
 
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
@@ -217,9 +215,7 @@ namespace vessel
          goto error;
       }
 
-      key.init(globalIndexID(_csLid, _clLid, indexLid));
-
-      rc = cf.get(key.getKeySlice(),
+      rc = cf.get(key.build(globalIndexID(_csLid, _csLid, indexLid)),
                   res, notFound);
       if (SDB_OK != rc)
       {
@@ -260,10 +256,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       rocksdb::ReadOptions rOpt;
       rocksdb::Iterator *itr = nullptr;
-      lsmIndexMetaKey lowKey;
-      lsmCLIdKey upKey;
-      rocksdb::Slice lowKeySlice;
-      rocksdb::Slice upKeySlice;
+      lsmIndexMetaKeyBuilder lowKey, upKey;
+      rocksdb::Slice lowKeySlice, upKeySlice;
 
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
@@ -281,10 +275,8 @@ namespace vessel
          goto error;
       }
 
-      lowKey.init(globalIndexID(_csLid, _clLid, 0));
-      upKey.initAsUpKey(_csLid, _clLid);
-      lowKeySlice = rocksdb::Slice(lowKey.getKeySlice());
-      upKeySlice = rocksdb::Slice(upKey.getKeySlice());
+      lowKeySlice = lowKey.build(globalIndexID(_csLid, _clLid, 0));
+      upKeySlice = upKey.buildUpperKey(_csLid, _clLid);
       rOpt.iterate_lower_bound = &lowKeySlice;
       rOpt.iterate_upper_bound = &upKeySlice;
 
@@ -324,7 +316,7 @@ namespace vessel
    INT32 clIndexMetaStorage::removeEntry(UINT32 indexLid) const
    {
       INT32 rc = SDB_OK;
-      lsmIndexMetaKey key;
+      lsmIndexMetaKeyBuilder key;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
@@ -345,8 +337,7 @@ namespace vessel
          goto error;
       }
 
-      key.init(globalIndexID(_csLid, _clLid, indexLid));
-      rc = cf.remove(key.getKeySlice());
+      rc = cf.remove(key.build(globalIndexID(_csLid, _clLid, indexLid)));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "remove specified index meta data failed, rc:%d", rc);
@@ -362,8 +353,7 @@ namespace vessel
    INT32 clIndexMetaStorage::destroy() const
    {
       INT32 rc = SDB_OK;
-      lsmCLIdKey lowKey;
-      lsmCLIdKey upKey;
+      lsmIndexMetaKeyBuilder lowKey, upKey;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (OSS_UNLIKELY(!cf.isValid()))
@@ -379,10 +369,8 @@ namespace vessel
          goto error;
       }
 
-      lowKey.init(_csLid, _clLid);
-      upKey.initAsUpKey(_csLid, _clLid);
-
-      rc = cf.truncate(lowKey.getKeySlice(), upKey.getKeySlice());
+      rc = cf.truncate(lowKey.build(_csLid, _clLid),
+                       upKey.buildUpperKey(_csLid, _clLid));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to destroy indexes in collection[%d], rc:%d",

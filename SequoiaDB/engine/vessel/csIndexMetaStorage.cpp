@@ -35,7 +35,7 @@
 
 #include "vessel/csIndexMetaStorage.h"
 #include "vessel/lsm/lsmColumnFamily.h"
-#include "vessel/lsm/lsmIndexMetaKey.h"
+#include "vessel/lsm/lsmIndexMetaKeyBuilder.h"
 #include "ixm_common.hpp"
 
 namespace engine
@@ -56,7 +56,7 @@ namespace vessel
    INT32 csIndexMetaStorage::upsert(const bson::BSONObj &manifest) const
    {
       INT32 rc = SDB_OK;
-      lsmIndexManifestKey key;
+      lsmIndexMetaKeyBuilder key;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (!isValid())
@@ -76,8 +76,7 @@ namespace vessel
          goto error;
       }
 
-      key.init(_csLid);
-      rc = cf.put(key.getKeySlice(),
+      rc = cf.put(key.build(_csLid),
                   rocksdb::Slice(manifest.objdata(),
                                  manifest.objsize()));
       if (SDB_OK != rc)
@@ -96,7 +95,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       std::string res;
-      lsmIndexManifestKey key;
+      lsmIndexMetaKeyBuilder key;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
       BOOLEAN notFound = TRUE;
       maxIndexLid = INVALID_LOGICAL_INDEX_ID;
@@ -113,8 +112,7 @@ namespace vessel
          goto error;
       }
 
-      key.init(_csLid);
-      rc = cf.get(key.getKeySlice(), res, notFound);
+      rc = cf.get(key.build(_csLid), res, notFound);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "get index manifest failed, rc:%d", rc);
@@ -145,7 +143,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       std::string res;
-      lsmIndexManifestKey key;
+      lsmIndexMetaKeyBuilder key;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
       notFound = TRUE;
       obj = bson::BSONObj();
@@ -162,8 +160,7 @@ namespace vessel
          goto error;
       }
 
-      key.init(_csLid);
-      rc = cf.get(key.getKeySlice(), res, notFound);
+      rc = cf.get(key.build(_csLid), res, notFound);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "get index manifest failed, rc:%d", rc);
@@ -195,8 +192,7 @@ namespace vessel
    INT32 csIndexMetaStorage::destroy() const
    {
       INT32 rc = SDB_OK;
-      lsmIndexManifestKey lowKey;
-      lsmIndexManifestKey upKey;
+      lsmIndexMetaKeyBuilder lowKey, upKey;
       lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
 
       if (!isValid())
@@ -211,9 +207,7 @@ namespace vessel
          goto error;
       }
 
-      lowKey.init(_csLid);
-      upKey.initAsUpKey(_csLid);
-      rc = cf.truncate(lowKey.getKeySlice(), upKey.getKeySlice());
+      rc = cf.truncate(lowKey.build(_csLid), upKey.buildUpperKey(_csLid));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "destroy cs[%d] failed, rc:%d",

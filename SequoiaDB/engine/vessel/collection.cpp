@@ -61,7 +61,6 @@
 #include "ixm_common.hpp"
 #include "dmsLobDef.hpp"
 #include "vessel/hybridIndexTree.h"
-#include "vessel/csIndexMetaStorage.h"
 #include "vessel/clIndexMetaStorage.h"
 #include "vessel/dmlContext.h"
 
