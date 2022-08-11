@@ -48,6 +48,7 @@
 #include "vessel/storageFileMaintainer.h"
 #include "vessel/csMetaBlockPageIniter.h"
 #include "vessel/csIndexMetaStorage.h"
+#include "ixm_common.hpp"
 
 namespace engine
 {
@@ -1563,6 +1564,9 @@ namespace vessel
    INT32 collectionSpace::allocateNextIndexLid(UINT32 &indexLid)
    {
       INT32 rc = SDB_OK;
+      bson::BSONObj manifest;
+      csIndexMetaStorage ms(getLogicalID());
+      SDB_ASSERT(ms.isValid(), "can not be invalid");
       std::unique_lock<std::mutex> lck(_lidMutex);
       indexLid = INVALID_LOGICAL_INDEX_ID;
 
@@ -1570,6 +1574,14 @@ namespace vessel
       {
          rc = SDB_DMS_MAX_INDEX;
          PD_LOG(PDERROR, "hit max number of index");
+         goto error;
+      }
+
+      manifest = BSON(IXM_MAX_LOGICAL_ID << (_maxIndexLid + 1));
+      rc = ms.upsert(manifest);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "upsert index manifest failed, rc:%d", rc);
          goto error;
       }
 
@@ -1585,10 +1597,10 @@ namespace vessel
    INT32 collectionSpace::_loadMaxIndexLid()
    {
       INT32 rc = SDB_OK;
-      csIndexMetaStorage ms;
+      csIndexMetaStorage ms(getLogicalID());
+      SDB_ASSERT(ms.isValid(), "can not be invalid");
       UINT32 maxLid = INVALID_LOGICAL_INDEX_ID;
 
-      ms.init(getLogicalID());
       rc = ms.getMaxIndexLid(maxLid);
       if (SDB_OK != rc)
       {

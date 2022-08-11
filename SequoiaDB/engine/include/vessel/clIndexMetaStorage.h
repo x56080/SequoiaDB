@@ -40,6 +40,7 @@
 #include "dms.hpp"
 #include "vessel/indexDef.h"
 #include "vessel/indexObjectMap.h"
+#include "dpsDef.hpp"
 
 namespace engine
 {
@@ -66,6 +67,9 @@ namespace vessel
 
       public:
          INT32 reload(indexObjectMap &im) const;
+
+         INT32 commit(UINT32 indexLid,
+                      indexObjectMap &im) const;
 
       public:
          INT32 upsert(UINT32 indexLid,

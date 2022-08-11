@@ -2946,16 +2946,11 @@ namespace vessel
 
       ossPoolString fullName;
       indexProperties properties;
-      indexObject *obj = nullptr;
-      std::unique_ptr<indexObject> ptr;
-      BOOLEAN inserted = FALSE;
+      std::unique_ptr<indexObject> obj;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       indexObjectMap &indexMap = _entryBlock._indexes;
       UINT32 indexLid = INVALID_LOGICAL_INDEX_ID;
-      bson::BSONObj manifest;
-      csIndexMetaStorage csStore(_cs->getLogicalID());
       clIndexMetaStorage clStore(_cs->getLogicalID(), getLogicalID());
-      SDB_ASSERT(csStore.isValid(), "can not be invalid");
       SDB_ASSERT(clStore.isValid(), "can not be invalid");
 
       logicalIndexId = INVALID_LOGICAL_INDEX_ID;
@@ -2990,8 +2985,8 @@ namespace vessel
          goto error;
       }
 
-      obj = SDB_OSS_NEW indexObject();
-      if (nullptr == obj)
+      obj.reset(SDB_OSS_NEW indexObject());
+      if (!obj)
       {
          rc = SDB_OOM;
          PD_LOG(PDERROR, "out of memory");
@@ -3013,43 +3008,34 @@ namespace vessel
          goto error;
       }
 
-      ptr.reset(obj);
-      rc = indexMap.insertBuildingObject(std::move(ptr));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "insert building object failed, rc:%d", rc);
-         goto error;
-      }
-      inserted = TRUE;
-
       fullName = _entryBlock.getProperties()->getFullName();
 
-      rc = commitCreateIndexLog(fullName, obj->getLogicalID(),
+      rc = commitCreateIndexLog(fullName, indexLid,
                                 adjunct, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit create index log:%d", rc);
          goto error;
       }
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
 
       obj->resetRebornLSN(lsn);
 
-      manifest = BSON(IXM_MAX_LOGICAL_ID << indexLid);
-      rc = csStore.upsert(manifest);
+      rc = indexMap.insertBuildingObject(std::move(obj));
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "upsert index manifest failed, rc:%d", rc);
+         PD_LOG(PDERROR, "insert building object failed, rc:%d", rc);
          goto error;
       }
 
-      rc = clStore.upsert(indexLid, obj->toBson());
+      rc = clStore.commit(indexLid, indexMap);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to upsert index meta entry:%d", rc);
+         PD_LOG(PDERROR, "commit index meta data failed, rc:%d", rc);
          goto error;
       }
 
-      logicalIndexId = obj->getLogicalID();
+      logicalIndexId = indexLid;
       
    done:
       return rc;
@@ -3059,7 +3045,7 @@ namespace vessel
          SDB_ASSERT(SDB_OK != rc, "impossible");
          INT32 tmpRc = commitCreateIndexEndLog(fullName, 
                                                properties.getName(),
-                                               obj->getLogicalID(), rc);
+                                               indexLid, rc);
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to commit creating end log, rc:%d", tmpRc);
@@ -3067,17 +3053,9 @@ namespace vessel
          }
       }
 
-      if (nullptr != obj)
+      if (!obj && INVALID_LOGICAL_INDEX_ID != indexLid)
       {
-         if (inserted)
-         {
-            indexMap.destroy(obj->getLogicalID());
-         }
-         else
-         {
-            SDB_OSS_DEL obj;
-         }
-         obj = nullptr;
+         indexMap.destroy(indexLid);
       }
       goto done;
    }

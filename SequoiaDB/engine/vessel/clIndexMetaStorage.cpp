@@ -111,6 +111,41 @@ namespace vessel
       goto done;
    }
 
+   INT32 clIndexMetaStorage::commit(UINT32 indexLid,
+                                    indexObjectMap &im) const
+   {
+      INT32 rc = SDB_OK;
+      const indexObject *obj = nullptr;
+
+      if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexLid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      obj = im.getIndexObj(indexLid);
+      if (OSS_UNLIKELY(nullptr == obj ||
+                       !obj->isValid() ||
+                       !obj->isBuilding()))
+      {
+         rc = SDB_IXM_NOTEXIST;
+         PD_LOG(PDERROR, "get index object[%d] failed", indexLid);
+         goto error;
+      }
+
+      rc = upsert(indexLid, obj->toBson());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "upsert index meta data failed, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 clIndexMetaStorage::upsert(UINT32 indexLid,
                                     const bson::BSONObj &indexEntry) const
    {
