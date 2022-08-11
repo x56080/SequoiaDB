@@ -63,6 +63,10 @@ public class Constants {
     public final static String IXM_NAME = "name";
     public final static String OID = "_id";
 
+    // user information
+    public final static String TEST_USER_NAME = "test_user";
+    public final static String TEST_USER_PASSWORD = "123";
+
     public static boolean isCluster() {
         Sequoiadb sdb = new Sequoiadb(HOST + ":" + PORT, "", "");
         try {

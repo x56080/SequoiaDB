@@ -541,4 +541,81 @@ public class SequoiadbDatasourceTest {
             ds.close();
         }
     }
+
+    @Test
+    public void builderTest() {
+        DatasourceOptions dsOpt = new DatasourceOptions();
+        dsOpt.setMinIdleCount( 10 );
+        dsOpt.setMaxIdleCount( 20 );
+
+        ConfigOptions netOpt = new ConfigOptions();
+        netOpt.setConnectTimeout( 1000 ); // 1s
+        netOpt.setMaxAutoConnectRetryTime( 0 );
+
+        // case 1: address and datasourceOptions
+        try {
+            SequoiadbDatasource ds = SequoiadbDatasource.builder()
+                    .serverAddress( ( String ) null )
+                    .build();
+        } catch ( BaseException e ){
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
+        }
+
+        List<String> addressList = new ArrayList<>();
+        addressList.add( "127.0.0.1:11810" );
+        addressList.add( "127.0.0.1:11820" );
+        addressList.add( "" );
+        addressList.add( Constants.COOR_NODE_CONN );
+
+        SequoiadbDatasource ds1 = SequoiadbDatasource.builder()
+                .serverAddress( addressList )
+                .configOptions( netOpt )
+                .datasourceOptions( dsOpt )
+                .build();
+        try {
+            checkDataSource( ds1 );
+            Assert.assertEquals( 3, ds1.getNormalAddrNum() + ds1.getAbnormalAddrNum() );
+            DatasourceOptions resultOpt = ds1.getDatasourceOptions();
+            Assert.assertEquals( resultOpt.getMinIdleCount(), dsOpt.getMinIdleCount());
+            Assert.assertEquals( resultOpt.getMaxIdleCount(), dsOpt.getMaxIdleCount());
+        } finally {
+            ds1.close();
+        }
+
+        // case 2: user
+        try {
+            Sequoiadb db = ds.getConnection();
+            try {
+                db.createUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
+
+                // user name and password
+                SequoiadbDatasource ds2 = SequoiadbDatasource.builder()
+                        .userConfig( new UserConfig( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD ) )
+                        .serverAddress( Constants.COOR_NODE_CONN )
+                        .configOptions( netOpt )
+                        .datasourceOptions( dsOpt )
+                        .build();
+                try {
+                    checkDataSource( ds2 );
+                }finally {
+                    ds2.close();
+                }
+            } finally {
+                db.removeUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
+            }
+            ds.releaseConnection( db );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
+    }
+
+    private void checkDataSource( SequoiadbDatasource ds ) {
+        try {
+            Sequoiadb db = ds.getConnection();
+            Assert.assertTrue( db.isValid() );
+            ds.releaseConnection( db );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
+    }
 }
