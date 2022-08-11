@@ -2066,10 +2066,8 @@ namespace engine
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
       //Update the primary catlog node
-      if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
-      {
-         _shdObj->updateCatGroup () ;
-      }
+      _shdObj->updatePrimary( msg->routeID, TRUE ) ;
+      _shdObj->updateCatGroup () ;
 
       //Active the shard and repl CBs
       rc = _shdObj->active () ;
