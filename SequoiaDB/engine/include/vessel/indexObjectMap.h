@@ -64,6 +64,8 @@ namespace vessel
          void reset();    
 
          void destroy(UINT32 indexLid);
+
+         BOOLEAN isAllowedToCreateMore() const;
                      
          indexObject *getIndexObj(UINT32 indexLid);
 

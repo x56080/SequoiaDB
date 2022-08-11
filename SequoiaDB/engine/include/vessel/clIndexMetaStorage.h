@@ -69,7 +69,7 @@ namespace vessel
          INT32 reload(indexObjectMap &im) const;
 
          INT32 commit(UINT32 indexLid,
-                      indexObjectMap &im) const;
+                      const indexObjectMap &im) const;
 
       public:
          INT32 upsert(UINT32 indexLid,

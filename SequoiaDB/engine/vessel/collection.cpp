@@ -2962,6 +2962,12 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (!indexMap.isAllowedToCreateMore())
+      {
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "not allowed to create more");
+         goto error;
+      }
 
       rc = properties.init(adjunct);
       if (SDB_OK != rc)

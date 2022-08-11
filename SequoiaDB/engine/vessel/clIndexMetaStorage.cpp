@@ -111,7 +111,7 @@ namespace vessel
    }
 
    INT32 clIndexMetaStorage::commit(UINT32 indexLid,
-                                    indexObjectMap &im) const
+                                    const indexObjectMap &im) const
    {
       INT32 rc = SDB_OK;
       const indexObject *obj = nullptr;

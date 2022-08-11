@@ -50,11 +50,16 @@ namespace vessel
       return;
    }
 
+   BOOLEAN indexObjectMap::isAllowedToCreateMore() const
+   {
+      return _objects.size() < MAX_INDEX_COUNT_PER_CL;
+   }
+
    INT32 indexObjectMap::validateCreation(const indexProperties &properties) const
    {
       INT32 rc = SDB_OK;
       
-      if (_objects.size() >= MAX_INDEX_COUNT_PER_CL)
+      if (!isAllowedToCreateMore())
       {
          rc = SDB_DMS_MAX_INDEX;
          PD_LOG(PDERROR, "no more index allowed");
@@ -271,6 +276,12 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (!isAllowedToCreateMore())
+      {
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "not allowed to create more");
+         goto error;
+      }
       else if (0 < _objects.count(obj->getLogicalID()))
       {
          rc = SDB_VESSEL_DUPLICATED_KEY;
@@ -295,6 +306,12 @@ namespace vessel
                        !obj->isBuilding()))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if(!isAllowedToCreateMore())
+      {
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "not allowed to create more");
          goto error;
       }
       else if (0 < _objects.count(obj->getLogicalID()) ||
