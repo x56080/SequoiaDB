@@ -23,6 +23,7 @@ import com.sequoiadb.flink.config.SplitMode;
 import com.sequoiadb.flink.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
 import com.sequoiadb.flink.util.SDBInfoUtil;
+import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,9 +40,13 @@ public class SDBShardingSplitStrategy implements SDBSplitStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(SDBShardingSplitStrategy.class);
 
     private final SDBSourceOptions sourceOptions;
+    private final BSONObject matcher;
+    private final BSONObject selector;
 
-    public SDBShardingSplitStrategy(SDBSourceOptions sourceOptions) {
+    public SDBShardingSplitStrategy(SDBSourceOptions sourceOptions, BSONObject matcher, BSONObject selector) {
         this.sourceOptions = sourceOptions;
+        this.matcher = matcher;
+        this.selector = selector;
     }
 
     /**
@@ -58,7 +63,7 @@ public class SDBShardingSplitStrategy implements SDBSplitStrategy {
                 sourceOptions.getUsername(), sourceOptions.getPassword(), new ConfigOptions())) {
             // get replica groups and sharding info via SDBConstant.
             Map<String, List<NodeInfo>> dataGroups = SDBInfoUtil.getDataGroups(sdb);
-            List<ShardingInfo> shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions);
+            List<ShardingInfo> shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions, matcher, selector);
 
             // traverse sharding infos and generate SDBSplits
             for (ShardingInfo shardingInfo : shardingInfos) {

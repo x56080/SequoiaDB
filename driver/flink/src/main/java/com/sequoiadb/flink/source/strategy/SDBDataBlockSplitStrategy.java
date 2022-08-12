@@ -71,7 +71,7 @@ public class SDBDataBlockSplitStrategy implements SDBSplitStrategy {
                 throw new SDBException(String.format("SequoiaDB has no normal nodes, coord nodes: [%s].",
                         sourceOptions.getHosts()));
             }
-            shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions);
+            shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions, null, null);
         }
 
         List<QueryMeta> queryMetas = getQueryMetas(dataGroups, shardingInfos);
