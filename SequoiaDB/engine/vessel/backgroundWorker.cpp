@@ -37,13 +37,23 @@
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/threadContext.h"
-#include "vessel/requestContext.h"
 #include "vessel/bufferFlushDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+   backgroundWorker::backgroundWorker(instanceEnv *env,
+                                      autoEventList<backgroundEvent> *el,
+                                      std::atomic_int *counter):
+   _env(env),
+   _el(el),
+   _workingCounter(counter)
+   {
+      SDB_ASSERT(nullptr != env, "can not be invalid");
+      SDB_ASSERT(nullptr != el, "can not be invalid");
+   }
+
    void backgroundWorker::init(instanceEnv *env,
                                autoEventList<backgroundEvent> *el,
                                std::atomic_int *counter)
@@ -57,26 +67,49 @@ namespace vessel
       return;
    }
 
-   void backgroundWorker::waitAttaching()
+   INT32 backgroundWorker::active(BOOLEAN waitForAttaching)
    {
-      _attachEvent.wait();
-      return;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!isAttached(), "can not be attached");
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_WORKER, this);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to start new edu:%d", rc);
+         goto error;
+      }
+
+      if (waitForAttaching)
+      {
+         _waitForAttaching();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
-   void backgroundWorker::activeEntry(IExecutor *executor)
+   void backgroundWorker::attach(IExecutor *executor)
    {
       SDB_ASSERT(nullptr != executor, "can not be nullptr");
-      SDB_ASSERT(nullptr != _env, "can not be nullptr");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!isAttached(), "can not be attached");
+
       THREAD_CONTEXT_OWNER tco(executor, _env);
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       backgroundEvent event;
-      _attachEvent.signalAll();
+
+      _setAttached();
 
       do
       {
          _el->popOrWait(event);
          SDB_ASSERT(event.isValid(), "impossible");
-         
 
          if (event.isQuitEvent())
          {
@@ -89,22 +122,7 @@ namespace vessel
             _workingCounter->fetch_add(1, std::memory_order_relaxed);
          }
 
-         switch (event.getType())
-         {
-         case BACKGROUND_EVENT_TYPE::DATA_BUF_TASK:
-         {
-            handleDataBufferEvent(executor, event);
-            break;
-         }
-         case BACKGROUND_EVENT_TYPE::LOB_BUF_TASK:
-         {
-            handleLobdBufferEvent(executor, event);
-            break;
-         }
-         default:
-            SDB_ASSERT(FALSE, "invalid type");
-            break;
-         }
+         _handleEvent(event);
 
          if (nullptr != _workingCounter)
          {
@@ -123,13 +141,33 @@ namespace vessel
          quitRes.initAsResponse(BACKGROUND_EVENT_TYPE::QUIT);
          event.getResponser()->push(quitRes);
       }
+      _setDetached();
       return;
    }
 
-   void backgroundWorker::handleDataBufferEvent(IExecutor *executor,
-                                           backgroundEvent &event)
+   void backgroundWorker::_handleEvent(const backgroundEvent &e)
    {
-      SDB_ASSERT(nullptr != executor, "can not be invalid");
+      switch (e.getType())
+      {
+      case BACKGROUND_EVENT_TYPE::DATA_BUF_TASK:
+         handleDataBufferEvent(e);
+         break;
+      case BACKGROUND_EVENT_TYPE::LOB_BUF_TASK:
+         handleLobdBufferEvent(e);
+         break;
+      case BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER:
+         handleHitTransferEvent(e);
+         break;
+      default:
+         PD_LOG(PDERROR, "unknown event type:%d", e.getType());
+         break;
+      }
+
+      return;
+   }
+
+   void backgroundWorker::handleDataBufferEvent(const backgroundEvent &event)
+   {
       SDB_ASSERT(BACKGROUND_EVENT_TYPE::DATA_BUF_TASK == event.getType(),
                  "can not be other type");
       bufferFlushTaskId taskId =
@@ -143,10 +181,8 @@ namespace vessel
       return;
    }
 
-   void backgroundWorker::handleLobdBufferEvent(IExecutor *executor,
-                                                backgroundEvent &event)
+   void backgroundWorker::handleLobdBufferEvent(const backgroundEvent &event)
    {
-      SDB_ASSERT(nullptr != executor, "can not be invalid");
       SDB_ASSERT(BACKGROUND_EVENT_TYPE::LOB_BUF_TASK == event.getType(),
                  "can not be other type");
       bufferFlushTaskId taskId =
@@ -157,6 +193,48 @@ namespace vessel
       {
          event.getResponser()->push(event.createSimpleResponse(rc));
       }
+   }
+
+   void backgroundWorker::handleHitTransferEvent(const backgroundEvent &event)
+   {
+      SDB_ASSERT(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER == event.getType(),
+                 "can not be other type");
+      UINT32 taskId = event.getShortData<UINT32>();
+      INT32 rc = _env->hitMgr.executeTask(taskId);
+      if (event.hasResponser())
+      {
+         event.getResponser()->push(event.createSimpleResponse(rc));
+      }
+   }
+
+   void backgroundWorker::_waitForAttaching()
+   {
+      std::unique_lock<std::mutex> lock(_m);
+      _cv.wait(lock, [this]{return isAttached();});
+   }
+
+   void backgroundWorker::_setAttached()
+   {
+      std::unique_lock<std::mutex> lock(_m);
+      SDB_ASSERT(STATUS::DETACHED == _status, "can not be invalid");
+      _status = STATUS::ATTACHED;
+      _cv.notify_all();
+   }
+
+   void backgroundWorker::_waitForDetaching()
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      std::unique_lock<std::mutex> lock(_m);
+      _cv.wait(lock, [this]{return !isAttached();});
+   }
+
+   void backgroundWorker::_setDetached()
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      std::unique_lock<std::mutex> lock(_m);
+      SDB_ASSERT(STATUS::ATTACHED == _status, "can not be invalid");
+      _status = STATUS::DETACHED;
+      _cv.notify_all();
    }
 }//namespace vessel
 }//namespace engine

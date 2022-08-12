@@ -108,6 +108,14 @@ namespace vessel
       public:
       //    void onFlush(DPS_LSN_OFFSET maxLsn);
 
+      public:
+         INT32 loadSSTs(LSM_CF_ID id,
+                        INT32 level,
+                        BOOLEAN dirIncluded,
+                        ossPoolVector<std::string> &ssts);
+
+         INT32 removeSST(const std::string &name);
+
       private:
          rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID id,
                                           const rocksdb::Options &opt) const;
@@ -116,6 +124,8 @@ namespace vessel
          INT32 _flushDB();
 
          INT32 _flushCF(LSM_CF_ID id);
+
+         lsmColumnFamilyContext *_getColumnFamilyCtx(LSM_CF_ID id);
 
       private:
          rocksdb::DB *_db = nullptr;

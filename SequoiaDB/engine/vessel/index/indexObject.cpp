@@ -76,6 +76,7 @@ namespace vessel
       _properties.reset();
       _status = INDEX_STATUS_INVALID;
       _btreeEntryAddr = INVALID_PAGE_ID;
+      _btreeEntryPSN = 0;
       return;
    }
 

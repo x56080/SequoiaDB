@@ -103,6 +103,11 @@ namespace vessel
                            const PAGE_ID *lpids);
 
       public:
+         UINT64 getPSN()const
+         {
+            return _psn.load(std::memory_order_relaxed);
+         }
+
          void incPtePageNum()
          {
             _totalPtePageNum.fetch_add(1, std::memory_order_relaxed);

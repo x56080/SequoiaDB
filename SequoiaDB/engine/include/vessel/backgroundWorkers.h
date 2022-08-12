@@ -47,7 +47,6 @@ namespace engine
 {
 namespace vessel
 {
-   class outerResource;
    class instanceEnv;
 
    class backgroundWorkers : public SDBObject
@@ -59,10 +58,9 @@ namespace vessel
          backgroundWorkers &operator=(const backgroundWorkers &) = delete;
 
       public:
-         class options : public SDBObject
+         struct options : public SDBObject
          {
-            public:
-               UINT32 bufferCleaner = 8;
+            UINT32 maxWorkerNum = 8;
          };//class options
 
       public:
@@ -72,11 +70,9 @@ namespace vessel
 
          void pushEvent(const backgroundEvent &event);
 
-         void pushBufferEvent(const backgroundEvent &event);
-
-         OSS_INLINE BOOLEAN isReady()const
+         OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _env;
+            return nullptr != _env;
          }
 
       private:
@@ -84,18 +80,14 @@ namespace vessel
          void _deactive();
 
       private:
-         typedef ossPoolList<backgroundWorker *> _WORKERS;
-         struct _workerFamily : public SDBObject
-         {
-            void clear();
-            autoEventList<backgroundEvent> _el;
-            _WORKERS _workers;
-            std::atomic_int _workingCounter = {0};
-         };
+         using _WORKERS = std::vector<BACKGROUND_WORKER_UPTR>;
 
       private:
-         instanceEnv *_env = NULL;
-         _workerFamily _buffer;
+         instanceEnv *_env = nullptr;
+         autoEventList<backgroundEvent> _el;
+         std::atomic_int _workingCounter{0};
+         _WORKERS _workers;
+         UINT32 _actived = 0;
    };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine

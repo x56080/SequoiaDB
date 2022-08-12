@@ -102,6 +102,7 @@ namespace vessel
       _rctx = rctx;
       _is = is;
       _mutex->lock_r();
+      _psn = is->getPSN();
    }
 
    void indexSpaceAccessCtx::reset()
@@ -113,6 +114,7 @@ namespace vessel
       }
       _rctx = nullptr;
       _is = nullptr;
+      _psn = 0;
       _reserved.reset();
       _remapped.reset();
       return;

@@ -229,6 +229,7 @@ namespace vessel
       public:
          void attachLobcWatcher(IExecutor *executor);
          void attachLiteBufferPoolWatcher(IExecutor *executor);
+         void attachHitManager(IExecutor *executor);
          
       private:
 

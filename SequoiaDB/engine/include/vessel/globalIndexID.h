@@ -151,6 +151,13 @@ namespace vessel
             return;
          }
 
+         ossPoolString toString() const
+         {
+            bson::StringBuilder builder(64);
+            builder << '{' << _csLid << ','
+                    << _clLid << "," << _indexLid << '}';
+            return std::move(builder.poolStr());
+         }
       private:
          UINT32 _csLid = DMS_INVALID_LOGICCSID;
          UINT32 _clLid = DMS_INVALID_LOGICCLID;

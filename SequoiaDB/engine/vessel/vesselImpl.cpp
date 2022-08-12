@@ -146,7 +146,14 @@ namespace vessel
       rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open storage units:%d", rc);
+         PD_LOG(PDERROR, "failed to open data management service:%d", rc);
+         goto error;
+      }
+
+      rc = _env.hitMgr.init();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init hit index manager :%d", rc);
          goto error;
       }
 
@@ -1095,6 +1102,7 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
+         _env.hitMgr.fini();
          _env.lobcBufferPool.fini();
          _env.ioBufferPool.fini();
          _env.workers.fini();  
@@ -1410,7 +1418,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       backgroundWorkers::options o;
-      o.bufferCleaner = options.cacheCleanerCount;
+      o.maxWorkerNum = options.cacheCleanerCount;
       rc = _env.workers.init(&_env, o);
       if (SDB_OK != rc)
       {
@@ -1436,6 +1444,15 @@ namespace vessel
       }
 
       _env.lobcBufferPool.waitUntilWatcherAttached();
+
+      rc = _env.resource.executorPool->startEDU(EDU_TYPE_VESSEL_HIT_MANAGER,
+                                                this);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to active hit index manager :%d", rc);
+         goto error;
+      }
+      _env.hitMgr.waitForAttaching();
    done:
       return rc;
    error:
@@ -1457,6 +1474,14 @@ namespace vessel
       SDB_ASSERT(_env.ioBufferPool.isValid(), "can not be invalid");
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       _env.ioBufferPool.watcherAttach();
+   }
+
+   void vesselImpl::attachHitManager(IExecutor *executor)
+   {
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
+      SDB_ASSERT(_env.ioBufferPool.isValid(), "can not be invalid");
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+      _env.hitMgr.attach();
    }
 } // namespace vessel
 } // namespace engine

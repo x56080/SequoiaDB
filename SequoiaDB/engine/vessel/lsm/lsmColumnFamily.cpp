@@ -37,6 +37,7 @@
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/lsm/lsmDB.h"
 #include "pd.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
@@ -178,6 +179,27 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "must be valid");
       return _db->getMinDirtyLsn(_cfId);
+   }
+
+   INT32 lsmColumnFamily::loadSSTs(INT32 level, BOOLEAN dirIncluded, ossPoolVector<std::string> &ssts)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _db->loadSSTs(_cfId, level, dirIncluded, ssts);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to load sst files:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 } // namespace vessel

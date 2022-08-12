@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = hitIndexTransferTask.h
+   Source File Name = btreeNodeBase.h
 
    Descriptive Name =
 
@@ -27,53 +27,37 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          08/05/2020  LYC  Initial Draft
+          09/08/2020  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
 
-#ifndef VESSEL_HIT_INDEX_TRANSFER_TASK_H_
-#define VESSEL_HIT_INDEX_TRANSFER_TASK_H_
+#ifndef VESSEL_BTREE_NODE_BASE_H_
+#define VESSEL_BTREE_NODE_BASE_H_
 
-#include "vessel/globalIndexID.h"
-#include "rocksdb/sst_file_reader.h"
+#include "vessel/btreeNodePage.h"
+#include "vessel/btreeNodeItem.h"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class hitIndexTransferTask : public SDBObject
+   class btreeNodeBase : public SDBObject
    {
       public:
-         hitIndexTransferTask() = default;
-         ~hitIndexTransferTask() = default;
-         explicit hitIndexTransferTask(rocksdb::SstFileReader *reader,
-                                       const globalIndexID &id):
-         _reader(reader),
-         _id(id)
-         {}
+         btreeNodeBase() = default;
+         virtual ~btreeNodeBase() = default;
+         btreeNodeBase(const btreeNodeBase &) = delete;
+         btreeNodeBase &operator=(const btreeNodeBase &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isValid() const
-         {
-            return nullptr != _reader && _id.isValid();
-         }
-         OSS_INLINE rocksdb::SstFileReader *getReader() const {return _reader;}
-         OSS_INLINE const globalIndexID &getGlobalIndexID() const {return _id;}
 
-         OSS_INLINE void reset()
-         {
-            _reader = nullptr;
-            _id.reset();
-         }
-
-      private:
-         rocksdb::SstFileReader *_reader = nullptr;
-         globalIndexID _id;
-         
-   };//class hitIndexTransferTask
+   };//class btreeNodeBase
 } // namespace vessel
+
 } // namespace engine
 
-#endif // VESSEL_HIT_INDEX_TRANSFER_TASK_H_
+
+#endif//VESSEL_BTREE_NODE_BASE_H_

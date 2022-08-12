@@ -581,6 +581,94 @@ namespace vessel
       return wOpt; 
    }
 
+   INT32 lsmDB::loadSSTs(LSM_CF_ID id,
+                         INT32 level,
+                         BOOLEAN dirIncluded,
+                         ossPoolVector<std::string> &ssts)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 == level, "welcome to DIY :-)");
+      ssts.clear();
+
+      if (OSS_UNLIKELY(LSM_CF_INVALID == id))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else
+      {
+         lsmColumnFamilyContext *ctx = _getColumnFamilyCtx(id);
+         rocksdb::ColumnFamilyMetaData meta;
+         _db->GetColumnFamilyMetaData(ctx->getHandle(), &meta);
+         if (!meta.levels.empty())
+         {
+            const std::vector<rocksdb::SstFileMetaData> &s = meta.levels.front().files;
+            ssts.reserve(s.size());
+            for (auto i = s.crbegin(); i != s.crend(); ++i)
+            {
+               std::string name;
+               if (dirIncluded)
+               {
+                  name.append(i->directory).append(OSS_FILE_SEP).append(i->relative_filename);
+               }
+               else
+               {
+                  name = i->relative_filename;
+               }
+               ssts.push_back(std::move(name));
+            }
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::removeSST(const std::string &name)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(name.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else
+      {
+         rocksdb::Status s = _db->DeleteFile(name);
+         if (!s.ok())
+         {
+            PD_LOG(PDERROR, "failed to delete file[%s], detail:%s",
+                   name.c_str(), s.getState());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   lsmColumnFamilyContext *lsmDB::_getColumnFamilyCtx(LSM_CF_ID id)
+   {
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
+      SDB_ASSERT(id < (INT32)_contexts.size(), "out of bound");
+      return _contexts[id];
+   }
+
+////////////////////////////////
    lsmColumnFamily GET_HYBRID_INDEX_COLUMN_FAMILY()
    {
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();

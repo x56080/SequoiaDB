@@ -76,7 +76,8 @@ namespace vessel
       _obj = obj;
       _ictx = std::move(ctx);
 
-      if (_obj->hasBtreeEntryAddr())
+      if (_obj->hasBtreeEntryAddr() &&
+          (!nonpte || _obj->getBtreeEntryPSN() <= _ictx.getPSN()))
       {
          rc = _cacheRootAndStats();
          if (SDB_OK != rc)

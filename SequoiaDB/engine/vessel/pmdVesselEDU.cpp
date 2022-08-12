@@ -56,7 +56,7 @@ namespace engine
       }
 
       worker = (vessel::backgroundWorker *)pData;
-      worker->activeEntry(cb);
+      worker->attach(cb);
    done:
       return rc;
    error:
@@ -103,6 +103,26 @@ namespace engine
       goto done;
    }
 
+   INT32 pmdVesselHitManagerEntryPoint(pmdEDUCB *cb, void *pData)
+   {
+      INT32 rc = SDB_OK;
+      vessel::vesselImpl *impl = nullptr;
+      rc = cb->getEDUMgr()->activateEDU(cb);
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to active EDU" ) ;
+         goto error ;
+      }
+
+      impl = (vessel::vesselImpl *)pData;
+      impl->attachHitManager(cb);
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_WORKER, FALSE,
                          pmdVesselWorkerEntryPoint,
                          "vesselWorker");
@@ -114,4 +134,8 @@ namespace engine
    PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER, FALSE,
                          pmdVesselLobcWatcherEntryPoint,
                          "vesselLobcBufferPoolWatcher");
+
+   PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_HIT_MANAGER, FALSE,
+                         pmdVesselHitManagerEntryPoint,
+                         "vesselHitManager");
 } // namespace engine

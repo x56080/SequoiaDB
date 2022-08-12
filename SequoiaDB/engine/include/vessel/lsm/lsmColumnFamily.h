@@ -83,6 +83,9 @@ namespace vessel
       DPS_LSN_OFFSET getMinDirtyLsn() const;
 
    public:
+      INT32 loadSSTs(INT32 level, BOOLEAN dirIncluded, ossPoolVector<std::string> &ssts);
+
+   private:
       lsmDB *_db = nullptr;
       LSM_CF_ID _cfId = LSM_CF_INVALID;
    };

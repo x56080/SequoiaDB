@@ -40,8 +40,9 @@
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEventMsg.h"
 #include "sdbInterface.hpp"
-#include "ossEvent.hpp"
 
+#include <mutex>
+#include <condition_variable>
 #include <atomic> // c++11
 
 namespace engine
@@ -53,36 +54,65 @@ namespace vessel
    class backgroundWorker : public SDBObject
    {
       public:
-         backgroundWorker(){}
-         ~backgroundWorker(){}
+         backgroundWorker() = default;
+         backgroundWorker(instanceEnv *env,
+                          autoEventList<backgroundEvent> *el,
+                          std::atomic_int *counter);
+         ~backgroundWorker() = default;
          backgroundWorker(const backgroundWorker &o) = delete;
          backgroundWorker &operator=(const backgroundWorker &o) = delete;
 
       public:
-         BOOLEAN isValid()const
+         enum class STATUS : INT32
+         {
+            DETACHED = 0,
+            ATTACHED = 1,
+         };
+
+      public:
+         OSS_INLINE BOOLEAN isValid()const
          {
             return nullptr != _env &&
                    nullptr != _el;
          }
+         OSS_INLINE BOOLEAN isAttached()const {return STATUS::ATTACHED == _status;}
+
          void init(instanceEnv *env,
                    autoEventList<backgroundEvent> *el,
                    std::atomic_int *counter);
 
-         void activeEntry(IExecutor *executor);
+         INT32 active(BOOLEAN waitForAttaching);
 
-         void waitAttaching();
+         void waitForDetaching() {_waitForDetaching();}
+         void waitForAttaching() {_waitForAttaching();}
+
+      public:
+         /// callback function!
+         void attach(IExecutor *executor);
 
       private:
-         void handleDataBufferEvent(IExecutor *executor,
-                                    backgroundEvent &event);
-         void handleLobdBufferEvent(IExecutor *executor,
-                                    backgroundEvent &event);
+         void _handleEvent(const backgroundEvent &e);
+
+      private:
+         void _waitForAttaching();
+         void _waitForDetaching();
+         void _setAttached();
+         void _setDetached();
+
+      private:
+         void handleDataBufferEvent(const backgroundEvent &event);
+         void handleLobdBufferEvent(const backgroundEvent &event);
+         void handleHitTransferEvent(const backgroundEvent &event);
       private:
          instanceEnv *_env = nullptr;
          autoEventList<backgroundEvent> *_el = nullptr;
-         ossEvent _attachEvent;
+         STATUS _status{STATUS::DETACHED};
+         std::mutex _m;
+         std::condition_variable _cv;
          std::atomic_int *_workingCounter = nullptr;
    };//class backgroundWorker
+
+   using BACKGROUND_WORKER_UPTR = std::unique_ptr<backgroundWorker>;
 }//namespace vessel
 }//namespce engine
 

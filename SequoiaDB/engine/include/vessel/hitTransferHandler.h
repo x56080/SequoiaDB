@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = hitIndexTransferTask.h
+   Source File Name = hitTransferHandler.h
 
    Descriptive Name =
 
@@ -27,53 +27,38 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          08/05/2020  LYC  Initial Draft
+          09/08/2020  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
 
-#ifndef VESSEL_HIT_INDEX_TRANSFER_TASK_H_
-#define VESSEL_HIT_INDEX_TRANSFER_TASK_H_
+#ifndef VESSEL_HIT_TRANSFER_HANDLER_H_
+#define VESSEL_HIT_TRANSFER_HANDLER_H_
 
-#include "vessel/globalIndexID.h"
-#include "rocksdb/sst_file_reader.h"
+#include "vessel/requestHandler.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class hitIndexTransferTask : public SDBObject
+   class hitTransferTaskCtx;
+
+   class hitTransferHandler : public requestHandler
    {
       public:
-         hitIndexTransferTask() = default;
-         ~hitIndexTransferTask() = default;
-         explicit hitIndexTransferTask(rocksdb::SstFileReader *reader,
-                                       const globalIndexID &id):
-         _reader(reader),
-         _id(id)
-         {}
+         hitTransferHandler() = default;
+         virtual ~hitTransferHandler() = default;
 
       public:
-         OSS_INLINE BOOLEAN isValid() const
-         {
-            return nullptr != _reader && _id.isValid();
-         }
-         OSS_INLINE rocksdb::SstFileReader *getReader() const {return _reader;}
-         OSS_INLINE const globalIndexID &getGlobalIndexID() const {return _id;}
-
-         OSS_INLINE void reset()
-         {
-            _reader = nullptr;
-            _id.reset();
-         }
+         INT32 handle(hitTransferTaskCtx *ctx);
 
       private:
-         rocksdb::SstFileReader *_reader = nullptr;
-         globalIndexID _id;
-         
-   };//class hitIndexTransferTask
+         hitTransferTaskCtx *_ctx = nullptr;
+   };//class hitTransferHandler
 } // namespace vessel
+
 } // namespace engine
 
-#endif // VESSEL_HIT_INDEX_TRANSFER_TASK_H_
+
+#endif//VESSEL_HIT_TRANSFER_HANDLER_H_

@@ -55,9 +55,8 @@ namespace vessel
       static constexpr BG_EVENT_TYPE_WORD FLUSH_LITE_BUF_POOL = 1025;
       static constexpr BG_EVENT_TYPE_WORD LOB_BUF_TASK = 1026;
       static constexpr BG_EVENT_TYPE_WORD FLUSH_LOB_BUF = 1027;
-
-      static constexpr BG_EVENT_TYPE_WORD FLUSH_SEG = 1028;
-      static constexpr BG_EVENT_TYPE_WORD LPS_CHECKPOINT = 1029;
+      
+      static constexpr BG_EVENT_TYPE_WORD HIT_ENTRY_TRANSFER = 1028;
    };//struct BACKGROUND_TYPE
 
    typedef UINT16 BG_EVENT_FLAG_WORD;
@@ -290,7 +289,7 @@ namespace vessel
             _responser = responser;
          }
 
-         autoEventList<backgroundEvent> *getResponser()
+         autoEventList<backgroundEvent> *getResponser() const
          {
             return _responser;
          }
@@ -310,7 +309,7 @@ namespace vessel
          BG_EVENT_FLAG_WORD _flags = 0;
          UINT64 _data[_DATA_WORD_COUNT] = {};         
          INT32 _rc = 0;
-         autoEventList<backgroundEvent> *_responser = nullptr; 
+         mutable autoEventList<backgroundEvent> *_responser = nullptr; 
    };//class backgroundEvent
 #pragma pack()
 }//namespace vessel

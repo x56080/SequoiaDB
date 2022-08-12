@@ -45,6 +45,7 @@
 #include "vessel/sharedObjLatchEnv.h"
 #include "vessel/lobChunkBufferPool.h"
 #include "vessel/liteIOBufferPool.h"
+#include "vessel/hitIndexManager.h"
 
 namespace engine
 {
@@ -71,6 +72,7 @@ namespace vessel
          lsmDB *lsm = nullptr;
          backgroundWorkers workers;
          outerResource resource;
+         hitIndexManager hitMgr;
 
    }; /// end of class instanceEnv
 } /// end of namespace vessel

@@ -1,0 +1,191 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = hitIndexManager.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_HIT_INDEX_MANAGER_H_
+#define VESSEL_HIT_INDEX_MANAGER_H_
+
+#include "vessel/hitTransferTaskCtx.h"
+#include "ossMemPool.hpp"
+#include "vessel/autoEventList.hpp"
+#include "vessel/backgroundEvent.h"
+#include "vessel/backgroundWorkers.h"
+
+#include <atomic>
+
+namespace rocksdb
+{
+   class SstFileReader;
+   class Iterator;
+}
+
+namespace engine
+{
+namespace vessel
+{
+   class hitIndexManager : public SDBObject
+   {
+      public:
+         hitIndexManager() = default;
+         ~hitIndexManager();
+
+      public:
+         INT32 init();
+         void waitForAttaching() {_waitForAttaching();}
+         void fini();
+
+      public:/// callback functions!
+         void attach();
+         INT32 executeTask(UINT32 taskId);
+
+      private:
+         using _FILE_VEC = ossPoolVector<std::string>;
+         using _TASK_CTX_VEC = ossPoolVector<HIT_TRANS_TASK_CTX>;
+         using _EVENT_LIST = autoEventList<backgroundEvent>;
+         using _SST_READER = std::unique_ptr<rocksdb::SstFileReader>;
+
+         struct _csTransferJob : public SDBObject
+         {
+            _csTransferJob() = default;
+            ~_csTransferJob() = default;
+            _csTransferJob(const _csTransferJob &) = delete;
+            _csTransferJob &operator=(const _csTransferJob &) = delete;
+            _csTransferJob(_csTransferJob &&o) noexcept;
+            _csTransferJob &operator=(_csTransferJob &&o) noexcept;
+            void reset();
+            OSS_INLINE BOOLEAN isDone()const
+            {
+               return completedTaskNum == tasks.size();
+            }
+            OSS_INLINE BOOLEAN hasError()const
+            {
+               return 0 < errorTaskNum;
+            }
+
+            UINT32 csid = DMS_INVALID_LOGICCSID;
+            _TASK_CTX_VEC tasks;
+            UINT32 completedTaskNum = 0;
+            UINT32 errorTaskNum = 0;
+         };
+
+         struct _fileTransferJob : public SDBObject
+         {
+            _fileTransferJob() = default;
+            ~_fileTransferJob() = default;
+            _fileTransferJob(const _fileTransferJob &) = delete;
+            _fileTransferJob &operator=(const _fileTransferJob &) = delete;
+
+            void reset();
+
+            OSS_INLINE BOOLEAN isValid()const
+            {
+               return nullptr != reader.get();
+            }
+            OSS_INLINE void pop()
+            {
+               cjobs.pop_back();
+            }
+            OSS_INLINE BOOLEAN hasNoCsJob()const
+            {
+               return cjobs.empty();
+            }
+            OSS_INLINE _csTransferJob &getCurrentCsJob()
+            {
+               return cjobs.front();
+            }
+            OSS_INLINE _csTransferJob *getCurrentCsJobPtr()
+            {
+               return &cjobs.front();
+            }
+
+            _SST_READER reader;
+            globalIndexID maxId;
+            UINT64 lsn = 0;
+            ossPoolList<_csTransferJob> cjobs;
+         };
+
+      private:
+         OSS_INLINE BOOLEAN _isAttached()const
+         {
+            return _attached.load(std::memory_order_relaxed);
+         }
+         void _waitForAttaching()const;
+         void _waitForDetaching()const;
+
+      private:
+         /// not thread-safe
+         BOOLEAN _isTransfering() const;
+         INT32 _beginToTransfer(BOOLEAN reloadFiles);
+         INT32 _reloadFilesToTransfer();
+         INT32 _createJobFromFileList();
+         INT32 _initFileTransferJob(const std::string &name,
+                                    BOOLEAN &ignored);
+         INT32 _buildFileTransferJob();
+
+         INT32 _buildCsJob(std::unique_ptr<rocksdb::Iterator> &itr);
+         INT32 _popBackSSTAndRemove();
+
+         void _dispatchJob();
+
+      private:
+         void _handleResponse(const backgroundEvent &e,
+                              BOOLEAN &currentJobFinished);
+
+         void _completeTask(UINT32 taskId,
+                            INT32 rc,
+                            _csTransferJob &cjob);
+
+         void _redoCsJob(BOOLEAN onlyErrorTasks);
+
+         INT32 _commitCsJob();
+
+         void _finishCurrentFileJob();
+
+      private:
+
+
+      private:
+         std::atomic_bool _attached{FALSE};
+         _EVENT_LIST _el;
+         _FILE_VEC _filesToTransfer;
+         _fileTransferJob _job;
+
+         backgroundWorkers _workers;
+   };//hitIndexManager
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_HIT_INDEX_MANAGER_H_

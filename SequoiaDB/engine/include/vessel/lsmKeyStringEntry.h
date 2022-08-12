@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = hitIndexTransferTask.h
+   Source File Name = lsmKeyStringEntry.h
 
    Descriptive Name =
 
@@ -27,53 +27,38 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          08/05/2020  LYC  Initial Draft
+          09/08/2020  WY  Initial Draft
 
    Last Changed =
 
 ******************************************************************************/
 
-#ifndef VESSEL_HIT_INDEX_TRANSFER_TASK_H_
-#define VESSEL_HIT_INDEX_TRANSFER_TASK_H_
+#ifndef VESSEL_LSM_KEY_STRING_ENTRY_H_
+#define VESSEL_LSM_KEY_STRING_ENTRY_H_
 
+#include "vessel/keyString.h"
 #include "vessel/globalIndexID.h"
-#include "rocksdb/sst_file_reader.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class hitIndexTransferTask : public SDBObject
+   class lsmKeyStringEntry : public keyString
    {
       public:
-         hitIndexTransferTask() = default;
-         ~hitIndexTransferTask() = default;
-         explicit hitIndexTransferTask(rocksdb::SstFileReader *reader,
-                                       const globalIndexID &id):
-         _reader(reader),
-         _id(id)
-         {}
+         lsmKeyStringEntry() = default;
+         ~lsmKeyStringEntry() = default;
+         lsmKeyStringEntry(const slice &s);
+         lsmKeyStringEntry(UINT32 size, const CHAR *data);
 
       public:
-         OSS_INLINE BOOLEAN isValid() const
-         {
-            return nullptr != _reader && _id.isValid();
-         }
-         OSS_INLINE rocksdb::SstFileReader *getReader() const {return _reader;}
-         OSS_INLINE const globalIndexID &getGlobalIndexID() const {return _id;}
-
-         OSS_INLINE void reset()
-         {
-            _reader = nullptr;
-            _id.reset();
-         }
-
-      private:
-         rocksdb::SstFileReader *_reader = nullptr;
-         globalIndexID _id;
-         
-   };//class hitIndexTransferTask
+         INT32 init(const slice &s);
+         recordID getRid() const;
+         globalIndexID getIndexId() const;
+   };//class lsmKeyStringEntry
 } // namespace vessel
+
 } // namespace engine
 
-#endif // VESSEL_HIT_INDEX_TRANSFER_TASK_H_
+
+#endif//VESSEL_LSM_KEY_STRING_ENTRY_H_

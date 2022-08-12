@@ -87,6 +87,8 @@ namespace vessel
          OSS_INLINE PAGE_ID getBtreeEntryAddr()const {return _btreeEntryAddr;}
          OSS_INLINE BOOLEAN hasBtreeEntryAddr()const {return INVALID_PAGE_ID != _btreeEntryAddr;}
          OSS_INLINE void resetBtreeEntryAddr(PAGE_ID entry) {_btreeEntryAddr = entry;}
+         OSS_INLINE void resetBtreeEntryPSN(UINT64 psn) {_btreeEntryPSN = psn;}
+         OSS_INLINE UINT64 getBtreeEntryPSN()const {return _btreeEntryPSN;}
 
       public:
          INT32 init(UINT32 indexLid,
@@ -107,6 +109,13 @@ namespace vessel
          DPS_LSN_OFFSET _rebornLSN = DPS_INVALID_LSN_OFFSET;
          INDEX_STATUS _status = INDEX_STATUS_INVALID;
          PAGE_ID _btreeEntryAddr = INVALID_PAGE_ID;
+
+         /// it is a in-mem only variable,
+         /// always start form zero when restart engine.
+         /// it specifies the publishing point when btree entry created.
+         /// the btree entry page should not be awared to any other
+         /// users until it is published.
+         UINT64 _btreeEntryPSN = 0;
    };//class indexObject
 } // namespace vessel
 
