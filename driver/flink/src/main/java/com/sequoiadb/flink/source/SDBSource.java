@@ -60,7 +60,7 @@ public class SDBSource implements Source<RowData, SDBSplit, List<SDBSplit>> {
         this.matcher = matcher;
         this.limit = limit;
 
-        LOG.info("matcher: {}, limit: {}, selector: {}", matcher, selector, limit);
+        LOG.info("matcher: {}, selector: {}, limit: {}", matcher, selector, limit);
     }
 
     @Override
@@ -76,14 +76,14 @@ public class SDBSource implements Source<RowData, SDBSplit, List<SDBSplit>> {
     @Override
     public SplitEnumerator<SDBSplit, List<SDBSplit>> createEnumerator(SplitEnumeratorContext<SDBSplit> enumContext)
             throws Exception {
-        return new SDBSplitEnumerator(enumContext, sourceOptions, limit);
+        return new SDBSplitEnumerator(enumContext, sourceOptions, matcher, selector, limit);
     }
 
     @Override
     public SplitEnumerator<SDBSplit, List<SDBSplit>> restoreEnumerator(SplitEnumeratorContext<SDBSplit> enumContext,
                                                                        List<SDBSplit> checkpoint)
             throws Exception {
-        return new SDBSplitEnumerator(enumContext, checkpoint, sourceOptions, limit);
+        return new SDBSplitEnumerator(enumContext, checkpoint, sourceOptions, matcher, selector, limit);
     }
 
     @Override
