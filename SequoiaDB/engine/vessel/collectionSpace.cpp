@@ -47,6 +47,8 @@
 #include "vessel/csMetaBlockPageAccessor.h"
 #include "vessel/storageFileMaintainer.h"
 #include "vessel/csMetaBlockPageIniter.h"
+#include "vessel/csIndexMetaStorage.h"
+#include "ixm_common.hpp"
 
 namespace engine
 {
@@ -170,12 +172,20 @@ namespace vessel
 
       _initProperties(mb);
 
+      rc = _loadMaxIndexLid();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "load max index logical id failed, rc:%d", rc);
+         goto error;
+      }
+
       rc = initCollectionsFromDisk(context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init collections from disk:%d", rc);
          goto error;
       }
+
    done:
       return rc;
    error:
@@ -194,7 +204,46 @@ namespace vessel
       _innerIdIndex.clear();
       _unformalNameIndex.clear();
       _unformalInnerIdIndex.clear();
+      _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
       return;
+   }
+
+   INT32 collectionSpace::destroy(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      OSS_LATCH_MODE mode = SHARED;
+      csIndexMetaStorage ms(getLogicalID());
+      SDB_ASSERT(ms.isValid(), "can not be invalid");
+
+      if (OSS_UNLIKELY(nullptr == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!context->isSpaceIdLocked(&mode) ||
+               EXCLUSIVE != mode)
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      rc = ms.destroy();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "destroy cs[%d] index meta data failed, rc:%d",
+                getLogicalID(), rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 collectionSpace::createCL(requestContext *context,
@@ -1548,6 +1597,60 @@ namespace vessel
       ossMemcpy(block.name, _properties.name.c_str(), _properties.name.size());
       block.maxCLLogicalID = _properties.maxCLLogicalID;
       return;  
+   }
+
+   INT32 collectionSpace::allocateNextIndexLid(UINT32 &indexLid)
+   {
+      INT32 rc = SDB_OK;
+      bson::BSONObj manifest;
+      csIndexMetaStorage ms(getLogicalID());
+      SDB_ASSERT(ms.isValid(), "can not be invalid");
+      std::unique_lock<std::mutex> lck(_lidMutex);
+      indexLid = INVALID_LOGICAL_INDEX_ID;
+
+      if (INVALID_LOGICAL_INDEX_ID == (_maxIndexLid + 1))
+      {
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "hit max number of index");
+         goto error;
+      }
+
+      manifest = BSON(IXM_MAX_LOGICAL_ID << (_maxIndexLid + 1));
+      rc = ms.upsert(manifest);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "upsert index manifest failed, rc:%d", rc);
+         goto error;
+      }
+
+      indexLid = _maxIndexLid + 1;
+      _maxIndexLid += 1;
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionSpace::_loadMaxIndexLid()
+   {
+      INT32 rc = SDB_OK;
+      csIndexMetaStorage ms(getLogicalID());
+      SDB_ASSERT(ms.isValid(), "can not be invalid");
+      UINT32 maxLid = INVALID_LOGICAL_INDEX_ID;
+
+      rc = ms.getMaxIndexLid(maxLid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "get max index logical id failed, rc:%d", rc);
+         goto error;
+      }
+      _maxIndexLid = maxLid;
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    CL_MB_ID collectionSpace::_upperBoundCL(UINT32 logicalId)const

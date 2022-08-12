@@ -45,54 +45,29 @@ namespace vessel
 {
    void indexObjectMap::reset()
    {
-      _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
       _objects.clear();
       _buildingMap.clear();
       return;
    }
 
-   BOOLEAN indexObjectMap::isAllowedToCreateMore()const
+   BOOLEAN indexObjectMap::isAllowedToCreateMore() const
    {
-      return INVALID_LOGICAL_INDEX_ID != (_maxIndexLid + 1) &&
-             _objects.size() < MAX_INDEX_COUNT_PER_CL;
+      return _objects.size() < MAX_INDEX_COUNT_PER_CL;
    }
 
-   void indexObjectMap::setMaxIndexLid(UINT32 indexLid)
-   {
-      if (indexLid != INVALID_LOGICAL_INDEX_ID)
-      {
-         if (_maxIndexLid == INVALID_LOGICAL_INDEX_ID || indexLid > _maxIndexLid)
-         {
-            _maxIndexLid = indexLid;  
-         }
-      }
-   }
-
-   UINT32 indexObjectMap::getNextIndexLid()const
-   {
-      SDB_ASSERT(isAllowedToCreateMore(), "can not be invalid");
-      return _maxIndexLid + 1;
-   }
-
-   INT32 indexObjectMap::createObjWithBuildingCtx(const indexProperties &properties,
-                                                  indexObject **obj)
+   INT32 indexObjectMap::validateCreation(const indexProperties &properties) const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != obj, "can not be invalid");
-      _UNIQUE_OBJ_PTR uniquePtr;
-      _BUILDING_CTX_PTR ctx;
-
-      *obj = nullptr;
-
-      if (OSS_UNLIKELY(!properties.isValid()))
+      
+      if (!isAllowedToCreateMore())
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "no more index allowed");
          goto error;
       }
-      else if (!isAllowedToCreateMore())
+      else if (OSS_UNLIKELY(!properties.isValid()))
       {
-         PD_LOG(PDERROR, "no more index allowed");
-         rc = SDB_DMS_MAX_INDEX;
+         rc = SDB_INVALIDARG;
          goto error;
       }
       else if (isIndexDuplicated(properties))
@@ -101,38 +76,6 @@ namespace vessel
          goto error;
       }
 
-      uniquePtr.reset(SDB_OSS_NEW indexObject());
-      if (OSS_UNLIKELY(!uniquePtr))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem.");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = uniquePtr->init(getNextIndexLid(), properties, INDEX_STATUS_BUILDING);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
-         goto error;
-      }
-
-      ctx.reset(SDB_OSS_NEW buildingIndexContext(uniquePtr.get()));
-      if (OSS_UNLIKELY(!ctx))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem.");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      SDB_ASSERT(0 == _objects.count(uniquePtr->getLogicalID()), "impossible");
-      SDB_ASSERT(0 == _buildingMap.count(uniquePtr->getLogicalID()), "impossible");
-
-      /// do not goto error from here.
-      *obj = uniquePtr.get();
-      _buildingMap[uniquePtr->getLogicalID()] = std::move(ctx);
-      _objects[uniquePtr->getLogicalID()] = std::move(uniquePtr);
-      ++_maxIndexLid;
-      
    done:
       return rc;
    error:
@@ -185,15 +128,11 @@ namespace vessel
    //    goto done;
    // }
 
-   void indexObjectMap::destroy(UINT32 indexLid, BOOLEAN recycleLid)
+   void indexObjectMap::destroy(UINT32 indexLid)
    {
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexLid, "can not be invalid");
       _buildingMap.erase(indexLid);
       _objects.erase(indexLid);
-      if (recycleLid && indexLid == _maxIndexLid)
-      {
-         --_maxIndexLid;
-      }
       return;
    }
 
@@ -337,13 +276,18 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (!isAllowedToCreateMore())
+      {
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "not allowed to create more");
+         goto error;
+      }
       else if (0 < _objects.count(obj->getLogicalID()))
       {
          rc = SDB_VESSEL_DUPLICATED_KEY;
          goto error;
       }
 
-      setMaxIndexLid(obj->getLogicalID());
       _objects[obj->getLogicalID()] = std::move(obj);
       
    done:
@@ -351,5 +295,48 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 indexObjectMap::insertBuildingObject(std::unique_ptr<indexObject> &&obj)
+   {
+      INT32 rc = SDB_OK;
+      _BUILDING_CTX_PTR ctx;
+
+      if (OSS_UNLIKELY(!obj ||
+                       !obj->isValid() ||
+                       !obj->isBuilding()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if(!isAllowedToCreateMore())
+      {
+         rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "not allowed to create more");
+         goto error;
+      }
+      else if (0 < _objects.count(obj->getLogicalID()) ||
+               0 < _buildingMap.count(obj->getLogicalID()))
+      {
+         rc = SDB_VESSEL_DUPLICATED_KEY;
+         goto error;
+      }
+
+      ctx.reset(SDB_OSS_NEW buildingIndexContext(obj.get()));
+      if (OSS_UNLIKELY(!ctx))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      _buildingMap[obj->getLogicalID()] = std::move(ctx);
+      _objects[obj->getLogicalID()] = std::move(obj);
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

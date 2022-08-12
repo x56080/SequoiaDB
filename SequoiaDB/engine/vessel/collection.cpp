@@ -61,7 +61,7 @@
 #include "ixm_common.hpp"
 #include "dmsLobDef.hpp"
 #include "vessel/hybridIndexTree.h"
-#include "vessel/indexMetaStorage.h"
+#include "vessel/clIndexMetaStorage.h"
 #include "vessel/dmlContext.h"
 
 namespace engine
@@ -2945,11 +2945,12 @@ namespace vessel
 
       ossPoolString fullName;
       indexProperties properties;
-      indexObject *obj = nullptr;
+      std::unique_ptr<indexObject> obj;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       indexObjectMap &indexMap = _entryBlock._indexes;
-      indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
-      SDB_ASSERT(store.isValid(), "can not be invalid");
+      UINT32 indexLid = INVALID_LOGICAL_INDEX_ID;
+      clIndexMetaStorage clStore(_cs->getLogicalID(), getLogicalID());
+      SDB_ASSERT(clStore.isValid(), "can not be invalid");
 
       logicalIndexId = INVALID_LOGICAL_INDEX_ID;
 
@@ -2963,8 +2964,8 @@ namespace vessel
       }
       else if (!indexMap.isAllowedToCreateMore())
       {
-         PD_LOG(PDINFO, "no more index allowed");
          rc = SDB_DMS_MAX_INDEX;
+         PD_LOG(PDERROR, "not allowed to create more");
          goto error;
       }
 
@@ -2982,34 +2983,64 @@ namespace vessel
          goto error;
       }
 
-      rc = indexMap.createObjWithBuildingCtx(properties, &obj);
+      rc = indexMap.validateCreation(properties);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create index obj:%d", rc);
+         PD_LOG(PDERROR, "invalid index creation, rc:%d", rc);
          goto error;
       }
-      SDB_ASSERT(nullptr != obj, "can not be invalid");
+
+      obj.reset(SDB_OSS_NEW indexObject());
+      if (!obj)
+      {
+         rc = SDB_OOM;
+         PD_LOG(PDERROR, "out of memory");
+         goto error;
+      }
+
+      rc = _cs->allocateNextIndexLid(indexLid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "allocate next index logical id failed, rc:%d", rc);
+         goto error;
+      }
+      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexLid, "can not be invalid");
+
+      rc = obj->init(indexLid, properties, INDEX_STATUS_BUILDING);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
+         goto error;
+      }
 
       fullName = _entryBlock.getProperties()->getFullName();
 
-      rc = commitCreateIndexLog(fullName, obj->getLogicalID(),
+      rc = commitCreateIndexLog(fullName, indexLid,
                                 adjunct, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit create index log:%d", rc);
          goto error;
       }
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
 
       obj->resetRebornLSN(lsn);
 
-      rc = store.commit(obj->getLogicalID(), indexMap, TRUE);
+      rc = indexMap.insertBuildingObject(std::move(obj));
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to upsert index meta entry:%d", rc);
+         PD_LOG(PDERROR, "insert building object failed, rc:%d", rc);
          goto error;
       }
 
-      logicalIndexId = obj->getLogicalID();
+      rc = clStore.commit(indexLid, indexMap);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "commit index meta data failed, rc:%d", rc);
+         goto error;
+      }
+
+      logicalIndexId = indexLid;
       
    done:
       return rc;
@@ -3019,7 +3050,7 @@ namespace vessel
          SDB_ASSERT(SDB_OK != rc, "impossible");
          INT32 tmpRc = commitCreateIndexEndLog(fullName, 
                                                properties.getName(),
-                                               obj->getLogicalID(), rc);
+                                               indexLid, rc);
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to commit creating end log, rc:%d", tmpRc);
@@ -3027,9 +3058,9 @@ namespace vessel
          }
       }
 
-      if (nullptr != obj)
+      if (!obj && INVALID_LOGICAL_INDEX_ID != indexLid)
       {
-         indexMap.destroy(obj->getLogicalID(), TRUE);
+         indexMap.destroy(indexLid);
       }
       goto done;
    }
@@ -3091,7 +3122,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
 
-      indexMetaStorage store;
+      clIndexMetaStorage store;
       store.init(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
@@ -3365,7 +3396,7 @@ namespace vessel
       SDB_ASSERT(nullptr != context && context->isClPropertiesSet(), "can not be invalid");
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
 
-      indexMetaStorage metaStore(_cs->getLogicalID(), getLogicalID());
+      clIndexMetaStorage metaStore(_cs->getLogicalID(), getLogicalID());
       indexObject *obj = _entryBlock._indexes.getIndexObj(logicalIndexId);
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "must be building");
 
@@ -3397,8 +3428,7 @@ namespace vessel
    INT32 collection::_initIndexesWhenOpen(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      
-      indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
+      clIndexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
 
       rc = store.reload(_entryBlock._indexes);
@@ -3720,7 +3750,7 @@ namespace vessel
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
       SDB_ASSERT(SDB_OK != reason, "can not be ok");
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
+      clIndexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
 
       {
@@ -3740,7 +3770,7 @@ namespace vessel
          }
 
          obj->resetRebornLSN(lsn);
-         rc = store.commit(logicalIndexId, _entryBlock._indexes, FALSE);
+         rc = store.upsert(logicalIndexId, obj->toBson());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert index meta entry:%d", rc);
@@ -3760,7 +3790,7 @@ namespace vessel
       {
          ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
          _entryBlock._indexes.destroy(logicalIndexId);
-         indexMetaStorage store;
+         clIndexMetaStorage store;
          store.init(_cs->getLogicalID(), getLogicalID());
          store.removeEntry(logicalIndexId);
       }
@@ -3804,7 +3834,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
 
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
-      indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
+      clIndexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
       for (auto itr = indexMap.begin(); itr != indexMap.end(); ++itr)
@@ -3834,8 +3864,6 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
 
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
-      indexMetaStorage store(_cs->getLogicalID(), getLogicalID());
-      SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
       for (auto itr = indexMap.begin(); itr != indexMap.end(); ++itr)
       {

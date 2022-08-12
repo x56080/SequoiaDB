@@ -125,6 +125,8 @@ namespace vessel
          INT32 open(requestContext *context,
                     storageUnit *su);
 
+         INT32 destroy(requestContext *context);
+
          void close();
 
       public:
@@ -163,6 +165,10 @@ namespace vessel
                                         UINT32 logicalId,
                                         OSS_LATCH_MODE mode,
                                         collection **obj);
+
+      public:
+         INT32 allocateNextIndexLid(UINT32 &indexLid);
+
       private:
          struct _NAME_LESS
          {
@@ -205,6 +211,8 @@ namespace vessel
          void _initProperties(const csMetaBlock &block);
 
          void _exportMetaBlock(csMetaBlock &block);
+
+         INT32 _loadMaxIndexLid();
 
       private:
 
@@ -264,6 +272,9 @@ namespace vessel
          ///unformal indexes
          _NAME_SET _unformalNameIndex;
          _INNER_ID_SET _unformalInnerIdIndex;
+
+         UINT32 _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
+         std::mutex _lidMutex;
    };//class collectionSpace
 
    typedef shallowPointer<collectionSpace> CS_OBJ_PTR;
