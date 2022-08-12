@@ -53,6 +53,9 @@ namespace vessel
       _terminated.store(FALSE, std::memory_order_relaxed);
       _ac.reset();
       _rc = SDB_OK;
+      _insertedEntryNum = 0;
+      _removedEntryNum = 0;
+      _btreeEntryPageCreated = FALSE;
    }
 } // namespace vessel
 

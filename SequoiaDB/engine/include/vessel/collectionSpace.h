@@ -125,7 +125,7 @@ namespace vessel
          INT32 open(requestContext *context,
                     storageUnit *su);
 
-         INT32 destroy(requestContext *context);
+         void destroy(requestContext *context);
 
          void close();
 

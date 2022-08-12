@@ -46,7 +46,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       requestContext context;
-      collectionSpace *cs = nullptr;
       collectionSpaceId id;
 
       if (OSS_UNLIKELY(name.empty()))
@@ -55,16 +54,19 @@ namespace vessel
          goto error;
       }
 
-      rc = context.getEnv()->dms.getCSByName(&context, name, EXCLUSIVE, &cs);
+      rc = context.getEnv()->dms.testCS(name, id);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to test cs[%s], rc:%d", name.str(), rc);
          goto error;
       }
 
-      id = cs->getIdentifier();
-      cs = nullptr;
-      context.getEnv()->ioBufferPool.discard(context.getSpaceID());
-      context.getEnv()->lobcBufferPool.discard(context.getSpaceID());
+      rc = context.lockSpaceID(id.getSpaceId(), EXCLUSIVE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space id:%d", rc);
+         goto error;
+      }
 
       rc = context.getEnv()->dms.removeCS(&context, id);
       if (SDB_OK != rc)

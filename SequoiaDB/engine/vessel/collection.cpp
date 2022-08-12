@@ -5330,5 +5330,13 @@ namespace vessel
       mb.minFreePercent = (UINT8)(getProperties()->_minFreePct);
    }
 
+   INT32 collection::transferIndex(hitTransferTaskCtx *task)
+   {
+      INT32 rc = SDB_OK;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

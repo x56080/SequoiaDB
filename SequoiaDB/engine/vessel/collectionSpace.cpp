@@ -208,42 +208,32 @@ namespace vessel
       return;
    }
 
-   INT32 collectionSpace::destroy(requestContext *context)
+   void collectionSpace::destroy(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      OSS_LATCH_MODE mode = SHARED;
-      csIndexMetaStorage ms(getLogicalID());
-      SDB_ASSERT(ms.isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != context, "can not be invalid");
+      if (isOpen())
+      {
+         OSS_LATCH_MODE mode = SHARED;
+         SDB_ASSERT(context->isSpaceIdLocked(&mode) && EXCLUSIVE == mode, "can not be invalid");
+         SDB_ASSERT(context->getSpaceID() == getSpaceId(), "must be same");
+         context->getEnv()->ioBufferPool.discard(getSpaceId());
+         context->getEnv()->lobcBufferPool.discard(getSpaceId());
 
-      if (OSS_UNLIKELY(nullptr == context))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
+         if (INVALID_LOGICAL_INDEX_ID != _maxIndexLid)
+         {
+            csIndexMetaStorage ms(getLogicalID());
+            rc = ms.destroy();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "destroy cs[%d] index meta data failed, rc:%d",
+                     getLogicalID(), rc);
+            }
+         }
+         fini();
       }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (!context->isSpaceIdLocked(&mode) ||
-               EXCLUSIVE != mode)
-      {
-         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
-         goto error;
-      }
-
-      rc = ms.destroy();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "destroy cs[%d] index meta data failed, rc:%d",
-                getLogicalID(), rc);
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
+      
+      return;
    }
 
    INT32 collectionSpace::createCL(requestContext *context,
@@ -1602,20 +1592,22 @@ namespace vessel
    INT32 collectionSpace::allocateNextIndexLid(UINT32 &indexLid)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
       bson::BSONObj manifest;
       csIndexMetaStorage ms(getLogicalID());
       SDB_ASSERT(ms.isValid(), "can not be invalid");
       std::unique_lock<std::mutex> lck(_lidMutex);
       indexLid = INVALID_LOGICAL_INDEX_ID;
+      UINT32 nextIndexId = _maxIndexLid + 1;
 
-      if (INVALID_LOGICAL_INDEX_ID == (_maxIndexLid + 1))
+      if (INVALID_LOGICAL_INDEX_ID == (nextIndexId))
       {
          rc = SDB_DMS_MAX_INDEX;
          PD_LOG(PDERROR, "hit max number of index");
          goto error;
       }
 
-      manifest = BSON(IXM_MAX_LOGICAL_ID << (_maxIndexLid + 1));
+      manifest = BSON(IXM_MAX_LOGICAL_ID << (nextIndexId));
       rc = ms.upsert(manifest);
       if (SDB_OK != rc)
       {
@@ -1623,8 +1615,8 @@ namespace vessel
          goto error;
       }
 
-      indexLid = _maxIndexLid + 1;
-      _maxIndexLid += 1;
+      indexLid = nextIndexId;
+      _maxIndexLid = nextIndexId;
 
    done:
       return rc;
@@ -1635,6 +1627,7 @@ namespace vessel
    INT32 collectionSpace::_loadMaxIndexLid()
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != getLogicalID(), "can not be invalid");
       csIndexMetaStorage ms(getLogicalID());
       SDB_ASSERT(ms.isValid(), "can not be invalid");
       UINT32 maxLid = INVALID_LOGICAL_INDEX_ID;

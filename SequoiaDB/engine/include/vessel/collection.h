@@ -74,6 +74,7 @@ namespace vessel
    class buildingIndexContext;
    class indexScanCursor;
    class bigRecordStream;
+   class hitTransferTaskCtx;
    
    class collection: public SDBObject
    {
@@ -165,6 +166,8 @@ namespace vessel
          INT32 testNormalIndex(requestContext *context,
                                const strSlice &indexName,
                                indexIdentifier &indexId);
+
+         INT32 transferIndex(hitTransferTaskCtx *task);
 
       public:
          INT32 dump(bson::BSONObj &record);

@@ -537,14 +537,7 @@ namespace vessel
       _prepareToDropCS(space);
 
       su = space->getSU();
-      rc = space->destroy(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "destroy collection space[%s] failed, rc:%d",
-                csNameSlice.str(), rc);
-         rc = SDB_OK;
-      }
-      space->close();
+      space->destroy(context);
       SDB_OSS_DEL space;
       space  = nullptr;
 

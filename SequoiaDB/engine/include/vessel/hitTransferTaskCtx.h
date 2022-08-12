@@ -70,6 +70,12 @@ namespace vessel
          OSS_INLINE BOOLEAN isOK()const {return SDB_OK == _rc;}
          OSS_INLINE indexSpaceAccessCtx &getSpaceCtx() {return _ac;}
          OSS_INLINE hitIndexTransferTask &getTask() {return _task;}
+         OSS_INLINE UINT32 getInsertedEntryNum()const {return _insertedEntryNum;}
+         OSS_INLINE UINT32 getRemovedEntryNum()const {return _removedEntryNum;}
+         OSS_INLINE void incInsertedEntryNum() {++_insertedEntryNum;}
+         OSS_INLINE void incRemovedEntryNum() {++_removedEntryNum;}
+         OSS_INLINE BOOLEAN isBtreeEntryPageCreated()const {return _btreeEntryPageCreated;}
+         OSS_INLINE void setBtreeEntryPageCreated() {_btreeEntryPageCreated = TRUE;}
 
       public:
          void reset();
@@ -80,6 +86,9 @@ namespace vessel
          indexSpaceAccessCtx _ac;
          BOOLEAN _done = FALSE;
          INT32 _rc = SDB_OK;
+         UINT32 _insertedEntryNum = 0;
+         UINT32 _removedEntryNum = 0;
+         BOOLEAN _btreeEntryPageCreated = FALSE;
    };//class hitTransferTaskCtx
 
    using HIT_TRANS_TASK_CTX = std::unique_ptr<hitTransferTaskCtx>;
