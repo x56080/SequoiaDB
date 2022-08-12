@@ -208,6 +208,44 @@ namespace vessel
       return;
    }
 
+   INT32 collectionSpace::destroy(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      OSS_LATCH_MODE mode = SHARED;
+      csIndexMetaStorage ms(getLogicalID());
+      SDB_ASSERT(ms.isValid(), "can not be invalid");
+
+      if (OSS_UNLIKELY(nullptr == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!context->isSpaceIdLocked(&mode) ||
+               EXCLUSIVE != mode)
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      rc = ms.destroy();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "destroy cs[%d] index meta data failed, rc:%d",
+                getLogicalID(), rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collectionSpace::createCL(requestContext *context,
                                    const strSlice &clName, 
                                    utilCLInnerID clInnerId,
