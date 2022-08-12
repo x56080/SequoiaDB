@@ -781,12 +781,9 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            if( _vecEventHandler[i]->isEnabled() )
-            {
-               _vecEventHandler[i]->onMoveLog( offset, version,
-                                               _lsn.offset, _lsn.version,
-                                               DPS_BEFORE, SDB_OK ) ;
-            }
+            _vecEventHandler[i]->onMoveLog( offset, version,
+                                            _lsn.offset, _lsn.version,
+                                            DPS_BEFORE, SDB_OK ) ;
          }
       }
 
@@ -845,13 +842,9 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            if( _vecEventHandler[i]->isEnabled() )
-            {
-               _vecEventHandler[i]->onMoveLog( offset, version,
-                                               _lsn.offset, _lsn.version,
-                                               DPS_AFTER, rc ) ;
-            }
-
+            _vecEventHandler[i]->onMoveLog( offset, version,
+                                            _lsn.offset, _lsn.version,
+                                            DPS_AFTER, rc ) ;
          }
       }
       if ( locked )
@@ -1579,13 +1572,10 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            if( _vecEventHandler[i]->isEnabled() )
-            {
-               _vecEventHandler[i]->onSwitchLogFile( preLogicalFileId,
-                                                     preFileId,
-                                                     curLogicalFileId,
-                                                     curFileId ) ;
-            }
+            _vecEventHandler[i]->onSwitchLogFile( preLogicalFileId,
+                                                  preFileId,
+                                                  curLogicalFileId,
+                                                  curFileId ) ;
          }
       }
 
@@ -1606,13 +1596,10 @@ namespace engine
       {
          for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
          {
-            if( _vecEventHandler[i]->isEnabled() )
+            rc = _vecEventHandler[i]->canAssignLogPage( reqLen, cb ) ;
+            if ( rc )
             {
-               rc = _vecEventHandler[i]->canAssignLogPage( reqLen, cb ) ;
-               if ( rc )
-               {
-                  break ;
-               }
+               break ;
             }
          }
       }
@@ -1682,27 +1669,5 @@ namespace engine
    error:
       goto done ;
    }
-
-   void _dpsReplicaLogMgr::beforeFS()
-   {
-      if ( _vecEventHandler.size() > 0 )
-      {
-         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
-         {
-            _vecEventHandler[i]->beforeFS() ;
-         }
-      }
-   }
-
-   void _dpsReplicaLogMgr::afterFS( const DPS_LSN_OFFSET &offset,
-                                    const DPS_LSN_VER &version )
-   {
-      if ( _vecEventHandler.size() > 0 )
-      {
-         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
-         {
-            _vecEventHandler[i]->afterFS( offset, version ) ;
-         }
-      }
-   }
 }
+

@@ -338,20 +338,6 @@ namespace engine
             return ;
          }
 
-         virtual BOOLEAN isEnabled()
-         {
-            return TRUE;
-         }
-         virtual void beforeFS()
-         {
-            return ;
-         }
-         virtual void afterFS( const DPS_LSN_OFFSET &offset,
-                               const DPS_LSN_VER &version ) 
-         {
-            return ;
-         }
-
       public:
          void  regSession ( _clsDataSrcBaseSession *pSession ) ;
          void  unregSession ( _clsDataSrcBaseSession *pSession ) ;
