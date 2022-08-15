@@ -69,7 +69,6 @@ namespace engine
       INT32 run() ;
       BOOLEAN isInterrupted() ;
 
-
       // event handler
       virtual INT32 canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb ) ;
       virtual void  onPrepareLog( UINT32 csLID, UINT32 clLID,
@@ -95,10 +94,6 @@ namespace engine
                                DPS_LSN_VER expectVersion,
                                DPS_MOMENT moment,
                                INT32 errcode ) ;
-      virtual BOOLEAN isEnabled() ;
-      virtual void beforeFS() ;
-      virtual void afterFS( const DPS_LSN_OFFSET &offset,
-                            const DPS_LSN_VER &version ) ;
 
    private:
       DPS_LSN  _calcStartLSN() ;
@@ -143,7 +138,6 @@ namespace engine
       queue<DPS_LSN>                _moveLSN ;
       ossSpinXLatch                 _mutex ;
       BOOLEAN                       _inited ;
-      BOOLEAN                       _enabled ;
    } ;
 }
 
