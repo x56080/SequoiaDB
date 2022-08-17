@@ -66,7 +66,7 @@ public class IndexConsistent23946 extends SdbTestBase {
     @Test
     public void test() throws Exception {
         String indexName = "testindex23946";
-        ThreadExecutor es = new ThreadExecutor();
+        ThreadExecutor es = new ThreadExecutor( 300000 );
         CreateIndex createIndex = new CreateIndex( indexName );
         RenameCS renameCS = new RenameCS();
         es.addWorker( createIndex );
