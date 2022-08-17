@@ -3,12 +3,13 @@
 @author: 2018-1-29 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 
 main( test );
 
 function test ()
 {
-   var groups = getGroupsWithNodeNum( 3 );
+   var groups = getGroupsWithNodeNum( 2 );
    if( groups.length === 0 )
    {
       return;
