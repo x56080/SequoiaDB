@@ -22,8 +22,7 @@ options ( *object，必填* )
 
 - ShardingKey ( *object，必填* )：分区键，取值为 1 或 -1，表示正向或逆向排序
 
-    - 已有的 ShardingKey 会被修改成新的 ShardingKey。
-    - 集合只能存在于一个数据组中，或者集合为没有挂载子表的主表。
+    当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。
 
     格式：`ShardingKey: {<字段1>: <1|-1>, [<字段2>: <1|-1>, ...]}`
 
