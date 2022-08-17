@@ -16,10 +16,11 @@
 
 package com.sequoiadb.flink.table;
 
-import com.sequoiadb.flink.codec.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSourceOptions;
+import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.source.SDBSource;
 import com.sequoiadb.flink.table.pushdown.FilterPushDownSupport;
+
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;

@@ -16,13 +16,14 @@
 
 package com.sequoiadb.flink.source;
 
-import com.sequoiadb.flink.codec.SDBDataConverter;
+import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.enumerator.SDBSplitEnumerator;
 import com.sequoiadb.flink.source.reader.SDBReader;
 import com.sequoiadb.flink.source.split.SDBSplit;
 import com.sequoiadb.flink.source.split.SDBSplitListSerializer;
 import com.sequoiadb.flink.source.split.SDBSplitSerializer;
+
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.connector.source.SourceReader;

@@ -16,7 +16,8 @@
 
 package com.sequoiadb.flink.table.pushdown;
 
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
+
 import org.apache.flink.calcite.shaded.com.google.common.collect.ImmutableMap;
 import org.apache.flink.table.expressions.*;
 import org.apache.flink.table.functions.BuiltInFunctionDefinitions;

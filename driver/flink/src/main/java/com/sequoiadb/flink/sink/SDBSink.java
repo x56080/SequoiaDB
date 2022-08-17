@@ -16,12 +16,8 @@
 
 package com.sequoiadb.flink.sink;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
-import com.sequoiadb.flink.codec.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSinkOptions;
+import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.sink.committer.SDBCommitter;
 import com.sequoiadb.flink.sink.state.SDBBulk;
 import com.sequoiadb.flink.sink.state.SDBBulkSerializer;
@@ -35,12 +31,16 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
 // DataStream API SDBSink class implements Sink from flink
 public class SDBSink<IN> implements Sink<IN, SDBBulk, SDBBulk, Void> {
     private SDBSinkOptions sdbSinkOptions;
     private final SDBDataConverter dataConverter;
     private final static Logger LOG = LoggerFactory.getLogger(SDBSink.class);
-    
+
     /*
      * constructor of SDBSink
      * @param sdbSinkOptions        pass down user options
@@ -112,6 +112,5 @@ public class SDBSink<IN> implements Sink<IN, SDBBulk, SDBBulk, Void> {
         LOG.debug("SDBSink create writer global committer serializer");
         return Optional.empty();
     }
-
 
 }

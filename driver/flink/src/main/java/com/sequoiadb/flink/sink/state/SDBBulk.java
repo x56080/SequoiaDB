@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 
 import org.bson.BSONObject;
 

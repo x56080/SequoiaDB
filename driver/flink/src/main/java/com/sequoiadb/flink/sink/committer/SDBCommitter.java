@@ -16,6 +16,17 @@
 
 package com.sequoiadb.flink.sink.committer;
 
+import com.sequoiadb.flink.common.client.SDBClient;
+import com.sequoiadb.flink.common.client.SDBSinkClient;
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.config.SDBSinkOptions;
+import com.sequoiadb.flink.sink.Executor.WriteThreads;
+import com.sequoiadb.flink.sink.state.SDBBulk;
+
+import org.apache.flink.api.connector.sink.Committer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,18 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.sequoiadb.flink.client.SDBClient;
-import com.sequoiadb.flink.client.SDBSinkClient;
-import com.sequoiadb.flink.config.SDBSinkOptions;
-import com.sequoiadb.flink.exception.SDBException;
-import com.sequoiadb.flink.sink.Executor.WriteThreads;
-import com.sequoiadb.flink.sink.state.SDBBulk;
-
-import org.apache.flink.api.connector.sink.Committer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-public class SDBCommitter implements Committer<SDBBulk>{
+public class SDBCommitter implements Committer<SDBBulk> {
 
     private final static Logger LOG = LoggerFactory.getLogger(SDBCommitter.class);
 
@@ -43,12 +43,12 @@ public class SDBCommitter implements Committer<SDBBulk>{
 
     private final int THREAD_NUMBER;
     private final ExecutorService executorService;
-    
+
     public SDBCommitter(SDBSinkOptions sdbSinkOptions){
         this.sdbSinkOptions = sdbSinkOptions;
         this.THREAD_NUMBER = sdbSinkOptions.getHosts().size();
-        executorService = Executors.newFixedThreadPool(THREAD_NUMBER); 
-        LOG.info("Committer created"); 
+        executorService = Executors.newFixedThreadPool(THREAD_NUMBER);
+        LOG.info("Committer created");
     }
 
     @Override
@@ -56,7 +56,7 @@ public class SDBCommitter implements Committer<SDBBulk>{
         executorService.shutdown();
         LOG.debug("Committer closed");
     }
-  
+
     /* commit function that writes out every data in the state
      * @param committables           uncommitted data
      */
@@ -65,11 +65,11 @@ public class SDBCommitter implements Committer<SDBBulk>{
         LOG.debug("committer commit"); 
         List<SDBBulk> failedBulk = new ArrayList<>();  // failedBulk is not used here
         int numOfBulks = committables.size();
-        int numThread = 1 * THREAD_NUMBER; 
-        int numOfLatch = numOfBulks < THREAD_NUMBER ? numOfBulks : THREAD_NUMBER; 
+        int numThread = 1 * THREAD_NUMBER;
+        int numOfLatch = numOfBulks < THREAD_NUMBER ? numOfBulks : THREAD_NUMBER;
         int dividedBulkListSize = numOfBulks < numThread ? numOfBulks : numOfBulks / numThread;
-        
-        CountDownLatch latch = new CountDownLatch(numOfLatch);   
+
+        CountDownLatch latch = new CountDownLatch(numOfLatch);
         List<Future<?>> threadStatus = new ArrayList<>();
         for (int i = 0; i < numThread; i++) {
             // create list
@@ -98,7 +98,7 @@ public class SDBCommitter implements Committer<SDBBulk>{
             } catch (Exception e) {
                 throw new SDBException("Thread exceptions", e);
             }
-            
+
         }
         latch.await();
         // catch exception here

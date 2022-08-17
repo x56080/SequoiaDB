@@ -14,20 +14,22 @@
  * limitations under the License.
 */
 
-package com.sequoiadb.flink.exception;
 
-public class SDBException extends RuntimeException {
 
-    public SDBException(String message) {
-        super(message);
-    }
+package com.sequoiadb.flink.common.client;
 
-    public SDBException(String message, Throwable ex) {
-        super(message, ex);
-    }
+import java.io.Serializable;
 
-    public SDBException(Throwable ex) {
-        super(ex);
-    }
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.Sequoiadb;
 
+public interface SDBClient extends Serializable {
+    Sequoiadb getClient();
+
+    CollectionSpace getCS();
+
+    DBCollection getCL();
+
+    void close();
 }

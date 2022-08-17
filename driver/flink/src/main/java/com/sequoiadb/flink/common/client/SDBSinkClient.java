@@ -14,30 +14,23 @@
  * limitations under the License.
 */
 
-package com.sequoiadb.flink.client;
+package com.sequoiadb.flink.common.client;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.ConfigOptions;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.config.SDBSinkOptions;
-import com.sequoiadb.flink.constant.SDBConstant;
 
-import org.apache.calcite.profile.Profiler.Unique;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 public class SDBSinkClient implements SDBClient {
 
@@ -225,7 +218,7 @@ public class SDBSinkClient implements SDBClient {
                 cl = getCS().getCollection(collection);
             } catch (BaseException e) {
                 if (e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
-                    cl = ensureCollectionWithOptions(collection, sdboptions.getPrimaryKeys());
+                    cl = ensureCollectionWithOptions(collection, sdboptions.getPrimaryKey());
                 } else {
                     throw e;
                 }
