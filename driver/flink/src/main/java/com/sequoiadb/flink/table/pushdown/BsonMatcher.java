@@ -96,25 +96,25 @@ public class BsonMatcher {
     public static BSONObject appendOrMatcher(BSONObject matcher1, BSONObject matcher2) {
         BSONObject result = new BasicBSONObject();
 
+         //or:field
+         if (matcher1.get(SDBConstant.OR) != null && matcher2.get(SDBConstant.OR) == null) {
+            BasicBSONList orList = (BasicBSONList) matcher1.get(SDBConstant.OR);
+            orList.add(matcher2);
+
+            result.put(SDBConstant.OR, orList);
+         //field:or
+        } else if (matcher1.get(SDBConstant.OR) == null && matcher2.get(SDBConstant.OR) != null) {
+            BasicBSONList orList = (BasicBSONList) matcher2.get(SDBConstant.OR);
+            orList.add(matcher1);
+
+            result.put(SDBConstant.OR, orList);
         //or:or
-        if (matcher1.get(SDBConstant.OR) != null && matcher2.get(SDBConstant.OR) != null) {
+        } else {
             BasicBSONList orList1 = (BasicBSONList) matcher1.get(SDBConstant.OR);
             BasicBSONList orList2 = (BasicBSONList) matcher1.get(SDBConstant.OR);
             orList1.addAll(orList2);
 
             result.put(SDBConstant.OR, orList1);
-            //or:field
-        } else if (matcher1.get(SDBConstant.OR) != null) {
-            BasicBSONList orList = (BasicBSONList) matcher1.get(SDBConstant.OR);
-            orList.add(matcher2);
-
-            result.put(SDBConstant.OR, orList);
-            //field:or
-        } else {
-            BasicBSONList orList = (BasicBSONList) matcher2.get(SDBConstant.OR);
-            orList.add(matcher1);
-
-            result.put(SDBConstant.OR, orList);
         }
 
         return result;
