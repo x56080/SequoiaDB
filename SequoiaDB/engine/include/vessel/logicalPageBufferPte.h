@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexEntryPage.cpp
+   Source File Name = logicalPageBufferPte.h
 
    Descriptive Name =
 
@@ -33,37 +33,38 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeEntryPage.h"
+#ifndef VESSEL_LOGICAL_PAGE_BUFFER_PTE_H_
+#define VESSEL_LOGICAL_PAGE_BUFFER_PTE_H_
+
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initBtreeEntryPage(UINT32 pageSize,
-                              PAGE_ID pid,
-                              PAGE_ID lpid,
-                              PAGE_SNAPSHOT_VERION psv,
-                              UINT32 logicalIndexId,
-                              CHAR *buf)
+   class spacePteAccessCtx;
+
+   class logicalPageBufferPte : public logicalPageBuffer
    {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
-      btreeEntryPageHead *headPtr = NULL;
-      btreeEntryPageHead head;
+      friend class logicalPageSpacePte;
+      public:
+         logicalPageBufferPte() = default;
+         virtual ~logicalPageBufferPte() = default;
+         logicalPageBufferPte(logicalPageBufferPte &&);
+         logicalPageBufferPte &operator=(logicalPageBufferPte &&);
 
-      r = initCommonPage(PAGE_TYPE_BTREE_ENTRY, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
+      public:
+         virtual void fini() override;
+         virtual INT32 prepareToWrite() override;
 
-      headPtr = (btreeEntryPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      headPtr->version = BTREE_ENTRY_PAGE_VERSION;
-      headPtr->logicalIndexId = logicalIndexId;
-      headPtr->btreeRoot = INVALID_PAGE_ID;
-   done:
-      return r;
-   }
-}//namespace vessel
-}//namespace engine
+      private:
+         spacePteAccessCtx *_ac = nullptr;
+   };//class logicalPageBufferPte
+
+   using LPAGE_PTE_BUFFER_PTR = std::unique_ptr<logicalPageBufferPte>;
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_LOGICAL_PAGE_BUFFER_PTE_H_

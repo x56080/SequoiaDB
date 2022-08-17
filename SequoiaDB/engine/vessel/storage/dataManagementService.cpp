@@ -633,6 +633,40 @@ namespace vessel
       goto done;
    }
 
+   INT32 dataManagementService::testCSByLid(UINT32 lid,
+                                            collectionSpaceId &identifier)
+   {
+      INT32 rc = SDB_OK;
+      identifier.reset();
+
+      if (OSS_UNLIKELY(DMS_INVALID_LOGICCSID == lid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else
+      {
+         ossScopedRWLock guard(&_latch, SHARED);
+         collectionSpace *obj = _getCSByLid(lid);
+         if (nullptr == obj)
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
+
+         identifier = obj->getIdentifier();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 dataManagementService::getCSByCollectionSpaceId(requestContext *context,
                                                          const collectionSpaceId &id,
                                                          OSS_LATCH_MODE mode,

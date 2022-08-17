@@ -75,8 +75,7 @@ namespace vessel
       _rebornLSN = DPS_INVALID_LSN_OFFSET;
       _properties.reset();
       _status = INDEX_STATUS_INVALID;
-      _btreeEntryAddr = INVALID_PAGE_ID;
-      _btreeEntryPSN = 0;
+      _entryAddr.reset();
       return;
    }
 
@@ -90,9 +89,10 @@ namespace vessel
       _properties.dump(subBuilder);
       subBuilder.doneFast();
       builder.append(IXM_STATUS_FIELD, (INT32)_status);
-      if (INVALID_PAGE_ID != _btreeEntryAddr)
+      btreeEntryAddr addr = _entryAddr.get();
+      if (addr.isValid())
       {
-         builder.append(IXM_BTREE_ENTRY, _btreeEntryAddr);
+         builder.append(IXM_BTREE_ENTRY, addr.pid);
       }
 
       return builder.obj();
@@ -140,7 +140,7 @@ namespace vessel
          bson::BSONElement e = obj.getField(IXM_BTREE_ENTRY);
          if (e.eoo())
          {
-            _btreeEntryAddr = INVALID_PAGE_ID;
+            /// do nothing
          }
          else if (NumberInt != e.type())
          {
@@ -149,7 +149,7 @@ namespace vessel
          }
          else
          {
-            _btreeEntryAddr = e.Int();
+            _entryAddr.set(e.Int(), 0);
          }
       }
 

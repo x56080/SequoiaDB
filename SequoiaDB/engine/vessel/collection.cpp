@@ -63,6 +63,13 @@
 #include "vessel/hybridIndexTree.h"
 #include "vessel/clIndexMetaStorage.h"
 #include "vessel/dmlContext.h"
+#include "vessel/hitTransferTaskCtx.h"
+#include "vessel/btreeWriter.h"
+#include "vessel/spacePteAccessCtx.h"
+#include "vessel/btreeEntryPageIniter.h"
+#include "vessel/lsm/lsmIteratorBound.h"
+#include "vessel/keyStringBuilder.h"
+#include "vessel/lsmKeyStringEntry.h"
 
 namespace engine
 {
@@ -5330,9 +5337,222 @@ namespace vessel
       mb.minFreePercent = (UINT8)(getProperties()->_minFreePct);
    }
 
-   INT32 collection::transferIndex(hitTransferTaskCtx *task)
+   INT32 collection::transferIndexEntries(requestContext *context,
+                                          hitTransferTaskCtx *tc)
    {
       INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(nullptr == context ||
+                            nullptr == tc ||
+                            !tc->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else
+      {
+         const globalIndexID &indexId = tc->getTask().getGlobalIndexID();
+         SDB_ASSERT(indexId.getLogicalCLID() == getLogicalID(), "must be same");
+         ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
+         
+         context->setClProperties(_entryBlock.getProperties());
+         indexObject *obj = _entryBlock._indexes.getIndexObj(indexId.getLogicalIndexID());
+         if (nullptr == obj || !obj->isWritable())
+         {
+            PD_LOG(PDERROR, "index[%s] is not ready to transfer", indexId.toString().c_str());
+            rc = SDB_IXM_NOTEXIST;
+            goto error;
+         }
+
+         rc = _transferIndexEntries(context, tc, obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to transfer index entries:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      if (nullptr != context)
+      {
+         context->resetClProperties();
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::_transferIndexEntries(requestContext *context,
+                                           hitTransferTaskCtx *taskCtx,
+                                           indexObject *obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(!taskCtx->isBtreeEntryPageUnstable(), "invalid status");
+    
+      STACK_KEY_STRING_BUILDER builder;
+      lsmIteratorBound bound;
+      rocksdb::ReadOptions o;
+      std::unique_ptr<rocksdb::Iterator> itr;
+      btreeWriter bw;
+      indexSpace &is = _cs->getSU()->getIndexSpace();
+      hitIndexTransferTask &task = taskCtx->getTask();
+      PTE_ACCESS_CTX_PTR ac(SDB_OSS_NEW spacePteAccessCtx(task.getTaskId()));
+      if (OSS_UNLIKELY(!ac))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = bound.init(task.getGlobalIndexID());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init itr bound:%d", rc);
+         goto error;
+      }
+
+      o.iterate_lower_bound = bound.getLowBound();
+      o.iterate_upper_bound = bound.getUpBound();
+      itr.reset(task.getReader()->NewIterator(o));
+      if (OSS_UNLIKELY(!itr))
+      {
+         PD_LOG(PDERROR, "failed to new lsm iterator");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      if (!obj->getBtreeEntryAddr().isValid())
+      {
+         rc = _createBtreeEntryPage(context, obj, taskCtx, ac.get());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create btree entry page:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = bw.init(context, &is, obj, ac.get());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init btree writer:%d", rc);
+         goto error;
+      }
+
+      ///TODO: validate itr' status
+      itr->SeekToFirst();
+      while (itr->Valid())
+      {
+         lsmKeyStringEntry entry(itr->key().size(), itr->key().data());
+         if (OSS_UNLIKELY(!entry.isValid()))
+         {
+            PD_LOG(PDERROR, "failed to load index entry");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = builder.rebuildEntryKey(entry, entry.getRid());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build btree index entry: %d", rc);
+            goto error;
+         }
+         else
+         {
+            keyString ks = builder.getShallowKeyString();
+            btreeKeyStringEntry btreeEntry;
+            btreeEntry.init(ks.getRawData());
+            SDB_ASSERT(btreeEntry.isValid(), "impossible");
+            rc = bw.insert(btreeEntry);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert btree entry:%d", rc);
+               goto error;
+            }
+         }
+
+         itr->Next();
+      }
+
+      rc = is.precommit(context, *taskCtx->getBatch(), std::move(ac));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to precommit to inde space:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (taskCtx->isBtreeEntryPageUnstable())
+      {
+         _rollbackUnstableBtreeEntryPage(context, obj, taskCtx);
+      }
+      if (nullptr != ac && !ac->isEmpty())
+      {
+         is.abort(ac);
+      }
+      goto done;
+   }
+
+   INT32 collection::_createBtreeEntryPage(requestContext *context,
+                                           indexObject *obj,
+                                           hitTransferTaskCtx *taskCtx,
+                                           spacePteAccessCtx *ac)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!obj->getBtreeEntryAddr().isValid(), "do not recreate");
+      SDB_ASSERT(!taskCtx->isBtreeEntryPageUnstable(), "do not recreate");
+      indexSpace &is = _cs->getSU()->getIndexSpace();
+      btreeEntryPageIniter initer(obj->getLogicalID());
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      clIndexMetaStorage mstore;
+
+      rc = is.allocatePtePage(context, ac, &initer, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate entry page:%d", rc);
+         goto error;
+      }
+
+      mstore.init(_cs->getLogicalID(), getLogicalID());
+      rc = mstore.upsert(obj->getLogicalID(), obj->toBson());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index meta entry:%d", rc);
+         goto error;
+      }
+
+      obj->setBtreeEntryAddr(lpid, taskCtx->getBatch()->getWritingPSN());
+      taskCtx->setBtreeEntryPageUnstable();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::_rollbackUnstableBtreeEntryPage(requestContext *context,
+                                                     indexObject *obj,
+                                                     hitTransferTaskCtx *taskCtx)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(taskCtx->isBtreeEntryPageUnstable(), "nothing to rollback");
+      SDB_ASSERT(obj->getBtreeEntryAddr().isValid(), "invalid status");
+      clIndexMetaStorage mstore;
+      mstore.init(_cs->getLogicalID(), getLogicalID());
+      obj->resetBtreeEntryAddr();
+      rc = mstore.upsert(obj->getLogicalID(), obj->toBson());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to update index meta entry:%d", rc);
+         ossPanic();
+         goto error;
+      }
+
+      taskCtx->resetBtreeEntryPageUnstabl();
    done:
       return rc;
    error:

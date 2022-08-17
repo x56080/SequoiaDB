@@ -110,7 +110,7 @@ namespace vessel
       _lsm.reset();
       _bound.reset();
       _btree.reset();
-      _forward = TRUE;
+      _o = options();
       return;
    }
 
@@ -141,11 +141,15 @@ namespace vessel
          goto error;
       }
 
-      _forward = o.forward;
-      if (o.forward)
+      _o = o;
+      if (_o.pointGetOptimized && !iv.allInclusive())
       {
-         rc = _seek(builder.getShallowKeyString(),
-                    o.pointGetOptimized && iv.allInclusive());
+         _o.pointGetOptimized = FALSE;
+      }
+
+      if (_o.forward)
+      {
+         rc = _seek(builder.getShallowKeyString());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek:%d", rc);
@@ -195,11 +199,15 @@ namespace vessel
          goto error;
       }
 
-      _forward = o.forward;
-      if (o.forward)
+      _o = o;
+      if (_o.pointGetOptimized && !iv.allInclusive())
       {
-         rc = _seek(builder.getShallowKeyString(),
-                    o.pointGetOptimized && iv.allInclusive());
+         _o.pointGetOptimized = FALSE;
+      }
+
+      if (_o.forward)
+      {
+         rc = _seek(builder.getShallowKeyString());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek:%d", rc);
@@ -222,86 +230,87 @@ namespace vessel
       goto done;
    }
 
-   INT32 hybridTreeIterator::equal(const bson::BSONObj &key)
-   {
-      INT32 rc = SDB_OK;
-      STACK_KEY_STRING_BUILDER builder;
+   // INT32 hybridTreeIterator::equal(const bson::BSONObj &key)
+   // {
+   //    INT32 rc = SDB_OK;
+   //    STACK_KEY_STRING_BUILDER builder;
 
-      if (OSS_UNLIKELY(!key.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
+   //    if (OSS_UNLIKELY(!key.isValid()))
+   //    {
+   //       rc = SDB_INVALIDARG;
+   //       goto error;
+   //    }
+   //    else if (OSS_UNLIKELY(!isValid()))
+   //    {
+   //       rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+   //       goto error;
+   //    }
 
-      rc = builder.buildPredicate(key,
-                                  _obj->getProperties().getPattern().getOrdering(),
-                                  inclusiveVec(), TRUE, _bound.getEncodedIndexId());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
-         goto error;
-      }
+   //    rc = builder.buildPredicate(key,
+   //                                _obj->getProperties().getPattern().getOrdering(),
+   //                                inclusiveVec(), TRUE, _bound.getEncodedIndexId());
+   //    if (SDB_OK != rc)
+   //    {
+   //       PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+   //       goto error;
+   //    }
 
-      _forward = TRUE;
-      rc = _seek(builder.getShallowKeyString(), TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to seek:%d", rc);
-         goto error;
-      }
+   //    _o = options();
+   //    _o.pointGetOptimized = TRUE;
+   //    rc = _seek(builder.getShallowKeyString());
+   //    if (SDB_OK != rc)
+   //    {
+   //       PD_LOG(PDERROR, "failed to seek:%d", rc);
+   //       goto error;
+   //    }
 
-   done:
-      return rc;
-   error:
-      reset();
-      goto done;
-   }
+   // done:
+   //    return rc;
+   // error:
+   //    reset();
+   //    goto done;
+   // }
 
-   INT32 hybridTreeIterator::equal(const VEC_ELE_CMP &matchEles)
-   {
-      INT32 rc = SDB_OK;
-      STACK_KEY_STRING_BUILDER builder;
+   // INT32 hybridTreeIterator::equal(const VEC_ELE_CMP &matchEles)
+   // {
+   //    INT32 rc = SDB_OK;
+   //    STACK_KEY_STRING_BUILDER builder;
 
-      if (OSS_UNLIKELY(matchEles.empty()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
+   //    if (OSS_UNLIKELY(matchEles.empty()))
+   //    {
+   //       rc = SDB_INVALIDARG;
+   //       goto error;
+   //    }
+   //    else if (OSS_UNLIKELY(!isValid()))
+   //    {
+   //       rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+   //       goto error;
+   //    }
 
-      rc = builder.buildPredicate(matchEles,
-                                  _obj->getProperties().getPattern().getOrdering(),
-                                  inclusiveVec(), TRUE, _bound.getEncodedIndexId());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
-         goto error;
-      }
+   //    rc = builder.buildPredicate(matchEles,
+   //                                _obj->getProperties().getPattern().getOrdering(),
+   //                                inclusiveVec(), TRUE, _bound.getEncodedIndexId());
+   //    if (SDB_OK != rc)
+   //    {
+   //       PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+   //       goto error;
+   //    }
 
-      _forward = TRUE;
-
-      rc = _seek(builder.getShallowKeyString(), TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to seek:%d", rc);
-         goto error;
-      }
+   //    _o = options();
+   //    _o.pointGetOptimized = TRUE;
+   //    rc = _seek(builder.getShallowKeyString());
+   //    if (SDB_OK != rc)
+   //    {
+   //       PD_LOG(PDERROR, "failed to seek:%d", rc);
+   //       goto error;
+   //    }
       
-   done:
-      return rc;
-   error:
-      reset();
-      goto done;
-   }
+   // done:
+   //    return rc;
+   // error:
+   //    reset();
+   //    goto done;
+   // }
 
    INT32 hybridTreeIterator::locateNext(const indexEntryLocation *location,
                                         const options &o)
@@ -321,10 +330,10 @@ namespace vessel
          goto error;
       }
 
-      _forward = o.forward;
+      _o = o;
       SDB_ASSERT(IDX_ENTRY_LOCATION_TYPE::HIT == location->getType(), "can not be invalid");
       l = static_cast<const _location *>(location);
-      rc = _locateNext(l, o.forward && o.pointGetOptimized);
+      rc = _locateNext(l);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to locate next:%d", rc);
@@ -391,12 +400,13 @@ namespace vessel
          goto error;
       }
 
+      SDB_ASSERT(!_o.pointGetOptimized, "can not be point get");
       obj = indexUtils::buildKeyToSeek(prevKey, fieldCountToCmpInPrev, matchEles);
       niv = iv;
       niv.setBatch(0, fieldCountToCmpInPrev - 1, TRUE);
       rc = builder.buildPredicate(obj,
                                  _obj->getOrderingWrapper(),
-                                 niv, _forward, _bound.getEncodedIndexId());
+                                 niv, _o.forward, _bound.getEncodedIndexId());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build predicate:%d", rc);
@@ -490,6 +500,12 @@ namespace vessel
       return _getCurrent().getRid();
    }
 
+   keyString hybridTreeIterator::getCurrentKeyString()const
+   {
+      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
+      return _getCurrent();
+   }
+
    INT32 hybridTreeIterator::initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location)const
    {
       INT32 rc = SDB_OK;
@@ -527,18 +543,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 hybridTreeIterator::_seek(const keyString &ks, BOOLEAN pointGetOptimized)
+   INT32 hybridTreeIterator::_seek(const keyString &ks)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ks.isValid(), "can not be invalid");
+      SDB_ASSERT(_o.forward, "must be forward");
       _resetRing();
 
-      rc = _lsm.seek(ks, pointGetOptimized);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to seek in lsm:%d", rc);
-            goto error;
-         }
+      rc = _lsm.seek(ks, _o.pointGetOptimized);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek in lsm:%d", rc);
+         goto error;
+      }
 
       rc = _btree.seek(ks);
       if (SDB_OK != rc)
@@ -600,7 +617,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 hybridTreeIterator::_locateNext(const _location *l, BOOLEAN pointGetOptimized)
+   INT32 hybridTreeIterator::_locateNext(const _location *l)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != l && l->isValid(), "can not be invalid");
@@ -616,10 +633,10 @@ namespace vessel
          goto error;
       }
 
-      if (_forward || !ks.hasKeyHead())
+      if (_o.forward || !ks.hasKeyHead())
       {
          recordID rid = ks.getRid();
-         if (_forward)
+         if (_o.forward)
          {
             rid.setPos(rid.getPos() + 1);
          }
@@ -643,7 +660,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _forward ? _lsm.seek(target, pointGetOptimized) : _lsm.seekForPrev(target);
+      rc = _o.forward ? _lsm.seek(target, _o.pointGetOptimized) : _lsm.seekForPrev(target);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to resume lsm location:%d", rc);
@@ -677,7 +694,7 @@ namespace vessel
          {
             if (_RING_POS::BTREE == l.current)
             {
-               rc = _btree.next(_forward);
+               rc = _btree.next(_o.forward);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to move btree iterator:%d", rc);
@@ -699,7 +716,7 @@ namespace vessel
          }
       }
 
-      rc = _forward ? _btree.seek(ks) : _btree.seekForPrev(ks);
+      rc = _o.forward ? _btree.seek(ks) : _btree.seekForPrev(ks);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek key:%d", rc);
@@ -734,11 +751,7 @@ namespace vessel
          if (SDB_OK == rc)
          {
             _RING_PICK_RES res = _pickFromRing();
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-            else if (res.isPicked())
+            if (res.isPicked())
             {
                _status = res.status;
                _pos = res.pos;
@@ -777,7 +790,7 @@ namespace vessel
          _ring[_RING_POS::LSM].reset();
          if (fetchNext)
          {
-            rc = _lsm.next(_forward);
+            rc = _lsm.next(_o.forward);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to fetch next from lsm tree:%d", rc);
@@ -800,7 +813,7 @@ namespace vessel
          _ring[_RING_POS::BTREE].reset();
          if (fetchNext)
          {
-            rc = _btree.next(_forward);
+            rc = _btree.next(_o.forward);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to fetch next from btree:%d", rc);
@@ -847,7 +860,7 @@ namespace vessel
          }
          else
          {
-            const INT32 direction = _forward ? 1 : -1;
+            const INT32 direction = _o.getDirection();
             if (direction * cmp < 0)
             {
                res.pos = _lsm.isMarkedRemoved() ?
@@ -878,7 +891,6 @@ namespace vessel
          res.status = _FILLING_STATUS::NONE_EXPECTED;
       }
 
-   done:
       return res;
    }
 
@@ -888,14 +900,14 @@ namespace vessel
       SDB_ASSERT(ks.isValid(), "can not be invalid");
       _resetRing();
 
-      rc = _lsm.advance(ks, !_forward);
+      rc = _lsm.advance(ks, !_o.forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to advance lsm itr:%d", rc);
          goto error;
       }
 
-      rc = _btree.advance(ks, !_forward);
+      rc = _btree.advance(ks, !_o.forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to advance btree itr:%d", rc);
@@ -936,6 +948,13 @@ namespace vessel
          goto error;
       }
 
+      rc = _is->initViewer(TRUE, _viewer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init viewer:%d", rc);
+         goto error;
+      }
+
       rc = _btree.init(_context, _is, _obj);
       if (SDB_OK != rc)
       {
@@ -955,6 +974,48 @@ namespace vessel
       SDB_ASSERT(!_isReadyToRead(), "reset ring first");
       _lsm.reset();
       _btree.reset();
+      _viewer.reset();
+   }
+
+   INT32 hybridTreeIterator::seek(const keyString &key, const options &o)
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      _o = o;
+      if (_o.forward)
+      {
+         rc = _seek(key);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to seek:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _seekForPrev(key);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to seek for prev:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 } // namespace vessel
 

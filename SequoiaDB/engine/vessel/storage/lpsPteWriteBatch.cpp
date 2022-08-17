@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexEntryPage.cpp
+   Source File Name = lpsPteWriteBatch.cpp
 
    Descriptive Name =
 
@@ -33,37 +33,36 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeEntryPage.h"
+#include "vessel/lpsPteWriteBatch.h"
+#include "ossLikely.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initBtreeEntryPage(UINT32 pageSize,
-                              PAGE_ID pid,
-                              PAGE_ID lpid,
-                              PAGE_SNAPSHOT_VERION psv,
-                              UINT32 logicalIndexId,
-                              CHAR *buf)
+   lpsPteWriteBatch::lpsPteWriteBatch(lpsPteViewer &&viewer):
+   _viewer(std::move(viewer))
    {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");
-      btreeEntryPageHead *headPtr = NULL;
-      btreeEntryPageHead head;
-
-      r = initCommonPage(PAGE_TYPE_BTREE_ENTRY, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
-
-      headPtr = (btreeEntryPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      headPtr->version = BTREE_ENTRY_PAGE_VERSION;
-      headPtr->logicalIndexId = logicalIndexId;
-      headPtr->btreeRoot = INVALID_PAGE_ID;
-   done:
-      return r;
+      SDB_ASSERT(_viewer.isWritable(), "can not be invalid");
    }
-}//namespace vessel
-}//namespace engine
+
+   void lpsPteWriteBatch::reset()
+   {
+      _committing.clear();
+      _mctx.reset();
+      _viewer.reset();
+   }
+
+   void lpsPteWriteBatch::precommit(PTE_ACCESS_CTX_PTR &&ctx)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      spacePteAccessCtx *obj = ctx.get();
+      SDB_ASSERT(nullptr != obj && ! obj->isEmpty(), "can not be invalid");
+      std::unique_lock<std::mutex> guard(_mutex);
+      SDB_ASSERT(0 == _committing.count(obj->getId()), "duplidated id");
+      _committing[obj->getId()] = std::move(ctx);
+   }
+} // namespace vessel
+
+} // namespace engine

@@ -87,11 +87,6 @@ namespace vessel
                             const inclusiveVec &iv,
                             const options &o) = 0;
 
-         ///TODO: seek range interface
-
-         virtual INT32 equal(const VEC_ELE_CMP &matchEles) = 0;
-         virtual INT32 equal(const bson::BSONObj &key) = 0;
-
          /// locate
          virtual INT32 locateNext(const indexEntryLocation *location,
                                   const options &o) = 0;

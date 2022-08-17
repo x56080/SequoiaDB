@@ -54,30 +54,33 @@ namespace vessel
       }
    }
 
-   INT32 btreeAccessContext::init(BOOLEAN nonpte,
+   INT32 btreeAccessContext::init(requestContext *context,
+                                  indexSpace *is,
                                   const indexObject *obj,
-                                  indexSpaceAccessCtx &&ctx)
+                                  spacePteAccessCtx *actx)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
-      SDB_ASSERT(ctx.isValid(), "can not be invalid");
-
+      btreeEntryAddr entryAddr;
       reset();
 
-      if (OSS_UNLIKELY(nullptr == obj ||
-                       !obj->isValid() ||
-                       !ctx.isValid()))
+      if (OSS_UNLIKELY(nullptr == context ||
+                       nullptr == is ||
+                       !is->isOpen() ||
+                       nullptr == obj ||
+                       !obj->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _nonpte = nonpte;
       _obj = obj;
-      _ictx = std::move(ctx);
+      _is = is;
+      _context = context;
+      _actx = actx;
 
-      if (_obj->hasBtreeEntryAddr() &&
-          (!nonpte || _obj->getBtreeEntryPSN() <= _ictx.getPSN()))
+      entryAddr = _obj->getBtreeEntryAddr();
+      if (entryAddr.isValid() &&
+          (isWritable() || INVALID_PAGE_ID != entryAddr.getVisiblePid(is->getPSN())))
       {
          rc = _cacheRootAndStats();
          if (SDB_OK != rc)
@@ -90,31 +93,17 @@ namespace vessel
    done:
       return rc;
    error:
-      if (_ictx.isValid())
-      {
-         ctx = std::move(_ictx);
-      }
       reset();
       goto done;
    }
 
    void btreeAccessContext::reset()
    {
-      _nonpte = TRUE;
       _path.clear();
       _obj = nullptr;
-      _ictx.reset();
-      _btreeRoot = INVALID_PAGE_ID;
-      _stats.reset();
-      return;
-   }
-
-   void btreeAccessContext::abort()
-   {
-      _nonpte = TRUE;
-      _path.clear();
-      _obj = nullptr;
-      _ictx.abort();
+      _is = nullptr;
+      _context = nullptr;
+      _actx = nullptr;
       _btreeRoot = INVALID_PAGE_ID;
       _stats.reset();
       return;
@@ -221,8 +210,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      indexSpace *is = _ictx.getIndexSpace();
-      std::unique_ptr<logicalPageBuffer> buffer(SDB_OSS_NEW logicalPageBuffer());
+      LPAGE_PTE_BUFFER_PTR buffer(SDB_OSS_NEW logicalPageBufferPte());
       if (OSS_UNLIKELY(!buffer))
       {
          PD_LOG(PDERROR, "failed to allocate mem.");
@@ -230,7 +218,7 @@ namespace vessel
          goto error;
       }
 
-      rc = is->getLogicalPageBuffer(_ictx, lpid, !_nonpte, *buffer);
+      rc = _getPageBuffer(lpid, *buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
@@ -385,17 +373,15 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_path.empty(), "must be empty");
-      SDB_ASSERT(nullptr != _obj && _obj->hasBtreeEntryAddr(), "can not be invalid");
-      logicalPageBuffer entryBuffer;
-      indexSpace *is = _ictx.getIndexSpace();
+      SDB_ASSERT(nullptr != _obj, "can not be invalid");
+      logicalPageBufferPte entryBuffer;
       btreeEntryPageAccessor accessor(_obj->getLogicalID());
-
-      rc = is->getLogicalPageBuffer(_ictx, _obj->getBtreeEntryAddr(),
-                                    !_nonpte, entryBuffer);
+      btreeEntryAddr addr = _obj->getBtreeEntryAddr();
+      rc = _getPageBuffer(addr.pid, entryBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get prior buffer of entry page[%d], rc:%d",
-                  _obj->getBtreeEntryAddr(), rc);
+                addr.pid, rc);
          goto error;
       }
 
@@ -415,23 +401,42 @@ namespace vessel
    }
 
    INT32 btreeAccessContext::allocateNewNode(pageInitializer *initer,
-                                             logicalPageBuffer &buffer)
+                                             LPAGE_BUFFER_UPTR &buffer)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != initer, "can not be invalid");
       PAGE_ID lpid = INVALID_PAGE_ID;
 
-      buffer.fini();
+      buffer.reset();
 
-      indexSpace *is = _ictx.getIndexSpace();
-      rc = is->allocate(_ictx, initer, lpid);
-      if (SDB_OK != rc)
+      if (OSS_UNLIKELY(!isValid()))
       {
-         PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!isWritable())
+      {
+         PD_LOG(PDERROR, "context is not writable");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
-      rc = is->getLogicalPageBuffer(_ictx, lpid, TRUE, buffer);
+      buffer.reset(SDB_OSS_NEW logicalPageBufferPte());
+      if (OSS_UNLIKELY(!buffer))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = _is->allocatePtePage(_context, _actx, initer, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate private page:%d", rc);
+         goto error;
+      }
+
+      rc = _getPageBuffer(lpid, *(static_cast<logicalPageBufferPte*>(buffer.get())));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page buffer of[%d], rc:%d", lpid, rc);
@@ -440,48 +445,42 @@ namespace vessel
    done:
       return rc;
    error:
+      buffer.reset();
       goto done;
    }
 
-   INT32 btreeAccessContext::makeWritable(logicalPageBuffer &buffer)
+   INT32 btreeAccessContext::destroyNode(LPAGE_BUFFER_UPTR &buffer)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!buffer.isValid()))
+
+      if (OSS_UNLIKELY(!isValid()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      rc = _ictx.getIndexSpace()->makePrivateBuffer(_ictx, buffer);
-      if (SDB_OK != rc)
+      else if (OSS_UNLIKELY(!isWritable()))
       {
-         PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 btreeAccessContext::destroyNode(logicalPageBuffer &buffer)
-   {
-      INT32 rc = SDB_OK;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-
-      if (OSS_UNLIKELY(!buffer.isValid()))
+      else if (!buffer)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
-
-      lpid = buffer.getLogicalPid();
-      buffer.fini();
-      rc = _ictx.getIndexSpace()->removePage(_ictx, lpid);
-      if (SDB_OK != rc)
+      else if (buffer->isValid())
       {
-         PD_LOG(PDERROR, "failed to remove page[%d], rc:%d", lpid, rc);
-         goto error;
+         PAGE_ID lpid = buffer->getLogicalPid();
+         buffer.reset();
+         rc = _is->removePage(_context, _actx, lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         buffer.reset();
       }
    done:
       return rc;
@@ -511,7 +510,7 @@ namespace vessel
       else
       {
          btreeAccessPathNode &node = _path.back();
-         rc = destroyNode(*node.getPageBuffer());
+         rc = destroyNode(node.getBufferUptr());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to destroy node:%d", rc);
@@ -539,6 +538,37 @@ namespace vessel
       }
 
       return;
+   }
+
+   INT32 btreeAccessContext::_getPageBuffer(PAGE_ID lpid, logicalPageBufferPte &buffer)
+   {
+      INT32 rc = SDB_OK;
+      buffer.fini();
+
+      if (isWritable())
+      {
+         rc = _is->getPageBuffer(_context, _actx, lpid, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] buffer:%d", lpid, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _is->getPublicPageBuffer(_context, lpid, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] public buffer:%d", lpid, rc);
+            goto error;
+         }
+      }
+      
+      
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace vessel
 

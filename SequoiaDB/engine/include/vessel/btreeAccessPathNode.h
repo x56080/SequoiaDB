@@ -82,6 +82,11 @@ namespace vessel
          {
             return _lpb.get();
          }
+
+         OSS_INLINE std::unique_ptr<logicalPageBuffer> &getBufferUptr()
+         {
+            return _lpb;
+         }
       
          OSS_INLINE BOOLEAN isValid()const
          {

@@ -73,13 +73,6 @@ namespace vessel
       rpb.initWithMmap(gpid, pageSize, ptr);
    }
 
-   void logicalPageSpace::
-         _runtimePageBufferIniter::banWrite(runtimePageBuffer &rpb)
-   {
-      SDB_ASSERT(rpb.isValid(), "can not be invalid");
-      rpb.setWritingBanned();
-   }
-
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
 
 ///////////////logicalPageSpace::_logicalPageBufferIniter
@@ -264,7 +257,7 @@ namespace vessel
       {
          _onClosingStarted();
 
-         INT32 rc = _updateUberBlockOnDisk();
+         INT32 rc = _updateUberBlockOnDisk(FALSE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to update uber block on disk:%d", rc);
@@ -494,12 +487,6 @@ namespace vessel
       {
          SDB_ASSERT(FALSE, "lpb not allocated by this space");
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(lpb._rpb.isWritingBanned()))
-      {
-         SDB_ASSERT(FALSE, "readonly buffer");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
       else if (OSS_UNLIKELY(!lpb._mode.isExclusiveOrUpgrade()))
@@ -1397,7 +1384,12 @@ namespace vessel
       return;
    }
 
-   INT32 logicalPageSpace::_updateUberBlockOnDisk()
+   void logicalPageSpace::_freeLpid(PAGE_ID lpid)
+   {
+      _freeLpids(1, &lpid);
+   }
+
+   INT32 logicalPageSpace::_updateUberBlockOnDisk(BOOLEAN fsync)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
@@ -1416,6 +1408,16 @@ namespace vessel
       if (_lpm.getRoot().update(ub))
       {
          ub->refillChecksum();
+      }
+
+      if (fsync)
+      {
+         rc = _mfile.fsyncPage(UBER_BLOCK_PID);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fysnc meta block page:%d", rc);
+            goto error;
+         }
       }
    done:
       return rc;

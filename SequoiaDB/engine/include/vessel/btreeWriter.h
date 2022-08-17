@@ -43,6 +43,8 @@ namespace engine
 {
 namespace vessel
 {
+   class spacePteAccessCtx;
+
    class btreeWriter : public SDBObject
    {
       public:
@@ -51,9 +53,11 @@ namespace vessel
 
       public:
          OSS_INLINE BOOLEAN isValid()const {return _bac.isValid();}
+         
          INT32 init(requestContext *context,
                     indexSpace *is,
-                    indexObject *obj);
+                    indexObject *obj,
+                    spacePteAccessCtx *ac);
          void reset();
 
          INT32 insert(const btreeKeyStringEntry &entry);
@@ -87,6 +91,7 @@ namespace vessel
          INT32 _destroyChildNodesRecursively();
      
       private:
+         spacePteAccessCtx *_ac = nullptr;
          btreeAccessContext _bac;
    };//class btreeWriter
 } // namespace vessel

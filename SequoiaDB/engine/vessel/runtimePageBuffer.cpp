@@ -42,10 +42,6 @@ namespace engine
 namespace vessel
 {
    constexpr UINT32 FLAG_WRITING_PREPARED = 0x01;
-   constexpr UINT32 FLAG_WRITING_BANNED = 0x02;
-
-   /// user defined flags
-   constexpr UINT16 USR_DEFINED_FLAG_READONLY = 0x01;
 
    runtimePageBuffer::~runtimePageBuffer()
    {
@@ -183,18 +179,6 @@ namespace vessel
       OSS_BIT_SET(_flags, FLAG_WRITING_PREPARED);
    }
 
-   BOOLEAN runtimePageBuffer::isWritingBanned()const
-   {
-      return 0 != OSS_BIT_TEST(_flags, FLAG_WRITING_BANNED);
-   }
-
-   void runtimePageBuffer::setWritingBanned()
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!isWritingPrepared(), "can not be prepared");
-      OSS_BIT_SET(_flags, FLAG_WRITING_BANNED);
-   }
-
    INT32 runtimePageBuffer::prepareToWrite(requestContext *context)
    {
       INT32 rc = SDB_OK;
@@ -207,12 +191,6 @@ namespace vessel
       else if (OSS_UNLIKELY(NULL == context))
       {
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (isWritingBanned())
-      {
-         PD_LOG(PDDEBUG, "writing on buffer is banned");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
       else if (isWritingPrepared())

@@ -536,7 +536,7 @@ namespace vessel
       }
       else
       {
-         rc = _ctx->makeWritable(*_buffer);
+         rc = _buffer->prepareToWrite();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
@@ -797,7 +797,7 @@ namespace vessel
       }
       else
       {
-         rc = _ctx->makeWritable(*_buffer);
+         rc = _buffer->prepareToWrite();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
@@ -910,7 +910,7 @@ namespace vessel
       RECORD_SLOT_POS pivot = INVALID_RECORD_SLOT_POS;
       BOOLEAN idleRight = FALSE;
       btreeNodeSeekResult res;
-      logicalPageBuffer rightNodeBuffer;
+      LPAGE_BUFFER_UPTR rightNodeBuffer;
       raisedKey.reset();
 
       if (OSS_UNLIKELY(!isValid()))
@@ -963,7 +963,7 @@ namespace vessel
       }
 
       raisedKey.leftChild = _buffer->getLogicalPid();
-      raisedKey.rightChild = rightNodeBuffer.getLogicalPid();
+      raisedKey.rightChild = rightNodeBuffer->getLogicalPid();
       raisedKey.fromLeaf = TRUE;
 
       /// should not get error from here
@@ -983,13 +983,13 @@ namespace vessel
       }
       else
       {
-         btreeNode rightNode(_depth, &rightNodeBuffer, _ctx);
+         btreeNode rightNode(_depth, rightNodeBuffer.get(), _ctx);
          rc = rightNode._leafInsert(entry, res.slotPos - pivot - 1);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert key into right node[%d,%d]:%d",
                    _ctx->getIndexObject()->getLogicalID(),
-                   rightNodeBuffer.getLogicalPid(), rc);
+                   rightNodeBuffer->getLogicalPid(), rc);
             ossPanic();
             goto error;
          }
@@ -997,14 +997,14 @@ namespace vessel
          rightNode.commit();
       }
    done:
-      rightNodeBuffer.fini();
+      rightNodeBuffer.reset();
       return rc;
    error:
       raisedKey.reset();
       goto done;
    }
 
-   INT32 btreeNode::_split(RECORD_SLOT_POS pivot, logicalPageBuffer &rightNodeBuffer)
+   INT32 btreeNode::_split(RECORD_SLOT_POS pivot, LPAGE_BUFFER_UPTR &rightNodeBuffer)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -1017,7 +1017,7 @@ namespace vessel
       PAGE_ID pivotLeftChild = INVALID_PAGE_ID;
       BOOLEAN newRightChildIsLeaf = FALSE;
 
-      rightNodeBuffer.fini();
+      rightNodeBuffer.reset();
 
       rc = mb.reserve(getNodeSize());
       if (SDB_OK != rc)
@@ -1035,7 +1035,7 @@ namespace vessel
       }
       SDB_ASSERT(0 < pivot, "can not be zero");
 
-      rc = _ctx->makeWritable(*_buffer);
+      rc = _buffer->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
@@ -1087,7 +1087,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (rightNodeBuffer.isValid())
+      if (rightNodeBuffer)
       {
          _ctx->destroyNode(rightNodeBuffer);
       }
@@ -1137,7 +1137,7 @@ namespace vessel
          slot = node.getWritableObjPtr<btreeItemSlot>(frontOffset);
          if (isLeaf())
          {
-            slot->initAsLeafFormat(keyOffset, ref.data.size(), FALSE);
+            slot->initAsLeafFormat(keyOffset, ref.data.size());
          }
          else
          {
@@ -1273,7 +1273,7 @@ namespace vessel
 
             if (isLeaf())
             {
-               newSlot.initAsLeafFormat(backOffset, ref.data.size(), FALSE);
+               newSlot.initAsLeafFormat(backOffset, ref.data.size());
             }
             else
             {
@@ -1341,7 +1341,7 @@ namespace vessel
       btreeNodeSeekResult res;
       RECORD_SLOT_POS pivot = INVALID_RECORD_SLOT_POS;
       BOOLEAN idleRight = FALSE;
-      logicalPageBuffer rightNodeBuffer;
+      LPAGE_BUFFER_UPTR rightNodeBuffer;
       raisedKey.reset();
 
       if (OSS_UNLIKELY(!isValid()))
@@ -1395,7 +1395,7 @@ namespace vessel
       }
 
       raisedKey.leftChild = _buffer->getLogicalPid();
-      raisedKey.rightChild = rightNodeBuffer.getLogicalPid();
+      raisedKey.rightChild = rightNodeBuffer->getLogicalPid();
       raisedKey.fromLeaf = FALSE;
 
       /// should not get error from here
@@ -1413,13 +1413,13 @@ namespace vessel
       }
       else
       {
-         btreeNode rightNode(_depth, &rightNodeBuffer, _ctx);
+         btreeNode rightNode(_depth, rightNodeBuffer.get(), _ctx);
          rc = rightNode._insertRaisedKey(raisedKeyFromChild, res.slotPos - pivot - 1);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert raised key into right node[%d,%d]:%d",
                    _ctx->getIndexObject()->getLogicalID(),
-                   rightNodeBuffer.getLogicalPid(), rc);
+                   rightNodeBuffer->getLogicalPid(), rc);
             ossPanic();
             goto error;
          }
@@ -1493,7 +1493,7 @@ namespace vessel
          }
       }
 
-      rc = _ctx->makeWritable(*_buffer);
+      rc = _buffer->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get node ready to write:%d", rc);
@@ -1547,7 +1547,7 @@ namespace vessel
       UINT32 size = BTREE_NODE_SLOT_SIZE;
       strictBuffer buffer;
 
-      rc = _ctx->makeWritable(*_buffer);
+      rc = _buffer->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get node ready to write:%d", rc);
@@ -1636,8 +1636,7 @@ namespace vessel
       SDB_ASSERT(!isLeaf(), "can not be leaf");
 
       btreeItemSlot *slot = nullptr;
-
-      rc = _ctx->makeWritable(*_buffer);
+      rc = _buffer->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
@@ -1713,7 +1712,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _ctx->makeWritable(*_buffer);
+      rc = _buffer->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get node ready to write:%d", rc);

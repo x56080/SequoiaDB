@@ -75,6 +75,7 @@ namespace vessel
    class indexScanCursor;
    class bigRecordStream;
    class hitTransferTaskCtx;
+   class spacePteAccessCtx;
    
    class collection: public SDBObject
    {
@@ -167,7 +168,9 @@ namespace vessel
                                const strSlice &indexName,
                                indexIdentifier &indexId);
 
-         INT32 transferIndex(hitTransferTaskCtx *task);
+         /// not thread-safe
+         INT32 transferIndexEntries(requestContext *context,
+                                    hitTransferTaskCtx *tc);
 
       public:
          INT32 dump(bson::BSONObj &record);
@@ -462,6 +465,18 @@ namespace vessel
          INT32 _removeAllIndexes(requestContext *context);
 
          INT32 _truncateAllIndexes(requestContext *context);
+
+         INT32 _transferIndexEntries(requestContext *context,
+                                     hitTransferTaskCtx *taskCtx,
+                                     indexObject *obj);
+
+         INT32 _createBtreeEntryPage(requestContext *context,
+                                     indexObject *obj,
+                                     hitTransferTaskCtx *taskCtx,
+                                     spacePteAccessCtx *ac);
+         INT32 _rollbackUnstableBtreeEntryPage(requestContext *context,
+                                               indexObject *obj,
+                                               hitTransferTaskCtx *taskCtx);
 
       private:/// need protection by op lock
          INT32 _buildIndexInWindow(requestContext *context,

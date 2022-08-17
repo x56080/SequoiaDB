@@ -43,7 +43,7 @@ namespace vessel
 {
    logicalPageBuffer::~logicalPageBuffer()
    {
-      fini();
+      _fini();
    }
 
    logicalPageBuffer::logicalPageBuffer(logicalPageBuffer &&o):
@@ -55,12 +55,12 @@ namespace vessel
    _psv(o._psv)
    {
       o._lpid = INVALID_PAGE_ID;/// reset lpid first to avoid unlocking.
-      o.fini();
+      o._fini();
    }
 
    logicalPageBuffer &logicalPageBuffer::operator=(logicalPageBuffer &&o)
    {
-      fini();
+      _fini();
       if (o.isValid())
       {
          _lpid = o._lpid;
@@ -71,13 +71,19 @@ namespace vessel
          _psv = o._psv;
 
          o._lpid = INVALID_PAGE_ID;
-         o.fini();
+         o._fini();
       }
 
       return *this;
    }  
 
    void logicalPageBuffer::fini()
+   {
+      _fini();
+      return;
+   }
+
+   void logicalPageBuffer::_fini()
    {
       _rpb.fini();
       if (NULL != _lps && INVALID_PAGE_ID != _lpid && !_mode.isNone())
@@ -89,7 +95,6 @@ namespace vessel
       _context = NULL;
       _lps = NULL;
       _psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      return;
    }
 
    INT32 logicalPageBuffer::prepareToWrite()

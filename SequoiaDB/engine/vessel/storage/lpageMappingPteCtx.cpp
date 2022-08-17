@@ -45,8 +45,19 @@ namespace vessel
    {
       _root.reset();
       _obsoleteSet.clear();
+      _brandNewSet.clear();
    }
 
+   BOOLEAN lpageMappingPteCtx::isBrandNewPid(PAGE_ID pid, BOOLEAN lock)
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      std::unique_lock<std::mutex> guard(_pathLock, std::defer_lock);
+      if (lock)
+      {
+         guard.lock();
+      }
+      return 0 < _brandNewSet.count(pid);
+   }
 } // namespace vesel
 
 } // namespace engine

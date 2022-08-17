@@ -95,7 +95,7 @@ namespace vessel
       SDB_ASSERT(0 != size, "can not be invalid");
 
       reset();
-      OSS_BIT_SET(flags, (FLAG_IN_USED));
+      OSS_BIT_SET(flags, FLAG_IN_USED);
       data.key.offset = offset;
       data.key.size = size;
       data.nlf.leftChild = leftChild;

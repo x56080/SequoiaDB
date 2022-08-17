@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = hitTransferTaskCtx.cpp
+   Source File Name = lpsPteViewer.h
 
    Descriptive Name =
 
@@ -33,39 +33,49 @@
 
 ******************************************************************************/
 
-#include "vessel/hitTransferTaskCtx.h"
-#include "pdTrace.hpp"
+#ifndef VESSEL_LPS_PTE_VIEWER_H_
+#define VESSEL_LPS_PTE_VIEWER_H_
+
+#include "ossSharedLatch.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   hitTransferTaskCtx::hitTransferTaskCtx(const hitIndexTransferTask &task):
-   _task(task)
+   class lpsPteViewer : public SDBObject
    {
-      SDB_ASSERT(_task.isValid(), "can not be invalid");
-   }
+      friend class logicalPageSpacePte;
+      public:
+         lpsPteViewer() = default;
+         ~lpsPteViewer();
+         lpsPteViewer(const lpsPteViewer &) = delete;
+         lpsPteViewer &operator=(const lpsPteViewer &) = delete;
+         lpsPteViewer(lpsPteViewer &&)noexcept;
+         lpsPteViewer &operator=(lpsPteViewer &&) noexcept;
 
-   void hitTransferTaskCtx::reset()
-   {
-      _task.reset();
-      _batch = nullptr;
-      _done = FALSE;
-      _rc = SDB_OK;
-      _insertedEntryNum = 0;
-      _removedEntryNum = 0;
-      _btreeEntryPageUnstable = FALSE;
-   }
+      public:
+         OSS_INLINE BOOLEAN isValid()const {return !_mode.isNone();}
+         OSS_INLINE BOOLEAN isWritable()const {return _mode.isExclusiveOrUpgrade();}
+         OSS_INLINE UINT32 getPSN()const {return _psn;}
+         void reset();
 
-   void hitTransferTaskCtx::resetToRedo()
-   {
-      _batch = nullptr;
-      _done = FALSE;
-      _rc = SDB_OK;
-      _insertedEntryNum = 0;
-      _removedEntryNum = 0;
-      _btreeEntryPageUnstable = FALSE;
-   }
+      private:
+         lpsPteViewer(ossSharedLatch *locker,
+                      ossSharedLatchMode mode,
+                      UINT32 psn);
+
+         void _transferToExclusiveLock();
+         void _transferToUpgradeLock();
+         void _reset();
+
+      private:
+         ossSharedLatch *_locker = nullptr;
+         ossSharedLatchMode _mode;
+         UINT32 _psn = 0;
+   };//class lpsPteViewer
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_LPS_PTE_VIEWER_H_

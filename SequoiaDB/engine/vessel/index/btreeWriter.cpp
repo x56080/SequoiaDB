@@ -51,33 +51,29 @@ namespace vessel
 {
    INT32 btreeWriter::init(requestContext *context,
                            indexSpace *is,
-                           indexObject *obj)
+                           indexObject *obj,
+                           spacePteAccessCtx *ac)
    {
       INT32 rc = SDB_OK;
-      indexSpaceAccessCtx ac;
       reset();
 
       if (OSS_UNLIKELY(nullptr == context ||
                        nullptr == is ||
-                       nullptr == obj))
+                       nullptr == obj ||
+                       nullptr == ac))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = is->openAccessCtx(context, ac);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open accessing context:%d", rc);
-         goto error;
-      }
-
-      rc = _bac.init(FALSE, obj, std::move(ac));
+      rc = _bac.init(context, is, obj, ac);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init btree context:%d", rc);
          goto error;
       }
+
+      _ac = ac;
    done:
       return rc;
    error:
@@ -86,6 +82,7 @@ namespace vessel
 
    void btreeWriter::reset()
    {
+      _ac = nullptr;
       _bac.reset();
       return;
    }
@@ -110,7 +107,7 @@ namespace vessel
          rc = SDB_IXM_KEY_TOO_LARGE;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_bac.getIndexObject()->hasBtreeEntryAddr()))
+      else if (OSS_UNLIKELY(!_bac.getIndexObject()->getBtreeEntryAddr().isValid()))
       {
          PD_LOG(PDERROR, "btree entry page not created yet");
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -123,7 +120,7 @@ namespace vessel
             rc = _createBtreeRoot(TRUE);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to create btree root:%d");
+               PD_LOG(PDERROR, "failed to create btree root:%d", rc);
                goto error;
             }
          }
@@ -226,37 +223,38 @@ namespace vessel
       SDB_ASSERT(isValid(), "must be inited");
       SDB_ASSERT(_bac.hasBtreeRoot(), "must has root");
 
-      logicalPageBuffer buffer;
-      indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
-      indexSpace *is = ac.getIndexSpace();
+      logicalPageBufferPte buffer;
+      indexSpace *is = _bac.getIndexSpace();
       const indexObject *obj = _bac.getIndexObject();
-      SDB_ASSERT(obj->hasBtreeEntryAddr(), "can not be invalid");
       btreeEntryPageAccessor accessor(obj->getLogicalID());
       SDB_ASSERT(_bac.hasBtreeRoot(), "can not be invalid");
       PAGE_ID root = _bac.getBtreeRoot();
+      btreeEntryAddr entryAddr = obj->getBtreeEntryAddr();
+      SDB_ASSERT(entryAddr.isValid(), "can not be invalid");
 
-      rc = is->getLogicalPageBuffer(ac, obj->getBtreeEntryAddr(), TRUE, buffer);
+      rc = is->getPageBuffer(_bac.getReqCtx(), _ac,
+                             entryAddr.pid, buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get btree entry buffer:%d", rc);
          goto error;
       }
 
-      rc = is->makePrivateBuffer(ac, buffer);
+      rc = is->makePrivateBuffer(_bac.getReqCtx(), _ac, buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to make entry buffer writable:%d", rc);
          goto error;
       }
 
-      rc = accessor.resetBtreeRoot(ac.getReqCtx(), INVALID_PAGE_ID, &buffer);
+      rc = accessor.resetBtreeRoot(_bac.getReqCtx(), INVALID_PAGE_ID, &buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove btree root in entry page:%d", rc);
          goto error;
       }
 
-      is->removePage(ac, root);
+      is->removePage(_bac.getReqCtx(), _ac, root);
       _bac.resetBtreeRoot(INVALID_PAGE_ID);
    done:
       buffer.fini();
@@ -380,24 +378,25 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be inited");
 
-      logicalPageBuffer entryBuffer;
+      logicalPageBufferPte entryBuffer;
       btreeNodePageIniter initer;
-      indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
-      indexSpace *is = ac.getIndexSpace();
+      indexSpace *is = _bac.getIndexSpace();
       const indexObject *obj = _bac.getIndexObject();
-      SDB_ASSERT(obj->hasBtreeEntryAddr(), "can not be invalid");
       btreeEntryPageAccessor accessor(obj->getLogicalID());
       SDB_ASSERT(!_bac.hasBtreeRoot(), "do not recreate root node");
       PAGE_ID root = INVALID_PAGE_ID;
+      btreeEntryAddr entryAddr = obj->getBtreeEntryAddr();
+      SDB_ASSERT(entryAddr.isValid(), "can not be invalid");
 
-      rc = is->getLogicalPageBuffer(ac, obj->getBtreeEntryAddr(), TRUE, entryBuffer);
+      rc = is->getPageBuffer(_bac.getReqCtx(), _ac,
+                             entryAddr.pid, entryBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get btree entry buffer:%d", rc);
          goto error;
       }
 
-      rc = is->makePrivateBuffer(ac, entryBuffer);
+      rc = is->makePrivateBuffer(_bac.getReqCtx(), _ac, entryBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to make entry buffer writable:%d", rc);
@@ -408,14 +407,14 @@ namespace vessel
       initer._isLeaf = isLeaf;
       initer._isRoot = TRUE;
 
-      rc = is->allocate(ac, &initer, root);
+      rc = is->allocatePtePage(_bac.getReqCtx(), _ac, &initer, root);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate root page:%d", rc);
          goto error;
       }
 
-      rc = accessor.resetBtreeRoot(ac.getReqCtx(), root, &entryBuffer);
+      rc = accessor.resetBtreeRoot(_bac.getReqCtx(), root, &entryBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update root:%d", rc);
@@ -429,7 +428,7 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != root)
       {
-         is->removePage(ac, root);
+         is->removePage(_bac.getReqCtx(), _ac, root);
       }
       goto done;
    }
@@ -638,8 +637,7 @@ namespace vessel
       SDB_ASSERT((UINT32)pos <= father.getItemCount(), "out of bound");
 
       btreeNodePageIniter initer;
-      indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
-      indexSpace *is = ac.getIndexSpace();
+      indexSpace *is = _bac.getIndexSpace();
       const indexObject *obj = _bac.getIndexObject();
 
       child = INVALID_PAGE_ID;
@@ -648,7 +646,7 @@ namespace vessel
       initer._isLeaf = TRUE;
       initer._isRoot = FALSE;
 
-      rc = is->allocate(ac, &initer, child);
+      rc = is->allocatePtePage(_bac.getReqCtx(), _ac, &initer, child);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
@@ -667,7 +665,7 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != child)
       {
-         is->removePage(ac, child);
+         is->removePage(_bac.getReqCtx(), _ac, child);
          child = INVALID_PAGE_ID;
       }
       goto done;
@@ -740,8 +738,7 @@ namespace vessel
       btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
 
-      indexSpaceAccessCtx &ac = _bac.getSpaceCtx();
-      indexSpace *is = ac.getIndexSpace();
+      indexSpace *is = _bac.getIndexSpace();
       UINT32 count = node.getItemCount();
       ossPoolVector<PAGE_ID> vec;
       vec.reserve(count);
@@ -810,7 +807,7 @@ namespace vessel
       
       if (!vec.empty())
       {
-         rc = is->removePages(ac, vec.size(), vec.data());
+         rc = is->removePages(_bac.getReqCtx(), _ac, vec.size(), vec.data());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove pages:%d", rc);

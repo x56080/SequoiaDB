@@ -88,17 +88,13 @@ namespace vessel
                              UINT32 pageSize,
                              liteIOBuffer &iob);
 
-         /// set it after init at once if necessary.
-         void setWritingBanned();
-
       public:
          void commit(DPS_LSN_OFFSET lsn);
 
          void fini();
 
          BOOLEAN isCommitted()const;
-         BOOLEAN isWritingPrepared()const;
-         BOOLEAN isWritingBanned()const;
+         BOOLEAN isWritingPrepared()const;;
 
       public:
          INT32 prepareToWrite(requestContext *context);

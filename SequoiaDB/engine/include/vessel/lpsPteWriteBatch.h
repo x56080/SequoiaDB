@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lpageMappingPteCtx.h
+   Source File Name = lpsPteWriteBatch.h
 
    Descriptive Name =
 
@@ -33,45 +33,51 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LPAGE_MAPPING_PTE_CTX_H_
-#define VESSEL_LPAGE_MAPPING_PTE_CTX_H_
+#ifndef VESSEL_LPS_PTE_WRITE_BATCH_H_
+#define VESSEL_LPS_PTE_WRITE_BATCH_H_
 
-#include "vessel/lpageMappingRoot.h"
+#include "vessel/lpsPteViewer.h"
+#include "vessel/lpageMappingPteCtx.h"
+#include "vessel/spacePteAccessCtx.h"
 #include "ossMemPool.hpp"
-
 #include <mutex>
 
 namespace engine
 {
 namespace vessel
 {
-   class lpageMappingPteCtx : public SDBObject
+   class lpsPteWriteBatch : public SDBObject
    {
-      friend class lpageMapping;
+      friend class logicalPageSpacePte;
       public:
-         lpageMappingPteCtx() = default;
-         ~lpageMappingPteCtx() = default;
-         lpageMappingPteCtx(const lpageMappingPteCtx &) = delete;
-         lpageMappingPteCtx &operator=(const lpageMappingPteCtx &) = delete;
+         lpsPteWriteBatch() = default;
+         ~lpsPteWriteBatch() = default;
+         lpsPteWriteBatch(const lpsPteWriteBatch &) = delete;
+         lpsPteWriteBatch &operator=(const lpsPteWriteBatch &) = delete;
 
       public:
+         OSS_INLINE BOOLEAN isValid() const {return _viewer.isWritable();}
+         OSS_INLINE UINT32 getPSN()const {return _viewer.getPSN();}
+         OSS_INLINE UINT32 getWritingPSN() const {return _viewer.getPSN() + 1;}
          void reset();
-         BOOLEAN isBrandNewPid(PAGE_ID pid, BOOLEAN lock=TRUE);
+
       private:
-         std::mutex _pathLock;
-         lpageMappingRoot _root;
+         lpsPteWriteBatch(lpsPteViewer &&viewer);
+         void precommit(PTE_ACCESS_CTX_PTR &&ctx);
+      
+      private:
+         lpsPteViewer _viewer;
+         lpageMappingPteCtx _mctx;
 
-         /// pids of meta file to be free after publishing.
-         /// protected by _pathLock
-         ossPoolSet<PAGE_ID> _obsoleteSet; 
+         std::mutex _mutex;
+         ossPoolMap<UINT32, PTE_ACCESS_CTX_PTR> _committing;
 
-         /// pids of meta file allocated.
-         /// protected by _pathLock
-         ossPoolSet<PAGE_ID> _brandNewSet;
-   };//class lpageMappingPteCtx
+   };//class lpsPteWriteBatch
+
+   using LPS_PTE_WRITE_BATCH = std::unique_ptr<lpsPteWriteBatch>;
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_LPAGE_MAPPING_PTE_CTX_H_
+#endif//VESSEL_LPS_PTE_WRITE_BATCH_H_

@@ -40,6 +40,8 @@
 #include "utilPooledObject.hpp"
 #include "vessel/lpageDescriptor.h"
 
+#include <atomic>
+
 namespace engine
 {
 namespace vessel
@@ -52,7 +54,7 @@ namespace vessel
       friend class logicalPageSpace;
       public:
          logicalPageBuffer(){}
-         ~logicalPageBuffer();
+         virtual ~logicalPageBuffer();
          logicalPageBuffer(const logicalPageBuffer &) = delete;
          logicalPageBuffer &operator=(const logicalPageBuffer &) = delete;
          logicalPageBuffer(logicalPageBuffer &&);
@@ -102,8 +104,8 @@ namespace vessel
          }
 
       public:
-         void fini();
-         INT32 prepareToWrite();
+         virtual void fini();
+         virtual INT32 prepareToWrite();
          void commit(DPS_LSN_OFFSET lsn);
          
          INT32 autoGetWritableBodyBuffer(strictBuffer &buffer);
@@ -128,7 +130,10 @@ namespace vessel
          /// must hold upgrade lock first
          void lockExclusiveFromUpgrade();
 
-      private:
+      protected:
+         void _fini();
+
+      protected:
          PAGE_ID _lpid = INVALID_PAGE_ID;
          ossSharedLatchMode _mode;
          requestContext *_context = NULL;
@@ -136,6 +141,8 @@ namespace vessel
          runtimePageBuffer _rpb;
          PAGE_SNAPSHOT_VERION _psv = INVALID_PAGE_SNAPSHOT_VERSION;
    };//class logicalPageBuffer
+
+   using LPAGE_BUFFER_UPTR = std::unique_ptr<logicalPageBuffer>;
 }//namespace vessel
 }//namespace engine
 

@@ -176,8 +176,8 @@ namespace vessel
       if (isOpen() && closeDBOptions::CLOSE_MODE_NORMAL == options.closeMode)
       {
          THREAD_CONTEXT_OWNER tco(executor, &_env);
-         requestContext context;
 
+         _env.hitMgr.fini();
          _env.lobcBufferPool.flushAllDirtyBuffers();
          _env.ioBufferPool.flushAll();
 

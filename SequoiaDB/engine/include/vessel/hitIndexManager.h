@@ -41,6 +41,7 @@
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEvent.h"
 #include "vessel/backgroundWorkers.h"
+#include "vessel/lpsPteWriteBatch.h"
 
 #include <atomic>
 
@@ -83,17 +84,30 @@ namespace vessel
             _csTransferJob &operator=(const _csTransferJob &) = delete;
             _csTransferJob(_csTransferJob &&o) noexcept;
             _csTransferJob &operator=(_csTransferJob &&o) noexcept;
+
             void reset();
+
+            OSS_INLINE BOOLEAN isValid()const
+            {
+               return DMS_INVALID_LOGICCSID != csid;
+            }
             OSS_INLINE BOOLEAN isDone()const
             {
                return completedTaskNum == tasks.size();
+            }
+            OSS_INLINE BOOLEAN hasLockedSid()const
+            {
+               return INVALID_SPACE_ID != lockedSid;
             }
             OSS_INLINE BOOLEAN hasError()const
             {
                return 0 < errorTaskNum;
             }
 
+
             UINT32 csid = DMS_INVALID_LOGICCSID;
+            SPACE_ID lockedSid = INVALID_SPACE_ID;
+            LPS_PTE_WRITE_BATCH batch;
             _TASK_CTX_VEC tasks;
             UINT32 completedTaskNum = 0;
             UINT32 errorTaskNum = 0;
@@ -112,7 +126,7 @@ namespace vessel
             {
                return nullptr != reader.get();
             }
-            OSS_INLINE void pop()
+            OSS_INLINE void popBack()
             {
                cjobs.pop_back();
             }
@@ -156,24 +170,27 @@ namespace vessel
          INT32 _buildCsJob(std::unique_ptr<rocksdb::Iterator> &itr);
          INT32 _popBackSSTAndRemove();
 
-         void _dispatchJob();
+         INT32 _transferFirstUnremovedCS(BOOLEAN &allRemoved);
+         INT32 _beginToTransferCurrentCS(BOOLEAN &csRemoved);
+
 
       private:
          void _handleResponse(const backgroundEvent &e,
                               BOOLEAN &currentJobFinished);
 
-         void _completeTask(UINT32 taskId,
-                            INT32 rc,
-                            _csTransferJob &cjob);
+         void _completeTask(UINT32 taskId, INT32 rc, _csTransferJob &cjob);
 
-         void _redoCsJob(BOOLEAN onlyErrorTasks);
+         INT32 _rollbackCurrentCSJob();
 
          INT32 _commitCsJob();
 
          void _finishCurrentFileJob();
 
-      private:
+         _csTransferJob *_getCurrentCSJob();
 
+         INT32 _adjustWorkers(BOOLEAN hasJob);
+
+         void _dispatchJob();
 
       private:
          std::atomic_bool _attached{FALSE};

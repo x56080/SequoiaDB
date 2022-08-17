@@ -38,8 +38,10 @@
 
 #include "vessel/indexProperties.h"
 #include "dpsDef.hpp"
+#include "vessel/atomicBtreeEntryAddr.h"
 
 #include <memory>
+#include <atomic>
 
 namespace engine
 {
@@ -84,11 +86,23 @@ namespace vessel
          OSS_INLINE const orderingWrapper getOrderingWrapper()const {return _properties.getPattern().getOrdering();}
          OSS_INLINE DPS_LSN_OFFSET getRebornLSN()const {return _rebornLSN;}
          OSS_INLINE void resetRebornLSN(DPS_LSN_OFFSET lsn) {_rebornLSN = lsn;}
-         OSS_INLINE PAGE_ID getBtreeEntryAddr()const {return _btreeEntryAddr;}
-         OSS_INLINE BOOLEAN hasBtreeEntryAddr()const {return INVALID_PAGE_ID != _btreeEntryAddr;}
-         OSS_INLINE void resetBtreeEntryAddr(PAGE_ID entry) {_btreeEntryAddr = entry;}
-         OSS_INLINE void resetBtreeEntryPSN(UINT64 psn) {_btreeEntryPSN = psn;}
-         OSS_INLINE UINT64 getBtreeEntryPSN()const {return _btreeEntryPSN;}
+         OSS_INLINE BOOLEAN isWritable()const
+         {
+            return isValid() && (isNormal() || isBuilding());
+         }
+
+         OSS_INLINE btreeEntryAddr getBtreeEntryAddr()const
+         {
+            return _entryAddr.get();
+         }
+         OSS_INLINE void resetBtreeEntryAddr()
+         {
+            _entryAddr.reset();
+         }
+         OSS_INLINE void setBtreeEntryAddr(PAGE_ID pid, UINT32 psn)
+         {
+            _entryAddr.set(pid, psn);
+         }
 
       public:
          INT32 init(UINT32 indexLid,
@@ -108,14 +122,7 @@ namespace vessel
          indexProperties _properties;
          DPS_LSN_OFFSET _rebornLSN = DPS_INVALID_LSN_OFFSET;
          INDEX_STATUS _status = INDEX_STATUS_INVALID;
-         PAGE_ID _btreeEntryAddr = INVALID_PAGE_ID;
-
-         /// it is a in-mem only variable,
-         /// always start form zero when restart engine.
-         /// it specifies the publishing point when btree entry created.
-         /// the btree entry page should not be awared to any other
-         /// users until it is published.
-         UINT64 _btreeEntryPSN = 0;
+         atomicBtreeEntryAddr _entryAddr;
    };//class indexObject
 } // namespace vessel
 

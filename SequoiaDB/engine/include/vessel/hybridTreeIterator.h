@@ -41,6 +41,7 @@
 #include "vessel/btreeIterator.h"
 #include "vessel/keyString.h"
 #include "vessel/lsm/lsmIteratorBound.h"
+#include "vessel/lpsPteViewer.h"
 
 #include <array>
 
@@ -78,9 +79,6 @@ namespace vessel
                             const inclusiveVec &iv,
                             const options &o) override;
 
-         virtual INT32 equal(const VEC_ELE_CMP &matchEles) override;
-         virtual INT32 equal(const bson::BSONObj &key) override;
-
          /// locate
          virtual INT32 locateNext(const indexEntryLocation *location,
                                   const options &o) override;
@@ -103,8 +101,6 @@ namespace vessel
             return _isReadyToRead();
          }
 
-         
-
       public:
          virtual bson::BSONObj getKeyObj(BOOLEAN withFieldName,
                                          bson::BufBuilder *buf)const override;
@@ -112,6 +108,10 @@ namespace vessel
          virtual DPS_TRANS_ID getTransID()const override;
          virtual recordID getRid()const override;
          virtual INT32 initOrUpdateLocation(IDX_ENTRY_LOCATION_UPTR &location) const override;
+
+      public:
+         INT32 seek(const keyString &key, const options &o);
+         keyString getCurrentKeyString()const;
 
       private:
          enum _FILLING_STATUS : INT32
@@ -180,14 +180,13 @@ namespace vessel
       private:
          INT32 _reinitInternalItrs();
          void _resetInternalItrs();
-         INT32 _seek(const keyString &ks,
-                     BOOLEAN pointGetOptimized);
+         INT32 _seek(const keyString &ks);
          INT32 _seekForPrev(const keyString &ks);
          void _resetRing();
          INT32 _refillRingAndPick(BOOLEAN fetchNext);
          INT32 _refillRing(BOOLEAN fetchNext);
          _RING_PICK_RES _pickFromRing() const;
-         INT32 _locateNext(const _location *l, BOOLEAN pointGetOptimized);
+         INT32 _locateNext(const _location *l);
          INT32 _resumeBtreeLocation(const _location &l,
                                     const keyString &ks);
          INT32 _advance(const keyString &ks);
@@ -210,10 +209,11 @@ namespace vessel
          indexSpace *_is = nullptr;
          requestContext *_context = nullptr;
          lsmColumnFamily _cf;
+         options _o;
          lsmIteratorBound _bound;
          lsmTreeIterator _lsm;
+         lpsPteViewer _viewer;
          btreeIterator _btree;
-         BOOLEAN _forward = TRUE;
          INT32 _status = _FILLING_STATUS::BOTH_EXPECTED;
          _RING_POS _pos = _RING_POS::INVALID;
          _ENTRY_RING _ring;

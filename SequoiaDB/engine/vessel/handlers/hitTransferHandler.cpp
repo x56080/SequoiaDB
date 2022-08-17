@@ -51,7 +51,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       requestContext context;
       collectionSpace *cs = nullptr;
-      storageUnit *su = nullptr;
       collection *cl = nullptr;
       instanceEnv *env = context.getEnv();
       SDB_ASSERT(nullptr != env, "can not be invalid");
@@ -64,7 +63,6 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!ctx->getSpaceCtx().isValid(), "must be invalid");
       indexId = ctx->getTask().getGlobalIndexID();
       rc = env->dms.getCSByLogicalID(&context, indexId.getLogicalCSID(),
                                      SHARED, &cs);
@@ -75,20 +73,19 @@ namespace vessel
          goto error;
       }
 
-      su = cs->getSU();
-      rc = su->getIndexSpace().openAccessCtx(&context, ctx->getSpaceCtx());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open accessing context:%d", rc);
-         goto error;
-      }
-
       rc = cs->getCollectionByLogicalId(&context, indexId.getLogicalCLID(),
                                         SHARED, &cl);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get clp%d] obj:%d",
+         PD_LOG(PDERROR, "failed to get cl obj[%d]: rc:%d",
                 indexId.getLogicalCLID(), rc);
+         goto error;
+      }
+
+      rc = cl->transferIndexEntries(&context, ctx);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to transfer index entries:%d", rc);
          goto error;
       }
 
@@ -96,10 +93,6 @@ namespace vessel
       context.close();
       return rc;
    error:
-      if (nullptr != ctx)
-      {
-         ctx->getSpaceCtx().abort();
-      }
       goto done;
    }
 } // namespace vessel

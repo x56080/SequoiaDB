@@ -181,8 +181,6 @@ namespace vessel
                                  UINT32 pageSize,
                                  const mmapPagePointer &ptr,
                                  runtimePageBuffer &rpb);
-
-               void banWrite(runtimePageBuffer &rpb);
          };//class _runtimePageBufferIniter
 
          class _logicalPageBufferIniter : public SDBObject
@@ -209,7 +207,6 @@ namespace vessel
          INT32 _openFileCluster(const storageFileLoader *loader);
          INT32 _initSpaceManager();
          INT32 _initLpidAllocator();
-         INT32 _updateUberBlockOnDisk();
 
       protected:
          INT32 _initAndCreateMapping(requestContext *context,
@@ -220,6 +217,7 @@ namespace vessel
 
          INT32 _reserveLpids(UINT32 size, PAGE_ID *lpids);
          void _freeLpids(UINT32 size, const PAGE_ID *lpids);
+         void _freeLpid(PAGE_ID lpid);
 
          OSS_INLINE BOOLEAN _isReservedLpid(PAGE_ID lpid)const
          {
@@ -228,6 +226,9 @@ namespace vessel
 
          fclusterSpaceManager &_getSpaceMgr() {return _smgr;}
          lpageMapping &_getPageMapping() {return _lpm;}
+         lpageMetaDataFile &_getMetaFile() {return _mfile;}
+
+         INT32 _updateUberBlockOnDisk(BOOLEAN fsync);
 
       private:
          const storageUnitManifest *_manifest = nullptr;

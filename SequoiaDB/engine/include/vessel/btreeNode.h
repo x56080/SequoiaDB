@@ -247,7 +247,7 @@ namespace vessel
 
       private:
          INT32 _split(RECORD_SLOT_POS pivot,
-                      logicalPageBuffer &rightNodeBuffer);
+                      std::unique_ptr<logicalPageBuffer> &rightNodeBuffer);
 
          INT32 _buildRightNodeWhenSplit(RECORD_SLOT_POS begin,
                                         strictBuffer &node)const;

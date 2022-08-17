@@ -99,6 +99,9 @@ namespace vessel
          INT32 testCS(utilCSUniqueID uniqueID,
                       collectionSpaceId &identifier);
 
+         INT32 testCSByLid(UINT32 lid,
+                           collectionSpaceId &identifier);
+
          INT32 getCSByName(requestContext *context,
                            const strSlice &nameSlice,
                            OSS_LATCH_MODE mode,

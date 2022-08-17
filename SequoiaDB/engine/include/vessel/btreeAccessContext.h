@@ -39,9 +39,8 @@
 #include "vessel/btreeAccessPathNode.h"
 #include "vessel/btreeNode.h"
 #include "vessel/logicalPageBuffer.h"
-#include "ossMemPool.hpp"
-#include "vessel/indexSpaceAccessCtx.h"
 #include "vessel/btreeStatistics.h"
+#include "vessel/logicalPageBufferPte.h"
 
 namespace engine
 {
@@ -49,6 +48,8 @@ namespace vessel
 {
    class indexObject;
    class pageInitializer;
+   class indexSpace;
+   class spacePteAccessCtx;
 
    class btreeAccessContext : public SDBObject
    {
@@ -74,22 +75,20 @@ namespace vessel
             return _path.empty();
          }
 
-         OSS_INLINE indexSpaceAccessCtx &getSpaceCtx() {return _ictx;}
-         OSS_INLINE const indexSpaceAccessCtx &getSpaceCtx()const {return _ictx;}
-
-         OSS_INLINE BOOLEAN isNonPte()const {return _nonpte;}
+         OSS_INLINE BOOLEAN isWritable()const {return nullptr != _actx;}
          OSS_INLINE BOOLEAN hasBtreeRoot()const {return INVALID_PAGE_ID != _btreeRoot;}
          OSS_INLINE PAGE_ID getBtreeRoot()const {return _btreeRoot;}
          OSS_INLINE UINT64 getLSN()const {return _stats.lsn;}
+         OSS_INLINE indexSpace *getIndexSpace() {return _is;}
+         OSS_INLINE requestContext *getReqCtx() {return _context;}
 
       public:
-         INT32 init(BOOLEAN nonpte,
+         INT32 init(requestContext *context,
+                    indexSpace *is,
                     const indexObject *obj,
-                    indexSpaceAccessCtx &&ctx);
+                    spacePteAccessCtx *actx=nullptr);
                    
          void reset();
-
-         void abort();
 
          /// ensure has btree root first.
          /// will reset whole path inside first.
@@ -116,12 +115,10 @@ namespace vessel
 
          const btreeAccessPathNode &getPathNode(UINT32 depth)const;
 
-         INT32 makeWritable(logicalPageBuffer &buffer);
-
          INT32 allocateNewNode(pageInitializer *initer,
-                               logicalPageBuffer &buffer);
+                               LPAGE_BUFFER_UPTR &buffer);
 
-         INT32 destroyNode(logicalPageBuffer &buffer);
+         INT32 destroyNode(LPAGE_BUFFER_UPTR &buffer);
 
          INT32 destroyPathEnd();
 
@@ -135,13 +132,15 @@ namespace vessel
          INT32 _cacheRootAndStats();
          INT32 _pushIntoPath(PAGE_ID lpid);
          INT32 _validateBtreeNode(const logicalPageBuffer &buffer)const;
+         INT32 _getPageBuffer(PAGE_ID lpid, logicalPageBufferPte &buffer);
       private:
          using _BTREE_PATH = ossPoolVector<btreeAccessPathNode>;
 
       private:
-         BOOLEAN _nonpte = TRUE;
          const indexObject *_obj = nullptr;
-         indexSpaceAccessCtx _ictx;
+         indexSpace *_is = nullptr;
+         requestContext *_context = nullptr;
+         spacePteAccessCtx *_actx = nullptr;
          _BTREE_PATH _path;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
          btreeStatistics _stats;

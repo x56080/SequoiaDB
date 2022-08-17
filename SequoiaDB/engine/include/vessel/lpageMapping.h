@@ -41,6 +41,7 @@
 #include "vessel/metaDataUberBlock.h"
 #include "vessel/lpageMappingRoot.h"
 #include "vessel/lpageMappingPteCtx.h"
+#include "vessel/fixedBitset.hpp"
 
 namespace engine
 {
@@ -129,12 +130,14 @@ namespace vessel
                      lpageDescriptor *oldVal=nullptr);
 
          /// revert to published mapping
-         INT32 revert(lpageMappingPteCtx &ctx,
-                      PAGE_ID lpid,
-                      lpageDescriptor &beforeRevert,
-                      lpageDescriptor &afterRevert);
+         // INT32 revert(lpageMappingPteCtx &ctx,
+         //              PAGE_ID lpid,
+         //              lpageDescriptor &beforeRevert,
+         //              lpageDescriptor &afterRevert);
 
-         INT32 publish(lpageMappingPteCtx &ctx);
+         void publish(lpageMappingPteCtx &ctx);
+
+         void abort(lpageMappingPteCtx &ctx);
 
       private:
          void _free(UINT32 size, const PAGE_ID *lpids);

@@ -204,7 +204,18 @@ namespace vessel
                                    recordID &rid)
    {
       INT32 rc = SDB_OK;
+      STACK_KEY_STRING_BUILDER builder;
       hybridTreeIterator iterator;
+      indexIterator::options o;
+      o.pointGetOptimized = TRUE;
+      inclusiveVec iv;
+      globalLogicalClId clid;
+      globalIndexID indexId;
+      orderingWrapper ordering;
+      CHAR buf[keyStringCoder::INDEX_ID_ENCODEING_SIZE] = {};
+      slice s(sizeof(buf), buf);
+      keyString ks;
+
       rid.reset();
 
       if (OSS_UNLIKELY(nullptr == context ||
@@ -222,6 +233,23 @@ namespace vessel
          goto error;
       }
 
+      clid = context->getClProperties()->getGlobalLogicalId();
+      indexId.reset(clid.getLogicalCSID(),
+                    clid.getLogicalCLID(),
+                    obj->getLogicalID());
+      keyStringCoder().encodeGlobalIndexId(indexId, FALSE, buf);
+      iv.setAll(obj->getProperties().getPattern().getKeyCount(), TRUE);
+      ordering = obj->getProperties().getPattern().getOrdering();
+
+      rc = builder.buildPredicate(key, ordering, iv, TRUE, s);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+         goto error;
+      }
+
+      ks = builder.getShallowKeyString();
+
       rc = iterator.init(context, _is,
                          GET_HYBRID_INDEX_COLUMN_FAMILY(),
                          obj);
@@ -231,14 +259,15 @@ namespace vessel
          goto error;
       }
 
-      rc = iterator.equal(key);
+      rc = iterator.seek(ks, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find key:%d", rc);
          goto error;
       }
 
-      if (iterator.isReadyToRead())
+      if (iterator.isReadyToRead() &&
+          0 == ks.compareElements(iterator.getCurrentKeyString()))
       {
          rid = iterator.getRid();
       }
@@ -255,7 +284,18 @@ namespace vessel
                                    recordID &rid)
    {
       INT32 rc = SDB_OK;
+      STACK_KEY_STRING_BUILDER builder;
+      indexIterator::options o;
+      o.pointGetOptimized = TRUE;
+      inclusiveVec iv;
       hybridTreeIterator iterator;
+      UINT32 fields = 0;
+      globalLogicalClId clid;
+      globalIndexID indexId;
+      orderingWrapper ordering;
+      CHAR buf[keyStringCoder::INDEX_ID_ENCODEING_SIZE] = {};
+      slice s(sizeof(buf), buf);
+
       rid.reset();
 
       if (OSS_UNLIKELY(nullptr != context ||
@@ -268,9 +308,18 @@ namespace vessel
          goto error;
       }
 
-       rc = iterator.init(context, _is,
-                          GET_HYBRID_INDEX_COLUMN_FAMILY(),
-                          obj);
+      clid = context->getClProperties()->getGlobalLogicalId();
+      indexId.reset(clid.getLogicalCSID(),
+                    clid.getLogicalCLID(),
+                    obj->getLogicalID());
+      keyStringCoder().encodeGlobalIndexId(indexId, FALSE, buf);
+      fields = obj->getProperties().getPattern().getKeyCount();
+      iv.setAll(fields, TRUE);
+      ordering = obj->getProperties().getPattern().getOrdering();
+
+      rc = iterator.init(context, _is,
+                         GET_HYBRID_INDEX_COLUMN_FAMILY(),
+                         obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init iterator:%d", rc);
@@ -279,7 +328,16 @@ namespace vessel
 
       for (auto itr = keys.cbegin(); itr != keys.cend(); ++itr)
       {
-         rc = iterator.equal(*itr);
+         keyString ks;
+         rc = builder.buildPredicate(*itr, ordering, iv, TRUE, s);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build predicate:%d", rc);
+            goto error;
+         }
+
+         ks = builder.getShallowKeyString();
+         rc = iterator.seek(ks, o);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to find key:%d", rc);
@@ -288,8 +346,11 @@ namespace vessel
 
          if (iterator.isReadyToRead())
          {
-            rid = iterator.getRid();
-            break;
+            if (0 == ks.compareElements(iterator.getCurrentKeyString()))
+            {
+               rid = iterator.getRid();
+               break;
+            }
          }
       }
 

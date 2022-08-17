@@ -47,6 +47,7 @@
 #include "vessel/lsmKeyStringEntry.h"
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/hitTransferHandler.h"
+#include "vessel/spaceIDLocker.h"
 
 namespace engine
 {
@@ -149,53 +150,51 @@ namespace vessel
          }
       }
 
-      if (_filesToTransfer.empty())
-      {
-         if (_workers.isValid())
-         {
-            _workers.fini();
-         }
-         goto done;
-      }
-      
-      rc = _createJobFromFileList();
+      rc = _adjustWorkers(!_filesToTransfer.empty());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to build next job:%d", rc);
+         PD_LOG(PDERROR, "failed to adjust background workers:%d", rc);
          goto error;
       }
 
-      if (_job.isValid())
+      while (!_filesToTransfer.empty())
       {
-         if (!_workers.isValid())
+         rc = _createJobFromFileList();
+         if (SDB_OK != rc)
          {
-            backgroundWorkers::options o;
-            o.maxWorkerNum = 4;
-            rc = _workers.init(GET_THREAD_CONTEXT()->getEnv(), o);
+            PD_LOG(PDERROR, "failed to build next job:%d", rc);
+            goto error;
+         }
+         else if (!_job.isValid())
+         {
+            break;
+         }
+         else
+         {
+            BOOLEAN allRemoved = FALSE;
+            rc = _transferFirstUnremovedCS(allRemoved);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to init background workers:%d", rc);
+               PD_LOG(PDERROR, "failed to transfer the first unremoved cs:%d", rc);
                goto error;
             }
+            else if (allRemoved)
+            {
+               _finishCurrentFileJob();
+               continue;
+            }
+            else
+            {
+               break;
+            }
          }
-
-         ///guarantee all entries transfered into btree
-         ///will not be out of lsn bound.
-         ///we do not store lsn in btree index, once sst file
-         /// removed, entries can not be rollback any more.
-         GET_THREAD_CONTEXT()->getEnv()->resource.journal->flush(_job.lsn);
-
-         _dispatchJob();
-      }
+      }// while (!_filesToTransfer.empty())
    
    done:
       return rc;
    error:
       _job.reset();
-      if (reloadFiles)
-      {
-         _filesToTransfer.clear();
-      }
+      _filesToTransfer.clear();
       goto done;
    }
 
@@ -415,7 +414,7 @@ namespace vessel
 
          /// no else
          {
-            hitIndexTransferTask task(_job.reader.get(), indexId);
+            hitIndexTransferTask task(cjob.tasks.size(), _job.reader.get(), indexId);
             HIT_TRANS_TASK_CTX ctx(SDB_OSS_NEW hitTransferTaskCtx(task));
             if (OSS_UNLIKELY(!ctx))
             {
@@ -534,6 +533,7 @@ namespace vessel
    {
       SDB_ASSERT(e.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER),
                  "can not be invalid");
+
       UINT32 taskId = e.getShortData<UINT32>();
       currentJobFinished = FALSE;
 
@@ -554,7 +554,7 @@ namespace vessel
          
          if (cjob.hasError())
          {
-            _redoCsJob(TRUE);
+            _rollbackCurrentCSJob();
          }
          else
          {
@@ -562,18 +562,31 @@ namespace vessel
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to commit cs job:%d", rc);
-               _redoCsJob(FALSE);
-               goto done;
+               _rollbackCurrentCSJob();
+               rc = SDB_OK;
             }
+         }
 
-            if (_job.hasNoCsJob())
+         if (_job.hasNoCsJob())
+         {
+            _finishCurrentFileJob();
+            currentJobFinished = TRUE;
+         }
+         else
+         {
+            BOOLEAN allRemoved = FALSE;
+            INT32 rc = _transferFirstUnremovedCS(allRemoved);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to transfer next cs:%d", rc);
+               /// reload sst file to transfer. the transfer is idempotent.
+               _job.reset();
+               _filesToTransfer.clear();
+            }
+            else if (allRemoved)
             {
                _finishCurrentFileJob();
                currentJobFinished = TRUE;
-            }
-            else
-            {
-               _dispatchJob();
             }
          }
       }
@@ -629,18 +642,29 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_job.isValid() && !_job.hasNoCsJob(), "can not be invalid");
-      const _csTransferJob &cjob = _job.getCurrentCsJob();
-      PD_LOG(PDDEBUG, "cs[%d] job has been committed", cjob.csid);
+      _csTransferJob &cjob = _job.getCurrentCsJob();
+      SDB_ASSERT(cjob.hasLockedSid(), "impossible");
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      storageUnit *su = tc->getEnv()->dms.getStorageUnit(cjob.lockedSid);
+      if (OSS_UNLIKELY(nullptr == su))
+      {
+         PD_LOG(PDSEVERE, "failed to get storage unit[%d]", cjob.lockedSid);
+         ossPanic();
+      }
+
+      rc = su->getIndexSpace().commit(cjob.batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit write batch to space:%d", rc);
+         goto error;
+      }
+      
+      tc->getEnv()->spaceLocker.unlock(cjob.lockedSid, SHARED);
       _job.cjobs.pop_front();
    done:
       return rc;
    error:
       goto done;
-   }
-
-   void hitIndexManager::_redoCsJob(BOOLEAN onlyErrorTasks)
-   {
-      SDB_ASSERT(FALSE, "TODO");
    }
 
    void hitIndexManager::_waitForAttaching()const
@@ -659,9 +683,153 @@ namespace vessel
       } 
    }
 
-//////////////////////////_transferJob
+   INT32 hitIndexManager::_transferFirstUnremovedCS(BOOLEAN &allRemoved)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_job.isValid() && !_job.hasNoCsJob(), "can not be invalid");
+      allRemoved = TRUE;
+
+      while (!_job.hasNoCsJob())
+      {
+         BOOLEAN csRemoved = FALSE;
+         rc = _beginToTransferCurrentCS(csRemoved);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to transfer current cs:%d", rc);
+            goto error;
+         }
+         else if (csRemoved)
+         {
+            _job.popBack();
+            continue;
+         }
+         else
+         {
+            allRemoved = FALSE;
+            break;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 hitIndexManager::_beginToTransferCurrentCS(BOOLEAN &csRemoved)
+   {
+      INT32 rc = SDB_OK;
+      _csTransferJob *cjob = _getCurrentCSJob();
+      SDB_ASSERT(nullptr != cjob && cjob->isValid(), "can not be invalid");
+      SDB_ASSERT(!cjob->hasLockedSid(), "impossible");
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      spaceIDLocker &locker = tc->getEnv()->spaceLocker;
+      collectionSpaceId id;
+      storageUnit *su = nullptr;
+      csRemoved = FALSE;
+
+      rc = tc->getEnv()->dms.testCSByLid(cjob->csid, id);
+      if (SDB_DMS_CS_NOTEXIST == rc)
+      {
+         PD_LOG(PDERROR, "cs[%d] has been removed", cjob->csid);
+         csRemoved = TRUE;
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get cs identifier:%d", rc);
+         goto error;
+      }
+
+      rc = locker.lock(id.getSpaceId(), SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", id.getSpaceId(), rc);
+         goto error;
+      }
+      cjob->lockedSid = id.getSpaceId();
+
+      su = tc->getEnv()->dms.getStorageUnit(id.getSpaceId());
+      if (nullptr == su || cjob->csid != su->getLogicalID())
+      {
+         PD_LOG(PDERROR, "cs[%d] has been removed", cjob->csid);
+         csRemoved = TRUE;
+         locker.unlock(id.getSpaceId(), SHARED);
+         cjob->lockedSid = INVALID_SPACE_ID;
+         goto done;
+      }
+
+      rc = su->getIndexSpace().initWriteBatch(cjob->batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init write batch:%d", rc);
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < cjob->tasks.size(); ++i)
+      {
+         HIT_TRANS_TASK_CTX &task = cjob->tasks[i];
+         task->setBatch(cjob->batch.get());
+      }
+
+      _dispatchJob();
+   done:
+      return rc;
+   error:
+      if (nullptr != cjob && cjob->hasLockedSid())
+      {
+         locker.unlock(cjob->lockedSid, SHARED);
+      }
+      goto done;
+   }
+
+   hitIndexManager::_csTransferJob *hitIndexManager::_getCurrentCSJob()
+   {
+      if (_job.isValid() && !_job.cjobs.empty())
+      {
+         return _job.getCurrentCsJobPtr();
+      }
+      else
+      {
+         return nullptr;
+      }
+   }
+
+   INT32 hitIndexManager::_adjustWorkers(BOOLEAN hasJob)
+   {
+      INT32 rc = SDB_OK;
+      if (hasJob && !_workers.isValid())
+      {
+         backgroundWorkers::options o;
+         o.maxWorkerNum = 4;
+         rc = _workers.init(GET_THREAD_CONTEXT()->getEnv(), o);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init background workers:%d", rc);
+            goto error;
+         }
+      }
+      else if (!hasJob && _workers.isValid())
+      {
+         _workers.fini();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 hitIndexManager::_rollbackCurrentCSJob()
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+//////////////////////////_csTransferJob
    hitIndexManager::_csTransferJob::_csTransferJob(_csTransferJob &&o) noexcept :
    csid(o.csid),
+   lockedSid(o.lockedSid),
+   batch(std::move(o.batch)),
    tasks(std::move(o.tasks)),
    completedTaskNum(o.completedTaskNum),
    errorTaskNum(o.errorTaskNum)
@@ -672,6 +840,8 @@ namespace vessel
    hitIndexManager::_csTransferJob &hitIndexManager::_csTransferJob::operator=(_csTransferJob &&o) noexcept
    {
       csid = o.csid;
+      lockedSid = o.lockedSid;
+      batch = std::move(o.batch);
       tasks = std::move(o.tasks);
       completedTaskNum = o.completedTaskNum;
       errorTaskNum = o.errorTaskNum;
@@ -682,12 +852,15 @@ namespace vessel
    void hitIndexManager::_csTransferJob::reset()
    {
       csid = DMS_INVALID_LOGICCSID;
+      lockedSid = INVALID_SPACE_ID;
+      batch.reset();
       tasks.clear();
       completedTaskNum = 0;
       errorTaskNum = 0;
       return;
    }
 
+//////////////////////////_fileTransferJob
    void hitIndexManager::_fileTransferJob::reset()
    {
       reader.reset();

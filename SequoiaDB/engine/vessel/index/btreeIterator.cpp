@@ -55,7 +55,6 @@ namespace vessel
                              const indexObject *obj)
    {
       INT32 rc = SDB_OK;
-      indexSpaceAccessCtx ac;
 
       reset();
 
@@ -67,14 +66,7 @@ namespace vessel
          goto error;
       }
 
-      rc = is->openAccessCtx(context, ac);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open accessing context:%d", rc);
-         goto error;
-      }
-
-      rc = _bac.init(TRUE, obj, std::move(ac));
+      rc = _bac.init(context, is, obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init btree context:%d", rc);
@@ -83,6 +75,7 @@ namespace vessel
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -158,6 +151,7 @@ namespace vessel
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -217,6 +211,7 @@ namespace vessel
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -249,6 +244,7 @@ namespace vessel
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -313,6 +309,7 @@ namespace vessel
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -368,6 +365,7 @@ namespace vessel
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -713,7 +711,7 @@ namespace vessel
    INT32 btreeIterator::_setCurrentItem()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!_hasLocation(), "can not be invalid");
+      SDB_ASSERT(_hasLocation(), "can not be invalid");
       btreeNode node = _bac.getEndNodeInPath();
       rc = node.getItem(_pos, _item);
       if (OSS_UNLIKELY(SDB_OK != rc))

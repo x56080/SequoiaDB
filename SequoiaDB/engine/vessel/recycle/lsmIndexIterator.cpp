@@ -136,7 +136,7 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!_o.pointGetOnly, "can not be point get");
+      SDB_ASSERT(!_o.pointGetOptimized, "can not be point get");
       obj = indexUtils::buildKeyToSeek(prevKey, fieldCountToCmpInPrev, matchEles);
       iv = matchInclusive;
       iv.setBatch(0, fieldCountToCmpInPrev - 1, TRUE);
@@ -286,7 +286,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _reinitIterator(o, o.pointGetOnly);
+         rc = _reinitIterator(o, o.pointGetOptimized);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
@@ -713,12 +713,12 @@ namespace vessel
       }
 
       _o.forward = o.forward;
-      _o.pointGetOnly = o.pointGetOnly && o.forward && allInclusive;
+      _o.pointGetOptimized = o.pointGetOptimized && o.forward && allInclusive;
 
       options.iterate_lower_bound = &_lowKey;
       options.iterate_upper_bound = &_upKey;
 
-      if (_o.pointGetOnly)
+      if (_o.pointGetOptimized)
       {
          options.auto_prefix_mode = FALSE;
          options.total_order_seek = FALSE;

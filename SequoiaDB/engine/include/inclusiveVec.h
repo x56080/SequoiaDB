@@ -51,7 +51,7 @@ namespace engine
          ~inclusiveVec() = default;
          explicit inclusiveVec(UINT32 size, BOOLEAN inclusive)
          {
-
+            setAll(size, inclusive);
          }
 
       public:

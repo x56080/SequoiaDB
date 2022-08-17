@@ -48,8 +48,10 @@ namespace vessel
       public:
          hitIndexTransferTask() = default;
          ~hitIndexTransferTask() = default;
-         explicit hitIndexTransferTask(rocksdb::SstFileReader *reader,
+         explicit hitIndexTransferTask(UINT32 taskId,
+                                       rocksdb::SstFileReader *reader,
                                        const globalIndexID &id):
+         _taskId(taskId),
          _reader(reader),
          _id(id)
          {}
@@ -61,14 +63,17 @@ namespace vessel
          }
          OSS_INLINE rocksdb::SstFileReader *getReader() const {return _reader;}
          OSS_INLINE const globalIndexID &getGlobalIndexID() const {return _id;}
+         OSS_INLINE UINT32 getTaskId()const {return _taskId;}
 
          OSS_INLINE void reset()
          {
+            _taskId = 0;
             _reader = nullptr;
             _id.reset();
          }
 
       private:
+         UINT32 _taskId = 0;
          rocksdb::SstFileReader *_reader = nullptr;
          globalIndexID _id;
          
