@@ -22,6 +22,7 @@ import org.apache.flink.calcite.shaded.com.google.common.collect.ImmutableMap;
 import org.apache.flink.table.expressions.*;
 import org.apache.flink.table.functions.BuiltInFunctionDefinitions;
 import org.apache.flink.table.functions.FunctionDefinition;
+import org.apache.flink.table.types.DataType;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDate;
@@ -57,6 +58,9 @@ public class FilterPushDownSupport {
                     // comparison func
                     .put(BuiltInFunctionDefinitions.IS_NULL, FilterPushDownSupport::convertIsNull)
                     .put(BuiltInFunctionDefinitions.IS_NOT_NULL, FilterPushDownSupport::convertIsNotNull)
+                    .put(BuiltInFunctionDefinitions.NOT, FilterPushDownSupport::convertNot)
+                    .put(BuiltInFunctionDefinitions.IS_NOT_TRUE, FilterPushDownSupport::convertNotTrue)
+                    .put(BuiltInFunctionDefinitions.IS_NOT_FALSE, FilterPushDownSupport::convertNotFalse)
                     .put(
                             BuiltInFunctionDefinitions.GREATER_THAN,
                             call -> convertBidirectionally(
@@ -127,6 +131,14 @@ public class FilterPushDownSupport {
             Function<CallExpression, BSONObject> exprHandler = FILTERS.get(callExpr.getFunctionDefinition());
             if (exprHandler != null) {
                 return exprHandler.apply(callExpr);
+            }
+        }else if(expression instanceof FieldReferenceExpression){
+            FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) expression;
+            DataType dataType = fieldReferenceExpression.getOutputDataType();
+            Class classz = dataType.getConversionClass();
+
+            if(classz == Boolean.class){
+                return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), "true");
             }
         }
         LOG.warn("unsupported expression {} cannot be push down to SequoiaDB", expression);
@@ -252,6 +264,30 @@ public class FilterPushDownSupport {
         }
         FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
         return BsonMatcher.isNotNullMatcher(fieldReferenceExpression.getName());
+    }
+
+    private static BSONObject convertNot(CallExpression callExpr) {
+        if (callExpr.getChildren().size() != 1) {
+            return null;
+        }
+        FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
+        return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), "false");
+    }
+
+    private static BSONObject convertNotTrue(CallExpression callExpr) {
+        if (callExpr.getChildren().size() != 1) {
+            return null;
+        }
+        FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
+        return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), "true");
+    }
+
+    private static BSONObject convertNotFalse(CallExpression callExpr) {
+        if (callExpr.getChildren().size() != 1) {
+            return null;
+        }
+        FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
+        return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), "false");
     }
 
     // ============================================
