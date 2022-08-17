@@ -158,11 +158,35 @@ namespace vessel
          void _waitForDetaching()const;
 
       private:
-         /// not thread-safe
-         BOOLEAN _isTransfering() const;
-         INT32 _beginToTransfer(BOOLEAN reloadFiles);
+         enum class _STATUS : INT32
+         {
+            STANDBY = 0x0,
+            WAITING_RESPONSE = 0x01,
+            _DRIVING_STATUS = 0x02,
+            TRANSFER_CS = 0x02,
+            TRANSFER_FILE = 0x03,
+         };
+
+         OSS_INLINE BOOLEAN _isDrivingStatus(_STATUS status)const
+         {
+            return _STATUS::_DRIVING_STATUS <= status; 
+         }
+         OSS_INLINE BOOLEAN _isStandby()const
+         {
+            return _STATUS::STANDBY == _status;
+         }
+
+      private:
+         void _launchOnStatus();
+         _STATUS _launchOnStandby();
+         _STATUS _launchOnWaitingResponse();
+         _STATUS _launchOnTransferCS();
+         _STATUS _launchOnTransferFile();
+
+      private:
+         //INT32 _beginToTransfer(BOOLEAN reloadFiles);
          INT32 _reloadFilesToTransfer();
-         INT32 _createJobFromFileList();
+         //INT32 _createJobFromFileList();
          INT32 _initFileTransferJob(const std::string &name,
                                     BOOLEAN &ignored);
          INT32 _buildFileTransferJob();
@@ -170,17 +194,16 @@ namespace vessel
          INT32 _buildCsJob(std::unique_ptr<rocksdb::Iterator> &itr);
          INT32 _popBackSSTAndRemove();
 
-         INT32 _transferFirstUnremovedCS(BOOLEAN &allRemoved);
+         //INT32 _transferFirstUnremovedCS(BOOLEAN &allRemoved);
          INT32 _beginToTransferCurrentCS(BOOLEAN &csRemoved);
 
 
       private:
-         void _handleResponse(const backgroundEvent &e,
-                              BOOLEAN &currentJobFinished);
+         _STATUS _handleResponse(const backgroundEvent &e);
 
          void _completeTask(UINT32 taskId, INT32 rc, _csTransferJob &cjob);
 
-         INT32 _rollbackCurrentCSJob();
+         void _rollbackCurrentCSJob();
 
          INT32 _commitCsJob();
 
@@ -194,6 +217,7 @@ namespace vessel
 
       private:
          std::atomic_bool _attached{FALSE};
+         _STATUS _status = _STATUS::STANDBY;
          _EVENT_LIST _el;
          _FILE_VEC _filesToTransfer;
          _fileTransferJob _job;

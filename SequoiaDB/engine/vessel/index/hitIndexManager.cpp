@@ -80,6 +80,7 @@ namespace vessel
       _el.clear();
       _filesToTransfer.clear();
       _job.reset();
+      _status = _STATUS::STANDBY;
    }
 
    void hitIndexManager::attach()
@@ -101,33 +102,26 @@ namespace vessel
             {
                quitEvent = event;
             }
-            else if (event.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER))
+            else if (event.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER) &&
+                    _STATUS::WAITING_RESPONSE == _status)
             {
-               BOOLEAN currentJobFinished = FALSE;
-               _handleResponse(event, currentJobFinished);
-               if (currentJobFinished && !quitEvent.isValid())
-               {
-                  _beginToTransfer(_filesToTransfer.empty());
-               }
+               _status = _handleResponse(event);
+               _launchOnStatus();
             }
             else
             {
                PD_LOG(PDERROR, "unknown event type:%d", event.getType());
             }
          }
-         else if (_isTransfering())
+         else if (_isStandby() &&!quitEvent.isValid())
          {
-            continue;
+            _launchOnStatus();
          }
-         else if (!quitEvent.isValid())
+         else
          {
-            INT32 rc = _beginToTransfer(_filesToTransfer.empty());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to load files:%d", rc);
-            }
+            /// not standby or quiting, do nothing.
          }
-      } while (!quitEvent.isValid() || _isTransfering());
+      } while (!quitEvent.isValid() || !_isStandby());
       
 
       _attached.store(FALSE);
@@ -135,117 +129,113 @@ namespace vessel
       return;
    }
 
-   INT32 hitIndexManager::_beginToTransfer(BOOLEAN reloadFiles)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!_job.isValid(), "can not be valid");
+   // INT32 hitIndexManager::_beginToTransfer(BOOLEAN reloadFiles)
+   // {
+   //    INT32 rc = SDB_OK;
+   //    SDB_ASSERT(!_job.isValid(), "can not be valid");
 
-      if (reloadFiles)
-      {
-         rc = _reloadFilesToTransfer();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to load files:%d", rc);
-            goto error;
-         }
-      }
+   //    if (reloadFiles)
+   //    {
+   //       rc = _reloadFilesToTransfer();
+   //       if (SDB_OK != rc)
+   //       {
+   //          PD_LOG(PDERROR, "failed to load files:%d", rc);
+   //          goto error;
+   //       }
+   //    }
 
-      rc = _adjustWorkers(!_filesToTransfer.empty());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to adjust background workers:%d", rc);
-         goto error;
-      }
+   //    rc = _adjustWorkers(!_filesToTransfer.empty());
+   //    if (SDB_OK != rc)
+   //    {
+   //       PD_LOG(PDERROR, "failed to adjust background workers:%d", rc);
+   //       goto error;
+   //    }
 
-      while (!_filesToTransfer.empty())
-      {
-         rc = _createJobFromFileList();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to build next job:%d", rc);
-            goto error;
-         }
-         else if (!_job.isValid())
-         {
-            break;
-         }
-         else
-         {
-            BOOLEAN allRemoved = FALSE;
-            rc = _transferFirstUnremovedCS(allRemoved);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to transfer the first unremoved cs:%d", rc);
-               goto error;
-            }
-            else if (allRemoved)
-            {
-               _finishCurrentFileJob();
-               continue;
-            }
-            else
-            {
-               break;
-            }
-         }
-      }// while (!_filesToTransfer.empty())
+   //    while (!_filesToTransfer.empty())
+   //    {
+   //       rc = _createJobFromFileList();
+   //       if (SDB_OK != rc)
+   //       {
+   //          PD_LOG(PDERROR, "failed to build next job:%d", rc);
+   //          goto error;
+   //       }
+   //       else if (!_job.isValid())
+   //       {
+   //          break;
+   //       }
+   //       else
+   //       {
+   //          BOOLEAN allRemoved = FALSE;
+   //          rc = _transferFirstUnremovedCS(allRemoved);
+   //          if (SDB_OK != rc)
+   //          {
+   //             PD_LOG(PDERROR, "failed to transfer the first unremoved cs:%d", rc);
+   //             goto error;
+   //          }
+   //          else if (allRemoved)
+   //          {
+   //             _finishCurrentFileJob();
+   //             continue;
+   //          }
+   //          else
+   //          {
+   //             break;
+   //          }
+   //       }
+   //    }// while (!_filesToTransfer.empty())
    
-   done:
-      return rc;
-   error:
-      _job.reset();
-      _filesToTransfer.clear();
-      goto done;
-   }
+   // done:
+   //    return rc;
+   // error:
+   //    _job.reset();
+   //    _filesToTransfer.clear();
+   //    goto done;
+   // }
 
-   INT32 hitIndexManager::_createJobFromFileList()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!_job.isValid(), "can not be running");
+   // INT32 hitIndexManager::_createJobFromFileList()
+   // {
+   //    INT32 rc = SDB_OK;
+   //    SDB_ASSERT(!_job.isValid(), "can not be running");
 
-      while (!_filesToTransfer.empty())
-      {
-         BOOLEAN ignored = FALSE;
-         const std::string &fn = _filesToTransfer.back();
-         rc = _initFileTransferJob(fn, ignored);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to transfer file:%s, rc:%d", fn.c_str(), rc);
-            goto error;
-         }
+   //    while (!_filesToTransfer.empty())
+   //    {
+   //       BOOLEAN ignored = FALSE;
+   //       const std::string &fn = _filesToTransfer.back();
+   //       rc = _initFileTransferJob(fn, ignored);
+   //       if (SDB_OK != rc)
+   //       {
+   //          PD_LOG(PDERROR, "failed to transfer file:%s, rc:%d", fn.c_str(), rc);
+   //          goto error;
+   //       }
 
-         if (!ignored)
-         {
-            break;
-         }
+   //       if (!ignored)
+   //       {
+   //          break;
+   //       }
 
-         rc = _popBackSSTAndRemove();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to remove sst file:%d", rc);
-            goto error;
-         }
-      }
+   //       rc = _popBackSSTAndRemove();
+   //       if (SDB_OK != rc)
+   //       {
+   //          PD_LOG(PDERROR, "failed to remove sst file:%d", rc);
+   //          goto error;
+   //       }
+   //    }
 
-      if (_job.isValid())
-      {
-         rc = _buildFileTransferJob();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to build file job:%d", rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
+   //    if (_job.isValid())
+   //    {
+   //       rc = _buildFileTransferJob();
+   //       if (SDB_OK != rc)
+   //       {
+   //          PD_LOG(PDERROR, "failed to build file job:%d", rc);
+   //          goto error;
+   //       }
+   //    }
+   // done:
+   //    return rc;
+   // error:
+   //    goto done;
+   // }
 
-   BOOLEAN hitIndexManager::_isTransfering() const
-   {
-      return _job.isValid();
-   }
 
    INT32 hitIndexManager::_reloadFilesToTransfer()
    {
@@ -501,8 +491,9 @@ namespace vessel
       hitTransferHandler handler;
       _csTransferJob *cjob = nullptr;
 
-      if (OSS_UNLIKELY(!_isTransfering()))
+      if (OSS_UNLIKELY(_STATUS::WAITING_RESPONSE != _status))
       {
+         PD_LOG(PDERROR, "invalid status[%d]", _status);
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
@@ -528,71 +519,51 @@ namespace vessel
       goto done;
    }
 
-   void hitIndexManager::_handleResponse(const backgroundEvent &e,
-                                         BOOLEAN &currentJobFinished)
+   hitIndexManager::_STATUS hitIndexManager::_handleResponse(const backgroundEvent &e)
    {
+      INT32 rc = SDB_OK;
       SDB_ASSERT(e.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER),
                  "can not be invalid");
+      SDB_ASSERT(_STATUS::WAITING_RESPONSE == _status, "can not be invalid");
+      SDB_ASSERT(_job.isValid() && !_job.hasNoCsJob(), "can not be invalid");
+      _STATUS s = _STATUS::STANDBY;
 
       UINT32 taskId = e.getShortData<UINT32>();
-      currentJobFinished = FALSE;
+      _csTransferJob &cjob = _job.getCurrentCsJob();
+      _completeTask(taskId, e.getRC(), cjob);
+      if (!cjob.isDone())
+      {
+         s = _STATUS::WAITING_RESPONSE;
+         goto done;
+      }
+
+      ///TODO: terminate all tasks at once if get error.
+      if (cjob.hasError())
+      {
+         _rollbackCurrentCSJob();
+         s = _STATUS::TRANSFER_CS;
+         goto done;
+      }
+
+      rc = _commitCsJob();
+      if (SDB_OK != rc)
+      {
+         _rollbackCurrentCSJob();
+         s = _STATUS::TRANSFER_CS;
+         goto done;
+      }
 
       if (_job.hasNoCsJob())
       {
-         PD_LOG(PDERROR, "has no running task now");
-         goto done;
+         _finishCurrentFileJob();
+         s = _STATUS::TRANSFER_FILE;
       }
       else
       {
-         _csTransferJob &cjob = _job.getCurrentCsJob();
-         _completeTask(taskId, e.getRC(), cjob);
-
-         if (!cjob.isDone())
-         {
-            goto done;
-         }
-         
-         if (cjob.hasError())
-         {
-            _rollbackCurrentCSJob();
-         }
-         else
-         {
-            INT32 rc = _commitCsJob();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to commit cs job:%d", rc);
-               _rollbackCurrentCSJob();
-               rc = SDB_OK;
-            }
-         }
-
-         if (_job.hasNoCsJob())
-         {
-            _finishCurrentFileJob();
-            currentJobFinished = TRUE;
-         }
-         else
-         {
-            BOOLEAN allRemoved = FALSE;
-            INT32 rc = _transferFirstUnremovedCS(allRemoved);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to transfer next cs:%d", rc);
-               /// reload sst file to transfer. the transfer is idempotent.
-               _job.reset();
-               _filesToTransfer.clear();
-            }
-            else if (allRemoved)
-            {
-               _finishCurrentFileJob();
-               currentJobFinished = TRUE;
-            }
-         }
+         s = _STATUS::TRANSFER_CS;
       }
-      
    done:
-      return;
+      return s;
    }
 
    void hitIndexManager::_completeTask(UINT32 taskId,
@@ -652,6 +623,9 @@ namespace vessel
          ossPanic();
       }
 
+      /// duplicated flush here, but whatever.
+      tc->getEnv()->resource.journal->flush(_job.lsn);
+
       rc = su->getIndexSpace().commit(cjob.batch);
       if (SDB_OK != rc)
       {
@@ -683,37 +657,37 @@ namespace vessel
       } 
    }
 
-   INT32 hitIndexManager::_transferFirstUnremovedCS(BOOLEAN &allRemoved)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_job.isValid() && !_job.hasNoCsJob(), "can not be invalid");
-      allRemoved = TRUE;
+   // INT32 hitIndexManager::_transferFirstUnremovedCS(BOOLEAN &allRemoved)
+   // {
+   //    INT32 rc = SDB_OK;
+   //    SDB_ASSERT(_job.isValid() && !_job.hasNoCsJob(), "can not be invalid");
+   //    allRemoved = TRUE;
 
-      while (!_job.hasNoCsJob())
-      {
-         BOOLEAN csRemoved = FALSE;
-         rc = _beginToTransferCurrentCS(csRemoved);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to transfer current cs:%d", rc);
-            goto error;
-         }
-         else if (csRemoved)
-         {
-            _job.popBack();
-            continue;
-         }
-         else
-         {
-            allRemoved = FALSE;
-            break;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
+   //    while (!_job.hasNoCsJob())
+   //    {
+   //       BOOLEAN csRemoved = FALSE;
+   //       rc = _beginToTransferCurrentCS(csRemoved);
+   //       if (SDB_OK != rc)
+   //       {
+   //          PD_LOG(PDERROR, "failed to transfer current cs:%d", rc);
+   //          goto error;
+   //       }
+   //       else if (csRemoved)
+   //       {
+   //          _job.popBack();
+   //          continue;
+   //       }
+   //       else
+   //       {
+   //          allRemoved = FALSE;
+   //          break;
+   //       }
+   //    }
+   // done:
+   //    return rc;
+   // error:
+   //    goto done;
+   // }
 
    INT32 hitIndexManager::_beginToTransferCurrentCS(BOOLEAN &csRemoved)
    {
@@ -819,10 +793,196 @@ namespace vessel
       goto done;
    }
 
-   INT32 hitIndexManager::_rollbackCurrentCSJob()
+   void hitIndexManager::_rollbackCurrentCSJob()
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      spaceIDLocker &locker = tc->getEnv()->spaceLocker;
+      _csTransferJob *cjob = _getCurrentCSJob();
+      SDB_ASSERT(nullptr != cjob, "can not be invalid");
+      SDB_ASSERT(cjob->hasLockedSid(), "must be locked");
+      storageUnit *su = tc->getEnv()->dms.getStorageUnit(cjob->lockedSid);
+      if (OSS_UNLIKELY(nullptr == su))
+      {
+         PD_LOG(PDSEVERE, "failed to get storage unit[%d]", cjob->lockedSid);
+         ossPanic();
+      }
+
+      su->getIndexSpace().abort(cjob->batch);
+
+      SDB_ASSERT(FALSE, "remove btree entry page");
+
+      for (UINT32 i = 0; i < cjob->tasks.size(); ++i)
+      {
+         cjob->tasks[i]->resetToRedo();
+      }
+
+      locker.unlock(cjob->lockedSid, SHARED);
+      cjob->lockedSid = INVALID_SPACE_ID;
+      cjob->completedTaskNum = 0;
+      cjob->errorTaskNum = 0;
+      return;
+   }
+
+   void hitIndexManager::_launchOnStatus()
+   {
+      do
+      {
+         _STATUS s = _STATUS::STANDBY;
+         switch (_status)
+         {
+         case _STATUS::STANDBY:
+            s = _launchOnStandby();
+            break;
+         case _STATUS::WAITING_RESPONSE:
+            s = _launchOnWaitingResponse();
+            break;
+         case _STATUS::TRANSFER_CS:
+            s = _launchOnTransferCS();
+            break;
+         case _STATUS::TRANSFER_FILE:
+            s = _launchOnTransferFile();
+            break;
+         default:
+            SDB_ASSERT(FALSE, "invalid status");
+            break;
+         }
+
+         _status = s;
+      } while (_isDrivingStatus(_status));
+
+      return;
+   }
+
+   hitIndexManager::_STATUS hitIndexManager::_launchOnStandby()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_STATUS::STANDBY == _status, "can not be invalid");
+      SDB_ASSERT(_filesToTransfer.empty(), "must be empty");
+      SDB_ASSERT(!_job.isValid(), "can not be running");
+      _STATUS s = _STATUS::STANDBY;
+
+      rc = _reloadFilesToTransfer();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to load files:%d", rc);
+         goto error;
+      }
+
+      rc = _adjustWorkers(!_filesToTransfer.empty());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to adjust background workers:%d", rc);
+         goto error;
+      }
+
+      if (!_filesToTransfer.empty())
+      {
+         s = _STATUS::TRANSFER_FILE;
+      }
+
+   done:
+      return s;
+   error:
+      _job.reset();
+      _filesToTransfer.clear();
+      s = _STATUS::STANDBY;
+      goto done;
+   }
+
+   hitIndexManager::_STATUS hitIndexManager::_launchOnTransferFile()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_STATUS::TRANSFER_FILE == _status, "can not be invalid");
+      SDB_ASSERT(!_job.isValid(), "can not be running");
+      _STATUS s = _STATUS::STANDBY;
+
+      while (!_filesToTransfer.empty())
+      {
+         BOOLEAN ignored = FALSE;
+         const std::string &fn = _filesToTransfer.back();
+         rc = _initFileTransferJob(fn, ignored);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to transfer file:%s, rc:%d", fn.c_str(), rc);
+            goto error;
+         }
+
+         if (!ignored)
+         {
+            rc = _buildFileTransferJob();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to build file job:%d", rc);
+               goto error;
+            }
+
+            s = _STATUS::TRANSFER_CS;
+            goto done;
+         }
+
+         rc = _popBackSSTAndRemove();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove sst file:%d", rc);
+            goto error;
+         }        
+      }
+
+      SDB_ASSERT(_filesToTransfer.empty(), "impossible");
+      s = _STATUS::STANDBY;
+   done:
+      return s;
+   error:
+      _job.reset();
+      _filesToTransfer.clear();
+      s = _STATUS::STANDBY;
+      goto done;
+   }
+
+   hitIndexManager::_STATUS hitIndexManager::_launchOnTransferCS()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_STATUS::TRANSFER_CS == _status, "can not be invalid");
+      SDB_ASSERT(_job.isValid(), "can not be running");
+      _STATUS s = _STATUS::STANDBY;
+
+      while (!_job.hasNoCsJob())
+      {
+         BOOLEAN csRemoved = FALSE;
+         rc = _beginToTransferCurrentCS(csRemoved);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to transfer current cs:%d", rc);
+            goto error;
+         }
+         else if (csRemoved)
+         {
+            _job.popBack();
+            continue;
+         }
+         else
+         {
+            s = _STATUS::WAITING_RESPONSE;
+            goto done;
+         }
+      }
+
+      SDB_ASSERT(_job.hasNoCsJob(), "impossible");
+      _job.reset();
+      s = _STATUS::TRANSFER_FILE;
+   done:
+      return s;
+   error:
+      _job.reset();
+      _filesToTransfer.clear();
+      s = _STATUS::STANDBY;
+      goto done;
+   }
+
+   hitIndexManager::_STATUS hitIndexManager::_launchOnWaitingResponse()
+   {
+      SDB_ASSERT(_STATUS::WAITING_RESPONSE == _status, "can not be invalid");
+      return _STATUS::WAITING_RESPONSE;
    }
 
 //////////////////////////_csTransferJob
