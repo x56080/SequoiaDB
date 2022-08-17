@@ -189,7 +189,7 @@ public class PushdownTest {
     @Test
     public void or() {
         TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 or " +
-                "age > 10.0 or property > 1081");
+                "age > 10.0 or property > 1081 or sex is true");
         CloseableIterator<Row> iterator = tableResult.collect();
 
         BSONObject conditions = new BasicBSONObject();
@@ -213,7 +213,13 @@ public class PushdownTest {
         condition3.put("property", value3);
         orList.add(condition3);
 
-        conditions.put("$or",orList);
+        BSONObject condition4 = new BasicBSONObject();
+        BSONObject value4 = new BasicBSONObject();
+        value4.put("$et", true);
+        condition4.put("sex", value4);
+        orList.add(condition4);
+
+        conditions.put("$or", orList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id" , null);
@@ -269,7 +275,7 @@ public class PushdownTest {
     @Test
     public void multiplex() {
         TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where id > 1 and age > 10 " +
-                "or property < 545665.135");
+                "or property < 545665.135 and sex is not false");
         CloseableIterator<Row> iterator = tableResult.collect();
 
         BSONObject conditions = new BasicBSONObject();
@@ -298,19 +304,53 @@ public class PushdownTest {
 
         BSONObject condition21 = new BasicBSONObject();
         BSONObject value21 = new BasicBSONObject();
-        value21.put("$gt", 10.0);
-        condition21.put("age", value21);
+        value21.put("gt", 1);
+        condition21.put("id", value21);
         orList2.add(condition21);
 
         BSONObject condition22 = new BasicBSONObject();
         BSONObject value22 = new BasicBSONObject();
-        value22.put("$lt", new BigDecimal("545665.135"));
+        value22.put("$ne", false);
         condition22.put("property", value22);
         orList2.add(condition22);
         condition2.put("$or", orList2);
         andList.add(condition2);
 
-        conditions.put("$and",andList);
+        BSONObject condition3 = new BasicBSONObject();
+        BasicBSONList orList3 = new BasicBSONList();
+
+        BSONObject condition31 = new BasicBSONObject();
+        BSONObject value31 = new BasicBSONObject();
+        value31.put("gt", 10);
+        condition31.put("age", value31);
+        orList3.add(condition31);
+
+        BSONObject condition32 = new BasicBSONObject();
+        BSONObject value32 = new BasicBSONObject();
+        value32.put("$lt", new BigDecimal("545665.135"));
+        condition32.put("property", value32);
+        orList3.add(condition32);
+        condition3.put("$or", orList3);
+        andList.add(condition3);
+
+        BSONObject condition4 = new BasicBSONObject();
+        BasicBSONList orList4 = new BasicBSONList();
+
+        BSONObject condition41 = new BasicBSONObject();
+        BSONObject value41 = new BasicBSONObject();
+        value41.put("gt", 10);
+        condition41.put("age", value41);
+        orList4.add(condition41);
+
+        BSONObject condition42 = new BasicBSONObject();
+        BSONObject value42 = new BasicBSONObject();
+        value42.put("$ne", false);
+        condition42.put("sex", value42);
+        orList4.add(condition42);
+        condition4.put("$or", orList4);
+        andList.add(condition4);
+
+        conditions.put("$and", andList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id" , null);
@@ -679,7 +719,27 @@ public class PushdownTest {
     }
 
     @Test
-    public void booleanTest() {
+    public void trueTest() {
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where sex is true");
+
+        //down pressure condition is empty,which takes a long time
+        CloseableIterator<Row> iterator = tableResult.collect();
+
+        BSONObject conditions = new BasicBSONObject();
+        BSONObject value = new BasicBSONObject();
+        value.put("$et", true);
+        conditions.put("sex", value);
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put("id", null);
+
+        DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
+
+        Assert.assertTrue(check(dbCursor, iterator));
+    }
+
+    @Test
+    public void falseTest() {
         TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where sex is false");
 
         //down pressure condition is empty,which takes a long time
@@ -694,6 +754,46 @@ public class PushdownTest {
         selector.put("id" , null);
 
         DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
+
+        Assert.assertTrue(check(dbCursor, iterator));
+    }
+
+    @Test
+    public void notTrueTest() {
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where sex is not true");
+
+        //down pressure condition is empty,which takes a long time
+        CloseableIterator<Row> iterator = tableResult.collect();
+
+        BSONObject conditions = new BasicBSONObject();
+        BSONObject value = new BasicBSONObject();
+        value.put("$ne", true);
+        conditions.put("sex", value);
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put("id", null);
+
+        DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
+
+        Assert.assertTrue(check(dbCursor, iterator));
+    }
+
+    @Test
+    public void notFalseTest() {
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where sex is not false");
+
+        //down pressure condition is empty,which takes a long time
+        CloseableIterator<Row> iterator = tableResult.collect();
+
+        BSONObject conditions = new BasicBSONObject();
+        BSONObject value = new BasicBSONObject();
+        value.put("$ne", false);
+        conditions.put("sex", value);
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put("id", null);
+
+        DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
