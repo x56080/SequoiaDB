@@ -121,6 +121,11 @@ public class FilterPushDownSupport {
      * recursively processing the root expression,obtain the processing method corresponding to
      * the expression,and execute the returned result
      *
+     * boolean condition expression,condition: a is true, expression format is (column-name)
+     *
+     * if expression is a {@code fieldReferenceExpression} and is a boolean condition,return a
+     * equal-bson expression
+     *
      * @param expression root expression
      * @return BSONObject result
      */
@@ -265,6 +270,14 @@ public class FilterPushDownSupport {
         return BsonMatcher.isNotNullMatcher(fieldReferenceExpression.getName());
     }
 
+    /**
+     * processing boolean expression,return a equal-bson expression
+     *
+     * condition: a is false, expression format is NOT(column-name)
+     *
+     * @param callExpr expression
+     * @return bson expression
+     */
     private static BSONObject convertNot(CallExpression callExpr) {
         if (callExpr.getChildren().size() != 1) {
             return null;
@@ -273,6 +286,12 @@ public class FilterPushDownSupport {
         return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), "false");
     }
 
+    /**
+     * processing boolean expression,return a notEquals-bson expression
+     *
+     * @param callExpr expression
+     * @return bson Expression
+     */
     private static BSONObject convertNotTrue(CallExpression callExpr) {
         if (callExpr.getChildren().size() != 1) {
             return null;
@@ -281,6 +300,12 @@ public class FilterPushDownSupport {
         return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), "true");
     }
 
+    /**
+     * processing boolean expression,return a notEquals-bson expression
+     *
+     * @param callExpr expression
+     * @return bson Expression
+     */
     private static BSONObject convertNotFalse(CallExpression callExpr) {
         if (callExpr.getChildren().size() != 1) {
             return null;
