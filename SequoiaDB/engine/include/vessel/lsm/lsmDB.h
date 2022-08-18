@@ -60,6 +60,8 @@ namespace vessel
                     const rocksdb::Options *o = nullptr);
          void close();
 
+         INT32 restore(DPS_LSN_OFFSET lsn);
+
       public:
          BOOLEAN isOpen()const;
          lsmColumnFamily getHitColumnFamily();
@@ -83,10 +85,6 @@ namespace vessel
                         const rocksdb::Slice &lowKey,
                         const rocksdb::Slice &upKey);
 
-         INT32 compact(LSM_CF_ID id,
-                       const rocksdb::Slice *lowKey = nullptr,
-                       const rocksdb::Slice *upKey = nullptr);
-
          void openBatch(LSM_CF_ID id, lsmWriteBatch &batch);
 
          INT32 write(lsmWriteBatch &batch);
@@ -94,9 +92,11 @@ namespace vessel
          rocksdb::Iterator *newIterator(LSM_CF_ID id,
                                         const rocksdb::ReadOptions &opt);
 
+      public:
+         // manual call to ensure the record corresponding to
+         // the current min dirty lsn is flushed.
          INT32 flush(LSM_CF_ID id = LSM_CF_INVALID);
 
-      public:
          void setMinDirtyLsn(LSM_CF_ID id,
                              DPS_LSN_OFFSET lsn);
 
@@ -126,6 +126,17 @@ namespace vessel
          INT32 _flushCF(LSM_CF_ID id);
 
          lsmColumnFamilyContext *_getColumnFamilyCtx(LSM_CF_ID id);
+
+         const lsmColumnFamilyContext *_getColumnFamilyCtx(LSM_CF_ID id) const;
+
+         rocksdb::ColumnFamilyHandle *_getHandle(LSM_CF_ID id) const;
+
+         const rocksdb::WriteOptions &_getWriteOpt(LSM_CF_ID id) const;
+
+         INT32 _restoreHybridIndexCF(DPS_LSN_OFFSET lsn);
+
+         INT32 _restoreHybridIndexSsts(DPS_LSN_OFFSET lsn,
+                                       const ossPoolVector<std::string> &namelist);
 
       private:
          rocksdb::DB *_db = nullptr;
