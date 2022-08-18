@@ -543,7 +543,7 @@ namespace vessel
          cfOpt.level0_stop_writes_trigger = 1536;
          cfOpt.compression = rocksdb::kNoCompression;
          //cfOpt.compression = rocksdb::kLZ4HCCompression;
-         cfOpt.compaction_style = rocksdb::kCompactionStyleNone;
+         cfOpt.disable_auto_compactions = TRUE;
 
          rocksdb::BlockBasedTableOptions tableOpt;
          tableOpt.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
