@@ -16,6 +16,24 @@
 
 package com.sequoiadb.flink.sink.writer;
 
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.flink.common.client.SDBClient;
+import com.sequoiadb.flink.common.client.SDBSinkClient;
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.config.SDBSinkOptions;
+import com.sequoiadb.flink.serde.SDBDataConverter;
+import com.sequoiadb.flink.sink.Executor.WriteThreads;
+import com.sequoiadb.flink.sink.state.SDBBulk;
+
+import org.apache.flink.api.connector.sink.Sink;
+import org.apache.flink.api.connector.sink.SinkWriter;
+import org.apache.flink.table.data.RowData;
+import org.bson.BSONObject;
+import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,27 +42,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.flink.client.SDBClient;
-import com.sequoiadb.flink.client.SDBSinkClient;
-import com.sequoiadb.flink.codec.SDBDataConverter;
-import com.sequoiadb.flink.config.SDBSinkOptions;
-import com.sequoiadb.flink.exception.SDBException;
-import com.sequoiadb.flink.sink.Executor.WriteThreads;
-import com.sequoiadb.flink.sink.state.SDBBulk;
+public class SDBSinkWriter<IN>  implements SinkWriter<IN, SDBBulk, SDBBulk> {
 
-import org.apache.flink.api.connector.sink.Sink.InitContext;
-import org.apache.flink.api.connector.sink.SinkWriter;
-import org.apache.flink.table.data.RowData;
-import org.bson.BSONObject;
-import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
-
-    private InitContext context;
+    private Sink.InitContext context;
     private SDBSinkOptions sdbSinkOptions;
 
     private SDBBulk currentBulk;
@@ -52,15 +52,15 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     private int bulkMaxSize;
     private long currentBulkTTL;
     private long currentBulkSpawnTime;
-    
+
     private boolean ignoreNullField = false;
     private final Boolean overwrite;
     private final Boolean idempotent;
-    
+
     private final int THREAD_NUMBER;
     private final SDBClient client;
     private final ExecutorService executorService;
-    
+
     private enum SDBSinkWriteMethod {
         NO_TRANSACTION,
         CHECK_POINT_TRANSACTION,
@@ -70,7 +70,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     private final String SDB_BSON_OID = "_id";
     private final SDBDataConverter dataConverter;
     private static final Logger LOG = LoggerFactory.getLogger(SDBSinkWriter.class);
-    
+
       /*
      * constructor of SDBSinkWriter
      * @param sdbSinkOptions        pass down user options
@@ -78,7 +78,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
      * @param context               InitConext for sinkwriter
      * @param states                data from last checkpoint, for retry
      */
-    public SDBSinkWriter(SDBSinkOptions sdbSinkOptions, SDBDataConverter dataConverter, InitContext context,
+    public SDBSinkWriter(SDBSinkOptions sdbSinkOptions, SDBDataConverter dataConverter, Sink.InitContext context,
                          List<SDBBulk> states) {
         this.sdbSinkOptions = sdbSinkOptions;
         this.dataConverter = dataConverter;
@@ -92,24 +92,24 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         this.currentBulkSpawnTime = getCurrentTimeSeconds();
         this.currentBulkTTL = sdbSinkOptions.getMaxBulkFillTime();
         this.THREAD_NUMBER = sdbSinkOptions.getHosts().size();
-        this.overwrite = sdbSinkOptions.getOverwrite();
-        this.idempotent = sdbSinkOptions.getIdempotent();
+        this.overwrite = sdbSinkOptions.isOverwrite();
+        this.idempotent = sdbSinkOptions.isIdempotent();
 
         // select one coord node for this writer to use, when write transaction with unique index or nontransaction
         List<String> hosts = sdbSinkOptions.getHosts();
         String host = sdbSinkOptions.getHosts().get(context.getSubtaskId() % hosts.size());
         List<String> currentHost = new ArrayList<>();
         currentHost.add(host);
-        
+
         // create client, this client wont connect to SDB until its first insert
         this.client = SDBSinkClient.createClientWithHost(sdbSinkOptions, currentHost);
 
         // create thread pool for write out, when it is transaction and don't have unique index
-        executorService = Executors.newFixedThreadPool(THREAD_NUMBER); 
-        
+        executorService = Executors.newFixedThreadPool(THREAD_NUMBER);
+
         if (overwrite && !idempotent) {
             method = SDBSinkWriteMethod.CHECK_POINT_TRANSACTION;
-        } // For transaction and have unique index 
+        } // For transaction and have unique index
         else if (overwrite && idempotent){
             method = SDBSinkWriteMethod.IDEMPOTENT_WRITE;
         } // For non transaction when error, it requres user to stop and clear tables from sdb and restart flink task
@@ -145,7 +145,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     public void write(IN element, Context context) throws IOException, InterruptedException {
         // here the context is InitCotext from constructer
         LOG.debug("Sink Writer write {}" , this.context.getSubtaskId());
-        
+
         // convert data from Rowdata to Bson
         BSONObject bsonObject = dataConverter.toExternal((RowData) element, ignoreNullField);
         //if dont have unique index, create one 
@@ -163,7 +163,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         boolean pushCondition = checkPushToPendingCondition();
         if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION && pushCondition) {
             pushToPendingBulks();
-        } // For transaction and have unique index 
+        } // For transaction and have unique index
         else if (method == SDBSinkWriteMethod.IDEMPOTENT_WRITE && pushCondition){
             dataInsert(overwrite);
         } // For non transaction when error, it requres user to stop and clear tables from sdb and restart flink task
@@ -179,17 +179,17 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
      * @return Boolean
      */
     private Boolean checkPushToPendingCondition(){
-        
+
         long currentTime = getCurrentTimeSeconds();
         long timeInterval = currentTime - currentBulkSpawnTime;
 
         LOG.debug ("timeInterval: {}", timeInterval);
         LOG.debug ("currentBulkTTL: {}", currentBulkTTL);
-        
+
         return currentBulk.isFull() || currentTime - currentBulkSpawnTime >= currentBulkTTL;
     }
 
-    /*  
+    /*
         prepareCommit function is called by sink operator when creating a checkpoint.
         prepareCommit comes with a boolean value flush, this will be triggered
         if there is no more data streaming in, for example end of a stream or bounded
@@ -209,7 +209,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         // since it is aready end of data (flush set) we need to flush manually
         if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION && flush) {
             pushToPendingBulks();
-            flush();    
+            flush();
         } // when transaction and no unique index, times up it will be pushed to pendingbulks
           // committer will flush them out
         else if (method == SDBSinkWriteMethod.CHECK_POINT_TRANSACTION && checkPushToPendingCondition()) {
@@ -219,16 +219,16 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
             if (currentBulk.size() > 0) {
                 dataInsert(overwrite);
             }
-        } // when transaction with unique index, same reason as before, 
+        } // when transaction with unique index, same reason as before,
           // this will ensure lingering data get flushed as lease every checkpoint
         else if (method == SDBSinkWriteMethod.IDEMPOTENT_WRITE && (flush || checkPushToPendingCondition())) {
             if (currentBulk.size() > 0) {
                 dataInsert(overwrite);
             }
-        } 
+        }
         // otherwise, just a normal checkpoint
         // for non transaction and transaction with unique index, it will send an empty pendingbulks to committer
-        
+
         return pendingBulks;
     }
 
@@ -267,7 +267,7 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
     @Override
     public List<SDBBulk> snapshotState(long checkpointId) throws IOException {
         LOG.info("Sink Writer {} snapshotState" , context.getSubtaskId());
-        ArrayList<SDBBulk> state = new ArrayList<>();        
+        ArrayList<SDBBulk> state = new ArrayList<>();
         state.add(currentBulk);
         state.addAll(pendingBulks);
         pendingBulks.clear();
@@ -282,10 +282,10 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
         LOG.debug("Sink Writer {} flush" , context.getSubtaskId());
         int numOfBulks = pendingBulks.size();
         int numThread = 1 * THREAD_NUMBER;
-        int numOfLatch = numOfBulks < THREAD_NUMBER ? numOfBulks : THREAD_NUMBER; 
+        int numOfLatch = numOfBulks < THREAD_NUMBER ? numOfBulks : THREAD_NUMBER;
         int dividedBulkListSize = numOfBulks < numThread ? numOfBulks : numOfBulks / numThread;
 
-        CountDownLatch latch = new CountDownLatch(numOfLatch);   
+        CountDownLatch latch = new CountDownLatch(numOfLatch);
         List<Future<?>> threadStatus = new ArrayList<>();
         for (int i = 0; i < numThread; i++) {
             int start = 0 + dividedBulkListSize * i;
@@ -322,9 +322,9 @@ public class SDBSinkWriter<IN> implements SinkWriter<IN, SDBBulk, SDBBulk> {
 
     /*
      * push currentbulk to pendingbulks
-     * it happends when currentBulk is full 
-     * or timer is up 
-     * when transaction write 
+     * it happends when currentBulk is full
+     * or timer is up
+     * when transaction write
      */
     private void pushToPendingBulks() {
         pendingBulks.add(currentBulk);

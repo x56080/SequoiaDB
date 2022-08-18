@@ -16,25 +16,25 @@
 
 package com.sequoiadb.flink.source.iterator;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Iterator;
-
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
-import com.sequoiadb.flink.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
 
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * SDBIterator is for reading bson raw bytes from SequoiaDB.

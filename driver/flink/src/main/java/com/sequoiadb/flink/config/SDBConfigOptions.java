@@ -21,7 +21,7 @@ import java.io.Serializable;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 
-public class SDBOptions implements Serializable {
+public class SDBConfigOptions implements Serializable {
 
     // sdb
     public static final ConfigOption<String> HOSTS =
@@ -74,4 +74,10 @@ public class SDBOptions implements Serializable {
             ConfigOptions.key("maxbulkfilltime").longType().defaultValue(300L);
     public static final ConfigOption<Boolean> OVERWRITE =
             ConfigOptions.key("overwrite").booleanType().defaultValue(true);
+
+    public static final ConfigOption<String> WRITE_MODE =
+            ConfigOptions.key("writemode").stringType().defaultValue("append-only");
+
+    public static final ConfigOption<Boolean> HAS_MULTI_PARTITION =
+            ConfigOptions.key("hasmultipartition").booleanType().defaultValue(false);
 }

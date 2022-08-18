@@ -14,7 +14,7 @@
  * limitations under the License.
 */
 
-package com.sequoiadb.flink.util;
+package com.sequoiadb.flink.common.util;
 
 public class ByteUtil {
 

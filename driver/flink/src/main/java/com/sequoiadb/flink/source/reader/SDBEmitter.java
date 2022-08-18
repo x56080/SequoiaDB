@@ -16,7 +16,7 @@
 
 package com.sequoiadb.flink.source.reader;
 
-import com.sequoiadb.flink.codec.SDBDataConverter;
+import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.source.split.SDBSplit;
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;

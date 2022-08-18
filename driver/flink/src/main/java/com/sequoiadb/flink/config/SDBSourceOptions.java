@@ -16,7 +16,7 @@
 
 package com.sequoiadb.flink.config;
 
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import org.apache.flink.configuration.ReadableConfig;
 
 import java.io.Serializable;
@@ -33,12 +33,12 @@ public class SDBSourceOptions extends SDBClientOptions {
     public SDBSourceOptions(ReadableConfig options) {
         super(options);
 
-        this.splitBlockNum = options.get(SDBOptions.SPLIT_BLOCK_NUM);
-        initSplitMode(options.get(SDBOptions.SPLIT_MODE));
+        this.splitBlockNum = options.get(SDBConfigOptions.SPLIT_BLOCK_NUM);
+        initSplitMode(options.get(SDBConfigOptions.SPLIT_MODE));
         initPreferredInstance(
-                options.get(SDBOptions.PREFERRED_INSTANCE),
-                options.get(SDBOptions.PREFERRED_INSTANCE_MODE),
-                options.get(SDBOptions.PREFERRED_INSTANCE_STRICT)
+                options.get(SDBConfigOptions.PREFERRED_INSTANCE),
+                options.get(SDBConfigOptions.PREFERRED_INSTANCE_MODE),
+                options.get(SDBConfigOptions.PREFERRED_INSTANCE_STRICT)
                 );
     }
 
