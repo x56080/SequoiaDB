@@ -114,7 +114,9 @@ public class SDBInfoUtil {
     }
 
     public static List<ShardingInfo> getShardingInfos(Sequoiadb sdb,
-                                                      SDBSourceOptions sourceOptions) {
+                                                      SDBSourceOptions sourceOptions,
+                                                      BSONObject matcher,
+                                                      BSONObject selector) {
         List<ShardingInfo> shardingInfos = new ArrayList<>();
 
         DBCursor cursor = null;
@@ -122,7 +124,7 @@ public class SDBInfoUtil {
             DBCollection cl = sdb.getCollectionSpace(sourceOptions.getCollectionSpace())
                     .getCollection(sourceOptions.getCollection());
 
-            cursor = cl.explain(null, null, null, null,
+            cursor = cl.explain(matcher, selector, null, null,
                     0, -1, 0, null);
 
             while (cursor.hasNext()) {

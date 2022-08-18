@@ -29,6 +29,7 @@ import com.sequoiadb.flink.source.strategy.SDBSplitStrategy;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,22 +47,30 @@ public class SDBSplitEnumerator implements SplitEnumerator<SDBSplit, List<SDBSpl
 
     private final List<SDBSplit> pendingSplits = Lists.newArrayList();
 
+    private final BSONObject selector;
+    private final BSONObject matcher;
     private long limit = -1;
 
     public SDBSplitEnumerator(SplitEnumeratorContext<SDBSplit> context,
                               SDBSourceOptions sourceOptions,
+                              BSONObject matcher,
+                              BSONObject selector,
                               long limit) {
-        this(context, Collections.emptyList(), sourceOptions, limit);
+        this(context, Collections.emptyList(), sourceOptions, matcher, selector, limit);
     }
 
     public SDBSplitEnumerator(SplitEnumeratorContext<SDBSplit> context,
                               List<SDBSplit> splits,
                               SDBSourceOptions sourceOptions,
+                              BSONObject matcher,
+                              BSONObject selector,
                               long limit) {
         this.context = context;
         this.sourceOptions = sourceOptions;
         pendingSplits.addAll(splits);
 
+        this.matcher = matcher;
+        this.selector = selector;
         this.limit = limit;
     }
 
@@ -75,6 +84,8 @@ public class SDBSplitEnumerator implements SplitEnumerator<SDBSplit, List<SDBSpl
         LOG.info("SDBSplitEnumerator started, computing splits...");
 
         SDBSplitStrategy strategy = SDBSplitStrategy.builder()
+                .matcher(matcher)
+                .selector(selector)
                 .limit(limit)
                 .options(sourceOptions)
                 .build();
