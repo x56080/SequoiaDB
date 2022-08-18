@@ -16,8 +16,9 @@
 
 package com.sequoiadb.flink.table.pushdown;
 
-import com.sequoiadb.flink.common.constant.SDBConstant;
-import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.constant.SDBConstant;
+import com.sequoiadb.flink.exception.SDBException;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -57,7 +58,6 @@ public class BsonMatcher {
     }
 
     /**
-     *
      * merge expressions
      * lExp,rExp -> {"$or" : [lExp,rExp]}
      *
@@ -193,7 +193,6 @@ public class BsonMatcher {
         return nullMatcher(fieldName, false);
     }
 
-
     /**
      * get key of expression
      *
@@ -271,6 +270,7 @@ public class BsonMatcher {
 
     /**
      * determine in or not in merge
+     *
      * @param valueKey key
      * @return in : SDBConstant.INMERGE, nin : SDBConstant.NINMERGE , not IN operator : null
      */
@@ -288,6 +288,7 @@ public class BsonMatcher {
 
     /**
      * store in map according to key
+     * 
      * @param map data of can be in
      * @param key key
      * @param valueKey value key
