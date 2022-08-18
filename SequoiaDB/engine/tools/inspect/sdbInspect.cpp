@@ -419,7 +419,7 @@ retry:
    {
       len += ossSnprintf( buffer + len, bufferSize - len,
                           "  # Node state 1 means node has the record,"
-                          " or 0 means not, and x means node invliad"
+                          " or 0 means not, and x means node invalid"
                           OSS_NEWLINE
                           "  # The order is ascended by node index."
                           OSS_NEWLINE
