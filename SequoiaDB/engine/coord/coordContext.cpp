@@ -201,7 +201,7 @@ namespace engine
       _emptyContextMap.clear() ;
 
       // kill sub context
-      if ( cb && !cb->isInterrupted() )
+      if ( cb && ( !cb->isInterrupted() || cb->isOnlySelfWhenInterrupt() ) )
       {
          MsgOpKillContexts killMsg ;
          MsgRouteID routeID ;
@@ -1091,7 +1091,7 @@ namespace engine
          routeID.value = pSubContext->getRouteID().value ;
          pAdvance->header.routeID.value = MSG_INVALID_ROUTEID ;
          pAdvance->contextID = pSubContext->contextID() ;
-   
+
          pSub = _pSession->addSubSession( routeID.value ) ;
          pSub->setReqMsg( (MsgHeader*)pAdvance, PMD_EDU_MEM_NONE ) ;
 
