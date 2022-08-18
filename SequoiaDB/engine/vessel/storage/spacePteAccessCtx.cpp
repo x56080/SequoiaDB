@@ -47,7 +47,10 @@ namespace vessel
       SDB_ASSERT(args.isValid(), "can not be invalid");
       for (auto itr = _pmap.cbegin(); itr != _pmap.cend(); ++itr)
       {
-         segments.insert(itr->second / args.maxPageCountPerSeg);
+         if (INVALID_PAGE_ID != itr->second)
+         {
+            segments.insert(itr->second / args.maxPageCountPerSeg);
+         }
       }
       return;
    }

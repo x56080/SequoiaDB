@@ -550,6 +550,8 @@ namespace vessel
          }
 
          _freeObsoleteResources(*batch);
+         PD_LOG(PDDEBUG, "pte batch committed, task num[%d], current psn[%d]",
+                batch->_committing.size(), getPSN());
          batch.reset();
       }
    done:
@@ -853,6 +855,8 @@ namespace vessel
       ossPoolSet<UINT32> segments;
       const storageFileManifest &manifest = getFileCluster()->getManifest();
       ctx->exportDirtySegments(manifest.args, segments);
+      PD_LOG(PDDEBUG, "begin to flush pte pages[%d], segment num[%d]",
+             ctx->_pmap.size(), segments.size());
       for (auto itr = segments.cbegin(); itr != segments.cend(); ++itr)
       {
          INT32 rc = getFileCluster()->fsyncSegment(*itr);
@@ -862,6 +866,7 @@ namespace vessel
             goto error;
          }
       }
+
    done:
       return rc;
    error:

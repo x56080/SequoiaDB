@@ -539,10 +539,11 @@ namespace vessel
          cfOpt.comparator = getHitComparator();
          cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
          cfOpt.prefix_extractor.reset(getLsmIndexPrefixTransform());
-         //cfOpt.level0_slowdown_writes_trigger = 1024;
-         //cfOpt.level0_stop_writes_trigger = 1536;
+         cfOpt.level0_slowdown_writes_trigger = 1024;
+         cfOpt.level0_stop_writes_trigger = 1536;
          cfOpt.compression = rocksdb::kNoCompression;
-         //cfOpt.compaction_style = rocksdb::kCompactionStyleNone;
+         //cfOpt.compression = rocksdb::kLZ4HCCompression;
+         cfOpt.compaction_style = rocksdb::kCompactionStyleNone;
 
          rocksdb::BlockBasedTableOptions tableOpt;
          tableOpt.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
