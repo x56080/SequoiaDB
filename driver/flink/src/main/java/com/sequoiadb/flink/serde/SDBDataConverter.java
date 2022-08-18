@@ -14,10 +14,10 @@
  * limitations under the License.
 */
 
-package com.sequoiadb.flink.codec;
+package com.sequoiadb.flink.serde;
 
-import com.sequoiadb.flink.exception.SDBException;
-import com.sequoiadb.flink.util.ByteUtil;
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.util.ByteUtil;
 import org.apache.flink.table.data.*;
 import org.apache.flink.table.data.binary.BinaryStringData;
 import org.apache.flink.table.types.logical.DecimalType;
@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -51,6 +52,18 @@ public class SDBDataConverter implements Serializable {
 
     private final RowType rowType;
     private final List<RowType.RowField> rowFields;
+
+    private static final List<String> METADATA_COLUMNS = new ArrayList<>();
+
+    static {
+        METADATA_COLUMNS.add("$kafka-topic");
+        METADATA_COLUMNS.add("$kafka-partition");
+        METADATA_COLUMNS.add("$kafka-offset");
+        METADATA_COLUMNS.add("$event-timestamp");
+        METADATA_COLUMNS.add("$extra-op-type");
+        METADATA_COLUMNS.add("$extra-promise");
+    }
+
 
     public SDBDataConverter(RowType rowType) {
         this.rowType = rowType;
@@ -78,6 +91,10 @@ public class SDBDataConverter implements Serializable {
         return rowData;
     }
 
+    public RowType getRowType() {
+        return rowType;
+    }
+
     /*
      * return a BSONObject built from rowdata
      * note: there is a limitation in BSON, that it can not exceed 16MB
@@ -97,6 +114,10 @@ public class SDBDataConverter implements Serializable {
 
             // getting value from Rowdata
             String fieldName = rowField.getName();
+            if (METADATA_COLUMNS.contains(fieldName)) { // skip metadata columns
+                continue;
+            }
+
             Object value = toExternalConverters[pos]
                     .serialize(fieldGetter.getFieldOrNull(rowData));
             

@@ -20,9 +20,9 @@ import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
-import com.sequoiadb.flink.util.SDBInfoUtil;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

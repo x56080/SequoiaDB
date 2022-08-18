@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.flink.client.SDBClient;
+import com.sequoiadb.flink.common.client.SDBClient;
 import com.sequoiadb.flink.sink.state.SDBBulk;
 
 import org.slf4j.LoggerFactory;
