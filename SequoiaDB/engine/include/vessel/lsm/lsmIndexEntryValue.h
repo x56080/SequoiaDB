@@ -38,6 +38,7 @@
 
 #include "dpsTransID.hpp"
 #include "rocksdb/slice.h"
+#include "dpsDef.hpp"
 
 namespace engine
 {
@@ -56,7 +57,8 @@ namespace vessel
    {
       OSS_INLINE BOOLEAN isValid()const
       {
-         return LSM_INDEX_ENTRY_TYPE_INVALID != type;
+         return LSM_INDEX_ENTRY_TYPE_INVALID != type &&
+                DPS_INVALID_LSN_OFFSET != lsn;
       }
       OSS_INLINE BOOLEAN isDeleted()const
       {
@@ -66,7 +68,7 @@ namespace vessel
       UINT8 version = 0;
       UINT8 type = LSM_INDEX_ENTRY_TYPE_INVALID;
       DPS_TRANS_ID transID;
-      UINT64 lsn = ~0;
+      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
    };//struct lsmHitEntryValue
    constexpr UINT32 LSM_INDEX_ENTRY_VALUE_SIZE = sizeof(lsmIndexEntryValue);
 
