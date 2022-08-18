@@ -93,23 +93,18 @@ namespace vessel
          }
       }
 
-      SDB_ASSERT(LSM_INDEX_ENTRY_VALUE_SIZE <= value.size(), "invalid value");
-      if (LSM_INDEX_ENTRY_VALUE_SIZE <= value.size())
+      lsmIndexEntryValueRef ref(value);
+      if (ref.isValid())
       {
-         const lsmIndexEntryValue *val = 
-            reinterpret_cast<const lsmIndexEntryValue *>(value.data());
-         SDB_ASSERT(val->isValid(), "invalid value");
-         if (val->isValid() && DPS_INVALID_LSN_OFFSET != val->lsn)
+         const lsmIndexEntryValue *val = ref.getValuePtr();
+         if (DPS_INVALID_LSN_OFFSET == _minLsn || val->lsn < _minLsn)
          {
-            if (DPS_INVALID_LSN_OFFSET == _minLsn || val->lsn < _minLsn)
-            {
-               _minLsn = val->lsn;
-            }
+            _minLsn = val->lsn;
+         }
 
-            if (DPS_INVALID_LSN_OFFSET == _maxLsn || val->lsn > _maxLsn)
-            {
-               _maxLsn = val->lsn;
-            }
+         if (DPS_INVALID_LSN_OFFSET == _maxLsn || val->lsn > _maxLsn)
+         {
+            _maxLsn = val->lsn;
          }
       }
 

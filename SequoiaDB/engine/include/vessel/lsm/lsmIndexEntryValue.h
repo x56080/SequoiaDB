@@ -36,6 +36,7 @@
 #ifndef VESSEL_LSM_INDEX_ENTRY_VALUE_H_
 #define VESSEL_LSM_INDEX_ENTRY_VALUE_H_
 
+#include "vessel/slice.h"
 #include "dpsTransID.hpp"
 #include "rocksdb/slice.h"
 #include "dpsDef.hpp"
@@ -82,6 +83,31 @@ namespace vessel
    constexpr UINT32 LSM_H_INDEX_ENTRY_VALUE_SIZE = sizeof(lsmHisTroricIndexEntryValue);
 
 #pragma pack()
+   class lsmIndexEntryValueRef : public SDBObject
+   {
+      public:
+         lsmIndexEntryValueRef() = default;
+         ~lsmIndexEntryValueRef() = default;
+         explicit lsmIndexEntryValueRef(const slice &value,
+                                        BOOLEAN isStrict = TRUE);
+         explicit lsmIndexEntryValueRef(const rocksdb::Slice &value,
+                                        BOOLEAN isStrict = TRUE);
+         
+      public:
+         void reset();
+         BOOLEAN isValid() const;
+         INT32 init(const rocksdb::Slice &value,
+                    BOOLEAN isStrict = TRUE);
+         INT32 init(const slice &value,
+                    BOOLEAN isStrict = TRUE);
+      
+      public:
+         const lsmIndexEntryValue *getValuePtr() const;
+      
+      private:
+         slice _value;
+   }; // class lsmIndexEntryValueRef
+
 } // namespace vessel
 
 } // namespace engine

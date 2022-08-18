@@ -75,8 +75,6 @@ namespace vessel
       INT32 remove(const rocksdb::Slice &key) const;
       INT32 truncate(const rocksdb::Slice &lowKey,
                      const rocksdb::Slice &upKey) const;
-      INT32 compact(const rocksdb::Slice *lowKey = nullptr,
-                    const rocksdb::Slice *upKey = nullptr) const;
       rocksdb::Iterator *newIterator(const rocksdb::ReadOptions &opt);
       INT32 flush() const;
       void openBatch(lsmWriteBatch &batch);

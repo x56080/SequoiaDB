@@ -39,6 +39,9 @@
 #include "vessel/lsm/lsmColumnFamilyContext.h"
 #include "vessel/lsm/lsmCollector.h"
 #include "vessel/lsm/lsmEventListener.h"
+#include "vessel/lsm/lsmIndexEntryValue.h"
+#include "vessel/keyString.h"
+#include "vessel/sliceTransfer.h"
 #include "rocksdb/table.h"
 #include "rocksdb/filter_policy.h"
 #include "rocksdb/slice_transform.h"
@@ -58,8 +61,7 @@ namespace vessel
 
    BOOLEAN lsmDB::isOpen()const
    {
-      return nullptr != _db &&
-             !_contexts.empty();
+      return nullptr != _db;
    }
 
    INT32 lsmDB::open(const CHAR *dbPath,
@@ -87,6 +89,20 @@ namespace vessel
       opt.stats_dump_period_sec = 10;
 #endif 
 
+      for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
+      {
+         lsmColumnFamilyContext *context = 
+               SDB_OSS_NEW lsmColumnFamilyContext(_getDefaultWriteOptions(
+                                                     static_cast<LSM_CF_ID>(i)));
+         if (nullptr == context)
+         {
+            rc = SDB_OOM;
+            PD_LOG(PDERROR, "out of memory");
+            goto error;
+         }
+         _contexts.emplace_back(context);
+      }
+
       // configure column family names and options
       for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
       {
@@ -102,19 +118,11 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
+      SDB_ASSERT(nullptr != _db, "can not be null");
+      SDB_ASSERT(cfHandles.size() == _contexts.size(), "must be equal");
+      for (UINT32 i = 0; i < cfHandles.size(); ++i)
       {
-         lsmColumnFamilyContext *context = 
-               SDB_OSS_NEW lsmColumnFamilyContext(cfHandles[i], 
-                                                  _getDefaultWriteOptions(
-                                                     static_cast<LSM_CF_ID>(i)));
-         if (nullptr == context)
-         {
-            rc = SDB_OOM;
-            PD_LOG(PDERROR, "out of memory");
-            goto error;
-         }
-         _contexts.emplace_back(context);
+         _contexts[i]->setHandle(cfHandles[i]);
       }
 
    done:
@@ -127,18 +135,38 @@ namespace vessel
    void lsmDB::close()
    {
       rocksdb::Status s;
-      if (isOpen())
+      if (nullptr != _db)
       {
          for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
          {
-            s = _db->DestroyColumnFamilyHandle(_contexts[i]->getHandle());
-            SDB_ASSERT(s.ok(), "failed to destroy column family handle");
+            rocksdb::ColumnFamilyHandle *handle = _contexts[i]->getHandle();
+            if (nullptr != handle)
+            {
+               s = _db->DestroyColumnFamilyHandle(handle);
+               if (OSS_UNLIKELY(!s.ok()))
+               {
+                  PD_LOG(PDERROR, "destroy column family[%d] handle failed, "
+                        "status info:[%s]", i, s.ToString().c_str());
+               }
+            }
             SAFE_OSS_DELETE(_contexts[i]);
          }
-         _db->Close();
+         _contexts.clear();
+         s = _db->Close();
+         if (OSS_UNLIKELY(!s.ok()))
+         {
+            PD_LOG(PDERROR, "close db failed, status info:[%s]",
+                   s.ToString().c_str());
+         }
          delete _db;
          _db = nullptr;
-         // _journal = nullptr;
+      }
+      else
+      {
+         for (UINT32 i = 0; i < _contexts.size(); ++i)
+         {
+            SAFE_OSS_DELETE(_contexts[i]);
+         }
          _contexts.clear();
       }
    }
@@ -179,8 +207,8 @@ namespace vessel
          goto error;
       }
 
-      s = _db->Put(_contexts[id]->getWriteOpt(),
-                   _contexts[id]->getHandle(),
+      s = _db->Put(_getWriteOpt(id),
+                   _getHandle(id),
                    key, value);
       if (!s.ok())
       {
@@ -218,7 +246,7 @@ namespace vessel
       }
 
       s = _db->Get(rocksdb::ReadOptions(),
-                   _contexts[id]->getHandle(),
+                   _getHandle(id),
                    key, &value);
       if (s.IsNotFound())
       {
@@ -259,8 +287,8 @@ namespace vessel
          goto error;
       }
       
-      s = _db->Delete(_contexts[id]->getWriteOpt(),
-                      _contexts[id]->getHandle(),
+      s = _db->Delete(_getWriteOpt(id),
+                       _getHandle(id),
                       key);
       if (!s.ok())
       {
@@ -294,8 +322,8 @@ namespace vessel
          goto error;
       }
       
-      s = _db->DeleteRange(_contexts[id]->getWriteOpt(),
-                           _contexts[id]->getHandle(),
+      s = _db->DeleteRange(_getWriteOpt(id),
+                           _getHandle(id),
                            lowKey, upKey);
       if (!s.ok())
       {
@@ -311,47 +339,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmDB::compact(LSM_CF_ID id,
-                        const rocksdb::Slice *lowKey,
-                        const rocksdb::Slice *upKey)
-   {
-      INT32 rc = SDB_OK;
-      rocksdb::Status s;
-
-      if (!isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (LSM_CF_INVALID == id)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      
-      s = _db->CompactRange(rocksdb::CompactRangeOptions(),
-                            _contexts[id]->getHandle(),
-                            lowKey, upKey);
-      if (!s.ok())
-      {
-         rc = SDB_IO;
-         PD_LOG(PDERROR, "compact key-values in RocksDB failed, status info:[%s]",
-                s.ToString().c_str());
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done; 
-   }
-
    rocksdb::Iterator *lsmDB::newIterator(LSM_CF_ID id,
                                          const rocksdb::ReadOptions &opt)
    {
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
-      return _db->NewIterator(opt, _contexts[id]->getHandle());
+      return _db->NewIterator(opt, _getHandle(id));
    }
 
    void lsmDB::openBatch(LSM_CF_ID id, lsmWriteBatch &batch)
@@ -360,7 +353,7 @@ namespace vessel
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
    
       batch._db = this;
-      batch._handle = _contexts[id]->getHandle();
+      batch._handle = _getHandle(id);
       batch._batch.Clear();
       batch._minDirtyLsn = DPS_INVALID_LSN_OFFSET;
    }
@@ -376,7 +369,8 @@ namespace vessel
          goto error;
       }
       
-      s = _db->Write(_contexts[batch._handle->GetID()]->getWriteOpt(),
+      s = _db->Write(_getWriteOpt(
+                        static_cast<LSM_CF_ID>(batch._handle->GetID())),
                      &batch._batch);
       if (!s.ok())
       {
@@ -440,7 +434,7 @@ namespace vessel
    {
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be null");
-      _contexts[id]->setMinDirtyLsn(lsn);
+      _getColumnFamilyCtx(id)->setMinDirtyLsn(lsn);
    }
 
    DPS_LSN_OFFSET lsmDB::getMinDirtyLsn(LSM_CF_ID id) const
@@ -448,14 +442,14 @@ namespace vessel
       SDB_ASSERT(isOpen(), "must be open");
       if (LSM_CF_INVALID != id)
       {
-         return _contexts[id]->getMinDirtyLsn();
+         return _getColumnFamilyCtx(id)->getMinDirtyLsn();
       }
       else
       {
          DPS_LSN_OFFSET r = DPS_INVALID_LSN_OFFSET;
          for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
          {
-            DPS_LSN_OFFSET tmp = _contexts[i]->getMinDirtyLsn();
+            DPS_LSN_OFFSET tmp = _getColumnFamilyCtx(id)->getMinDirtyLsn();
             if (tmp < r)
             {
                r = tmp;
@@ -499,25 +493,24 @@ namespace vessel
       BOOLEAN flushDone = FALSE;
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
-      std::unique_lock<std::mutex> lock(_contexts[id]->getFlushLock());
+      std::unique_lock<std::mutex> lock(_getColumnFamilyCtx(id)->getFlushLock());
 
-      tmpLsn = _contexts[id]->beginToFlush();
+      tmpLsn = _getColumnFamilyCtx(id)->beginToFlush();
       if (DPS_INVALID_LSN_OFFSET != tmpLsn)
       {
-         s = _db->Flush(rocksdb::FlushOptions(),
-                        _contexts[id]->getHandle());
-         if (!s.ok())
+         s = _db->Flush(rocksdb::FlushOptions(), _getHandle(id));
+         if (OSS_UNLIKELY(!s.ok()))
          {
             rc = SDB_IO;
             PD_LOG(PDERROR, "flush column family[%d] failed, status info:[%s]",
-                  s.ToString().c_str());
+                   id, s.ToString().c_str());
             goto error;
          }
       }
       flushDone = TRUE;
 
    done:
-      _contexts[id]->endToFlush(flushDone);
+      _getColumnFamilyCtx(id)->endToFlush(flushDone);
       return rc;
    error:
       goto done;
@@ -603,9 +596,8 @@ namespace vessel
       }
       else
       {
-         lsmColumnFamilyContext *ctx = _getColumnFamilyCtx(id);
          rocksdb::ColumnFamilyMetaData meta;
-         _db->GetColumnFamilyMetaData(ctx->getHandle(), &meta);
+         _db->GetColumnFamilyMetaData(_getHandle(id), &meta);
          if (!meta.levels.empty())
          {
             const std::vector<rocksdb::SstFileMetaData> &s = meta.levels.front().files;
@@ -665,8 +657,228 @@ namespace vessel
    lsmColumnFamilyContext *lsmDB::_getColumnFamilyCtx(LSM_CF_ID id)
    {
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
-      SDB_ASSERT(id < (INT32)_contexts.size(), "out of bound");
+      SDB_ASSERT((UINT32)id < _contexts.size(), "out of bound");
       return _contexts[id];
+   }
+
+   const lsmColumnFamilyContext *lsmDB::_getColumnFamilyCtx(LSM_CF_ID id) const
+   {
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
+      SDB_ASSERT((UINT32)id < _contexts.size(), "out of bound");
+      return _contexts[id];
+   }
+
+   rocksdb::ColumnFamilyHandle *lsmDB::_getHandle(LSM_CF_ID id) const
+   {
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
+      SDB_ASSERT((UINT32)id < _contexts.size(), "out of bound");
+      SDB_ASSERT(isOpen(), "must be open");
+      return _contexts[id]->getHandle();
+   }
+
+   const rocksdb::WriteOptions &lsmDB::_getWriteOpt(LSM_CF_ID id) const
+   {
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
+      SDB_ASSERT((UINT32)id < _contexts.size(), "out of bound");
+      SDB_ASSERT(isOpen(), "must be open");
+      return _contexts[id]->getWriteOpt();
+   }
+
+   INT32 lsmDB::restore(DPS_LSN_OFFSET lsn)
+   {
+      INT32 rc = SDB_OK;
+      
+      if (DPS_INVALID_LSN_OFFSET == lsn)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _restoreHybridIndexCF(lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "restore hybrid index column family failed, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::_restoreHybridIndexCF(DPS_LSN_OFFSET lsn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      SDB_ASSERT(isOpen(), "must be open");
+      rocksdb::Status s;
+      ossPoolVector<std::string> namelist;
+      rocksdb::CompactRangeOptions crOpt;
+
+      rc = loadSSTs(LSM_CF_HYBRID_INDEX, 0, TRUE, namelist);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "load sstables failed, rc:%d", rc);
+         goto error;
+      }
+      else if (namelist.empty())
+      {
+         goto done;
+      }
+
+      rc = _restoreHybridIndexSsts(lsn, namelist);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "restore sst files failed, rc:%d", rc);
+         goto error;
+      }
+
+      crOpt.change_level = TRUE;
+      crOpt.target_level = 0;
+      s = _db->CompactRange(crOpt, _getHandle(LSM_CF_HYBRID_INDEX), nullptr, nullptr);
+      if (OSS_UNLIKELY(!s.ok()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "compact hybrid index column family failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+      s = _db->Flush(rocksdb::FlushOptions(), _getHandle(LSM_CF_HYBRID_INDEX));
+      if (OSS_UNLIKELY(!s.ok()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "flush hybrid index column family failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+      
+   done:   
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::_restoreHybridIndexSsts(DPS_LSN_OFFSET lsn,
+                                        const ossPoolVector<std::string> &namelist)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!namelist.empty(), "can not be empty");
+      rocksdb::Status s;
+      rocksdb::Options opt;
+
+      for (UINT32 i = 0; i < namelist.size(); ++i)
+      {
+         DPS_LSN_OFFSET maxLsn = DPS_INVALID_LSN_OFFSET;
+         std::unique_ptr<rocksdb::Iterator> itr;
+         rocksdb::SstFileReader reader(opt);
+         std::shared_ptr<const rocksdb::TableProperties> properties;
+         rocksdb::UserCollectedProperties::const_iterator pItr;
+
+         s = reader.Open(namelist[i]);
+         if (OSS_UNLIKELY(!s.ok()))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "open sst reader[%s] failed",
+                   namelist[i].c_str());
+            goto error;
+         }
+
+         properties = reader.GetTableProperties();
+         if (OSS_UNLIKELY(nullptr == properties))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "get table properties in sst[%s] failed",
+                   namelist[i].c_str());
+            goto error;            
+         }
+
+         pItr = properties->user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MAX_LSN);
+         // max lsn in properties will not be found when key-values in sst are deleted
+         if (OSS_UNLIKELY(properties->user_collected_properties.cend() == pItr))
+         {
+            continue;
+         }
+
+         if (OSS_UNLIKELY(sizeof(DPS_LSN_OFFSET) != pItr->second.size()))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "invalid max lsn in sst[%s]", namelist[i].c_str());
+            goto error;
+         }
+
+         maxLsn = *(reinterpret_cast<const DPS_LSN_OFFSET *>(pItr->second.c_str()));
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != maxLsn, "can not be invalid");
+
+         if (lsn > maxLsn)
+         {
+            continue;
+         }
+
+         itr.reset(reader.NewIterator(rocksdb::ReadOptions()));
+         if (OSS_UNLIKELY(nullptr == itr))
+         {
+            rc = SDB_OOM;
+            PD_LOG(PDERROR, "allocate sst[%s] iterator failed", namelist[i].c_str());
+            goto error;
+         }
+
+         itr->SeekToFirst();
+         while (itr->Valid())
+         {
+            lsmIndexEntryValueRef ref;
+            keyString ks(toSlice(itr->key()));
+            if (OSS_UNLIKELY(!ks.isValid()))
+            {
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               PD_LOG(PDERROR, "invalid index key in sst[%s]",
+                      namelist[i].c_str());
+               goto error;
+            }
+
+            rc = ref.init(itr->value());
+            if (OSS_UNLIKELY(SDB_OK != rc))
+            {
+               PD_LOG(PDERROR, "invalid index entry value in sst[%s], rc:%d",
+                      namelist[i].c_str(), rc);
+               goto error;
+            }
+
+            if (ref.getValuePtr()->lsn > lsn)
+            {
+               rc = remove(LSM_CF_HYBRID_INDEX, itr->key());
+               if (OSS_UNLIKELY(SDB_OK != rc))
+               {
+                  PD_LOG(PDERROR, "remove key-value in sst[%s] failed, rc:%d",
+                         namelist[i].c_str(), rc);
+                  goto error;
+               }
+            }
+
+            itr->Next();
+         }
+
+         if (OSS_UNLIKELY(!itr->status().ok()))
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "invalid iterator in sst[%s], status info:[%s]",
+                   namelist[i].c_str(), itr->status().ToString().c_str());
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 ////////////////////////////////

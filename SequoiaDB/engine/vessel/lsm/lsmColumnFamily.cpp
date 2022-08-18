@@ -130,23 +130,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmColumnFamily::compact(const rocksdb::Slice *lowKey,
-                                  const rocksdb::Slice *upKey) const
-   {
-      SDB_ASSERT(isValid(), "must be valid");
-      INT32 rc = SDB_OK;
-      rc = _db->compact(_cfId, lowKey, upKey);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to compact, cf[%d], rc: %d", _cfId, rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    rocksdb::Iterator *lsmColumnFamily::newIterator(const rocksdb::ReadOptions &opt)
    {
       SDB_ASSERT(isValid(), "must be valid");
