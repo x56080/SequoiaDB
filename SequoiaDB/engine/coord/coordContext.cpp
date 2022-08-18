@@ -201,7 +201,7 @@ namespace engine
       _emptyContextMap.clear() ;
 
       // kill sub context
-      if ( cb && !cb->isInterrupted() )
+      if ( cb && ( !cb->isInterrupted() || cb->isOnlySelfWhenInterrupt() ) )
       {
          MsgOpKillContexts killMsg ;
          MsgRouteID routeID ;
