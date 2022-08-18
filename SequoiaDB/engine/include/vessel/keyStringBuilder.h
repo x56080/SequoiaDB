@@ -317,6 +317,7 @@ namespace vessel
       UINT32 _sizeAheadElements = 0;
       UINT32 _sizeOfElements = 0;
       UINT32 _sizeAfterElements = 0;
+      UINT32 _typeBitsSize = 0;
       UINT32 _capacity = 0;
       Allocator _allocator;
    };
@@ -338,6 +339,7 @@ namespace vessel
       _sizeAheadElements = 0;
       _sizeOfElements = 0;
       _sizeAfterElements = 0;
+      _typeBitsSize = 0;
       return;
    }
 
@@ -2309,7 +2311,7 @@ namespace vessel
       rc = _appendMetaBlock(_sizeAheadElements,
                             _sizeOfElements,
                             _sizeAfterElements,
-                            _typeBits.getBufSize());
+                            _typeBitsSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build meta block:%d", rc);
@@ -2329,9 +2331,9 @@ namespace vessel
       ks._ref.reset(_bufSize, _buf);
       ks._desc.keySize =
           _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
-      ks._desc.keyHeadSize = _sizeAheadElements;
+      ks._desc.keyHeadSize = _sizeAheadElements; 
       ks._desc.keyTailSize = _sizeAfterElements;
-      ks._desc.typeBitsSize = _typeBits.getBufSize();
+      ks._desc.typeBitsSize = _typeBitsSize;
       return std::move(ks);
    }
 
@@ -2345,7 +2347,7 @@ namespace vessel
           _sizeAheadElements + _sizeOfElements + _sizeAfterElements;
       ks._desc.keyHeadSize = _sizeAheadElements;
       ks._desc.keyTailSize = _sizeAfterElements;
-      ks._desc.typeBitsSize = _typeBits.getBufSize();
+      ks._desc.typeBitsSize = _typeBitsSize;
       ks._bufferOwned = _buf;
       ks._bufferSize = _capacity;
       _buf = nullptr;
@@ -2366,6 +2368,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to append typebits, rc:%d", rc);
          goto error;
       }
+
+      _typeBitsSize = _typeBits.getBufSize();
 
       rc = _appendMetaBlock();
       if (SDB_OK != rc)
@@ -2887,6 +2891,12 @@ namespace vessel
             PD_LOG(PDERROR, "failed to build meta block:%d", rc);
             goto error;
          }
+
+         /// reset members to construct keystring desc
+         _sizeAheadElements = keyHeader.size();
+         _sizeOfElements = elements.size();
+         _sizeAfterElements = keyStringCoder::RID_ENCODING_SIZE;
+         _typeBitsSize = bits.size();
 
          _transition(BUILDER_STATUS::DONE);
       }

@@ -71,6 +71,7 @@ namespace vessel
          {
             return _pos;
          }
+         OSS_INLINE UINT16 getFlags()const {return _flags;}
          OSS_INLINE void setUpperBound()
          {
             OSS_BIT_SET(_flags, FLAG_IS_UPPER_BOUND);

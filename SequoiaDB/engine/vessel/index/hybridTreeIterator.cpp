@@ -823,6 +823,8 @@ namespace vessel
          if (_btree.isReadyToRead())
          {
             _ring[_RING_POS::BTREE] = _btree.getEntry();
+            // bson::BSONObj obj = _btree.getEntry().toBSON(_obj->getProperties().getPattern().getPattern(), FALSE);
+            // PD_LOG(PDDEBUG, "btree entry:%s", obj.toPoolString(false, true, true).c_str());
          }
          else
          {

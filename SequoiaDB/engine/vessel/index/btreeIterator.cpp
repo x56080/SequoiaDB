@@ -733,9 +733,9 @@ namespace vessel
       SDB_ASSERT(_bac.isPathEmpty(), "can not be invalid");
       SDB_ASSERT(!path.empty(), "can not be invalid");
       PAGE_ID lpid = INVALID_PAGE_ID;
-      btreePathFootprint fp;
+      btreePathFootprint childFp;
       auto itr = path.cbegin();
-      btreeAccessPathNode::decode(*itr, lpid, fp);
+      btreeAccessPathNode::decode(*itr, lpid, childFp);
       if (OSS_UNLIKELY(lpid != _bac.getBtreeRoot()))
       {
          PD_LOG(PDERROR, "root node unmatched in path");
@@ -755,19 +755,15 @@ namespace vessel
          PAGE_ID lpid = INVALID_PAGE_ID;
          btreePathFootprint fp;
          btreeAccessPathNode::decode(*itr, lpid, fp);
-         if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
+         rc = _bac.pushChildNodeIntoPath(lpid, childFp);
+         if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "invalid addr found in path");
-            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "failed to push child into path[%d, %d, %d]:%d",
+                   lpid, childFp.getPos(), childFp.getFlags(), rc);
             goto error;
          }
 
-         rc = _bac.pushChildNodeIntoPath(lpid, fp);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to push child into path:%d", rc);
-            goto error;
-         }
+         childFp = fp;
       }
       
    done:

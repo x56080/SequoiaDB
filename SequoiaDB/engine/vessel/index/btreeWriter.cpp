@@ -125,13 +125,14 @@ namespace vessel
             }
          }
 
-         _bac.resetPath();
          rc = _insert(entry);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key and rid:%d", rc);
             goto error;
          }
+
+         _bac.resetPath();
       }
 
    done:
@@ -162,13 +163,14 @@ namespace vessel
          goto error;
       }
 
-      _bac.resetPath();
       rc = _remove(entry);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove key and rid:%d", rc);
          goto error;
       }
+
+      _bac.resetPath();
 
    done:
       return rc;
@@ -187,7 +189,6 @@ namespace vessel
          goto done;
       }
 
-      _bac.resetPath();
       rc = _bac.pushRootIntoPath();
       if (SDB_OK != rc)
       {
@@ -422,6 +423,8 @@ namespace vessel
       }
 
       _bac.resetBtreeRoot(root);
+
+      PD_LOG(PDDEBUG, "btree root[%d] created", root);
    done:
       entryBuffer.fini();
       return rc;
@@ -680,6 +683,8 @@ namespace vessel
 
       /// we will abort whole context if get any error.
       /// so it does not matter that update nodes unorderly.
+
+      _bac.resetBtreeRoot(INVALID_PAGE_ID);
 
       rc = _createBtreeRoot(FALSE);
       if (SDB_OK != rc)

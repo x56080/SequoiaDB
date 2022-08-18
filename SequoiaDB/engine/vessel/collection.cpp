@@ -5465,7 +5465,7 @@ namespace vessel
          {
             keyString ks = builder.getShallowKeyString();
             btreeKeyStringEntry btreeEntry;
-            btreeEntry.init(ks.getRawData());
+            btreeEntry.shallowCopy(ks);
             SDB_ASSERT(btreeEntry.isValid(), "impossible");
             rc = bw.insert(btreeEntry);
             if (SDB_OK != rc)
@@ -5475,8 +5475,13 @@ namespace vessel
             }
          }
 
+         taskCtx->incInsertedEntryNum();
          itr->Next();
       }
+
+      PD_LOG(PDDEBUG, "insert num[%d], remove num[%d]",
+             taskCtx->getInsertedEntryNum(),
+             taskCtx->getRemovedEntryNum());
 
       rc = is.precommit(context, *taskCtx->getBatch(), std::move(ac));
       if (SDB_OK != rc)
@@ -5484,6 +5489,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to precommit to inde space:%d", rc);
          goto error;
       }
+
+      
    done:
       return rc;
    error:

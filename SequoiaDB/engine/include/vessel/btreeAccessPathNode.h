@@ -61,14 +61,14 @@ namespace vessel
          _lpb(std::move(o._lpb)),
          _footprint(o._footprint)
          {
-            o.resetChildFootprint();
+            o._footprint = btreePathFootprint();
          }
 
          btreeAccessPathNode &operator=(btreeAccessPathNode &&o)
          {
             _lpb = std::move(o._lpb);
             _footprint = o._footprint;
-            o.resetChildFootprint();
+            o._footprint = btreePathFootprint();
             return *this;
          }
       public:

@@ -602,7 +602,7 @@ namespace vessel
          {
             const std::vector<rocksdb::SstFileMetaData> &s = meta.levels.front().files;
             ssts.reserve(s.size());
-            for (auto i = s.crbegin(); i != s.crend(); ++i)
+            for (auto i = s.cbegin(); i != s.cend(); ++i)
             {
                std::string name;
                if (dirIncluded)
@@ -613,6 +613,7 @@ namespace vessel
                {
                   name = i->relative_filename;
                }
+
                ssts.push_back(std::move(name));
             }
          }

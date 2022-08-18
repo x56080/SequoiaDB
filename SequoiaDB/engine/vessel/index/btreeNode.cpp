@@ -421,7 +421,7 @@ namespace vessel
    { 
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(entry.isValid() && entry.hasKeyTail(), "can not be invalid");
+      SDB_ASSERT(entry.isValid(), "can not be invalid");
       SDB_ASSERT(isLeaf(), "must be leaf");
 
       BOOLEAN needCompact = FALSE;
@@ -567,7 +567,7 @@ namespace vessel
       INT16 count = head->totalSlotCount;
       SDB_ASSERT(0 < count, "can not be invalid");
       RECORD_SLOT_POS low = 0;
-      slice target = ks.getKeySlice();
+      slice target = ks.getRawData();
       INT32 cmp = 0;
 
       res.reset();
@@ -582,7 +582,7 @@ namespace vessel
                                         target.getData(),
                                         ref.data.getSize(),
                                         ref.data.getData());
-         if (0 <= cmp)
+         if (0 < cmp)
          {
             low = pos + 1;
             count -= (step + 1);
@@ -817,7 +817,8 @@ namespace vessel
          strictBuffer buffer = _buffer->getWritableBodyBuffer();
          SDB_ASSERT(buffer.isWritable(), "must be writable");
          btreeNodePageHead *h = buffer.getWritableObjPtr<btreeNodePageHead>(0);
-         SDB_ASSERT(raisedKey.leftChild == h->rightChild, "must be same");
+         SDB_ASSERT(raisedKey.leftChild == h->rightChild ||
+                    INVALID_PAGE_ID == h->rightChild, "must be same");
          h->rightChild = raisedKey.rightChild;
          if (raisedKey.fromLeaf)
          {
@@ -1195,9 +1196,12 @@ namespace vessel
    {
       SDB_ASSERT(nullptr != head, "can not be null");
 
-      if (isAppending && head->appendingFactor < _ORDERED_W_FACTOR)
+      if (isAppending)
       {
-         ++head->appendingFactor;
+         if (head->appendingFactor < _ORDERED_W_FACTOR)
+         {
+            ++head->appendingFactor;
+         }
       }
       else
       {
@@ -1988,6 +1992,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "index entry may be crashed[%d, %d]",
                    _buffer->getLogicalPid(), pos);
+            SDB_ASSERT(FALSE, "entry crashed");
             rc = SDB_VESSEL_PAGE_CRASHED;
             goto error;
          }

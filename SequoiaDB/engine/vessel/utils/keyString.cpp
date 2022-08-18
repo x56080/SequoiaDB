@@ -317,7 +317,8 @@ namespace vessel
       }
       else if (s.getSize() != desc.getStringSizeExpected())
       {
-         PD_LOG(PDERROR, "unexpected total string size");
+         PD_LOG(PDERROR, "unexpected total string size[%d, %d]",
+               s.getSize(), desc.getStringSizeExpected());
          rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
          goto error;
       }

@@ -73,7 +73,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return !entry.isValid() &&
+            return entry.isValid() &&
                    INVALID_PAGE_ID != leftChild &&
                    INVALID_PAGE_ID != rightChild;
          }

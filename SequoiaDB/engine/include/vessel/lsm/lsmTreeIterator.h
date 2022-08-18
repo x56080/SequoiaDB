@@ -39,6 +39,7 @@
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/keyString.h"
 #include "vessel/lsm/lsmIteratorBound.h"
+#include "vessel/lsm/lsmIndexEntryValue.h"
 
 namespace engine
 {
