@@ -1313,8 +1313,10 @@ namespace engine
       }
       else if ( CLS_TASK_STATUS_CANCELED == status )
       {
-         rc = SDB_TASK_HAS_CANCELED ;
-         goto error ;
+         rc = catUpdateTask2Finish( taskID, SDB_TASK_HAS_CANCELED, cb ,w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task[%llu] status [%d] -> [%d], rc: %d",
+                      taskID, status, CLS_TASK_STATUS_FINISH, rc ) ;
       }
       else
       {

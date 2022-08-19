@@ -887,28 +887,6 @@ namespace engine
       return rc ;
 
    error:
-      // Cleanup the task ( ONLY for canceled task )
-      if ( CLS_INVALID_TASKID != taskID &&
-           SDB_TASK_HAS_CANCELED == rc )
-      {
-         // rollback transaction before remove task
-         INT32 tmpRC = catTransEnd( rc, _pEduCB, _pDpsCB ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDWARNING,
-                    "Failed to process error result for opCode [%d], rc: %d",
-                    opCode, tmpRC ) ;
-         }
-
-         tmpRC = catUpdateTask2Finish( taskID, SDB_TASK_HAS_CANCELED,
-                                      _pEduCB, 1 ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDWARNING,
-                    "Failed to update task [%lld] result code, rc: %d",
-                    taskID, tmpRC ) ;
-         }
-      }
       goto done ;
    }
 
