@@ -2,8 +2,8 @@
  * @Description   : seqDB-24377:直连独立节点创建本地索引 
  * @Author        : liuli
  * @CreateTime    : 2021.09.27
- * @LastEditTime  : 2022.01.13
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.08.01
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_24377";
 
@@ -20,7 +20,7 @@ function test ( args )
    insertBulkData( dbcl, 1000 );
 
    // 独立节点创建独立索引
-   var nodeName = COORDHOSTNAME + ":" + CATASVCNAME;
+   var nodeName = COORDHOSTNAME + ":" + COORDSVCNAME;
    dbcl.createIndex( indexName, { a: 1 }, { Standalone: true }, { NodeName: nodeName } );
 
    // 校验独立索引
@@ -45,3 +45,4 @@ function test ( args )
    }
    cursor.next();
 }
+
