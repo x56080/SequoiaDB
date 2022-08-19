@@ -34,9 +34,6 @@
 
 #include "../bson/bsonDecimal.h"
 #include "common_decimal_fun.h"
-#include <algorithm>
-#include <bitset>
-#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <limits>
@@ -47,13 +44,13 @@
 #include "ossTypes.h"
 #include "ossUtil.h"
 #include "pd.hpp"
-#include "utilBsongen.hpp"
 #include "vessel/globalIndexID.h"
 #include "vessel/keyString.h"
 #include "vessel/keyStringBuilder.h"
 #include "../bson/bsonobjbuilder.h"
 #include "vessel/orderingWrapper.h"
 #include "vessel/recordID.h"
+#include "randomBsonGenerator.h"
 
 namespace engine
 {
@@ -1046,258 +1043,6 @@ namespace vessel
       EXPECT_EQ(objFromKey.woCompare(obj), 0);
    }
 
-   class bsonGenerator : public SDBObject
-   {
-   public:
-      bsonGenerator()
-      {
-         generator.seed(seed());
-      }
-
-   public:
-      BSONType randomBsonType()
-      {
-         std::uniform_int_distribution<UINT32> uint32_distrib;
-         constexpr BSONType bsonTypeCandidate[] = {MinKey,
-                                                   /*EOO,*/ NumberDouble,
-                                                   String,
-                                                   Object,
-                                                   Array,
-                                                   BinData,
-                                                   Undefined,
-                                                   jstOID,
-                                                   Bool,
-                                                   Date,
-                                                   jstNULL,
-                                                   RegEx,
-                                                   DBRef,
-                                                   Code,
-                                                   Symbol,
-                                                   // CodeWScope,
-                                                   NumberInt,
-                                                   Timestamp,
-                                                   NumberLong,
-                                                   NumberDecimal,
-                                                   MaxKey};
-         return bsonTypeCandidate[random<UINT32>(
-             0, (sizeof(bsonTypeCandidate) / sizeof(BSONType)) - 1)];
-      }
-
-      BinDataType randomBinDataType()
-      {
-         constexpr BinDataType binDataTypeCandidate[] = {BinDataGeneral,
-                                                         Function,
-                                                         ByteArrayDeprecated,
-                                                         bdtUUID,
-                                                         MD5Type,
-                                                         bdtCustom};
-         return binDataTypeCandidate[random<UINT32>(
-             0, (sizeof(binDataTypeCandidate) / sizeof(BinDataType)) - 1)];
-      }
-
-      FLOAT64 randomFloat64()
-      {
-         std::uniform_real_distribution<FLOAT64> float_distrib;
-         return float_distrib(generator);
-      }
-
-      template <typename T>
-      T random(T T_min = 0, T T_max = numeric_limits<T>::max())
-      {
-         std::uniform_int_distribution<T> distrib(T_min, T_max);
-         return distrib(generator);
-      }
-
-      std::string randomString(UINT32 maxLen = 50)
-      {
-         std::string output;
-         CHAR buf[maxLen];
-         for (UINT32 i = 0; i < maxLen; i++)
-         {
-            buf[i] = random<UINT8>(1);
-         }
-         output.append(buf, random<UINT32>(1, maxLen));
-         return output;
-      }
-
-      vector<BSONType> randomTypes(UINT32 nkeys)
-      {
-
-         vector<BSONType> v;
-         for (UINT32 i = 0; i < nkeys; i++)
-         {
-            v.push_back(randomBsonType());
-         }
-         return v;
-      }
-
-      INT64 randomSeconds()
-      {
-         std::uniform_int_distribution<INT64> distrib(1);
-         return distrib(generator);
-      }
-
-      INT32 randomMicroseconds()
-      {
-         std::uniform_int_distribution<INT32> distrib(1, 999999);
-         return distrib(generator);
-      }
-
-      BSONObj randomBson(vector<BSONType> typeList, INT32 depth = 3)
-      {
-         BSONObjBuilder bsb;
-         for (UINT32 i = 0; i < typeList.size(); i++)
-         {
-            BSONType t = typeList[i];
-
-            std::string str = std::to_string(i);
-            const CHAR *fieldName = str.c_str();
-            switch (t)
-            {
-            case MinKey:
-               bsb.appendMinKey(fieldName);
-               break;
-            case EOO:
-               bsb.appendNull(fieldName);
-               break;
-            case NumberDouble:
-               bsb.appendNumber(fieldName, randomFloat64());
-               break;
-            case String: {
-               std::string s = randomString();
-               bsb.appendStrWithNoTerminating(fieldName, s.data(), s.size());
-               break;
-            }
-            case Object:
-            case Array: {
-               if (depth > 0)
-               {
-                  BSONObj obj = randomBson(random<UINT32>(1, 5), depth - 1);
-                  bsb.appendObject(fieldName, obj.objdata(), obj.objsize());
-               }
-               else
-               {
-                  bsb.appendNull(fieldName);
-               }
-               break;
-            }
-            case BinData: {
-               std::string s = randomString();
-               bsb.appendBinData(
-                   fieldName, s.size(), randomBinDataType(), s.data());
-               break;
-            }
-            case Undefined:
-               bsb.appendUndefined(fieldName);
-               break;
-            case jstOID:
-               bsb.appendOID(fieldName, nullptr, TRUE);
-               break;
-            case Bool:
-               bsb.appendBool(fieldName, random<UINT32>(0, 1));
-               break;
-            case Date: {
-               Date_t dt(random<INT64>());
-               bsb.appendDate(fieldName, dt);
-               break;
-            }
-            case jstNULL:
-               bsb.appendNull(fieldName);
-               break;
-            case RegEx: {
-               std::string regex = randomString();
-               std::string flags = randomString();
-               bsb.appendRegex(fieldName, regex, flags);
-               break;
-            }
-            case DBRef: {
-               std::string ns = randomString(20);
-               OID oid;
-               oid.init();
-               bsb.appendDBRef(fieldName, ns, oid);
-               break;
-            }
-            case Code: {
-               std::string code = randomString(20);
-               bsb.appendCode(fieldName, code);
-               break;
-            }
-            case Symbol: {
-               std::string symbol = randomString();
-               bsb.appendSymbol(fieldName, symbol);
-               break;
-            }
-            case CodeWScope: {
-               std::string code = randomString(20);
-               BSONObj scope = BSON("0" << random<INT32>());
-               bsb.appendCodeWScope(fieldName, code, scope);
-               break;
-            }
-            case NumberInt:
-               bsb.appendNumber(fieldName, random<INT32>());
-               break;
-            case Timestamp:
-               bsb.appendTimestamp(
-                   fieldName, random<INT32>(1) * 1000, randomMicroseconds());
-               break;
-            case NumberLong:
-               bsb.appendNumber(fieldName, random<INT64>());
-               break;
-            case NumberDecimal: {
-               bsonDecimal dec;
-               if (random<INT32>(0, 1) == 1)
-               {
-                  dec.fromDouble(randomFloat64());
-               }
-               else
-               {
-                  std::string decStr;
-                  if (random<INT32>(0, 1) == 1)
-                  {
-                     decStr.append("-");
-                  }
-
-                  if (random<INT32>(0, 1) == 1)
-                  {
-                     decStr.append(std::to_string(random<UINT64>()));
-                     if (random<INT32>(0, 1) == 1)
-                     {
-                        decStr.append(".");
-                        decStr.append(std::to_string(random<UINT64>()));
-                     }
-                  }
-                  else
-                  {
-                     decStr.append("0.");
-                     decStr.append(std::to_string(random<UINT64>()));
-                  }
-
-                  dec.fromString(decStr.c_str());
-               }
-               bsb.append(fieldName, dec);
-               break;
-            }
-            case MaxKey:
-               bsb.appendMaxKey(fieldName);
-               break;
-            default:
-               SDB_ASSERT(FALSE, "Unexpected bson type");
-               break;
-            }
-         }
-         return bsb.obj();
-      }
-
-      BSONObj randomBson(UINT32 nkeys, INT32 depth = 3)
-      {
-         vector<BSONType> typeList = randomTypes(nkeys);
-         return randomBson(typeList, depth);
-      }
-
-      random_device seed;
-      std::default_random_engine generator;
-   };
-
    BSONObj getPatternFromOrd(orderingWrapper ord)
    {
       BSONObjBuilder bsb;
@@ -1316,7 +1061,7 @@ namespace vessel
       vector<BSONObj> v_obj;
       vector<unique_ptr<keyString>> v_key;
       keyStringBuilder<> ksb;
-      bsonGenerator bg;
+      randomBsonGenerator bg;
       orderingWrapper ord(bg.random<UINT32>(), nkeys);
       BSONObj pattern = getPatternFromOrd(ord);
 

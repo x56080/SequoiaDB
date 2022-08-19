@@ -216,11 +216,20 @@ namespace vessel
 
          _entryRef _getEntryRef(RECORD_SLOT_POS pos) const;
 
+         INT32 _locateNextPrefixSlot(RECORD_SLOT_POS pos) const;
+
+         INT32 _canUsePrefixOfItem(btreeItemSlot *slot,
+                                   const slice &raw,
+                                   INT16 &prefixSlotToUse,
+                                   UINT16 prefixSizeToUse) const;
+
       private:
          void commit();
          void updateTransID(const DPS_TRANS_ID &transID);
 
-         INT32 _compact(UINT32 reserved);
+         INT32 _compact();
+
+         INT32 _leafCompact();
 
          INT32 _leafInsert(const btreeKeyStringEntry &entry,
                            RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);

@@ -52,8 +52,8 @@ namespace vessel
    {
       btreeNodePrefixSlot(){}
       ~btreeNodePrefixSlot(){}
-      btreeNodePrefixSlot(const btreeNodePrefixSlot &) = delete;
-      btreeNodePrefixSlot &operator=(const btreeNodePrefixSlot &) = delete;
+      btreeNodePrefixSlot(const btreeNodePrefixSlot &) = default;
+      btreeNodePrefixSlot &operator=(const btreeNodePrefixSlot &) = default;
 
       OSS_INLINE BOOLEAN isFree()const
       {
@@ -62,7 +62,7 @@ namespace vessel
       OSS_INLINE BOOLEAN isReferenced()const
       {
          return isValidRecordSlotPosition(low) &&
-                isValidRecordSlotPosition(high);
+                isValidRecordSlotPosition(high) && high - low > 0;
       }
       OSS_INLINE UINT32 getOptimizedSize()const
       {

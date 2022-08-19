@@ -129,6 +129,17 @@ namespace vessel
                    0 == ossMemcmp(_data, o._data, _size);
          }
 
+         OSS_INLINE slice commonPrefix(const slice &r)const
+         {
+            UINT32 len = 0;
+            UINT32 minLen = _size < r._size ? _size : r._size;
+            while (len < minLen && _data[len] == r._data[len])
+            {
+               len++;
+            }
+            return slice(len, _data);
+         }
+
       private:
          UINT32 _size = 0;
          const CHAR *_data = nullptr;

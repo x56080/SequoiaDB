@@ -221,101 +221,17 @@ namespace vessel
    INT32 keyString::_parse(const slice &s, keyStringDescriptor &desc) const
    {
       INT32 rc = SDB_OK;
-      const keyStringMetaBlockHeader *header = nullptr;
-      keyStringMetaByte mbyte;
       bytesReader reader;
       desc.reset();
 
-      if (OSS_UNLIKELY(!s.isValid()))
+      rc = parseMetaFromSlice(s, desc);
+      if (SDB_OK != rc)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (s.getSize() <= KEY_STRING_MB_HEADER_SIZE)
-      {
-         PD_LOG(PDERROR, "invalid slice size:%d", s.getSize());
-         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+         PD_LOG(PDERROR, "failed to parse descriptor from slice, %d", rc);
          goto error;
       }
 
-      header = reinterpret_cast<const keyStringMetaBlockHeader *>(
-          s.getData() + s.getSize() -
-          KEY_STRING_MB_HEADER_SIZE); /// TODO: reverse slice
-      if (!header->isValid())
-      {
-         PD_LOG(PDERROR, "invalid key string meta block header");
-         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-         goto error;
-      }
-
-      mbyte.init(header->metaByte);
-      reader.init(s.getSlice(0, s.getSize() - KEY_STRING_MB_HEADER_SIZE), TRUE);
-
-      if (!_loadSizeData(reader, FALSE, desc.keySize))
-      {
-         PD_LOG(PDERROR, "failed to load key size");
-         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-         goto error;
-      }
-
-      if (mbyte.hasKeyHead())
-      {
-         if (!reader.slide(1))
-         {
-            PD_LOG(PDERROR, "failed to move to key head size begin pos");
-            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error;
-         }
-
-         if (!_loadSizeData(reader, TRUE, desc.keyHeadSize))
-         {
-            PD_LOG(PDERROR, "failed to load key head size");
-            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error;
-         }
-      }
-
-      if (mbyte.hasKeyTail())
-      {
-         if (!reader.slide(1))
-         {
-            PD_LOG(PDERROR, "failed to move to key tail size begin pos");
-            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error;
-         }
-
-         if (!_loadSizeData(reader, TRUE, desc.keyTailSize))
-         {
-            PD_LOG(PDERROR, "failed to load key tail size");
-            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error;
-         }
-      }
-
-      if (mbyte.hasTypeBits())
-      {
-         if (!reader.slide(1))
-         {
-            PD_LOG(PDERROR, "failed to move to type bits size begin pos");
-            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error;
-         }
-
-         if (!_loadSizeData(reader, TRUE, desc.typeBitsSize))
-         {
-            PD_LOG(PDERROR, "failed to load type bits size");
-            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-            goto error;
-         }
-      }
-
-      if (!desc.isValid())
-      {
-         PD_LOG(PDERROR, "invalid string descriptor parsed");
-         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
-         goto error;
-      }
-      else if (s.getSize() != desc.getStringSizeExpected())
+      if (s.getSize() != desc.getStringSizeExpected())
       {
          PD_LOG(PDERROR, "unexpected total string size[%d, %d]",
                s.getSize(), desc.getStringSizeExpected());
@@ -331,7 +247,7 @@ namespace vessel
 
    BOOLEAN keyString::_loadSizeData(bytesReader &reader,
                                     BOOLEAN nonzero,
-                                    UINT32 &size) const
+                                    UINT32 &size)
    {
       SDB_ASSERT(!reader.isOutOfBound(), "can not be invalid");
       size = 0;
@@ -1220,6 +1136,109 @@ namespace vessel
       }
 
       return res;
+   }
+
+   INT32 keyString::parseMetaFromSlice(const slice &s, keyStringDescriptor &desc)
+   {
+      INT32 rc = SDB_OK;
+      const keyStringMetaBlockHeader *header = nullptr;
+      keyStringMetaByte mbyte;
+      bytesReader reader;
+      desc.reset();
+
+      if (OSS_UNLIKELY(!s.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (s.getSize() <= KEY_STRING_MB_HEADER_SIZE)
+      {
+         PD_LOG(PDERROR, "invalid slice size:%d", s.getSize());
+         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+         goto error;
+      }
+
+      header = reinterpret_cast<const keyStringMetaBlockHeader *>(
+          s.getData() + s.getSize() -
+          KEY_STRING_MB_HEADER_SIZE);
+      {
+         PD_LOG(PDERROR, "invalid key string meta block header");
+         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+         goto error;
+      }
+
+      mbyte.init(header->metaByte);
+      reader.init(s.getSlice(0, s.getSize() - KEY_STRING_MB_HEADER_SIZE), TRUE);
+
+      if (!_loadSizeData(reader, FALSE, desc.keySize))
+      {
+         PD_LOG(PDERROR, "failed to load key size");
+         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+         goto error;
+      }
+
+      if (mbyte.hasKeyHead())
+      {
+         if (!reader.slide(1))
+         {
+            PD_LOG(PDERROR, "failed to move to key head size begin pos");
+            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+            goto error;
+         }
+
+         if (!_loadSizeData(reader, TRUE, desc.keyHeadSize))
+         {
+            PD_LOG(PDERROR, "failed to load key head size");
+            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+            goto error;
+         }
+      }
+
+      if (mbyte.hasKeyTail())
+      {
+         if (!reader.slide(1))
+         {
+            PD_LOG(PDERROR, "failed to move to key tail size begin pos");
+            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+            goto error;
+         }
+
+         if (!_loadSizeData(reader, TRUE, desc.keyTailSize))
+         {
+            PD_LOG(PDERROR, "failed to load key tail size");
+            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+            goto error;
+         }
+      }
+
+      if (mbyte.hasTypeBits())
+      {
+         if (!reader.slide(1))
+         {
+            PD_LOG(PDERROR, "failed to move to type bits size begin pos");
+            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+            goto error;
+         }
+
+         if (!_loadSizeData(reader, TRUE, desc.typeBitsSize))
+         {
+            PD_LOG(PDERROR, "failed to load type bits size");
+            rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+            goto error;
+         }
+      }
+
+      if (!desc.isValid())
+      {
+         PD_LOG(PDERROR, "invalid string descriptor parsed");
+         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      desc.reset();
+      goto done;
    }
 
    ///////////////////////////////
