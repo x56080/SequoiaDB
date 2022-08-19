@@ -88,7 +88,7 @@ Description:
    1. 启动lsmDB，插入多条索引记录，关闭lsmDB
    2. 重新启动lsmDB，校验sst文件数量
    3. 设置恢复lsn为0，调用lsmDB restore方法进行恢复，并校验sst文件数量
-      （恢复lsn为0代表插入的索引记录均为无效记录，需要被删除）
+      （恢复lsn为0，代表插入的索引记录均为无效记录，需要被删除）
    4. 读取记录内容并校验内容正确性
    5. 关闭lsmDB
 Expected Result: 
@@ -135,7 +135,7 @@ TEST_F(lsm_db_test, base_restore_test1)
    ASSERT_TRUE(!ssts.empty());
    ssts.clear();
 
-   rc = db.restore(0);
+   rc = db.restore(0, 0);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
@@ -159,7 +159,7 @@ Description:
    1. 启动lsmDB，插入多条索引记录，关闭lsmDB
    2. 重新启动lsmDB，校验sst文件数量
    3. 设置恢复lsn为插入的索引记录数，调用lsmDB restore方法进行恢复，并校验sst文件数量
-      （恢复lsn为索引记录数代表插入的索引记录均为有效记录，不需要被删除）
+      （恢复lsn为索引记录数，代表插入的索引记录均为有效记录，不需要被删除）
    4. 读取记录内容并校验内容正确性
    5. 关闭lsmDB
 Expected Result: 
@@ -203,15 +203,18 @@ TEST_F(lsm_db_test, base_restore_test2)
    ASSERT_EQ(SDB_OK, rc);
 
    ossPoolVector<std::string> ssts;
+
    rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
    ASSERT_TRUE(!ssts.empty());
+   UINT32 sstCount = ssts.size();
    ssts.clear();
 
-   rc = db.restore(count);
+   rc = db.restore(0, count);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
    ASSERT_TRUE(!ssts.empty());
+   ASSERT_EQ(sstCount, ssts.size());
 
    rocksdb::ReadOptions rOpt;
    rocksdb::Iterator *itr = db.newIterator(LSM_CF_HYBRID_INDEX, rOpt);
@@ -243,11 +246,12 @@ Description:
    1. 启动lsmDB，插入多条索引记录，关闭lsmDB
    2. 重新启动lsmDB，并校验sst文件数量
    3. 设置恢复lsn小于插入的索引记录数，调用lsmDB restore方法进行恢复，并校验sst文件数量
-      （说明部分插入记录为有效记录）
+      （说明部分插入记录为无效记录，需要删除）
    4. 读取记录内容并校验内容正确性
    5. 关闭lsmDB
 Expected Result: 
-   在有效记录范围内正常读取，超出范围无法读取到索引记录
+   restore前，包含多个sst文件；restore后，所有sst文件均被删除。
+   且无法读取到任意一条记录。
 */
 TEST_F(lsm_db_test, base_restore_test3)
 {
@@ -292,30 +296,24 @@ TEST_F(lsm_db_test, base_restore_test3)
    ASSERT_TRUE(!ssts.empty());
    ssts.clear();
 
-   rc = db.restore(restoreCount);
+   rc = db.restore(10, restoreCount);
+   ASSERT_EQ(SDB_VESSEL_INTERNAL_ERR, rc);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   ASSERT_TRUE(!ssts.empty());
+   ssts.clear();
+
+   rc = db.restore(0, restoreCount);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
-   ASSERT_TRUE(!ssts.empty());
+   ASSERT_TRUE(ssts.empty());
 
    rocksdb::ReadOptions rOpt;
    rocksdb::Iterator *itr = db.newIterator(LSM_CF_HYBRID_INDEX, rOpt);
    ASSERT_NE(nullptr, itr);
-
    itr->SeekToFirst();
-   ASSERT_TRUE(itr->Valid());
-   UINT32 i = 0;
-   while(itr->Valid())
-   {
-      lsmIndexEntryValueRef vl(itr->value());
-      ASSERT_TRUE(vl.isValid());
-      ASSERT_EQ(i, vl.getValuePtr()->lsn);
-      ++i;
-      itr->Next();
-      ASSERT_TRUE(itr->status().ok());
-   }
+   ASSERT_FALSE(itr->Valid());
    delete itr;
-   ASSERT_EQ(i - 1, restoreCount);
 
    db.close();
 }
