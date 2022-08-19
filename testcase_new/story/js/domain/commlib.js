@@ -3,7 +3,6 @@
 *@Modify list :
 *               2014-6-17  xiaojun Hu  Init
 ******************************************************************************/
-var cataPort = CATASVCNAME;
 var csName = CHANGEDPREFIX + "_dom_cs";
 var clName = CHANGEDPREFIX + "_dom_cl";
 import( "../lib/main.js" );
