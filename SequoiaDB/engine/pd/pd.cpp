@@ -57,13 +57,13 @@
 #include "pdTrace.hpp"
 
 /*
-   _pdLogShield define
+   _pdLogNestedShield define
  */
 // to avoid nested logging
-class _pdLogShield
+class _pdLogNestedShield
 {
 public:
-   _pdLogShield( BOOLEAN &amIInPD )
+   _pdLogNestedShield( BOOLEAN &amIInPD )
    : _amIInPD( NULL )
    {
       if ( !amIInPD )
@@ -73,7 +73,7 @@ public:
       }
    }
 
-   ~_pdLogShield()
+   ~_pdLogNestedShield()
    {
       if ( NULL != _amIInPD )
       {
@@ -90,7 +90,7 @@ protected:
    BOOLEAN * _amIInPD ;
 } ;
 
-typedef class _pdLogShield pdLogShield ;
+typedef class _pdLogNestedShield pdLogNestedShield ;
 
 PDLEVEL& getPDLevel()
 {
@@ -552,7 +552,7 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
    // calling pdLog in signal handler when the thread is already in pdLog
    // function will not proceed)
    static OSS_THREAD_LOCAL BOOLEAN amIInPD = FALSE ;
-   pdLogShield shield( amIInPD ) ;
+   pdLogNestedShield shield( amIInPD ) ;
    if ( shield.isInNestedLog() )
    {
       goto done ;
@@ -728,21 +728,21 @@ INT32 pdError( INT32 rc )
    return rc ;
 }
 
-pdLogShield::pdLogShield() : _addRCMask( 0 )
+pdLogRCShield::pdLogRCShield() : _addRCMask( 0 )
 {
 }
 
-pdLogShield::~pdLogShield()
+pdLogRCShield::~pdLogRCShield()
 {
    clearRC() ;
 }
 
-void pdLogShield::clearRC()
+void pdLogRCShield::clearRC()
 {
    pdDisableShieldLogMask( _addRCMask ) ;
 }
 
-void pdLogShield::addRC( INT32 rc )
+void pdLogRCShield::addRC( INT32 rc )
 {
    UINT64 mask = _pdRC2Mask( rc ) ;
    if ( mask != 0 && !pdTestShieldLogMask( mask ) )
@@ -1308,7 +1308,7 @@ void pdAuditRaw( AUDIT_TYPE type, const CHAR *pData )
    // function will not proceed)
    static OSS_THREAD_LOCAL BOOLEAN amIInPD = FALSE ;
 
-   pdLogShield shield( amIInPD ) ;
+   pdLogNestedShield shield( amIInPD ) ;
    if ( shield.isInNestedLog() )
    {
       goto done ;
