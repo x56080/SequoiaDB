@@ -16,12 +16,15 @@
 
 package com.sequoiadb.flink.table.pushdown;
 
-import com.sequoiadb.flink.constant.SDBConstant;
-import com.sequoiadb.flink.exception.SDBException;
+import com.esotericsoftware.minlog.Log;
+import com.sequoiadb.flink.common.constant.SDBConstant;
+import com.sequoiadb.flink.common.exception.SDBException;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.*;
@@ -32,6 +35,8 @@ import java.util.stream.Collectors;
  * combined into a bson format expression according to different operation types
  */
 public class BsonMatcher {
+
+    private static final Logger LOG = LoggerFactory.getLogger(BsonMatcher.class);
 
     /**
      * merge expression collections set into bson format;
@@ -110,11 +115,15 @@ public class BsonMatcher {
             result.put(SDBConstant.OR, orList);
         //or:or
         } else {
+             //Troubleshoot:if code here needs to be troubleshoot.
+             //In current Flink optimizer,logical expressions of OR is parsed from left to right,
+             //it is unreasonable that left and right expressions are both OR expressions to merge
             BasicBSONList orList1 = (BasicBSONList) matcher1.get(SDBConstant.OR);
-            BasicBSONList orList2 = (BasicBSONList) matcher1.get(SDBConstant.OR);
+            BasicBSONList orList2 = (BasicBSONList) matcher2.get(SDBConstant.OR);
             orList1.addAll(orList2);
 
             result.put(SDBConstant.OR, orList1);
+            LOG.warn("two OR expression to merge is unreasonable,{},{}",matcher1,matcher2);
         }
 
         return result;
