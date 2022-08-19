@@ -60,32 +60,23 @@ namespace vessel
          btreeAccessContext &operator=(const btreeAccessContext &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return nullptr != _obj;
-         }
-
-         OSS_INLINE const indexObject *getIndexObject() const
-         {
-            return _obj;
-         }
-
-         OSS_INLINE BOOLEAN isPathEmpty()const
-         {
-            return _path.empty();
-         }
-
+         OSS_INLINE BOOLEAN isValid()const {return nullptr != _obj;}
+         OSS_INLINE const indexObject *getIndexObject() const {return _obj;}
+         OSS_INLINE indexObject *getIndexObject() {return _obj;}
+         OSS_INLINE BOOLEAN isPathEmpty()const {return _path.empty();}
          OSS_INLINE BOOLEAN isWritable()const {return nullptr != _actx;}
          OSS_INLINE BOOLEAN hasBtreeRoot()const {return INVALID_PAGE_ID != _btreeRoot;}
          OSS_INLINE PAGE_ID getBtreeRoot()const {return _btreeRoot;}
-         OSS_INLINE UINT64 getLSN()const {return _stats.lsn;}
          OSS_INLINE indexSpace *getIndexSpace() {return _is;}
          OSS_INLINE requestContext *getReqCtx() {return _context;}
+         OSS_INLINE UINT32 getTransferTick() const {return _transferTick;}
+         OSS_INLINE UINT32 incTransferTick() {return ++_transferTick;}
+         OSS_INLINE const btreeStatistics &getStats()const {return _stats;}
 
       public:
          INT32 init(requestContext *context,
                     indexSpace *is,
-                    const indexObject *obj,
+                    indexObject *obj,
                     spacePteAccessCtx *actx=nullptr);
                    
          void reset();
@@ -129,7 +120,7 @@ namespace vessel
          void exportPathCoding(ossPoolVector<UINT64> &cv)const;
 
       private:
-         INT32 _cacheRootAndStats();
+         INT32 _loadEntryPage();
          INT32 _pushIntoPath(PAGE_ID lpid);
          INT32 _validateBtreeNode(const logicalPageBuffer &buffer)const;
          INT32 _getPageBuffer(PAGE_ID lpid, logicalPageBufferPte &buffer);
@@ -137,12 +128,13 @@ namespace vessel
          using _BTREE_PATH = ossPoolVector<btreeAccessPathNode>;
 
       private:
-         const indexObject *_obj = nullptr;
+         indexObject *_obj = nullptr;
          indexSpace *_is = nullptr;
          requestContext *_context = nullptr;
          spacePteAccessCtx *_actx = nullptr;
          _BTREE_PATH _path;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
+         UINT32 _transferTick = 0;
          btreeStatistics _stats;
    };//class btreeAccessContextbt
 } // namespace vessel

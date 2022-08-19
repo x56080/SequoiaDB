@@ -61,6 +61,7 @@ namespace vessel
       UINT32 version = 0;
       UINT32 logicalIndexId = INVALID_LOGICAL_INDEX_ID;
       UINT32 btreeRoot = INVALID_PAGE_ID;
+      UINT32 transferTick = 0;
    };//struct btreeEntryPageHead
 
    constexpr UINT32 BTREE_ENTRY_PAGE_HEAD_SIZE = sizeof(btreeEntryPageHead);

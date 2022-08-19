@@ -40,7 +40,7 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 RESERVE_SIZE = 64;
+   constexpr UINT32 RESERVE_SIZE = 16;
 
    void pidBatchList::push(PAGE_ID pid)
    {

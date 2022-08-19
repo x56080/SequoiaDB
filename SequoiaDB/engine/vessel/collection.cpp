@@ -70,6 +70,7 @@
 #include "vessel/lsm/lsmIteratorBound.h"
 #include "vessel/keyStringBuilder.h"
 #include "vessel/lsmKeyStringEntry.h"
+#include "vessel/lsm/lsmIndexEntryValue.h"
 
 namespace engine
 {
@@ -263,12 +264,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::truncate(requestContext *context)
+   INT32 collection::truncate(requestContext *context,
+                              LPS_PTE_WRITE_BATCH &batch)
    {
       INT32 rc = SDB_OK;
-      OSS_LATCH_MODE mode;
+      OSS_LATCH_MODE mode = SHARED;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
-      if (OSS_UNLIKELY(nullptr == context))
+      if (OSS_UNLIKELY(nullptr == context ||
+                       !batch))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -287,6 +291,13 @@ namespace vessel
 
       context->setClProperties(_entryBlock.getProperties());
 
+      rc = commitTruncateCLLog(_entryBlock.getProperties()->getFullName(), lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit truncate log:%d", rc);
+         goto error;
+      }
+
       if (_cs->getSU()->getLobSpace().isOpen())
       {
          _cs->getSU()->getLobSpace().removeLobChunksInCL(context);
@@ -294,7 +305,7 @@ namespace vessel
 
       _entryBlock._fsm.truncate();
 
-      rc = _truncateAllIndexes(context);
+      rc = _truncateAllIndexes(context, lsn, batch);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to truncate indexes:%d", rc);
@@ -399,7 +410,8 @@ namespace vessel
                                  const strSlice &indexName)
    {
       INT32 rc = SDB_OK;
-      UINT32 logicalIndexId = INVALID_LOGICAL_INDEX_ID;
+      indexObject *obj = nullptr;
+      LPS_PTE_WRITE_BATCH batch;
 
       if (!isOpen())
       {
@@ -416,7 +428,7 @@ namespace vessel
 
       context->setClProperties(_entryBlock.getProperties());
 
-      rc = _setIndexRemoving(context, indexName, logicalIndexId);
+      rc = _setIndexRemoving(context, indexName, &obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get index[%s] ready to be removed:%d",
@@ -424,7 +436,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _truncateIndexEntries(context, logicalIndexId);
+      rc = _cs->getSU()->getIndexSpace().initWriteBatch(batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init write batch:%d", rc);
+         goto error;
+      }
+
+      rc = _truncateIndex(context, obj, TRUE, batch);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to truncate index[%s], rc:%d", 
@@ -432,7 +451,16 @@ namespace vessel
          goto error;
       }
 
-      _endToRemoveIndex(context, logicalIndexId);
+      rc = _cs->getSU()->getIndexSpace().commit(batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit to index space:%d", rc);
+         SDB_ASSERT(FALSE, "TODO");
+         goto error;
+      }
+
+      _endToRemoveIndex(context, obj->getLogicalID());
+      ///obj is invalid from here
    done:
       if (nullptr != context)
       {
@@ -440,6 +468,7 @@ namespace vessel
       }
       return rc;
    error:
+      SDB_ASSERT(FALSE, "TODO: get error when removing index");
       goto done;
    }
 
@@ -3040,7 +3069,7 @@ namespace vessel
          goto error;
       }
 
-      rc = clStore.commit(indexLid, indexMap);
+      rc = clStore.upsert(indexLid, indexMap);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "commit index meta data failed, rc:%d", rc);
@@ -3074,21 +3103,20 @@ namespace vessel
 
    INT32 collection::_setIndexRemoving(requestContext *context,
                                        const strSlice &indexName,
-                                       UINT32 &logicalIndexId)
+                                       indexObject **out)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       SDB_ASSERT(!indexName.empty(), "can not be empty");
+      SDB_ASSERT(nullptr != out, "can not be invalid");
 
       ossPoolString fullName;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      indexObject *obj = nullptr;
-      logicalIndexId = INVALID_LOGICAL_INDEX_ID;
       indexObjectMap &indexMap = _entryBlock._indexes;
-      
+      *out = nullptr;
       ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
 
-      obj = indexMap.getIndexObj(indexName);
+      indexObject *obj = indexMap.getIndexObj(indexName);
       if (nullptr == obj)
       {
          PD_LOG(PDERROR, "index[%s] not found", indexName.str());
@@ -3114,11 +3142,11 @@ namespace vessel
       
       obj->setStatus(INDEX_STATUS_REMOVING);
       obj->resetRebornLSN(lsn);
-
-      logicalIndexId = obj->getLogicalID();
+      *out = obj;
    done:
       return rc;
    error:
+      *out = nullptr;
       goto done;
    }
 
@@ -3145,7 +3173,8 @@ namespace vessel
       rc = store.removeEntry(logicalIndexId);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to remove index meta entry:%d", rc);
+         PD_LOG(PDSEVERE, "failed to remove index meta entry:%d", rc);
+         ossPanic();
          goto error;
       }
 
@@ -3257,7 +3286,7 @@ namespace vessel
       SDB_ASSERT(nullptr != buildingCtx && buildingCtx->isScanning(), "can not be invalid");
 
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
-      const indexObject *obj = buildingCtx->getIndexObj();
+      indexObject *obj = buildingCtx->getIndexObj();
       SDB_ASSERT(nullptr != obj && obj->isBuilding(), "can not be invalid");
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
 
@@ -3485,7 +3514,7 @@ namespace vessel
            itr !=_entryBlock._indexes.cend(); ++itr)
       {
          keySet.clear();
-         const indexObject *obj = itr->second.get();
+         indexObject *obj = itr->second.get();
          SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
          if (!obj->isNormal() && !obj->isBuilding())
          {
@@ -3540,7 +3569,7 @@ namespace vessel
            itr !=_entryBlock._indexes.cend(); ++itr)
       {
          BOOLEAN associated = FALSE;
-         const indexObject *obj = itr->second.get();
+         indexObject *obj = itr->second.get();
          SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
          if (!obj->isNormal() && !obj->isBuilding())
          {
@@ -3611,7 +3640,7 @@ namespace vessel
       for (auto itr = _entryBlock._indexes.cbegin();
            itr !=_entryBlock._indexes.end(); ++itr)
       {
-         const indexObject *obj = itr->second.get();
+         indexObject *obj = itr->second.get();
          SDB_ASSERT(nullptr != obj && obj->isValid(), "can not be invalid");
          if (!obj->isNormal() && !obj->isBuilding())
          {
@@ -3678,7 +3707,7 @@ namespace vessel
          for (auto itr = req->getKeysToInsert().cbegin();
               itr != req->getKeysToInsert().cend(); ++itr)
          {
-            rc = hit.contains(context, req->getObject(), *itr, rid);
+            rc = hit.contains(context, req->getMutableObject(), *itr, rid);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to check if key already exist:%d", rc);
@@ -3759,10 +3788,12 @@ namespace vessel
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       clIndexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
+      indexObject *obj = nullptr;
+      LPS_PTE_WRITE_BATCH batch;
 
       {
          ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
-         indexObject *obj = _entryBlock._indexes.abortCreating(logicalIndexId);
+         obj = _entryBlock._indexes.abortCreating(logicalIndexId);
          SDB_ASSERT(nullptr != obj && obj->isRemoving(), "can not be invalid");
 
          ossPoolString fullName = _entryBlock.getProperties()->getFullName();
@@ -3786,21 +3817,30 @@ namespace vessel
          }
       }
 
-      rc = _truncateIndexEntries(context, logicalIndexId);
+      rc = _cs->getSU()->getIndexSpace().initWriteBatch(batch);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDSEVERE, "failed to truncate index[%d], rc:%d", 
-                logicalIndexId, rc);
-         rc = SDB_OK;
+         PD_LOG(PDERROR, "failed to init write batch:%d", rc);
+         goto error;
       }
 
+      rc = _truncateIndex(context, obj, TRUE, batch);
+      if (SDB_OK != rc)
       {
-         ossRWMutexGuard guard(_entryBlock.getOpLock(), EXCLUSIVE);
-         _entryBlock._indexes.destroy(logicalIndexId);
-         clIndexMetaStorage store;
-         store.init(_cs->getLogicalID(), getLogicalID());
-         store.removeEntry(logicalIndexId);
+         PD_LOG(PDERROR, "failed to truncate index[%s], rc:%d", 
+                obj->getProperties().getName().c_str(), rc);
+         goto error;
       }
+
+      rc = _cs->getSU()->getIndexSpace().commit(batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit to index space:%d", rc);
+         SDB_ASSERT(FALSE, "TODO");
+         goto error;
+      }
+
+      _endToRemoveIndex(context, logicalIndexId);
       
    done:
       return rc;
@@ -3808,21 +3848,39 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::_truncateIndexEntries(requestContext *context,
-                                           UINT32 logicalIndexId)
+   INT32 collection::_truncateIndex(requestContext *context,
+                                    indexObject *obj,
+                                    BOOLEAN removeEntryPage,
+                                    LPS_PTE_WRITE_BATCH &batch)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != logicalIndexId, "can not be invalid");;
-      ossRWMutexGuard guard(_entryBlock.getOpLock(), SHARED);
-      indexObject *obj =_entryBlock._indexes.getIndexObj(logicalIndexId);
       SDB_ASSERT(nullptr != obj, "can not be invalid");
-      SDB_ASSERT(obj->isTruncating() || obj->isRemoving(), "can not be invalid");
-      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
+      SDB_ASSERT(INDEX_STATUS_TRUNCATING == obj->getStatus() ||
+                 INDEX_STATUS_REMOVING == obj->getStatus(), "invalid status");
+      SDB_ASSERT(nullptr != batch, "can not be invalid");
 
-      rc = hit.truncate(context, obj);
+      indexSpace &is = _cs->getSU()->getIndexSpace();
+      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
+      PTE_ACCESS_CTX_PTR ac(SDB_OSS_NEW spacePteAccessCtx(obj->getLogicalID()));
+      if (OSS_UNLIKELY(!ac))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = hit.truncate(context, obj, ac.get(), removeEntryPage);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to truncate index:%d", rc);
+         goto error;
+      }
+
+      rc = is.precommit(context, *batch, std::move(ac));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to precommit:%d", rc);
+         is.abort(ac);
          goto error;
       }
       
@@ -3840,46 +3898,107 @@ namespace vessel
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
 
+      indexSpace &is = _cs->getSU()->getIndexSpace();
+      LPS_PTE_WRITE_BATCH batch;
       hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
       clIndexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
+      rc = store.destroy();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove index meta entrires:%d", rc);
+         goto error;
+      }
+
+      /// if hit manager is transferring indexes of this cl:
+      /// cl obj will be removed from cs's cl map first.
+      /// index transfer will not find this cl any more.
+      /// it will block until hit manager release lock.
+      rc = is.initWriteBatch(batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init write batch:%d", rc);
+         goto error;
+      }
+
       for (auto itr = indexMap.begin(); itr != indexMap.end(); ++itr)
       {
-         rc = hit.truncate(context, itr->second.get());
+         rc = _truncateIndex(context, itr->second.get(), TRUE, batch);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to trucnate index[%s], rc:%d",
+            PD_LOG(PDERROR, "failed to truncate index[%s], rc:%d", 
                    itr->second->getProperties().getName().c_str(), rc);
+            /// continue to remove the next index
          }
       }
 
      _entryBlock._indexes.reset();
-     store.destroy();
+     rc = is.commit(batch);
+     if (SDB_OK != rc)
+     {
+        PD_LOG(PDERROR, "failed to commit write batch:%d", rc);
+        goto error;
+     }
    done:
       return rc;
    error:
+      SDB_ASSERT(FALSE, "TODO");
       goto done;
    }
 
-   INT32 collection::_truncateAllIndexes(requestContext *context)
+   INT32 collection::_truncateAllIndexes(requestContext *context,
+                                         DPS_LSN_OFFSET lsn,
+                                         LPS_PTE_WRITE_BATCH &batch)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       OSS_LATCH_MODE mode;
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
 
-      hybridIndexTree hit(&(_cs->getSU()->getIndexSpace()));
+      clIndexMetaStorage mstore(_cs->getLogicalID(), getLogicalID());
       indexObjectMap &indexMap = _entryBlock._indexes;
+
+      rc = indexMap.beginToTruncateAll(lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to set indexes truncating:%d", rc);
+         goto error;
+      }
+
+      rc = mstore.upsert(indexMap);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index meta data:%d", rc);
+         goto error;
+      }
+
       for (auto itr = indexMap.begin(); itr != indexMap.end(); ++itr)
       {
-         rc = hit.truncate(context, itr->second.get());
+         rc = _truncateIndex(context, itr->second.get(), FALSE, batch);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to trucnate index[%s], rc:%d",
-                   itr->second->getProperties().getName().c_str(), rc);
+            PD_LOG(PDERROR, "failed to truncate index:%d", rc);
+            goto error;
          }
+      }
+
+      rc = _cs->getSU()->getIndexSpace().commit(batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit write batch:%d", rc);
+         _cs->getSU()->getIndexSpace().abort(batch);
+         goto error;
+      }
+
+      indexMap.endToTruncateAll();
+      rc = mstore.upsert(indexMap);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index meta data:%d", rc);
+         goto error;
       }
    done:
       return rc;
@@ -5447,10 +5566,17 @@ namespace vessel
       itr->SeekToFirst();
       while (itr->Valid())
       {
+         lsmIndexEntryValueRef valueRef(itr->value());
          lsmKeyStringEntry entry(itr->key().size(), itr->key().data());
          if (OSS_UNLIKELY(!entry.isValid()))
          {
             PD_LOG(PDERROR, "failed to load index entry");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         else if (OSS_UNLIKELY(!valueRef.isValid()))
+         {
+            PD_LOG(PDERROR, "failed to load index entry value");
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
@@ -5464,19 +5590,45 @@ namespace vessel
          else
          {
             keyString ks = builder.getShallowKeyString();
-            btreeKeyStringEntry btreeEntry;
-            btreeEntry.shallowCopy(ks);
-            SDB_ASSERT(btreeEntry.isValid(), "impossible");
-            rc = bw.insert(btreeEntry);
-            if (SDB_OK != rc)
+            btreeKeyStringEntry be;
+            be.shallowCopy(ks);
+            SDB_ASSERT(be.isValid(), "impossible");
+            const lsmIndexEntryValue *value = valueRef.getValuePtr();
+
+            if (!value->isDeleted())
             {
-               PD_LOG(PDERROR, "failed to insert btree entry:%d", rc);
-               goto error;
+               rc = bw.insert(be, value->lsn, value->transID);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to insert btree record:%d", rc);
+                  goto error;
+               }
+               taskCtx->incInsertedEntryNum();
+            }
+            else
+            {
+               rc = bw.remove(be, value->lsn, value->transID);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to remove btree record:%d", rc);
+                  goto error;
+               }
+               taskCtx->incRemovedEntryNum();
             }
          }
 
-         taskCtx->incInsertedEntryNum();
          itr->Next();
+      }
+
+      if (0 != taskCtx->getInsertedEntryNum() ||
+          0 != taskCtx->getRemovedEntryNum())
+      {
+         rc = bw.refreshEntryPage();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to refresh entry page:%d", rc);
+            goto error;
+         }
       }
 
       PD_LOG(PDDEBUG, "insert num[%d], remove num[%d]",

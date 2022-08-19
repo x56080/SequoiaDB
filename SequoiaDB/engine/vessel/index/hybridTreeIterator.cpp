@@ -54,7 +54,7 @@ namespace vessel
    INT32 hybridTreeIterator::init(requestContext *context,
                                   indexSpace *is,
                                   const lsmColumnFamily &cf,
-                                  const indexObject *obj)
+                                  indexObject *obj)
    {
       INT32 rc = SDB_OK;
       globalIndexID indexId;

@@ -40,6 +40,7 @@
 #include "utilFullNameParser.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/collectionSpace.h"
+#include "vessel/lpsPteWriteBatch.h"
 
 namespace engine
 {
@@ -49,8 +50,10 @@ namespace vessel
                                  const dmsTruncateCLOptions &o)
    {
       INT32 rc = SDB_OK;
-      COLLECTION_PTR cl;
+      collectionSpace *cs = nullptr;
+      collection *cl = nullptr;
       requestContext context;
+      LPS_PTE_WRITE_BATCH batch;
 
       if (OSS_UNLIKELY(!gcid.isValid()))
       {
@@ -58,17 +61,39 @@ namespace vessel
          goto error;
       }
 
-      rc = getCollectionObject(&context, gcid, EXCLUSIVE, cl);
+      rc = context.getEnv()->dms.getCSByCollectionSpaceId(&context,
+                                                          gcid.getCSIdentifier(),
+                                                          SHARED,
+                                                          &cs);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get cs obj:%d", rc);
          goto error;
       }
 
-      rc = cl->truncate(&context);
+      /// init batch first to avoid deadlock.
+      /// commit inside cl.
+      rc = cs->getSU()->getIndexSpace().initWriteBatch(batch);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to init write batch:%d", rc);
          goto error;
       }
+
+      rc = cs->getCollectionByLogicalId(&context, gcid.getCLLid(), EXCLUSIVE, &cl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get cl obj:%d", rc);
+         goto error;
+      }
+
+      rc = cl->truncate(&context, batch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate cl:%d", rc);
+         goto error;
+      }
+
    done:
       context.close();
       return rc;

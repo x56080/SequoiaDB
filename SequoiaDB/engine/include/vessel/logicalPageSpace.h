@@ -154,6 +154,9 @@ namespace vessel
             return storageFileCtlFlag::MMAP_DATA_SEGMENT;
          }
 
+         /// the segment can be reused with the min free page count 
+         virtual UINT32 _getSegmentPcntReused()const {return 8;}
+
          virtual INT32 _getRuntimePageBuffer(requestContext *context,
                                              PAGE_ID pid,
                                              const ossSharedLatchMode &mode,

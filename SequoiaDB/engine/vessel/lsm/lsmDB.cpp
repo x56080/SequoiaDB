@@ -551,7 +551,7 @@ namespace vessel
       else if (LSM_CF_INDEX_META == id)
       {
          cfName = LSM_INDEX_META_CF_NAME;
-         cfOpt.write_buffer_size = 64 * 1024;
+         cfOpt.write_buffer_size = 1 << 20;
       }
 
       return rocksdb::ColumnFamilyDescriptor(cfName, cfOpt);

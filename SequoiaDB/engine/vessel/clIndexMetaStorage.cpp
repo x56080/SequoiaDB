@@ -110,7 +110,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 clIndexMetaStorage::commit(UINT32 indexLid,
+   INT32 clIndexMetaStorage::upsert(UINT32 indexLid,
                                     const indexObjectMap &im) const
    {
       INT32 rc = SDB_OK;
@@ -378,6 +378,45 @@ namespace vessel
          goto error;
       }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 clIndexMetaStorage::upsert(const indexObjectMap &im)
+   {
+      INT32 rc = SDB_OK;
+      lsmWriteBatch batch;
+      lsmColumnFamily cf = GET_INDEX_META_COLUMN_FAMILY();
+      if (OSS_UNLIKELY(!cf.isValid()))
+      {
+         SDB_ASSERT(FALSE, "invalid column family");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      cf.openBatch(batch);
+      for (auto itr = im.cbegin(); itr != im.cend(); ++itr)
+      {
+         bson::BSONObj o = itr->second->toBson();
+         lsmIndexMetaKeyBuilder builder;
+         rocksdb::Slice key = builder.build(globalIndexID(_csLid, _clLid, itr->first));
+         rocksdb::Slice value = rocksdb::Slice(o.objdata(), o.objsize());
+         rc = batch.put(key, value);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push entry into batch:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = batch.commit();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit batch:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:

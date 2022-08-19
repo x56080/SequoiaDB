@@ -79,6 +79,8 @@ namespace vessel
                                  const ossPoolVector<PAGE_ID> &lpids,
                                  const bson::BSONObj &adjunct);
 
+   INT32 commitTruncateCLLog(const ossPoolString &fullName,
+                             DPS_LSN_OFFSET &lsn);
    
 }//namespace vessel
 }//namespace engine

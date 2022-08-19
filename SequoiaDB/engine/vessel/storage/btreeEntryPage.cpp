@@ -62,6 +62,7 @@ namespace vessel
       headPtr->version = BTREE_ENTRY_PAGE_VERSION;
       headPtr->logicalIndexId = logicalIndexId;
       headPtr->btreeRoot = INVALID_PAGE_ID;
+      headPtr->transferTick = 0;
    done:
       return r;
    }

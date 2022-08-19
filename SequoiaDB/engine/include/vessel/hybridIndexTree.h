@@ -54,6 +54,7 @@ namespace vessel
    class dmlIndexRequest;
    class lsmWriteBatch;
    class indexSpace;
+   class spacePteAccessCtx;
 
    class hybridIndexTree : public SDBObject
    {
@@ -84,17 +85,19 @@ namespace vessel
                      const DPS_TRANS_ID &transID);
 
          INT32 contains(requestContext *context,
-                        const indexObject *obj,
+                        indexObject *obj,
                         const bson::BSONObj &key,
                         recordID &rid);
 
          INT32 contains(requestContext *context,
-                        const indexObject *obj,
+                        indexObject *obj,
                         const bson::BSONObjSet &keys,
                         recordID &rid);
 
          INT32 truncate(requestContext *context,
-                        indexObject *obj);
+                        indexObject *obj,
+                        spacePteAccessCtx *ac,
+                        BOOLEAN removeEntryPage);
 
          INT32 handleDmlRequests(dmlContext *context,
                                  const ossPoolVector<dmlIndexRequest *> &requests);
@@ -113,6 +116,11 @@ namespace vessel
                           const DPS_TRANS_ID &transID,
                           lsmWriteBatch *batch);
 
+
+         INT32 _truncateBtree(requestContext *context,
+                              indexObject *obj,
+                              spacePteAccessCtx *ac,
+                              BOOLEAN removeEntryPage);
       private:
          indexSpace *_is = nullptr;
    };//class indexEntryStore

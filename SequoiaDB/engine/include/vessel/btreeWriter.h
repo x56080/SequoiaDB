@@ -38,6 +38,7 @@
 
 #include "vessel/btreeAccessContext.h"
 #include "vessel/btreeKeyStringEntry.h"
+#include "dpsTransID.hpp"
 
 namespace engine
 {
@@ -60,11 +61,18 @@ namespace vessel
                     spacePteAccessCtx *ac);
          void reset();
 
-         INT32 insert(const btreeKeyStringEntry &entry);
+         INT32 insert(const btreeKeyStringEntry &entry,
+                      DPS_LSN_OFFSET lsn,
+                      const DPS_TRANS_ID &transID);
 
-         INT32 remove(const btreeKeyStringEntry &entry);
+         INT32 remove(const btreeKeyStringEntry &entry,
+                      DPS_LSN_OFFSET lsn,
+                      const DPS_TRANS_ID &transID);
 
-         INT32 truncate();
+         INT32 truncate(BOOLEAN removeEntryPage);
+
+         /// commit stats to btree entry page
+         INT32 refreshEntryPage();
 
       private:/// writing
          INT32 _createBtreeRoot(BOOLEAN isLeaf);

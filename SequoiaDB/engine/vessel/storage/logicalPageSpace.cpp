@@ -1017,7 +1017,8 @@ namespace vessel
       }
 
       block = buffer.getWritableObjPtr<lpmUberBlock>(0);
-      rc = _smgr.init(block->smeEntryPid, &_mfile, &_fcluster);
+      rc = _smgr.init(block->smeEntryPid, &_mfile, &_fcluster,
+                      _getSegmentPcntReused());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed toi init space manager:%d", rc);

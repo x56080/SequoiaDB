@@ -48,64 +48,14 @@ namespace vessel
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != _indexLid, "can not be invalid");
    }
 
-   INT32 btreeEntryPageAccessor::resetBtreeRoot(requestContext *context,
-                                                PAGE_ID root,
-                                                logicalPageBuffer *lpb)const
-   {
-      INT32 rc = SDB_OK;
-      btreeEntryPageHead *head = nullptr;
-
-      if (OSS_UNLIKELY(nullptr == context ||
-                       nullptr == lpb ||
-                       !lpb->isWritable()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = lpb->validatePage(PAGE_TYPE_BTREE_ENTRY);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
-         goto error;
-      }
-
-      head = lpb->getWritableBodyBuffer().getWritableObjPtr<btreeEntryPageHead>(0);
-      if (nullptr == head)
-      {
-         PD_LOG(PDERROR, "failed to get writable ptr of head");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      else if (!head->isValid())
-      {
-         PD_LOG(PDERROR, "index def page head is not valid");
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-      else if (_indexLid != head->logicalIndexId)
-      {
-         PD_LOG(PDERROR, "index logical id [%d] does match the one[%d] in head",
-                _indexLid, head->logicalIndexId);
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-
-      head->btreeRoot = root;
-      lpb->commit(context->getExecutor()->getEndLsn());
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 btreeEntryPageAccessor::load(logicalPageBuffer *lpb,
                                       PAGE_ID &root,
+                                      UINT32 &transferTick,
                                       btreeStatistics &stats)
    {  
       INT32 rc = SDB_OK;
       root = INVALID_PAGE_ID;
+      transferTick = 0;
       stats.reset();
 
       if (OSS_UNLIKELY(nullptr == lpb ||
@@ -148,7 +98,64 @@ namespace vessel
          }
 
          root = readableHead->btreeRoot;
+         transferTick = readableHead->transferTick;
       }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeEntryPageAccessor::refill(requestContext *context,
+                                        PAGE_ID root,
+                                        UINT32 transferTick,
+                                        const btreeStatistics &stats,
+                                        logicalPageBuffer *lpb)
+   {
+      INT32 rc = SDB_OK;
+      btreeEntryPageHead *head = nullptr;
+
+      if (OSS_UNLIKELY(nullptr == context ||
+                       nullptr == lpb ||
+                       !lpb->isWritable()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb->validatePage(PAGE_TYPE_BTREE_ENTRY);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      head = lpb->getWritableBodyBuffer().getWritableObjPtr<btreeEntryPageHead>(0);
+      if (nullptr == head)
+      {
+         PD_LOG(PDERROR, "failed to get writable ptr of head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (!head->isValid())
+      {
+         PD_LOG(PDERROR, "index def page head is not valid");
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+      else if (_indexLid != head->logicalIndexId)
+      {
+         PD_LOG(PDERROR, "index logical id [%d] does match the one[%d] in head",
+                _indexLid, head->logicalIndexId);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      head->btreeRoot = root;
+      head->transferTick = transferTick;
+      lpb->commit(context->getExecutor()->getEndLsn());
 
    done:
       return rc;

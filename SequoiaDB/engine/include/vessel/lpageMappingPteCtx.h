@@ -57,6 +57,10 @@ namespace vessel
       public:
          void reset();
          BOOLEAN isBrandNewPid(PAGE_ID pid, BOOLEAN lock=TRUE);
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return _root.none();
+         }
       private:
          std::mutex _pathLock;
          lpageMappingRoot _root;

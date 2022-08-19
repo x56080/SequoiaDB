@@ -68,10 +68,11 @@ namespace vessel
       public:
          INT32 reload(indexObjectMap &im) const;
 
-         INT32 commit(UINT32 indexLid,
+         INT32 upsert(UINT32 indexLid,
                       const indexObjectMap &im) const;
 
-      public:
+         INT32 upsert(const indexObjectMap &im);
+
          INT32 upsert(UINT32 indexLid,
                       const bson::BSONObj &indexEntry) const;
 

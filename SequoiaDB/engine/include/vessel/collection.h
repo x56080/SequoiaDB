@@ -55,6 +55,7 @@
 #include "vessel/lobChunkKey.h"
 #include "vessel/listLobChunkCursor.h"
 #include "vessel/clEntryBlock.h"
+#include "vessel/lpsPteWriteBatch.h"
 
 #include <atomic>
 
@@ -151,7 +152,8 @@ namespace vessel
 
          void fini();
 
-         INT32 truncate(requestContext *context);
+         INT32 truncate(requestContext *context,
+                        LPS_PTE_WRITE_BATCH &batch);
 
       public:
          INT32 createIndex(requestContext *context,
@@ -454,17 +456,21 @@ namespace vessel
          /// if index is neither normal nor building, return error. 
          INT32 _setIndexRemoving(requestContext *context,
                                  const strSlice &indexName,
-                                 UINT32 &logicalIndexId);
+                                 indexObject **out);
                                     
-         INT32 _truncateIndexEntries(requestContext *context,
-                                     UINT32 logicalIndexId);
+         INT32 _truncateIndex(requestContext *context,
+                              indexObject *obj,
+                              BOOLEAN removeEntryPage,
+                              LPS_PTE_WRITE_BATCH &batch);
 
          INT32 _endToRemoveIndex(requestContext *context,
                                  UINT32 logicalIndexId);
 
          INT32 _removeAllIndexes(requestContext *context);
 
-         INT32 _truncateAllIndexes(requestContext *context);
+         INT32 _truncateAllIndexes(requestContext *context,
+                                   DPS_LSN_OFFSET lsn,
+                                   LPS_PTE_WRITE_BATCH &batch);
 
          INT32 _transferIndexEntries(requestContext *context,
                                      hitTransferTaskCtx *taskCtx,

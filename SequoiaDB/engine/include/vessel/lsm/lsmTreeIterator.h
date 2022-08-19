@@ -96,6 +96,7 @@ namespace vessel
          lsmColumnFamily _cf;
          rocksdb::Iterator *_itr = nullptr;
          keyString _ks;
+         lsmIndexEntryValueRef _valueRef;
    };//class lsmTreeIterator
 } // namespace vessel
 

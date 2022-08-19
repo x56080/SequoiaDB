@@ -87,7 +87,9 @@ namespace vessel
       return;
    }
 
-   INT32 btreeWriter::insert(const btreeKeyStringEntry &entry)
+   INT32 btreeWriter::insert(const btreeKeyStringEntry &entry,
+                             DPS_LSN_OFFSET lsn,
+                             const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
 
@@ -141,7 +143,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeWriter::remove(const btreeKeyStringEntry &entry)
+   INT32 btreeWriter::remove(const btreeKeyStringEntry &entry,
+                             DPS_LSN_OFFSET lsn,
+                             const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       
@@ -178,39 +182,76 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeWriter::truncate()
+   INT32 btreeWriter::truncate(BOOLEAN removeEntryPage)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
 
-      if (!_bac.hasBtreeRoot())
+      if (OSS_UNLIKELY(!isValid()))
       {
-         PD_LOG(PDDEBUG, "has no btree root");
-         goto done;
-      }
-
-      rc = _bac.pushRootIntoPath();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push root into path:%d", rc);
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      if (!_bac.getEndNodeInPath().isLeaf())
+      if (_bac.hasBtreeRoot())
       {
-         rc = _destroyChildNodesRecursively();
+         rc = _bac.pushRootIntoPath();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to destroy child nodes:%d", rc);
+            PD_LOG(PDERROR, "failed to push root into path:%d", rc);
             goto error;
+         }
+
+         rc = _bac.pushRootIntoPath();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push root into path:%d", rc);
+            goto error;
+         }
+
+         if (!_bac.getEndNodeInPath().isLeaf())
+         {
+            rc = _destroyChildNodesRecursively();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to destroy child nodes:%d", rc);
+               goto error;
+            }
          }
       }
 
-      rc = _removeBtreeRoot();
-      if (SDB_OK != rc)
+      if (_bac.hasBtreeRoot() && !removeEntryPage)
       {
-         PD_LOG(PDERROR, "failed to release btree:%d", rc);
-         goto error;
+         rc = _removeBtreeRoot();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to release btree:%d", rc);
+            goto error;
+         }
+      }  
+      else if (removeEntryPage &&
+               _bac.getIndexObject()->getBtreeEntryAddr().isValid())
+      {
+         indexSpace *is = _bac.getIndexSpace();
+         if (_bac.hasBtreeRoot())
+         {
+            rc = is->removePage(_bac.getReqCtx(), _ac, _bac.getBtreeRoot());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to remove btree root:%d", rc);
+               goto error;
+            }
+         }
+         _bac.resetBtreeRoot(INVALID_PAGE_ID);
+         
+         rc = is->removePage(_bac.getReqCtx(), _ac,
+                             _bac.getIndexObject()->getBtreeEntryAddr().pid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove btree entry page:%d", rc);
+            goto error;
+         }
+         _bac.getIndexObject()->resetBtreeEntryAddr();
       }
    done:
       return rc;
@@ -223,42 +264,24 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be inited");
       SDB_ASSERT(_bac.hasBtreeRoot(), "must has root");
-
-      logicalPageBufferPte buffer;
-      indexSpace *is = _bac.getIndexSpace();
-      const indexObject *obj = _bac.getIndexObject();
-      btreeEntryPageAccessor accessor(obj->getLogicalID());
-      SDB_ASSERT(_bac.hasBtreeRoot(), "can not be invalid");
       PAGE_ID root = _bac.getBtreeRoot();
-      btreeEntryAddr entryAddr = obj->getBtreeEntryAddr();
-      SDB_ASSERT(entryAddr.isValid(), "can not be invalid");
-
-      rc = is->getPageBuffer(_bac.getReqCtx(), _ac,
-                             entryAddr.pid, buffer);
+      indexSpace *is = _bac.getIndexSpace();
+      rc = is->removePage(_bac.getReqCtx(), _ac, root);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get btree entry buffer:%d", rc);
+         PD_LOG(PDERROR, "failed to remove btree root:%d", rc);
          goto error;
       }
 
-      rc = is->makePrivateBuffer(_bac.getReqCtx(), _ac, buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to make entry buffer writable:%d", rc);
-         goto error;
-      }
-
-      rc = accessor.resetBtreeRoot(_bac.getReqCtx(), INVALID_PAGE_ID, &buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove btree root in entry page:%d", rc);
-         goto error;
-      }
-
-      is->removePage(_bac.getReqCtx(), _ac, root);
       _bac.resetBtreeRoot(INVALID_PAGE_ID);
+      rc = refreshEntryPage();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to refresh btree entry page:%d", rc);
+         goto error;
+      }
+
    done:
-      buffer.fini();
       return rc;
    error:
       goto done;
@@ -415,7 +438,9 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.resetBtreeRoot(_bac.getReqCtx(), root, &entryBuffer);
+      /// no need to update transfer tick here.
+      rc = accessor.refill(_bac.getReqCtx(), root, _bac.getTransferTick(),
+                           _bac.getStats(), &entryBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update root:%d", rc);
@@ -819,6 +844,61 @@ namespace vessel
             goto error;
          }
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeWriter::refreshEntryPage()
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else
+      {
+         const indexObject *obj = _bac.getIndexObject();
+         btreeEntryPageAccessor accessor(obj->getLogicalID());
+         logicalPageBufferPte buffer;
+         PAGE_ID pid = obj->getBtreeEntryAddr().pid;
+         if (INVALID_PAGE_ID == pid)
+         {
+            PD_LOG(PDERROR, "invalid btree entry address");
+            rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+            goto error;
+         }
+
+         rc = _bac.getIndexSpace()->getPageBuffer(_bac.getReqCtx(), _ac, pid, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get entry page[%d] buffer:%d",
+                   pid, rc);
+            goto error;
+         }
+
+         rc = _bac.getIndexSpace()->makePrivateBuffer(_bac.getReqCtx(), _ac, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
+            goto error;
+         }
+
+         rc = accessor.refill(_bac.getReqCtx(), _bac.getBtreeRoot(),
+                              _bac.getTransferTick() + 1,
+                              _bac.getStats(), &buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to refill entry apge:%d", rc);
+            goto error;
+         }
+
+         _bac.incTransferTick();
+      }
+
    done:
       return rc;
    error:

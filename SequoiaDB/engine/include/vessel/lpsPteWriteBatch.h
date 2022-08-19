@@ -59,6 +59,7 @@ namespace vessel
          OSS_INLINE BOOLEAN isValid() const {return _viewer.isWritable();}
          OSS_INLINE UINT32 getPSN()const {return _viewer.getPSN();}
          OSS_INLINE UINT32 getWritingPSN() const {return _viewer.getPSN() + 1;}
+         OSS_INLINE BOOLEAN hasPteMapping()const {return !_mctx.isEmpty();}
          void reset();
 
       private:

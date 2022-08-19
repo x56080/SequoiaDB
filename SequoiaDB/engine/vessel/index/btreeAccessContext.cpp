@@ -56,7 +56,7 @@ namespace vessel
 
    INT32 btreeAccessContext::init(requestContext *context,
                                   indexSpace *is,
-                                  const indexObject *obj,
+                                  indexObject *obj,
                                   spacePteAccessCtx *actx)
    {
       INT32 rc = SDB_OK;
@@ -82,10 +82,10 @@ namespace vessel
       if (entryAddr.isValid() &&
           (isWritable() || INVALID_PAGE_ID != entryAddr.getVisiblePid(is->getPSN())))
       {
-         rc = _cacheRootAndStats();
+         rc = _loadEntryPage();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to load btree:%d", rc);
+            PD_LOG(PDERROR, "failed to load btree entry page:%d", rc);
             goto error;
          }
       }
@@ -105,6 +105,7 @@ namespace vessel
       _context = nullptr;
       _actx = nullptr;
       _btreeRoot = INVALID_PAGE_ID;
+      _transferTick = 0;
       _stats.reset();
       return;
    }
@@ -369,7 +370,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessContext::_cacheRootAndStats()
+   INT32 btreeAccessContext::_loadEntryPage()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_path.empty(), "must be empty");
@@ -385,7 +386,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.load(&entryBuffer, _btreeRoot, _stats);
+      rc = accessor.load(&entryBuffer, _btreeRoot, _transferTick, _stats);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to load btree info:%d", rc);
@@ -563,7 +564,6 @@ namespace vessel
             goto error;
          }
       }
-      
       
    done:
       return rc;

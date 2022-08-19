@@ -67,7 +67,7 @@ namespace vessel
             return _toInsert.empty() && _toRemove.empty();
          }
 
-         INT32 init(const indexObject *index,
+         INT32 init(indexObject *index,
                     const bson::BSONObjSet *toInsert,
                     const bson::BSONObjSet *toRemove);
 
@@ -87,6 +87,8 @@ namespace vessel
             return _index;
          }
 
+         indexObject *getMutableObject() const {return _index;}
+
          OSS_INLINE void setExecuted()
          {
             OSS_BIT_SET(_flags, FLAG_EXECUTED);
@@ -105,7 +107,7 @@ namespace vessel
                    !_toInsert.empty();
          }
       private:
-         const indexObject *_index = nullptr;
+         mutable indexObject *_index = nullptr;
          ossPoolList<bson::BSONObj> _toInsert;
          ossPoolList<bson::BSONObj> _toRemove;
          UINT32 _flags = 0;
@@ -136,7 +138,7 @@ namespace vessel
 
          void clear();
 
-         INT32 append(const indexObject *index,
+         INT32 append(indexObject *index,
                       const bson::BSONObjSet *keysToInsert,
                       const bson::BSONObjSet *keysToRemove);
 

@@ -59,7 +59,7 @@ namespace vessel
          INT32 init(requestContext *context,
                     indexSpace *is,
                     const lsmColumnFamily &cf,
-                    const indexObject *obj);
+                    indexObject *obj);
 
          OSS_INLINE BOOLEAN isValid() const {return nullptr != _obj;}
 
@@ -205,7 +205,7 @@ namespace vessel
          }
 
       private:
-         const indexObject *_obj = nullptr;
+         indexObject *_obj = nullptr;
          indexSpace *_is = nullptr;
          requestContext *_context = nullptr;
          lsmColumnFamily _cf;

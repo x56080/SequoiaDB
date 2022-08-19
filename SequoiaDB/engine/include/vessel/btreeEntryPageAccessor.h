@@ -55,14 +55,16 @@ namespace vessel
          ~btreeEntryPageAccessor() = default;
 
       public:
-         /// root may be invalid
-         INT32 resetBtreeRoot(requestContext *context,
-                              PAGE_ID root,
-                              logicalPageBuffer *lpb)const;
-
          INT32 load(logicalPageBuffer *lpb,
                     PAGE_ID &root,
+                    UINT32 &transferTick,
                     btreeStatistics &stats);
+
+         INT32 refill(requestContext *context,
+                      PAGE_ID root,
+                      UINT32 transferTick,
+                      const btreeStatistics &stats,
+                      logicalPageBuffer *lpb);
       private:
          UINT32 _indexLid = INVALID_LOGICAL_INDEX_ID;
    };//class btreeEntryPageAccessor 

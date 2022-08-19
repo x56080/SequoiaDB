@@ -46,6 +46,8 @@
 #include "vessel/sliceTransfer.h"
 #include "vessel/hybridTreeIterator.h"
 #include "vessel/lsm/lsmIteratorBound.h"
+#include "vessel/btreeWriter.h"
+#include "vessel/spacePteAccessCtx.h"
 
 namespace engine
 {
@@ -199,7 +201,7 @@ namespace vessel
    }
 
    INT32 hybridIndexTree::contains(requestContext *context,
-                                   const indexObject *obj,
+                                   indexObject *obj,
                                    const bson::BSONObj &key,
                                    recordID &rid)
    {
@@ -279,7 +281,7 @@ namespace vessel
    }
 
    INT32 hybridIndexTree::contains(requestContext *context,
-                                   const indexObject *obj,
+                                   indexObject *obj,
                                    const bson::BSONObjSet &keys,
                                    recordID &rid)
    {
@@ -362,13 +364,16 @@ namespace vessel
    }
 
    INT32 hybridIndexTree::truncate(requestContext *context,
-                                   indexObject *obj)
+                                   indexObject *obj,
+                                   spacePteAccessCtx *ac,
+                                   BOOLEAN removeEntryPage)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(nullptr == context ||
                        !context->isClPropertiesSet() ||
                        nullptr == obj ||
-                       !obj->isValid()))
+                       !obj->isValid() ||
+                       nullptr == ac))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -379,6 +384,14 @@ namespace vessel
          globalLogicalClId gclid = context->getClProperties()->getGlobalLogicalId();
          globalIndexID indexId(gclid, obj->getLogicalID());
          lsmIteratorBound bound;
+
+         rc = _truncateBtree(context, obj, ac, removeEntryPage);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to truncate btree%d", rc);
+            goto error;
+         }
+
          rc = bound.init(indexId);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
@@ -602,6 +615,32 @@ namespace vessel
       return rc;
    error:
       ptr.reset();
+      goto done;
+   }
+
+   INT32 hybridIndexTree::_truncateBtree(requestContext *context,
+                                         indexObject *obj,
+                                         spacePteAccessCtx *ac,
+                                         BOOLEAN removeEntryPage)
+   {
+      INT32 rc = SDB_OK;
+      btreeWriter bw;
+      rc = bw.init(context, _is, obj, ac);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init btree writer:%d", rc);
+         goto error;
+      }
+
+      rc = bw.truncate(removeEntryPage);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate btree");
+         goto error;
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 } // namespace vessel

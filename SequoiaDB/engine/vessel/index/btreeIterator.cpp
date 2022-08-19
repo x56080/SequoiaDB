@@ -52,7 +52,7 @@ namespace vessel
 
    INT32 btreeIterator::init(requestContext *context,
                              indexSpace *is,
-                             const indexObject *obj)
+                             indexObject *obj)
    {
       INT32 rc = SDB_OK;
 
@@ -326,7 +326,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_bac.getLSN() != l.getLSN())
+      else if (_bac.getTransferTick() != l.getTransferTick())
       {
          rc = SDB_VESSEL_BTREE_LOCATION_EXPIRED;
          goto error;
@@ -373,7 +373,7 @@ namespace vessel
    {
       SDB_ASSERT(_hasLocation(), "can not be invalid");
       location l;
-      l._lsn = _bac.getLSN();
+      l._transferTick = _bac.getTransferTick();
       l._pos = _pos;
       _bac.exportPathCoding(l._path);
       return std::move(l);

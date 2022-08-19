@@ -55,6 +55,9 @@ namespace vessel
             return SPACE_TYPE_IDX;
          }
 
+      protected:
+         virtual UINT32 _getSegmentPcntReused()const override {return 32;}
+
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

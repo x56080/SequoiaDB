@@ -82,6 +82,7 @@ namespace vessel
    void lsmTreeIterator::reset()
    {
       _ks.reset();
+      _valueRef.reset();
       _bound = nullptr;
       _cf = lsmColumnFamily();
       if (nullptr != _itr)
@@ -189,7 +190,7 @@ namespace vessel
             goto error;
          }
       }
-      if (!_itr->status().ok())
+      else if (!_itr->status().ok())
       {
          PD_LOG(PDERROR, "failed to move iterator:%s", _itr->status().getState());
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -230,45 +231,20 @@ namespace vessel
 
    BOOLEAN lsmTreeIterator::isMarkedRemoved() const
    {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(isReadyToRead(), "can not be invalid");
-      rocksdb::Slice value = _itr->value();
-      if (!value.empty())
-      {
-         SDB_ASSERT(LSM_INDEX_ENTRY_VALUE_SIZE <= value.size(), "invalid size");
-         const lsmIndexEntryValue * val =
-               reinterpret_cast<const lsmIndexEntryValue *>(value.data());
-         SDB_ASSERT(val->isValid(), "can not be invalid");
-         r = val->isDeleted();
-      }
-      return r;
+      SDB_ASSERT(_valueRef.isValid(), "can not be invalid");
+      return _valueRef.getValuePtr()->isDeleted();
    }
 
    UINT64 lsmTreeIterator::getLSN()const
    {
-      SDB_ASSERT(isReadyToRead(), "must be valid");
-      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
-      if (LSM_INDEX_ENTRY_VALUE_SIZE <= _itr->value().size())
-      {
-         const lsmIndexEntryValue *value =
-                  reinterpret_cast<const lsmIndexEntryValue *>(_itr->value().data());
-         lsn = value->lsn;
-      }
-      return lsn;
+      SDB_ASSERT(_valueRef.isValid(), "can not be invalid");
+      return _valueRef.getValuePtr()->lsn;
    }
 
    DPS_TRANS_ID lsmTreeIterator::getTransID()const
    {
-      SDB_ASSERT(isReadyToRead(), "must be valid");
-      DPS_TRANS_ID transID;
-      if (LSM_INDEX_ENTRY_VALUE_SIZE <= _itr->value().size())
-      {
-         const lsmIndexEntryValue *value = reinterpret_cast<const lsmIndexEntryValue *>
-                                  (_itr->value().data());
-         transID = value->transID;
-      }
-      
-      return transID;
+      SDB_ASSERT(_valueRef.isValid(), "can not be invalid");
+      return _valueRef.getValuePtr()->transID;
    }
 
    recordID lsmTreeIterator::getRid()const
@@ -328,17 +304,23 @@ namespace vessel
          goto error;
       }
 
-      ///TODO: validate value
+      rc = _valueRef.init(_itr->value(), TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init entry value:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
-      _ks.reset();
+      _resetCurrentEntry();
       goto done;
    }
 
    void lsmTreeIterator::_resetCurrentEntry()
    {
       _ks.reset();
+      _valueRef.reset();
    }
 
    INT32 lsmTreeIterator::_reinitInternalItr(BOOLEAN pointGetOptimized)

@@ -809,7 +809,7 @@ namespace vessel
 
       su->getIndexSpace().abort(cjob->batch);
 
-      SDB_ASSERT(FALSE, "remove btree entry page");
+      SDB_ASSERT(FALSE, "TODO: remove btree entry page");
 
       for (UINT32 i = 0; i < cjob->tasks.size(); ++i)
       {

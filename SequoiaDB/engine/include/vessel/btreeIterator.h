@@ -61,7 +61,7 @@ namespace vessel
          OSS_INLINE BOOLEAN isValid() const {return _bac.isValid();}
          INT32 init(requestContext *context,
                     indexSpace *is,
-                    const indexObject *obj);
+                    indexObject *obj);
 
          void reset();
 
@@ -92,7 +92,7 @@ namespace vessel
                location(const location &) = default;
                location &operator=(const location &) = default;
                location(location &&o):
-               _lsn(o._lsn),
+               _transferTick(o._transferTick),
                _path(std::move(o._path)),
                _pos(o._pos)
                {
@@ -101,7 +101,7 @@ namespace vessel
                location &operator=(location &&o)
                {
                   reset();
-                  _lsn = o._lsn;
+                  _transferTick = o._transferTick;
                   _path = std::move(o._path);
                   _pos = o._pos;
                   o.reset();
@@ -111,17 +111,17 @@ namespace vessel
             public:
                void reset()
                {
-                  _lsn = 0;
+                  _transferTick = 0;
                   _path.clear();
                   _pos = INVALID_RECORD_SLOT_POS;
                }
 
                OSS_INLINE BOOLEAN isValid()const {return isValidRecordSlotPosition(_pos);}
-               OSS_INLINE UINT64 getLSN()const {return _lsn;}
+               OSS_INLINE UINT64 getTransferTick()const {return _transferTick;}
                OSS_INLINE RECORD_SLOT_POS getPos() const {return _pos;}
 
             private:
-               UINT64 _lsn = 0;
+               UINT32 _transferTick = 0;
                ossPoolVector<UINT64> _path;
                RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
          };//class location

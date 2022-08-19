@@ -91,6 +91,10 @@ namespace vessel
 
          INT32 insertBuildingObject(std::unique_ptr<indexObject> &&obj);
 
+         INT32 beginToTruncateAll(UINT64 lsn);
+
+         void endToTruncateAll();
+
       private:
          using _UNIQUE_OBJ_PTR = std::unique_ptr<indexObject>;
          using _OBJECT_PTR_MAP = std::map<UINT32, _UNIQUE_OBJ_PTR>;

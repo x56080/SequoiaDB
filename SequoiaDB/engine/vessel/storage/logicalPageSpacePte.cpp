@@ -622,6 +622,11 @@ namespace vessel
       SDB_ASSERT(batch.isValid(), "can not be invalid");
       BOOLEAN lockingTransfered = FALSE;
 
+      if (!batch.hasPteMapping())
+      {
+         goto done;
+      }
+
       rc = _getMetaFile().fsync();
       if (OSS_UNLIKELY(SDB_OK != rc))
       {

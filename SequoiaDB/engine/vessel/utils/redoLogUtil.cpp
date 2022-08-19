@@ -240,6 +240,33 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 commitTruncateCLLog(const ossPoolString &fullName,
+                             DPS_LSN_OFFSET &lsn)
+   {
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
+      SDB_ASSERT(nullptr != tc, "can not be null");
+      IDataJournal *journal = tc->getEnv()->resource.journal;
+      dpsStackJournalPad jpad;
+      dpsPackedRequest jrequest;
+      dpsLogRecordHeader jres;
+      jpad.setType(LOG_TYPE_CL_TRUNC);
+      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      jrequest = jpad.done();
+      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write journal:%d", rc);
+         goto error;
+      }
+
+      lsn = jres._lsn;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 /////////////logicalPageSapceLogUtil end
 }//namespace vessel
 }//namespace engine
