@@ -36,9 +36,10 @@ Acquire basic CPU information
 ```lang-javascript
 > System.snapshotCpuInfo()
 {
-  "User": 47223380,
-  "Sys": 46662920,
-  "Idle": 3513293040,
-  "Other": 3023840
+  "User": 178575090,
+  "Sys": 58415430,
+  "Idle": 6405139420,
+  "IOWait": 22336420,
+  "Other": 7857330
 }
 ```

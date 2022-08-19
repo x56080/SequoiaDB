@@ -29,13 +29,15 @@ $SNAPSHOT_SYSTEM
 | TransInfo.TotalCount | int32  | 正在执行的事务数量                                             |
 | TransInfo.BeginLSN   | int64  | 正在执行的事务的起始 LSN 的偏移                                |
 | NodeID               | array  | 节点的 ID，格式为[ <分区组 ID>, <节点 ID> ]<br>在 standalone 模式下，该字段为[ 0，0 ] |
-| CPU.User             | double | 操作系统启动后所消耗的总用户 CPU 时间，单位为秒                |
-| CPU.Sys              | double | 操作系统启动后所消耗的总系统 CPU 时间，单位为秒                |
-| CPU.Idle             | double | 操作系统启动后所消耗的总空闲 CPU 时间，单位为秒                |
-| CPU.Other            | double | 操作系统启动后所消耗的总其它 CPU 时间，单位为秒                |
+| CPU.User             | double | 操作系统启动后累计的用户 CPU 时间，单位为秒                    |
+| CPU.Sys              | double | 操作系统启动后累计的系统 CPU 时间，单位为秒                    |
+| CPU.Idle             | double | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒   |
+| CPU.IOWait           | double | 操作系统启动后累计的 IO 等待时间，单位为秒                     |
+| CPU.Other            | double | 操作系统启动后软中断和硬中断的累计时间，单位为秒               |
 | Memory.LoadPercent   | int32  | 当前操作系统的内存使用百分比（包括文件系统缓存）               |
 | Memory.TotalRAM      | int64  | 当前操作系统的总内存空间，单位为字节                           |
 | Memory.FreeRAM       | int64  | 当前操作系统的空闲内存空间，单位为字节                         |
+| Memory.AvailableRAM  | int64  | 当前操作系统可用的内存空间，单位为字节                         |
 | Memory.TotalSwap     | int64  | 当前操作系统的总交换空间，单位为字节                           |
 | Memory.FreeSwap      | int64  | 当前操作系统的空闲交换空间，单位为字节                         |
 | Memory.TotalVirtual  | int64  | 当前操作系统的总虚拟空间，单位为字节                           |
@@ -88,19 +90,21 @@ $SNAPSHOT_SYSTEM
     1003
   ],
   "CPU": {
-    "User": 53323.86,
-    "Sys": 55738.17,
-    "Idle": 3999129.94,
-    "Other": 3124.02
+    "User": 178552.74,
+    "Sys": 58392.44,
+    "Idle": 6400173.12,
+    "IOWait": 22336.26,
+    "Other": 7856.64
   },
   "Memory": {
-    "LoadPercent": 94,
-    "TotalRAM": 6257471488,
-    "FreeRAM": 340115456,
-    "TotalSwap": 1022357504,
-    "FreeSwap": 732004352,
-    "TotalVirtual": 7279828992,
-    "FreeVirtual": 1072119808
+    "LoadPercent": 66,
+    "TotalRAM": 8370360320,
+    "FreeRAM": 162598912,
+    "AvailableRAM": 2795474944,
+    "TotalSwap": 16383401984,
+    "FreeSwap": 16046903296,
+    "TotalVirtual": 24753762304,
+    "FreeVirtual": 18842378240
   },
   "Disk": {
     "Name": "/dev/mapper/vgdata-lvdata1",
