@@ -81,9 +81,11 @@
                                                 User:\"$CPU.User\",\
                                                 Sys:\"$CPU.Sys\",\
                                                 Idle:\"$CPU.Idle\",\
+                                                IOWait:\"$CPU.IOWait\",\
                                                 Other:\"$CPU.Other\",\
                                                 TotalRAM:\"$Memory.TotalRAM\",\
                                                 FreeRAM:\"$Memory.FreeRAM\",\
+                                                AvailableRAM:\"$Memory.AvailableRAM\",\
                                                 TotalSwap:\"$Memory.TotalSwap\",\
                                                 FreeSwap:\"$Memory.FreeSwap\",\
                                                 TotalVirtual:\"$Memory.TotalVirtual\",\
@@ -99,9 +101,11 @@
                                                 User:\"$User\",\
                                                 Sys:\"$Sys\",\
                                                 Idle:\"$Idle\",\
+                                                IOWait:\"$IOWait\",\
                                                 Other:\"$Other\",\
                                                 TotalRAM:\"$TotalRAM\",\
                                                 FreeRAM:\"$FreeRAM\",\
+                                                AvailableRAM:\"$AvailableRAM\",\
                                                 TotalSwap:\"$TotalSwap\",\
                                                 FreeSwap:\"$FreeSwap\",\
                                                 TotalVirtual:\"$TotalVirtual\",\
@@ -115,9 +119,11 @@
                                                 User:{$sum:\"$User\"},\
                                                 Sys:{$sum:\"$Sys\"},\
                                                 Idle:{$sum:\"$Idle\"},\
+                                                IOWait:{$sum:\"$IOWait\"},\
                                                 Other:{$sum:\"$Other\"},\
                                                 TotalRAM:{$sum:\"$TotalRAM\"},\
                                                 FreeRAM:{$sum:\"$FreeRAM\"},\
+                                                AvailableRAM:{$sum:\"$AvailableRAM\"},\
                                                 TotalSwap:{$sum:\"$TotalSwap\"},\
                                                 FreeSwap:{$sum:\"$FreeSwap\"},\
                                                 TotalVirtual:{$sum:\"$TotalVirtual\"},\
@@ -128,8 +134,8 @@
                                                }\
                                        }\n\
                                        {$project:{\
-                                                CPU:{User:1,Sys:1,Idle:1,Other:1},\
-                                                Memory:{TotalRAM:1,FreeRAM:1,TotalSwap:1,\
+                                                CPU:{User:1,Sys:1,Idle:1,IOWait:1,Other:1},\
+                                                Memory:{TotalRAM:1,FreeRAM:1,AvailableRAM:1,TotalSwap:1,\
                                                         FreeSwap:1,TotalVirtual:1,FreeVirtual:1},\
                                                 Disk:{TotalSpace:1,FreeSpace:1},\
                                                 ErrNodes:"
