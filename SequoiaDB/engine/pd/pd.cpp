@@ -56,6 +56,42 @@
 
 #include "pdTrace.hpp"
 
+/*
+   _pdLogNestedShield define
+ */
+// to avoid nested logging
+class _pdLogNestedShield
+{
+public:
+   _pdLogNestedShield( BOOLEAN &amIInPD )
+   : _amIInPD( NULL )
+   {
+      if ( !amIInPD )
+      {
+         amIInPD = TRUE ;
+         _amIInPD = &amIInPD ;
+      }
+   }
+
+   ~_pdLogNestedShield()
+   {
+      if ( NULL != _amIInPD )
+      {
+         *_amIInPD = FALSE ;
+      }
+   }
+
+   BOOLEAN isInNestedLog() const
+   {
+      return NULL == _amIInPD ;
+   }
+
+protected:
+   BOOLEAN * _amIInPD ;
+} ;
+
+typedef class _pdLogNestedShield pdLogNestedShield ;
+
 PDLEVEL& getPDLevel()
 {
    static PDLEVEL s_pdLevel = PDWARNING ;
@@ -344,7 +380,7 @@ static INT32 pdLogFileWrite ( _pdLogType type, const CHAR *pData )
    pdCfgInfo &info = _getPDCfgInfo( type ) ;
 
    // lock file first
-   logFile._mutex.get() ;
+   ossScopedLock lock( &( logFile._mutex ) ) ;
 
    // if file not exist, need open
    //if ( SDB_OK != ossAccess( info._pdLogFile ) )
@@ -410,7 +446,6 @@ open:
    logFile._fileSize += dataSize ;
 
 done :
-   logFile._mutex.release() ;
    PD_TRACE_EXITRC ( SDB_PDLOGFILEWRITE, rc ) ;
    return rc ;
 error :
@@ -517,11 +552,11 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
    // calling pdLog in signal handler when the thread is already in pdLog
    // function will not proceed)
    static OSS_THREAD_LOCAL BOOLEAN amIInPD = FALSE ;
-   if ( amIInPD )
+   pdLogNestedShield shield( amIInPD ) ;
+   if ( shield.isInNestedLog() )
    {
       goto done ;
    }
-   amIInPD = TRUE ;
 
    /* We write into log file if the string is not empty */
    if ( _getPDCfgInfo( PD_DIAGLOG ).isEnabled() )
@@ -533,9 +568,6 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
          ossPrintf ( "%s"OSS_NEWLINE, pData ) ;
       }
    }
-
-   // make sure to reset this before leaving
-   amIInPD = FALSE ;
 
 done:
    return ;
@@ -693,21 +725,21 @@ INT32 pdError( INT32 rc )
    return rc ;
 }
 
-pdLogShield::pdLogShield() : _addRCMask( 0 )
+pdLogRCShield::pdLogRCShield() : _addRCMask( 0 )
 {
 }
 
-pdLogShield::~pdLogShield()
+pdLogRCShield::~pdLogRCShield()
 {
    clearRC() ;
 }
 
-void pdLogShield::clearRC()
+void pdLogRCShield::clearRC()
 {
    pdDisableShieldLogMask( _addRCMask ) ;
 }
 
-void pdLogShield::addRC( INT32 rc )
+void pdLogRCShield::addRC( INT32 rc )
 {
    UINT64 mask = _pdRC2Mask( rc ) ;
    if ( mask != 0 && !pdTestShieldLogMask( mask ) )
@@ -1271,11 +1303,12 @@ void pdAuditRaw( AUDIT_TYPE type, const CHAR *pData )
    // calling pdLog in signal handler when the thread is already in pdLog
    // function will not proceed)
    static OSS_THREAD_LOCAL BOOLEAN amIInPD = FALSE ;
-   if ( amIInPD )
+
+   pdLogNestedShield shield( amIInPD ) ;
+   if ( shield.isInNestedLog() )
    {
       goto done ;
    }
-   amIInPD = TRUE ;
 
    /* We write into log file if the string is not empty */
    if ( _getPDCfgInfo( PD_AUDIT ).isEnabled() )
@@ -1288,9 +1321,6 @@ void pdAuditRaw( AUDIT_TYPE type, const CHAR *pData )
          ossPrintf ( "%s"OSS_NEWLINE, pData ) ;
       }
    }
-
-   // make sure to reset this before leaving
-   amIInPD = FALSE ;
 
 done:
    return ;

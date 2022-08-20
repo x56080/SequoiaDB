@@ -191,11 +191,11 @@ BOOLEAN pdIsShieldLog() ;
 void pdPrintShieldInfo() ;
 INT32 pdError( INT32 rc ) ;
 
-class pdLogShield
+class pdLogRCShield
 {
 public:
-   pdLogShield() ;
-   ~pdLogShield() ;
+   pdLogRCShield() ;
+   ~pdLogRCShield() ;
    void addRC( INT32 rc ) ;
    void clearRC() ;
 private:
