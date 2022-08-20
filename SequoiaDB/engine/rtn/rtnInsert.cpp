@@ -85,7 +85,7 @@ namespace engine
       SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
       SDB_ASSERT( NULL != insertResult, "insert result is invalid" ) ;
 
-      pdLogShield shield ;
+      pdLogRCShield shield ;
       BOOLEAN hasRetry = FALSE ;
 
 retry:

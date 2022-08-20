@@ -990,7 +990,7 @@ namespace engine
          UINT64 startDataRead = cb->getMonAppCB()->totalDataRead ;
          UINT64 startIndexRead = cb->getMonAppCB()->totalIndexRead ;
 
-         pdLogShield logShield ;
+         pdLogRCShield logShield ;
          logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
 
          while ( TRUE )
