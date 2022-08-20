@@ -123,7 +123,7 @@ public class BsonMatcher {
             orList1.addAll(orList2);
 
             result.put(SDBConstant.OR, orList1);
-            LOG.warn("two OR expression to merge is unreasonable,{},{}",matcher1,matcher2);
+            LOG.warn("Merge of two OR expression( {}, {} ) is not expected. Please provide the information to support team.", matcher1, matcher2);
         }
 
         return result;

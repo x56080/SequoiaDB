@@ -146,7 +146,7 @@ public class FilterPushDownSupport {
                 return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), "true");
             }
         }
-        LOG.info("unsupported expression {} cannot be push down to SequoiaDB", expression);
+        LOG.info("Pushing down of expression {} is not supported.", expression);
         return null;
     }
 
