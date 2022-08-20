@@ -60,7 +60,13 @@ namespace vessel
                     const rocksdb::Options *o = nullptr);
          void close();
 
-         INT32 restore(DPS_LSN_OFFSET lsn);
+         /* 
+            restore() will be called during crash recovery.
+            If there's a record's lsn in a sst file that 
+            is greater than the dps max lsn, all sst files will
+            be deleted.
+         */
+         INT32 restore(DPS_LSN_OFFSET checkpointLsn, DPS_LSN_OFFSET dpsMaxLsn);
 
       public:
          BOOLEAN isOpen()const;
@@ -133,10 +139,7 @@ namespace vessel
 
          const rocksdb::WriteOptions &_getWriteOpt(LSM_CF_ID id) const;
 
-         INT32 _restoreHybridIndexCF(DPS_LSN_OFFSET lsn);
-
-         INT32 _restoreHybridIndexSsts(DPS_LSN_OFFSET lsn,
-                                       const ossPoolVector<std::string> &namelist);
+         INT32 _restoreHybridIndexCF(DPS_LSN_OFFSET checkpointLsn, DPS_LSN_OFFSET dpsMaxLsn);
 
       private:
          rocksdb::DB *_db = nullptr;
