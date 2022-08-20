@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.sequoiadb.flink.constant;
+package com.sequoiadb.flink.common.constant;
 
 public class SDBConstant {
 

@@ -14,7 +14,7 @@
  * limitations under the License.
 */
 
-package com.sequoiadb.flink.util;
+package com.sequoiadb.flink.common.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,8 +26,8 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.config.SDBSourceOptions;
-import com.sequoiadb.flink.constant.SDBConstant;
 import com.sequoiadb.flink.source.strategy.NodeInfo;
 import com.sequoiadb.flink.source.strategy.ShardingInfo;
 

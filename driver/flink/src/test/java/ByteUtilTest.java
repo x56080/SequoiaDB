@@ -1,4 +1,5 @@
-import com.sequoiadb.flink.util.ByteUtil;
+
+import com.sequoiadb.flink.common.util.ByteUtil;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -12,7 +13,7 @@ public class ByteUtilTest {
         byte[] expect1 = new byte[]{1};
         byte[] expect0 = new byte[]{0};
 
-        Assert.assertArrayEquals(expect1, ByteUtil.toBytes(boolTest1)); 
+        Assert.assertArrayEquals(expect1, ByteUtil.toBytes(boolTest1));
         Assert.assertArrayEquals(expect0, ByteUtil.toBytes(boolTest0)); 
     }
 

@@ -18,9 +18,10 @@ package com.sequoiadb.flink.source.strategy;
 
 import com.sequoiadb.flink.config.PreferredInstanceMode;
 import com.sequoiadb.flink.config.SDBSourceOptions;
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 
-import java.util.*;
+import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 /**
