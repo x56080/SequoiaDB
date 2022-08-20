@@ -57,7 +57,7 @@ namespace vessel
          }
          BOOLEAN hasPrefix(UINT32 extraSize) const
          {
-            return (savedBytes() - extraSize) > 0;
+            return savedBytes() > extraSize;
          }
          UINT32 getRefCount() const
          {
@@ -102,10 +102,19 @@ namespace vessel
       };
       struct resultStat
       {
-         UINT32 totalSavedSize;
-         UINT32 originalSize;
-         FLOAT64 compressionRatio;
-         UINT32 validPrefixItemNum;
+         UINT32 totalSavedSize = 0;
+         UINT32 originalSize = 0;
+         FLOAT64 compressionRatio = 0.0;
+         UINT32 validPrefixItemNum = 0;
+         resultStat(UINT32 totalSavedSize,
+                    UINT32 originalSize,
+                    FLOAT64 compressionRatio,
+                    UINT32 validPrefixItemNum)
+             : totalSavedSize(totalSavedSize), originalSize(originalSize),
+               compressionRatio(compressionRatio),
+               validPrefixItemNum(validPrefixItemNum)
+         {
+         }
       };
 
    public:

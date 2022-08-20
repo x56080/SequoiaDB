@@ -146,7 +146,7 @@ namespace vessel
       UINT64 reserved2 = 0;
    };//struct btreeNodeHead
    constexpr UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
-   
+   constexpr FLOAT64 ACCEPTABLE_COMPRESSION_RATIO = 0.2;
 #pragma pack()
 
 

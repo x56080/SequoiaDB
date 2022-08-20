@@ -37,6 +37,7 @@
 
 #include "oss.hpp"
 #include "vessel/slice.h"
+#include "vessel/keyString.h"
 
 namespace engine
 {
@@ -65,6 +66,10 @@ namespace vessel
       BOOLEAN hasPrefix() const;
       INT32 compare(const prefixedKeyString &r) const;
       slice comparableSuffixSlice() const;
+      const slice& getPrefix() const;
+      const slice& getSuffix() const;
+      keyString getOwnedKeyString() const;
+      ossPoolString getConcatenatedString() const;
 
    private:
       slice _suffix;

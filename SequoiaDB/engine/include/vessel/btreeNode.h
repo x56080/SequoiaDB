@@ -44,6 +44,7 @@
 #include "rtnPredicate.hpp"
 #include "vessel/strictBuffer.h"
 #include "vessel/btreeKeyStringEntry.h"
+#include "vessel/prefixedKeyString.h"
 
 namespace engine
 {
@@ -128,6 +129,8 @@ namespace vessel
          // INT32 split(RECORD_SLOT_POS &pos,
          //             btreeSplitRaisedKey &raisedKey);
 
+         INT32 compress();
+
          /// non-leaf node only
          INT32 reactiveRemovedKey(RECORD_SLOT_POS pos);
 
@@ -205,6 +208,8 @@ namespace vessel
          strictBuffer getReadableBuffer()const;
 
          BOOLEAN isRecentWriteOrdered()const;
+
+         prefixedKeyString _getPrefixedKeyString(RECORD_SLOT_POS pos);
 
          INT32 _locateEntry(const btreeKeyStringEntry &ks,
                             btreeNodeSeekResult &res) const;
