@@ -30,16 +30,18 @@ SDB_SNAP_SYSTEM
 | TransInfo.GlobLowTran| 字符串 | 集群中正在执行的最小的全局事务                                 |
 | TransInfo.GlobExpireTran | 字符串 | 集群中已经过期最大的事务，用于清理过期的 MVCC 老版本       |
 | TransInfo.LowTran    | 字符串 | 本节点中正在执行的最小的全局事务                               |
-| TransInfo.ExpireTran | 字符串 | 本节点中已经过期最大的事务，用于清理过期的 MVCC 老版本         | 
+| TransInfo.ExpireTran | 字符串 | 本节点中已经过期最大的事务，用于清理过期的 MVCC 老版本         |
 | TransInfo.IdxTreeLowTran | 字符串 | MVCC 老版本索引树上最小的全局事务版本                      |
 | NodeID               | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
-| CPU.User             | 浮点数 | 操作系统启动后所消耗的总用户 CPU 时间（单位：秒）              |
-| CPU.Sys              | 浮点数 | 操作系统启动后所消耗的总系统 CPU 时间（单位：秒）              |
-| CPU.Idle             | 浮点数 | 操作系统启动后所消耗的总空闲 CPU 时间（单位：秒）              |
-| CPU.Other            | 浮点数 | 操作系统启动后所消耗的总其它 CPU 时间（单位：秒）              |
+| CPU.User             | 浮点数 | 操作系统启动后累计的用户 CPU 时间，单位为秒                    |
+| CPU.Sys              | 浮点数 | 操作系统启动后累计的系统 CPU 时间，单位为秒                    |
+| CPU.Idle             | 浮点数 | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒   |
+| CPU.IOWait           | 浮点数 | 操作系统启动后累计的 IO 等待时间，单位为秒                     |
+| CPU.Other            | 浮点数 | 操作系统启动后软中断和硬中断的累计时间，单位为秒               |
 | Memory.LoadPercent   | 整型   | 当前操作系统的内存使用百分比（包括文件系统缓存）               |
 | Memory.TotalRAM      | 长整型 | 当前操作系统的总内存空间（单位：字节）                         |
-| Memory.FreeRAM       | 长整型 | 当前操作系统的空闲内存空间（单位：字节）                       |
+| Memory.FreeRAM       | 长整型 | 当前操作系统的空闲内存空间，单位为字节                         |
+| Memory.AvailableRAM  | 长整型 | 当前操作系统可用的内存空间，单位为字节                         |
 | Memory.TotalSwap     | 长整型 | 当前操作系统的总交换空间（单位：字节）                         |
 | Memory.FreeSwap      | 长整型 | 当前操作系统的空闲交换空间（单位：字节）                       |
 | Memory.TotalVirtual  | 长整型 | 当前操作系统的总虚拟空间（单位：字节）                         |
@@ -54,12 +56,14 @@ SDB_SNAP_SYSTEM
 
 | 字段名              | 类型   | 描述                                              |
 | ------------------- | ------ | ------------------------------------------------- |
-| CPU.User            | 浮点数 | 操作系统启动后所消耗的总用户 CPU 时间（单位：秒） |
-| CPU.Sys             | 浮点数 | 操作系统启动后所消耗的总系统 CPU 时间（单位：秒） |
-| CPU.Idle            | 浮点数 | 操作系统启动后所消耗的总空闲 CPU 时间（单位：秒） |
-| CPU.Other           | 浮点数 | 操作系统启动后所消耗的总其它 CPU 时间（单位：秒） |
+| CPU.User            | 浮点数 | 操作系统启动后累计的用户 CPU 时间，单位为秒       |
+| CPU.Sys             | 浮点数 | 操作系统启动后累计的系统 CPU 时间，单位为秒       |
+| CPU.Idle            | 浮点数 | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒   |
+| CPU.IOWait          | 浮点数 | 操作系统启动后累计的 IO 等待时间，单位为秒        |
+| CPU.Other           | 浮点数 | 操作系统启动后软中断和硬中断的累计时间，单位为秒  |
 | Memory.TotalRAM     | 长整型 | 当前操作系统的总内存空间（单位：字节）            |
-| Memory.FreeRAM      | 长整型 | 当前操作系统的空闲内存空间（单位：字节）          |
+| Memory.FreeRAM      | 长整型 | 当前操作系统的空闲内存空间，单位为字节            |
+| Memory.AvailableRAM | 长整型 | 当前操作系统可用的内存空间，单位为字节            |
 | Memory.TotalSwap    | 长整型 | 当前操作系统的总交换空间（单位：字节）            |
 | Memory.FreeSwap     | 长整型 | 当前操作系统的空闲交换空间（单位：字节）          |
 | Memory.TotalVirtual | 长整型 | 当前操作系统的总虚拟空间（单位：字节）            |
@@ -115,19 +119,21 @@ SDB_SNAP_SYSTEM
     1000
   ],
   "CPU": {
-    "User": 3947.31,
-    "Sys": 715.11,
-    "Idle": 331196.41,
-    "Other": 771.14
+    "User": 178552.74,
+    "Sys": 58392.44,
+    "Idle": 6400173.12,
+    "IOWait": 22336.26,
+    "Other": 7856.64
   },
   "Memory": {
-    "LoadPercent": 95,
-    "TotalRAM": 4155072512,
-    "FreeRAM": 202219520,
-    "TotalSwap": 2153771008,
-    "FreeSwap": 2137071616,
-    "TotalVirtual": 6308843520,
-    "FreeVirtual": 2339291136
+    "LoadPercent": 66,
+    "TotalRAM": 8370360320,
+    "FreeRAM": 162598912,
+    "AvailableRAM": 2795474944,
+    "TotalSwap": 16383401984,
+    "FreeSwap": 16046903296,
+    "TotalVirtual": 24753762304,
+    "FreeVirtual": 18842378240
   },
   "Disk": {
     "Name":"/dev/sda1",
@@ -145,18 +151,20 @@ SDB_SNAP_SYSTEM
 > coord.snapshot( SDB_SNAP_SYSTEM )
 {
   "CPU": {
-    "User": 36280.72,
-    "Sys": 5046.23,
-    "Idle": 7560242.4,
-    "Other": 5887.24
+    "User": 178552.74,
+    "Sys": 58392.44,
+    "Idle": 6400173.12,
+    "IOWait": 22336.26,
+    "Other": 7856.64
   },
   "Memory": {
-    "TotalRAM": 8403730432,
-    "FreeRAM": 3075035136,
-    "TotalSwap": 25757204480,
-    "FreeSwap": 25663799296,
-    "TotalVirtual": 34160934912,
-    "FreeVirtual": 28738834432
+    "TotalRAM": 8370360320,
+    "FreeRAM": 162349056,
+    "AvailableRAM": 2795397120,
+    "TotalSwap": 16383401984,
+    "FreeSwap": 16046911488,
+    "TotalVirtual": 24753762304,
+    "FreeVirtual": 18842308608
   },
   "Disk": {
     "TotalSpace": 338172772352,
