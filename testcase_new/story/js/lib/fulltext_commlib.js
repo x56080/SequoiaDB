@@ -59,8 +59,10 @@ function ESOperator ()
 
       // get count from ES
       var info = cmd.run( str );
+      println( "countFromES() run CURL command, to get count info from elasticsearch by rest: " + info );
       //get json
       var json = eval( "(" + info + ")" );
+      println( "countFromES() eval info: " + json );
       count = json["count"];
       return count;
    }
@@ -78,8 +80,10 @@ function ESOperator ()
 
       // to get SDBCOMMITID from ES
       var info = cmd.run( str );
+      println( "getCommitIDFromES() run CURL command, to get SDBCOMMITID info from elasticsearch by rest: " + info );
       //get json
       var json = eval( "(" + info + ")" );
+      println( "getCommitIDFromES() eval info: " + json );
       var array = json["hits"]["hits"];
       if( array.length == 1 )
       {
@@ -108,15 +112,18 @@ function ESOperator ()
       // get curl command
       var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "' 2>/dev/null";
 
-      //the longest waiting time is 300s
+      //the longest waiting time is 900s
       var isExist = false;
-      var timeout = 300;
+      // var timeout = 300;
+      var timeout = 900;
       var doTimes = 0;
       while( doTimes < timeout )
       {
          var info = cmd.run( str );
+         println( "isCreateIndexInES() run CURL command, to get index info from elasticsearch by rest: " + info );
          //get json
          var json = eval( "(" + info + ")" );
+         println( "isCreateIndexInES() eval info: " + json );
          var error = json["error"];
          if( typeof ( error ) == "undefined" )
          {
@@ -366,9 +373,10 @@ function checkMainCLFullSyncToES ( csName, mainCLName, textIndexName, expectCoun
 ******************************************************************/
 function checkCountInES ( esIndexNames, expectCount )
 {
-   //the longest waiting time is 600S
+   //the longest waiting time is 900S
    var isSync = false;
-   var timeout = 600;
+   // var timeout = 600;
+   var timeout = 900;
    var doTimes = 0;
 
    while( doTimes < timeout )
@@ -415,9 +423,10 @@ function checkLidInES ( esIndexNames, cappedCLs )
       throw new Error( "checkLidInES() index not sync to es:" + esIndexNames.length + ", the number of index name in db: " + cappedCLs.length );
    }
 
-   //the longest waiting time is 600S
+   //the longest waiting time is 900S
    var isSync = false;
-   var timeout = 600;
+   // var timeout = 600;
+   var timeout = 900;
    var doTimes = 0;
 
    // get all lids from all groups
