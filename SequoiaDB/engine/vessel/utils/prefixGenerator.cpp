@@ -196,7 +196,7 @@ namespace vessel
       }
       for (auto item : out)
       {
-         item.hasPrefix(_options.prefixExtraCost);
+         item.isWorthToSave(_options.prefixExtraCost);
          validPrefixItemNum += 1;
          totalSavedSize += item.savedBytesWithExtra(_options.prefixExtraCost);
       }

@@ -216,7 +216,7 @@ namespace vessel
       return _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePrefixSlot>(offset);
    }
 
-   prefixedKeyString btreeNode::_getPrefixedKeyString(RECORD_SLOT_POS pos)
+   prefixedKeyString btreeNode::_getPrefixedKeyString(RECORD_SLOT_POS pos) const
    {
       _entryRef ref = _getEntryRef(pos);
       slice prefix;
@@ -1779,7 +1779,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::compress()
+   INT32 btreeNode::recompress(BOOLEAN &isRecompressed)
    {
       INT32 rc = SDB_OK;
       prefixGenerator pg;
@@ -1789,8 +1789,10 @@ namespace vessel
       items.reserve(head->totalSlotCount);
       ksV.reserve(head->totalSlotCount);
       ossPoolVector<prefixGenerator::prefixItem> out;
+      isRecompressed = TRUE;
       if(0 != OSS_BIT_TEST(head->flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION))
       {
+         isRecompressed = FALSE; 
          goto done;
       }
       if (hasCompressedKeys())
@@ -1832,6 +1834,7 @@ namespace vessel
          UINT32 compressedItemCount = 0;
          if(r.compressionRatio < ACCEPTABLE_COMPRESSION_RATIO)
          {
+            isRecompressed = FALSE;
             btreeNodePageHead *head = _buffer->getWritableBodyBuffer().
                                    getWritableObjPtr<btreeNodePageHead>(0);
             OSS_BIT_SET(head->flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
@@ -1857,7 +1860,7 @@ namespace vessel
 
          for(auto it = out.begin(); it != out.end(); it++)
          {
-            if(!it->hasPrefix(BTREE_NODE_PREFIX_SLOT_SIZE))
+            if(!it->isWorthToSave(BTREE_NODE_PREFIX_SLOT_SIZE))
             {
                continue;
             }

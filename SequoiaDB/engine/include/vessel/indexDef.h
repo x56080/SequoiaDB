@@ -63,6 +63,8 @@ namespace vessel
 
    constexpr FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
 
+   constexpr FLOAT64 ACCEPTABLE_COMPRESSION_RATIO = 0.2;
+
    enum INDEX_STATUS : UINT16
    {
       INDEX_STATUS_INVALID = 0,

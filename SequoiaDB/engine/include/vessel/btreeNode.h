@@ -129,7 +129,7 @@ namespace vessel
          // INT32 split(RECORD_SLOT_POS &pos,
          //             btreeSplitRaisedKey &raisedKey);
 
-         INT32 compress();
+         INT32 recompress(BOOLEAN &isRecompressed);
 
          /// non-leaf node only
          INT32 reactiveRemovedKey(RECORD_SLOT_POS pos);
@@ -209,7 +209,7 @@ namespace vessel
 
          BOOLEAN isRecentWriteOrdered()const;
 
-         prefixedKeyString _getPrefixedKeyString(RECORD_SLOT_POS pos);
+         prefixedKeyString _getPrefixedKeyString(RECORD_SLOT_POS pos) const;
 
          INT32 _locateEntry(const btreeKeyStringEntry &ks,
                             btreeNodeSeekResult &res) const;

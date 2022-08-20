@@ -55,7 +55,7 @@ namespace vessel
              : prefix(prefix), low(low), high(high)
          {
          }
-         BOOLEAN hasPrefix(UINT32 extraSize) const
+         BOOLEAN isWorthToSave(UINT32 extraSize) const
          {
             return savedBytes() > extraSize;
          }
