@@ -166,6 +166,8 @@ namespace vessel
                                  UINT32 sizeb,
                                  const CHAR *bufb);
 
+      static INT32 parseMetaFromSlice(const slice &s, keyStringDescriptor &desc);
+
       class bodyReader : public SDBObject
       {
       public:
@@ -212,9 +214,9 @@ namespace vessel
       //void _adopt(CHAR *buffer, UINT32 bufferSize, UINT32 ksSize);
 
    private:
-      BOOLEAN _loadSizeData(bytesReader &reader,
+      static BOOLEAN _loadSizeData(bytesReader &reader,
                             BOOLEAN nonzero,
-                            UINT32 &size)const;
+                            UINT32 &size);
 
    protected:
       slice _ref;
