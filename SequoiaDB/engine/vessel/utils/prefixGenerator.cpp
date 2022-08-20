@@ -73,7 +73,7 @@ namespace vessel
       out.emplace_back(prefixLen, cur->data());
 
       totalSize += v.size() * _options.itemExtraCost;
-      return out;
+      return std::move(out);
    }
 
    INT64 prefixGenerator::_dfs(
@@ -196,7 +196,7 @@ namespace vessel
       }
       for (auto item : out)
       {
-         item.hasPrefix(_options.prefixExtraCost);
+         item.isWorthToSave(_options.prefixExtraCost);
          validPrefixItemNum += 1;
          totalSavedSize += item.savedBytesWithExtra(_options.prefixExtraCost);
       }

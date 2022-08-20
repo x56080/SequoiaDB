@@ -48,7 +48,8 @@
 #include "ossMemPool.hpp"
 #include "vessel/btreeAccessContext.h"
 #include "vessel/indexUtils.h"
-#include "vessel/prefixedKeyString.h"
+#include "vessel/prefixGenerator.h"
+#include <iterator>
 
 namespace engine
 {
@@ -213,6 +214,34 @@ namespace vessel
       SDB_ASSERT(pos < head->prefixCount, "out of bound");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE + (pos * BTREE_NODE_PREFIX_SLOT_SIZE);
       return _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePrefixSlot>(offset);
+   }
+
+   prefixedKeyString btreeNode::_getPrefixedKeyString(RECORD_SLOT_POS pos) const
+   {
+      _entryRef ref = _getEntryRef(pos);
+      slice prefix;
+      if(isLeaf() && ref.slot->hasPrefixSlot())
+      {
+         const btreeNodePrefixSlot* prefixSlot = getReadablePrefixSlot(ref.slot->data.lf.prefixSlot);
+         strictBuffer buffer = _buffer->getReadableBodyBuffer();
+         const CHAR *data = buffer.getReadablePtr(prefixSlot->prefixOffset,
+                                                   prefixSlot->prefixSize);
+         if (OSS_UNLIKELY(nullptr == data))
+         {
+            PD_LOG(PDERROR, "failed to prefix key data[%d,%d]",prefixSlot->prefixOffset,
+                                                   prefixSlot->prefixSize);
+         }
+         else
+         {
+            prefix.reset(prefixSlot->prefixSize, data);
+         }
+         return prefixedKeyString(ref.data, prefix);
+      }
+      else
+      {
+         return prefixedKeyString(ref.data);
+      }
+      
    }
 
    UINT32 btreeNode::getNodeSize()const
@@ -1748,6 +1777,163 @@ namespace vessel
    error:
       raisedKey.reset();
       goto done;
+   }
+
+   INT32 btreeNode::recompress(BOOLEAN &isRecompressed)
+   {
+      INT32 rc = SDB_OK;
+      prefixGenerator pg;
+      const btreeNodePageHead *head = getReadableHead();
+      ossPoolVector<slice> items;
+      ossPoolVector<keyString> ksV;
+      items.reserve(head->totalSlotCount);
+      ksV.reserve(head->totalSlotCount);
+      ossPoolVector<prefixGenerator::prefixItem> out;
+      isRecompressed = TRUE;
+      if(0 != OSS_BIT_TEST(head->flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION))
+      {
+         isRecompressed = FALSE; 
+         goto done;
+      }
+      if (hasCompressedKeys())
+      {
+         
+         for(UINT32 i = 0; i < head->totalSlotCount; ++i)
+         {
+            prefixedKeyString pks = _getPrefixedKeyString(i);
+            if(pks.hasPrefix())
+            {
+               ksV.push_back(pks.getOwnedKeyString());
+            }
+            else
+            {
+               ksV.emplace_back(pks.getSuffix());
+            }
+            items.push_back(ksV.back().getKeyElementsSlice());
+         }
+      }
+      else
+      {
+         for(UINT32 i = 0; i < head->totalSlotCount; ++i)
+         {
+            _entryRef ref = _getEntryRef(i);
+            items.push_back(ref.data);
+         }
+      }
+      {
+         prefixGenerator::resultStat r = pg.generate(items, out);
+
+         memoryBlock mb;
+         strictBuffer newBuf;
+         strictBuffer writableBuffer;
+         UINT32 frontPrefixesOffset = BTREE_NODE_PAGE_HEAD_SIZE;
+         UINT32 frontItemsOffset =
+             frontPrefixesOffset + out.size() * BTREE_NODE_PREFIX_SLOT_SIZE;
+         UINT32 backOffset = getNodeSize();
+         btreeNodePageHead *wHead = nullptr;
+         UINT32 compressedItemCount = 0;
+         if(r.compressionRatio < ACCEPTABLE_COMPRESSION_RATIO)
+         {
+            isRecompressed = FALSE;
+            btreeNodePageHead *head = _buffer->getWritableBodyBuffer().
+                                   getWritableObjPtr<btreeNodePageHead>(0);
+            OSS_BIT_SET(head->flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
+            goto done;
+         }
+         rc = mb.reserve(getNodeSize());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to reserve memory block size:%d", rc);
+            goto error;
+         }
+         newBuf.makeWritable(mb.getCapacity(), mb.getBuffer());
+
+         rc = _buffer->autoGetWritableBodyBuffer(writableBuffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+            goto error;
+         }
+
+         wHead = newBuf.getWritableObjPtr<btreeNodePageHead>(0);
+         ossMemcpy(wHead, head, BTREE_NODE_PAGE_HEAD_SIZE);
+
+         for(auto it = out.begin(); it != out.end(); it++)
+         {
+            if(!it->isWorthToSave(BTREE_NODE_PREFIX_SLOT_SIZE))
+            {
+               continue;
+            }
+            UINT32 offset = frontPrefixesOffset + std::distance(out.begin(), it) * BTREE_NODE_PREFIX_SLOT_SIZE;
+            auto prefixSlot = newBuf.getWritableObjPtr<btreeNodePrefixSlot>(offset);
+            prefixSlot->low = it->low;
+            prefixSlot->high = it->high;
+            prefixSlot->prefixSize = it->prefix.size();
+            if(backOffset < offset + prefixSlot->prefixSize +
+                                 BTREE_NODE_PREFIX_SLOT_SIZE)
+            {
+               PD_LOG(PDERROR, "not enough free space to insert item");
+               SDB_ASSERT(FALSE, "impossible");
+               rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
+               goto error;
+            }
+            backOffset -= prefixSlot->prefixSize;
+            rc = newBuf.write(
+                backOffset, prefixSlot->prefixSize, it->prefix.data());
+            if (OSS_UNLIKELY(SDB_OK != rc))
+            {
+               PD_LOG(PDERROR, "failed to copy key data:%d", rc);
+               SDB_ASSERT(FALSE, "impossible");
+               goto error;
+            }
+            
+            prefixSlot->prefixOffset = backOffset;
+            
+            for(INT32 itemPos = it->low; itemPos < it->high; ++itemPos)
+            {
+               UINT32 offset = frontItemsOffset + itemPos * BTREE_NODE_SLOT_SIZE;
+               slice itemSlice(
+                   ksV[itemPos].getRawDataSize() - it->prefix.size(),
+                   ksV[itemPos].getRawData().data() + it->prefix.size());
+               if (backOffset <
+                   offset + itemSlice.size() + BTREE_NODE_SLOT_SIZE)
+               {
+                  PD_LOG(PDERROR, "not enough free space to insert item");
+                  SDB_ASSERT(FALSE, "impossible");
+                  rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
+                  goto error;
+               }
+               backOffset -= itemSlice.size();
+               rc =
+                   newBuf.write(backOffset, itemSlice.size(), itemSlice.data());
+               if (OSS_UNLIKELY(SDB_OK != rc))
+               {
+                  PD_LOG(PDERROR, "failed to copy key data:%d", rc);
+                  SDB_ASSERT(FALSE, "impossible");
+                  goto error;
+               }
+               auto itemSlot = newBuf.getWritableObjPtr<btreeItemSlot>(offset);
+               itemSlot->initAsLeafFormat(backOffset,
+                                          itemSlice.size(),
+                                          std::distance(out.begin(), it));
+               ++compressedItemCount;
+            }
+         }
+         wHead->compressedItemCount = compressedItemCount;
+         wHead->prefixCount = out.size();
+         wHead->totalFreeSpace = backOffset - (frontItemsOffset + items.size() * BTREE_NODE_SLOT_SIZE);
+         wHead->backOffset = backOffset;
+
+         ossMemcpy(writableBuffer.getWPtr(),
+                newBuf.getRPtr(),
+                newBuf.getSize());
+
+      }
+
+      done:
+         return rc;
+      error:
+         goto done;
    }
 
    INT32 btreeNode::removeChild(RECORD_SLOT_POS pos)

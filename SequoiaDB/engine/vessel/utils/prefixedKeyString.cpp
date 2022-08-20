@@ -37,6 +37,7 @@
 #include "vessel/bytesReader.h"
 #include "vessel/keyString.h"
 #include "pd.hpp"
+#include <memory>
 
 namespace engine
 {
@@ -188,6 +189,45 @@ namespace vessel
          remainLen -= _prefix.size();
       }
       return slice(remainLen, _suffix.data());
+   }
+
+   const slice& prefixedKeyString::getPrefix() const
+   {
+      return _prefix;
+   }
+
+   const slice& prefixedKeyString::getSuffix() const
+   {
+      return _suffix;
+   }
+
+   keyString prefixedKeyString::getOwnedKeyString() const
+   {
+      UINT32 size = _prefix.size() + _suffix.size();
+      auto buf = std::get_temporary_buffer<CHAR>(size);
+      if (hasPrefix())
+      {
+         ossMemcpy(buf.first, _prefix.data(), _prefix.size());
+         ossMemcpy(buf.first + _prefix.size(), _suffix.data(), _suffix.size());
+      }
+      else
+      {
+         ossMemcpy(buf.first, _suffix.data(), _suffix.size());
+      }
+      keyString ks(size, buf.first);
+      ks.getOwned();
+      std::return_temporary_buffer(buf.first);
+      return std::move(ks); 
+   }
+   ossPoolString prefixedKeyString::getConcatenatedString() const
+   {
+      ossPoolString s;
+      if(hasPrefix())
+      {
+         s.append(_prefix.data(), _prefix.size());
+      }
+      s.append(_suffix.data(), _suffix.size());
+      return std::move(s);
    }
 } // namespace vessel
 } // namespace engine
