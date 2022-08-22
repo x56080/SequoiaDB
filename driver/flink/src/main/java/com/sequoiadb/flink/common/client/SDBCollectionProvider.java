@@ -144,9 +144,26 @@ public class SDBCollectionProvider implements SDBClientProvider {
     public DBCollection ensureCollection(SDBSinkOptions sinkOptions) {
         BSONObject options = new BasicBSONObject();
         String ShardingKey = sinkOptions.getShardingKey();
-        if (ShardingKey != null){
+        String[] upsertKeys = sinkOptions.getUpsertKey();
+
+        BSONObject indexBson = new BasicBSONObject();
+        if (upsertKeys != null && upsertKeys.length != 0) {
+            for (String upsertKey : upsertKeys) {
+                indexBson.put(upsertKey, 1);
+            }
+        }
+
+        if (ShardingKey != null) {
             options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+        } else {
+            if (indexBson.isEmpty()) {
+                throw new SDBException("can't create SequoiaDB collection without defining " +
+                        "primary keys or sharding key.");
+            }
+
+            options.put(SDBConstant.SHARDING_KEY, indexBson);
+            options.put(SDBConstant.SHARDING_TYPE, indexBson);
         }
 
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
@@ -159,14 +176,10 @@ public class SDBCollectionProvider implements SDBClientProvider {
         }
 
         DBCollection cl = getCollectionSpace().createCollection(collectionStr, options);
-        String[] upsertKeys = sinkOptions.getUpsertKey();
-        if (upsertKeys != null && upsertKeys.length > 0) {
-            BSONObject indexBson = new BasicBSONObject();
-            for (String upsertKey : upsertKeys) {
-                indexBson.put(upsertKey, 1);
-            }
+        if (!indexBson.isEmpty()) {
             cl.createIndex(PRIMARY_KEY_NAME, indexBson, true, false);
         }
+
         return cl;
     }
 

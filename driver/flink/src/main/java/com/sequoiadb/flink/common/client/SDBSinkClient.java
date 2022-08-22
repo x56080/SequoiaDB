@@ -20,8 +20,10 @@ import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.constant.SDBConstant;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -261,10 +263,26 @@ public class SDBSinkClient implements SDBClient {
     private DBCollection ensureCollectionWithOptions(String collection,  HashSet<String> pks) {
         BSONObject options = new BasicBSONObject();
         String ShardingKey = sdboptions.getShardingKey();
+
+        BSONObject uniqueIndexes = new BasicBSONObject();
+        if (pks != null) {
+            for (String key : pks) {
+                uniqueIndexes.put(key, 1);
+            }
+        }
+
         if (ShardingKey != null){
             options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
+        } else {
+            if (uniqueIndexes.isEmpty()) {
+                throw new SDBException("can't create SequoiaDB collection without defining " +
+                        "primary keys or sharding key.");
+            }
+            options.put(SDBConstant.SHARDING_KEY, uniqueIndexes);
+            options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
         }
+
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
         options.put(SDBConstant.AUTO_SPLIT, sdboptions.getAutoSplit());
@@ -272,15 +290,9 @@ public class SDBSinkClient implements SDBClient {
         if (Group != null) {
             options.put(SDBConstant.GROUP, Group);
         }
+
         DBCollection cl = getCS().createCollection(collection, options);
-        if (pks != null) {
-            BSONObject uniqueIndexes = new BasicBSONObject();
-            for (String key : pks){
-                uniqueIndexes.put(key, 1);
-            }
-            if(ShardingKey != null) {
-                uniqueIndexes.putAllUnique((BSONObject) JSON.parse(ShardingKey));
-            }
+        if (!uniqueIndexes.isEmpty()) {
             cl.createIndex(PRIMARY_KEY, uniqueIndexes, true, false);
         }
         return cl;
