@@ -1,15 +1,5 @@
-[^_^]: 
-
-    数据库快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-    
-    王涛：
-    许建辉：
-    市场部：
-
-
+[^_^]:
+    操作系统快照
 
 操作系统快照可以列出操作系统的状态和监控信息。
 
@@ -44,13 +34,15 @@ SDB_SNAP_SYSTEM
 | TransInfo.TotalCount | int32   | 正在执行的事务数量                                             |
 | TransInfo.BeginLSN   | int64 | 正在执行的事务的起始 LSN 的偏移                                |
 | NodeID               | bson array| 节点的 ID 信息                                                 |
-| CPU.User             | double | 操作系统启动后所消耗的总用户 CPU 时间，单位为秒              |
-| CPU.Sys              | double | 操作系统启动后所消耗的总系统 CPU 时间，单位为秒              |
-| CPU.Idle             | double | 操作系统启动后所消耗的总空闲 CPU 时间，单位为秒              |
-| CPU.Other            | double | 操作系统启动后所消耗的总其它 CPU 时间，单位为秒              |
+| CPU.User             | double | 操作系统启动后累计的用户 CPU 时间，单位为秒      |
+| CPU.Sys              | double | 操作系统启动后累计的系统 CPU 时间，单位为秒             |
+| CPU.Idle             | double | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒 |
+| CPU.IOWait           | double | 操作系统启动后累计的 IO 等待时间，单位为秒     |
+| CPU.Other            | double | 操作系统启动后软中断和硬中断的累计时间，单位为秒   |
 | Memory.LoadPercent   | int32   | 当前操作系统的内存使用百分比（包括文件系统缓存）               |
 | Memory.TotalRAM      | int64 | 当前操作系统的总内存空间，单位为字节                         |
-| Memory.FreeRAM       | int64 | 当前操作系统的空闲内存空间，单位为字节                       |
+| Memory.FreeRAM       | int64 | 当前操作系统的空闲内存空间，单位为字节                   |
+| Memory.AvailableRAM  | int64 | 当前操作系统可用的内存空间，单位为字节                    |
 | Memory.TotalSwap     | int64 | 当前操作系统的总交换空间，单位为字节                          |
 | Memory.FreeSwap      | int64 | 当前操作系统的空闲交换空间，单位为字节                        |
 | Memory.TotalVirtual  | int64 | 当前操作系统的总虚拟空间，单位为字节                         |
@@ -66,12 +58,14 @@ SDB_SNAP_SYSTEM
 
 | 字段名      | 类型   |  描述                            |
 | ----------- | ------ | -------------------------------- |
-| CPU.User        | double | 操作系统启动后所消耗的总用户 CPU 时间，单位为秒    |
-| CPU.Sys         | double | 操作系统启动后所消耗的总系统 CPU 时间，单位为秒    |
-| CPU.Idle        | double | 操作系统启动后所消耗的总空闲 CPU 时间，单位为秒        |
-| CPU.Other       | double | 操作系统启动后所消耗的总其它 CPU 时间，单位为秒    |
+| CPU.User             | double | 操作系统启动后累计的用户 CPU 时间，单位为秒      |
+| CPU.Sys              | double | 操作系统启动后累计的系统 CPU 时间，单位为秒             |
+| CPU.Idle             | double | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒 |
+| CPU.IOWait           | double | 操作系统启动后累计的 IO 等待时间，单位为秒      |
+| CPU.Other            | double | 操作系统启动后软中断和硬中断的累计时间，单位为秒   |
 | Memory.TotalRAM      | int64  | 当前操作系统的总内存空间，单位为字节        |
-| Memory.FreeRAM       | int64  | 当前操作系统的空闲内存空间，单位为字节      |
+| Memory.FreeRAM       | int64  | 当前操作系统的空闲内存空间，单位为字节                   |
+| Memory.AvailableRAM  | int64  | 当前操作系统可用的内存空间，单位为字节                    |
 | Memory.TotalSwap     | int64  | 交换分区的总空间，单位为字节    |
 | Memory.FreeSwap      | int64  | 当前操作系统的总交换空间，单位为字节  |
 | Memory.TotalVirtual  | int64  | 当前操作系统的总虚拟空间，单位为字节    |
@@ -126,19 +120,21 @@ SDB_SNAP_SYSTEM
        1000
      ],
      "CPU": {
-       "User": 3947.31,
-       "Sys": 715.11,
-       "Idle": 331196.41,
-       "Other": 771.14
+       "User": 178552.74,
+       "Sys": 58392.44,
+       "Idle": 6400173.12,
+       "IOWait": 22336.26,
+       "Other": 7856.64
      },
      "Memory": {
-       "LoadPercent": 95,
-       "TotalRAM": 4155072512,
-       "FreeRAM": 202219520,
-       "TotalSwap": 2153771008,
-       "FreeSwap": 2137071616,
-       "TotalVirtual": 6308843520,
-       "FreeVirtual": 2339291136
+       "LoadPercent": 66,
+       "TotalRAM": 8370360320,
+       "FreeRAM": 162598912,
+       "AvailableRAM": 2795474944,
+       "TotalSwap": 16383401984,
+       "FreeSwap": 16046903296,
+       "TotalVirtual": 24753762304,
+       "FreeVirtual": 18842378240
      },
      "Disk": {
        "Name":"/dev/sda1",
@@ -161,18 +157,20 @@ SDB_SNAP_SYSTEM
    ```lang-json
    {
      "CPU": {
-       "User": 36280.72,
-       "Sys": 5046.23,
-       "Idle": 7560242.4,
-       "Other": 5887.24
+       "User": 178552.74,
+       "Sys": 58392.44,
+       "Idle": 6400173.12,
+       "IOWait": 22336.26,
+       "Other": 7856.64
      },
      "Memory": {
-       "TotalRAM": 8403730432,
-       "FreeRAM": 3075035136,
-       "TotalSwap": 25757204480,
-       "FreeSwap": 25663799296,
-       "TotalVirtual": 34160934912,
-       "FreeVirtual": 28738834432
+       "TotalRAM": 8370360320,
+       "FreeRAM": 162349056,
+       "AvailableRAM": 2795397120,
+       "TotalSwap": 16383401984,
+       "FreeSwap": 16046911488,
+       "TotalVirtual": 24753762304,
+       "FreeVirtual": 18842308608
      },
      "Disk": {
        "TotalSpace": 338172772352,

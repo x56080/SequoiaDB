@@ -39,9 +39,10 @@ v3.2 及以上版本
 ```lang-javascript
 > System.snapshotMemInfo()
 {
-    "Size": 5967,
-    "Used": 2919,
-    "Free": 384,
+    "Size": 7982,
+    "Used": 4945,
+    "Free": 192,
+    "Available": 2713,
     "Unit": "M"
 }
 ```
