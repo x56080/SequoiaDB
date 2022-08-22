@@ -62,10 +62,10 @@ namespace vessel
          void close();
 
          /* 
-            restore() will be called during crash recovery.
+            restore() should be called after open(), any read 
+            and write operations are not allowed during restore() execution.
             If there's a record's lsn in a sst file that 
-            is greater than the dps max lsn, all sst files will
-            be deleted.
+            is greater than the dps max lsn, all sst files will be deleted.
          */
          INT32 restore(DPS_LSN_OFFSET checkpointLsn, DPS_LSN_OFFSET dpsMaxLsn);
 
@@ -141,7 +141,25 @@ namespace vessel
 
          const rocksdb::WriteOptions &_getWriteOpt(LSM_CF_ID id) const;
 
-         INT32 _restoreHybridIndexCF(DPS_LSN_OFFSET checkpointLsn, DPS_LSN_OFFSET dpsMaxLsn);
+      private:
+         INT32 _restoreHybridIndexCF(DPS_LSN_OFFSET checkpointLsn,
+                                     DPS_LSN_OFFSET dpsMaxLsn);
+
+         INT32 _extractLsnFromProperties(
+            const rocksdb::TablePropertiesCollection &tpc,
+            DPS_LSN_OFFSET &minLsn, DPS_LSN_OFFSET &maxLsn) const;
+
+         INT32 _checkLsn(DPS_LSN_OFFSET checkpointLsn,
+                         DPS_LSN_OFFSET dpsMaxLsn,
+                         DPS_LSN_OFFSET minLsn,
+                         DPS_LSN_OFFSET maxLsn,
+                         BOOLEAN &hasInvalid) const;
+
+         // lowKey must be the smallest key in the specified column family
+         // and upKey must be the largest.
+         INT32 _removeAllSSTs(LSM_CF_ID id,
+                              const rocksdb::Slice &lowKey,
+                              const rocksdb::Slice &upKey);
 
       private:
          lsmDBOptions _o;

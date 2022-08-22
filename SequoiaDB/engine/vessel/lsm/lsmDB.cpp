@@ -39,9 +39,8 @@
 #include "vessel/lsm/lsmColumnFamilyContext.h"
 #include "vessel/lsm/lsmCollector.h"
 #include "vessel/lsm/lsmEventListener.h"
-#include "vessel/lsm/lsmIndexEntryValue.h"
-#include "vessel/keyString.h"
-#include "vessel/sliceTransfer.h"
+#include "vessel/lsm/lsmTableProperties.h"
+#include "vessel/lsm/lsmIteratorBound.h"
 #include "rocksdb/table.h"
 #include "rocksdb/filter_policy.h"
 #include "rocksdb/slice_transform.h"
@@ -740,8 +739,208 @@ namespace vessel
    INT32 lsmDB::_restoreHybridIndexCF(DPS_LSN_OFFSET checkpointLsn,
                                       DPS_LSN_OFFSET dpsMaxLsn)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != checkpointLsn, "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != dpsMaxLsn, "can not be invalid");
+      SDB_ASSERT(checkpointLsn <= dpsMaxLsn, "can not be invalid");
+      SDB_ASSERT(isOpen(), "must be open");
+      rocksdb::Status s;
+      rocksdb::TablePropertiesCollection tpc;
+      DPS_LSN_OFFSET minLsn = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET maxLsn = DPS_INVALID_LSN_OFFSET;
+      BOOLEAN hasInvalid = FALSE;
+
+      PD_LOG(PDINFO, "start to restore hybrid index column family, "
+             "checkpoint lsn:[%llu], dps max lsn:[%llu]",
+             checkpointLsn, dpsMaxLsn);
+      s = _db->GetPropertiesOfAllTables(_getHandle(LSM_CF_HYBRID_INDEX), &tpc);
+      if (!s.ok())
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "get properties of cf[%d] failed, status info:[%s]",
+                LSM_CF_HYBRID_INDEX, s.ToString().c_str());
+         goto error;
+      }
+
+      if (tpc.empty())
+      {
+         PD_LOG(PDINFO, "no sst files to restore");
+         goto done;
+      }
+
+      rc = _extractLsnFromProperties(tpc, minLsn, maxLsn);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "extract lsn from properties failed, rc:%d", rc);
+         goto error;
+      }
+
+      if (DPS_INVALID_LSN_OFFSET == minLsn ||
+          DPS_INVALID_LSN_OFFSET == maxLsn)
+      {
+         goto done;
+      }
+
+      PD_LOG(PDINFO, "total sst files count:[%zu], min lsn:[%llu], max lsn:[%llu]",
+             tpc.size(), minLsn, maxLsn);
+      rc = _checkLsn(checkpointLsn, dpsMaxLsn, minLsn, maxLsn, hasInvalid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "check lsn failed, rc:%d", rc);
+         goto error;
+      }
+
+      if (hasInvalid)
+      {
+         PD_LOG(PDINFO, "will remove all sst files in hybrid index column family");
+         lsmIteratorBound lowBound;
+         lsmIteratorBound upBound;
+         lowBound.init(globalIndexID::getMinGlobalIndexID());
+         upBound.init(globalIndexID::getMaxGlobalIndexID());
+         rc = _removeAllSSTs(LSM_CF_HYBRID_INDEX,
+                             *lowBound.getLowBound(),
+                             *upBound.getLowBound());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "remove sst files in hybrid "
+                   "index column family failed, rc:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      PD_LOG(PDINFO, "end to restore hybrid index column family");
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmDB::_extractLsnFromProperties(const rocksdb::TablePropertiesCollection &tpc,
+                                          DPS_LSN_OFFSET &minLsn,
+                                          DPS_LSN_OFFSET &maxLsn) const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!tpc.empty(), "can not be empty");
+      SDB_ASSERT(isOpen(), "must be open");
+
+      minLsn = DPS_INVALID_LSN_OFFSET;
+      maxLsn = DPS_INVALID_LSN_OFFSET;
+      for (auto itr = tpc.cbegin(); itr != tpc.cend(); ++itr)
+      {
+         DPS_LSN_OFFSET curMinLsn = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET curMaxLsn = DPS_INVALID_LSN_OFFSET;
+         lsmTableProperties properties;
+         properties.init(itr->second.get());
+         if (!properties.hasUserDefinedProperties())
+         {
+            continue;
+         }
+         
+         rc = properties.getLSNPair(curMinLsn, curMaxLsn);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "get lsn pair failed, rc:%d", rc);
+            goto error;
+         }
+
+         if (DPS_INVALID_LSN_OFFSET == minLsn ||
+             curMinLsn < minLsn)
+         {
+            minLsn = curMinLsn;
+         }
+
+         if (DPS_INVALID_LSN_OFFSET == maxLsn ||
+             curMaxLsn > maxLsn)
+         {
+            maxLsn = curMaxLsn;
+         }
+      }
+      
+   done:
+      return rc;
+   error:
+      minLsn = DPS_INVALID_LSN_OFFSET;
+      maxLsn = DPS_INVALID_LSN_OFFSET;
+      goto done;
+   }
+
+   INT32 lsmDB::_checkLsn(DPS_LSN_OFFSET checkpointLsn,
+                          DPS_LSN_OFFSET dpsMaxLsn,
+                          DPS_LSN_OFFSET minLsn,
+                          DPS_LSN_OFFSET maxLsn,
+                          BOOLEAN &hasInvalid) const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != checkpointLsn, "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != dpsMaxLsn, "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != minLsn, "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != maxLsn, "can not be invalid");
+      SDB_ASSERT(isOpen(), "must be open");
+      hasInvalid = FALSE;
+
+      if (maxLsn > dpsMaxLsn)
+      {
+         // if there's a record's lsn less than checkpoint lsn,
+         // delete records will cause the record to be lost.
+         if (minLsn < checkpointLsn)
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR,
+                   "existing lsn[%llu] is less than checkpoint lsn[%llu]",
+                   minLsn, checkpointLsn);
+            goto error;
+         }
+         else
+         {
+            PD_LOG(PDINFO, "max lsn[%llu] is greater than dps max lsn[%llu], "
+                   "sst files need to be deleted", maxLsn, dpsMaxLsn);
+            hasInvalid = TRUE;
+         }
+      }
+   
+   done:
+      return rc;
+   error:
+      hasInvalid = FALSE;
+      goto done;
+   }
+
+   INT32 lsmDB::_removeAllSSTs(LSM_CF_ID id,
+                               const rocksdb::Slice &lowKey,
+                               const rocksdb::Slice &upKey)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
+      SDB_ASSERT(isOpen(), "must be open");
+      rocksdb::Status s;
+
+      s = _db->DeleteRange(_getWriteOpt(id),
+                           _getHandle(id),
+                           lowKey,
+                           upKey);
+      if (OSS_UNLIKELY(!s.ok()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "range delete key-values failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+      s = _db->CompactRange(rocksdb::CompactRangeOptions(),
+                            _getHandle(id),
+                            nullptr, nullptr);
+      if (OSS_UNLIKELY(!s.ok()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "compact key-values failed, status info:[%s]",
+                s.ToString().c_str());
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 ////////////////////////////////

@@ -158,6 +158,19 @@ namespace vessel
                     << _clLid << "," << _indexLid << '}';
             return std::move(builder.poolStr());
          }
+
+         static globalIndexID getMinGlobalIndexID()
+         {
+            return globalIndexID(0, 0, 0);
+         }
+
+         static globalIndexID getMaxGlobalIndexID()
+         {
+            return globalIndexID(DMS_INVALID_LOGICCSID - 1,
+                                 DMS_INVALID_LOGICCLID - 1,
+                                 INVALID_LOGICAL_INDEX_ID - 1);
+         }
+
       private:
          UINT32 _csLid = DMS_INVALID_LOGICCSID;
          UINT32 _clLid = DMS_INVALID_LOGICCLID;
