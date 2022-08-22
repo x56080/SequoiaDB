@@ -91,6 +91,10 @@ namespace engine
          _initialized = FALSE ;
          if ( _LockHdrBkt )
          {
+            for ( UINT32 i = 0 ; i < _bktSlotMax + 1 ; ++i )
+            {
+               SDB_ASSERT( NULL == _LockHdrBkt[i].lrbHdr, "header must be null!") ;
+            }
             SDB_OSS_DEL [] _LockHdrBkt ;
             _LockHdrBkt = NULL ;
          }
@@ -1050,6 +1054,40 @@ namespace engine
             }
          }
          lrbDel->nextLRBHdr = NULL ;
+      }
+   }
+
+
+   //
+   // Description: remove a LRB Header from a LRB Header chain and release it
+   //              if the owner LRB, watier LRB, upgrader LRB are NULL
+   //              and user data can release
+   // Function:    walk through the LRB Header chain( linked list ) and remove
+   //              the LRB Header from the chain, then release the LRB Header.
+   // Input:
+   //    bktIdx   -- bucket index
+   //    lockId   -- lock Id
+   //
+   // Output:     None
+   //
+   // Return:     None
+   // Dependency:  the lock bucket latch shall be acquired
+   void dpsTransLockManager::_releaseFromLRBHeaderListByBktIdx
+   (
+      const UINT32           bktIdx,
+      const dpsTransLockId & lockId
+   )
+   {
+      dpsTransLRBHeader * LRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
+      if ( LRBHdr && _getLRBHdrByLockId( lockId, LRBHdr )
+           && ( !  LRBHdr->ownerLRB   )
+           && ( !  LRBHdr->upgradeLRB )
+           && ( !  LRBHdr->waiterLRB  )
+           && LRBHdr->extData.canRelease() )
+      {
+         _removeFromLRBHeaderList( _LockHdrBkt[ bktIdx ].lrbHdr, LRBHdr ) ;
+         _releaseLRBHdr( LRBHdr ) ;
+         LRBHdr = NULL ;
       }
    }
 
@@ -2102,6 +2140,7 @@ namespace engine
 
       UINT32  bktIdx   = DPS_LOCK_INVALID_BUCKET_SLOT ;
       BOOLEAN bLatched = FALSE ;
+      BOOLEAN needReleaseLRBHeader = FALSE ;
 
       if ( ! lockId.isValid() )
       {
@@ -2180,6 +2219,7 @@ namespace engine
       if ( dpsTxExectr->isInterrupted() )
       {
          rc = SDB_APP_INTERRUPT ;
+         needReleaseLRBHeader = TRUE ;
          goto error ;
       }
 
@@ -2313,9 +2353,20 @@ namespace engine
       if ( ( SDB_OK != rc2 ) && ( SDB_OK == rc ) )
       {
          rc = rc2 ;
+         needReleaseLRBHeader = TRUE ;
       }
 
    error:
+      if ( needReleaseLRBHeader )
+      {
+         if ( ! bLatched )
+         {
+            // need latch bucket before remove it from header list
+            _acquireOpLatch( bktIdx ) ;
+            bLatched = TRUE ;
+         }
+         _releaseFromLRBHeaderListByBktIdx( bktIdx, lockId ) ;
+      }
       // when _waitLock() fails ( timeout or be interrupted ), or pause/resume
       // context fails, we will need to release upper level intent lock
       if ( bLatched )
@@ -4067,7 +4118,7 @@ nextLock:
          {
             if ( ( pWaiterLRB->lrbHdr == pLRBHdr ) &&
                  ( pLRBHdr->ownerLRB ) &&
-                 _isInWaiterOrUpgradeQueue( pLRBHdr, pWaiterLRB ) ) 
+                 _isInWaiterOrUpgradeQueue( pLRBHdr, pWaiterLRB ) )
             {
                DPS_TRANS_ID holderTransId = DPS_INVALID_TRANS_ID ;
                ISession    *pHolderSes = NULL ;
@@ -4088,12 +4139,12 @@ nextLock:
 
                      dpsTransWait waitInfo(
                         waiterTransId, holderTransId, nodeID,
-                        durationInMicroseconds,// wait time 
-                        waiterCost,            // Cost 
+                        durationInMicroseconds,// wait time
+                        waiterCost,            // Cost
                         pLRB->dpsTxExectr->getLogSpace(),
                         waiterSessionID,       // sessionID
                         pLRB->dpsTxExectr->getEDUID(),
-                        waiterRelatedID,       // RelatedID 
+                        waiterRelatedID,       // RelatedID
                         pHolderSes->identifyID(),
                         waiterRelatedTID,      // RelatedTID
                         pHolderSes->identifyTID(),
