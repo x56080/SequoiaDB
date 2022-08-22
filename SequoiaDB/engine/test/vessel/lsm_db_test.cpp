@@ -131,14 +131,14 @@ TEST_F(lsm_db_test, base_restore_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    ossPoolVector<std::string> ssts;
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(!ssts.empty());
    ssts.clear();
 
    rc = db.restore(0, 0);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_TRUE(ssts.empty());
 
@@ -204,7 +204,7 @@ TEST_F(lsm_db_test, base_restore_test2)
 
    ossPoolVector<std::string> ssts;
 
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(!ssts.empty());
    UINT32 sstCount = ssts.size();
    ssts.clear();
@@ -212,7 +212,7 @@ TEST_F(lsm_db_test, base_restore_test2)
    rc = db.restore(0, count);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(!ssts.empty());
    ASSERT_EQ(sstCount, ssts.size());
 
@@ -292,20 +292,20 @@ TEST_F(lsm_db_test, base_restore_test3)
    ASSERT_EQ(SDB_OK, rc);
 
    ossPoolVector<std::string> ssts;
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(!ssts.empty());
    ssts.clear();
 
    rc = db.restore(10, restoreCount);
    ASSERT_EQ(SDB_VESSEL_INTERNAL_ERR, rc);
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(!ssts.empty());
    ssts.clear();
 
    rc = db.restore(0, restoreCount);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, ssts);
+   rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(ssts.empty());
 
    rocksdb::ReadOptions rOpt;
