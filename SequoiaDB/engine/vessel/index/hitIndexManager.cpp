@@ -48,6 +48,7 @@
 #include "vessel/lsm/lsmDB.h"
 #include "vessel/hitTransferHandler.h"
 #include "vessel/spaceIDLocker.h"
+#include "vessel/lsm/lsmTableProperties.h"
 
 namespace engine
 {
@@ -129,120 +130,13 @@ namespace vessel
       return;
    }
 
-   // INT32 hitIndexManager::_beginToTransfer(BOOLEAN reloadFiles)
-   // {
-   //    INT32 rc = SDB_OK;
-   //    SDB_ASSERT(!_job.isValid(), "can not be valid");
-
-   //    if (reloadFiles)
-   //    {
-   //       rc = _reloadFilesToTransfer();
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to load files:%d", rc);
-   //          goto error;
-   //       }
-   //    }
-
-   //    rc = _adjustWorkers(!_filesToTransfer.empty());
-   //    if (SDB_OK != rc)
-   //    {
-   //       PD_LOG(PDERROR, "failed to adjust background workers:%d", rc);
-   //       goto error;
-   //    }
-
-   //    while (!_filesToTransfer.empty())
-   //    {
-   //       rc = _createJobFromFileList();
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to build next job:%d", rc);
-   //          goto error;
-   //       }
-   //       else if (!_job.isValid())
-   //       {
-   //          break;
-   //       }
-   //       else
-   //       {
-   //          BOOLEAN allRemoved = FALSE;
-   //          rc = _transferFirstUnremovedCS(allRemoved);
-   //          if (SDB_OK != rc)
-   //          {
-   //             PD_LOG(PDERROR, "failed to transfer the first unremoved cs:%d", rc);
-   //             goto error;
-   //          }
-   //          else if (allRemoved)
-   //          {
-   //             _finishCurrentFileJob();
-   //             continue;
-   //          }
-   //          else
-   //          {
-   //             break;
-   //          }
-   //       }
-   //    }// while (!_filesToTransfer.empty())
-   
-   // done:
-   //    return rc;
-   // error:
-   //    _job.reset();
-   //    _filesToTransfer.clear();
-   //    goto done;
-   // }
-
-   // INT32 hitIndexManager::_createJobFromFileList()
-   // {
-   //    INT32 rc = SDB_OK;
-   //    SDB_ASSERT(!_job.isValid(), "can not be running");
-
-   //    while (!_filesToTransfer.empty())
-   //    {
-   //       BOOLEAN ignored = FALSE;
-   //       const std::string &fn = _filesToTransfer.back();
-   //       rc = _initFileTransferJob(fn, ignored);
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to transfer file:%s, rc:%d", fn.c_str(), rc);
-   //          goto error;
-   //       }
-
-   //       if (!ignored)
-   //       {
-   //          break;
-   //       }
-
-   //       rc = _popBackSSTAndRemove();
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to remove sst file:%d", rc);
-   //          goto error;
-   //       }
-   //    }
-
-   //    if (_job.isValid())
-   //    {
-   //       rc = _buildFileTransferJob();
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to build file job:%d", rc);
-   //          goto error;
-   //       }
-   //    }
-   // done:
-   //    return rc;
-   // error:
-   //    goto done;
-   // }
-
 
    INT32 hitIndexManager::_reloadFilesToTransfer()
    {
       INT32 rc = SDB_OK;
       _filesToTransfer.clear();
       lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
-      rc = cf.loadSSTs(0, TRUE, _filesToTransfer);
+      rc = cf.loadSSTs(0, TRUE, FALSE, _filesToTransfer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to load sst files:%d", rc);
@@ -267,10 +161,8 @@ namespace vessel
       SDB_ASSERT(!name.empty(), "can not be invalid");
       rocksdb::Options o;
       rocksdb::Status s;
-      std::shared_ptr<const rocksdb::TableProperties> properties;
-      rocksdb::UserCollectedProperties::const_iterator pi;
-      keyStringCoder coder;
-      
+      lsmTableProperties properties;
+      std::shared_ptr<const rocksdb::TableProperties> ptr;
       ignored = FALSE;
 
       _job.reader.reset(new rocksdb::SstFileReader(o));
@@ -291,40 +183,39 @@ namespace vessel
       }
 
       /// load properties
-      properties = _job.reader->GetTableProperties();
-      pi = properties->user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID);
-      if (properties->user_collected_properties.cend() == pi)
+      ptr = _job.reader->GetTableProperties();
+      properties.init(ptr.get());
+
+      if (!properties.hasUserDefinedProperties())
       {
-         /// if we range delete entries, the sst file may be empty.
-         PD_LOG(PDINFO, "min global index id not found in sst[%s]", name.c_str());
          ignored = TRUE;
          goto done;
       }
 
-      pi = properties->user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID);
-      if (properties->user_collected_properties.cend() == pi)
       {
-         PD_LOG(PDERROR, "max global index id not found in sst[%s]", name.c_str());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
+         UINT64 minLSN = DPS_INVALID_LSN_OFFSET;
+         UINT64 maxLSN = DPS_INVALID_LSN_OFFSET;
+         rc = properties.getLSNPair(minLSN, maxLSN);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lsn pair:%d", rc);
+            goto error;
+         }
+
+         _job.lsn = maxLSN;
       }
 
-      _job.maxId = coder.decodeToIndexId(pi->second.data());
-      SDB_ASSERT(_job.maxId.isValid(), "can not be invalid");
+      {
+         globalIndexID minIndexId;
+         globalIndexID maxIndexId;
+         rc = properties.getIndexIdPair(minIndexId, maxIndexId);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get index id pair:%d", rc);
+            goto error;
+         }
 
-      pi = properties->user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MAX_LSN);
-      if (properties->user_collected_properties.cend() != pi &&
-          sizeof(DPS_LSN_OFFSET) == pi->second.size())
-      {
-         _job.lsn = *(reinterpret_cast<const DPS_LSN_OFFSET *>(pi->second.data()));
-         
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "invalid raw lsn data in sst");
-         PD_LOG(PDERROR, "invalid raw lsn data in sst[%s]", name.c_str());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
+         _job.maxId = maxIndexId;
       }
 
    done:

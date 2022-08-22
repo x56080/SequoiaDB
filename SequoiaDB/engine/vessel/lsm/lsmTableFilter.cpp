@@ -35,6 +35,7 @@
 
 #include "vessel/lsm/lsmTableFilter.h"
 #include "vessel/lsm/lsmCollector.h"
+#include "vessel/lsm/lsmTableProperties.h"
 
 namespace engine
 {
@@ -47,7 +48,7 @@ namespace vessel
          return TRUE;
       }
 
-      auto itr = t.user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID);
+      auto itr = t.user_collected_properties.find(LSM_TABLE_PROPERTIES_MIN_IDX_ID);
       if (t.user_collected_properties.end() != itr)
       {
          if (0 > filter.compare(rocksdb::Slice(itr->second)))
@@ -55,7 +56,7 @@ namespace vessel
             return FALSE;
          }
 
-         itr = t.user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID);
+         itr = t.user_collected_properties.find(LSM_TABLE_PROPERTIES_MAX_IDX_ID);
          if (t.user_collected_properties.end() != itr)
          {
             if (0 < filter.compare(rocksdb::Slice(itr->second)))

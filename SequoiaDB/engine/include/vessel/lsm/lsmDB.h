@@ -40,6 +40,7 @@
 #include "vessel/lsm/lsmDBDef.h"
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/lsm/lsmWriteBatch.h"
+#include "vessel/lsm/lsmDBOptions.h"
 #include "rocksdb/db.h"
 
 namespace engine
@@ -57,7 +58,7 @@ namespace vessel
 
       public:
          INT32 open(const CHAR* dbPath,
-                    const rocksdb::Options *o = nullptr);
+                    const lsmDBOptions *o = nullptr);
          void close();
 
          /* 
@@ -118,6 +119,7 @@ namespace vessel
          INT32 loadSSTs(LSM_CF_ID id,
                         INT32 level,
                         BOOLEAN dirIncluded,
+                        BOOLEAN creationAsc,
                         ossPoolVector<std::string> &ssts);
 
          INT32 removeSST(const std::string &name);
@@ -142,6 +144,7 @@ namespace vessel
          INT32 _restoreHybridIndexCF(DPS_LSN_OFFSET checkpointLsn, DPS_LSN_OFFSET dpsMaxLsn);
 
       private:
+         lsmDBOptions _o;
          rocksdb::DB *_db = nullptr;
          // IDataJournal *_journal = nullptr;
          std::vector<lsmColumnFamilyContext *> _contexts;

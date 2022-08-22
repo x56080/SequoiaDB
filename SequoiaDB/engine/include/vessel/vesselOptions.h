@@ -40,6 +40,7 @@
 #include "utilCompression.hpp"
 #include "vessel/collectionOptions.h"
 #include "vessel/bufferPoolOptions.h"
+#include "vessel/lsm/lsmDBOptions.h"
 
 namespace engine
 {
@@ -71,10 +72,6 @@ namespace vessel
    class openDBOptions : public SDBObject
    {
       public:
-      OSS_INLINE openDBOptions(){}
-      OSS_INLINE ~openDBOptions(){}
-
-      public:
          storagePathOptions path;
          
          BOOLEAN fullDumpPageLog = FALSE;
@@ -97,13 +94,11 @@ namespace vessel
          UINT32 lobcLatchMapLatchCount = 256;
 
          lobcBufferPoolOptions lobcPoolOptions;
+         lsmDBOptions lsmOptions;
    }; /// end of class openDBOptions
 
    class closeDBOptions : public SDBObject
    {
-      public:
-         closeDBOptions(){}
-
       public:
          enum CLOSE_MODE
          {
@@ -113,28 +108,6 @@ namespace vessel
       public:
          CLOSE_MODE closeMode = CLOSE_MODE_NORMAL;
    }; // class closeDBOptions
-
-   class alterCSOptions : public SDBObject
-   {
-
-   }; // class alterCSOptions;
-
-   class dropCSOptions : public SDBObject
-   {
-
-   }; // class dropCSOptions
-
-   
-
-   class alterCLOptions
-   {
-
-   }; // class alterCLOptions
-
-   class dropCLOptions
-   {
-
-   }; // class dropCLOptions;
    
 } /// end of namespace vessel
 } /// end of namespace engine

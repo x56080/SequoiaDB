@@ -41,6 +41,7 @@
 #include "vessel/lsm/lsmIndexEntryValue.h"
 #include "vessel/keyString.h"
 #include "vessel/sliceTransfer.h"
+#include "vessel/lsm/lsmTableProperties.h"
 #include "rocksdb/status.h"
 #include <cstring>
 #include <string>
@@ -114,21 +115,21 @@ namespace vessel
    Status lsmIndexPropertiesCollector::Finish(UserCollectedProperties *properties)
    {
       std::string temp;
-      temp.reserve(16);
+      temp.reserve(12);
       if (DPS_INVALID_LSN_OFFSET != _minLsn)
       {
          temp.assign((const char*)&_minLsn, sizeof(_minLsn));
-         properties->emplace(LSM_COLLECTOR_FIELDNAME_MIN_LSN, temp);
+         properties->emplace(LSM_TABLE_PROPERTIES_MIN_LSN, temp);
          temp.assign((const char*)&_maxLsn, sizeof(_maxLsn));
-         properties->emplace(LSM_COLLECTOR_FIELDNAME_MAX_LSN, temp);
+         properties->emplace(LSM_TABLE_PROPERTIES_MAX_LSN, temp);
       }
 
       if (_indexIdInited)
       {
          temp.assign(_minIndexId, sizeof(_minIndexId));
-         properties->emplace(LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID, temp);
+         properties->emplace(LSM_TABLE_PROPERTIES_MIN_IDX_ID, temp);
          temp.assign(_maxIndexId, sizeof(_maxIndexId));
-         properties->emplace(LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID, temp);
+         properties->emplace(LSM_TABLE_PROPERTIES_MAX_IDX_ID, temp);
       }
 
       return Status::OK();

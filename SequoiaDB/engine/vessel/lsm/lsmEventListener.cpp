@@ -37,6 +37,7 @@
 #include "vessel/lsm/lsmEventListener.h"
 #include "vessel/lsm/lsmCollector.h"
 #include "rocksdb/types.h"
+#include "vessel/lsm/lsmTableProperties.h"
 
 namespace engine
 {
@@ -64,7 +65,7 @@ namespace vessel
       {
          const UserCollectedProperties &ucp =
              info.table_properties.user_collected_properties;
-         auto it = ucp.find(LSM_COLLECTOR_FIELDNAME_MAX_LSN);
+         auto it = ucp.find(LSM_TABLE_PROPERTIES_MAX_LSN);
          if (it != ucp.end())
          {
             const DPS_LSN_OFFSET maxLsn =

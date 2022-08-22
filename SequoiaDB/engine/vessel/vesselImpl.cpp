@@ -1183,7 +1183,8 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.lsm->open(options.path.lsmPath.c_str());
+      rc = _env.lsm->open(options.path.lsmPath.c_str(),
+                          &options.lsmOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open lsm db under path[%s]",

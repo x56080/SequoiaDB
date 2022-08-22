@@ -65,7 +65,7 @@ namespace vessel
    }
 
    INT32 lsmDB::open(const CHAR *dbPath,
-                     const rocksdb::Options *o)
+                     const lsmDBOptions *o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != dbPath, "can not be null");
@@ -78,11 +78,11 @@ namespace vessel
 
       if (nullptr != o)
       {
-         opt = *o;
+         _o = *o;
       }
+
       opt.create_if_missing = TRUE;
       opt.create_missing_column_families = TRUE;
-      // opt.listeners.emplace_back(newLsmEventListener(this));
       opt.max_background_jobs = 4;
 #if defined(_DEBUG)
       opt.statistics = rocksdb::CreateDBStatistics();
@@ -169,6 +169,7 @@ namespace vessel
          }
          _contexts.clear();
       }
+      _o = lsmDBOptions();
    }
 
    lsmColumnFamily lsmDB::getHitColumnFamily()
@@ -529,6 +530,7 @@ namespace vessel
       else if (LSM_CF_HYBRID_INDEX == id)
       {
          cfName = LSM_HYBRID_INDEX_CF_NAME;
+         cfOpt.write_buffer_size = _o.hitCfMemtableSize;
          cfOpt.comparator = getHitComparator();
          cfOpt.table_properties_collector_factories.emplace_back(newLsmCollectorFactory());
          cfOpt.prefix_extractor.reset(getLsmIndexPrefixTransform());
@@ -578,6 +580,7 @@ namespace vessel
    INT32 lsmDB::loadSSTs(LSM_CF_ID id,
                          INT32 level,
                          BOOLEAN dirIncluded,
+                         BOOLEAN creationAsc,
                          ossPoolVector<std::string> &ssts)
    {
       INT32 rc = SDB_OK;
@@ -602,18 +605,38 @@ namespace vessel
          {
             const std::vector<rocksdb::SstFileMetaData> &s = meta.levels.front().files;
             ssts.reserve(s.size());
-            for (auto i = s.crbegin(); i != s.crend(); ++i)
+
+            if (creationAsc)
             {
-               std::string name;
-               if (dirIncluded)
+               for (auto i = s.crbegin(); i != s.crend(); ++i)
                {
-                  name.append(i->directory).append(OSS_FILE_SEP).append(i->relative_filename);
+                  std::string name;
+                  if (dirIncluded)
+                  {
+                     name.append(i->directory).append(OSS_FILE_SEP).append(i->relative_filename);
+                  }
+                  else
+                  {
+                     name = i->relative_filename;
+                  }
+                  ssts.push_back(std::move(name));
                }
-               else
+            }
+            else
+            {
+               for (auto i = s.cbegin(); i != s.cend(); ++i)
                {
-                  name = i->relative_filename;
+                  std::string name;
+                  if (dirIncluded)
+                  {
+                     name.append(i->directory).append(OSS_FILE_SEP).append(i->relative_filename);
+                  }
+                  else
+                  {
+                     name = i->relative_filename;
+                  }
+                  ssts.push_back(std::move(name));
                }
-               ssts.push_back(std::move(name));
             }
          }
       }
@@ -717,126 +740,8 @@ namespace vessel
    INT32 lsmDB::_restoreHybridIndexCF(DPS_LSN_OFFSET checkpointLsn,
                                       DPS_LSN_OFFSET dpsMaxLsn)
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != checkpointLsn, "can not be invalid");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != dpsMaxLsn, "can not be invalid");
-      SDB_ASSERT(checkpointLsn <= dpsMaxLsn, "can not be invalid");
-      SDB_ASSERT(isOpen(), "must be open");
-      rocksdb::Status s;
-      rocksdb::Options o;
-      ossPoolVector<std::string> namelist;
-      BOOLEAN hasInvalid = FALSE;
-      DPS_LSN_OFFSET totalMinLsn = DPS_INVALID_LSN_OFFSET;
-
-      rc = loadSSTs(LSM_CF_HYBRID_INDEX, 0, TRUE, namelist);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "load sstables failed, rc:%d", rc);
-         goto error;
-      }
-      else if (namelist.empty())
-      {
-         goto done;
-      }
-
-      for (UINT32 i = 0; i < namelist.size(); ++i)
-      {
-         DPS_LSN_OFFSET minLsn = DPS_INVALID_LSN_OFFSET;
-         rocksdb::SstFileReader reader(o);
-         std::shared_ptr<const rocksdb::TableProperties> properties;
-         rocksdb::UserCollectedProperties::const_iterator pItr;
-
-         s = reader.Open(namelist[i]);
-         if (OSS_UNLIKELY(!s.ok()))
-         {
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "open sst reader[%s] failed", namelist[i].c_str());
-            goto error;
-         }
-
-         properties = reader.GetTableProperties();
-         if (OSS_UNLIKELY(nullptr == properties))
-         {
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "get table properties in sst[%s] failed",
-                   namelist[i].c_str());
-            goto error;            
-         }
-
-         // min or max lsn in properties will not be found when key-values in sst are deleted
-         pItr = properties->user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MIN_LSN);
-         if (OSS_UNLIKELY(properties->user_collected_properties.cend() == pItr))
-         {
-            continue;
-         }
-
-         if (OSS_UNLIKELY(sizeof(DPS_LSN_OFFSET) != pItr->second.size()))
-         {
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "invalid min lsn in sst[%s]", namelist[i].c_str());
-            goto error;
-         }
-
-         minLsn = *(reinterpret_cast<const DPS_LSN_OFFSET *>(pItr->second.c_str()));
-         if (minLsn < totalMinLsn)
-         {
-            totalMinLsn = minLsn;
-         }
-
-         if (!hasInvalid)
-         {
-            DPS_LSN_OFFSET maxLsn = DPS_INVALID_LSN_OFFSET;
-            pItr = properties->user_collected_properties.find(LSM_COLLECTOR_FIELDNAME_MAX_LSN);
-            if (OSS_UNLIKELY(properties->user_collected_properties.cend() == pItr))
-            {
-               continue;
-            }
-
-            if (OSS_UNLIKELY(sizeof(DPS_LSN_OFFSET) != pItr->second.size()))
-            {
-               rc = SDB_VESSEL_INTERNAL_ERR;
-               PD_LOG(PDERROR, "invalid max lsn in sst[%s]", namelist[i].c_str());
-               goto error;
-            }
-
-            maxLsn = *(reinterpret_cast<const DPS_LSN_OFFSET *>(pItr->second.c_str()));
-            if (maxLsn > dpsMaxLsn)
-            {
-               hasInvalid = TRUE;
-            } 
-         }
-
-         if (hasInvalid && (totalMinLsn < checkpointLsn))
-         {
-            // if there's a record's lsn less than checkpoint lsn,
-            // remove sst files will cause the record to be lost.
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            PD_LOG(PDERROR, "exist lsn less than checkpoint lsn[%lu]", checkpointLsn);
-            goto error;
-         }   
-      }
-
-      if (hasInvalid)
-      {
-         for (UINT32 i = 0; i < namelist.size(); ++i)
-         {
-            const std::string &name = namelist[i];
-            std::size_t sep = name.find_last_of(OSS_FILE_SEP);
-            PD_LOG(PDINFO, "will remove sst file[%s]", name.c_str());
-            rc = removeSST(name.substr(sep + 1));
-            if (OSS_UNLIKELY(SDB_OK != rc))
-            {
-               PD_LOG(PDERROR, "remove sst[%s] failed, rc:%d",
-                      namelist[i].c_str(), rc);
-               goto error;
-            }
-         }
-      }
-      
-   done:   
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
    }
 
 ////////////////////////////////

@@ -164,7 +164,10 @@ namespace vessel
       return _db->getMinDirtyLsn(_cfId);
    }
 
-   INT32 lsmColumnFamily::loadSSTs(INT32 level, BOOLEAN dirIncluded, ossPoolVector<std::string> &ssts)
+   INT32 lsmColumnFamily::loadSSTs(INT32 level,
+                                   BOOLEAN dirIncluded,
+                                   BOOLEAN creationAsc,
+                                   ossPoolVector<std::string> &ssts)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isValid()))
@@ -173,7 +176,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->loadSSTs(_cfId, level, dirIncluded, ssts);
+      rc = _db->loadSSTs(_cfId, level, dirIncluded, creationAsc, ssts);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to load sst files:%d", rc);

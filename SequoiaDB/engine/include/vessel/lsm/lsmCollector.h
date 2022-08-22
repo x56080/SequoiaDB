@@ -73,11 +73,6 @@ namespace vessel
       } 
    };
 
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_LSN = "sdb_min_lsn";
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MAX_LSN = "sdb_max_lsn";
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID = "sdb_min_global_id";
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID = "sdb_max_global_id";
-
    class lsmIndexPropertiesCollector : public rocksdb::TablePropertiesCollector
    {
    public:

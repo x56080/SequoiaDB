@@ -16,9 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = vesselOptions.cpp
+   Source File Name = lsmDBOptions.h
 
-   Descriptive Name =
+   Descriptive Name = 
 
    Dependencies: N/A
 
@@ -27,18 +27,29 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/08/2020  WY  Initial Draft
+          04/20/2022  LYC  Initial Draft
 
    Last Changed =
 
-******************************************************************************/
+*******************************************************************************/
 
-#include "vessel/vesselOptions.h"
-#include "vessel/storageFileDef.h"
+#ifndef VESSEL_LSM_DB_OPTIONS_H_
+#define VESSEL_LSM_DB_OPTIONS_H_
+
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-}//namespace vessel
-}//namespace engine
+   struct lsmDBOptions : public SDBObject
+   {
+      UINT32 hitCfMemtableSize = 64 << 20;
+   };//struct lsmDBOptions
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_LSM_DB_OPTIONS_H_

@@ -1159,8 +1159,8 @@ namespace vessel
       }
 
       header = reinterpret_cast<const keyStringMetaBlockHeader *>(
-          s.getData() + s.getSize() -
-          KEY_STRING_MB_HEADER_SIZE);
+                           s.getData() + s.getSize() - KEY_STRING_MB_HEADER_SIZE);
+      if (!header->isValid())
       {
          PD_LOG(PDERROR, "invalid key string meta block header");
          rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
