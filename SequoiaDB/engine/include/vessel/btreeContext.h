@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexSpace.h
+   Source File Name = btreeContext.h
 
    Descriptive Name =
 
@@ -33,33 +33,33 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_SPACE_H_
-#define VESSEL_INDEX_SPACE_H_
+#ifndef VESSEL_BTREE_CONTEXT_H_
+#define VESSEL_BTREE_CONTEXT_H_
 
-#include "vessel/logicalPageSpacePte.h"
+#include "vessel/btreeNodeBase.h"
 
 namespace engine
 {
 namespace vessel
-{  
-   class indexSpace : public logicalPageSpacePte
+{
+   class btreeContext : public SDBObject
    {
       public:
-         indexSpace(const storageUnitManifest *manifest):
-         logicalPageSpacePte(manifest){}
-         virtual ~indexSpace(){}
+         btreeContext() = default;
+         virtual ~btreeContext() = default;
+         btreeContext(const btreeContext &) = delete;
+         btreeContext &operator=(const btreeContext &) = delete;
 
       public:
-         virtual SPACE_TYPE getSpaceType()const override
-         {
-            return SPACE_TYPE_IDX;
-         }
+         virtual INT32 allocateNewNode(UINT32 depth,
+                                       const btreeNodePageHead &header,
+                                       BTREE_NODE_UPTR &node) = 0;
 
-      protected:
-         virtual UINT32 _getSegmentPcntReused()const override {return 128;}
+         virtual void destroyNode(BTREE_NODE_UPTR &node) = 0;
+   };//class btreeContext
+} // namespace vessel
 
-   };//class indexSpace
-}//namespace vessel
-}//namespace engine
+} // namespace engine
 
-#endif//VESSEL_INDEX_SPACE_H_
+
+#endif//VESSEL_BTREE_CONTEXT_H_

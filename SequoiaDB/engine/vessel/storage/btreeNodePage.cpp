@@ -70,21 +70,25 @@ namespace vessel
    }  
 
    void btreeNodePageHead::initAsRightNode(const btreeNodePageHead &src,
-                                           UINT32 pageSize)
+                                           UINT32 nodeSize)
    {
       SDB_ASSERT(src.isValid(), "can not be invalid");
-      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(BTREE_NODE_PAGE_HEAD_SIZE < nodeSize, "can not be invalid");
       reset();
 
       this->version = src.version;
       this->indexId = src.indexId;
-      this->backOffset = getPageBodySize(pageSize);
+      this->backOffset = nodeSize;
       this->totalFreeSpace = this->backOffset - BTREE_NODE_PAGE_HEAD_SIZE;
       this->rightChild = src.rightChild;
       this->transID = src.transID;
 
+      UINT32 flags = src.flags;
       /// always ignore root flag when build right node
-      OSS_BIT_SET(this->flags, (src.flags & BTREE_NODE_FLAG_IS_LEAF));
+      OSS_BIT_CLEAR(flags, BTREE_NODE_FLAG_IS_ROOT);
+      OSS_BIT_CLEAR(flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
+      this->flags = flags;
+      return;
    }
 
 ////////btreeItemSlot

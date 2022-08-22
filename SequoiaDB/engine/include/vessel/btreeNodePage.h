@@ -125,6 +125,10 @@ namespace vessel
       {
          OSS_BIT_CLEAR(flags, BTREE_NODE_FLAG_IS_ROOT);
       }
+      OSS_INLINE BOOLEAN isLeaf()const
+      {
+         return 0 != OSS_BIT_TEST(flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
       OSS_INLINE BOOLEAN isRightChildLeaf()const 
       {
          return OSS_BIT_TEST(flags, BTREE_NODE_FLAG_RIGHT_CHILD_IS_LEAF);

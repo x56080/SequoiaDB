@@ -99,31 +99,16 @@ namespace vessel
       keyString &operator=(keyString &&) noexcept;
 
    public:
-      OSS_INLINE BOOLEAN isValid() const
-      {
-         return _ref.isValid();
-      }
-      OSS_INLINE BOOLEAN isOwned() const
-      {
-         return nullptr != _bufferOwned;
-      }
-
-      OSS_INLINE const slice &getRawData() const
-      {
-         return _ref;
-      }
-
-      OSS_INLINE const slice &getDataSlice() const
-      {
-         return _ref;
-      }
-
-   public:
       void reset();
       INT32 init(const slice &s);
       INT32 getOwned();
 
    public:
+      OSS_INLINE BOOLEAN isValid()const {return _ref.isValid();}
+      OSS_INLINE BOOLEAN isOwned() const {return nullptr != _bufferOwned;}
+      OSS_INLINE const slice &getRawData() const {return _ref;}
+      OSS_INLINE const slice &getDataSlice() const {return _ref;}
+      OSS_INLINE const CHAR *getRawDataPtr()const {return _ref.data();}
       OSS_INLINE UINT32 getRawDataSize()const {return _ref.getSize();}
       OSS_INLINE UINT32 getComparableSize()const {return _desc.keySize;}
       OSS_INLINE UINT32 getKeySize()const {return _desc.keySize;}

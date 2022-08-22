@@ -54,7 +54,8 @@ namespace vessel
          entry(std::move(o.entry)),
          leftChild(o.leftChild),
          rightChild(o.rightChild),
-         fromLeaf(o.fromLeaf)
+         fromLeaf(o.fromLeaf),
+         transID(o.transID)
          {
             o.reset();
          }
@@ -66,6 +67,7 @@ namespace vessel
             leftChild = o.leftChild;
             rightChild = o.rightChild;
             fromLeaf = o.fromLeaf;
+            transID = o.transID;
             o.reset();
             return *this;
          }
@@ -84,6 +86,7 @@ namespace vessel
             leftChild = INVALID_PAGE_ID;
             rightChild = INVALID_PAGE_ID;
             fromLeaf = TRUE;
+            transID.reset();
             return;
          }
 
@@ -94,6 +97,7 @@ namespace vessel
             leftChild = o.leftChild;
             rightChild = o.rightChild;
             fromLeaf = o.fromLeaf;
+            transID = o.transID;
             return;
          }
 
@@ -102,6 +106,7 @@ namespace vessel
          PAGE_ID leftChild = INVALID_PAGE_ID;
          PAGE_ID rightChild = INVALID_PAGE_ID;
          BOOLEAN fromLeaf = TRUE;
+         DPS_TRANS_ID transID;
    };//class btreeSplitRaisedKey
 } // namespace vessel
 
