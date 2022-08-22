@@ -686,7 +686,7 @@ namespace engine
                  rc, exitCode ) ;
          rc = SDB_OK ;
       }
-      else 
+      else
       {
          rc = runner.read( outStr ) ;
          if ( SDB_OK != rc )
@@ -697,7 +697,7 @@ namespace engine
                << rc ;
             err = ss.str() ;
             goto error ;
-         } 
+         }
       }
 
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
@@ -1883,7 +1883,7 @@ namespace engine
          {
             // if password has been input, we don't save command to history file.
             sdbSetIsNeedSaveHistory( FALSE ) ;
-            
+
             if ( String != elem.type() )
             {
                rc = SDB_INVALIDARG ;
@@ -2038,7 +2038,7 @@ namespace engine
                rc = SDB_INVALIDARG ;
                err = "isUnique must be bool" ;
                goto error ;
-            } 
+            }
             if ( FALSE == elem.boolean() )
             {
                cmd << " -o " ;
@@ -2067,7 +2067,7 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
-      
+
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -2267,7 +2267,7 @@ namespace engine
       BOOLEAN           nameFlag = 0 ;
 
       cmd << "userdel" ;
-      
+
       BSONObjIterator it( configObj ) ;
       while ( it.more() )
       {
@@ -2309,7 +2309,7 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
-      
+
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -4376,7 +4376,7 @@ namespace engine
 
       try
       {
-         boost::algorithm::split( splited, buf, boost::is_any_of("\t ") ) ;
+         boost::algorithm::split( splited, buf, boost::is_any_of("\t \n") ) ;
       }
       catch( std::exception &e )
       {
@@ -4414,7 +4414,9 @@ namespace engine
          builder.append( CMD_USR_SYSTEM_USED,
                          boost::lexical_cast<UINT32>(splited.at( 2 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_FREE,
-                         boost::lexical_cast<UINT32>(splited.at( 3) ) ) ;
+                         boost::lexical_cast<UINT32>(splited.at( 3 ) ) ) ;
+         builder.append( CMD_USR_SYSTEM_AVAILABLE,
+                         boost::lexical_cast<UINT32>(splited.at( 6 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_UNIT, "M" ) ;
       }
       catch ( std::exception &e )
