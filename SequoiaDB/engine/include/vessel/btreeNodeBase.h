@@ -97,7 +97,7 @@ namespace vessel
 
       public:
          INT32 locateEntry(const btreeKeyStringEntry &entry,
-                           btreeNodeSeekResult &res) const;
+                           btreeNodeSeekResult &res) const;    
 
          /// key header will be ignored
          INT32 seek(const keyString &ks,
@@ -209,6 +209,16 @@ namespace vessel
          INT32 _insert(RECORD_SLOT_POS pos,
                        const btreeKeyStringEntry &entry,
                        PAGE_ID leftChild=INVALID_PAGE_ID);
+
+         INT32 _pickPrefix(const btreeKeyStringEntry &entry,
+                           RECORD_SLOT_POS pos,
+                           RECORD_SLOT_POS &prefixPos,
+                           UINT32 &bytesOptimized)const;
+
+         INT32 _insertWithPrefix(const btreeKeyStringEntry &entry,
+                                 RECORD_SLOT_POS pos,
+                                 RECORD_SLOT_POS prefixPos,
+                                 UINT32 bytesOptimized);
 
          void _updateAppendingFactor(btreeNodePageHead *head,
                                      BOOLEAN stillAppendOnly);

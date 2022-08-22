@@ -50,23 +50,32 @@ namespace vessel
 #pragma pack(4)
    struct btreeNodePrefixSlot
    {
-      btreeNodePrefixSlot(){}
-      ~btreeNodePrefixSlot(){}
-      btreeNodePrefixSlot(const btreeNodePrefixSlot &) = default;
-      btreeNodePrefixSlot &operator=(const btreeNodePrefixSlot &) = default;
-
-      OSS_INLINE BOOLEAN isFree()const
+      OSS_INLINE BOOLEAN isValid()const
       {
-         return 0 == prefixOffset;
+         return 0 < prefixOffset &&
+                0 < prefixSize &&
+                isValidRecordSlotPosition(low) &&
+                isValidRecordSlotPosition(high);
       }
       OSS_INLINE BOOLEAN isReferenced()const
       {
-         return isValidRecordSlotPosition(low) &&
-                isValidRecordSlotPosition(high) && high - low > 0;
+         return low < high;
+      }
+      OSS_INLINE UINT32 getRefCnt()const
+      {
+         return high - low;
       }
       OSS_INLINE UINT32 getOptimizedSize()const
       {
-         return (high - low) * prefixSize;
+         return getRefCnt() * prefixSize;
+      }
+      OSS_INLINE void incBounds(BOOLEAN both)
+      {
+         if (both)
+         {
+            ++low;
+         }
+         ++high;
       }
 
       void reset()

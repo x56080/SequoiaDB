@@ -36,6 +36,7 @@
 #ifndef VESSEL_BTREE_ACCESS_CONTEXT_H_
 #define VESSEL_BTREE_ACCESS_CONTEXT_H_
 
+#include "vessel/btreeContext.h"
 #include "vessel/btreeAccessPathNode.h"
 #include "vessel/btreeNode.h"
 #include "vessel/logicalPageBuffer.h"
@@ -51,7 +52,7 @@ namespace vessel
    class indexSpace;
    class spacePteAccessCtx;
 
-   class btreeAccessContext : public SDBObject
+   class btreeAccessContext : public btreeContext
    {
       public:
          btreeAccessContext(){}

@@ -1036,11 +1036,33 @@ namespace vessel
          }
       }
 
-      rc = _insert(toInsert, entry);
-      if (SDB_OK != rc)
+      if (hasPrefixes())
       {
-         PD_LOG(PDERROR, "failed to insert to node:%d", rc);
-         goto error;
+         RECORD_SLOT_POS prefixPos = INVALID_RECORD_SLOT_POS;
+         UINT32 bytesOptimized = 0;
+         rc = _pickPrefix(entry, toInsert, prefixPos, bytesOptimized);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to pick prefix:%d", rc);
+            goto error;
+         }
+
+         rc = _insertWithPrefix(entry, toInsert, prefixPos, bytesOptimized);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert to node with prefix:%d", rc);
+            goto error;
+         }
+
+      }
+      else
+      {
+         rc = _insert(toInsert, entry);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert to node:%d", rc);
+            goto error;
+         }
       }
 
       _updateTransID(transID);
@@ -1843,6 +1865,24 @@ namespace vessel
       return _buffer.getReadableObjPtr<btreeNodePrefixSlot>(offset);
    }
 
+   INT32 btreeNodeBase::_insertWithPrefix(const btreeKeyStringEntry &entry,
+                                          RECORD_SLOT_POS pos,
+                                          RECORD_SLOT_POS prefixPos,
+                                          UINT32 bytesOptimized)
+   {
+      SDB_ASSERT(isLeaf(), "must be leaf");
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   INT32 btreeNodeBase::_pickPrefix(const btreeKeyStringEntry &entry,
+                                    RECORD_SLOT_POS pos,
+                                    RECORD_SLOT_POS &prefixPos,
+                                    UINT32 &bytesOptimized)const
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
 } // namespace vessel
 
 } // namespace engine
