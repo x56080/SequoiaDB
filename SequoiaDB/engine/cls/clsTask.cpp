@@ -1118,15 +1118,8 @@ namespace engine
          }
          else if ( CLS_TASK_STATUS_CANCELED == _status )
          {
+            // do not update, let the finial finish request to udpate
             rc = SDB_TASK_HAS_CANCELED ;
-
-            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
-            updator = BSON( "$set" <<
-                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
-                                  FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
-                                  FIELD_NAME_RESULTCODE << rc <<
-                                  FIELD_NAME_RESULTCODEDESC << getErrDesp(rc) ) ) ;
-
             goto error ;
          }
          else if ( CLS_TASK_STATUS_FINISH == _status )
