@@ -570,6 +570,20 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 btreeAccessContext::allocateNewNode(UINT32 depth,
+                                             const btreeNodePageHead &header,
+                                             BTREE_NODE_UPTR &node)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   void btreeAccessContext::destroyNode(BTREE_NODE_UPTR &node)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return;
+   }
 } // namespace vessel
 
 } // namespace engine

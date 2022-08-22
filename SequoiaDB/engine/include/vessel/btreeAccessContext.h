@@ -75,6 +75,13 @@ namespace vessel
          OSS_INLINE const btreeStatistics &getStats()const {return _stats;}
 
       public:
+         virtual INT32 allocateNewNode(UINT32 depth,
+                                       const btreeNodePageHead &header,
+                                       BTREE_NODE_UPTR &node) override;
+
+         virtual void destroyNode(BTREE_NODE_UPTR &node) override;
+
+      public:
          INT32 init(requestContext *context,
                     indexSpace *is,
                     indexObject *obj,
