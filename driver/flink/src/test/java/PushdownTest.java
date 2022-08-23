@@ -97,7 +97,7 @@ public class PushdownTest {
     }
 
     @Test
-    public void localDateTime() {
+    public void instant() {
         TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
                 "btime > '2021-07-22 03:04:46.209000'");
 
@@ -136,7 +136,7 @@ public class PushdownTest {
     }
 
     @Test
-    public void date() {
+    public void localDateTime() {
         TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
                 "birth > '2021-07-22 10:15:54'");
 
