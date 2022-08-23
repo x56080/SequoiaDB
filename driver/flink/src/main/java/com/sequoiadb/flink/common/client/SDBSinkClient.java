@@ -36,6 +36,13 @@ import java.util.List;
 
 public class SDBSinkClient implements SDBClient {
 
+    private static final BSONObject INDEX_OPTIONS = new BasicBSONObject();
+
+    static {
+        INDEX_OPTIONS.put(SDBConstant.INDEX_UNIQUE, true);
+        INDEX_OPTIONS.put(SDBConstant.INDEX_NOT_NULL, true);
+    }
+
     private final List<String> hosts;
     private final String collectionSpace;
     private final String collection;
@@ -49,7 +56,7 @@ public class SDBSinkClient implements SDBClient {
     private DBCollection cl;
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBSinkClient.class);
-    private final String PRIMARY_KEY = "primarykey";
+    private final String PRIMARY_KEY = "PRIMARY";
 
     private SDBSinkClient(
         List<String> hosts,
@@ -274,26 +281,33 @@ public class SDBSinkClient implements SDBClient {
         if (ShardingKey != null){
             options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
-        } else {
-            if (uniqueIndexes.isEmpty()) {
-                throw new SDBException("can't create SequoiaDB collection without defining " +
-                        "primary keys or sharding key.");
-            }
-            options.put(SDBConstant.SHARDING_KEY, uniqueIndexes);
-            options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
         }
 
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
         options.put(SDBConstant.AUTO_SPLIT, sdboptions.getAutoSplit());
+
         String Group =  sdboptions.getGroup();
         if (Group != null) {
             options.put(SDBConstant.GROUP, Group);
         }
 
-        DBCollection cl = getCS().createCollection(collection, options);
+        DBCollection cl = null;
+        // if user don't specify sharding key, using primary key as sharding key
+        // and enable autoSplit (for auto sharding).
+        if (sdboptions.getAutoSharding() && !uniqueIndexes.isEmpty()) {
+            options.put(SDBConstant.SHARDING_KEY, uniqueIndexes);
+            options.put(SDBConstant.SHARDING_TYPE, SDBConstant.HASH_SHARDING_TYPE);
+            options.put(SDBConstant.AUTO_SPLIT, true);
+            options.put(SDBConstant.ENSURE_SHARDING_INDEX, false);
+
+            // autoSplit and Group can't enable at same time.
+            options.removeField(Group);
+        }
+
+        cl = getCS().createCollection(collection, options);
         if (!uniqueIndexes.isEmpty()) {
-            cl.createIndex(PRIMARY_KEY, uniqueIndexes, true, false);
+            cl.createIndex(PRIMARY_KEY, uniqueIndexes, INDEX_OPTIONS);
         }
         return cl;
     }

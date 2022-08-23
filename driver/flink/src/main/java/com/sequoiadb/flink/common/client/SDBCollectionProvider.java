@@ -39,7 +39,14 @@ public class SDBCollectionProvider implements SDBClientProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBCollectionProvider.class);
 
-    private static final String PRIMARY_KEY_NAME = "primary_key";
+    private static final BSONObject INDEX_OPTIONS = new BasicBSONObject();
+
+    static {
+        INDEX_OPTIONS.put(SDBConstant.INDEX_UNIQUE, true);
+        INDEX_OPTIONS.put(SDBConstant.INDEX_NOT_NULL, true);
+    }
+
+    private static final String PRIMARY_KEY_NAME = "PRIMARY";
 
     // sequoiadb connection config
     private final List<String> hosts;
@@ -143,7 +150,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
 
     public DBCollection ensureCollection(SDBSinkOptions sinkOptions) {
         BSONObject options = new BasicBSONObject();
-        String ShardingKey = sinkOptions.getShardingKey();
+        String shardingKey = sinkOptions.getShardingKey();
         String[] upsertKeys = sinkOptions.getUpsertKey();
 
         BSONObject indexBson = new BasicBSONObject();
@@ -153,17 +160,9 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         }
 
-        if (ShardingKey != null) {
-            options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
+        if (shardingKey != null) {
+            options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
-        } else {
-            if (indexBson.isEmpty()) {
-                throw new SDBException("can't create SequoiaDB collection without defining " +
-                        "primary keys or sharding key.");
-            }
-
-            options.put(SDBConstant.SHARDING_KEY, indexBson);
-            options.put(SDBConstant.SHARDING_TYPE, indexBson);
         }
 
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
@@ -175,11 +174,23 @@ public class SDBCollectionProvider implements SDBClientProvider {
             options.put(SDBConstant.GROUP, Group);
         }
 
-        DBCollection cl = getCollectionSpace().createCollection(collectionStr, options);
-        if (!indexBson.isEmpty()) {
-            cl.createIndex(PRIMARY_KEY_NAME, indexBson, true, false);
+        DBCollection cl = null;
+        // if user don't specify sharding key, using primary key as sharding key
+        // and enable autoSplit (for auto sharding).
+        if (sinkOptions.getAutoSharding() && !indexBson.isEmpty()) {
+            options.put(SDBConstant.SHARDING_KEY, indexBson);
+            options.put(SDBConstant.SHARDING_TYPE, SDBConstant.HASH_SHARDING_TYPE);
+            options.put(SDBConstant.AUTO_SPLIT, true);
+            options.put(SDBConstant.ENSURE_SHARDING_INDEX, false);
+
+            // autoSplit and Group can't enable at same time.
+            options.removeField(Group);
         }
 
+        cl = getCollectionSpace().createCollection(collectionStr, options);
+        if (cl != null && !indexBson.isEmpty()) {
+            cl.createIndex(PRIMARY_KEY_NAME, indexBson, INDEX_OPTIONS);
+        }
         return cl;
     }
 

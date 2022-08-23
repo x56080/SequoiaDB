@@ -80,4 +80,7 @@ public class SDBConfigOptions implements Serializable {
 
     public static final ConfigOption<Boolean> HAS_MULTI_PARTITION =
             ConfigOptions.key("hasmultipartition").booleanType().defaultValue(false);
+
+    public static final ConfigOption<Boolean> AUTO_SHARDING =
+            ConfigOptions.key("autosharding").booleanType().defaultValue(true);
 }
