@@ -44,6 +44,9 @@
 
 namespace engine
 {
+
+   #define RTN_INTERRUPT_CHECK_STEPS ( 5000 )
+
    _rtnContextMain::_rtnContextMain( INT64 contextID, UINT64 eduID )
       : _rtnContextBase( contextID, eduID ),
         _rtnCtxDataDispatcher(),
@@ -149,12 +152,22 @@ namespace engine
    {
       INT32 rc = SDB_OK;
 
+      UINT32 interruptStep = 0 ;
+
       while ( 0 != _numToReturn )
       {
-         if ( cb->isInterrupted() )
+         if ( interruptStep > RTN_INTERRUPT_CHECK_STEPS )
          {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
+            if ( cb->isInterrupted() )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               goto error ;
+            }
+            interruptStep = 0 ;
+         }
+         else
+         {
+            ++ interruptStep ;
          }
 
          rc = _prepareAllSubCtxDataByOrder( cb ) ;
