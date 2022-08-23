@@ -61,6 +61,11 @@ namespace vessel
       }
    }
 
+   btreeKeyStringEntry::btreeKeyStringEntry(keyString &&ks) noexcept:
+   keyString(std::move(ks))
+   {
+   }
+
    btreeKeyStringEntry::btreeKeyStringEntry(UINT32 size, const CHAR *data):
    keyString(size, data)
    {

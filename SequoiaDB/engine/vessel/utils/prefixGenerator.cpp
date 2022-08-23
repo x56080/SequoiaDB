@@ -40,6 +40,7 @@
 #include "vessel/prefixGenerator.h"
 #include "ossTypes.h"
 #include "pd.hpp"
+#include <algorithm>
 namespace engine
 {
 namespace vessel
@@ -121,7 +122,6 @@ namespace vessel
             out.back().high += 1;
             saved =
                 saved - oldSaved + out.back().savedBytesWithExtra(extraSize);
-            // else pass
             saved += _dfs(v, pos + 1, depth, reachedPos, out);
          }
          else
@@ -184,7 +184,6 @@ namespace vessel
       ossPoolVector<slice> prefixItems = _extractTwo(v, totalSize);
       UINT32 reachedIndex = 0;
       INT64 saved = 0;
-      UINT32 validPrefixItemNum = 0;
       INT64 totalSavedSize = 0;
       while (reachedIndex < v.size())
       {
@@ -194,17 +193,27 @@ namespace vessel
                        reachedIndex,
                        out);
       }
-      for (auto item : out)
-      {
-         item.isWorthToSave(_options.prefixExtraCost);
-         validPrefixItemNum += 1;
-         totalSavedSize += item.savedBytesWithExtra(_options.prefixExtraCost);
-      }
+      out.erase(std::remove_if(out.begin(),
+                               out.end(),
+                               [&](const prefixItem &item) -> BOOLEAN {
+                                  if (item.savedBytes() <=
+                                      _options.prefixExtraCost)
+                                  {
+                                     return TRUE;
+                                  }
+                                  else
+                                  {
+                                     totalSavedSize += item.savedBytesWithExtra(
+                                         _options.prefixExtraCost);
+                                     return FALSE;
+                                  }
+                               }),
+                out.end());
       SDB_ASSERT(totalSavedSize == saved, "should be equal");
       return {static_cast<UINT32>(saved),
               totalSize,
               FLOAT64(saved) / FLOAT64(totalSize),
-              validPrefixItemNum};
+              static_cast<UINT32>(out.size())};
    }
 } // namespace vessel
 } // namespace engine

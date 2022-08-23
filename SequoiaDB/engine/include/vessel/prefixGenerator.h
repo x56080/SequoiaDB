@@ -55,10 +55,6 @@ namespace vessel
              : prefix(prefix), low(low), high(high)
          {
          }
-         BOOLEAN isWorthToSave(UINT32 extraSize) const
-         {
-            return savedBytes() > extraSize;
-         }
          UINT32 getRefCount() const
          {
             return high - low;
@@ -85,10 +81,12 @@ namespace vessel
 
       struct options
       {
+         static constexpr UINT32 DEFAULT_MAX_EXPONENT = 4;
+         static constexpr UINT32 DEFAULT_COMBINED_WEIGHT_FACTOR = 1;
          UINT32 prefixExtraCost = 0;
          UINT32 itemExtraCost = 0;
-         UINT32 maxExponent = 4;
-         UINT32 combinedWeightFactor = 1;
+         UINT32 maxExponent = DEFAULT_MAX_EXPONENT;
+         UINT32 combinedWeightFactor = DEFAULT_COMBINED_WEIGHT_FACTOR;
          options() = default;
          options(UINT32 prefixExtraCost,
                  UINT32 itemExtraCost,
