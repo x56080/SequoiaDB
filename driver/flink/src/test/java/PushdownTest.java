@@ -136,6 +136,26 @@ public class PushdownTest {
     }
 
     @Test
+    public void localDateTimePrecision() {
+        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
+                "birth > '2021-07-22 11:15:54'");
+
+        BSONObject condition = new BasicBSONObject();
+        BSONObject value = new BasicBSONObject();
+        value.put("$gt", BSONDate.valueOf(LocalDateTime.parse("2021-07-22T11:15:54")));
+        condition.put("birth", value);
+
+        CloseableIterator<Row> iterator = tableResult.collect();
+
+        BSONObject selector = new BasicBSONObject();
+        selector.put("id", null);
+
+        DBCursor dbCursor = dbCollection.query(condition, selector, null, null);
+
+        Assert.assertTrue(check(dbCursor, iterator));
+    }
+
+    @Test
     public void localDateTime() {
         TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
                 "birth > '2021-07-22 10:15:54'");
