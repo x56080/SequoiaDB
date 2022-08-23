@@ -245,11 +245,13 @@ public class SDBSinkClient implements SDBClient {
         cs = null;
         cl = null;
     }
-    /*
+
+    /**
      * return a SDB collection space.
      * A new collection space will be created with options
      * @param collectionSpace       name of collection space
-     * @return CollectionSpace
+     *
+     * @return collectionSpace
      */
     private CollectionSpace ensureCollectionSpaceWithOptions(String collectionSpace) {
         BSONObject options = new BasicBSONObject();
@@ -261,20 +263,26 @@ public class SDBSinkClient implements SDBClient {
         return getClient().createCollectionSpace(collectionSpace, options);
 
     }
-    /*
-     * return a SDB collection.
+
+    /**
+     * create collection with options if collection isn't exist.
+     *
      * A new collection will be created with options
      * @param collection        name of collection
+     * @param primaryKey        primary specified in flink sql table
+     *
      * @return DBCollection
+     *
+     * @throws BaseException    throw exception when collection is already exist.
      */
-    private DBCollection ensureCollectionWithOptions(String collection,  HashSet<String> pks) {
+    private DBCollection ensureCollectionWithOptions(String collection, HashSet<String> primaryKey) {
         BSONObject options = new BasicBSONObject();
         String ShardingKey = sdboptions.getShardingKey();
 
-        BSONObject uniqueIndexes = new BasicBSONObject();
-        if (pks != null) {
-            for (String key : pks) {
-                uniqueIndexes.put(key, 1);
+        BSONObject pkBson = new BasicBSONObject();
+        if (primaryKey != null) {
+            for (String key : primaryKey) {
+                pkBson.put(key, 1);
             }
         }
 
@@ -295,10 +303,13 @@ public class SDBSinkClient implements SDBClient {
         DBCollection cl = null;
         // if user don't specify sharding key, using primary key as sharding key
         // and enable autoSplit (for auto sharding).
-        if (sdboptions.getAutoSharding() && !uniqueIndexes.isEmpty()) {
-            options.put(SDBConstant.SHARDING_KEY, uniqueIndexes);
+        if (sdboptions.getAutoSharding() && !pkBson.isEmpty()) {
+            options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, SDBConstant.HASH_SHARDING_TYPE);
             options.put(SDBConstant.AUTO_SPLIT, true);
+
+            // we need to disable EnsureShardingIndex to make sure Sequoiadb not
+            // to create $shard index.
             options.put(SDBConstant.ENSURE_SHARDING_INDEX, false);
 
             // autoSplit and Group can't enable at same time.
@@ -306,9 +317,10 @@ public class SDBSinkClient implements SDBClient {
         }
 
         cl = getCS().createCollection(collection, options);
-        if (!uniqueIndexes.isEmpty()) {
-            cl.createIndex(PRIMARY_KEY, uniqueIndexes, INDEX_OPTIONS);
+        if (!pkBson.isEmpty()) {
+            cl.createIndex(PRIMARY_KEY, pkBson, INDEX_OPTIONS);
         }
+
         return cl;
     }
 

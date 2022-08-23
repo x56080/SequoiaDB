@@ -151,12 +151,14 @@ public class SDBCollectionProvider implements SDBClientProvider {
     public DBCollection ensureCollection(SDBSinkOptions sinkOptions) {
         BSONObject options = new BasicBSONObject();
         String shardingKey = sinkOptions.getShardingKey();
-        String[] upsertKeys = sinkOptions.getUpsertKey();
+        String[] primaryKey = sinkOptions.getUpsertKey();
 
-        BSONObject indexBson = new BasicBSONObject();
-        if (upsertKeys != null && upsertKeys.length != 0) {
-            for (String upsertKey : upsertKeys) {
-                indexBson.put(upsertKey, 1);
+        // using primary key which defines in flink table to build pk bson,
+        // pk bson is like {id: 1, name: 1}
+        BSONObject pkBson = new BasicBSONObject();
+        if (primaryKey != null && primaryKey.length != 0) {
+            for (String upsertKey : primaryKey) {
+                pkBson.put(upsertKey, 1);
             }
         }
 
@@ -175,12 +177,15 @@ public class SDBCollectionProvider implements SDBClientProvider {
         }
 
         DBCollection cl = null;
-        // if user don't specify sharding key, using primary key as sharding key
+        // if user doesn't specify sharding key, using primary key as sharding key
         // and enable autoSplit (for auto sharding).
-        if (sinkOptions.getAutoSharding() && !indexBson.isEmpty()) {
-            options.put(SDBConstant.SHARDING_KEY, indexBson);
+        if (sinkOptions.getAutoSharding() && !pkBson.isEmpty()) {
+            options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, SDBConstant.HASH_SHARDING_TYPE);
             options.put(SDBConstant.AUTO_SPLIT, true);
+
+            // we need to disable EnsureShardingIndex to make sure Sequoiadb not
+            // to create $shard index.
             options.put(SDBConstant.ENSURE_SHARDING_INDEX, false);
 
             // autoSplit and Group can't enable at same time.
@@ -188,8 +193,8 @@ public class SDBCollectionProvider implements SDBClientProvider {
         }
 
         cl = getCollectionSpace().createCollection(collectionStr, options);
-        if (cl != null && !indexBson.isEmpty()) {
-            cl.createIndex(PRIMARY_KEY_NAME, indexBson, INDEX_OPTIONS);
+        if (cl != null && !pkBson.isEmpty()) {
+            cl.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
         }
         return cl;
     }
