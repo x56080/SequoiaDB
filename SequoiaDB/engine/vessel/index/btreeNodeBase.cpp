@@ -149,7 +149,12 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       UINT32 size = getSizeToSaveInNode(itemSize);
-      return size <= _getReadableHead()->totalFreeSpace;
+      BOOLEAN r = size <= _getReadableHead()->totalFreeSpace;
+      if (r && nullptr != compaction)
+      {
+         *compaction = _getContinuousFreeSpace() < size;
+      }
+      return r;
    }
 
    BOOLEAN btreeNodeBase::betterToActiveCompression()const
@@ -529,10 +534,13 @@ namespace vessel
       if (res.slotPos <= pivot)
       {
          rc = _leafInsert(entry, transID, res.slotPos);
-         PD_LOG(PDSEVERE, "failed to insert key after node[%d] split:%d",
-                getNodeId(), rc);
-         ossPanic();
-         goto error;
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to insert key after node[%d] split:%d",
+                  getNodeId(), rc);
+            ossPanic();
+            goto error;
+         }
       }
       else
       {
@@ -1077,7 +1085,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(0 < getPrefixCount(), "TODO");
+      SDB_ASSERT(0 == getPrefixCount(), "TODO");
       memoryBlock mb;
       strictBuffer compactionBuffer;
       UINT32 frontOffset = BTREE_NODE_PAGE_HEAD_SIZE;
@@ -1503,7 +1511,7 @@ namespace vessel
    btreeItemSlot *btreeNodeBase::_getWritableSlot(RECORD_SLOT_POS pos)
    {
       SDB_ASSERT(isValidRecordSlotPosition(pos) &&
-                 (UINT16)pos < _getReadableHead()->totalSlotCount, "invalid pos");
+                 (UINT16)pos <= _getReadableHead()->totalSlotCount, "invalid pos");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
                       (_getReadableHead()->prefixCount * BTREE_NODE_PREFIX_SLOT_SIZE) + 
                       (pos * BTREE_NODE_SLOT_SIZE);
@@ -1531,8 +1539,10 @@ namespace vessel
 
    UINT32 btreeNodeBase::_getFrontOffset()const
    {
+      const btreeNodePageHead *head = _getReadableHead();
       return BTREE_NODE_PAGE_HEAD_SIZE +
-             (_getReadableHead()->totalSlotCount * BTREE_NODE_SLOT_SIZE);
+             (head->totalSlotCount * BTREE_NODE_SLOT_SIZE) +
+             (head->prefixCount * BTREE_NODE_PREFIX_SLOT_SIZE);
    }
    
    UINT32 btreeNodeBase::_getBackOffset()const
@@ -1737,6 +1747,13 @@ namespace vessel
          goto error;
       }
 
+      rc = rightNode->_makeBufferWritable();
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to make right node writable:%d", rc);
+         goto error;
+      }
+
    done:
       return rc;
    error:
@@ -1882,6 +1899,33 @@ namespace vessel
    {
       SDB_ASSERT(FALSE, "TODO");
       return SDB_OK;
+   }
+
+   BOOLEAN btreeNodeBase::isNeedToBeDestroyed()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      if (isLeaf())
+      {
+         return 0 == _getReadableHead()->totalSlotCount;
+      }
+      else
+      {
+         /// has no child and no actived item
+         UINT32 itemCount = _getReadableHead()->totalSlotCount;
+         return !hasRightChild() &&
+                (0 == itemCount ||
+                  (1 == itemCount &&
+                   _getReadableSlot(0)->isMarkedDeleted() &&
+                   INVALID_PAGE_ID == _getReadableSlot(0)->data.nlf.leftChild));
+      }
+
+   }
+
+   void btreeNodeBase::_reset()
+   {
+      _nodeId = INVALID_PAGE_ID;
+      _depth = 0;
+      _buffer.reset();
    }
 } // namespace vessel
 

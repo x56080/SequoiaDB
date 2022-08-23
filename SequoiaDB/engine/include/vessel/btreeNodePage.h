@@ -140,7 +140,7 @@ namespace vessel
       }
       OSS_INLINE BOOLEAN isRightChildLeaf()const 
       {
-         return OSS_BIT_TEST(flags, BTREE_NODE_FLAG_RIGHT_CHILD_IS_LEAF);
+         return 0 != OSS_BIT_TEST(flags, BTREE_NODE_FLAG_RIGHT_CHILD_IS_LEAF);
       }
 
       UINT32 version = 0;

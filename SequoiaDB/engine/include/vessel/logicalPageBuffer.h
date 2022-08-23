@@ -143,6 +143,7 @@ namespace vessel
    };//class logicalPageBuffer
 
    using LPAGE_BUFFER_UPTR = std::unique_ptr<logicalPageBuffer>;
+   using LPAGE_BUFFER_SPTR = std::shared_ptr<logicalPageBuffer>;
 }//namespace vessel
 }//namespace engine
 

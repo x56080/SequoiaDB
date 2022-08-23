@@ -94,6 +94,7 @@ namespace vessel
          BOOLEAN hasCompressedItems()const;
          UINT32 getPrefixCount()const;
          BOOLEAN hasPrefixes()const {return 0 < getPrefixCount();}
+         BOOLEAN isNeedToBeDestroyed()const;
 
       public:
          INT32 locateEntry(const btreeKeyStringEntry &entry,
@@ -162,6 +163,7 @@ namespace vessel
          };//struct _itemRef
 
       protected:
+         void _reset();
          OSS_INLINE const btreeNodePageHead *_getReadableHead()const
          {
             return _buffer.getReadableObjPtr<btreeNodePageHead>(0);

@@ -41,6 +41,8 @@
 #include "vessel/requestContext.h"
 #include "vessel/btreeEntryPageAccessor.h"
 #include "vessel/pageInitializer.h"
+#include "vessel/btreeNodePageIniter.h"
+#include "utilSharedPtrMaker.hpp"
 
 namespace engine
 {
@@ -575,13 +577,77 @@ namespace vessel
                                              const btreeNodePageHead &header,
                                              BTREE_NODE_UPTR &node)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!isWritable())
+      {
+         PD_LOG(PDERROR, "context is not writable");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else
+      {
+         PAGE_ID lpid = INVALID_PAGE_ID;
+         btreeNodePageSplitIniter initer;
+         slice s(BTREE_NODE_PAGE_HEAD_SIZE, &header);
+         initer.set(s);
+         LPAGE_BUFFER_SPTR sptr = makeSharedPtrFromPool<logicalPageBufferPte>();
+         if (!sptr)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+         
+         rc = _is->allocatePtePage(_context, _actx, &initer, lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+            goto error;
+         }
+
+         rc = _getPageBuffer(lpid, *(static_cast<logicalPageBufferPte*>(sptr.get())));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page buffer:%d", rc);
+            goto error;
+         }
+
+         
+         node.reset(SDB_OSS_NEW btreeNode(depth, std::move(sptr)));
+         if (OSS_UNLIKELY(!node))
+         {
+            /// page allocated will be removed by spacePteAccessCtx
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+      }
+   done:
+      return rc;
+   error:
+      node.reset();
+      goto done;
    }
 
    void btreeAccessContext::destroyNode(BTREE_NODE_UPTR &node)
    {
-      SDB_ASSERT(FALSE, "TODO");
+      SDB_ASSERT(isWritable(), "can not be invalid");
+      if (nullptr != node)
+      {
+         PAGE_ID lpid = node->getNodeId();
+         node.reset();
+         INT32 rc = _is->removePage(_context, _actx, lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove page[%d], rc:%d", rc);
+         }
+      }
       return;
    }
 } // namespace vessel

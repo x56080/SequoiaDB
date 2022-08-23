@@ -127,7 +127,7 @@ namespace vessel
             }
          }
 
-         rc = _insert(entry);
+         rc = _insert(entry, lsn, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key and rid:%d", rc);
@@ -287,7 +287,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeWriter::_insert(const btreeKeyStringEntry &entry)
+   INT32 btreeWriter::_insert(const btreeKeyStringEntry &entry,
+                              DPS_LSN_OFFSET lsn,
+                              const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "must be inited");
@@ -310,7 +312,7 @@ namespace vessel
          {  
             if (node.hasFreeSpaceToInsert(entry.getRawDataSize()))
             {
-               rc = node.leafInsert(entry);
+               rc = node.insert(entry, transID);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert entry into leaf node:%d");
@@ -319,7 +321,7 @@ namespace vessel
             }
             else
             {
-               rc = node.splitLeafAndInsert(entry, raisedKey);
+               rc = node.splitAndInsert(entry, transID, raisedKey);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to split leaf node and inser entry:%d", rc);
@@ -327,6 +329,7 @@ namespace vessel
                }
             }
 
+            node.commit(lsn);
             break;
          }
          else/// non leaf
@@ -341,12 +344,14 @@ namespace vessel
 
             if (res.isIdentical())
             {
-               rc = node.reactiveRemovedKey(res.slotPos);
+               rc = node.reactiveRemovedKey(res.slotPos, transID);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
                   goto error;
                }
+
+               node.commit(lsn);
                break;
             }
             else if (!res.hasChild())
@@ -494,7 +499,7 @@ namespace vessel
             else
             {
                btreeSplitRaisedKey tmp;
-               rc = node.splitNonLeafAndInsert(keyToInsert, tmp);
+               rc = node.splitAndInsert(keyToInsert, tmp);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to split node and insert raised key:%d", rc);
@@ -603,7 +608,7 @@ namespace vessel
       while (!_bac.isPathEmpty())
       {
          btreeNode node = _bac.getEndNodeInPath();
-         if (!node.betterToBeDestroyed())
+         if (!node.isNeedToBeDestroyed())
          {
             break;
          }
@@ -681,7 +686,7 @@ namespace vessel
          goto error;
       }
 
-      rc = father.resetRemovedChild(pos, child, TRUE);
+      rc = father.refillChild(pos, child, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reset child:%d", rc);
@@ -744,14 +749,14 @@ namespace vessel
       SDB_ASSERT(!_bac.isPathEmpty(), "can not be invalid");
       btreeNode node = _bac.getEndNodeInPath();
 
-      rc = node.removeEntry(pos);
+      rc = node.remove(pos);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to remove entry from node:%d", rc);
          goto error;
       }
 
-      if (node.betterToBeDestroyed())
+      if (node.isNeedToBeDestroyed())
       {
          _destroyNodesIfNecessary();
       }
