@@ -417,6 +417,12 @@ namespace engine
          dpsTransLRBHeader *   lrbDel
       ) ;
 
+      // release a LRB Header from a LRB Header list by bucket index
+      void _releaseFromLRBHeaderListByBktIdx
+      (
+         const UINT32           bktIdx,
+         const dpsTransLockId & lockId
+      ) ;
 
       // remove a LRB from the EDU LRB list
       void _removeFromEDULRBList
