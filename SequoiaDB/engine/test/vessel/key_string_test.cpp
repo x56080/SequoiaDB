@@ -256,7 +256,7 @@ namespace vessel
       bson::BSONObj pattern = bsb.obj();
       bsb.reset();
       vector<vector<string>> numbers = {
-          {"-inf","-inf"},
+          {"-inf", "-inf"},
           {"-5892408662145270000", "-5892408662145270000"},
           {"-172172.839651", "-172172.839651"},
           {"-170000.000051", "-170000.000051"},
@@ -273,12 +273,13 @@ namespace vessel
           {"172.5", "172.5"},
           {"172.8", "172.8"},
           {"172172.839651", "172172.839651"},
-          {"2147483647","2147483647"},                    // = INT32_MAX
+          {"2147483647", "2147483647"}, // = INT32_MAX
           {"5098916062350027066", "5098916062350027066"},
-          {"9223372036854775807","9223372036854775807"},  // = INT64_MAX
-          {"9223372036854780000","9223372036854780000"},  // > INT64_MAX
+          {"9223372036854775807", "9223372036854775807"}, // = INT64_MAX
+          {"9223372036854780000", "9223372036854780000"}, // > INT64_MAX
           {to_string(minLargeFloat64), to_string(minLargeFloat64)},
-          {"inf","inf"},};
+          {"inf", "inf"},
+      };
       for (UINT32 i = 0; i < numbers.size(); i++)
       {
          bsb.appendDecimal("a", numbers[i][0]);
@@ -300,7 +301,6 @@ namespace vessel
          ksb.reset();
       }
    }
-
 
    TEST_F(key_string_test, base_string)
    {
@@ -1134,6 +1134,29 @@ namespace vessel
          }
          ASSERT_EQ(result, 0);
       }
+   }
+
+   TEST_F(key_string_test, base_parse)
+   {
+      keyStringBuilder<> ksb;
+      INT32 rc = SDB_OK;
+      bson::BSONObjBuilder bsb;
+      bsb.appendNumber("a", 1);
+      bsb.appendNumber("b", -1);
+      orderingWrapper ord(0, 2);
+      rc = ksb.appendAllElements(bsb.done(), ord);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ksb.done();
+      ASSERT_EQ(SDB_OK, rc);
+      keyString ks = ksb.getShallowKeyString();
+      rc = ks.getOwned();
+      ASSERT_EQ(SDB_OK, rc);
+      keyString parsedKs(ks.getDataSlice());
+      EXPECT_EQ(TRUE, parsedKs.isValid());
+      ossPoolString ksData("123456");
+      slice s(ksData.size(), ksData.data());
+      keyString parsedKs2(s);
+      EXPECT_EQ(FALSE, parsedKs2.isValid());
    }
 
    TEST_F(key_string_test, advanced_random)

@@ -42,6 +42,8 @@
 #include "vessel/btreeStatistics.h"
 #include "vessel/btreeSplitRaisedKey.h"
 #include "vessel/btreeNodeSeekResult.h"
+#include "vessel/prefixedKeyString.h"
+#include "vessel/prefixGenerator.h"
 
 #include <memory>
 
@@ -86,6 +88,7 @@ namespace vessel
          PAGE_ID getChild(RECORD_SLOT_POS pos)const;
          DPS_TRANS_ID getTransID()const;
          btreeItemSlot getItemSlot(RECORD_SLOT_POS pos)const;
+         UINT32 totalSavedBytes() const;
          void dumpChildNodes(ossPoolVector<PAGE_ID> &nodes)const;
          BOOLEAN hasFreeSpaceToInsert(UINT32 itemSize,
                                       BOOLEAN *compaction=nullptr)const;
@@ -177,12 +180,34 @@ namespace vessel
          const btreeItemSlot *_getReadableSlot(RECORD_SLOT_POS pos)const;
          btreeItemSlot *_getWritableSlot(RECORD_SLOT_POS pos);
          _itemRef _getItemRef(RECORD_SLOT_POS pos)const;
+         prefixedKeyString _getPrefixedKeyString(RECORD_SLOT_POS pos)const;
          UINT32 _getContinuousFreeSpace()const;
          UINT32 _getFrontOffset()const;
          UINT32 _getBackOffset()const;
          UINT32 _getKeyDataOffsetToWrite(const btreeNodePageHead *head,
                                          UINT32 keyDataSize)const;
          BOOLEAN _isRecentWriteOrdered()const;
+
+         INT32 _canUsePrefixOfItem(const btreeItemSlot *slot,
+                                   const slice &raw,
+                                   INT16 &prefixSlotToUse,
+                                   UINT32 &prefixSizeToUse)const;
+
+         // If a entry is compressed, its prefix and suffix will be concatenated
+         // into a owned memory, else it is a reference to its whole entry data.
+         INT32 _getItems(ossPoolVector<slice> &elementsPartRefs,
+                         ossPoolVector<keyString> &items) const;
+
+         prefixGenerator::resultStat _generatePrefixes(
+             const ossPoolVector<slice> &elementsPartRefs,
+             ossPoolVector<prefixGenerator::prefixItem> &out) const;
+
+         INT32 _buildNewNodePage(
+             strictBuffer &writableBuffer,
+             const ossPoolVector<keyString> &elementsPartRefs,
+             const ossPoolVector<prefixGenerator::prefixItem> &out) const;
+
+         INT32 _locateNextPrefixSlot(RECORD_SLOT_POS pos) const;
 
       protected:
          
@@ -208,18 +233,20 @@ namespace vessel
 
          INT32 _compact();
 
+         INT32 _leafCompact();
+
          INT32 _insert(RECORD_SLOT_POS pos,
                        const btreeKeyStringEntry &entry,
                        PAGE_ID leftChild=INVALID_PAGE_ID);
 
          INT32 _pickPrefix(const btreeKeyStringEntry &entry,
                            RECORD_SLOT_POS pos,
-                           RECORD_SLOT_POS &prefixPos,
+                           INT16 &prefixPos,
                            UINT32 &bytesOptimized)const;
 
          INT32 _insertWithPrefix(const btreeKeyStringEntry &entry,
                                  RECORD_SLOT_POS pos,
-                                 RECORD_SLOT_POS prefixPos,
+                                 INT16 prefixPos,
                                  UINT32 bytesOptimized);
 
          void _updateAppendingFactor(btreeNodePageHead *head,
