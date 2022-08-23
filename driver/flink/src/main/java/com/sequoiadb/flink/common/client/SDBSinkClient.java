@@ -249,19 +249,31 @@ public class SDBSinkClient implements SDBClient {
     /**
      * return a SDB collection space.
      * A new collection space will be created with options
-     * @param collectionSpace       name of collection space
+     * @param collectionSpaceStr       name of collection space
      *
      * @return collectionSpace
      */
-    private CollectionSpace ensureCollectionSpaceWithOptions(String collectionSpace) {
+    private CollectionSpace ensureCollectionSpaceWithOptions(String collectionSpaceStr) {
         BSONObject options = new BasicBSONObject();
         options.put(SDBConstant.PAGE_SIZE, sdboptions.getPageSize());
         String domain = sdboptions.getDomain();
         if (domain != null) {
             options.put(SDBConstant.DOMAIN, domain);
         }
-        return getClient().createCollectionSpace(collectionSpace, options);
 
+        CollectionSpace collectionSpace = null;
+        try {
+            collectionSpace = getClient()
+                    .createCollectionSpace(collectionSpaceStr, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
+                // ignore when collection space is already exist.
+            } else {
+                throw ex;
+            }
+        }
+
+        return collectionSpace;
     }
 
     /**
@@ -316,7 +328,16 @@ public class SDBSinkClient implements SDBClient {
             options.removeField(Group);
         }
 
-        cl = getCS().createCollection(collection, options);
+        try {
+            cl = getCS().createCollection(collection, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
+                // ignore when collection is already exist.
+            } else {
+                throw ex;
+            }
+        }
+
         if (cl != null && !pkBson.isEmpty()) {
             cl.createIndex(PRIMARY_KEY, pkBson, INDEX_OPTIONS);
         }

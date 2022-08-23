@@ -145,7 +145,19 @@ public class SDBCollectionProvider implements SDBClientProvider {
         if (domain != null) {
             options.put(SDBConstant.DOMAIN, domain);
         }
-        return getClient().createCollectionSpace(collectionSpaceStr, options);
+
+        CollectionSpace collectionSpace = null;
+        try {
+            collectionSpace = getClient().createCollectionSpace(collectionSpaceStr, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
+                // ignore
+            } else {
+                throw ex;
+            }
+        }
+
+        return collectionSpace;
     }
 
     public DBCollection ensureCollection(SDBSinkOptions sinkOptions) {
@@ -192,7 +204,16 @@ public class SDBCollectionProvider implements SDBClientProvider {
             options.removeField(Group);
         }
 
-        cl = getCollectionSpace().createCollection(collectionStr, options);
+        try {
+            cl = getCollectionSpace().createCollection(collectionStr, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
+                // ignore when collection is already exist.
+            } else {
+                throw ex;
+            }
+        }
+
         if (cl != null && !pkBson.isEmpty()) {
             cl.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
         }
