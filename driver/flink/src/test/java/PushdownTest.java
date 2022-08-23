@@ -11,6 +11,7 @@ import org.apache.flink.util.CloseableIterator;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDate;
+import org.bson.types.BSONTimestamp;
 import org.bson.types.BasicBSONList;
 import org.junit.Assert;
 import org.junit.Test;
@@ -137,12 +138,12 @@ public class PushdownTest {
 
     @Test
     public void localDateTimePrecision() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
-                "birth > '2021-07-22 11:15:54'");
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
+                "birth < '2022-08-23 22:20:40.778001'");
 
         BSONObject condition = new BasicBSONObject();
         BSONObject value = new BasicBSONObject();
-        value.put("$gt", BSONDate.valueOf(LocalDateTime.parse("2021-07-22T11:15:54")));
+        value.put("$lt", new BSONTimestamp(Timestamp.valueOf("2022-08-23 00:00:00")));
         condition.put("birth", value);
 
         CloseableIterator<Row> iterator = tableResult.collect();
@@ -152,17 +153,17 @@ public class PushdownTest {
 
         DBCursor dbCursor = dbCollection.query(condition, selector, null, null);
 
-        Assert.assertTrue(check(dbCursor, iterator));
+        Assert.assertFalse(check(dbCursor, iterator));
     }
 
     @Test
     public void localDateTime() {
-        TableResult tableResult = tableEnvironment.executeSql("select id from SDBTable where " +
+        TableResult tableResult = tableEnvironment.executeSql("select * from SDBTable where " +
                 "birth > '2021-07-22 10:15:54'");
 
         BSONObject condition = new BasicBSONObject();
         BSONObject value = new BasicBSONObject();
-        value.put("$gt", BSONDate.valueOf(LocalDateTime.parse("2021-07-22T10:15:54")));
+        value.put("$gt", new BSONTimestamp(Timestamp.valueOf("2021-07-22 10:15:54")));
         condition.put("birth" , value);
 
         CloseableIterator<Row> iterator = tableResult.collect();
