@@ -392,8 +392,8 @@ public class FilterPushDownSupport {
             Timestamp timestamp = Timestamp.valueOf((LocalDateTime) value);
             resultValue = new BSONTimestamp(timestamp);
         } else if (value instanceof Instant) {
-            Timestamp timestamp = Timestamp.from((Instant) value);
-            resultValue = new BSONTimestamp(timestamp);
+            Instant instant = (Instant) value;
+            resultValue = new BSONTimestamp((int)instant.getEpochSecond(), instant.getNano() / 1000);
         }
 
         return (Serializable) resultValue;
