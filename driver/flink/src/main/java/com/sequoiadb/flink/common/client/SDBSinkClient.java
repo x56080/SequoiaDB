@@ -317,7 +317,7 @@ public class SDBSinkClient implements SDBClient {
         }
 
         cl = getCS().createCollection(collection, options);
-        if (!pkBson.isEmpty()) {
+        if (cl != null && !pkBson.isEmpty()) {
             cl.createIndex(PRIMARY_KEY, pkBson, INDEX_OPTIONS);
         }
 
