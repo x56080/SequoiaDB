@@ -43,19 +43,44 @@ namespace engine
 {
 namespace vessel
 {
-   struct btreeStatistics : public SDBObject
+   struct btreeStatistics
    {
       void reset()
       {
-         lsn = ~0;
-         nonleafPagNum = 0;
-         leafPageNum = 0;
+         nonleafNodeNum = 0;
+         leafNodeNum = 0;
+         totalEntryNum = 0;
+         origTotalEntrySize = 0;
+         realTotalEntrySize = 0;
+
+         totalEntryInserted = 0;
+         totalEntryRemoved = 0;
+         nodesAllocated = 0;
+         nodesDestroyed = 0;
+         newRootCreatedNum = 0;
+         childNodesRefilled = 0;
          return;
       }
 
-      UINT64 lsn = ~0;
-      UINT32 nonleafPagNum = 0;
-      UINT32 leafPageNum = 0;
+      OSS_INLINE UINT32 getTotalNodeNum()const
+      {
+         return nonleafNodeNum + leafNodeNum;
+      }
+
+      ///real time
+      UINT32 nonleafNodeNum = 0;
+      UINT32 leafNodeNum = 0;
+      UINT64 totalEntryNum = 0;
+      UINT64 origTotalEntrySize = 0;
+      UINT64 realTotalEntrySize = 0;
+
+      /// history
+      UINT64 totalEntryInserted = 0;
+      UINT64 totalEntryRemoved = 0;
+      UINT64 nodesAllocated = 0;
+      UINT64 nodesDestroyed = 0;
+      UINT32 newRootCreatedNum = 0;
+      UINT64 childNodesRefilled = 0;
    };//struct btreeStatistics
 } // namespace vesel
 

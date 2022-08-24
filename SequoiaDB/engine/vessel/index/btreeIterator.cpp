@@ -104,6 +104,12 @@ namespace vessel
              getRuntimeBuffer().getPageHead()->lsn;
    }
 
+   UINT32 btreeIterator::getTransferTick() const
+   {
+      SDB_ASSERT(_bac.isValid(), "can not be invalid");
+      return _bac.getTransferTick();
+   }
+
    INT32 btreeIterator::seek(const keyString &ks)
    {
       INT32 rc = SDB_OK;
@@ -318,6 +324,8 @@ namespace vessel
       }
       else if (_bac.getTransferTick() != l.getTransferTick())
       {
+         PD_LOG(PDERROR, "unsame transfer ticks[%d, %d]",
+                _bac.getTransferTick(), l.getTransferTick());
          rc = SDB_VESSEL_BTREE_LOCATION_EXPIRED;
          goto error;
       }

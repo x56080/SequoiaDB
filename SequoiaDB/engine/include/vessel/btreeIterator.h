@@ -62,7 +62,9 @@ namespace vessel
                     indexSpace *is,
                     indexObject *obj);
 
-         void reset();
+         void reset(); 
+
+         UINT32 getTransferTick()const;
 
          INT32 seek(const keyString &ks);
 
@@ -115,7 +117,7 @@ namespace vessel
                }
 
                OSS_INLINE BOOLEAN isValid()const {return isValidRecordSlotPosition(_pos);}
-               OSS_INLINE UINT64 getTransferTick()const {return _transferTick;}
+               OSS_INLINE UINT32 getTransferTick()const {return _transferTick;}
                OSS_INLINE RECORD_SLOT_POS getPos() const {return _pos;}
 
             private:

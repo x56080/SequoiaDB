@@ -687,33 +687,28 @@ namespace vessel
                                                   const keyString &ks)
    {
       INT32 rc = SDB_OK;
-      if (l.bl.isValid())
+      SDB_ASSERT(_btree.isValid(), "can not be invalid");
+
+      if (l.bl.isValid() && l.bl.getTransferTick() == _btree.getTransferTick())
       {
          rc = _btree.locate(l.bl);
-         if (SDB_OK == rc)
+         if (SDB_OK != rc)
          {
-            if (_RING_POS::BTREE == l.current)
-            {
-               rc = _btree.next(_o.forward);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to move btree iterator:%d", rc);
-                  goto error;
-               }
-            }
-
-            goto done;
-         }
-         else if (SDB_VESSEL_BTREE_LOCATION_EXPIRED == rc)
-         {
-            rc = SDB_OK;
-            /// seek key string
-         }
-         else
-         {
-            PD_LOG(PDERROR, "failed to locate btree:%d", rc);
+            PD_LOG(PDERROR, "failed to relocate btree:%d", rc);
             goto error;
          }
+         
+         if (_RING_POS::BTREE == l.current)
+         {
+            rc = _btree.next(_o.forward);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to move btree iterator:%d", rc);
+               goto error;
+            }
+         }
+
+         goto done;
       }
 
       rc = _o.forward ? _btree.seek(ks) : _btree.seekForPrev(ks);
