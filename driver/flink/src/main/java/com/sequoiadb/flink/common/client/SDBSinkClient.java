@@ -267,7 +267,7 @@ public class SDBSinkClient implements SDBClient {
                     .createCollectionSpace(collectionSpaceStr, options);
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
-                // ignore when collection space is already exist.
+                collectionSpace = getClient().getCollectionSpace(collectionSpaceStr);
             } else {
                 throw ex;
             }
@@ -321,14 +321,22 @@ public class SDBSinkClient implements SDBClient {
             cl = getCS().createCollection(collection, options);
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
-                // ignore when collection is already exist.
+                cl = getCS().getCollection(collection);
             } else {
                 throw ex;
             }
         }
 
-        if (cl != null && !pkBson.isEmpty()) {
-            cl.createIndex(PRIMARY_KEY, pkBson, INDEX_OPTIONS);
+        try {
+            if (cl != null && !pkBson.isEmpty()) {
+                cl.createIndex(PRIMARY_KEY, pkBson, INDEX_OPTIONS);
+            }
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
+                // ignore when primary key is already exist
+            } else {
+                throw ex;
+            }
         }
 
         return cl;

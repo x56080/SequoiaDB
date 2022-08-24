@@ -151,12 +151,11 @@ public class SDBCollectionProvider implements SDBClientProvider {
             collectionSpace = getClient().createCollectionSpace(collectionSpaceStr, options);
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
-                // ignore
+                collectionSpace = getClient().getCollectionSpace(collectionSpaceStr);
             } else {
                 throw ex;
             }
         }
-
         return collectionSpace;
     }
 
@@ -197,15 +196,24 @@ public class SDBCollectionProvider implements SDBClientProvider {
             cl = getCollectionSpace().createCollection(collectionStr, options);
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
-                // ignore when collection is already exist.
+                cl = getCollectionSpace().getCollection(collectionStr);
             } else {
                 throw ex;
             }
         }
 
-        if (cl != null && !pkBson.isEmpty()) {
-            cl.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
+        try {
+            if (cl != null && !pkBson.isEmpty()) {
+                cl.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
+            }
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
+                // ignore when primary key is already exist
+            } else {
+                throw ex;
+            }
         }
+
         return cl;
     }
 
