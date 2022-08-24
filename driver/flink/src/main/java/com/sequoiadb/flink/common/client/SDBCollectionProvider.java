@@ -39,7 +39,14 @@ public class SDBCollectionProvider implements SDBClientProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBCollectionProvider.class);
 
-    private static final String PRIMARY_KEY_NAME = "primary_key";
+    private static final BSONObject INDEX_OPTIONS = new BasicBSONObject();
+
+    static {
+        INDEX_OPTIONS.put(SDBConstant.INDEX_UNIQUE, true);
+        INDEX_OPTIONS.put(SDBConstant.INDEX_NOT_NULL, true);
+    }
+
+    private static final String PRIMARY_KEY_NAME = "PRIMARY";
 
     // sequoiadb connection config
     private final List<String> hosts;
@@ -138,14 +145,40 @@ public class SDBCollectionProvider implements SDBClientProvider {
         if (domain != null) {
             options.put(SDBConstant.DOMAIN, domain);
         }
-        return getClient().createCollectionSpace(collectionSpaceStr, options);
+
+        CollectionSpace collectionSpace = null;
+        try {
+            collectionSpace = getClient().createCollectionSpace(collectionSpaceStr, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
+                collectionSpace = getClient().getCollectionSpace(collectionSpaceStr);
+            } else {
+                throw ex;
+            }
+        }
+        return collectionSpace;
     }
 
     public DBCollection ensureCollection(SDBSinkOptions sinkOptions) {
         BSONObject options = new BasicBSONObject();
-        String ShardingKey = sinkOptions.getShardingKey();
-        if (ShardingKey != null){
-            options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
+        String shardingKey = sinkOptions.getShardingKey();
+        String[] primaryKey = sinkOptions.getUpsertKey();
+
+        // using primary key which defines in flink table to build pk bson,
+        // pk bson is like {id: 1, name: 1}
+        BSONObject pkBson = new BasicBSONObject();
+        if (primaryKey != null && primaryKey.length != 0) {
+            for (String upsertKey : primaryKey) {
+                pkBson.put(upsertKey, 1);
+            }
+        }
+
+        if (shardingKey != null) {
+            options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
+            options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+        } else if (sinkOptions.getAutoSplit() && !pkBson.isEmpty()) {
+            // if user doesn't specify sharding key, using primary key as sharding key.
+            options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
         }
 
@@ -158,15 +191,29 @@ public class SDBCollectionProvider implements SDBClientProvider {
             options.put(SDBConstant.GROUP, Group);
         }
 
-        DBCollection cl = getCollectionSpace().createCollection(collectionStr, options);
-        String[] upsertKeys = sinkOptions.getUpsertKey();
-        if (upsertKeys != null && upsertKeys.length > 0) {
-            BSONObject indexBson = new BasicBSONObject();
-            for (String upsertKey : upsertKeys) {
-                indexBson.put(upsertKey, 1);
+        DBCollection cl = null;
+        try {
+            cl = getCollectionSpace().createCollection(collectionStr, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
+                cl = getCollectionSpace().getCollection(collectionStr);
+            } else {
+                throw ex;
             }
-            cl.createIndex(PRIMARY_KEY_NAME, indexBson, true, false);
         }
+
+        try {
+            if (cl != null && !pkBson.isEmpty()) {
+                cl.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
+            }
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
+                // ignore when primary key is already exist
+            } else {
+                throw ex;
+            }
+        }
+
         return cl;
     }
 

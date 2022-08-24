@@ -20,8 +20,10 @@ import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.constant.SDBConstant;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -33,6 +35,13 @@ import java.util.HashSet;
 import java.util.List;
 
 public class SDBSinkClient implements SDBClient {
+
+    private static final BSONObject INDEX_OPTIONS = new BasicBSONObject();
+
+    static {
+        INDEX_OPTIONS.put(SDBConstant.INDEX_UNIQUE, true);
+        INDEX_OPTIONS.put(SDBConstant.INDEX_NOT_NULL, true);
+    }
 
     private final List<String> hosts;
     private final String collectionSpace;
@@ -47,7 +56,7 @@ public class SDBSinkClient implements SDBClient {
     private DBCollection cl;
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBSinkClient.class);
-    private final String PRIMARY_KEY = "primarykey";
+    private final String PRIMARY_KEY = "PRIMARY";
 
     private SDBSinkClient(
         List<String> hosts,
@@ -236,50 +245,100 @@ public class SDBSinkClient implements SDBClient {
         cs = null;
         cl = null;
     }
-    /*
+
+    /**
      * return a SDB collection space.
      * A new collection space will be created with options
-     * @param collectionSpace       name of collection space
-     * @return CollectionSpace
+     * @param collectionSpaceStr       name of collection space
+     *
+     * @return collectionSpace
      */
-    private CollectionSpace ensureCollectionSpaceWithOptions(String collectionSpace) {
+    private CollectionSpace ensureCollectionSpaceWithOptions(String collectionSpaceStr) {
         BSONObject options = new BasicBSONObject();
         options.put(SDBConstant.PAGE_SIZE, sdboptions.getPageSize());
         String domain = sdboptions.getDomain();
         if (domain != null) {
             options.put(SDBConstant.DOMAIN, domain);
         }
-        return getClient().createCollectionSpace(collectionSpace, options);
 
+        CollectionSpace collectionSpace = null;
+        try {
+            collectionSpace = getClient()
+                    .createCollectionSpace(collectionSpaceStr, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
+                collectionSpace = getClient().getCollectionSpace(collectionSpaceStr);
+            } else {
+                throw ex;
+            }
+        }
+
+        return collectionSpace;
     }
-    /*
-     * return a SDB collection.
+
+    /**
+     * create collection with options if collection isn't exist.
+     *
      * A new collection will be created with options
      * @param collection        name of collection
+     * @param primaryKey        primary specified in flink sql table
+     *
      * @return DBCollection
+     *
+     * @throws BaseException    throw exception when collection is already exist.
      */
-    private DBCollection ensureCollectionWithOptions(String collection,  HashSet<String> pks) {
+    private DBCollection ensureCollectionWithOptions(String collection, HashSet<String> primaryKey) {
         BSONObject options = new BasicBSONObject();
-        String ShardingKey = sdboptions.getShardingKey();
-        if (ShardingKey != null){
-            options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
+        String shardingKey = sdboptions.getShardingKey();
+
+        BSONObject pkBson = new BasicBSONObject();
+        if (primaryKey != null) {
+            for (String key : primaryKey) {
+                pkBson.put(key, 1);
+            }
+        }
+
+        if (shardingKey != null){
+            options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
+            options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
+        } else if (sdboptions.getAutoSplit() && !pkBson.isEmpty()) {
+            // if user don't specify sharding key, using primary key as sharding key.
+            options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
         }
+
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
         options.put(SDBConstant.AUTO_SPLIT, sdboptions.getAutoSplit());
+
         String Group =  sdboptions.getGroup();
         if (Group != null) {
             options.put(SDBConstant.GROUP, Group);
         }
-        DBCollection cl = getCS().createCollection(collection, options);
-        if (pks != null) {
-            BSONObject uniqueIndexes = new BasicBSONObject();
-            for (String key : pks){
-                uniqueIndexes.put(key, 1);
+
+        DBCollection cl = null;
+        try {
+            cl = getCS().createCollection(collection, options);
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
+                cl = getCS().getCollection(collection);
+            } else {
+                throw ex;
             }
-            cl.createIndex(PRIMARY_KEY, uniqueIndexes, true, false);
         }
+
+        try {
+            if (cl != null && !pkBson.isEmpty()) {
+                cl.createIndex(PRIMARY_KEY, pkBson, INDEX_OPTIONS);
+            }
+        } catch (BaseException ex) {
+            if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
+                // ignore when primary key is already exist
+            } else {
+                throw ex;
+            }
+        }
+
         return cl;
     }
 
