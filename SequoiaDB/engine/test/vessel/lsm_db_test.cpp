@@ -297,7 +297,7 @@ TEST_F(lsm_db_test, base_restore_test3)
    ssts.clear();
 
    rc = db.restore(10, restoreCount);
-   ASSERT_EQ(SDB_VESSEL_INTERNAL_ERR, rc);
+   ASSERT_EQ(SDB_VESSEL_OPERATOION_NOT_PERMITTED, rc);
    rc = db.loadSSTs(LSM_CF_HYBRID_INDEX, 0, FALSE, TRUE, ssts);
    ASSERT_TRUE(!ssts.empty());
    ssts.clear();
