@@ -60,12 +60,7 @@ namespace vessel
          reset();
       }
    }
-
-   btreeKeyStringEntry::btreeKeyStringEntry(keyString &&ks) noexcept:
-   keyString(std::move(ks))
-   {
-   }
-
+   
    btreeKeyStringEntry::btreeKeyStringEntry(UINT32 size, const CHAR *data):
    keyString(size, data)
    {
@@ -84,6 +79,41 @@ namespace vessel
          PD_LOG(PDERROR, "unexpected key tail size");
          reset();
       }
+   }
+   
+   btreeKeyStringEntry::btreeKeyStringEntry(keyString &&o)noexcept:
+   keyString(std::move(o))
+   {
+      if (isValid())
+      {
+         if (hasKeyHead() ||
+             keyStringCoder::RID_ENCODING_SIZE != getKeyTailSize())
+         {
+            PD_LOG(PDERROR, "invalid btree entry key string");
+            SDB_ASSERT(FALSE, "invalid entry");
+            reset();
+         }
+      }
+   }
+
+   btreeKeyStringEntry &btreeKeyStringEntry::operator=(keyString &&o)noexcept
+   {
+      reset();
+      if (o.isValid())
+      {
+         if (o.hasKeyHead() ||
+             keyStringCoder::RID_ENCODING_SIZE != o.getKeyTailSize())
+         {
+            PD_LOG(PDERROR, "invalid btree entry key string");
+            SDB_ASSERT(FALSE, "invalid entry");
+            o.reset();
+         }
+         else
+         {
+            keyString::operator=(std::move(o));
+         }
+      }
+      return *this;
    }
 
    INT32 btreeKeyStringEntry::init(const slice &s)

@@ -318,6 +318,18 @@ namespace vessel
                   PD_LOG(PDERROR, "failed to insert entry into leaf node:%d");
                   goto error;
                }
+
+               if (_bac.getIndexObject()->getProperties().isCompressionEnabled() &&
+                   node.betterToActiveCompression())
+               {
+                  BOOLEAN compressed = FALSE;
+                  rc = node.recompress(compressed);
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to compress btree node:%d", rc);
+                     goto error;
+                  }
+               }
             }
             else
             {

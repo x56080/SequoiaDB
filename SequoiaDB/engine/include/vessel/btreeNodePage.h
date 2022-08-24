@@ -77,6 +77,14 @@ namespace vessel
          }
          ++high;
       }
+      OSS_INLINE void decBounds(BOOLEAN both)
+      {
+         if (both)
+         {
+            --low;
+         }
+         --high;
+      }
 
       void reset()
       {
@@ -141,6 +149,10 @@ namespace vessel
       OSS_INLINE BOOLEAN isRightChildLeaf()const 
       {
          return 0 != OSS_BIT_TEST(flags, BTREE_NODE_FLAG_RIGHT_CHILD_IS_LEAF);
+      }
+      OSS_INLINE BOOLEAN isVainPrefixRegen()const
+      {
+         return 0 != OSS_BIT_TEST(flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
       }
 
       UINT32 version = 0;
@@ -212,12 +224,6 @@ namespace vessel
       OSS_INLINE void markDeleted()
       {
          OSS_BIT_SET(flags, FLAG_MARKED_DELETED);
-      }
-      OSS_INLINE BOOLEAN hasPrefixSlot()const
-      {
-         ///WARNING: user should ensure it is in leaf node!
-         return isValidRecordSlotPosition(data.lf.prefixSlot);
-
       }
       OSS_INLINE BOOLEAN isKeyCompressed()const
       {

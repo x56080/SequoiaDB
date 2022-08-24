@@ -84,6 +84,7 @@ namespace vessel
    class keyString : public SDBObject
    {
       template <typename T> friend class keyStringBuilder;
+      friend class prefixedKeyString;
 
    public:
       keyString() = default;

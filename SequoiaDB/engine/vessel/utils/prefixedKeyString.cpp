@@ -34,55 +34,32 @@
 *******************************************************************************/
 
 #include "vessel/prefixedKeyString.h"
-#include "vessel/bytesReader.h"
 #include "vessel/keyString.h"
+#include "ossLikely.hpp"
 #include "pd.hpp"
 #include <memory>
+#include "utilAllocator.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   prefixedKeyString::prefixedKeyString(const slice &suffix) : _suffix(suffix)
-   {
-      keyStringDescriptor desc;
-      if(SDB_OK != keyString::parseMetaFromSlice(_suffix, desc))
-      {
-         reset();
-      }
-      _comparableSize = desc.keySize;
-   }
-
    prefixedKeyString::prefixedKeyString(const slice &suffix,
                                         const slice &prefix)
-       : _suffix(suffix), _prefix(prefix)
    {
-      keyStringDescriptor desc;
-      if(SDB_OK != keyString::parseMetaFromSlice(_suffix, desc))
-      {
-         reset();
-      }
-      _comparableSize = desc.keySize;
+      init(suffix, prefix);
    }
 
    void prefixedKeyString::reset()
    {
       _prefix.reset();
       _suffix.reset();
+      _desc.reset();
    }
 
-   BOOLEAN prefixedKeyString::isValid() const
+   CHAR prefixedKeyString::operator[](UINT32 pos)const
    {
-      return _suffix.isValid();
-   }
-
-   BOOLEAN prefixedKeyString::hasPrefix() const
-   {
-      return _prefix.isValid();
-   }
-
-   CHAR prefixedKeyString::operator[](UINT32 pos)
-   {
+      SDB_ASSERT(pos < getTotalSize(), "out of bound");
       if (pos < _prefix.size())
       {
          return _prefix.data()[pos];
@@ -93,141 +70,118 @@ namespace vessel
       }
    }
 
-   INT32 comparePrefixedWithNot(slice prefixLeft,
-                                slice suffixLeft,
-                                UINT32 comparableSizeLeft,
-                                slice suffixRight,
-                                UINT32 comparableSizeRight)
+   INT32 prefixedKeyString::init(const slice &suffix, const slice &prefix)
    {
-      if (prefixLeft.size() > comparableSizeRight)
+      INT32 rc = SDB_OK;
+      reset();
+
+      if (OSS_UNLIKELY(!suffix.isValid()))
       {
-         if (prefixLeft.compare(
-                 slice(comparableSizeRight, suffixRight.data())) < 0)
-         {
-            return -1;
-         }
-         else
-         {
-            return +1;
-         }
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = keyString::parseMetaFromSlice(suffix, _desc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to parse suffix:%d", rc);
+         goto error;
+      }
+      else if (_desc.getStringSizeExpected() !=
+               (prefix.size() + suffix.size()))
+      {
+         PD_LOG(PDERROR, "unexpected total size[%d, %d]",
+                _desc.getStringSizeExpected(),
+                prefix.size() + suffix.size());
+         rc = SDB_VESSEL_INVALID_KEY_STR_DATA;
+         goto error;
       }
       else
       {
-         UINT32 prefixLen = prefixLeft.size();
-         INT32 x = ossMemcmp(prefixLeft.data(), suffixRight.data(), prefixLen);
-         if (x != 0)
-         {
-            return x;
-         }
-         else
-         {
-            slice remainLeftSuffix(comparableSizeLeft - prefixLen,
-                                   suffixLeft.data());
-            slice remainRightSuffix(comparableSizeRight - prefixLen,
-                                    suffixRight.data() + prefixLen);
-            x = remainLeftSuffix.compare(remainRightSuffix);
-            return x;
-         }
+         _suffix = suffix;
+         _prefix = prefix;
       }
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   slice prefixedKeyString::getComparableSuffix() const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return _suffix.getSlice(0, _desc.keySize - _prefix.size());
    }
 
    INT32 prefixedKeyString::compare(const prefixedKeyString &r) const
    {
       SDB_ASSERT(isValid() && r.isValid(), "must be valid");
-      if (!hasPrefix() && !r.hasPrefix())
-      {
-         return comparableSuffixSlice().compare(r.comparableSuffixSlice());
-      }
-      else if (hasPrefix() && !r.hasPrefix())
-      {
-         return comparePrefixedWithNot(
-             _prefix, _suffix, _comparableSize, r._suffix, r._comparableSize);
-      }
-      else if (!hasPrefix() && r.hasPrefix())
-      {
-         return -r.compare(*this);
-      }
-      else // hasPrefix() && r.hasPrefix()
-      {
-         if (_prefix.size() < r._prefix.size())
-         {
-            return -r.compare(*this);
-         }
-         UINT32 minLen = r._prefix.size();
-         INT32 x = ossMemcmp(_prefix.data(), r._prefix.data(), minLen);
-         if (x != 0)
-         {
-            return x;
-         }
-         if (_prefix.size() == r._prefix.size())
-         {
-            slice remainLeftSuffix(_comparableSize - minLen, _suffix.data());
-            slice remainRightSuffix(r._comparableSize - minLen,
-                                    r._suffix.data());
-            x = remainLeftSuffix.compare(remainRightSuffix);
-            return x;
-         }
-         UINT32 remainPrefixLen = _prefix.size() - minLen;
-
-         // _prefix.size() > r._prefix.size()
-         slice remainLeftPrefix(remainPrefixLen,
-                                _prefix.data() + remainPrefixLen);
-
-         return comparePrefixedWithNot(remainLeftPrefix,
-                                       _suffix,
-                                       _comparableSize - minLen,
-                                       r._suffix,
-                                       r._comparableSize - minLen);
-      }
+      return compareSlicePairs(_prefix, getComparableSuffix(),
+                               r._prefix, r.getComparableSuffix());
    }
 
-   slice prefixedKeyString::comparableSuffixSlice() const
+   keyString prefixedKeyString::getKeyString(UINT32 bufferSize, CHAR *buffer) const
    {
-      UINT32 remainLen = _comparableSize;
-      if (hasPrefix())
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(nullptr != buffer && getTotalSize() <= bufferSize, "can not be invalid");
+      keyString ks;
+      if (_prefix.isValid())
       {
-         remainLen -= _prefix.size();
+         ossMemcpy(buffer, _prefix.data(), _prefix.size());
       }
-      return slice(remainLen, _suffix.data());
-   }
-
-   const slice& prefixedKeyString::getPrefix() const
-   {
-      return _prefix;
-   }
-
-   const slice& prefixedKeyString::getSuffix() const
-   {
-      return _suffix;
+      ossMemcpy(buffer + _prefix.size(), _suffix.data(), _suffix.size());
+      ks._ref.reset(getTotalSize(), buffer);
+      ks._desc = _desc;
+      return ks;
    }
 
    keyString prefixedKeyString::getOwnedKeyString() const
    {
-      UINT32 size = _prefix.size() + _suffix.size();
-      auto buf = std::get_temporary_buffer<CHAR>(size);
-      if (hasPrefix())
+      SDB_ASSERT(isValid(), "can not be invalid");
+      utilPoolAllocator allocator;
+      keyString ks;
+      UINT32 bufferSize = getTotalSize();
+      CHAR *buffer = (CHAR *)allocator.malloc(bufferSize);
+      if (OSS_UNLIKELY(nullptr == buffer))
       {
-         ossMemcpy(buf.first, _prefix.data(), _prefix.size());
-         ossMemcpy(buf.first + _prefix.size(), _suffix.data(), _suffix.size());
+         PD_LOG(PDERROR, "failed to allocate mem.");
       }
       else
       {
-         ossMemcpy(buf.first, _suffix.data(), _suffix.size());
+         if (_prefix.isValid())
+         {
+            ossMemcpy(buffer, _prefix.data(), _prefix.size());
+         }
+         ossMemcpy(buffer + _prefix.size(), _suffix.data(), _suffix.size());
+         ks._ref.reset(bufferSize, buffer);
+         ks._desc = _desc;
+         ks._bufferOwned = buffer;
+         ks._bufferSize = bufferSize;
       }
-      keyString ks(size, buf.first);
-      ks.getOwned();
-      std::return_temporary_buffer(buf.first);
-      return std::move(ks); 
+
+      return std::move(ks);
    }
+
    ossPoolString prefixedKeyString::getConcatenatedString() const
    {
       ossPoolString s;
-      if(hasPrefix())
+      if (isValid())
       {
-         s.append(_prefix.data(), _prefix.size());
+         s.reserve(getTotalSize());
+         if (_prefix.isValid())
+         {
+            s.append(_prefix.data(), _prefix.size());
+         }
+         s.append(_suffix.data(), _suffix.size());
       }
-      s.append(_suffix.data(), _suffix.size());
       return std::move(s);
+   }
+
+   INT32 prefixedKeyString::compare(const slice &s) const
+   {
+      SDB_ASSERT(isValid() && s.isValid(), "can not be invalid");
+      return 0 - s.compare(_prefix, getComparableSuffix());
    }
 } // namespace vessel
 } // namespace engine

@@ -123,6 +123,49 @@ namespace vessel
             return res;
          }
 
+         OSS_INLINE INT32 compare(const slice &prefix,
+                                  const slice &suffix)const
+         {
+            UINT32 n = OSS_MIN(_size, prefix._size);
+            INT32 res = ossMemcmp(_data, prefix._data, n);
+            if (0 == res)
+            {
+               if (n < prefix.size())
+               {
+                  return -1;
+               }
+               else
+               {
+                  UINT32 remain = _size - n;
+                  UINT32 m = OSS_MIN(remain, suffix._size);
+                  res = ossMemcmp(_data + n, suffix._data, m);
+                  if (0 == res)
+                  {
+                     if (remain < suffix._size)
+                     {
+                        return -1;
+                     }
+                     else if (remain == suffix._size)
+                     {
+                        return 0;
+                     }
+                     else
+                     {
+                        return 1;
+                     }
+                  }
+                  else
+                  {
+                     return res;
+                  }
+               }
+            }
+            else
+            {
+               return res;
+            }
+         }
+
          OSS_INLINE BOOLEAN equal(const slice &o)const
          {
             return _size == o._size &&
@@ -144,6 +187,9 @@ namespace vessel
          UINT32 _size = 0;
          const CHAR *_data = nullptr;
    };//class slice
+
+   extern INT32 compareSlicePairs(const slice &lprefix, const slice &lsuffix,
+                                  const slice &rprefix, const slice rsuffix);
 
 } // namespace vessel
 } // namespace engine

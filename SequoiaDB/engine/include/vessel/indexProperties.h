@@ -57,7 +57,6 @@ namespace vessel
          _pattern(o._pattern),
          _type(o._type),
          _flags(o._flags),
-         _btreeMaxPrefix(o._btreeMaxPrefix),
          _innerID(o._innerID)
          {
          }
@@ -68,7 +67,6 @@ namespace vessel
             _pattern = o._pattern;
             _type = o._type;
             _flags = o._flags;
-            _btreeMaxPrefix = o._btreeMaxPrefix;
             _innerID = o._innerID;
 
             return *this;
@@ -83,7 +81,6 @@ namespace vessel
          OSS_INLINE const std::string &getName()const {return _name;}
          OSS_INLINE const indexKeyPattern &getPattern()const {return _pattern;}
          OSS_INLINE INDEX_TYPE getType()const {return _type;}
-         OSS_INLINE INT32 getBtreeMaxPrefix()const {return _btreeMaxPrefix;}
          OSS_INLINE utilIdxInnerID getInnerID()const {return _innerID;}
 
          INT32 init(const bson::BSONObj &obj);
@@ -112,9 +109,9 @@ namespace vessel
          }
 
          /// btree only
-         OSS_INLINE BOOLEAN isPrefixCompressionEnabled()const
+         OSS_INLINE BOOLEAN isCompressionEnabled()const
          {
-            return 0 != _btreeMaxPrefix;
+            return 0 != OSS_BIT_TEST(_flags, _FLAG_COMPRESSION);
          }
 
       private:
@@ -134,18 +131,22 @@ namespace vessel
          {
             OSS_BIT_SET(_flags, _FLAG_NOT_ARRAY);
          }
+         OSS_INLINE void setCompressionEnabled()
+         {
+            OSS_BIT_SET(_flags, _FLAG_COMPRESSION);
+         }
       private:
          static constexpr UINT16 _FLAG_UNIQUE = 0x01;
          static constexpr UINT16 _FLAG_ENFORCED = 0x02;
          static constexpr UINT16 _FLAG_NOT_NULL = 0x04;
          static constexpr UINT16 _FLAG_NOT_ARRAY = 0x08;
+         static constexpr UINT16 _FLAG_COMPRESSION = 0x10;
 
       private:
          std::string _name;
          indexKeyPattern _pattern;
          INDEX_TYPE _type = INDEX_TYPE_INVALID;
          UINT16 _flags = 0;
-         INT32 _btreeMaxPrefix = -1;
          utilIdxInnerID _innerID = UTIL_UNIQUEID_NULL;
    };//class indexProperties
 }//namespace vessel

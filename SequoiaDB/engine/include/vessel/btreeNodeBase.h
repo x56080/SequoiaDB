@@ -37,7 +37,6 @@
 #define VESSEL_BTREE_NODE_BASE_H_
 
 #include "vessel/btreeNodePage.h"
-#include "vessel/btreeNodeItem.h"
 #include "vessel/strictBuffer.h"
 #include "vessel/btreeStatistics.h"
 #include "vessel/btreeSplitRaisedKey.h"
@@ -88,7 +87,7 @@ namespace vessel
          PAGE_ID getChild(RECORD_SLOT_POS pos)const;
          DPS_TRANS_ID getTransID()const;
          btreeItemSlot getItemSlot(RECORD_SLOT_POS pos)const;
-         UINT32 totalSavedBytes() const;
+         UINT32 getCompressedBytes() const;
          void dumpChildNodes(ossPoolVector<PAGE_ID> &nodes)const;
          BOOLEAN hasFreeSpaceToInsert(UINT32 itemSize,
                                       BOOLEAN *compaction=nullptr)const;
@@ -118,8 +117,8 @@ namespace vessel
                                BOOLEAN forward,
                                BOOLEAN &outOfBound) const;
 
-         INT32 getItem(RECORD_SLOT_POS pos,
-                       btreeNodeItem &item)const;
+         INT32 getOwnedEntry(RECORD_SLOT_POS pos,
+                             btreeKeyStringEntry &entry)const;
 
          INT32 remove(RECORD_SLOT_POS pos);
 
@@ -165,6 +164,17 @@ namespace vessel
             slice data;
          };//struct _itemRef
 
+         struct _prefixRef : public SDBObject
+         {
+            _prefixRef() = default;
+            explicit _prefixRef(const btreeNodePrefixSlot *s,
+                                const slice &d):
+            slot(s), data(d){}
+            OSS_INLINE BOOLEAN isValid()const {return nullptr != slot;}
+            const btreeNodePrefixSlot *slot = nullptr;
+            slice data;
+         };//struct _prefixRef
+
       protected:
          void _reset();
          OSS_INLINE const btreeNodePageHead *_getReadableHead()const
@@ -180,6 +190,7 @@ namespace vessel
          const btreeItemSlot *_getReadableSlot(RECORD_SLOT_POS pos)const;
          btreeItemSlot *_getWritableSlot(RECORD_SLOT_POS pos);
          _itemRef _getItemRef(RECORD_SLOT_POS pos)const;
+         _prefixRef _getPrefixRef(RECORD_SLOT_POS pos)const;
          prefixedKeyString _getPrefixedKeyString(RECORD_SLOT_POS pos)const;
          UINT32 _getContinuousFreeSpace()const;
          UINT32 _getFrontOffset()const;
@@ -208,6 +219,8 @@ namespace vessel
              const ossPoolVector<prefixGenerator::prefixItem> &out) const;
 
          INT32 _locateNextPrefixSlot(RECORD_SLOT_POS pos) const;
+
+         RECORD_SLOT_POS _lowerBoundPrefixSlot(RECORD_SLOT_POS itemPos)const;
 
       protected:
          
@@ -270,6 +283,8 @@ namespace vessel
 
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                 RECORD_SLOT_POS pos=INVALID_RECORD_SLOT_POS);
+
+         void _adjustPrefsixSlots(RECORD_SLOT_POS pos, BOOLEAN inc=TRUE);
 
       protected:
          PAGE_ID _nodeId = INVALID_PAGE_ID;

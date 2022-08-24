@@ -81,7 +81,7 @@ namespace vessel
 
    void btreeIterator::reset()
    {
-      _item.reset();
+      _current.reset();
       _bac.reset();
       _pos = INVALID_RECORD_SLOT_POS;
       return;
@@ -118,7 +118,7 @@ namespace vessel
          goto error;
       }
 
-      _resetItemAndLocation();
+      _resetCacheAndLocation();
 
       if (!_bac.hasBtreeRoot())
       {
@@ -139,14 +139,11 @@ namespace vessel
          goto error;
       }
 
-      if (_hasLocation())
+      rc = _cacheOrMove(TRUE);
+      if (SDB_OK != rc)
       {
-         rc = _setCurrentItem();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init current item:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to cache valid entry:%d", rc);
+         goto error;
       }
    done:
       return rc;
@@ -169,7 +166,7 @@ namespace vessel
          goto error;
       }
 
-      _resetItemAndLocation();
+      _resetCacheAndLocation();
 
       if (!_bac.hasBtreeRoot())
       {
@@ -198,15 +195,13 @@ namespace vessel
             PD_LOG(PDERROR, "failed to locate to prev");
             goto error;
          }
-         else if (_hasLocation())
-         {
-            rc = _setCurrentItem();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to init current item:%d", rc);
-               goto error;
-            }
-         }
+      }
+
+      rc = _cacheOrMove(FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to cache valid entry:%d", rc);
+         goto error;
       }
    done:
       return rc;
@@ -224,7 +219,8 @@ namespace vessel
          goto error;
       }
 
-      _item.reset();
+      _current.reset();
+
       rc = _moveToNext(forward);
       if (SDB_OK != rc)
       {
@@ -232,14 +228,11 @@ namespace vessel
          goto error;
       }
 
-      if (_hasLocation())
+      rc = _cacheOrMove(forward);
+      if (SDB_OK != rc)
       {
-         rc = _setCurrentItem();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init current item:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to cache valid entry:%d", rc);
+         goto error;
       }
    done:
       return rc;
@@ -251,7 +244,7 @@ namespace vessel
    INT32 btreeIterator::advance(const keyString &ks, BOOLEAN forPrev)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
+      if (OSS_UNLIKELY(!isReadyToRead()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -263,7 +256,7 @@ namespace vessel
       }
       else
       {
-         INT32 cmp = _item.getEntry().compareElements(ks);
+         INT32 cmp = _current.compareElements(ks);
          if ((forPrev && cmp < 0) ||
              (!forPrev && cmp > 0))
          {
@@ -273,7 +266,7 @@ namespace vessel
          }
       }
 
-      _item.reset();
+      _current.reset();
       rc = _advance(ks, !forPrev);
       if (SDB_OK != rc)
       {
@@ -296,14 +289,11 @@ namespace vessel
          }
       }
 
-      if (_hasLocation())
+      rc = _cacheOrMove(!forPrev);
+      if (SDB_OK != rc)
       {
-         rc = _setCurrentItem();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init current item:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to cache valid entry:%d", rc);
+         goto error;
       }
 
    done:
@@ -332,7 +322,7 @@ namespace vessel
          goto error;
       }
 
-      _resetItemAndLocation();
+      _resetCacheAndLocation();
 
       rc = _restorePath(l._path);
       if (SDB_OK != rc)
@@ -353,13 +343,13 @@ namespace vessel
          }
 
          _pos = l.getPos();
-      }
 
-      rc = _setCurrentItem();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to set current item:%d", rc);
-         goto error;
+         rc = node.getOwnedEntry(_pos, _current);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get owned entry:%d", rc);
+            goto error;
+         }
       }
 
    done:
@@ -379,9 +369,9 @@ namespace vessel
       return std::move(l);
    }
 
-   void btreeIterator::_resetItemAndLocation()
+   void btreeIterator::_resetCacheAndLocation()
    {
-      _item.reset();
+      _current.reset();
       _bac.resetPath();
       _pos = INVALID_RECORD_SLOT_POS;
       return;
@@ -433,15 +423,6 @@ namespace vessel
       {
          _relocateToAncestorNode(TRUE);
       }
-      else if (!node.isLeaf() && node.getItemSlot(_pos).isMarkedDeleted())
-      {
-         rc = _moveToNext(TRUE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to move to next position:%d");
-            goto error;
-         }
-      }
    done:
       return rc;
    error:
@@ -452,6 +433,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_hasLocation(), "can not be invalid");
+
       if (_bac.getEndNodeInPath().isLeaf())
       {
          rc = _nextFromLeaf(forward);
@@ -479,7 +461,7 @@ namespace vessel
             goto error;
          }
       }
-      
+
    done:
       return rc;
    error:
@@ -708,25 +690,6 @@ namespace vessel
              !_bac.isPathEmpty();
    }
 
-   INT32 btreeIterator::_setCurrentItem()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_hasLocation(), "can not be invalid");
-      btreeNode node = _bac.getEndNodeInPath();
-      rc = node.getItem(_pos, _item);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get item of node:%d", rc);
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      _item.reset();
-      goto done;
-   }
-
    INT32 btreeIterator::_restorePath(const ossPoolVector<UINT64> &path)
    {
       INT32 rc = SDB_OK;
@@ -809,6 +772,45 @@ namespace vessel
          goto error;
       }
       
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeIterator::_cacheOrMove(BOOLEAN forward)
+   {
+      INT32 rc = SDB_OK;
+      _current.reset();
+
+      while (_hasLocation())
+      {
+         btreeNode node = _bac.getEndNodeInPath();
+         if (!node.isLeaf())
+         {
+            btreeItemSlot slot = node.getItemSlot(_pos);
+            if (slot.isMarkedDeleted())
+            {
+               rc = _moveToNext(forward);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to move to next:%d", rc);
+                  goto error;
+               }
+
+               continue;
+            }
+         }
+
+         rc = node.getOwnedEntry(_pos, _current);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get owned entry at pos[%d], rc:%d", _pos, rc);
+            goto error;
+         }
+
+         break;
+      }
    done:
       return rc;
    error:

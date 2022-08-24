@@ -38,8 +38,7 @@
 
 #include "vessel/indexDef.h"
 #include "vessel/btreeAccessContext.h"
-#include "vessel/keyString.h"
-#include "vessel/btreeNodeItem.h"
+#include "vessel/btreeKeyStringEntry.h"
 
 namespace engine
 {
@@ -69,15 +68,14 @@ namespace vessel
 
          INT32 seekForPrev(const keyString &ks);
 
-         OSS_INLINE BOOLEAN isReadyToRead() const {return _item.isValid();}
+         OSS_INLINE BOOLEAN isReadyToRead() const {return _current.isValid();}
 
       public:/// ensure is ready to read first
          INT32 next(BOOLEAN forward=TRUE);
          INT32 advance(const keyString &ks, BOOLEAN forPrev=FALSE);
-         OSS_INLINE const btreeNodeItem &getCurrent() const {return _item;}
          OSS_INLINE const btreeKeyStringEntry &getEntry() const
          {
-            return _item.getEntry();
+            return _current;
          }
          DPS_TRANS_ID getTransID() const;
          UINT64 getLSN() const;
@@ -135,7 +133,7 @@ namespace vessel
                                 RECORD_SLOT_POS pos=0,
                                 BOOLEAN forward=TRUE);
 
-         INT32 _correctPositionAfterSeek();
+         INT32 _cacheOrMove(BOOLEAN forward);
 
          INT32 _moveToAncestor();
 
@@ -153,9 +151,7 @@ namespace vessel
 
          BOOLEAN _hasLocation() const;
 
-         void _resetItemAndLocation();
-
-         INT32 _setCurrentItem();
+         void _resetCacheAndLocation();
 
          void _relocateToAncestorNode(BOOLEAN forward);
 
@@ -171,8 +167,8 @@ namespace vessel
 
       private:
          btreeAccessContext _bac;
-         btreeNodeItem _item;
          RECORD_SLOT_POS _pos = INVALID_RECORD_SLOT_POS;
+         btreeKeyStringEntry _current;
    };//class btreeIterator
 } // namespace vessel
 

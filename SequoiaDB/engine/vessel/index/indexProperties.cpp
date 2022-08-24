@@ -179,18 +179,21 @@ namespace vessel
       }
 
       {
-         bson::BSONElement ele = obj.getField(IXM_MAX_PREFIX_FIELD);
+         bson::BSONElement ele = obj.getField(IXM_COMPRESSION);
          if (ele.eoo())
          {
             // do nothing
          }
-         else if (!ele.isNumber())
+         else if (!ele.isBoolean())
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid prefix field");
+            PD_LOG(PDERROR, "invalid compression field type:%d", ele.type());
             goto error;
          }
-         _btreeMaxPrefix = ele.numberInt();
+         else if (ele.boolean())
+         {
+            setCompressionEnabled();
+         }
       }
 
       {
@@ -237,7 +240,6 @@ namespace vessel
       _pattern.reset();
       _type = INDEX_TYPE_INVALID;
       _flags = 0;
-      _btreeMaxPrefix = 0;
       _innerID = UTIL_UNIQUEID_NULL;
       return;
    }
@@ -254,7 +256,7 @@ namespace vessel
       builder.appendBool(IXM_ENFORCED_FIELD, isEnforced());
       builder.appendBool(IXM_NOTNULL_FIELD, isNotNull());
       builder.appendBool(IXM_NOTARRAY_FIELD, isNotArray());
-      builder.append(IXM_MAX_PREFIX_FIELD, _btreeMaxPrefix);
+      builder.appendBool(IXM_COMPRESSION, isCompressionEnabled());
 
       return;
    }

@@ -35,8 +35,8 @@
 #ifndef VESSEL_PREFIXED_KEY_STRING_H_
 #define VESSEL_PREFIXED_KEY_STRING_H_
 
-#include "oss.hpp"
 #include "vessel/slice.h"
+#include "ossMemPool.hpp"
 #include "vessel/keyString.h"
 
 namespace engine
@@ -45,36 +45,38 @@ namespace vessel
 {
    class prefixedKeyString : public SDBObject
    {
-   public:
-      static BOOLEAN calcCommonPrefix(const slice &l,
-                                      const slice &r,
-                                      prefixedKeyString &outLeft,
-                                      prefixedKeyString &outRight);
+      public:
+         prefixedKeyString() = default;
+         explicit prefixedKeyString(const slice &suffix, const slice &prefix=slice());
+         prefixedKeyString(const prefixedKeyString &) = default;
+         prefixedKeyString &operator=(const prefixedKeyString &) = default;
+         CHAR operator[](UINT32 pos)const;
+      public:
+         OSS_INLINE BOOLEAN isValid() const {return _suffix.isValid();}
+         OSS_INLINE BOOLEAN hasPrefix() const {return _prefix.isValid();}
+         OSS_INLINE UINT32 getTotalSize() const {return _suffix.size() + _prefix.size();}
+         OSS_INLINE const slice &getPrefix() const {return _prefix;}
+         OSS_INLINE const slice &getSuffix() const {return _suffix;}
+         INT32 init(const slice &suffix, const slice &prefix=slice());
+         void reset();
 
-   public:
-      prefixedKeyString() = delete;
-      prefixedKeyString(const slice &suffix);
-      prefixedKeyString(const slice &suffix, const slice &prefix);
-      prefixedKeyString(const prefixedKeyString &) = default;
-      prefixedKeyString &operator=(const prefixedKeyString &) = default;
-      CHAR operator[](UINT32 pos);
-   public:
-      void reset();
+      public:
+         slice getComparableSuffix() const;
+         INT32 compare(const prefixedKeyString &r) const;
+         INT32 compare(const slice &s) const;
 
-   public:
-      BOOLEAN isValid() const;
-      BOOLEAN hasPrefix() const;
-      INT32 compare(const prefixedKeyString &r) const;
-      slice comparableSuffixSlice() const;
-      const slice& getPrefix() const;
-      const slice& getSuffix() const;
-      keyString getOwnedKeyString() const;
-      ossPoolString getConcatenatedString() const;
+         /// buffer size must be enough to save key string.
+         keyString getKeyString(UINT32 bufferSize, CHAR *buffer) const;
 
-   private:
-      slice _suffix;
-      slice _prefix;
-      UINT32 _comparableSize = 0;
+         /// return invalid key string if failed to allocate mem.
+         keyString getOwnedKeyString() const;
+
+         ossPoolString getConcatenatedString() const;
+
+      private:
+         slice _suffix;
+         slice _prefix;
+         keyStringDescriptor _desc;
    };
 } // namespace vessel
 } // namespace engine

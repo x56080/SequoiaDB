@@ -64,7 +64,6 @@ using namespace bson ;
 #define IXM_LOGICALID_FIELD         FIELD_NAME_LOGICAL_ID
 
 #define IXM_TYPE_FIELD              IXM_FIELD_NAME_TYPE    
-#define IXM_MAX_PREFIX_FIELD        IXM_FIELD_NAME_MAX_PREFIX_FIELDS
 
 #define IXM_CREATED_TIME            "CreatedTime"
 #define IXM_ALTERED_TIME            "AlteredTime"
@@ -77,6 +76,7 @@ using namespace bson ;
 #define IXM_BTREE                   "Btree"
 #define IXM_LSM_TREE                "LsmTree"
 #define IXM_BTREE_ENTRY             "BtreeEntry"
+#define IXM_COMPRESSION             "Compression"
 
 
 #define IXM_GLOBAL_CS_PREFIX        "GIDX_"

@@ -114,10 +114,10 @@ namespace vessel
       OSS_BIT_SET(flags, FLAG_IN_USED);
       data.key.offset = offset;
       data.key.size = size;
-      if (INVALID_RECORD_SLOT_POS != prefixPos)
+      data.lf.prefixSlot = prefixPos;
+      if (isValidRecordSlotPosition(prefixPos))
       {
          OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
-         data.lf.prefixSlot = prefixPos;
       }
    
       return;
