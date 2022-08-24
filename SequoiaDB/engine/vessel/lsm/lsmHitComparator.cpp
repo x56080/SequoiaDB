@@ -47,6 +47,9 @@ namespace vessel
          virtual INT32 Compare(const rocksdb::Slice & a,
                                const rocksdb::Slice & b)const override
          {
+         #if defined(_DEBUG)
+            SDB_ASSERT(!a.empty() && !b.empty(), "can not be empty");
+         #endif
             return keyString::compareCoding(a.size(), a.data(),
                                             b.size(), b.data());
          }
