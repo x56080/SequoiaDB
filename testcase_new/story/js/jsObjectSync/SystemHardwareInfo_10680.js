@@ -354,7 +354,8 @@ function getDiskIO ( cmd )
 {
    var command = "head -n 1 /proc/diskstats | awk '{print NF}'";
    var columns = cmd.run( command ).split( "\n" )[0];
-   if( columns === "14" )
+   //系统内核版本不同，/proc/diskstats的列数不同
+   if( columns >= "14" )
    {
       command = "cat /proc/diskstats | awk '{print $3,$6,$10}'";
    }
@@ -364,7 +365,7 @@ function getDiskIO ( cmd )
    }
    else
    {
-      throw new Error( "getDiskIO fail,get columns in /proc/diskstats" + "7 14" + columns );
+      throw new Error( "getDiskIO fail, the columns of /proc/diskstats is " + columns + " in current kernel version." );
    }
    var result = [];
    var tmpInfo = cmd.run( command ).split( "\n" );
