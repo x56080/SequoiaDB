@@ -891,6 +891,7 @@ namespace vessel
       BOOLEAN appendOnly = FALSE;
       RECORD_SLOT_POS insertPos = INVALID_RECORD_SLOT_POS;
       BOOLEAN needCompact = FALSE;
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
 
       if (OSS_UNLIKELY(!raisedKey.isValid()))
       {
@@ -935,7 +936,11 @@ namespace vessel
             PD_LOG(PDERROR, "failed to locate pos to insert:%d", rc);
             goto error;
          }
-         SDB_ASSERT(!res.isIdentical(), "impossible");
+         else if (res.isIdentical())
+         {
+            rc = SDB_IXM_IDENTICAL_KEY;
+            goto error;
+         }
          insertPos = res.slotPos;
       }
       else
@@ -1324,7 +1329,12 @@ namespace vessel
             PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
             goto error;
          }
-         SDB_ASSERT(!res.isIdentical(), "impossible");
+         else if (res.isIdentical())
+         {
+            rc = SDB_IXM_IDENTICAL_KEY;
+            goto error;
+         }
+
          toInsert = res.slotPos;
       }
       else
