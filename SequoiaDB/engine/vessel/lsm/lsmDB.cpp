@@ -753,8 +753,9 @@ namespace vessel
       PD_LOG(PDINFO, "start to restore hybrid index column family, "
              "checkpoint lsn:[%llu], dps max lsn:[%llu]",
              checkpointLsn, dpsMaxLsn);
+
       s = _db->GetPropertiesOfAllTables(_getHandle(LSM_CF_HYBRID_INDEX), &tpc);
-      if (!s.ok())
+      if (OSS_UNLIKELY(!s.ok()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          PD_LOG(PDERROR, "get properties of cf[%d] failed, status info:[%s]",
@@ -764,7 +765,8 @@ namespace vessel
 
       if (tpc.empty())
       {
-         PD_LOG(PDINFO, "no sst files to restore");
+         PD_LOG(PDINFO, "restore hybrid index column family finished, "
+                "no sst files exist in cf");
          goto done;
       }
 
@@ -775,41 +777,51 @@ namespace vessel
          goto error;
       }
 
+      PD_LOG(PDINFO, "total sst files count:[%zu], min lsn:[%llu], max lsn:[%llu]",
+             tpc.size(), minLsn, maxLsn);
+
       if (DPS_INVALID_LSN_OFFSET == minLsn ||
           DPS_INVALID_LSN_OFFSET == maxLsn)
       {
+         PD_LOG(PDINFO, "restore hybrid index column family finished, "
+                "no sst files to restore in cf");
          goto done;
       }
 
-      PD_LOG(PDINFO, "total sst files count:[%zu], min lsn:[%llu], max lsn:[%llu]",
-             tpc.size(), minLsn, maxLsn);
-      rc = _checkLsn(checkpointLsn, dpsMaxLsn, minLsn, maxLsn, hasInvalid);
+      rc = _checkToRestore(checkpointLsn, dpsMaxLsn, minLsn, maxLsn, hasInvalid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "check lsn failed, rc:%d", rc);
+         PD_LOG(PDERROR, "restore is not permitted, rc:%d", rc);
          goto error;
       }
 
-      if (hasInvalid)
+      if (!hasInvalid)
+      {
+         PD_LOG(PDINFO, "restore hybrid index column family finished, "
+                "all records in cf are valid");
+         goto done;
+      }
+      else
       {
          PD_LOG(PDINFO, "will remove all sst files in hybrid index column family");
          lsmIteratorBound lowBound;
          lsmIteratorBound upBound;
          lowBound.init(globalIndexID::getMinGlobalIndexID());
          upBound.init(globalIndexID::getMaxGlobalIndexID());
-         rc = _removeAllSSTs(LSM_CF_HYBRID_INDEX,
-                             *lowBound.getLowBound(),
-                             *upBound.getLowBound());
+         rc = _removeCFData(LSM_CF_HYBRID_INDEX,
+                            *lowBound.getLowBound(),
+                            *upBound.getLowBound());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "remove sst files in hybrid "
+            PD_LOG(PDERROR, "remove data in hybrid "
                    "index column family failed, rc:%d", rc);
             goto error;
          }
+         PD_LOG(PDINFO, "restore hybrid index column family finished, "
+                "all sst files in cf are deleted");
       }
 
    done:
-      PD_LOG(PDINFO, "end to restore hybrid index column family");
       return rc;
    error:
       goto done;
@@ -864,11 +876,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmDB::_checkLsn(DPS_LSN_OFFSET checkpointLsn,
-                          DPS_LSN_OFFSET dpsMaxLsn,
-                          DPS_LSN_OFFSET minLsn,
-                          DPS_LSN_OFFSET maxLsn,
-                          BOOLEAN &hasInvalid) const
+   INT32 lsmDB::_checkToRestore(DPS_LSN_OFFSET checkpointLsn,
+                                DPS_LSN_OFFSET dpsMaxLsn,
+                                DPS_LSN_OFFSET minLsn,
+                                DPS_LSN_OFFSET maxLsn,
+                                BOOLEAN &hasInvalid) const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != checkpointLsn, "can not be invalid");
@@ -880,13 +892,14 @@ namespace vessel
 
       if (maxLsn > dpsMaxLsn)
       {
-         // if there's a record's lsn less than checkpoint lsn,
-         // delete records will cause the record to be lost.
+         // If there's a record's lsn less than checkpoint lsn,
+         // delete records will cause the record to be lost,
+         // restore is not permitted in this case.
          if (minLsn < checkpointLsn)
          {
-            rc = SDB_VESSEL_INTERNAL_ERR;
+            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
             PD_LOG(PDERROR,
-                   "existing lsn[%llu] is less than checkpoint lsn[%llu]",
+                   "min lsn[%llu] is less than checkpoint lsn[%llu]",
                    minLsn, checkpointLsn);
             goto error;
          }
@@ -905,9 +918,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmDB::_removeAllSSTs(LSM_CF_ID id,
-                               const rocksdb::Slice &lowKey,
-                               const rocksdb::Slice &upKey)
+   INT32 lsmDB::_removeCFData(LSM_CF_ID id,
+                              const rocksdb::Slice &lowKey,
+                              const rocksdb::Slice &upKey)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
@@ -916,8 +929,7 @@ namespace vessel
 
       s = _db->DeleteRange(_getWriteOpt(id),
                            _getHandle(id),
-                           lowKey,
-                           upKey);
+                           lowKey, upKey);
       if (OSS_UNLIKELY(!s.ok()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;

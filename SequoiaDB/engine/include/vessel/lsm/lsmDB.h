@@ -64,8 +64,12 @@ namespace vessel
          /* 
             restore() should be called after open(), any read 
             and write operations are not allowed during restore() execution.
-            If there's a record's lsn in a sst file that 
-            is greater than the dps max lsn, all sst files will be deleted.
+            If there's a record's lsn in a sst file that is greater than 
+            the dps max lsn, it means the record is invalid. Deleting the 
+            invalid record will cause valid records with the same key to be 
+            deleted, all sst files are invalid in this case. 
+            Therefore, if there are invalid records in sst files,
+            all sst files will be deleted during restore() execution.
          */
          INT32 restore(DPS_LSN_OFFSET checkpointLsn, DPS_LSN_OFFSET dpsMaxLsn);
 
@@ -149,17 +153,24 @@ namespace vessel
             const rocksdb::TablePropertiesCollection &tpc,
             DPS_LSN_OFFSET &minLsn, DPS_LSN_OFFSET &maxLsn) const;
 
-         INT32 _checkLsn(DPS_LSN_OFFSET checkpointLsn,
-                         DPS_LSN_OFFSET dpsMaxLsn,
-                         DPS_LSN_OFFSET minLsn,
-                         DPS_LSN_OFFSET maxLsn,
-                         BOOLEAN &hasInvalid) const;
+         /* 
+            Determine if the restore operation is permitted by comparing lsn.
+            If max lsn is greater than dps max lsn, it means that there is 
+            at least one invalid record in sst files. We need to delete all 
+            sst files to restore lsmDB.
+            If min lsn is less than checkpoint lsn, it means that deleting all 
+            sst files will cause the record lost. The restore operation is not
+            permitted. 
+         */ 
+         INT32 _checkToRestore(DPS_LSN_OFFSET checkpointLsn,
+                               DPS_LSN_OFFSET dpsMaxLsn,
+                               DPS_LSN_OFFSET minLsn,
+                               DPS_LSN_OFFSET maxLsn,
+                               BOOLEAN &hasInvalid) const;
 
-         // lowKey must be the smallest key in the specified column family
-         // and upKey must be the largest.
-         INT32 _removeAllSSTs(LSM_CF_ID id,
-                              const rocksdb::Slice &lowKey,
-                              const rocksdb::Slice &upKey);
+         INT32 _removeCFData(LSM_CF_ID id,
+                             const rocksdb::Slice &lowKey,
+                             const rocksdb::Slice &upKey);
 
       private:
          lsmDBOptions _o;
