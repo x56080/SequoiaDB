@@ -177,6 +177,10 @@ public class SDBCollectionProvider implements SDBClientProvider {
         if (shardingKey != null) {
             options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+        } else if (sinkOptions.getAutoSplit() && !pkBson.isEmpty()) {
+            // if user doesn't specify sharding key, using primary key as sharding key.
+            options.put(SDBConstant.SHARDING_KEY, pkBson);
+            options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
         }
 
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
@@ -189,21 +193,6 @@ public class SDBCollectionProvider implements SDBClientProvider {
         }
 
         DBCollection cl = null;
-        // if user doesn't specify sharding key, using primary key as sharding key
-        // and enable autoSplit (for auto sharding).
-        if (sinkOptions.getAutoSharding() && !pkBson.isEmpty()) {
-            options.put(SDBConstant.SHARDING_KEY, pkBson);
-            options.put(SDBConstant.SHARDING_TYPE, SDBConstant.HASH_SHARDING_TYPE);
-            options.put(SDBConstant.AUTO_SPLIT, true);
-
-            // we need to disable EnsureShardingIndex to make sure Sequoiadb not
-            // to create $shard index.
-            options.put(SDBConstant.ENSURE_SHARDING_INDEX, false);
-
-            // autoSplit and Group can't enable at same time.
-            options.removeField(Group);
-        }
-
         try {
             cl = getCollectionSpace().createCollection(collectionStr, options);
         } catch (BaseException ex) {

@@ -81,7 +81,6 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         OPTIONAL_OPTIONS.add(SDBConfigOptions.MAX_BULK_FILL_TIME);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.WRITE_MODE);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.HAS_MULTI_PARTITION);
-        OPTIONAL_OPTIONS.add(SDBConfigOptions.AUTO_SHARDING);
     }
 
     @Override

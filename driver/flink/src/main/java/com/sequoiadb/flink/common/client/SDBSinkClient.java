@@ -289,7 +289,7 @@ public class SDBSinkClient implements SDBClient {
      */
     private DBCollection ensureCollectionWithOptions(String collection, HashSet<String> primaryKey) {
         BSONObject options = new BasicBSONObject();
-        String ShardingKey = sdboptions.getShardingKey();
+        String shardingKey = sdboptions.getShardingKey();
 
         BSONObject pkBson = new BasicBSONObject();
         if (primaryKey != null) {
@@ -298,8 +298,12 @@ public class SDBSinkClient implements SDBClient {
             }
         }
 
-        if (ShardingKey != null){
-            options.put(SDBConstant.SHARDING_KEY, JSON.parse(ShardingKey));
+        if (shardingKey != null){
+            options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
+            options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
+        } else if (sdboptions.getAutoSplit() && !pkBson.isEmpty()) {
+            // if user don't specify sharding key, using primary key as sharding key.
+            options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
         }
 
@@ -313,21 +317,6 @@ public class SDBSinkClient implements SDBClient {
         }
 
         DBCollection cl = null;
-        // if user don't specify sharding key, using primary key as sharding key
-        // and enable autoSplit (for auto sharding).
-        if (sdboptions.getAutoSharding() && !pkBson.isEmpty()) {
-            options.put(SDBConstant.SHARDING_KEY, pkBson);
-            options.put(SDBConstant.SHARDING_TYPE, SDBConstant.HASH_SHARDING_TYPE);
-            options.put(SDBConstant.AUTO_SPLIT, true);
-
-            // we need to disable EnsureShardingIndex to make sure Sequoiadb not
-            // to create $shard index.
-            options.put(SDBConstant.ENSURE_SHARDING_INDEX, false);
-
-            // autoSplit and Group can't enable at same time.
-            options.removeField(Group);
-        }
-
         try {
             cl = getCS().createCollection(collection, options);
         } catch (BaseException ex) {
