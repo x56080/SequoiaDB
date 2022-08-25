@@ -47,7 +47,7 @@ public class SDBSinkOptions extends SDBClientOptions {
 
     private final String compressionType;
 
-    private final boolean autoSplit;
+    private final boolean autoPartition;
 
     private final String group;
 
@@ -76,7 +76,7 @@ public class SDBSinkOptions extends SDBClientOptions {
         this.shardingType = options.get(SDBConfigOptions.SHARDING_TYPE);
         this.replSize = options.get(SDBConfigOptions.REPL_SIZE);
         this.compressionType = options.get(SDBConfigOptions.COMPRESSION_TYPE);
-        this.autoSplit = options.get(SDBConfigOptions.AUTO_SPLIT);
+        this.autoPartition = options.get(SDBConfigOptions.AUTO_PARTITION);
         this.group = options.get(SDBConfigOptions.GROUP);
         this.maxBulkFillTime = options.get(SDBConfigOptions.MAX_BULK_FILL_TIME);
         this.overwrite = options.get(SDBConfigOptions.OVERWRITE);
@@ -130,8 +130,8 @@ public class SDBSinkOptions extends SDBClientOptions {
         return compressionType;
     }
 
-    public boolean getAutoSplit() {
-        return autoSplit;
+    public boolean getAutoPartition() {
+        return autoPartition;
     }
 
     public String getGroup() {

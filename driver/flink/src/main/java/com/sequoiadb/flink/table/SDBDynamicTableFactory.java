@@ -74,7 +74,7 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
         OPTIONAL_OPTIONS.add(SDBConfigOptions.SHARDING_TYPE);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.REPL_SIZE);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.COMPRESSION_TYPE);
-        OPTIONAL_OPTIONS.add(SDBConfigOptions.AUTO_SPLIT);
+        OPTIONAL_OPTIONS.add(SDBConfigOptions.AUTO_PARTITION);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.GROUP);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.SINK_PARALLELISM);
         OPTIONAL_OPTIONS.add(SDBConfigOptions.OVERWRITE);

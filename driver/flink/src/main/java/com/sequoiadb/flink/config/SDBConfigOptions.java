@@ -66,8 +66,8 @@ public class SDBConfigOptions implements Serializable {
     public static final ConfigOption<String> COMPRESSION_TYPE =
             ConfigOptions.key("compressiontype").stringType().defaultValue("lzw");
     public static final ConfigOption<String> GROUP = ConfigOptions.key("group").stringType().noDefaultValue();
-    public static final ConfigOption<Boolean> AUTO_SPLIT =
-            ConfigOptions.key("autosplit").booleanType().defaultValue(false);
+    public static final ConfigOption<Boolean> AUTO_PARTITION =
+            ConfigOptions.key("autopartition").booleanType().defaultValue(true);
     public static final ConfigOption<Integer> SINK_PARALLELISM =
             ConfigOptions.key("parallelism").intType().defaultValue(1);
     public static final ConfigOption<Long> MAX_BULK_FILL_TIME =
