@@ -81,6 +81,9 @@ namespace vessel
 
    INT32 commitTruncateCLLog(const ossPoolString &fullName,
                              DPS_LSN_OFFSET &lsn);
+
+   INT32 commitRemoveCLLog(const ossPoolString &fullName,
+                           DPS_LSN_OFFSET &lsn);
    
 }//namespace vessel
 }//namespace engine

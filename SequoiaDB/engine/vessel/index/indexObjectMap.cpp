@@ -374,5 +374,31 @@ namespace vessel
       }
    }
 
+   INT32 indexObjectMap::beginToRemoveAll(UINT64 lsn)
+   {
+      INT32 rc = SDB_OK;
+      for (auto itr = _objects.cbegin(); itr != _objects.cend(); ++itr)
+      {
+         const indexObject *obj = itr->second.get();
+         if (!obj->isNormal())
+         {
+            PD_LOG(PDERROR, "unnormal index[%s] found", obj->getProperties().getName().c_str());
+            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            goto error;
+         }
+      }
+
+      SDB_ASSERT(_buildingMap.empty(), "impossible");
+      for (auto itr = _objects.begin(); itr != _objects.end(); ++itr)
+      {
+         itr->second->setStatus(INDEX_STATUS_REMOVING);
+         itr->second->resetRebornLSN(lsn);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

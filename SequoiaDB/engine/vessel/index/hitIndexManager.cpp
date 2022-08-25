@@ -548,38 +548,6 @@ namespace vessel
       } 
    }
 
-   // INT32 hitIndexManager::_transferFirstUnremovedCS(BOOLEAN &allRemoved)
-   // {
-   //    INT32 rc = SDB_OK;
-   //    SDB_ASSERT(_job.isValid() && !_job.hasNoCsJob(), "can not be invalid");
-   //    allRemoved = TRUE;
-
-   //    while (!_job.hasNoCsJob())
-   //    {
-   //       BOOLEAN csRemoved = FALSE;
-   //       rc = _beginToTransferCurrentCS(csRemoved);
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to transfer current cs:%d", rc);
-   //          goto error;
-   //       }
-   //       else if (csRemoved)
-   //       {
-   //          _job.popBack();
-   //          continue;
-   //       }
-   //       else
-   //       {
-   //          allRemoved = FALSE;
-   //          break;
-   //       }
-   //    }
-   // done:
-   //    return rc;
-   // error:
-   //    goto done;
-   // }
-
    INT32 hitIndexManager::_beginToTransferCurrentCS(BOOLEAN &csRemoved)
    {
       INT32 rc = SDB_OK;
@@ -617,7 +585,7 @@ namespace vessel
       su = tc->getEnv()->dms.getStorageUnit(id.getSpaceId());
       if (nullptr == su || cjob->csid != su->getLogicalID())
       {
-         PD_LOG(PDERROR, "cs[%d] has been removed", cjob->csid);
+         PD_LOG(PDINFO, "cs[%d] has been removed", cjob->csid);
          csRemoved = TRUE;
          locker.unlock(id.getSpaceId(), SHARED);
          cjob->lockedSid = INVALID_SPACE_ID;

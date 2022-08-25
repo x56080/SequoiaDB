@@ -66,7 +66,13 @@ namespace vessel
       indexId = ctx->getTask().getGlobalIndexID();
       rc = env->dms.getCSByLogicalID(&context, indexId.getLogicalCSID(),
                                      SHARED, &cs);
-      if (SDB_OK != rc)
+      if (SDB_DMS_CS_NOTEXIST == rc)
+      {
+         PD_LOG(PDINFO, "cs[%d] has been removed, ignore it", indexId.getLogicalCSID());
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get cs[%] obj:%d",
                 indexId.getLogicalCSID(), rc);
@@ -75,7 +81,13 @@ namespace vessel
 
       rc = cs->getCollectionByLogicalId(&context, indexId.getLogicalCLID(),
                                         SHARED, &cl);
-      if (SDB_OK != rc)
+      if (SDB_DMS_NOTEXIST == rc)
+      {
+         PD_LOG(PDINFO, "cl[%d] has been removed, ignore it", indexId.getLogicalCLID());
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get cl obj[%d]: rc:%d",
                 indexId.getLogicalCLID(), rc);
@@ -83,7 +95,13 @@ namespace vessel
       }
 
       rc = cl->transferIndexEntries(&context, ctx);
-      if (SDB_OK != rc)
+      if (SDB_IXM_NOTEXIST == rc)
+      {
+         PD_LOG(PDINFO, "index[%s] has been removed, ingore it", indexId.toString().c_str());
+         rc = SDB_OK;
+         goto done;
+      }
+      else if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to transfer index entries:%d", rc);
          goto error;

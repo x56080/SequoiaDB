@@ -95,6 +95,8 @@ namespace vessel
 
          void endToTruncateAll();
 
+         INT32 beginToRemoveAll(UINT64 lsn);
+
       private:
          using _UNIQUE_OBJ_PTR = std::unique_ptr<indexObject>;
          using _OBJECT_PTR_MAP = std::map<UINT32, _UNIQUE_OBJ_PTR>;

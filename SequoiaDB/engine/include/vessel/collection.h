@@ -466,7 +466,8 @@ namespace vessel
          INT32 _endToRemoveIndex(requestContext *context,
                                  UINT32 logicalIndexId);
 
-         INT32 _removeAllIndexes(requestContext *context);
+         INT32 _removeAllIndexes(requestContext *context,
+                                 DPS_LSN_OFFSET lsn);
 
          INT32 _truncateAllIndexes(requestContext *context,
                                    DPS_LSN_OFFSET lsn,

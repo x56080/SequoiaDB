@@ -228,6 +228,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       OSS_LATCH_MODE mode = SHARED;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(nullptr == context))
       {
@@ -247,8 +248,16 @@ namespace vessel
       }
 
       context->setClProperties(_entryBlock.getProperties());
+
+      rc = commitRemoveCLLog(_entryBlock.getProperties()->getFullName(), lsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit remove cl log:%d", rc);
+         goto error;
+      }
+
       _entryBlock._fsm.destroy();
-      _removeAllIndexes(context);
+      _removeAllIndexes(context, lsn);
       releaseAllRdps(context);
       removeCLMetaBlockOnDisk(context);
       if (_cs->getSU()->getLobSpace().isOpen())
@@ -468,7 +477,7 @@ namespace vessel
       }
       return rc;
    error:
-      SDB_ASSERT(FALSE, "TODO: get error when removing index");
+      SDB_ASSERT(SDB_IXM_NOTEXIST == rc, "TODO: get error when removing index");
       goto done;
    }
 
@@ -3127,7 +3136,7 @@ namespace vessel
       {
          PD_LOG(PDERROR, "can not remove index[%s] with status[%d]",
                 indexName.str(), obj->getStatus());
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_IXM_NOTEXIST;
          goto error;
       }
 
@@ -3876,12 +3885,15 @@ namespace vessel
          goto error;
       }
 
-      rc = is.precommit(context, *batch, std::move(ac));
-      if (SDB_OK != rc)
+      if (!ac->isEmpty())
       {
-         PD_LOG(PDERROR, "failed to precommit:%d", rc);
-         is.abort(ac);
-         goto error;
+         rc = is.precommit(context, *batch, std::move(ac));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to precommit:%d", rc);
+            is.abort(ac);
+            goto error;
+         }
       }
       
    done:
@@ -3890,13 +3902,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::_removeAllIndexes(requestContext *context)
+   INT32 collection::_removeAllIndexes(requestContext *context,
+                                       DPS_LSN_OFFSET lsn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       OSS_LATCH_MODE mode = SHARED;
       SDB_ASSERT(context->isMbLocked(&mode) && EXCLUSIVE == mode, "must be locked");
       SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
 
       indexSpace &is = _cs->getSU()->getIndexSpace();
       LPS_PTE_WRITE_BATCH batch;
@@ -3904,10 +3918,11 @@ namespace vessel
       clIndexMetaStorage store(_cs->getLogicalID(), getLogicalID());
       SDB_ASSERT(store.isValid(), "can not be invalid");
       indexObjectMap &indexMap = _entryBlock._indexes;
-      rc = store.destroy();
+
+      rc = indexMap.beginToRemoveAll(lsn);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to remove index meta entrires:%d", rc);
+         PD_LOG(PDERROR, "failed to begin to remove all idnexes:%d", rc);
          goto error;
       }
 
@@ -3930,7 +3945,7 @@ namespace vessel
             PD_LOG(PDERROR, "failed to truncate index[%s], rc:%d", 
                    itr->second->getProperties().getName().c_str(), rc);
             /// continue to remove the next index
-         }
+         }  
       }
 
      _entryBlock._indexes.reset();
@@ -3940,6 +3955,13 @@ namespace vessel
         PD_LOG(PDERROR, "failed to commit write batch:%d", rc);
         goto error;
      }
+
+      rc = store.destroy();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove index meta entrires:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -5598,22 +5620,38 @@ namespace vessel
             if (!value->isDeleted())
             {
                rc = bw.insert(be, value->lsn, value->transID);
-               if (SDB_OK != rc)
+               if (SDB_IXM_IDENTICAL_KEY == rc)
+               {
+                  /// idempotent transferring
+                  rc = SDB_OK;
+               }
+               else if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert btree record:%d", rc);
                   goto error;
                }
-               taskCtx->incInsertedEntryNum();
+               else
+               {
+                  taskCtx->incInsertedEntryNum();
+               }
             }
             else
             {
                rc = bw.remove(be, value->lsn, value->transID);
-               if (SDB_OK != rc)
+               if (SDB_VESSEL_IXM_ITEM_NOT_FOUND == rc)
+               {
+                  /// idempotent transferring
+                  rc = SDB_OK;
+               }
+               else if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to remove btree record:%d", rc);
                   goto error;
                }
-               taskCtx->incRemovedEntryNum();
+               else
+               {
+                  taskCtx->incRemovedEntryNum();
+               }
             }
          }
 

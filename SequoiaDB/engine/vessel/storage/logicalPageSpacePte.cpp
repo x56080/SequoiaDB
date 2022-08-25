@@ -469,8 +469,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(nullptr == context ||
-                       !batch.isValid() ||
-                       !ac || ac->isEmpty()))
+                       !batch.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -479,6 +478,10 @@ namespace vessel
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
+      }
+      else if (ac->isEmpty())
+      {
+         ac.reset();
       }
       else
       {
