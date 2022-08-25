@@ -45,14 +45,15 @@ namespace engine
 {
 namespace vessel
 {
-   ossPoolVector<slice> prefixGenerator::_extractTwo(
+   ossPoolVector<slice> prefixGenerator::_preprocess(
        const ossPoolVector<slice> &v, UINT32 &totalSize) const
    {
       ossPoolVector<slice> out;
+      out.reserve(v.size());
       SDB_ASSERT(v.size() > 1, "Unexpected size");
-      auto left = v.cbegin();
-      auto cur = v.cbegin() + 1;
-      auto right = v.cbegin() + 2;
+      ossPoolVector<slice>::const_iterator left = v.cbegin();
+      ossPoolVector<slice>::const_iterator cur = v.cbegin() + 1;
+      ossPoolVector<slice>::const_iterator right = v.cbegin() + 2;
 
       slice prefix = left->commonPrefix(*cur);
       UINT32 prefixLen = prefix.size();
@@ -61,8 +62,8 @@ namespace vessel
 
       while (right != v.cend())
       {
-         UINT32 prefixLen = std::max(cur->commonPrefix(*left).size(),
-                                     cur->commonPrefix(*right).size());
+         prefixLen = std::max(cur->commonPrefix(*left).size(),
+                              cur->commonPrefix(*right).size());
          out.emplace_back(prefixLen, cur->data());
          totalSize += cur->size();
          left++;
@@ -72,8 +73,6 @@ namespace vessel
       totalSize += cur->size();
       prefixLen = left->commonPrefix(*cur).size();
       out.emplace_back(prefixLen, cur->data());
-
-      totalSize += v.size() * _options.itemExtraCost;
       return std::move(out);
    }
 
@@ -158,7 +157,6 @@ namespace vessel
                   out.insert(out.begin() + posToAssign,
                              tempOut.begin() + posToAssign,
                              tempOut.end());
-                  // out.assign(tempOut.begin(), tempOut.end());
                   saved = saved1;
                }
                else
@@ -176,12 +174,13 @@ namespace vessel
       _options = o;
    }
 
-   prefixGenerator::resultStat prefixGenerator::generate(
-       const ossPoolVector<slice> &v, ossPoolVector<prefixItem> &out) const
-   {
+   prefixGenerator::result prefixGenerator::generate(
+       const ossPoolVector<slice> &v) const
+   {  
+      ossPoolVector<prefixItem> out;
       out.clear();
       UINT32 totalSize = 0;
-      ossPoolVector<slice> prefixItems = _extractTwo(v, totalSize);
+      ossPoolVector<slice> prefixItems = _preprocess(v, totalSize);
       UINT32 reachedIndex = 0;
       INT64 saved = 0;
       INT64 totalSavedSize = 0;
@@ -189,7 +188,7 @@ namespace vessel
       {
          saved += _dfs(prefixItems,
                        reachedIndex,
-                       _options.maxExponent,
+                       _options.maxTreeDepth,
                        reachedIndex,
                        out);
       }
@@ -209,11 +208,25 @@ namespace vessel
                                   }
                                }),
                 out.end());
+
       SDB_ASSERT(totalSavedSize == saved, "should be equal");
-      return {static_cast<UINT32>(saved),
-              totalSize,
-              FLOAT64(saved) / FLOAT64(totalSize),
-              static_cast<UINT32>(out.size())};
+      result r(_options.prefixExtraCost, totalSize, saved, std::move(out));
+      return std::move(r);
+   }
+
+   prefixGenerator::result::result(UINT32 prefixExtraCost,
+                                   UINT32 originalSize,
+                                   UINT32 totalSavedSize,
+                                   ossPoolVector<prefixItem> &&prefixes)
+       : prefixExtraCost(prefixExtraCost), originalSize(originalSize),
+         totalSavedSize(totalSavedSize), prefixes(std::move(prefixes))
+   {
+   }
+
+   prefixGenerator::result::result(prefixGenerator::result &&r)
+       : prefixExtraCost(r.prefixExtraCost), originalSize(r.originalSize),
+         totalSavedSize(r.totalSavedSize), prefixes(std::move(r.prefixes))
+   {
    }
 } // namespace vessel
 } // namespace engine

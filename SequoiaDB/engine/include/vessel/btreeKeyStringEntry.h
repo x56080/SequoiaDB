@@ -54,6 +54,7 @@ namespace vessel
 
       public:
          INT32 init(const slice &s);
+         INT32 moveFrom(keyString &&);
          INT32 shallowCopy(const keyString &ks);
          recordID getRid() const;
    };//class btreeKeyStringEntry
