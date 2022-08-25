@@ -28,7 +28,7 @@ public class SDBConfigOptionsTest {
         Assert.assertEquals(SDBConfigOptions.REPL_SIZE, ConfigOptions.key("replsize").intType().defaultValue(1));
         Assert.assertEquals(SDBConfigOptions.COMPRESSION_TYPE, ConfigOptions.key("compressiontype").stringType().defaultValue("lzw"));
         Assert.assertEquals(SDBConfigOptions.GROUP, ConfigOptions.key("group").stringType().noDefaultValue());
-        Assert.assertEquals(SDBConfigOptions.AUTO_SPLIT, ConfigOptions.key("autosplit").booleanType().defaultValue(false));
+        Assert.assertEquals(SDBConfigOptions.AUTO_PARTITION, ConfigOptions.key("autopartition").booleanType().defaultValue(true));
         Assert.assertEquals(SDBConfigOptions.SINK_PARALLELISM, ConfigOptions.key("parallelism").intType().defaultValue(1));
     }
 }

@@ -301,7 +301,7 @@ public class SDBSinkClient implements SDBClient {
         if (shardingKey != null){
             options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
-        } else if (sdboptions.getAutoSplit() && !pkBson.isEmpty()) {
+        } else if (sdboptions.getAutoPartition() && !pkBson.isEmpty()) {
             // if user don't specify sharding key, using primary key as sharding key.
             options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
@@ -309,7 +309,7 @@ public class SDBSinkClient implements SDBClient {
 
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
-        options.put(SDBConstant.AUTO_SPLIT, sdboptions.getAutoSplit());
+        options.put(SDBConstant.AUTO_SPLIT, "true");
 
         String Group =  sdboptions.getGroup();
         if (Group != null) {
