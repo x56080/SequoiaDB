@@ -71,7 +71,7 @@ public class CL10178 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor te = new ThreadExecutor();
+        ThreadExecutor te = new ThreadExecutor( 300000 );
         for ( int i = 0; i < 10; i++ ) {
             te.addWorker( new AlterCL() );
             te.addWorker( new DropCL() );
