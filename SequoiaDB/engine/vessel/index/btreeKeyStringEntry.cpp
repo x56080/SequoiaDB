@@ -144,6 +144,36 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeKeyStringEntry::moveFrom(keyString &&ks)
+   {
+      INT32 rc = SDB_OK;
+      reset();
+      if (OSS_UNLIKELY(!ks.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (ks.hasKeyHead())
+      {
+         PD_LOG(PDERROR, "unexpected key head");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (keyStringCoder::RID_ENCODING_SIZE != ks.getKeyTailSize())
+      {
+         PD_LOG(PDERROR, "unexpected key tail size");
+         rc = SDB_INVALIDARG;
+         goto error; 
+      }
+      keyString::operator=(std::move(ks));
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
    INT32 btreeKeyStringEntry::shallowCopy(const keyString &ks)
    {
       INT32 rc = SDB_OK;

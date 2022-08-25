@@ -67,7 +67,14 @@ namespace vessel
       }
       OSS_INLINE UINT32 getOptimizedSize()const
       {
-         return getRefCnt() * prefixSize;
+         if(0 == getRefCnt())
+         {
+            return 0;
+         }
+         else
+         {
+            return (getRefCnt() - 1) * prefixSize;
+         }
       }
       OSS_INLINE void incBounds(BOOLEAN both)
       {

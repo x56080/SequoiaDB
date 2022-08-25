@@ -81,36 +81,19 @@ namespace vessel
 
       struct options
       {
-         static constexpr UINT32 DEFAULT_MAX_EXPONENT = 4;
+         static constexpr UINT32 DEFAULT_PREFIX_EXTRA_COST = 0;
+         static constexpr UINT32 DEFAULT_MAX_TREE_DEPTH = 4;
          static constexpr UINT32 DEFAULT_COMBINED_WEIGHT_FACTOR = 1;
-         UINT32 prefixExtraCost = 0;
-         UINT32 itemExtraCost = 0;
-         UINT32 maxExponent = DEFAULT_MAX_EXPONENT;
+         UINT32 prefixExtraCost = DEFAULT_PREFIX_EXTRA_COST;
+         UINT32 maxTreeDepth = DEFAULT_MAX_TREE_DEPTH;
          UINT32 combinedWeightFactor = DEFAULT_COMBINED_WEIGHT_FACTOR;
          options() = default;
          options(UINT32 prefixExtraCost,
-                 UINT32 itemExtraCost,
                  UINT32 maxExponent,
                  UINT32 combinedWeightFactor)
-             : prefixExtraCost(prefixExtraCost), itemExtraCost(itemExtraCost),
-               maxExponent(maxExponent),
+             : prefixExtraCost(prefixExtraCost),
+               maxTreeDepth(maxExponent),
                combinedWeightFactor(combinedWeightFactor)
-         {
-         }
-      };
-      struct resultStat
-      {
-         UINT32 totalSavedSize = 0;
-         UINT32 originalSize = 0;
-         FLOAT64 compressionRatio = 0.0;
-         UINT32 validPrefixItemNum = 0;
-         resultStat(UINT32 totalSavedSize,
-                    UINT32 originalSize,
-                    FLOAT64 compressionRatio,
-                    UINT32 validPrefixItemNum)
-             : totalSavedSize(totalSavedSize), originalSize(originalSize),
-               compressionRatio(compressionRatio),
-               validPrefixItemNum(validPrefixItemNum)
          {
          }
       };
@@ -120,8 +103,30 @@ namespace vessel
 
    public:
       void setOptions(const options &o);
-      resultStat generate(const ossPoolVector<slice> &v,
-                          ossPoolVector<prefixItem> &out) const;
+      
+      class result
+      {
+      public:
+         result(UINT32 prefixExtraCost,
+                UINT32 originalSize,
+                UINT32 totalSavedSize,
+                ossPoolVector<prefixItem> &&prefixes);
+         result(result &&r);
+      
+      public:
+         UINT32 getTotalSavedSize() const;
+         UINT32 getTotalSavedSizeWithoutExtraCost() const;
+         FLOAT64 getCompressionRatio() const;
+
+      public:
+         const UINT32 prefixExtraCost = options::DEFAULT_PREFIX_EXTRA_COST;
+         const UINT32 originalSize = 0;
+         const UINT32 totalSavedSize = 0;
+         const ossPoolVector<prefixItem> prefixes;
+      }; // class result
+
+   public:
+      result generate(const ossPoolVector<slice> &v) const;
 
    private:
       INT64 _dfs(const ossPoolVector<slice> &v,
@@ -129,7 +134,7 @@ namespace vessel
                  UINT32 depth,
                  UINT32 &reachedPos,
                  ossPoolVector<prefixItem> &out) const;
-      ossPoolVector<slice> _extractTwo(const ossPoolVector<slice> &v,
+      ossPoolVector<slice> _preprocess(const ossPoolVector<slice> &v,
                                        UINT32 &totalSize) const;
 
    private:
