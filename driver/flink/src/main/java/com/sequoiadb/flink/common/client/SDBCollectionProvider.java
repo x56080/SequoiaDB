@@ -176,7 +176,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
         if (shardingKey != null) {
             options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
-        } else if (sinkOptions.getAutoSplit() && !pkBson.isEmpty()) {
+        } else if (sinkOptions.getAutoPartition() && !pkBson.isEmpty()) {
             // if user doesn't specify sharding key, using primary key as sharding key.
             options.put(SDBConstant.SHARDING_KEY, pkBson);
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
@@ -184,7 +184,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
 
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
-        options.put(SDBConstant.AUTO_SPLIT, sinkOptions.getAutoSplit());
+        options.put(SDBConstant.AUTO_SPLIT, sinkOptions.getAutoPartition());
 
         String Group = sinkOptions.getGroup();
         if (Group != null) {
