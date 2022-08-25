@@ -63,7 +63,7 @@ public class SubCL10190 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor te = new ThreadExecutor();
+        ThreadExecutor te = new ThreadExecutor( 300000 );
         te.addWorker( new AttachCL() );
         te.addWorker( new DropSubCS() );
         te.run();
