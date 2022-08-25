@@ -184,7 +184,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
 
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
-        options.put(SDBConstant.AUTO_SPLIT, sinkOptions.getAutoPartition());
+        options.put(SDBConstant.AUTO_SPLIT, "true");
 
         String Group = sinkOptions.getGroup();
         if (Group != null) {
