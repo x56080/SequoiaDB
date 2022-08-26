@@ -226,7 +226,7 @@ namespace vessel
       btreeNodeSeekResult res;
       rc = node.locateEntry(entry, res);
       ASSERT_EQ(SDB_OK, rc);
-      EXPECT_EQ(res.slotPos, 4);
+      EXPECT_EQ(res.getPos(), 4);
    }
 
    TEST_F(btree_node_test, base_seek_ks_with_head)
@@ -254,7 +254,7 @@ namespace vessel
       btreeNodeSeekResult res;
       rc = node.seek(ks, res);
       ASSERT_EQ(SDB_OK, rc);
-      EXPECT_EQ(res.slotPos, 4);
+      EXPECT_EQ(res.getPos(), 4);
    }
 
    TEST_F(btree_node_test, base_insert_with_prefix)

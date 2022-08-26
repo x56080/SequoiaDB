@@ -291,6 +291,10 @@ namespace vessel
 
          void _adjustPrefsixSlots(RECORD_SLOT_POS pos, BOOLEAN inc=TRUE);
 
+         void _initSeekResult(INT32 cmp,
+                              RECORD_SLOT_POS pos,
+                              btreeNodeSeekResult &res) const;
+
       protected:
          PAGE_ID _nodeId = INVALID_PAGE_ID;
          UINT32 _depth = 0;

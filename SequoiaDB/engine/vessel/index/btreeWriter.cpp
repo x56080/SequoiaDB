@@ -346,6 +346,7 @@ namespace vessel
          }
          else/// non leaf
          {
+            PAGE_ID child = INVALID_PAGE_ID;
             btreeNodeSeekResult res;
             rc = node.locateEntry(entry, res);
             if (SDB_OK != rc)
@@ -356,7 +357,7 @@ namespace vessel
 
             if (res.isIdentical())
             {
-               rc = node.reactiveRemovedKey(res.slotPos, transID);
+               rc = node.reactiveRemovedKey(res.getPos(), transID);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
@@ -369,23 +370,25 @@ namespace vessel
             else if (!res.hasChild())
             {
                /// child may be removed when removing key
-               PAGE_ID child = INVALID_PAGE_ID;
-               rc = _recreateChildAsLeaf(node, res.slotPos, child);
+               rc = _recreateChildAsLeaf(node, res.getPos(), child);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to recrate child node:%d", rc);
                   goto error;
                }
-               res.child = child;
+            }
+            else
+            {
+               child = res.getChild();
             }
 
-            /// not else if, we may recreate it if not exists
+            /// not else
             {
                btreePathFootprint footprint;
-               footprint.setPos(res.slotPos);
-               footprint.setUpperBound(res.isUpperBound);
+               footprint.setPos(res.getPos());
+               footprint.setUpperBound(res.isUpperBound());
 
-               rc = _bac.pushChildNodeIntoPath(res.child, footprint);
+               rc = _bac.pushChildNodeIntoPath(child, footprint);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to push chil node into path:%d", rc);
@@ -569,7 +572,7 @@ namespace vessel
 
          if (res.isIdentical())
          {
-            rc = _removeEntryFromPathEnd(res.slotPos);
+            rc = _removeEntryFromPathEnd(res.getPos());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to remove entry from leaf node:%d", rc);
@@ -586,9 +589,9 @@ namespace vessel
          else
          {
             btreePathFootprint  fp;
-            fp.setPos(res.slotPos);
-            fp.setUpperBound(res.isUpperBound);
-            PAGE_ID child = node.getChild(res.slotPos);
+            fp.setPos(res.getPos());
+            fp.setUpperBound(res.isUpperBound());
+            PAGE_ID child = node.getChild(res.getPos());
             if (INVALID_PAGE_ID == child)
             {
                rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;

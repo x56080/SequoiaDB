@@ -408,13 +408,13 @@ namespace vessel
          {
             /// 1. it is a leaf node
             /// 2. it's child has been removed
-            _pos = res.slotPos;
+            _pos = res.getPos();
             break;
          }
          else
          {
-            btreePathFootprint fp(res.slotPos, res.isUpperBound);
-            rc = _bac.pushChildNodeIntoPath(res.child, fp);
+            btreePathFootprint fp(res.getPos(), res.isUpperBound());
+            rc = _bac.pushChildNodeIntoPath(res.getChild(), fp);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "faield to push child into path:%d", rc);
@@ -427,7 +427,7 @@ namespace vessel
 
       } while (TRUE);
 
-      if (res.isUpperBound)
+      if (res.isUpperBound())
       {
          _relocateToAncestorNode(TRUE);
       }

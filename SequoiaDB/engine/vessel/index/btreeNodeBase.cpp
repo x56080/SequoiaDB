@@ -527,8 +527,14 @@ namespace vessel
          PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
          goto error;
       }
-
-      if (res.isUpperBound && _isRecentWriteOrdered())
+      else if (res.isIdentical())
+      {
+         /// identical key should never be inserted.
+         PD_LOG(PDERROR, "identical entry found at[%d]", res.getPos());
+         rc = SDB_IXM_IDENTICAL_KEY;
+         goto error;
+      }
+      else if (res.isUpperBound() && _isRecentWriteOrdered())
       {
          idleRight = TRUE;
       }
@@ -577,9 +583,9 @@ namespace vessel
       raisedKey.fromLeaf = TRUE;
       raisedKey.transID = _getReadableHead()->transID;
 
-      if (res.slotPos <= pivot)
+      if (res.getPos() <= pivot)
       {
-         rc = _leafInsert(entry, transID, res.slotPos);
+         rc = _leafInsert(entry, transID, res.getPos());
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert key after node[%d] split:%d",
@@ -590,7 +596,7 @@ namespace vessel
       }
       else
       {
-         rc = rightNode->_leafInsert(entry, transID, res.slotPos - pivot - 1);
+         rc = rightNode->_leafInsert(entry, transID, res.getPos() - pivot - 1);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert key into right node[%d]:%d",
@@ -684,7 +690,6 @@ namespace vessel
             frontPrefixesOffset + prefixes.size() * BTREE_NODE_PREFIX_SLOT_SIZE;
       UINT32 backOffset = writableBuffer.getSize();
       UINT32 compressedItemCount = 0;
-      UINT32 lastHigh = 0;
       btreeNodePageHead *wHead =
           writableBuffer.getWritableObjPtr<btreeNodePageHead>(0);
       *wHead=*oldHead;
@@ -946,10 +951,12 @@ namespace vessel
          }
          else if (res.isIdentical())
          {
+            /// should never found an identical raised key even it is marked deleted. 
+            PD_LOG(PDERROR, "identical entry found at[%d]", res.getPos());       
             rc = SDB_IXM_IDENTICAL_KEY;
             goto error;
          }
-         insertPos = res.slotPos;
+         insertPos = res.getPos();
       }
       else
       {
@@ -1119,7 +1126,7 @@ namespace vessel
       else if (!_getReadableSlot(pos)->isMarkedDeleted())
       {
          PD_LOG(PDERROR, "item[%d] is not marked as removed", pos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_IXM_IDENTICAL_KEY;
          goto error;
       }
       else
@@ -1239,8 +1246,15 @@ namespace vessel
          PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
          goto error;
       }
+      else if (res.isIdentical())
+      {
+         /// should never found an identical raised key even it is marked deleted. 
+         PD_LOG(PDERROR, "identical entry found at[%d]", res.getPos());       
+         rc = SDB_IXM_IDENTICAL_KEY;
+         goto error;
+      }
 
-      if (res.slotPos == _getReadableHead()->totalSlotCount &&
+      if (res.getPos() == _getReadableHead()->totalSlotCount &&
           _isRecentWriteOrdered())
       {
          idleRight = TRUE;
@@ -1277,9 +1291,9 @@ namespace vessel
       /// do not compact it.
 
       /// should not get error from here
-      if (res.slotPos <= pivot)
+      if (res.getPos() <= pivot)
       {
-         rc = _insertRaisedKey(raisedKey, res.slotPos);
+         rc = _insertRaisedKey(raisedKey, res.getPos());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert raised key to current node:%d", rc);
@@ -1289,7 +1303,7 @@ namespace vessel
       }
       else
       {
-         rc = rightNode->_insertRaisedKey(raisedKey, res.slotPos - pivot - 1);
+         rc = rightNode->_insertRaisedKey(raisedKey, res.getPos() - pivot - 1);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert raised key into right node[%d]:%d",
@@ -1346,11 +1360,12 @@ namespace vessel
          }
          else if (res.isIdentical())
          {
+            PD_LOG(PDERROR, "identical key found at[%d]", res.getPos());
             rc = SDB_IXM_IDENTICAL_KEY;
             goto error;
          }
 
-         toInsert = res.slotPos;
+         toInsert = res.getPos();
       }
       else
       {
@@ -1936,22 +1951,22 @@ namespace vessel
          INT16 step = count >> 1;
          RECORD_SLOT_POS pos = low + step;
          _itemRef ref = _getItemRef(pos);
-         SDB_ASSERT(ref.isValid(), "can not be invalid");
          if(OSS_UNLIKELY(!ref.isValid()))
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "failed to get item[%d], rc:%d", pos, rc);
+            SDB_ASSERT(FALSE, "can not be invalid");
             goto error;
          }
       
          if (ref.slot->isKeyCompressed())
          {
             prefixedKeyString pks = _getPrefixedKeyString(pos);
-            SDB_ASSERT(pks.isValid(), "can not be invalid");
             if(OSS_UNLIKELY(!pks.isValid()))
             {
                rc = SDB_VESSEL_INTERNAL_ERR;
                PD_LOG(PDERROR, "failed to get prefixed item[%d], rc:%d", pos, rc);
+               SDB_ASSERT(FALSE, "can not be invalid");
                goto error;
             }
             cmp = pks.compare(target);
@@ -1959,11 +1974,11 @@ namespace vessel
          else
          {
             btreeKeyStringEntry entry(ref.data);
-            SDB_ASSERT(entry.isValid(), "can not be invalid");
             if(OSS_UNLIKELY(!entry.isValid()))
             {
                rc = SDB_VESSEL_INTERNAL_ERR;
                PD_LOG(PDERROR, "failed to transform item[%d] to entry, rc:%d", pos, rc);
+               SDB_ASSERT(FALSE, "can not be invalid");
                goto error;
             }
             cmp = entry.getKeySlice().compare(target);
@@ -1979,18 +1994,11 @@ namespace vessel
          }
       }
 
-      res.res = cmp;
-      res.slotPos = low;
-      res.isUpperBound = (low == head->totalSlotCount);
-      if (!isLeaf())
-      {
-         res.child = (low == head->totalSlotCount) ?
-                     head->rightChild :
-                     _getReadableSlot(low)->data.nlf.leftChild;
-      }
+      _initSeekResult(cmp, low, res);
    done:
       return rc;
    error:
+      res.reset();
       goto done;
    }
 
@@ -2016,22 +2024,22 @@ namespace vessel
          INT16 step = count >> 1;
          RECORD_SLOT_POS pos = low + step;
          _itemRef ref = _getItemRef(pos);
-         SDB_ASSERT(ref.isValid(), "can not be invalid");
          if(OSS_UNLIKELY(!ref.isValid()))
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             PD_LOG(PDERROR, "failed to get item[%d], rc:%d", pos, rc);
+            SDB_ASSERT(FALSE, "can not be invalid");
             goto error;
          }
 
          if (ref.slot->isKeyCompressed())
          {
             prefixedKeyString pks = _getPrefixedKeyString(pos);
-            SDB_ASSERT(pks.isValid(), "can not be invalid");
             if(OSS_UNLIKELY(!pks.isValid()))
             {
                rc = SDB_VESSEL_INTERNAL_ERR;
                PD_LOG(PDERROR, "failed to get prefixed item[%d], rc:%d", pos, rc);
+               SDB_ASSERT(FALSE, "can not be invalid");
                goto error;
             }
             cmp = pks.compare(target);
@@ -2039,11 +2047,11 @@ namespace vessel
          else
          {
             btreeKeyStringEntry entry(ref.data);
-            SDB_ASSERT(entry.isValid(), "can not be invalid");
             if(OSS_UNLIKELY(!entry.isValid()))
             {
                rc = SDB_VESSEL_INTERNAL_ERR;
                PD_LOG(PDERROR, "failed to transform item[%d] to entry, rc:%d", pos, rc);
+               SDB_ASSERT(FALSE, "can not be invalid");
                goto error;
             }
             cmp = entry.getKeySlice().compare(target);
@@ -2059,18 +2067,12 @@ namespace vessel
          }
       }
 
-      res.res = cmp;
-      res.slotPos = low;
-      res.isUpperBound = (low == head->totalSlotCount);
-      if (!isLeaf())
-      {
-         res.child = (low == head->totalSlotCount) ?
-                     head->rightChild :
-                     _getReadableSlot(low)->data.nlf.leftChild;
-      }
+      _initSeekResult(cmp, low, res);
+
    done:
       return rc;
    error:
+      res.reset();
       goto done;
    }
 
@@ -2942,6 +2944,38 @@ namespace vessel
          }
       }
       return i;
+   }
+
+   void btreeNodeBase::_initSeekResult(INT32 cmp,
+                                       RECORD_SLOT_POS pos,
+                                       btreeNodeSeekResult &res) const
+   {
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
+      const btreeNodePageHead *head = _getReadableHead();
+      SDB_ASSERT(pos <= head->totalSlotCount, "out of bound");
+
+      res._res = cmp;
+      res._slotPos = pos;
+      res._isUpperBound = (pos == head->totalSlotCount);
+
+      if (head->isLeaf())
+      {
+         res._child = INVALID_PAGE_ID;
+         res._isMarkedDeleted = FALSE;
+      }
+      else if (res.isUpperBound())
+      {
+         res._child = head->rightChild;
+         res._isMarkedDeleted = FALSE;
+      }
+      else
+      {
+         const btreeItemSlot *slot = _getReadableSlot(pos);
+         res._child = slot->data.nlf.leftChild;
+         res._isMarkedDeleted = slot->isMarkedDeleted();
+      }
+
+      return;
    }
 } // namespace vessel
 

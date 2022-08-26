@@ -42,30 +42,43 @@ namespace engine
 {
 namespace vessel
 {
-   struct btreeNodeSeekResult : public SDBObject
+   class btreeNodeSeekResult : public SDBObject
    {
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return isValidRecordSlotPosition(slotPos);
-      }
-      OSS_INLINE void reset()
-      {
-         res = FALSE;
-         child = INVALID_PAGE_ID;
-         slotPos = INVALID_RECORD_SLOT_POS;
-         isUpperBound = FALSE;
-         return;
-      }
-      OSS_INLINE BOOLEAN isIdentical() const
-      {
-         return 0 == res && !isUpperBound;
-      }
-      OSS_INLINE BOOLEAN hasChild()const {return INVALID_PAGE_ID != child;}
+      friend class btreeNodeBase;
+      public:
+         btreeNodeSeekResult() = default;
+         ~btreeNodeSeekResult() = default;
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return isValidRecordSlotPosition(_slotPos);
+         }
+         OSS_INLINE void reset()
+         {
+            _res = FALSE;
+            _child = INVALID_PAGE_ID;
+            _slotPos = INVALID_RECORD_SLOT_POS;
+            _isUpperBound = FALSE;
+            _isMarkedDeleted = FALSE;
+            return;
+         }
+         OSS_INLINE BOOLEAN isIdentical() const
+         {
+            return 0 == _res && !_isUpperBound;
+         }
+         OSS_INLINE BOOLEAN getChild()const {return _child;}
+         OSS_INLINE BOOLEAN hasChild()const {return INVALID_PAGE_ID != _child;}
+         OSS_INLINE BOOLEAN isMaredDeleted()const {return _isMarkedDeleted;}
+         OSS_INLINE RECORD_SLOT_POS getPos()const {return _slotPos;}
+         OSS_INLINE INT32 getCmpRes()const {return _res;}
+         OSS_INLINE BOOLEAN isUpperBound()const {return _isUpperBound;}
 
-      INT32 res = 0;
-      PAGE_ID child = INVALID_PAGE_ID;
-      RECORD_SLOT_POS slotPos = INVALID_RECORD_SLOT_POS;
-      BOOLEAN isUpperBound = FALSE;
+      private:
+         INT32 _res = 0;
+         PAGE_ID _child = INVALID_PAGE_ID;
+         BOOLEAN _isUpperBound = FALSE;
+         BOOLEAN _isMarkedDeleted = FALSE;
+         RECORD_SLOT_POS _slotPos = INVALID_RECORD_SLOT_POS;
    };//class btreeNodeSeekResult
 
    
