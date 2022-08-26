@@ -18,6 +18,7 @@ testConf.csName  = COMMCSNAME + "_xxx";         指定框架创建的 cs 名
 testConf.csOpt = {};                            指定创建的 cs 配置项
 testConf.clName = COMMCLNAME + "_xxx";          指定框架创建的 cl 名
 testConf.clOpt = {};                            指定创建的 cl 配置项
+testConf.testGroups = null;                     用于测试分组，对相同分组的用例统一修改配置(只能用于串行用例，或修改不影响其他用例的配置，如：setSessionAttr)
 
 出参：
 function test(testPara) {}
@@ -31,7 +32,7 @@ testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testCon
 var testConf = {
    skipStandAlone: false, skipOneDuplicatePerGroup: false, skipOneGroup: false,
    useSrcGroup: false, useDstGroup: false, skipGroupLessThanThree: false, skipExistOneNodeGroup: false,
-   skipTest: false
+   skipTest: false, testGroups: null
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096} ;
 // e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} ;
@@ -40,7 +41,7 @@ var testConf = {
 
 var testPara = {};
 
-
+var recycleBinConf = {};
 var oneGroup = 1;
 var nodeNum = 1;
 var threeGroup = 3;
@@ -236,9 +237,47 @@ function dropTestCL ( db, testConf )
    }
 }
 
+function initTestGroups ( db, testGroups )
+{
+   if( testGroups == null )
+   {
+      return;
+   }
+   else if( testGroups.indexOf( "recycleBin" ) > -1 )
+   {
+      // 将回收站配置设置为默认配置
+      recycleBinConf = db.getRecycleBin().getDetail().toObj();
+      db.getRecycleBin().alter( { "Enable": true, "ExpireTime": 4320, "MaxItemNum": 100, "MaxVersionNum": 2, "AutoDrop": false } );
+   }
+}
+
+function finiTestGroups ( testGroups )
+{
+   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+   try
+   {
+      if( testGroups == null )
+      {
+         return;
+      }
+      else if( testGroups.indexOf( "recycleBin" ) > -1 )
+      {
+         // 恢复回收站配置为执行用例前的配置
+         db.getRecycleBin().alter( recycleBinConf );
+      }
+   } finally
+   {
+      if( db !== undefined )
+      {
+         db.close();
+      }
+   }
+}
+
 function commonSetUp ( db, testConf )
 {
    checkEnv( db, testConf );
+   initTestGroups( db, testConf.testGroups );
 
    testPara.testCS = createTestCS( db, testConf );
    testPara.testCL = createTestCL( db, testConf );
@@ -293,5 +332,6 @@ function main ()
       {
          commonTearDown( db, testConf );
       }
+      finiTestGroups( testConf.testGroups );
    }
 }

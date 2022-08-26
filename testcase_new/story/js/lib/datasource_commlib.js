@@ -127,6 +127,13 @@ function getDSMajorVersion ( dataSrcName )
    return majorVersion;
 }
 
+function getDSVersion ( dataSrcName )
+{
+   var DSVersion = db.listDataSources( { Name: dataSrcName } ).current().toObj().DSVersion;
+   var version = DSVersion.split( "." );
+   return version;
+}
+
 function getCoordUrl ( sdb )
 {
    var coordUrls = [];

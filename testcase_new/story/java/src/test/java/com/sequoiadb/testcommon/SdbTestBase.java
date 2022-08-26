@@ -70,6 +70,14 @@ public class SdbTestBase {
     public static final String TRANSREPLSIZE = "transreplsize";
     public static final String TRANSALLOWLOCKESCALATION = "transallowlockescalation";
     public static final String TRANSMAXLOCKNUM = "transmaxlocknum";
+    public static final String RECYCLEBIN = "recycleBin";
+    public static final String RECYCLEBINDEFAULTATTR = "recycleBinDefaultAttr";
+    public static final String RECYCLEBINUSERATTR = "recycleBinUserAttr";
+    public static final String ENABLE = "Enable";
+    public static final String EXPIRETIME = "ExpireTime";
+    public static final String MAXITEMNUM = "MaxItemNum";
+    public static final String MAXVERSIONNUM = "MaxVersionNum";
+    public static final String AUTODROP = "AutoDrop";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -79,6 +87,7 @@ public class SdbTestBase {
     private static final Map< String, BSONObject > group2Conf = new HashMap< String, BSONObject >();
     private static final Map< String, AtomicInteger > group2Count = new HashMap< String, AtomicInteger >();
     private static final Map< String, BSONObject > node2Conf = new HashMap< String, BSONObject >();
+    private static final Map< String, BSONObject > recycleBinAttr = new HashMap< String, BSONObject >();
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static List< String > coordUrls = new ArrayList<>();
@@ -155,6 +164,16 @@ public class SdbTestBase {
         group2Conf.get( LOCKESCALATION ).put( TRANSREPLSIZE, transReplsize );
         group2Conf.get( LOCKESCALATION ).put( TRANSALLOWLOCKESCALATION, true );
         group2Conf.get( LOCKESCALATION ).put( TRANSMAXLOCKNUM, 10 );
+
+        // 添加回收站默认属性
+        recycleBinAttr.put( RECYCLEBINDEFAULTATTR, new BasicBSONObject() );
+        recycleBinAttr.get( RECYCLEBINDEFAULTATTR ).put( ENABLE, true );
+        recycleBinAttr.get( RECYCLEBINDEFAULTATTR ).put( EXPIRETIME, 4320 );
+        recycleBinAttr.get( RECYCLEBINDEFAULTATTR ).put( MAXITEMNUM, 100 );
+        recycleBinAttr.get( RECYCLEBINDEFAULTATTR ).put( MAXVERSIONNUM, 2 );
+        recycleBinAttr.get( RECYCLEBINDEFAULTATTR ).put( AUTODROP, false );
+
+        recycleBinAttr.put( RECYCLEBINUSERATTR, new BasicBSONObject() );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -241,7 +260,8 @@ public class SdbTestBase {
             options.setSocketKeepAlive( true );
             sequoiadb = new Sequoiadb( SdbTestBase.coordUrl, "", "", options );
             if ( sequoiadb.isCollectionSpaceExist( csName ) ) {
-                sequoiadb.dropCollectionSpace( csName );
+                sequoiadb.dropCollectionSpace( csName,
+                        new BasicBSONObject( "SkipRecycleBin", true ) );
             }
             CollectionSpace cs = sequoiadb.createCollectionSpace( csName,
                     ( BSONObject ) JSON.parse( "{LobPageSize: 8192}" ) );
@@ -249,7 +269,8 @@ public class SdbTestBase {
                     .parse( "{ShardingKey:{_id:1},AutoSplit:true}" ) );
             // add capped cs;
             if ( sequoiadb.isCollectionSpaceExist( cappedCSName ) ) {
-                sequoiadb.dropCollectionSpace( cappedCSName );
+                sequoiadb.dropCollectionSpace( cappedCSName,
+                        new BasicBSONObject( "SkipRecycleBin", true ) );
             }
             sequoiadb.createCollectionSpace( cappedCSName,
                     ( BSONObject ) JSON.parse( "{Capped:true}" ) );
@@ -331,19 +352,44 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, LOCKESCALATION })
+    private static void modifyRecycleBinAttr( BSONObject attr ) {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                options )) {
+            sdb.getRecycleBin().alter( attr );
+        }
+    }
+
+    private static void getRecycleBinAttr() {
+        try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                options )) {
+            recycleBinAttr.get( RECYCLEBINUSERATTR )
+                    .putAll( sdb.getRecycleBin().getDetail() );
+        }
+    }
+
+    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
+            LOCKESCALATION, RECYCLEBIN })
     public static synchronized void initTestGroups() {
-        if ( testGroup == null )
+        if ( testGroup == null ) {
             return;
+        } else if ( testGroup.equals( RECYCLEBIN ) ) {
+            // 修改回收站属性为默认属性
+            getRecycleBinAttr();
+            modifyRecycleBinAttr( recycleBinAttr.get( RECYCLEBINDEFAULTATTR ) );
+        }
         System.out.println( "init " + testGroup + " Groups..........." );
         modifyNodeConf( group2Conf.get( testGroup ), null );
     }
 
-    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO,
-            RCUSERBS, LOCKESCALATION }, alwaysRun = true)
+    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
+            LOCKESCALATION, RECYCLEBIN }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
-        if ( testGroup == null )
+        if ( testGroup == null ) {
             return;
+        } else if ( testGroup.equals( RECYCLEBIN ) ) {
+            // 执行完用例后将回收站配置改为执行用例前配置
+            modifyRecycleBinAttr( recycleBinAttr.get( RECYCLEBINUSERATTR ) );
+        }
         System.out.println( "fini " + testGroup + " Groups..........." );
         for ( String key : node2Conf.keySet() ) {
             BasicBSONObject opt = new BasicBSONObject();
