@@ -49,8 +49,10 @@ namespace vessel
          ~btreeKeyStringEntry() = default;
          btreeKeyStringEntry(const slice &s);
          btreeKeyStringEntry(UINT32 size, const CHAR *data);
-         btreeKeyStringEntry(keyString &&o)noexcept;
-         btreeKeyStringEntry &operator=(keyString &&o)noexcept;
+         btreeKeyStringEntry(const btreeKeyStringEntry &);
+         btreeKeyStringEntry &operator=(const btreeKeyStringEntry &);
+         btreeKeyStringEntry(btreeKeyStringEntry &&o)noexcept;
+         btreeKeyStringEntry &operator=(btreeKeyStringEntry &&o)noexcept;
 
       public:
          INT32 init(const slice &s);

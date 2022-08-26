@@ -50,7 +50,7 @@ namespace vessel
          ~btreeSplitRaisedKey() = default;
          btreeSplitRaisedKey(const btreeSplitRaisedKey &) = delete;
          btreeSplitRaisedKey &operator=(const btreeSplitRaisedKey &) = delete;
-         btreeSplitRaisedKey(btreeSplitRaisedKey &&o):
+         btreeSplitRaisedKey(btreeSplitRaisedKey &&o)noexcept:
          entry(std::move(o.entry)),
          leftChild(o.leftChild),
          rightChild(o.rightChild),
@@ -60,7 +60,7 @@ namespace vessel
             o.reset();
          }
 
-         btreeSplitRaisedKey &operator=(btreeSplitRaisedKey &&o)
+         btreeSplitRaisedKey &operator=(btreeSplitRaisedKey &&o)noexcept
          {
             reset();
             entry = std::move(o.entry);

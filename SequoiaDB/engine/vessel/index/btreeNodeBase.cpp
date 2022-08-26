@@ -374,10 +374,10 @@ namespace vessel
             }
             else
             {
-               entry = std::move(pks.getOwnedKeyString());
-               if (!entry.isValid())
+               rc = entry.moveFrom(pks.getOwnedKeyString());
+               if (OSS_UNLIKELY(SDB_OK != rc))
                {
-                  PD_LOG(PDERROR, "failed to get owned entry at pos[%d]", pos);
+                  PD_LOG(PDERROR, "failed to get owned entry at pos[%d], rc:%d", pos, rc);
                   rc = SDB_OOM;
                   goto error;
                }
@@ -395,7 +395,14 @@ namespace vessel
                   PD_LOG(PDERROR, "failed to get key string owned:%d", rc);
                   goto error;
                }
-               entry = std::move(k);
+               
+               rc = entry.moveFrom(std::move(k));
+               if (OSS_UNLIKELY(SDB_OK != rc))
+               {
+                  PD_LOG(PDERROR, "failed to get owned entry at pos[%d], rc:%d", pos, rc);
+                  rc = SDB_OOM;
+                  goto error;
+               }
             }
             else
             {

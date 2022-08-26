@@ -81,38 +81,32 @@ namespace vessel
       }
    }
    
-   btreeKeyStringEntry::btreeKeyStringEntry(keyString &&o)noexcept:
-   keyString(std::move(o))
-   {
-      if (isValid())
-      {
-         if (hasKeyHead() ||
-             keyStringCoder::RID_ENCODING_SIZE != getKeyTailSize())
-         {
-            PD_LOG(PDERROR, "invalid btree entry key string");
-            SDB_ASSERT(FALSE, "invalid entry");
-            reset();
-         }
-      }
-   }
-
-   btreeKeyStringEntry &btreeKeyStringEntry::operator=(keyString &&o)noexcept
+   btreeKeyStringEntry &btreeKeyStringEntry::operator=(const btreeKeyStringEntry &o)
    {
       reset();
       if (o.isValid())
       {
-         if (o.hasKeyHead() ||
-             keyStringCoder::RID_ENCODING_SIZE != o.getKeyTailSize())
-         {
-            PD_LOG(PDERROR, "invalid btree entry key string");
-            SDB_ASSERT(FALSE, "invalid entry");
-            o.reset();
-         }
-         else
-         {
-            keyString::operator=(std::move(o));
-         }
+         keyString::operator=(static_cast<keyString>(o));
       }
+      return *this;
+   }
+
+   btreeKeyStringEntry::btreeKeyStringEntry(const btreeKeyStringEntry &o):
+   keyString(static_cast<keyString>(o))
+   {
+
+   }
+
+   btreeKeyStringEntry::btreeKeyStringEntry(btreeKeyStringEntry &&o)noexcept:
+   keyString(std::move(o))
+   {
+      
+   }
+
+   btreeKeyStringEntry &btreeKeyStringEntry::operator=(btreeKeyStringEntry &&o)noexcept
+   {
+      reset();
+      keyString::operator=(std::move(o));
       return *this;
    }
 
