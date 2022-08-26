@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * test push down function are all normal use,mainly:
@@ -82,7 +81,7 @@ public class PushdownTest {
                 "'collectionspace' = '" + cs + "'," +
                 "'username' = '" + username + "'," +
                 "'password' = '" + password + "'," +
-                "'overwrite' = 'true')";
+                "'overwrite' = 'false')";
         tableEnvironment.executeSql(sdbSql);
 
         Table sourceTable = tableEnvironment.from("sourceTable");
@@ -325,14 +324,14 @@ public class PushdownTest {
 
         BSONObject condition21 = new BasicBSONObject();
         BSONObject value21 = new BasicBSONObject();
-        value21.put("gt", 1);
+        value21.put("$gt", 1);
         condition21.put("id", value21);
         orList2.add(condition21);
 
         BSONObject condition22 = new BasicBSONObject();
         BSONObject value22 = new BasicBSONObject();
         value22.put("$ne", false);
-        condition22.put("property", value22);
+        condition22.put("sex", value22);
         orList2.add(condition22);
         condition2.put("$or", orList2);
         andList.add(condition2);
@@ -342,7 +341,7 @@ public class PushdownTest {
 
         BSONObject condition31 = new BasicBSONObject();
         BSONObject value31 = new BasicBSONObject();
-        value31.put("gt", 10);
+        value31.put("$gt", 10);
         condition31.put("age", value31);
         orList3.add(condition31);
 
@@ -359,7 +358,7 @@ public class PushdownTest {
 
         BSONObject condition41 = new BasicBSONObject();
         BSONObject value41 = new BasicBSONObject();
-        value41.put("gt", 10);
+        value41.put("$gt", 10);
         condition41.put("age", value41);
         orList4.add(condition41);
 
