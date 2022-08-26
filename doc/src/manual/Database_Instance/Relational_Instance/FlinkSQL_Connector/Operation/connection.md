@@ -80,12 +80,12 @@ WITH(
 | ignorenullfield         | boolean | 向表中插入数据时忽略值为 null 的字段，默认值为 false，表示不忽略值为 null 的字段             | 否   |
 | pagesize                | int32   | insert into select 创建集合空间时指定数据页大小，默认值为 65536 <br> 如果集合空间已存在则忽略该参数               | 否   |
 | domain                  | string  | insert into select 创建集合空间时指定所属域 <br> 如果集合空间已存在则忽略该参数              | 否   |
-| shardingkey             | json    | insert into select 创建集合时指定分区键  | 否   |
-| shardingtype            | string  | insert into select 创建集合时指定分区类型，默认值为"hash"，取值如下：<br> "range"：范围分区<br>"hash"：散列分区   | 否   |
+| group                   | string  | insert into select 创建集合时指定创建在某个复制组<br>所指定的复制组必须存在于集合空间所属的域中                                                         | 否   |
+| autopartition           | boolean | insert into select 创建集合时指定是否为分区集合，默认值为 true，表示创建分区集合，并按如下规则进行自动分区：<br> 1）优先根据分区键进行自动分区 <br> 2）如果未指定分区键，将根据主键进行自动分区 <br>  3）如果未指定分区键和主键，将创建普通集合      <br> 该参数不能与参数 group 同时使用         | 否   |
+| shardingkey             | json    | insert into select 创建集合时指定分区键 | 否   |
+| shardingtype            | string  | insert into select 创建集合时指定分区类型，默认值为"hash"，表示散列分区 <br> 该参数目前仅支持取值为"hash" |
 | replsize                | int32   | insert into select 创建集合时指定副本写入数  | 否   |
 | compressiontype         | string  | insert into select 创建集合时指定压缩类型，默认值为"lzw"，取值如下：<br> "none"：关闭压缩 <br> "lzw"：lzw 算法压缩 <br> "snappy"：snappy 算法压缩       | 否   |
-| autopartition           | boolean | insert into select 创建集合时指定是否创建分区表，默认值为 true，表示创建分区表 <br> 该参数必须配合散列分区和域使用，且不能与 group 同时使用              | 否   |
-| group                   | string  | insert into select 创建集合时指定创建在某个复制组<br>所指定的复制组必须存在于集合空间所属的域中                                                         | 否   |
 |  parallelism            | int32   | Sink 并发度，默认值为 1，取值应小于当前 Flink 集群的总 Slot 数量 <br> 建议取值为 SequoiaDB 集群中协调节点数量的倍数                           | 否   |  
 | overwrite           | boolean | Sink 是否开启覆写，默认值为 true，表示开启 <br> 建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性 <br> 该参数取值为 true 时，需保证 Flink 映射表存在主键，且所映射的 SequoiaDB 集合存在对应的唯一索引                                                              | 否   |
 
