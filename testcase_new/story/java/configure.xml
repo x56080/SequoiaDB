@@ -38,7 +38,7 @@
             class-name="com.sequoiadb.testcommon.StoryInvokeMethodListener" />
     </listeners>
 
-    <!--The testcases of different configure should be placed in different 
+    <!--The testcases of different configure should be placed in different
         <test> -->
     <test name="rc" parallel="classes" thread-count="5">
         <groups>
@@ -110,7 +110,7 @@
             <package name="com.sequoiadb.transaction.rcuserbs" />
             <package name="com.sequoiadb.transaction.rcwaitlock" />
         </packages>
-    </test> 
+    </test>
 
     <test name="normaltest" parallel="classes" thread-count="5">
         <packages>
@@ -119,7 +119,7 @@
             <package name="com.sequoiadb.transaction.metadata" />
         </packages>
     </test>
-    
+
     <test name="rusync" parallel="classes" thread-count="1">
         <groups>
             <run>
@@ -130,7 +130,7 @@
             <package name="com.sequoiadb.transaction.sessionserial" />
         </packages>
     </test>
-    
+
     <test name="synctest" parallel="classes" thread-count="1">
         <packages>
             <package name="com.sequoiadb.transaction.metadataserial" />
@@ -161,7 +161,7 @@
             <package name="com.sequoiadb.transaction.rcauto" />
         </packages>
     </test>
-    
+
     <test name="rrsync" parallel="classes" thread-count="1">
        <groups>
           <run>
@@ -183,5 +183,26 @@
             <package name="com.sequoiadb.transaction.lockEscalation" />
         </packages>
     </test>
+
+    <test name="recycleBin" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="recycleBin" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.recyclebin" />
+        </packages>
+    </test>
+
+    <test name="recycleBinSync" parallel="classes" thread-count="1">
+        <groups>
+            <run>
+                <include name="recycleBin" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.recyclebin.serial" />
+        </packages>
+    </test>
 </suite>
-    
