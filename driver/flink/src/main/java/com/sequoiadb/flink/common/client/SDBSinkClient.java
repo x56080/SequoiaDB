@@ -309,7 +309,7 @@ public class SDBSinkClient implements SDBClient {
 
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
-        options.put(SDBConstant.AUTO_SPLIT, "true");
+        options.put(SDBConstant.AUTO_SPLIT, true);
 
         String Group =  sdboptions.getGroup();
         if (Group != null) {
