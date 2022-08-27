@@ -21,6 +21,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 
 import org.bson.BSON;
@@ -299,7 +300,15 @@ public class SDBSinkClient implements SDBClient {
         }
 
         if (shardingKey != null){
-            options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
+            BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
+            //verity pk contain all fields in sharding key
+            if(pkBson.isEmpty() || !SDBInfoUtil.containValidation(pkBson,skBson)){
+                throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
+                        "primary key:%s, sharding key:%s,please delete flink mapping table and select appropriate " +
+                        "primary key to create a new table",pkBson,skBson));
+            }
+
+            options.put(SDBConstant.SHARDING_KEY, skBson);
             options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
         } else if (sdboptions.getAutoPartition() && !pkBson.isEmpty()) {
             // if user don't specify sharding key, using primary key as sharding key.
