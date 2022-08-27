@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -220,6 +221,13 @@ public class SDBInfoUtil {
         }
 
         return abnormalNodes;
+    }
+
+    public static boolean containValidation(BSONObject bsonObject1, BSONObject bsonObject2){
+        Set<String> keySet1 = bsonObject1.keySet();
+        Set<String> keySet2 = bsonObject2.keySet();
+
+        return keySet1.containsAll(keySet2);
     }
 
 }
