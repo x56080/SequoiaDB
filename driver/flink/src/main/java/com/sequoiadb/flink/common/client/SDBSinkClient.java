@@ -321,7 +321,7 @@ public class SDBSinkClient implements SDBClient {
         } else {
             if(shardingKey != null){
                 throw new SDBException(String.format("Incompatible parameters passed in autopartition is false " +
-                        "while shardingkey is specified.,shardingkey:%s ", shardingKey));
+                        "while shardingkey is specified,shardingkey:%s ", shardingKey));
             }
         }
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());

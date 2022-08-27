@@ -174,7 +174,6 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         }
 
-        //autopartition
         if(sinkOptions.getAutoPartition()) {
             if (shardingKey != null) {
                 BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
@@ -197,7 +196,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
         } else {
             if(shardingKey != null){
                 throw new SDBException(String.format("Incompatible parameters passed in autopartition is false " +
-                        "while shardingkey is specified.,shardingkey:%s ", shardingKey));
+                        "while shardingkey is specified,shardingkey:%s ", shardingKey));
             }
         }
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
