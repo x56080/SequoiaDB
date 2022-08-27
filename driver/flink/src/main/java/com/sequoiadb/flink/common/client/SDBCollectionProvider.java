@@ -180,7 +180,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
                 //verity pk contain all fields in sharding key
                 if (!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson, skBson)) {
                     throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
-                            "primary key:%s, sharding key:%s,please delete flink mapping table and select appropriate " +
+                            "primary key:%s, sharding key:%s,please drop flink mapping table and select appropriate " +
                             "primary key to create a new table", pkBson, skBson));
                 }
 
@@ -195,8 +195,8 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         } else {
             if(shardingKey != null){
-                throw new SDBException(String.format("Incompatible parameters passed in autopartition is false " +
-                        "while shardingkey is specified,shardingkey:%s ", shardingKey));
+                throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
+                        "while shardingkey(%s) is specified. ", shardingKey));
             }
         }
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
