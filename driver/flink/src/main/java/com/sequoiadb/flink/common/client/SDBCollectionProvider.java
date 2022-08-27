@@ -194,7 +194,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
                 options.put(SDBConstant.AUTO_SPLIT, true);
             }
         } else {
-            if(shardingKey != null || sinkOptions.getShardingType()){
+            if(shardingKey != null || sinkOptions.getShardingType() != null){
                 throw new SDBException(String.format("Configuration conflict,autupartition is false,shardingkey and " +
                         "shardingtype are required to be empty,shardingkey:%s," +
                         "shardingtype:%s " , shardingKey, sinkOptions.getShardingType()));
