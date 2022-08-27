@@ -25,10 +25,8 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.common.TimestampFormat;
 import org.apache.flink.formats.json.JsonRowDataDeserializationSchema;
 import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.data.ArrayData;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
@@ -43,8 +41,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.sequoiadb.flink.format.json.ogg.OggJsonDecodingFormat.ReadableMetadata.EXTRA_OP_TYPE;
-import static com.sequoiadb.flink.format.json.ogg.OggJsonDecodingFormat.ReadableMetadata.EXTRA_PROMISE;
 import static java.lang.String.format;
 import static com.sequoiadb.flink.format.json.ogg.OggJsonDecodingFormat.ReadableMetadata;
 
@@ -71,10 +67,6 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
     private static final String OP_DELETE = "D"; // delete
     private static final String OP_TRUNCATE = "T"; // truncate
 
-    // EXTRA OP TYPE
-    private static final String OP_UPDATE_PK_BEFORE = "UPDATE_PK_BEFORE";
-    private static final String OP_UPDATE_PK_AFTER = "UPDATE_PK_AFTER";
-
     private static final String REPLICA_IDENTITY_EXCEPTION =
             "The \"before\" field of %s message is null, "
                     + "if you are using Ogg Postgres Connector, "
@@ -94,14 +86,9 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
 
     /** Flag indicating whether to ignore invalid fields/rows (default: throw an exception). */
     private final boolean ignoreParseErrors;
-    private final String[] upsertKey;
     private final int[] upsertKeyPositions;
 
     private final RowType jsonRowType;
-    private final DataType physicalDataType;
-
-    private final int extraOpTypePos;
-    private final int extraPromisePos;
 
     public OggJsonDeserializationSchema(
             DataType physicalDataType,
@@ -111,7 +98,6 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
             TimestampFormat timestampFormat,
             String[] upsertKey) {
         this.jsonRowType = createJsonRowType(physicalDataType, requestedMetadata);
-        this.physicalDataType = physicalDataType;
         this.jsonDeserializer =
                 new JsonRowDataDeserializationSchema(
                         jsonRowType,
@@ -128,7 +114,6 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
         this.ignoreParseErrors = ignoreParseErrors;
 
         final RowType physicalRowType = (RowType) physicalDataType.getLogicalType();
-        this.upsertKey = upsertKey;
         this.upsertKeyPositions = new int[upsertKey.length];
         for (int i = 0; i < upsertKey.length; i++) {
             int pos = findFieldPosByName(upsertKey[i], physicalRowType);
@@ -143,9 +128,6 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
             }
         }
 
-        this.extraOpTypePos =
-                requestedMetadata.indexOf(EXTRA_OP_TYPE);
-        this.extraPromisePos = requestedMetadata.indexOf(EXTRA_PROMISE);
     }
 
     private static RowType createJsonRowType(
@@ -266,25 +248,6 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
 
         if (hasPriKeyChanges(before, after)) {
             GenericRowData producedBefore = convertToFinalRow(rootRow, before);
-
-            int physicalArity = after.getArity();
-            if (extraOpTypePos == -1 || extraPromisePos == -1) {
-                throw new IOException(
-                        String.format("can't perform update primary key without defining metadata: \n" +
-                                        "%s",
-                                String.join("\n", EXTRA_OP_TYPE.key, EXTRA_PROMISE.key)));
-            }
-
-            // fill promise in before to associate 'before' and 'after' of
-            // the 'update primary key' changelog.
-            producedBefore.setField(physicalArity + extraPromisePos,
-                    producedAfter.getField(physicalArity + extraPromisePos));
-
-            // set extra op type. for now, there are 'UPDATE_PK_BEFORE' and 'UPDATE_PK_AFTER'
-            producedBefore.setField(physicalArity + extraOpTypePos,
-                    StringData.fromString(OP_UPDATE_PK_BEFORE));
-            producedAfter.setField(physicalArity + extraOpTypePos,
-                    StringData.fromString(OP_UPDATE_PK_AFTER));
             out.collect(producedBefore);
         }
 

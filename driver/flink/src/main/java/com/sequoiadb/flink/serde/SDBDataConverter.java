@@ -58,10 +58,6 @@ public class SDBDataConverter implements Serializable {
     static {
         METADATA_COLUMNS.add("$kafka-topic");
         METADATA_COLUMNS.add("$kafka-partition");
-        METADATA_COLUMNS.add("$kafka-offset");
-        METADATA_COLUMNS.add("$event-timestamp");
-        METADATA_COLUMNS.add("$extra-op-type");
-        METADATA_COLUMNS.add("$extra-promise");
     }
 
 

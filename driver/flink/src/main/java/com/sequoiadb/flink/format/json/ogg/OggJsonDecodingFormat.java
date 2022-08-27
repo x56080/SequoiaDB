@@ -251,29 +251,6 @@ public class OggJsonDecodingFormat implements DecodingFormat<DeserializationSche
                         return TimestampData.fromLocalDateTime(ldt);
                     }
                 }),
-
-        EXTRA_OP_TYPE(
-                "$extra-op-type",
-                DataTypes.STRING().nullable(),
-                DataTypes.FIELD("op_type", DataTypes.STRING()),
-                new MetadataConverter() {
-                    @Override
-                    public Object convert(GenericRowData row, int pos) {
-                        return row.getString(pos);
-                    }
-                }),
-
-        EXTRA_PROMISE(
-                "$extra-promise",
-                DataTypes.STRING().nullable(),
-                DataTypes.FIELD("$extra_promise", DataTypes.STRING()),
-                new MetadataConverter() {
-                    @Override
-                    public Object convert(GenericRowData row, int pos) {
-                        return StringData.fromString(
-                                UUID.nameUUIDFromBytes(row.toString().getBytes(StandardCharsets.UTF_8)).toString());
-                    }
-                }),
         ;
 
         final String key;
