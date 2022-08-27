@@ -24,6 +24,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import org.apache.flink.util.Preconditions;
 import org.bson.BSONObject;
@@ -174,7 +175,15 @@ public class SDBCollectionProvider implements SDBClientProvider {
         }
 
         if (shardingKey != null) {
-            options.put(SDBConstant.SHARDING_KEY, JSON.parse(shardingKey));
+            BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
+            //verity pk contain all fields in sharding key
+            if(!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson,skBson)){
+                throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
+                        "primary key:%s, sharding key:%s,please delete flink mapping table and select appropriate " +
+                        "primary key to create a new table", pkBson, skBson));
+            }
+
+            options.put(SDBConstant.SHARDING_KEY, skBson);
             options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
         } else if (sinkOptions.getAutoPartition() && !pkBson.isEmpty()) {
             // if user doesn't specify sharding key, using primary key as sharding key.
@@ -185,6 +194,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
         options.put(SDBConstant.AUTO_SPLIT, true);
+
 
         String Group = sinkOptions.getGroup();
         if (Group != null) {
