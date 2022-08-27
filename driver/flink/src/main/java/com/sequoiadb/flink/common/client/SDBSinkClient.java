@@ -302,7 +302,7 @@ public class SDBSinkClient implements SDBClient {
         if (shardingKey != null){
             BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
             //verity pk contain all fields in sharding key
-            if(pkBson.isEmpty() || !SDBInfoUtil.containValidation(pkBson,skBson)){
+            if(!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson,skBson)){
                 throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
                         "primary key:%s, sharding key:%s,please delete flink mapping table and select appropriate " +
                         "primary key to create a new table",pkBson,skBson));
