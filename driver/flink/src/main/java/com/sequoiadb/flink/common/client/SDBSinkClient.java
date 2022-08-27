@@ -299,26 +299,34 @@ public class SDBSinkClient implements SDBClient {
             }
         }
 
-        if (shardingKey != null){
-            BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
-            //verity pk contain all fields in sharding key
-            if(!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson,skBson)){
-                throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
-                        "primary key:%s, sharding key:%s,please delete flink mapping table and select appropriate " +
-                        "primary key to create a new table",pkBson,skBson));
+        if(sdboptions.getAutoPartition()) {
+            if (shardingKey != null) {
+                BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
+                //verity pk contain all fields in sharding key
+                if (!pkBson.isEmpty() && !SDBInfoUtil.containValidation(pkBson, skBson)) {
+                    throw new SDBException(String.format("The primary key must include all fields in sharding key, " +
+                            "primary key:%s, sharding key:%s,please drop flink mapping table and select appropriate " +
+                            "primary key to create a new table", pkBson, skBson));
+                }
+
+                options.put(SDBConstant.SHARDING_KEY, skBson);
+                options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
+                options.put(SDBConstant.AUTO_SPLIT, true);
+            } else if (!pkBson.isEmpty()) {
+                // if user don't specify sharding key, using primary key as sharding key.
+                options.put(SDBConstant.SHARDING_KEY, pkBson);
+                options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
+                options.put(SDBConstant.AUTO_SPLIT, true);
             }
-
-            options.put(SDBConstant.SHARDING_KEY, skBson);
-            options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
-        } else if (sdboptions.getAutoPartition() && !pkBson.isEmpty()) {
-            // if user don't specify sharding key, using primary key as sharding key.
-            options.put(SDBConstant.SHARDING_KEY, pkBson);
-            options.put(SDBConstant.SHARDING_TYPE, sdboptions.getShardingType());
+        } else {
+            if(shardingKey != null){
+                throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
+                        "while shardingkey(%s) is specified. ", shardingKey));
+            }
         }
-
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
-        options.put(SDBConstant.AUTO_SPLIT, true);
+
 
         String Group =  sdboptions.getGroup();
         if (Group != null) {
