@@ -319,10 +319,10 @@ public class SDBSinkClient implements SDBClient {
                 options.put(SDBConstant.AUTO_SPLIT, true);
             }
         } else {
-            if(shardingKey != null || SDBConstant.SHARDING_TYPE != null){
+            if(shardingKey != null || sdboptions.getShardingType() != null){
                 throw new SDBException(String.format("Configuration conflict,autupartition is false,shardingkey and " +
                         "shardingtype are required to be empty,shardingkey:%s," +
-                        "shardingtype:%s " , shardingKey, SDBConstant.SHARDING_TYPE));
+                        "shardingtype:%s " , shardingKey, sdboptions.getShardingType());
             }
         }
         options.put(SDBConstant.REPL_SIZE, sdboptions.getReplSize());
