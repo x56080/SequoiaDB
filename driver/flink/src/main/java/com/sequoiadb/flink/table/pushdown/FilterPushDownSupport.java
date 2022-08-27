@@ -144,7 +144,7 @@ public class FilterPushDownSupport {
             Class classz = dataType.getConversionClass();
 
             if(classz == Boolean.class){
-                return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), "true");
+                return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), true);
             }
         }
         LOG.info("Pushing down of expression {} is not supported.", expression);
@@ -285,7 +285,7 @@ public class FilterPushDownSupport {
             return null;
         }
         FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
-        return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), "false");
+        return BsonMatcher.etMatcher(fieldReferenceExpression.getName(), false);
     }
 
     /**
@@ -299,7 +299,7 @@ public class FilterPushDownSupport {
             return null;
         }
         FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
-        return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), "true");
+        return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), true);
     }
 
     /**
@@ -313,7 +313,7 @@ public class FilterPushDownSupport {
             return null;
         }
         FieldReferenceExpression fieldReferenceExpression = (FieldReferenceExpression) callExpr.getChildren().get(0);
-        return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), "false");
+        return BsonMatcher.neMatcher(fieldReferenceExpression.getName(), false);
     }
 
     // ============================================
