@@ -174,6 +174,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         }
 
+        //autopartition
         if(sinkOptions.getAutoPartition()) {
             if (shardingKey != null) {
                 BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
@@ -194,10 +195,9 @@ public class SDBCollectionProvider implements SDBClientProvider {
                 options.put(SDBConstant.AUTO_SPLIT, true);
             }
         } else {
-            if(shardingKey != null || sinkOptions.getShardingType() != null){
-                throw new SDBException(String.format("Configuration conflict,autupartition is false,shardingkey and " +
-                        "shardingtype are required to be empty,shardingkey:%s," +
-                        "shardingtype:%s " , shardingKey, sinkOptions.getShardingType()));
+            if(shardingKey != null){
+                throw new SDBException(String.format("Incompatible parameters passed in autopartition is false " +
+                        "while shardingkey is specified.,shardingkey:%s ", shardingKey));
             }
         }
         options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
