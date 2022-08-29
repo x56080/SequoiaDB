@@ -63,29 +63,41 @@ public class DatasourceOptions implements Cloneable {
      * Set the number of new connections to create once running out the
      * connection pool.
      *
-     * @param deltaIncCount Default to be 10.
+     * @param deltaIncCount DeltaIncCount should be more than 0, default to be 10.
+     * @throws BaseException If error happens.
      */
     public void setDeltaIncCount(int deltaIncCount) {
+        if (deltaIncCount <= 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount should be more than 0");
+        }
         _deltaIncCount = deltaIncCount;
     }
 
     /**
      * Set the maximum number of idle connections. When the number of idle connections in the
      *         pool is more than 'maxIdleCount', the pool will destroy some connections.
-     * @param maxIdleCount Default to be 10.
+     * @param maxIdleCount MaxIdleCount can't be less than 0, default to be 10.
+     * @throws BaseException If error happens.
      * @since 2.2
      */
     public void setMaxIdleCount(int maxIdleCount) {
+        if (maxIdleCount < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be less than 0");
+        }
         _maxIdleCount = maxIdleCount;
     }
 
     /**
      *  Set the minimum number of idle connections. When the number of idle connections in the
      *         pool is less than 'minIdleCount', the pool will create some connections.
-     * @param minIdleCount Default to be 10.
+     * @param minIdleCount MinIdleCount can't be less than 0, default to be 10.
+     * @throws BaseException If error happens.
      * @since v2.8.10
      */
     public void setMinIdleCount(int minIdleCount) {
+        if (minIdleCount < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be less than 0");
+        }
         _minIdleCount = minIdleCount;
     }
 
@@ -93,10 +105,14 @@ public class DatasourceOptions implements Cloneable {
      * Set the capacity of the connection pool.
      * When maxCount is set to 0, the connection pool will be disabled.
      *
-     * @param maxCount Default to be 500.
+     * @param maxCount MaxCount should be can't be less than 0, default to be 500.
+     * @throws BaseException If error happens.
      * @since 2.2
      */
     public void setMaxCount(int maxCount) {
+        if (maxCount < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "maxCount can't be less than 0");
+        }
         _maxCount = maxCount;
     }
 
@@ -109,11 +125,15 @@ public class DatasourceOptions implements Cloneable {
      * greater than "checkInterval" triple over. Besides, unless you know what you need,
      * never enable this option.
      *
-     * @param keepAliveTimeout Default to be 0ms, means not care about how long does a connection
-     *                         have not be used(send and receive).
+     * @param keepAliveTimeout KeepAliveTimeout can't be less than 0, default to be 0ms, means not care
+     *                         about how long does a connection have not be used(send and receive).
+     * @throws BaseException If error happens.
      * @since 2.2
      */
     public void setKeepAliveTimeout(int keepAliveTimeout) {
+        if (keepAliveTimeout < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "keepAliveTimeout can't be less than 0");
+        }
         _keepAliveTimeout = keepAliveTimeout;
     }
 
@@ -124,10 +144,14 @@ public class DatasourceOptions implements Cloneable {
      * When "keepAliveTimeout" is not be 0, "checkInterval" should be less than it.
      * It's better to set "keepAliveTimeout" greater than "checkInterval" triple over.
      *
-     * @param checkInterval Default to be 1 * 60 * 1000ms.
+     * @param checkInterval CheckInterval should be more than 0, default to be 1 * 60 * 1000ms.
+     * @throws BaseException If error happens.
      * @since 2.2
      */
     public void setCheckInterval(int checkInterval) {
+        if (checkInterval <= 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "checkInterval should be more than 0");
+        }
         _checkInterval = checkInterval;
     }
 
@@ -138,10 +162,15 @@ public class DatasourceOptions implements Cloneable {
      * catalog. when "syncCoordInterval" is less than 60,000 milliseconds,
      * use 60,000 milliseconds instead.
      *
-     * @param syncCoordInterval Default to be 1 * 60 * 1000ms.
+     * @param syncCoordInterval SyncCoordInterval can't be less than 0, default to be 0ms.
+     * @throws BaseException If error happens.
      * @since 2.2
      */
     public void setSyncCoordInterval(int syncCoordInterval) {
+        if (syncCoordInterval < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "syncCoordInterval can't be less than 0");
+        }
+
         if (syncCoordInterval > 0 && syncCoordInterval < 60000) {
             _syncCoordInterval = 60000;
         } else {
@@ -204,6 +233,7 @@ public class DatasourceOptions implements Cloneable {
      *                         <li>If multiple alphabet instances are given, only first one will be used.</li>
      *                         <li>If matched instance is not found, will choose instance by random.</li>
      *                         </ul>
+     * @throws BaseException If error happens.
      */
     public void setPreferredInstance(final List<String> preferredInstance) {
         if (preferredInstance == null || preferredInstance.size() == 0) {
@@ -217,7 +247,7 @@ public class DatasourceOptions implements Cloneable {
                     list.add(s);
                 }
             } else {
-                throw new BaseException(SDBError.SDB_INVALIDARG, "invalid preferred instance: " + s);
+                throw new BaseException(SDBError.SDB_INVALIDARG, "Invalid preferred instance: " + s);
             }
         }
         if (list.size() == 0) {
@@ -242,13 +272,23 @@ public class DatasourceOptions implements Cloneable {
      *             <li>"ordered": choose the instance from matched instances by the order of
      *             "PreferedInstance".</li>
      *             </ul>
+     * @throws BaseException If error happens.
      */
     public void setPreferredInstanceMode(String mode) {
         if (mode == null || mode.isEmpty()) {
             _preferredInstanceMode = DEFAULT_PREFERRED_INSTANCE_MODE;
-        } else {
-            _preferredInstanceMode = mode;
+            return;
         }
+
+        if (!DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED.equals(mode) &&
+                !DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM.equals(mode)) {
+            throw new BaseException(SDBError.SDB_INVALIDARG,
+                    String.format("The preferred instance mode should be '%s' or '%s', but it is %s",
+                            DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED,
+                            DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM,
+                            mode));
+        }
+        _preferredInstanceMode = mode;
     }
 
     /**
@@ -421,9 +461,14 @@ public class DatasourceOptions implements Cloneable {
      * inside the connection pool. After a connection get out from the connection pool, its send and receive
      * timeout will be restored to the original state.
      *
-     * @param networkBlockTimeout The network block timeout, default to be 6000ms, 0ms and means no timeout
+     * @param networkBlockTimeout NetworkBlockTimeout can't be less than 0, default to be 6000ms,
+     *                            0ms and means no timeout.
+     * @throws BaseException If error happens.
      */
     public void setNetworkBlockTimeout(int networkBlockTimeout) {
+        if (networkBlockTimeout < 0) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "networkBlockTimeout can't be less than 0");
+        }
         this._networkBlockTimeout = networkBlockTimeout;
     }
 
@@ -691,17 +736,8 @@ public class DatasourceOptions implements Cloneable {
         return obj;
     }
 
-    private boolean isCharMode(String s) {
-        for (int i = 0; i < MODE.size(); i++) {
-            if (MODE.get(i).equals(s)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean isValidMode(String s) {
-        if (isCharMode(s)) {
+        if (MODE.contains(s)) {
             return true;
         } else {
             int n = 0;

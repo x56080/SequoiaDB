@@ -1209,40 +1209,12 @@ public class SequoiadbDatasource {
         int maxCount = newOpt.getMaxCount();
         int keepAliveTimeout = newOpt.getKeepAliveTimeout();
         int checkInterval = newOpt.getCheckInterval();
-        int syncCoordInterval = newOpt.getSyncCoordInterval();
-        List<Object> preferredInstanceList = newOpt.getPreferredInstanceObjects();
-        String preferredInstanceMode = newOpt.getPreferredInstanceMode();
-        int sessionTimeout = newOpt.getSessionTimeout();
 
-        // 1. maxCount
-        if (maxCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "maxCount can't be less than 0");
-
-        // 2. deltaIncCount
-        if (deltaIncCount <= 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount should be more than 0");
-
-        // 3. maxIdleCount and minIdleCount
-        if (maxIdleCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be less than 0");
-        if (minIdleCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be less than 0");
         if (minIdleCount > maxIdleCount)
             throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be more than maxIdleCount");
 
-        // 4. keepAliveTimeout
-        if (keepAliveTimeout < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "keepAliveTimeout can't be less than 0");
-
-        // 5. checkInterval
-        if (checkInterval <= 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "checkInterval should be more than 0");
-        if (0 != keepAliveTimeout && checkInterval >= keepAliveTimeout)
+        if (keepAliveTimeout != 0 && checkInterval >= keepAliveTimeout)
             throw new BaseException(SDBError.SDB_INVALIDARG, "when keepAliveTimeout is not 0, checkInterval should be less than keepAliveTimeout");
-
-        // 6. syncCoordInterval
-        if (syncCoordInterval < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "syncCoordInterval can't be less than 0");
 
         if (maxCount != 0) {
             if (deltaIncCount > maxCount)
@@ -1251,53 +1223,7 @@ public class SequoiadbDatasource {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be more than maxCount");
         }
 
-        // check arguments about session
-        if (preferredInstanceList != null && preferredInstanceList.size() > 0) {
-            // check elements of preferred instance
-            for (Object obj : preferredInstanceList) {
-                if (obj instanceof String) {
-                    String s = (String) obj;
-                    if (!"M".equals(s) && !"m".equals(s) &&
-                            !"S".equals(s) && !"s".equals(s) &&
-                            !"A".equals(s) && !"a".equals(s)) {
-                        throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/['1','255'], but it is "
-                                        + s);
-                    }
-                } else if (obj instanceof Integer) {
-                    int i = (Integer) obj;
-                    if (i <= 0 || i > 255) {
-                        throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/['1','255'], but it is "
-                                        + i);
-                    }
-                } else {
-                    throw new BaseException(SDBError.SDB_INVALIDARG,
-                            "the preferred instance should instance of int or String, but it is "
-                                    + (obj == null ? null : obj.getClass()));
-                }
-            }
-            // check preferred instance mode
-            if (!DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED.equals(preferredInstanceMode) &&
-                    !DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM.equals(preferredInstanceMode)) {
-                throw new BaseException(SDBError.SDB_INVALIDARG,
-                        String.format("the preferred instance mode should be '%s' or '%s', but it is %s",
-                                DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED,
-                                DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM,
-                                preferredInstanceMode));
-            }
-            // check session timeout
-            if (sessionTimeout < -1) {
-                throw new BaseException(SDBError.SDB_INVALIDARG,
-                        "the session timeout can not less than -1");
-            }
-            _sessionAttr = newOpt.getSessionAttr();
-        }
-
-        // check networkBlockTimeout
-        if (newOpt.getNetworkBlockTimeout() < 0){
-            throw new BaseException(SDBError.SDB_INVALIDARG, "invalid networkBlockTimeout: " + newOpt.getNetworkBlockTimeout());
-        }
+        _sessionAttr = newOpt.getSessionAttr();
     }
 
     private Sequoiadb _newConnByNormalAddr() throws BaseException {
