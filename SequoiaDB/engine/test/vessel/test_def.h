@@ -305,7 +305,8 @@ class indexTestUtil
    static bson::BSONObj createIndexObj(INDEX_TYPE type,
                                        const CHAR *name,
                                        BOOLEAN unique,
-                                       const bson::BSONObj &pattern)
+                                       const bson::BSONObj &pattern,
+                                       BOOLEAN isCompression = FALSE)
    {
       bson::BSONObjBuilder builder;
       builder.append(IXM_NAME_FIELD, name);
@@ -329,6 +330,10 @@ class indexTestUtil
       builder.append(IXM_TYPE_FIELD, typeStr);
       builder.append(IXM_KEY_FIELD, pattern);
       builder.appendBool(IXM_UNIQUE_FIELD, unique);
+      if(isCompression)
+      {
+         builder.appendBool(IXM_COMPRESSION, TRUE);
+      }
       return builder.obj();
    }
 };
