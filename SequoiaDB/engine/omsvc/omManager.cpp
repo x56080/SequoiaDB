@@ -2143,11 +2143,28 @@ namespace engine
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       BOOLEAN rtnDel   = TRUE ;
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
 
-      rc = msgExtractGetMore ( (CHAR*)pMsg, &numToRead, &contextID ) ;
+      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract get more msg failed(rc=%d)!", rc ) ;
 
-      rc = rtnGetMore( contextID, numToRead, buf, _pEDUCB, _pRtnCB ) ;
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore( contextID, numToRead, buf, _pEDUCB, _pRtnCB, hint ) ;
       if ( rc )
       {
          rtnDel = FALSE ;

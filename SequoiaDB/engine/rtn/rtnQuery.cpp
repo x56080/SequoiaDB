@@ -66,7 +66,8 @@ namespace engine
                       SINT32 maxNumToReturn,    // input, max record to read
                       rtnContextBuf &buffObj,   // output
                       pmdEDUCB *cb,             // input educb
-                      SDB_RTNCB *rtnCB          // input runtimecb
+                      SDB_RTNCB *rtnCB,         // input runtimecb
+                      const BSONObj &hint       // input hint obj
                       )
    {
       INT32 rc = SDB_OK ;
@@ -85,7 +86,7 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnGetMore( context, maxNumToReturn, buffObj, cb, rtnCB ) ;
+      rc = rtnGetMore( context, maxNumToReturn, buffObj, cb, rtnCB, hint ) ;
       if ( rc )
       {
          goto error ;
@@ -103,7 +104,8 @@ namespace engine
                       SINT32 maxNumToReturn,    // input, max record to read
                       rtnContextBuf &buffObj,   // output
                       pmdEDUCB *cb,             // input educb
-                      SDB_RTNCB *rtnCB          // input runtimecb
+                      SDB_RTNCB *rtnCB,         // input runtimecb
+                      const BSONObj &hint       // input hint obj
                       )
    {
       INT32 rc = SDB_OK ;
@@ -118,7 +120,7 @@ namespace engine
          goto error ;
       }
 
-      rc = pContext->getMore( maxNumToReturn, buffObj, cb ) ;
+      rc = pContext->getMore( maxNumToReturn, buffObj, cb, hint ) ;
       if ( SDB_OK != rc && SDB_DMS_EOC != rc )
       {
          PD_LOG( PDERROR, "Failed to get more from context[%lld], rc: %d",
