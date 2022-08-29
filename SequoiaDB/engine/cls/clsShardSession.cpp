@@ -2761,8 +2761,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONGETMOREREQMSG ) ;
       INT32 numToRead = 0 ;
       rtnContextPtr pContext ;
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
 
-      rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
+      rc = msgExtractGetMore( (CHAR*)msg, &numToRead, &contextID, &pHint ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Session[%s] extract GETMORE msg failed[rc:%d]",
@@ -2812,7 +2814,22 @@ namespace engine
                     "context [%llu], rc: %d", pContext->contextID(), rc ) ;
       }
 
-      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRtnCB ) ;
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRtnCB, hint ) ;
       if ( rc )
       {
          contextID = -1 ;

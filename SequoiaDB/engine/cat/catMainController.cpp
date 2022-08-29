@@ -978,7 +978,19 @@ namespace engine
       BOOLEAN bIsDelay = FALSE ;
       BOOLEAN rtnDel = FALSE ;
 
-      rc = _pRtnCB->contextFind ( pGetMore->contextID, pContext, _pEDUCB ) ;
+      INT64 contextID = 0 ;
+      INT32 numToRead = 0 ;
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
+
+      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID, &pHint ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to extract getMore msg, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _pRtnCB->contextFind ( contextID, pContext, _pEDUCB ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d",
@@ -997,8 +1009,23 @@ namespace engine
          }
       }
 
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
       rc = rtnGetMore( pContext, pGetMore->numToReturn, buffObj,
-                       _pEDUCB, _pRtnCB ) ;
+                       _pEDUCB, _pRtnCB, hint ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )

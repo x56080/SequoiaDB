@@ -933,7 +933,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE_GETMORE, "_rtnContextBase::getMore" )
    INT32 _rtnContextBase::getMore( INT32 maxNumToReturn,
                                    rtnContextBuf &buffObj,
-                                   pmdEDUCB *cb )
+                                   pmdEDUCB *cb,
+                                   const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
@@ -992,6 +993,10 @@ namespace engine
 
          pdLogRCShield logShield ;
          logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
+
+         rc = _processGetMoreHint( hint ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to process hint in getMore msg, "
+                      "rc: %d", rc ) ;
 
          while ( TRUE )
          {

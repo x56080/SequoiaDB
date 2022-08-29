@@ -835,9 +835,11 @@ retry :
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       BOOLEAN rtnDel   = TRUE ;
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
 
       /// extract msg
-      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID ) ;
+      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID, &pHint ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract GETMORE msg failed[rc:%d]", rc ) ;
 
       /// execute get more
@@ -845,7 +847,22 @@ retry :
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
 
-      rc = rtnGetMore( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB, hint ) ;
       if ( rc )
       {
          rtnDel = FALSE ;

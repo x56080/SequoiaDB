@@ -287,18 +287,20 @@ namespace engine
                                       const BSONObj *pIdIdxDef = NULL,
                                       BOOLEAN addIdxIDIfNotExist = FALSE ) ;
 
-   INT32 rtnGetMore ( SINT64 contextID,            // input, context id
-                      SINT32 maxNumToReturn,       // input, max record to read
-                      rtnContextBuf &buffObj,      // output
-                      pmdEDUCB *cb,                // input educb
-                      SDB_RTNCB *rtnCB             // input runtimecb
+   INT32 rtnGetMore ( SINT64 contextID,               // input, context id
+                      SINT32 maxNumToReturn,          // input, max record to read
+                      rtnContextBuf &buffObj,         // output
+                      pmdEDUCB *cb,                   // input educb
+                      SDB_RTNCB *rtnCB,               // input runtimecb
+                      const BSONObj &hint = BSONObj() // input hint obj
                       ) ;
 
-   INT32 rtnGetMore ( rtnContextPtr &pContext,     // input, context
-                      SINT32 maxNumToReturn,       // input, max record to read
-                      rtnContextBuf &buffObj,      // output
-                      pmdEDUCB *cb,                // input educb
-                      SDB_RTNCB *rtnCB             // input runtimecb
+   INT32 rtnGetMore ( rtnContextPtr &pContext,        // input, context
+                      SINT32 maxNumToReturn,          // input, max record to read
+                      rtnContextBuf &buffObj,         // output
+                      pmdEDUCB *cb,                   // input educb
+                      SDB_RTNCB *rtnCB,               // input runtimecb
+                      const BSONObj &hint = BSONObj() // input hint obj
                       ) ;
 
    INT32 rtnAdvance( SINT64 contextID,

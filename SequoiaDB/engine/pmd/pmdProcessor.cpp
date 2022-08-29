@@ -1050,8 +1050,10 @@ namespace engine
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       rtnContextPtr pContext ;
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
 
-      rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
+      rc = msgExtractGetMore( (CHAR*)msg, &numToRead, &contextID, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
@@ -1077,7 +1079,22 @@ namespace engine
       eduCB()->setMonQueryCB( pContext->getMonQueryCB() ) ;
       needRollback = pContext->needRollback() ;
 
-      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB ) ;
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB, hint ) ;
       if ( rc )
       {
          contextID = -1 ;
