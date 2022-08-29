@@ -85,63 +85,89 @@ namespace vessel
    {
       INT64 saved = 0;
       UINT32 extraSize = _options.prefixExtraCost;
-      const auto &curElem = v[pos];
+      const slice &curElem = v[pos];
+      // When the position is greater than the farthest position, update it.
       if (reachedPos < pos)
       {
          reachedPos = pos;
       }
+      // Recursion ends
       if (pos == v.size())
       {
          return 0;
       }
+      // If there is no prefix in out, add a new prefix.
       if (out.empty())
       {
          out.emplace_back(curElem, 0, 1);
          saved += _dfs(v, pos + 1, depth, reachedPos, out);
       }
+      // If current element is an empty string.
       else if (0 == curElem.size())
       {
-         INT32 nextLow = out.back().high;
+         // And if the last prefix is also empty string, use last prefix. Update
+         // the high bound of last prefix.
          if (0 == out.back().prefix.size())
          {
             out.back().high += 1;
          }
+         // Else it is impossible to extract common prefix between last prefix
+         // and current element. Add a new prefix, which is empty string.
          else
-         {
+         {  
+            INT32 nextLow = out.back().high;
             out.emplace_back(curElem, nextLow, nextLow + 1);
          }
          saved += _dfs(v, pos + 1, depth, reachedPos, out);
       }
+      // Current element is not an empty string.
       else
       {
-         const auto &lastString = out.back().prefix;
+         const slice &lastString = out.back().prefix;
+         // If current element is same as last prefix, use last prefix. Update
+         // the high bound of last prefix.
          if (lastString.equal(curElem))
          {
             UINT32 oldSaved = out.back().savedBytesWithExtra(extraSize);
             out.back().high += 1;
+            // Calculate the size difference.
             saved =
                 saved - oldSaved + out.back().savedBytesWithExtra(extraSize);
             saved += _dfs(v, pos + 1, depth, reachedPos, out);
          }
+         // If current element is not same as last prefix, try to extract common
+         // prefix between them.
          else
          {
             slice prefix = lastString.commonPrefix(curElem);
             UINT32 prefixLen = prefix.getSize();
+            // Do not have common prefix, add a new prefix.
             if (0 == prefixLen)
             {
                INT32 nextLow = out.back().high;
                out.emplace_back(curElem, nextLow, nextLow + 1);
                saved += _dfs(v, pos + 1, depth, reachedPos, out);
             }
+            // Do have common prefix, we have two choices:
+            // 1. Uncombined case: add a new prefix.
+            // 2. Combined case: use last prefix.
+            // Calculate the saved bytes of two choices.
+            // In order to reduce the number of prefixes with bad benefits, the
+            // saved bytes of combined case will be added a weight, and compare
+            // it with the saved bytes of uncombined case. Finally choose the
+            // greater one. After make a choice, the depth minus 1.
+            // The combined weight = (the reference count of combined prefix) *
+            // (weight factor). The factor is configurable.
             if (0 != prefixLen && 0 != depth)
-            {
+            {  
+               // 1. Uncombined case
                ossPoolVector<prefixGenerator::prefixItem> tempOut(out);
                INT32 nextLow = out.back().high;
                UINT32 posToAssign = out.size() - 1;
                tempOut.emplace_back(curElem, nextLow, nextLow + 1);
                INT64 saved1 = saved;
                saved1 += _dfs(v, pos + 1, depth - 1, reachedPos, tempOut);
-
+               // 2. Combined case
                UINT32 oldSaved = out.back().savedBytesWithExtra(extraSize);
                out.back().prefix.reset(prefixLen, out.back().prefix.data());
                out.back().high += 1;
@@ -150,6 +176,7 @@ namespace vessel
                         out.back().savedBytesWithExtra(extraSize);
                saved2 += _dfs(v, pos + 1, depth - 1, reachedPos, out);
 
+               // Compare with two cases. The combined case will add weight.
                if (saved1 > saved2 + _options.combinedWeightFactor *
                                          out.back().getRefCount())
                {
@@ -179,11 +206,17 @@ namespace vessel
    {  
       ossPoolVector<prefixItem> out;
       out.clear();
+      if(v.size() < 2)
+      {
+         UINT32 totalSize = v.size() == 0 ? 0: v[0].size();
+         result r(_options.prefixExtraCost, totalSize, 0, std::move(out));
+      }
       UINT32 totalSize = 0;
       ossPoolVector<slice> prefixItems = _preprocess(v, totalSize);
       UINT32 reachedIndex = 0;
       INT64 saved = 0;
       INT64 totalSavedSize = 0;
+      // Repeatedly until all elements are traversed.
       while (reachedIndex < v.size())
       {
          saved += _dfs(prefixItems,
@@ -192,6 +225,7 @@ namespace vessel
                        reachedIndex,
                        out);
       }
+      // Remove prefixes that do not save bytes.
       out.erase(std::remove_if(out.begin(),
                                out.end(),
                                [&](const prefixItem &item) -> BOOLEAN {
@@ -227,6 +261,21 @@ namespace vessel
        : prefixExtraCost(r.prefixExtraCost), originalSize(r.originalSize),
          totalSavedSize(r.totalSavedSize), prefixes(std::move(r.prefixes))
    {
+   }
+
+   UINT32 prefixGenerator::result::getTotalSavedSize() const
+   {
+      return totalSavedSize;
+   }
+
+   UINT32 prefixGenerator::result::getTotalSavedSizeWithoutExtraCost() const
+   {
+      return totalSavedSize + prefixes.size() * prefixExtraCost;
+   }
+
+   FLOAT64 prefixGenerator::result::getCompressionRatio() const
+   {
+      return FLOAT64(totalSavedSize) / FLOAT64(originalSize);
    }
 } // namespace vessel
 } // namespace engine
