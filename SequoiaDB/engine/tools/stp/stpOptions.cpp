@@ -683,10 +683,7 @@ namespace engine
                }
             }
          }
-         else
-         {
-            _role = STP_ROLE_CLIENT ;
-         }
+         _role = STP_ROLE_CLIENT ;
       }
       else if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_SERVER ) )
       {
@@ -706,7 +703,7 @@ namespace engine
          CHAR hostName [ OSS_MAX_HOSTNAME + 1 ] = { 0 };
          rc = ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get local host name, rc: %d", rc ) ;
-         ossSnprintf( _serverListString, PMD_MAX_LONG_STR_LEN, 
+         ossSnprintf( _serverListString, PMD_MAX_LONG_STR_LEN,
                       "%s:%s", hostName, _serviceName ) ;
          rc = parseAddressLine( _serverListString, _serverList, ",", ":",
                                 CLS_REPLSET_MAX_NODE_SIZE ) ;
