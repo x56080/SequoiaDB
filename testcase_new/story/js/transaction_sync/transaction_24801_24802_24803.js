@@ -4,16 +4,13 @@
  *                : seqDB-24803:验证锁升级节点配置项 Transmaxlogspaceratio
  * @Author        : liuli
  * @CreateTime    : 2021.12.15
- * @LastEditTime  : 2021.12.15
+ * @LastEditTime  : 2022.08.30
  * @LastEditors   : liuli
  ******************************************************************************/
-testConf.clName = COMMCLNAME + "_24801_24802_24803";
 
 main( test );
-function test ( testPara )
+function test ()
 {
-   var dbcl = testPara.testCL;
-
    try
    {
       // transallowlockescalation参数校验
@@ -60,11 +57,19 @@ function test ( testPara )
 
       var config = { transmaxlocknum: Math.pow( 2, 31 ) };
       db.updateConf( config );
-      var actConfig = { transmaxlocknum: -1 };
+      if( commIsArmArchitecture() )
+      {
+         var actConfig = { transmaxlocknum: Math.pow( 2, 31 ) - 1 };
+      }
+      else
+      {
+         var actConfig = { transmaxlocknum: -1 };
+      }
       checkSnapshot( db, actConfig );
 
       var config = { transmaxlocknum: -2 };
       db.updateConf( config );
+      var actConfig = { transmaxlocknum: -1 };
       checkSnapshot( db, actConfig );
 
       var config = { transmaxlocknum: true };
