@@ -536,7 +536,7 @@ namespace engine
 
          virtual INT32 _prepareDoAdvance ( _pmdEDUCB *cb )
          {
-            return SDB_OPTION_NOT_SUPPORT;
+            return SDB_OPTION_NOT_SUPPORT ;
          }
 
          virtual INT32 _processGetMoreHint( const BSONObj &hint )
