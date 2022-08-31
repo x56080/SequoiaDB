@@ -902,8 +902,18 @@ namespace vessel
             }
             #endif
 
-            btreeNodePageHead *head = _getWritableHead();
-            OSS_BIT_SET(head->flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
+            rc = _makeBufferWritable();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to make buffer writable:%d", rc);
+               goto error;
+            }
+            else
+            {
+               btreeNodePageHead *head = _getWritableHead();
+               OSS_BIT_SET(head->flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
+            }
+            
             goto done;
          }
       

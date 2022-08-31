@@ -919,12 +919,17 @@ namespace vessel
       PD_LOG(PDDEBUG, "new/obsolete meta file pages[%d:%d]",
              ctx._brandNewSet.size(), ctx._obsoleteSet.size());
       _root.merge(ctx._root);
+
+      return;
+   }
+
+   void lpageMapping::freeOboleteSetAfterPublish(lpageMappingPteCtx &ctx)
+   {
       for (auto itr = ctx._obsoleteSet.cbegin();
             itr != ctx._obsoleteSet.cend(); ++itr)
       {
          _mfile->freePid(*itr);
       }
-      ctx.reset();
       return;
    }
 

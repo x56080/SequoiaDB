@@ -140,6 +140,8 @@ namespace vessel
 
          void publish(lpageMappingPteCtx &ctx);
 
+         void freeOboleteSetAfterPublish(lpageMappingPteCtx &ctx);
+
          void abort(lpageMappingPteCtx &ctx);
 
       private:

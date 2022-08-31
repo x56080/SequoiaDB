@@ -633,7 +633,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(batch.isValid(), "can not be invalid");
-      BOOLEAN lockingTransfered = FALSE;
 
       if (!batch.hasPteMapping())
       {
@@ -648,13 +647,11 @@ namespace vessel
       }
 
       batch._viewer._transferToExclusiveLock();
-      lockingTransfered = TRUE;
 
       _getPageMapping().publish(batch._mctx);
       _psn.fetch_add(1, std::memory_order_relaxed);
 
       batch._viewer._transferToUpgradeLock();
-      lockingTransfered = FALSE;
 
       rc = _updateUberBlockOnDisk(TRUE);
       if (OSS_UNLIKELY(SDB_OK != rc))
@@ -664,10 +661,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (lockingTransfered)
-      {
-         batch._viewer._transferToUpgradeLock();
-      }
       return rc;
    error:
       goto done;
@@ -692,6 +685,8 @@ namespace vessel
             _freeLpids(lpidsItr->size(), lpidsItr->data());
          }
       }
+
+      _getPageMapping().freeOboleteSetAfterPublish(batch._mctx);
    }
 
    INT32 logicalPageSpacePte::_getRuntimePageBuffer(requestContext *context,
