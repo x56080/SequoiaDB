@@ -65,6 +65,16 @@ namespace vessel
    {
       o._bl.splice(o._bl.end(), _bl);
    }
+
+   UINT32 pidBatchList::getTotalCount()const
+   {
+      UINT32 cnt = 0;
+      for (auto itr = _bl.cbegin(); itr != _bl.cend(); ++itr)
+      {
+         cnt += itr->size();
+      }
+      return cnt;
+   }
 } // namespace vessel
 
 } // namespace engine

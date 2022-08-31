@@ -77,6 +77,8 @@ namespace vessel
 
          void releaseBatch(UINT32 size, const PAGE_ID *pids);
 
+         BOOLEAN test(PAGE_ID pid);
+
       private:
          INT32 _loadFclusterSme();
          INT32 _getSegmentSmeBuffer(UINT32 segmentId, strictBuffer &buffer);

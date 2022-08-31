@@ -1007,7 +1007,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       strictBuffer buffer;
       PAGE_ID pid = UBER_BLOCK_PID;
-      lpmUberBlock *block = nullptr;
+      const lpmUberBlock *block = nullptr;
 
       rc = _mfile.makeWritableBuffer(pid, buffer);
       if (SDB_OK != rc)
@@ -1016,7 +1016,7 @@ namespace vessel
          goto error;
       }
 
-      block = buffer.getWritableObjPtr<lpmUberBlock>(0);
+      block = buffer.getReadableObjPtr<lpmUberBlock>(0);
       rc = _smgr.init(block->smeEntryPid, &_mfile, &_fcluster,
                       _getSegmentPcntReused());
       if (SDB_OK != rc)
@@ -1316,7 +1316,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::_reserveLpids(UINT32 size, PAGE_ID *lpids)
+   INT32 logicalPageSpace::_reserveLpids(UINT32 size, PAGE_ID *lpids, BOOLEAN autoExtendLPM)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
@@ -1342,12 +1342,16 @@ namespace vessel
          }
          else
          {
-            rc = _lpm.ensureUnitSpace(_allocator.getUnitCount());
-            if (SDB_OK != rc)
+            if (autoExtendLPM)
             {
-               PD_LOG(PDERROR, "failed to extend lpm file:%d", rc);
-               goto error;
+               rc = _lpm.ensureUnitSpace(_allocator.getUnitCount());
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to extend lpm file:%d", rc);
+                  goto error;
+               }
             }
+            
             rc = _allocator.extendUnitNum(1, TRUE);
             if (SDB_OK != rc)
             {
@@ -1409,15 +1413,15 @@ namespace vessel
       if (_lpm.getRoot().update(ub))
       {
          ub->refillChecksum();
-      }
 
-      if (fsync)
-      {
-         rc = _mfile.fsyncPage(UBER_BLOCK_PID);
-         if (SDB_OK != rc)
+         if (fsync)
          {
-            PD_LOG(PDERROR, "failed to fysnc meta block page:%d", rc);
-            goto error;
+            rc = _mfile.fsyncPage(UBER_BLOCK_PID);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to fysnc meta block page:%d", rc);
+               goto error;
+            }
          }
       }
    done:

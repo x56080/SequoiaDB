@@ -592,6 +592,71 @@ namespace vessel
       goto done;
    }
 
+   INT32 lpageMapping::dumpAllPids(pidBatchList &l)
+   {
+      INT32 rc = SDB_OK;
+      l.clear();
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < _root.getEntrySize(); ++i)
+      {
+         strictBuffer entryBuffer;
+         PAGE_ID entry = _root.get(i);
+         if (INVALID_PAGE_ID == entry)
+         {
+            goto done;
+         }
+
+         rc = _mfile->makeReadableBuffer(entry, entryBuffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make readable buffer of pid[%d], rc:%d",
+                   entry, rc);
+            goto error;
+         }
+         else
+         {
+            for (UINT32 sub = 0; sub < MAPPING_ENTRY_CAPACITY; ++sub)
+            {
+               strictBuffer descBuffer;
+               const PAGE_ID *descPid = entryBuffer.getReadableObjPtr<PAGE_ID>(sub << 2);
+               if (INVALID_PAGE_ID == *descPid)
+               {
+                  continue;
+               }   
+
+               rc = _mfile->makeReadableBuffer(*descPid, descBuffer);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to make readable buffer of desc pid[%d], rc:%d",
+                         *descPid, rc);
+                  goto error;
+               }
+
+               static_assert(sizeof(lpageDescriptor) == 8, "must be 8");
+               for (UINT32 pos = 0; pos < LPID_UNIT_SIZE; ++pos)
+               {
+                  const lpageDescriptor *desc = descBuffer.getReadableObjPtr<lpageDescriptor>(pos << 3);
+                  if (desc->isValid())
+                  {
+                     l.push(desc->pid);
+                  }
+               }
+         
+            }
+         }
+      }
+   done:
+      return rc;
+   error:
+      l.clear();
+      goto done;
+   }
+
    void lpageMapping::_reset(UINT32 size, lpageDescriptor *descriptors)
    {
       if (nullptr != descriptors)
@@ -851,6 +916,8 @@ namespace vessel
    void lpageMapping::publish(lpageMappingPteCtx &ctx)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
+      PD_LOG(PDDEBUG, "new/obsolete meta file pages[%d:%d]",
+             ctx._brandNewSet.size(), ctx._obsoleteSet.size());
       _root.merge(ctx._root);
       for (auto itr = ctx._obsoleteSet.cbegin();
             itr != ctx._obsoleteSet.cend(); ++itr)
@@ -871,71 +938,6 @@ namespace vessel
       ctx.reset();
       return;
    }
-
-   // INT32 lpageMapping::revert(lpageMappingPteCtx &ctx,
-   //                            PAGE_ID lpid,
-   //                            lpageDescriptor &beforeRevert,
-   //                            lpageDescriptor &afterRevert)
-   // {
-   //    INT32 rc = SDB_OK;
-   //    beforeRevert.reset();
-   //    afterRevert.reset();
-
-   //    if (OSS_UNLIKELY(!isValid()))
-   //    {
-   //       rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-   //       goto error;
-   //    }
-   //    else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
-   //    {
-   //       rc = SDB_INVALIDARG;
-   //       goto error;
-   //    }
-   //    else if (OSS_UNLIKELY(isOutOfMaxBound(lpid)))
-   //    {
-   //       rc = SDB_OUT_OF_BOUND;
-   //       goto error;
-   //    }
-   //    else
-   //    {
-   //       lpageDescriptor *descPtr = nullptr;
-   //       lpageDescriptor publishedDesc;
-   //       PAGE_ID descPid = INVALID_PAGE_ID;
-   //       strictBuffer buffer;
-
-   //       rc = get(lpid, publishedDesc);
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to get published descriptor of lpid[%d], rc:%d", lpid, rc);
-   //          goto error;
-   //       }
-
-   //       rc = _getDescriptorPage(&(ctx._root), _getUnitId(lpid), descPid);
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to ensure private path:%d", rc);
-   //          goto error;
-   //       }
-
-   //       rc = _mfile->makeWritableBuffer(descPid, buffer);
-   //       if (SDB_OK != rc)
-   //       {
-   //          PD_LOG(PDERROR, "failed to make writable buffer of pid[%d], rc:%d", descPid, rc);
-   //          goto error;
-   //       }
-
-   //       static_assert(8 == sizeof(lpageDescriptor), "must be 8");
-   //       descPtr = buffer.getWritableObjPtr<lpageDescriptor>(_getDescPos(lpid) << 3);
-   //       SDB_ASSERT(nullptr != descPtr, "impossible");
-   //       beforeRevert = *descPtr;
-   //       afterRevert = publishedDesc;
-   //       *descPtr = publishedDesc;
-   //    }
-   // done:
-   //    return rc;
-   // error:
-   //    goto done;
-   // }
 
    INT32 lpageMapping::_ensurePrivatePath(lpageMappingPteCtx &ctx,
                                           UINT32 unitId,

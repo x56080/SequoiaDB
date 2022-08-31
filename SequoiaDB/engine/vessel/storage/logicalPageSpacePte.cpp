@@ -150,6 +150,8 @@ namespace vessel
             goto error;
          }
 
+         //SDB_ASSERT(lpid == rpb.getPageHead()->lpid, "must be same");
+
          if (isPrivate)
          {
             rc = rpb.prepareToWrite(context);
@@ -204,7 +206,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _reserveLpids(1, &lpid);
+         rc = _reserveLpids(1, &lpid, FALSE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to reserve lpid:%d", rc);
@@ -265,7 +267,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (actx->contains(buffer.getLogicalPid()))
+      else if (actx->isPrivate(buffer.getLogicalPid()))
       {
          goto done;
       }
@@ -291,6 +293,7 @@ namespace vessel
 
       actx->_obsoletePids.push(currentPid);
       actx->_pmap.insert(std::make_pair(lpid, pid));
+
    done:
       return rc;
    error:
@@ -338,27 +341,33 @@ namespace vessel
          else if (isPrivate)
          {
             lpageDescriptor publicDesc;
-            rc = _getPageMapping().get(lpid, desc);
+            rc = _getPageMapping().get(lpid, publicDesc);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get public page mapping:%d", rc);
                goto error;
             }
 
-            actx->erase(lpid);
-            _getSpaceMgr().release(desc.pid);
-
-            /// brand new lpid, free it at once.
-            if (!publicDesc.isValid())
+            if (publicDesc.isValid())
             {
+               actx->_pmap[lpid] = INVALID_PAGE_ID;
+               actx->_obsoleteLpids.push(lpid);
+               actx->_obsoletePids.push(publicDesc.pid);
+            }
+            else
+            {
+               /// brand new lpid, free it at once.
+               actx->erase(lpid);
                _freeLpid(lpid);
             }
+
+            _getSpaceMgr().release(desc.pid);
          }
          else
          {
             actx->_obsoleteLpids.push(lpid);
             actx->_obsoletePids.push(desc.pid);
-            actx->_pmap.insert(std::make_pair(lpid, desc.pid));
+            actx->_pmap[lpid] = INVALID_PAGE_ID;
          }
       }
       
@@ -584,6 +593,7 @@ namespace vessel
    void logicalPageSpacePte::abort(PTE_ACCESS_CTX_PTR &ac)
    {
       SDB_ASSERT(isOpen(), "can not be invalid");
+
       const spacePteAccessCtx *ctx = ac.get();
       SDB_ASSERT(nullptr != ctx, "can not be invalid");
       for (auto itr = ctx->_pmap.cbegin();
@@ -697,8 +707,8 @@ namespace vessel
       UINT32 pageSize = 0;
       mmapPagePointer ptr;
 
-      if (OSS_UNLIKELY(NULL == context ||
-                      INVALID_PAGE_ID == pid))
+      if (OSS_UNLIKELY(nullptr == context ||
+                       INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
          goto error;

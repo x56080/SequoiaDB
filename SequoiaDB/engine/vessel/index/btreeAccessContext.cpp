@@ -344,8 +344,8 @@ namespace vessel
       rc = buffer.validatePage(PAGE_TYPE_BTREE_NODE);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to validate btree page:[%s], rc:%d",
-                rpb.getGlobalPid().toString().c_str(), rc);
+         PD_LOG(PDERROR, "failed to validate btree page:[%d, %s], rc:%d",
+                buffer.getLogicalPid(), rpb.getGlobalPid().toString().c_str(), rc);
          goto error;
       }
 

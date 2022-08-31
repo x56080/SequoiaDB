@@ -88,6 +88,8 @@ namespace vessel
             PD_LOG(PDERROR, "failed to make private buffer:%d", rc);
             goto error;
          }
+
+         SDB_ASSERT(isWritable(), "must be writable");
       }
    done:
       return rc;

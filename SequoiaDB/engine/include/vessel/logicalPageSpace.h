@@ -218,7 +218,7 @@ namespace vessel
                                      const PAGE_ID *lpids,
                                      const PAGE_ID *pids);
 
-         INT32 _reserveLpids(UINT32 size, PAGE_ID *lpids);
+         INT32 _reserveLpids(UINT32 size, PAGE_ID *lpids, BOOLEAN autoExtendLPM=TRUE);
          void _freeLpids(UINT32 size, const PAGE_ID *lpids);
          void _freeLpid(PAGE_ID lpid);
 

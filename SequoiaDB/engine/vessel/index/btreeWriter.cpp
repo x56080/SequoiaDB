@@ -391,7 +391,7 @@ namespace vessel
                rc = _bac.pushChildNodeIntoPath(child, footprint);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to push chil node into path:%d", rc);
+                  PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
                   goto error;
                }
 

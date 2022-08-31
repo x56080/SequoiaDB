@@ -119,6 +119,7 @@ namespace vessel
 
                INT32 reserveExtent(UINT32 pcnt);
                void freeExtent(UINT32 poffset, UINT32 pcnt);
+               BOOLEAN test(UINT32 offset)const;
 
             private:
                void _resetMaxExtentSize(UINT32 stopWhenFound = 0);
@@ -157,7 +158,7 @@ namespace vessel
                PAGE_ID reserveExtent(UINT32 pcnt);
                void freeExtent(PAGE_ID pid, UINT32 pcnt);
                void freePids(UINT32 size, const PAGE_ID *pids);
-
+               BOOLEAN test(PAGE_ID pid);
             private:
                INT32 _reserveSegment();
 
@@ -201,6 +202,8 @@ namespace vessel
          void freeExtent(PAGE_ID pid, UINT32 pcnt);
 
          void freePids(UINT32 size, const PAGE_ID *pids);
+
+         BOOLEAN test(PAGE_ID pid);
 
       private:
 

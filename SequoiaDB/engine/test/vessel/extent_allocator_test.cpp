@@ -253,3 +253,81 @@ TEST(extent_allocator_test, base_test4)
    ASSERT_EQ(INVALID_PAGE_ID, pid);
    allocator.reset();
 }
+
+/// free pids
+TEST(extent_allocator_test, base_test5)
+{
+   variableExtentAllocator allocator;
+   constexpr UINT32 SEG_PCNT = 512;
+   constexpr UINT32 SEG_COUNT_PERFILE = 128;
+   constexpr UINT32 TOTAL_SEG_COUNT = 256;
+   constexpr UINT32 TOTAL_PCNT = SEG_PCNT * TOTAL_SEG_COUNT;
+   constexpr UINT32 SME_BUF_SIZE = SEG_PCNT >> 3;
+
+   variableExtentAllocator::options o;
+   o.maxPageCountPerSegment = SEG_PCNT;
+   o.maxSegmentCountPerFile = SEG_COUNT_PERFILE;
+   allocator.init(o);
+
+   vector<std::unique_ptr<CHAR []>> smes;
+   vector<PAGE_ID> pids;
+   set<PAGE_ID> pidSet;
+
+   INT32 rc = SDB_OK;
+
+   for (UINT32 i = 0; i < TOTAL_SEG_COUNT; ++i)
+   {
+      std::unique_ptr<CHAR []> sme(new CHAR[SME_BUF_SIZE]);
+      ossMemset(sme.get(), 0x0, SME_BUF_SIZE);
+      rc = allocator.depositWithSme((UINT64 *)sme.get());
+      ASSERT_EQ(SDB_OK, rc);
+      smes.emplace_back(std::move(sme));
+   }
+
+   for (UINT32 i = 0; i < TOTAL_PCNT; i += 2)
+   {
+      PAGE_ID pid = ossRand() % TOTAL_PCNT;
+      if (0 < pidSet.count(pid))
+      {
+         continue;
+      }
+      pids.push_back(pid);
+      pidSet.insert(pid);
+   }
+
+   allocator.freePids(pids.size(), pids.data());
+   for (UINT32 i = 0; i < pids.size(); ++i)
+   {
+      ASSERT_TRUE(allocator.test(pids[i]));
+   }
+
+   for (UINT32 i = 0; i < TOTAL_PCNT; ++i)
+   {
+      if (0 < pidSet.count(i))
+      {
+         continue;
+      }
+
+      ASSERT_FALSE(allocator.test(i));
+   }
+
+   allocator.reset();
+   allocator.init(o);
+   for (auto itr = smes.begin(); itr != smes.end(); ++itr)
+   {
+      rc = allocator.depositWithSme((UINT64 *)(itr->get()));
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (UINT32 i = 0; i < TOTAL_PCNT; ++i)
+   {
+      if (0 < pidSet.count(i))
+      {
+         ASSERT_TRUE(allocator.test(i));
+      }
+      else
+      {
+         ASSERT_FALSE(allocator.test(i));
+      }
+   }
+}

@@ -81,17 +81,20 @@ namespace vessel
       _el.clear();
       _filesToTransfer.clear();
       _job.reset();
-      _status = _STATUS::STANDBY;
+      _status = _STATUS::DEACTIVED;
    }
 
    void hitIndexManager::attach()
    {
       SDB_ASSERT(!_isAttached(), "do not reattach");
+      SDB_ASSERT(_isDeactived(), "must be deactived");
       _attached.store(TRUE);
       constexpr UINT32 millis = 1000;
-      backgroundEvent event, quitEvent;
+      BOOLEAN quiting = FALSE;
+      backgroundEvent event;
       
       PD_LOG(PDINFO, "hit manager attached");
+      _status = _STATUS::STANDBY;
 
       do
       {
@@ -101,30 +104,45 @@ namespace vessel
          {
             if (event.isQuitEvent())
             {
-               quitEvent = event;
+               PD_LOG(PDINFO, "quit event received");
+               quiting = TRUE;
+               if (_isStandby())
+               {
+                  _status = _STATUS::DEACTIVED;
+                  break;
+               }
             }
-            else if (event.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER) &&
-                    _STATUS::WAITING_RESPONSE == _status)
+            else if (event.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER))
             {
-               _status = _handleResponse(event);
-               _launchOnStatus();
+               if (OSS_LIKELY(_isWaitingResponse()))
+               {
+                  _status = _handleResponse(quiting, event);
+                  _launchOnStatus();
+               }
+               else
+               {
+                  PD_LOG(PDERROR, "invalid launching status[%d]", _status);
+                  SDB_ASSERT(FALSE, "invalid launching status");
+               }
             }
             else
             {
                PD_LOG(PDERROR, "unknown event type:%d", event.getType());
             }
          }
-         else if (_isStandby() &&!quitEvent.isValid())
+         else if (_isStandby() && !quiting)
          {
+            /// time out and not quiting, try to active transfer.
             _launchOnStatus();
          }
          else
          {
             /// not standby or quiting, do nothing.
          }
-      } while (!quitEvent.isValid() || !_isStandby());
+      } while (!_isDeactived());
       
-
+      _job.reset();
+      _filesToTransfer.clear();
       _attached.store(FALSE);
       PD_LOG(PDINFO, "hit manager detached");
       return;
@@ -410,7 +428,8 @@ namespace vessel
       goto done;
    }
 
-   hitIndexManager::_STATUS hitIndexManager::_handleResponse(const backgroundEvent &e)
+   hitIndexManager::_STATUS hitIndexManager::_handleResponse(BOOLEAN isQuiting, 
+                                                             const backgroundEvent &e)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(e.isResponseOf(BACKGROUND_EVENT_TYPE::HIT_ENTRY_TRANSFER),
@@ -428,11 +447,13 @@ namespace vessel
          goto done;
       }
 
-      ///TODO: terminate all tasks at once if get error.
+      ///TODO: shoud we terminate all tasks at once if get error ?
       if (cjob.hasError())
       {
          _rollbackCurrentCSJob();
-         s = _STATUS::TRANSFER_CS;
+         /// duplidated entries to transfer if it is not the first
+         /// cs in file
+         s = isQuiting ? _STATUS::DEACTIVED : _STATUS::TRANSFER_CS;
          goto done;
       }
 
@@ -440,14 +461,16 @@ namespace vessel
       if (SDB_OK != rc)
       {
          _rollbackCurrentCSJob();
-         s = _STATUS::TRANSFER_CS;
+         /// duplidated entries to transfer if it is not the first
+         /// cs in file
+         s = isQuiting ? _STATUS::DEACTIVED : _STATUS::TRANSFER_CS;
          goto done;
       }
 
       if (_job.hasNoCsJob())
       {
          _finishCurrentFileJob();
-         s = _STATUS::TRANSFER_FILE;
+         s = isQuiting ? _STATUS::DEACTIVED : _STATUS::TRANSFER_FILE;
       }
       else
       {
@@ -654,6 +677,7 @@ namespace vessel
 
    void hitIndexManager::_rollbackCurrentCSJob()
    {
+      PD_LOG(PDINFO, "begin to rollback hit transfer job");
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       spaceIDLocker &locker = tc->getEnv()->spaceLocker;
       _csTransferJob *cjob = _getCurrentCSJob();
@@ -686,14 +710,15 @@ namespace vessel
    {
       do
       {
-         _STATUS s = _STATUS::STANDBY;
+         _STATUS s = _STATUS::DEACTIVED;
          switch (_status)
          {
+         case _STATUS::DEACTIVED:
+            break;
          case _STATUS::STANDBY:
             s = _launchOnStandby();
             break;
          case _STATUS::WAITING_RESPONSE:
-            s = _launchOnWaitingResponse();
             break;
          case _STATUS::TRANSFER_CS:
             s = _launchOnTransferCS();
@@ -802,7 +827,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_STATUS::TRANSFER_CS == _status, "can not be invalid");
-      SDB_ASSERT(_job.isValid(), "can not be running");
+      SDB_ASSERT(_job.isValid(), "can not be invalid");
       _STATUS s = _STATUS::STANDBY;
 
       while (!_job.hasNoCsJob())
@@ -838,11 +863,6 @@ namespace vessel
       goto done;
    }
 
-   hitIndexManager::_STATUS hitIndexManager::_launchOnWaitingResponse()
-   {
-      SDB_ASSERT(_STATUS::WAITING_RESPONSE == _status, "can not be invalid");
-      return _STATUS::WAITING_RESPONSE;
-   }
 
 //////////////////////////_csTransferJob
    hitIndexManager::_csTransferJob::_csTransferJob(_csTransferJob &&o) noexcept :

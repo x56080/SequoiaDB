@@ -1484,5 +1484,26 @@ namespace vessel
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       _env.hitMgr.attach();
    }
+
+   INT32 vesselImpl::flushLsmDB()
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _env.lsm->flush();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to flush lsm db:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 } // namespace engine

@@ -938,13 +938,7 @@ namespace vessel
 
       _resetInternalItrs();
 
-      rc = _lsm.init(_cf, &_bound);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
-         goto error;
-      }
-
+      /// always init btree iterator first, to lock btree view.
       rc = _is->initViewer(TRUE, _viewer);
       if (SDB_OK != rc)
       {
@@ -956,6 +950,13 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init btree iterator:%d", rc);
+         goto error;
+      }
+
+      rc = _lsm.init(_cf, &_bound);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm iterator:%d", rc);
          goto error;
       }
 

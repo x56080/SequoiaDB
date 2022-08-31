@@ -222,6 +222,8 @@ namespace vessel
                             const bson::OID &oid,
                             UINT32 chunkId,
                             dmsLobChunkProfile *profile);
+
+         INT32 flushLsmDB();
       public:
          INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   

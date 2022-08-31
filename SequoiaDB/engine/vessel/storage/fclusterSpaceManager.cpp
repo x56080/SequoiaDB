@@ -200,6 +200,8 @@ namespace vessel
          }
       }
 
+      ///WARNING: we will init smgr by data file segment count when start.
+      /// sme must be rebuild if engine crashed.
       rc = _allocator.depositWithSme((UINT64 *)smeBuffer.getWPtr());
       if (SDB_OK != rc)
       {
@@ -252,9 +254,9 @@ namespace vessel
       buffer.reset();
 
       UINT32 smeBufferSize = _fcluster->getCoreArgs().maxPageCountPerSeg >> 3;
+      UINT32 smeBufferOffset = (segmentId * smeBufferSize) % _mfile->getCommonHeadInMem().pageSize;
       UINT32 smePageCapacity = _mfile->getCommonHeadInMem().pageSize / smeBufferSize;
       UINT32 pageNo = segmentId / smePageCapacity;
-      UINT32 smeBufferOffset = pageNo % smePageCapacity;
       UINT32 entryPageCapacity = _mfile->getCommonHeadInMem().pageSize / sizeof(PAGE_ID);
       SDB_ASSERT(pageNo < entryPageCapacity, "out of bound");
 
@@ -385,6 +387,11 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   BOOLEAN fclusterSpaceManager::test(PAGE_ID pid)
+   {
+      return _allocator.test(pid);
    }
 
 } // namespace vessel

@@ -76,7 +76,7 @@ namespace vessel
          void reset(PAGE_ID lpid);
          void erase(PAGE_ID lpid);
          BOOLEAN get(PAGE_ID lpid, PAGE_ID &pid)const;
-         BOOLEAN contains(PAGE_ID lpid)const;
+         BOOLEAN isPrivate(PAGE_ID lpid)const;
          void obsoleteLpid(PAGE_ID lpid);
          void obsoletePid(PAGE_ID lpid);
          void resetObsoleteResources();

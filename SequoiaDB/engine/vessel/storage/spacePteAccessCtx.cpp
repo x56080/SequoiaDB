@@ -82,9 +82,10 @@ namespace vessel
       }
    }
 
-   BOOLEAN spacePteAccessCtx::contains(PAGE_ID lpid) const
+   BOOLEAN spacePteAccessCtx::isPrivate(PAGE_ID lpid) const
    {
-      return 0 < _pmap.count(lpid);
+      auto itr = _pmap.find(lpid);
+      return _pmap.cend() != itr && INVALID_PAGE_ID != itr->second;
    }
 
    void spacePteAccessCtx::erase(PAGE_ID lpid)

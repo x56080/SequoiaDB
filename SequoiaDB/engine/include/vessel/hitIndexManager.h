@@ -160,11 +160,12 @@ namespace vessel
       private:
          enum class _STATUS : INT32
          {
-            STANDBY = 0x0,
-            WAITING_RESPONSE = 0x01,
-            _DRIVING_STATUS = 0x02,
-            TRANSFER_CS = 0x02,
-            TRANSFER_FILE = 0x03,
+            DEACTIVED = 0x0,
+            STANDBY = 0x01,
+            WAITING_RESPONSE = 0x02,
+            _DRIVING_STATUS = 0x03,
+            TRANSFER_CS = 0x04,
+            TRANSFER_FILE = 0x05,
          };
 
          OSS_INLINE BOOLEAN _isDrivingStatus(_STATUS status)const
@@ -175,11 +176,18 @@ namespace vessel
          {
             return _STATUS::STANDBY == _status;
          }
-
+         OSS_INLINE BOOLEAN _isWaitingResponse()const
+         {
+            return _STATUS::WAITING_RESPONSE == _status;
+         }
+         OSS_INLINE BOOLEAN _isDeactived()const
+         {
+            return _STATUS::DEACTIVED == _status;
+         }
+         
       private:
          void _launchOnStatus();
          _STATUS _launchOnStandby();
-         _STATUS _launchOnWaitingResponse();
          _STATUS _launchOnTransferCS();
          _STATUS _launchOnTransferFile();
 
@@ -199,7 +207,7 @@ namespace vessel
 
 
       private:
-         _STATUS _handleResponse(const backgroundEvent &e);
+         _STATUS _handleResponse(BOOLEAN isQuiting, const backgroundEvent &e);
 
          void _completeTask(UINT32 taskId, INT32 rc, _csTransferJob &cjob);
 
@@ -217,7 +225,7 @@ namespace vessel
 
       private:
          std::atomic_bool _attached{FALSE};
-         _STATUS _status = _STATUS::STANDBY;
+         _STATUS _status = _STATUS::DEACTIVED;
          _EVENT_LIST _el;
          _FILE_VEC _filesToTransfer;
          _fileTransferJob _job;

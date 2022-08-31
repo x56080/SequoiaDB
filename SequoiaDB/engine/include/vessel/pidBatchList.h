@@ -69,6 +69,7 @@ namespace vessel
          OSS_INLINE void clear() {_bl.clear();}
          void push(PAGE_ID pid);
          void transferTo(pidBatchList &o);
+         UINT32 getTotalCount()const;
 
       private:
          BATCH_LIST _bl;
