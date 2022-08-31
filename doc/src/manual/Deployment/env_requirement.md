@@ -130,16 +130,44 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 - Ubuntu:
 
-    设置主机名 
+    设置主机名
 
-     ```lang-bash
-     # hostname sdbserver1
+    ```lang-bash
+    # hostname sdbserver1
     ```
    
     将主机名持久化到配置文件
 
     ```lang-bash
     # echo "sdbserver1" > /etc/hostname
+    ```
+
+- UOS V20:
+
+    设置主机名
+
+    ```lang-bash
+    # hostname sdbserver1
+    ```
+   
+    将主机名持久化到配置文件
+
+    ```lang-bash
+    # hostnamectl set-hostname sdbserver1 && bash
+    ```
+
+- Kylin V10:
+
+    设置主机名
+
+    ```lang-bash
+    # hostname sdbserver1
+    ```
+   
+    将主机名持久化到配置文件
+
+    ```lang-bash
+    # hostnamectl set-hostname sdbserver1 && bash
     ```
 
 ###配置主机名/IP地址映射###
@@ -206,11 +234,29 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 - Ubuntu:
 
-     执行如下命令：
+    执行如下命令：
 
-     ```lang-bash
-     # ufw disable
-     ```
+    ```lang-bash
+    # ufw disable
+    ```
+
+- UOS V20:
+
+    执行如下命令：
+
+    ```lang-bash
+    # systemctl stop firewalld.service    # 临时关闭防火墙
+    # systemctl disable firewalld.service    # 设置开机禁用防火墙
+    ```
+
+- Kylin V10:
+
+    执行如下命令：
+
+    ```lang-bash
+    # systemctl stop firewalld.service    # 临时关闭防火墙
+    # systemctl disable firewalld.service    # 设置开机禁用防火墙
+    ```
 
 **验证方法**
 
@@ -255,12 +301,36 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 - Ubuntu:
 
-     执行命令，若打印以下信息，说明关闭防火墙成功
+    执行命令，若打印以下信息，说明关闭防火墙成功
 
-     ```lang-bash
-     # ufw status
-     Status: inactive
-     ```
+    ```lang-bash
+    # ufw status
+    Status: inactive
+    ```
+
+- UOS V20:
+
+    执行命令，若打印以下信息，说明关闭防火墙成功
+
+    ```lang-bash
+    # systemctl status firewalld.service
+    ● firewalld.service - firewalld - dynamic firewall daemon
+          Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+          Active: inactive (dead)
+            Docs: man:firewalld(1)
+    ```
+
+- Kylin V10:
+
+    执行命令，若打印以下信息，说明关闭防火墙成功
+
+    ```lang-bash
+    # systemctl status firewalld.service
+    ● firewalld.service - firewalld - dynamic firewall daemon
+          Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+          Active: inactive (dead)
+            Docs: man:firewalld(1)
+    ```
 
 ###配置 SELinux###
 
