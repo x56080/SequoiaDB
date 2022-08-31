@@ -222,9 +222,39 @@ namespace engine
 
          if ( orderby.isEmpty() )
          {
-            PD_LOG_MSG( PDERROR, "Context does not support advance without "
-                        "orderby" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
+            if ( isRange )
+            {
+               orderby = _planRuntime.getPlan()->getKeyPattern() ;
+               SDB_ASSERT( !orderby.isEmpty(), "orderby should not be empty!" ) ;
+               if ( -1 == _planRuntime.getPlan()->getDirection() )
+               {
+                  try
+                  {
+                     BSONObjBuilder ob ;
+                     BSONObjIterator it( orderby ) ;
+                     INT32 value = 0 ;
+                     while ( it.more() )
+                     {
+                        BSONElement ele = it.next() ;
+                        value = - ele.Int() ;
+                        ob.append( ele.fieldName(), value ) ;
+                     }
+                     orderby = ob.obj() ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     rc = ossException2RC( &e ) ;
+                     PD_LOG ( PDERROR, "Failed to generate orderby bson, occur "
+                              "exception: %s, rc: %d", e.what(), rc ) ;
+                  }
+               }
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Context does not support advance without "
+                           "orderby" ) ;
+               rc = SDB_OPTION_NOT_SUPPORT ;
+            }
          }
       }
 

@@ -102,7 +102,7 @@ namespace engine
                                     BOOLEAN isLocate,
                                     _pmdEDUCB *cb ) ;
 
-      virtual INT32     _getAdvanceOrderby( BSONObj &orderby, 
+      virtual INT32     _getAdvanceOrderby( BSONObj &orderby,
                                             BOOLEAN isRange = FALSE ) const ;
 
    protected:

@@ -217,7 +217,7 @@ namespace engine
                                        _pmdEDUCB *cb ) ;
 
          virtual INT32     _getAdvanceOrderby( BSONObj &orderby,
-                                       BOOLEAN isRange = FALSE ) const ;
+                                               BOOLEAN isRange = FALSE ) const ;
 
          virtual INT32     _prepareDoAdvance ( _pmdEDUCB *cb ) ;
 
