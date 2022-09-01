@@ -49,11 +49,16 @@
 #include "vessel/hitTransferHandler.h"
 #include "vessel/spaceIDLocker.h"
 #include "vessel/lsm/lsmTableProperties.h"
+#include "rocksdb/comparator.h"
+#include "rocksdb/slice_transform.h"
 
 namespace engine
 {
 namespace vessel
 {
+   extern rocksdb::Comparator* getHitComparator();
+   extern const rocksdb::SliceTransform *getLsmIndexPrefixTransform();
+
    hitIndexManager::~hitIndexManager()
    {
       SDB_ASSERT(!_isAttached(), "detaching missed");
@@ -178,6 +183,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!name.empty(), "can not be invalid");
       rocksdb::Options o;
+      o.comparator = getHitComparator();
+      o.prefix_extractor.reset(getLsmIndexPrefixTransform());
       rocksdb::Status s;
       lsmTableProperties properties;
       std::shared_ptr<const rocksdb::TableProperties> ptr;
@@ -399,13 +406,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       hitTransferHandler handler;
       _csTransferJob *cjob = nullptr;
-
-      if (OSS_UNLIKELY(_STATUS::WAITING_RESPONSE != _status))
-      {
-         PD_LOG(PDERROR, "invalid status[%d]", _status);
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
       cjob = _job.getCurrentCsJobPtr();
       if (OSS_UNLIKELY(cjob->tasks.size() <= taskId))
@@ -714,11 +714,13 @@ namespace vessel
          switch (_status)
          {
          case _STATUS::DEACTIVED:
+            s = _STATUS::DEACTIVED;
             break;
          case _STATUS::STANDBY:
             s = _launchOnStandby();
             break;
          case _STATUS::WAITING_RESPONSE:
+            s = _STATUS::WAITING_RESPONSE;
             break;
          case _STATUS::TRANSFER_CS:
             s = _launchOnTransferCS();
