@@ -13,13 +13,11 @@
 集合空间快照可以列出所有集合空间。用户通过协调节点或非协调节点查看该快照时，返回的结果字段不完全相同。
 
 
-标识
-----
+##标识##
 
 SDB_SNAP_COLLECTIONSPACES
 
-非协调节点字段信息
-----
+##非协调节点字段信息##
 
 | 字段名          | 类型       | 描述                                         |
 | --------------- | ---------- | -------------------------------------------- |
@@ -56,8 +54,7 @@ SDB_SNAP_COLLECTIONSPACES
 | DirtyPage       | int32      | 集合空间大对象文件在开启缓存下脏页数量       |
 | Type            | int32      | 集合空间类型，取值如下：<br>0：普通集合空间<br>1：固定（Capped）集合空间 |
 
-协调节点字段信息
-----
+##协调节点字段信息##
 
 | 字段名          | 类型       | 描述                                         |
 | --------------- | ---------- | -------------------------------------------- |
@@ -77,13 +74,12 @@ SDB_SNAP_COLLECTIONSPACES
 | FreeLobSize     | int64      | 集合空间大对象文件空闲空间大小，单位为字节   |
 | Group           | bson array | 该集合空间所在的复制组名列表                 |
 
-示例
-----
+##示例##
 
 - 通过非协调节点查看快照
 
    ```lang-javascript
-   > db.snapshot( SDB_SNAP_COLLECTIONSPACES )
+   > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
    ```
 
    输出结果如下：
@@ -98,7 +94,7 @@ SDB_SNAP_COLLECTIONSPACES
      "LogicalID" : 20,
      "Collection": [
        {
-         "Name": "employee",
+         "Name": "sample.employee",
          "UniqueID": 261993005057
        }
      ],
@@ -125,6 +121,7 @@ SDB_SNAP_COLLECTIONSPACES
      "IndexCommitted": false,
      "LobCommitted": true,
      "DirtyPage": 0
+     "Type": 0
    }
    ...
    ```
@@ -132,7 +129,7 @@ SDB_SNAP_COLLECTIONSPACES
 - 通过协调节点查看快照
 
    ```lang-javascript
-   > db.snapshot( SDB_SNAP_COLLECTIONSPACES )
+   > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
    ```
    
    输出结果如下：
@@ -153,7 +150,7 @@ SDB_SNAP_COLLECTIONSPACES
      "FreeLobSize": 140771328,
      "Collection": [
        {
-         "Name": "employee",
+         "Name": "sample.employee",
          "UniqueID": 261993005057
        }
      ],
