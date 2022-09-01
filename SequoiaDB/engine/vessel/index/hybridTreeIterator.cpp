@@ -759,7 +759,8 @@ namespace vessel
             }
             else
             {
-               rc = SDB_IXM_EOC;
+               PD_LOG(PDERROR, "failed to pick from ring");
+               rc = SDB_VESSEL_INTERNAL_ERR;
                goto error;
             }
          }
@@ -780,7 +781,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       
-      if (OSS_BIT_TEST(_status, _FILLING_STATUS::LSM_EXPECTED))
+      if (0 != OSS_BIT_TEST(_status, _FILLING_STATUS::LSM_EXPECTED))
       {
          _ring[_RING_POS::LSM].reset();
          if (fetchNext)
@@ -803,7 +804,7 @@ namespace vessel
          }
       }
 
-      if (OSS_BIT_TEST(_status, _FILLING_STATUS::BTREE_EXPECTED))
+      if (0 != OSS_BIT_TEST(_status, _FILLING_STATUS::BTREE_EXPECTED))
       {
          _ring[_RING_POS::BTREE].reset();
          if (fetchNext)
@@ -828,7 +829,8 @@ namespace vessel
          }
       }
 
-      if (_FILLING_STATUS::NONE_EXPECTED == _status)
+      if (!_ring[_RING_POS::LSM].isValid() &&
+          !_ring[_RING_POS::BTREE].isValid())
       {
          rc = SDB_IXM_EOC;
          goto error;
@@ -886,6 +888,7 @@ namespace vessel
       {
          res.pos = _RING_POS::INVALID;
          res.status = _FILLING_STATUS::NONE_EXPECTED;
+         SDB_ASSERT(FALSE, "ring can not be empty");
       }
 
       return res;

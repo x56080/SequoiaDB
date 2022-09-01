@@ -319,6 +319,13 @@ namespace vessel
          recordID rid = _iterator->getRid();
          if (_cursor->getCtx().testRidScanned(rid))
          {
+            rc = _iterator->initOrUpdateLocation(_cursor->getCtx().getLocation());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to update location info:%d", rc);
+               goto error;
+            }
+
             rc = _iterator->next();
             if (SDB_OK != rc)
             {

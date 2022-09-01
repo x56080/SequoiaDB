@@ -152,6 +152,7 @@ namespace engine
          DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
          INT64 rowCountLimit = -1;
          BOOLEAN indexCovered = FALSE;
+         UINT32 stepSize = 64;
    };//class dmsIndexScanOptions
 
    class dmsCreateDataSnapshotOptions

@@ -102,6 +102,7 @@ TEST_F(hit_index_test, base_test_1)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
+   options.lsmOptions.hitCfMemtableSize = 1 << 20;
 
    UINT32 count = 1000000;
    DATA_COLLECTION_PTR handler;
@@ -198,6 +199,7 @@ TEST_F(hit_index_test, base_test_2)
    UINT32 count = 1000000;
    DATA_COLLECTION_PTR handler;
    bson::BSONObj pattern = BSON("a" << 1 << "b" << 1);
+
    const CHAR *indexName = "index";
 
    bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, indexName, 
@@ -215,37 +217,39 @@ TEST_F(hit_index_test, base_test_2)
    rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+
    std::default_random_engine generator;
    std::uniform_int_distribution<INT32> distribution(0, count);
    std::vector<INT32> bValues;
-   INT32 div = 50;
    bson::BSONObjBuilder builder;
    ossPoolString s = "fixed_prefix";
+
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
       builder.appendStrWithNoTerminating("a", s.data(), s.size());
       INT32 randomInt32 = distribution(generator);
-      builder.appendIntOrLL("b", randomInt32 / div);
+      builder.appendIntOrLL("b", randomInt32);
       bValues.push_back(randomInt32);
       bson::BSONObj obj = builder.done();
 
       rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
+   // rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   // ASSERT_EQ(SDB_OK, rc);
 
-   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
-   ASSERT_EQ(SDB_OK, rc);
+   // rc = db.close(&session, closeDBOptions());
+   // ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.close(&session, closeDBOptions());
-   ASSERT_EQ(SDB_OK, rc);
+   // rc = db.open(&session, &resource, options);
+   // ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.open(&session, &resource, options);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
-   ASSERT_EQ(SDB_OK, rc);
+   // rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   // ASSERT_EQ(SDB_OK, rc);
 
    mthMatchTree mt;
    dmsIndexScanOptions o;
@@ -264,6 +268,7 @@ TEST_F(hit_index_test, base_test_2)
    UINT32 lvl = 0;
    rc = predicates.initialize(ps, pattern, 1, lvl);
    ASSERT_EQ(SDB_OK, rc);
+
    DATA_CURSOR_PTR cursor;
    rc = handler->scanIndex(&session, indexName,
                            predicates, o, cursor);
@@ -272,10 +277,19 @@ TEST_F(hit_index_test, base_test_2)
    for (UINT32 i = 0; i < count; ++i)
    {
       rc = cursor->fetchNext(&session);
+      if (SDB_OK != rc)
+      {
+         cout << i << endl;
+      }
       ASSERT_EQ(SDB_OK, rc);
       BSONObj obj = cursor->getBsonRecord();
-      EXPECT_STREQ(s.data(), obj.getStringField("a"));
-      EXPECT_EQ(bValues[i] / div , obj.getIntField("b"));
+      ASSERT_STREQ(s.data(), obj.getStringField("a"));
+      INT32 v = obj.getIntField("b");
+      if (v != bValues[i])
+      {
+         ASSERT_EQ(bValues[i], obj.getIntField("b"));
+      }
+      //ASSERT_EQ(bValues[i], obj.getIntField("b"));
    }
 
    rc = cursor->fetchNext(&session);
@@ -316,6 +330,9 @@ TEST_F(hit_index_test, base_compress_test_1)
    rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+
    std::default_random_engine generator;
    std::uniform_int_distribution<INT32> distribution(0, count);
    std::vector<INT32> bValues;
@@ -328,25 +345,13 @@ TEST_F(hit_index_test, base_compress_test_1)
       builder.reset();
       builder.appendStrWithNoTerminating("a", s.data(), s.size());
       INT32 randomInt32 = distribution(generator);
-      builder.appendIntOrLL("b", randomInt32 / div);
+      builder.appendIntOrLL("b", randomInt32);
       bValues.push_back(randomInt32);
       bson::BSONObj obj = builder.done();
 
       rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
-
-   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.close(&session, closeDBOptions());
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.open(&session, &resource, options);
-   ASSERT_EQ(SDB_OK, rc);
-
-   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
-   ASSERT_EQ(SDB_OK, rc);
 
    mthMatchTree mt;
    dmsIndexScanOptions o;
@@ -375,8 +380,8 @@ TEST_F(hit_index_test, base_compress_test_1)
       rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
       BSONObj obj = cursor->getBsonRecord();
-      EXPECT_STREQ(s.data(), obj.getStringField("a"));
-      EXPECT_EQ(bValues[i] / div , obj.getIntField("b"));
+      ASSERT_STREQ(s.data(), obj.getStringField("a"));
+      ASSERT_EQ(bValues[i], obj.getIntField("b"));
    }
 
    rc = cursor->fetchNext(&session);
