@@ -87,6 +87,8 @@ namespace vessel
       UINT32 extraSize = _options.prefixExtraCost;
       const slice &curElem = v[pos];
       // When the position is greater than the farthest position, update it.
+      SDB_ASSERT(out.size() == 0 || out.back().high == static_cast<INT32>(pos),
+                 "invalid bound");
       if (reachedPos < pos)
       {
          reachedPos = pos;
@@ -166,7 +168,8 @@ namespace vessel
                UINT32 posToAssign = out.size() - 1;
                tempOut.emplace_back(curElem, nextLow, nextLow + 1);
                INT64 saved1 = saved;
-               saved1 += _dfs(v, pos + 1, depth - 1, reachedPos, tempOut);
+               UINT32 tempReachedPos1 = reachedPos;
+               saved1 += _dfs(v, pos + 1, depth - 1, tempReachedPos1, tempOut);
                // 2. Combined case
                UINT32 oldSaved = out.back().savedBytesWithExtra(extraSize);
                out.back().prefix.reset(prefixLen, out.back().prefix.data());
@@ -174,7 +177,8 @@ namespace vessel
                INT64 saved2 = saved;
                saved2 = saved2 - oldSaved +
                         out.back().savedBytesWithExtra(extraSize);
-               saved2 += _dfs(v, pos + 1, depth - 1, reachedPos, out);
+               UINT32 tempReachedPos2 = reachedPos;
+               saved2 += _dfs(v, pos + 1, depth - 1, tempReachedPos2, out);
 
                // Compare with two cases. The combined case will add weight.
                if (saved1 > saved2 + _options.combinedWeightFactor *
@@ -184,10 +188,12 @@ namespace vessel
                   out.insert(out.begin() + posToAssign,
                              tempOut.begin() + posToAssign,
                              tempOut.end());
+                  reachedPos = tempReachedPos1;
                   saved = saved1;
                }
                else
                {
+                  reachedPos = tempReachedPos2;
                   saved = saved2;
                }
             }
@@ -226,22 +232,25 @@ namespace vessel
                        out);
       }
       // Remove prefixes that do not save bytes.
-      out.erase(std::remove_if(out.begin(),
-                               out.end(),
-                               [&](const prefixItem &item) -> BOOLEAN {
-                                  if (item.savedBytes() <=
-                                      _options.prefixExtraCost)
-                                  {
-                                     return TRUE;
-                                  }
-                                  else
-                                  {
-                                     totalSavedSize += item.savedBytesWithExtra(
-                                         _options.prefixExtraCost);
-                                     return FALSE;
-                                  }
-                               }),
-                out.end());
+      if (_options.filterUselessPrefixItems)
+      {
+         out.erase(std::remove_if(
+                       out.begin(),
+                       out.end(),
+                       [&](const prefixItem &item) -> BOOLEAN {
+                          if (item.savedBytes() <= _options.prefixExtraCost)
+                          {
+                             return TRUE;
+                          }
+                          else
+                          {
+                             totalSavedSize += item.savedBytesWithExtra(
+                                 _options.prefixExtraCost);
+                             return FALSE;
+                          }
+                       }),
+                   out.end());
+      }
 
       SDB_ASSERT(totalSavedSize == saved, "should be equal");
       result r(_options.prefixExtraCost, totalSize, saved, std::move(out));

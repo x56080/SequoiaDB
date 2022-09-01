@@ -95,6 +95,8 @@ namespace vessel
          // case. The larger the factor, the easier the combined case is to be
          // selected.
          UINT32 combinedWeightFactor = DEFAULT_COMBINED_WEIGHT_FACTOR;
+         // Whether remove the prefixes which do not save bytes.
+         BOOLEAN filterUselessPrefixItems = TRUE;
          options() = default;
          options(UINT32 prefixExtraCost,
                  UINT32 maxExponent,
@@ -102,6 +104,16 @@ namespace vessel
              : prefixExtraCost(prefixExtraCost),
                maxTreeDepth(maxExponent),
                combinedWeightFactor(combinedWeightFactor)
+         {
+         }
+         options(UINT32 prefixExtraCost,
+                 UINT32 maxExponent,
+                 UINT32 combinedWeightFactor,
+                 BOOLEAN filterUselessPrefixItems)
+             : prefixExtraCost(prefixExtraCost),
+               maxTreeDepth(maxExponent),
+               combinedWeightFactor(combinedWeightFactor),
+               filterUselessPrefixItems(filterUselessPrefixItems)
          {
          }
       };
