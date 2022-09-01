@@ -4111,13 +4111,19 @@ namespace vessel
                }
             }
 
-            ++fetched;
             cursor->getCtx().markRidScanned(rid);
+            rc = scanner.saveLocation();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to save location info:%d", rc);
+               goto error;
+            }
+            ++fetched;
+
             if (DMS_SCAN_FOR::NONE == cursor->getOptions().scanFor)
             {
                context->unlockRid(rid);
             }
-
          }
          else if (SDB_IXM_EOC != rc)
          {

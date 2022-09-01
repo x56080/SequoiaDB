@@ -73,6 +73,8 @@ namespace vessel
       public:
          const indexIterator *current()const {return _iterator.get();}
 
+         INT32 saveLocation();
+
       private:
          INT32 _pauseUntilRidReady(requestContext *context,
                                    const recordID &rid);

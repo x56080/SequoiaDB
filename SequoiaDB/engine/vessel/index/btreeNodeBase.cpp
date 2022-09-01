@@ -406,7 +406,6 @@ namespace vessel
                if (OSS_UNLIKELY(SDB_OK != rc))
                {
                   PD_LOG(PDERROR, "failed to get owned entry at pos[%d], rc:%d", pos, rc);
-                  rc = SDB_OOM;
                   goto error;
                }
             }
@@ -2355,21 +2354,36 @@ namespace vessel
                                           btreeKeyStringEntry &entry) const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
+      entry.reset();
       prefixedKeyString pks = _getPrefixedKeyString(pos);
       SDB_ASSERT(pks.isValid(), "can not be invalid");
-      rc = entry.init(pks.getOwnedKeyString().getRawData());
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (pks.hasPrefix())
       {
-         PD_LOG(PDERROR, "failed to init index entry:%d", rc);
-         goto error;
+         rc = entry.moveFrom(pks.getOwnedKeyString());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init key entry at pos[%d], rc:%d", pos, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = entry.init(pks.getSuffix());
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to init index entry:%d", rc);
+            goto error;
+         }
+
+         rc = entry.getOwned();
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to get owned entry:%d", rc);
+            goto error;
+         }
       }
 
-      rc = entry.getOwned();
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get owned entry:L%d", rc);
-         goto error;
-      }
    done:
       return rc;
    error:

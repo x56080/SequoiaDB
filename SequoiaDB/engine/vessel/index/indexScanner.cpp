@@ -112,13 +112,6 @@ namespace vessel
       }
       else if (_iterator->isReadyToRead())
       {
-         rc = _iterator->initOrUpdateLocation(_cursor->getCtx().getLocation());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to update entry location:%d", rc);
-            goto error;
-         }
-
          rc = _iterator->next();
          if (SDB_OK != rc)
          {
@@ -136,6 +129,27 @@ namespace vessel
       return rc;
    error:
       close();
+      goto done;
+   }
+
+   INT32 indexScanner::saveLocation()
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen() || !_iterator->isReadyToRead()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _iterator->initOrUpdateLocation(_cursor->getCtx().getLocation());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update location info:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 
