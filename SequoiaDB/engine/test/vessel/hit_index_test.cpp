@@ -581,7 +581,6 @@ TEST_F(hit_index_test, base_compress_test_1)
    std::default_random_engine generator;
    std::uniform_int_distribution<INT32> distribution(0, count);
    std::vector<INT32> bValues;
-   INT32 div = 50;
    bson::BSONObjBuilder builder;
    ossPoolString s = "fixed_prefix";
    for (UINT32 i = 0; i < count; ++i)

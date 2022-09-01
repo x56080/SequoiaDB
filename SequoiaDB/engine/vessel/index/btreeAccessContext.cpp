@@ -35,6 +35,7 @@
 
 #include "vessel/btreeAccessContext.h"
 #include "pdTrace.hpp"
+#include "vessel/btreeNode.h"
 #include "vessel/indexObject.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/indexSpace.h"
@@ -445,6 +446,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get page buffer of[%d], rc:%d", lpid, rc);
          goto error;
       }
+      statsAllocateNode();
    done:
       return rc;
    error:
@@ -485,6 +487,7 @@ namespace vessel
       {
          buffer.reset();
       }
+      statsDestroyNode();
    done:
       return rc;
    error:
@@ -618,7 +621,7 @@ namespace vessel
          }
 
          
-         node.reset(SDB_OSS_NEW btreeNode(depth, std::move(sptr)));
+         node.reset(SDB_OSS_NEW btreeNode(depth, this, std::move(sptr)));
          if (OSS_UNLIKELY(!node))
          {
             /// page allocated will be removed by spacePteAccessCtx
@@ -626,7 +629,7 @@ namespace vessel
             rc = SDB_OOM;
             goto error;
          }
-
+         statsAllocateNode();
       }
    done:
       return rc;
@@ -647,8 +650,129 @@ namespace vessel
          {
             PD_LOG(PDERROR, "failed to remove page[%d], rc:%d", rc);
          }
+         else
+         {
+            statsDestroyNode();
+         }
       }
       return;
+   }
+
+   void btreeAccessContext::statsInsertCompressedIndex(UINT32 optimizedSize,
+                                                       UINT32 remainSize)
+   {
+      _stats.insertCompressedIndex(optimizedSize, remainSize);
+   }
+   void btreeAccessContext::statsInsertUncompressedIndex(UINT32 size)
+   {
+      _stats.insertUncompressedIndex(size);
+   }
+   void btreeAccessContext::statsRemoveCompressedIndex(UINT32 optimizedSize,
+                                                       UINT32 remainSize)
+   {
+      _stats.removeCompressedIndex(optimizedSize, remainSize);
+   }
+   void btreeAccessContext::statsRemoveUncompressedIndex(UINT32 size)
+   {
+      _stats.removeUncompressedIndex(size);
+   }
+   void btreeAccessContext::statsRemoveMarkedDeletedIndexes(UINT32 num)
+   {
+      _stats.removeMarkedDeletedIndexes(num);
+   }
+   void btreeAccessContext::statsReleaseMarkedDeletedIndexSpace(UINT32 size)
+   {
+      _stats.releaseMarkedDeletedIndexSpace(size);
+   }
+   void btreeAccessContext::statsRecompress(UINT32 newCompressedEntryNum,
+                                            UINT64 newRealTotalEntrySize,
+                                            UINT32 newPrefixNum,
+                                            UINT32 oldCompressedEntryNum,
+                                            UINT64 oldRealTotalEntrySize,
+                                            UINT32 oldPrefixNum)
+   {
+      _stats.recompress(newCompressedEntryNum,
+                        newRealTotalEntrySize,
+                        newPrefixNum,
+                        oldCompressedEntryNum,
+                        oldRealTotalEntrySize,
+                        oldPrefixNum);
+   }
+   void btreeAccessContext::statsAddLeafNode()
+   {
+      _stats.addLeafNode();
+   }
+   void btreeAccessContext::statsRemoveCompressedLeafNode()
+   {
+      _stats.removeCompressedLeafNode();
+   }
+   void btreeAccessContext::statsRemoveUncompressedLeafNode()
+   {
+      _stats.removeUncompressedLeafNode();
+   }
+   void btreeAccessContext::statsAddNonLeafNode()
+   {
+      _stats.addNonLeafNode();
+   }
+   void btreeAccessContext::statsRemoveNonLeafNode()
+   {
+      _stats.removeNonLeafNode();
+   }
+   void btreeAccessContext::statsAllocateNode()
+   {
+      _stats.allocateNode();
+   }
+   void btreeAccessContext::statsDestroyNode()
+   {
+      _stats.destroyNode();
+   }
+   void btreeAccessContext::statsCreateNewRoot()
+   {
+      _stats.createNewRoot();
+   }
+   void btreeAccessContext::statsUpdateCompressionRatio()
+   {
+      _stats.updateCompressionRatio();
+   }
+   void btreeAccessContext::statsRefillChildNode()
+   {
+      _stats.refillChildNode();
+   }
+   void btreeAccessContext::statsTruncateTree()
+   {
+      _stats.truncateTree();
+   }
+   void btreeAccessContext::statsTruncate(UINT32 newTotalEntryNum,
+                                          UINT32 newCompressedEntryNum,
+                                          UINT32 oldTotalEntryNum,
+                                          UINT32 oldCompressedEntryNum,
+                                          UINT64 origTotalEntrySizeDiff,
+                                          UINT64 realTotalEntrySizeDiff)
+   {
+      _stats.truncate(newTotalEntryNum,
+                      newCompressedEntryNum,
+                      oldTotalEntryNum,
+                      oldCompressedEntryNum,
+                      origTotalEntrySizeDiff,
+                      realTotalEntrySizeDiff);
+   }
+   void btreeAccessContext::statsCompact(UINT64 realTotalEntrySizeDiff,
+                                         UINT32 newPrefixNum,
+                                         UINT32 oldPrefixNum)
+   {
+      _stats.compact(realTotalEntrySizeDiff, newPrefixNum, oldPrefixNum);
+   }
+   void btreeAccessContext::statsSplit(UINT32 newTotalEntryNum,
+                                       UINT32 newCompressedEntryNum,
+                                       UINT64 newOrigTotalEntrySize,
+                                       UINT64 newRealTotalEntrySize,
+                                       UINT32 prefixNum)
+   {
+      _stats.split(newTotalEntryNum,
+                   newCompressedEntryNum,
+                   newOrigTotalEntrySize,
+                   newRealTotalEntrySize,
+                   prefixNum);
    }
 } // namespace vessel
 

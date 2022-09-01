@@ -37,6 +37,7 @@
 #define VESSEL_BTREE_CONTEXT_H_
 
 #include "vessel/btreeNodeBase.h"
+#include "vessel/btreeStatistics.h"
 
 namespace engine
 {
@@ -56,6 +57,44 @@ namespace vessel
                                        BTREE_NODE_UPTR &node) = 0;
 
          virtual void destroyNode(BTREE_NODE_UPTR &node) = 0;
+
+         virtual void statsInsertCompressedIndex(UINT32 optimizedSize, UINT32 remainSize){}
+         virtual void statsInsertUncompressedIndex(UINT32 size){}
+         virtual void statsRemoveCompressedIndex(UINT32 optimizedSize, UINT32 remainSize){}
+         virtual void statsRemoveUncompressedIndex(UINT32 size){}
+         virtual void statsRemoveMarkedDeletedIndexes(UINT32 num){}
+         virtual void statsReleaseMarkedDeletedIndexSpace(UINT32 size){}
+         virtual void statsRecompress(UINT32 newCompressedEntryNum,
+                                      UINT64 newRealTotalEntrySize,
+                                      UINT32 newPrefixNum,
+                                      UINT32 oldCompressedEntryNum,
+                                      UINT64 oldRealTotalEntrySize,
+                                      UINT32 oldPrefixNum){}
+         virtual void statsAddLeafNode(){}
+         virtual void statsRemoveCompressedLeafNode(){}
+         virtual void statsRemoveUncompressedLeafNode(){}
+         virtual void statsAddNonLeafNode(){}
+         virtual void statsRemoveNonLeafNode(){}
+         virtual void statsAllocateNode(){}
+         virtual void statsDestroyNode(){}
+         virtual void statsCreateNewRoot(){}
+         virtual void statsUpdateCompressionRatio(){}
+         virtual void statsRefillChildNode(){}
+         virtual void statsTruncateTree(){}
+         virtual void statsTruncate(UINT32 newTotalEntryNum,
+                                    UINT32 newCompressedEntryNum,
+                                    UINT32 oldTotalEntryNum,
+                                    UINT32 oldCompressedEntryNum,
+                                    UINT64 origTotalEntrySizeDiff,
+                                    UINT64 realTotalEntrySizeDiff){}
+         virtual void statsCompact(UINT64 realTotalEntrySizeDiff,
+                                    UINT32 newPrefixNum,
+                                    UINT32 oldPrefixNum){}
+         virtual void statsSplit(UINT32 newTotalEntryNum,
+                                 UINT32 newCompressedEntryNum,
+                                 UINT64 newOrigTotalEntrySize,
+                                 UINT64 newRealTotalEntrySize,
+                                 UINT32 prefixNum){}
    };//class btreeContext
 } // namespace vessel
 

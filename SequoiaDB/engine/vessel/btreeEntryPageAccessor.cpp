@@ -99,6 +99,22 @@ namespace vessel
 
          root = readableHead->btreeRoot;
          transferTick = readableHead->transferTick;
+         // btree statistics
+         stats.nonleafNodeNum = readableHead->nonleafNodeNum;
+         stats.leafNodeNum = readableHead->leafNodeNum;
+         stats.compressedNodeNum = readableHead->compressedNodeNum;
+         stats.totalEntryNum = readableHead->totalEntryNum;
+         stats.compressedEntryNum = readableHead->compressedEntryNum;
+         stats.origTotalEntrySize = readableHead->origTotalEntrySize;
+         stats.realTotalEntrySize = readableHead->realTotalEntrySize;
+         stats.totalPrefixNum = readableHead->totalPrefixNum;
+         stats.totalEntryInserted = readableHead->totalEntryInserted;
+         stats.totalEntryRemoved = readableHead->totalEntryRemoved;
+         stats.nodesAllocated = readableHead->nodesAllocated;
+         stats.nodesDestroyed = readableHead->nodesDestroyed;
+         stats.newRootCreatedNum = readableHead->newRootCreatedNum;
+         stats.childNodesRefilled = readableHead->childNodesRefilled;
+         stats.nodesCompressedTimes = readableHead->nodesCompressedTimes;
       }
 
    done:
@@ -155,6 +171,21 @@ namespace vessel
 
       head->btreeRoot = root;
       head->transferTick = transferTick;
+      head->nonleafNodeNum = stats.nonleafNodeNum;
+      head->leafNodeNum = stats.leafNodeNum;
+      head->compressedNodeNum = stats.compressedNodeNum;
+      head->totalEntryNum = stats.totalEntryNum;
+      head->compressedEntryNum = stats.compressedEntryNum;
+      head->origTotalEntrySize = stats.origTotalEntrySize;
+      head->realTotalEntrySize = stats.realTotalEntrySize;
+      head->totalPrefixNum = stats.totalPrefixNum;
+      head->totalEntryInserted = stats.totalEntryInserted;
+      head->totalEntryRemoved = stats.totalEntryRemoved;
+      head->nodesAllocated = stats.nodesAllocated;
+      head->nodesDestroyed = stats.nodesDestroyed;
+      head->newRootCreatedNum = stats.newRootCreatedNum;
+      head->childNodesRefilled = stats.childNodesRefilled;
+      head->nodesCompressedTimes = stats.nodesCompressedTimes;
       lpb->commit(context->getExecutor()->getEndLsn());
 
    done:
