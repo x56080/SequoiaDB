@@ -8,6 +8,7 @@
 #include "vessel/keyString.h"
 #include "vessel/keyStringBuilder.h"
 #include "vessel/orderingWrapper.h"
+#include <iterator>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -182,6 +183,62 @@ namespace vessel
          }
       }
 
+      static vector<keyString> genKsVector()
+      {
+         std::vector<keyString> ksV;
+         keyStringBuilder<> ksb;
+         BSONObjBuilder bsb;
+         UINT32 nums = 500;
+         ksV.reserve(nums);
+         UINT32 ksTotalSize = 0;
+         orderingWrapper ord(0, 3);
+         for (UINT32 i = 0; i < nums; ++i)
+         {
+            INT32 rc = SDB_OK;
+            bsb.appendIntOrLL("a", i / 20);
+            bsb.appendIntOrLL("b", i / 5);
+            bsb.append("c", "test_fixed_string" + std::to_string(i % 5));
+            recordID rid(0, i);
+            ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
+            keyString ks = ksb.getShallowKeyString();
+            ksV.push_back(ks);
+            ksV.back().getOwned();
+            btreeKeyStringEntry entry(ksV.back().getDataSlice());
+            EXPECT_EQ(SDB_OK, rc);
+            ksTotalSize += BTREE_NODE_SLOT_SIZE + ksV.back().getRawDataSize();
+            ksb.reset();
+            bsb.reset();
+         }
+         return ksV;
+      }
+
+      static BOOLEAN checkItems(const vector<keyString>::const_iterator &begin,
+                                const vector<keyString>::const_iterator &end,
+                                const btreeNodeTest &node)
+      {
+         EXPECT_EQ(node.getItemCount(), std::distance(begin, end));
+         if (node.getItemCount() != std::distance(begin, end))
+         {
+            return FALSE;
+         }
+         for (auto it = begin; it != end; ++it)
+         {
+            UINT32 i = std::distance(begin, it);
+            btreeKeyStringEntry entry;
+            node.getOwnedEntry(i, entry);
+            if (entry.compare(*it) != 0)
+            {
+               return FALSE;
+            }
+         }
+         return TRUE;
+      }
+
+      BOOLEAN checkItems(const vector<keyString> &ksV, const btreeNodeTest &node)
+      {
+         return checkItems(ksV.begin(), ksV.cend(), node);
+      }
+
    private:
    };
 
@@ -197,26 +254,16 @@ namespace vessel
       randomBsonGenerator bg;
       BSONObjBuilder bsb;
       keyStringBuilder<> ksb;
-      UINT32 nums = 500;
-      std::vector<keyString> ksV;
+      std::vector<keyString> ksV = btree_node_test::genKsVector();
+      UINT32 nums = ksV.size();
       ksV.reserve(nums);
       UINT32 ksTotalSize = 0;
       for (UINT32 i = 0; i < nums; ++i)
       {
-         bsb.appendIntOrLL("a", i / 20);
-         bsb.appendIntOrLL("b", i / 5);
-         bsb.append("c", "test_fixed_string" + std::to_string(i % 5));
-         recordID rid(0, i);
-         ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
-         keyString ks = ksb.getShallowKeyString();
-         ksV.push_back(ks);
-         ksV.back().getOwned();
-         btreeKeyStringEntry entry(ksV.back().getDataSlice());
+         btreeKeyStringEntry entry(ksV[i].getDataSlice());
          rc = node.insert(entry);
          EXPECT_EQ(SDB_OK, rc);
-         ksTotalSize += BTREE_NODE_SLOT_SIZE + ksV.back().getRawDataSize();
-         ksb.reset();
-         bsb.reset();
+         ksTotalSize += BTREE_NODE_SLOT_SIZE + ksV[i].getRawDataSize();
       }
       const btreeNodePageHead *head = node.getReadableHead();
       EXPECT_EQ(head->totalFreeSpace,
@@ -363,6 +410,9 @@ namespace vessel
       EXPECT_EQ(node.getItemSlot(expectedPos).data.lf.prefixSlot, 0);
       EXPECT_EQ(node.getReadableHead()->compressedItemCount, 501);
       checkPrefixSlotAndItemSlot(node);
+      vector<keyString> ksV = genKsVector();
+      ksV.insert(ksV.begin() + 5, ks);
+      ASSERT_EQ(checkItems(ksV, node), TRUE);
    }
 
    /*
@@ -408,6 +458,9 @@ namespace vessel
       EXPECT_EQ(node.getItemSlot(expectedPos).data.lf.prefixSlot, -1);
       EXPECT_EQ(node.getReadableHead()->compressedItemCount, 500);
       checkPrefixSlotAndItemSlot(node);
+      vector<keyString> ksV = genKsVector();
+      ksV.insert(ksV.begin() + 5, ks);
+      ASSERT_EQ(checkItems(ksV, node), TRUE);
    }
 
    /*
@@ -456,6 +509,12 @@ namespace vessel
       EXPECT_EQ(node.getPrefixCount(), 99);
       EXPECT_EQ(node.getReadableHead()->compressedItemCount, 500 - 4 - 5);
       checkPrefixSlotAndItemSlot(node);
+      vector<keyString> ksV = genKsVector();
+      for(UINT32 i = 0; i < 9; i++)
+      {
+         ksV.erase(ksV.begin() + 1);
+      }
+      ASSERT_EQ(checkItems(ksV, node), TRUE);
    }
 
    /*
@@ -540,6 +599,12 @@ namespace vessel
       EXPECT_EQ(node.getItemCount(), 500 - 4 - 5);
       EXPECT_EQ(node.getReadableHead()->compressedItemCount, 500 - 4 - 5);
       checkPrefixSlotAndItemSlot(node);
+      vector<keyString> ksV = genKsVector();
+      for(UINT32 i = 0; i < 9; i++)
+      {
+         ksV.erase(ksV.begin() + 1);
+      }
+      ASSERT_EQ(checkItems(ksV, node), TRUE);
    }
 
    /*
@@ -602,6 +667,9 @@ namespace vessel
                 btreeNodeTest::PAGE_SIZE - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE -
                     BTREE_NODE_PAGE_HEAD_SIZE - sumSize);
       checkPrefixSlotAndItemSlot(node);
+      vector<keyString> ksV = genKsVector();
+      ksV.resize(keptItemNum);
+      ASSERT_EQ(checkItems(ksV, node), TRUE);
    }
 
    /*
@@ -649,6 +717,7 @@ namespace vessel
          rc = node.insert(entry);
          if(SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
          {
+            ksV.pop_back();
             break;
          }
          ASSERT_EQ(SDB_OK, rc);
@@ -696,6 +765,16 @@ namespace vessel
          ksb.reset();
          bsb.reset();
       }
+      std::sort(ksV.begin(), ksV.end(), [&](const keyString &l, const keyString &r)->BOOLEAN{
+         if(l.compare(r) < 0)
+         {
+            return TRUE;
+         }
+         else
+         {
+            return FALSE;
+         }
+      });
       btreeContextTest *ctx = node.getTreeCtx();
       CHAR * rightData = ctx->buffers[raisedKey.rightChild].get();
       strictBuffer rightBuffer(btreeNodeTest::PAGE_SIZE - PAGE_HEAD_SIZE -
@@ -703,8 +782,10 @@ namespace vessel
                           rightData + PAGE_HEAD_SIZE);
       btreeNodeTest rightNode(raisedKey.rightChild, 0, rightBuffer, rightData);
       EXPECT_EQ(node.isRoot(), FALSE);
-      EXPECT_EQ(i, node.getItemCount() + rightNode.getItemCount());
+      EXPECT_EQ(i, node.getItemCount() + rightNode.getItemCount() + 1);
       checkPrefixSlotAndItemSlot(node);
+      ASSERT_EQ(checkItems(ksV.cbegin(), ksV.cbegin() + node.getReadableHead()->totalSlotCount, node), TRUE);
+      ASSERT_EQ(checkItems(ksV.cbegin() + node.getReadableHead()->totalSlotCount + 1, ksV.cend(), rightNode), TRUE);
    }
 
    /*
@@ -752,6 +833,7 @@ namespace vessel
          rc = node.insert(entry);
          if(SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
          {
+            ksV.pop_back();
             break;
          }
          ASSERT_EQ(SDB_OK, rc);
@@ -770,10 +852,12 @@ namespace vessel
       btreeSplitRaisedKey raisedKey;
       ksb.reset();
       bsb.reset();
+      std::default_random_engine generator;
+      std::uniform_int_distribution<INT32> distribution(0, i / 5);
       while(TRUE)
       {
-         bsb.appendIntOrLL("a", i / 20 / 2);
-         bsb.appendIntOrLL("b", i / 5 / 2);
+         bsb.appendIntOrLL("a", distribution(generator));
+         bsb.appendIntOrLL("b", distribution(generator));
          bsb.append("c", "test_fixed_string" + std::to_string(i % 5));
          recordID rid(0, i);
          ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
@@ -799,6 +883,16 @@ namespace vessel
          ksb.reset();
          bsb.reset();
       }
+      std::sort(ksV.begin(), ksV.end(), [&](const keyString &l, const keyString &r)->BOOLEAN{
+         if(l.compare(r) < 0)
+         {
+            return TRUE;
+         }
+         else
+         {
+            return FALSE;
+         }
+      });
       btreeContextTest *ctx = node.getTreeCtx();
       CHAR * rightData = ctx->buffers[raisedKey.rightChild].get();
       strictBuffer rightBuffer(btreeNodeTest::PAGE_SIZE - PAGE_HEAD_SIZE -
@@ -806,8 +900,10 @@ namespace vessel
                           rightData + PAGE_HEAD_SIZE);
       btreeNodeTest rightNode(raisedKey.rightChild, 0, rightBuffer, rightData);
       EXPECT_EQ(node.isRoot(), FALSE);
-      EXPECT_EQ(i, node.getItemCount() + rightNode.getItemCount());
+      EXPECT_EQ(i, node.getItemCount() + rightNode.getItemCount() + 1);
       checkPrefixSlotAndItemSlot(rightNode);
+      ASSERT_EQ(checkItems(ksV.cbegin(), ksV.cbegin() + node.getReadableHead()->totalSlotCount, node), TRUE);
+      ASSERT_EQ(checkItems(ksV.cbegin() + node.getReadableHead()->totalSlotCount + 1, ksV.cend(), rightNode), TRUE);
    }
 } // namespace vessel
 } // namespace engine

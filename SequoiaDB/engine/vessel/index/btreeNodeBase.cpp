@@ -2434,7 +2434,7 @@ namespace vessel
          newRightChildIsLeaf = _getReadableSlot(pivot)->isRaisedFromLeaf();
       }
 
-      rc = _truncate(pivot + 1);
+      rc = _truncate(pivot);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to truncate node:%d", rc);
