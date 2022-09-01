@@ -311,7 +311,7 @@ TEST_F(hit_index_test, base_test_3)
    options.lsmOptions.hitCfMemtableSize = 1 << 20;
 
    UINT32 count = 100000;
-   UINT32 indexCount = 2;
+   UINT32 indexCount = 8;
    DATA_COLLECTION_PTR handler;
    
 
