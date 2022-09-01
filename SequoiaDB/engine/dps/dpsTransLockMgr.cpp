@@ -1089,10 +1089,10 @@ namespace engine
    (
          const UINT32           bktIdx,
          const dpsTransLockId & lockId
-      )
-      {
-         dpsTransLRBHeader * LRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
-         if ( LRBHdr && _getLRBHdrByLockId( lockId, LRBHdr )
+   )
+   {
+      dpsTransLRBHeader * LRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
+      if ( LRBHdr && _getLRBHdrByLockId( lockId, LRBHdr )
            && ( !  LRBHdr->ownerLRB   )
            && ( !  LRBHdr->upgradeLRB )
            && ( !  LRBHdr->waiterLRB  )
