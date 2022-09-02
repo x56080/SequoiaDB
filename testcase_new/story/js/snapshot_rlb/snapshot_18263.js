@@ -1,26 +1,25 @@
-/***************************************************************************
-@Description : seqDB-15956:指定快照查询参数Mode为Run查询配置快照信息
-@Modify list :
-              2019-4-17  wangkexin  Create
-****************************************************************************/
+/******************************************************************************
+ * @Description   : seqDB-18263:指定快照查询参数Mode为Run查询配置快照信息
+ * @Author        : Xu Mingxing
+ * @CreateTime    : 2022.08.24
+ * @LastEditTime  : 2022.09.02
+ * @LastEditors   : Xu Mingxing
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 main( test );
 
-function test ()
+function test ( testPara )
 {
-   if( commIsStandalone( db ) )
-   {
-      return;
-   }
-
-   var groups = commGetGroups( db );
+   var groups = testPara.groups;
+   var groupName = groups[0][0].GroupName;
    var hostName = groups[0][1].HostName;
    var svcname = groups[0][1].svcname;
    var nodeName = hostName + ":" + svcname;
 
    changeConf( nodeName );
-   var nodeAddresses = [{ "hostName": hostName, "svcName": svcname }];
-   stopNodes( nodeAddresses );
-   startNodes( nodeAddresses )
+   db.getRG( groupName ).getSlave().stop();
+   db.getRG( groupName ).getSlave().start();
 
    var expResult = [{ "transactionon": "FALSE" }];
    var option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
@@ -53,7 +52,6 @@ function changeConf ( nodeName )
          throw new Error( e );
       }
    }
-
 }
 
 function checkResult ( option, expResult )
@@ -65,9 +63,5 @@ function checkResult ( option, expResult )
       actResult.push( { "transactionon": cursor.current().toObj().transactionon } );
    }
    assert.equal( actResult.length, expResult.length );
-   if( JSON.stringify( actResult ) !== JSON.stringify( expResult ) )
-   {
-      throw new Error( "expectResult is " + JSON.stringify( expResult ) + ", but actResult is " + JSON.stringify( actResult ) );
-   }
-
+   assert.equal( actResult, expResult, "实际结果与预期结果一致" );
 }
