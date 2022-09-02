@@ -44,6 +44,7 @@
 #include "vessel/collectionOptions.h"
 #include "mthMatchTree.hpp"
 #include <iostream>
+#include <atomic>
 
 #include <boost/filesystem.hpp>
 #include <random>
@@ -409,6 +410,135 @@ TEST_F(hit_index_test, base_test_3)
       rc = cursor->fetchNext(&session);
       ASSERT_EQ(SDB_DMS_EOC, rc);
    }
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+void thread_insert(vesselImpl *db,
+                   const CHAR *fullName,
+                   UINT32 count,
+                   std::atomic<INT32> *counter)
+{
+   test_executor session;
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+   bson::BSONObjBuilder builder;
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      builder.appendIntOrLL("a", i);
+      rc = handler->insertRecord(&session, builder.done(), dmsInsertRecordOptions(), nullptr);
+      ASSERT_EQ(SDB_OK, rc);
+      builder.reset();
+      counter->fetch_add(1, std::memory_order_relaxed);
+   }
+
+   handler.reset();
+}
+
+void thread_read(vesselImpl *db,
+                 const CHAR *fullName,
+                 std::atomic<INT32> *counter,
+                 BOOLEAN *quit)
+{
+   test_executor session;
+   DATA_COLLECTION_PTR handler;
+   INT32 rc = db->openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+   bson::BSONObjBuilder builder;
+   bson::BSONObj pattern = BSON("a" << 1);
+
+   while (!(*quit))
+   {
+      INT32 value = counter->load(std::memory_order_relaxed);
+      if (0 == value)
+      {
+         continue;
+      }
+      else if (1 == value)
+      {
+         value = 0;
+      }
+      else
+      {
+         value = ossRand() % (value - 1);
+      }
+
+      mthMatchTree mt;
+      dmsIndexScanOptions o;
+      builder.appendIntOrLL("a", value);
+      bson::BSONObj query = builder.done();
+      rc = mt.loadPattern(query, FALSE);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateSet ps;
+      rc = mt.calcPredicate(ps, NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateList predicates;
+      UINT32 lvl = 0;
+      rc = predicates.initialize(ps, pattern, 1, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+
+      DATA_CURSOR_PTR cursor;
+      rc = handler->scanIndex(&session, "index",
+                              predicates, o, cursor);
+      rc = cursor->fetchNext(&session);
+      ASSERT_EQ(SDB_OK, rc);
+      BSONObj obj = cursor->getBsonRecord();
+      ASSERT_EQ(value, obj.getIntField("a"));
+      rc = cursor->fetchNext(&session);
+      ASSERT_EQ(SDB_DMS_EOC, rc);
+      builder.reset();
+   }
+
+   return;
+}
+
+/// insert/read at the same time
+TEST_F(hit_index_test, advanced_test_1)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   options.lsmOptions.hitCfMemtableSize = 1 << 20;
+
+   UINT32 count = 1000000;
+   DATA_COLLECTION_PTR handler;
+   bson::BSONObj pattern = BSON("a" << 1);
+
+   const CHAR *indexName = "index";
+
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, indexName, 
+                                                          FALSE, pattern, FALSE);   
+
+   std::atomic<INT32> counter{0};
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCS(&session, "foo", 1, dmsCreateCSOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCL(&session, "foo.bar", 1, dmsCreateCLOptions(), bson::BSONObj());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler->createIndex(&session, dmsBuildIndexOptions(), indexDef);
+   ASSERT_EQ(SDB_OK, rc);
+
+   std::thread tinsert(thread_insert, &db, "foo.bar", count, &counter);
+   BOOLEAN quit = FALSE;
+   std::thread tread(thread_read, &db, "foo.bar", &counter, &quit);
+
+   tinsert.join();
+   quit = TRUE;
+   tread.join();
 
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
