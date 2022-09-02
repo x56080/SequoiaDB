@@ -80,13 +80,9 @@ namespace vessel
       UINT32 newRootCreatedNum = 0;
       UINT64 childNodesRefilled = 0;
       UINT64 nodesCompressedTimes = 0;
-      UINT32 maxRootSplitNum = 0;
    };//struct btreeEntryPageHead
 
    constexpr UINT32 BTREE_ENTRY_PAGE_HEAD_SIZE = sizeof(btreeEntryPageHead);
-   constexpr UINT32 BTREE_ENTRY_PAGE_HEAD_STATISTICS_OFFSET =
-       sizeof(btreeEntryPageHead::version + btreeEntryPageHead::logicalIndexId +
-              btreeEntryPageHead::btreeRoot + btreeEntryPageHead::transferTick);
 
 #pragma pack()
    BOOLEAN initBtreeEntryPage(UINT32 pageSize,

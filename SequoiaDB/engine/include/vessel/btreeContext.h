@@ -88,8 +88,8 @@ namespace vessel
                                     UINT64 origTotalEntrySizeDiff,
                                     UINT64 realTotalEntrySizeDiff){}
          virtual void statsCompact(UINT64 realTotalEntrySizeDiff,
-                                    UINT32 newPrefixNum,
-                                    UINT32 oldPrefixNum){}
+                                   UINT32 newPrefixNum,
+                                   UINT32 oldPrefixNum){}
          virtual void statsSplit(UINT32 newTotalEntryNum,
                                  UINT32 newCompressedEntryNum,
                                  UINT64 newOrigTotalEntrySize,

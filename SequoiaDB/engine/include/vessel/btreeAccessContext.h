@@ -71,7 +71,7 @@ namespace vessel
          OSS_INLINE indexSpace *getIndexSpace() {return _is;}
          OSS_INLINE requestContext *getReqCtx() {return _context;}
          OSS_INLINE UINT32 getTransferTick() const {return _transferTick;}
-         OSS_INLINE UINT32 incTransferTick() {return ++_transferTick;}  
+         OSS_INLINE UINT32 incTransferTick() {return ++_transferTick;}
          OSS_INLINE const btreeStatistics &getStats()const {return _stats;}
       
       public:
@@ -105,11 +105,11 @@ namespace vessel
          virtual void statsRefillChildNode() override;
          virtual void statsTruncateTree() override;
          virtual void statsTruncate(UINT32 newTotalEntryNum,
-                               UINT32 newCompressedEntryNum,
-                               UINT32 oldTotalEntryNum,
-                               UINT32 oldCompressedEntryNum,
-                               UINT64 origTotalEntrySizeDiff,
-                               UINT64 realTotalEntrySizeDiff) override;
+                                    UINT32 newCompressedEntryNum,
+                                    UINT32 oldTotalEntryNum,
+                                    UINT32 oldCompressedEntryNum,
+                                    UINT64 origTotalEntrySizeDiff,
+                                    UINT64 realTotalEntrySizeDiff) override;
          virtual void statsCompact(UINT64 realTotalEntrySizeDiff,
                                    UINT32 newPrefixNum,
                                    UINT32 oldPrefixNum) override;
