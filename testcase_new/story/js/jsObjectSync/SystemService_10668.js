@@ -89,13 +89,12 @@ function isSSHExist ( hostname, svcname )
 {
    var remote = new Remote( hostname, svcname );
    var cmd = remote.getCmd();
-   var status = cmd.run( "systemctl is-enabled sshd" ).replace(/\s+/g,"");
-   var exist;
-   if( status == "enabled" )
+   var exist = true;
+   try
    {
-      exist = true;
+      cmd.run( "ssh -V" );
    }
-   else
+   catch( e )
    {
       exist = false;
    }
