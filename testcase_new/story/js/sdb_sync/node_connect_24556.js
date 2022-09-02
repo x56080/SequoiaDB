@@ -1,66 +1,60 @@
-/*****************************************************************************
-@Description : seqDB-24556:创建用户，创建SecureSdb对象指定用户密码，使用SecureSdb对象获取节点的连接
-@Author      : xiaozhenfan
-@CreateTime  : 2021.11.4
-@LastEditTime: 2021.11.4
-@LastEditors : xiaozhenfan
-******************************************************************************/
+
+/******************************************************************************
+ * @Description   : seqDB-24556:创建用户，创建SecureSdb对象指定用户密码，使用SecureSdb对象获取节点的连接
+ * @Author        : xiaozhenfan
+ * @CreateTime    : 2021.11.04
+ * @LastEditTime  : 2022.09.02
+ * @LastEditors   : liuli
+ ******************************************************************************/
 testConf.skipStandAlone = true;
-main(test);
+main( test );
 
-//获取主机名
-function getHostName( hostAddr )
+function test ()
 {
-   var cmd = new Cmd();
-   if ( hostAddr === "localhost" )
+   var isUseSsls = [];
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, { GroupName: "SYSCoord" }, { usessl: "" } );
+   while( cursor.next() )
    {
-      var hostName = cmd.run("hostname").split("\n")[0] ;
+      var usessl = cursor.current().toObj()["usessl"];
+      isUseSsls.push( usessl );
    }
-   else
-   {
-      var out = cmd.run("grep " + hostAddr + " /etc/hosts|awk '{print $2}'").split("\n")[0];
-   }
-   return hostName ;
-}
+   cursor.close();
 
-
-function test ( )
-{
-   var hostName = getHostName( COORDHOSTNAME ) ;
-   var nodeName = hostName + ":" + COORDSVCNAME ;
-   var isUseSsl = db.snapshot(SDB_SNAP_CONFIGS,{ NodeName: nodeName }, 
-                 { usessl:"" }).next().toObj().usessl ;
-   if( isUseSsl === "FALSE" )
+   if( isUseSsls.indexOf( "FALSE" ) > -1 )
    {
-      db.updateConf( { usessl:true }, { NodeName: nodeName } ) ;
+      db.updateConf( { usessl: true }, { GroupName: "SYSCoord" } );
    }
 
-   var userName = "sdbadmin" ;
-   var passWrod = "sdbadmin" ;
-   var isUsrExist = false ;
+   var userName = "sdbadmin";
+   var passWrod = "sdbadmin";
+   var isUsrExist = false;
 
-   db = new SecureSdb( COORDHOSTNAME, COORDSVCNAME, userName, passWrod )
+   var db2 = new SecureSdb( COORDHOSTNAME, COORDSVCNAME, userName, passWrod )
    try
    {
-      db.createUsr( userName, passWrod ) ;
-      isUsrExist = true ;
+      db2.createUsr( userName, passWrod );
+      isUsrExist = true;
       var db1 = new SecureSdb( COORDHOSTNAME, COORDSVCNAME, userName, passWrod )
-      var RGName = "SYSCatalogGroup" ;
-      db1.getRG( RGName ).getMaster().connect() ;
-   }
-   catch(e)
-   {
-      throw e ;
+      var RGName = "SYSCatalogGroup";
+      db1.getRG( RGName ).getMaster().connect();
    }
    finally
    {
-      if ( isUseSsl === "FALSE" )
+      if( isUseSsls.indexOf( "FALSE" ) > -1 )
       {
-         db.updateConf( { usessl:false }, {NodeName: nodeName } ) ;
+         db.deleteConf( { usessl: 1 } );
       }
-      if ( isUsrExist )
+      if( isUsrExist )
       {
          db.dropUsr( userName, passWrod );
+      }
+      if( db1 != undefined )
+      {
+         db1.close()
+      }
+      if( db2 != undefined )
+      {
+         db2.close()
       }
    }
 }
