@@ -58,12 +58,12 @@ namespace vessel
          btreeNodeBase() = default;
          explicit btreeNodeBase(PAGE_ID nodeId,
                                 UINT32 depth,
+                                btreeContext* _ctx,
                                 const strictBuffer &buffer);
          virtual ~btreeNodeBase() = default;
 
       protected:
          virtual INT32 _makeBufferWritable() = 0;
-         virtual btreeContext *_getTreeCtx() {return nullptr;}
 
       public:
          OSS_INLINE BOOLEAN isValid()const {return INVALID_PAGE_ID != _nodeId;}
@@ -74,6 +74,11 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isWritable()const {return _buffer.isWritable();}
          OSS_INLINE PAGE_ID getNodeId()const {return _nodeId;}
+         OSS_INLINE btreeContext *_getTreeCtx() const
+         {
+            SDB_ASSERT(nullptr != _ctx, "can not be invalid");
+            return _ctx;
+         }
 
          BOOLEAN isRoot()const;
          BOOLEAN isLeaf()const;
@@ -207,16 +212,20 @@ namespace vessel
          // If a entry is compressed, its prefix and suffix will be concatenated
          // into a owned memory, else it is a reference to its whole entry data.
          INT32 _getWholeItems(ossPoolVector<slice> &elementsPartRefs,
-                         ossPoolVector<keyString> &items,
-                         UINT32 &itemsTotalSize) const;
+                              ossPoolVector<keyString> &items,
+                              UINT32 &itemsTotalSize) const;
+         
+         UINT64 _getPrefixesTotalSize() const;
 
          prefixGenerator::result _generatePrefixes(
              const ossPoolVector<slice> &elementsPartRefs) const;
 
          INT32 _buildNewNodePage(
              strictBuffer &writableBuffer,
-             const ossPoolVector<keyString> &elementsPartRefs,
-             const ossPoolVector<prefixGenerator::prefixItem> &out) const;
+             const ossPoolVector<keyString> &items,
+             const ossPoolVector<prefixGenerator::prefixItem> &prefixes,
+             UINT64 &realTotalItemSize,
+             UINT64 &optimizedBytes) const;
 
          INT32 _locateNextPrefixSlot(RECORD_SLOT_POS pos) const;
 
@@ -277,7 +286,7 @@ namespace vessel
                       std::unique_ptr<btreeNodeBase> &rightNode);
 
          INT32 _buildCompressedRightNode(RECORD_SLOT_POS begin,
-                                btreeNodeBase &rightNode);
+                                btreeNodeBase &rightNode) const;
 
          INT32 _allocateRightNode(std::unique_ptr<btreeNodeBase> &rightNode);
 
@@ -298,6 +307,7 @@ namespace vessel
       protected:
          PAGE_ID _nodeId = INVALID_PAGE_ID;
          UINT32 _depth = 0;
+         btreeContext *_ctx = nullptr;
          strictBuffer _buffer;
    };//class btreeNodeBase
 

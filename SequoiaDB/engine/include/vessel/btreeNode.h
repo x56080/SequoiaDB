@@ -53,7 +53,9 @@ namespace vessel
 
          explicit btreeNode(UINT32 depth, btreeAccessContext *ctx);
          explicit btreeNode(UINT32 depth,
+                            btreeAccessContext *ctx,
                             std::shared_ptr<logicalPageBuffer> &&buffer);
+
       public:
          OSS_INLINE BOOLEAN isManagedByCtx() const
          {
@@ -67,11 +69,9 @@ namespace vessel
 
       protected:
          virtual INT32 _makeBufferWritable() override;
-         virtual btreeContext *_getTreeCtx() override;
 
       private:
          logicalPageBuffer *_lbuffer = nullptr;
-         btreeAccessContext *_ctx = nullptr;
          std::shared_ptr<logicalPageBuffer> _bufferOwner;
    };//class btreeNode
 } // namespace vessel

@@ -55,26 +55,28 @@ namespace engine
 {
 namespace vessel
 {
-   btreeNode::btreeNode(UINT32 depth, btreeAccessContext *ctx):
-   _ctx(ctx)
+   btreeNode::btreeNode(UINT32 depth, btreeAccessContext *ctx)
+       : btreeNodeBase(ctx->getBuffer(depth)->getLogicalPid(),
+                       depth,
+                       ctx,
+                       ctx->getBuffer(depth)->getReadableBodyBuffer()),
+         _lbuffer(ctx->getBuffer(depth))
    {
       SDB_ASSERT(nullptr != _ctx, "can not be invalid");
-      _lbuffer = _ctx->getBuffer(depth);
       SDB_ASSERT(nullptr != _lbuffer, "can not be invalid");
-      btreeNodeBase::_nodeId = _lbuffer->getLogicalPid();
-      btreeNodeBase::_depth = depth;
-      btreeNodeBase::_buffer = _lbuffer->getReadableBodyBuffer();
    }
 
    btreeNode::btreeNode(UINT32 depth,
-                        std::shared_ptr<logicalPageBuffer> &&buffer):
-   _lbuffer(buffer.get()),
-   _bufferOwner(std::move(buffer))
+                        btreeAccessContext *ctx,
+                        std::shared_ptr<logicalPageBuffer> &&buffer)
+       : btreeNodeBase(buffer.get()->getLogicalPid(),
+                       depth,
+                       ctx,
+                       buffer.get()->getReadableBodyBuffer()),
+         _lbuffer(buffer.get()), _bufferOwner(std::move(buffer))
    {
       SDB_ASSERT(nullptr != _lbuffer, "can not be invalid");
-      btreeNodeBase::_nodeId = _lbuffer->getLogicalPid();
-      btreeNodeBase::_depth = depth;
-      btreeNodeBase::_buffer = _lbuffer->getReadableBodyBuffer();
+      SDB_ASSERT(nullptr != ctx, "can not be invalid");
    }
 
    void btreeNode::reset()
@@ -84,11 +86,6 @@ namespace vessel
       _ctx = nullptr;
       _bufferOwner.reset();
       return;
-   }
-
-   btreeContext *btreeNode::_getTreeCtx()
-   {
-      return static_cast<btreeContext *>(_ctx);
    }
 
    INT32 btreeNode::_makeBufferWritable()

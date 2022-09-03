@@ -253,6 +253,7 @@ namespace vessel
          }
          _bac.getIndexObject()->resetBtreeEntryAddr();
       }
+      _bac.statsTruncateTree();
    done:
       return rc;
    error:
@@ -457,7 +458,15 @@ namespace vessel
          PD_LOG(PDERROR, "failed to allocate root page:%d", rc);
          goto error;
       }
-
+      if (isLeaf)
+      {
+         _bac.statsAddLeafNode();
+      }
+      else
+      {
+         _bac.statsAddNonLeafNode();
+      }
+      _bac.statsCreateNewRoot();
       /// no need to update transfer tick here.
       rc = accessor.refill(_bac.getReqCtx(), root, _bac.getTransferTick(),
                            _bac.getStats(), &entryBuffer);
@@ -623,6 +632,11 @@ namespace vessel
       while (!_bac.isPathEmpty())
       {
          btreeNode node = _bac.getEndNodeInPath();
+         BOOLEAN isLeaf = node.isLeaf();
+         BOOLEAN compressed = node.hasPrefixes();
+         UINT32 markedDeletedSize = node.getItemSlot(0).isMarkedDeleted()
+                                        ? node.getItemSlot(0).data.key.size
+                                        : 0;
          if (!node.isNeedToBeDestroyed())
          {
             break;
@@ -663,6 +677,19 @@ namespace vessel
             }
 
             break;
+         }
+         if (isLeaf && compressed)
+         {
+            _bac.statsRemoveCompressedLeafNode();
+         }
+         else if (isLeaf && !compressed)
+         {
+            _bac.statsRemoveUncompressedLeafNode();
+         }
+         else
+         {
+            _bac.statsReleaseMarkedDeletedIndexSpace(markedDeletedSize);
+            _bac.statsRemoveNonLeafNode();
          }
       }
       
@@ -707,6 +734,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to reset child:%d", rc);
          goto error;
       }
+      _bac.statsRefillChildNode();
 
    done:
       return rc;

@@ -41,6 +41,7 @@
 #include "vessel/vesselIdDef.h"
 #include "dms.hpp"
 #include "vessel/slice.h"
+#include "vessel/btreeStatistics.h"
 
 namespace engine
 {
@@ -62,6 +63,22 @@ namespace vessel
       UINT32 logicalIndexId = INVALID_LOGICAL_INDEX_ID;
       UINT32 btreeRoot = INVALID_PAGE_ID;
       UINT32 transferTick = 0;
+      /// btree statistics
+      UINT32 nonleafNodeNum = 0;
+      UINT32 leafNodeNum = 0;
+      UINT32 compressedNodeNum = 0;
+      UINT64 totalEntryNum = 0;
+      UINT64 compressedEntryNum = 0;
+      UINT64 origTotalEntrySize = 0;
+      UINT64 realTotalEntrySize = 0;
+      UINT64 totalPrefixNum = 0;
+      UINT64 totalEntryInserted = 0;
+      UINT64 totalEntryRemoved = 0;
+      UINT64 nodesAllocated = 0;
+      UINT64 nodesDestroyed = 0;
+      UINT32 newRootCreatedNum = 0;
+      UINT64 childNodesRefilled = 0;
+      UINT64 nodesCompressedTimes = 0;
    };//struct btreeEntryPageHead
 
    constexpr UINT32 BTREE_ENTRY_PAGE_HEAD_SIZE = sizeof(btreeEntryPageHead);

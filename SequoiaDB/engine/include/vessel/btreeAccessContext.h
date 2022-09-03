@@ -73,7 +73,7 @@ namespace vessel
          OSS_INLINE UINT32 getTransferTick() const {return _transferTick;}
          OSS_INLINE UINT32 incTransferTick() {return ++_transferTick;}
          OSS_INLINE const btreeStatistics &getStats()const {return _stats;}
-
+      
       public:
          virtual INT32 allocateNewNode(UINT32 depth,
                                        const btreeNodePageHead &header,
@@ -81,12 +81,49 @@ namespace vessel
 
          virtual void destroyNode(BTREE_NODE_UPTR &node) override;
 
+         virtual void statsInsertCompressedIndex(UINT32 optimizedSize, UINT32 remainSize) override;
+         virtual void statsInsertUncompressedIndex(UINT32 size) override;
+         virtual void statsRemoveCompressedIndex(UINT32 optimizedSize, UINT32 remainSize) override;
+         virtual void statsRemoveUncompressedIndex(UINT32 size) override;
+         virtual void statsRemoveMarkedDeletedIndexes(UINT32 num) override;
+         virtual void statsReleaseMarkedDeletedIndexSpace(UINT32 size) override;
+         virtual void statsRecompress(UINT32 newCompressedEntryNum,
+                                      UINT64 newRealTotalEntrySize,
+                                      UINT32 newPrefixNum,
+                                      UINT32 oldCompressedEntryNum,
+                                      UINT64 oldRealTotalEntrySize,
+                                      UINT32 oldPrefixNum) override;
+         virtual void statsAddLeafNode() override;
+         virtual void statsRemoveCompressedLeafNode() override;
+         virtual void statsRemoveUncompressedLeafNode() override;
+         virtual void statsAddNonLeafNode() override;
+         virtual void statsRemoveNonLeafNode() override;
+         virtual void statsAllocateNode() override;
+         virtual void statsDestroyNode() override;
+         virtual void statsCreateNewRoot() override;
+         virtual void statsRefillChildNode() override;
+         virtual void statsTruncateTree() override;
+         virtual void statsTruncate(UINT32 newTotalEntryNum,
+                                    UINT32 newCompressedEntryNum,
+                                    UINT32 oldTotalEntryNum,
+                                    UINT32 oldCompressedEntryNum,
+                                    UINT64 origTotalEntrySizeDiff,
+                                    UINT64 realTotalEntrySizeDiff) override;
+         virtual void statsCompact(UINT64 realTotalEntrySizeDiff,
+                                   UINT32 newPrefixNum,
+                                   UINT32 oldPrefixNum) override;
+         virtual void statsSplit(UINT32 newTotalEntryNum,
+                                 UINT32 newCompressedEntryNum,
+                                 UINT64 newOrigTotalEntrySize,
+                                 UINT64 newRealTotalEntrySize,
+                                 UINT32 prefixNum) override;
+
       public:
          INT32 init(requestContext *context,
                     indexSpace *is,
                     indexObject *obj,
-                    spacePteAccessCtx *actx=nullptr);
-                   
+                    spacePteAccessCtx *actx = nullptr);
+
          void reset();
 
          /// ensure has btree root first.
