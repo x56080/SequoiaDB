@@ -5544,6 +5544,8 @@ namespace vessel
       STACK_KEY_STRING_BUILDER builder;
       lsmIteratorBound bound;
       rocksdb::ReadOptions o;
+      o.fill_cache = FALSE;
+      o.total_order_seek = TRUE;
       std::unique_ptr<rocksdb::Iterator> itr;
       btreeWriter bw;
       indexSpace &is = _cs->getSU()->getIndexSpace();
