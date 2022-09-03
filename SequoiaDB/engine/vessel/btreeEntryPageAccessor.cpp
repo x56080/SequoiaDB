@@ -171,6 +171,7 @@ namespace vessel
 
       head->btreeRoot = root;
       head->transferTick = transferTick;
+      /// btree statistics
       head->nonleafNodeNum = stats.nonleafNodeNum;
       head->leafNodeNum = stats.leafNodeNum;
       head->compressedNodeNum = stats.compressedNodeNum;

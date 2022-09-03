@@ -730,10 +730,6 @@ namespace vessel
    {
       _stats.createNewRoot();
    }
-   void btreeAccessContext::statsUpdateCompressionRatio()
-   {
-      _stats.updateCompressionRatio();
-   }
    void btreeAccessContext::statsRefillChildNode()
    {
       _stats.refillChildNode();

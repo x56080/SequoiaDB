@@ -72,7 +72,6 @@ namespace vessel
       UINT64 origTotalEntrySize = 0;
       UINT64 realTotalEntrySize = 0;
       UINT64 totalPrefixNum = 0;
-      FLOAT64 entryCompressionRatio = 0.0;
       UINT64 totalEntryInserted = 0;
       UINT64 totalEntryRemoved = 0;
       UINT64 nodesAllocated = 0;

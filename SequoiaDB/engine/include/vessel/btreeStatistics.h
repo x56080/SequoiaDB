@@ -109,7 +109,6 @@ namespace vessel
                  UINT64 newRealTotalEntrySize,
                  UINT32 prefixNum);
 
-      void updateCompressionRatio();
       bson::BSONObj toBSON();
       
       static constexpr const CHAR* BTREE_STATISTICE_FIELDNAME_NON_LEAF_NODE_NUM = "NonleafNodeNum";
@@ -138,7 +137,6 @@ namespace vessel
       UINT64 origTotalEntrySize = 0;
       UINT64 realTotalEntrySize = 0;
       UINT64 totalPrefixNum = 0;
-      FLOAT64 entryCompressionRatio = 0.0;
 
       /// history
       UINT64 totalEntryInserted = 0;

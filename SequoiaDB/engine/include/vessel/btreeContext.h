@@ -78,7 +78,6 @@ namespace vessel
          virtual void statsAllocateNode(){}
          virtual void statsDestroyNode(){}
          virtual void statsCreateNewRoot(){}
-         virtual void statsUpdateCompressionRatio(){}
          virtual void statsRefillChildNode(){}
          virtual void statsTruncateTree(){}
          virtual void statsTruncate(UINT32 newTotalEntryNum,

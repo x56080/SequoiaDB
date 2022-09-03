@@ -101,7 +101,6 @@ namespace vessel
          virtual void statsAllocateNode() override;
          virtual void statsDestroyNode() override;
          virtual void statsCreateNewRoot() override;
-         virtual void statsUpdateCompressionRatio() override;
          virtual void statsRefillChildNode() override;
          virtual void statsTruncateTree() override;
          virtual void statsTruncate(UINT32 newTotalEntryNum,

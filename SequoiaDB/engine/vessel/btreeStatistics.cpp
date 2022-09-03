@@ -48,7 +48,6 @@ namespace vessel
       origTotalEntrySize += optimizedSize + remainSize;
       realTotalEntrySize += remainSize;
       ++totalEntryInserted;
-      updateCompressionRatio();
    }
 
    void btreeStatistics::insertUncompressedIndex(UINT32 size)
@@ -57,7 +56,6 @@ namespace vessel
       origTotalEntrySize += size;
       realTotalEntrySize += size;
       ++totalEntryInserted;
-      updateCompressionRatio();
    }
 
    void btreeStatistics::removeCompressedIndex(UINT32 optimizedSize, UINT32 remainSize)
@@ -66,7 +64,6 @@ namespace vessel
       origTotalEntrySize -= optimizedSize + remainSize;
       realTotalEntrySize -= remainSize;
       ++totalEntryRemoved;
-      updateCompressionRatio();
    }
 
    void btreeStatistics::removeUncompressedIndex(UINT32 size)
@@ -75,7 +72,6 @@ namespace vessel
       origTotalEntrySize -= size;
       realTotalEntrySize -= size;
       ++totalEntryRemoved;
-      updateCompressionRatio();
    }
    
    void btreeStatistics::removeMarkedDeletedIndexes(UINT32 num)
@@ -88,7 +84,6 @@ namespace vessel
    {
       origTotalEntrySize -= size;
       realTotalEntrySize -= size;
-      updateCompressionRatio();
    }
 
    void btreeStatistics::recompress(UINT32 newCompressedEntryNum,
@@ -110,7 +105,6 @@ namespace vessel
       SDB_ASSERT(totalPrefixNum >= oldPrefixNum, "must be equal or greater");
       totalPrefixNum -= oldPrefixNum;
       totalPrefixNum += newPrefixNum;
-      updateCompressionRatio();
       
       if (0 == oldPrefixNum)
       {
@@ -160,12 +154,6 @@ namespace vessel
       ++newRootCreatedNum;
    }
 
-   void btreeStatistics::updateCompressionRatio()
-   {
-      entryCompressionRatio = FLOAT64(origTotalEntrySize - realTotalEntrySize) /
-                              FLOAT64(origTotalEntrySize);
-   }
-
    void btreeStatistics::refillChildNode()
    {
       addLeafNode();
@@ -184,7 +172,6 @@ namespace vessel
       origTotalEntrySize = 0;
       realTotalEntrySize = 0;
       totalPrefixNum = 0;
-      entryCompressionRatio = 0.0;
    }
 
    void btreeStatistics::truncate(UINT32 newTotalEntryNum,
@@ -209,7 +196,6 @@ namespace vessel
       SDB_ASSERT(realTotalEntrySize >= realTotalEntrySizeDiff,
                  "must be equal or greater");
       realTotalEntrySize -= realTotalEntrySizeDiff;
-      updateCompressionRatio();
    }
 
    void btreeStatistics::compact(UINT64 realTotalEntrySizeDiff,
@@ -222,7 +208,6 @@ namespace vessel
       SDB_ASSERT(totalPrefixNum >= oldPrefixNum, "must be equal or greater");
       totalPrefixNum -= oldPrefixNum;
       totalPrefixNum += newPrefixNum;
-      updateCompressionRatio();
    }
 
    void btreeStatistics::split(UINT32 newTotalEntryNum,
@@ -236,7 +221,6 @@ namespace vessel
       origTotalEntrySize += newOrigTotalEntrySize;
       realTotalEntrySize += newRealTotalEntrySize;
       totalPrefixNum += prefixNum;
-      updateCompressionRatio();
    }
 
    bson::BSONObj btreeStatistics::toBSON()
@@ -250,6 +234,9 @@ namespace vessel
       builder.appendIntOrLL(BTREE_STATISTICS_FIELDNAME_ORIG_TOTAL_ENTRY_SIZE , origTotalEntrySize);
       builder.appendIntOrLL(BTREE_STATISTICS_FIELDNAME_REAL_TOTAL_ENTRY_SIZE , realTotalEntrySize);
       builder.appendIntOrLL(BTREE_STATISTICS_FIELDNAME_TOTAL_PREFIX_NUM , totalPrefixNum);
+      FLOAT64 entryCompressionRatio =
+          FLOAT64(origTotalEntrySize - realTotalEntrySize) /
+          FLOAT64(origTotalEntrySize);
       builder.append(BTREE_STATISTICS_FIELDNAME_ENTRY_COMPRESSION_RATIO , entryCompressionRatio);
       builder.appendIntOrLL(BTREE_STATISTICS_FIELDNAME_TOTAL_ENTRY_INSERTED , totalEntryInserted);
       builder.appendIntOrLL(BTREE_STATISTICS_FIELDNAME_TOTAL_ENTRY_REMOVED , totalEntryRemoved);
