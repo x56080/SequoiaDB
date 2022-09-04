@@ -1650,6 +1650,7 @@ namespace bson {
     }
 
     BSONObjIteratorSorted::BSONObjIteratorSorted( const BSONObj& o ) {
+        _fields = 0;
         _nfields = o.nFields();
         if ( _nfields <= BSONOBJITERSORTED_DFTFIELDS )
         {
@@ -1661,9 +1662,21 @@ namespace bson {
         }
         int x = 0;
         BSONObjIterator i( o );
-        while ( i.more() ) {
+        while ( i.more() && x < _nfields ) {
             _fields[x++] = i.next().rawdata() ;
             assert( _fields[x-1] );
+        }
+        if ( i.more() )
+        {
+           // more elements after eoo, we need to throw exception
+           // release fields first
+           if ( _fields != &_staticFields[0] )
+           {
+               delete[] _fields;
+           }
+           _fields = 0;
+           massert( 10337, "Invalid BSONObj with more data after EOO",
+                    false );
         }
         assert( x == _nfields );
         qsort( _fields , _nfields , sizeof(char*) , BSONElementFieldSorter );
