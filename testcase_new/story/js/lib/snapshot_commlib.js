@@ -128,44 +128,6 @@ function getNodeAddresses ()
    return nodeAddresses;
 }
 
-/*******************************************************************************
-@Description : 停止节点
-@Modify list : 2019-11-18 zhao xiaoni init
-*******************************************************************************/
-function stopNodes ( nodeAddresses )
-{
-   var installDir = commGetInstallPath();
-   command = installDir + "/bin/sdbstop -p ";
-
-   for( var i = 0; i < nodeAddresses.length; i++ )
-   {
-      var hostName = nodeAddresses[i]["hostName"];
-      var svcName = nodeAddresses[i]["svcName"];
-      var remote = new Remote( hostName, 11790 );
-      var cmd = remote.getCmd();
-      cmd.run( command + svcName );
-   }
-}
-
-/*******************************************************************************
-@Description : 开启节点
-@Modify list : 2019-11-18 zhao xiaoni init
-*******************************************************************************/
-function startNodes ( nodeAddresses )
-{
-   var installDir = commGetInstallPath();
-   command = installDir + "/bin/sdbstart -p ";
-
-   for( var i = 0; i < nodeAddresses.length; i++ )
-   {
-      var hostName = nodeAddresses[i]["hostName"];
-      var svcName = nodeAddresses[i]["svcName"];
-      var remote = new Remote( hostName, 11790 );
-      var cmd = remote.getCmd();
-      cmd.run( command + svcName );
-   }
-}
-
 function isContained ( actResult, expResult )
 {
    var flag = true;
@@ -252,4 +214,17 @@ function getCLSnapshotFromMasterNode ( groupName, clName )
       }
    }
    return clSnapshotInfo;
+}
+
+function getCoordUrl ( sdb )
+{
+   var coordUrls = [];
+   var rgInfo = sdb.getCoordRG().getDetail().current().toObj().Group;
+   for( var i = 0; i < rgInfo.length; i++ )
+   {
+      var hostname = rgInfo[i].HostName;
+      var svcname = rgInfo[i].Service[0].Name;
+      coordUrls.push( hostname + ":" + svcname );
+   }
+   return coordUrls;
 }

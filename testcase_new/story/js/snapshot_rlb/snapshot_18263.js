@@ -1,43 +1,43 @@
-/***************************************************************************
-@Description : seqDB-15956:指定快照查询参数Mode为Run查询配置快照信息
-@Modify list :
-              2019-4-17  wangkexin  Create
-****************************************************************************/
+/******************************************************************************
+ * @Description   : seqDB-18263:指定快照查询参数Mode为Run查询配置快照信息
+ * @Author        : Xu Mingxing
+ * @CreateTime    : 2022.08.24
+ * @LastEditTime  : 2022.09.03
+ * @LastEditors   : Xu Mingxing
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.skipExistOneNodeGroup = true;
 main( test );
 
-function test ()
+function test ( testPara )
 {
-   if( commIsStandalone( db ) )
-   {
-      return;
-   }
-
-   var groups = commGetGroups( db );
-   var hostName = groups[0][1].HostName;
-   var svcname = groups[0][1].svcname;
+   var groups = testPara.groups;
+   var groupName = groups[0][0].GroupName;
+   var node = db.getRG( groupName ).getSlave();
+   var hostName = node.getHostName();
+   var svcname = node.getServiceName();
    var nodeName = hostName + ":" + svcname;
 
    changeConf( nodeName );
-   var nodeAddresses = [{ "hostName": hostName, "svcName": svcname }];
-   stopNodes( nodeAddresses );
-   startNodes( nodeAddresses )
+   node.stop();
+   node.start();
 
-   var expResult = [{ "transactionon": "FALSE" }];
+   var expResult = { "transactionon": "FALSE" };
    var option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
-   checkResult( option, expResult );
+   checkConfValue( db, option, expResult );
 
    assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
    {
       db.deleteConf( { transactionon: 1 }, { 'NodeName': nodeName } );
    } );
 
-   expResult = [{ "transactionon": "FALSE" }];
+   expResult = { "transactionon": "FALSE" };
    option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
-   checkResult( option, expResult );
+   checkConfValue( db, option, expResult );
 
-   expResult = [{}];
+   var fieldName = "transactionon";
    option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "local", "expand": false } );
-   checkResult( option, expResult );
+   checkConfNotKey( db, option, fieldName );
 }
 
 function changeConf ( nodeName )
@@ -53,21 +53,29 @@ function changeConf ( nodeName )
          throw new Error( e );
       }
    }
-
 }
 
-function checkResult ( option, expResult )
+function checkConfValue ( db, option, expResult )
 {
-   var actResult = [];
    var cursor = db.snapshot( SDB_SNAP_CONFIGS, option );
    while( cursor.next() )
    {
-      actResult.push( { "transactionon": cursor.current().toObj().transactionon } );
+      var obj = cursor.current().toObj();
+      for( var key in expResult )
+      {
+         assert.equal( obj[key], expResult[key], "预期value值相等" );
+      }
    }
-   assert.equal( actResult.length, expResult.length );
-   if( JSON.stringify( actResult ) !== JSON.stringify( expResult ) )
-   {
-      throw new Error( "expectResult is " + JSON.stringify( expResult ) + ", but actResult is " + JSON.stringify( actResult ) );
-   }
+   cursor.close();
+}
 
+function checkConfNotKey ( db, option, fieldName )
+{
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, option );
+   while( cursor.next() )
+   {
+      var obj = cursor.current().toObj();
+      assert.equal( obj[fieldName], undefined );
+   }
+   cursor.close();
 }
