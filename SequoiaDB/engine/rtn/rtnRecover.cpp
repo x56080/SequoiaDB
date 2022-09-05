@@ -977,9 +977,9 @@ namespace engine
             // lose in the test). If they are not, exception is expected to
             // happen and the current record will be ignored.
             BSONObjIterator itr( obj );
-            while ( TRUE )
+            while ( itr.moreWithEOO() )
             {
-               BSONElement e = itr.next() ;
+               BSONElement e = itr.next( true ) ;
                if ( true == e.eoo() )
                {
                   break ;
