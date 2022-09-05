@@ -36,9 +36,9 @@ TEST_F( invalidArgTest9528, url9528 )
 	// init and enable connectionpool with not exist url
    string urlWrong = "something:00000" ;
    rc = ds.init( urlWrong, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to init connectionpool" ;
    
    // get connection
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test get connection with not exist url" ;
+   // rc = ds.getConnection( conn ) ;
+   //ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test get connection with not exist url" ;
 }
