@@ -19,14 +19,22 @@ protected:
    sdbConnectionPool ds ;
    sdbConnectionPoolConf conf ;
    string url ;
+   BOOLEAN isReadyUser ;
 
    void SetUp()
    {
+      isReadyUser = FALSE ;
+      testBase::SetUp();
       url = ARGS->coordUrl() ;
    }
    void TearDown()
    {
+      if ( isReadyUser )
+      {
+          db.removeUsr( "root", "sequoiadb" ) ;
+      }
       ds.close() ;
+      testBase::TearDown();
    }
 } ;
 
@@ -53,7 +61,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // create user
    rc = conn->createUsr( "root", "sequoiadb" ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to craete user" ;
-
+   isReadyUser = TRUE ;
    // release connection and close
    ds.releaseConnection( conn ) ;
    ds.close() ;
@@ -61,25 +69,25 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // test get connection with illegal username
    conf.setAuthInfo( "lxw", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with invalid user" ;
+   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to init connectionpool" ;
+   //rc = ds.getConnection( conn ) ;
+   //ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with invalid user" ;
    ds.close() ;
 	
    // test get connection with no passwd
    conf.setAuthInfo( "root", "" ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to test init connectionpool" ;
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with no passwd" ;
+   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test init connectionpool" ;
+   //rc = ds.getConnection( conn ) ;
+   //ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with no passwd" ;
    ds.close() ;
 		
    // test get connection with illegal passwd
    conf.setAuthInfo( "root", "seq" ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with illegal passwd" ;
+   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to init connectionpool" ;
+   // rc = ds.getConnection( conn ) ;
+   // ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with illegal passwd" ;
    ds.close() ;
 
    // test get connection with legal user and remove user
@@ -90,5 +98,6 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
    rc = conn->removeUsr( "root", "sequoiadb" ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to remove user" ;
+   isReadyUser = FALSE ;
    ds.releaseConnection( conn ) ;
 }
