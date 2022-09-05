@@ -9,6 +9,7 @@ Oma 类主要用于集群管理，包含的函数如下：
 | [createCoord()][createCoord] | 在目标集群控制器（sdbcm）所在的机器中创建一个 coord 节点 |
 | [createData()][createData]| 在目标集群控制器（sdbcm）所在的机器中创建一个 standalone 节点 |
 | [createOM()][createOM] | 在目标集群控制器（sdbcm）所在的机器中创建 sdbom 服务进程（ SequoiaDB 管理中心进程） |
+| [createStp][createStp] | 在目标集群控制器（sdbcm）所在的主机中创建 STP 服务进程 |
 | [getAOmaSvcName()][getAOmaSvcName] | 获取目标机器 sdbcm 的服务端口 |
 | [getIniConfigs()][getIniConfigs] | 获取 INI 文件的配置信息 |
 | [getNodeConfigs()][getNodeConfigs] | 从配置文件中获取指定端口的数据库节点的配置信息 |
@@ -16,11 +17,13 @@ Oma 类主要用于集群管理，包含的函数如下：
 | [getOmaConfigs()][getOmaConfigs] | 获取 sdbcm 的配置信息 |
 | [getOmaInstallFile()][getOmaInstallFile] | 获取安装信息文件 |
 | [getOmaInstallInfo()][getOmaInstallInfo] | 从安装信息文件中获取安装信息 |
+| [getStp][getStp] | 在目标集群控制器（sdbcm）所在的机器中获取 STP 服务进程 |
 | [listNodes()][listNodes] | 列出当前所连 sdbcm 所在机器符合条件的所有节点的信息 |
 | [reloadConfigs()][reloadConfigs] | sdbcm 重新加载其配置文件的内容，并使其生效 |
 | [removeCoord()][removeCoord] | 在目标集群控制器（sdbcm）所在的机器中删除一个 coord 节点 |
 | [removeData()][removeData] | 在目标集群控制器（sdbcm）所在的机器中删除指定的 standalone 节点 |
 | [removeOM()][removeOM] | 在目标集群控制器（sdbcm）所在的机器中删除 sdbom 服务进程（SequoiaDB 管理中心进程） |
+| [removeStp][removeStp] | 在目标集群控制器（sdbcm）所在的机器中删除 STP 服务进程 |
 | [setIniConfigs()][setIniConfigs] | 把配置信息写入 INI 文件 |
 | [setNodeConfigs()][setNodeConfigs] | 对指定端口的数据库节点，用新的节点配置信息覆盖该节点原来配置文件上的配置信息 |
 | [setOmaConfigs()][setOmaConfigs] | 把 sdbcm 的配置信息写入到其配置文件 |
@@ -28,9 +31,11 @@ Oma 类主要用于集群管理，包含的函数如下：
 | [startAllNodes()][startAllNodes] | 在目标集群控制器（sdbcm）所在的机器中启动所有属于指定业务的节点 |
 | [stopAllNodes()][stopAllNodes] | 在目标集群控制器（sdbcm）所在的机器中停止所有属于指定业务的节点 |
 | [startNode()][startNode] | 在目标集群控制器（sdbcm）所在的机器中启动指定节点 |
+| [startStp][startStp] | 在目标集群控制器（sdbcm）所在的机器中启动 STP 服务进程 |
 | [stopNode()][stopNode] | 在目标集群控制器（sdbcm）所在的机器中停止指定节点 |
 | [startNodes()][startNodes] | 通过服务端口启动节点 |
 | [stopNodes()][stopNodes] | 在目标集群控制器（sdbcm）所在的机器中停止指定节点 |
+| [stopStp][stopStp] | 在目标集群控制器（sdbcm）所在的机器中停止 STP 服务进程 |
 | [updateNodeConfigs()][updateNodeConfigs] | 对指定端口的数据库节点，用新的节点配置信息更新该节点原来配置文件上的配置信息 |
 
 [^_^]:
@@ -42,6 +47,7 @@ Oma 类主要用于集群管理，包含的函数如下：
 [createCoord]:manual/Manual/Sequoiadb_Command/Oma/createCoord.md
 [createData]:manual/Manual/Sequoiadb_Command/Oma/createData.md
 [createOM]:manual/Manual/Sequoiadb_Command/Oma/createOM.md
+[createStp]:manual/Manual/Sequoiadb_Command/Oma/createStp.md
 [getAOmaSvcName]:manual/Manual/Sequoiadb_Command/Oma/getAOmaSvcName.md
 [getIniConfigs]:manual/Manual/Sequoiadb_Command/Oma/getIniConfigs.md
 [getNodeConfigs]:manual/Manual/Sequoiadb_Command/Oma/getNodeConfigs.md
@@ -49,11 +55,13 @@ Oma 类主要用于集群管理，包含的函数如下：
 [getOmaConfigs]:manual/Manual/Sequoiadb_Command/Oma/getOmaConfigs.md
 [getOmaInstallFile]:manual/Manual/Sequoiadb_Command/Oma/getOmaInstallFile.md
 [getOmaInstallInfo]:manual/Manual/Sequoiadb_Command/Oma/getOmaInstallInfo.md
+[getStp]:manual/Manual/Sequoiadb_Command/Oma/getStp.md
 [listNodes]:manual/Manual/Sequoiadb_Command/Oma/listNodes.md
 [reloadConfigs]:manual/Manual/Sequoiadb_Command/Oma/reloadConfigs.md
 [removeCoord]:manual/Manual/Sequoiadb_Command/Oma/removeCoord.md
 [removeData]:manual/Manual/Sequoiadb_Command/Oma/removeData.md
 [removeOM]:manual/Manual/Sequoiadb_Command/Oma/removeOM.md
+[removeStp]:manual/Manual/Sequoiadb_Command/Oma/removeStp.md
 [setIniConfigs]:manual/Manual/Sequoiadb_Command/Oma/setIniConfigs.md
 [setNodeConfigs]:manual/Manual/Sequoiadb_Command/Oma/setNodeConfigs.md
 [setOmaConfigs]:manual/Manual/Sequoiadb_Command/Oma/setOmaConfigs.md
@@ -61,7 +69,9 @@ Oma 类主要用于集群管理，包含的函数如下：
 [startAllNodes]:manual/Manual/Sequoiadb_Command/Oma/startAllNodes.md
 [stopAllNodes]:manual/Manual/Sequoiadb_Command/Oma/stopAllNodes.md
 [startNode]:manual/Manual/Sequoiadb_Command/Oma/startNode.md
+[startStp]:manual/Manual/Sequoiadb_Command/Oma/startStp.md
 [stopNode]:manual/Manual/Sequoiadb_Command/Oma/stopNode.md
 [startNodes]:manual/Manual/Sequoiadb_Command/Oma/startNodes.md
 [stopNodes]:manual/Manual/Sequoiadb_Command/Oma/stopNodes.md
+[stopStp]:manual/Manual/Sequoiadb_Command/Oma/stopStp.md
 [updateNodeConfigs]:manual/Manual/Sequoiadb_Command/Oma/updateNodeConfigs.md
