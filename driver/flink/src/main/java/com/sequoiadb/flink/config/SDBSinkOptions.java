@@ -53,7 +53,7 @@ public class SDBSinkOptions extends SDBClientOptions {
 
     private final long maxBulkFillTime;
 
-    private final boolean overwrite;
+    private boolean overwrite;
 
     private boolean idempotent;
 
@@ -137,6 +137,10 @@ public class SDBSinkOptions extends SDBClientOptions {
 
     public long getMaxBulkFillTime() {
         return maxBulkFillTime;
+    }
+
+    public void setOverwrite(boolean overwrite) {
+        this.overwrite = overwrite;
     }
 
     public boolean isOverwrite() {

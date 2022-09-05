@@ -113,12 +113,15 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
 
         sinkOptions.computeIdempotentWriteOptimization(pk);
 
-        if (sinkOptions.isOverwrite() && !sinkOptions.isIdempotent()
-            // && ((RowType) producedDataType.getLogicalType()).getFieldNames().contains(SDB_BSON_OID)
-            ) {
-            throw new SDBException("Can not perform idempotent write without primary key/unique key");
+        if (!sinkOptions.isOverwrite() && !"append-only".equals(sinkOptions.getWriteMode())) {
+            LOG.warn("option 'overwrite' will be ignored on upsert/retract mode.");
+            sinkOptions.setOverwrite(true);
         }
 
+        if (sinkOptions.isOverwrite() && !sinkOptions.isIdempotent()) {
+            throw new SDBException("can not perform idempotent write when primary key is not specified or " +
+                    "SequoiaDB collection does not have a unique index corresponding to flink table primary key.");
+        }
 
         LOG.info("creating sequoiadb dynamic table sink, sink options: {}",
                 sinkOptions);

@@ -87,7 +87,7 @@ WITH(
 | replsize                | int32   | insert into select 创建集合时指定副本写入数  | 否   |
 | compressiontype         | string  | insert into select 创建集合时指定压缩类型，默认值为"lzw"，取值如下：<br> "none"：关闭压缩 <br> "lzw"：lzw 算法压缩 <br> "snappy"：snappy 算法压缩       | 否   |
 |  parallelism            | int32   | Sink 并发度，默认值为 1，取值应小于当前 Flink 集群的总 Slot 数量 <br> 建议取值为 SequoiaDB 集群中协调节点数量的倍数                           | 否   |  
-| overwrite           | boolean | Sink 是否开启覆写，默认值为 true，表示开启 <br> 建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性 <br> 该参数取值为 true 时，需保证 Flink 映射表存在主键，且所映射的 SequoiaDB 集合存在对应的唯一索引                                                              | 否   |
+| overwrite           | boolean | Sink 是否开启覆写，默认值为 true，表示开启 <br> 该参数仅在 append-only 模式下有效，建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性 <br> 取值为 true 时，需保证 Flink 映射表存在主键，且所映射的 SequoiaDB 集合存在对应的唯一索引                                                              | 否   |
 | writemode               | string  | 数据写入模式，默认值为"append-only"，取值如下：<br> "append-only"：仅支持 INSERT 操作 <br> "upsert"：支持 INSERT、UPDATE、DELETE 操作，但不支持变更主键 <br> "retract"：在"upsert"模式的基础上，支持主键更新操作 <br> 根据使用场景建议取值如下：<br> 1）在追加写入的场景下，建议取值为"append-only"，以提高写入效率 <br> 2）增量数据更新、数据加工及其混合场景下，建议取值为"upsert"或"retract"，此时需要保证所操作的记录存在主键 | 否 |
 
 ##保证精确一次性##
