@@ -40,7 +40,6 @@
 #include "ossSharedLatch.hpp"
 #include "vessel/lpsPteViewer.h"
 #include "vessel/spacePteAccessCtx.h"
-#include "vessel/pidBatchList.h"
 #include "vessel/lpsPteWriteBatch.h"
 #include "vessel/logicalPageBufferPte.h"
 
@@ -99,16 +98,16 @@ namespace vessel
          virtual INT32 _getRuntimePageBuffer(requestContext *context,
                                              PAGE_ID pid,
                                              const ossSharedLatchMode &mode,
-                                             runtimePageBuffer &rpb);
+                                             runtimePageBuffer &rpb) override;
 
          virtual INT32 _getRuntimePageBufferToReset(requestContext *context,
                                                     PAGE_ID pid,
-                                                    runtimePageBuffer &rpb);
+                                                    runtimePageBuffer &rpb) override;
 
          virtual INT32 _copyPageAndReinitBuffer(requestContext *context,
                                                 PAGE_SNAPSHOT_VERION psv,
                                                 PAGE_ID newPid,
-                                                runtimePageBuffer &rpb);
+                                                runtimePageBuffer &rpb) override;
 
       private:
          INT32 _fsyncPrivatePages(spacePteAccessCtx *ctx);

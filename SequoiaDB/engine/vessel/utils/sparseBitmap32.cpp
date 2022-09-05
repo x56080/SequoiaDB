@@ -62,6 +62,9 @@ namespace vessel
          const ossPoolVector<UINT32> &get()const {return _values;}
 
       private:
+         INT32 _reserve();
+
+      private:
          static constexpr UINT32 _MAX_CAPACITY = 1024;
          ossPoolVector<UINT32> _values;
    };
@@ -79,6 +82,12 @@ namespace vessel
          auto itr = std::lower_bound(_values.begin(), _values.end(), value);
          if (_values.end() == itr)
          {
+            rc = _reserve();
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+
             before = FALSE;
             _values.emplace_back(value);
          }
@@ -88,6 +97,12 @@ namespace vessel
          }
          else
          {
+            rc = _reserve();
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+            
             before = FALSE;
             _values.insert(itr, value);
          }
@@ -144,6 +159,28 @@ namespace vessel
 
       return pos;
    }
+
+
+   INT32 arrayContainer::_reserve()
+   {
+      INT32 rc = SDB_OK;
+      try
+      {
+         _values.reserve(1);
+      }
+      catch(const std::exception& e)
+      {
+         PD_LOG(PDERROR, "failed to reserve space from vector:%s", e.what());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+//////////////////////////// bitsetContainer
 
    class bitsetContainer : public sparseBitmap32::container
    {

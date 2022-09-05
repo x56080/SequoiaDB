@@ -36,10 +36,10 @@
 #ifndef VESSE_SPACE_PTE_ACCESS_CTX_H_
 #define VESSE_SPACE_PTE_ACCESS_CTX_H_
 
-#include "vessel/pidBatchList.h"
 #include "ossMemPool.hpp"
 #include "vessel/pageIdentifier.h"
-#include "vessel/storageManifest.h"
+#include "vessel/sparseBitmap32.h"
+#include "vessel/storageFileDef.h"
 
 #include <memory>
 
@@ -85,9 +85,8 @@ namespace vessel
          UINT32 _id = 0;
          _P_MAPPING _pmap;
 
-         ///TODO: roaring bitmap?
-         pidBatchList _obsoleteLpids;
-         pidBatchList _obsoletePids;
+         sparseBitmap32 _obsoleteLpids;
+         sparseBitmap32 _obsoletePids;
    };//class spacePteAccessCtx
 
    using PTE_ACCESS_CTX_PTR = std::unique_ptr<spacePteAccessCtx>;

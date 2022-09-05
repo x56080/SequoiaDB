@@ -291,7 +291,7 @@ namespace vessel
          goto error;
       }
 
-      actx->_obsoletePids.push(currentPid);
+      actx->_obsoletePids.set(currentPid);
       actx->_pmap.insert(std::make_pair(lpid, pid));
 
    done:
@@ -351,8 +351,8 @@ namespace vessel
             if (publicDesc.isValid())
             {
                actx->_pmap[lpid] = INVALID_PAGE_ID;
-               actx->_obsoleteLpids.push(lpid);
-               actx->_obsoletePids.push(publicDesc.pid);
+               actx->_obsoleteLpids.set(lpid);
+               actx->_obsoletePids.set(publicDesc.pid);
             }
             else
             {
@@ -365,8 +365,8 @@ namespace vessel
          }
          else
          {
-            actx->_obsoleteLpids.push(lpid);
-            actx->_obsoletePids.push(desc.pid);
+            actx->_obsoleteLpids.set(lpid);
+            actx->_obsoletePids.set(desc.pid);
             actx->_pmap[lpid] = INVALID_PAGE_ID;
          }
       }
@@ -673,17 +673,8 @@ namespace vessel
       for (auto itr = batch._committing.cbegin();
            itr != batch._committing.cend(); ++itr)
       {
-         const pidBatchList &pids = itr->second->_obsoletePids;
-         for (auto pidsItr = pids.begin(); pidsItr != pids.end(); ++pidsItr)
-         {
-            _getSpaceMgr().releaseBatch(pidsItr->size(), pidsItr->data());
-         }
-
-         const pidBatchList &lpids = itr->second->_obsoleteLpids;
-         for (auto lpidsItr = lpids.begin(); lpidsItr != lpids.end(); ++lpidsItr)
-         {
-            _freeLpids(lpidsItr->size(), lpidsItr->data());
-         }
+         _getSpaceMgr().releaseBatch(itr->second->_obsoletePids);
+         _freeLpids(itr->second->_obsoleteLpids);
       }
 
       _getPageMapping().freeOboleteSetAfterPublish(batch._mctx);

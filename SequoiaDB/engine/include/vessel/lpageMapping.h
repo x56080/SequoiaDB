@@ -42,7 +42,6 @@
 #include "vessel/lpageMappingRoot.h"
 #include "vessel/lpageMappingPteCtx.h"
 #include "vessel/fixedBitset.hpp"
-#include "vessel/pidBatchList.h"
 
 namespace engine
 {
@@ -88,8 +87,6 @@ namespace vessel
          INT32 dumpUnitSme(UINT32 unitId,
                            BOOLEAN &exists,
                            fixedBitset<LPID_UNIT_SIZE> &bs);
-
-         INT32 dumpAllPids(pidBatchList &l);
    
 
       public:/// user should lock lpids outside first.

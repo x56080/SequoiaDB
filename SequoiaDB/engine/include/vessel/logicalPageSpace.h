@@ -48,6 +48,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/unitedBitmap.hpp"
 #include "vessel/shallowPointer.hpp"
+#include "vessel/sparseBitmap32.h"
 
 namespace engine
 {
@@ -221,6 +222,7 @@ namespace vessel
          INT32 _reserveLpids(UINT32 size, PAGE_ID *lpids, BOOLEAN autoExtendLPM=TRUE);
          void _freeLpids(UINT32 size, const PAGE_ID *lpids);
          void _freeLpid(PAGE_ID lpid);
+         void _freeLpids(const sparseBitmap32 &bm);
 
          OSS_INLINE BOOLEAN _isReservedLpid(PAGE_ID lpid)const
          {

@@ -39,6 +39,7 @@
 #include "ossMemPool.hpp"
 #include "vessel/pageIdentifier.h"
 #include "ossLatch.hpp"
+#include "vessel/sparseBitmap32.h"
 
 #include <mutex> //c++11
 #include <atomic> //c++11
@@ -202,6 +203,8 @@ namespace vessel
          void freeExtent(PAGE_ID pid, UINT32 pcnt);
 
          void freePids(UINT32 size, const PAGE_ID *pids);
+
+         void freePids(const sparseBitmap32 &bm);
 
          BOOLEAN test(PAGE_ID pid);
 

@@ -172,6 +172,15 @@ namespace vessel
       return;
    }
 
+   void fclusterSpaceManager::releaseBatch(const sparseBitmap32 &bm)
+   {
+      if (isReady())
+      {
+         _allocator.freePids(bm);
+      }
+      return;
+   }
+
    INT32 fclusterSpaceManager::_extendNewDataSegment()
    {
       INT32 rc = SDB_OK;

@@ -41,6 +41,7 @@
 #include "vessel/variableExtentAllocator.h"
 #include "vessel/strictBuffer.h"
 #include "vessel/metaDataUberBlock.h"
+#include "vessel/sparseBitmap32.h"
 
 #include <mutex>
 
@@ -76,6 +77,8 @@ namespace vessel
          void releaseExtent(PAGE_ID pid, UINT32 pcnt);
 
          void releaseBatch(UINT32 size, const PAGE_ID *pids);
+
+         void releaseBatch(const sparseBitmap32 &bm);
 
          BOOLEAN test(PAGE_ID pid);
 

@@ -1394,6 +1394,34 @@ namespace vessel
       _freeLpids(1, &lpid);
    }
 
+   void logicalPageSpace::_freeLpids(const sparseBitmap32 &bm)
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      BOOLEAN quit = FALSE;
+      constexpr UINT32 BATCH_SIZE = 32;
+      sparseBitmap32::iterator itr;
+      do
+      {
+         std::unique_lock<std::mutex> guard(_am);
+         for (UINT32 i = 0; i < BATCH_SIZE; ++i)
+         {
+            BOOLEAN r = FALSE;
+            if (bm.next(itr))
+            {
+               _allocator.set(itr.get(), &r);
+               SDB_ASSERT(!r, "unexpected bit value");
+            }
+            else
+            {
+               quit = TRUE;
+               break;
+            }
+         }
+      } while (!quit);
+      
+      return;
+   }
+
    INT32 logicalPageSpace::_updateUberBlockOnDisk(BOOLEAN fsync)
    {
       INT32 rc = SDB_OK;

@@ -97,19 +97,23 @@ namespace vessel
    void spacePteAccessCtx::obsoleteLpid(PAGE_ID lpid)
    {
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      _obsoleteLpids.push(lpid);
+      BOOLEAN old = FALSE;
+      _obsoleteLpids.set(lpid, &old);
+      SDB_ASSERT(!old, "duplicated lpid");
    }
 
    void spacePteAccessCtx::obsoletePid(PAGE_ID pid)
    {
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      _obsoletePids.push(pid);
+      BOOLEAN old = FALSE;
+      _obsoletePids.set(pid, &old);
+      SDB_ASSERT(!old, "duplicated pid");
    }
 
    void spacePteAccessCtx::resetObsoleteResources()
    {
-      _obsoleteLpids.clear();
-      _obsoletePids.clear();
+      _obsoleteLpids.reset();
+      _obsoletePids.reset();
    }
 } // namespace vessel
 
