@@ -1,23 +1,22 @@
 /******************************************************************************
- * @Description   : seqDB-23852:组上有回收站，删除组
- * @Author        : liuli
- * @CreateTime    : 2022.03.02
- * @LastEditTime  : 2022.08.30
+ * @Description   : seqDB-26843:开启回收机制，删除组后再删除集合空间
+ * @Author        : HuangHaimei
+ * @CreateTime    : 2022.08.24
+ * @LastEditTime  : 2022.09.05
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
-main( test );
+main( test )
 function test ()
 {
-   var csName = "cs_23852";
-   var clName = "cl_23852";
-   var groupsArray = commGetGroups( db );
+   var csName = "cs_26843";
+   var clName = "cl_26843";
+   var groupsArray = testPara.groups;
    var hostName = groupsArray[0][1].HostName;
-   var groupNames = ["group_23852_0", "group_23852_1", "group_23852_2"];
+   var groupNames = ["group_26843_0"];
    try
    {
-      //新创建3个组
       createDataGroups( db, hostName, groupNames );
       commCheckBusinessStatus( db );
 
@@ -25,39 +24,11 @@ function test ()
       cleanRecycleBin( db, csName );
 
       var dbcs = commCreateCS( db, csName );
-      var dbcl = dbcs.createCL( clName, { Group: groupNames[0] } );
-      var docs = []
-      for( var i = 0; i < 1000; i++ )
-      {
-         docs.push( { a: i } );
-      }
-      dbcl.insert( docs );
+      dbcs.createCL( clName + "_1", { Group: groupNames[0] } );
+      dbcs.createCL( clName + "_2", { Group: groupsArray[0][0]["GroupName"] } );
+      dbcs.dropCL( clName + "_1" );
+      db.removeRG( groupNames[0] );
       db.dropCS( csName );
-
-      // 删除数据组
-      for( var i in groupNames )
-      {
-         db.removeRG( groupNames[i] );
-      }
-
-      // 恢复dropCS项目
-      var recycleName = getOneRecycleName( db, csName, "Drop" );
-      assert.tryThrow( SDB_CLS_GRP_NOT_EXIST, function()
-      {
-         db.getRecycleBin().returnItem( recycleName );
-      } );
-
-      // 重建与groupNames[0]同名的数据组
-      createDataGroups( db, hostName, [groupNames[0]] );
-
-      // 恢复dropCS项目
-      assert.tryThrow( SDB_CLS_GRP_NOT_EXIST, function()
-      {
-         db.getRecycleBin().returnItem( recycleName );
-      } );
-
-      // 清理dropCS项目
-      db.getRecycleBin().dropItem( recycleName );
    }
    finally
    {
