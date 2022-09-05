@@ -2,7 +2,7 @@
  * @Description   : seqDB-18654:增删改查(表扫描/索引扫描)/切分记录，集合快照信息验证
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.24
- * @LastEditTime  : 2022.09.02
+ * @LastEditTime  : 2022.09.05
  * @LastEditors   : Xu Mingxing
 ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -79,8 +79,8 @@ function test ( testPara )
 
    dbcl.alter( { ShardingKey: { a: 1 } } );
 
-   dbcl.split( groupName, dataGroupNames[1], 50 );
-   masterNode = db.getRG( dataGroupNames[1] ).getMaster();
+   dbcl.split( groupName, dataGroupNames[0], 50 );
+   masterNode = db.getRG( dataGroupNames[0] ).getMaster();
    hostName = masterNode.getHostName();
    serviceName = masterNode.getServiceName();
    nodeNames.push( hostName + ":" + serviceName );
