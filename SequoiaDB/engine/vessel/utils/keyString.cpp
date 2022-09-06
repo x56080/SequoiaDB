@@ -367,6 +367,7 @@ namespace vessel
       {
          ossMemcpy(&t, _buf + _offset, size);
       }
+      SDB_ASSERT(_offset + size <= _bufSize, "out of buffer size");
       _offset += size;
       return t;
    }
@@ -436,16 +437,18 @@ namespace vessel
                      builder,
                      withFieldName ? ele.fieldName() : nullptr);
       }
-      SDB_ASSERT(1 == _bufSize - _offset || 2 == _bufSize - _offset,
+      SDB_ASSERT(KEY_STRING_ONLY_END_SIZE == _bufSize - _offset ||
+                     KEY_STRING_DISCRIMINATOR_AND_END_SIZE ==
+                         _bufSize - _offset,
                  "Unexpected size");
-      if (2 == _bufSize - _offset)
+      if (KEY_STRING_DISCRIMINATOR_AND_END_SIZE == _bufSize - _offset)
       {
          DiscriminatorValue dv = _read<DiscriminatorValue>(FALSE);
          SDB_ASSERT(DiscriminatorValue::LESS == dv ||
                         DiscriminatorValue::GREATER == dv,
                     "Unexpected discriminator byte");
       }
-      if (1 == _bufSize - _offset)
+      if (KEY_STRING_ONLY_END_SIZE == _bufSize - _offset)
       {
          DiscriminatorValue dv = _read<DiscriminatorValue>(FALSE);
          SDB_ASSERT(DiscriminatorValue::END == dv,
@@ -961,6 +964,7 @@ namespace vessel
       _readCString(inverted, s);
       while (_offset != _bufSize && 0xFF == _peek<UINT8>(inverted))
       {
+         SDB_ASSERT(_offset + 1 <= _bufSize, "out of buffer size");
          _offset += 1;
          s.append("\x00", 1);
          _readCString(inverted, s);
@@ -1064,6 +1068,7 @@ namespace vessel
       {
          ossMemcpy(bytes, _buf + _offset, len);
       }
+      SDB_ASSERT(_offset + len <= _bufSize, "out of buffer size");
       _offset += len;
    }
 
@@ -1075,6 +1080,7 @@ namespace vessel
       const CHAR *end =
           static_cast<const CHAR *>(memchr(start, endChar, _bufSize - _offset));
       UINT32 bytesNum = end - start;
+      SDB_ASSERT(_offset + bytesNum + 1 <= _bufSize, "out of buffer size");
       _offset += (bytesNum + 1);
       s.append(start, bytesNum);
       if (inverted)

@@ -66,6 +66,8 @@ namespace vessel
    constexpr UINT32 KEY_STRING_TYNI_SWRORD_SIZE = sizeof(UINT8);
    constexpr UINT32 KEY_STRING_SWORD_SIZE = sizeof(UINT32);
    constexpr UINT32 KEY_STRING_EXT_SWORD_SIZE = KEY_STRING_TYNI_SWRORD_SIZE + KEY_STRING_SWORD_SIZE;
+   constexpr UINT32 KEY_STRING_ONLY_END_SIZE = 1;
+   constexpr UINT32 KEY_STRING_DISCRIMINATOR_AND_END_SIZE = 2;
 
    struct keyStringDescriptor : public SDBObject
    {
