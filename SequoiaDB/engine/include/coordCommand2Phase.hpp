@@ -107,21 +107,25 @@ namespace engine
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) = 0 ;
+                                        CoordGroupList &sucGroupLst,
+                                        vector<BSONObj> &dataObjs ) = 0 ;
 
          virtual INT32 _doOnCataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &pGroupLst,
-                                          vector<BSONObj> &cataObjs ) ;
+                                          vector<BSONObj> &cataObjs,
+                                          const BSONObj &hint = BSONObj() ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
-                                          const vector<BSONObj> &cataObjs ) ;
+                                          const vector<BSONObj> &cataObjs,
+                                          vector<BSONObj> &dataObjs,
+                                          const BSONObj &hint = BSONObj() ) ;
 
          virtual INT32 _rollbackOnDataGroup ( MsgHeader *pMsg,
                                               pmdEDUCB *cb,
@@ -149,7 +153,8 @@ namespace engine
          virtual INT32 _processContext ( pmdEDUCB *cb,
                                          rtnContextCoord::sharePtr *ppContext,
                                          SINT32 maxNumSteps,
-                                         rtnContextBuf & buffObj ) ;
+                                         rtnContextBuf & buffObj,
+                                         const BSONObj &hint = BSONObj() ) ;
 
       protected :
          /*
@@ -194,6 +199,12 @@ namespace engine
          INT32 _parseCatP2Return( coordCMDArguments *pArgs,
                                   const std::vector<bson::BSONObj> &cataObjs ) ;
 
+         INT32 _parseDataReturn( coordCMDArguments *pArgs,
+                                 const std::vector<bson::BSONObj> &dataObjs ) ;
+
+         INT32 _parseDataP2Return( coordCMDArguments *pArgs,
+                                   const std::vector<bson::BSONObj> &dataObjs ) ;
+
          BOOLEAN _needRewriteDataMsg() ;
 
          INT32 _rewriteDataMsg( MsgHeader *pMsg,
@@ -201,6 +212,10 @@ namespace engine
                                 pmdEDUCB *cb,
                                 CHAR **ppMsgBuf,
                                 INT32 *pBufSize ) ;
+
+         INT32 _generateP2CataGetMoreHint( BSONObj &hint ) ;
+
+         INT32 _generateP2DataGetMoreHint( BSONObj &hint ) ;
 
          INT32 _onBeginEvent( coordCMDArguments *pArgs,
                               pmdEDUCB *cb ) ;

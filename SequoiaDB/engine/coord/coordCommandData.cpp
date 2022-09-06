@@ -178,9 +178,12 @@ namespace engine
                                                coordCMDArguments *pArgs,
                                                const CoordGroupList &groupLst,
                                                const vector<BSONObj> &cataObjs,
-                                               CoordGroupList &sucGroupLst )
+                                               CoordGroupList &sucGroupLst,
+                                               vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
+      rtnContextCoord::sharePtr pContext ;
+      rtnContextBuf buffObj ;
       PD_TRACE_ENTRY ( COORD_DATA2PHASE_DOONDATA ) ;
 
       // For DropCL/DropCS, this will guarantee data updates are
@@ -191,13 +194,13 @@ namespace engine
                            _flagUpdateBeforeData(),
                            _flagUseGrpLstInCoord() ? NULL : &groupLst,
                            &(pArgs->_ignoreRCList), &sucGroupLst,
-                           ppContext, pArgs->_pBuf ) ;
+                           &pContext, pArgs->_pBuf ) ;
       }
       else
       {
          rc = executeOnDataGroup( pMsg, cb, groupLst, TRUE,
                                   &(pArgs->_ignoreRCList), &sucGroupLst,
-                                  ppContext, pArgs->_pBuf ) ;
+                                  &pContext, pArgs->_pBuf ) ;
       }
 
       if ( rc )
@@ -207,10 +210,50 @@ namespace engine
          goto error ;
       }
 
+      /// get cached data
+      while( pContext && pContext->getCachedRecordNum() > 0 )
+      {
+         rc = pContext->getMore( 1, buffObj, cb ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get more from context [%lld], "
+                    "rc: %d", pContext->contextID(), rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            BSONObj obj( buffObj.data() ) ;
+            dataObjs.push_back( obj.getOwned() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when pushing data reply:"
+                    " %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
    done :
+      if ( pContext )
+      {
+         *ppContext = pContext ;
+      }
       PD_TRACE_EXITRC ( COORD_DATA2PHASE_DOONDATA, rc ) ;
       return rc ;
    error :
+      if ( pContext )
+      {
+         SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
+         pRtnCB->contextDelete( pContext->contextID(), cb ) ;
+         pContext.release() ;
+      }
       goto done ;
    }
 
@@ -260,15 +303,14 @@ namespace engine
                                                  rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &pGroupLst,
-                                                 vector<BSONObj> &cataObjs )
+                                                 vector<BSONObj> &cataObjs,
+                                                 const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY ( COORD_DATA3PHASE_DOONCATA2 ) ;
-
       rtnContextBuf buffObj ;
 
-      rc = _processContext( cb, ppContext, 1, buffObj ) ;
+      rc = _processContext( cb, ppContext, 1, buffObj, hint ) ;
 
       try
       {
@@ -283,16 +325,15 @@ namespace engine
       }
       catch ( exception &e )
       {
-         PD_LOG( PDERROR, "Failed to get reply object, occur exception %s",
-                 e.what() ) ;
          rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to get reply object, occur exception %s, "
+                 "rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
    done:
       PD_TRACE_EXITRC ( COORD_DATA3PHASE_DOONCATA2, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -303,19 +344,40 @@ namespace engine
                                                  rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst,
-                                                 const vector<BSONObj> &cataObjs )
+                                                 const vector<BSONObj> &cataObjs,
+                                                 vector<BSONObj> &dataObjs,
+                                                 const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY ( COORD_DATA3PHASE_DOONDATA2 ) ;
-
       rtnContextBuf buffObj ;
 
       rc = _processContext( cb, ppContext, 1, buffObj ) ;
 
-      PD_TRACE_EXITRC ( COORD_DATA3PHASE_DOONDATA2, rc ) ;
+      try
+      {
+         while ( !buffObj.eof() )
+         {
+            BSONObj reply ;
+            rc = buffObj.nextObj( reply ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get obj from obj buf, rc: %d",
+                         rc ) ;
+            dataObjs.push_back( reply.getOwned() ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to get reply object, occur exception %s, "
+                 "rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
+   done:
+      PD_TRACE_EXITRC ( COORD_DATA3PHASE_DOONDATA2, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -565,7 +627,8 @@ namespace engine
                                                 rtnContextCoord::sharePtr *ppContext,
                                                 coordCMDArguments * pArgs,
                                                 const CoordGroupList & groupLst,
-                                                vector<BSONObj> &cataObjs )
+                                                vector<BSONObj> &cataObjs,
+                                                const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
 
@@ -624,7 +687,9 @@ namespace engine
                                                 rtnContextCoord::sharePtr *ppContext,
                                                 coordCMDArguments * pArgs,
                                                 const CoordGroupList & groupLst,
-                                                const vector<BSONObj> & cataObjs )
+                                                const vector<BSONObj> & cataObjs,
+                                                vector<BSONObj> &dataObjs,
+                                                const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
 
@@ -636,13 +701,13 @@ namespace engine
       {
          rc = _coordDataCMD3Phase::_doOnDataGroupP2( pMsg, cb, ppContext,
                                                      pArgs, groupLst,
-                                                     cataObjs ) ;
+                                                     cataObjs, dataObjs ) ;
       }
       else
       {
          rc = _coordDataCMD2Phase::_doOnDataGroupP2( pMsg, cb, ppContext,
                                                      pArgs, groupLst,
-                                                     cataObjs ) ;
+                                                     cataObjs, dataObjs ) ;
       }
 
       PD_TRACE_EXITRC( COORD_DATAALTER_DOONDATA2, rc ) ;
@@ -1816,7 +1881,8 @@ namespace engine
                                             coordCMDArguments *pArgs,
                                             const CoordGroupList &groupLst,
                                             const vector<BSONObj> &cataObjs,
-                                            CoordGroupList &sucGroupLst )
+                                            CoordGroupList &sucGroupLst,
+                                            vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
 
@@ -1824,7 +1890,7 @@ namespace engine
 
       // do on data for P1 to lock collection on data nodes
       rc = _BASE::_doOnDataGroup( pMsg, cb, ppContext, pArgs, groupLst,
-                                  cataObjs, sucGroupLst ) ;
+                                  cataObjs, sucGroupLst, dataObjs ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to do on data group, rc: %d", rc ) ;
 
       // now collection on data nodes are locked,

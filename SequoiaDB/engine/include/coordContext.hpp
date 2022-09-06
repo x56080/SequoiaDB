@@ -180,6 +180,8 @@ namespace engine
                                             _pmdEDUCB *cb ) ;
          virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
 
+         virtual INT32 _processGetMoreHint( const BSONObj &hint ) ;
+
       private:
          INT32    _appendSubData ( const pmdEDUEvent &event,
                                    BOOLEAN &isTakeOver ) ;
@@ -212,6 +214,8 @@ namespace engine
          _pmdRemoteSession          *_pSession ;
 
          BOOLEAN                    _isModify ;
+
+         BSONObj                    _getMoreHint ;
    } ;
    typedef _rtnContextCoord rtnContextCoord ;
 

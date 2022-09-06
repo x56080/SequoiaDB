@@ -443,6 +443,28 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 _rtnContextCoord::_processGetMoreHint( const BSONObj &hint )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _getMoreHint = hint.getOwned() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when processing getMore "
+                 "hint: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__SEND2EMPTYNODES, "_rtnContextCoord::_send2EmptyNodes" )
    INT32 _rtnContextCoord::_send2EmptyNodes( pmdEDUCB * cb )
    {
@@ -450,11 +472,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CTXCOOR__SEND2EMPTYNODES ) ;
 
       MsgOpGetMore msgReq ;
+      MsgOpGetMore *pMsgReq = NULL ;
+      INT32 msgSize = 0 ;
       MsgRouteID routeID ;
       EMPTY_CONTEXT_MAP::iterator emptyIter ;
       pmdSubSession *pSub = NULL ;
       pmdRemoteSessionSite *pSite = NULL ;
       coordSessionPropSite *pPropSite = NULL ;
+      BOOLEAN isHintEmpty = _getMoreHint.isEmpty() ;
 
       if ( _emptyContextMap.size() == 0 )
       {
@@ -464,7 +489,18 @@ namespace engine
       pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
       pPropSite = ( coordSessionPropSite* )pSite->getUserData() ;
 
-      msgFillGetMoreMsg( msgReq, cb->getTID(), -1, -1, 0 ) ;
+      if ( isHintEmpty )
+      {
+         msgFillGetMoreMsg( msgReq, cb->getTID(), -1, -1, 0 ) ;
+         pMsgReq = &msgReq ;
+      }
+      else
+      {
+         rc = msgBuildGetMoreMsg( (CHAR **)&pMsgReq, &msgSize, -1, -1, 0, cb,
+                                  &_getMoreHint ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to build get more message, rc: %d", rc ) ;
+      }
 
       emptyIter = _emptyContextMap.begin() ;
       while( emptyIter != _emptyContextMap.end() )
@@ -477,11 +513,11 @@ namespace engine
          }
 
          routeID.value = emptyIter->first ;
-         msgReq.header.routeID.value = MSG_INVALID_ROUTEID ;
-         msgReq.contextID = emptyIter->second->contextID() ;
+         pMsgReq->header.routeID.value = MSG_INVALID_ROUTEID ;
+         pMsgReq->contextID = emptyIter->second->contextID() ;
 
          pSub = _pSession->addSubSession( routeID.value ) ;
-         pSub->setReqMsg( (MsgHeader*)&msgReq, PMD_EDU_MEM_NONE ) ;
+         pSub->setReqMsg( (MsgHeader*)pMsgReq, PMD_EDU_MEM_NONE ) ;
 
          /// In transaction and context is write, should check and update
          /// trans node's status
@@ -493,14 +529,14 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Send get more message[ContextID:%lld] to "
-                    "node[%s] failed, rc: %d", msgReq.contextID,
+                    "node[%s] failed, rc: %d", pMsgReq->contextID,
                     routeID2String( routeID ).c_str(), rc ) ;
             goto error ;
          }
          else
          {
             PD_LOG( PDDEBUG, "Send get more message[ContextID:%lld] to "
-                    "node[%s] succeed", msgReq.contextID,
+                    "node[%s] succeed", pMsgReq->contextID,
                     routeID2String( routeID ).c_str() ) ;
          }
 
@@ -510,6 +546,10 @@ namespace engine
       }
 
    done:
+      if ( !isHintEmpty && pMsgReq )
+      {
+         msgReleaseBuffer( (CHAR *)pMsgReq, cb ) ;
+      }
       PD_TRACE_EXITRC( SDB_CTXCOOR__SEND2EMPTYNODES, rc ) ;
       return rc ;
    error:

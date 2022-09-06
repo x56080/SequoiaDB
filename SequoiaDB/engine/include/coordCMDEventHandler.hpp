@@ -99,6 +99,28 @@ namespace engine
          return SDB_OK ;
       }
 
+      virtual INT32 parseDataReturn( coordCMDArguments *pArgs,
+                                     const std::vector<bson::BSONObj> &dataObjs )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 parseDataP2Return( coordCMDArguments *pArgs,
+                                       const std::vector<bson::BSONObj> &dataObjs )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 generateP2CataGetMoreHint( bson::BSONObjBuilder &hintBuilder )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32 generateP2DataGetMoreHint( bson::BSONObjBuilder &hintBuilder )
+      {
+         return SDB_OK ;
+      }
+
       virtual BOOLEAN needRewriteDataMsg()
       {
          return FALSE ;

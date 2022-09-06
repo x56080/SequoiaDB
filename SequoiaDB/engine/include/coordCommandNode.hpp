@@ -101,7 +101,8 @@ namespace engine
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &pGroupLst,
-                                          vector<BSONObj> &cataObjs ) ;
+                                          vector<BSONObj> &cataObjs,
+                                          const BSONObj &hint = BSONObj() ) ;
 
    } ;
    typedef _coordNodeCMD3Phase coordNodeCMD3Phase ;
@@ -326,7 +327,8 @@ namespace engine
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
+                                        CoordGroupList &sucGroupLst,
+                                        vector<BSONObj> &dataObjs ) ;
 
          virtual BOOLEAN _flagIsStartNodes() const ;
 
@@ -363,7 +365,8 @@ namespace engine
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
+                                        CoordGroupList &sucGroupLst,
+                                        vector<BSONObj> &dataObjs ) ;
 
          virtual INT32 _doCommit ( MsgHeader *pMsg,
                                    pmdEDUCB * cb,
@@ -400,14 +403,17 @@ namespace engine
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
+                                        CoordGroupList &sucGroupLst,
+                                        vector<BSONObj> &dataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
-                                          const vector<BSONObj> &cataObjs ) ;
+                                          const vector<BSONObj> &cataObjs,
+                                          vector<BSONObj> &dataObjs,
+                                          const BSONObj &hint = BSONObj() ) ;
 
          virtual INT32 _doCommit ( MsgHeader *pMsg,
                                    pmdEDUCB * cb,
@@ -448,14 +454,17 @@ namespace engine
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
+                                        CoordGroupList &sucGroupLst,
+                                        vector<BSONObj> &dataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
-                                          const vector<BSONObj> &cataObjs ) ;
+                                          const vector<BSONObj> &cataObjs,
+                                          vector<BSONObj> &dataObjs,
+                                          const BSONObj &hint = BSONObj() ) ;
 
          virtual INT32 _doComplete ( MsgHeader *pMsg,
                                      pmdEDUCB * cb,
@@ -501,14 +510,17 @@ namespace engine
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
-                                        CoordGroupList &sucGroupLst ) ;
+                                        CoordGroupList &sucGroupLst,
+                                        vector<BSONObj> &dataObjs ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
                                           rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
-                                          const vector<BSONObj> &cataObjs ) ;
+                                          const vector<BSONObj> &cataObjs,
+                                          vector<BSONObj> &dataObjs,
+                                          const BSONObj &hint = BSONObj() ) ;
 
          virtual INT32 _doComplete ( MsgHeader *pMsg,
                                      pmdEDUCB * cb,

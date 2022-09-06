@@ -222,7 +222,8 @@ namespace engine
                                                  rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &pGroupLst,
-                                                 vector<BSONObj> &cataObjs )
+                                                 vector<BSONObj> &cataObjs,
+                                                 const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
 
@@ -1390,13 +1391,13 @@ namespace engine
                                                 coordCMDArguments *pArgs,
                                                 const CoordGroupList &groupLst,
                                                 const vector<BSONObj> &cataObjs,
-                                                CoordGroupList &sucGroupLst )
+                                                CoordGroupList &sucGroupLst,
+                                                vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( COORD_ACTIVEGRP_DOONDATAGROUP ) ;
 
-      vector<BSONObj> dataObjs ;
       vector<INT32> opList ;
 
       opList.push_back( SDBSTART ) ;
@@ -1519,13 +1520,13 @@ namespace engine
                                                   coordCMDArguments *pArgs,
                                                   const CoordGroupList &groupLst,
                                                   const vector<BSONObj> &cataObjs,
-                                                  CoordGroupList &sucGroupLst )
+                                                  CoordGroupList &sucGroupLst,
+                                                  vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( COORD_SHUTDOWNGRP_DOONDATA ) ;
 
-      vector<BSONObj> dataObjs ;
       vector<INT32> opList ;
 
       PD_CHECK( 1 == cataObjs.size(), SDB_SYS, error, PDERROR,
@@ -1663,14 +1664,14 @@ namespace engine
                                                 coordCMDArguments *pArgs,
                                                 const CoordGroupList &groupLst,
                                                 const vector<BSONObj> &cataObjs,
-                                                CoordGroupList &sucGroupLst )
+                                                CoordGroupList &sucGroupLst,
+                                                vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( COORD_REMOGEGRP_DOONDATA ) ;
 
       vector<INT32> opList ;
-      vector<BSONObj> dataObjs ;
 
       PD_CHECK( 1 == cataObjs.size(), SDB_SYS, error, PDERROR,
                 "Could not find group in catalog on command[%s, targe:%s]",
@@ -1707,14 +1708,15 @@ namespace engine
                                                   rtnContextCoord::sharePtr *ppContext,
                                                   coordCMDArguments *pArgs,
                                                   const CoordGroupList &groupLst,
-                                                  const vector<BSONObj> &cataObjs )
+                                                  const vector<BSONObj> &cataObjs,
+                                                  vector<BSONObj> &dataObjs,
+                                                  const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( COORD_REMOGEGRP_DOONDATA2 ) ;
 
       vector<INT32> opList ;
-      vector<BSONObj> dataObjs ;
 
       opList.push_back( SDBSTOP ) ;
       opList.push_back( SDBRM ) ;
@@ -2045,7 +2047,8 @@ namespace engine
                                                coordCMDArguments *pArgs,
                                                const CoordGroupList &groupLst,
                                                const vector<BSONObj> &cataObjs,
-                                               CoordGroupList &sucGroupLst )
+                                               CoordGroupList &sucGroupLst,
+                                               vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CREATENODE_DOONDATA ) ;
@@ -2079,7 +2082,9 @@ namespace engine
                                                  rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst,
-                                                 const vector<BSONObj> &cataObjs )
+                                                 const vector<BSONObj> &cataObjs,
+                                                 vector<BSONObj> &dataObjs,
+                                                 const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CREATENODE_DOONDATA2 ) ;
@@ -2375,7 +2380,8 @@ namespace engine
                                                coordCMDArguments *pArgs,
                                                const CoordGroupList &groupLst,
                                                const vector<BSONObj> &cataObjs,
-                                               CoordGroupList &sucGroupLst )
+                                               CoordGroupList &sucGroupLst,
+                                               vector<BSONObj> &dataObjs )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_REMOVENODE_DOONDATA ) ;
@@ -2412,7 +2418,9 @@ namespace engine
                                                  rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst,
-                                                 const vector<BSONObj> &cataObjs )
+                                                 const vector<BSONObj> &cataObjs,
+                                                 vector<BSONObj> &dataObjs,
+                                                 const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_REMOVENODE_DOONDATA2 ) ;
