@@ -337,8 +337,7 @@ namespace vessel
    Description:
       查找大于等于待查找的第一个entry，且输入的keyString包含header部分
       1. 生成已压缩的b树节点
-      2.
-   构建与下标为4的entry在header部分后相同的keyString查找条件，header部分不为空
+      2. 构建与下标为4的entry在header部分后相同的keyString查找条件，header部分不为空
       3. 查找并校验定位的位置
    Input: 有header部分的待查找keyString
    Output: 查找结果
@@ -381,11 +380,11 @@ namespace vessel
       向已压缩节点中插入entry，且预期会使用已有的前缀
       1. 生成已压缩的b树节点
       2. 构建entry，预期其插入位置应为5，且可以使用前一项的前缀
-      3. 校验页元数据、prefixSlots的low，high和itemSlots的前缀槽号
+      3. 校验页元数据、前缀槽的low，high和索引槽前缀槽号、索引记录键值
    Input:
    Output:
    Expected Result:
-      插入到的位置为5，校验得到预期结果
+      插入到的位置为5，页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，校验得到预期结果
    */
    TEST_F(btree_node_test, base_insert_expect_compressed)
    {
@@ -430,11 +429,11 @@ namespace vessel
       向已压缩节点中插入entry，且预期不会使用已有的前缀
       1. 生成已压缩的b树节点
       2. 构建entry，预期其插入位置应为5，但不可以使用当前一项和前一项的前缀
-      3. 校验页元数据、prefixSlots的low，high和itemSlots的前缀槽号
+      3. 校验页元数据、前缀槽的low，high和索引槽前缀槽号、索引记录键值
    Input:
    Output:
    Expected Result:
-      插入到的位置为5，校验得到预期结果
+      插入到的位置为5，页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，校验得到预期结果
    */
    TEST_F(btree_node_test, base_insert_expect_uncompressed)
    {
@@ -478,14 +477,14 @@ namespace vessel
    Description:
       页面compact操作测试
       1. 生成已压缩的b树节点
-      2.
-   删除4次下标为1的元素，下标为0的前缀槽剩余1个索引；再次删除5次下标为1的元素，下标为1的前缀槽剩余0个索引
+      2. 删除4次下标为1的元素，下标为0的前缀槽剩余1个索引；再次删除5次下标为1的元素，
+   下标为1的前缀槽剩余0个索引
       3. 执行compact操作
-      4. 校验页元数据、prefixSlots的low，high和itemSlots的前缀槽号
+      4. 校验页元数据、前缀槽的low，high和索引槽前缀槽号、索引记录键值
    Input:
    Output:
    Expected Result:
-      页面前缀槽从100个减为99个，校验结果符合预期
+      页面前缀槽从100个减为99个，页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，校验得到预期结果
    */
    TEST_F(btree_node_test, base_compact_when_has_prefixes)
    {
@@ -534,15 +533,14 @@ namespace vessel
    Description:
       删除指定下标的索引
       1. 生成已压缩的b树节点
-      2.
-   删除4次下标为1的元素，下标为0的前缀槽剩余1个索引；再次删除5次下标为1的元素，下标为1的前缀槽剩余0个索引
+      2. 删除4次下标为1的元素，下标为0的前缀槽剩余1个索引；再次删除5次下标为1的元素，下标为1的前缀槽剩余0个索引
       3. 校验页元数据、前缀槽的low，high和索引槽指向的前缀槽号
-      4.
-   插入一个不会被压缩的索引，然后删除该索引，校验页元数据、前缀槽的low，high和索引槽指向的前缀槽号
+      4. 插入一个不会被压缩的索引，然后删除该索引，校验页元数据、前缀槽的low，high和索引槽指向的前缀槽号
+      5. 校验页元数据、前缀槽的low，high和索引槽前缀槽号、索引记录键值
    Input:
    Output:
    Expected Result:
-      页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期
+      页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，校验得到预期结果
    */
    TEST_F(btree_node_test, base_destroy)
    {
@@ -628,11 +626,11 @@ namespace vessel
       truncate保留3个索引
       1. 生成已压缩的b树节点
       2. 执行truncate操作，保留3个索引
-      3. 校验页元数据、前缀槽的low，high和索引槽指向的前缀槽号
+      3. 校验页元数据、前缀槽的low，high和索引槽前缀槽号、索引记录键值
    Input: 保留的索引个数3
    Output:
    Expected Result:
-      页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期
+      页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，校验得到预期结果
    */
    TEST_F(btree_node_test, base_truncate)
    {
@@ -695,12 +693,13 @@ namespace vessel
       1. 生成节点，向其中写入索引直到空间不足
       2. 执行recompress操作
       3. 向末端写入索引，在空间不足时执行splitAndInsert操作，触发9:1分裂
-      4.
-   校验分裂的右节点页面数据，校验右节点的页元数据、前缀槽的low，high和索引槽指向的前缀槽号
+      校验分裂的右节点页面数据，校验右节点的页元数据、前缀槽的low，high和索引槽指向的
+   前缀槽号、索引记录
    Input:
    Output:
    Expected Result:
-      右节点页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期
+      右节点页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，当前节点与
+   右节点索引记录与插入的所有索引记录匹配
    */
    TEST_F(btree_node_test, base_split_one_tenth)
    {
@@ -750,7 +749,7 @@ namespace vessel
                     BTREE_NODE_PAGE_HEAD_SIZE - ksTotalSize);
       BOOLEAN recompressed = FALSE;
       rc = node.recompress(recompressed);
-      EXPECT_EQ(SDB_OK, rc);
+      ASSERT_EQ(SDB_OK, rc);
       btreeSplitRaisedKey raisedKey;
       ksb.reset();
       bsb.reset();
@@ -823,12 +822,13 @@ namespace vessel
       1. 生成节点，向其中写入索引直到空间不足
       2. 执行recompress操作
       3. 向末端写入索引，在空间不足时执行splitAndInsert操作，触发1:1分裂
-      4.
-   校验分裂的右节点页面数据，校验右节点的页元数据、前缀槽的low，high和索引槽指向的前缀槽号
+      校验分裂的右节点页面数据，校验右节点的页元数据、前缀槽的low，high和索引槽指向的前缀
+   槽号、索引记录
    Input:
    Output:
    Expected Result:
-      右节点页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期
+      右节点页面元数据、前缀槽low，high和索引槽指向的前缀槽号变更符合预期，当前节点与
+   右节点索引记录与插入的所有索引记录匹配
    */
    TEST_F(btree_node_test, base_split_one_second)
    {
@@ -878,7 +878,7 @@ namespace vessel
                     BTREE_NODE_PAGE_HEAD_SIZE - ksTotalSize);
       BOOLEAN recompressed = FALSE;
       rc = node.recompress(recompressed);
-      EXPECT_EQ(SDB_OK, rc);
+      ASSERT_EQ(SDB_OK, rc);
       btreeSplitRaisedKey raisedKey;
       ksb.reset();
       bsb.reset();
@@ -943,6 +943,240 @@ namespace vessel
           checkItems(ksV.cbegin() + node.getReadableHead()->totalSlotCount + 1,
                      ksV.cend(),
                      rightNode),
+          TRUE);
+   }
+
+   /*
+   Name: base_recompress_1
+   Description:
+      删除指定下标的索引
+      1. 生成节点，向其中写入索引直到空间不足
+      2. 执行recompress操作
+      3. 向节点中间写入不会使用已有前缀的索引，在空间不足时再次执行recompress操作，
+   重新压缩，预期使用部分已有的前缀,预期返回值recompressed为TRUE
+      4. 再次执行recompress操作，并启用fullyRegenerate参数为TRUE，预期返回值recompressed为TRUE
+      5. 校验节点所有索引记录、页面元数据、前缀槽low，high和索引槽指向的前缀槽号
+   Input:
+   Output:
+   Expected Result:
+      节点索引记录与插入的所有索引记录匹配，页面元数据、前缀槽low，high和索引槽指向的
+   前缀槽号变更符合预期
+   */
+   TEST_F(btree_node_test, base_recompress_1)
+   {
+      INT32 rc = SDB_OK;
+      unique_ptr<CHAR[]> data{new CHAR[btreeNodeTest::PAGE_SIZE]};
+      strictBuffer buffer(btreeNodeTest::PAGE_SIZE - PAGE_HEAD_SIZE -
+                              PAGE_TAIL_SIZE,
+                          data.get() + PAGE_HEAD_SIZE);
+      recordID rid(0, 1);
+      btreeNodeTest node(0, 1, &ctx, buffer, data.get() + PAGE_HEAD_SIZE);
+      initBtreeNodePage(
+          btreeNodeTest::PAGE_SIZE, 0, 0, 1, 1, TRUE, TRUE, data.get());
+      UINT32 nkeys = 3;
+      orderingWrapper ord(0, nkeys);
+      randomBsonGenerator bg;
+      BSONObjBuilder bsb;
+      keyStringBuilder<> ksb;
+      std::vector<keyString> ksV;
+
+      UINT32 i = 0;
+      while (TRUE)
+      {
+         bsb.appendIntOrLL("a", i / 20);
+         bsb.appendIntOrLL("b", i / 5);
+         bsb.append("c", "test_fixed_string" + std::to_string(i % 5));
+         recordID rid(0, i);
+         ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
+         keyString ks = ksb.getShallowKeyString();
+         ksV.push_back(ks);
+         ksV.back().getOwned();
+         btreeKeyStringEntry entry(ksV.back().getDataSlice());
+         rc = node.insert(entry);
+         if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
+         {
+            ksV.pop_back();
+            break;
+         }
+         ASSERT_EQ(SDB_OK, rc);
+         ksb.reset();
+         bsb.reset();
+         i++;
+      }
+      BOOLEAN recompressed = FALSE;
+      rc = node.recompress(recompressed);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(recompressed, TRUE);
+      btreeSplitRaisedKey raisedKey;
+      ksb.reset();
+      bsb.reset();
+      while (TRUE)
+      {
+         bsb.appendIntOrLL("a", i / 20 / 2);
+         bsb.appendIntOrLL("b", i / 5 / 2);
+         bsb.append("c", "test_fixed_strinh" + std::to_string(i % 5));
+         recordID rid(0, i);
+         ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
+         keyString ks = ksb.getShallowKeyString();
+         ksV.push_back(ks);
+         ksV.back().getOwned();
+         btreeKeyStringEntry entry(ksV.back().getDataSlice());
+         rc = node.insert(entry);
+         if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
+         {
+            ksV.pop_back();
+            break;
+         }
+         ASSERT_EQ(SDB_OK, rc);
+         i++;
+         ksb.reset();
+         bsb.reset();
+      }
+      std::sort(ksV.begin(),
+                ksV.end(),
+                [&](const keyString &l, const keyString &r) -> BOOLEAN {
+                   if (l.compare(r) < 0)
+                   {
+                      return TRUE;
+                   }
+                   else
+                   {
+                      return FALSE;
+                   }
+                });
+      rc = node.recompress(recompressed);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(recompressed, TRUE);
+      checkPrefixSlotAndItemSlot(node);
+      ASSERT_EQ(
+          checkItems(ksV.cbegin(),
+                     ksV.cbegin() + node.getReadableHead()->totalSlotCount,
+                     node),
+          TRUE);
+      rc = node.recompress(recompressed, TRUE);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(recompressed, TRUE);
+      checkPrefixSlotAndItemSlot(node);
+      ASSERT_EQ(
+          checkItems(ksV.cbegin(),
+                     ksV.cbegin() + node.getReadableHead()->totalSlotCount,
+                     node),
+          TRUE);
+   }
+
+   /*
+   Name: base_recompress_2
+   Description:
+      删除指定下标的索引
+      1. 生成节点，向其中写入索引直到空间不足
+      2. 执行recompress操作
+      3. 向节点中间写入会使用已有前缀的索引，在空间不足时再次执行recompress操作，
+   重新压缩，预期使用所有已有的前缀
+      4. 再次执行recompress操作，并启用fullyRegenerate参数为TRUE
+      5. 校验节点所有索引记录、页面元数据、前缀槽low，high和索引槽指向的前缀槽号
+   Input:
+   Output:
+   Expected Result:
+      节点索引记录与插入的所有索引记录匹配，页面元数据、前缀槽low，high和索引槽指向的
+   前缀槽号变更符合预期
+   */
+   TEST_F(btree_node_test, base_recompress_2)
+   {
+      INT32 rc = SDB_OK;
+      unique_ptr<CHAR[]> data{new CHAR[btreeNodeTest::PAGE_SIZE]};
+      strictBuffer buffer(btreeNodeTest::PAGE_SIZE - PAGE_HEAD_SIZE -
+                              PAGE_TAIL_SIZE,
+                          data.get() + PAGE_HEAD_SIZE);
+      recordID rid(0, 1);
+      btreeNodeTest node(0, 1, &ctx, buffer, data.get() + PAGE_HEAD_SIZE);
+      initBtreeNodePage(
+          btreeNodeTest::PAGE_SIZE, 0, 0, 1, 1, TRUE, TRUE, data.get());
+      UINT32 nkeys = 3;
+      orderingWrapper ord(0, nkeys);
+      randomBsonGenerator bg;
+      BSONObjBuilder bsb;
+      keyStringBuilder<> ksb;
+      std::vector<keyString> ksV;
+
+      UINT32 i = 0;
+      while (TRUE)
+      {
+         bsb.appendIntOrLL("a", i / 20);
+         bsb.appendIntOrLL("b", i / 5);
+         bsb.append("c", "test_fixed_string" + std::to_string(i % 5));
+         recordID rid(0, i);
+         ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
+         keyString ks = ksb.getShallowKeyString();
+         ksV.push_back(ks);
+         ksV.back().getOwned();
+         btreeKeyStringEntry entry(ksV.back().getDataSlice());
+         rc = node.insert(entry);
+         if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
+         {
+            ksV.pop_back();
+            break;
+         }
+         ASSERT_EQ(SDB_OK, rc);
+         ksb.reset();
+         bsb.reset();
+         i++;
+      }
+      BOOLEAN recompressed = FALSE;
+      rc = node.recompress(recompressed);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(recompressed, TRUE);
+      btreeSplitRaisedKey raisedKey;
+      ksb.reset();
+      bsb.reset();
+      while (TRUE)
+      {
+         bsb.appendIntOrLL("a", i / 20 / 2);
+         bsb.appendIntOrLL("b", i / 5 / 2);
+         bsb.append("c", "test_fixed_string" + std::to_string(i % 5));
+         recordID rid(0, i);
+         ksb.buildIndexEntryKey(bsb.obj(), ord, rid);
+         keyString ks = ksb.getShallowKeyString();
+         ksV.push_back(ks);
+         ksV.back().getOwned();
+         btreeKeyStringEntry entry(ksV.back().getDataSlice());
+         rc = node.insert(entry);
+         if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
+         {
+            ksV.pop_back();
+            break;
+         }
+         ASSERT_EQ(SDB_OK, rc);
+         i++;
+         ksb.reset();
+         bsb.reset();
+      }
+      std::sort(ksV.begin(),
+                ksV.end(),
+                [&](const keyString &l, const keyString &r) -> BOOLEAN {
+                   if (l.compare(r) < 0)
+                   {
+                      return TRUE;
+                   }
+                   else
+                   {
+                      return FALSE;
+                   }
+                });
+      rc = node.recompress(recompressed);
+      ASSERT_EQ(SDB_OK, rc);
+      checkPrefixSlotAndItemSlot(node);
+      ASSERT_EQ(
+          checkItems(ksV.cbegin(),
+                     ksV.cbegin() + node.getReadableHead()->totalSlotCount,
+                     node),
+          TRUE);
+      rc = node.recompress(recompressed, TRUE);
+      ASSERT_EQ(SDB_OK, rc);
+      checkPrefixSlotAndItemSlot(node);
+      ASSERT_EQ(
+          checkItems(ksV.cbegin(),
+                     ksV.cbegin() + node.getReadableHead()->totalSlotCount,
+                     node),
           TRUE);
    }
 } // namespace vessel

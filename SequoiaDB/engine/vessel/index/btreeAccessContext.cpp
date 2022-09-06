@@ -698,18 +698,15 @@ namespace vessel
                         oldRealTotalEntrySize,
                         oldPrefixNum);
    }
-   void btreeAccessContext::statsAddLeafNode()
+   void btreeAccessContext::statsAddLeafNode(BOOLEAN isCompressed)
    {
-      _stats.addLeafNode();
+      _stats.addLeafNode(isCompressed);
    }
-   void btreeAccessContext::statsRemoveCompressedLeafNode()
+   void btreeAccessContext::statsRemoveLeafNode(BOOLEAN isCompressed)
    {
-      _stats.removeCompressedLeafNode();
+      _stats.removeLeafNode(isCompressed);
    }
-   void btreeAccessContext::statsRemoveUncompressedLeafNode()
-   {
-      _stats.removeUncompressedLeafNode();
-   }
+
    void btreeAccessContext::statsAddNonLeafNode()
    {
       _stats.addNonLeafNode();

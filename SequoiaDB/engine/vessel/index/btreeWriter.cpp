@@ -458,9 +458,10 @@ namespace vessel
          PD_LOG(PDERROR, "failed to allocate root page:%d", rc);
          goto error;
       }
+      _bac.statsAllocateNode();
       if (isLeaf)
       {
-         _bac.statsAddLeafNode();
+         _bac.statsAddLeafNode(FALSE);
       }
       else
       {
@@ -680,11 +681,7 @@ namespace vessel
          }
          if (isLeaf && compressed)
          {
-            _bac.statsRemoveCompressedLeafNode();
-         }
-         else if (isLeaf && !compressed)
-         {
-            _bac.statsRemoveUncompressedLeafNode();
+            _bac.statsRemoveLeafNode(compressed);
          }
          else
          {

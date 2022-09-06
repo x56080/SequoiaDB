@@ -113,19 +113,21 @@ namespace vessel
       ++nodesCompressedTimes;
    }
 
-   void btreeStatistics::addLeafNode()
+   void btreeStatistics::addLeafNode(BOOLEAN isCompressed)
    {
+      if(isCompressed)
+      {
+         ++compressedNodeNum;
+      }
       ++leafNodeNum;
    }
 
-   void btreeStatistics::removeCompressedLeafNode()
+   void btreeStatistics::removeLeafNode(BOOLEAN isCompressed)
    {
-      --compressedNodeNum;
-      --leafNodeNum;
-   }
-
-   void btreeStatistics::removeUncompressedLeafNode()
-   {
+      if(isCompressed)
+      {
+         --compressedNodeNum;
+      }
       --leafNodeNum;
    }
 
@@ -156,7 +158,7 @@ namespace vessel
 
    void btreeStatistics::refillChildNode()
    {
-      addLeafNode();
+      addLeafNode(FALSE);
       ++childNodesRefilled;
    }
 
@@ -223,7 +225,7 @@ namespace vessel
       totalPrefixNum += prefixNum;
    }
 
-   bson::BSONObj btreeStatistics::toBSON()
+   bson::BSONObj btreeStatistics::toBSON() const
    {
       bson::BSONObjBuilder builder;
       builder.append(BTREE_STATISTICE_FIELDNAME_NON_LEAF_NODE_NUM, nonleafNodeNum);

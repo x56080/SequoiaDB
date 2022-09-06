@@ -93,9 +93,8 @@ namespace vessel
                                       UINT32 oldCompressedEntryNum,
                                       UINT64 oldRealTotalEntrySize,
                                       UINT32 oldPrefixNum) override;
-         virtual void statsAddLeafNode() override;
-         virtual void statsRemoveCompressedLeafNode() override;
-         virtual void statsRemoveUncompressedLeafNode() override;
+         virtual void statsAddLeafNode(BOOLEAN isCompressed) override;
+         virtual void statsRemoveLeafNode(BOOLEAN isCompressed) override;
          virtual void statsAddNonLeafNode() override;
          virtual void statsRemoveNonLeafNode() override;
          virtual void statsAllocateNode() override;
