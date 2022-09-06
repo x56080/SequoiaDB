@@ -181,6 +181,8 @@ namespace engine
                                             const BSONObj &arg,
                                             _pmdEDUCB *cb ) ;
 
+         virtual INT32 _processGetMoreHint( const BSONObj &hint ) ;
+
       private:
          INT32    _appendSubData ( const pmdEDUEvent &event ) ;
 
@@ -208,6 +210,8 @@ namespace engine
          _pmdRemoteSession          *_pSession ;
 
          BOOLEAN                    _isModify ;
+
+         BSONObj                    _getMoreHint ;
    } ;
    typedef _rtnContextCoord rtnContextCoord ;
 

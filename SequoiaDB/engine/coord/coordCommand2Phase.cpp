@@ -84,9 +84,10 @@ namespace engine
 
       CoordGroupList groupLst ;
       CoordGroupList sucGroupLst ;
-      vector<BSONObj> cataObjs, cataP2Objs ;
+      vector<BSONObj> cataObjs, cataP2Objs, dataObjs, dataP2Objs ;
       rtnContextCoord::sharePtr pCoordCtxForCata ;
       rtnContextCoord::sharePtr pCoordCtxForData ;
+      BSONObj cataP2Hint, dataP2Hint ;
 
       _utilString< DMS_COLLECTION_FULL_NAME_SZ > lastProcessName ;
 
@@ -260,7 +261,8 @@ namespace engine
                    pArguments->_targetName.c_str(), rc ) ;
 
       rc = _doOnDataGroup( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
-                           pArguments, groupLst, cataObjs, sucGroupLst ) ;
+                           pArguments, groupLst, cataObjs, sucGroupLst,
+                           dataObjs ) ;
       if ( retryCount < COORD_CMD_RETRY_TIMES &&
            pArguments->_retryRCList.find(rc) != pArguments->_retryRCList.end() )
       {
@@ -281,6 +283,11 @@ namespace engine
                    getName(), pArguments->_targetName.c_str(),
                    sucGroupLst.size(), rc ) ;
 
+      rc = _parseDataReturn( pArguments, dataObjs ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse DATA return objects "
+                   "for command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       rc = _onDataP1Event( SDB_EVT_OCCUR_AFTER, pArguments, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to call after data P1 events "
                    "for command[%s, target:%s], rc: %d", getName(),
@@ -296,8 +303,13 @@ namespace engine
        * 2. Execute P2 on Data Groups
        ************************************************************************/
       // Execute P2 on Catalog
+      rc = _generateP2CataGetMoreHint( cataP2Hint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Generate P2 getMore hint to cata failed for "
+                   "command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       rc = _doOnCataGroupP2( (MsgHeader*)pCataMsgBuf, cb, &pCoordCtxForCata,
-                             pArguments, groupLst, cataP2Objs ) ;
+                             pArguments, groupLst, cataP2Objs, cataP2Hint ) ;
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc &&
            retryCount < COORD_CMD_RETRY_TIMES )
       {
@@ -350,15 +362,26 @@ namespace engine
               getName(), pArguments->_targetName.c_str() ) ;
 
       // Execute P2 on Data Groups
+      rc = _generateP2DataGetMoreHint( dataP2Hint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Generate P2 getMore hint to data failed for "
+                   "command[%s, target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
       rc = _onDataP2Event( SDB_EVT_OCCUR_BEFORE, pArguments, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to call before data P2 events "
                    "for command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
 
       rc = _doOnDataGroupP2( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
-                             pArguments, groupLst, cataObjs ) ;
+                             pArguments, groupLst, cataObjs,
+                             dataP2Objs, dataP2Hint ) ;
       PD_RC_CHECK( rc, PDERROR, "Do phase 2 on data failed for command[%s, "
                    "target:%s], rc: %d", getName(),
+                   pArguments->_targetName.c_str(), rc ) ;
+
+      rc = _parseDataP2Return( pArguments, dataP2Objs ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse DATA P2 return objects "
+                   "for command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
 
       rc = _onDataP2Event( SDB_EVT_OCCUR_AFTER, pArguments, cb ) ;
@@ -603,7 +626,8 @@ namespace engine
                                              rtnContextCoord::sharePtr *ppContext,
                                              coordCMDArguments *pArgs,
                                              const CoordGroupList &pGroupLst,
-                                             vector<BSONObj> &cataObjs )
+                                             vector<BSONObj> &cataObjs,
+                                             const BSONObj &hint )
    {
 
       /// Do nothing
@@ -615,7 +639,9 @@ namespace engine
                                              rtnContextCoord::sharePtr *ppContext,
                                              coordCMDArguments *pArgs,
                                              const CoordGroupList &groupLst,
-                                             const vector<BSONObj> &cataObjs )
+                                             const vector<BSONObj> &cataObjs,
+                                             vector<BSONObj> &dataObjs,
+                                             const BSONObj &hint )
    {
       /// Do nothing
       return SDB_OK ;
@@ -741,7 +767,8 @@ namespace engine
    INT32 _coordCMD2Phase::_processContext ( pmdEDUCB *cb,
                                             rtnContextCoord::sharePtr *ppContext,
                                             SINT32 maxNumSteps,
-                                            rtnContextBuf & buffObj )
+                                            rtnContextBuf & buffObj,
+                                            const BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
 
@@ -755,7 +782,7 @@ namespace engine
          goto done ;
       }
 
-      rc = (*ppContext)->getMore( maxNumSteps, buffObj, cb ) ;
+      rc = (*ppContext)->getMore( maxNumSteps, buffObj, cb, hint ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC == rc )
@@ -895,6 +922,140 @@ namespace engine
       PD_TRACE_EXITRC( COORD_CMD2PHASE__PARSECATP2RETURN, rc ) ;
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__PARSEDATARETURN, "_coordCMD2Phase::_parseDataReturn" )
+   INT32 _coordCMD2Phase::_parseDataReturn( coordCMDArguments *pArgs,
+                                            const std::vector<bson::BSONObj> &dataObjs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__PARSEDATARETURN ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->parseDataReturn( pArgs, dataObjs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call parse data return "
+                      "for handler [%s] of command [%s], rc: %d",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__PARSEDATARETURN, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__PARSEDATAP2RETURN, "_coordCMD2Phase::_parseDataP2Return" )
+   INT32 _coordCMD2Phase::_parseDataP2Return( coordCMDArguments *pArgs,
+                                              const std::vector<bson::BSONObj> &dataObjs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__PARSEDATAP2RETURN ) ;
+
+      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+            iter != _eventHandlers.end() ;
+            ++ iter )
+      {
+         coordCMDEventHandler *handler = *iter ;
+         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+         rc = handler->parseDataP2Return( pArgs, dataObjs ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call parse data P2 return "
+                      "for handler [%s] of command [%s], rc: %d",
+                      handler->getName(), getName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__PARSEDATAP2RETURN, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__GENEP2CATAHINT, "_coordCMD2Phase::_generateP2CataGetMoreHint" )
+   INT32 _coordCMD2Phase::_generateP2CataGetMoreHint( BSONObj &hint )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__GENEP2CATAHINT ) ;
+
+      try
+      {
+         BSONObjBuilder hintBob ;
+
+         for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+               iter != _eventHandlers.end() ;
+               ++ iter )
+         {
+            coordCMDEventHandler *handler = *iter ;
+            SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+            rc = handler->generateP2CataGetMoreHint( hintBob ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to call generate P2 cata getMore "
+                         "hint for handler [%s] of command [%s], rc: %d",
+                         handler->getName(), getName(), rc ) ;
+         }
+
+         hint = hintBob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when generating P2 cata "
+                 "getMore hint: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__GENEP2CATAHINT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__GENEP2DATAHINT, "_coordCMD2Phase::_generateP2DataGetMoreHint" )
+   INT32 _coordCMD2Phase::_generateP2DataGetMoreHint( BSONObj &hint )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_CMD2PHASE__GENEP2DATAHINT ) ;
+
+      try
+      {
+         BSONObjBuilder hintBob ;
+
+         for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
+               iter != _eventHandlers.end() ;
+               ++ iter )
+         {
+            coordCMDEventHandler *handler = *iter ;
+            SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
+
+            rc = handler->generateP2DataGetMoreHint( hintBob ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to call generate P2 data getMore "
+                         "hint for handler [%s] of command [%s], rc: %d",
+                         handler->getName(), getName(), rc ) ;
+         }
+
+         hint = hintBob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when generating P2 data "
+                 "getMore hint in msg: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_CMD2PHASE__GENEP2DATAHINT, rc ) ;
+      return rc ;
    error:
       goto done ;
    }
