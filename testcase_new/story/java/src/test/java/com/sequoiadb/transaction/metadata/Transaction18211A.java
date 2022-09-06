@@ -3,7 +3,9 @@ package com.sequoiadb.transaction.metadata;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -43,10 +45,15 @@ public class Transaction18211A extends SdbTestBase {
             throw new SkipException( "groups less than 2" );
         }
 
+        BasicBSONObject option = new BasicBSONObject();
+        option.put( "ShardingKey", new BasicBSONObject( "b", 1 ) );
+        option.put( "ShardingType", "hash" );
+        option.put( "AutoSplit", true );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName,
-                ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
-        cl.createIndex( "idx18211", "{a:1}", false, false );
+                option );
+        String indexName = "idx18211";
+        cl.createIndex( indexName, new BasicBSONObject( "a", 1 ), false,
+                false );
         insertDatas( cl, 0, 10000 );
     }
 
@@ -91,7 +98,12 @@ public class Transaction18211A extends SdbTestBase {
                         "{$inc:{a:10}}", "{}'':'idx18211'" );
             } catch ( BaseException e ) {
                 // 集合已被删除,未开始做事务操作
-                if ( e.getErrorCode() != -23 ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode() ) {
                     throw e;
                 }
             } finally {
@@ -128,7 +140,7 @@ public class Transaction18211A extends SdbTestBase {
     }
 
     private void insertDatas( DBCollection cl, int startId, int endId ) {
-        List< BSONObject > records = new ArrayList< >();
+        List< BSONObject > records = new ArrayList<>();
         for ( int i = startId; i < endId; i++ ) {
             records.add( ( BSONObject ) JSON
                     .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" ) );
