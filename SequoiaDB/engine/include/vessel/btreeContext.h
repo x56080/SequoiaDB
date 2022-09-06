@@ -70,9 +70,8 @@ namespace vessel
                                       UINT32 oldCompressedEntryNum,
                                       UINT64 oldRealTotalEntrySize,
                                       UINT32 oldPrefixNum){}
-         virtual void statsAddLeafNode(){}
-         virtual void statsRemoveCompressedLeafNode(){}
-         virtual void statsRemoveUncompressedLeafNode(){}
+         virtual void statsAddLeafNode(BOOLEAN isCompressed){}
+         virtual void statsRemoveLeafNode(BOOLEAN isCompressed){}
          virtual void statsAddNonLeafNode(){}
          virtual void statsRemoveNonLeafNode(){}
          virtual void statsAllocateNode(){}

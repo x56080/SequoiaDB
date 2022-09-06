@@ -84,9 +84,8 @@ namespace vessel
                       UINT32 oldCompressedEntryNum,
                       UINT64 oldRealTotalEntrySize,
                       UINT32 oldPrefixNum);
-      void addLeafNode();
-      void removeCompressedLeafNode();
-      void removeUncompressedLeafNode();
+      void addLeafNode(BOOLEAN isCompressed);
+      void removeLeafNode(BOOLEAN isCompressed);
       void addNonLeafNode();
       void removeNonLeafNode();
       void allocateNode();
@@ -109,7 +108,7 @@ namespace vessel
                  UINT64 newRealTotalEntrySize,
                  UINT32 prefixNum);
 
-      bson::BSONObj toBSON();
+      bson::BSONObj toBSON() const;
       
       static constexpr const CHAR* BTREE_STATISTICE_FIELDNAME_NON_LEAF_NODE_NUM = "NonleafNodeNum";
       static constexpr const CHAR* BTREE_STATISTICE_FIELDNAME_LEAF_NODE_NUM = "LeafNodeNum";

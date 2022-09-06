@@ -41,26 +41,31 @@
 #include "ossTypes.h"
 #include "pd.hpp"
 #include <algorithm>
+#include <iterator>
 namespace engine
 {
 namespace vessel
 {
    ossPoolVector<slice> prefixGenerator::_preprocess(
-       const ossPoolVector<slice> &v, UINT32 &totalSize) const
+       const ossPoolVector<slice>::const_iterator &begin,
+       const ossPoolVector<slice>::const_iterator &end,
+       UINT32 &totalSize) const
    {
+      totalSize = 0;
+      UINT32 inputSize = std::distance(begin, end);
       ossPoolVector<slice> out;
-      out.reserve(v.size());
-      SDB_ASSERT(v.size() > 1, "Unexpected size");
-      ossPoolVector<slice>::const_iterator left = v.cbegin();
-      ossPoolVector<slice>::const_iterator cur = v.cbegin() + 1;
-      ossPoolVector<slice>::const_iterator right = v.cbegin() + 2;
+      out.reserve(inputSize);
+      SDB_ASSERT(inputSize > 1, "Unexpected size");
+      ossPoolVector<slice>::const_iterator left = begin;
+      ossPoolVector<slice>::const_iterator cur = begin + 1;
+      ossPoolVector<slice>::const_iterator right = begin + 2;
 
       slice prefix = left->commonPrefix(*cur);
       UINT32 prefixLen = prefix.size();
       out.emplace_back(prefixLen, prefix.data());
       totalSize += left->size();
 
-      while (right != v.cend())
+      while (right != end)
       {
          prefixLen = std::max(cur->commonPrefix(*left).size(),
                               cur->commonPrefix(*right).size());
@@ -87,7 +92,9 @@ namespace vessel
       UINT32 extraSize = _options.prefixExtraCost;
       const slice &curElem = v[pos];
       // When the position is greater than the farthest position, update it.
-      SDB_ASSERT(out.size() == 0 || out.back().high == static_cast<INT32>(pos),
+      SDB_ASSERT(out.size() == 0 ||
+                     out.back().high ==
+                         static_cast<INT32>(pos + _options.itemBoundaryOffset),
                  "invalid bound");
       if (reachedPos < pos)
       {
@@ -101,7 +108,9 @@ namespace vessel
       // If there is no prefix in out, add a new prefix.
       if (out.empty())
       {
-         out.emplace_back(curElem, 0, 1);
+         out.emplace_back(curElem,
+                          0 + _options.itemBoundaryOffset,
+                          1 + _options.itemBoundaryOffset);
          saved += _dfs(v, pos + 1, depth, reachedPos, out);
       }
       // If current element is an empty string.
@@ -209,21 +218,37 @@ namespace vessel
 
    prefixGenerator::result prefixGenerator::generate(
        const ossPoolVector<slice> &v) const
-   {  
+   {
+      return generate(v.cbegin(), v.cend());
+   }
+
+   prefixGenerator::result prefixGenerator::generate(
+       const ossPoolVector<slice>::const_iterator &begin,
+       const ossPoolVector<slice>::const_iterator &end) const
+   {
       ossPoolVector<prefixItem> out;
       out.clear();
-      if(v.size() < 2)
+      UINT32 inputSize = std::distance(begin, end);
+      if(inputSize < 2)
       {
-         UINT32 totalSize = v.size() == 0 ? 0: v[0].size();
+         UINT32 totalSize = 0;
+         if (inputSize == 1) 
+         {
+            out.emplace_back(slice(),
+                             _options.itemBoundaryOffset,
+                             1 + _options.itemBoundaryOffset);
+            totalSize = begin->size();
+         }
          result r(_options.prefixExtraCost, totalSize, 0, std::move(out));
+         return std::move(r);
       }
       UINT32 totalSize = 0;
-      ossPoolVector<slice> prefixItems = _preprocess(v, totalSize);
+      ossPoolVector<slice> prefixItems = _preprocess(begin, end, totalSize);
       UINT32 reachedIndex = 0;
       INT64 saved = 0;
-      INT64 totalSavedSize = 0;
+      
       // Repeatedly until all elements are traversed.
-      while (reachedIndex < v.size())
+      while (reachedIndex < prefixItems.size())
       {
          saved += _dfs(prefixItems,
                        reachedIndex,
@@ -234,6 +259,7 @@ namespace vessel
       // Remove prefixes that do not save bytes.
       if (_options.filterUselessPrefixItems)
       {
+         INT64 totalSavedSize = 0;
          out.erase(std::remove_if(
                        out.begin(),
                        out.end(),
@@ -250,9 +276,10 @@ namespace vessel
                           }
                        }),
                    out.end());
+         SDB_ASSERT(totalSavedSize == saved, "should be equal");
       }
 
-      SDB_ASSERT(totalSavedSize == saved, "should be equal");
+      
       result r(_options.prefixExtraCost, totalSize, saved, std::move(out));
       return std::move(r);
    }

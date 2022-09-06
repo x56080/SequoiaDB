@@ -37,6 +37,7 @@
 #define VESSEL_BTREE_NODE_BASE_H_
 
 #include "vessel/btreeNodePage.h"
+#include "vessel/recordID.h"
 #include "vessel/strictBuffer.h"
 #include "vessel/btreeStatistics.h"
 #include "vessel/btreeSplitRaisedKey.h"
@@ -92,7 +93,7 @@ namespace vessel
          PAGE_ID getChild(RECORD_SLOT_POS pos)const;
          DPS_TRANS_ID getTransID()const;
          btreeItemSlot getItemSlot(RECORD_SLOT_POS pos)const;
-         INT64 getCompressionOptimizedBytes() const;
+         INT64 getCompressionOptimizedBytes(RECORD_SLOT_POS startPos = 0) const;
          void dumpChildNodes(ossPoolVector<PAGE_ID> &nodes)const;
          BOOLEAN hasFreeSpaceToInsert(UINT32 itemSize,
                                       BOOLEAN *compaction=nullptr)const;
@@ -132,7 +133,8 @@ namespace vessel
          INT32 insert(const btreeKeyStringEntry &entry,
                       const DPS_TRANS_ID &transID=DPS_TRANS_ID());
 
-         INT32 recompress(BOOLEAN &recompressed);
+         INT32 recompress(BOOLEAN &recompressed,
+                          BOOLEAN fullyRegenerate = FALSE);
 
          INT32 splitAndInsert(const btreeKeyStringEntry &entry,
                               const DPS_TRANS_ID &transID,
@@ -213,19 +215,38 @@ namespace vessel
          // into a owned memory, else it is a reference to its whole entry data.
          INT32 _getWholeItems(ossPoolVector<slice> &elementsPartRefs,
                               ossPoolVector<keyString> &items,
-                              UINT32 &itemsTotalSize) const;
-         
+                              INT32 boundaryOffset,
+                              UINT64 &itemsTotalSize) const;
+
+         INT32 _getLastKeptPrefixPosWhenRecompress(
+             RECORD_SLOT_POS &lastKeptPrefixPos,
+             UINT64 &optimizedSize) const;
+
+         // calculate the sum of original elements size in [begin, end)
+         UINT64 _getOrigTotalItemSize(RECORD_SLOT_POS begin,
+                                      RECORD_SLOT_POS end) const;
+
          UINT64 _getPrefixesTotalSize() const;
 
          prefixGenerator::result _generatePrefixes(
-             const ossPoolVector<slice> &elementsPartRefs) const;
+             const ossPoolVector<slice> &elementsPartRefs,
+             const INT32 boundaryOffset) const;
 
-         INT32 _buildNewNodePage(
+         INT32 _buildNodeWhenRecompress(
              strictBuffer &writableBuffer,
+             RECORD_SLOT_POS lastKeptPrefixPos,
+             RECORD_SLOT_POS boundaryOffset,
              const ossPoolVector<keyString> &items,
              const ossPoolVector<prefixGenerator::prefixItem> &prefixes,
              UINT64 &realTotalItemSize,
-             UINT64 &optimizedBytes) const;
+             UINT64 &optimizedBytes);
+
+         INT32 _copyKeptPrefixesAndItems(
+             strictBuffer &writableBuffer,
+             RECORD_SLOT_POS lastKeptPrefixPos,
+             UINT32 frontItemsOffset,
+             UINT64 &realTotalSize,
+             UINT64 &optimizedSize) const;
 
          INT32 _locateNextPrefixSlot(RECORD_SLOT_POS pos) const;
 
