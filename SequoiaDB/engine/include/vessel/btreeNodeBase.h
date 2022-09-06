@@ -59,7 +59,7 @@ namespace vessel
          btreeNodeBase() = default;
          explicit btreeNodeBase(PAGE_ID nodeId,
                                 UINT32 depth,
-                                btreeContext* _ctx,
+                                btreeContext* ctx,
                                 const strictBuffer &buffer);
          virtual ~btreeNodeBase() = default;
 
