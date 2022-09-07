@@ -55,7 +55,7 @@ using namespace bson ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
 
-#define DMS_RETRY_SHUTDOWN_COUNT    ( 100 )
+#define DMS_RETRY_SHUTDOWN_COUNT    ( 1000 )
 #define DMS_RETRY_SLEEP_TIME        ( 100 )
 
 namespace engine
