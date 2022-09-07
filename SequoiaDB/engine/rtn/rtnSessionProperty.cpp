@@ -275,7 +275,7 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         rc = SDB_OOM ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
          goto error ;
       }
