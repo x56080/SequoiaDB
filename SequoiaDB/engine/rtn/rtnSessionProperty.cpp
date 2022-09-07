@@ -256,9 +256,29 @@ namespace engine
                         prefInst, PMD_PREFER_INSTANCE_TYPE_MIN + 1,
                         PMD_PREFER_INSTANCE_TYPE_MAX - 1 ) ;
 
-      // Remove duplicate instance id.
-      _instanceList.remove( (UINT8)prefInst );
-      _instanceList.push_back( (UINT8)prefInst ) ;
+      try
+      {
+         // Remove duplicate instance id.
+         ossPoolList<UINT8>::const_iterator itr = _instanceList.begin() ;
+         while ( itr != _instanceList.end() )
+         {
+            if ( prefInst  == *itr )
+            {
+               break ;
+            }
+            ++itr ;
+         }
+         if ( itr == _instanceList.end() )
+         {
+            _instanceList.push_back( ( UINT8 )prefInst  ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC( SDB__RTNINST__PARSEINTPREFINST, rc ) ;
