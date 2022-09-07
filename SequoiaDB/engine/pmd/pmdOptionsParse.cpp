@@ -129,7 +129,20 @@ namespace engine
             {
                try
                {
-                  instanceList.push_back( ( UINT8 )curPrefInstInt ) ;
+                  // Remove duplicate instance id.
+                  ossPoolList<UINT8>::const_iterator itr = instanceList.begin() ;
+                  while ( itr != instanceList.end() )
+                  {
+                     if ( curPrefInstInt == *itr )
+                     {
+                        break ;
+                     }
+                     ++itr ;
+                  }
+                  if ( itr == instanceList.end() )
+                  {
+                     instanceList.push_back( ( UINT8 )curPrefInstInt ) ;
+                  }
                }
                catch( std::exception &e )
                {
