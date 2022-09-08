@@ -1344,7 +1344,7 @@ namespace engine
 
    // coordTransHandler constructor begins a global transaction
    // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER, "coordTransHandler::coordTransHandler" )
-   coordTransHandler::coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
+   coordTransHandler::coordTransHandler(pmdEDUCB *cb, clsRemoteResource *pResource,
                                         BOOLEAN allGroups)
        : _cb(cb), _pResource(pResource), _rc(SDB_OK), _committed(FALSE)
    {

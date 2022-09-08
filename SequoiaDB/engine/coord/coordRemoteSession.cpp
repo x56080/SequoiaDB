@@ -34,7 +34,9 @@
 
 *******************************************************************************/
 
+#include "clsRemoteResource.hpp"
 #include "coordRemoteSession.hpp"
+#include "IDataSource.hpp"
 #include "msgMessageFormat.hpp"
 #include "coordCommon.hpp"
 #include "pmdEDU.hpp"
@@ -568,7 +570,7 @@ namespace engine
    {
    }
 
-   void _coordGroupSel::init( coordResource *pResource,
+   void _coordGroupSel::init( clsRemoteResource *pResource,
                               coordSessionPropSite *pPropSite,
                               BOOLEAN primary,
                               MSG_ROUTE_SERVICE_TYPE svcType )
@@ -1622,7 +1624,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordCataSel::bind( coordResource *pResource,
+   INT32 _coordCataSel::bind( clsRemoteResource *pResource,
                               const CHAR *pCollectionName,
                               _pmdEDUCB *cb,
                               BOOLEAN forceUpdate,
@@ -1656,7 +1658,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordCataSel::bind( coordResource *pResource,
+   INT32 _coordCataSel::bind( clsRemoteResource *pResource,
                               const CoordCataInfoPtr &cataPtr,
                               BOOLEAN hasUpdated )
    {
@@ -1953,7 +1955,7 @@ namespace engine
       return _retryTimes < _maxRetryTimes ? TRUE : FALSE ;
    }
 
-   void _coordGroupSessionCtrl::init( coordResource *pResource,
+   void _coordGroupSessionCtrl::init( clsRemoteResource *pResource,
                                       coordSessionPropSite *pPropSite,
                                       coordGroupSel *pGroupSel,
                                       IRemoteSessionHandler *pRemoteHandle )
@@ -2187,7 +2189,7 @@ namespace engine
       return _timeout ;
    }
 
-   INT32 _coordGroupSession::init( coordResource *pResource,
+   INT32 _coordGroupSession::init( clsRemoteResource *pResource,
                                    _pmdEDUCB *cb,
                                    INT64 timeout,
                                    IRemoteSessionHandler *pHandle,

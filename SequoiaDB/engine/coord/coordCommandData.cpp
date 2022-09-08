@@ -1772,20 +1772,19 @@ namespace engine
          if ( Object == beCollection.type() )
          {
             objCata = beCollection.embeddedObject() ;
+
             // The catalog info of collection maybe too old
             // The reply from Catalog implies that info need to be updated
             PD_LOG( PDDEBUG, "Updating catalog info of collection [%s]",
                     pArgs->_targetName.c_str() ) ;
-            rc = coordInitCataPtrFromObj( objCata, cataPtr ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Init catalog info from obj[%s] failed, "
-                       "collection:%s, rc: %d", pArgs->_targetName.c_str(),
-                       objCata.toString().c_str(), rc ) ;
-               goto error ;
-            }
+
             // update with latest catalog info
-            _pResource->addCataInfo( cataPtr ) ;
+            rc = _pResource->addCataInfo( objCata, cataPtr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add catalog info from "
+                         "obj [%s], collection:%s, rc: %d",
+                          objCata.toPoolString().c_str(),
+                          pArgs->_targetName.c_str(), rc ) ;
+
             _cataPtr = cataPtr ;
             ((MsgOpQuery*)(*ppMsgBuf))->version = cataPtr->getVersion() ;
          }
@@ -2129,16 +2128,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROPCS_DOCOMPLETE ) ;
-      vector< string > subCLSet ;
-      _pResource->removeCataInfoByCS( pArgs->_targetName.c_str(), &subCLSet ) ;
 
-      /// clear relate sub collection's catalog info
-      vector< string >::iterator it = subCLSet.begin() ;
-      while( it != subCLSet.end() )
-      {
-         _pResource->removeCataInfo( (*it).c_str() ) ;
-         ++it ;
-      }
+      _pResource->removeCataInfoByCS( pArgs->_targetName.c_str(), TRUE ) ;
 
       // If any objects related with this cs are using data source. If yes, need
       // to invalidate cache by cs name on all coordinators.
@@ -2262,16 +2253,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_RENAMECS_DOCOMPLETE ) ;
 
-      vector< string > subCLSet ;
-      _pResource->removeCataInfoByCS( pArgs->_targetName.c_str(), &subCLSet ) ;
-
-      /// clear relate sub collection's catalog info
-      vector< string >::iterator it = subCLSet.begin() ;
-      while( it != subCLSet.end() )
-      {
-         _pResource->removeCataInfo( (*it).c_str() ) ;
-         ++it ;
-      }
+      _pResource->removeCataInfoByCS( pArgs->_targetName.c_str(), TRUE ) ;
 
       // Check the group list returned by catalogue. If any one is a data
       // source group, need to broadcast the invalidation message.
@@ -2928,20 +2910,19 @@ namespace engine
          if ( Object == beCollection.type() )
          {
             objCata = beCollection.embeddedObject() ;
+
             // The catalog info of collection maybe too old
             // The reply from Catalog implies that info need to be updated
             PD_LOG( PDDEBUG, "Updating catalog info of collection [%s]",
                     pArgs->_targetName.c_str() ) ;
-            rc = coordInitCataPtrFromObj( objCata, cataPtr ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Init catalog info from obj[%s] failed, "
-                       "collection:%s, rc: %d", pArgs->_targetName.c_str(),
-                       objCata.toString().c_str(), rc ) ;
-               goto error ;
-            }
+
             // update with latest catalog info
-            _pResource->addCataInfo( cataPtr ) ;
+            rc = _pResource->addCataInfo( objCata, cataPtr ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add catalog info from "
+                         "obj [%s], collection:%s, rc: %d",
+                          objCata.toPoolString().c_str(),
+                          pArgs->_targetName.c_str(), rc ) ;
+
             _cataPtr = cataPtr ;
             ((MsgOpQuery*)(*ppMsgBuf))->version = cataPtr->getVersion() ;
          }

@@ -50,7 +50,7 @@ namespace engine
 {
 
    // forward declare
-   class _clsCatalogAgent ;
+   class _clsResource ;
    class _clsFreezingWindow ;
    class dpsTransCB ;
    class _SDB_DMSCB ;
@@ -107,7 +107,7 @@ namespace engine
       delCSPhase           _status;
       _SDB_DMSCB            *_pDmsCB;
       dpsTransCB           *_pTransCB;
-      _clsCatalogAgent     *_pCatAgent;
+      _clsResource         *_pResource ;
       CHAR                 _name[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ];
       BOOLEAN              _gotDmsCBWrite;
       BOOLEAN              _gotTransLock ;
@@ -155,7 +155,7 @@ namespace engine
 
    private:
       _SDB_DMSCB           *_pDmsCB;
-      _clsCatalogAgent     *_pCatAgent;
+      _clsResource         *_pResource ;
       dpsTransCB           *_pTransCB;
       CHAR                 _collectionName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       const CHAR           *_clShortName ;
@@ -205,7 +205,7 @@ namespace engine
       void _clean( _pmdEDUCB *cb );
 
    private:
-      _clsCatalogAgent           *_pCatAgent;
+      _clsResource               *_pResource ;
       _SDB_RTNCB                 *_pRtncb;
       CHAR                       _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ];
       SUBCL_CONTEXT_LIST         _subContextList ;
@@ -283,7 +283,7 @@ namespace engine
    protected:
       _SDB_DMSCB           *_pDmsCB ;
       dpsTransCB           *_pTransCB ;
-      _clsCatalogAgent     *_pCatAgent ;
+      _clsResource         *_pResource ;
       _clsFreezingWindow   *_pFreezingWnd ;
       _rtnLocalTaskMgr     *_pLTMgr ;
       CHAR                 _oldName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
@@ -361,7 +361,7 @@ namespace engine
 
    protected:
       _SDB_DMSCB           *_pDmsCB ;
-      _clsCatalogAgent     *_pCatAgent ;
+      _clsResource         *_pResource ;
       _clsFreezingWindow   *_pFreezingWnd ;
       dpsTransCB           *_pTransCB ;
       _rtnLocalTaskMgr     *_pLTMgr ;
@@ -406,7 +406,7 @@ namespace engine
 
    private:
       _SDB_DMSCB                 *_pDmsCB ;
-      _clsCatalogAgent           *_pCatAgent;
+      _clsResource               *_pResource ;
       CHAR                       _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ];
       BOOLEAN                    _lockDms ;
 
@@ -449,7 +449,6 @@ namespace engine
 
    private:
       _SDB_DMSCB           *_pDmsCB;
-      _clsCatalogAgent     *_pCatAgent;
       dpsTransCB           *_pTransCB;
       CHAR                 _collectionName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       const CHAR           *_clShortName ;
@@ -496,7 +495,6 @@ namespace engine
       void _clean( _pmdEDUCB *cb ) ;
 
    private:
-      _clsCatalogAgent *   _cataAgent ;
       _SDB_RTNCB *         _rtnCB ;
       CHAR                 _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       SUBCL_CONTEXT_LIST   _subContextList ;

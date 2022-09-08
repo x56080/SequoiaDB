@@ -299,7 +299,7 @@ namespace engine
    {
     public:
       // If allGroups = TRUE, adds the primary of each group the trans map
-      coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
+      coordTransHandler(pmdEDUCB *cb, clsRemoteResource *pResource,
                         BOOLEAN allGroups = TRUE);
       ~coordTransHandler();
       INT32 commit();
@@ -307,7 +307,7 @@ namespace engine
 
     private:
       pmdEDUCB *_cb;
-      coordResource *_pResource;
+      clsRemoteResource *_pResource;
       INT32 _rc;
       BOOLEAN _committed;
    };

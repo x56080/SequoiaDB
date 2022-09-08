@@ -65,7 +65,7 @@ namespace engine
       //    - SDB_OK: update succeed
       //    - SDB_GLOB_LOWTRAN_UNKNOWN: global lowTran is not ready
       // NOTE: will send local lowTran to catalog and get back global lowTran
-      virtual INT32 updateGlobLowTran() = 0 ;
+      virtual INT32 updateGlobLowTran( pmdEDUCB *eduCB ) = 0 ;
 
       // arbitrate global transaction
       // input:

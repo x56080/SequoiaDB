@@ -63,6 +63,7 @@ namespace engine
    class _MsgClsFSNotify ;
    class _clsReplicateSet ;
    class _monIndex ;
+   class _clsResource ;
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class _clsSplitTask ;
@@ -305,8 +306,9 @@ namespace engine
          _dpsMessageBlock                 _filterMB ;
          _dpsMessageBlock                 _lsnSearchMB ;
          BSONObj                          _shardingKey ;
-         _clsCatalogAgent                 *_pCatAgent ;
+         _clsResource                     *_pResource ;
          _clsFreezingWindow               *_pFreezingWindow ;
+         _clsRemoteOperator               _remoteOperator ;
          EDUID                            _cleanupJobID ;
 
          BOOLEAN                          _hasShardingIndex ;

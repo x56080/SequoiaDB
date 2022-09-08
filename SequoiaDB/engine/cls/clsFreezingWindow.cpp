@@ -1471,23 +1471,27 @@ namespace engine
          {
             // check if it is a main-colection and has sub-collections in
             // checking collection space
+            clsResource *pResource = sdbGetShardCB()->getResource() ;
+            CoordCataInfoPtr cataPtr ;
             clsCatalogSet* pCatSet = NULL ;
-            rc = sdbGetShardCB()->getAndLockCataSet( objName, &pCatSet ) ;
+            rc = pResource->getOrUpdateCataInfo( objName, cataPtr, cb ) ;
             if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
             {
-               // it is dropped, no need to care
                isRelated = FALSE ;
                rc = SDB_OK ;
             }
-            else if ( ( NULL != pCatSet ) &&
-                      ( ( !pCatSet->isMainCL() ) ||
-                        ( !pCatSet->hasSubCLLocateOnCS( _objName ) ) ) )
+            else
             {
-               // not main-collection or no sub-collections in checking
-               // collection space
-               isRelated = FALSE ;
+               pCatSet = cataPtr->getCatalogSet() ;
+               if ( ( NULL != pCatSet ) &&
+                    ( ( !pCatSet->isMainCL() ) ||
+                      ( !pCatSet->hasSubCLLocateOnCS( _objName ) ) ) )
+               {
+                  // not main-collection or no sub-collections in checking
+                  // collection space
+                  isRelated = FALSE ;
+               }
             }
-            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
          }
          else
          {

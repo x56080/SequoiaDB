@@ -34,6 +34,7 @@
 
 #include "coordLobStream.hpp"
 #include "coordUtil.hpp"
+#include "clsRemoteResource.hpp"
 #include "pmdEDU.hpp"
 #include "msgMessage.hpp"
 #include "rtnContextBuff.hpp"
@@ -47,7 +48,7 @@ namespace engine
 
    #define LOB_MAX_RETRYTIMES                ( 5 )
 
-   _coordLobStream::_coordLobStream( coordResource *pResource, INT64 timeout )
+   _coordLobStream::_coordLobStream( clsRemoteResource *pResource, INT64 timeout )
    :_metaGroup( 0 ),
     _alignBuf( 0 ),
     _pResource( pResource ),

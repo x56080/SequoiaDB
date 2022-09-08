@@ -79,8 +79,7 @@ namespace engine
 
       private:
          void _clean() ;
-         INT32 _waitIndexAllInvalid( IRemoteOperator* pRemoteOpr,
-                                     const CHAR* collectionName,
+         INT32 _waitIndexAllInvalid( const CHAR* collectionName,
                                      const CHAR* indexName ) ;
          INT32 _startCatalogTask( UINT64 taskID ) ;
          INT32 _checkAndFixCLNameByID( BOOLEAN& isOk ) ;
@@ -89,6 +88,7 @@ namespace engine
 
       private:
          _pmdDummySession      _session ;
+         clsRemoteOperator     _remoteOperator ;
          CLS_INDEX_THREAD_MODE _threadMode ;
          BOOLEAN               _hasSetIndexObj ; // protect _indexObj
          BOOLEAN               _retryLater ;

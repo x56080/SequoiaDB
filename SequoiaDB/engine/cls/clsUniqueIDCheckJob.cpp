@@ -39,6 +39,8 @@
 #include "clsTrace.hpp"
 #include "clsRecycleBinJob.hpp"
 
+using namespace std ;
+
 namespace engine
 {
 
@@ -105,7 +107,7 @@ namespace engine
          // 1. check if the cs/cl unique id on catalog have been generated.
          if ( !isCataReady )
          {
-            rc = pShdMgr->updateDCBaseInfo() ;
+            rc = pShdMgr->updateDCBaseInfo( cb ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Job[%s]: "
@@ -622,9 +624,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      pmdEDUCB *cb = static_cast< pmdEDUCB * >( pExe ) ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
-      shardCB *pShdMgr = sdbGetShardCB() ;
+      clsResource *pResource = sdbGetShardCB()->getResource() ;
       rtnLTRenameCL *pRename = (rtnLTRenameCL *)( _taskPtr.get() ) ;
 
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
@@ -632,6 +635,7 @@ namespace engine
 
       utilCLUniqueID remoteCLUID = UTIL_UNIQUEID_NULL ;
       utilCLUniqueID localCLUID = UTIL_UNIQUEID_NULL ;
+      CoordCataInfoPtr cataPtr ;
       clsCatalogSet *pSet = NULL ;
       UINT32 groupCount = 0 ;
       const CHAR *pShortName = NULL ;
@@ -641,13 +645,8 @@ namespace engine
 
       pNewShortName = ossStrchr( pRename->getTo(), '.' ) + 1 ;
 
-      /// clear local catalog info
-      pShdMgr->getCataAgent()->lock_w() ;
-      pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
-      pShdMgr->getCataAgent()->release_w() ;
-
-      /// Get to cl info
-      rc = pShdMgr->getAndLockCataSet( pRename->getTo(), &pSet ) ;
+      /// update local catalog info
+      rc = pResource->updateCataInfo( pRename->getTo(), cataPtr, cb ) ;
       if ( SDB_DMS_NOTEXIST == rc )
       {
          /// The dest collection is not exist, finish
@@ -656,18 +655,14 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDINFO, "Update collection(%s)'s catalog information "
                    "failed, rc: %d", pRename->getTo(), rc ) ;
-
+      pSet = cataPtr->getCatalogSet() ;
       remoteCLUID = pSet->clUniqueID() ;
       groupCount = pSet->groupCount() ;
-      pShdMgr->unlockCataSet( pSet ) ;
 
       if ( 0 == groupCount )
       {
          /// The collection is not on the group
-         pShdMgr->getCataAgent()->lock_w() ;
-         pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
-         pShdMgr->getCataAgent()->release_w() ;
-
+         pResource->removeCataInfo( pRename->getTo() ) ;
          goto done ;
       }
 
@@ -802,7 +797,7 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to check recycle item [origin %s, "
                    "recycle %s], rc: %d", originName, recycleName, rc ) ;
 
-      rc = _checkRemoteCL( szSpace, origCLShortName, originUID,
+      rc = _checkRemoteCL( szSpace, origCLShortName, originUID, pExe,
                            isRemoteCLExist ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to check remote "
                    "collection [%s.%s], rc: %d", szSpace, origCLShortName,
@@ -1310,14 +1305,13 @@ namespace engine
    INT32 _clsRenameCheckJob::_checkRemoteCL( const CHAR *csName,
                                              const CHAR *clShortName,
                                              utilCLUniqueID clUniqueID,
+                                             IExecutor *pExe,
                                              BOOLEAN &isExist )
    {
       INT32 rc = SDB_OK ;
 
-      shardCB *pShdMgr = sdbGetShardCB() ;
-
-      clsCatalogSet *pSet = NULL ;
-      UINT32 groupCount = 0 ;
+      pmdEDUCB *cb = static_cast< pmdEDUCB * >( pExe ) ;
+      clsResource *pResource = sdbGetShardCB()->getResource() ;
 
       CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       ossSnprintf( clFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
@@ -1326,12 +1320,8 @@ namespace engine
       BOOLEAN needClear = FALSE ;
 
       /// clear local catalog info
-      pShdMgr->getCataAgent()->lock_w() ;
-      pShdMgr->getCataAgent()->clear( clFullName ) ;
-      pShdMgr->getCataAgent()->release_w() ;
-
-      /// Get to cl info
-      rc = pShdMgr->getAndLockCataSet( clFullName, &pSet ) ;
+      CoordCataInfoPtr cataPtr ;
+      rc = pResource->updateCataInfo( clFullName, cataPtr, cb ) ;
       if ( SDB_DMS_NOTEXIST == rc ||
            SDB_DMS_CS_NOTEXIST == rc )
       {
@@ -1340,7 +1330,8 @@ namespace engine
       }
       else if ( SDB_OK == rc )
       {
-         if ( 0 == groupCount )
+         clsCatalogSet *pSet = cataPtr->getCatalogSet() ;
+         if ( 0 == pSet->groupCount() )
          {
             isExist = FALSE ;
             needClear = TRUE ;
@@ -1353,7 +1344,6 @@ namespace engine
          {
             isExist = TRUE ;
          }
-         pShdMgr->unlockCataSet( pSet ) ;
       }
       PD_RC_CHECK( rc, PDINFO, "Failed to get catalog information for "
                    "collection [%s], rc: %d", clFullName, rc ) ;
@@ -1361,9 +1351,7 @@ namespace engine
       if ( needClear )
       {
          /// The collection is not on the group
-         pShdMgr->getCataAgent()->lock_w() ;
-         pShdMgr->getCataAgent()->clear( clFullName ) ;
-         pShdMgr->getCataAgent()->release_w() ;
+         pResource->invalidateCataInfo( clFullName ) ;
       }
 
    done:

@@ -110,7 +110,7 @@ namespace engine
          return SDB_OK ;
       }
 
-      virtual INT32 onBeginEvent( coordResource *pResource,
+      virtual INT32 onBeginEvent( clsRemoteResource *pResource,
                                   coordCMDArguments *pArgs,
                                   pmdEDUCB *cb )
       {
@@ -118,7 +118,7 @@ namespace engine
       }
 
       virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *pResource,
+                                   clsRemoteResource *pResource,
                                    coordCMDArguments *pArgs,
                                    pmdEDUCB *cb )
       {
@@ -126,21 +126,21 @@ namespace engine
       }
 
       virtual INT32 onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *pResource,
+                                   clsRemoteResource *pResource,
                                    coordCMDArguments *pArgs,
                                    pmdEDUCB *cb )
       {
          return SDB_OK ;
       }
 
-      virtual INT32 onCommitEvent( coordResource *pResource,
+      virtual INT32 onCommitEvent( clsRemoteResource *pResource,
                                    coordCMDArguments *pArgs,
                                    pmdEDUCB *cb )
       {
          return SDB_OK ;
       }
 
-      virtual INT32 onRollbackEvent( coordResource *pResource,
+      virtual INT32 onRollbackEvent( clsRemoteResource *pResource,
                                      coordCMDArguments *pArgs,
                                      pmdEDUCB *cb )
       {
@@ -167,21 +167,21 @@ namespace engine
       _coordDataCMDHelper() {}
       ~_coordDataCMDHelper() {}
 
-      INT32 dropCL( coordResource *resource,
+      INT32 dropCL( clsRemoteResource *resource,
                     const CHAR *clName,
                     BOOLEAN skipRecycleBin,
                     BOOLEAN ignoreLock,
                     pmdEDUCB *cb ) ;
-      INT32 truncateCL( coordResource *resource,
+      INT32 truncateCL( clsRemoteResource *resource,
                         const CHAR *clName,
                         BOOLEAN skipRecycleBin,
                         BOOLEAN ignoreLock,
                         pmdEDUCB *cb ) ;
-      INT32 alterCL( coordResource *resource,
+      INT32 alterCL( clsRemoteResource *resource,
                      const CHAR *clName,
                      const bson::BSONObj &options,
                      pmdEDUCB *cb ) ;
-      INT32 dropCS( coordResource *resource,
+      INT32 dropCS( clsRemoteResource *resource,
                     const CHAR *csName,
                     BOOLEAN skipRecycleBin,
                     BOOLEAN ignoreLock,
@@ -201,17 +201,17 @@ namespace engine
       virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
                                     const std::vector<bson::BSONObj> &cataObjs ) ;
 
-      virtual INT32 onBeginEvent( coordResource *pResource,
+      virtual INT32 onBeginEvent( clsRemoteResource *pResource,
                                   coordCMDArguments *pArgs,
                                   pmdEDUCB *cb ) ;
 
       virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *pResource,
+                                   clsRemoteResource *pResource,
                                    coordCMDArguments *pArgs,
                                    pmdEDUCB *cb ) ;
 
    protected:
-      INT32 _repairCheckGlobIdxCLs( coordResource *resource,
+      INT32 _repairCheckGlobIdxCLs( clsRemoteResource *resource,
                                     BOOLEAN enableRepairCheck,
                                     pmdEDUCB *cb ) ;
 
@@ -236,12 +236,12 @@ namespace engine
       }
 
       virtual INT32 onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *pResource,
+                                   clsRemoteResource *pResource,
                                    coordCMDArguments *pArgs,
                                    pmdEDUCB *cb ) ;
 
    protected:
-      INT32 _dropGlobIdxCLs( coordResource *resource,
+      INT32 _dropGlobIdxCLs( clsRemoteResource *resource,
                              pmdEDUCB *cb ) ;
    } ;
 
@@ -262,12 +262,12 @@ namespace engine
       }
 
       virtual INT32 onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *resource,
+                                   clsRemoteResource *resource,
                                    coordCMDArguments *arguments,
                                    pmdEDUCB *cb ) ;
 
    protected:
-      INT32 _truncGlobIdxCLs( coordResource *resource,
+      INT32 _truncGlobIdxCLs( clsRemoteResource *resource,
                               pmdEDUCB *cb ) ;
    } ;
 
@@ -287,7 +287,7 @@ namespace engine
          return "task" ;
       }
 
-      virtual INT32 onBeginEvent( coordResource *resource,
+      virtual INT32 onBeginEvent( clsRemoteResource *resource,
                                   coordCMDArguments *arguments,
                                   pmdEDUCB *cb ) ;
 
@@ -299,15 +299,15 @@ namespace engine
 
    protected:
       INT32 _parseTaskSet( const bson::BSONObj &cataObj ) ;
-      INT32 _waitTasks( coordResource *resource,
+      INT32 _waitTasks( clsRemoteResource *resource,
                         BOOLEAN ignoreCanceled,
                         pmdEDUCB *cb ) ;
-      INT32 _waitTask( coordResource *resource,
+      INT32 _waitTask( clsRemoteResource *resource,
                        UINT64 taskID,
                        pmdEDUCB *cb ) ;
-      INT32 _cancelTasks( coordResource *resource,
+      INT32 _cancelTasks( clsRemoteResource *resource,
                          pmdEDUCB *cb ) ;
-      INT32 _cancelTask( coordResource *resource,
+      INT32 _cancelTask( clsRemoteResource *resource,
                          UINT64 taskID,
                          pmdEDUCB *cb ) ;
 
@@ -334,7 +334,7 @@ namespace engine
       }
 
       virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *resource,
+                                   clsRemoteResource *resource,
                                    coordCMDArguments *arguments,
                                    pmdEDUCB *cb ) ;
    } ;
@@ -366,12 +366,12 @@ namespace engine
       virtual INT32 rewriteDataMsg( bson::BSONObjBuilder &queryBuilder,
                                     bson::BSONObjBuilder &hintBuilder ) ;
 
-      virtual INT32 onBeginEvent( coordResource *resource,
-                                   coordCMDArguments *arguments,
-                                   pmdEDUCB *cb ) ;
+      virtual INT32 onBeginEvent( clsRemoteResource *resource,
+                                  coordCMDArguments *arguments,
+                                  pmdEDUCB *cb ) ;
 
       virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *resource,
+                                   clsRemoteResource *resource,
                                    coordCMDArguments *arguments,
                                    pmdEDUCB *cb ) ;
 
@@ -381,7 +381,7 @@ namespace engine
       }
 
    protected:
-      INT32 _dropRecycleItem( coordResource *resource,
+      INT32 _dropRecycleItem( clsRemoteResource *resource,
                               const CHAR *recycleName,
                               BOOLEAN ignoreIfNotExists,
                               BOOLEAN isRecursive,
@@ -389,7 +389,7 @@ namespace engine
                               BOOLEAN ignoreLock,
                               pmdEDUCB *cb ) ;
 
-      INT32 _dropRecycleItems( coordResource *resource,
+      INT32 _dropRecycleItems( clsRemoteResource *resource,
                                BOOLEAN ignoreIfNotExists,
                                BOOLEAN isRecursive,
                                BOOLEAN isEnforced,
@@ -419,11 +419,11 @@ namespace engine
          return "return task" ;
       }
 
-      virtual INT32 onCommitEvent( coordResource *resource,
+      virtual INT32 onCommitEvent( clsRemoteResource *resource,
                                    coordCMDArguments *arguments,
                                    pmdEDUCB *cb ) ;
 
-      virtual INT32 onRollbackEvent( coordResource *resource,
+      virtual INT32 onRollbackEvent( clsRemoteResource *resource,
                                      coordCMDArguments *arguments,
                                      pmdEDUCB *cb ) ;
    } ;
@@ -457,12 +457,12 @@ namespace engine
       virtual INT32 rewriteDataMsg( bson::BSONObjBuilder &queryBuilder,
                                     bson::BSONObjBuilder &hintBuilder ) ;
 
-      virtual INT32 onBeginEvent( coordResource *resource,
+      virtual INT32 onBeginEvent( clsRemoteResource *resource,
                                   coordCMDArguments *arguments,
                                   pmdEDUCB *cb ) ;
 
       virtual INT32 onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                   coordResource *resource,
+                                   clsRemoteResource *resource,
                                    coordCMDArguments *arguments,
                                    pmdEDUCB *cb ) ;
 

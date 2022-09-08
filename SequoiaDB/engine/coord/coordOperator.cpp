@@ -144,7 +144,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _coordOperator::init( coordResource *pResource,
+   INT32 _coordOperator::init( clsRemoteResource *pResource,
                                _pmdEDUCB *cb,
                                INT64 timeout )
    {

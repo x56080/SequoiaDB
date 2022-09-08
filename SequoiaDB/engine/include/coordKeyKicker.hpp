@@ -37,7 +37,7 @@
 #ifndef COORD_KEY_KICKER_HPP__
 #define COORD_KEY_KICKER_HPP__
 
-#include "coordResource.hpp"
+#include "clsRemoteResource.hpp"
 #include "../bson/bson.h"
 #include "ossMemPool.hpp"
 
@@ -82,7 +82,7 @@ namespace engine
       _coordKeyKicker() ;
       ~_coordKeyKicker() ;
 
-      void     bind( coordResource *pResource,
+      void     bind( clsRemoteResource *pResource,
                      const CoordCataInfoPtr &cataPtr ) ;
 
    public:
@@ -137,7 +137,7 @@ namespace engine
       SiteIDSet                  _skSiteIDs ;
       SET_KEEPKEY                _setKeys ;
 
-      coordResource              *_pResource ;
+      clsRemoteResource         *_pResource ;
       CoordCataInfoPtr           _cataPtr ;
 
    } ;

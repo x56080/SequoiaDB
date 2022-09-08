@@ -37,7 +37,6 @@
 #ifndef COORD_REMOTE_SESSION_HPP__
 #define COORD_REMOTE_SESSION_HPP__
 
-#include "coordResource.hpp"
 #include "pmdRemoteSession.hpp"
 #include "coordRemoteHandle.hpp"
 #include "rtnSessionProperty.hpp"
@@ -49,6 +48,7 @@ using namespace bson ;
 namespace engine
 {
 
+   class _clsRemoteResource ;
    class _coordSessionPropMgr ;
    class _coordGroupSel ;
    class _coordGroupSessionCtrl ;
@@ -227,7 +227,7 @@ namespace engine
          _coordGroupSel() ;
          ~_coordGroupSel() ;
 
-         void     init( coordResource *pResource,
+         void     init( _clsRemoteResource *pResource,
                         coordSessionPropSite *pPropSite,
                         BOOLEAN primary = FALSE,
                         MSG_ROUTE_SERVICE_TYPE svcType =
@@ -286,7 +286,7 @@ namespace engine
          BOOLEAN  _meetPreferConstraint( const MsgRouteID &nodeID ) const ;
 
       private:
-         coordResource           *_pResource ;
+         _clsRemoteResource      *_pResource ;
          coordSessionPropSite    *_pPropSite ;
          BOOLEAN                 _primary ;
          MSG_ROUTE_SERVICE_TYPE  _svcType ;
@@ -312,13 +312,13 @@ namespace engine
          _coordCataSel() ;
          ~_coordCataSel() ;
 
-         INT32    bind( coordResource *pResource,
+         INT32    bind( _clsRemoteResource *pResource,
                         const CHAR *pCollectionName,
                         _pmdEDUCB *cb,
                         BOOLEAN forceUpdate = FALSE,
                         BOOLEAN isRoot = FALSE ) ;
 
-         INT32    bind( coordResource *pResource,
+         INT32    bind( _clsRemoteResource *pResource,
                         const CoordCataInfoPtr &cataPtr,
                         BOOLEAN hasUpdated = FALSE ) ;
 
@@ -349,7 +349,7 @@ namespace engine
                                   BOOLEAN isRoot = FALSE ) ;
 
       private:
-         coordResource        *_pResource ;
+         _clsRemoteResource  *_pResource ;
          BOOLEAN              _hasUpdate ;
          CoordCataInfoPtr     _cataPtr ;
          CoordGroupSubCLMap   _mapGrp2subs ;
@@ -366,7 +366,7 @@ namespace engine
          _coordGroupSessionCtrl() ;
          ~_coordGroupSessionCtrl() ;
 
-         void        init( coordResource *pResource,
+         void        init( _clsRemoteResource *pResource,
                            coordSessionPropSite *pPropSite,
                            coordGroupSel *pGroupSel,
                            IRemoteSessionHandler *pRemoteHandle ) ;
@@ -393,7 +393,7 @@ namespace engine
       private:
          UINT32                  _retryTimes ;
          UINT32                  _maxRetryTimes ;
-         coordResource           *_pResource ;
+         _clsRemoteResource      *_pResource ;
          coordSessionPropSite    *_pPropSite ;
          coordGroupSel           *_pGroupSel ;
          IRemoteSessionHandler   *_pRemoteHandle ;
@@ -416,7 +416,7 @@ namespace engine
             timeout : 0 , will use the session's timeout attribute
                       otherwise, use the specified timeout value
          */
-         INT32             init( coordResource *pResource,
+         INT32             init( _clsRemoteResource *pResource,
                                  _pmdEDUCB *cb,
                                  INT64 timeout = 0,
                                  IRemoteSessionHandler *pHandle = NULL,

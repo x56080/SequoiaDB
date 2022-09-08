@@ -49,6 +49,7 @@
 #include "clsReplicateSet.hpp"
 #include "clsCatalogAgent.hpp"
 #include "clsRecycleBinManager.hpp"
+#include "clsResource.hpp"
 #include "ossLatch.hpp"
 #include "clsTask.hpp"
 #include "ossMemPool.hpp"
@@ -202,7 +203,7 @@ namespace engine
    */
 
    class _coordSessionPropMgr ;
-   class _coordResource ;
+   class _clsRemoteResource ;
 
    class _clsMgr : public _pmdObjBase, public _IControlBlock
    {
@@ -279,8 +280,7 @@ namespace engine
          _netRouteAgent *getReplRouteAgent () ;
          shardCB * getShardCB () ;
          replCB * getReplCB () ;
-         catAgent * getCatAgent () ;
-         nodeMgrAgent* getNodeMgrAgent () ;
+         clsResource * getResource() ;
          shdMsgHandler* getShardMsgHandle() ;
          _clsTaskMgr*  getTaskMgr () ;
          ossEvent* getTaskEvent() ;
@@ -331,6 +331,7 @@ namespace engine
                                           BOOLEAN &needRollback ) ;
          INT32 _updateDCInfo( MsgHeader* msg ) ;
       private:
+         clsResource                   _resource ;
          clsShardSessionMgr            _shardSessionMgr ;
          clsReplSessionMgr             _replSessionMgr ;
 
@@ -359,7 +360,6 @@ namespace engine
          UINT64                        _taskTimerID ;
 
          _coordSessionPropMgr          *_pSitePropMgr ;
-         _coordResource                *_pResource ;
          _pmdRemoteSessionMgr          _remoteSessionMgr ;
 
          _schedTaskContanierMgr        *_pContainerMgr ;

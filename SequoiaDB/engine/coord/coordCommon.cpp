@@ -229,7 +229,8 @@ namespace engine
    }
 
    INT32 coordInitCataPtrFromObj( const BSONObj &obj,
-                                  CoordCataInfoPtr & cataPtr )
+                                  CoordCataInfoPtr & cataPtr,
+                                  UINT32 parseGroupID )
    {
       INT32 rc = SDB_OK ;
       CoordCataInfo *pCataInfoTmp = NULL ;
@@ -286,7 +287,7 @@ namespace engine
          }
 
          cataPtr = CoordCataInfoPtr( pCataInfoTmp ) ;
-         rc = cataPtr->fromBSONObj( obj ) ;
+         rc = cataPtr->fromBSONObj( obj, parseGroupID ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to init catalog info from obj[%s], "

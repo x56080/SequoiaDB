@@ -34,14 +34,17 @@
 #ifndef PMD_PROCESSOR_HPP_
 #define PMD_PROCESSOR_HPP_
 
-#include "pmd.hpp"
-#include "rtnCB.hpp"
-#include "dmsCB.hpp"
-#include "dpsLogWrapper.hpp"
 #include "pmdSession.hpp"
+#include "utilInsertResult.hpp"
 
 namespace engine
 {
+
+   class _SDB_KRCB ;
+   class _SDB_RTNCB ;
+   class _SDB_DMSCB ;
+   class _dpsLogWrapper ;
+
    /*
       _pmdDataProcessor define
    */
@@ -72,19 +75,19 @@ namespace engine
       protected:
          INT32                   _onMsgReqMsg( MsgHeader * msg ) ;
          INT32                   _onUpdateReqMsg( MsgHeader * msg,
-                                                  SDB_DPSCB *dpsCB,
+                                                  _dpsLogWrapper *dpsCB,
                                                   utilUpdateResult &upResult ) ;
          INT32                   _onInsertReqMsg( MsgHeader * msg,
                                                   rtnContextBuf &buff,
                                                   utilInsertResult &inResult ) ;
          INT32                   _onQueryReqMsg( MsgHeader * msg,
-                                                 SDB_DPSCB *dpsCB,
+                                                 _dpsLogWrapper *dpsCB,
                                                  _rtnContextBuf &buffObj,
                                                  INT64 &contextID,
                                                  BOOLEAN &needRollback,
                                                  BSONObjBuilder &builder ) ;
          INT32                   _onDelReqMsg( MsgHeader * msg,
-                                               SDB_DPSCB *dpsCB,
+                                               _dpsLogWrapper *dpsCB,
                                                utilDeleteResult &delResult ) ;
          INT32                   _onGetMoreReqMsg( MsgHeader * msg,
                                                    rtnContextBuf &buffObj,
@@ -97,16 +100,16 @@ namespace engine
          INT32                   _onKillContextsReqMsg( MsgHeader *msg ) ;
          INT32                   _onSQLMsg( MsgHeader *msg,
                                             INT64 &contextID,
-                                            SDB_DPSCB *dpsCB,
+                                            _dpsLogWrapper *dpsCB,
                                             BOOLEAN &needRollback,
                                             BSONObjBuilder &builder ) ;
          INT32                   _onTransBeginMsg () ;
-         INT32                   _onTransCommitMsg ( SDB_DPSCB *dpsCB ) ;
-         INT32                   _onTransRollbackMsg ( SDB_DPSCB *dpsCB ) ;
+         INT32                   _onTransCommitMsg ( _dpsLogWrapper *dpsCB ) ;
+         INT32                   _onTransRollbackMsg ( _dpsLogWrapper *dpsCB ) ;
          INT32                   _onAggrReqMsg( MsgHeader *msg,
                                                 INT64 &contextID ) ;
          INT32                   _onOpenLobMsg( MsgHeader *msg,
-                                                SDB_DPSCB *dpsCB,
+                                                _dpsLogWrapper *dpsCB,
                                                 SINT64 &contextID,
                                                 rtnContextBuf &buffObj ) ;
          INT32                   _onWriteLobMsg( MsgHeader *msg ) ;
@@ -116,15 +119,15 @@ namespace engine
          INT32                   _onCloseLobMsg( MsgHeader *msg,
                                                  rtnContextBuf &buffObj ) ;
          INT32                   _onRemoveLobMsg( MsgHeader *msg,
-                                                  SDB_DPSCB *dpsCB ) ;
+                                                  _dpsLogWrapper *dpsCB ) ;
          INT32                   _onTruncateLobMsg( MsgHeader *msg,
-                                                    SDB_DPSCB *dpsCB ) ;
+                                                    _dpsLogWrapper *dpsCB ) ;
          INT32                   _onGetLobRTDetailMsg( MsgHeader *msg,
                                                      rtnContextBuf &buffObj ) ;
          INT32                   _onCreateLobIDMsg( MsgHeader *msg,
                                                     rtnContextBuf &buffObj ) ;
          INT32                   _onInterruptMsg( MsgHeader *msg,
-                                                  SDB_DPSCB *dpsCB ) ;
+                                                  _dpsLogWrapper *dpsCB ) ;
          INT32                   _onInterruptSelfMsg() ;
          INT32                   _onDisconnectMsg() ;
 
@@ -147,9 +150,9 @@ namespace engine
          virtual INT32           _beginTrans( BOOLEAN isAutoCommit ) ;
 
       protected:
-         _SDB_KRCB *             _pKrcb ;
-         _SDB_DMSCB *            _pDMSCB ;
-         _SDB_RTNCB *            _pRTNCB ;
+         _SDB_KRCB *            _pKrcb ;
+         _SDB_DMSCB *           _pDMSCB ;
+         _SDB_RTNCB *           _pRTNCB ;
    } ;
    typedef _pmdDataProcessor pmdDataProcessor ;
 

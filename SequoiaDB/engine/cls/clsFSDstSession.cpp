@@ -2061,9 +2061,7 @@ namespace engine
       sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       //clear all catalog info
-      sdbGetShardCB()->getCataAgent()->lock_w() ;
-      sdbGetShardCB()->getCataAgent()->clearAll() ;
-      sdbGetShardCB()->getCataAgent()->release_w() ;
+      sdbGetShardCB()->getResource()->invalidateCataInfo() ;
 
       dpsCB = pmdGetKRCB()->getDPSCB() ;
       // change to meta
@@ -3039,6 +3037,7 @@ namespace engine
       _pTask = ( _clsSplitTask* )data ;
       _taskObj = _pTask->toBson( CLS_SPLIT_MASK_ID|CLS_SPLIT_MASK_CLNAME ) ;
       _pShardMgr = sdbGetShardCB() ;
+      _pResource = _pShardMgr->getResource() ;
       _step = STEP_NONE ;
       _replayer.enableDPS () ;
       _needSyncData = 1 ;
@@ -3075,6 +3074,10 @@ namespace engine
    void _clsSplitDstSession::_onAttach ()
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLDS_ONATH );
+
+      SDB_ASSERT( NULL != _pEDUCB, "edu CB should be valid" ) ;
+      _remoteOperator.attach( _pEDUCB ) ;
+
       // the task already start, need to clean up the dirty data
       if ( CLS_TASK_STATUS_RUN == _pTask->status() ||
            CLS_TASK_STATUS_PAUSE == _pTask->status() )
@@ -3183,6 +3186,9 @@ namespace engine
                  sessionName(), getMeta()->getHandle() ) ;
          _agent->close( getMeta()->getHandle() ) ;
       }
+
+      _remoteOperator.detach() ;
+
       PD_TRACE_EXIT ( SDB__CLSSPLDS__ONDTH );
    }
 
@@ -3269,7 +3275,7 @@ namespace engine
          msg.header.TID = CLS_TID( _sessionID ) ;
          MsgRouteID lastID = _selector.src() ;
          // pickup the source group id
-         MsgRouteID src = _selector.selectPrimary( _pTask->sourceID(),
+         MsgRouteID src = _selector.selectPrimary( _pTask->sourceID(), _pEDUCB,
                                                    MSG_ROUTE_SHARD_SERVCIE ) ;
 
          /// send disconnect to the last source session
@@ -3420,9 +3426,12 @@ namespace engine
       }
       else if ( STEP_META == _step )
       {
+         CoordCataInfoPtr cataPtr ;
+
          //need to update catalog
-         INT32 rc = _pShardMgr->syncUpdateCatalog( _pTask->collectionName(),
-                                                   OSS_ONE_SEC ) ;
+         INT32 rc = _pResource->updateCataInfo( _pTask->collectionName(),
+                                                cataPtr,
+                                                _pEDUCB ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
             _step = STEP_END_NTY ;
@@ -3433,14 +3442,11 @@ namespace engine
             // be sure the splitKey is in self range
             std::string mainCLName ;
             BOOLEAN hasSplit = FALSE ;
-            catAgent *pCatAgent = _pShardMgr->getCataAgent() ;
-            pCatAgent->lock_r () ;
-            _clsCatalogSet* catSet = pCatAgent->collectionSet(
-               _pTask->collectionName() ) ;
+            clsCatalogSet *catSet = cataPtr->getCatalogSet() ;
             if ( catSet )
             {
                mainCLName = catSet->getMainCLName();
-               NodeID selfNode = _pShardMgr->nodeID() ;
+               NodeID selfNode = _pResource->getNodeID() ;
                // the catalog is already correct
                if ( catSet->isKeyInGroup( _pTask->splitKeyObj(),
                                           selfNode.columns.groupID ) )
@@ -3449,11 +3455,12 @@ namespace engine
                   _collectionW = catSet->getW() ;
                }
             }
-            pCatAgent->release_r() ;
             if ( !mainCLName.empty() )
             {
-               INT32 rcTmp = _pShardMgr->syncUpdateCatalog( mainCLName.c_str(),
-                                                            OSS_ONE_SEC ) ;
+               CoordCataInfoPtr mainCataInfoPtr ;
+               INT32 rcTmp = _pResource->updateCataInfo( mainCLName.c_str(),
+                                                         mainCataInfoPtr,
+                                                         _pEDUCB ) ;
                if ( rcTmp )
                {
                   PD_LOG( PDWARNING, "Session[%s]: Update catalog info "

@@ -56,7 +56,8 @@ namespace engine
       Common functions
    */
    INT32    coordInitCataPtrFromObj( const BSONObj &obj,
-                                     CoordCataInfoPtr &cataPtr ) ;
+                                     CoordCataInfoPtr &cataPtr,
+                                     UINT32 parseGroupID = INVALID_GROUPID ) ;
 
    BOOLEAN  coordIsCataAddrSame( const CoordVecNodeInfo &left,
                                  const CoordVecNodeInfo &right ) ;

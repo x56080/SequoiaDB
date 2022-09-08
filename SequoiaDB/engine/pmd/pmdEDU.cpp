@@ -1430,42 +1430,6 @@ namespace engine
       return &_remoteOpCtrl ;
    }
 
-   IRemoteOperator* _pmdEDUCB::getRemoteOperator()
-   {
-      return _pRemoteOperator ;
-   }
-
-   INT32 _pmdEDUCB::getOrCreateRemoteOperator( IRemoteOperator **ppOperator )
-   {
-      INT32 rc = SDB_OK ;
-      _clsRemoteOperator *tmp = NULL ;
-      if ( NULL != _pRemoteOperator )
-      {
-         *ppOperator = _pRemoteOperator ;
-         goto done ;
-      }
-
-      tmp = SDB_OSS_NEW _clsRemoteOperator() ;
-      PD_CHECK( NULL != tmp, SDB_OOM, error, PDERROR,
-                "Failed to malloc remote operator:rc=%d", rc ) ;
-
-      rc = tmp->init( this ) ;
-      if ( SDB_OK != rc )
-      {
-         SAFE_OSS_DELETE( tmp ) ;
-         PD_LOG( PDERROR, "Failed to begin transaction:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      _pRemoteOperator = tmp ;
-      *ppOperator = _pRemoteOperator ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
 #endif // SDB_ENGINE
 
    static OSS_THREAD_LOCAL _pmdEDUCB *__eduCB ;

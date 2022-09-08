@@ -45,7 +45,7 @@ using namespace bson ;
 namespace engine
 {
 
-   class _coordResource ;
+   class _clsRemoteResource ;
 
    /*
       _coordOmProxy define
@@ -56,7 +56,7 @@ namespace engine
          _coordOmProxy() ;
          virtual ~_coordOmProxy() ;
 
-         INT32          init( _coordResource *pResource ) ;
+         INT32          init( _clsRemoteResource *pResource ) ;
 
       public:
          virtual INT32  queryOnOm( MsgHeader *pMsg,
@@ -78,7 +78,7 @@ namespace engine
          virtual void  setOprTimeout( INT64 timeout ) ;
 
       protected:
-         _coordResource                *_pResource ;
+         _clsRemoteResource           *_pResource ;
          INT64                         _oprTimeout ;
 
    } ;

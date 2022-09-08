@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = coordResource.hpp
+   Source File Name = clsResource.cpp
 
    Descriptive Name =
 
@@ -34,23 +34,28 @@
 
 *******************************************************************************/
 
-#ifndef COORD_RESOURCE_HPP__
-#define COORD_RESOURCE_HPP__
+#include "clsResource.hpp"
+#include "pmdEDU.hpp"
+#include "msgCatalog.hpp"
+#include "msgMessageFormat.hpp"
+#include "msgMessage.hpp"
+#include "coordRemoteHandle.hpp"
+#include "coordRemoteSession.hpp"
+#include "coordCommon.hpp"
+#include "coordFactory.hpp"
+#include "pmd.hpp"
+#include "rtnCB.hpp"
+#include "rtn.hpp"
+#include "coordOmProxy.hpp"
+#include "coordSequenceAgent.hpp"
+#include "coordDataSource.hpp"
+#include "coordGTSAgent.hpp"
+#include "../bson/bson.h"
+#include "utilArray.hpp"
 
-#include "coordDef.hpp"
-#include "clsRemoteResource.hpp"
+using namespace bson ;
 
 namespace engine
 {
 
-   /*
-      _coordResource define
-    */
-   class _coordResource : public SDBObject, public _clsRemoteResource
-   {
-   } ;
-   typedef class _coordResource coordResource ;
-
 }
-
-#endif // COORD_RESOURCE_HPP__

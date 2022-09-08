@@ -48,7 +48,7 @@ namespace engine
    class _SDB_DMSCB ;
    class _SDB_RTNCB ;
    class _dpsLogWrapper ;
-   class _clsCatalogAgent ;
+   class _clsResource ;
    class _clsFreezingWindow ;
    class _rtnContextBase ;
    class _clsOPContext ;
@@ -284,6 +284,7 @@ namespace engine
 
          INT32   _reply ( MsgOpReply *header, const CHAR *buff, UINT32 size ) ;
 
+         virtual void   _onAttach () ;
          virtual void   _onDetach () ;
          virtual INT32  _defaultMsgFunc ( NET_HANDLE handle, MsgHeader* msg ) ;
 
@@ -634,7 +635,8 @@ namespace engine
       protected:
          _clsReplicateSet       *_pReplSet ;
          _clsShardMgr           *_pShdMgr ;
-         _clsCatalogAgent       *_pCatAgent ;
+         _clsRemoteOperator      _remoteOperator ;
+         _clsResource           *_pResource ;
          _clsFreezingWindow     *_pFreezingWindow ;
          _SDB_DMSCB             *_pDmsCB ;
          _SDB_RTNCB             *_pRtnCB ;

@@ -54,7 +54,7 @@ namespace engine
       _coordDataCMDHelper implement
     */
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_DROPCL, "_coordDataCMDHelper::dropCL" )
-   INT32 _coordDataCMDHelper::dropCL( coordResource *resource,
+   INT32 _coordDataCMDHelper::dropCL( clsRemoteResource *resource,
                                       const CHAR *clName,
                                       BOOLEAN skipRecycleBin,
                                       BOOLEAN ignoreLock,
@@ -97,7 +97,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_TRUNCCL, "_coordDataCMDHelper::truncateCL" )
-   INT32 _coordDataCMDHelper::truncateCL( coordResource *resource,
+   INT32 _coordDataCMDHelper::truncateCL( clsRemoteResource *resource,
                                           const CHAR *clName,
                                           BOOLEAN skipRecycleBin,
                                           BOOLEAN ignoreLock,
@@ -142,7 +142,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_ALTERCL, "_coordDataCMDHelper::alterCL" )
-   INT32 _coordDataCMDHelper::alterCL( coordResource *resource,
+   INT32 _coordDataCMDHelper::alterCL( clsRemoteResource *resource,
                                        const CHAR *clName,
                                        const BSONObj &options,
                                        pmdEDUCB *cb )
@@ -185,7 +185,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDHELPER_DROPCS, "_coordDataCMDHelper::dropCS" )
-   INT32 _coordDataCMDHelper::dropCS( coordResource *resource,
+   INT32 _coordDataCMDHelper::dropCS( clsRemoteResource *resource,
                                       const CHAR *csName,
                                       BOOLEAN skipRecycleBin,
                                       BOOLEAN ignoreLock,
@@ -314,7 +314,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER_ONBEGINEVENT, "_coordCMDGlobIdxHandler::onBeginEvent" )
-   INT32 _coordCMDGlobIdxHandler::onBeginEvent( coordResource *resource,
+   INT32 _coordCMDGlobIdxHandler::onBeginEvent( clsRemoteResource *resource,
                                                 coordCMDArguments *arguments,
                                                 pmdEDUCB *cb )
    {
@@ -331,7 +331,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER_ONDATAP1EVENT, "_coordCMDGlobIdxHandler::onDataP1Event" )
    INT32 _coordCMDGlobIdxHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                                 coordResource *pResource,
+                                                 clsRemoteResource *pResource,
                                                  coordCMDArguments *pArgs,
                                                  pmdEDUCB *cb )
    {
@@ -357,7 +357,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER__REPAIRCHECKGLOBIDXCLS, "_coordCMDGlobIdxHandler::_repairCheckGlobIdxCLs" )
-   INT32 _coordCMDGlobIdxHandler::_repairCheckGlobIdxCLs( coordResource *resource,
+   INT32 _coordCMDGlobIdxHandler::_repairCheckGlobIdxCLs( clsRemoteResource *resource,
                                                           BOOLEAN enableRepairCheck,
                                                           pmdEDUCB *cb )
    {
@@ -412,7 +412,7 @@ namespace engine
     */
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATADROPGLOBIDXHANDLER_ONDATAP2EVENT, "_coordDropGlobIdxHandler::onDataP2Event" )
    INT32 _coordDropGlobIdxHandler::onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                                  coordResource *pResource,
+                                                  clsRemoteResource *pResource,
                                                   coordCMDArguments *pArgs,
                                                   pmdEDUCB *cb )
    {
@@ -436,7 +436,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATADROPGLOBIDXHANDLER__DROPGLOBIDXCLS, "_coordDropGlobIdxHandler::_dropGlobIdxCLs" )
-   INT32 _coordDropGlobIdxHandler::_dropGlobIdxCLs( coordResource *resource,
+   INT32 _coordDropGlobIdxHandler::_dropGlobIdxCLs( clsRemoteResource *resource,
                                                     pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -472,7 +472,7 @@ namespace engine
     */
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATATRUNCGLOBIDXHANDLER_ONDATAP2EVENT, "_coordTruncGlobIdxHandler::onDataP2Event" )
    INT32 _coordTruncGlobIdxHandler::onDataP2Event( SDB_EVENT_OCCUR_TYPE type,
-                                                   coordResource *resource,
+                                                   clsRemoteResource *resource,
                                                    coordCMDArguments *arguments,
                                                    pmdEDUCB *cb )
    {
@@ -503,7 +503,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATATRUNCGLOBIDXHANDLER__TRUNCGLOBIDXCLS, "_coordTruncGlobIdxHandler::_truncGlobIdxCLs" )
-   INT32 _coordTruncGlobIdxHandler::_truncGlobIdxCLs( coordResource *resource,
+   INT32 _coordTruncGlobIdxHandler::_truncGlobIdxCLs( clsRemoteResource *resource,
                                                       pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -546,9 +546,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER_ONBEGINEVENT, "_coordCMDTaskHandler::onBeginEvent" )
-   INT32 _coordCMDTaskHandler::onBeginEvent( coordResource *resource,
-                                                coordCMDArguments *arguments,
-                                                pmdEDUCB *cb )
+   INT32 _coordCMDTaskHandler::onBeginEvent( clsRemoteResource *resource,
+                                             coordCMDArguments *arguments,
+                                             pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
@@ -658,7 +658,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__WAITTASKS, "_coordCMDTaskHandler::_waitTasks" )
-   INT32 _coordCMDTaskHandler::_waitTasks( coordResource *resource,
+   INT32 _coordCMDTaskHandler::_waitTasks( clsRemoteResource *resource,
                                            BOOLEAN ignoreCanceled,
                                            pmdEDUCB *cb )
    {
@@ -689,7 +689,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__WAITTASK, "_coordCMDTaskHandler::_waitTask" )
-   INT32 _coordCMDTaskHandler::_waitTask( coordResource *resource,
+   INT32 _coordCMDTaskHandler::_waitTask( clsRemoteResource *resource,
                                           UINT64 taskID,
                                           pmdEDUCB *cb )
    {
@@ -745,7 +745,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__CANCELTASKS, "_coordCMDTaskHandler::_cancelTasks" )
-   INT32 _coordCMDTaskHandler::_cancelTasks( coordResource *resource,
+   INT32 _coordCMDTaskHandler::_cancelTasks( clsRemoteResource *resource,
                                              pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -772,7 +772,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDTASKHANDLER__CANCELTASK, "_coordCMDTaskHandler::_cancelTask" )
-   INT32 _coordCMDTaskHandler::_cancelTask( coordResource *resource,
+   INT32 _coordCMDTaskHandler::_cancelTask( clsRemoteResource *resource,
                                             UINT64 taskID,
                                             pmdEDUCB *cb )
    {
@@ -832,7 +832,7 @@ namespace engine
     */
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYTASKHANDLER_ONDATAP1EVENT, "_coordCMDRecyTaskHandler::onDataP1Event" )
    INT32 _coordCMDRecyTaskHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                                  coordResource *resource,
+                                                  clsRemoteResource *resource,
                                                   coordCMDArguments *arguments,
                                                   pmdEDUCB *cb )
    {
@@ -978,7 +978,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER_ONBEGINEVENT, "_coordCMDRecycleHandler::onBeginEvent" )
-   INT32 _coordCMDRecycleHandler::onBeginEvent( coordResource *resource,
+   INT32 _coordCMDRecycleHandler::onBeginEvent( clsRemoteResource *resource,
                                                 coordCMDArguments *arguments,
                                                 pmdEDUCB *cb )
    {
@@ -996,7 +996,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER_ONDATAP1EVENT, "_coordCMDRecycleHandler::onDataP1Event" )
    INT32 _coordCMDRecycleHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                                 coordResource *resource,
+                                                 clsRemoteResource *resource,
                                                  coordCMDArguments *arguments,
                                                  pmdEDUCB *cb )
    {
@@ -1022,7 +1022,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER__DROPRECYITEM, "_coordCMDRecycleHandler::_dropRecycleItem" )
-   INT32 _coordCMDRecycleHandler::_dropRecycleItem( coordResource *resource,
+   INT32 _coordCMDRecycleHandler::_dropRecycleItem( clsRemoteResource *resource,
                                                     const CHAR *recycleName,
                                                     BOOLEAN ignoreIfNotExists,
                                                     BOOLEAN isRecursive,
@@ -1073,7 +1073,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARECYHANDLER__DROPRECYITEMS, "_coordCMDRecycleHandler::_dropRecycleItems" )
-   INT32 _coordCMDRecycleHandler::_dropRecycleItems( coordResource *resource,
+   INT32 _coordCMDRecycleHandler::_dropRecycleItems( clsRemoteResource *resource,
                                                      BOOLEAN ignoreIfNotExists,
                                                      BOOLEAN isRecursive,
                                                      BOOLEAN isEnforced,
@@ -1105,7 +1105,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDRTRNTASKHANDLER_ONCOMMITEVENT, "_coordCMDRtrnTaskHandler::onCommitEvent" )
-   INT32 _coordCMDRtrnTaskHandler::onCommitEvent( coordResource *resource,
+   INT32 _coordCMDRtrnTaskHandler::onCommitEvent( clsRemoteResource *resource,
                                                   coordCMDArguments *pArgs,
                                                   pmdEDUCB *cb )
    {
@@ -1122,7 +1122,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDRTRNTASKHANDLER_ONROLLBACKEVENT, "_coordCMDRtrnTaskHandler::onRollbackEvent" )
-   INT32 _coordCMDRtrnTaskHandler::onRollbackEvent( coordResource *resource,
+   INT32 _coordCMDRtrnTaskHandler::onRollbackEvent( clsRemoteResource *resource,
                                                     coordCMDArguments *pArgs,
                                                     pmdEDUCB *cb )
    {
@@ -1190,7 +1190,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARTRNHANDLER_ONBEGINEVENT, "_coordCMDReturnHandler::onBeginEvent" )
-   INT32 _coordCMDReturnHandler::onBeginEvent( coordResource *resource,
+   INT32 _coordCMDReturnHandler::onBeginEvent( clsRemoteResource *resource,
                                                coordCMDArguments *arguments,
                                                pmdEDUCB *cb )
    {
@@ -1207,7 +1207,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATARTRNHANDLER_ONDATAP1EVENT, "_coordCMDReturnHandler::onDataP1Event" )
    INT32 _coordCMDReturnHandler::onDataP1Event( SDB_EVENT_OCCUR_TYPE type,
-                                                coordResource *resource,
+                                                clsRemoteResource *resource,
                                                 coordCMDArguments *arguments,
                                                 pmdEDUCB *cb )
    {

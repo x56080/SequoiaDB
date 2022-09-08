@@ -700,9 +700,21 @@ namespace engine
       UINT64            getRemoteFailureCount() ;
 
       sdbRemoteOpCtrl*  getRemoteOpCtrl() ;
-      IRemoteOperator*  getRemoteOperator() ;
-      INT32             getOrCreateRemoteOperator(
-                                     IRemoteOperator **ppOperator ) ;
+
+      IRemoteOperator*  getRemoteOperator()
+      {
+         return _pRemoteOperator ;
+      }
+
+      void              attachRemoteOperator( IRemoteOperator *pOperator )
+      {
+         _pRemoteOperator = pOperator ;
+      }
+
+      void              detachRemoteOperator()
+      {
+         _pRemoteOperator = NULL ;
+      }
 
       // get begin time of transaction
       OSS_INLINE const stpLogicalTimeUS &getTransBeginTime() const

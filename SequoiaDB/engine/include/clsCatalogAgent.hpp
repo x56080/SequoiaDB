@@ -494,15 +494,13 @@ namespace engine
     */
    typedef _netRouteNode clsNodeItem ;
 
-   class _clsNodeMgrAgent ;
    typedef std::vector<clsNodeItem>            VEC_NODE_INFO ;
    typedef VEC_NODE_INFO::iterator             VEC_NODE_INFO_IT ;
    typedef VEC_NODE_INFO::const_iterator       VEC_NODE_INFO_CIT ;
 
    class _clsGroupItem : public utilPooledObject
    {
-      friend class _clsNodeMgrAgent ;
-      friend class _clsShardMgr ;
+      friend class _clsRemoteResource ;
 
       public:
          _clsGroupItem ( UINT32 groupID ) ;
@@ -591,67 +589,6 @@ namespace engine
 
    };
    typedef _clsGroupItem clsGroupItem ;
-
-   class _clsNodeMgrAgent : public SDBObject
-   {
-      typedef ossPoolMap<UINT32, clsGroupItem*> GROUP_MAP ;
-      typedef GROUP_MAP::iterator               GROUP_MAP_IT ;
-
-      typedef ossPoolMap<std::string, UINT32>   GROUP_NAME_MAP ;
-      typedef GROUP_NAME_MAP::iterator          GROUP_NAME_MAP_IT ;
-
-      public:
-         _clsNodeMgrAgent () ;
-         ~_clsNodeMgrAgent () ;
-      public:
-         INT32       groupCount () ;
-         /*
-            >= 0 : The groups size
-            <  0 : error code
-         */
-         INT32       getGroupsID( VEC_UINT32 &groups ) ;
-         /*
-            >= 0 : The groups size
-            <  0 : error code
-         */
-         INT32       getGroupsName( vector< string > &groups ) ;
-
-         INT32       groupVersion ( UINT32 id ) ;
-         INT32       groupID2Name ( UINT32 id, std::string &name ) ;
-         INT32       groupName2ID ( const CHAR* name, UINT32 &id ) ;
-         INT32       groupNodeCount ( UINT32 id ) ;
-         INT32       groupPrimaryNode ( UINT32 id, MsgRouteID &primary,
-                                        MSG_ROUTE_SERVICE_TYPE type =
-                                        MSG_ROUTE_SHARD_SERVCIE ) ;
-         INT32       cancelPrimary( UINT32 id ) ;
-
-         clsGroupItem* groupItem ( UINT32 id ) ;
-         clsGroupItem* groupItem ( const CHAR* name ) ;
-
-         /// caller need to hold the write lock
-         INT32       clearAll () ;
-         INT32       clearGroup ( UINT32 id ) ;
-
-         INT32       updateGroupInfo ( const CHAR* objdata, UINT32 length,
-                                       UINT32 *pGroupID = NULL ) ;
-
-         INT32   lock_r ( INT32 millisec = -1 ) ;
-         INT32   lock_w ( INT32 millisec = -1 ) ;
-         INT32   release_r () ;
-         INT32   release_w () ;
-
-      protected:
-         clsGroupItem* _addGroupItem ( UINT32 id ) ;
-         INT32         _addGroupName ( const std::string& name, UINT32 id ) ;
-         INT32         _clearGroupName ( UINT32 id ) ;
-
-      private:
-         ossRWMutex                    _rwMutex ;
-         GROUP_MAP                     _groupMap ;
-         GROUP_NAME_MAP                _groupNameMap ;
-   };
-   typedef _clsNodeMgrAgent nodeMgrAgent ;
-
 
    /// cls catalog agent tool fucntions :
    INT32    clsPartition( const BSONObj &keyObj, UINT32 partitionBit, UINT32 internalV ) ;
