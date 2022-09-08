@@ -39,7 +39,7 @@
 
 #include "coordDef.hpp"
 #include "coordCommon.hpp"
-#include "coordResource.hpp"
+#include "clsRemoteResource.hpp"
 #include "../bson/bson.h"
 #include "utilResult.hpp"
 
@@ -49,17 +49,17 @@ namespace engine
 {
    class _pmdEDUCB ;
 
-   void  coordBuildFailedNodeReply( coordResource *pResource,
+   void  coordBuildFailedNodeReply( clsRemoteResource *pResource,
                                     ROUTE_RC_MAP &failedNodes,
                                     BSONObjBuilder &builder ) ;
 
-   BSONObj coordBuildErrorObj( coordResource *pResource,
+   BSONObj coordBuildErrorObj( clsRemoteResource *pResource,
                                INT32 &flag,
                                _pmdEDUCB *cb,
                                ROUTE_RC_MAP *pFailedNodes,
                                UINT32 sucNum = 0 ) ;
 
-   void    coordBuildErrorObj( coordResource *pResource,
+   void    coordBuildErrorObj( clsRemoteResource *pResource,
                                INT32 &flag,
                                _pmdEDUCB *cb,
                                ROUTE_RC_MAP *pFailedNodes,
@@ -73,26 +73,26 @@ namespace engine
    INT32 coordGetGroupsFromObj( const BSONObj &obj,
                                 CoordGroupList &groupLst ) ;
 
-   INT32 coordParseGroupList( coordResource *pResource,
+   INT32 coordParseGroupList( clsRemoteResource *pResource,
                               _pmdEDUCB *cb,
                               const BSONObj &obj,
                               CoordGroupList &groupList,
                               BSONObj *pNewObj = NULL,
                               BOOLEAN strictCheck = FALSE ) ;
 
-   INT32 coordParseGroupList( coordResource *pResource,
+   INT32 coordParseGroupList( clsRemoteResource *pResource,
                               _pmdEDUCB *cb,
                               MsgOpQuery *pMsg,
                               FILTER_BSON_ID filterObjID,
                               CoordGroupList &groupList,
                               BOOLEAN strictCheck = FALSE ) ;
 
-   INT32 coordGroupList2GroupPtr( coordResource *pResource,
+   INT32 coordGroupList2GroupPtr( clsRemoteResource *pResource,
                                   _pmdEDUCB *cb,
                                   CoordGroupList &groupList,
                                   GROUP_VEC & groupPtrs ) ;
 
-   INT32 coordGroupList2GroupPtr( coordResource *pResource,
+   INT32 coordGroupList2GroupPtr( clsRemoteResource *pResource,
                                   _pmdEDUCB *cb,
                                   CoordGroupList &groupList,
                                   CoordGroupMap &groupMap,
@@ -101,7 +101,7 @@ namespace engine
    void  coordGroupPtr2GroupList( GROUP_VEC &groupPtrs,
                                   CoordGroupList &groupList ) ;
 
-   INT32 coordGetGroupNodes( coordResource *pResource,
+   INT32 coordGetGroupNodes( clsRemoteResource *pResource,
                              _pmdEDUCB *cb,
                              const BSONObj &filterObj,
                              NODE_SEL_STY emptyFilterSel,
@@ -112,7 +112,7 @@ namespace engine
 
    INT32 coordGetCLDataSource( const CHAR *collection,
                                pmdEDUCB *cb,
-                               coordResource *pResource,
+                               clsRemoteResource *pResource,
                                BOOLEAN &isDataSourceCL,
                                BOOLEAN &isHighErrLevel ) ;
 

@@ -57,7 +57,7 @@ namespace engine
    {
    }
 
-   INT32 _coordOmProxy::init( _coordResource *pResource )
+   INT32 _coordOmProxy::init( clsRemoteResource *pResource )
    {
       _pResource = pResource ;
 
@@ -82,7 +82,7 @@ namespace engine
       rc = omOpr.queryOnOm( options, cb, contextID, buf ) ;
       if ( rc )
       {
-         goto error ;         
+         goto error ;
       }
 
    done:
@@ -110,7 +110,7 @@ namespace engine
       rc = omOpr.queryOnOm( pMsg, requestType, cb, contextID, buf ) ;
       if ( rc )
       {
-         goto error ;         
+         goto error ;
       }
 
    done:
@@ -137,7 +137,7 @@ namespace engine
       rc = omOpr.queryOnOmAndPushToVec( options, cb, objs, buf ) ;
       if ( rc )
       {
-         goto error ;         
+         goto error ;
       }
 
    done:

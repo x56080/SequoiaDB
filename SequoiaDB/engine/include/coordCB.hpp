@@ -39,6 +39,7 @@
 
 #include "netRouteAgent.hpp"
 #include "ossUtil.h"
+#include "coordResource.hpp"
 #include "coordRemoteSession.hpp"
 #include "pmdRemoteMsgEventHandler.hpp"
 #include "sdbInterface.hpp"
@@ -52,6 +53,7 @@
 #include "clsRegAssit.hpp"
 #include "ossMemPool.hpp"
 #include "coordDataSource.hpp"
+#include "coordGTSAgent.hpp"
 
 using namespace std ;
 
@@ -138,6 +140,7 @@ namespace engine
       private:
 
          coordResource                 _resource ;
+         coordGTSAgent                 _gtsAgent ;
          pmdRemoteSessionMgr           _remoteSessionMgr ;
          coordSessionPropMgr           _sitePropMgr ;
          coordDataSourceMgr            _dsMgr ;

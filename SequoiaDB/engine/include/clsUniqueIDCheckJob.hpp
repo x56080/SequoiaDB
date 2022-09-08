@@ -130,6 +130,7 @@ namespace engine
          INT32 _checkRemoteCL( const CHAR *csName,
                                const CHAR *clShortName,
                                utilCLUniqueID clUniqueID,
+                               IExecutor *pExe,
                                BOOLEAN &isExist ) ;
          INT32 _checkRemoteCS( const CHAR *csName,
                                utilCSUniqueID localCSUID,

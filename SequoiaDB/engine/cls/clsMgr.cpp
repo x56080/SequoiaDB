@@ -569,7 +569,6 @@ namespace engine
       _shdObj              = NULL ;
       _replObj             = NULL ;
       _pSitePropMgr        = NULL ;
-      _pResource           = NULL ;
    }
 
    _clsMgr::~_clsMgr ()
@@ -591,11 +590,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
 
-      _pResource = SDB_OSS_NEW _coordResource() ;
-      PD_CHECK( NULL != _pResource, SDB_OOM, error, PDERROR,
-                "Failed to malloc _coordResource, rc: %d", rc ) ;
-
-      rc = _pResource->init( netRouteAgent, optCB ) ;
+      rc = _resource.init( netRouteAgent, optCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
       // set userOwnQueue = TRUE to avoid messages posted to EDU directly
@@ -615,7 +610,7 @@ namespace engine
       // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
-      sdbGetResourceContainer()->setResource( _pResource ) ;
+      sdbGetResourceContainer()->setResource( &_resource ) ;
 
    done:
       return rc ;
@@ -734,7 +729,7 @@ namespace engine
       rc = _initRemoteSession( _shardNetRtAgent ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init remote session, rc: %d", rc ) ;
 
-      _shdObj = SDB_OSS_NEW _clsShardMgr( _shardNetRtAgent ) ;
+      _shdObj = SDB_OSS_NEW _clsShardMgr( _shardNetRtAgent, &_resource ) ;
       if ( !_shdObj )
       {
          PD_LOG( PDERROR, "Allocate shard manager failed" ) ;
@@ -1059,11 +1054,7 @@ namespace engine
       }
 
       _remoteSessionMgr.fini() ;
-
-      if ( NULL != _pResource )
-      {
-         _pResource->fini() ;
-      }
+      _resource.fini() ;
 
       if ( _pShardAdapter )
       {
@@ -1079,7 +1070,6 @@ namespace engine
       SAFE_OSS_DELETE( _shdObj ) ;
       SAFE_OSS_DELETE( _shardNetRtAgent ) ;
       SAFE_OSS_DELETE( _pSitePropMgr ) ;
-      SAFE_OSS_DELETE( _pResource ) ;
       SAFE_OSS_DELETE( _replNetRtAgent ) ;
       SAFE_OSS_DELETE( _replTimerHandler ) ;
       SAFE_OSS_DELETE( _shdTimerHandler ) ;
@@ -1314,14 +1304,12 @@ namespace engine
    {
       return _replObj ;
    }
-   catAgent *_clsMgr::getCatAgent ()
+
+   clsResource *_clsMgr::getResource()
    {
-      return _shdObj->getCataAgent() ;
+      return &( _resource ) ;
    }
-   nodeMgrAgent* _clsMgr::getNodeMgrAgent ()
-   {
-      return _shdObj->getNodeMgrAgent() ;
-   }
+
    shdMsgHandler* _clsMgr::getShardMsgHandle()
    {
       return _shdMsgHandlerObj ;
@@ -2677,6 +2665,8 @@ namespace engine
       _replNetRtAgent->setLocalID ( routeID ) ;
       routeID.columns.serviceID = _shardServiceID ;
       _shardNetRtAgent->setLocalID ( routeID ) ;
+
+      _resource.setNodeID( _selfNodeID ) ;
 
       // set global id
       pmdSetNodeID( _selfNodeID ) ;

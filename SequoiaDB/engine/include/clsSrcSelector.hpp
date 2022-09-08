@@ -48,9 +48,11 @@ using namespace std ;
 
 namespace engine
 {
+
+   class _pmdEDUCB ;
    class _clsSyncManager ;
    class _clsReplicateSet ;
-   class _clsNodeMgrAgent ;
+   class _clsResource ;
 
    class _clsSrcSelector : public SDBObject
    {
@@ -66,6 +68,7 @@ namespace engine
       const MsgRouteID &selected( BOOLEAN isFullSync = FALSE ) ;
 
       const MsgRouteID &selectPrimary ( UINT32 groupID,
+                                        _pmdEDUCB *cb,
                                         MSG_ROUTE_SERVICE_TYPE type =
                                         MSG_ROUTE_SHARD_SERVCIE ) ;
 
@@ -111,8 +114,7 @@ namespace engine
       _clsSyncManager   *_syncmgr ;
       MsgRouteID        _src ;
       UINT32            _noRes ;
-      _clsNodeMgrAgent  *_nodeMgrAgent ;
-
+      _clsResource      *_pResource ;
    } ;
    typedef class _clsSrcSelector clsSrcSelector ;
 }

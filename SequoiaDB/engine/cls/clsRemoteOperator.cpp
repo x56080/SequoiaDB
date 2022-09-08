@@ -39,8 +39,11 @@
 #include "clsRemoteOperator.hpp"
 #include "clsBase.hpp"
 #include "pmdProcessor.hpp"
+#include "pmdEDU.hpp"
 #include "ossUtil.hpp"
 #include "dpsUtil.hpp"
+#include "utilCommon.hpp"
+#include "rtnRemoteMessenger.hpp"
 #include "pdTrace.hpp"
 
 using namespace bson ;
@@ -48,7 +51,7 @@ using namespace bson ;
 namespace engine
 {
    _clsRemoteOperator::_clsRemoteOperator()
-   : _processor( NULL ),
+   : _processor(),
      _session( NULL ),
      _cb( NULL ),
      _sucCount( 0 ),
@@ -59,10 +62,10 @@ namespace engine
 
    _clsRemoteOperator::~_clsRemoteOperator()
    {
-      _clear() ;
+      detach() ;
    }
 
-   INT32 _clsRemoteOperator::init( _pmdEDUCB *cb )
+   INT32 _clsRemoteOperator::attach( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
@@ -76,29 +79,28 @@ namespace engine
       PD_CHECK( NULL != _session , SDB_SYS, error, PDERROR,
                 "Failed to dynamic_cast pmdSessionBase, rc: %d", rc ) ;
 
-      _processor = SDB_OSS_NEW _pmdCoordProcessor() ;
-      PD_CHECK( NULL != _processor , SDB_OOM, error, PDERROR,
-                "Failed to malloc rocesser, rc: %d", rc ) ;
-
-      _session->attachProcessor( _processor ) ;
+      _session->attachProcessor( &_processor ) ;
+      _cb->attachRemoteOperator( this ) ;
 
       _sucCount = 0 ;
       _failureCount = 0 ;
    done:
       return rc ;
    error:
-      _clear() ;
+      detach() ;
       goto done ;
    }
 
-   void _clsRemoteOperator::_clear()
+   void _clsRemoteOperator::detach()
    {
+      if ( NULL != _cb )
+      {
+         _cb->detachRemoteOperator() ;
+      }
       if ( NULL != _session )
       {
          _session->detachProcessor() ;
       }
-
-      SAFE_OSS_DELETE( _processor ) ;
 
       _session = NULL ;
       _cb = NULL ;
@@ -227,8 +229,8 @@ namespace engine
 
       try
       {
-         rc = _processor->processMsg( msg, contextBuff, contextID,
-                                      needReply, needRollback, builder ) ;
+         rc = _processor.processMsg( msg, contextBuff, contextID,
+                                     needReply, needRollback, builder ) ;
       }
       catch( std::bad_alloc &e )
       {

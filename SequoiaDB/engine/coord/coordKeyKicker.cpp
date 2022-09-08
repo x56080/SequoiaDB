@@ -58,7 +58,7 @@ namespace engine
    {
    }
 
-   void _coordKeyKicker::bind( coordResource *pResource,
+   void _coordKeyKicker::bind( clsRemoteResource *pResource,
                                const CoordCataInfoPtr &cataPtr )
    {
       _pResource = pResource ;

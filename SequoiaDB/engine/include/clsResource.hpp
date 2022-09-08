@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = coordResource.hpp
+   Source File Name = clsResource.hpp
 
    Descriptive Name =
 
@@ -34,23 +34,27 @@
 
 *******************************************************************************/
 
-#ifndef COORD_RESOURCE_HPP__
-#define COORD_RESOURCE_HPP__
+#ifndef CLS_RESOURCE_HPP__
+#define CLS_RESOURCE_HPP__
 
-#include "coordDef.hpp"
 #include "clsRemoteResource.hpp"
 
 namespace engine
 {
 
    /*
-      _coordResource define
+      _clsResource define
     */
-   class _coordResource : public SDBObject, public _clsRemoteResource
+   class _clsResource : public SDBObject, public _clsRemoteResource
    {
+   protected:
+      virtual UINT32 _getCataInfoParseGroupID() const
+      {
+         return _selfNodeID.columns.groupID ;
+      }
    } ;
-   typedef class _coordResource coordResource ;
+   typedef class _clsResource clsResource ;
 
 }
 
-#endif // COORD_RESOURCE_HPP__
+#endif // CLS_RESOURCE_HPP__
