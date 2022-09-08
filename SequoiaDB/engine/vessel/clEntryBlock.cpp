@@ -46,7 +46,7 @@ namespace vessel
       _rdpCount.store(0, std::memory_order_relaxed);
       routeMap.fill(INVALID_PAGE_ID);
       _fsm.close();
-      _indexes.fini();
+      _indexes.reset();
       return;
    }
 } // namespace vessel

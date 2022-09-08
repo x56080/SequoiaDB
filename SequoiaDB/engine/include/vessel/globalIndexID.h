@@ -38,6 +38,7 @@
 
 #include "dms.hpp"
 #include "vessel/indexDef.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -52,6 +53,11 @@ namespace vessel
          explicit globalIndexID(UINT32 cs, UINT32 cl, UINT32 index):
          _csLid(cs),
          _clLid(cl),
+         _indexLid(index){}
+
+         explicit globalIndexID(const globalLogicalClId &clid, UINT32 index):
+         _csLid(clid.getLogicalCSID()),
+         _clLid(clid.getLogicalCLID()),
          _indexLid(index){}
 
          globalIndexID(const globalIndexID &o):
@@ -143,6 +149,26 @@ namespace vessel
             _clLid = cl;
             _indexLid = index;
             return;
+         }
+
+         ossPoolString toString() const
+         {
+            bson::StringBuilder builder(64);
+            builder << '{' << _csLid << ','
+                    << _clLid << "," << _indexLid << '}';
+            return std::move(builder.poolStr());
+         }
+
+         static globalIndexID getMinGlobalIndexID()
+         {
+            return globalIndexID(0, 0, 0);
+         }
+
+         static globalIndexID getMaxGlobalIndexID()
+         {
+            return globalIndexID(DMS_INVALID_LOGICCSID - 1,
+                                 DMS_INVALID_LOGICCLID - 1,
+                                 INVALID_LOGICAL_INDEX_ID - 1);
          }
 
       private:

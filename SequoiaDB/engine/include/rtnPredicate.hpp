@@ -369,10 +369,10 @@ namespace engine
 
    private:
       // _equalFlag == 1 means is equal operation
-      INT8 _equalFlag ;
+      mutable INT8 _equalFlag ;
 
       // _allEqualFlag == 1 means all start-stop key-pairs are equal operation
-      INT8 _allEqualFlag ;
+      mutable INT8 _allEqualFlag ;
 
       INT8 _paramIndex ;
       INT8 _fuzzyIndex ;
@@ -462,7 +462,7 @@ namespace engine
          }
          return FALSE ;
       }
-      BOOLEAN isEquality ()
+      BOOLEAN isEquality () const
       {
          if ( -1 == _equalFlag )
          {
@@ -471,12 +471,12 @@ namespace engine
          }
          return _equalFlag == 1 ;
       }
-      BOOLEAN isAllEqual ()
+      BOOLEAN isAllEqual ()const
       {
          if ( -1 == _allEqualFlag )
          {
             UINT32 equalCount = 0 ;
-            for ( RTN_SSKEY_LIST::iterator iterSSKey = _startStopKeys.begin() ;
+            for ( RTN_SSKEY_LIST::const_iterator iterSSKey = _startStopKeys.begin() ;
                   iterSSKey != _startStopKeys.end() ;
                   iterSSKey ++ )
             {
@@ -693,6 +693,8 @@ namespace engine
          BSONObj getBound( BOOLEAN needAbbrev ) const ;
          BSONObj getBound() const ;
          BOOLEAN isAllRange() const ;
+         BOOLEAN isAllEqual() const ;
+         BOOLEAN isPointGet() const ;
 
          const RTN_PREDICATE_LIST* getPredicateList() const
          {

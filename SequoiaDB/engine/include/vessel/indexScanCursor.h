@@ -43,7 +43,7 @@
 #include "vessel/slice.h"
 #include "vessel/objectIdentifier.h"
 #include "dmsEngineOptions.hpp"
-#include "../bson/util/builder.h"
+#include "vessel/indexScanContext.h"
 
 namespace engine
 {
@@ -58,12 +58,12 @@ namespace vessel
                          const globalCollectionId &gcid,
                          const indexIdentifier &indexId):
          _o(o),
-         _predicate(predicateList),
          _gcid(gcid),
-         _indexId(indexId)
+         _indexId(indexId),
+         _ctx(predicateList)
          {}
 
-         virtual ~indexScanCursor();
+         virtual ~indexScanCursor() = default;
 
       public:
          virtual const CHAR *getName()const override
@@ -97,37 +97,16 @@ namespace vessel
          {
             return _gcid;
          }
-
-         OSS_INLINE rtnPredicateListIterator *getPredicate()
-         {
-            return &_predicate;
-         }
-         OSS_INLINE const rtnPredicateListIterator *getPredicate()const
-         {
-            return &_predicate;
-         }
          OSS_INLINE const dmsIndexScanOptions &getOptions()const
          {
             return _o;
          }
-
-         void saveEntry(const slice &entryData);
-         OSS_INLINE BOOLEAN hasEntry()const
-         {
-            return 0 < _entry.len();
-         }
-         slice getEntryData()const;
-
-         BOOLEAN markRidScanned(const recordID &rid);
-         BOOLEAN testRidScanned(const recordID &rid)const;
-
+         OSS_INLINE indexScanContext &getCtx() {return _ctx;}
       private:
          dmsIndexScanOptions _o;
-         rtnPredicateListIterator _predicate;
          globalCollectionId _gcid;
          indexIdentifier _indexId;
-         UNORDERED_RID_SET _scanned;
-         bson::StackBufBuilder _entry;
+         indexScanContext _ctx;
    };//class indexScanCursor
 } // namespace vessel
 

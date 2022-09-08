@@ -37,6 +37,7 @@
 #include "vessel/lsm/lsmColumnFamily.h"
 #include "vessel/lsm/lsmDB.h"
 #include "pd.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
@@ -45,7 +46,7 @@ namespace vessel
    lsmColumnFamily::lsmColumnFamily(lsmDB *db, LSM_CF_ID cfId)
    {
       SDB_ASSERT(nullptr != db, "can not be null");
-      SDB_ASSERT(LSM_INVALID_CF_ID != cfId, "can not be invalid");
+      SDB_ASSERT(LSM_CF_INVALID != cfId, "can not be invalid");
       _db = db;
       _cfId = cfId;
    }
@@ -129,23 +130,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmColumnFamily::compact(const rocksdb::Slice *lowKey,
-                                  const rocksdb::Slice *upKey) const
-   {
-      SDB_ASSERT(isValid(), "must be valid");
-      INT32 rc = SDB_OK;
-      rc = _db->compact(_cfId, lowKey, upKey);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to compact, cf[%d], rc: %d", _cfId, rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    rocksdb::Iterator *lsmColumnFamily::newIterator(const rocksdb::ReadOptions &opt)
    {
       SDB_ASSERT(isValid(), "must be valid");
@@ -178,6 +162,30 @@ namespace vessel
    {
       SDB_ASSERT(isValid(), "must be valid");
       return _db->getMinDirtyLsn(_cfId);
+   }
+
+   INT32 lsmColumnFamily::loadSSTs(INT32 level,
+                                   BOOLEAN dirIncluded,
+                                   BOOLEAN creationAsc,
+                                   ossPoolVector<std::string> &ssts)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _db->loadSSTs(_cfId, level, dirIncluded, creationAsc, ssts);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to load sst files:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 } // namespace vessel

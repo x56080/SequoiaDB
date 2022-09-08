@@ -48,6 +48,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/unitedBitmap.hpp"
 #include "vessel/shallowPointer.hpp"
+#include "vessel/sparseBitmap32.h"
 
 namespace engine
 {
@@ -87,38 +88,38 @@ namespace vessel
          void destroy();
 
       public:
-         INT32 getLogicalPageBuffer(requestContext *context,
-                                    PAGE_ID lpid,
-                                    const ossSharedLatchMode &mode,
-                                    logicalPageBuffer &lpb);
+         virtual INT32 getLogicalPageBuffer(requestContext *context,
+                                            PAGE_ID lpid,
+                                            const ossSharedLatchMode &mode,
+                                            logicalPageBuffer &lpb);
 
-         INT32 tryToGetLogicalPageBuffer(requestContext *context,
-                                         PAGE_ID lpid,
-                                         const ossSharedLatchMode &mode,
-                                         logicalPageBuffer &lpb);
+         virtual INT32 tryToGetLogicalPageBuffer(requestContext *context,
+                                                 PAGE_ID lpid,
+                                                 const ossSharedLatchMode &mode,
+                                                 logicalPageBuffer &lpb);
 
          ///WARNING: user should lock lpid out side if necessary.
          /// return ok but invalid desc if unmapped.
-         INT32 testLogicalPageMapping(PAGE_ID lpid,
-                                      lpageDescriptor &desc);
+         virtual INT32 testLogicalPageMapping(PAGE_ID lpid,
+                                              lpageDescriptor &desc);
 
          /// Make buffer from "getLogicalPageBuffer" writable.
          /// Buffer with shared locking can not be writable.
-         INT32 makeBufferWritable(logicalPageBuffer &lpb);
+         virtual INT32 makeBufferWritable(logicalPageBuffer &lpb);
 
          /// lpid must be in reserved by _getReservedLpidUnits.
          /// Page will be created if lpid unmapped.
          /// If lpid has already been mapped, will do nothing.
          /// Should always get exclusive latch out side.
          /// If just want to read a reserved page ,jsut use "getLogicalPageBuffer".
-         INT32 ensureReservedPageMapped(requestContext *context,
-                                        PAGE_ID lpid,
-                                        pageInitializer *initer);
+         virtual INT32 ensureReservedPageMapped(requestContext *context,
+                                                PAGE_ID lpid,
+                                                pageInitializer *initer);
 
-         INT32 allocatePages(requestContext *context,
-                             pageInitializer *initer,
-                             UINT32 count,
-                             PAGE_ID *lpids);
+         virtual INT32 allocatePages(requestContext *context,
+                                     pageInitializer *initer,
+                                     UINT32 count,
+                                     PAGE_ID *lpids);
 
          INT32 allocatePage(requestContext *context,
                             pageInitializer *initer,
@@ -127,18 +128,15 @@ namespace vessel
             return allocatePages(context, initer, 1, &lpid);
          }
 
-         INT32 releasePages(requestContext *context,
-                            UINT32 count,
-                            const PAGE_ID *lpids);
+         virtual INT32 releasePages(requestContext *context,
+                                    UINT32 count,
+                                    const PAGE_ID *lpids);
 
          INT32 releasePage(requestContext *context,
                            PAGE_ID lpid)
          {
             return releasePages(context, 1, &lpid);
          }
-
-         INT32 blockCheckpoint(requestContext *){return SDB_OK;}
-
 
       private:
          virtual INT32 _onCreationStarted() {return SDB_OK;}
@@ -156,6 +154,9 @@ namespace vessel
          {
             return storageFileCtlFlag::MMAP_DATA_SEGMENT;
          }
+
+         /// the segment can be reused with the min free page count 
+         virtual UINT32 _getSegmentPcntReused()const {return 8;}
 
          virtual INT32 _getRuntimePageBuffer(requestContext *context,
                                              PAGE_ID pid,
@@ -185,6 +186,22 @@ namespace vessel
                                  const mmapPagePointer &ptr,
                                  runtimePageBuffer &rpb);
          };//class _runtimePageBufferIniter
+
+         class _logicalPageBufferIniter : public SDBObject
+         {
+            public:
+               void init(PAGE_ID lpid,
+                         ossSharedLatchMode mode,
+                         requestContext *context,
+                         logicalPageSpace *lps,
+                         runtimePageBuffer &&rpb,
+                         PAGE_SNAPSHOT_VERION psv,
+                         logicalPageBuffer &lpb);
+               runtimePageBuffer &getRpbRef(logicalPageBuffer &lpb)
+               {
+                  return lpb._rpb;
+               }
+         };////class _logicalPageBufferIniter
          
       private:
          INT32 _createMetaFile();
@@ -202,8 +219,10 @@ namespace vessel
                                      const PAGE_ID *lpids,
                                      const PAGE_ID *pids);
 
-         INT32 _reserveLpids(UINT32 size, PAGE_ID *lpids);
+         INT32 _reserveLpids(UINT32 size, PAGE_ID *lpids, BOOLEAN autoExtendLPM=TRUE);
          void _freeLpids(UINT32 size, const PAGE_ID *lpids);
+         void _freeLpid(PAGE_ID lpid);
+         void _freeLpids(const sparseBitmap32 &bm);
 
          OSS_INLINE BOOLEAN _isReservedLpid(PAGE_ID lpid)const
          {
@@ -212,6 +231,9 @@ namespace vessel
 
          fclusterSpaceManager &_getSpaceMgr() {return _smgr;}
          lpageMapping &_getPageMapping() {return _lpm;}
+         lpageMetaDataFile &_getMetaFile() {return _mfile;}
+
+         INT32 _updateUberBlockOnDisk(BOOLEAN fsync);
 
       private:
          const storageUnitManifest *_manifest = nullptr;

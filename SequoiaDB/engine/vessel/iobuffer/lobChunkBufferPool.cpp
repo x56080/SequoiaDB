@@ -1156,7 +1156,7 @@ namespace vessel
          bufferFlushTaskId task = _watcherEnv._taskBuilder.getNextTask();
          event.getShortData<bufferFlushTaskId>().offset = task.offset;
          event.getShortData<bufferFlushTaskId>().size = task.size;
-         workers.pushBufferEvent(event);
+         workers.pushEvent(event);
       }
 
       PD_LOG(PDDEBUG, "begin to flush dirty buffers, task count[%d, %d]",

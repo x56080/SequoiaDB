@@ -36,17 +36,17 @@
 #ifndef VESSEL_INDEX_SPACE_H_
 #define VESSEL_INDEX_SPACE_H_
 
-#include "vessel/logicalPageSpace.h"
+#include "vessel/logicalPageSpacePte.h"
 
 namespace engine
 {
 namespace vessel
 {  
-   class indexSpace : public logicalPageSpace
+   class indexSpace : public logicalPageSpacePte
    {
       public:
          indexSpace(const storageUnitManifest *manifest):
-         logicalPageSpace(manifest){}
+         logicalPageSpacePte(manifest){}
          virtual ~indexSpace(){}
 
       public:
@@ -56,22 +56,8 @@ namespace vessel
          }
 
       protected:
-         virtual INT32 _getRuntimePageBuffer(requestContext *context,
-                                             PAGE_ID pid,
-                                             const ossSharedLatchMode &mode,
-                                             runtimePageBuffer &rpb);
+         virtual UINT32 _getSegmentPcntReused()const override {return 128;}
 
-         virtual INT32 _getRuntimePageBufferToReset(requestContext *context,
-                                                    PAGE_ID pid,
-                                                    runtimePageBuffer &rpb);
-
-         virtual INT32 _copyPageAndReinitBuffer(requestContext *context,
-                                                PAGE_SNAPSHOT_VERION psv,
-                                                PAGE_ID newPid,
-                                                runtimePageBuffer &rpb);
-                                                
-      private:
-         virtual UINT32 _getReservedLpidUnits()const override {return 1;}
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

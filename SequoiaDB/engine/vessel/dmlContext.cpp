@@ -92,14 +92,14 @@ namespace vessel
          for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToInsert().begin();
               itr != req->getKeysToInsert().end(); ++itr)
          {
-            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getObject()->getIndexId().getIndexSlot();
+            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getObject()->getLogicalID();
             _uniqueKeyHash.push_back(hash);
          }
 
          for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToRemove().begin();
               itr != req->getKeysToRemove().end(); ++itr)
          {
-            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getObject()->getIndexId().getIndexSlot();
+            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getObject()->getLogicalID();
             _uniqueKeyHash.push_back(hash);
          }
       }

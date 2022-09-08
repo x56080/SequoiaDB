@@ -140,7 +140,7 @@ namespace engine
          }
 
       public:
-         DMS_SCAN_FOR scanFor = DMS_SCAN_FOR_NONE;
+         DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
          INT64 rowCountLimit = -1;
          IRecordFilter *filter = NULL;
          INT32 pageStep = -1;
@@ -149,21 +149,10 @@ namespace engine
    class dmsIndexScanOptions : public SDBObject
    {
       public:
-         dmsIndexScanOptions &operator=(const dmsIndexScanOptions &o)
-         {
-            scanFor = o.scanFor;
-            rowCountLimit = o.rowCountLimit;
-            indexCovered = o.indexCovered;
-            forward = o.forward;
-            return *this;
-         }
-         
-      public:
-         DMS_SCAN_FOR scanFor = DMS_SCAN_FOR_NONE;
+         DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
          INT64 rowCountLimit = -1;
          BOOLEAN indexCovered = FALSE;
-         BOOLEAN forward = TRUE;
-      
+         UINT32 stepSize = 64;
    };//class dmsIndexScanOptions
 
    class dmsCreateDataSnapshotOptions

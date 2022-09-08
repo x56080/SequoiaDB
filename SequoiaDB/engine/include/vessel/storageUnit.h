@@ -89,6 +89,7 @@ namespace vessel
          {
             return _los;
          }
+         OSS_INLINE UINT32 getLogicalID()const {return _manifest.id.getLid();}
          OSS_INLINE const storageUnitManifest &getManifest()const {return _manifest;}
          OSS_INLINE const collectionSpaceId &getIdentifier()const {return _manifest.id;}
 

@@ -82,10 +82,12 @@ namespace vessel
             return _toRemove;
          }
 
-         indexObject *getObject()const
+         const indexObject *getObject()const
          {
             return _index;
          }
+
+         indexObject *getMutableObject() const {return _index;}
 
          OSS_INLINE void setExecuted()
          {
@@ -100,12 +102,12 @@ namespace vessel
          OSS_INLINE BOOLEAN withConstraint()const
          {
             SDB_ASSERT(isValid(), "must be valid");
-            return _index->getDescription().isUnique() &&
+            return _index->getProperties().isUnique() &&
                    _index->isNormal() &&
                    !_toInsert.empty();
          }
       private:
-         indexObject *_index = NULL;
+         mutable indexObject *_index = nullptr;
          ossPoolList<bson::BSONObj> _toInsert;
          ossPoolList<bson::BSONObj> _toRemove;
          UINT32 _flags = 0;
@@ -136,7 +138,6 @@ namespace vessel
 
          void clear();
 
-         ///The appending better to be orderd as index slot.
          INT32 append(indexObject *index,
                       const bson::BSONObjSet *keysToInsert,
                       const bson::BSONObjSet *keysToRemove);
@@ -149,6 +150,8 @@ namespace vessel
          {
             return 0 < _building;
          }
+
+         const ossPoolVector<dmlIndexRequest *> &getRequests()const {return _requests;}
       private:
          ossPoolVector<dmlIndexRequest *> _requests;
          UINT32 _constraintIndexCount = 0;

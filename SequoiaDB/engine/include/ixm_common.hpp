@@ -61,15 +61,23 @@ using namespace bson ;
 #define IXM_NOTARRAY_FIELD          IXM_FIELD_NAME_NOTARRAY
 #define IXM_UNIQUEID_FIELD          IXM_FIELD_NAME_UNIQUEID
 #define IXM_INNERID_FIELD           IXM_FIELD_NAME_INNERID
+#define IXM_LOGICALID_FIELD         FIELD_NAME_LOGICAL_ID
 
-#define IXM_TYPE_FIELD              IXM_FIELD_NAME_TYPE
-#define IXM_BTREE_COMPRESSION_FIELD IXM_FIELD_NAME_BTREE_COMPRESSION       
-#define IXM_COLUMN_FAMILY_FIELD     IXM_FIELD_NAME_LSM_COLUMN_FAMILY
-#define IXM_MAX_PREFIX_FIELD        IXM_FIELD_NAME_MAX_PREFIX_FIELDS
-#define IXM_BTREE_MIN_COMPRESSION_DEPTH_FIELD  IXM_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH
+#define IXM_TYPE_FIELD              IXM_FIELD_NAME_TYPE    
 
-#define IXM_BTREE_FIELD      IXM_FIELD_NAME_BTREE         
-#define IXM_LSM_FIELD        IXM_FIELD_NAME_LSM
+#define IXM_CREATED_TIME            "CreatedTime"
+#define IXM_ALTERED_TIME            "AlteredTime"
+
+#define IXM_STATUS_FIELD            FIELD_NAME_STATUS
+#define IXM_REBORN_LSN              "RebornLSN"
+#define IXM_PROPERTIES              "Properties"
+#define IXM_MAX_LOGICAL_ID          "MaxLogicalID"
+#define IXM_HYBRID_TREE             "HybridTree"
+#define IXM_BTREE                   "Btree"
+#define IXM_LSM_TREE                "LsmTree"
+#define IXM_BTREE_ENTRY             "BtreeEntry"
+#define IXM_COMPRESSION             "Compression"
+
 
 #define IXM_GLOBAL_CS_PREFIX        "GIDX_"
 #define IXM_GLOBAL_CL_PREFIX        "CL_"

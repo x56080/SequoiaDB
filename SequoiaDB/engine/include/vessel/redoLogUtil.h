@@ -42,6 +42,8 @@
 #include "vessel/slice.h"
 #include "vessel/vesselFileDef.h"
 
+#include "../../bson/bson.hpp"
+
 namespace engine
 {
 namespace vessel
@@ -57,22 +59,32 @@ namespace vessel
                          SPACE_TYPE &spaceType,
                          FILE_TYPE &fileType);
 
-   INT32 commitCreateIndexLog(requestContext *context,
-                              const strSlice &fullName,
-                              UINT32 indexId,
-                              INT32 indexSlot,
-                              const slice &indexDef);
+   INT32 commitCreateIndexLog(const ossPoolString &fullName,
+                              UINT32 indexLogicalId,
+                              const bson::BSONObj &obj,
+                              DPS_LSN_OFFSET &lsn);
 
-   INT32 commitCreateIndexEndLog(requestContext *context,
-                                 const strSlice &fullName,
-                                 const strSlice &indexName,
+   INT32 commitCreateIndexEndLog(const ossPoolString &fullName,
+                                 const std::string &indexName,
                                  UINT32 indexId,
-                                 INT32 indexSlot,
-                                 INT32 result);
+                                 INT32 result,
+                                 DPS_LSN_OFFSET *lsn = nullptr);
+
+   INT32 commitRemoveIndexLog(const ossPoolString &fullName,
+                              const std::string &indexName,
+                              UINT32 indexId,
+                              DPS_LSN_OFFSET &lsn);
 
    INT32 commitReleasingPagesLog(requestContext *context,
                                  const ossPoolVector<PAGE_ID> &lpids,
                                  const bson::BSONObj &adjunct);
+
+   INT32 commitTruncateCLLog(const ossPoolString &fullName,
+                             DPS_LSN_OFFSET &lsn);
+
+   INT32 commitRemoveCLLog(const ossPoolString &fullName,
+                           DPS_LSN_OFFSET &lsn);
+   
 }//namespace vessel
 }//namespace engine
 

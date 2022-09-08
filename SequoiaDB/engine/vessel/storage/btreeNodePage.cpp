@@ -42,52 +42,84 @@ namespace engine
 {
 namespace vessel
 {
-////////btreeItemSlot
-   void btreeItemSlot::initAsNonLeafFormat(const recordID &rid,
-                                          UINT16 offset,
-                                          UINT16 size,
-                                          PAGE_ID leftChild,
-                                          BOOLEAN isExternalKey)
+//////// btreeNodePageHead
+   void btreeNodePageHead::init(UINT32 pageSize,
+                                UINT32 indexId,
+                                BOOLEAN isRoot,
+                                BOOLEAN isLeaf)
    {
-      SDB_ASSERT(rid.isValid(), "can not be invalid");
-      SDB_ASSERT(0 != size, "can not be invalid");
-      SDB_ASSERT(!(!isExternalKey && 0 == offset), "can not be invalid");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexId, "can not be invalid");
+
       reset();
-      OSS_BIT_SET(flags, (FLAG_IN_USED));
-      ridPos = rid.getPos();
-      ridPage = rid.getPid();
-      data.key.offset = offset;
-      data.key.size = size;
-      data.nlf.leftChild = leftChild;
-      if (isExternalKey)
+      this->version = BTREE_NODE_PAGE_HEAD_VERSION;
+      this->indexId = indexId;
+      this->backOffset = getPageBodySize(pageSize);
+      this->totalFreeSpace = this->backOffset - BTREE_NODE_PAGE_HEAD_SIZE;
+
+      if (isRoot)
       {
-         OSS_BIT_SET(flags, FLAG_KEY_IN_EXTERNAL_PAGE);
+         OSS_BIT_SET(this->flags, BTREE_NODE_FLAG_IS_ROOT);
       }
+      if (isLeaf)
+      {
+         OSS_BIT_SET(this->flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
+
+      return;
+   }  
+
+   void btreeNodePageHead::initAsRightNode(const btreeNodePageHead &src,
+                                           UINT32 nodeSize)
+   {
+      SDB_ASSERT(src.isValid(), "can not be invalid");
+      SDB_ASSERT(BTREE_NODE_PAGE_HEAD_SIZE < nodeSize, "can not be invalid");
+      reset();
+
+      this->version = src.version;
+      this->indexId = src.indexId;
+      this->backOffset = nodeSize;
+      this->totalFreeSpace = this->backOffset - BTREE_NODE_PAGE_HEAD_SIZE;
+      this->rightChild = src.rightChild;
+      this->transID = src.transID;
+
+      UINT32 flags = src.flags;
+      /// always ignore root flag when build right node
+      OSS_BIT_CLEAR(flags, BTREE_NODE_FLAG_IS_ROOT);
+      OSS_BIT_CLEAR(flags, BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION);
+      this->flags = flags;
       return;
    }
 
-   void btreeItemSlot::initAsLeafFormat(const recordID &rid,
-                                        UINT16 offset,
-                                        UINT16 size,
-                                        BOOLEAN compressed,
-                                        RECORD_SLOT_POS prefixPos)
+////////btreeItemSlot
+   void btreeItemSlot::initAsNonLeafFormat(UINT16 offset,
+                                           UINT16 size,
+                                           PAGE_ID leftChild)
    {
-      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      SDB_ASSERT(0 != size, "can not be invalid");
+
       reset();
       OSS_BIT_SET(flags, FLAG_IN_USED);
-      ridPos = rid.getPos();
-      ridPage = rid.getPid();
       data.key.offset = offset;
       data.key.size = size;
-      
-      if (compressed)
+      data.nlf.leftChild = leftChild;
+      return;
+   }
+
+   void btreeItemSlot::initAsLeafFormat(UINT16 offset,
+                                        UINT16 size,
+                                        RECORD_SLOT_POS prefixPos)
+   {
+      reset();
+      OSS_BIT_SET(flags, FLAG_IN_USED);
+      data.key.offset = offset;
+      data.key.size = size;
+      data.lf.prefixSlot = prefixPos;
+      if (isValidRecordSlotPosition(prefixPos))
       {
          OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
-         SDB_ASSERT(isValidRecordSlotPosition(prefixPos), "can not be invalid");
       }
-      
-      data.lf.prefixSlot = prefixPos;
-
+   
       return;
    }
 
@@ -97,7 +129,6 @@ namespace vessel
                              PAGE_ID pid,
                              PAGE_ID lpid,
                              PAGE_SNAPSHOT_VERION psv,
-                             UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
                              BOOLEAN isRoot,
@@ -109,8 +140,7 @@ namespace vessel
    
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
-      if (OSS_UNLIKELY(DMS_INVALID_LOGICCLID == cllid ||
-                       INVALID_LOGICAL_INDEX_ID == indexId))
+      if (OSS_UNLIKELY(INVALID_LOGICAL_INDEX_ID == indexId))
       {
          goto done;
       }
@@ -123,22 +153,7 @@ namespace vessel
       }
 
       headPtr = (btreeNodePageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, BTREE_NODE_PAGE_HEAD_SIZE);
-      headPtr->version = BTREE_NODE_PAGE_HEAD_VERSION;
-      headPtr->clLogicalID = cllid;
-      headPtr->indexId = indexId;
-      headPtr->rightChild = INVALID_PAGE_ID;
-      headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
-      headPtr->freeSapceAfterLastSlot = headPtr->totalFreeSpace;
-      headPtr->flags = 0;
-      if (isLeaf)
-      {
-         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_LEAF);
-      }
-      if (isRoot)
-      {
-         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_ROOT);
-      }
+      headPtr->init(pageSize, indexId, isRoot, isLeaf);
       r = TRUE;
 
    done:

@@ -729,7 +729,7 @@ namespace vessel
 
    void requestContext::releaseTransLock(const recordID &rid)
    {
-      SDB_ASSERT(rid.isValid(), "can not be closed");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
       dpsTransLockId lockId;
       dmsRecordID dmsRid = rid.toDMSRid();
       lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
@@ -739,6 +739,28 @@ namespace vessel
    void requestContext::releaseAllTransLock()
    {
       getOuterResource()->transLockConsole->releaseAll(getExecutor(), nullptr);
+   }
+
+   INT32 requestContext::waitTransLock(const recordID &rid,
+                                       const DPS_TRANSLOCK_TYPE &mode)
+   {
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      dmsRecordID dmsRid = rid.toDMSRid();
+      dpsTransLockId lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
+      ITransLockConsole *console = getOuterResource()->transLockConsole;
+      INT32 rc = console->acquire(getExecutor(), lockId, mode, nullptr, nullptr, nullptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock rid:%s, rc:%d", rid.toString().c_str(), rc);
+         goto error;
+      }
+      
+      console->release(getExecutor(), lockId, FALSE, nullptr);
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

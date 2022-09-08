@@ -52,13 +52,15 @@ namespace vessel
          indexKeyPattern(const indexKeyPattern &o):
          _keyCount(o._keyCount),
          _ordering(o._ordering),
-         _pattern(o._pattern){}
+         _pattern(o._pattern.getOwned())
+         {}
+
          ~indexKeyPattern();
          indexKeyPattern &operator=(const indexKeyPattern &o)
          {
             _keyCount = o._keyCount;
             _ordering = o._ordering;
-            _pattern = o._pattern;
+            _pattern = o._pattern.getOwned();
             return *this;
          }
 
@@ -76,19 +78,14 @@ namespace vessel
 
          orderingWrapper getOrdering()const;
 
-         OSS_INLINE const bson::BSONObj getPattern()const
+         OSS_INLINE const bson::BSONObj &getPattern()const
          {
             return _pattern;
-         }
-         OSS_INLINE BOOLEAN isOwned()const
-         {
-            return _pattern.isOwned();
          }
    
       public:
          INT32 set(const bson::BSONObj &obj);
          void reset();
-         void getOwned();
          BOOLEAN isCoveredBy(const indexKeyPattern &other)const;
 
       private:

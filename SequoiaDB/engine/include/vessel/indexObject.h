@@ -36,11 +36,12 @@
 #ifndef VESSEL_INDEX_OBJECT_H_
 #define VESSEL_INDEX_OBJECT_H_
 
-#include "vessel/unstableIndexContext.h"
-#include "vessel/vesselIdDef.h"
-#include "vessel/shallowPointer.hpp"
-#include "vessel/objectIdentifier.h"
-#include "vessel/indexDescription.h"
+#include "vessel/indexProperties.h"
+#include "dpsDef.hpp"
+#include "vessel/atomicBtreeEntryAddr.h"
+
+#include <memory>
+#include <atomic>
 
 namespace engine
 {
@@ -49,15 +50,15 @@ namespace vessel
    class indexObject : public SDBObject
    {
       public:
-         indexObject();
-         ~indexObject();
+         indexObject() = default;
+         ~indexObject() = default;
          indexObject(const indexObject &) = delete;
          indexObject &operator=(const indexObject &) = delete;
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return _indexId.isValid();
+            return INVALID_LOGICAL_INDEX_ID != _logicalID;
          }
          OSS_INLINE BOOLEAN isNormal()const
          {
@@ -79,67 +80,50 @@ namespace vessel
          {
             return _status;
          }
-         OSS_INLINE const indexIdentifier &getIndexId()const
+         OSS_INLINE void setStatus(INDEX_STATUS status) {_status = status;}
+         OSS_INLINE UINT32 getLogicalID()const {return _logicalID;}
+         OSS_INLINE const indexProperties &getProperties()const {return _properties;}
+         OSS_INLINE const orderingWrapper getOrderingWrapper()const {return _properties.getPattern().getOrdering();}
+         OSS_INLINE DPS_LSN_OFFSET getRebornLSN()const {return _rebornLSN;}
+         OSS_INLINE void resetRebornLSN(DPS_LSN_OFFSET lsn) {_rebornLSN = lsn;}
+         OSS_INLINE BOOLEAN isWritable()const
          {
-            return _indexId;
+            return isValid() && (isNormal() || isBuilding());
          }
-         OSS_INLINE const indexDescription &getDescription()const
+
+         OSS_INLINE btreeEntryAddr getBtreeEntryAddr()const
          {
-            return _desc;
+            return _entryAddr.get();
          }
-         OSS_INLINE unstableIndexContext *getUnstatbleContext()const
+         OSS_INLINE void resetBtreeEntryAddr()
          {
-            return _unstatbleContext;
+            _entryAddr.reset();
          }
-         OSS_INLINE PAGE_ID getEntryLpid()const
+         OSS_INLINE void setBtreeEntryAddr(PAGE_ID pid, UINT32 psn)
          {
-            return _entryLpid;
+            _entryAddr.set(pid, psn);
          }
-         OSS_INLINE UINT32 getBtreeRootSplitTimes()const
-         {
-            return _btreeRootSplitTimes;
-         }
-         OSS_INLINE PAGE_ID getBtreeRoot()const
-         {
-            return _btreeRoot;
-         }
+
       public:
-         INT32 init(INT32 indexSlot,
-                    UINT32 indexLid,
-                    const indexDescription &desc,
-                    INDEX_STATUS status,
-                    PAGE_ID lpid,
-                    PAGE_ID btreeRoot = INVALID_PAGE_ID);
+         INT32 init(UINT32 indexLid,
+                    const indexProperties &properties,
+                    INDEX_STATUS status);
 
-         void fini();
+         INT32 initFromBson(const bson::BSONObj &obj);
 
-         void dump(bson::BSONObjBuilder &builder)const;
+         void reset();
 
-         void removeUnstableContext();
-
-         void updateStatus(INDEX_STATUS status);
+         bson::BSONObj toBson()const;
 
          BOOLEAN associates(const CHAR *fieldName)const;
 
-         void updateBtreeRoot(PAGE_ID root, UINT32 splitTimes);
-
-         void updateBtreeRootSplitTimes(UINT32 splitTimes);
-
-         BOOLEAN hasBtreeRoot()const;
-
-         void removeBtreeRoot();
-
       private:
-         indexIdentifier _indexId;
-         indexDescription _desc;
+         UINT32 _logicalID = INVALID_LOGICAL_INDEX_ID;
+         indexProperties _properties;
+         DPS_LSN_OFFSET _rebornLSN = DPS_INVALID_LSN_OFFSET;
          INDEX_STATUS _status = INDEX_STATUS_INVALID;
-         PAGE_ID _entryLpid = INVALID_PAGE_ID;
-         PAGE_ID _btreeRoot = INVALID_PAGE_ID;
-         UINT32 _btreeRootSplitTimes = 0;
-         unstableIndexContext *_unstatbleContext = NULL;
+         atomicBtreeEntryAddr _entryAddr;
    };//class indexObject
-
-   typedef shallowPointer<indexObject> INDEX_OBJECT_PTR;
 } // namespace vessel
 
 } // namespace engine

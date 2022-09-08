@@ -38,7 +38,7 @@
 #include "dpsDef.hpp"
 #include "oss.hpp"
 #include "rocksdb/table_properties.h"
-#include "vessel/globalIndexID.h"
+#include "vessel/keyStringCoder.h"
 #include <memory>
 namespace engine
 {
@@ -62,12 +62,16 @@ namespace vessel
       {
          return {};
       }
-   };
 
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_LSN = "sdb_min_lsn";
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MAX_LSN = "sdb_max_lsn";
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID = "sdb_min_global_id";
-   constexpr CHAR *const LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID = "sdb_max_global_id";
+      virtual rocksdb::Status AddUserKey(const rocksdb::Slice &key,
+                                         const rocksdb::Slice &value,
+                                         rocksdb::EntryType type,
+                                         rocksdb::SequenceNumber seq,
+                                         uint64_t file_size) override
+      {
+         return rocksdb::Status::OK();
+      } 
+   };
 
    class lsmIndexPropertiesCollector : public rocksdb::TablePropertiesCollector
    {
@@ -96,8 +100,9 @@ namespace vessel
    private:
       DPS_LSN_OFFSET _minLsn = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET _maxLsn = DPS_INVALID_LSN_OFFSET;
-      globalIndexID _minGlobalID;
-      globalIndexID _maxGlobalID;
+      CHAR _minIndexId[keyStringCoder::INDEX_ID_ENCODEING_SIZE] = {};
+      CHAR _maxIndexId[keyStringCoder::INDEX_ID_ENCODEING_SIZE] = {};
+      BOOLEAN _indexIdInited = FALSE;
    };
 
    class lsmCollectorFactory : public rocksdb::TablePropertiesCollectorFactory

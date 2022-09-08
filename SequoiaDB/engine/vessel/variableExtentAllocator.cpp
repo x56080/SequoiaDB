@@ -351,6 +351,14 @@ namespace vessel
       return;
    }  
 
+   BOOLEAN variableExtentAllocator::_segmentUnit::test(UINT32 offset)const
+   {
+      SDB_ASSERT(offset < (UINT32)_capacity, "out of bound");
+      SDB_ASSERT(nullptr != _sme, "can not be null");
+      return testBitIsNonzero(getCapacity() >> 6, _sme, offset);
+   }
+
+
 ///////////////////////////_segmentUnit end
 
 ///////////////////////////_fileUnit
@@ -709,6 +717,23 @@ namespace vessel
       return;
    }
 
+   BOOLEAN variableExtentAllocator::_fileUnit::test(PAGE_ID pid)
+   {
+      UINT32 pidOffset = pid - _firstPid;
+      UINT32 segmentId = pidOffset / _o->maxPageCountPerSegment;
+      UINT32 poffset = pidOffset % _o->maxPageCountPerSegment;
+      std::unique_lock<std::mutex> guard(_mutex);
+      if (_segments.size() <= segmentId)
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+         return TRUE;
+      }
+      else
+      {
+         return _segments.at(segmentId)->test(poffset);
+      }
+   }
+
 ///////////////////////////_fileUnit end
 
    variableExtentAllocator::~variableExtentAllocator()
@@ -888,8 +913,9 @@ namespace vessel
       UINT32 fileId = 0;
       ossSLatchGuard guard(&_latch, SHARED);
       
-      if (!_isValidExtentToFree(pid, pcnt))
+      if (OSS_UNLIKELY(!_isValidExtentToFree(pid, pcnt)))
       {
+         SDB_ASSERT(FALSE, "invalid extent to free");
          goto done;
       }
 
@@ -954,6 +980,68 @@ namespace vessel
       }
 
       return;
+   }
+
+   void variableExtentAllocator::freePids(const sparseBitmap32 &bm)
+   {
+      constexpr UINT32 BATCH_SIZE = 16;
+      std::array<PAGE_ID, BATCH_SIZE> batch;
+      UINT32 size = 0;
+      UINT32 fd = 0;
+      const UINT32 maxFilePcnt = _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
+      ossSLatchGuard guard(&_latch, SHARED);
+      sparseBitmap32::iterator itr;
+      while (bm.next(itr))
+      {
+         PAGE_ID pid = itr.get();
+         UINT32 currentFd = pid / maxFilePcnt;
+         if (OSS_UNLIKELY(!_isValidExtentToFree(pid, 1)))
+         {
+            SDB_ASSERT(FALSE, "invalid pid to free");
+            continue;
+         }
+
+         if (0 == size)
+         {
+            batch[size++] = pid;
+            fd = currentFd;
+         }
+         else if (fd == currentFd)
+         {
+            batch[size++] = pid;
+            if (BATCH_SIZE == size)
+            {
+               _funits[fd]->freePids(size, batch.data());
+               size = 0;
+               fd = 0;
+            }
+         }
+         else
+         {
+            SDB_ASSERT(0 < size, "impossible");
+            _funits[fd]->freePids(size, batch.data());
+            size = 0;
+            fd = currentFd;
+            batch[size++] = pid;
+         }
+      }
+
+      if (0 < size)
+      {
+         _funits[fd]->freePids(size, batch.data());
+      }
+
+      return;
+   }
+
+   BOOLEAN variableExtentAllocator::test(PAGE_ID pid)
+   {
+      BOOLEAN r = TRUE;
+      UINT32 maxFilePcnt = _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
+      UINT32 fd = pid / maxFilePcnt;
+      ossSLatchGuard guard(&_latch, SHARED);
+      SDB_ASSERT(fd < _funits.size(), "out of bound");
+      return _funits.at(fd)->test(pid);
    }
 
 

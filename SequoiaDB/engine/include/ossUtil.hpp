@@ -46,6 +46,7 @@
 #include "ossUtil.h"
 #include <string>
 #include <map>
+#include <type_traits>
 
 #if defined( SDB_ENGINE )
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -1250,6 +1251,36 @@ INT32 ossGetLowestBit1From64Bits(UINT64 n);
 UINT32 ossGetNonZeroBitCount64(UINT64 bits);
 
 UINT32 ossGetNonZeroBitCount32(UINT32 bits);
+
+template <
+    typename T,
+    typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+T ossNativeToBigEndian(T in)
+{
+#ifdef SDB_BIG_ENDIAN
+   return in;
+#else
+   T out;
+   ossEndianConvertIf(in, out, TRUE);
+   return out;
+#endif
+}
+
+template <
+    typename T,
+    typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+T ossBigEndianToNative(T in)
+{
+#ifdef SDB_BIG_ENDIAN
+   return in;
+#else
+   T out;
+   ossEndianConvertIf(in, out, TRUE);
+   return out;
+#endif
+}
+
+void ossMemcpyFlipBits(void *dst, const void *src, size_t len);
 
 #endif  //OSSUTIL_HPP_
 

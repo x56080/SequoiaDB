@@ -77,30 +77,11 @@ namespace vessel
             return _id;
          }
 
-         OSS_INLINE void setCLName(const CHAR *name)
-         {
-            ossStrcpy(_clName, name);
-         }
-
-         OSS_INLINE const CHAR *getCLName()const
-         {
-            return _clName;
-         }
-
-         OSS_INLINE void markLIdPushed(UINT32 lid)
-         {
-            _pushedLIds.insert(lid);
-         }
-
-         OSS_INLINE BOOLEAN isPushed(UINT32 lid)const
-         {
-            return 0 < _pushedLIds.count(lid);
-         }
-
+         OSS_INLINE UINT32 getScanned()const {return _scanned;}
+         OSS_INLINE void setScanned(UINT32 lid) {_scanned = lid;}
       private:
          collectionSpaceId _id;
-         CHAR _clName[DMS_COLLECTION_NAME_SZ + 1] = {};
-         ossPoolSet<UINT32> _pushedLIds;
+         UINT32 _scanned = DMS_INVALID_LOGICCLID;
    };//class listCLCursor
 }//namespace vessel
 }//namespace engine

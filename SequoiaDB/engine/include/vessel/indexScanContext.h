@@ -36,53 +36,47 @@
 #ifndef VESSEL_INDEX_SCAN_CONTEXT_H_
 #define VESSEL_INDEX_SCAN_CONTEXT_H_
 
-#include "vessel/requestContext.h"
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
-#include "vessel/slice.h"
-#include "dmsEngineOptions.hpp"
+#include "vessel/indexEntryLocation.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexEntryBuffer;
-   class indexScanCursor;
-
-   class indexScanContext : public requestContext
+   class indexScanContext : public SDBObject
    {
       public:
-         indexScanContext(){}
-         ~indexScanContext(){}
+         indexScanContext(const rtnPredicateList &p):
+         _predicates(p),
+         _predicate(_predicates)
+         {
+            SDB_ASSERT(_predicates.isInitialized(), "can not be invalid");
+         }
+         ~indexScanContext() = default;
+         indexScanContext(const indexScanContext &) = delete;
+         indexScanContext &operator=(const indexScanContext &) = delete;
 
       public:
-         indexIdentifier getIndexId()const;
-         rtnPredicateListIterator *getPredicate()const;
-
-         const dmsIndexScanOptions &getOptions()const;
-         const indexScanCursor *getCursor()const
-         {
-            return _cursor;
-         }
-         indexScanCursor *getCursor()
-         {
-            return _cursor;
-         }
-         OSS_INLINE BOOLEAN isCursorAttached()const
-         {
-            return NULL != _cursor;
-         }
-      public:
-         void attachIndexScanCursor(indexScanCursor *cursor);
-
+         const rtnPredicateList &getPredicates()const {return _predicates;}
+         BOOLEAN isForward()const {return 0 <= _predicates.getDirection();}
+         rtnPredicateListIterator *getPredicate() {return &_predicate;}
+         BOOLEAN isPointGet()const {return _predicates.isPointGet();}
+         IDX_ENTRY_LOCATION_UPTR &getLocation() {return _location;}
+         BOOLEAN hasLocation()const {return !!_location;}
+         void resetLocation() {_location.reset();}
+         BOOLEAN testRidScanned(const recordID &rid)const {return 0 < _scanned.count(rid);}
+         BOOLEAN markRidScanned(const recordID &rid) {return _scanned.insert(rid).second;}
       private:
-         virtual void _onClose()override;
-
-      private:
-         indexScanCursor *_cursor = NULL;
+         const rtnPredicateList &_predicates;
+         rtnPredicateListIterator _predicate;
+         UNORDERED_RID_SET _scanned;
+         IDX_ENTRY_LOCATION_UPTR _location;
    };//class indexScanContext
 } // namespace vessel
 
 } // namespace engine
+
 
 #endif//VESSEL_INDEX_SCAN_CONTEXT_H_

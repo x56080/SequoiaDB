@@ -39,12 +39,17 @@ namespace engine
 {
 namespace vessel
 {
-   lsmColumnFamilyContext::lsmColumnFamilyContext(rocksdb::ColumnFamilyHandle *handle,
-                                                  const rocksdb::WriteOptions &opt)
+   lsmColumnFamilyContext::lsmColumnFamilyContext(const rocksdb::WriteOptions &opt)
    {
-      SDB_ASSERT(nullptr != handle, "can not be null");
-      _handle = handle;
       _wOpt = opt;
+   }
+
+   void lsmColumnFamilyContext::setHandle(rocksdb::ColumnFamilyHandle *handle)
+   {
+      if (nullptr == _handle)
+      {
+         _handle = handle;
+      }
    }
 
    DPS_LSN_OFFSET lsmColumnFamilyContext::beginToFlush()

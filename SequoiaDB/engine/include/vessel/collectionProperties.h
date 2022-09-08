@@ -75,6 +75,25 @@ namespace vessel
          return id;
       }
 
+      OSS_INLINE globalLogicalClId getGlobalLogicalId()const
+      {
+         return (nullptr != csproperties) ?
+                globalLogicalClId(csproperties->csid.getLid(),
+                                  clid.getLid()) :
+                globalLogicalClId();
+      }
+
+      ossPoolString getFullName()const
+      {
+         SDB_ASSERT(nullptr != csproperties, "can not be invalid");
+         ossPoolString fullName;
+         fullName.reserve(csproperties->name.size() +
+                          name.size() + 2);
+         fullName.append(csproperties->name.c_str()).append(".").append(name.c_str());
+         return std::move(fullName);
+      }
+
+
       const csProperties *csproperties = nullptr;
       collectionId clid;
       std::string name;

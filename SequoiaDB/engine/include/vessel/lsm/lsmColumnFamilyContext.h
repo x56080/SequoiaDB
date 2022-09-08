@@ -47,8 +47,7 @@ namespace vessel
    {
       public:
          lsmColumnFamilyContext() = default;
-         lsmColumnFamilyContext(rocksdb::ColumnFamilyHandle *handle,
-                                const rocksdb::WriteOptions &wOpt);
+         lsmColumnFamilyContext(const rocksdb::WriteOptions &wOpt);
          ~lsmColumnFamilyContext() = default;
          lsmColumnFamilyContext(const lsmColumnFamilyContext &) = delete;
          lsmColumnFamilyContext &operator= (const lsmColumnFamilyContext &) = delete;
@@ -70,6 +69,7 @@ namespace vessel
          }
 
       public:
+         void setHandle(rocksdb::ColumnFamilyHandle *handle);
          // lock flush first
          DPS_LSN_OFFSET beginToFlush();
 

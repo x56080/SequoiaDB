@@ -82,7 +82,7 @@ namespace vessel
          BOOLEAN hasUnfreeBuffer()const;
 
       public:
-         DPS_TRANS_ID getTransIDOfExecutor()const;
+         DPS_TRANS_ID getTransID()const;
          
       private:
          static constexpr UINT32 _S_BUF_POOL_SIZE = 8192;

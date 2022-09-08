@@ -52,7 +52,7 @@ namespace vessel
    {
       friend class logicalPageSpace;
       public:
-         runtimePageBuffer();
+         runtimePageBuffer() = default;
          ~runtimePageBuffer();
          runtimePageBuffer(runtimePageBuffer &&);
          runtimePageBuffer &operator=(runtimePageBuffer &&);
@@ -94,7 +94,7 @@ namespace vessel
          void fini();
 
          BOOLEAN isCommitted()const;
-         BOOLEAN isWritingPrepared()const;
+         BOOLEAN isWritingPrepared()const;;
 
       public:
          INT32 prepareToWrite(requestContext *context);
@@ -118,7 +118,7 @@ namespace vessel
          UINT32 _flags = 0;
          liteIOBuffer _iob;
          ossValuePtr _buffer = 0;
-         DPS_LSN_OFFSET _commitedLsn = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET _committedLsn = DPS_INVALID_LSN_OFFSET;
    };//class runtimePageBuffer
 }//namespace vessel
 }//namespace engine

@@ -62,7 +62,7 @@ namespace vessel
       OSS_INLINE BOOLEAN isValid() const
       {
          return nullptr != _db &&
-                LSM_INVALID_CF_ID != _cfId;
+                LSM_CF_INVALID != _cfId;
       }
 
    public:
@@ -75,17 +75,25 @@ namespace vessel
       INT32 remove(const rocksdb::Slice &key) const;
       INT32 truncate(const rocksdb::Slice &lowKey,
                      const rocksdb::Slice &upKey) const;
-      INT32 compact(const rocksdb::Slice *lowKey = nullptr,
-                    const rocksdb::Slice *upKey = nullptr) const;
       rocksdb::Iterator *newIterator(const rocksdb::ReadOptions &opt);
       INT32 flush() const;
       void openBatch(lsmWriteBatch &batch);
       DPS_LSN_OFFSET getMinDirtyLsn() const;
 
    public:
+      INT32 loadSSTs(INT32 level,
+                     BOOLEAN dirIncluded,
+                     BOOLEAN creationAsc,
+                     ossPoolVector<std::string> &ssts);
+
+   private:
       lsmDB *_db = nullptr;
-      LSM_CF_ID _cfId = LSM_INVALID_CF_ID;
+      LSM_CF_ID _cfId = LSM_CF_INVALID;
    };
+
+   extern lsmColumnFamily GET_HYBRID_INDEX_COLUMN_FAMILY();
+   extern lsmColumnFamily GET_LOBM_COLUMN_FAMILY();
+   extern lsmColumnFamily GET_INDEX_META_COLUMN_FAMILY();
 } // namespace vessel
 } // namespace engine
 

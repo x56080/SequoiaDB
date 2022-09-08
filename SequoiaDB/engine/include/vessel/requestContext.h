@@ -224,6 +224,9 @@ namespace vessel
          void releaseTransLock(const recordID &rid);
 
          void releaseAllTransLock();
+
+         INT32 waitTransLock(const recordID &rid,
+                             const DPS_TRANSLOCK_TYPE &mode);
       private:
          virtual void _onClose() {}
 

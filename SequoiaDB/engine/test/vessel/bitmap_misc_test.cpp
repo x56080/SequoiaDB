@@ -37,6 +37,8 @@
 #include <gtest/gtest.h>
 #include "vessel/bitsetTree.hpp"
 #include "vessel/blockBasedMemPool.h"
+#include "vessel/sparseBitmap32.h"
+#include <random>
 
 using namespace engine::vessel;
 
@@ -231,4 +233,87 @@ TEST(bitmapMiscTest, mem_pool_test1)
       rc = pool.allocate(block);
       ASSERT_EQ(SDB_OK, rc);
    }
+}
+
+TEST(bitmapMiscTest, base_sparse_bitmap32_test1)
+{
+   constexpr UINT32 count = 100000000;
+   sparseBitmap32 bitmap;
+   for (UINT32 i = 0; i < count; i+=2)
+   {
+      BOOLEAN old = FALSE;
+      INT32 rc = bitmap.set(i, &old);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_FALSE(old);
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      BOOLEAN r = bitmap.test(i);
+      if (0 == (i & 0x01))
+      {
+         ASSERT_TRUE(r);
+      }
+      else
+      {
+         ASSERT_FALSE(r);
+      }
+   }
+
+   sparseBitmap32::iterator itr;
+   for (UINT32 i = 0; i < count; i+=2)
+   {
+      BOOLEAN r = bitmap.next(itr);
+      ASSERT_TRUE(r);
+      ASSERT_EQ(i, itr.get());
+   }
+   ASSERT_FALSE(bitmap.next(itr));
+
+   for (UINT32 i = 0; i < count; i+=2)
+   {
+      bitmap.reset(i);
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      ASSERT_FALSE(bitmap.test(i));
+   }
+}
+
+TEST(bitmapMiscTest, base_sparse_bitmap32_test2)
+{
+   constexpr UINT32 count = 10000;
+   sparseBitmap32 bitmap;
+   vector<UINT32> values;
+   values.reserve(count);
+   std::default_random_engine generator;
+   std::uniform_int_distribution<UINT32> distribution(0, 1000000);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      values.emplace_back(distribution(generator));
+   }
+
+   for (UINT32 i = 0; i < values.size(); ++i)
+   {
+      bitmap.set(values[i]);
+   }
+
+   std::sort(values.begin(), values.end());
+   auto last = std::unique(values.begin(), values.end());
+   values.resize(std::distance(values.begin(), last));
+
+   for (UINT32 i = 0; i < values.size(); ++i)
+   {
+      ASSERT_TRUE(bitmap.test(values[i]));
+   }
+
+   sparseBitmap32::iterator itr;
+   for (UINT32 i = 0; i < values.size(); ++i)
+   {
+      BOOLEAN r = bitmap.next(itr);
+      ASSERT_TRUE(r);
+      ASSERT_EQ(values[i], itr.get());
+   }
+   ASSERT_FALSE(bitmap.next(itr));
 }

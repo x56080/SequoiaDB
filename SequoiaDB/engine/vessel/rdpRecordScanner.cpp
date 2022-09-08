@@ -420,7 +420,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
-      if (DMS_SCAN_FOR_NONE == _o.so.scanFor)
+      if (DMS_SCAN_FOR::NONE == _o.so.scanFor)
       {
          rc = scanWithRU(pos);
          if (SDB_OK != rc)
@@ -449,8 +449,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(INVALID_RECORD_SLOT_POS  != pos, "can not be invalid");
-      SDB_ASSERT(DMS_SCAN_FOR_NONE != _o.so.scanFor, "can not be none");
-      DPS_TRANSLOCK_TYPE mode = (DMS_SCAN_FOR_SHARE == _o.so.scanFor) ?
+      SDB_ASSERT(DMS_SCAN_FOR::NONE != _o.so.scanFor, "can not be none");
+      DPS_TRANSLOCK_TYPE mode = (DMS_SCAN_FOR::SHARE == _o.so.scanFor) ?
                                 DPS_TRANSLOCK_S : DPS_TRANSLOCK_U;
       UINT8 recordType = RDP_RECORD_HEAD_TYPE_INVALID;
       recordID rid;

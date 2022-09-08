@@ -40,19 +40,21 @@ namespace engine
 {
 namespace vessel
 {
-   enum LSM_CF_ID
+   enum LSM_CF_ID : INT32
    {
-      LSM_INVALID_CF_ID = -1,
-      LSM_DEFAULT_CF_ID = 0,
-      LSM_INDEX_CF_ID = 1,
-      LSM_LOB_CHUNK_CF_ID = 2,
-      LSM_MAX_CF_ID = LSM_LOB_CHUNK_CF_ID
+      LSM_CF_INVALID = -1,
+      LSM_CF_DEFAULT = 0,
+      LSM_CF_HYBRID_INDEX = 1,
+      LSM_CF_INDEX_META = 2,
+      LSM_CF_LOBM = 3,
+      LSM_CF_MAX = LSM_CF_LOBM
    };
 
    // The first column family name must be 'default'.
    constexpr CHAR *LSM_DEFAULT_CF_NAME = "default";
-   constexpr CHAR *LSM_INDEX_CF_NAME = "sdb.lsmIndex";
-   constexpr CHAR *LSM_LOB_CHUNK_CF_NAME = "sdb.lsmLobChunk";
+   constexpr CHAR *LSM_HYBRID_INDEX_CF_NAME = "sdb.hybridIndex";
+   constexpr CHAR *LSM_LOBM_CF_NAME = "sdb.lobm";
+   constexpr CHAR *LSM_INDEX_META_CF_NAME = "sdb.indexm";
 } // namespace vessel
 } // namespace engine
 

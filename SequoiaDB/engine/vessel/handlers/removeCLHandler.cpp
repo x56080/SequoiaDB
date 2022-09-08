@@ -57,8 +57,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      rc = context.getEnv()->dms.getCSBySpaceID(&context, gcid.getSpaceId(),
-                                        gcid.getCSLid(), SHARED, &csObj);
+      rc = context.getEnv()->dms.getCSByLogicalID(&context, gcid.getCSLid(),
+                                                  SHARED, &csObj);
       if (SDB_OK != rc)
       {
          goto error;

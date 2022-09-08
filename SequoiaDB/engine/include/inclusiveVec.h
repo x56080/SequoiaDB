@@ -39,31 +39,26 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "pdTrace.hpp"
+#include <bitset>
 
 namespace engine
 {
-   static const UINT32 MAX_INCLUSIVE_VEC_SIZE = 32;
-   /// the bit at the position is 1 means inclusive.
+   /// the bit at the position is 0 means inclusive.
    class inclusiveVec : public SDBObject
    {
       public:
-         OSS_INLINE inclusiveVec(){}
-         OSS_INLINE ~inclusiveVec(){}
-         OSS_INLINE inclusiveVec(const inclusiveVec &o):
-         _size(o._size),
-         _vec(o._vec){}
-         OSS_INLINE explicit inclusiveVec(UINT32 size, BOOLEAN inclusive)
+         inclusiveVec() = default;
+         ~inclusiveVec() = default;
+         explicit inclusiveVec(UINT32 size, BOOLEAN inclusive)
          {
             setAll(size, inclusive);
          }
-         OSS_INLINE inclusiveVec &operator=(const inclusiveVec &o)
-         {
-            _size = o._size;
-            _vec = o._vec;
-            return *this;
-         }
 
       public:
+         OSS_INLINE void reset()
+         {
+            _bs.reset();
+         }
 
          OSS_INLINE BOOLEAN operator[](UINT32 pos)const
          {
@@ -72,30 +67,26 @@ namespace engine
 
          OSS_INLINE void setAll(UINT32 size, BOOLEAN inclusive)
          {
-            SDB_ASSERT(size <= MAX_INCLUSIVE_VEC_SIZE, "out of bound");
-            _size = size;
-            _vec = 0;
+            SDB_ASSERT(size <= _bs.size(), "out of bound");
 
-            if (inclusive)
+            reset();
+            if (!inclusive)
             {
-               for (UINT32 i = 0; i < _size; ++i)
+               for (UINT32 i = 0; i < size; ++i)
                {
-                  UINT32 mask = ((UINT32)1 << i);
-                  OSS_BIT_SET(_vec, mask);
+                  _bs.set(i);
                }
             }
          }
          OSS_INLINE void setInclusive(UINT32 pos)
          {
-            SDB_ASSERT(pos < _size, "out of bound");
-            UINT32 mask = ((UINT32)1 << pos);
-            OSS_BIT_SET(_vec, mask);
+            SDB_ASSERT(pos < _bs.size(), "out of bound");
+            _bs.reset(pos);
          }
          OSS_INLINE void setExclusive(UINT32 pos)
          {
-            SDB_ASSERT(pos < _size, "out of bound");
-            UINT32 mask = ((UINT32)1 << pos);
-            OSS_BIT_CLEAR(_vec, mask);
+            SDB_ASSERT(pos < _bs.size(), "out of bound");
+            _bs.set(pos);
          }
          OSS_INLINE void set(UINT32 pos, BOOLEAN inclusive)
          {
@@ -108,40 +99,32 @@ namespace engine
                setExclusive(pos);
             }
          }
-         OSS_INLINE void setSize(UINT32 s)
+         OSS_INLINE void setBatch(INT32 begin, INT32 end, BOOLEAN inclusive)
          {
-            SDB_ASSERT(s <= MAX_INCLUSIVE_VEC_SIZE, "out of bound");
-            _size = s;
-            return;
+            for (INT32 i = 0; i <= end; ++i)
+            {
+               set(i, inclusive);
+            }
          }
+
          OSS_INLINE BOOLEAN allInclusive()const
          {
-            BOOLEAN r = TRUE;
-            SDB_ASSERT(0 < _size, "can not be invalid");
-            for (UINT32 i = 0; i < _size; ++i)
-            {
-               if (!isInclusive(i))
-               {
-                  r = FALSE;
-                  break;
-               }
-            }
-            return r;
-         }
-         OSS_INLINE UINT32 getSize()const
-         {
-            return _size;
+            return _bs.none();
          }
          OSS_INLINE BOOLEAN isInclusive(UINT32 pos)const
          {
-            SDB_ASSERT(pos < _size, "out of bound");
-            UINT32 mask = ((UINT32)1 << pos);
-            return 0 != OSS_BIT_TEST(_vec, mask);
+            SDB_ASSERT(pos < _bs.size(), "out of bound");
+            return !_bs.test(pos);
+         }
+         OSS_INLINE BOOLEAN isExclusive(UINT32 pos)const
+         {
+            SDB_ASSERT(pos < _bs.size(), "out of bound");
+            return _bs.test(pos);
          }
 
       private:
-         UINT32 _size = 0;
-         UINT32 _vec = 0;
+         static constexpr UINT32 _VEC_CAPACITY = 32;
+         std::bitset<_VEC_CAPACITY> _bs;
    };//class inclusiveVec
 }//namespace engine
 

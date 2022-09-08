@@ -44,23 +44,6 @@ namespace engine
 {
 namespace vessel
 {
-   void backgroundWorkers::_workerFamily::clear()
-   {
-      for (_WORKERS::const_iterator itr = _workers.begin();
-           itr != _workers.end(); ++itr)
-      {
-         backgroundWorker *worker = *itr;
-         if (NULL != worker)
-         {
-            SDB_OSS_DEL worker;
-         }
-      }
-
-      _workers.clear();
-      _workingCounter.store(0);
-      _el.clear();
-   }
-
    backgroundWorkers::~backgroundWorkers()
    {
       fini();
@@ -71,8 +54,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
 
-      if (OSS_UNLIKELY(NULL == env ||
-                       0 == o.bufferCleaner))
+      if (OSS_UNLIKELY(nullptr == env ||
+                       0 == o.maxWorkerNum))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -96,94 +79,102 @@ namespace vessel
    INT32 backgroundWorkers::_active(const options &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 != o.bufferCleaner, "can not be zero");
-      SDB_ASSERT(_buffer._workers.empty(), "must be empty");
+      SDB_ASSERT(0 != o.maxWorkerNum, "can not be zero");
+      SDB_ASSERT(_workers.empty(), "must be empty");
+      SDB_ASSERT(0 == _actived, "must be zero");
 
-      for (UINT32 i = 0; i < o.bufferCleaner; ++i)
+      _workers.reserve(o.maxWorkerNum);
+      for (UINT32 i = 0; i < o.maxWorkerNum; ++i)
       {
-         backgroundWorker *worker = SDB_OSS_NEW backgroundWorker();
-         if (OSS_UNLIKELY(NULL == worker))
+         BACKGROUND_WORKER_UPTR worker(SDB_OSS_NEW backgroundWorker());
+         if (OSS_UNLIKELY(!worker))
          {
             PD_LOG(PDERROR, "failed to allocate mem.");
             rc = SDB_OOM;
             goto error;
          }
 
-         worker->init(_env, &_buffer._el, &_buffer._workingCounter);
-         rc = _env->resource.executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
-                                                    worker);
+         worker->init(_env, &_el, &_workingCounter);
+         _workers.push_back(std::move(worker)); 
+      }
+
+      for (UINT32 i = 0; i < _workers.size(); ++i)
+      {
+         BACKGROUND_WORKER_UPTR &worker = _workers[i];
+         rc = worker->active(FALSE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to start new worker:%d", rc);
             goto error;
          }
-
-         worker->waitAttaching();
-         _buffer._workers.push_back(worker); 
-         
+         ++_actived;
       }
-      PD_LOG(PDINFO, "[%d] buffer cleaners attached", _buffer._workers.size());
+
+      for (UINT32 i = 0; i < _workers.size(); ++i)
+      {
+         BACKGROUND_WORKER_UPTR &worker = _workers[i];
+         worker->waitForAttaching();
+      }
+
+      PD_LOG(PDINFO, "[%d] background workers attached", _actived);
    done:
       return rc;
    error:
+      for (UINT32 i = 0; i < _actived; ++i)
+      {
+         BACKGROUND_WORKER_UPTR &worker = _workers[i];
+         worker->waitForAttaching();
+      }
+
       _deactive();
       goto done;
    }
 
    void backgroundWorkers::fini()
    {
-      if (NULL != _env)
+      if (nullptr != _env)
       {
-         _deactive();
-         SDB_ASSERT(_buffer._el.isEmpty(), "must be empty");
-         _env = NULL;
+         if (!_workers.empty())
+         {
+            _deactive();
+         }
+         _env = nullptr;
       }
       return;
    }
 
    void backgroundWorkers::pushEvent(const backgroundEvent &event)
    {
-      SDB_ASSERT(NULL != _env, "not inited");
       SDB_ASSERT(event.isValid(), "can not be invalid");
       SDB_ASSERT(!event.isQuitEvent(), "can not be quit");
-      SDB_ASSERT(!_buffer._workers.empty(), "no worker attached");
-
-      if (BACKGROUND_EVENT_TYPE::DATA_BUF_TASK == event.getType())
-      {
-         _buffer._el.push(event);
-      }
-   }
-
-   void backgroundWorkers::pushBufferEvent(const backgroundEvent &event)
-   {
-      SDB_ASSERT(NULL != _env, "not inited");
-      SDB_ASSERT(event.isUserRequest(), "can not be invalid");
-      SDB_ASSERT(!_buffer._workers.empty(), "no worker attached");
-      _buffer._el.push(event);
+      SDB_ASSERT(!_workers.empty(), "no worker attached");
+      _el.push(event);
    }
 
    void backgroundWorkers::_deactive()
    {
-      SDB_ASSERT(NULL != _env, "can not be null");
+      SDB_ASSERT(nullptr != _env, "can not be null");
       backgroundEvent event = backgroundEvent::createQuitEvent();
-      autoEventList<backgroundEvent> finishList;
-      event.setResponser(&finishList);
-      UINT32 count = _buffer._workers.size();
 
-      for (UINT32 i = 0; i < _buffer._workers.size(); ++i)
+      for (UINT32 i = 0; i < _actived; ++i)
       {
-         _buffer._el.pushPriority(event);
+         _el.pushPriority(event);
       }
 
-      for (UINT32 i = 0; i < _buffer._workers.size(); ++i)
+      for (UINT32 i = 0; i < _workers.size(); ++i)
       {
-         backgroundEvent response;
-         finishList.popOrWait(response);
-         SDB_ASSERT(response.isResponseOf(BACKGROUND_EVENT_TYPE::QUIT), "impossible");
+         BACKGROUND_WORKER_UPTR &worker = _workers[i];
+         if (worker->isValid())
+         {
+            worker->waitForDetaching();
+         }
       }
 
-      _buffer.clear();
-      PD_LOG(PDINFO, "[%d] buffer cleaners detached", count);
+      _workers.clear();
+      _el.clear();
+      _workingCounter.store(0, std::memory_order_relaxed);
+      PD_LOG(PDINFO, "[%d] background workers detached", _actived);
+      _actived = 0;
       return;
    }
 }//namespace vessel

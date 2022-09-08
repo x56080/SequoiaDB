@@ -42,52 +42,53 @@ namespace engine
 {
 namespace vessel
 {
-   fixedSizeDataPad::fixedSizeDataPad(fixedSizeDataPad &&o)
+   INT32 fixedSizeDataPad::init(UINT32 bufferSize,
+                                CHAR *buffer,
+                                BOOLEAN resetBuffer)
    {
-      if (NULL != o._buffer)
-      {
-         _bufferSize = o._bufferSize;
-         _buffer = o._buffer;
-         _count = o._count;
-         _backOffset = o._backOffset;
-         o.fini();
-      }
-   }
-
-   fixedSizeDataPad &fixedSizeDataPad::operator=(fixedSizeDataPad &&o)
-   {
+      INT32 rc = SDB_OK;
       fini();
-      if (NULL != o._buffer)
-      {
-         _bufferSize = o._bufferSize;
-         _buffer = o._buffer;
-         _count = o._count;
-         _backOffset = o._backOffset;
-         o.fini();
-      }
-      return *this;
-   }
 
-   void fixedSizeDataPad::init(UINT32 bufferSize, CHAR *buffer)
-   {
-      SDB_ASSERT(0 < bufferSize && NULL != buffer, "can not be invalid");
+      if (OSS_UNLIKELY(bufferSize < getMinBufferSize() ||
+                       nullptr == buffer))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       _bufferSize = bufferSize;
       _buffer = buffer;
-      _count = 0;
-      _backOffset = bufferSize;
+      if (resetBuffer)
+      {
+         this->resetBuffer();
+      }
+      else if (0 == _getCount())
+      {
+         _backOffset = _bufferSize;
+      }
+      else
+      {
+         const _tag *tag = _getTag(_getCount() - 1);
+         _backOffset = tag->offset;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
-   void fixedSizeDataPad::clear()
+   void fixedSizeDataPad::resetBuffer()
    {
-      _count = 0;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      _resetCounter();
       _backOffset = _bufferSize;
+      return;
    }
 
    void fixedSizeDataPad::fini()
    {
       _bufferSize = 0;
-      _buffer = NULL;
-      _count = 0;
+      _buffer = nullptr;
       _backOffset = 0;
    }
 
@@ -95,9 +96,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
-      _tag *tag = NULL;
+      _tag *tag = nullptr;
 
-      if (OSS_UNLIKELY(NULL == _buffer))
+      if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -121,12 +122,12 @@ namespace vessel
          goto error;
       }
 
-      tag = buffer.getWritableObjPtr<_tag>(getFrontOffset());
-      SDB_ASSERT(NULL != tag, "impossible");
+      tag = buffer.getWritableObjPtr<_tag>(_getFrontOffset());
+      SDB_ASSERT(nullptr != tag, "impossible");
       _backOffset -= row.getSize();
       tag->offset = _backOffset;
       tag->size = row.getSize();
-      ++_count;
+      _incCount();
 
    done:
       return rc;
@@ -138,11 +139,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       strictBuffer buffer;
-      _tag *tag = NULL;
+      _tag *tag = nullptr;
       UINT32 size = 0;
       UINT32 w = 0;
 
-      if (OSS_UNLIKELY(NULL == _buffer))
+      if (OSS_UNLIKELY(nullptr == _buffer))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -177,12 +178,12 @@ namespace vessel
          w += i->getSize();
       }
 
-      tag = buffer.getWritableObjPtr<_tag>(getFrontOffset());
-      SDB_ASSERT(NULL != tag, "impossible");
+      tag = buffer.getWritableObjPtr<_tag>(_getFrontOffset());
+      SDB_ASSERT(nullptr != tag, "impossible");
       _backOffset -= size;
       tag->offset = _backOffset;
       tag->size = size;
-      ++_count;
+      _incCount();
 
    done:
       return rc;
@@ -193,10 +194,9 @@ namespace vessel
    slice fixedSizeDataPad::getRow(UINT32 pos)const
    {
       slice s;
-      if (OSS_LIKELY(pos < _count))
+      if (OSS_LIKELY(pos < getRowCount()))
       {
-         const _tag *tag = strictBuffer(_bufferSize, _buffer).
-                           getReadableObjPtr<_tag>(pos * sizeof(_tag));
+         const _tag *tag = _getTag(pos);
          s.reset(tag->size, _buffer + tag->offset);
       }
       else
@@ -208,7 +208,7 @@ namespace vessel
 
    UINT32 fixedSizeDataPad::getRowSize(UINT32 pos)const
    {
-      return getTag(pos)->size;
+      return _getTag(pos)->size;
    }
 
    BOOLEAN fixedSizeDataPad::isFreeToPush(UINT32 size)const
@@ -219,16 +219,13 @@ namespace vessel
    INT32 fixedSizeDataPad::overwrite(const fixedSizeDataPad &pad)
    {
       INT32 rc = SDB_OK;
-      strictBuffer buffer;
-      UINT32 dataSize = 0;
-      INT64 correctOffset = 0;
 
-      if (OSS_UNLIKELY(NULL == _buffer))
+      if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == pad._buffer))
+      else if (OSS_UNLIKELY(!pad.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -239,44 +236,54 @@ namespace vessel
          goto error;
       }
       
-      clear();
-      if (0 == pad.getCount())
+      resetBuffer();
+      if (0 == pad._getCount())
       {
          goto done;
       }
-
-      dataSize = pad._bufferSize - pad._backOffset;
-      correctOffset = (INT64)_bufferSize - (INT64)pad._bufferSize;
-
-      buffer.makeWritable(_bufferSize, _buffer);
-      buffer.write(_bufferSize - dataSize, dataSize,
-                   pad._buffer + pad._backOffset);
-      for (UINT32 i = 0; i < pad._count; ++i)
+      else
       {
-         _tag *tag = buffer.getWritableObjPtr<_tag>(i * sizeof(_tag));
-         const _tag *src = pad.getTag(i);
-         tag->size = src->size;
-         tag->offset = (UINT32)((INT64)src->offset + correctOffset); 
-      }
+         INT64 deltaBufferSize =  (INT64)_bufferSize - (INT64)pad._bufferSize;
+         strictBuffer buffer;
+         buffer.makeWritable(_bufferSize, _buffer);
+         UINT32 dataSize = pad._bufferSize - pad._backOffset;
+         buffer.write(_bufferSize - dataSize, dataSize,
+                      pad._buffer + pad._backOffset);
+         for (UINT32 i = 0; i < pad._getCount(); ++i)
+         {
+            _tag *tag = buffer.getWritableObjPtr<_tag>(_getTagOffset(i));
+            const _tag *src = pad._getTag(i);
+            tag->size = src->size;
+            tag->offset = (UINT32)((INT64)src->offset + deltaBufferSize); 
+         }
 
-      _count = pad._count;
-      _backOffset = _bufferSize - dataSize;
+         *_getCounter() = pad._getCount();
+         _backOffset = _bufferSize - dataSize;
+      }
    done:
       return rc;
    error:
       goto done;
    }
 
-   const fixedSizeDataPad::_tag *fixedSizeDataPad::getTag(UINT32 pos)const
+   const fixedSizeDataPad::_tag *fixedSizeDataPad::_getTag(UINT32 pos)const
    {
-      SDB_ASSERT(pos < _count, "out of bound");
+      SDB_ASSERT(pos < _getCount(), "out of bound");
+      static_assert(sizeof(_tag) == 8, "must be 8");
       return strictBuffer(_bufferSize, _buffer).
-                           getReadableObjPtr<_tag>(pos * sizeof(_tag));
+                           getReadableObjPtr<_tag>(_getTagOffset(pos));
    }
 
    UINT32 fixedSizeDataPad::getSavingSize(UINT32 size)
    {
       return sizeof(_tag) + size;
+   }
+
+   UINT32 fixedSizeDataPad::getRowCountFast(const CHAR *buf)
+   {
+      SDB_ASSERT(nullptr != buf, "can not be invalid");
+      const UINT32 *counter = reinterpret_cast<const UINT32 *>(buf);
+      return *counter;
    }
 } // namespace vessel
 

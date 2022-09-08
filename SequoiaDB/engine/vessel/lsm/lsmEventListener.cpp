@@ -37,6 +37,7 @@
 #include "vessel/lsm/lsmEventListener.h"
 #include "vessel/lsm/lsmCollector.h"
 #include "rocksdb/types.h"
+#include "vessel/lsm/lsmTableProperties.h"
 
 namespace engine
 {
@@ -59,19 +60,19 @@ namespace vessel
 
    void lsmEventListener::OnTableFileCreated(const TableFileCreationInfo &info)
    {
-      if (LSM_INDEX_CF_ID == info.table_properties.column_family_id &&
+      if (LSM_CF_HYBRID_INDEX == info.table_properties.column_family_id &&
           TableFileCreationReason::kFlush == info.reason)
       {
          const UserCollectedProperties &ucp =
              info.table_properties.user_collected_properties;
-         auto it = ucp.find(LSM_COLLECTOR_FIELDNAME_MAX_LSN);
+         auto it = ucp.find(LSM_TABLE_PROPERTIES_MAX_LSN);
          if (it != ucp.end())
          {
             const DPS_LSN_OFFSET maxLsn =
                 *reinterpret_cast<const DPS_LSN_OFFSET *>(it->second.data());
             if (DPS_INVALID_LSN_OFFSET != maxLsn)
             {
-               _db->onFlush(maxLsn);
+               // _db->onFlush(maxLsn);
             }
          }
       }

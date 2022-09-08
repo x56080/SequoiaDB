@@ -327,6 +327,7 @@ namespace vessel
       indexScanCursor *impl = nullptr;
       strSlice indexNameSlice(indexName);
       indexIdentifier indexId;
+      //constexpr UINT32 _MAX_SCAN_STEP = 64;
 
       cursor.reset();
 
@@ -349,8 +350,8 @@ namespace vessel
       }
 
       co.rowCountLimit = o.rowCountLimit;
-      co.stepSize = 8;
-      co.defaultBufferSize = (INT32)32 << 10;
+      co.stepSize = o.stepSize;
+      co.defaultBufferSize = (INT32)64 << 10;
 
       cursor = makeSharedPtrFromPool<indexScanCursor>(o, predicate,
                                                       _gcid, indexId);

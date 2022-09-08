@@ -739,12 +739,7 @@ void insert_test_nonunique_index(INDEX_TYPE type)
 /// insert with nonunique index
 TEST_F(insert_test, test8_1_1)
 {
-   insert_test_nonunique_index(INDEX_TYPE_LSM);
-}
-
-TEST_F(insert_test, test8_1_2)
-{
-   insert_test_nonunique_index(INDEX_TYPE_BTREE);
+   insert_test_nonunique_index(INDEX_TYPE_HYBRID_TREE);
 }
 
 
@@ -805,23 +800,19 @@ void insert_test_unique_index(INDEX_TYPE type)
 /// insert with unique index
 TEST_F(insert_test, test8_2_1)
 {
-   insert_test_unique_index(INDEX_TYPE_LSM);
+   insert_test_unique_index(INDEX_TYPE_HYBRID_TREE);
 }
 
-TEST_F(insert_test, test8_2_2)
-{
-   insert_test_unique_index(INDEX_TYPE_BTREE);
-}
 
 void death_thread_insert(vesselImpl *db,
                          const CHAR *fullName,
                          UINT32 count,
                          UINT32 i,
+                         const slice &pad,
                          atomic_int *counter)
 {
    test_executor session;
    session._id = i;
-   CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
    bson::StringBuilder b;
 
@@ -835,7 +826,10 @@ void death_thread_insert(vesselImpl *db,
       b << r << "aaaaaaaaaaaaaaaaaaaaaaaa";
       builder.append("a", b.poolStr());
       builder.append("b", i);
-      builder.append("c", pad, 1024);
+      if (pad.isValid())
+      {
+         builder.append("c", pad.data(), pad.size());
+      }
       bson::BSONObj obj = builder.done();
       utilInsertResult res;
       rc = handler->insertRecord(&session, obj, dmsInsertRecordOptions(), &res);
@@ -868,6 +862,8 @@ TEST_F(insert_test, DISABLED_death_test_1)
    UINT32 countPerThread = 12000000;
    UINT32 count = 0;
    UINT64 readCount = 0;
+   CHAR padbuf[1000] = {};
+   slice pad(sizeof(padbuf), padbuf);
 
    closeDBOptions co;
 
@@ -884,7 +880,7 @@ TEST_F(insert_test, DISABLED_death_test_1)
    {
       threads[i] = std::move(std::thread(death_thread_insert, &db,
                                          "foo.bar", countPerThread,
-                                         i, counters+i));
+                                         i, pad, counters+i));
    }
 
    do
@@ -939,6 +935,7 @@ TEST_F(insert_test, DISABLED_death_test_2)
    atomic_int counters[threadCount] = {};
    UINT32 countPerThread = 10000000;
    UINT32 count = 0;
+   slice pad;
 
    closeDBOptions co;
 
@@ -955,8 +952,8 @@ TEST_F(insert_test, DISABLED_death_test_2)
    rc = db.openCL(&session, "foo.bar", dmsOpenCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_BTREE, "index", 
-                                                          FALSE, BSON("a" << 1));
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
+                                                          TRUE, BSON("a" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -964,7 +961,7 @@ TEST_F(insert_test, DISABLED_death_test_2)
    {
       threads[i] = std::move(std::thread(death_thread_insert, &db,
                                          "foo.bar", countPerThread,
-                                         i, counters+i));
+                                         i, pad, counters+i));
    }
 
    do
@@ -1119,6 +1116,8 @@ TEST_F(insert_test, DISABLED_death_test_4)
    atomic_int counters[threadCount] = {};
    UINT32 countPerThread = 10000000;
    UINT32 count = 0;
+   CHAR padbuf[1000] = {};
+   slice pad(sizeof(padbuf), padbuf);
 
    closeDBOptions co;
 
@@ -1136,7 +1135,7 @@ TEST_F(insert_test, DISABLED_death_test_4)
    ASSERT_EQ(SDB_OK, rc);
 
    {
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, "index", 
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
                                                           FALSE, BSON("a" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
@@ -1144,7 +1143,7 @@ TEST_F(insert_test, DISABLED_death_test_4)
 
    /*
    {
-   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_LSM, "index", 
+   bson::BSONObj indexDef = indexTestUtil::createIndexObj(INDEX_TYPE_HYBRID_TREE, "index", 
                                                           FALSE, BSON("b" << 1));
    rc = cl->createIndex(&session, dmsBuildIndexOptions(), indexDef);
    ASSERT_EQ(SDB_OK, rc);
@@ -1154,7 +1153,7 @@ TEST_F(insert_test, DISABLED_death_test_4)
    {
       threads[i] = std::move(std::thread(death_thread_insert, &db,
                                          "foo.bar", countPerThread,
-                                         i, counters+i));
+                                         i, pad, counters+i));
    }
 
    do

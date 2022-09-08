@@ -78,6 +78,7 @@ namespace vessel
       OSS_INLINE void reset()
       {
          version = 0;
+         checksum = 0;
          smeEntryPid = INVALID_PAGE_ID;
          for (UINT32 i = 0; i < MAPPING_ENTRY_SIZE; ++i)
          {
@@ -85,11 +86,18 @@ namespace vessel
          }
       }
 
+      UINT32 generateChecksum()const;
+
+      void refillChecksum();
+
       UINT32 version = 0;
+      UINT32 checksum = 0;
       UINT32 smeEntryPid = INVALID_PAGE_ID;
       UINT32 mappingEntries[MAPPING_ENTRY_SIZE] = {};
    };//struct lpmUberBlock
    constexpr UINT32 LPM_UBER_BLOCK_SIZE = sizeof(lpmUberBlock);
+
+   extern BOOLEAN inspectUberBlockChecksum(const lpmUberBlock &ub);
 
    struct lobmUberBlock
    {

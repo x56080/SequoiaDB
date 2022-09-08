@@ -75,6 +75,28 @@ namespace vessel
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
 
+///////////////logicalPageSpace::_logicalPageBufferIniter
+   void logicalPageSpace::
+        _logicalPageBufferIniter::init(PAGE_ID lpid,
+                                       ossSharedLatchMode mode,
+                                       requestContext *context,
+                                       logicalPageSpace *lps,
+                                       runtimePageBuffer &&rpb,
+                                       PAGE_SNAPSHOT_VERION psv,
+                                       logicalPageBuffer &lpb)
+   {
+      lpb.fini();
+      lpb._lpid = lpid;
+      lpb._mode = mode;
+      lpb._context = context;
+      lpb._lps = lps;
+      lpb._rpb = std::move(rpb);
+      lpb._psv = psv;
+      return;
+   }
+
+///////////////logicalPageSpace::_logicalPageBufferIniter end
+
    logicalPageSpace::logicalPageSpace(const storageUnitManifest *manifest):
    _manifest(manifest)
    {
@@ -83,14 +105,7 @@ namespace vessel
 
    logicalPageSpace::~logicalPageSpace()
    {
-      if (isOpen())
-      {
-         _smgr.fini();
-         _fcluster.close();
-         _lpm.fini();
-         _mfile.fsync();
-         _mfile.close();
-      }
+
    }
 
    INT32 logicalPageSpace::create()
@@ -241,11 +256,20 @@ namespace vessel
       if (isOpen())
       {
          _onClosingStarted();
+
+         INT32 rc = _updateUberBlockOnDisk(FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to update uber block on disk:%d", rc);
+            ossPanic();
+         }
+
          _smgr.fini();
          _fcluster.close();
          _lpm.fini();
          _mfile.fsync();
          _mfile.close();
+         _allocator.fini();
          _onClosingFinished();
       }
       return;
@@ -260,6 +284,7 @@ namespace vessel
          _fcluster.destroy();
          _lpm.fini();
          _mfile.destroy();
+         _allocator.fini();
          _onDestroyFinished();
       }
 
@@ -761,8 +786,15 @@ namespace vessel
    INT32 logicalPageSpace::_initPageMapping(BOOLEAN creating)
    {
       INT32 rc = SDB_OK;
+      strictBuffer buffer;
+      rc = _mfile.makeReadableBuffer(UBER_BLOCK_PID, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get uber block buffer:%d", rc);
+         goto error;
+      }
 
-      rc = _lpm.init(&_mfile, UBER_BLOCK_PID);
+      rc = _lpm.init(&_mfile, buffer.getReadableObjPtr<lpmUberBlock>(0));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init lpage mapping:%d", rc);
@@ -834,6 +866,7 @@ namespace vessel
       block->reset();
       block->version = lpmUberBlock::VERSION;
       block->smeEntryPid = smePid;
+      block->refillChecksum();
    done:
       return rc;
    error:
@@ -974,7 +1007,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       strictBuffer buffer;
       PAGE_ID pid = UBER_BLOCK_PID;
-      lpmUberBlock *block = nullptr;
+      const lpmUberBlock *block = nullptr;
 
       rc = _mfile.makeWritableBuffer(pid, buffer);
       if (SDB_OK != rc)
@@ -983,8 +1016,9 @@ namespace vessel
          goto error;
       }
 
-      block = buffer.getWritableObjPtr<lpmUberBlock>(0);
-      rc = _smgr.init(block->smeEntryPid, &_mfile, &_fcluster);
+      block = buffer.getReadableObjPtr<lpmUberBlock>(0);
+      rc = _smgr.init(block->smeEntryPid, &_mfile, &_fcluster,
+                      _getSegmentPcntReused());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed toi init space manager:%d", rc);
@@ -1282,7 +1316,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::_reserveLpids(UINT32 size, PAGE_ID *lpids)
+   INT32 logicalPageSpace::_reserveLpids(UINT32 size, PAGE_ID *lpids, BOOLEAN autoExtendLPM)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
@@ -1308,12 +1342,16 @@ namespace vessel
          }
          else
          {
-            rc = _lpm.ensureUnitSpace(_allocator.getUnitCount());
-            if (SDB_OK != rc)
+            if (autoExtendLPM)
             {
-               PD_LOG(PDERROR, "failed to extend lpm file:%d", rc);
-               goto error;
+               rc = _lpm.ensureUnitSpace(_allocator.getUnitCount());
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to extend lpm file:%d", rc);
+                  goto error;
+               }
             }
+            
             rc = _allocator.extendUnitNum(1, TRUE);
             if (SDB_OK != rc)
             {
@@ -1349,6 +1387,75 @@ namespace vessel
          }
       }
       return;
+   }
+
+   void logicalPageSpace::_freeLpid(PAGE_ID lpid)
+   {
+      _freeLpids(1, &lpid);
+   }
+
+   void logicalPageSpace::_freeLpids(const sparseBitmap32 &bm)
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      BOOLEAN quit = FALSE;
+      constexpr UINT32 BATCH_SIZE = 32;
+      sparseBitmap32::iterator itr;
+      do
+      {
+         std::unique_lock<std::mutex> guard(_am);
+         for (UINT32 i = 0; i < BATCH_SIZE; ++i)
+         {
+            BOOLEAN r = FALSE;
+            if (bm.next(itr))
+            {
+               _allocator.set(itr.get(), &r);
+               SDB_ASSERT(!r, "unexpected bit value");
+            }
+            else
+            {
+               quit = TRUE;
+               break;
+            }
+         }
+      } while (!quit);
+      
+      return;
+   }
+
+   INT32 logicalPageSpace::_updateUberBlockOnDisk(BOOLEAN fsync)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      lpmUberBlock *ub = nullptr;
+
+      strictBuffer buffer;
+      rc = _mfile.makeWritableBuffer(UBER_BLOCK_PID, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer of uber block:%d", rc);
+         goto error;
+      }
+
+      ub = buffer.getWritableObjPtr<lpmUberBlock>(0);
+      SDB_ASSERT(nullptr != ub, "can not be invalid");
+      if (_lpm.getRoot().update(ub))
+      {
+         ub->refillChecksum();
+
+         if (fsync)
+         {
+            rc = _mfile.fsyncPage(UBER_BLOCK_PID);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to fysnc meta block page:%d", rc);
+               goto error;
+            }
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace vessel
 

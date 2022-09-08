@@ -46,17 +46,15 @@ namespace vessel
    class fixedSizeDataPad : public SDBObject
    {
       public:
-         fixedSizeDataPad(){}
-         ~fixedSizeDataPad(){}
-         fixedSizeDataPad(fixedSizeDataPad &&o);
-         fixedSizeDataPad &operator=(fixedSizeDataPad &&o);
-         fixedSizeDataPad(const fixedSizeDataPad &) = delete;
-         fixedSizeDataPad &operator=(const fixedSizeDataPad &) = delete;
+         fixedSizeDataPad() = default;
+         ~fixedSizeDataPad() = default;
 
       public:
-         OSS_INLINE BOOLEAN isValid()const {return NULL != _buffer;}
-         void init(UINT32 bufferSize, CHAR *buffer);
-         void clear();
+         OSS_INLINE BOOLEAN isValid()const {return 0 < _bufferSize;}
+
+         ///WANRING: should be a valid pad if not reset it.
+         INT32 init(UINT32 bufferSize, CHAR *buffer, BOOLEAN resetBuffer);
+         void resetBuffer();
          void fini();
          INT32 push(const slice &row);
          INT32 pushRowFragments(std::initializer_list<slice> il);
@@ -64,11 +62,15 @@ namespace vessel
          slice getRow(UINT32 pos)const;
          UINT32 getRowSize(UINT32 pos)const;
          INT32 overwrite(const fixedSizeDataPad &pad);
-         OSS_INLINE UINT32 getCount()const {return _count;}
+         OSS_INLINE UINT32 getRowCount()const
+         {
+            return isValid() ? _getCount() : 0;
+         }
          OSS_INLINE UINT32 getBufferSize()const {return _bufferSize;}
          OSS_INLINE UINT32 getFreeSize()const
          {
-            return _backOffset - getFrontOffset();
+            return isValid() ?
+                   (_backOffset - _getFrontOffset()) : 0;
          }
          OSS_INLINE UINT32 getUnfreeSize()const
          {
@@ -76,41 +78,66 @@ namespace vessel
          }
 
          static UINT32 getSavingSize(UINT32 size);
+         static constexpr UINT32 getMinBufferSize()
+         {
+            /// 4bytes counter + 4bytes tag + 1byte data
+            return 9;
+         }
+
+         static UINT32 getRowCountFast(const CHAR *buf);
 
       private:
          struct _tag : public SDBObject
          {
-            _tag(){}
-            ~_tag(){}
+            _tag() = default;
+            ~_tag() = default;
             explicit _tag(UINT32 o, UINT32 s):
             offset(o),
             size(s){}
-            _tag(const _tag &o):
-            offset(o.offset),
-            size(o.size){}
-            _tag &operator=(const _tag &o)
-            {
-               offset = o.offset;
-               size = o.size;
-               return *this;
-            }
 
             UINT32 offset = 0;
             UINT32 size = 0;
          };//struct _tag
 
-      private:
-         OSS_INLINE UINT32 getFrontOffset()const
+      public:
+         static constexpr UINT32 getMinBufferSizeInit(UINT32 size)
          {
-            return _count * sizeof(_tag);
+            return sizeof(UINT32) + sizeof(_tag) + size;
          }
 
-         const _tag *getTag(UINT32 pos)const;
+      private:
+         OSS_INLINE UINT32 _getFrontOffset()const
+         {
+            static_assert(sizeof(_tag) == 8, "must be 8");
+            return sizeof(UINT32) + (_getCount() << 3);
+         }
+
+         OSS_INLINE UINT32 _getTagOffset(UINT32 pos)const
+         {
+            static_assert(sizeof(_tag) == 8, "must be 8");
+            return sizeof(UINT32) + (pos << 3);
+         }
+
+         const _tag *_getTag(UINT32 pos)const;
+
+         OSS_INLINE UINT32 _getCount()const {return *_getCounter();}
+
+         OSS_INLINE UINT32 *_getCounter()
+         {
+            return reinterpret_cast<UINT32 *>(_buffer);
+         }
+
+         OSS_INLINE void _incCount() {++(*_getCounter());}
+         OSS_INLINE void _resetCounter() {*_getCounter() = 0;}
+
+         OSS_INLINE const UINT32 *_getCounter()const
+         {
+            return reinterpret_cast<const UINT32 *>(_buffer);
+         }
 
       private:
          UINT32 _bufferSize = 0;
-         CHAR *_buffer = NULL;
-         UINT32 _count = 0;
+         CHAR *_buffer = nullptr;
          UINT32 _backOffset = 0;
    };//class fixedSizeDataPad
 } // namespace vessel

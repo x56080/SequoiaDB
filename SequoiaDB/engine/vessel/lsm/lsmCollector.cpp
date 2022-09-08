@@ -37,8 +37,11 @@
 #include "oss.h"
 #include "dpsDef.hpp"
 #include "vessel/lsm/lsmCollector.h"
-#include "vessel/lsm/lsmIndexKey.h"
 #include "vessel/lsm/lsmDBDef.h"
+#include "vessel/lsm/lsmIndexEntryValue.h"
+#include "vessel/keyString.h"
+#include "vessel/sliceTransfer.h"
+#include "vessel/lsm/lsmTableProperties.h"
 #include "rocksdb/status.h"
 #include <cstring>
 #include <string>
@@ -51,75 +54,90 @@ namespace vessel
    /////////////////////////////////////////////////////////////////////////////
    // lsmIndexPropertiesCollector begin
    Status lsmIndexPropertiesCollector::AddUserKey(const Slice &key,
-                                      const Slice &value,
-                                      EntryType type,
-                                      SequenceNumber seq,
-                                      uint64_t file_size)
+                                                  const Slice &value,
+                                                  EntryType type,
+                                                  SequenceNumber seq,
+                                                  uint64_t file_size)
    {
       if (kEntryPut != type)
       {
          return Status::OK();
       }
-      DPS_LSN_OFFSET lsn = _extractLsnFromKey(key);
-      if (_minLsn > lsn)
+      SDB_ASSERT(!key.empty() && !value.empty(), "invalid key and value");
+
+#if defined(_DEBUG) 
+      keyString ks(toSlice(key));
+      SDB_ASSERT(ks.isValid() &&
+                 keyStringCoder::INDEX_ID_ENCODEING_SIZE == ks.getKeyHeadSize(),
+                 "invalid key");
+#endif
+
+      if (keyStringCoder::INDEX_ID_ENCODEING_SIZE <= key.size())
       {
-         _minLsn = lsn;
-      }
-      if (_maxLsn < lsn || DPS_INVALID_LSN_OFFSET == _maxLsn)
-      {
-         _maxLsn = lsn;
+         if (!_indexIdInited)
+         {
+            ossMemcpy(_minIndexId, key.data(), sizeof(_minIndexId));
+            ossMemcpy(_maxIndexId, key.data(), sizeof(_maxIndexId));
+            _indexIdInited = TRUE;
+         }
+         else
+         {
+            if (0 < ossMemcmp(_minIndexId, key.data(), sizeof(_minIndexId)))
+            {
+               ossMemcpy(_minIndexId, key.data(), sizeof(_minIndexId));
+            }
+
+            if (0 > ossMemcmp(_maxIndexId, key.data(), sizeof(_maxIndexId)))
+            {
+               ossMemcpy(_maxIndexId, key.data(), sizeof(_maxIndexId));
+            }
+         }
       }
 
-      globalIndexID globalID;
-      _extractIndexIdFromKey(key, globalID);
-      if (globalID < _minGlobalID)
+      lsmIndexEntryValueRef ref(value);
+      if (ref.isValid())
       {
-         _minGlobalID = globalID;
+         const lsmIndexEntryValue *val = ref.getValuePtr();
+         if (DPS_INVALID_LSN_OFFSET == _minLsn || val->lsn < _minLsn)
+         {
+            _minLsn = val->lsn;
+         }
+
+         if (DPS_INVALID_LSN_OFFSET == _maxLsn || val->lsn > _maxLsn)
+         {
+            _maxLsn = val->lsn;
+         }
       }
-      if (_maxGlobalID < globalID || !_maxGlobalID.isValid())
-      {
-         _maxGlobalID = globalID;
-      }
+
       return Status::OK();
    }
 
    Status lsmIndexPropertiesCollector::Finish(UserCollectedProperties *properties)
    {
-      
       std::string temp;
-      temp.assign((const char*)&_minLsn, sizeof(_minLsn));
-      properties->emplace(LSM_COLLECTOR_FIELDNAME_MIN_LSN, temp);
-      temp.assign((const char*)&_maxLsn, sizeof(_maxLsn));
-      properties->emplace(LSM_COLLECTOR_FIELDNAME_MAX_LSN, temp);
-      temp.assign((const char*)&_minGlobalID, sizeof(_minGlobalID));
-      properties->emplace(LSM_COLLECTOR_FIELDNAME_MIN_GLOBAL_ID, temp);
-      temp.assign((const char*)&_maxGlobalID, sizeof(_maxGlobalID));
-      properties->emplace(LSM_COLLECTOR_FIELDNAME_MAX_GLOBAL_ID, temp);
+      temp.reserve(12);
+      if (DPS_INVALID_LSN_OFFSET != _minLsn)
+      {
+         temp.assign((const char*)&_minLsn, sizeof(_minLsn));
+         properties->emplace(LSM_TABLE_PROPERTIES_MIN_LSN, temp);
+         temp.assign((const char*)&_maxLsn, sizeof(_maxLsn));
+         properties->emplace(LSM_TABLE_PROPERTIES_MAX_LSN, temp);
+      }
+
+      if (_indexIdInited)
+      {
+         temp.assign(_minIndexId, sizeof(_minIndexId));
+         properties->emplace(LSM_TABLE_PROPERTIES_MIN_IDX_ID, temp);
+         temp.assign(_maxIndexId, sizeof(_maxIndexId));
+         properties->emplace(LSM_TABLE_PROPERTIES_MAX_IDX_ID, temp);
+      }
+
       return Status::OK();
    }
 
    UserCollectedProperties lsmIndexPropertiesCollector::GetReadableProperties() const
    {
       return {};
-   }
-
-   DPS_LSN_OFFSET lsmIndexPropertiesCollector::_extractLsnFromKey(
-       const Slice &key) const
-   {
-      SDB_ASSERT(LSM_IDX_MIN_FULL_KEY_SIZE <= key.size(), "invalid key length");
-      const lsmIdxFixedKey *fixedKey =
-          reinterpret_cast<const lsmIdxFixedKey *>(key.data());
-      SDB_ASSERT(fixedKey->isValid(), "key must be valid");
-      return fixedKey->lsn;
-   }
-
-   void lsmIndexPropertiesCollector::_extractIndexIdFromKey(const rocksdb::Slice &key, globalIndexID &globalID) const
-   {
-      SDB_ASSERT(LSM_IDX_MIN_FULL_KEY_SIZE <= key.size(), "invalid key length");
-      const lsmIdxFixedKey *fixedKey =
-          reinterpret_cast<const lsmIdxFixedKey *>(key.data());
-      SDB_ASSERT(fixedKey->isValid(), "key must be valid");
-      globalID = fixedKey->indexid;
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -129,7 +147,7 @@ namespace vessel
    lsmCollectorFactory::CreateTablePropertiesCollector(
            TablePropertiesCollectorFactory::Context context)
    {
-      if (LSM_INDEX_CF_ID == context.column_family_id &&
+      if (LSM_CF_HYBRID_INDEX == context.column_family_id &&
           0 == context.level_at_creation)
       {
          lsmIndexPropertiesCollector *p = new(std::nothrow) lsmIndexPropertiesCollector();

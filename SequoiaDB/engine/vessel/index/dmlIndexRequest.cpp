@@ -43,7 +43,7 @@ namespace vessel
 {
    void dmlIndexRequest::fini()
    {
-      _index = NULL;
+      _index = nullptr;
       _toInsert.clear();
       _toRemove.clear();
       _flags = 0;

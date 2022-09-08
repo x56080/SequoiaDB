@@ -125,6 +125,8 @@ namespace vessel
          INT32 open(requestContext *context,
                     storageUnit *su);
 
+         void destroy(requestContext *context);
+
          void close();
 
       public:
@@ -142,17 +144,10 @@ namespace vessel
          INT32 listCollections(requestContext *context,
                                listCLCursor *cursor);
 
-         INT32 dump(requestContext *context,
-                    bson::BSONObj &record);
+         INT32 dump(bson::BSONObj &record);
 
          INT32 getCollectionByName(requestContext *context,
                                    const strSlice &clName, 
-                                   OSS_LATCH_MODE mode,
-                                   collection **obj);
-
-         INT32 getCollectionByMBID(requestContext *context,
-                                   CL_MB_ID mbID,
-                                   UINT32 logicalID,
                                    OSS_LATCH_MODE mode,
                                    collection **obj);
 
@@ -165,6 +160,15 @@ namespace vessel
                                         utilCLInnerID innerID,
                                         OSS_LATCH_MODE mode,
                                         collection **obj);
+
+         INT32 getCollectionByLogicalId(requestContext *context,
+                                        UINT32 logicalId,
+                                        OSS_LATCH_MODE mode,
+                                        collection **obj);
+
+      public:
+         INT32 allocateNextIndexLid(UINT32 &indexLid);
+
       private:
          struct _NAME_LESS
          {
@@ -173,14 +177,16 @@ namespace vessel
                return ossStrncmp(l, r, DMS_COLLECTION_NAME_SZ) < 0;
             }
          };//struct _CS_NAME_LESS
+         
+         using _NAME_INDEX = std::map<const CHAR *, CL_MB_ID, _NAME_LESS>;
+         using _INNERID_INDEX = std::map<utilCLInnerID, CL_MB_ID>;
+         using _LID_INDEX = std::map<UINT32, CL_MB_ID>;
+         using _NAME_SET = ossPoolSet<ossPoolString>;
+         using _INNER_ID_SET = ossPoolSet<utilCLInnerID>;
 
-         typedef ossPoolMap<const CHAR *, CL_MB_ID, _NAME_LESS> NAME_INDEX;
-         typedef ossPoolMap<utilCLInnerID, CL_MB_ID> ID_INDEX;
-         typedef ossPoolSet<ossPoolString> _NAME_SET;
-         typedef ossPoolSet<utilCLInnerID> _INNER_ID_SET; 
+         using _CL_HOLDER = objectHolder<collection>;
+         using _CL_HOLDER_GROUP = objectHolderGroup<collection, 64>;
 
-         typedef objectHolder<collection> _CL_HOLDER;
-         typedef objectHolderGroup<collection, 64> _CL_HOLDER_GROUP;
 
          static_assert(65535 == MAX_CL_MB_COUNT, "msut be 65535");
          static constexpr UINT32 _ALLOCATOR_SIZE = 65536 / _CL_HOLDER_GROUP::CAPACITY;
@@ -206,6 +212,8 @@ namespace vessel
 
          void _exportMetaBlock(csMetaBlock &block);
 
+         INT32 _loadMaxIndexLid();
+
       private:
 
          INT32 initCollectionsFromDisk(requestContext *context);
@@ -216,9 +224,6 @@ namespace vessel
 
          INT32 ensureCLMetaBlockPage(requestContext *context,
                                      CL_MB_ID mbID);
-
-         INT32 ensureCLIndexMetaBlockPage(requestContext *context,
-                                          CL_MB_ID mbID);
 
          INT32 reserveCL(requestContext *context,
                          const strSlice &clName,
@@ -232,27 +237,23 @@ namespace vessel
 
          void endCreatingCL(collection *obj);
 
-         void prepareToRemoveCL(const ossPoolString &clName,
-                                utilCLInnerID innerId);
+         void prepareToRemoveCL(collection *cl);
 
          INT32 reserveCLObj(CL_MB_ID &mbID);
          INT32 ensureCLObj(CL_MB_ID mbID, _CL_HOLDER **holder);
          void releaseCLObj(CL_MB_ID mbID);
 
       private:
-         BOOLEAN upperBoundCLName(const strSlice &clName,
-                                  CL_MB_ID &mbID)const;
-
          INT32 insertIntoFormalIndexes(collection *obj);
          BOOLEAN existsInFormalIndexes(const strSlice &clName,
                                        utilCLInnerID innerID)const;
          BOOLEAN existsInUnformalIndexes(const strSlice &clName,
                                          utilCLInnerID innerID)const;
 
-         BOOLEAN find(const strSlice &clName,
-                      CL_MB_ID &mbID)const;
-         BOOLEAN find(utilCLInnerID innerID,
-                      CL_MB_ID &mbID)const;
+         CL_MB_ID _upperBoundCL(UINT32 logicalId)const;
+         CL_MB_ID _findCLByName(const strSlice &clName)const;
+         CL_MB_ID _findCLByInnerId(utilCLInnerID innerId)const;
+         CL_MB_ID _findCLByLogicalId(UINT32 logicalId)const;
         
       private:
          BOOLEAN _isOpen = FALSE;
@@ -264,12 +265,16 @@ namespace vessel
          lazyArray<_CL_HOLDER_GROUP> _collections;
 
          ///formal indexes
-         NAME_INDEX _clNameIndex;
-         ID_INDEX _innerIdIndex;
+         _NAME_INDEX _clNameIndex;
+         _INNERID_INDEX _innerIdIndex;
+         _LID_INDEX _lidIndex;
 
          ///unformal indexes
          _NAME_SET _unformalNameIndex;
          _INNER_ID_SET _unformalInnerIdIndex;
+
+         UINT32 _maxIndexLid = INVALID_LOGICAL_INDEX_ID;
+         std::mutex _lidMutex;
    };//class collectionSpace
 
    typedef shallowPointer<collectionSpace> CS_OBJ_PTR;

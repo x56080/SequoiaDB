@@ -182,13 +182,19 @@ static void lite_buffer_pool_watcher_entry(test_executor *executor, void *obj)
 static void worker_entry(test_executor *executor, void *obj)
 {
    ::engine::vessel::backgroundWorker *worker = (::engine::vessel::backgroundWorker *)obj;
-   worker->activeEntry(executor);
+   worker->attach(executor);
 }
 
 static void lob_pool_watcher_entry(test_executor *executor, void *obj)
 {
    ::engine::vessel::vesselImpl *impl = (::engine::vessel::vesselImpl *)obj;
    impl->attachLobcWatcher(executor);
+}
+
+static void hit_mgr_entry(test_executor *executor, void *obj)
+{
+   ::engine::vessel::vesselImpl *impl = (::engine::vessel::vesselImpl *)obj;
+   impl->attachHitManager(executor);
 }
 
 class test_session_mgr : public ::engine::IExecutorMgr
@@ -229,23 +235,25 @@ class test_session_mgr : public ::engine::IExecutorMgr
 
          executor->_id = _executors.size();
 
-         if (type == EDU_TYPE_VESSEL_LITE_BUFFER_POOL_WATCHER)
+         switch (type)
          {
+         case EDU_TYPE_VESSEL_LITE_BUFFER_POOL_WATCHER:
             _threads.push_back(std::move(std::thread(lite_buffer_pool_watcher_entry, executor, args)));
-         }
-         else if (type == EDU_TYPE_VESSEL_WORKER)
-         {
+            break;
+         case EDU_TYPE_VESSEL_WORKER:
             _threads.push_back(std::move(std::thread(worker_entry, executor, args)));
-         }
-         else if (type == EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER)
-         {
+            break;
+         case EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER:
             _threads.push_back(std::move(std::thread(lob_pool_watcher_entry, executor, args)));
-         }
-         else
-         {
+            break;
+         case EDU_TYPE_VESSEL_HIT_MANAGER:
+            _threads.push_back(std::move(std::thread(hit_mgr_entry, executor, args)));
+            break;
+         default:
             SDB_ASSERT(FALSE, "invalid type");
+            break;
          }
-
+         
          _executors.push_back(executor);
       done:
          return rc;
@@ -297,15 +305,35 @@ class indexTestUtil
    static bson::BSONObj createIndexObj(INDEX_TYPE type,
                                        const CHAR *name,
                                        BOOLEAN unique,
-                                       const bson::BSONObj &pattern)
+                                       const bson::BSONObj &pattern,
+                                       BOOLEAN isCompression = FALSE)
    {
       bson::BSONObjBuilder builder;
       builder.append(IXM_NAME_FIELD, name);
-      const CHAR *typeStr = INDEX_TYPE_BTREE == type ?
-                            IXM_BTREE_FIELD : IXM_LSM_FIELD;
+      const CHAR *typeStr = nullptr;
+      if (INDEX_TYPE_BTREE == type)
+      {
+         typeStr = IXM_BTREE;
+      }
+      else if (INDEX_TYPE_LSM == type)
+      {
+         typeStr = IXM_LSM_TREE;
+      }
+      else if (INDEX_TYPE_HYBRID_TREE == type)
+      {
+         typeStr = IXM_HYBRID_TREE;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "invalid index type");
+      }
       builder.append(IXM_TYPE_FIELD, typeStr);
       builder.append(IXM_KEY_FIELD, pattern);
       builder.appendBool(IXM_UNIQUE_FIELD, unique);
+      if(isCompression)
+      {
+         builder.appendBool(IXM_COMPRESSION, TRUE);
+      }
       return builder.obj();
    }
 };

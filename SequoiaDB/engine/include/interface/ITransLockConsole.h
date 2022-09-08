@@ -77,6 +77,10 @@ namespace engine
                                    dpsTransRetInfo *pdpsTxResInfo,
                                    _dpsITransLockCallback *callback,
                                    BOOLEAN intentLock) = 0;
+
+         // virtual INT32 waitLock(IExecutor *executor,
+         //                        const dpsTransLockId &lockId,
+         //                        const DPS_TRANSLOCK_TYPE &mode) = 0;
    };//class class ITransLockConsole
 } // namespace engine
 

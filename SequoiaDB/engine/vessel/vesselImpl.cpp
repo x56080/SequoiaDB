@@ -146,7 +146,14 @@ namespace vessel
       rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open storage units:%d", rc);
+         PD_LOG(PDERROR, "failed to open data management service:%d", rc);
+         goto error;
+      }
+
+      rc = _env.hitMgr.init();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init hit index manager :%d", rc);
          goto error;
       }
 
@@ -169,8 +176,8 @@ namespace vessel
       if (isOpen() && closeDBOptions::CLOSE_MODE_NORMAL == options.closeMode)
       {
          THREAD_CONTEXT_OWNER tco(executor, &_env);
-         requestContext context;
 
+         _env.hitMgr.fini();
          _env.lobcBufferPool.flushAllDirtyBuffers();
          _env.ioBufferPool.flushAll();
 
@@ -286,7 +293,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
-      requestContext context;
       collectionSpaceId identifier;
 
       if (OSS_UNLIKELY(nullptr == executor ||
@@ -301,7 +307,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.dms.testCS(&context, strSlice(name), identifier);
+      rc = _env.dms.testCS(strSlice(name), identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -317,8 +323,32 @@ namespace vessel
    INT32 vesselImpl::testCS(IExecutor *executor,
                             const utilCSUniqueID &uniqueId)
    {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
+      INT32 rc = SDB_OK;
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+      collectionSpaceId identifier;
+
+      if (OSS_UNLIKELY(nullptr == executor ||
+                       !UTIL_IS_VALID_CSUNIQUEID(uniqueId)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _env.dms.testCS(uniqueId, identifier);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 vesselImpl::listCS(IExecutor *executor,
@@ -440,7 +470,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       listCLCursor *listCursor = nullptr;
-      requestContext context;
       collectionSpaceId identifier;
       cursor.reset();
 
@@ -455,7 +484,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.dms.testCS(&context, strSlice(csName), identifier);
+      rc = _env.dms.testCS(strSlice(csName), identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -479,7 +508,6 @@ namespace vessel
 
       listCursor->setCollectionSpace(identifier);
    done:
-      context.close();
       return rc;
    error:
       cursor.reset();
@@ -788,7 +816,6 @@ namespace vessel
       collectionSpace *cs = nullptr;
       collection *cl = nullptr;
       requestContext context;
-      spaceIDLockHelper lh(&context);
 
       if (OSS_UNLIKELY(nullptr == executor ||
                        !gcid.isValid()))
@@ -802,22 +829,14 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(gcid.getSpaceId(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", gcid.getSpaceId(), rc);
-         goto error;
-      }
-      rc = _env.dms.getCSByLockedSpaceID(&context,
-                                          gcid.getCSLid(),
-                                          &cs);
+      rc = _env.dms.getCSByLogicalID(&context, gcid.getCSLid(), SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
-                                   gcid.getCLLid(), SHARED, &cl);
+      rc = cs->getCollectionById(&context, gcid.getCLIdentifier(),
+                                 SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;
@@ -829,11 +848,7 @@ namespace vessel
          goto error;
       }
    done:
-      if (nullptr != cl)
-      {
-         context.unlockMB();
-      }
-      lh.unlock();
+      context.close();
       return rc;
    error:
       goto done;
@@ -1087,6 +1102,7 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
+         _env.hitMgr.fini();
          _env.lobcBufferPool.fini();
          _env.ioBufferPool.fini();
          _env.workers.fini();  
@@ -1167,8 +1183,8 @@ namespace vessel
          goto error;
       }
 
-      _env.lsm->setJournal(_env.resource.journal);
-      rc = _env.lsm->open(options.path.lsmPath.c_str());
+      rc = _env.lsm->open(options.path.lsmPath.c_str(),
+                          &options.lsmOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open lsm db under path[%s]",
@@ -1403,7 +1419,7 @@ namespace vessel
       INT32 rc = SDB_OK;
 
       backgroundWorkers::options o;
-      o.bufferCleaner = options.cacheCleanerCount;
+      o.maxWorkerNum = options.cacheCleanerCount;
       rc = _env.workers.init(&_env, o);
       if (SDB_OK != rc)
       {
@@ -1429,6 +1445,15 @@ namespace vessel
       }
 
       _env.lobcBufferPool.waitUntilWatcherAttached();
+
+      rc = _env.resource.executorPool->startEDU(EDU_TYPE_VESSEL_HIT_MANAGER,
+                                                this);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to active hit index manager :%d", rc);
+         goto error;
+      }
+      _env.hitMgr.waitForAttaching();
    done:
       return rc;
    error:
@@ -1450,6 +1475,35 @@ namespace vessel
       SDB_ASSERT(_env.ioBufferPool.isValid(), "can not be invalid");
       THREAD_CONTEXT_OWNER tco(executor, &_env);
       _env.ioBufferPool.watcherAttach();
+   }
+
+   void vesselImpl::attachHitManager(IExecutor *executor)
+   {
+      SDB_ASSERT(nullptr != executor, "can not be invalid");
+      SDB_ASSERT(_env.ioBufferPool.isValid(), "can not be invalid");
+      THREAD_CONTEXT_OWNER tco(executor, &_env);
+      _env.hitMgr.attach();
+   }
+
+   INT32 vesselImpl::flushLsmDB()
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _env.lsm->flush();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to flush lsm db:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace vessel
 } // namespace engine

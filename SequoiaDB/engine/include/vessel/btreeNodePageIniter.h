@@ -37,7 +37,6 @@
 #define VESSEL_BTREE_NODE_PAGE_INITER_H_
 
 #include "vessel/pageInitializer.h"
-#include "dms.hpp"
 #include "vessel/indexDef.h"
 #include "vessel/slice.h"
 
@@ -58,7 +57,6 @@ namespace vessel
                                 runtimePageBuffer *rpb);
 
       public:
-         UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
          BOOLEAN _isLeaf = TRUE;
          BOOLEAN _isRoot = FALSE;

@@ -126,21 +126,32 @@ namespace vessel
             return pos;
          }
 
-         INT32 findNext(UINT32 prev)const
+         INT32 findNext(INT32 prev)const
          {
-            INT32 pos = -1;
-#if defined (_LINUX ) || defined (_AIX)
-            pos = _bs._Find_next(prev);
-            if (pos == SET_SIZE)
+            if (prev < 0)
             {
-               pos = -1;
+               return findFirst();
+            }
+#if defined (_LINUX ) || defined (_AIX)
+            else
+            {
+               INT32 pos = _bs._Find_next(prev);
+               if (pos == SET_SIZE)
+               {
+                  pos = -1;
+               }
+
+               return pos;
             }
 #else
-            boost::dynamic_bitset<>::size_type t = _bs.find_next(prev);
-            pos = (t == boost::dynamic_bitset<>::npos) ?
-                  -1 : static_cast<INT32>(t);
+            else
+            {
+               boost::dynamic_bitset<>::size_type t = _bs.find_next(prev);
+               INT32 pos = (t == boost::dynamic_bitset<>::npos) ?
+                           -1 : static_cast<INT32>(t);
+               return pos;
+            }
 #endif
-            return pos;
          }
 
          void set(UINT32 pos, BOOLEAN *old=nullptr)

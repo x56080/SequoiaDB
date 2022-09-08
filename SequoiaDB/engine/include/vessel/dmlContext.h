@@ -78,9 +78,9 @@ namespace vessel
          {
             return _rid.isValid();
          }
-         OSS_INLINE scanEntry getScanEntry()const
+         OSS_INLINE UINT32 getDmlPageSeq()const
          {
-            return scanEntry(_seq, _rid.getPos());
+            return _seq;
          }
          
          OSS_INLINE const DPS_LSN_OFFSET &getDmlLSN()const

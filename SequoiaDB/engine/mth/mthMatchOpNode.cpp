@@ -1834,8 +1834,8 @@ namespace engine
          buf[pos] = '\0' ;
       }
 
-      PD_LOG( PDDEBUG, "add preicate[%s] to predicates set",
-              rebuildName ? buf : fieldName ) ;
+      // PD_LOG( PDDEBUG, "add preicate[%s] to predicates set",
+      //         rebuildName ? buf : fieldName ) ;
 
       if ( SDB_OK == _addPredicate ( predicateSet,
                                      rebuildName ? buf : fieldName,
