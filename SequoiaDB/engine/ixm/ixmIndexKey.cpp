@@ -477,7 +477,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to initialize key field, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -949,7 +949,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to set key pattern, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1046,7 +1046,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to initialize key generator, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1140,7 +1140,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed get keys from object, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1274,7 +1274,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build keys, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

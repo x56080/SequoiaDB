@@ -54,6 +54,9 @@ using namespace bson ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
 
+#define DMS_RETRY_SHUTDOWN_COUNT    ( 1000 )
+#define DMS_RETRY_SLEEP_TIME        ( 100 )
+
 namespace engine
 {
 
@@ -2092,18 +2095,16 @@ namespace engine
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
 
+      BSONObjSet::iterator itori ;
+      BSONObjSet::iterator itnew ;
+      // only save the first key of new updated keys, and the first key of
+      // old updated keys for unique index
+      BOOLEAN oldHashSaved = FALSE, newHashSaved = FALSE ;
+      UINT32 phase = 0 ;
+      UINT32 retryCount = 0 ;
+
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXUPDATE );
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
-
-      rc = indexCB->getKeysFromObject( originalObj,
-                                       keySetOri,
-                                       &oriAllUndefined ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get keys from org object %s",
-                  originalObj.toString().c_str() ) ;
-         goto error ;
-      }
 
       unique = indexCB->unique() ;
 
@@ -2116,6 +2117,19 @@ namespace engine
                      ( cb->isInTransRollback() &&
                            !indexCB->isIDIndex() ) ) ) ? TRUE : !unique ;
 
+   update_p0:
+      rc = indexCB->getKeysFromObject( originalObj,
+                                       keySetOri,
+                                       &oriAllUndefined ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get keys from org object %s",
+                  originalObj.toString().c_str() ) ;
+         goto error ;
+      }
+      phase = 1 ;
+
+   update_p1:
       rc = indexCB->getKeysFromObject ( newObj,
                                         keySetNew,
                                         &newAllUndefined ) ;
@@ -2125,7 +2139,9 @@ namespace engine
                   newObj.toString().c_str() ) ;
          goto error ;
       }
+      phase = 2 ;
 
+   update_p2:
       if ( pOprHandle )
       {
          rc = pOprHandle->onUpdateIndex( context, indexCB, unique,
@@ -2145,20 +2161,18 @@ namespace engine
                newObj.toString().c_str() ) ;
 #endif
 
-      // do merge scan for two sets, unindex the keys if the one in keySetOri
-      // doesn't appear in keySetNew, and insert the one in keySetNew doesn't
-      // appear in keySetOri
+      itori = keySetOri.begin() ;
+      itnew = keySetNew.begin() ;
+
+      phase = 3 ;
+
+   update_p3:
+      try
       {
-         BSONObjSet::iterator itori ;
-         BSONObjSet::iterator itnew ;
+         // do merge scan for two sets, unindex the keys if the one in keySetOri
+         // doesn't appear in keySetNew, and insert the one in keySetNew doesn't
+         // appear in keySetOri
          Ordering order = Ordering::make(indexCB->keyPattern()) ;
-
-         // only save the first key of new updated keys, and the first key of
-         // old updated keys for unique index
-         BOOLEAN oldHashSaved = FALSE, newHashSaved = FALSE ;
-
-         itori = keySetOri.begin() ;
-         itnew = keySetNew.begin() ;
          while ( keySetOri.end() != itori && keySetNew.end() != itnew )
          {
 #if defined (_DEBUG)
@@ -2362,11 +2376,52 @@ namespace engine
             itnew++ ;
          }
       }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update index key, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX__INDEXUPDATE, rc ) ;
       return rc ;
    error :
+      if ( isRollback &&
+           SDB_OOM == rc )
+      {
+         // retry too many, restart the node
+         if ( ( retryCount > DMS_RETRY_SHUTDOWN_COUNT ) &&
+              ( !( PMD_IS_DB_DOWN() ) ) )
+         {
+            PD_LOG( PDSEVERE, "Failed to update index, rc: %d, "
+                    "timeout, restart DB" ) ;
+            PMD_RESTART_DB( rc ) ;
+         }
+         else if ( 0 == retryCount )
+         {
+            PD_LOG( PDWARNING, "Failed to update index, rc: %d, "
+                    "need retry", rc ) ;
+         }
+
+         ossSleep( DMS_RETRY_SLEEP_TIME ) ;
+         ++ retryCount ;
+
+         switch ( phase )
+         {
+            case 0:
+               goto update_p0 ;
+            case 1:
+               goto update_p1 ;
+            case 2:
+               goto update_p2 ;
+            case 3:
+               goto update_p3 ;
+            default:
+               SDB_ASSERT( FALSE, "invalid case" ) ;
+         }
+      }
       goto done ;
    }
 
@@ -2501,14 +2556,27 @@ namespace engine
 
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
+      BSONObjSet::iterator it ;
+      // only save the first key of deleted keys for unique index
+      BOOLEAN hashSaved = FALSE ;
+      UINT32 phase = 0 ;
+      UINT32 retryCount = 0 ;
+
+   delete_p0:
       rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       if ( rc )
       {
+         if ( SDB_IXM_MULTIPLE_ARRAY == rc )
+         {
+            goto done ;
+         }
          PD_LOG ( PDERROR, "Failed to get keys from object %s",
                   inputObj.toString().c_str() ) ;
          goto error ;
       }
+      phase = 1 ;
 
+   delete_p1:
       if ( pOprHandle )
       {
          rc = pOprHandle->onDeleteIndex( context, indexCB,
@@ -2520,15 +2588,15 @@ namespace engine
          }
       }
 
+      it = keySet.begin() ;
+      phase = 2 ;
+
+   delete_p2:
+      try
       {
-         BSONObjSet::iterator it ;
          Ordering order = Ordering::make(indexCB->keyPattern()) ;
-
-         // only save the first key of deleted keys for unique index
-         BOOLEAN hashSaved = FALSE ;
-
          // go through each index in the set
-         for ( it = keySet.begin() ; it != keySet.end() ; it++ )
+         for ( ; it != keySet.end() ; it++ )
          {
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Delete key: %s", (*it).toString().c_str() ) ;
@@ -2561,11 +2629,49 @@ namespace engine
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
          }
       }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to delete index key, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX__INDEXDELETE, rc ) ;
       return rc ;
-   error :
+   error:
+      if ( SDB_OOM == rc )
+      {
+         // retry too many, restart the node
+         if ( ( retryCount > DMS_RETRY_SHUTDOWN_COUNT ) &&
+              ( !( PMD_IS_DB_DOWN() ) ) )
+         {
+            PD_LOG( PDSEVERE, "Failed to delete index, rc: %d, "
+                    "timeout, restart DB" ) ;
+            PMD_RESTART_DB( rc ) ;
+         }
+         else if ( 0 == retryCount )
+         {
+            PD_LOG( PDWARNING, "Failed to delete index, rc: %d, "
+                    "need retry", rc ) ;
+         }
+
+         ossSleep( DMS_RETRY_SLEEP_TIME ) ;
+         ++ retryCount ;
+
+         switch ( phase )
+         {
+            case 0:
+               goto delete_p0 ;
+            case 1:
+               goto delete_p1 ;
+            case 2:
+               goto delete_p2 ;
+            default:
+               SDB_ASSERT( FALSE, "invalid case" ) ;
+         }
+      }
       PD_LOG ( PDERROR, "Failed to deleteindex, rc: %d", rc ) ;
       goto done ;
    }
