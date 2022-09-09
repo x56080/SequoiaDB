@@ -3998,15 +3998,26 @@ namespace engine
          goto done;
       }
       {
-      clsNodeItem& item = _vecNodes[pos] ;
-      id = item._id ;
-      id.columns.serviceID = (UINT16)type ;
-      hostName = item._host ;
-      serviceName = item._service[(UINT16)type] ;
+         clsNodeItem& item = _vecNodes[pos] ;
+         id = item._id ;
+         id.columns.serviceID = (UINT16)type ;
+         try
+         {
+            hostName = item._host ;
+            serviceName = item._service[(UINT16)type] ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occrued "
+                         "exception: %s, rc: %d", e.what(), rc ) ;
+         }
       }
    done:
       PD_TRACE_EXIT ( SDB__CLSGPIM_GETNDINFO1 ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_GETNDINFO2, "_clsGroupItem::getNodeInfo" )
@@ -4022,13 +4033,24 @@ namespace engine
          goto done ;
       }
       {
-      clsNodeItem& item = _vecNodes[pos] ;
-      hostName = item._host ;
-      serviceName = item._service[id.columns.serviceID] ;
+         clsNodeItem& item = _vecNodes[pos] ;
+         try
+         {
+            hostName = item._host ;
+            serviceName = item._service[id.columns.serviceID] ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occrued "
+                         "exception: %s, rc: %d", e.what(), rc ) ;
+         }
       }
    done:
       PD_TRACE_EXIT ( SDB__CLSGPIM_GETNDINFO2 ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_GETNDINFO3, "_clsGroupItem::getNodeInfo" )
