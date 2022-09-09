@@ -41,6 +41,7 @@
 
 #include "utilPooledObject.hpp"
 #include "../bson/bson.h"
+#include "../bson/ordering.h"
 #include "ixmIndexKey.hpp"
 #include "ixm_common.hpp"
 
@@ -54,21 +55,19 @@ namespace engine
       typedef std::vector< BSONElement >  OrderKeyEleList;
       typedef std::vector< BSONObj >      OrderKeyObjList;
       public:
-         _rtnOrderKey( const _rtnOrderKey &orderKey ) ;
-         _rtnOrderKey() ;
+         _rtnOrderKey( const BSONObj &orderKey ) ;
 
       public:
          BOOLEAN operator<( const _rtnOrderKey &rhs ) const ;
          void clear() ;
-         void setOrderBy( const BSONObj &orderBy ) ;
          INT32 generateKey( const BSONObj &record,
                             _ixmIndexKeyGen *keyGen ) ;
 
       private:
-         BSONObj              _orderBy ;
+         Ordering             _ordering ;
          ixmHashValue         _hash ;
+         ixmKeyBuilder        _keyBuilder ;
          BSONObj              _keyObj ;
-         BSONElement          _arrEle ;
    } ;
    typedef _rtnOrderKey rtnOrderKey ;
 
@@ -96,11 +95,16 @@ namespace engine
       virtual INT32        recordNum() = 0 ;
       virtual INT32        remainLength() = 0 ;
       virtual INT32        truncate ( INT32 num ) = 0 ;
-      virtual INT32        getOrderKey( _rtnOrderKey& orderKey ) = 0 ;
+      virtual INT32        genOrderKey() = 0 ;
 
       // For context data processor
       virtual INT64        getDataID () const = 0 ;
       INT64                getProcessType () const { return _startFrom ; }
+
+      BOOLEAN operator<( const _rtnSubContext &rhs ) const
+      {
+         return _orderKey < rhs._orderKey ;
+      }
 
    protected:
       _rtnOrderKey      _orderKey ;
@@ -110,6 +114,21 @@ namespace engine
       _ixmIndexKeyGen*  _keyGen ;
    } ;
    typedef _rtnSubContext rtnSubContext ;
+
+   class _rtnSubContextComperator
+   {
+   public:
+      _rtnSubContextComperator() {}
+      ~_rtnSubContextComperator() {}
+
+      BOOLEAN operator() ( const rtnSubContext *l,
+                           const rtnSubContext *r ) const
+      {
+         return l != r && *l < *r ;
+      }
+   } ;
+   typedef class _rtnSubContextComperator rtnSubContextComperator ;
+
 }
 
 #endif /* RTN_SUB_CONTEXT_HPP_ */

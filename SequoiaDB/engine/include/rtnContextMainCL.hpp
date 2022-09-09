@@ -69,7 +69,7 @@ namespace engine
       INT32 recordNum() ;
       INT32 remainLength() ;
       INT32 truncate ( INT32 num ) ;
-      INT32 getOrderKey( rtnOrderKey &orderKey );
+      INT32 genOrderKey() ;
       rtnContextBuf buffer() ;
       void setBuffer( rtnContextBuf &buffer ) ;
       void releaseBuffer() ;
@@ -157,7 +157,7 @@ namespace engine
          //    1. sort is not empty
          //    2. sort keys are not included in sharding keys
          // 2. has more than one sub-collections
-         return ( _orderedContextMap.size() > 0 || _subContextMap.size() > 1 ) &&
+         return ( _orderedContexts.size() > 0 || _subContextMap.size() > 1 ) &&
                 requireOrder() ;
       }
 
