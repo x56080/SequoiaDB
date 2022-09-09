@@ -605,7 +605,7 @@ namespace engine
       }
 
    done :
-      if ( pContext )
+      if ( pContext && ppContext )
       {
          *ppContext = pContext ;
       }

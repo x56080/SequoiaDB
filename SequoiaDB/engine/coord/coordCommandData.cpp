@@ -155,7 +155,7 @@ namespace engine
       }
 
    done :
-      if ( pContext )
+      if ( pContext && ppContext )
       {
          *ppContext = pContext ;
       }
@@ -241,7 +241,7 @@ namespace engine
       }
 
    done :
-      if ( pContext )
+      if ( pContext && ppContext )
       {
          *ppContext = pContext ;
       }
@@ -352,7 +352,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_DATA3PHASE_DOONDATA2 ) ;
       rtnContextBuf buffObj ;
 
-      rc = _processContext( cb, ppContext, 1, buffObj ) ;
+      rc = _processContext( cb, ppContext, 1, buffObj, hint ) ;
 
       try
       {
