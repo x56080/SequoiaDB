@@ -49,6 +49,7 @@ namespace vessel
       if (!bcb->hasDirtyFlag())
       {
          bcb->ctl().setFlag(LITE_IO_BUFFER_CTL_FLAGS::DIRTY);
+         std::unique_lock<std::mutex> guard(_mutex);
          pushBackToList(bcb);
       }
    }
