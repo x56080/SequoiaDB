@@ -475,7 +475,7 @@ namespace engine
       }
 
    done:
-      if ( !isHintEmpty && pMsgReq )
+      if ( pMsgReq != &msgReq )
       {
          msgReleaseBuffer( (CHAR *)pMsgReq, cb ) ;
       }
