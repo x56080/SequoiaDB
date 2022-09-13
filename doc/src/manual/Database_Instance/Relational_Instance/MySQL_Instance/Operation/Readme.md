@@ -7,6 +7,7 @@ SequoiaDB 巨杉数据库能够通过 MySQL 原生的 SQL 解析器与分布式�
 - [CRUD 操作][CRUD_operation]
 - [分区][partition]
 - [联邦查询][federal_query]
+- [物化视图][materialized_view]
 
 
 
@@ -17,3 +18,4 @@ SequoiaDB 巨杉数据库能够通过 MySQL 原生的 SQL 解析器与分布式�
 [CRUD_operation]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/CRUD_operation.md
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
 [federal_query]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/federal_query.md
+[materialized_view]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/materialized_view.md

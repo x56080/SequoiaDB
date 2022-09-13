@@ -8,6 +8,7 @@ SequoiaDB 巨杉数据库支持创建 MariaDB 实例，且完全兼容 MariaDB�
 - [分区][partition]
 - [序列][sequence]
 - [联邦查询][federal_query]
+- [物化视图][materialized_view]
 
 
 
@@ -19,3 +20,4 @@ SequoiaDB 巨杉数据库支持创建 MariaDB 实例，且完全兼容 MariaDB�
 [partition]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/partition.md
 [federal_query]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/federal_query.md
 [sequence]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/sequence.md
+[materialized_view]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/materialized_view.md
