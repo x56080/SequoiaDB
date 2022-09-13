@@ -170,6 +170,12 @@
                                  "file": "federal_query",
                                  "cn": "联邦查询",
                                  "en": "federal query"
+                              },
+			      {
+                                 "id": 1662694973,
+                                 "file": "materialized_view",
+                                 "cn": "物化视图",
+                                 "en": "materialized view"
                               }
                            ]
                         },
@@ -331,6 +337,12 @@
                                  "file": "federal_query",
                                  "cn": "联邦查询",
                                  "en": "federal query"
+                              },
+			      {
+                                 "id": 1662695023,
+                                 "file": "materialized_view",
+                                 "cn": "物化视图",
+                                 "en": "materialized view"
                               }
                            ]
                         },
