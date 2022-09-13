@@ -79,7 +79,7 @@ namespace engine
       INT32          recordNum() ;
       INT32          remainLength() ;
       INT32          truncate ( INT32 num ) ;
-      INT32          getOrderKey( rtnOrderKey &orderKey ) ;
+      INT32          genOrderKey() ;
 
       OSS_INLINE INT64 getDataID () const
       {
@@ -196,7 +196,6 @@ namespace engine
          EMPTY_CONTEXT_MAP          _emptyContextMap ;
          EMPTY_CONTEXT_MAP          _prepareContextMap ;
 
-         rtnOrderKey                _emptyKey ;
          BOOLEAN                    _preRead ;
 
          BOOLEAN                    _needReOrder ;
@@ -224,7 +223,7 @@ namespace engine
       // 1. order is required ( sort is not empty )
       // 2. has more than one sub-context
       return requireOrder() &&
-             ( _orderedContextMap.size() + _emptyContextMap.size() +
+             ( _orderedContexts.size() + _emptyContextMap.size() +
                _prepareContextMap.size() > 1 ) ;
    }
 
