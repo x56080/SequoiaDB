@@ -352,7 +352,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_DATA3PHASE_DOONDATA2 ) ;
       rtnContextBuf buffObj ;
 
-      rc = _processContext( cb, ppContext, 1, buffObj, hint ) ;
+      rc = _processContext( cb, ppContext, -1, buffObj, hint ) ;
 
       try
       {
@@ -363,6 +363,28 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get obj from obj buf, rc: %d",
                          rc ) ;
             dataObjs.push_back( reply.getOwned() ) ;
+         }
+
+         /// get cached data
+         while( ppContext && *ppContext &&
+                (*ppContext)->getCachedRecordNum() > 0 )
+         {
+            BSONObj obj ;
+            rc = (*ppContext)->getMore( 1, buffObj, cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to get more from context [%lld], "
+                       "rc: %d", (*ppContext)->contextID(), rc ) ;
+               goto error ;
+            }
+
+            obj = BSONObj( buffObj.data() ) ;
+            dataObjs.push_back( obj.getOwned() ) ;
          }
       }
       catch ( exception &e )
