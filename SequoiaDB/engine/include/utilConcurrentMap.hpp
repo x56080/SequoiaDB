@@ -71,16 +71,27 @@ namespace engine
 
    public:
       utilConcurrentMap()
-      : _count( 0 )
+      : _buckets( NULL ),
+        _count( 0 )
       {
          SDB_ASSERT( BUCKET_NUM <= UTIL_CONCURRENT_MAP_MAX_BUCKET_NUM &&
                      BUCKET_NUM > 1,
             "bucket num must > 1 and <= UTIL_CONCURRENT_MAP_MAX_BUCKET_NUM" ) ;
          SDB_ASSERT( BUCKET_NUM % 2 == 0, "bucket num must be a power of 2" ) ;
+
+         _buckets = (Bucket *)_bucketBuffer ;
+         for ( UINT32 i = 0 ; i < BUCKET_NUM ; ++ i )
+         {
+            new ( _buckets + i )Bucket( _count ) ;
+         }
       }
 
       ~utilConcurrentMap()
       {
+         for ( UINT32 i = 0 ; i < BUCKET_NUM ; ++ i )
+         {
+            _buckets[ i ].~Bucket() ;
+         }
       }
 
    public:
@@ -93,9 +104,9 @@ namespace engine
          void operator=( const Bucket& ) ;
 
       public:
-         Bucket() {}
+         Bucket( ossAtomic64 & countRef ) : _countRef( countRef ) {}
          ~Bucket() {}
-         
+
          OSS_INLINE map_iterator begin()
          {
             return _map.begin() ;
@@ -128,33 +139,54 @@ namespace engine
 
          OSS_INLINE std::pair<map_iterator,bool> insert( const value_type& val )
          {
-            return _map.insert( val ) ;
+            std::pair<map_iterator,bool> res = _map.insert( val ) ;
+
+            if ( res.second )
+            {
+               _countRef.inc() ;
+            }
+
+            return res ;
          }
 
          OSS_INLINE UINT32 erase( const Key& key )
          {
-            return _map.erase( key ) ;
+            UINT32 res = _map.erase( key ) ;
+            _countRef.sub( res ) ;
+            return res ;
          }
 
          OSS_INLINE void erase( map_const_iterator iter )
          {
+            UINT32 res = _map.size() ;
             _map.erase( iter ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
          }
 
          OSS_INLINE void erase( map_iterator iter )
          {
+            UINT32 res = _map.size() ;
             _map.erase( iter ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
          }
 
          OSS_INLINE void erase( map_const_iterator begin,
                                 map_const_iterator end )
          {
+            UINT32 res = _map.size() ;
             _map.erase( begin, end ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
          }
 
          OSS_INLINE void erase( map_iterator begin, map_iterator end )
          {
+            UINT32 res = _map.size() ;
             _map.erase( begin, end ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
          }
 
          OSS_INLINE map_iterator find( const Key &key )
@@ -169,7 +201,9 @@ namespace engine
 
          OSS_INLINE void clear()
          {
+            UINT32 res = _map.size() ;
             _map.clear() ;
+            _countRef.sub( res ) ;
          }
 
          OSS_INLINE const map_type &getMap() const
@@ -188,6 +222,7 @@ namespace engine
          }
 
       private:
+         ossAtomic64 & _countRef ;
          Latch    _latch ;
          map_type _map ;
       } ;
@@ -253,10 +288,6 @@ namespace engine
          {
             BUCKET_XLOCK( bucket ) ;
             res = bucket.insert( val ) ;
-            if ( res.second )
-            {
-               _count.inc() ;
-            }
          }
          catch ( std::exception &e )
          {
@@ -274,7 +305,7 @@ namespace engine
       {
          Bucket& bucket = getBucket( key ) ;
          BUCKET_XLOCK( bucket ) ;
-         _count.sub( (UINT64)( bucket.erase( key ) ) ) ;
+         bucket.erase( key ) ;
       }
 
       OSS_INLINE std::pair<T, bool> find( const Key& key )
@@ -300,17 +331,12 @@ namespace engine
             if ( lock )
             {
                BUCKET_XLOCK( bucket ) ;
-               _count.sub( bucket.size() ) ;
                bucket.clear() ;
             }
             else
             {
                bucket.clear() ;
             }
-         }
-         if ( !lock )
-         {
-            _count.poke( 0 ) ;
          }
       }
 
@@ -428,7 +454,7 @@ namespace engine
             SDB_ASSERT( index >= 0 && index <= BUCKET_NUM, 
                         "bucket index out of range" ) ;
             SDB_ASSERT( map != NULL, "_map is null" ) ;
-            
+
             _index = index ;
             _map = map ;
          }
@@ -450,7 +476,8 @@ namespace engine
       }
 
    private:
-      Bucket   _buckets[ BUCKET_NUM ] ;
+      CHAR     _bucketBuffer[ sizeof( Bucket ) * BUCKET_NUM ] ;
+      Bucket * _buckets ;
       Hash     _hasher ;
       ossAtomic64 _count ;
    } ;
