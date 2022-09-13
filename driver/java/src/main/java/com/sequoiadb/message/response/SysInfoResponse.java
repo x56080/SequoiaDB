@@ -19,6 +19,7 @@ package com.sequoiadb.message.response;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
+import com.sequoiadb.message.SdbAuthVersion;
 import com.sequoiadb.message.SdbProtocolVersion;
 import com.sequoiadb.message.SysInfoHeader;
 import com.sequoiadb.util.Helper;
@@ -66,6 +67,14 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
 
     public SdbProtocolVersion getPeerProtocolVersion() {
         return peerProtocolVersion;
+    }
+
+    public SdbAuthVersion getAuthVersion() {
+        if ( authVersion == 1 ) {
+            return SdbAuthVersion.SDB_AUTH_SCRAM_SHA256;
+        } else {
+            return SdbAuthVersion.SDB_AUTH_MD5;
+        }
     }
 
     @Override
