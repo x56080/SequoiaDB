@@ -156,7 +156,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnSubCLContext::getOrderKey( _rtnOrderKey& orderKey )
+   INT32 _rtnSubCLContext::genOrderKey()
    {
       INT32 rc = SDB_OK;
       if ( _isOrderKeyChange )
@@ -169,8 +169,8 @@ namespace engine
          {
             try
             {
-               BSONObj boRecord( front() );
-               rc = _orderKey.generateKey( boRecord, _keyGen );
+               BSONObj boRecord( front() ) ;
+               rc = _orderKey.generateKey( boRecord, _keyGen ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get order-key(rc=%d)",
                             rc );
             }
@@ -181,7 +181,6 @@ namespace engine
             }
          }
       }
-      orderKey = _orderKey ;
       _isOrderKeyChange = FALSE ;
 
    done:
@@ -827,7 +826,7 @@ namespace engine
    {
       if ( _subs.empty() &&
            _subContextMap.empty() &&
-           _orderedContextMap.empty() )
+           _orderedContexts.empty() )
       {
          _hitEnd = TRUE ;
       }

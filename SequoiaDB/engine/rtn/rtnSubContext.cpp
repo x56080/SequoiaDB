@@ -42,15 +42,9 @@
 
 namespace engine
 {
-   _rtnOrderKey::_rtnOrderKey ( const _rtnOrderKey &orderKey )
-   {
-      _orderBy = orderKey._orderBy ;
-      _hash = orderKey._hash ;
-      _keyObj = orderKey._keyObj ;
-      _arrEle = orderKey._arrEle ;
-   }
-
-   _rtnOrderKey::_rtnOrderKey ()
+   _rtnOrderKey::_rtnOrderKey ( const BSONObj &orderKey )
+   : _ordering( Ordering::make( orderKey ) ),
+     _keyBuilder( FALSE )
    {
       _hash.hash = 0 ;
    }
@@ -60,9 +54,9 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_RTNORDERKEY_OPLT ) ;
       BOOLEAN result = FALSE ;
-      INT32 rsCmp = _keyObj.woCompare( rhs._keyObj, _orderBy, FALSE ) ;
-      if ( rsCmp < 0
-         || ( 0 == rsCmp && _hash.hash < rhs._hash.hash ))
+      INT32 rsCmp = _keyObj.woCompare( rhs._keyObj, _ordering, FALSE ) ;
+      if ( ( rsCmp < 0 ) ||
+           ( 0 == rsCmp && _hash.hash < rhs._hash.hash ) )
       {
          result = TRUE ;
       }
@@ -73,14 +67,8 @@ namespace engine
 
    void _rtnOrderKey::clear()
    {
-      _arrEle = BSONElement() ;
       _hash.columns.hash1 = 0 ;
       _hash.columns.hash2 = 0 ;
-   }
-
-   void _rtnOrderKey::setOrderBy( const BSONObj &orderBy )
-   {
-      _orderBy = orderBy;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNORDERKEY_GENKEY, "_rtnOrderKey::generateKey" )
@@ -92,18 +80,20 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNORDERKEY_GENKEY ) ;
       clear();
       BSONObj keys ;
-      rc = keyGen->getKeys( record, keys, &_arrEle ) ;
+      BSONElement arrEle ;
+      rc = keyGen->getKeys( record, keys, &arrEle, FALSE, FALSE, NULL,
+                            &_keyBuilder ) ;
       PD_RC_CHECK( rc, PDERROR,
                   "failed to generate order-key(rc=%d)",
                   rc ) ;
-      _keyObj = keys.getOwned() ;
-      if ( _arrEle.eoo() )
+      _keyObj = keys ;
+      if ( arrEle.eoo() )
       {
          _hash.hash = 0 ;
       }
       else
       {
-         ixmMakeHashValue( _arrEle, _hash ) ;
+         ixmMakeHashValue( arrEle, _hash ) ;
       }
 
    done:
@@ -116,8 +106,8 @@ namespace engine
    _rtnSubContext::_rtnSubContext( const BSONObj& orderBy,
                                    _ixmIndexKeyGen* keyGen,
                                    INT64 contextID )
+   : _orderKey( orderBy )
    {
-      _orderKey.setOrderBy( orderBy ) ;
       _isOrderKeyChange = TRUE ;
       _keyGen = keyGen ;
       _contextID = contextID ;

@@ -142,10 +142,10 @@ namespace engine
    UINT32 _rtnContextCoord::getCachedRecordNum()
    {
       UINT32 recordNum = 0 ;
-      SUB_ORDERED_CTX_MAP::iterator it = _orderedContextMap.begin() ;
-      while( it != _orderedContextMap.end() )
+      SUB_ORDERED_CTX_SET_IT it = _orderedContexts.begin() ;
+      while( it != _orderedContexts.end() )
       {
-         rtnSubContext *pSub = it->second ;
+         rtnSubContext *pSub = *it ;
          recordNum += pSub->recordNum() ;
          ++it ;
       }
@@ -178,17 +178,17 @@ namespace engine
       }
 
       // push all ordered context to prepare map
-      SUB_ORDERED_CTX_MAP::iterator itSub = _orderedContextMap.begin() ;
-      while ( _orderedContextMap.end() != itSub )
+      SUB_ORDERED_CTX_SET_IT itSub = _orderedContexts.begin() ;
+      while ( _orderedContexts.end() != itSub )
       {
-         rtnSubContext* rtnSubCtx = itSub->second ;
+         rtnSubContext* rtnSubCtx = *itSub ;
          pSubContext = dynamic_cast<coordSubContext*>( rtnSubCtx ) ;
          _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
                                     pSubContext->getRouteID().value,
                                     pSubContext ) ) ;
          ++itSub ;
       }
-      _orderedContextMap.clear() ;
+      _orderedContexts.clear() ;
 
       EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
       while ( it != _emptyContextMap.end() )
@@ -553,12 +553,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( _needReOrder && 1 == _orderedContextMap.size() &&
+      if ( _needReOrder && 1 == _orderedContexts.size() &&
            _requireExplicitSorting() )
       {
-         rtnSubContext* subCtx = _orderedContextMap.begin()->second ;
+         rtnSubContext* subCtx = *( _orderedContexts.begin() ) ;
 
-         _orderedContextMap.clear() ;
+         _orderedContexts.clear() ;
 
          rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
          if ( rc != SDB_OK )
@@ -662,8 +662,7 @@ namespace engine
 
          try
          {
-            _orderedContextMap.insert(
-               SUB_ORDERED_CTX_MAP::value_type( _emptyKey, pSubContext ) ) ;
+            _orderedContexts.insert( pSubContext ) ;
          }
          catch( std::exception& e )
          {
@@ -769,7 +768,7 @@ namespace engine
 
       SDB_ASSERT ( NULL != pReply, "pReply can't be NULL" ) ;
 
-      if ( _orderedContextMap.empty() && _emptyContextMap.empty() &&
+      if ( _orderedContexts.empty() && _emptyContextMap.empty() &&
            _prepareContextMap.empty() )
       {
          isEmpty = TRUE ;
@@ -911,11 +910,11 @@ namespace engine
                                                      rtnSubContext*& subCtx )
    {
       INT32 rc = SDB_OK ;
-      SUB_ORDERED_CTX_MAP::iterator iter ;
+      SUB_ORDERED_CTX_SET_IT iter ;
 
       subCtx = NULL ;
 
-      while ( _orderedContextMap.size() == 0 )
+      while ( _orderedContexts.size() == 0 )
       {
          if ( _emptyContextMap.size() + _prepareContextMap.size() == 0 )
          {
@@ -930,11 +929,11 @@ namespace engine
          }
       }
 
-      SDB_ASSERT( _orderedContextMap.size() != 0,
+      SDB_ASSERT( _orderedContexts.size() != 0,
                   "_orderedContextMap should not be empty" ) ;
 
-      iter = _orderedContextMap.begin() ;
-      subCtx = iter->second ;
+      iter = _orderedContexts.begin() ;
+      subCtx = *iter ;
 
    done:
       return rc ;
@@ -953,14 +952,29 @@ namespace engine
 
       // generally, subctx is first element of _orderedContextMap
       // so don't worry about performance
-      for ( SUB_ORDERED_CTX_MAP::iterator iter = _orderedContextMap.begin() ;
-            iter != _orderedContextMap.end() ;
-            ++iter )
+      SUB_ORDERED_CTX_SET_IT iter = _orderedContexts.begin() ;
+      if ( *iter == subCtx )
       {
-         if ( iter->second == subCtx )
+         _orderedContexts.erase( iter ) ;
+      }
+      else
+      {
+         // if the context is not the first element, need iterate the
+         // elements with the same order key in the set
+         // NOTE: should not use erase(value) in multiset, which will
+         //       remove all contexts with the same key
+         SUB_ORDERED_CTX_SET_IT_PAIR itPair =
+                                       _orderedContexts.equal_range( subCtx ) ;
+         for ( SUB_ORDERED_CTX_SET_IT iter = itPair.first ;
+               iter != itPair.second ;
+               ++ iter )
          {
-            _orderedContextMap.erase ( iter ) ;
-            break ;
+            if ( *iter == subCtx )
+            {
+               // found target
+               _orderedContexts.erase( iter ) ;
+               break ;
+            }
          }
       }
 
@@ -997,7 +1011,7 @@ namespace engine
       }
 
       if ( !_hitEnd && _emptyContextMap.empty() &&
-           _orderedContextMap.empty() && _prepareContextMap.empty() )
+           _orderedContexts.empty() && _prepareContextMap.empty() )
       {
          _hitEnd = TRUE ;
       }
@@ -1375,50 +1389,47 @@ namespace engine
       return _recordNum ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_COSUBCON_GETORDERKEY, "coordSubContext::getOrderKey" )
-   INT32 _coordSubContext::getOrderKey( rtnOrderKey &orderKey )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_COSUBCON_GENORDERKEY, "coordSubContext::genOrderKey" )
+   INT32 _coordSubContext::genOrderKey()
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_COSUBCON_GETORDERKEY ) ;
-      do
-      {
-         if ( !_isOrderKeyChange )
-         {
-            break ;
-         }
-         if ( _recordNum <= 0 )
-         {
-            _orderKey.clear() ;
-            break ;
-         }
-         try
-         {
-            BSONObj boRecord( (CHAR *)_pData + _curOffset ) ;
-            rc = _orderKey.generateKey( boRecord, _keyGen ) ;
-            if ( rc != SDB_OK )
-            {
-               PD_LOG ( PDERROR, "Failed to get order-key(rc=%d)", rc ) ;
-               break ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG ( PDERROR, "Failed to get order-key, occur unexpected "
-                     "error:%s", e.what() ) ;
-            break ;
-         }
-      }while ( FALSE ) ;
 
-      if ( SDB_OK == rc )
+      PD_TRACE_ENTRY( SDB_COSUBCON_GENORDERKEY ) ;
+
+      if ( !_isOrderKeyChange )
       {
-         orderKey = _orderKey ;
+         goto done ;
+      }
+      if ( _recordNum <= 0 )
+      {
+         _orderKey.clear() ;
+         goto done ;
+      }
+      try
+      {
+         BSONObj boRecord( (CHAR *)_pData + _curOffset ) ;
+         rc = _orderKey.generateKey( boRecord, _keyGen ) ;
+         if ( rc != SDB_OK )
+         {
+            PD_LOG ( PDERROR, "Failed to get order-key(rc=%d)", rc ) ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to get order-key, occur unexpected "
+                 "error: %s", e.what() ) ;
+         goto error ;
       }
 
-      PD_TRACE_EXITRC ( SDB_COSUBCON_GETORDERKEY, rc ) ;
-      return rc;
-   }
+   done:
+      PD_TRACE_EXITRC( SDB_COSUBCON_GENORDERKEY, rc ) ;
+      return rc ;
 
+   error:
+      goto done ;
+   }
 
    /*
       _rtnContextCoordExplain implement

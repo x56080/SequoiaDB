@@ -55,7 +55,11 @@ namespace engine
                            public _rtnCtxDataDispatcher
    {
    protected:
-      typedef ossPoolMultiMap< rtnOrderKey, rtnSubContext* > SUB_ORDERED_CTX_MAP ;
+      typedef ossPoolMultiSet< rtnSubContext*,
+                               rtnSubContextComperator > SUB_ORDERED_CTX_SET ;
+      typedef SUB_ORDERED_CTX_SET::iterator SUB_ORDERED_CTX_SET_IT ;
+      typedef std::pair< SUB_ORDERED_CTX_SET_IT, SUB_ORDERED_CTX_SET_IT >
+                                                SUB_ORDERED_CTX_SET_IT_PAIR ;
 
    public:
       _rtnContextMain( INT64 contextID, UINT64 eduID ) ;
@@ -151,7 +155,7 @@ namespace engine
 
    protected:
       rtnQueryOptions            _options ;
-      SUB_ORDERED_CTX_MAP        _orderedContextMap ;
+      SUB_ORDERED_CTX_SET        _orderedContexts ;
       _ixmIndexKeyGen*           _keyGen ;
       INT64                      _numToReturn ;
       INT64                      _numToSkip ;

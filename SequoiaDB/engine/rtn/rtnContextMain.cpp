@@ -63,14 +63,15 @@ namespace engine
       pmdEDUCB* eduCB = pKrcb->getEDUMgr()->getEDUByID( eduID() ) ;
 
       // clean ordered context
-      SUB_ORDERED_CTX_MAP::iterator orderIter = _orderedContextMap.begin() ;
-      while ( orderIter != _orderedContextMap.end() )
+      SUB_ORDERED_CTX_SET_IT orderIter = _orderedContexts.begin() ;
+      while ( orderIter != _orderedContexts.end() )
       {
-         rtnCB->contextDelete( orderIter->second->contextID(), eduCB ) ;
-         SDB_OSS_DEL orderIter->second ;
+         rtnSubContext *pSubCtx = *orderIter ;
+         rtnCB->contextDelete( pSubCtx->contextID(), eduCB ) ;
+         SDB_OSS_DEL pSubCtx ;
          ++orderIter ;
       }
-      _orderedContextMap.clear() ;
+      _orderedContexts.clear() ;
 
       SAFE_OSS_DELETE( _keyGen ) ;
    }
@@ -122,8 +123,7 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx should be not null" ) ;
       SDB_ASSERT( subCtx->recordNum() > 0, "subCtx is empty" ) ;
 
-      rtnOrderKey orderKey ;
-      rc = subCtx->getOrderKey( orderKey ) ;
+      rc = subCtx->genOrderKey() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get orderKey, rc = %d", rc ) ;
@@ -132,8 +132,7 @@ namespace engine
 
       try
       {
-         _orderedContextMap.insert(
-            SUB_ORDERED_CTX_MAP::value_type( orderKey, subCtx ) ) ;
+         _orderedContexts.insert( subCtx ) ;
       }
       catch( std::exception& e )
       {
@@ -177,7 +176,7 @@ namespace engine
             goto error ;
          }
 
-         if ( _orderedContextMap.size() == 0 )
+         if ( _orderedContexts.size() == 0 )
          {
             _hitEnd = TRUE ;
             rc = SDB_DMS_EOC ;
@@ -195,8 +194,8 @@ namespace engine
             break ;
          }
 
-         SUB_ORDERED_CTX_MAP::iterator iter = _orderedContextMap.begin();
-         if ( _orderedContextMap.end() == iter )
+         SUB_ORDERED_CTX_SET_IT iter = _orderedContexts.begin();
+         if ( _orderedContexts.end() == iter )
          {
             _hitEnd = TRUE ;
             if ( isEmpty() )
@@ -206,7 +205,7 @@ namespace engine
             break;
          }
 
-         rtnSubContext* ctx = iter->second ;
+         rtnSubContext* ctx = *iter ;
 
          if ( _numToSkip <= 0 )
          {
@@ -271,7 +270,7 @@ namespace engine
 
          if ( ctx->recordNum() <= 0 )
          {
-            _orderedContextMap.erase ( iter ) ;
+            _orderedContexts.erase ( iter ) ;
 
             rc = _saveEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
@@ -289,7 +288,7 @@ namespace engine
          }
          else
          {
-            _orderedContextMap.erase ( iter ) ;
+            _orderedContexts.erase ( iter ) ;
 
             rc = _saveNonEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
@@ -634,14 +633,15 @@ namespace engine
 
       try
       {
-         SUB_ORDERED_CTX_MAP::iterator itOrder ;
+         SUB_ORDERED_CTX_SET_IT itOrder ;
          BOOLEAN processed = FALSE ;
          ixmIndexKeyGen keyGen( orderby ) ;
 
-         itOrder = _orderedContextMap.begin() ;
-         while( itOrder != _orderedContextMap.end() )
+         itOrder = _orderedContexts.begin() ;
+         while( itOrder != _orderedContexts.end() )
          {
-            rc = _checkSubContextAdvance( itOrder->second, keyGen, type,
+            rtnSubContext *pSubCtx = *itOrder ;
+            rc = _checkSubContextAdvance( pSubCtx, keyGen, type,
                                           prefixNum, keyVal, orderby,
                                           processed ) ;
             if ( rc )
@@ -653,16 +653,16 @@ namespace engine
             else if ( !processed )
             {
                ///  save empty
-               SDB_ASSERT( 0 == itOrder->second->recordNum(),
+               SDB_ASSERT( 0 == pSubCtx->recordNum(),
                            "Sub-context must be empty" ) ;
-               rc = _saveEmptyOrderedSubCtx( itOrder->second ) ;
+               rc = _saveEmptyOrderedSubCtx( pSubCtx ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Save empty ordered sub-context failed, "
                           "rc: %d", rc ) ;
                   goto error ;
                }
-               _orderedContextMap.erase( itOrder++ ) ;
+               _orderedContexts.erase( itOrder++ ) ;
             }
             else
             {

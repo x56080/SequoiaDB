@@ -499,7 +499,8 @@ namespace engine
                       const BSONObj *pObject,
                       BOOLEAN keepKeyName,
                       BOOLEAN ignoreUndefined,
-                      BSONElement *arrEle )
+                      BSONElement *arrEle,
+                      ixmKeyBuilder *pBuilder )
       : _pIndexGen( pIndexGen ),
         _pObject( pObject ),
         _keepKeyName( keepKeyName ),
@@ -508,9 +509,11 @@ namespace engine
         _pArrEle( arrEle ),
         _pArrKeyField( NULL ),
         _tempBuilder( TRUE ),
-        _pBuilder( ( NULL == pIndexGen->_pKeyBuilder ) ?
-                   ( &_tempBuilder ) :
-                   ( pIndexGen->_pKeyBuilder ) )
+        _pBuilder( ( NULL == pBuilder ) ?
+                   ( ( NULL == pIndexGen->_pKeyBuilder ) ?
+                     ( &_tempBuilder ) :
+                     ( pIndexGen->_pKeyBuilder ) ) :
+                   ( pBuilder ) )
       {
          SDB_ASSERT( NULL != _pIndexGen, "index generator is invalid" ) ;
          SDB_ASSERT( NULL != _pObject, "object is invalid" ) ;
@@ -628,9 +631,10 @@ namespace engine
                      BSONObj *pOutputKeys,
                      BOOLEAN keepKeyName,
                      BOOLEAN ignoreUndefined,
-                     BSONElement *pArrEle )
+                     BSONElement *pArrEle,
+                     ixmKeyBuilder *pBuilder )
       : _ixmKeyGenBase( pIndexGen, pObject, keepKeyName, ignoreUndefined,
-                        pArrEle ),
+                        pArrEle, pBuilder ),
         _pOutputKeys( pOutputKeys )
       {
          SDB_ASSERT( NULL != pOutputKeys, "output keys is invalid" ) ;
@@ -733,9 +737,10 @@ namespace engine
                      BSONObjSet *pOutputKeySet,
                      BOOLEAN keepKeyName,
                      BOOLEAN ignoreUndefined,
-                     BSONElement *pArrEle )
+                     BSONElement *pArrEle,
+                     ixmKeyBuilder *pBuilder )
       : _ixmKeyGenBase( pIndexGen, pObject, keepKeyName, ignoreUndefined,
-                        pArrEle ),
+                        pArrEle, pBuilder ),
         _pKeySet( pOutputKeySet )
       {
          SDB_ASSERT( NULL != pOutputKeySet, "output key set is invalid" ) ;
@@ -862,7 +867,8 @@ namespace engine
                                     BSONElement *pArrEle,
                                     BOOLEAN keepKeyName,
                                     BOOLEAN ignoreUndefined,
-                                    BOOLEAN *pAllUndefined )
+                                    BOOLEAN *pAllUndefined,
+                                    ixmKeyBuilder *pBuilder )
    {
       INT32 rc = SDB_OK ;
 
@@ -870,7 +876,7 @@ namespace engine
 
       BOOLEAN allUndefined = FALSE ;
       ixmKeyObjGen keyGen( this, &obj, &keys, keepKeyName, ignoreUndefined,
-                           pArrEle ) ;
+                           pArrEle, pBuilder ) ;
 
       rc = _getKeys( &keyGen, allUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get keys from object, "
@@ -895,7 +901,8 @@ namespace engine
                                     BSONElement *pArrEle,
                                     BOOLEAN keepKeyName,
                                     BOOLEAN ignoreUndefined,
-                                    BOOLEAN *pAllUndefined )
+                                    BOOLEAN *pAllUndefined,
+                                    ixmKeyBuilder *pBuilder )
    {
       INT32 rc = SDB_OK ;
 
@@ -903,7 +910,7 @@ namespace engine
 
       BOOLEAN allUndefined = FALSE ;
       ixmKeySetGen keyGen( this, &obj, &keySet, keepKeyName, ignoreUndefined,
-                           pArrEle ) ;
+                           pArrEle, pBuilder ) ;
 
       rc = _getKeys( &keyGen, allUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key set from object, "
