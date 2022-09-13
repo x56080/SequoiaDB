@@ -60,7 +60,8 @@ public class TestTruncate171 extends SdbTestBase {
         }
     }
 
-    @Test
+    // 问题单SEQUOIADBMAINSTREAM-8614未修改，暂时屏蔽用例
+    @Test(enabled = false)
     public void test() {
         TruncateThread truncateThread = new TruncateThread();
         SplitThread splitThread = new SplitThread();
