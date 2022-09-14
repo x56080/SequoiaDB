@@ -146,17 +146,6 @@
         </packages>
     </test>
 
-    <test name="recycleBin" parallel="classes" thread-count="5">
-        <groups>
-            <run>
-                <include name="recycleBin" />
-            </run>
-        </groups>
-        <packages>
-            <package name="com.sequoiadb.recyclebin" />
-        </packages>
-    </test>
-
     <test name="recycleBinSync" parallel="classes" thread-count="1">
         <groups>
             <run>
@@ -165,6 +154,17 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.recyclebin.serial" />
+        </packages>
+    </test>
+
+    <test name="recycleBin" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="recycleBin" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.recyclebin" />
         </packages>
     </test>
 
