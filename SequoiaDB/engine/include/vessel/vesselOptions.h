@@ -79,7 +79,7 @@ namespace vessel
          liteBufferPoolOptions bufferPoolOptions;
 
          UINT32 cacheCleanerCount = 8;
-         UINT32 commonBackgroundWorkers = 16;
+         UINT32 hitTransferWorkerCount = 4;
 
          UINT32 lpidLatchMapBucketCount = 4096;
          UINT32 lpidLatchMapLatchCount = 256;

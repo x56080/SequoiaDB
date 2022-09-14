@@ -500,12 +500,12 @@ namespace vessel
          PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
          SDB_ASSERT(getPSN() == batch.getPSN(), "must be same");
          lpageMapping &mapping = _getPageMapping();
-         rc = _fsyncPrivatePages(obj);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fsync files:%d", rc);
-            goto error;
-         }
+         // rc = _fsyncPrivatePages(obj);
+         // if (SDB_OK != rc)
+         // {
+         //    PD_LOG(PDERROR, "failed to fsync files:%d", rc);
+         //    goto error;
+         // }
 
          for (auto itr = obj->_pmap.cbegin(); itr != obj->_pmap.cend(); ++itr)
          {
@@ -637,6 +637,13 @@ namespace vessel
       if (!batch.hasPteMapping())
       {
          goto done;
+      }
+
+      rc = _fsyncDirtyClusterFiles(batch);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to fsync dirty files:%d", rc);
+         goto error;
       }
 
       rc = _getMetaFile().fsync();
@@ -871,6 +878,27 @@ namespace vessel
          }
       }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpacePte::_fsyncDirtyClusterFiles(const lpsPteWriteBatch &batch)
+   {
+      INT32 rc = SDB_OK;
+      const storageFileManifest &manifest = getFileCluster()->getManifest();
+      ossPoolSet<UINT32> files = batch.exportDirtyFiles(manifest.args);
+      PD_LOG(PDDEBUG, "[%d] dirty files exported", files.size());
+      for (auto i = files.cbegin(); i != files.cend(); ++i)
+      {
+         INT32 rc = getFileCluster()->fsyncFile(*i);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to fsync file[%d], rc:%d", *i, rc);
+            goto error;
+         }
+      }
    done:
       return rc;
    error:

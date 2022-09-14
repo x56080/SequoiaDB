@@ -67,6 +67,8 @@ namespace vessel
 
          void exportDirtySegments(const storageCoreArgs &args,
                                   ossPoolSet<UINT32> &segments)const;
+         void exportDirtyFiles(const storageCoreArgs &args,
+                               ossPoolSet<UINT32> &files)const;
 
       private:
          using _P_MAPPING = ossPoolMap<PAGE_ID, PAGE_ID>;

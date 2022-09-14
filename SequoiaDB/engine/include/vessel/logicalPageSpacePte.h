@@ -111,6 +111,7 @@ namespace vessel
 
       private:
          INT32 _fsyncPrivatePages(spacePteAccessCtx *ctx);
+         INT32 _fsyncDirtyClusterFiles(const lpsPteWriteBatch &batch);
          INT32 _commit(lpsPteWriteBatch &batch);
          void _freeObsoleteResources(lpsPteWriteBatch &batch);
          INT32 _getPtePrior(requestContext *context,

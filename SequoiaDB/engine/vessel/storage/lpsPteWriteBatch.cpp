@@ -54,6 +54,18 @@ namespace vessel
       _viewer.reset();
    }
 
+   ossPoolSet<UINT32> lpsPteWriteBatch::exportDirtyFiles(const storageCoreArgs &args)const
+   {
+      ossPoolSet<UINT32> s;
+
+      for (auto itr = _committing.cbegin(); itr != _committing.cend(); ++itr)
+      {
+         itr->second->exportDirtyFiles(args, s);
+      }
+
+      return std::move(s);
+   }
+
    void lpsPteWriteBatch::precommit(PTE_ACCESS_CTX_PTR &&ctx)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
