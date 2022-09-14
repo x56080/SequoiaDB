@@ -151,6 +151,14 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return "LOB CLOSE" ;
       case MSG_BS_LOB_LOCK_REQ :
          return "LOB LOCK" ;
+      case MSG_BS_LOB_TRUNCATE_REQ :
+         return "LOB TRUNCATE" ;
+      case MSG_BS_LOB_CREATELOBID_REQ :
+         return "LOB CREATELOBID" ;
+      case MSG_BS_LOB_GETRTDETAIL_REQ :
+         return "LOB GETDETAIL" ;
+      case MSG_BS_SEQUENCE_FETCH_REQ :
+         return "SEQUENCE FETCH" ;
    } ;
    return "UNKNOWN" ;
 }
