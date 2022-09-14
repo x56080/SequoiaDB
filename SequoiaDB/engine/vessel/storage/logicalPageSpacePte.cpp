@@ -500,12 +500,12 @@ namespace vessel
          PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
          SDB_ASSERT(getPSN() == batch.getPSN(), "must be same");
          lpageMapping &mapping = _getPageMapping();
-         // rc = _fsyncPrivatePages(obj);
-         // if (SDB_OK != rc)
-         // {
-         //    PD_LOG(PDERROR, "failed to fsync files:%d", rc);
-         //    goto error;
-         // }
+         rc = _fsyncPrivatePages(obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fsync files:%d", rc);
+            goto error;
+         }
 
          for (auto itr = obj->_pmap.cbegin(); itr != obj->_pmap.cend(); ++itr)
          {
@@ -639,12 +639,12 @@ namespace vessel
          goto done;
       }
 
-      rc = _fsyncDirtyClusterFiles(batch);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to fsync dirty files:%d", rc);
-         goto error;
-      }
+      // rc = _fsyncDirtyClusterFiles(batch);
+      // if (OSS_UNLIKELY(SDB_OK != rc))
+      // {
+      //    PD_LOG(PDERROR, "failed to fsync dirty files:%d", rc);
+      //    goto error;
+      // }
 
       rc = _getMetaFile().fsync();
       if (OSS_UNLIKELY(SDB_OK != rc))
