@@ -735,6 +735,7 @@ namespace engine
       BOOLEAN againTry = FALSE ;
       UINT32 timeout = 0 ;
       monSvcTaskInfo *pOldInfo = NULL ;
+      pdLogRCShield logShield ;
 
       while ( timeout < OSS_ONE_SEC )
       {
@@ -782,7 +783,41 @@ namespace engine
          pOldInfo = cb->getMonAppCB()->getSvcTaskInfo() ;
          cb->getMonAppCB()->setSvcTaskInfo( _pMonAppCB->getSvcTaskInfo() ) ;
       }
-      rc = _prepareDataMonitor( cb ) ;
+
+      logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
+
+      while ( TRUE )
+      {
+         if ( _canPrepareMoreData() )
+         {
+            rc = _prepareMoreData( cb ) ;
+         }
+         else
+         {
+            rc = _prepareDataMonitor( cb ) ;
+         }
+
+         // For Data node: cl.query.sort(...).hint("$Range":{ ... })
+         if ( rc == SDB_IXM_ADVANCE_EOC )
+         {
+            pdClearLastError() ;
+            rc = _prepareDoAdvance( cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Prepare do advance failed, rc: %d", rc ) ;
+               break ;
+            }
+         }
+         else
+         {
+            break ;
+         }
+      }
+
       _prefetchRet = rc ;
       if ( rc && SDB_DMS_EOC != rc )
       {

@@ -805,7 +805,7 @@ namespace engine
       rtnContextPtr queryContext ;
 
       rc = rtnQuery( options, cb, dmsCB, rtnCB, queryContextID, &queryContext,
-                     FALSE, &_expOptions ) ;
+                     TRUE, &_expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query data, rc: %d", rc ) ;
 
       PD_CHECK( queryContext, SDB_SYS, error, PDERROR,
