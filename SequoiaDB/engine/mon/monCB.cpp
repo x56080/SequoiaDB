@@ -307,6 +307,11 @@ namespace engine
       _cmdType = cmdType ;
    }
 
+   void _monAppCB::setUnknownCmdType()
+   {
+      _cmdType = CMD_UNKNOW ;
+   }
+
    void _monAppCB::opTimeSpentInc( ossTickDelta delta )
    {
       switch ( _lastOpType )

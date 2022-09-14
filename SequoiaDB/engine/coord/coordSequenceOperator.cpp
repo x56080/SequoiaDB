@@ -88,6 +88,10 @@ namespace engine
          sequenceName = boQuery.getField( FIELD_NAME_NAME ).valuestrsafe() ;
          fetchNum = boQuery.getField( FIELD_NAME_FETCH_NUM ).numberInt() ;
 
+         // add last op info
+         MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
+                             "Option:%s", boQuery.toPoolString().c_str() ) ;
+
          rc = pSequenceAgent->fetch( sequenceName, UTIL_SEQUENCEID_NULL,
                                      fetchNum, nextValue, returnNum, increment,
                                      cb ) ;

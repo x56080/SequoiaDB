@@ -2339,6 +2339,8 @@ namespace engine
       {
          if ( eduCB()->getMonQueryCB() )
          {
+            MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
             monQueryCB = eduCB()->getMonQueryCB() ;
             ossTick endTime ;
             endTime.sample() ;

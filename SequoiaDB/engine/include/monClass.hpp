@@ -68,7 +68,8 @@ class _monAppCB ;
 
 #define MONQUERY_SET_QUERY_TEXT(edu, n)\
   if (edu->getMonQueryCB() && \
-      edu->getMonQueryCB()->dataLvl == MON_DATA_LVL_DETAIL )\
+      edu->getMonQueryCB()->dataLvl == MON_DATA_LVL_DETAIL && \
+      edu->getMonQueryCB()->queryText.empty() )\
   {\
      edu->getMonQueryCB()->queryText.assign(n); \
   }\
