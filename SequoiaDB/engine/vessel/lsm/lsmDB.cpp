@@ -138,17 +138,20 @@ namespace vessel
       {
          for (UINT32 i = LSM_CF_DEFAULT; i <= LSM_CF_MAX; ++i)
          {
-            rocksdb::ColumnFamilyHandle *handle = _contexts[i]->getHandle();
-            if (nullptr != handle)
+            if (nullptr != _contexts[i])
             {
-               s = _db->DestroyColumnFamilyHandle(handle);
-               if (OSS_UNLIKELY(!s.ok()))
+               rocksdb::ColumnFamilyHandle *handle = _contexts[i]->getHandle();
+               if (nullptr != handle)
                {
-                  PD_LOG(PDERROR, "destroy column family[%d] handle failed, "
-                        "status info:[%s]", i, s.ToString().c_str());
+                  s = _db->DestroyColumnFamilyHandle(handle);
+                  if (OSS_UNLIKELY(!s.ok()))
+                  {
+                     PD_LOG(PDERROR, "destroy column family[%d] handle failed, "
+                           "status info:[%s]", i, s.ToString().c_str());
+                  }
                }
+               SAFE_OSS_DELETE(_contexts[i]);
             }
-            SAFE_OSS_DELETE(_contexts[i]);
          }
          _contexts.clear();
          s = _db->Close();
@@ -352,10 +355,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
    
-      batch._db = this;
-      batch._handle = _getHandle(id);
-      batch._batch.Clear();
-      batch._minDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      batch._init(this, id, _getHandle(id));
    }
 
    INT32 lsmDB::write(lsmWriteBatch &batch)
@@ -369,8 +369,7 @@ namespace vessel
          goto error;
       }
       
-      s = _db->Write(_getWriteOpt(
-                        static_cast<LSM_CF_ID>(batch._handle->GetID())),
+      s = _db->Write(_getWriteOpt(batch._id),
                      &batch._batch);
       if (!s.ok())
       {
@@ -804,17 +803,11 @@ namespace vessel
       else
       {
          PD_LOG(PDINFO, "will remove all sst files in hybrid index column family");
-         lsmIteratorBound lowBound;
-         lsmIteratorBound upBound;
-         lowBound.init(globalIndexID::getMinGlobalIndexID());
-         upBound.init(globalIndexID::getMaxGlobalIndexID());
-         rc = _removeCFData(LSM_CF_HYBRID_INDEX,
-                            *lowBound.getLowBound(),
-                            *upBound.getLowBound());
+         rc = _recreateCFWhenRestore(LSM_CF_HYBRID_INDEX);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "remove data in hybrid "
-                   "index column family failed, rc:%d", rc);
+            PD_LOG(PDERROR, "drop cf[%d] to restore failed, rc:%d",
+                   LSM_CF_HYBRID_INDEX, rc);
             goto error;
          }
          PD_LOG(PDINFO, "restore hybrid index column family finished, "
@@ -918,40 +911,71 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmDB::_removeCFData(LSM_CF_ID id,
-                              const rocksdb::Slice &lowKey,
-                              const rocksdb::Slice &upKey)
+   INT32 lsmDB::_recreateCFWhenRestore(LSM_CF_ID id)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
       SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be invalid");
       rocksdb::Status s;
+      lsmColumnFamilyContext *ctx = nullptr;
+      rocksdb::ColumnFamilyDescriptor desc;
+      rocksdb::ColumnFamilyHandle *handle = _getHandle(id);
+      SDB_ASSERT(nullptr != handle, "can not be null");
 
-      s = _db->DeleteRange(_getWriteOpt(id),
-                           _getHandle(id),
-                           lowKey, upKey);
+      SAFE_OSS_DELETE(_contexts[id]);
+
+      s = handle->GetDescriptor(&desc);
       if (OSS_UNLIKELY(!s.ok()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "range delete key-values failed, status info:[%s]",
-                s.ToString().c_str());
+         PD_LOG(PDERROR, "get cf[%d] descriptor failed, status info:[%s]",
+                id, s.ToString().c_str());
          goto error;
       }
 
-      s = _db->CompactRange(rocksdb::CompactRangeOptions(),
-                            _getHandle(id),
-                            nullptr, nullptr);
+      s = _db->DropColumnFamily(handle);
       if (OSS_UNLIKELY(!s.ok()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "compact key-values failed, status info:[%s]",
-                s.ToString().c_str());
+         PD_LOG(PDERROR, "drop column family[%d] failed, status info:[%s]",
+                id, s.ToString().c_str());
          goto error;
       }
+
+      s = _db->DestroyColumnFamilyHandle(handle);
+      if (OSS_UNLIKELY(!s.ok()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "destroy column family[%d] handle failed, "
+                "status info:[%s]", id, s.ToString().c_str());
+         goto error;
+      }
+
+      handle = nullptr;
+      ctx = SDB_OSS_NEW lsmColumnFamilyContext(_getDefaultWriteOptions(id));
+      if (OSS_UNLIKELY(nullptr == ctx))
+      {
+         rc = SDB_OOM;
+         PD_LOG(PDERROR, "allocate lsm column family context failed");
+         goto error;
+      }
+
+      s = _db->CreateColumnFamily(desc.options, desc.name, &handle);
+      if (OSS_UNLIKELY(!s.ok()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "create column family[%d] failed, "
+                "status info:[%s]", id, s.ToString().c_str());
+         goto error;
+      }
+      
+      ctx->setHandle(handle);
+      _contexts[id] = ctx;
 
    done:
       return rc;
    error:
+      SAFE_OSS_DELETE(ctx);
       goto done;
    }
 

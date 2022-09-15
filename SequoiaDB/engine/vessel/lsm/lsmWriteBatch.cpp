@@ -43,10 +43,26 @@ namespace vessel
    void lsmWriteBatch::reset()
    {
       _db = nullptr;
+      _id = LSM_CF_INVALID;
       _handle = nullptr;
       _batch.Clear();
       _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
    }
+
+   void lsmWriteBatch::_init(lsmDB *db,
+                             LSM_CF_ID id,
+                             rocksdb::ColumnFamilyHandle *handle)
+   {
+      SDB_ASSERT(nullptr != db, "can not be null");
+      SDB_ASSERT(LSM_CF_INVALID != id, "can not be null");
+      SDB_ASSERT(nullptr != handle, "can not be null");
+
+      reset();
+      _db = db;
+      _id = id;
+      _handle = handle;
+   }
+
 
    INT32 lsmWriteBatch::put(const rocksdb::Slice &key,
                             const rocksdb::Slice &value,
@@ -124,7 +140,7 @@ namespace vessel
          goto error;
       }
 
-      _db->setMinDirtyLsn(static_cast<LSM_CF_ID>(_handle->GetID()), _minDirtyLsn);
+      _db->setMinDirtyLsn(_id, _minDirtyLsn);
    done:
       return rc;
    error:
