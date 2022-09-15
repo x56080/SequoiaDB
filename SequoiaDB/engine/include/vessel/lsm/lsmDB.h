@@ -131,6 +131,7 @@ namespace vessel
       private:
          rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID id,
                                           const rocksdb::Options &opt) const;
+
          rocksdb::WriteOptions _getDefaultWriteOptions(LSM_CF_ID id) const;
 
          INT32 _flushDB();
@@ -168,9 +169,7 @@ namespace vessel
                                DPS_LSN_OFFSET maxLsn,
                                BOOLEAN &hasInvalid) const;
 
-         INT32 _removeCFData(LSM_CF_ID id,
-                             const rocksdb::Slice &lowKey,
-                             const rocksdb::Slice &upKey);
+         INT32 _recreateCFWhenRestore(LSM_CF_ID id);
 
       private:
          lsmDBOptions _o;
