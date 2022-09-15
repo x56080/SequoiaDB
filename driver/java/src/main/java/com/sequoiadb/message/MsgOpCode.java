@@ -78,6 +78,9 @@ public final class MsgOpCode {
     public static final int AUTH_DELETE_USER_REQ = 7002;
     public static final int AUTH_DELETE_USER_RESP = RESP_MASK | AUTH_DELETE_USER_REQ;
 
+    public static final int AUTH_VERIFY1_REQ = 7003;
+    public static final int AUTH_VERIFY1_RES = RESP_MASK | AUTH_VERIFY1_REQ;
+
     public static final int LOB_OPEN_REQ = 8001;
     public static final int LOB_OPEN_RESP = RESP_MASK | LOB_OPEN_REQ;
 
