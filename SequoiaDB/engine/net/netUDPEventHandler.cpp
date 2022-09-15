@@ -285,9 +285,11 @@ namespace engine
             SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
          if ( SDB_PROTOCOL_VER_1 == _peerVersion )
          {
-            _mtx.get() ;
-            INT32 rc = _enableMsgConvertor() ;
-            _mtx.release() ;
+            INT32 rc = SDB_OK ;
+            {
+               ossScopedLock lock( &_mtx ) ;
+               rc = _enableMsgConvertor() ;
+            }
             if ( rc )
             {
                PD_LOG( PDERROR, "Enable message convertor failed[%d]", rc ) ;

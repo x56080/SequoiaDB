@@ -62,7 +62,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETRT_ROUTE );
       _MsgRouteID tmp = id ;
       tmp.columns.serviceID = 0 ;
-      _mtx.get_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
       NET_ROUTE_MAP::const_iterator itr = _route.find( tmp.value ) ;
       if ( _route.end() == itr )
       {
@@ -93,7 +93,6 @@ namespace engine
                      svcLen - 1 ) ;
       }
    done:
-      _mtx.release_shared() ;
       PD_TRACE_EXITRC ( SDB__NETRT_ROUTE, rc );
       return rc ;
    error:
@@ -108,7 +107,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETRT_ROUTE2 );
       _MsgRouteID tmp = id ;
       tmp.columns.serviceID = 0 ;
-      _mtx.get_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
       NET_ROUTE_MAP::const_iterator itr = _route.find( tmp.value ) ;
       if ( _route.end() == itr )
       {
@@ -121,7 +120,6 @@ namespace engine
       }
 
    done:
-      _mtx.release_shared() ;
       PD_TRACE_EXITRC ( SDB__NETRT_ROUTE2, rc );
       return rc ;
    error:
@@ -132,7 +130,7 @@ namespace engine
                            MSG_ROUTE_SERVICE_TYPE type, _MsgRouteID &id )
    {
       INT32 rc = SDB_NET_ROUTE_NOT_FOUND ;
-      _mtx.get_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
       NET_ROUTE_MAP::const_iterator itr = _route.begin() ;
       while( itr != _route.end() )
       {
@@ -147,7 +145,6 @@ namespace engine
          ++itr ;
       }
 
-      _mtx.release_shared() ;
       return rc ;
    }
 
@@ -213,7 +210,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETRT_UPDATE );
       _MsgRouteID tmp = id ;
       tmp.columns.serviceID = 0 ;
-      _mtx.get() ;
+
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       _netRouteNode &node = _route[tmp.value] ;
 
       if ( newAdd )
@@ -249,7 +247,6 @@ namespace engine
          (node._service)[id.columns.serviceID] = string( service ) ;
          rc = SDB_OK ;
       }
-      _mtx.release() ;
 
       PD_TRACE_EXITRC ( SDB__NETRT_UPDATE, rc ) ;
       return rc ;
@@ -266,7 +263,7 @@ namespace engine
       oldTmp.columns.serviceID = 0 ;
       _MsgRouteID newTmp = newID ;
       newTmp.columns.serviceID = 0 ;
-      _mtx.get() ;
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       it = _route.find ( oldTmp.value ) ;
       if ( _route.end() == it )
       {
@@ -284,7 +281,6 @@ namespace engine
       }
 
    done :
-      _mtx.release () ;
       PD_TRACE_EXITRC ( SDB__NETRT_UPDATE2, rc );
       return rc ;
    error :
@@ -300,7 +296,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETRT_UPDATE3 );
       _MsgRouteID tmp = id ;
       tmp.columns.serviceID = 0 ;
-      _mtx.get() ;
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       _netRouteNode &update = _route[tmp.value] ;
 
       if ( newAdd )
@@ -335,7 +331,6 @@ namespace engine
          }
       }
 
-      _mtx.release() ;
       PD_TRACE_EXITRC ( SDB__NETRT_UPDATE3, rc );
       return rc ;
    }
@@ -344,9 +339,8 @@ namespace engine
    void _netRoute::clear()
    {
       PD_TRACE_ENTRY ( SDB__NETRT_CLEAR );
-      _mtx.get() ;
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       _route.clear() ;
-      _mtx.release() ;
       PD_TRACE_EXIT ( SDB__NETRT_CLEAR );
    }
 

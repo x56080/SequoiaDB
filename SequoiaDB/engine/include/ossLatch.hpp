@@ -980,6 +980,88 @@ public :
 } ;
 typedef class _ossScopedLock ossScopedLock;
 
+/*
+   _ossScopedTryLock define
+ */
+class _ossScopedTryLock
+{
+private :
+   ossSLatch *_slatch ;
+   ossXLatch *_xlatch ;
+   OSS_LATCH_MODE _mode ;
+   BOOLEAN    _isLocked ;
+public :
+   // by default we get exclusive latch
+   _ossScopedTryLock( ossSLatch *latch )
+   : _slatch( NULL ),
+     _xlatch( NULL ),
+     _mode( EXCLUSIVE ),
+     _isLocked( FALSE )
+   {
+      if ( latch )
+      {
+         _slatch = latch ;
+         _mode = EXCLUSIVE ;
+         _xlatch = NULL ;
+         _isLocked = _slatch->try_get() ;
+      }
+   }
+
+   _ossScopedTryLock( ossSLatch *latch,
+                      OSS_LATCH_MODE mode )
+   : _slatch( NULL ),
+     _xlatch( NULL ),
+     _mode( EXCLUSIVE ),
+     _isLocked( FALSE )
+   {
+      if ( latch )
+      {
+         _slatch = latch ;
+         _mode = mode ;
+         _xlatch = NULL ;
+         if ( mode == EXCLUSIVE )
+         {
+            _isLocked = _slatch->try_get() ;
+         }
+         else
+         {
+            _isLocked = _slatch->try_get_shared() ;
+         }
+      }
+   }
+
+   _ossScopedTryLock( ossXLatch *latch )
+   : _slatch( NULL ),
+     _xlatch( NULL ),
+     _mode( EXCLUSIVE ),
+     _isLocked( FALSE )
+   {
+      if ( latch )
+      {
+         _xlatch = latch ;
+         _slatch = NULL ;
+         _isLocked = _xlatch->try_get() ;
+      }
+   }
+
+   ~_ossScopedTryLock()
+   {
+      if ( _isLocked )
+      {
+         if ( _slatch )
+            ( _mode == EXCLUSIVE ) ? _slatch->release() :
+                                     _slatch->release_shared() ;
+         else if ( _xlatch )
+            _xlatch->release () ;
+      }
+   }
+
+   BOOLEAN isLocked() const
+   {
+      return _isLocked ;
+   }
+} ;
+typedef class _ossScopedTryLock ossScopedTryLock ;
 
 //
 // Read and Write latch with starvation avoidance
