@@ -19,14 +19,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 import com.sequoiadb.base.UserConfig;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.types.BSONDecimal;
-
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 
 public final class Helper {
     private Helper() {
@@ -403,5 +403,13 @@ public final class Helper {
         } else {
             return userConfig.getPassword();
         }
+    }
+
+    public static String Base64Encode(byte[] data) {
+        return Base64.getEncoder().encodeToString(data);
+    }
+
+    public static byte[] Base64Decode(String data) {
+        return Base64.getDecoder().decode(data);
     }
 }

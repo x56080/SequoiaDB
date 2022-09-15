@@ -19,6 +19,7 @@ package com.sequoiadb.message.response;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
+import com.sequoiadb.message.SdbAuthVersion;
 import com.sequoiadb.message.SysInfoHeader;
 
 import java.nio.ByteBuffer;
@@ -30,6 +31,7 @@ import java.nio.ByteOrder;
 public class SysInfoResponse extends SysInfoHeader implements Response {
     private static final int LENGTH = 128;
     private int osType;
+    private int authVersion;
     private ByteOrder byteOrder;
 
     @Override
@@ -50,6 +52,15 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
         return byteOrder;
     }
 
+
+    public SdbAuthVersion getAuthVersion() {
+        if (authVersion == 1) {
+            return SdbAuthVersion.SDB_AUTH_SCRAM_SHA256;
+        } else {
+            return SdbAuthVersion.SDB_AUTH_MD5;
+        }
+    }
+
     @Override
     public void decode(ByteBuffer in) {
         // Java platform is BIG_ENDIAN
@@ -66,5 +77,6 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
         in.order(byteOrder);
         realMsgLen = in.getInt();
         osType = in.getInt();
+        authVersion = in.getInt();
     }
 }
