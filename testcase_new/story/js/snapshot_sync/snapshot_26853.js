@@ -2,7 +2,7 @@
  * @Description   : seqDB-26853:连接数据节点，获取聚合和非聚合的系统快照内存和磁盘与系统内存磁盘对比
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.05
- * @LastEditTime  : 2022.09.08
+ * @LastEditTime  : 2022.09.16
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -63,11 +63,14 @@ function checkSnapshot ( nodeConn, cpuExpect, memExpect, hostName )
          var expected = cpuExpect[key] / 100;
          almostEqual( actual, expected );
       }
-      for( var key in memExpect )
+      if( memExpect != null )
       {
-         var actual = obj["Memory"][key];
-         var expected = memExpect[key];
-         almostEqual( actual, expected, 0.05 );
+         for( var key in memExpect )
+         {
+            var actual = obj["Memory"][key];
+            var expected = memExpect[key];
+            almostEqual( actual, expected, 0.05 );
+         }
       }
    }
    cursor.close();
@@ -80,11 +83,14 @@ function checkSnapshot ( nodeConn, cpuExpect, memExpect, hostName )
          var expected = cpuExpect[key] / 100;
          almostEqual( actual, expected );
       }
-      for( var key in memExpect )
+      if( memExpect != null )
       {
-         var actual = obj["Memory"][key];
-         var expected = memExpect[key];
-         almostEqual( actual, expected, 0.05 );
+         for( var key in memExpect )
+         {
+            var actual = obj["Memory"][key];
+            var expected = memExpect[key];
+            almostEqual( actual, expected, 0.05 );
+         }
       }
    }
    cursorPol.close();
