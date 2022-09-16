@@ -2,7 +2,7 @@
  * @Description   : seqDB-26856:System对象获取cpu和memory消息
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.02
- * @LastEditTime  : 2022.09.07
+ * @LastEditTime  : 2022.09.16
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 main( test );
@@ -48,19 +48,22 @@ function checkSnapshot ( cpuExpect, memExpect )
       almostEqual( actual1, expected );
       almostEqual( actual2, expected );
    }
-   // 通过sdbshell的System相关接口获取memory消息
-   var memInfo1 = System.getMemInfo().toObj();
-   var memInfo2 = System.snapshotMemInfo().toObj();
-   var actualFree1 = memInfo1["Free"];
-   var actualFree2 = memInfo2["Free"];
-   var expectedFree = memExpect["FreeRAM"] / 1024 / 1024;
-   almostEqual( actualFree1, expectedFree, 0.05 );
-   almostEqual( actualFree2, expectedFree, 0.05 );
-   var actualAvailable1 = memInfo1["Available"];
-   var actualAvailable2 = memInfo2["Available"];
-   var expectedAvailable = memExpect["AvailableRAM"] / 1024;
-   almostEqual( actualAvailable1, expectedAvailable );
-   almostEqual( actualAvailable2, expectedAvailable );
+   if( memExpect != null )
+   {
+      // 通过sdbshell的System相关接口获取memory消息
+      var memInfo1 = System.getMemInfo().toObj();
+      var memInfo2 = System.snapshotMemInfo().toObj();
+      var actualFree1 = memInfo1["Free"];
+      var actualFree2 = memInfo2["Free"];
+      var expectedFree = memExpect["FreeRAM"] / 1024 / 1024;
+      almostEqual( actualFree1, expectedFree, 0.05 );
+      almostEqual( actualFree2, expectedFree, 0.05 );
+      var actualAvailable1 = memInfo1["Available"];
+      var actualAvailable2 = memInfo2["Available"];
+      var expectedAvailable = memExpect["AvailableRAM"] / 1024;
+      almostEqual( actualAvailable1, expectedAvailable );
+      almostEqual( actualAvailable2, expectedAvailable );
+   }
 }
 
 function almostEqual ( actual, expected, errorRange )

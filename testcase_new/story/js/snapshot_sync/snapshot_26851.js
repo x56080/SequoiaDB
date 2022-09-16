@@ -2,7 +2,7 @@
  * @Description   : seqDB-26851:连接协调节点，获取聚合的系统快照内存和磁盘与系统内存磁盘对比
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.08.31
- * @LastEditTime  : 2022.09.14
+ * @LastEditTime  : 2022.09.16
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 main( test );
@@ -79,11 +79,14 @@ function checkSnapshot ( sdb, cpuExpect, memExpect )
          var expected = cpuExpect[key] / 100;
          almostEqual( actual, expected );
       }
-      for( var key in memExpect )
+      if( memExpect != null )
       {
-         var actual = parseInt( obj["Memory"][key] );
-         var expected = memExpect[key] * 1024;
-         almostEqual( actual, expected, 0.05 );
+         for( var key in memExpect )
+         {
+            var actual = parseInt( obj["Memory"][key] );
+            var expected = memExpect[key] * 1024;
+            almostEqual( actual, expected, 0.05 );
+         }
       }
    }
    cursor.close();
