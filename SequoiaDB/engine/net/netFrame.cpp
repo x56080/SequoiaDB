@@ -2326,7 +2326,7 @@ namespace engine
       }
       }
 
-      if ( NULL == ptr )
+      if ( NULL == ptr.get() )
       {
          ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
 
