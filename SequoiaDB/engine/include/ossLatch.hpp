@@ -932,50 +932,111 @@ private :
    ossSLatch *_slatch ;
    ossXLatch *_xlatch ;
    OSS_LATCH_MODE _mode ;
+   BOOLEAN _locked ;
 public :
    // by default we get exclusive latch
-   _ossScopedLock ( ossSLatch *latch ) :
-         _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE )
+   _ossScopedLock ( ossSLatch *latch, BOOLEAN needLockImmediately = TRUE ) :
+      _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE ), _locked( FALSE )
    {
       if ( latch )
       {
          _slatch = latch ;
          _mode = EXCLUSIVE ;
          _xlatch = NULL ;
-         _slatch->get () ;
+         if ( needLockImmediately )
+         {
+            _slatch->get () ;
+            _locked = TRUE ;
+         }
       }
    }
-   _ossScopedLock ( ossSLatch *latch, OSS_LATCH_MODE mode) :
-         _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE )
+   _ossScopedLock ( ossSLatch *latch, OSS_LATCH_MODE mode,
+                    BOOLEAN needLockImmediately = TRUE ) :
+      _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE ), _locked( FALSE )
    {
       if ( latch )
       {
          _slatch = latch ;
          _mode = mode ;
          _xlatch = NULL ;
-         if ( mode == EXCLUSIVE )
-            _slatch->get () ;
-         else
-            _slatch->get_shared () ;
+         if ( needLockImmediately )
+         {
+            if ( mode == EXCLUSIVE )
+            {
+               _slatch->get () ;
+            }
+            else
+            {
+               _slatch->get_shared () ;
+            }
+            _locked = TRUE ;
+         }
       }
    }
-   _ossScopedLock ( ossXLatch *latch ) :
-         _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE )
+   _ossScopedLock ( ossXLatch *latch, BOOLEAN needLockImmediately = TRUE ) :
+      _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE ), _locked( FALSE )
    {
       if ( latch )
       {
          _xlatch = latch ;
          _slatch = NULL ;
-         _xlatch->get () ;
+         if ( needLockImmediately )
+         {
+            _xlatch->get () ;
+            _locked = TRUE ;
+         }
       }
    }
    ~_ossScopedLock ()
    {
-      if ( _slatch )
-         ( _mode == EXCLUSIVE ) ? _slatch->release() :
-                                  _slatch->release_shared() ;
-      else if ( _xlatch )
-         _xlatch->release () ;
+      if ( _locked )
+      {
+         if ( _slatch )
+         {
+            ( _mode == EXCLUSIVE ) ? _slatch->release () :
+                                     _slatch->release_shared () ;
+         }
+         else if ( _xlatch )
+         {
+            _xlatch->release () ;
+         }
+         _locked = FALSE ;
+      }
+   }
+
+   void lock ()
+   {
+      if ( !_locked )
+      {
+         if ( _slatch )
+         {
+            ( _mode == EXCLUSIVE ) ? _slatch->get () :
+                                     _slatch->get_shared () ;
+            _locked = TRUE ;
+         }
+         else if ( _xlatch )
+         {
+            _xlatch->get () ;
+            _locked = TRUE ;
+         }
+      }
+   }
+
+   void release ()
+   {
+      if ( _locked )
+      {
+         if ( _slatch )
+         {
+            ( _mode == EXCLUSIVE ) ? _slatch->release () :
+                                     _slatch->release_shared () ;
+         }
+         else if ( _xlatch )
+         {
+            _xlatch->release () ;
+         }
+         _locked = FALSE ;
+      }
    }
 } ;
 typedef class _ossScopedLock ossScopedLock;
