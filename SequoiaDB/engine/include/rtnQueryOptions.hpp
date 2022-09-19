@@ -332,6 +332,12 @@ namespace engine
             return _hint.objsize() ;
          }
 
+         OSS_INLINE BOOLEAN hasRangeInHint() const
+         {
+            return isHintEmpty() ? FALSE
+                                 : _hint.hasField( FIELD_NAME_RANGE ) ;
+         }
+
          // insertor
          OSS_INLINE void setInsertor( const BSONObj &insertor )
          {
