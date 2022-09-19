@@ -4311,7 +4311,7 @@ namespace engine
          catch( std::exception &e )
          {
             rc = ossException2RC( &e ) ;
-            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occrued "
+            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occured "
                          "exception: %s, rc: %d", e.what(), rc ) ;
          }
       }
@@ -4344,7 +4344,7 @@ namespace engine
          catch( std::exception &e )
          {
             rc = ossException2RC( &e ) ;
-            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occrued "
+            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occured "
                          "exception: %s, rc: %d", e.what(), rc ) ;
          }
       }

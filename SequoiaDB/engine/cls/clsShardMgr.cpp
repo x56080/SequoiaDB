@@ -646,10 +646,19 @@ namespace engine
          {
             string hostName ;
             string svcName ;
-            _cataGrpItem.getNodeInfo( nodeID, hostName, svcName ) ;
-            PD_LOG ( PDWARNING, "Send message to primary catalog[%s:%s, "
-                     "NodeID:%u] failed[rc:%d]", hostName.c_str(),
-                     svcName.c_str(), nodeID.columns.nodeID, rc ) ;
+            INT32 tmpRc = SDB_OK ;
+            tmpRc = _cataGrpItem.getNodeInfo( nodeID, hostName, svcName ) ;
+            if ( SDB_OK == tmpRc )
+            {
+               PD_LOG ( PDWARNING, "Send message to catalog[%s:%s, "
+                        "NodeID: %u] failed[rc:%d]", hostName.c_str(),
+                        svcName.c_str(), nodeID.columns.nodeID, rc ) ;
+            }
+            else
+            {
+               PD_LOG ( PDWARNING, "Send message to catalog[NodeID: %u] ",
+                        "failed[rc:%d]", nodeID.columns.nodeID, rc ) ;
+            }
             /// update node status
             _cataGrpItem.updateNodeStat( nodeID.columns.nodeID,
                                          netResult2Status( rc ) ) ;
@@ -681,10 +690,19 @@ namespace engine
                {
                   string hostName ;
                   string svcName ;
-                  _cataGrpItem.getNodeInfo( nodeID, hostName, svcName ) ;
-                  PD_LOG ( PDWARNING, "Send message to catlog[%s:%s, "
-                           "NodeID: %u] failed[rc:%d]", hostName.c_str(),
-                           svcName.c_str(), nodeID.columns.nodeID, rc ) ;
+                  INT32 tmpRc = SDB_OK ;
+                  tmpRc = _cataGrpItem.getNodeInfo( nodeID, hostName, svcName ) ;
+                  if ( SDB_OK == tmpRc )
+                  {
+                     PD_LOG ( PDWARNING, "Send message to catalog[%s:%s, "
+                              "NodeID: %u] failed[rc:%d]", hostName.c_str(),
+                              svcName.c_str(), nodeID.columns.nodeID, rc ) ;
+                  }
+                  else
+                  {
+                     PD_LOG ( PDWARNING, "Send message to catalog[NodeID: %u] ",
+                              "failed[rc:%d]", nodeID.columns.nodeID, rc ) ;
+                  }
                   /// updata node status
                   _cataGrpItem.updateNodeStat( nodeID.columns.nodeID,
                                                netResult2Status( rc ) ) ;
