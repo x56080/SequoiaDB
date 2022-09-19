@@ -96,7 +96,8 @@ namespace engine
 
    private:
       INT32   _initAuthentication( _pmdEDUCB *cb ) ;
-      BSONObj _desensitization( const BSONObj &userObj ) ;
+      INT32   _buildSecureUserInfo( BSONObjBuilder &builder,
+                                    const BSONObj &userObj ) ;
 
       INT32   _buildUserInfo( const CHAR *username,
                               const CHAR *passwdMd5,
@@ -138,6 +139,10 @@ namespace engine
                              const CHAR **storedKey,
                              const CHAR **serverKey,
                              const CHAR **md5Passwd ) ;
+      INT32   _buildSCRAMSHAAuthResult( const BSONObj &userInfo,
+                                        const CHAR *serverProof,
+                                        const CHAR *hashCode,
+                                        BSONObj &result ) ;
    private:
       BOOLEAN     _authEnabled ;
    } ;
