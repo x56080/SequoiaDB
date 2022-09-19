@@ -251,10 +251,8 @@ namespace engine
 
          OSS_INLINE BOOLEAN isEmpty()
          {
-            _mtx.get_shared() ;
-            BOOLEAN isEmpty = (_vecEH.size() == 0) ? TRUE : FALSE ;
-            _mtx.release_shared() ;
-            return isEmpty ;
+            ossScopedLock( &_mtx, SHARED ) ;
+            return (_vecEH.size() == 0) ? TRUE : FALSE ;
          }
 
       private:
