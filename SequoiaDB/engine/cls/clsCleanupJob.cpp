@@ -191,7 +191,8 @@ namespace engine
             goto error ;
          }
 
-         rc = pResource->updateCataInfo( _clFullName.c_str(), cataPtr, _pEDUCB ) ;
+         rc = pResource->getCataResource()->updateCataInfo(
+             _clFullName.c_str(), cataPtr, _pEDUCB ) ;
          if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
          {
             dropCollection = TRUE ;
@@ -323,7 +324,7 @@ namespace engine
       clsResource *pResource = sdbGetShardCB()->getResource() ;
       CoordCataInfoPtr cataPtr ;
       _clsCatalogSet *catSet = NULL ;
-      UINT32 groupID = pResource->getNodeID().columns.groupID ;
+      UINT32 groupID = pResource->getCataResource()->getNodeID().columns.groupID ;
       UINT32 belongTo = 0 ;
 
       while ( TRUE )
@@ -334,8 +335,8 @@ namespace engine
             goto error ;
          }
 
-         rc = pResource->getOrUpdateCataInfo( _clFullName.c_str(),
-                                              cataPtr, eduCB() ) ;
+         rc = pResource->getCataResource()->getOrUpdateCataInfo(
+             _clFullName.c_str(), cataPtr, eduCB() ) ;
          if ( SDB_OK != rc )
          {
             if ( SDB_DMS_NOTEXIST != rc )
@@ -656,8 +657,8 @@ namespace engine
                   goto error ;
                }
 
-               rc = pResource->getOrUpdateCataInfo( _clFullName.c_str(),
-                                                    cataPtr, eduCB() ) ;
+               rc = pResource->getCataResource()->getOrUpdateCataInfo(
+                   _clFullName.c_str(), cataPtr, eduCB() ) ;
                if ( SDB_OK != rc )
                {
                   if ( SDB_DMS_NOTEXIST != rc )

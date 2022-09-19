@@ -39,12 +39,19 @@
 *******************************************************************************/
 #include "dmsCB.hpp"
 #include "dms.hpp"
+#include "dmsStorageDataCommon.hpp"
 #include "dmsStorageUnit.hpp"
+#include "dmsCollectionHandler.hpp"
 #include "ossLatch.hpp"
+#include "ixm.hpp"
+#include "msgDef.h"
+#include "ossErr.h"
+#include "ossUtil.h"
 #include "ossUtil.hpp"
 #include "monDMS.hpp"
 #include "dmsTempSUMgr.hpp"
 #include "dmsRBSSUMgr.hpp"
+#include "pd.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
@@ -54,8 +61,10 @@
 #include "ossLatch.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
+#include "utilUniqueID.hpp"
 
 #include <list>
+#include <memory>
 
 using namespace std;
 namespace engine
@@ -281,6 +290,81 @@ namespace engine
             su->lob()->getLobData()->enableSparse( pInfo->_enableSparse ) ;
          }
       }
+   }
+
+   INT32 _SDB_DMSCB::openCL( IExecutor *executor,
+                             const CHAR *clFullName,
+                             const dmsOpenCLOptions &o,
+                             DATA_COLLECTION_PTR &ptr )
+   {
+      INT32 rc = SDB_OK;
+      ptr.reset();
+      dmsStorageUnit *su = nullptr;
+      dmsStorageUnitID suID = DMS_INVALID_CS;
+      dmsMBContext *mbContext = nullptr;
+      const CHAR **ppCollectionName = nullptr;
+      rc = rtnResolveCollectionNameAndLock(
+         clFullName, this, &su, ppCollectionName, suID, SHARED );
+      PD_RC_CHECK( rc,
+                   PDWARNING,
+                   "Failed to loop up su by collection name[%s], rc: %d",
+                   clFullName,
+                   rc );
+      rc = su->data()->getMBContext( &mbContext, clFullName, SHARED );
+      PD_RC_CHECK( rc,
+                   PDERROR,
+                   "Get collection[%llu] mb context failed, rc: %d",
+                   clFullName,
+                   rc );
+      ptr = std::make_shared< dmsCollectionHandler >( su, suID, mbContext );
+      if ( !ptr )
+      {
+         rc = SDB_OOM;
+         PD_LOG( PDERROR, "out of memory" );
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      ptr.reset();
+      goto done;
+   }
+
+   INT32 _SDB_DMSCB::openCL( IExecutor *executor,
+                             utilCLUniqueID uniqueId,
+                             const dmsOpenCLOptions &o,
+                             DATA_COLLECTION_PTR &ptr )
+   {
+      INT32 rc = SDB_OK;
+      ptr.reset();
+      dmsStorageUnit *su = nullptr;
+      dmsStorageUnitID suID = DMS_INVALID_CS;
+      dmsMBContext *mbContext = nullptr;
+      utilCSUniqueID csuid = utilGetCSUniqueID( uniqueId );
+      rc = idToSUAndLock( csuid, suID, &su, SHARED );
+      PD_RC_CHECK( rc,
+                   PDERROR,
+                   "Failed to loop up su by cs unique id[%u], rc: %d",
+                   csuid,
+                   rc );
+      rc = su->data()->getMBContextByID( &mbContext, uniqueId, SHARED );
+      PD_RC_CHECK( rc,
+                   PDERROR,
+                   "Get collection[%llu] mb context failed, rc: %d",
+                   uniqueId,
+                   rc );
+      ptr = std::make_shared< dmsCollectionHandler >( su, suID, mbContext );
+      if ( !ptr )
+      {
+         rc = SDB_OOM;
+         PD_LOG( PDERROR, "out of memory" );
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      ptr.reset();
+      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB__LGCSCBNMMAP, "_SDB_DMSCB::_logCSCBNameMap" )

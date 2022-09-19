@@ -95,6 +95,7 @@ namespace engine
       _pOmStrategyAgent = NULL ;
       _pSequenceAgent = NULL ;
       _pDataSourceMgr = NULL ;
+      _selfParseGroupID = INVALID_GROUPID ;
    }
 
    _clsRemoteResource::~_clsRemoteResource()

@@ -37,6 +37,7 @@
 #ifndef CAT_DCMANAGER_HPP__
 #define CAT_DCMANAGER_HPP__
 
+#include "clsRemoteResource.hpp"
 #include "pmd.hpp"
 #include "netDef.hpp"
 #include "catDCLogMgr.hpp"
@@ -179,7 +180,7 @@ namespace engine
                                const vector< pmdAddrPair > &dstAddr ) ;
 
       INT32   _checkGroupsValid( map< string, string > &mapGroups,
-                                 _clsResource *pResource ) ;
+                                 clsRemoteResource *pResource ) ;
 
    // tool fuctions
    private:

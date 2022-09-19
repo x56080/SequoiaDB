@@ -2934,7 +2934,8 @@ namespace engine
 
          ++count ;
 
-         rc = _pResource->updateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
+         rc = _pResource->getCataResource()->updateCataInfo(
+             clFullName, cataPtr, _pEDUCB ) ;
          if ( SDB_OK == rc )
          {
             clsCatalogSet *catSet = cataPtr->getCatalogSet() ;
@@ -3035,8 +3036,8 @@ namespace engine
          BOOLEAN isSubCL = FALSE ;
          CoordCataInfoPtr cataPtr ;
 
-         rc = _pResource->getOrUpdateCataInfo( _curCollecitonName.c_str(),
-                                               cataPtr, _pEDUCB ) ;
+         rc = _pResource->getCataResource()->getOrUpdateCataInfo(
+             _curCollecitonName.c_str(), cataPtr, _pEDUCB ) ;
          if ( SDB_OK == rc )
          {
             clsCatalogSet *pCatSet = cataPtr->getCatalogSet() ;
@@ -3358,8 +3359,8 @@ namespace engine
          goto done ;
       }
 
-      rc = _pResource->updateCataInfo( _curCollecitonName.c_str(), cataPtr,
-                                       _pEDUCB ) ;
+      rc = _pResource->getCataResource()->updateCataInfo(
+          _curCollecitonName.c_str(), cataPtr, _pEDUCB ) ;
       if ( SDB_OK != rc && SDB_DMS_NOTEXIST != rc )
       {
          goto done ;
@@ -3374,8 +3375,8 @@ namespace engine
       if ( !mainCLName.empty() )
       {
          CoordCataInfoPtr mainCataPtr ;
-         INT32 rcTmp = _pResource->updateCataInfo( mainCLName.c_str(),
-                                                   mainCataPtr, _pEDUCB ) ;
+         INT32 rcTmp = _pResource->getCataResource()->updateCataInfo(
+             mainCLName.c_str(), mainCataPtr, _pEDUCB ) ;
          if ( rcTmp )
          {
             PD_LOG( PDWARNING, "Session[%s]: update main-collection(%s) "

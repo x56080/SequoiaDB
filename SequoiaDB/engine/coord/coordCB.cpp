@@ -36,6 +36,7 @@
 *******************************************************************************/
 
 #include "coordCB.hpp"
+#include "clsRemoteResource.hpp"
 #include "pmd.hpp"
 #include "pmdController.hpp"
 #include "pmdStartup.hpp"
@@ -89,9 +90,9 @@ namespace engine
       _cmdCollectionName.clear() ;
    }
 
-   coordResource* _CoordCB::getResource()
+   _clsRemoteResource* _CoordCB::getResource()
    {
-      return &_resource ;
+      return _resource.getCataResource() ;
    }
 
    netRouteAgent* _CoordCB::getRouteAgent()
@@ -154,10 +155,11 @@ namespace engine
                    rc ) ;
 
       // 2. init param
-      rc = _resource.init( _pAgent, optCB, &_dsMgr ) ;
+      _cataResource = _resource.getCataResource();
+      rc = _cataResource->init( _pAgent, optCB, &_dsMgr ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
-      rc = _gtsAgent.init( &_resource ) ;
+      rc = _gtsAgent.init( _cataResource ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize GTS agent, rc: %d", rc ) ;
 
       // register to transCB
@@ -179,7 +181,7 @@ namespace engine
       // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
-      sdbGetResourceContainer()->setResource( &_resource ) ;
+      sdbGetResourceContainer()->setResource( _cataResource ) ;
 
       // 3. create listen socket
       if ( optCB->serviceMask() & PMD_SVC_MASK_SHARD )
@@ -254,7 +256,7 @@ namespace engine
 
       // 4. set timer, and send register msg
       // if this coord is created before all catalog, don't need to register
-      _resource.getCataNodeAddrList( catalogAddrList ) ;
+      _cataResource->getCataNodeAddrList( catalogAddrList ) ;
       if ( !catalogAddrList.empty() )
       {
          _regTimerID = setTimer( OSS_ONE_SEC ) ;
@@ -303,7 +305,7 @@ namespace engine
    INT32 _CoordCB::fini ()
    {
       _remoteSessionMgr.fini() ;
-      _resource.fini() ;
+      _cataResource->fini() ;
       _gtsAgent.fini() ;
       _dsMgr.fini() ;
 
@@ -480,12 +482,12 @@ retry :
       }
 
       // get info of cata group
-      cataGroupPtr = _resource.getCataGroupInfo() ;
+      cataGroupPtr = _cataResource->getCataGroupInfo() ;
       if ( 0 == cataGroupPtr->nodeCount() )
       {
          if ( !hasUpdate )
          {
-            rc = _resource.updateCataGroupInfo( cataGroupPtr, _pEDUCB ) ;
+            rc = _cataResource->updateCataGroupInfo( cataGroupPtr, _pEDUCB ) ;
             PD_RC_CHECK ( rc, PDWARNING, "Failed to update catalog group "
                           "info[rc:%d]", rc ) ;
             hasUpdate = TRUE ;
@@ -505,7 +507,7 @@ retry :
       {
          if ( !hasUpdate )
          {
-            rc = _resource.updateCataGroupInfo( cataGroupPtr, _pEDUCB ) ;
+            rc = _cataResource->updateCataGroupInfo( cataGroupPtr, _pEDUCB ) ;
             if ( rc != SDB_OK )
             {
                PD_LOG ( PDWARNING,
@@ -614,7 +616,7 @@ retry :
       if ( SDB_CLS_NOT_PRIMARY == rc )
       {
          CoordGroupInfoPtr cataGroupPtr ;
-         rc = _resource.updateCataGroupInfo( cataGroupPtr, _pEDUCB ) ;
+         rc = _cataResource->updateCataGroupInfo( cataGroupPtr, _pEDUCB ) ;
          PD_RC_CHECK ( rc, PDWARNING, "Fail to update catalog group "
                        "info[rc:%d]", rc ) ;
          goto done ;
@@ -658,7 +660,7 @@ retry :
       routeID.columns.serviceID = _shardServiceID ;
       _pAgent->setLocalID ( routeID ) ;
 
-      _resource.setNodeID( _selfNodeID ) ;
+      _cataResource->setNodeID( _selfNodeID ) ;
 
       // set global id
       pmdSetNodeID( _selfNodeID ) ;
@@ -1300,7 +1302,7 @@ retry :
       INT32 rc = SDB_OK ;
       CoordGroupInfoPtr groupPtr ;
 
-      rc = _resource.updateGroupInfo ( COORD_GROUPID, groupPtr, _pEDUCB ) ;
+      rc = _cataResource->updateGroupInfo ( COORD_GROUPID, groupPtr, _pEDUCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDWARNING, "Fail to update coord group info, rc: %d", rc ) ;
@@ -1314,7 +1316,7 @@ retry :
       INT32 rc = SDB_OK ;
       CoordGroupInfoPtr groupPtr ;
 
-      rc = _resource.updateCataGroupInfo ( groupPtr, _pEDUCB ) ;
+      rc = _cataResource->updateCataGroupInfo ( groupPtr, _pEDUCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDWARNING, "Fail to update cata group info, rc: %d", rc ) ;

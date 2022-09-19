@@ -261,7 +261,8 @@ namespace engine
          goto error ;
       }
 
-      rc = _pResource->addGroupInfo( CATALOG_GROUPID, _mapNodes, 0 ) ;
+      rc = _pResource->getCataResource()->addGroupInfo(
+          CATALOG_GROUPID, _mapNodes, 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Update catalog group info failed, rc: %d",
                    rc ) ;
 
@@ -370,8 +371,8 @@ namespace engine
    {
       if ( primary && SDB_EVT_OCCUR_BEFORE == type )
       {
-         // clear catalog info
-         _pResource->invalidateCataInfo() ;
+         // clear catalog info and storage cache
+         _pResource->invalidateAllCLCache() ;
 
          // Clear statistics
          pmdGetKRCB()->getDMSCB()->clearSUCaches( DMS_EVENT_MASK_ALL ) ;
@@ -468,7 +469,7 @@ namespace engine
          {
             serviceType = MSG_ROUTE_CAT_SERVICE ;
          }
-         rc = _pResource->getGroupInfo( groupID, groupPtr ) ;
+         rc = _pResource->getCataResource()->getGroupInfo( groupID, groupPtr ) ;
          if ( SDB_OK == rc )
          {
             rc = _clsSelectNodes( groupPtr.get(), primary, serviceType, hosts ) ;
@@ -708,7 +709,8 @@ namespace engine
       /// update node status
       {
          CoordGroupInfoPtr groupPtr ;
-         INT32 rcTmp = _pResource->getGroupInfo( groupID, groupPtr ) ;
+         INT32 rcTmp =
+             _pResource->getCataResource()->getGroupInfo( groupID, groupPtr ) ;
          if ( SDB_OK == rcTmp )
          {
             _clsUpdateNodeStatus( groupPtr.get(), hosts ) ;
@@ -736,7 +738,8 @@ namespace engine
          else
          {
             CoordGroupInfoPtr groupPtr ;
-            rc = _pResource->updateGroupInfo( groupID, groupPtr, cb ) ;
+            rc = _pResource->getCataResource()->updateGroupInfo(
+                groupID, groupPtr, cb ) ;
          }
 
          if ( SDB_OK == rc )
@@ -806,7 +809,7 @@ namespace engine
       CoordGroupInfoPtr cataGroupPtr ;
 
    retry:
-      cataGroupPtr = _pResource->getCataGroupInfo() ;
+      cataGroupPtr = _pResource->getCataResource()->getCataGroupInfo() ;
 
       // sanity check
       if ( !_pNetRtAgent ||
@@ -907,7 +910,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 times = 0 ;
 
-      CoordGroupInfoPtr groupPtr = _pResource->getCataGroupInfo() ;
+      CoordGroupInfoPtr groupPtr =
+          _pResource->getCataResource()->getCataGroupInfo() ;
       if ( NULL != groupPtr.get() )
       {
          /// clear all node status
@@ -1010,7 +1014,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_UPDPRM ) ;
       INT32 rc = SDB_OK ;
       CoordGroupInfoPtr groupPtr ;
-      rc = _pResource->getGroupInfo( id.columns.groupID, groupPtr ) ;
+      rc = _pResource->getCataResource()->getGroupInfo( id.columns.groupID,
+                                                        groupPtr ) ;
       if ( SDB_OK == rc )
       {
          rc = groupPtr->updatePrimary( id, primary ) ;
@@ -1044,7 +1049,7 @@ namespace engine
             primaryNode.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
          }
 
-         rc = _pResource->getGroupInfo( groupID, groupPtr ) ;
+         rc = _pResource->getCataResource()->getGroupInfo( groupID, groupPtr ) ;
          if ( SDB_OK == rc )
          {
             rc = groupPtr->updatePrimary( primaryNode, TRUE, &preStat ) ;
@@ -1445,7 +1450,8 @@ namespace engine
          }
 
          /// update catalog group info
-         _pResource->addGroupInfo( CATALOG_GROUPID, mapNodes, primary ) ;
+         _pResource->getCataResource()->addGroupInfo(
+             CATALOG_GROUPID, mapNodes, primary ) ;
 
          /// update catalog net info
          it = _mapNodes.begin() ;
@@ -1542,7 +1548,8 @@ namespace engine
                  SDB_DMS_EOC == rc )
             {
                // in that case, let's clear local group cache information
-               _pResource->removeGroupInfo( pEventInfo->groupID ) ;
+               _pResource->getCataResource()->removeGroupInfo(
+                   pEventInfo->groupID ) ;
                pEventInfo->event.signalAll( SDB_CLS_GRP_NOT_EXIST ) ;
             }
             else if ( SDB_CLS_NOT_PRIMARY == rc )
@@ -1580,7 +1587,7 @@ namespace engine
          try
          {
             BSONObj groupObj( objdata ) ;
-            rc = _pResource->addGroupInfo( groupObj, groupPtr ) ;
+            rc = _pResource->getCataResource()->addGroupInfo( groupObj, groupPtr ) ;
             if ( SDB_OK == rc )
             {
                SDB_ASSERT( NULL != groupPtr.get(), "should have group info" ) ;
@@ -1660,7 +1667,7 @@ namespace engine
                  SDB_DMS_NOTEXIST == res->flags ||
                  SDB_DMS_CS_NOTEXIST == res->flags )
             {
-               _pResource->removeCataInfo( pEventInfo->name.c_str() ) ;
+               _pResource->removeCLWithMain( pEventInfo->name.c_str() );
                pEventInfo->event.signalAll ( SDB_DMS_NOTEXIST ) ;
             }
             //not primary node, should update catalog group info, and send again
@@ -1712,7 +1719,8 @@ namespace engine
          SDB_ASSERT ( numReturned == 1 && objList.size() == 1,
                       "Collection catalog item num must be 1" ) ;
 
-         rc = _pResource->addCataInfo( objList[ 0 ], cataPtr ) ;
+         rc = _pResource->getCataResource()->addCataInfo( objList[ 0 ],
+                                                          cataPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update catalog, rc: %d", rc ) ;
 
          catSet = cataPtr->getCatalogSet() ;
@@ -1998,7 +2006,8 @@ namespace engine
 
       while ( TRUE )
       {
-         rc = _pResource->getOrUpdateGroupInfo( groupID, groupPtr, cb ) ;
+         rc = _pResource->getCataResource()->getOrUpdateGroupInfo(
+             groupID, groupPtr, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get group item for route ID %s, "
                       "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
          PD_CHECK( NULL != groupPtr.get(), SDB_CLS_NO_GROUP_INFO, error, PDERROR,
@@ -2011,7 +2020,7 @@ namespace engine
                       "Failed to get node info for route ID %s, "
                       "node [%u] is not found in group [%u]",
                       routeID2String( routeID ).c_str(), nodeID, groupID ) ;
-            _pResource->removeGroupInfo( groupID ) ;
+            _pResource->getCataResource()->removeGroupInfo( groupID ) ;
             groupUpdated = TRUE ;
          }
       }
@@ -3161,7 +3170,8 @@ namespace engine
          builder.appendBool( FIELD_NAME_IS_PRIMARY, pmdIsPrimary() ) ;
          builder.append( FIELD_NAME_GROUPNAME, groupName ) ;
 
-         CoordGroupInfoPtr cataGroupPtr = _pResource->getCataGroupInfo() ;
+         CoordGroupInfoPtr cataGroupPtr =
+             _pResource->getCataResource()->getCataGroupInfo() ;
 
          if ( cataGroupPtr->nodeCount() > 0 )
          {
