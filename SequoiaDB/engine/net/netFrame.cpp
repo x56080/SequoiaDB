@@ -110,26 +110,26 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 retries = 0 ;
    retry:
-      _mtx.get_shared() ;
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
       if ( _vecEH.size() >= _capacity || retries == 2 )
       {
          if ( _vecEH.size() == 0 )
          {
             PD_LOG( PDSEVERE, "cannot create any net event handler" ) ;
             rc = SDB_OOM ;
+            goto error ;
          }
          else
          {
             eh = _vecEH[_index.inc() % _vecEH.size()] ;
          }
-         _mtx.release_shared() ;
       }
-      else
+      }
+
+      if ( NULL == eh.get() )
       {
-         _mtx.release_shared() ;
-
          BOOLEAN created = _createEH( eh ) ;
-
          if ( !eh.get() )
          {
             retries++ ;
@@ -144,11 +144,16 @@ namespace engine
                delEH( eh->handle() ) ;
                eh->close() ;
                PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
+               goto error ;
             }
          }
       }
 
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // creating the netEventHandler. We have to get the
@@ -159,7 +164,7 @@ namespace engine
    {
       BOOLEAN ret = FALSE ;
 
-      _mtx.get() ;
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       if ( _vecEH.size() < _capacity )
       {
          /// create a new socket
@@ -195,18 +200,16 @@ namespace engine
       }
 
    done:
-      _mtx.release() ;
       return ret ;
    }
 
    void _netEHSegment::close()
    {
-      _mtx.get_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
       for ( VEC_EH_IT itr=_vecEH.begin(); itr!=_vecEH.end(); ++itr )
       {
          (*itr)->close() ;
       }
-      _mtx.release_shared() ;
    }
 
    // This function is called when a connection is passively
@@ -241,7 +244,7 @@ namespace engine
 
    void _netEHSegment::delEH( const NET_HANDLE& handle )
    {
-      _mtx.get() ;
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       for ( VEC_EH_IT itr=_vecEH.begin(); itr!=_vecEH.end(); ++itr )
       {
          if ( handle == (*itr)->handle() )
@@ -250,7 +253,6 @@ namespace engine
             break ;
          }
       }
-      _mtx.release() ;
    }
 
    /// define listen host
@@ -338,9 +340,10 @@ namespace engine
    void _netFrame::onRunSuitStop( netEvSuitPtr evSuitPtr )
    {
       /// make sure all the netEventHandles have closed
-      _suiteMtx.get() ;
-      _eraseSuit_i( evSuitPtr ) ;
-      _suiteMtx.release() ;
+      {
+         ossScopedLock lock( &_suiteMtx, EXCLUSIVE ) ;
+         _eraseSuit_i( evSuitPtr ) ;
+      }
 
       _netEventSuit::SET_HANDLE setHandles ;
 
@@ -407,12 +410,8 @@ namespace engine
 
    UINT32 _netFrame::getEvSuitSize()
    {
-      UINT32 size = 0 ;
-      _suiteMtx.get_shared() ;
-      size = _vecEvSuit.size() ;
-      _suiteMtx.release_shared() ;
-
-      return size ;
+      ossScopedLock lock( &_suiteMtx, SHARED ) ;
+      return _vecEvSuit.size() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_RUN, "_netFrame::run" )
@@ -532,9 +531,10 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__NETFRAME_STOP );
 
-      _suiteMtx.get() ;
-      _suiteStopFlag = TRUE ;
-      _suiteMtx.release() ;
+      {
+         ossScopedLock lock( &_suiteMtx, EXCLUSIVE ) ;
+         _suiteStopFlag = TRUE ;
+      }
 
       shutdownListen( NET_FRAME_MASK_ALL ) ;
       _mainSuitPtr->getIOService().stop() ;
@@ -561,16 +561,16 @@ namespace engine
 
          while( TRUE )
          {
-            _mtx.get_shared() ;
+            {
+            ossScopedLock lock( &_mtx, SHARED ) ;
             itr = _opposite.upper_bound( handle ) ;
             if ( itr == _opposite.end() )
             {
-               _mtx.release_shared() ;
                break ;
             }
             eh = itr->second ;
             handle = itr->first ;
-            _mtx.release_shared() ;
+            }
 
             /// make stat
             eh->makeStat( _statLastTick ) ;
@@ -625,16 +625,16 @@ namespace engine
       {
          UINT64 lastBeatPassed = 0 ;
 
-         _mtx.get_shared() ;
+         {
+         ossScopedLock lock( &_mtx, SHARED ) ;
          itr = _opposite.upper_bound( handle ) ;
          if ( itr == _opposite.end() )
          {
-            _mtx.release_shared() ;
             break ;
          }
          eh = itr->second ;
          handle = itr->first ;
-         _mtx.release_shared() ;
+         }
 
          if ( eh->isNew() || !eh->isConnected() )
          {
@@ -649,10 +649,9 @@ namespace engine
               ( ( lastBeatPassed >= _beatPassiveInterval ) &&
                 ( mon.isInMonitorPassive( eh->id().columns.serviceID ) ) ) )
          {
-            eh->mtx().get() ;
+            ossScopedLock lock( &( eh->mtx() ) ) ;
             beat.requestID = eh->getAndIncMsgID() ;
             eh->syncSend( &beat, beat.messageLength ) ;
-            eh->mtx().release() ;
          }
       }
    }
@@ -674,11 +673,11 @@ namespace engine
       // try to get lock of event handle
       // if failed, means someone is using the handle to send data
       // which can be just instead of heart beat
-      if ( eh->mtx().try_get() )
+      ossScopedTryLock lock( &( eh->mtx() ) ) ;
+      if ( lock.isLocked() )
       {
          reply.header.routeID = _local ;
          eh->syncSend( (const void*)&reply, reply.header.messageLength ) ;
-         eh->mtx().release() ;
       }
    }
 
@@ -706,16 +705,16 @@ namespace engine
 
       while( timeout > 0 )
       {
-         _mtx.get_shared() ;
+         {
+         ossScopedLock lock( &_mtx, SHARED ) ;
          itr = _opposite.upper_bound( handle ) ;
          if ( itr == _opposite.end() )
          {
-            _mtx.release_shared() ;
             break ;
          }
          eh = itr->second ;
          handle = itr->first ;
-         _mtx.release_shared() ;
+         }
 
          if ( eh->isNew() ||
               NET_EVENT_HANDLER_UDP == eh->getHandlerType() )
@@ -830,14 +829,13 @@ namespace engine
       NET_EH eh ;
       MAP_EVENT_IT itr ;
 
-      _mtx.get_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
 
       itr = _opposite.find( handle ) ;
       if ( _opposite.end() != itr )
       {
          eh = itr->second ;
       }
-      _mtx.release_shared() ;
 
       return eh ;
    }
@@ -1105,7 +1103,8 @@ namespace engine
       BOOLEAN hasConnect = FALSE ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNNCCONN2 ) ;
 
-      eh->mtx().get() ;
+      {
+      ossScopedLock lock( &( eh->mtx() ) ) ;
       if ( !eh->isConnected() )
       {
          if ( eh->isNew() )
@@ -1140,7 +1139,7 @@ namespace engine
             rc = SDB_NETWORK ;
          }
       }
-      eh->mtx().release() ;
+      }
 
       if ( rc )
       {
@@ -1178,13 +1177,20 @@ namespace engine
       PD_CHECK( !_suiteStopFlag, SDB_QUIESCED, error, PDWARNING,
                 "Suite service of net frame is stopped" ) ;
 
-      _mtx.get_shared() ;
-      itr = _route.find(id.value) ;
-
-      if ( itr == _route.end() )
       {
-         _mtx.release_shared() ;
-         _mtx.get() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
+      itr = _route.find(id.value) ;
+      if ( itr != _route.end() )
+      {
+         // if we found the netEHSegment in the route table, just use it
+         ptr = itr->second ;
+      }
+      }
+
+      if ( NULL == ptr.get() )
+      {
+         ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
+
          // after we get the x latch, re-check if someone has already create
          // the netEHSegment
          itr = _route.find(id.value) ;
@@ -1200,7 +1206,6 @@ namespace engine
             {
                rc = SDB_OOM ;
                PD_LOG( PDERROR, "Allocate netEHSegment failed" ) ;
-               _mtx.release() ;
                goto error ;
             }
 
@@ -1211,21 +1216,14 @@ namespace engine
             }
             catch ( exception &e )
             {
-               _mtx.release() ;
                PD_LOG( PDERROR, "Failed to save route, occur exception %s",
                        e.what() ) ;
                rc = ossException2RC( &e ) ;
                goto error ;
             }
          }
-         _mtx.release() ;
       }
-      else
-      {
-         // if we found the netEHSegment in the route table, just use it
-         ptr = itr->second ;
-         _mtx.release_shared() ;
-      }
+
       // get event handler
       rc = ptr->getEH(eh) ;
 
@@ -1268,13 +1266,15 @@ namespace engine
       {
          msgHeader->routeID = _local ;
       }
-      eh->mtx().get() ;
+
+      {
+      ossScopedLock lock( &( eh->mtx() ) ) ;
       rc = eh->syncSend( msgHeader, msgHeader->messageLength ) ;
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
       }
-      eh->mtx().release() ;
+      }
       if ( SDB_OK != rc )
       {
          eh->close() ;
@@ -1332,20 +1332,21 @@ namespace engine
       NET_EH eh ;
       MAP_EVENT_IT itr ;
 
-      _mtx.get_shared() ;
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
       itr = _opposite.find( handle ) ;
       if ( _opposite.end() == itr )
       {
-         _mtx.release_shared() ;
          rc = SDB_NET_INVALID_HANDLE ;
          goto error ;
       }
       eh = itr->second ;
-      _mtx.release_shared() ;
+      }
 
-      eh->mtx().get() ;
-      rc = eh->syncSend( pBuff, buffSize ) ;
-      eh->mtx().release() ;
+      {
+         ossScopedLock lock( &( eh->mtx() ) ) ;
+         rc = eh->syncSend( pBuff, buffSize ) ;
+      }
       if ( SDB_OK != rc )
       {
          eh->close() ;
@@ -1375,17 +1376,18 @@ namespace engine
       UINT32 headLen = header->messageLength - bodyLen ;
       NET_EH eh ;
       MAP_EVENT_IT itr ;
+      UINT32 netOut = 0 ;
 
-      _mtx.get_shared() ;
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
       itr = _opposite.find( handle ) ;
       if ( _opposite.end() == itr )
       {
-         _mtx.release_shared() ;
          rc = SDB_NET_INVALID_HANDLE ;
          goto error ;
       }
       eh = itr->second ;
-      _mtx.release_shared() ;
+      }
 
       SDB_ASSERT( NET_EVENT_HANDLER_TCP == eh->getHandlerType(),
                   "Should not use UDP socket to send multiple packets" ) ;
@@ -1394,37 +1396,40 @@ namespace engine
       {
          header->routeID = _local ;
       }
-      eh->mtx().get() ;
+
+      {
+      ossScopedLock lock( &( eh->mtx() ) ) ;
       /// header len should be computed. can not get sizeof(MsgHeader)
       rc = eh->syncSend( header, headLen ) ;
       if ( SDB_OK != rc )
       {
-         eh->mtx().release() ;
-         eh->close() ;
          goto error ;
       }
-      _netOut.add( headLen ) ;
+      netOut += headLen ;
 
       if ( NULL != body )
       {
          rc = eh->syncSend( body, bodyLen ) ;
-         eh->mtx().release() ;
          if ( SDB_OK != rc )
          {
-            eh->close() ;
             goto error ;
          }
-         _netOut.add( bodyLen ) ;
+         netOut += bodyLen ;
       }
-      else
-      {
-         eh->mtx().release() ;
       }
 
    done:
+      if ( netOut > 0 )
+      {
+         _netOut.add( netOut ) ;
+      }
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND3, rc );
       return rc ;
    error:
+      if ( NULL != eh.get() )
+      {
+         eh->close() ;
+      }
       goto done ;
    }
 
@@ -1438,6 +1443,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       NET_EH eh ;
       MAP_EVENT_IT itHandle ;
+      UINT32 netOut = 0 ;
 
       INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
@@ -1452,29 +1458,28 @@ namespace engine
          header->routeID = _local ;
       }
 
-      _mtx.get_shared() ;
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
       itHandle = _opposite.find( handle ) ;
       if ( _opposite.end() == itHandle )
       {
-         _mtx.release_shared() ;
          rc = SDB_NET_INVALID_HANDLE ;
          goto error ;
       }
       eh = itHandle->second ;
-      _mtx.release_shared() ;
+      }
 
       SDB_ASSERT( NET_EVENT_HANDLER_TCP == eh->getHandlerType(),
                   "Should not use UDP socket to send multiple packets" ) ;
 
-      eh->mtx().get() ;
-      rc = eh->syncSend( header, sizeof(MsgHeader) ) ;
+      {
+      ossScopedLock lock( &( eh->mtx() ) ) ;
+      rc = eh->syncSend( header, sizeof( MsgHeader ) ) ;
       if ( SDB_OK != rc )
       {
-         eh->mtx().release() ;
-         eh->close() ;
          goto error ;
       }
-      _netOut.add( sizeof(MsgHeader) ) ;
+      netOut += sizeof(MsgHeader) ;
 
       for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end();
             ++itr )
@@ -1486,19 +1491,25 @@ namespace engine
             rc = eh->syncSend( itr->iovBase, itr->iovLen ) ;
             if ( SDB_OK != rc )
             {
-               eh->mtx().release() ;
-               eh->close() ;
                goto error ;
             }
-            _netOut.add( itr->iovLen ) ;
+            netOut += itr->iovLen ;
          }
       }
-      eh->mtx().release() ;
+      }
 
    done:
       header->messageLength = origLen ;
+      if ( netOut > 0 )
+      {
+         _netOut.add( netOut ) ;
+      }
       return rc ;
    error:
+      if ( NULL != eh.get() )
+      {
+         eh->close() ;
+      }
       goto done ;
    }
 
@@ -1516,6 +1527,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETFRAME_SYNCSEND4 );
       UINT32 headLen = header->messageLength - bodyLen ;
       NET_EH eh ;
+      UINT32 netOut = 0 ;
 
       rc = _getHandle( id, eh ) ;
       if ( rc )
@@ -1527,6 +1539,7 @@ namespace engine
          rc = syncConnect( eh ) ;
          if ( rc )
          {
+            eh.release() ;
             goto error ;
          }
       }
@@ -1535,7 +1548,9 @@ namespace engine
       {
          header->routeID = _local ;
       }
-      eh->mtx().get() ;
+
+      {
+      ossScopedLock lock( &( eh->mtx() ) ) ;
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
@@ -1543,32 +1558,33 @@ namespace engine
       rc = eh->syncSend( header, headLen ) ;
       if ( SDB_OK != rc )
       {
-         eh->mtx().release() ;
-         eh->close() ;
          goto error ;
       }
-      _netOut.add( headLen ) ;
+      netOut += headLen ;
 
       if ( NULL != body )
       {
          rc = eh->syncSend( body, bodyLen ) ;
-         eh->mtx().release() ;
          if ( SDB_OK != rc )
          {
-            eh->close() ;
             goto error ;
          }
-         _netOut.add( bodyLen ) ;
+         netOut += bodyLen ;
       }
-      else
-      {
-         eh->mtx().release() ;
       }
 
    done:
+      if ( netOut > 0 )
+      {
+         _netOut.add( netOut ) ;
+      }
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND4, rc );
       return rc ;
    error:
+      if ( NULL != eh.get() )
+      {
+         eh->close() ;
+      }
       goto done ;
    }
 
@@ -1584,6 +1600,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__NETFRAME_SYNCSENDV ) ;
       INT32 rc = SDB_OK ;
       NET_EH eh ;
+      UINT32 netOut = 0 ;
 
       INT32 origLen = header->messageLength ;
       header->messageLength = sizeof( MsgHeader ) + netCalcIOVecSize( iov ) ;
@@ -1608,11 +1625,13 @@ namespace engine
          rc = syncConnect( eh ) ;
          if ( rc )
          {
+            eh.release() ;
             goto error ;
          }
       }
 
-      eh->mtx().get() ;
+      {
+      ossScopedLock lock( &( eh->mtx() ) ) ;
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
@@ -1620,11 +1639,9 @@ namespace engine
       rc = eh->syncSend( header, sizeof(MsgHeader) ) ;
       if ( SDB_OK != rc )
       {
-         eh->mtx().release() ;
-         eh->close() ;
          goto error ;
       }
-      _netOut.add( sizeof(MsgHeader) ) ;
+      netOut += sizeof(MsgHeader) ;
 
       for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end() ;
             ++itr )
@@ -1636,20 +1653,26 @@ namespace engine
             rc = eh->syncSend( itr->iovBase, itr->iovLen ) ;
             if ( SDB_OK != rc )
             {
-               eh->mtx().release() ;
-               eh->close() ;
                goto error ;
             }
-            _netOut.add( itr->iovLen ) ;
+            netOut += itr->iovLen ;
          }
       }
-      eh->mtx().release() ;
+      }
 
    done:
       header->messageLength = origLen ;
+      if ( netOut > 0 )
+      {
+         _netOut.add( netOut ) ;
+      }
       PD_TRACE_EXITRC( SDB__NETFRAME_SYNCSENDV, rc ) ;
       return rc ;
    error:
+      if ( NULL != eh.get() )
+      {
+         eh->close() ;
+      }
       goto done ;
    }
 
@@ -1700,25 +1723,27 @@ namespace engine
    void _netFrame::close( const _MsgRouteID &id )
    {
       PD_TRACE_ENTRY ( SDB__NETFRAME_CLOSE );
+
       MAP_ROUTE_IT routeItr ;
       netEHSegPtr ptr ;
 
-      _mtx.get_shared() ;
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
       routeItr = _route.find( id.value ) ;
       // check if the entry with corresponding id exists
       if ( routeItr != _route.end() )
       {
          ptr = routeItr->second ;
-         _mtx.release_shared() ;
+      }
+      }
+
+      if ( NULL != ptr.get() )
+      {
          // retrieve the netEHSegment shared ptr and release
          // s latch for the route table
          // call the netEHSEgment::close interface to close all
          // sockets in the netEHSEgment
          ptr->close() ;
-      }
-      else
-      {
-         _mtx.release_shared() ;
       }
 
       PD_TRACE_EXIT ( SDB__NETFRAME_CLOSE );
@@ -1734,13 +1759,12 @@ namespace engine
       // protect exit of sub-network
       ossScopedRWLock scopeLock( &_suiteExitMutex, EXCLUSIVE ) ;
 
-      _mtx.get_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
       itr = _opposite.begin() ;
       for ( ; itr != _opposite.end(); itr++ )
       {
          itr->second->close() ;
       }
-      _mtx.release_shared() ;
 
       PD_TRACE_EXIT ( SDB__NETFRAME_CLOSE2 );
       return ;
@@ -1823,22 +1847,22 @@ namespace engine
       MAP_EVENT_IT itr ;
       UINT64 routeID = MSG_INVALID_ROUTEID ;
 
-      _mtx.get_shared() ;
+      {
+      ossScopedLock lock( &_mtx, SHARED ) ;
       itr = _opposite.find( handle ) ;
       if ( _opposite.end() != itr )
       {
          itr->second->close() ;
          routeID = itr->second->id().value ;
-         _mtx.release_shared() ;
       }
-      else
-      {
-         _mtx.release_shared() ;
-         PD_LOG( PDINFO, "invalid net handle:%d", handle ) ;
       }
 
       if ( pID )
       {
+         if ( MSG_INVALID_ROUTEID == routeID )
+         {
+            PD_LOG( PDINFO, "invalid net handle:%d", handle ) ;
+         }
          pID->value = routeID ;
       }
 
@@ -1894,7 +1918,7 @@ namespace engine
       MAP_TIMMER_IT it ;
       PD_TRACE_ENTRY ( SDB__NETFRAME_REMTIMER ) ;
 
-      _mtx.get() ;
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       it = _timers.find( id ) ;
       if ( _timers.end() == it )
       {
@@ -1905,7 +1929,6 @@ namespace engine
          it->second->cancel() ;
          _timers.erase( it ) ;
       }
-      _mtx.release() ;
 
       PD_TRACE_EXITRC ( SDB__NETFRAME_REMTIMER, rc ) ;
       return rc ;
@@ -1956,13 +1979,18 @@ namespace engine
       MAP_ROUTE_IT itr ;
       netEHSegPtr ptr ;
 
-      _mtx.get_shared() ;
-      itr = _route.find(eh->id().value) ;
-
-      if ( itr == _route.end() )
       {
-         _mtx.release_shared() ;
+      ossScopedLock lock( &_mtx, SHARED ) ;
+      itr = _route.find(eh->id().value) ;
+      if ( itr != _route.end() )
+      {
+         // if we found the netEHSegment in the route table, just use it
+         ptr = itr->second ;
+      }
+      }
 
+      if ( NULL == ptr.get() )
+      {
          ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
 
          // after we get the x latch, re-check if someone has already create
@@ -1999,12 +2027,7 @@ namespace engine
             }
          }
       }
-      else
-      {
-         // if we found the netEHSegment in the route table, just use it
-         ptr = itr->second ;
-         _mtx.release_shared() ;
-      }
+
       // get event handler
       rc = ptr->addEH(eh) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add event handler to event "
@@ -2177,12 +2200,11 @@ namespace engine
 
    void _netFrame::_stopAllEvSuit()
    {
-      _suiteMtx.get_shared() ;
+      ossScopedLock lock( &_suiteMtx, SHARED ) ;
       for ( UINT32 i = 0 ; i < _vecEvSuit.size() ; ++i )
       {
          _vecEvSuit[ i ]->stop() ;
       }
-      _suiteMtx.release_shared() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ASYNCAPT, "_netFrame::_asyncAccept" )
@@ -2280,7 +2302,8 @@ namespace engine
 
       removeUDPRouteID.value = MSG_INVALID_ROUTEID ;
 
-      _mtx.get() ;
+      {
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
       itr = _opposite.find( handle ) ;
       if ( _opposite.end() == itr )
       {
@@ -2307,10 +2330,9 @@ namespace engine
       }
 
       _opposite.erase( itr ) ;
+      }
 
    done:
-      _mtx.release() ;
-
       // if no TCP event handlers left for the given route
       // also remove UDP event handler
       if ( MSG_INVALID_ROUTEID != removeUDPRouteID.value &&
