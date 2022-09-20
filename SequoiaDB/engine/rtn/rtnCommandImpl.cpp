@@ -153,6 +153,7 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
       SINT64 queryContextID = -1 ;
+      BOOLEAN hasRange = options.hasRangeInHint() ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
@@ -162,7 +163,8 @@ namespace engine
                   pCollection, rc ) ;
          goto error ;
       }
-      if ( !options.isQueryEmpty() )
+      if ( !options.isQueryEmpty() ||
+           hasRange )
       {
          rtnContextPtr pContextBase ;
 
@@ -211,11 +213,15 @@ namespace engine
             }
             else
             {
-               pContextBase->enableCountMode() ;
+               if ( !hasRange )
+               {
+                  pContextBase->enableCountMode() ;
+               }
                rtnContextBuf buffObj ;
 
                if ( NULL != pContextBase->getPlanRuntime() &&
-                    pContextBase->getPlanRuntime()->isAllRangeScan() )
+                    pContextBase->getPlanRuntime()->isAllRangeScan() &&
+                    !hasRange )
                {
                   // use quick extent header count
                   rc = su->countCollection ( pCollectionShortName, totalCount,
