@@ -167,6 +167,8 @@ namespace engine
                                          const BSONObj &arg,
                                          _pmdEDUCB *cb ) ;
 
+      virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
+
    private:
       INT32 _prepareSubCLData( SINT64 contextID,
                                 _pmdEDUCB * cb,

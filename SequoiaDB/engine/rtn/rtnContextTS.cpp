@@ -88,13 +88,10 @@ namespace engine
 
       if ( _subContext )
       {
-         if ( _subContext->contextID() )
-         {
-            pmdGetKRCB()->getRTNCB()->contextDelete( _subContext->contextID(),
-                                                     _eduCB ) ;
-         }
-         SDB_OSS_DEL _subContext ;
+         _releaseSubContext( _subContext ) ;
+         _subContext = NULL ;
       }
+      _orderedContexts.clear() ;
    }
 
    const CHAR* _rtnContextTS::name() const
@@ -190,7 +187,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTTS__GETNONEMPTYNORMALSUBCTX ) ;
-      SDB_RTNCB* rtnCB = pmdGetKRCB()->getRTNCB() ;
 
       while ( TRUE )
       {
@@ -199,8 +195,7 @@ namespace engine
             rc = _prepareSubCtxData( cb, -1 ) ;
             if ( rc != SDB_OK )
             {
-               rtnCB->contextDelete( _subContext->contextID(), cb ) ;
-               SDB_OSS_DEL _subContext ;
+               _releaseSubContext( _subContext ) ;
                _subContext = NULL ;
                if ( SDB_DMS_EOC != rc )
                {
@@ -253,6 +248,19 @@ namespace engine
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTTS__PRERELEASESUBCTX, "_rtnContextTS::_preReleaseSubContext" )
+   void _rtnContextTS::_preReleaseSubContext( rtnSubContext *subCtx )
+   {
+      PD_TRACE_ENTRY( SDB__RTNCONTEXTTS__PRERELEASESUBCTX ) ;
+
+      if ( NULL != subCtx && -1 != subCtx->contextID() )
+      {
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+         rtnCB->contextDelete( subCtx->contextID(), pmdGetThreadEDUCB() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNCONTEXTTS__PRERELEASESUBCTX ) ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTTS__PREPARENEXTSUBCONTEXT, "_rtnContextTS::_prepareNextSubContext" )
    INT32 _rtnContextTS::_prepareNextSubContext( pmdEDUCB *eduCB,
@@ -347,7 +355,7 @@ namespace engine
                    _options.getCLFullName(), rc ) ;
       if ( _subContext )
       {
-         SDB_OSS_DEL _subContext ;
+         _releaseSubContext( _subContext ) ;
          _subContext = NULL ;
       }
 
@@ -371,6 +379,8 @@ namespace engine
                  "size[ %d ]", sizeof( rtnSubCLContext ) ) ;
          goto error ;
       }
+      // take control by sub-context
+      subContextID = -1 ;
 
       rc = _checkSubContext( _subContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check sub context, rc: %d", rc ) ;
@@ -385,8 +395,12 @@ namespace engine
    error:
       if ( _subContext )
       {
-         SDB_OSS_DEL _subContext ;
+         _releaseSubContext( _subContext ) ;
          _subContext = NULL ;
+      }
+      if ( -1 != subContextID )
+      {
+         rtnCB->contextDelete( subContextID, eduCB ) ;
       }
       goto done ;
    }

@@ -180,6 +180,7 @@ namespace engine
          virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
                                             const BSONObj &arg,
                                             _pmdEDUCB *cb ) ;
+         virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
 
          virtual INT32 _processGetMoreHint( const BSONObj &hint ) ;
 

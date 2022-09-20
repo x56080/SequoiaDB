@@ -58,21 +58,8 @@ namespace engine
 
    _rtnContextMain::~_rtnContextMain()
    {
-      pmdKRCB* pKrcb = pmdGetKRCB() ;
-      SDB_RTNCB* rtnCB = pKrcb->getRTNCB() ;
-      pmdEDUCB* eduCB = pKrcb->getEDUMgr()->getEDUByID( eduID() ) ;
-
-      // clean ordered context
-      SUB_ORDERED_CTX_SET_IT orderIter = _orderedContexts.begin() ;
-      while ( orderIter != _orderedContexts.end() )
-      {
-         rtnSubContext *pSubCtx = *orderIter ;
-         rtnCB->contextDelete( pSubCtx->contextID(), eduCB ) ;
-         SDB_OSS_DEL pSubCtx ;
-         ++orderIter ;
-      }
-      _orderedContexts.clear() ;
-
+      SDB_ASSERT( _orderedContexts.empty(),
+                  "ordered contexts should be empty" ) ;
       SAFE_OSS_DELETE( _keyGen ) ;
    }
 
@@ -144,6 +131,7 @@ namespace engine
    done:
       return rc;
    error:
+      _releaseSubContext( subCtx ) ;
       goto done;
    }
 
@@ -275,7 +263,6 @@ namespace engine
             rc = _saveEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
             {
-               SDB_OSS_DEL ctx ;
                goto error ;
             }
 
@@ -293,7 +280,6 @@ namespace engine
             rc = _saveNonEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
             {
-               SDB_OSS_DEL ctx ;
                goto error ;
             }
          }
@@ -455,7 +441,6 @@ namespace engine
 
          if ( SDB_OK != rc )
          {
-            SDB_OSS_DEL ctx ;
             goto error ;
          }
 
@@ -631,6 +616,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      ossPoolList< rtnSubContext* > tmpList ;
+
       try
       {
          SUB_ORDERED_CTX_SET_IT itOrder ;
@@ -650,7 +637,9 @@ namespace engine
                        rc ) ;
                goto error ;
             }
-            else if ( !processed )
+
+            _orderedContexts.erase( itOrder ++ ) ;
+            if ( !processed )
             {
                ///  save empty
                SDB_ASSERT( 0 == pSubCtx->recordNum(),
@@ -662,12 +651,34 @@ namespace engine
                           "rc: %d", rc ) ;
                   goto error ;
                }
-               _orderedContexts.erase( itOrder++ ) ;
             }
             else
             {
-               ++itOrder ;
+               try
+               {
+                  tmpList.push_back( pSubCtx ) ;
+               }
+               catch ( exception &e )
+               {
+                  _releaseSubContext( pSubCtx ) ;
+                  PD_LOG( PDERROR, "Failed to save sub context, "
+                          "occur exception %s", e.what() ) ;
+                  rc = ossException2RC( &e ) ;
+                  goto error ;
+               }
             }
+         }
+
+         // data had been pop, so need generate new keys, and save back
+         // ordered contexts
+         while ( !( tmpList.empty() ) )
+         {
+            rtnSubContext *subCtx = tmpList.front() ;
+            tmpList.pop_front() ;
+
+            rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to save ordered context, "
+                         "rc: %d", rc ) ;
          }
       }
       catch( std::exception &e )
@@ -680,6 +691,14 @@ namespace engine
    done:
       return rc ;
    error:
+      for ( ossPoolList< rtnSubContext* >::iterator iter = tmpList.begin() ;
+            iter != tmpList.end() ;
+            ++ iter )
+      {
+         rtnSubContext *ctx = *iter ;
+         _releaseSubContext( ctx ) ;
+      }
+      tmpList.clear() ;
       goto done ;
    }
 
