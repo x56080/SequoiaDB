@@ -2,7 +2,7 @@
  * @Description   : seqDB-26414:事务中修改无事务属性
  * @Author        : liuli
  * @CreateTime    : 2022.04.24
- * @LastEditTime  : 2022.08.12
+ * @LastEditTime  : 2022.09.20
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26414";
@@ -91,7 +91,7 @@ function test ( args )
    }
 
    // 校验LSN，确保备节点配置也修改成功
-   commCheckLSN( db, args.srcGroupName );
+   commCheckLSN( db, args.srcGroupName, 120 );
 
    // SDB_SNAP_COLLECTIONS快照校验集合属性
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, { Name: COMMCSNAME + "." + testConf.clName, RawData: true } );
