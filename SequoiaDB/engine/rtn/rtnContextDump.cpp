@@ -285,7 +285,14 @@ namespace engine
             rc = _pFetch->fetch( obj ) ;
             if ( rc )
             {
-               if ( !( ( SDB_DMS_EOC == rc ) && pMonProcessor ) )
+               if ( SDB_DMS_EOC == rc )
+               {
+                  if ( ! pMonProcessor )
+                  {
+                     goto error ;
+                  }
+               }
+               else
                {
                   PD_LOG( PDERROR, "MonFetch[%s] fetch object failed, rc: %d",
                           _pFetch->getName(), rc ) ;
