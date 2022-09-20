@@ -376,8 +376,8 @@ namespace engine
       block.pageMeta().clear() ;
       dpsLogRecordHeader &head = block.record().head() ;
       UINT32 logFileSz = _logger.getLogFileSz() ;
-      BOOLEAN locked = FALSE ;
-
+      ossScopedLock scopedWriteMtx( &_writeMutex, FALSE ) ;
+      ossScopedLock scopedMtx( &_mtx, FALSE ) ;
       // all pages memory less than data size
       if ( _totalSize < head._length )
       {
@@ -393,7 +393,7 @@ namespace engine
          UINT32 checkDummySize = 0 ;
          /// first to lock writeMutex, then make sure idle space is enough,
          /// at last lock mtx. So, this don't block read operations
-         _writeMutex.get() ;
+         scopedWriteMtx.lock() ;
 
          checkDummySize = _generateDummySize( block, head, logFileSz ) ;
          while ( _idleSize.peek() < head._length + checkDummySize )
@@ -403,8 +403,7 @@ namespace engine
                      checkDummySize, _idleSize.peek() ) ;
             _allocateEvent.wait ( OSS_ONE_SEC ) ;
          }
-         _mtx.get();
-         locked = TRUE ;
+         scopedMtx.lock() ;
       }
 
       if ( block.isRow() && _lsn.offset != head._lsn)
@@ -524,13 +523,6 @@ namespace engine
       }
 
    done:
-      // unlock metadata
-      if ( locked )
-      {
-         _mtx.release() ;
-         _writeMutex.release() ;
-         locked = FALSE ;
-      }
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_PREPAGES, rc );
       return rc;
    error:
@@ -739,7 +731,8 @@ namespace engine
       DPS_LSN_OFFSET tmpBeginOffset = 0 ;
       DPS_LSN tmpCurLsn ;
       BOOLEAN doMove = FALSE ;
-      BOOLEAN locked = FALSE ;
+      ossScopedLock scopedWriteMtx( &_writeMutex, FALSE ) ;
+      ossScopedLock scopedMtx( &_mtx, FALSE ) ;
 
       if ( DPS_INVALID_LSN_OFFSET == offset )
       {
@@ -750,13 +743,12 @@ namespace engine
 
       /// first to block write, then wait queSize to zero,
       /// at last, to lock mtx
-      _writeMutex.get() ;
+      scopedWriteMtx.lock() ;
       while ( !_queSize.compare( 0 ) )
       {
          ossSleep ( 100 ) ;
       }
-      _mtx.get() ;
-      locked = TRUE ;
+      scopedMtx.lock() ;
 
       _pageFlushedBeginLSN.reset() ;
       if ( _metaFile.isCacheLSNValid() )
@@ -847,11 +839,6 @@ namespace engine
                                             DPS_AFTER, rc ) ;
          }
       }
-      if ( locked )
-      {
-         _mtx.release() ;
-         _writeMutex.release() ;
-      }
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_MOVE, rc );
       return rc ;
    error:
@@ -900,15 +887,13 @@ namespace engine
       UINT32 pageSub   = 0 ;
       DPS_LSN beginLSN ;
       DPS_LSN lastLSN ;
-      BOOLEAN mtxLocked = FALSE ;
       BOOLEAN pageLocked = FALSE ;
 
       pageSub = ( lsn.offset / DPS_DEFAULT_PAGE_SIZE ) % _pageNum ;
       offset  = lsn.offset % DPS_DEFAULT_PAGE_SIZE ;
 
       // lock metadata
-      _mtx.get () ;
-      mtxLocked = TRUE ;
+      ossScopedLock scopedMtx( &_mtx ) ;
 
       beginLSN = _getStartLsn() ;
       // if there's no LSN we can find at all, let's return
@@ -942,8 +927,7 @@ namespace engine
       (&_pages[pageSub])->lock() ;
       pageLocked = TRUE ;
       // release metadata
-      _mtx.release() ;
-      mtxLocked = FALSE ;
+      scopedMtx.release() ;
 
       // first let's read lsn head in order to get the size of log record
       rc = _parse ( pageSub, offset, sizeof(dpsLogRecordHeader),
@@ -1010,10 +994,6 @@ namespace engine
       mb->writePtr ( len + mb->length () ) ;
 
    done :
-      if ( mtxLocked )
-      {
-         _mtx.release () ;
-      }
       if ( pageLocked )
       {
          (&_pages[pageSub])->unlock() ;
@@ -1614,9 +1594,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPSRPCMGR_COMMIT ) ;
       _dpsLogPage *work = NULL ;
+      ossScopedLock scopedWriteMtx( &_writeMutex, FALSE ) ;
+      ossScopedLock scopedMtx( &_mtx, FALSE ) ;
 
       /// first lock writeMutex to block all write
-      _writeMutex.get() ;
+      scopedWriteMtx.lock() ;
 
       work = WORK_PAGE ;
       if ( 0 ==_lastCommitted.compare( _currentLsn ) )
@@ -1654,16 +1636,15 @@ namespace engine
          }
       }
 
-      _mtx.get() ;
+      scopedMtx.lock() ;
       _lastCommitted = _currentLsn ;
-      _mtx.release() ;
+      scopedMtx.release() ;
 
    done:
       if ( NULL != committedLsn )
       {
           *committedLsn = _lastCommitted ;
       }
-      _writeMutex.release() ;
       PD_TRACE_EXITRC( SDB__DPSRPCMGR_COMMIT, rc ) ;
       return rc ;
    error:
