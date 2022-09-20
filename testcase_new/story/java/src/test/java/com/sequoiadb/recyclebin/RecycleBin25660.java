@@ -22,7 +22,7 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @Description seqDB-25660:并发恢复不同CL项目，重命名不同
+ * @Description seqDB-25660:并发恢复不同truncate项目，重命名不同
  * @Author liuli
  * @Date 2022.03.29
  * @UpdateAuthor liuli

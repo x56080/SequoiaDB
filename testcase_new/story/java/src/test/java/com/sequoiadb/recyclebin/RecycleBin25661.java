@@ -117,7 +117,7 @@ public class RecycleBin25661 extends SdbTestBase {
                 if ( returnItemToNames.get( i )
                         .getRetCode() != SDBError.SDB_LOCK_FAILED.getErrorCode()
                         && returnItemToNames.get( i )
-                                .getRetCode() != SDBError.SDB_DMS_EXIST
+                                .getRetCode() != SDBError.SDB_DMS_CS_EXIST
                                         .getErrorCode() ) {
                     Assert.fail( "returnItemToName.getRetCode() : " + i + " : "
                             + returnItemToNames.get( i ).getRetCode() );
@@ -171,12 +171,6 @@ public class RecycleBin25661 extends SdbTestBase {
                         new BasicBSONObject() );
             } catch ( BaseException e ) {
                 saveResult( e.getErrorCode(), e );
-                if ( e.getErrorCode() != SDBError.SDB_DMS_CS_EXIST
-                        .getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
-                                .getErrorCode() ) {
-                    throw e;
-                }
             }
         }
     }
