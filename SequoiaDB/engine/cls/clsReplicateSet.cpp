@@ -71,6 +71,8 @@ namespace engine
    #define CLS_STOP_WAIT_HEARTBEAT_TIMEOUT      (20*OSS_ONE_SEC)
    #define CLS_PRIMARY_UP_NOTIFY_TIMES          (60)
 
+   #define CLS_REPL_WAIT_TIME                   (100)
+   #define CLS_REPL_RETRY_TIMEOUT               (10000)
    /*
       _clsReplicateSet define
    */
@@ -113,11 +115,45 @@ namespace engine
    void _clsReplicateSet::onPrepareLog( UINT32 csLID, UINT32 clLID,
                                         INT32 extLID, DPS_LSN_OFFSET offset )
    {
+      UINT32 timeOut = 0 ;
+   retry:
       if ( getNtySessionNum() > 0 )
       {
+         try
+         {
+            _ntyQue.push( clsLSNNtyInfo( csLID, clLID, extLID ,offset ) ) ;
+         }
+         catch ( exception &e )
+         {
+            if ( timeOut > CLS_REPL_RETRY_TIMEOUT )
+            {
+               // if notify fail , we use eduMgr to close session
+               pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
+               ossScopedRWLock lock( &_vecLatch, SHARED ) ;
+               std::vector<_clsDataSrcBaseSession*>::iterator iter =
+                  _vecSrcSessions.begin() ;
+               while ( iter != _vecSrcSessions.end() )
+               {
+                  pEDUMgr->forceUserEDU( ( *iter )->eduID() ) ;
+                  ++ iter ;
+               }
+               PD_LOG( PDERROR, "Failed to push info into notifyQueue, "
+                       "Exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+            else
+            {
+               ossSleep( CLS_REPL_WAIT_TIME ) ;
+               timeOut += CLS_REPL_WAIT_TIME ;
+               goto retry ;
+            }
+         }
          _ntyLastOffset = offset ;
-         _ntyQue.push( clsLSNNtyInfo( csLID, clLID, extLID ,offset ) ) ;
       }
+   done:
+      return ;
+   error:
+      goto done ;
    }
 
    UINT64 _clsReplicateSet::completeLsn( BOOLEAN doFast, UINT32 *pVer )
