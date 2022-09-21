@@ -380,6 +380,10 @@ namespace engine
          if ( pContext->isWrite() && pContext->getDPSCB() &&
               pContext->getW() > 1 )
          {
+            if ( NULL != cb )
+            {
+               cb->setOrgReplSize( pContext->getW() ) ;
+            }
             pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
          }
 
