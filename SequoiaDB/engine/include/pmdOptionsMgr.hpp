@@ -708,6 +708,8 @@ namespace engine
          std::string getOmAddr() const ;
          OSS_INLINE BOOLEAN detectDisk() const { return _detectDisk ; }
          OSS_INLINE BOOLEAN diagSecureOn() const { return _diagSecureOn ; }
+         OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
+         OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -855,6 +857,8 @@ namespace engine
 
          BOOLEAN     _detectDisk ;
          BOOLEAN     _diagSecureOn ;
+         UINT32      _metacacheexpired ;
+         UINT32      _metacachelwm ;
 
 #ifdef SDB_ENTERPRISE
 

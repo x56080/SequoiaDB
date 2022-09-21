@@ -43,6 +43,7 @@
 #include "IDataSource.hpp"
 #include "ossMemPool.hpp"
 #include "../bson/bson.h"
+#include "pmdEnv.hpp"
 
 using namespace bson ;
 
@@ -61,6 +62,7 @@ namespace engine
    */
    class _coordResource : public SDBObject
    {
+
       struct cmp_str
       {
          bool operator() ( const char *a, const char *b )
@@ -85,6 +87,8 @@ namespace engine
 #endif // _WINDOWS
 
       public:
+         friend class _coordCacheCleaner ;
+
          _coordResource() ;
          ~_coordResource() ;
 
@@ -179,6 +183,10 @@ namespace engine
          INT32                updateOmGroupInfo( CoordGroupInfoPtr &groupPtr,
                                                  _pmdEDUCB *cb ) ;
 
+         UINT64      getTotalCataInfoSize() const ;
+
+         INT32       active() ;
+
    public:
          void        addCataInfo( CoordCataInfoPtr &cataPtr ) ;
 
@@ -268,6 +276,16 @@ namespace engine
          INT32       _processCatalogReplyByCLUID( MsgHeader *pMsg,
                                                   CoordCataInfoPtr &cataPtr ) ;
 
+         void        _removeCataInfo( const CHAR *collectionName ) ;
+
+         void        _removeCataInfo( MAP_CATA_INFO_IT it ) ;
+
+         void        _removeAllCataInfo() ;
+
+         BOOLEAN     _canCleanCataInfo() ;
+
+         INT32       _doCleanCataInfo() ;
+
       private:
          MAP_GROUP_INFO                   _mapGroupInfo ;
          MAP_GROUP_NAME                   _mapGroupName ;
@@ -284,6 +302,7 @@ namespace engine
 
          MAP_CATA_INFO                    _mapCataInfo ;
          ossSpinSLatch                    _cataMutex ;
+         UINT64                           _totalCataInfoSize ;
 
          _netRouteAgent                   *_pAgent ;
          pmdOptionsCB                     *_pOptionsCB ;
