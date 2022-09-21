@@ -264,6 +264,7 @@ namespace engine
             _curProcessName[ 0 ] = 0 ;
             _curMainCLName[ 0 ] = 0 ;
             _currentContextID = -1 ;
+            pdClearShieldRC() ;
          }
 
          /*
