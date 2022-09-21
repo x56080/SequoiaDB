@@ -589,7 +589,9 @@ struct _pdRCMaskItem
 
 static _pdRCMaskItem s_rcMaskMap[] =
 {
-   { SDB_IXM_DUP_KEY, LOG_MASK_IXM_DUP_KEY }
+   { SDB_IXM_DUP_KEY, LOG_MASK_IXM_DUP_KEY },
+   { SDB_DMS_CS_NOTEXIST, LOG_MASK_DMS_CS_NOTEXIST },
+   { SDB_DMS_NOTEXIST, LOG_MASK_DMS_NOTEXIST }
 } ;
 
 static UINT64 _pdRC2Mask( INT32 rc )
@@ -723,6 +725,20 @@ INT32 pdError( INT32 rc )
 {
    pdSetLastError( rc ) ;
    return rc ;
+}
+
+void pdSetShieldRC( INT32 rc )
+{
+   UINT64 mask = _pdRC2Mask( rc ) ;
+   if ( 0 != mask && !pdTestShieldLogMask( mask ) )
+   {
+      pdEnableShieldLogMask( mask ) ;
+   }
+}
+
+void pdClearShieldRC()
+{
+   pdDisableShieldLogMask( 0xFFFFFFFFFFFFFFFF ) ;
 }
 
 pdLogRCShield::pdLogRCShield() : _addRCMask( 0 )
