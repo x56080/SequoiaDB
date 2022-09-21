@@ -1,9 +1,10 @@
-package com.sequoiadb.recyclebin;
+package com.sequoiadb.recyclebin.serial;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.recyclebin.RecycleBinUtils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
