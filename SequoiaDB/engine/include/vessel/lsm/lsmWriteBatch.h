@@ -59,6 +59,7 @@ namespace vessel
          OSS_INLINE BOOLEAN isOpen() const
          {
             return nullptr != _db &&
+                   LSM_CF_INVALID != _id &&
                    nullptr != _handle;
          }
 
@@ -79,9 +80,16 @@ namespace vessel
          INT32 commit();
 
          void setMinDirtyLsn(DPS_LSN_OFFSET lsn);
+
+      private:
+         // init by lsmDB
+         void _init(lsmDB *db,
+                    LSM_CF_ID id,
+                    rocksdb::ColumnFamilyHandle *handle);
       
       private:
          lsmDB *_db = nullptr;
+         LSM_CF_ID _id = LSM_CF_INVALID;
          rocksdb::ColumnFamilyHandle *_handle = nullptr;
          rocksdb::WriteBatch _batch;
          DPS_LSN_OFFSET _minDirtyLsn = DPS_INVALID_LSN_OFFSET;

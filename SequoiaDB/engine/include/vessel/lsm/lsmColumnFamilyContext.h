@@ -69,6 +69,7 @@ namespace vessel
          }
 
       public:
+         // If handle already exists, destroy it before set a new one.
          void setHandle(rocksdb::ColumnFamilyHandle *handle);
          // lock flush first
          DPS_LSN_OFFSET beginToFlush();
