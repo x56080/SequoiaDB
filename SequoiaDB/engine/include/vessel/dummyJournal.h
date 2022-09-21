@@ -56,22 +56,42 @@ namespace vessel
          }
 
       public:
-         virtual DPS_LSN_OFFSET getMinFileLSN() {return _lsn.load(std::memory_order_relaxed);}
-         virtual DPS_LSN_OFFSET getMinBufLSN() {return _lsn.load(std::memory_order_relaxed);}
-         virtual DPS_LSN_OFFSET getCurrentLSN() {return _lsn.load(std::memory_order_relaxed);}
-         virtual DPS_LSN_OFFSET getExpectedLSN() {return _lsn.load(std::memory_order_relaxed);}
-         virtual DPS_LSN_OFFSET getMinDirtyLSN() {return _lsn.load(std::memory_order_relaxed);}
+         virtual DPS_LSN getMinFileLSN()
+         {
+            return DPS_LSN(_lsn.load(std::memory_order_relaxed), 1);
+         }
+         virtual DPS_LSN getMinBufLSN()
+         {
+            return DPS_LSN(_lsn.load(std::memory_order_relaxed), 1);
+         }
+         virtual DPS_LSN getCurrentLSN()
+         {
+            return DPS_LSN(_lsn.load(std::memory_order_relaxed), 1);
+         }
+         virtual DPS_LSN getExpectedLSN()
+         {
+            return DPS_LSN(_lsn.load(std::memory_order_relaxed), 1);
+         }
+         virtual DPS_LSN getCommittedLSN()
+         {
+            return DPS_LSN(_lsn.load(std::memory_order_relaxed), 1);
+         }
+
+         virtual void getLsnWindow(DPS_LSN *minFileLSN,
+                                    DPS_LSN *minBufLSN,
+                                    DPS_LSN *currentLSN,
+                                    DPS_LSN *expectedLSN,
+                                    DPS_LSN *committedLSN)
+         {
+            return;
+         }
 
       public:
-         virtual void registerEventHandler(dpsEventHandler *handler){}
-         virtual void unregisterEventHandler(dpsEventHandler *handler){}
-
-      public:
-         virtual INT32 write(const dpsPackedRequest &request,
+         virtual INT32 write(const dpsWriteRequest &request,
                              const dpsWriteOptions &o,
                              dpsLogRecordHeader *result)
          {
-            UINT32 size = sizeof(dpsLogRecordHeader) + request.getPackedElementsSize();
+            UINT32 size = sizeof(dpsLogRecordHeader) + request.getBufferSize();
             UINT64 lsn = _lsn.fetch_add(ossAlign4(size), std::memory_order_relaxed);
             if (nullptr != result)
             {
@@ -99,9 +119,8 @@ namespace vessel
             return SDB_OK;
          }
 
-         virtual INT32 flushAll() {return SDB_OK;}
          virtual INT32 flush(DPS_LSN_OFFSET lsn) {return SDB_OK;}
-         virtual INT32 truncate(DPS_LSN_OFFSET lsn) {return SDB_OK;}
+         virtual INT32 move(DPS_LSN_VER version, DPS_LSN_OFFSET lsn) {return SDB_OK;}
       private:
          std::atomic_ullong _lsn = {};
    };//class dummyDataJournal

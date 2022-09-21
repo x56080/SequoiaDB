@@ -37,12 +37,35 @@
 #define SDB_I_DATA_JOURNAL_H_
 
 #include "sdbInterface.hpp"
-#include "dpsRequest.hpp"
 #include "dpsLogRecord.hpp"
 #include "dpsMessageBlock.hpp"
+#include "dpsWriteRequest.hpp"
 
 namespace engine
 {
+   struct dpsWriteOptions : public SDBObject
+   {
+      UINT32 csid = DMS_INVALID_LOGICCSID;
+      UINT32 clid = DMS_INVALID_LOGICCLID;
+      INT32 extentPos = -1;
+      UINT64 transTime = DPS_INVALID_TRANS_TIME;
+      BOOLEAN notify = FALSE;
+      BOOLEAN transEnabled = FALSE;
+      BOOLEAN irrversible = FALSE;
+      BOOLEAN flushAtOnce = FALSE;
+      IExecutor *executor = nullptr;
+   };//struct dpsWriteOptions
+
+   struct dpsSearchOptions : public SDBObject
+   {
+      BOOLEAN searchMem = TRUE;
+      BOOLEAN searchFile = TRUE;
+      BOOLEAN onlyHeader = FALSE;
+      INT32 limits = 1;
+      INT32 maxTime = -1;
+      INT32 maxSize = 5242880;
+   };//struct dpsSearchOptions
+
    class IDataJournal : public SDBObject
    {
       public:
@@ -52,24 +75,41 @@ namespace engine
          IDataJournal &operator=(const IDataJournal &) = delete;
 
       public:
-         struct writeOptions : public SDBObject
+         virtual DPS_LSN getMinFileLSN() = 0;
+         virtual DPS_LSN getMinBufLSN() = 0;
+         virtual DPS_LSN getCurrentLSN() = 0;
+         virtual DPS_LSN getExpectedLSN() = 0;
+         virtual DPS_LSN getCommittedLSN() = 0;
+
+         virtual void getLsnWindow(DPS_LSN *minFileLSN,
+                                   DPS_LSN *minBufLSN,
+                                   DPS_LSN *currentLSN,
+                                   DPS_LSN *expectedLSN,
+                                   DPS_LSN *committedLSN) = 0;
+
+         OSS_INLINE DPS_LSN_OFFSET getMinFileLsnOffset()
          {
-            BOOLEAN flushImmediately = FALSE;
-         };//struct writeOptions
+            return getMinFileLSN().offset;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getMinBufLsnOffset()
+         {
+            return getMinBufLSN().offset;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getCurrentLsnOffset()
+         {
+            return getCurrentLSN().offset;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getExpectedLsnOffset()
+         {
+            return getExpectedLSN().offset;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getCommittedLsnOffset()
+         {
+            return getCommittedLSN().offset;
+         }
 
       public:
-         virtual DPS_LSN_OFFSET getMinFileLSN() = 0;
-         virtual DPS_LSN_OFFSET getMinBufLSN() = 0;
-         virtual DPS_LSN_OFFSET getCurrentLSN() = 0;
-         virtual DPS_LSN_OFFSET getExpectedLSN() = 0;
-         virtual DPS_LSN_OFFSET getMinDirtyLSN() = 0;
-
-      public:
-         virtual void registerEventHandler(dpsEventHandler *handler) = 0;
-         virtual void unregisterEventHandler(dpsEventHandler *handler) = 0;
-
-      public:
-         virtual INT32 write(const dpsPackedRequest &request,
+         virtual INT32 write(const dpsWriteRequest &request,
                              const dpsWriteOptions &o,
                              dpsLogRecordHeader *result) = 0;
 
@@ -79,14 +119,9 @@ namespace engine
 
          virtual INT32 replicate(const CHAR *rawdata, UINT32 size) = 0;
 
-         virtual INT32 flushAll() = 0;
-
          virtual INT32 flush(DPS_LSN_OFFSET lsn) = 0;
 
-         virtual INT32 truncate(DPS_LSN_OFFSET lsn) = 0;
-
-         virtual INT32 abortOpl(DPS_LSN_OFFSET lsn){return SDB_OK;}
-
+         virtual INT32 move(DPS_LSN_VER version, DPS_LSN_OFFSET lsn) = 0;
    };//class IDataJournal
 } // namespace engine
 

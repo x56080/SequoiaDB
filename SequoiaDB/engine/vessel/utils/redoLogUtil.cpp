@@ -42,7 +42,7 @@
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
 #include "vessel/atomicOperationList.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/threadContext.h"
 
@@ -80,8 +80,8 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       IDataJournal *journal = tc->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       lsn = DPS_INVALID_LSN_OFFSET;
@@ -140,8 +140,8 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       IDataJournal *journal = tc->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       if (nullptr != lsn)
@@ -187,8 +187,8 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       IDataJournal *journal = tc->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       if (fullName.empty() ||
@@ -223,8 +223,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       IDataJournal *journal = context->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
 
       jpad.setType(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
@@ -248,8 +248,8 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       IDataJournal *journal = tc->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
       jpad.setType(LOG_TYPE_CL_TRUNC);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
@@ -275,8 +275,8 @@ namespace vessel
       THREAD_CONTEXT *tc = GET_THREAD_CONTEXT();
       SDB_ASSERT(nullptr != tc, "can not be null");
       IDataJournal *journal = tc->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
       jpad.setType(LOG_TYPE_CL_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);

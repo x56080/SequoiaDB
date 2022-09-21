@@ -215,7 +215,8 @@ utilFiles = [
       "util/utilRecycleItem.cpp",
       "util/utilRecycleBinConf.cpp",
       "util/utilRecycleReturnInfo.cpp",
-      "util/utilSecure.cpp"
+      "util/utilSecure.cpp",
+      "util/utilFragAllocator.cpp"
       ]
 
 rtnFiles = [
@@ -528,7 +529,9 @@ dpsFiles = [
       "dps/dpsArchiveFile.cpp",
       "dps/dpsArchiveFileMgr.cpp",
       "dps/dpsUtil.cpp",
-      "dps/dpsDeadlockDetector.cpp"
+      "dps/dpsDeadlockDetector.cpp",
+      "dps/dpsWriteReqBuilder.cpp",
+      "dps/dpsWriteRequest.cpp"
       ]
 
 omsvcFiles = [

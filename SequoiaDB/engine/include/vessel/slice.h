@@ -183,6 +183,13 @@ namespace vessel
             return slice(len, _data);
          }
 
+         template<class T>
+         const T *castTo(UINT32 offset=0)const
+         {
+            return (sizeof(T) + offset ) <= _size ?
+                   reinterpret_cast<const T *>(_data) : nullptr;
+         }
+
       private:
          UINT32 _size = 0;
          const CHAR *_data = nullptr;

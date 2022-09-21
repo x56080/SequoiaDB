@@ -47,7 +47,7 @@
 #include "vessel/storageFileName.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/storageUtils.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -336,8 +336,8 @@ namespace vessel
       storageUnit *su  = nullptr;
 
       IDataJournal *journal = context->getEnv()->resource.journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
       dpsWriteOptions o;
       o.flushAtOnce = TRUE;

@@ -41,7 +41,7 @@
 #include "vessel/collectionProperties.h"
 #include "vessel/dmlContext.h"
 #include "vessel/rdpCompactor.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 #include "vessel/outerResource.h"
 
 namespace engine
@@ -2622,8 +2622,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_VESSEL_RDP_INSERT);
@@ -2649,8 +2649,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_DATA_UPDATE);
@@ -2676,8 +2676,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_DATA_DELETE);

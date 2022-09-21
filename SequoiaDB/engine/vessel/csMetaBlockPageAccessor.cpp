@@ -37,7 +37,7 @@
 #include "pdTrace.hpp"
 #include "vessel/logicalPageBuffer.h"
 #include "dpsLogRecordDef.hpp"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 #include "interface/IDataJournal.h"
 #include "vessel/outerResource.h"
 #include "vessel/requestContext.h"
@@ -176,8 +176,8 @@ namespace vessel
                                                DPS_LSN_OFFSET &lsn)
    {
       INT32 rc = SDB_OK;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
       IDataJournal *journal = context->getOuterResource()->journal;
 

@@ -35,7 +35,7 @@
 
 #include "vessel/pageInitializer.h"
 #include "dpsLogRecordDef.hpp"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 #include "vessel/outerResource.h"
 #include "vessel/requestContext.h"
 
@@ -51,8 +51,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_VESSEL_PAGE_INIT);

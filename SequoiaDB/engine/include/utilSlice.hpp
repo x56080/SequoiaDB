@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodeItem.cpp
+   Source File Name = utilSlice.hpp
 
    Descriptive Name =
 
@@ -33,40 +33,15 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeNodeItem.h"
-#include "ixmKey.hpp"
-#include "pdTrace.hpp"
-#include "ossLikely.hpp"
+#ifndef UTIL_SLICE_HPP_
+#define UTIL_SLICE_HPP_
+
+#include "vessel/slice.h"
 
 namespace engine
 {
-namespace vessel
-{
-   void btreeNodeItem::reset()
-   {
-      _rid.reset();
-      _slot.reset();
-      _entry.reset();
-      return;
-   }
-
-   void btreeNodeItem::init(PAGE_ID lpid,
-                            RECORD_SLOT_POS pos,
-                            const btreeItemSlot &slot,
-                            const btreeKeyStringEntry &entry)
-   {
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
-      SDB_ASSERT(slot.isValid(), "can not be invalid");
-      SDB_ASSERT(entry.isValid(), "can not be invalid");
-      _rid.setPid(lpid);
-      _rid.setPos(pos);
-      _slot = slot;
-      _entry = entry;
-      return;
-   }
-
-} // namespace vessel
-
+   using utilSlice = vessel::slice;
 } // namespace engine
 
+
+#endif//UTIL_SLICE_HPP_
