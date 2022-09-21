@@ -177,6 +177,8 @@ void pdcheck( const CHAR* string, const CHAR* func,
 
 #define LOG_MASK_IXM_DUP_KEY     ( 0x0000000000000001 )
 #define LOG_MASK_IXM_ADVANCE_EOC ( 0x0000000000000002 )
+#define LOG_MASK_DMS_CS_NOTEXIST ( 0x0000000000000004 )
+#define LOG_MASK_DMS_NOTEXIST    ( 0x0000000000000008 )
 #define LOG_MASK_RTN_INVALID_HINT ( 0x0000000000000010 )
 
 void pdEnableDiaglogSecure() ;
@@ -192,6 +194,8 @@ BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdIsShieldLog() ;
 void pdPrintShieldInfo() ;
 INT32 pdError( INT32 rc ) ;
+void pdSetShieldRC( INT32 rc ) ;
+void pdClearShieldRC() ;
 
 class pdLogShield
 {

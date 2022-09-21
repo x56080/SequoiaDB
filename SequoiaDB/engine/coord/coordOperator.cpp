@@ -251,6 +251,7 @@ namespace engine
             {
                rc = rc ? rc : cb->getTransRC() ;
             }
+            pdSetLastError( rc ) ;
             PD_LOG( ( rc ? PDERROR : PDINFO ),
                     "Do trans command[%d] on data node[%s] "
                     "failed, rc: %d", inMsg.opCode(),
@@ -278,6 +279,7 @@ namespace engine
                      rc = rcTmp ;
                   }
                }
+               pdSetLastError( rc ) ;
                PD_LOG( ( rc ? PDERROR : PDINFO ),
                        "Failed to execute command[%u] on "
                        "node[%s], rc: %d", inMsg.opCode(),

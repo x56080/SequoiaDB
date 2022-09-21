@@ -308,6 +308,7 @@ namespace engine
             _curMainCLName[ 0 ] = 0 ;
             _currentContextID = -1 ;
             _dataExInfo.clear() ;
+            pdClearShieldRC() ;
          }
 
          /*
