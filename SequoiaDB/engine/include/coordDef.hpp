@@ -40,6 +40,7 @@
 #include "clsCatalogAgent.hpp"
 #include "ossMemPool.hpp"
 #include "pmdDef.hpp"
+#include "pmdEnv.hpp"
 #include "../bson/bson.h"
 #include <vector>
 #include <queue>
@@ -116,6 +117,9 @@ namespace engine
       :_catlogSet ( pCollectionName, FALSE, clUniqueID )
       {
          _catlogSet.setSKSite( clsGetShardingKeySite() ) ;
+         _createTime = pmdGetDBTick() ;
+         _lastAccessTime = _createTime ;
+         _cataSize = 0 ;
       }
 
       ~_CoordCataInfo()
@@ -228,6 +232,7 @@ namespace engine
          {
             try
             {
+               _estimateSize( boRecord ) ;
                UINT32 groupID = 0 ;
                VEC_GROUP_ID *vecGroup = _catlogSet.getAllGroupID() ;
                for ( UINT32 index = 0 ; index < vecGroup->size() ; ++index )
@@ -338,15 +343,55 @@ namespace engine
          return _catlogSet.getMappingName() ;
       }
 
+      UINT64 getLastAccessTime() const
+      {
+         return _lastAccessTime ;
+      }
+
+      void updateLastAccessTime()
+      {
+         _lastAccessTime = pmdGetDBTick() ;
+      }
+
+      UINT64 getCataInfoSize() const
+      {
+         return _cataSize ;
+      }
+
    private:
       // if the catalogue-info is update, build a new one, don't modify the old
       _CoordCataInfo()
       :_catlogSet( NULL, FALSE )
       {}
 
+      void _estimateSize ( const BSONObj &boRecord )
+      {
+         /* We estimate the size of the CataInfo by judge whether it is save
+         *  by Coord Node or Data Node.
+         *  If it is coordCataInfo we use the received BSONObj size multiplied
+         *  by 1.2 .
+         *  If it is dataCataInfo ,data Node would discard cataItems ,so we
+         *  use the Collection name add the size of struct "clsCatalogSet"
+         */
+
+         //dataCataInfo
+         _cataSize = _catlogSet.nameStr().size() + sizeof(clsCatalogSet) ;
+
+         //coordCataInfo
+         if ( _catlogSet.getItemNum() )
+         {
+            UINT64 receivedsize = boRecord.objsize() * 1.2 ;
+            _cataSize = max ( _cataSize , receivedsize ) ;
+         }
+
+      }
+
    private:
       clsCatalogSet        _catlogSet ;
       CoordGroupList       _groupLst ;
+      UINT64               _lastAccessTime ;
+      UINT64               _createTime ;
+      UINT64               _cataSize ;
 
    };
    typedef _CoordCataInfo CoordCataInfo ;

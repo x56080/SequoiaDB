@@ -213,6 +213,7 @@ namespace engine
       pmdEDUMgr* pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
       CoordVecNodeInfo catalogAddrList ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
 
       // set to primary
       pmdSetPrimary( TRUE ) ;
@@ -260,10 +261,18 @@ namespace engine
          _sendRegisterMsg () ;
       }
 
-      // 4. start om strategy sync job
+      // 5. start om strategy sync job
       rc = coordStartOmStrategyJob( NULL ) ;
       if ( rc )
       {
+         goto error ;
+      }
+
+      // 6. start coordResource MetaCache clean job
+      rc = pResource->active() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to active coordResource's job, rc=%d", rc ) ;
          goto error ;
       }
 

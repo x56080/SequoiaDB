@@ -2894,4 +2894,44 @@
       <hidden>false</hidden>
   </opt>
 
+  <opt>
+      <name>PMD_OPTION_METACACHE_EXPIRED</name>
+      <long>metacacheexpired</long>
+      <description>
+         <en>The expire time for metadata cache ( in minutes ). Expired cache will be cleaned ( current just take effect at coord nodes). Default:30, 0 for never expire, value range[0, 43200].</en>
+         <cn>元数据缓存的过期时间(分钟)。过期的缓存将被清理掉（当前仅对协调节点生效）。默认值:30，0表示不过期，取值范围[0, 43200]。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The expire time for metadata cache ( in minutes ). Expired cache will be cleaned ( current just take effect at coord nodes). Default:30, 0 for never expire, value range[0, 43200].</en>
+         <cn>元数据缓存的过期时间(分钟)。过期的缓存将被清理掉（当前仅对协调节点生效）。默认值:30，0表示不过期，取值范围[0, 43200]。</cn>
+      </detail>
+      <type>int</type>
+      <default>30</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_METACACHE_LWM</name>
+      <long>metacachelwm</long>
+      <description>
+         <en>The low water mark of memory for metadata cache. When the size of the memory taken by the metadata is less than this value ( in MB ), no more metadata cache will be cleaned. Default:512, value range[0, 10240].</en>
+         <cn>元数据缓存占用内存的低水位线。当占用内存低于该值时（单位：MB），缓存的元数据信息不会被后台任务删除。默认值:512，取值范围[0, 10240]。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The low water mark of memory for metadata cache. When the size of the memory taken by the metadata is less than this value ( in MB ), no more metadata cache will be cleaned. Default:512, value range[0, 10240].</en>
+         <cn>元数据缓存占用内存的低水位线。当占用内存低于该值时（单位：MB），缓存的元数据信息不会被后台任务删除。默认值:512，取值范围[0, 10240]。</cn>
+      </detail>
+      <type>int</type>
+      <default>512</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
 </optlist>

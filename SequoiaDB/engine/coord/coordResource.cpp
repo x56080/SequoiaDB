@@ -50,14 +50,20 @@
 #include "coordSequenceAgent.hpp"
 #include "coordDataSource.hpp"
 #include "utilArray.hpp"
+#include "coordCacheCleaner.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
 
-   #define COORD_SOCKET_OPR_DFT_TIME         ( 5000 )
-   #define COORD_SOCKET_FORCE_TIMEOUT        ( 600000 )
+   #define COORD_SOCKET_OPR_DFT_TIME            ( 5000 )
+   #define COORD_SOCKET_FORCE_TIMEOUT           ( 600000 )
+
+   #define COORD_METACACHE_EXPIRED_MINS         ( 60000 )
+   #define COORD_METACACHE_SIZE_MB              ( 1024 * 1024 )
+   #define COORD_METACACHE_DELETION_VEC_SIZE    ( 64 )
+   #define COORD_METACACHE_DELETION_SCAN_MAX    ( 10000 )
 
    typedef _utilArray< UINT64, CLS_REPLSET_MAX_NODE_SIZE >     NODE_ARRAY ;
 
@@ -92,6 +98,7 @@ namespace engine
       _pOmStrategyAgent = NULL ;
       _pSequenceAgent = NULL ;
       _pDataSourceMgr = NULL ;
+      _totalCataInfoSize = 0 ;
    }
 
    _coordResource::~_coordResource()
@@ -205,7 +212,7 @@ namespace engine
    {
       /// need to clear the catalog map, because the catalogset will
       /// use the global var, so need clear before main eixt
-      _mapCataInfo.clear() ;
+      _removeAllCataInfo() ;
       _mapGroupInfo.clear() ;
       _mapGroupName.clear() ;
 
@@ -1658,6 +1665,7 @@ namespace engine
       if ( it != _mapCataInfo.end() )
       {
          cataPtr = it->second ;
+         cataPtr->updateLastAccessTime() ;
          rc = SDB_OK ;
       }
 
@@ -1670,7 +1678,7 @@ namespace engine
    void _coordResource::removeCataInfo( const CHAR *collectionName )
    {
       ossScopedLock _lock( &_cataMutex, EXCLUSIVE ) ;
-      _mapCataInfo.erase( collectionName ) ;
+      _removeCataInfo( collectionName ) ;
    }
 
    void _coordResource::removeCataInfoWithMain( const CHAR *collectionName )
@@ -1688,10 +1696,10 @@ namespace engine
          pCatSet = it->second->getCatalogSet() ;
          mainCL = pCatSet->getMainCLName() ;
 
-         _mapCataInfo.erase( it ) ;
+         _removeCataInfo( it ) ;
          if ( !mainCL.empty() )
          {
-            _mapCataInfo.erase( mainCL.c_str() ) ;
+            _removeCataInfo( mainCL.c_str() ) ;
          }
       }
       /// not found
@@ -1712,7 +1720,7 @@ namespace engine
             }
             else if ( pCatSet->isContainSubCL( strSubCLName ) )
             {
-               _mapCataInfo.erase( it++ ) ;
+               _removeCataInfo( it++ ) ;
                continue ;
             }
             ++it ;
@@ -1755,7 +1763,7 @@ namespace engine
          if ( 0 == ossStrncmp( pCLName, csName, len ) &&
               '.' == pCLName[ len ] )
          {
-            _mapCataInfo.erase( it++ ) ;
+            _removeCataInfo( it++ ) ;
          }
          else
          {
@@ -1770,11 +1778,21 @@ namespace engine
    void _coordResource::addCataInfo( CoordCataInfoPtr &cataPtr )
    {
       ossScopedLock _lock( &_cataMutex, EXCLUSIVE ) ;
+      try
+      {
+         /// need to erase it first, because replace the name(it->first) is used
+         /// the old cataPtr's name ptr, will occur exception
+         _removeCataInfo( cataPtr->getName() ) ;
 
-      /// need to erase it first, because replace the name(it->first) is used
-      /// the old cataPtr's name ptr, will occur exception
-      _mapCataInfo.erase( cataPtr->getName() ) ;
-      _mapCataInfo[ cataPtr->getName() ] = cataPtr ;
+         _mapCataInfo[ cataPtr->getName() ] = cataPtr ;
+         _totalCataInfoSize += cataPtr->getCataInfoSize() ;
+      }
+      catch( std::exception &e )
+      {
+         UINT32 rc = ossException2RC( &e ) ;
+         PD_LOG( PDWARNING, "Failed to add CataInfo, occur exception %s,"
+                 "rc = %d.", e.what() , rc ) ;
+      }
    }
 
    UINT32 _coordResource::checkAndRemoveCataInfoBySub( const CHAR *collectionName )
@@ -1795,7 +1813,7 @@ namespace engine
          }
          else if ( pCatSet->isContainSubCL( strSubCLName ) )
          {
-            _mapCataInfo.erase( it++ ) ;
+            _removeCataInfo( it++ ) ;
             ++count ;
             continue ;
          }
@@ -1833,11 +1851,11 @@ namespace engine
 
       if ( clFullName )
       {
-         _mapCataInfo.erase( clFullName ) ;
+         _removeCataInfo( clFullName ) ;
       }
       else
       {
-         _mapCataInfo.clear() ;
+         _removeAllCataInfo() ;
       }
    }
 
@@ -2384,6 +2402,195 @@ namespace engine
                                       netResult2Status( rc ) ) ;
          }
       }
+   }
+
+   void _coordResource::_removeCataInfo( const CHAR *collectionName )
+   {
+      MAP_CATA_INFO_IT it ;
+      it = _mapCataInfo.find( collectionName ) ;
+      if ( it != _mapCataInfo.end() )
+      {
+         _totalCataInfoSize -= it->second->getCataInfoSize() ;
+         _mapCataInfo.erase( it ) ;
+      }
+   }
+
+   void _coordResource::_removeCataInfo( MAP_CATA_INFO_IT it )
+   {
+      if ( it != _mapCataInfo.end() )
+      {
+         _totalCataInfoSize -= it->second->getCataInfoSize() ;
+         _mapCataInfo.erase( it ) ;
+      }
+   }
+
+   void _coordResource::_removeAllCataInfo()
+   {
+      _mapCataInfo.clear() ;
+      _totalCataInfoSize = 0 ;
+   }
+
+   INT32 _coordResource::active()
+   {
+      INT32 rc = SDB_OK ;
+
+      //active metacache cleaner
+      rc = coordStartCacheCleanJob( this ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR , "Active metacache cleaner failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   UINT64 _coordResource::getTotalCataInfoSize() const
+   {
+      return _totalCataInfoSize ;
+   }
+
+   BOOLEAN _coordResource::_canCleanCataInfo()
+   {
+      BOOLEAN rt              = TRUE ;
+      UINT64 metaCacheExpired = 0 ;
+      UINT64 metaCacheLWM     = 0 ;
+      UINT64 totalCataSize    = getTotalCataInfoSize() ;
+
+      pmdOptionsCB *optionCB  = pmdGetKRCB()->getOptionCB() ;
+      metaCacheExpired        = optionCB->getMetaCacheExpired() ;
+      metaCacheLWM            = optionCB->getMetaCacheLWM() ;
+
+      if ( 0 == metaCacheExpired )
+      {
+         PD_LOG( PDDEBUG, "Automatically clean CataInfo caches was disabled." ) ;
+         rt = FALSE ;
+      }
+      else if ( totalCataSize < metaCacheLWM * COORD_METACACHE_SIZE_MB )
+      {
+         FLOAT64 cachesize = 1.0 * totalCataSize / COORD_METACACHE_SIZE_MB ;
+         PD_LOG( PDDEBUG, "Node has %.2lf(MB) CataInfo caches, which was "
+                 "below the trigger condition. CleanCataInfo was skipped.",
+                 cachesize ) ;
+         rt = FALSE ;
+      }
+
+      return rt ;
+   }
+
+   INT32 _coordResource::_doCleanCataInfo()
+   {
+      INT32 rc                = SDB_OK ;
+      INT32 count             = 0 ;
+      UINT64 expiredTime      = 0 ;
+      UINT64 metaCacheExpired = 0 ;
+      UINT64 metaCacheLWM     = 0 ;
+      UINT64 currentTime      = 0 ;
+      MAP_CATA_INFO_IT it ;
+      CoordCataInfoPtr cataPtr ;
+      CoordCataInfoPtr deletionVec[ COORD_METACACHE_DELETION_VEC_SIZE ] ;
+
+      pmdOptionsCB *optionCB  = pmdGetKRCB()->getOptionCB() ;
+      metaCacheExpired        = optionCB->getMetaCacheExpired() ;
+      metaCacheLWM            = optionCB->getMetaCacheLWM() ;
+
+      currentTime = pmdGetDBTick() ;
+      expiredTime = metaCacheExpired * COORD_METACACHE_EXPIRED_MINS ;
+
+      while( TRUE )
+      {
+         INT32 idx = 0 ;
+         INT32 loop = 0 ;
+         if ( getTotalCataInfoSize() < metaCacheLWM * COORD_METACACHE_SIZE_MB )
+         {
+            break ;
+         }
+
+         try
+         {
+            ossScopedTryLock _lock( &_cataMutex, EXCLUSIVE ) ;
+            if ( ! _lock.isLocked() )
+            {
+               ossSleepmillis( 20 ) ;
+               continue ;
+            }
+
+            if ( cataPtr.get() == NULL )
+            {
+               it = _mapCataInfo.begin() ;
+            }
+            else
+            {
+               it = _mapCataInfo.lower_bound( cataPtr->getName() ) ;
+               if ( it == _mapCataInfo.end() )
+               {
+                  break ;
+               }
+            }
+
+            while ( loop++ < COORD_METACACHE_DELETION_SCAN_MAX &&
+                    it != _mapCataInfo.end() )
+            {
+               UINT64 lastTime = it->second->getLastAccessTime() ;
+               UINT64 tickspan = currentTime - lastTime ;
+               if ( lastTime < currentTime &&
+                    1 >= it->second.use_count() &&
+                    expiredTime < pmdDBTickSpan2Time( tickspan ) )
+               {
+                  ++count ;
+                  deletionVec[ idx++ ] = it->second ;
+                  _removeCataInfo( it++ ) ;
+                  if ( COORD_METACACHE_DELETION_VEC_SIZE == idx )
+                  {
+                     break ;
+                  }
+                  continue ;
+               }
+               ++it ;
+            }
+
+            if ( it == _mapCataInfo.end() )
+            {
+               break ;
+            }
+            cataPtr = it->second ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
+            goto error ;
+         }
+
+         if ( 0 == idx )
+         {
+            ossSleepmillis( 100 ) ;
+         }
+         for ( INT32 i = 0 ; i < idx ; ++i )
+         {
+            deletionVec[ i ].reset() ;
+         }
+      }
+
+#if defined ( _DEBUG )
+      {
+         UINT64 endTime = pmdGetDBTick() ;
+         UINT64 cost = pmdDBTickSpan2Time ( endTime - currentTime ) ;
+         FLOAT64 fcost = 1.0 * cost / 1000 ;
+         PD_LOG( PDDEBUG, "Cost %.3lf (s) when clean CataInfo caches.", fcost ) ;
+      }
+#endif
+
+      PD_LOG( PDDEBUG, "Total clean %d CataInfo caches which were timeout, now "
+              "%d CataInfo caches is valid.", count , _mapCataInfo.size() ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
 }
