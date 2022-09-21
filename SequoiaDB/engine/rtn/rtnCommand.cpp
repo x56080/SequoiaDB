@@ -2162,6 +2162,8 @@ namespace engine
                                     SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                     INT16 w , INT64 *pContextID )
    {
+      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
       return rtnTestCollectionCommand ( _objName, dmsCB ) ;
    }
 
@@ -2188,6 +2190,7 @@ namespace engine
                                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                          INT16 w , INT64 *pContextID )
    {
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
       return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
    }
 
@@ -5181,7 +5184,7 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTORECHK_RUNTEST, &rc);
-      
+
       // restoreCheck on a data node is a type of rollback test
       rtnPITRollbackManager rollbackTester(cb, _time, DPS_TRANS_ID());
       if ((rc = rollbackTester.test()) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
