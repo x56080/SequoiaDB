@@ -465,7 +465,18 @@ namespace engine
          goto error ;
       }
 
-      _subContextMap.insert( SUBCL_CTX_MAP::value_type( contextID, subCtx ) ) ;
+      try
+      {
+         _subContextMap.insert( SUBCL_CTX_MAP::value_type( contextID, subCtx ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save sub context, occur exception %s",
+                 e.what() ) ;
+         _releaseSubContext( subCtx ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       rc = _checkSubContext( subCtx ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check sub context, rc: %d", rc ) ;
@@ -659,8 +670,7 @@ namespace engine
 
             if ( SDB_DMS_EOC == rc )
             {
-               rtnCB->contextDelete( subCtx->contextID(), cb );
-               SDB_OSS_DEL iter->second ;
+               _releaseSubContext( subCtx ) ;
                _subContextMap.erase( iter++ ) ;
                rc = SDB_OK ;
                continue ;
@@ -683,7 +693,6 @@ namespace engine
          rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
          if ( rc != SDB_OK )
          {
-            SDB_OSS_DEL subCtx ;
             PD_LOG ( PDERROR, "Failed to get orderKey failed, rc: %d", rc ) ;
             goto error ;
          }
@@ -699,7 +708,6 @@ namespace engine
    INT32 _rtnContextMainCL::_getNonEmptyNormalSubCtx( _pmdEDUCB* cb, rtnSubContext*& subCtx )
    {
       INT32 rc = SDB_OK ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB();
 
       subCtx = NULL ;
 
@@ -719,9 +727,8 @@ namespace engine
             rc = _prepareSubCLData( ctx->contextID(), cb, -1 ) ;
             if ( rc != SDB_OK )
             {
-               rtnCB->contextDelete( ctx->contextID(), cb );
                _subContextMap.erase( ctx->contextID() );
-               SDB_OSS_DEL ctx ;
+               _releaseSubContext( ctx ) ;
                if ( SDB_DMS_EOC != rc )
                {
                   goto error;
@@ -755,11 +762,9 @@ namespace engine
 
       if ( tmpCtx->isHitEnd() )
       {
-         sdbGetRTNCB()->contextDelete( subCtx->contextID(),
-                                       pmdGetThreadEDUCB() ) ;
          // move from ordered context map
          // no need to erase from sub-context map
-         SDB_OSS_DEL subCtx ;
+         _releaseSubContext( tmpCtx ) ;
       }
       else
       {
@@ -783,6 +788,7 @@ namespace engine
    done:
       return rc ;
    error:
+      _releaseSubContext( tmpCtx ) ;
       goto done ;
    }
 
@@ -798,10 +804,8 @@ namespace engine
       // if sub-context is ended, remove it from context map
       if ( tmpCtx->isHitEnd() )
       {
-         sdbGetRTNCB()->contextDelete( subCtx->contextID(),
-                                       pmdGetThreadEDUCB() );
          _subContextMap.erase( subCtx->contextID() ) ;
-         SDB_OSS_DEL subCtx ;
+         _releaseSubContext( subCtx ) ;
       }
       else
       {
@@ -835,19 +839,22 @@ namespace engine
 
    void _rtnContextMainCL::_deleteSubContexts ()
    {
-      pmdKRCB *pKrcb = pmdGetKRCB();
-      SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
-      pmdEDUCB *cb = pKrcb->getEDUMgr()->getEDUByID( eduID() );
-
       // clean normal context
-      SUBCL_CTX_MAP::iterator iter = _subContextMap.begin();
-      while( iter != _subContextMap.end() )
+      for ( SUBCL_CTX_MAP::iterator iter = _subContextMap.begin() ;
+            iter != _subContextMap.end() ;
+            ++ iter )
       {
-         pRtncb->contextDelete( iter->first, cb );
-         SDB_OSS_DEL iter->second ;
-         ++iter;
+         _releaseSubContext( iter->second ) ;
       }
       _subContextMap.clear();
+
+      for ( SUB_ORDERED_CTX_SET_IT iter = _orderedContexts.begin() ;
+            iter != _orderedContexts.end() ;
+            ++ iter )
+      {
+         _releaseSubContext( *iter ) ;
+      }
+      _orderedContexts.clear() ;
    }
 
    INT32 _rtnContextMainCL::_prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx )
@@ -914,6 +921,20 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCL__PRERELEASESUBCTX, "_rtnContextMainCL::_preReleaseSubContext" )
+   void _rtnContextMainCL::_preReleaseSubContext( rtnSubContext *subCtx )
+   {
+      PD_TRACE_ENTRY( SDB_RTNCTXMAINCL__PRERELEASESUBCTX ) ;
+
+      if ( NULL != subCtx && -1 != subCtx->contextID() )
+      {
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+         rtnCB->contextDelete( subCtx->contextID(), pmdGetThreadEDUCB() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB_RTNCTXMAINCL__PRERELEASESUBCTX ) ;
    }
 
    /*

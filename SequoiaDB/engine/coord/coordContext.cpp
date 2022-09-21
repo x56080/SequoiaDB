@@ -53,6 +53,8 @@ using namespace bson ;
 namespace engine
 {
 
+   #define COORD_SUBCTX_KILLCONTEXT_TIMEOUT ( 30000 )
+
    /*
       _rtnContextCoord implement
    */
@@ -253,7 +255,9 @@ namespace engine
       while ( it != _prepareContextMap.end() )
       {
          pSubContext = it->second ;
-         SDB_OSS_DEL pSubContext ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( pSubContext ) ;
          ++it ;
       }
       _prepareContextMap.clear() ;
@@ -396,7 +400,7 @@ namespace engine
       {
          if ( -1 == emptyIter->second->contextID() )
          {
-            SDB_OSS_DEL emptyIter->second ;
+            _releaseSubContext( emptyIter->second ) ;
             _emptyContextMap.erase( emptyIter++ ) ;
             continue ;
          }
@@ -563,7 +567,6 @@ namespace engine
          rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
          if ( rc != SDB_OK )
          {
-            SDB_OSS_DEL subCtx ;
             PD_LOG ( PDERROR, "Failed to get orderKey failed, rc: %d", rc ) ;
             goto error ;
          }
@@ -667,8 +670,7 @@ namespace engine
          catch( std::exception& e )
          {
             rc = SDB_SYS ;
-            pSubContext->clearData() ;
-            SDB_OSS_DEL pSubContext ;
+            _releaseSubContext( pSubContext ) ;
             PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
             goto error ;
          }
@@ -691,8 +693,6 @@ namespace engine
          rc = _saveNonEmptyOrderedSubCtx( pSubContext ) ;
          if ( rc != SDB_OK )
          {
-            pSubContext->clearData() ;
-            SDB_OSS_DEL pSubContext ;
             PD_LOG ( PDERROR, "Failed to save sub ctx by order, rc=%d", rc ) ;
             goto error ;
          }
@@ -834,7 +834,7 @@ namespace engine
 
          if ( pSubContext != NULL )
          {
-            SDB_OSS_DEL pSubContext ;
+            _releaseSubContext( pSubContext ) ;
          }
          _prepareContextMap.erase ( iter ) ;
       }
@@ -882,7 +882,7 @@ namespace engine
 
       if ( -1 == subCtx->contextID() )
       {
-         SDB_OSS_DEL subCtx ;
+         _releaseSubContext( subCtx ) ;
          goto done ;
       }
 
@@ -895,7 +895,7 @@ namespace engine
       }
       catch( std::exception& e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
          goto error ;
       }
@@ -903,6 +903,7 @@ namespace engine
    done:
       return rc ;
    error:
+      _releaseSubContext( subCtx ) ;
       goto done ;
    }
 
@@ -979,16 +980,8 @@ namespace engine
       }
 
       rc = _saveEmptyOrderedSubCtx( subCtx ) ;
-      if ( SDB_OK != rc )
-      {
-         // rtnContextMain will delete subCtx
-         goto error ;
-      }
 
-   done:
       return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _rtnContextCoord::_saveNonEmptyNormalSubCtx( rtnSubContext* subCtx )
@@ -1178,6 +1171,53 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__PRERELEASESUBCTX, "_rtnContextCoord::_preReleaseSubContext" )
+   void _rtnContextCoord::_preReleaseSubContext( rtnSubContext *subCtx )
+   {
+      PD_TRACE_ENTRY( SDB_CTXCOOR__PRERELEASESUBCTX ) ;
+
+      if ( NULL != subCtx )
+      {
+         coordSubContext *ctx = (coordSubContext *)subCtx ;
+         ctx->clearData() ;
+
+         if ( -1 != ctx->contextID() )
+         {
+            pmdRemoteSession *pSession = NULL ;
+            pmdSubSession *pSub = NULL ;
+            MsgOpKillContexts msgKillContext ;
+
+            pSession = _pSite->addSession( COORD_SUBCTX_KILLCONTEXT_TIMEOUT ) ;
+            pSub = pSession->addSubSession( ctx->getRouteID().value ) ;
+
+            /// send kill context
+            msgKillContext.contextIDs[ 0 ] = ctx->contextID() ;
+            msgKillContext.numContexts = 1 ;
+            msgKillContext.ZERO = 0 ;
+            msgKillContext.header.messageLength = sizeof( MsgOpKillContexts ) ;
+            msgKillContext.header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+            msgKillContext.header.requestID = 0 ;
+            msgKillContext.header.routeID.value = 0 ;
+            msgKillContext.header.TID = 0 ;
+
+            /// Ignore sendMsg failed
+            pSession->sendMsg( (MsgHeader*)&msgKillContext, PMD_EDU_MEM_NONE ) ;
+
+            // DON'T wait for reply, otherwise Timeout of sessionAttr may fail. Reset
+            // sub session when ignoring the reply, otherwise interrupt message will
+            // be sent to data node, the operation of data node may be interrupted.
+            pSub->resetForResend() ;
+
+            if ( pSession )
+            {
+               _pSite->removeSession( pSession ) ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB_CTXCOOR__PRERELEASESUBCTX ) ;
    }
 
    /*

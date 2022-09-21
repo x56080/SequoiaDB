@@ -128,6 +128,7 @@ namespace engine
       virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
                                          const BSONObj &arg,
                                          _pmdEDUCB *cb ) = 0 ;
+      virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) = 0 ;
 
    protected:
       INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -152,6 +153,15 @@ namespace engine
                                     INT32 prefixNum,
                                     const BSONObj &keyVal,
                                     const BSONObj &orderby ) ;
+
+      void _releaseSubContext( rtnSubContext *subCtx )
+      {
+         if ( NULL != subCtx )
+         {
+            _preReleaseSubContext( subCtx ) ;
+            SDB_OSS_DEL subCtx ;
+         }
+      }
 
    protected:
       rtnQueryOptions            _options ;
