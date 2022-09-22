@@ -158,7 +158,7 @@ namespace engine
       static_assert(std::numeric_limits<T>::is_specialized, "must be numeric");
       SDB_ASSERT(!isDone(), "can not be done");
 
-      if (OSS_UNLIKELY(DPS_INVALID_TAG != tag))
+      if (OSS_UNLIKELY(DPS_INVALID_TAG == tag))
       {
          rc = SDB_INVALIDARG;
          goto error;
