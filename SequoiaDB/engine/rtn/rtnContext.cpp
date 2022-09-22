@@ -1049,7 +1049,7 @@ namespace engine
             {
                pdClearLastError() ;
                rc = _prepareDoAdvance( cb ) ;
-               if ( SDB_DMS_EOC == rc || eof() )
+               if ( SDB_DMS_EOC == rc )
                {
                   break ;
                }
