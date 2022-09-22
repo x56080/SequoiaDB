@@ -29,6 +29,7 @@ import( "./SdbNode.js" );
 import( "./SdbOptionBase.js" );
 import( "./SdbQuery.js" );
 import( "./SdbQueryOption.js" );
+import( "./SdbRecycleBin.js" );
 import( "./SdbReplicaGroup.js" );
 import( "./SdbSequence.js" );
 import( "./SdbSnapshotOption.js" );

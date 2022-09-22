@@ -37,9 +37,11 @@ var tmpSdb = {
    getDataSource: Sdb.prototype.getDataSource,
    getDomain: Sdb.prototype.getDomain,
    getRG: Sdb.prototype.getRG,
+   getRecycleBin: Sdb.prototype.getRecycleBin,
    getSequence: Sdb.prototype.getSequence,
    getSessionAttr: Sdb.prototype.getSessionAttr,
    getSpareRG: Sdb.prototype.getSpareRG,
+   getTask: Sdb.prototype.getTask,
    help: Sdb.prototype.help,
    invalidateCache: Sdb.prototype.invalidateCache,
    list: Sdb.prototype.list,
@@ -125,9 +127,11 @@ Sdb.prototype.getDC=function(){try{return tmpSdb.getDC.apply(this,arguments);}ca
 Sdb.prototype.getDataSource=function(){try{return tmpSdb.getDataSource.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getDomain=function(){try{return tmpSdb.getDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getRG=function(){try{return tmpSdb.getRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.getRecycleBin=function(){try{return tmpSdb.getRecycleBin.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getSequence=function(){try{return tmpSdb.getSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getSessionAttr=function(){try{return tmpSdb.getSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.getSpareRG=function(){try{return tmpSdb.getSpareRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+Sdb.prototype.getTask=function(){try{return tmpSdb.getTask.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.help=function(){try{return tmpSdb.help.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.invalidateCache=function(){try{return tmpSdb.invalidateCache.apply(this,arguments);}catch(e){throw new Error(e);}};
 Sdb.prototype.list=function(){try{return tmpSdb.list.apply(this,arguments);}catch(e){throw new Error(e);}};

@@ -37,9 +37,11 @@ var tmpSecureSdb = {
    getDataSource: SecureSdb.prototype.getDataSource,
    getDomain: SecureSdb.prototype.getDomain,
    getRG: SecureSdb.prototype.getRG,
+   getRecycleBin: SecureSdb.prototype.getRecycleBin,
    getSequence: SecureSdb.prototype.getSequence,
    getSessionAttr: SecureSdb.prototype.getSessionAttr,
    getSpareRG: SecureSdb.prototype.getSpareRG,
+   getTask: SecureSdb.prototype.getTask,
    help: SecureSdb.prototype.help,
    invalidateCache: SecureSdb.prototype.invalidateCache,
    list: SecureSdb.prototype.list,
@@ -125,9 +127,11 @@ SecureSdb.prototype.getDC=function(){try{return tmpSecureSdb.getDC.apply(this,ar
 SecureSdb.prototype.getDataSource=function(){try{return tmpSecureSdb.getDataSource.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getDomain=function(){try{return tmpSecureSdb.getDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getRG=function(){try{return tmpSecureSdb.getRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.getRecycleBin=function(){try{return tmpSecureSdb.getRecycleBin.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSequence=function(){try{return tmpSecureSdb.getSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSessionAttr=function(){try{return tmpSecureSdb.getSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSpareRG=function(){try{return tmpSecureSdb.getSpareRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.getTask=function(){try{return tmpSecureSdb.getTask.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.help=function(){try{return tmpSecureSdb.help.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.invalidateCache=function(){try{return tmpSecureSdb.invalidateCache.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.list=function(){try{return tmpSecureSdb.list.apply(this,arguments);}catch(e){throw new Error(e);}};
