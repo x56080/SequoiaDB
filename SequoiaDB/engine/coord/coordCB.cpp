@@ -688,7 +688,7 @@ retry :
       }
       }
 
-      rc = _resource.active() ;
+      rc = _resource.onRegistered() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to active resource, rc: %d", rc ) ;
 
    done:

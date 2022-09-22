@@ -97,7 +97,7 @@ namespace engine
                            _coordDataSourceMgr *pDSMgr = NULL ) ;
          void        fini() ;
 
-         INT32       active() ;
+         INT32       onRegistered() ;
 
          void        invalidateCataInfo( const CHAR *clFullName = NULL ) ;
          void        invalidateGroupInfo( UINT64 identify = 0 ) ;

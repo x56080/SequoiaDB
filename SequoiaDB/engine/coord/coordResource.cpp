@@ -259,7 +259,7 @@ namespace engine
       }
    }
 
-   INT32 _coordResource::active()
+   INT32 _coordResource::onRegistered()
    {
       INT32 rc = SDB_OK ;
 
