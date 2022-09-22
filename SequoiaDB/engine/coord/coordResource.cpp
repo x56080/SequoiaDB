@@ -2490,7 +2490,7 @@ namespace engine
       UINT64 metaCacheLWM     = 0 ;
       UINT64 currentTime      = 0 ;
       MAP_CATA_INFO_IT it ;
-      CoordCataInfoPtr cataPtr ;
+      CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       CoordCataInfoPtr deletionVec[ COORD_METACACHE_DELETION_VEC_SIZE ] ;
 
       pmdOptionsCB *optionCB  = pmdGetKRCB()->getOptionCB() ;
@@ -2518,13 +2518,13 @@ namespace engine
                continue ;
             }
 
-            if ( cataPtr.get() == NULL )
+            if ( ossStrlen( fullName ) == 0 )
             {
                it = _mapCataInfo.begin() ;
             }
             else
             {
-               it = _mapCataInfo.lower_bound( cataPtr->getName() ) ;
+               it = _mapCataInfo.lower_bound( fullName ) ;
                if ( it == _mapCataInfo.end() )
                {
                   break ;
@@ -2556,7 +2556,8 @@ namespace engine
             {
                break ;
             }
-            cataPtr = it->second ;
+            ossStrncpy( fullName, it->second->getName(),
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
          }
          catch( std::exception &e )
          {
