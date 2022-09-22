@@ -1735,17 +1735,13 @@ namespace engine
       clsCatalogSet *pCatSet = NULL ;
       const CHAR *pCLName = NULL ;
       MAP_CATA_INFO_IT it ;
-      BOOLEAN locked = FALSE ;
+      ossScopedLock _lock( &_cataMutex, EXCLUSIVE ) ;
 
       if ( !csName || !( *csName ) )
       {
          goto done ;
       }
       len = ossStrlen( csName ) ;
-
-      _cataMutex.get() ;
-      locked = TRUE ;
-
       it = _mapCataInfo.begin() ;
 
       while( it != _mapCataInfo.end() )
@@ -1776,10 +1772,6 @@ namespace engine
       }
 
    done:
-      if ( locked )
-      {
-         _cataMutex.release() ;
-      }
       return ;
    }
 
@@ -1801,7 +1793,6 @@ namespace engine
          PD_LOG( PDWARNING, "Failed to add CataInfo, occur exception %s,"
                  "rc = %d.", e.what() , rc ) ;
       }
-
    }
 
    UINT32 _coordResource::checkAndRemoveCataInfoBySub( const CHAR *collectionName )
@@ -1856,7 +1847,8 @@ namespace engine
 
    void _coordResource::invalidateCataInfo( const CHAR *clFullName )
    {
-      _cataMutex.get() ;
+      ossScopedLock _lock( &_cataMutex, EXCLUSIVE ) ;
+
       if ( clFullName )
       {
          _removeCataInfo( clFullName ) ;
@@ -1865,7 +1857,6 @@ namespace engine
       {
          _removeAllCataInfo() ;
       }
-      _cataMutex.release() ;
    }
 
    void _coordResource::invalidateGroupInfo( UINT64 identify )
