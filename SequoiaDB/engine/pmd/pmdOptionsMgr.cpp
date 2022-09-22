@@ -111,6 +111,10 @@ namespace engine
    #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
+   #define PMD_DFT_METACACHE_EXPIRED   (30) // half an hour
+   #define PMD_MAX_METACACHE_EXPIRED   (43200) // 30 days
+   #define PMD_DFT_METACACHE_LWM       (512)
+   #define PMD_MAX_METACACHE_LWM       (10240)
 
    /*
       _pmdCfgExchange implement
@@ -1984,6 +1988,9 @@ done:
       _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
 
       _detectDisk = TRUE ;
+      _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
+      _metacachelwm = PMD_DFT_METACACHE_LWM ;
+
 
 #ifdef SDB_ENTERPRISE
 
@@ -2531,6 +2538,16 @@ done:
       // --detectdisk
       rdxBooleanS( pEX, PMD_OPTION_DETECT_DISK, _detectDisk,
                    FALSE, PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
+
+      // --metacacheexpired
+      rdxUInt( pEX, PMD_OPTION_METACACHE_EXPIRED, _metacacheexpired, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_METACACHE_EXPIRED, FALSE ) ;
+      rdvMinMax( pEX, _metacacheexpired, 0, PMD_MAX_METACACHE_EXPIRED, TRUE ) ;
+
+      // --metacachelwm
+      rdxUInt( pEX, PMD_OPTION_METACACHE_LWM, _metacachelwm, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_METACACHE_LWM, FALSE ) ;
+      rdvMinMax( pEX, _metacachelwm, 0, PMD_MAX_METACACHE_LWM, TRUE ) ;
 
       // end map
 
