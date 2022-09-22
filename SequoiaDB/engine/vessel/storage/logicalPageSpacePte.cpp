@@ -865,7 +865,7 @@ namespace vessel
       SDB_ASSERT(nullptr != ctx, "can not be invalid");
       sparseBitmap32 pids;
       ctx->exportDirtyPids(pids);
-      PD_LOG(PDDEBUG, "begin to flush pte pages[%d]");
+      PD_LOG(PDDEBUG, "begin to flush pte pages[%d]", pids.getTotalNum());
       sparseBitmap32::iterator itr;
       while (pids.next(itr))
       {
