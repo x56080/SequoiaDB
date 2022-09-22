@@ -1,5 +1,6 @@
 package com.sequoiadb.metadataconsistency.data;
 
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -89,7 +90,11 @@ public class SubCL10196 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -23 && eCode != -34 ) {
+                if ( eCode != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
             }
@@ -105,7 +110,9 @@ public class SubCL10196 extends SdbTestBase {
                 db.dropCollectionSpace( sCSName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -147 && eCode != -190 ) {
+                if ( eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
             }
