@@ -863,17 +863,16 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != ctx, "can not be invalid");
-      ossPoolSet<UINT32> segments;
-      const storageFileManifest &manifest = getFileCluster()->getManifest();
-      ctx->exportDirtySegments(manifest.args, segments);
-      PD_LOG(PDDEBUG, "begin to flush pte pages[%d], segment num[%d]",
-             ctx->_pmap.size(), segments.size());
-      for (auto itr = segments.cbegin(); itr != segments.cend(); ++itr)
+      sparseBitmap32 pids;
+      ctx->exportDirtyPids(pids);
+      PD_LOG(PDDEBUG, "begin to flush pte pages[%d]");
+      sparseBitmap32::iterator itr;
+      while (pids.next(itr))
       {
-         INT32 rc = getFileCluster()->fsyncSegment(*itr);
+         INT32 rc = getFileCluster()->fysncPage(itr.get(), FALSE);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            PD_LOG(PDERROR, "failed to fsync file segment[%d], rc:%d", *itr, rc);
+            PD_LOG(PDERROR, "failed to fsync file segment[%d], rc:%d", itr.get(), rc);
             goto error;
          }
       }

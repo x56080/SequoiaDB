@@ -70,6 +70,19 @@ namespace vessel
       return;
    }
 
+   void spacePteAccessCtx::exportDirtyPids(sparseBitmap32 &pids)const
+   {
+      for (auto itr = _pmap.cbegin(); itr != _pmap.cend(); ++itr)
+      {
+         if (INVALID_PAGE_ID != itr->second)
+         {
+            pids.set(itr->second);
+         }
+      }
+
+      return;
+   }
+
    void spacePteAccessCtx::set(PAGE_ID lpid, PAGE_ID pid)
    {
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
