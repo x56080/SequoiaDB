@@ -55,20 +55,8 @@ namespace engine
 
    _rtnContextMain::~_rtnContextMain()
    {
-      pmdKRCB* pKrcb = pmdGetKRCB() ;
-      SDB_RTNCB* rtnCB = pKrcb->getRTNCB() ;
-      pmdEDUCB* eduCB = pKrcb->getEDUMgr()->getEDUByID( eduID() ) ;
-
-      // clean ordered context
-      SUB_ORDERED_CTX_MAP::iterator orderIter = _orderedContextMap.begin() ;
-      while ( orderIter != _orderedContextMap.end() )
-      {
-         rtnCB->contextDelete( orderIter->second->contextID(), eduCB ) ;
-         SDB_OSS_DEL orderIter->second ;
-         ++orderIter ;
-      }
-      _orderedContextMap.clear() ;
-
+      SDB_ASSERT( _orderedContextMap.empty(),
+                  "ordered contexts should be empty" ) ;
       SAFE_OSS_DELETE( _keyGen ) ;
    }
 
@@ -142,6 +130,7 @@ namespace engine
    done:
       return rc;
    error:
+      _releaseSubContext( subCtx ) ;
       goto done;
    }
 
@@ -263,7 +252,6 @@ namespace engine
             rc = _saveEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
             {
-               SDB_OSS_DEL ctx ;
                goto error ;
             }
 
@@ -281,7 +269,6 @@ namespace engine
             rc = _saveNonEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
             {
-               SDB_OSS_DEL ctx ;
                goto error ;
             }
          }
@@ -443,7 +430,6 @@ namespace engine
 
          if ( SDB_OK != rc )
          {
-            SDB_OSS_DEL ctx ;
             goto error ;
          }
 
@@ -618,6 +604,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      ossPoolList< rtnSubContext* > tmpList ;
+
       try
       {
          SUB_ORDERED_CTX_MAP::iterator itOrder ;
@@ -627,7 +615,8 @@ namespace engine
          itOrder = _orderedContextMap.begin() ;
          while( itOrder != _orderedContextMap.end() )
          {
-            rc = _checkSubContextAdvance( itOrder->second, keyGen, type,
+            rtnSubContext *pSubCtx = itOrder->second ;
+            rc = _checkSubContextAdvance( pSubCtx, keyGen, type,
                                           prefixNum, keyVal, orderby,
                                           processed ) ;
             if ( rc )
@@ -636,24 +625,48 @@ namespace engine
                        rc ) ;
                goto error ;
             }
-            else if ( !processed )
+
+            _orderedContextMap.erase( itOrder ++ ) ;
+            if ( !processed )
             {
                ///  save empty
-               SDB_ASSERT( 0 == itOrder->second->recordNum(),
+               SDB_ASSERT( 0 == pSubCtx->recordNum(),
                            "Sub-context must be empty" ) ;
-               rc = _saveEmptyOrderedSubCtx( itOrder->second ) ;
+               rc = _saveEmptyOrderedSubCtx( pSubCtx ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Save empty ordered sub-context failed, "
                           "rc: %d", rc ) ;
                   goto error ;
                }
-               _orderedContextMap.erase( itOrder++ ) ;
             }
             else
             {
-               ++itOrder ;
+               try
+               {
+                  tmpList.push_back( pSubCtx ) ;
+               }
+               catch ( exception &e )
+               {
+                  _releaseSubContext( pSubCtx ) ;
+                  PD_LOG( PDERROR, "Failed to save sub context, "
+                          "occur exception %s", e.what() ) ;
+                  rc = ossException2RC( &e ) ;
+                  goto error ;
+               }
             }
+         }
+
+         // data had been pop, so need generate new keys, and save back
+         // ordered contexts
+         while ( !( tmpList.empty() ) )
+         {
+            rtnSubContext *subCtx = tmpList.front() ;
+            tmpList.pop_front() ;
+
+            rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to save ordered context, "
+                         "rc: %d", rc ) ;
          }
       }
       catch( std::exception &e )
@@ -666,6 +679,14 @@ namespace engine
    done:
       return rc ;
    error:
+      for ( ossPoolList< rtnSubContext* >::iterator iter = tmpList.begin() ;
+            iter != tmpList.end() ;
+            ++ iter )
+      {
+         rtnSubContext *ctx = *iter ;
+         _releaseSubContext( ctx ) ;
+      }
+      tmpList.clear() ;
       goto done ;
    }
 
