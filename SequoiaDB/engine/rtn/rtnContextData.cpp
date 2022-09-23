@@ -273,10 +273,7 @@ namespace engine
       if ( _nextAdvanceSecIt == _advanceSectionList.end() )
       {
          _hitEnd = TRUE ;
-         if ( isEmpty() )
-         {
-            rc = SDB_DMS_EOC ;
-         }
+         rc = SDB_DMS_EOC ;
          goto done ;
       }
 
@@ -749,8 +746,13 @@ namespace engine
       rtnAdvanceSection sec ;
       INT32 prefixNum = -1 ;
 
-      if ( _advanceSectionList.empty() ||
+      if ( _needValidate() &&
            _nextAdvanceSecIt == _advanceSectionList.end() )
+      {
+         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
+         goto error ;
+      }
+      else if ( !_needValidate() )
       {
          goto done ;
       }
