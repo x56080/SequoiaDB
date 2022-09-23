@@ -37,7 +37,10 @@
             <package name="com.sequoiadb.metadata.sync" />
             <package name="com.sequoiadb.sdb.serial" />
             <package name="com.sequoiadb.transaction.serial" />
+	        <package name="com.sequoiadb.driveconnection.serial"/>
             <package name="com.sequoiadb.index.serial"/>
+            <package name="com.sequoiadb.bsontypes.serial"/>
         </packages>
     </test>
 </suite>
+   
