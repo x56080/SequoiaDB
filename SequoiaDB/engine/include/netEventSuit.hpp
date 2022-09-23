@@ -88,8 +88,6 @@ namespace engine
          void           removeAllEH() ;
          UINT32         getHandleNum() ;
 
-         INT32          waitAttach( INT64 millsec ) ;
-
       public:
          virtual INT32     run() ;
          virtual void      stop() ;
@@ -111,7 +109,6 @@ namespace engine
 
          SET_HANDLE                       _setHandle ;
          ossRWMutex                       _rwMutex ;
-         ossEvent                         _attachEvent ;
 
          BOOLEAN                          _active ;
          UINT32                           _noAttachTimeout ;
