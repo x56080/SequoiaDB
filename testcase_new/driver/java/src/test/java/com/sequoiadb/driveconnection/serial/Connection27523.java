@@ -111,7 +111,10 @@ public class Connection27523 extends SdbTestBase {
     }
 
     @AfterClass
-    public void tearDown() {
+    public void tearDown() throws Exception {
+        new File( passwordFilePath ).deleteOnExit();
+        Util.removePasswdFile(
+                Util.getSdbInstallDir() + "/bin" + passwdFileName );
         db.removeUser( userName, password );
         if ( ds != null ) {
             ds.close();
