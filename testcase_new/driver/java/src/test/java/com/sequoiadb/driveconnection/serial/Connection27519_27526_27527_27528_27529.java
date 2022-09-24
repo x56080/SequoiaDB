@@ -127,10 +127,10 @@ public class Connection27519_27526_27527_27528_27529 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws Exception {
-        db.removeUser( userName, password );
         new File( passwordFilePath ).deleteOnExit();
         Util.removePasswdFile(
                 Util.getSdbInstallDir() + "/bin" + passwdFileName );
+        db.removeUser( userName, password );
         if ( db != null ) {
             db.close();
         }
