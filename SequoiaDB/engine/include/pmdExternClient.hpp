@@ -42,6 +42,7 @@
 #include "../bson/bson.hpp"
 #include <string>
 #include "utilAuthSCRAMSHA.hpp"
+#include "authDef.hpp"
 
 using namespace std ;
 
@@ -89,6 +90,10 @@ namespace engine
 
          void                 setAuthed( BOOLEAN authed ) ;
 
+         // Temp solution. For rest session, it may bind a client with existing
+         // session info.
+         void                 setRoleID( UINT32 roleID ) ;
+
          virtual const MsgHeader *getInMsg() const
          {
             return _inMsg ;
@@ -114,7 +119,20 @@ namespace engine
             return _protocolVer ;
          }
 
-   public:
+         virtual BOOLEAN privCheckEnabled() const
+         {
+            return _privCheckEnabled ;
+         }
+
+         virtual UINT32 getRoleID() const
+         {
+            return _roleID ;
+         }
+
+         virtual INT32 checkPrivilege( const MsgHeader *msg ) ;
+         virtual INT32 checkCmdPrivilege( const CHAR *cmdName ) ;
+
+      public:
          ossSocket*           getSocket() { return _pSocket ; }
 
       protected:
@@ -124,11 +142,19 @@ namespace engine
                                                       const CHAR **userName,
                                                       const CHAR **password ) ;
          INT32                _processAuthResponse( INT32 opCode ) ;
+         INT32                _parseUserRole( const bson::BSONObj &userInfo ) ;
+         BOOLEAN              _shouldSkipPrivCheck( INT32 opCode ) ;
 
       protected:
          string               _username ;
          string               _password ;
          BOOLEAN              _isAuthed ;
+
+         // If the auth on catalogue is disabled, or no users in the system, the
+         // privilege check is disabled.
+         BOOLEAN              _privCheckEnabled ;
+         UINT32               _roleID ;
+
          ossSocket*           _pSocket ;
          _pmdEDUCB*           _pEDUCB ;
          bson::BSONObj        _authReturnedObj ; // object returned by authenticate

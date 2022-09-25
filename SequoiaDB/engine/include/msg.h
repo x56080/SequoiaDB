@@ -1180,7 +1180,12 @@ typedef enum _PREFER_REPLICA_TYPE
 // VERSION 2
 // add CLUniqueID to sequences
 #define CATALOG_VERSION_V2    ( 2 )
-#define CATALOG_VERSION_CUR   ( CATALOG_VERSION_V2 )
+
+// VERSION 3
+// add Role in user option
+#define CATALOG_VERSION_V3   ( 3 )
+
+#define CATALOG_VERSION_CUR   ( CATALOG_VERSION_V3 )
 
 #endif // MSG_H__
 

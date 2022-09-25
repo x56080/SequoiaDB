@@ -403,6 +403,7 @@ namespace engine
 
    INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
    {
+      INT32 rc = SDB_OK ;
       _pEDUCB->clearProcessInfo() ;
 
       // set reply header ( except flags, length )
@@ -435,7 +436,18 @@ namespace engine
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
       _pEDUCB->getMonAppCB()->setLastOpType( msg->opCode ) ;
 
-      return SDB_OK ;
+      rc = getClient()->checkPrivilege( msg ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Authorization failed for the operation, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    void _pmdLocalSession::_onMsgEnd( INT32 result, MsgHeader *msg )
@@ -761,4 +773,5 @@ namespace engine
       SAFE_OSS_DELETE( _outMsgConvertor ) ;
       goto done ;
    }
+
 }

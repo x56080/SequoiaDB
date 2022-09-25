@@ -142,6 +142,17 @@ T}@T{
 configuration mask
 T}@T{
 T}
+T{
+2
+T}@T{
+Role
+T}@T{
+String
+T}@T{
+user role
+T}@T{
+not
+T}
 .TE
 .RS
 .PP
@@ -167,6 +178,17 @@ If an item in the user audit log is not configured, the configuration of the
 corresponding mask item on the node is inherited.
 You can also use \[aq]!\[aq] to disable inheritance of this mask( e.g:
 "!DDL|DML" ).
+.RE
+.RS
+.IP \[bu] 2
+Role\[aq]s value are as follow: "admin"、"monitor".
+The default value is "admin".
+User of role "admin" can do anything in the database, while user of role
+"monitor" can only do snapshot and list operations.
+.RE
+.RS
+.IP \[bu] 2
+The role of the first user in the database should always be "admin".
 .RE
 .SH RETURN VALUE
 .PP

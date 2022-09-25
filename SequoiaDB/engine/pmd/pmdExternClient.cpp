@@ -33,7 +33,9 @@
 
 
 #include "pmdExternClient.hpp"
+#include "authDef.hpp"
 #include "pmdEDU.hpp"
+#include "authRBAC.hpp"
 
 #if defined ( SDB_ENGINE )
    #include "clsMgr.hpp"
@@ -63,6 +65,8 @@ namespace engine
       SDB_ASSERT( pSocket, "Socket can't be NULL" ) ;
 
       _isAuthed      = FALSE ;
+      _privCheckEnabled = TRUE ;
+      _roleID        = AUTH_INVALID_ROLE_ID ;
       _pSocket       = pSocket ;
       _pEDUCB        = NULL ;
 
@@ -198,79 +202,90 @@ namespace engine
 
       try
       {
-
-      if ( MSG_AUTH_VERIFY_REQ == opCode )
-      {
-         _isAuthed = TRUE ;
-      }
-      else if ( MSG_AUTH_VERIFY1_REQ == opCode )
-      {
-         INT32 step = 0 ;
-
          // When "auth" is false in catalog node configure file sdb.conf,
          // or no users in catalog, it returned empty object. And we don't
-         // need to authenticate.
+         // need to authenticate or do privilege checking.
          if ( _authReturnedObj.isEmpty() )
          {
             _isAuthed = TRUE ;
+            _privCheckEnabled = FALSE ;
             goto done ;
          }
 
-         step = _authReturnedObj.getIntField( SDB_AUTH_STEP ) ;
-         if ( SDB_AUTH_STEP_1 == step )
-         {
-            _step1Done = TRUE ;
-
-            _combineNonce = _authReturnedObj.getStringField( SDB_AUTH_NONCE ) ;
-
-            if ( 0 == _combineNonce.length() )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG ( PDERROR, "Combine nonce can't be empty, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
-         else if ( SDB_AUTH_STEP_2 == step )
+         if ( MSG_AUTH_VERIFY_REQ == opCode )
          {
             _isAuthed = TRUE ;
-
-            string hashCode ;
-            INT32 hashLen = 0 ;
-            INT32 nonceLen = 0 ;
-            INT32 xorNum = 0 ;
-            CHAR xorRes[ UTIL_AUTH_MD5SUM_LEN + 1 ] = { 0 } ;
-
-            // get hash code
-            BSONElement ele = _authReturnedObj.getField( SDB_AUTH_HASHCODE ) ;
-            PD_CHECK( String == ele.type(), SDB_SYS, error, PDERROR,
-                      "Invalid field[%s] type[%d] in obj[%s], rc: %d",
-                      SDB_AUTH_HASHCODE, ele.type(),
-                      _authReturnedObj.toString().c_str(), rc ) ;
-
-            hashCode = base64::decode( ele.valuestr() ) ;
-            hashLen = hashCode.length() ;
-            PD_CHECK( UTIL_AUTH_MD5SUM_LEN == hashLen,
-                      SDB_SYS, error, PDERROR,
-                      "Invalid field[%s] length[%d], expect: %d",
-                      SDB_AUTH_HASHCODE, hashLen, UTIL_AUTH_MD5SUM_LEN ) ;
-
-            // get md5sum of password
-            nonceLen = _combineNonce.length() ;
-            xorNum = hashLen > nonceLen ? hashLen : nonceLen ;
-            ossMemcpy( xorRes, hashCode.c_str(), UTIL_AUTH_MD5SUM_LEN ) ;
-
-            for ( INT32 i = xorNum - 1 ; i >= 0 ; i-- )
-            {
-               xorRes[ i % hashLen ] =
-                  xorRes[ i % hashLen ] ^ _combineNonce[ i % nonceLen ] ;
-            }
-            _password = xorRes ;
-
-            // don't return HashCode to client
-            _authReturnedObj = _authReturnedObj.filterFieldsUndotted(
-                                       BSON( SDB_AUTH_HASHCODE << 1 ), false ) ;
          }
-      }
+         else if ( MSG_AUTH_VERIFY1_REQ == opCode )
+         {
+            INT32 step = 0 ;
+
+            step = _authReturnedObj.getIntField( SDB_AUTH_STEP ) ;
+            if ( SDB_AUTH_STEP_1 == step )
+            {
+               _step1Done = TRUE ;
+
+               _combineNonce =
+                  _authReturnedObj.getStringField( SDB_AUTH_NONCE ) ;
+
+               if ( 0 == _combineNonce.length() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG ( PDERROR, "Combine nonce can't be empty, rc: %d",
+                           rc ) ;
+                  goto error ;
+               }
+            }
+            else if ( SDB_AUTH_STEP_2 == step )
+            {
+               _isAuthed = TRUE ;
+
+               string hashCode ;
+               INT32 hashLen = 0 ;
+               INT32 nonceLen = 0 ;
+               INT32 xorNum = 0 ;
+               CHAR xorRes[ UTIL_AUTH_MD5SUM_LEN + 1 ] = { 0 } ;
+
+               // get hash code
+               BSONElement ele =
+                  _authReturnedObj.getField( SDB_AUTH_HASHCODE ) ;
+               PD_CHECK( String == ele.type(), SDB_SYS, error, PDERROR,
+                         "Invalid field[%s] type[%d] in obj[%s], rc: %d",
+                         SDB_AUTH_HASHCODE, ele.type(),
+                         _authReturnedObj.toString().c_str(), rc ) ;
+
+               hashCode = base64::decode( ele.valuestr() ) ;
+               hashLen = hashCode.length() ;
+               PD_CHECK( UTIL_AUTH_MD5SUM_LEN == hashLen,
+                         SDB_SYS, error, PDERROR,
+                         "Invalid field[%s] length[%d], expect: %d",
+                         SDB_AUTH_HASHCODE, hashLen, UTIL_AUTH_MD5SUM_LEN ) ;
+
+               // get md5sum of password
+               nonceLen = _combineNonce.length() ;
+               xorNum = hashLen > nonceLen ? hashLen : nonceLen ;
+               ossMemcpy( xorRes, hashCode.c_str(), UTIL_AUTH_MD5SUM_LEN ) ;
+
+               for ( INT32 i = xorNum - 1 ; i >= 0 ; i-- )
+               {
+                  xorRes[ i % hashLen ] =
+                     xorRes[ i % hashLen ] ^ _combineNonce[ i % nonceLen ] ;
+               }
+               _password = xorRes ;
+
+               // don't return HashCode to client
+               _authReturnedObj = _authReturnedObj.filterFieldsUndotted(
+                                          BSON( SDB_AUTH_HASHCODE << 1 ),
+                                          false ) ;
+            }
+         }
+
+         if ( _isAuthed )
+         {
+            rc = _parseUserRole( _authReturnedObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Parse user role by auth response "
+                         "failed, rc: %d", rc ) ;
+         }
 
       }
       catch( std::exception &e )
@@ -318,9 +333,11 @@ namespace engine
       }
 
       _isAuthed = FALSE ;
+      _privCheckEnabled = TRUE ;
 
       if ( SDB_ROLE_STANDALONE == pmdGetDBRole() ) // not auth
       {
+         _privCheckEnabled = FALSE ;
          _isAuthed = TRUE ;
          goto done ;
       }
@@ -328,7 +345,8 @@ namespace engine
       {
          if ( MSG_AUTH_VERIFY_REQ == pMsg->opCode )
          {
-            rc = sdbGetOMManager()->md5Authenticate( authObj, _pEDUCB ) ;
+            rc = sdbGetOMManager()->md5Authenticate( authObj, _pEDUCB,
+                                                     _authReturnedObj ) ;
          }
          else if ( MSG_AUTH_VERIFY1_REQ == pMsg->opCode )
          {
@@ -365,7 +383,8 @@ namespace engine
 
          rc = opr.execute( pMsg, _pEDUCB, contextID, &buf ) ;
 
-         if ( MSG_AUTH_VERIFY1_REQ == pMsg->opCode && SDB_OK == rc )
+         if ( SDB_OK == rc && ( MSG_AUTH_VERIFY1_REQ == pMsg->opCode ||
+                                MSG_AUTH_VERIFY_REQ == pMsg->opCode ) )
          {
             rc = buf.nextObj( _authReturnedObj ) ;
             if ( SDB_DMS_EOC == rc )
@@ -391,6 +410,7 @@ namespace engine
          {
             rc = SDB_OK ;
             _isAuthed = TRUE ;
+            _privCheckEnabled = FALSE ;
          }
          else if ( rc )
          {
@@ -580,6 +600,7 @@ namespace engine
                    getLocalIPAddr(), getLocalPort() ) ;
       }
       _isAuthed = FALSE ;
+      _privCheckEnabled = TRUE ;
    }
 
    INT32 _pmdExternClient::disconnect()
@@ -600,6 +621,11 @@ namespace engine
    void _pmdExternClient::setAuthed( BOOLEAN authed )
    {
       _isAuthed = authed ;
+   }
+
+   void _pmdExternClient::setRoleID( UINT32 roleID )
+   {
+      _roleID = roleID ;
    }
 
    BOOLEAN _pmdExternClient::isClosed() const
@@ -660,6 +686,171 @@ namespace engine
       return getPeerPort() ;
    }
 
+   INT32 _pmdExternClient::_parseUserRole( const bson::BSONObj &userInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      // For compatibility reason with old version, if there is no field
+      // "Option", or "Option.Role", the role is set to "admin".
+      // In the future, if the user creates a role without any role, the value
+      // of the role is "".
+      try
+      {
+         BSONElement optEle = userInfo.getField( FIELD_NAME_OPTIONS ) ;
+         if ( optEle.eoo() )
+         {
+            _roleID = AUTH_ROLE_ADMIN ;
+         }
+         else if ( Object != optEle.type() )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Options in user information should be an object" ) ;
+            goto error ;
+         }
+         else
+         {
+            BSONElement roleEle = optEle.Obj().getField( FIELD_NAME_ROLE ) ;
+            if ( roleEle.eoo() )
+            {
+               _roleID = AUTH_ROLE_ADMIN ;
+            }
+            else
+            {
+               const CHAR *roleName = roleEle.valuestrsafe() ;
+               _roleID = authGetBuiltinRoleID( roleName ) ;
+               if ( AUTH_INVALID_ROLE_ID == _roleID )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Invalid role name %s for the user",
+                          roleName ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _pmdExternClient::checkPrivilege( const MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 opCode = msg->opCode ;
+
+      // For SQL operation, let it go here. Check after it's parsed.
+      if ( !_privCheckEnabled ||
+           AUTH_ROLE_ADMIN == _roleID ||
+           _shouldSkipPrivCheck( opCode ) )
+      {
+         goto done ;
+      }
+
+      if ( AUTH_ROLE_MONITOR == _roleID )
+      {
+         rc = SDB_NO_PRIVILEGES ;
+         if ( MSG_BS_QUERY_REQ == opCode )
+         {
+            const MsgOpQuery *query = (MsgOpQuery *)msg ;
+            if ( '$' == query->name[0] )
+            {
+               rc = checkCmdPrivilege( query->name ) ;
+            }
+         }
+
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Authorization for the operation failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+      else if ( _isAuthed )
+      {
+         SDB_ASSERT( FALSE, "The role is invalid" ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _pmdExternClient::checkCmdPrivilege( const CHAR *cmdName )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( cmdName, "Command name is null" ) ;
+
+      if ( !_privCheckEnabled || ( AUTH_ROLE_ADMIN == _roleID ) )
+      {
+         goto done ;
+      }
+
+      if ( '$' != cmdName[0] )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "The command name is invalid: %s, rc: %d",
+                 cmdName, rc ) ;
+         goto error ;
+      }
+
+      if ( AUTH_ROLE_ADMIN == _roleID )
+      {
+         goto done ;
+      }
+      else if ( AUTH_ROLE_MONITOR == _roleID )
+      {
+         if ( authIsMonCmd( cmdName ) )
+         {
+            goto done ;
+         }
+         else
+         {
+            rc = SDB_NO_PRIVILEGES ;
+            PD_LOG( PDERROR, "No privileges for the command operation: %s, "
+                    "rc: %d", cmdName, rc ) ;
+            goto error ;
+         }
+      }
+      else if ( _isAuthed )
+      {
+         SDB_ASSERT( FALSE, "The role is invalid" ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _pmdExternClient::_shouldSkipPrivCheck( INT32 opCode )
+   {
+      switch ( opCode )
+      {
+         case MSG_AUTH_VERIFY_REQ:
+         case MSG_AUTH_VERIFY1_REQ:
+         // Check in qgm after parsing.
+         case MSG_BS_SQL_REQ:
+         // Query has passed the checking.
+         case MSG_BS_GETMORE_REQ:
+         // Any cleanup actions should able to run.
+         case MSG_BS_DISCONNECT:
+         case MSG_BS_KILL_CONTEXT_REQ:
+         case MSG_BS_INTERRUPTE:
+         case MSG_BS_INTERRUPTE_SELF:
+         case MSG_BS_LOB_CLOSE_RES:
+         case MSG_BS_ADVANCE_REQ:
+            return TRUE ;
+         default:
+            return FALSE ;
+      }
+   }
 }
-
-

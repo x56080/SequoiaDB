@@ -143,6 +143,10 @@ namespace engine
                                         const CHAR *serverProof,
                                         const CHAR *hashCode,
                                         BSONObj &result ) ;
+      INT32   _rebuildUserOption( const BSONObj &oldOpt, BSONObj &newOpt ) ;
+      INT32   _checkCrtUserOption( const BSONObj &option, _pmdEDUCB *cb ) ;
+      INT32   _checkRemoveUser( const CHAR *username, _pmdEDUCB *cb ) ;
+
    private:
       BOOLEAN     _authEnabled ;
    } ;

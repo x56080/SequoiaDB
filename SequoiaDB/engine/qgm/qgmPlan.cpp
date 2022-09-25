@@ -50,7 +50,8 @@ namespace engine
    _executed( FALSE ),
    _initialized( FALSE ),
    _merge( FALSE ),
-   _param( NULL )
+   _param( NULL ),
+   _authorized( FALSE )
    {
       SDB_ASSERT( QGM_PLAN_TYPE_MAX != _type, "impossible" ) ;
       _alias = alias ;
@@ -197,6 +198,16 @@ namespace engine
          goto error ;
       }
 
+      if ( !_authorized && eduCB->getSession() &&
+           eduCB->getSession()->getClient() &&
+           eduCB->getSession()->getClient()->privCheckEnabled() )
+      {
+         rc = _checkPrivilege( eduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Checking privilege failed for the "
+                      "operation, rc: %d", rc ) ;
+         _authorized = TRUE ;
+      }
+
       rc = _execute( eduCB ) ;
       if ( SDB_OK != rc )
       {
@@ -296,5 +307,4 @@ namespace engine
 
       return rc ;
    }
-
 }

@@ -73,6 +73,8 @@ namespace engine
 
       virtual INT32 _fetchNext( qgmFetchOut &next ) ;
 
+      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB ) ;
+
       INT32 _executeOnData( _pmdEDUCB *eduCB ) ;
 
       INT32 _executeOnCoord( _pmdEDUCB *eduCB ) ;
