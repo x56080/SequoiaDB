@@ -41,8 +41,6 @@
 namespace engine
 {
 
-   #define PMD_SUB_NET_AGENT_WAITTIME        ( 5 * OSS_ONE_SEC )
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDNETCALLBACKFUNC, "pmdNetCallbackFunc" )
    INT32 pmdNetCallbackFunc( _netEventSuit *pSuit )
    {
@@ -56,13 +54,6 @@ namespace engine
       if ( rc )
       {
          PD_LOG( PDWARNING, "Start sub-net agent failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = pSuit->waitAttach( PMD_SUB_NET_AGENT_WAITTIME ) ;
-      if ( rc )
-      {
-         PD_LOG( PDWARNING, "Wait sub-net agent running failed, rc: %d", rc ) ;
          goto error ;
       }
 
