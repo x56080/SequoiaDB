@@ -628,25 +628,27 @@ namespace engine
             UINT32 mask = 0 ;
             if ( String != e.type() )
             {
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s]",
-                       FIELD_NAME_AUDIT_MASK, options.toString().c_str() ) ;
                rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_AUDIT_MASK,
+                           options.toString().c_str(), rc ) ;
                goto error ;
             }
 
             rc = pdString2AuditMask( e.valuestr(), mask, TRUE ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s]",
-                       FIELD_NAME_AUDIT_MASK, options.toString().c_str() ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_AUDIT_MASK,
+                           options.toString().c_str(), rc ) ;
                goto error ;
             }
          }
          else
          {
-            PD_LOG( PDERROR, "Invalid field[%s] in option[%s]",
-                    e.fieldName(), options.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                        e.fieldName(), options.toString().c_str(), rc ) ;
             goto error ;
          }
       }

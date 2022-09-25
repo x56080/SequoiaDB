@@ -67,7 +67,7 @@ namespace engine
       const CHAR *pUserName = NULL ;
       const CHAR *pPass = NULL ;
 
-      rc = forward( pMsg, cb, FALSE, contextID, &pUserName, &pPass ) ;
+      rc = forward( pMsg, cb, FALSE, contextID, &pUserName, &pPass, NULL, buf ) ;
       if ( pUserName )
       {
          /// AUDIT

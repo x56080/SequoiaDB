@@ -57,14 +57,15 @@ namespace engine
                         INT64 &contextID,
                         const CHAR **ppUserName = NULL,
                         const CHAR **ppPass = NULL,
-                        BSONObj *pOptions = NULL ) ;
+                        BSONObj *pOptions = NULL,
+                        rtnContextBuf *pBuf = NULL ) ;
 
          void  updateSessionByOptions( const BSONObj &options ) ;
 
       private:
-
          virtual void   _onSucReply( const MsgOpReply *pReply ) ;
-
+         INT32          _extractReply( const MsgOpReply *pReply,
+                                       rtnContextBuf *pBuf = NULL ) ;
    } ;
    typedef _coordAuthBase coordAuthBase ;
 
