@@ -488,6 +488,7 @@ error:
 
 INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
 {
+   INT32 rc = SDB_OK ;
    // set reply header ( except flags, length )
    _replyHeader.contextID          = -1 ;
    _replyHeader.numReturned        = 0 ;
@@ -500,7 +501,14 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
 
-   return SDB_OK ;
+   rc = getClient()->checkPrivilege( msg ) ;
+   PD_RC_CHECK( rc, PDERROR, "Check privilege for operation[opCode: %d] "
+                "failed, rc: %d", msg->opCode, rc ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )

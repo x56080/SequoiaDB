@@ -76,7 +76,7 @@ private:
                       BSONObj &errorObj ) ;
    INT32 _processMsg( const CHAR *pMsg, BSONObj &errorObj ) ;
 
-   void  _onMsgBegin( MsgHeader *pMsg ) ;
+   INT32 _onMsgBegin( MsgHeader *pMsg ) ;
    void  _onMsgEnd( INT32 result, MsgHeader *pMsg ) ;
 
    INT32 _recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg ) ;

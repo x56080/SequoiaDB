@@ -1415,7 +1415,8 @@ namespace engine
        \retval SDB_OK Operation Success
        \retval Others Operation Fail
    */
-   INT32 _omManager::md5Authenticate( const BSONObj &obj, pmdEDUCB *cb )
+   INT32 _omManager::md5Authenticate( const BSONObj &obj, pmdEDUCB *cb,
+                                      BSONObj &outUserObj )
    {
       INT32 rc = SDB_OK ;
       SDB_AUTHCB *pAuthCB = pmdGetKRCB()->getAuthCB() ;
@@ -1425,7 +1426,7 @@ namespace engine
          goto done ;
       }
 
-      rc = pAuthCB->md5Authenticate( obj, cb ) ;
+      rc = pAuthCB->md5Authenticate( obj, cb, &outUserObj ) ;
       if ( rc )
       {
          goto error ;

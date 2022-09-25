@@ -714,7 +714,8 @@ spdFiles = [
        ]
 
 authFiles = [
-      "auth/authCB.cpp"
+      "auth/authCB.cpp",
+      "auth/authRBAC.cpp"
       ]
 
 gtestFiles = [

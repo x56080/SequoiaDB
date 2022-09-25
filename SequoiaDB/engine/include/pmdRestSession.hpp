@@ -41,6 +41,7 @@
 #include "ossAtomic.hpp"
 #include "pmdIProcessor.hpp"
 #include "pmdEDU.hpp"
+#include "authDef.hpp"
 #include <string>
 
 using namespace bson ;
@@ -81,6 +82,7 @@ namespace engine
       ossAtomic32          _inNum ;
       ossSpinXLatch        _inLatch ;
       BOOLEAN              _isLock ;
+      UINT32               _roleID ;
 
       std::string          _id ;
 
@@ -94,6 +96,7 @@ namespace engine
          _timeoutCounter      = 0 ;
          _authOK              = FALSE ;
          _isLock              = FALSE ;
+         _roleID              = AUTH_INVALID_ROLE_ID ;
       }
       INT32 getAttrSize()
       {

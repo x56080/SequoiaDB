@@ -27,6 +27,10 @@ Sdb
 | User       | object   | [User][user] 对象       | 是       |
 | CipherUser | object   | [CipherUser][cipherUser] 对象 | 是       |
 
+> **Note:**
+>
+> * 在删除最后一个角色为 "admin" 的用户时，需要确保已经没有角色为 "monitor" 的用户存在，否则删除会失败
+
 ##返回值##
 
 函数执行成功时，无返回值。

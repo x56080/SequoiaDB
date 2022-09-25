@@ -194,6 +194,8 @@ namespace engine
        */
       INT32 _checkAndUpgradeDSCLInfo() ;
 
+      INT32 _checkAndUpgradeUserRole() ;
+
    private:
       INT16 _majoritySize() ;
 

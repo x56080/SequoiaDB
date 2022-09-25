@@ -249,7 +249,7 @@ namespace engine
             goto error ;
          }
 
-         // sniff wether has data
+         // sniff whether has data
          rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
                          PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
          if ( SDB_TIMEOUT == rc )
@@ -348,6 +348,7 @@ namespace engine
             if ( _pSessionInfo )
             {
                _client.setAuthed( TRUE ) ;
+               _client.setRoleID( _pSessionInfo->_roleID ) ;
             }
          }
          // recv body
@@ -574,6 +575,14 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "check auth failed:rc=%d", rc ) ;
+         _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
+         goto error ;
+      }
+
+      rc = getClient()->checkPrivilege( msg ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "operation authorization failed:rc=%d", rc ) ;
          _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
          goto error ;
       }
@@ -852,6 +861,7 @@ namespace engine
       else
       {
          _pSessionInfo->_authOK = TRUE ;
+         _pSessionInfo->_roleID =  getClient()->getRoleID() ;
       }
       return rc ;
    }

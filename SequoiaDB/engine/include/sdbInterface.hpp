@@ -285,8 +285,13 @@ namespace engine
          virtual UINT16       getFromPort() const = 0 ;
 
          virtual const MsgHeader *getInMsg() const = 0 ;
-         virtual void registerInMsg( const MsgHeader *msg ) = 0 ;
-         virtual void unregisterInMsg() = 0 ;
+         virtual void         registerInMsg( const MsgHeader *msg ) = 0 ;
+         virtual void         unregisterInMsg() = 0 ;
+
+         virtual BOOLEAN      privCheckEnabled() const = 0 ;
+         virtual UINT32       getRoleID() const = 0 ;
+         virtual INT32        checkPrivilege( const MsgHeader *pMsg ) = 0 ;
+         virtual INT32        checkCmdPrivilege( const CHAR *cmdName ) = 0 ;
    } ;
    typedef _IClient IClient ;
 

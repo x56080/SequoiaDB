@@ -110,6 +110,26 @@ namespace engine
       public:
          _netRouteAgent*      getNetAgent() { return _pRTAgent ; }
 
+         virtual BOOLEAN privCheckEnabled() const
+         {
+            return FALSE ;
+         }
+
+         virtual UINT32       getRoleID() const
+         {
+            return _roleID ;
+         }
+
+         virtual INT32        checkPrivilege( const MsgHeader *msg )
+         {
+            return SDB_OK ;
+         }
+
+         virtual INT32        checkCmdPrivilege( const CHAR *cmdName )
+         {
+            return SDB_OK ;
+         }
+
       protected:
          void                 _makeName() ;
 
@@ -120,6 +140,7 @@ namespace engine
          _pmdEDUCB*           _pEDUCB ;
          string               _username ;
          string               _password ;
+         UINT32               _roleID ;
 
          UINT16               _localPort ;
          UINT16               _peerPort ;

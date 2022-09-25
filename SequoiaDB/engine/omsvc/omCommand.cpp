@@ -370,6 +370,7 @@ namespace engine
       BSONObjBuilder resBuilder ;
       BSONObj bsonRes ;
       BSONObj bsonAuth ;
+      BSONObj authResponse ;
       string userName ;
       string passwd ;
       string time ;
@@ -392,7 +393,7 @@ namespace engine
       authBuilder.append( SDB_AUTH_USER, userName ) ;
       authBuilder.append( SDB_AUTH_PASSWD, passwd ) ;
       bsonAuth = authBuilder.obj() ;
-      rc = sdbGetOMManager()->md5Authenticate( bsonAuth, _cb ) ;
+      rc = sdbGetOMManager()->md5Authenticate( bsonAuth, _cb, authResponse ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
@@ -1679,6 +1680,7 @@ namespace engine
       string newPasswd ;
       string time ;
       BSONObj bsonAuth ;
+      BSONObj authResult ;
       omArgOptions option( _request ) ;
 
       rc = option.parseRestArg( "ssss", OM_REST_FIELD_LOGIN_NAME,    &user,
@@ -1705,7 +1707,7 @@ namespace engine
 
       bsonAuth = BSON( SDB_AUTH_USER << user
                        << SDB_AUTH_PASSWD << oldPasswd ) ;
-      rc = sdbGetOMManager()->md5Authenticate( bsonAuth, _cb ) ;
+      rc = sdbGetOMManager()->md5Authenticate( bsonAuth, _cb, authResult ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
@@ -10108,7 +10110,7 @@ checking system firewall for blocked ports" ) ;
          if ( SDB_OK == rc )
          {
             BSONElement ele = setting.getField( OM_SETTINGS_FIELD_VALUE ) ;
-            
+
             if ( ele.type() == NumberInt )
             {
                timeout = ele.Int() ;

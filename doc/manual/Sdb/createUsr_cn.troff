@@ -212,6 +212,75 @@ T}@T{
 T}@T{
 的继承
 T}
+T{
+2
+T}@T{
+Role
+T}@T{
+String
+T}@T{
+用户角色，当前
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+只支持系统内置
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+角色，默认值为 "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+admin"，取值列表
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+："admin"、"monitor"。
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+"admin" 为管理员角
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+色，可执行任何
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+操作；"monitor" 为
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+监控角色，只能
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+执行 snapshot 和
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+list 操作
+T}
 .TE
 .RS
 .PP
@@ -222,6 +291,8 @@ T}
 当数据库创建了用户，连接数据库必须指定用户名和密码。
 .IP \[bu] 2
 数据库用户名和密码的限制请参考数据库限制
+.IP \[bu] 2
+数据库中创建的第一个用户必须是 "admin" 角色
 .RE
 .SH 返回值
 .PP
