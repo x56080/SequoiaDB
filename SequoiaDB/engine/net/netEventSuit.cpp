@@ -141,7 +141,6 @@ namespace engine
       try
       {
          _active = TRUE ;
-         _attachEvent.signal() ;
          _pFrame->onRunSuitStart( shared_from_this() ) ;
          _asyncWait() ;
          _ioservice.run() ;
@@ -204,11 +203,6 @@ namespace engine
       {
          _asyncWait() ;
       }
-   }
-
-   INT32 _netEventSuit::waitAttach( INT64 millsec )
-   {
-      return _attachEvent.wait( millsec ) ;
    }
 
 }
