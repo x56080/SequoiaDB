@@ -85,6 +85,7 @@ namespace engine
    #define CLS_SYNCCTRL_BASE_TIME               (10)
    #define CLS_STOP_WAIT_HEARTBEAT_TIMEOUT      (20*OSS_ONE_SEC)
    #define CLS_FORMART_STR_128                  (128)
+   #define CLS_FT_SW_TIMEOUT                    ( 10000 )
 
    /*
       _clsReplicateSet define
@@ -777,7 +778,9 @@ namespace engine
                   PD_LOG( PDEVENT, "Force to secondary due to %s",
                           ftStatStr ) ;
                   _vote.force( CLS_ELECTION_STATUS_SEC, 5 * OSS_ONE_SEC ) ;
-                  _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+                  _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN,
+                                         CLS_FT_SW_TIMEOUT,
+                                         FALSE ) ;
                }
             }
          }

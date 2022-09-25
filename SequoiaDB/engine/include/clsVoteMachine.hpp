@@ -74,10 +74,12 @@ namespace engine
       }
 
       OSS_INLINE void setShadowWeight( UINT8 weight,
-                                       UINT32 timeout = CLS_SHADOWN_TIMEOUT_DFT )
+                                       UINT32 timeout = CLS_SHADOWN_TIMEOUT_DFT,
+                                       BOOLEAN shadowForReelect = TRUE )
       {
          _shadowWeight = weight ;
          _shadowTimeout = timeout ;
+         _shadowForReelect = shadowForReelect ;
       }
 
       OSS_INLINE BOOLEAN isInStepUp() const
@@ -112,6 +114,7 @@ namespace engine
       _clsGroupInfo              *_groupInfo ;
       UINT8                      _shadowWeight ;
       UINT32                     _shadowTimeout ;  /// ms
+      BOOLEAN                    _shadowForReelect ;
       UINT32                     _forceMillis ;
 
       ossSpinXLatch              _latch ;
