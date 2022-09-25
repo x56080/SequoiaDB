@@ -108,6 +108,7 @@ namespace engine
     _groupInfo( info ),
     _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
     _shadowTimeout( 0 ),
+    _shadowForReelect( TRUE ),
     _forceMillis( 0 )
    {
    }
@@ -193,6 +194,13 @@ namespace engine
       else
       {
          _shadowTimeout = 0 ;
+         if ( !_shadowForReelect )
+         {
+            // if the shadow wight is not set for reelect,
+            // it should be timeout to restore
+            _shadowWeight = CLS_ELECTION_WEIGHT_USR_MIN ;
+            _shadowForReelect = TRUE ;
+         }
       }
 
       if ( !_current )
