@@ -173,6 +173,10 @@ namespace engine
          }
          PD_LOG( PDERROR, "Failed to execute command[%u] on node[%s], rc: %d",
                  pMsg->opCode, routeID2String( routeID ).c_str(), rc ) ;
+
+         // get error reply
+         _extractReply( (const MsgOpReply*)pReply, pBuf ) ;
+
          goto error ;
       }
 
@@ -181,7 +185,32 @@ namespace engine
          _onSucReply( (const MsgOpReply*)pReply ) ;
       }
 
-      if ( pBuf && ( pReply->messageLength > (INT32)sizeof( MsgOpReply ) ) )
+      rc = _extractReply( (const MsgOpReply*)pReply, pBuf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract reply, rc: %d", rc ) ;
+
+    done:
+      _groupSession.resetSubSession() ;
+      PD_TRACE_EXITRC ( COORD_AUTHBASE_FORWARD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _coordAuthBase::_onSucReply( const MsgOpReply *pReply )
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_AUTHBASE_EXTREPLY, "_coordAuthBase::_extractReply" )
+   INT32 _coordAuthBase::_extractReply( const MsgOpReply *pReply,
+                                        rtnContextBuf *pBuf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_AUTHBASE_EXTREPLY ) ;
+
+      if ( ( NULL != pBuf ) &&
+           ( NULL != pReply ) &&
+           ( pReply->header.messageLength > (INT32)sizeof( MsgOpReply ) ) )
       {
          try
          {
@@ -202,16 +231,12 @@ namespace engine
          }
       }
 
-    done:
-      _groupSession.resetSubSession() ;
-      PD_TRACE_EXITRC ( COORD_AUTHBASE_FORWARD, rc ) ;
+   done:
+      PD_TRACE_EXITRC( COORD_AUTHBASE_EXTREPLY, rc ) ;
       return rc ;
+
    error:
       goto done ;
-   }
-
-   void _coordAuthBase::_onSucReply( const MsgOpReply *pReply )
-   {
    }
 
    void _coordAuthBase::updateSessionByOptions( const BSONObj &options )

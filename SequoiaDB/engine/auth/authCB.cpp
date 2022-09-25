@@ -1404,26 +1404,26 @@ namespace engine
             if ( String != e.type() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                       FIELD_NAME_AUDIT_MASK,
-                       option.toString().c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_AUDIT_MASK,
+                           option.toString().c_str(), rc ) ;
                goto error ;
             }
 
             rc = pdString2AuditMask( e.valuestr(), mask, TRUE ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                       FIELD_NAME_AUDIT_MASK,
-                       option.toString().c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_AUDIT_MASK,
+                           option.toString().c_str(), rc ) ;
                goto error ;
             }
          }
          else
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                    e.fieldName(), option.toString().c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                        e.fieldName(), option.toString().c_str(), rc ) ;
             goto error ;
          }
       }

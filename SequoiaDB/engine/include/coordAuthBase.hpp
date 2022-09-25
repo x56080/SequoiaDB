@@ -64,7 +64,8 @@ namespace engine
 
       private:
          virtual void    _onSucReply( const MsgOpReply *pReply ) ;
-
+         INT32           _extractReply( const MsgOpReply *pReply,
+                                        rtnContextBuf *pBuf = NULL ) ;
    } ;
    typedef _coordAuthBase coordAuthBase ;
 

@@ -74,7 +74,7 @@ namespace engine
       BSONObj options ;
 
       rc = forward( pMsg, cb, FALSE, contextID,
-                    &pUserName, &pPassWord, &options ) ;
+                    &pUserName, &pPassWord, &options, buf ) ;
       if ( pUserName )
       {
          /// AUDIT
