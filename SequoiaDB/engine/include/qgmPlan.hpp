@@ -140,6 +140,11 @@ namespace engine
 
       virtual INT32 _fetchNext( qgmFetchOut &next ) = 0 ;
 
+      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB )
+      {
+         return SDB_OK ;
+      }
+
    protected:
       QGM_VARLIST _varlist ;
       QGM_PINPUT _input ;
@@ -150,6 +155,9 @@ namespace engine
       BOOLEAN _initialized ;
       BOOLEAN _merge ;
       _qgmParamTable *_param ;
+
+   private:
+      BOOLEAN _authorized ;
    } ;
 
    typedef class _qgmPlan qgmPlan ;

@@ -87,6 +87,8 @@ namespace engine
          return SDB_SYS ;
       }
 
+      virtual INT32 _checkPrivilege( _pmdEDUCB *eduCB ) ;
+
    private:
       _qgmDbAttr  _collection ;
       BSONObj     _updater ;

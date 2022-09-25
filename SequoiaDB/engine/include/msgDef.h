@@ -456,6 +456,8 @@
 #define VALUE_NAME_HIGH                      "high"
 #define VALUE_NAME_NEVER                     "never"
 #define VALUE_NAME_NOT_SUPPORT               "notsupport"
+#define VALUE_NAME_ADMIN                     "admin"
+#define VALUE_NAME_MONITOR                   "monitor"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"

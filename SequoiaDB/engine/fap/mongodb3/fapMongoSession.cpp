@@ -1557,16 +1557,19 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    BOOLEAN needRollback = FALSE ;
    bson::BSONObjBuilder retBuilder ;
 
-   _onMsgBegin( (MsgHeader *) pMsg ) ;
+   rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
 
    _contextBuff.release() ;
 
-   rc = getProcessor()->processMsg( (MsgHeader *) pMsg, _contextBuff,
-                                    _replyHeader.contextID,
-                                    needReply, needRollback, retBuilder ) ;
+   if ( SDB_OK == rc )
+   {
+      rc = getProcessor()->processMsg( (MsgHeader *) pMsg, _contextBuff,
+                                       _replyHeader.contextID,
+                                       needReply, needRollback, retBuilder ) ;
 
-   _replyHeader.numReturned = _contextBuff.recordNum() ;
-   _replyHeader.startFrom   = (INT32)_contextBuff.getStartFrom() ;
+      _replyHeader.numReturned = _contextBuff.recordNum() ;
+      _replyHeader.startFrom   = (INT32)_contextBuff.getStartFrom() ;
+   }
    _replyHeader.flags       = rc ;
 
    if ( rc )
@@ -1641,8 +1644,9 @@ error:
    goto done ;
 }
 
-void _mongoSession::_onMsgBegin( MsgHeader *pMsg )
+INT32 _mongoSession::_onMsgBegin( MsgHeader *pMsg )
 {
+   INT32 rc = SDB_OK ;
    // set reply header ( except flags, length )
    _replyHeader.contextID          = -1 ;
    _replyHeader.numReturned        = 0 ;
@@ -1654,6 +1658,15 @@ void _mongoSession::_onMsgBegin( MsgHeader *pMsg )
 
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+
+   rc = getClient()->checkPrivilege( pMsg ) ;
+   PD_RC_CHECK( rc, PDERROR, "Check privilege for operation[opCode: %d] "
+                "failed, rc: %d", pMsg->opCode, rc ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *pMsg )

@@ -50,6 +50,7 @@
 #include "pmd.hpp"
 #include "sdbInterface.hpp"
 #include "mongoReplyHelper.hpp"
+#include "utilUniqueID.hpp"
 
 /////////////////////////////////////////////////////////////////
 // implement for mongo processor
@@ -307,15 +308,19 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
    mongoDataPacket &packet = _converter.getParser().dataPacket() ;
    const CHAR* commandName = _converter.getParser().command()->name() ;
 
-   _onMsgBegin( (MsgHeader *) pMsg ) ;
+   rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
 
    try
    {
-      rc = getProcessor()->processMsg( (MsgHeader *) pMsg,
-                                       _contextBuff, _replyHeader.contextID,
-                                       needReply,
-                                       needRollback,
-                                       retBuilder ) ;
+      if ( SDB_OK == rc )
+      {
+         rc = getProcessor()->processMsg( (MsgHeader *) pMsg,
+                                          _contextBuff, _replyHeader.contextID,
+                                          needReply,
+                                          needRollback,
+                                          retBuilder ) ;
+      }
+
       _errorInfo = engine::utilGetErrorBson( rc,
                    _pEDUCB->getInfo( engine::EDU_INFO_ERROR ) ) ;
       if ( SDB_OK != rc )
@@ -395,8 +400,9 @@ error:
    goto done ;
 }
 
-void _mongoSession::_onMsgBegin( MsgHeader *msg )
+INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
 {
+   INT32 rc = SDB_OK ;
    // set reply header ( except flags, length )
    _replyHeader.contextID          = -1 ;
    _replyHeader.numReturned        = 0 ;
@@ -408,6 +414,15 @@ void _mongoSession::_onMsgBegin( MsgHeader *msg )
 
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+
+   rc = getClient()->checkPrivilege( msg ) ;
+   PD_RC_CHECK( rc, PDERROR, "Check privilege for operation[opCode: %d] "
+                "failed, rc: %d", msg->opCode, rc ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )

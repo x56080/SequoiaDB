@@ -33,12 +33,14 @@ Sdb
 | 选项名称  | 取值类型   |    描述   |
 | --------- | ---------- | --------- |
 | AuditMask | String     | 用户审计日志配置掩码，取值列表：ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER；ALL表示全部开启，NONE表示全部不开启；可以使用‘\|’连接多个取值。当某位掩码未配置时，则继承节点相应的配置掩码；也可以通过 ‘!’ 来禁止某位掩码的继承 |
+| Role      | String     | 用户角色，当前只支持系统内置角色，默认值为 "admin"，取值列表："admin"、"monitor"。"admin" 为管理员角色，可执行任何操作；"monitor" 为监控角色，只能执行 snapshot 和 list 操作 |
 
 > **Note:**
 >
 > * 该接口只能用于集群模式。
 > * 当数据库创建了用户，连接数据库必须指定用户名和密码。
 > * 数据库用户名和密码的限制请参考[数据库限制][databast_limite]
+> * 数据库中创建的第一个用户必须是 "admin" 角色
 
 ##返回值##
 
@@ -61,7 +63,7 @@ v2.0 及以上版本
     ```lang-javascript
     > db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
     ```
- 
+
 * 使用 User 对象创建用户名为 sdbadmin，密码为 sdbadmin 的用户。
 
     ```lang-javascript

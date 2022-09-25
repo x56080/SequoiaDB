@@ -50,6 +50,7 @@
 #include "rtnAlterJob.hpp"
 #include "catTask.hpp"
 #include "catCommand.hpp"
+#include "authDef.hpp"
 
 using namespace bson;
 
@@ -131,6 +132,12 @@ namespace engine
          rc = _checkAndUpgradeDSCLInfo() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check and update data source and "
                       "collection information, rc: %d", rc ) ;
+      }
+      else if ( CATALOG_VERSION_V3 == version )
+      {
+         rc = _checkAndUpgradeUserRole() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check and upgrade user role, "
+                      "rc: %d", rc ) ;
       }
 
    done:
@@ -1254,6 +1261,39 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKANDUPGRADEUSERROLE, "catCatalogueManager::_checkAndUpgradeUserRole" )
+   INT32 catCatalogueManager::_checkAndUpgradeUserRole()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATALOGMGR__CHECKANDUPGRADEUSERROLE ) ;
+
+      // Set the role of user who do not have one to admin.
+      try
+      {
+         BSONObj dummyObj ;
+         BSONObj query = BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE <<
+                               BSON( "$exists" << 0 ) ) ;
+         BSONObj updator = BSON( "$set" <<
+            BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE << VALUE_NAME_ADMIN ) ) ;
+         rc = rtnUpdate( AUTH_USR_COLLECTION, query, updator,
+                         dummyObj, 0, _pEduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",
+                      AUTH_USR_COLLECTION, rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATALOGMGR__CHECKANDUPGRADEUSERROLE, rc ) ;
       return rc ;
    error:
       goto done ;

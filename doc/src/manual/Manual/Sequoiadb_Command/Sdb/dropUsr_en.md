@@ -27,6 +27,10 @@ Delete a database user.
 | User       | object   | ---     | [User](reference/Sequoiadb_command/AuxiliaryObjects/User.md) object       | yse             |
 | CipherUser | object   | ---     | [CipherUser](reference/Sequoiadb_command/AuxiliaryObjects/CipherUser.md) object | yes             |
 
+>Note：
+
+>* When dropping the last user of role "admin", we should be sure there is no more user of role "monitor" remained. Otherwise, the operation will fail.
+
 ##RETURN VALUE##
 
 On success, return void.

@@ -121,7 +121,8 @@ namespace engine
          pmdRemoteSessionMgr* getRSManager() { return &_rsManager ; }
 
          INT32             md5Authenticate( const BSONObj &obj,
-                                            _pmdEDUCB *cb ) ;
+                                            _pmdEDUCB *cb,
+                                            BSONObj &outUserObj ) ;
          INT32             SCRAMSHAAuthenticate( const BSONObj &obj,
                                                  _pmdEDUCB *cb,
                                                  BSONObj &outUserObj ) ;

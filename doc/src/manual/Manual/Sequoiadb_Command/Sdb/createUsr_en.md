@@ -33,6 +33,7 @@ The detail description of 'options' parameter is as follow:
 | Attributes | Type   | Description                       | Required or not |
 | ---------- | ------ | --------------------------------- | --------------- |
 | AuditMask  | string | user audit log configuration mask | not             |
+| Role       | String | user role                         | not             |
 
 >Note：
 
@@ -41,6 +42,10 @@ The detail description of 'options' parameter is as follow:
 >* If the database has created a user, you must specify a username and password to connect to the database.
 
 >* AuditMask's value are as follow: ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER. You can combine multiple values with '\|'. 'ALL' means that all mask items are turned on, and 'NONE' means that no mask items are turned on. If an item in the user audit log is not configured, the configuration of the corresponding mask item on the node is inherited. You can also use '!' to disable inheritance of this mask( e.g: "!DDL|DML" ).
+
+>* Role's value are as follow: "admin"、"monitor". The default value is "admin". User of role "admin" can do anything in the database, while user of role "monitor" can only do snapshot and list operations.
+
+>* The role of the first user in the database should always be "admin".
 
 ##RETURN VALUE##
 
@@ -59,7 +64,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
 	```lang-javascript
  	> db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
  	```
- 
+
 2. Create a user with username 'sdbadmin' and password 'sdbadmin' using User object.
 
 	```lang-javascript
