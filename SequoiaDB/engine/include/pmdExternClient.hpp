@@ -91,8 +91,10 @@ namespace engine
          void                 setAuthed( BOOLEAN authed ) ;
 
          // Temp solution. For rest session, it may bind a client with existing
-         // session info.
-         void                 setRoleID( UINT32 roleID ) ;
+         // session info. Need to know if the privilege checking is enabled, and
+         // what role the client is.
+         void                 setAuthInfo( BOOLEAN privCheckEnabled,
+                                           UINT32 roleID ) ;
 
          virtual const MsgHeader *getInMsg() const
          {
