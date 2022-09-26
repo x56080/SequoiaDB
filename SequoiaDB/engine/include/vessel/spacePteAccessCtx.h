@@ -72,7 +72,7 @@ namespace vessel
          void exportDirtyPids(sparseBitmap32 &pids)const;
 
       private:
-         using _P_MAPPING = std::map<PAGE_ID, PAGE_ID>;
+         using _P_MAPPING = ossPoolMap<PAGE_ID, PAGE_ID>;
 
       private:
          void set(PAGE_ID lpid, PAGE_ID pid);
