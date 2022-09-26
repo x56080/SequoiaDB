@@ -3349,8 +3349,8 @@ public class Sequoiadb implements Closeable {
          * @param address The address of SequoiaDB node
          */
         public Builder serverAddress( String address ) {
-            if ( address == null ){
-                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address is null" );
+            if ( address == null || address.isEmpty() ){
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address is null or empty" );
             }
             this.addressList = new ArrayList<>();
             this.addressList.add( address );
