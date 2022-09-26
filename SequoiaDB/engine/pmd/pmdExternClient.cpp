@@ -623,8 +623,9 @@ namespace engine
       _isAuthed = authed ;
    }
 
-   void _pmdExternClient::setRoleID( UINT32 roleID )
+   void _pmdExternClient::setAuthInfo( BOOLEAN privCheckEnabled, UINT32 roleID )
    {
+      _privCheckEnabled = privCheckEnabled ;
       _roleID = roleID ;
    }
 

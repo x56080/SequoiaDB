@@ -83,6 +83,8 @@ namespace engine
       ossSpinXLatch        _inLatch ;
       BOOLEAN              _isLock ;
       UINT32               _roleID ;
+      BOOLEAN              _privCheckEnabled ;  // Privilege checking enabled or
+                                                // not
 
       std::string          _id ;
 
@@ -97,6 +99,7 @@ namespace engine
          _authOK              = FALSE ;
          _isLock              = FALSE ;
          _roleID              = AUTH_INVALID_ROLE_ID ;
+         _privCheckEnabled    = FALSE ;
       }
       INT32 getAttrSize()
       {
@@ -114,6 +117,8 @@ namespace engine
       {
          _id     = "" ;
          _authOK = FALSE ;
+         _roleID = AUTH_INVALID_ROLE_ID ;
+         _privCheckEnabled = FALSE ;
       }
       void active()
       {

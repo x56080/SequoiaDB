@@ -352,7 +352,8 @@ namespace engine
             if ( _pSessionInfo )
             {
                _client.setAuthed( TRUE ) ;
-               _client.setRoleID( _pSessionInfo->_roleID ) ;
+               _client.setAuthInfo( _pSessionInfo->_privCheckEnabled,
+                                    _pSessionInfo->_roleID ) ;
             }
          }
          // recv body
@@ -526,24 +527,26 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( request->isHeaderExist( OM_REST_HEAD_SDBUSER ) &&
-           request->isHeaderExist( OM_REST_HEAD_SDBPASSWD ) )
+      if ( ( !getClient()->isAuthed() &&
+             request->isHeaderExist( OM_REST_HEAD_SDBUSER ) &&
+             request->isHeaderExist( OM_REST_HEAD_SDBPASSWD ) ) )
       {
-         string userName = request->getHeader( OM_REST_HEAD_SDBUSER ) ;
-         string passwd   = request->getHeader( OM_REST_HEAD_SDBPASSWD ) ;
-
-         BSONObj bsonAuth = BSON( SDB_AUTH_USER << userName <<
-                                  SDB_AUTH_PASSWD << passwd ) ;
-         if ( !getClient()->isAuthed() )
+         try
          {
+            string userName = request->getHeader( OM_REST_HEAD_SDBUSER ) ;
+            string passwd = request->getHeader( OM_REST_HEAD_SDBPASSWD ) ;
+
             rc = getClient()->authenticate( userName.c_str(), passwd.c_str() ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG_MSG( PDERROR, "authenticate failed:rc=%d", rc ) ;
-               goto error ;
-            }
+            PD_RC_CHECK( rc, PDERROR, "Authentication failed:rc=%d", rc ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
          }
       }
+
    done:
       return rc ;
    error:
@@ -868,6 +871,7 @@ namespace engine
       {
          _pSessionInfo->_authOK = TRUE ;
          _pSessionInfo->_roleID =  getClient()->getRoleID() ;
+         _pSessionInfo->_privCheckEnabled = getClient()->privCheckEnabled() ;
       }
       return rc ;
    }
