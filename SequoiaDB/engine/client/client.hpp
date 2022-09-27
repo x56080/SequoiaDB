@@ -6125,7 +6125,13 @@ namespace sdbclient
                           configuration of the corresponding mask item on the node
                           is inherited. You can also use '!' to disable inheritance
                           of this mask( e.g. "!DDL|DML" ).
-
+              Role      : User role, currently only builtin roles are supported,
+                          value list:
+                          admin, monitor.
+                          User of role admin has all privileges in the system,
+                          while user of role monitor is only allowed to get
+                          monitor data. If role is not given when creating a
+                          user, the default role is admin.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
