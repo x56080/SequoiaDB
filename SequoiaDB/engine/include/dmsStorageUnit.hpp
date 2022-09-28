@@ -84,18 +84,22 @@ namespace engine
    struct _dmsStorageUnitStat
    {
       INT32          _clNum ;
+      INT64          _totalLobs ;
       INT64          _totalCount ;
       INT32          _totalDataPages ;
       INT32          _totalIndexPages ;
       INT32          _totalLobPages ;
       INT64          _totalDataFreeSpace ;
       INT64          _totalIndexFreeSpace ;
+      INT64          _totalValidLobSize ;
+      INT64          _totalLobSize ;
    } ;
    typedef _dmsStorageUnitStat dmsStorageUnitStat ;
 
    #define DMS_SU_DATA           ( 0x0001 )
    #define DMS_SU_INDEX          ( 0x0002 )
    #define DMS_SU_LOB            ( 0x0004 )
+   #define DMS_SU_LOB_META       ( 0x0008 )
    #define DMS_SU_ALL            ( 0xFFFF )
 
    /*

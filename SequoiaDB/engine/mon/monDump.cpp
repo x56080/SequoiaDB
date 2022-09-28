@@ -66,6 +66,7 @@
 #include "dpsUtil.hpp"
 #include "msgDef.h"
 #include "monMgr.hpp"
+#include "utilMath.hpp"
 
 using namespace bson ;
 using namespace boost::asio::ip ;
@@ -82,7 +83,8 @@ namespace engine
 
    #define MON_CL_DETAIL_VERSION_NULL ( 0 )
    #define MON_CL_DETAIL_VERSION_V1 ( 1 )
-   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V1
+   #define MON_CL_DETAIL_VERSION_V2 ( 2 )
+   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V2
 
    static void monAddGlobalIndexInfo( const BSONObj &indexObj,
                                       BSONObjBuilder &builder )
@@ -1670,7 +1672,7 @@ namespace engine
       return rc ;
    }
 
-   INT32 _monDetailObj2InfoV1( const BSONObj &obj, detailedInfo &info )
+   INT32 _monDetailObj2InfoV2( const BSONObj &obj, detailedInfo &info )
    {
       INT32 rc = SDB_OK ;
       try
@@ -1691,7 +1693,7 @@ namespace engine
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION ),
                      "Unexcepted field here" ) ;
-         SDB_ASSERT( 1 == ele.numberInt(), "Wrong protocal version" ) ;
+         SDB_ASSERT( MON_CL_DETAIL_CURRENT_V == ele.numberInt(), "Wrong protocal version" ) ;
 
          // ID
          ele = iter.next() ;
@@ -1783,6 +1785,42 @@ namespace engine
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOB_PAGES ),
                      "Unexcepted field here" ) ;
          info._totalLobPages = ele.Int() ;
+
+         // TotalUsedLobSpace
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_USED_LOB_SPACE ),
+                     "Unexcepted field here" ) ;
+         info._totalUsedLobSpace = ele.Long() ;
+
+         // UsedLobSpaceRatio
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_USED_LOB_SPACE_RATIO ),
+                     "Unexcepted field here" ) ;
+         info._usedLobSpaceRatio = ele.Double() ;
+
+         // TotalLobSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOB_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._totalLobSize = ele.Long() ;
+
+         // TotalValidLobSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_VALID_LOB_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._totalValidLobSize = ele.Long() ;
+
+         // LobUsageRate
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_USAGE_RATE ),
+                     "Unexcepted field here" ) ;
+         info._lobUsageRate = ele.Double() ;
+
+         // AvgLobSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_AVG_LOB_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._avgLobSize = ele.Long() ;
 
          // TotalDataFreeSpace
          ele = iter.next() ;
@@ -1968,6 +2006,36 @@ namespace engine
                info._totalLobPages = ele.Int() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_USED_LOB_SPACE ))
+            {
+               info._totalUsedLobSpace = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_USED_LOB_SPACE_RATIO ))
+            {
+               info._usedLobSpaceRatio = ele.Double() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_LOB_SIZE ))
+            {
+               info._totalLobSize = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_VALID_LOB_SIZE ))
+            {
+               info._totalValidLobSize = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_LOB_USAGE_RATE ))
+            {
+               info._lobUsageRate = ele.Double() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_AVG_LOB_SIZE ))
+            {
+               info._avgLobSize = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_DATA_FREESPACE ))
             {
                info._totalDataFreeSpace = ele.Long() ;
@@ -2129,9 +2197,9 @@ namespace engine
          internal_version = MON_CL_DETAIL_VERSION_NULL ;
       }
 
-      if ( MON_CL_DETAIL_VERSION_V1 == internal_version )
+      if ( MON_CL_DETAIL_VERSION_V2 == internal_version )
       {
-         rc = _monDetailObj2InfoV1( obj, info ) ;
+         rc = _monDetailObj2InfoV2( obj, info ) ;
       }
       else
       {
@@ -2184,10 +2252,17 @@ namespace engine
                      info._totalIndexPages ) ;
          ob.append ( FIELD_NAME_TOTAL_LOB_PAGES,
                      info._totalLobPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_USED_LOB_SPACE,
+                     (INT64)(info._totalUsedLobSpace) ) ;
+         ob.append ( FIELD_NAME_USED_LOB_SPACE_RATIO, info._usedLobSpaceRatio ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, (INT64)(info._totalLobSize) ) ;
+         ob.append ( FIELD_NAME_TOTAL_VALID_LOB_SIZE, (INT64)(info._totalValidLobSize) ) ;
+         ob.append ( FIELD_NAME_LOB_USAGE_RATE, info._lobUsageRate ) ;
+         ob.append ( FIELD_NAME_AVG_LOB_SIZE, (INT64)info._avgLobSize ) ;
          ob.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
-                     (long long)(info._totalDataFreeSpace )) ;
+                     (long long)(info._totalDataFreeSpace) ) ;
          ob.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
-                     (long long)(info._totalIndexFreeSpace )) ;
+                    (long long)(info._totalIndexFreeSpace) ) ;
          ob.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
                      (FLOAT64)info._currCompressRatio / 100.0 ) ;
 
@@ -3613,7 +3688,11 @@ namespace engine
 
    INT32 _monCollectionSpaceFetch::_fetchNextDetail( BSONObj &obj )
    {
-      INT32 rc = SDB_OK ;
+      INT32 rc                = SDB_OK ;
+      INT64 dataCapSize       = 0 ;
+      INT64 lobCapSize        = 0 ;
+      INT64 totalUsedLobSpace = 0 ;
+      INT64 avgLobSize        = 0 ;
 
       if ( _csInfo.size() == 0 )
       {
@@ -3624,8 +3703,6 @@ namespace engine
 
       try
       {
-         INT64 dataCapSize    = 0 ;
-         INT64 lobCapSize     = 0 ;
          _builder.reset() ;
          BSONObjBuilder ob( _builder ) ;
          MON_CS_LIST::iterator it ;
@@ -3667,12 +3744,19 @@ namespace engine
          {
             lobCapSize = OSS_MAX_FILE_SZ ;
          }
+         totalUsedLobSpace = full._lobCapacity - full._freeLobSpace ;
+         if ( 0 < full._totalLobs )
+         {
+            avgLobSize = full._totalValidLobSize / full._totalLobs ;
+         }
+
          ob.append ( FIELD_NAME_PAGE_SIZE, full._pageSize ) ;
          ob.append ( FIELD_NAME_LOB_PAGE_SIZE, full._lobPageSize ) ;
          ob.append ( FIELD_NAME_MAX_CAPACITY_SIZE,
                      2 * dataCapSize + lobCapSize ) ;
          ob.append ( FIELD_NAME_MAX_DATA_CAP_SIZE, dataCapSize ) ;
          ob.append ( FIELD_NAME_MAX_INDEX_CAP_SIZE, dataCapSize ) ;
+         // deprecated
          ob.append ( FIELD_NAME_MAX_LOB_CAP_SIZE, lobCapSize ) ;
          ob.append ( FIELD_NAME_NUMCOLLECTIONS, full._clNum ) ;
          ob.append ( FIELD_NAME_TOTAL_RECORDS, full._totalRecordNum ) ;
@@ -3682,8 +3766,22 @@ namespace engine
          ob.append ( FIELD_NAME_FREE_DATA_SIZE, full._freeDataSize ) ;
          ob.append ( FIELD_NAME_TOTAL_IDX_SIZE, full._totalIndexSize ) ;
          ob.append ( FIELD_NAME_FREE_IDX_SIZE, full._freeIndexSize ) ;
+         // deprecated
+         ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSpace ) ;
+         ob.append ( FIELD_NAME_MAX_LOB_CAPACITY, lobCapSize ) ;
+         ob.append ( FIELD_NAME_LOB_CAPACITY, full._lobCapacity ) ;
+         ob.append ( FIELD_NAME_LOB_META_CAPACITY, full._lobMetaCapacity ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOBS, full._totalLobs ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOB_PAGES, full._totalLobPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_USED_LOB_SPACE, totalUsedLobSpace) ;
+         ob.append ( FIELD_NAME_USED_LOB_SPACE_RATIO,
+                    utilPercentage( totalUsedLobSpace, full._lobCapacity ) ) ;
+         ob.append ( FIELD_NAME_FREE_LOB_SPACE, full._freeLobSpace ) ;
          ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, full._totalLobSize ) ;
-         ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSize ) ;
+         ob.append ( FIELD_NAME_TOTAL_VALID_LOB_SIZE, full._totalValidLobSize ) ;
+         ob.append ( FIELD_NAME_LOB_USAGE_RATE,
+                     utilPercentage( full._totalValidLobSize, totalUsedLobSpace ) ) ;
+         ob.append ( FIELD_NAME_AVG_LOB_SIZE, avgLobSize ) ;
 
          /// sync info
          ob.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)full._dataCommitLsn ) ;

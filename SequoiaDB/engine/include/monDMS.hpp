@@ -134,6 +134,12 @@ namespace engine
       UINT32 _totalDataPages ;
       UINT32 _totalIndexPages ;
       UINT32 _totalLobPages ;
+      UINT64 _totalUsedLobSpace ;
+      FLOAT64 _usedLobSpaceRatio ;
+      UINT64 _totalLobSize ;
+      UINT64 _totalValidLobSize ;
+      FLOAT64 _lobUsageRate ;
+      UINT64 _avgLobSize ;
       UINT64 _totalDataFreeSpace ;
       UINT64 _totalIndexFreeSpace ;
       UINT32 _currCompressRatio ;
@@ -172,6 +178,12 @@ namespace engine
          _totalDataPages      = 0 ;
          _totalIndexPages     = 0 ;
          _totalLobPages       = 0 ;
+         _totalUsedLobSpace   = 0 ;
+         _usedLobSpaceRatio   = 0 ;
+         _totalLobSize        = 0 ;
+         _totalValidLobSize   = 0 ;
+         _lobUsageRate        = 0 ;
+         _avgLobSize          = 0 ;
          _totalDataFreeSpace  = 0 ;
          _totalIndexFreeSpace = 0 ;
          _currCompressRatio   = 0 ;
@@ -398,10 +410,15 @@ namespace engine
       INT32 _lobPageSize ;
       INT64 _totalDataSize ;
       INT64 _totalIndexSize ;
+      INT64 _totalLobPages ;
+      INT64 _totalLobs ;
+      INT64 _totalValidLobSize ;
+      INT64 _lobCapacity ;
+      INT64 _lobMetaCapacity ;
       INT64 _totalLobSize ;
       INT64 _freeDataSize ;
       INT64 _freeIndexSize ;
-      INT64 _freeLobSize ;
+      INT64 _freeLobSpace ;
 
       /// commit info
       UINT64 _dataCommitLsn ;
@@ -429,10 +446,15 @@ namespace engine
          _lobPageSize = 0 ;
          _totalDataSize = 0 ;
          _totalIndexSize = 0 ;
+         _totalLobPages = 0 ;
+         _totalLobs = 0 ;
+         _totalValidLobSize = 0 ;
+         _lobCapacity = 0 ;
+         _lobMetaCapacity = 0 ;
          _totalLobSize = 0 ;
          _freeDataSize = 0 ;
          _freeIndexSize = 0 ;
-         _freeLobSize = 0 ;
+         _freeLobSpace = 0 ;
 
          _dataCommitLsn = -1 ;
          _idxCommitLsn = -1 ;
@@ -459,10 +481,15 @@ namespace engine
          _lobPageSize = right._lobPageSize ;
          _totalDataSize = right._totalDataSize ;
          _totalIndexSize = right._totalIndexSize ;
+         _totalLobPages = right._totalLobPages ;
+         _totalLobs = right._totalLobs ;
+         _totalValidLobSize = right._totalValidLobSize ;
+         _lobCapacity = right._lobCapacity ;
+         _lobMetaCapacity = right._lobMetaCapacity ;
          _totalLobSize = right._totalLobSize ;
          _freeDataSize = right._freeDataSize ;
          _freeIndexSize = right._freeIndexSize ;
-         _freeLobSize = right._freeLobSize ;
+         _freeLobSpace = right._freeLobSpace ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;
@@ -498,10 +525,15 @@ namespace engine
          _lobPageSize    = right._lobPageSize ;
          _totalDataSize = right._totalDataSize ;
          _totalIndexSize = right._totalIndexSize ;
+         _totalLobPages = right._totalLobPages ;
+         _totalLobs = right._totalLobs ;
+         _totalValidLobSize = right._totalValidLobSize ;
+         _lobCapacity = right._lobCapacity ;
+         _lobMetaCapacity = right._lobMetaCapacity ;
          _totalLobSize = right._totalLobSize ;
          _freeDataSize = right._freeDataSize ;
          _freeIndexSize = right._freeIndexSize ;
-         _freeLobSize = right._freeLobSize ;
+         _freeLobSpace = right._freeLobSpace ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;

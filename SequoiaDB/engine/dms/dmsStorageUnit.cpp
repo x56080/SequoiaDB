@@ -49,6 +49,7 @@
 #include "dmsStorageDataFactory.hpp"
 #include "dmsTransContext.hpp"
 #include "dmsOprHandler.hpp"
+#include "utilMath.hpp"
 
 namespace engine
 {
@@ -3015,7 +3016,7 @@ namespace engine
                                    statInfo._totalDataFreeSpace ;
       INT64 totalIndexFreeSize   = totalFreeSize( DMS_SU_INDEX ) +
                                    statInfo._totalIndexFreeSpace ;
-      INT64 totalLobFreeSize     = totalFreeSize( DMS_SU_LOB ) ;
+      INT64 totalLobFreeSpace     = totalFreeSize( DMS_SU_LOB ) ;
 
       ossMemset( collectionSpace._name, 0, sizeof(collectionSpace._name) ) ;
       ossStrncpy( collectionSpace._name, CSName(), DMS_COLLECTION_SPACE_NAME_SZ );
@@ -3028,13 +3029,19 @@ namespace engine
       collectionSpace._clNum    = statInfo._clNum ;
       collectionSpace._totalRecordNum = statInfo._totalCount ;
       collectionSpace._freeSize = totalDataFreeSize + totalIndexFreeSize +
-                                  totalLobFreeSize ;
+                                  totalLobFreeSpace ;
       collectionSpace._totalDataSize = totalSize( DMS_SU_DATA ) ;
       collectionSpace._freeDataSize  = totalDataFreeSize ;
       collectionSpace._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
       collectionSpace._freeIndexSize = totalIndexFreeSize ;
-      collectionSpace._totalLobSize = totalSize( DMS_SU_LOB ) ;
-      collectionSpace._freeLobSize = totalLobFreeSize ;
+      collectionSpace._lobCapacity = totalSize( DMS_SU_LOB ) ;
+      collectionSpace._lobMetaCapacity = totalSize( DMS_SU_LOB_META ) ;
+
+      collectionSpace._freeLobSpace = totalLobFreeSpace ;
+      collectionSpace._totalLobPages = statInfo._totalLobPages ;
+      collectionSpace._totalLobs = statInfo._totalLobs ;
+      collectionSpace._totalLobSize = statInfo._totalLobSize ;
+      collectionSpace._totalValidLobSize = statInfo._totalValidLobSize ;
 
       /// sync info
       collectionSpace._dataCommitLsn = getCurrentDataLSN() ;
@@ -3105,9 +3112,13 @@ namespace engine
       }
       if ( ( type & DMS_SU_LOB ) && _pLobSu->isOpened() )
       {
+         totalSize +=
+            ( _pLobSu->getLobData()->getFileSz() - DMS_HEADER_SZ ) ;
+      }
+      if ( ( type & DMS_SU_LOB_META ) && _pLobSu->isOpened() )
+      {
          totalSize += ( (INT64)( _pLobSu->getHeader()->_storageUnitSize ) <<
                         _pLobSu->pageSizeSquareRoot() ) ;
-         totalSize += _pLobSu->getLobData()->getFileSz() ;
       }
 
    done:
@@ -3267,7 +3278,9 @@ namespace engine
          statInfo._totalLobPages += mbStat->_totalLobPages ;
          statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
          statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
-
+         statInfo._totalLobs += mbStat->_totalLobs ;
+         statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
+         statInfo._totalLobSize += mbStat->_totalLobSize ;
          ++it ;
       }
 
@@ -3280,6 +3293,7 @@ namespace engine
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
+      INT64 lobCapacity = 0 ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CL ) ;
 
@@ -3291,6 +3305,7 @@ namespace engine
 
       mb = _pDataSu->getMBInfo( mbID ) ;
       mbStat = _pDataSu->getMBStatInfo( mbID ) ;
+      lobCapacity = totalSize( DMS_SU_LOB ) ;
 
       PD_CHECK( DMS_IS_MB_INUSE ( mb->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
@@ -3318,6 +3333,19 @@ namespace engine
          info._dictVersion = mb->_dictVersion ;
 
          info._totalLobs = mbStat->_totalLobs ;
+         info._totalUsedLobSpace = mbStat->_totalLobPages * getLobPageSize() ;
+         info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
+         info._totalLobSize = mbStat->_totalLobSize ;
+         info._totalValidLobSize = mbStat->_totalValidLobSize ;
+         info._lobUsageRate = utilPercentage( info._totalValidLobSize, info._totalUsedLobSpace ) ;
+         if ( 0 < info._totalLobs )
+         {
+            info._avgLobSize = info._totalValidLobSize / info._totalLobs ;
+         }
+         else
+         {
+            info._avgLobSize = 0 ;
+         }
 
          info._pageSize = getPageSize() ;
          info._lobPageSize = getLobPageSize() ;

@@ -32,6 +32,7 @@
 *******************************************************************************/
 
 #include "clsMainCLMonAggregator.hpp"
+#include "utilMath.hpp"
 
 using namespace bson ;
 
@@ -101,6 +102,7 @@ namespace engine
       _clUniqueID = pCataSet->clUniqueID() ;
       _totalSubCLCount = subCLCount ;
       _doneSubCLCount = 0 ;
+      _totalLobCapacity = 0 ;
 
       // no meaning field
       _detail._blockID = (UINT16) -1 ;
@@ -142,6 +144,9 @@ namespace engine
          _detail._totalDataPages += sub._totalDataPages * dataPageMultiple ;
          _detail._totalIndexPages += sub._totalIndexPages * dataPageMultiple ;
          _detail._totalLobPages += sub._totalLobPages * lobPageMultiple ;
+         _detail._totalUsedLobSpace += sub._totalUsedLobSpace ;
+         _detail._totalLobSize += sub._totalLobSize ;
+         _detail._totalValidLobSize += sub._totalValidLobSize ;
          _detail._totalDataFreeSpace += sub._totalDataFreeSpace ;
          _detail._totalIndexFreeSpace += sub._totalIndexFreeSpace ;
 
@@ -190,6 +195,7 @@ namespace engine
             _detail._dictCreated = FALSE ;
          }
          _detail._currCompressRatio += sub._currCompressRatio ;
+         _totalLobCapacity += (UINT64)( sub._totalUsedLobSpace / sub._usedLobSpaceRatio ) ;
       }
       ++_doneSubCLCount ;
    }
@@ -202,6 +208,17 @@ namespace engine
       _detail._totalLobPages /= ( _detail._lobPageSize / DMS_PAGE_SIZE_BASE ) ;
       // Calculate the average compression ratio
       _detail._currCompressRatio = _detail._currCompressRatio / _doneSubCLCount ;
+      // Calculate the average of lob info
+      _detail._usedLobSpaceRatio = utilPercentage( _detail._totalUsedLobSpace, _totalLobCapacity ) ;
+      _detail._lobUsageRate = utilPercentage( _detail._totalValidLobSize, _detail._totalUsedLobSpace ) ;
+      if ( 0 < _detail._totalLobs )
+      {
+         _detail._avgLobSize = _detail._totalValidLobSize / _detail._totalLobs ;
+      }
+      else
+      {
+         _detail._avgLobSize = 0 ;
+      }
 
       ossStrncpy( out._name, _name, sizeof( _name ) ) ;
       out._clUniqueID = _clUniqueID ;

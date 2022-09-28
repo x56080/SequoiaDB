@@ -73,6 +73,8 @@ namespace engine
    BOOLEAN utilMulIsOverflow( INT64 l, INT64 r, INT64 result ) ;
 
    BOOLEAN utilDivIsOverflow( INT64 l, INT64 r ) ;
+
+   FLOAT64 utilPercentage( INT64 x, INT64 y ) ;
 }
 
 

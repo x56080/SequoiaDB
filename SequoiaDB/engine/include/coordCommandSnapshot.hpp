@@ -285,6 +285,8 @@ namespace engine
       private:
          virtual const CHAR *getIntrCMDName() ;
          virtual const CHAR *getInnerAggrContent() ;
+      protected:
+         virtual INT32 _getAggrMonProcessor( IRtnMonProcessorPtr & ptr ) ;
    } ;
    typedef _coordCMDSnapshotSpaces coordCMDSnapshotSpaces ;
 

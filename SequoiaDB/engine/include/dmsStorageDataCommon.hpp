@@ -163,6 +163,8 @@ namespace engine
       UINT64         _totalLobs ;
       UINT64         _totalOrgDataLen ;
       UINT64         _totalDataLen ;
+      UINT64         _totalLobSize ;
+      UINT64         _totalValidLobSize ;
       // end stat
 
       // for persistence
@@ -186,7 +188,7 @@ namespace engine
 
       utilCLUniqueID _clUniqueID ;
 
-      CHAR           _pad [ 276 ] ;
+      CHAR           _pad [ 260 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -246,6 +248,8 @@ namespace engine
 
          _totalOrgDataLen        = 0 ;
          _totalDataLen           = 0 ;
+         _totalLobSize           = 0 ;
+         _totalValidLobSize      = 0 ;
 
          _maxGlobTransID         = 0 ;
          _commitFlag             = 0 ;
@@ -407,6 +411,8 @@ namespace engine
       UINT64      _totalDataLen ;
       UINT32      _startLID ;
       UINT32      _flag ;
+      UINT64      _totalLobSize ;
+      UINT64      _totalValidLobSize ;
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
@@ -460,6 +466,8 @@ namespace engine
          _totalDataLen           = 0 ;
          _startLID               = DMS_INVALID_CLID ;
          _flag                   = 0 ;
+         _totalLobSize           = 0 ;
+         _totalValidLobSize      = 0 ;
          _commitFlag.init( 0 ) ;
          _lastLSN.init( ~0 ) ;
          _lastWriteTick          = 0 ;

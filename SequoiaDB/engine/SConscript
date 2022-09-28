@@ -300,6 +300,7 @@ rtnFiles = [
       "rtn/rtnLocalTaskFactory.cpp",
       "rtn/rtnLocalTask.cpp",
       "rtn/rtnDetectDeadlock.cpp",
+      "rtn/rtnSnapshotProcessor.cpp",
       "rtn/rtnHintModifier.cpp",
       "rtn/rtnInsertModifier.cpp"
       ]

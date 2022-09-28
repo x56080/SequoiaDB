@@ -52,6 +52,13 @@ namespace engine
    #define DMS_BUCKETS_MODULO       16777215
    #define DMS_BUCKETS_LATCH_SIZE   128
 
+   /// record is dmsLobRecord
+   #define DMS_IS_LOBMETA_RECORD(record) \
+             (DMS_LOB_META_SEQUENCE == record._sequence && 0 == record._offset)
+   /// len is dmsLobDataMapBlk._dataLen
+   #define DMS_GET_LOB_PIECE_LENGTH(len) \
+             (DMS_LOB_META_LENGTH >= len ? 0 : (len - DMS_LOB_META_LENGTH))
+
    /*
       _dmsBucketsManagementExtent define
    */
@@ -206,6 +213,11 @@ namespace engine
                          BOOLEAN updateWhenExist,
                          BOOLEAN *pHasUpdated ) ;
 
+
+      void _statVaildLobSize( dmsMBContext *mbContext,
+                              const dmsLobMeta *metaNew,
+                              const dmsLobMeta *metaOld ) ;
+
    private:
       virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) ;
       virtual INT32  _onMapMeta( UINT64 curOffSet ) ;
@@ -286,9 +298,11 @@ namespace engine
                          const UINT32 *bucket,
                          dmsMBContext *mbContext,
                          BOOLEAN hasLockBucket,
-                         BOOLEAN needRelease = TRUE ) ;
+                         BOOLEAN needRelease = TRUE,
+                         const dmsLobRecord *pRecord = NULL ) ;
 
-      INT32 _rollback( DMS_LOB_PAGEID page,
+      INT32 _rollback( const dmsLobRecord &record,
+                       DMS_LOB_PAGEID page,
                        dmsMBContext *mbContext,
                        BOOLEAN pageFilled ) ;
 
