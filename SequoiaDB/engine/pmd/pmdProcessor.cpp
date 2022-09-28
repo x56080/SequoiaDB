@@ -1785,7 +1785,14 @@ namespace engine
    {
       // must call base _onDetach first( will kill context, but kill context
       // need the coordSession
-      pmdDataProcessor::_onDetach() ;
+      try
+      {
+         pmdDataProcessor::_onDetach() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Detach dataProcessor occured exception: %s", e.what() ) ;
+      }
       // do self
       if ( sdbGetPMDController()->getRSManager() )
       {
