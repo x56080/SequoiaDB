@@ -163,8 +163,6 @@ namespace engine
       UINT64         _totalLobs ;
       UINT64         _totalOrgDataLen ;
       UINT64         _totalDataLen ;
-      UINT64         _totalLobSize ;
-      UINT64         _totalValidLobSize ;
       // end stat
 
       // for persistence
@@ -187,6 +185,9 @@ namespace engine
       dmsExtentID    _mbOptExtentID ;
 
       utilCLUniqueID _clUniqueID ;
+
+      UINT64         _totalLobSize ;
+      UINT64         _totalValidLobSize ;
 
       CHAR           _pad [ 260 ] ;
 
@@ -656,6 +657,26 @@ namespace engine
             return (UINT32)( avgSize ) ;
          }
          return 0 ;
+      }
+
+      void updateTotalLobSize( INT64 size )
+      {
+         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobSize ), size ) ;
+      }
+
+      void resetTotalLobSize()
+      {
+         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobSize ), 0 ) ;
+      }
+
+      void updateTotalValidLobSize( INT64 size )
+      {
+         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), size ) ;
+      }
+
+      void resetTotalValidLobSize()
+      {
+         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), 0 ) ;
       }
 
       _dmsMBStatInfo ()

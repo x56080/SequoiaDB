@@ -928,9 +928,8 @@ namespace engine
       {
          blk->setOld() ;
       }
-      /// add lob size, maybe not in mbContext lock
-      ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( mbContext->mbStat()->_totalLobSize ),
-                        pageIncSize ) ;
+
+      mbContext->mbStat()->updateTotalLobSize( pageIncSize ) ;
 
       if ( NULL != dpscb )
       {
@@ -1414,13 +1413,13 @@ namespace engine
       {
          context->mbStat()->_totalLobs++ ;
          lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-         context->mbStat()->_totalLobSize += lobPieceLen ;
+         context->mbStat()->updateTotalLobSize( lobPieceLen ) ;
          _statVaildLobSize( context, ( _dmsLobMeta* )record._data, NULL ) ;
          _incWriteRecord() ;
       }
       else
       {
-         context->mbStat()->_totalLobSize += record._dataLen ;
+         context->mbStat()->updateTotalLobSize( record._dataLen ) ;
       }
 
    done:
@@ -2801,8 +2800,8 @@ namespace engine
       if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
       {
          mbContext->mbStat()->_totalLobs -= 1 ;
-         lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-         mbContext->mbStat()->_totalLobSize -= lobPieceLen ;
+         lobPieceLen = 0 - DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
+         mbContext->mbStat()->updateTotalLobSize( lobPieceLen ) ;
          /// If lobPieceLen <= 0 means lobLen is 0.
          if ( 0 < lobPieceLen && NULL != pRecord )
          {
@@ -2812,7 +2811,7 @@ namespace engine
       }
       else
       {
-         mbContext->mbStat()->_totalLobSize -= blk->_dataLen ;
+         mbContext->mbStat()->updateTotalLobSize( 0 - (INT64)blk->_dataLen ) ;
       }
 
       blk->reset() ;
@@ -2966,8 +2965,8 @@ namespace engine
       // clear the stat info
       mbContext->mbStat()->_totalLobPages = 0 ;
       mbContext->mbStat()->_totalLobs = 0 ;
-      mbContext->mbStat()->_totalValidLobSize = 0 ;
-      mbContext->mbStat()->_totalLobSize = 0 ;
+      mbContext->mbStat()->resetTotalLobSize() ;
+      mbContext->mbStat()->resetTotalValidLobSize() ;
 
       if ( NULL != dpscb )
       {
@@ -3135,16 +3134,7 @@ namespace engine
       }
 
       incLen = newLen - oldLen ;
-      if ( mbContext->isMBLock() )
-      {
-         mbContext->mbStat()->_totalValidLobSize += incLen ;
-      }
-      else
-      {
-         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( mbContext->mbStat()->_totalValidLobSize ),
-                           incLen ) ;
-      }
+      mbContext->mbStat()->updateTotalValidLobSize( incLen ) ;
    }
-
 }
 

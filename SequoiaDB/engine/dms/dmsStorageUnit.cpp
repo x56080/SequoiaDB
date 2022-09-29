@@ -3333,11 +3333,14 @@ namespace engine
          info._dictVersion = mb->_dictVersion ;
 
          info._totalLobs = mbStat->_totalLobs ;
-         info._totalUsedLobSpace = mbStat->_totalLobPages * getLobPageSize() ;
+         info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
          info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
          info._totalLobSize = mbStat->_totalLobSize ;
          info._totalValidLobSize = mbStat->_totalValidLobSize ;
-         info._lobUsageRate = utilPercentage( info._totalValidLobSize, info._totalUsedLobSpace ) ;
+         /// Because lob page 0 is unevenly distributed on data nodes, the
+         /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+         /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
+         info._lobUsageRate = utilPercentage( info._totalLobSize, info._totalUsedLobSpace ) ;
          if ( 0 < info._totalLobs )
          {
             info._avgLobSize = info._totalValidLobSize / info._totalLobs ;
