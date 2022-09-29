@@ -129,7 +129,8 @@ public class SHA256Auth27836 extends SdbTestBase {
     private String generateString() {
         Random random = new Random();
         StringBuilder text = new StringBuilder();
-        int len = random.nextInt( 256 );
+        //generate 1-255 character
+        int len = random.nextInt( 255 ) + 1;
         for ( int i = 0; i < len; i++ ) {
             int post = random.nextInt( strBuilder.length() );
             text.append( strBuilder.charAt( post ) );
