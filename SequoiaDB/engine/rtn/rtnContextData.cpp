@@ -1342,6 +1342,38 @@ namespace engine
          goto error ;
       }
 
+      if ( selector.isEmpty() &&
+           IXSCAN == _planRuntime.getScanType() &&
+           returnOptions.testFlag( FLG_FORCE_INDEX_SELECTOR ) )
+      {
+         /**
+          * get index key pattern, then ergodic it and rewrite its value
+          * keyPattern: { a: 1, b: 1 }
+          * selector:   {} =>
+          *             { a: { $include: 1 }, b: { $include: 1 } }
+          */
+         try
+         {
+            BSONObj keyPattern = _planRuntime.getPlan()->getKeyPattern() ;
+            BSONObjBuilder ob ;
+            BSONObjIterator it( keyPattern ) ;
+            BSONObj includeObj = BSON( "$include" << 1 ) ;
+            while ( it.more() )
+            {
+               BSONElement ele = it.next() ;
+               ob.append( ele.fieldName(), includeObj ) ;
+            }
+            selector = ob.obj() ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG ( PDERROR, "Failed to generate selector bson, occur "
+                     "exception: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
       // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {

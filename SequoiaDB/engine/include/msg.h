@@ -696,6 +696,8 @@ typedef struct _MsgOpInsert MsgOpInsert ;
 #define FLG_QUERY_FOR_SHARE                  0x00040000
 // query with context which can be closed if EOF ( only use internally )
 #define FLG_QUERY_CLOSE_EOF_CTX              0x00080000
+// when select is empty, force select to use index key pattern
+#define FLG_FORCE_INDEX_SELECTOR             0x00100000
 
 // For query takes 4 document
 // Query + returnFieldSelector + orderBy + hint

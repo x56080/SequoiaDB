@@ -744,6 +744,7 @@ namespace engine
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract query msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
+      OSS_BIT_CLEAR( flags, FLG_FORCE_INDEX_SELECTOR ) ;
 
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
