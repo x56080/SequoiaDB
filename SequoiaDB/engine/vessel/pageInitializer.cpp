@@ -85,7 +85,7 @@ namespace vessel
          }
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

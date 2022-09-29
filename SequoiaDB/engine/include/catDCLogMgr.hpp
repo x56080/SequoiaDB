@@ -39,7 +39,8 @@
 
 #include "pmd.hpp"
 #include "netDef.hpp"
-#include "dpsLogWrapper.hpp"
+#include "interface/IDataProtectionService.h"
+#include "dpsReplicaLogMgr.hpp"
 #include "pmdEDU.hpp"
 #include <vector>
 #include <string>
@@ -117,7 +118,7 @@ namespace engine
    /*
       _catDCLogMgr define
    */
-   class _catDCLogMgr : public SDBObject, public ILogAccessor
+   class _catDCLogMgr : public IDataJournal
    {
       public:
          _catDCLogMgr() ;
@@ -133,38 +134,60 @@ namespace engine
                            DPS_LSN *pRetLSN = NULL ) ;
 
       public:
-         virtual INT32     search( const DPS_LSN &minLsn,
-                                   _dpsMessageBlock *mb,
-                                   UINT8 type = DPS_SEARCH_ALL,
-                                   INT32 maxNum = 1,
-                                   INT32 maxTime = -1,
-                                   INT32 maxSize = 5242880 ) ;
+         virtual DPS_LSN getMinFileLSN() override ;
+         virtual DPS_LSN getMinBufLSN() override ;
+         virtual DPS_LSN getCurrentLSN() override ;
+         virtual DPS_LSN getExpectedLSN() override ;
+         virtual DPS_LSN getCommittedLSN() override ;
 
-         virtual INT32     searchHeader( const DPS_LSN &lsn,
-                                         _dpsMessageBlock *mb,
-                                         UINT8 type = DPS_SEARCH_ALL ) ;
+         virtual void getLsnWindow( DPS_LSN &minFileLSN,
+                                    DPS_LSN &minBufLSN,
+                                    DPS_LSN &currentLSN,
+                                    DPS_LSN *expectedLSN,
+                                    DPS_LSN *committedLSN ) override ;
 
-         virtual DPS_LSN   getStartLsn ( BOOLEAN logBufOnly = FALSE ) ;
+         virtual INT32 write( const dpsWriteRequest &request,
+                              const dpsWriteOptions &o,
+                              dpsLogRecordHeader *result ) override ;
 
-         virtual DPS_LSN   getCurrentLsn() ;
-         virtual DPS_LSN   expectLsn() ;
-         virtual DPS_LSN   commitLsn() ;
+         virtual INT32 search( const DPS_LSN &lsn,
+                              const dpsSearchOptions &o,
+                              dpsMessageBlock &block )  override ;
 
-         virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                         DPS_LSN &memBeginLsn,
-                                         DPS_LSN &endLsn,
-                                         DPS_LSN *pExpectLsn,
-                                         DPS_LSN *committed ) ;
+         virtual INT32 replicate( const CHAR *rawdata, UINT32 size ) override
+         {
+            return recordRow(rawdata, size);
+         }
 
-         virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                         DPS_LSN &endLsn,
-                                         DPS_LSN *pExpectLsn,
-                                         DPS_LSN *committed ) ;
+         virtual INT32 commit( DPS_LSN_OFFSET offset ) override ;
 
-         virtual INT32     move( const DPS_LSN_OFFSET &offset,
-                                 const DPS_LSN_VER &version ) ;
+         virtual INT32 move( const DPS_LSN_OFFSET &lsn,
+                             const DPS_LSN_VER &version ) override ;
 
-         virtual INT32     recordRow( const CHAR *row, UINT32 len ) ;
+      public:
+         INT32     search( const DPS_LSN &minLsn,
+                           _dpsMessageBlock *mb,
+                           UINT8 type = DPS_SEARCH_ALL,
+                           INT32 maxNum = 1,
+                           INT32 maxTime = -1,
+                           INT32 maxSize = 5242880 ) ;
+
+         INT32     searchHeader( const DPS_LSN &lsn,
+                                 _dpsMessageBlock *mb,
+                                 UINT8 type = DPS_SEARCH_ALL ) ;
+
+         DPS_LSN getStartLsn ( BOOLEAN logBufOnly = FALSE );
+
+         DPS_LSN expectLsn();
+         DPS_LSN commitLsn();
+         DPS_LSN getCurrentLsn();
+
+         void getLsnWindow( DPS_LSN &beginLsn,
+                           DPS_LSN &endLsn,
+                           DPS_LSN *pExpectLsn,
+                           DPS_LSN *committed );  
+
+         INT32 recordRow( const CHAR *row, UINT32 len );
 
       protected:
          UINT32 _incFileID( UINT32 fileID ) ;

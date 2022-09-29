@@ -113,7 +113,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
 
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
@@ -159,7 +159,7 @@ namespace vessel
       jpad.setType(LOG_TYPE_IX_CRT);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -201,7 +201,7 @@ namespace vessel
       jpad.setType(LOG_TYPE_IX_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -228,7 +228,7 @@ namespace vessel
 
       jpad.setType(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
       if (SDB_OK != rc)
       {
@@ -253,7 +253,7 @@ namespace vessel
       dpsLogRecordHeader jres;
       jpad.setType(LOG_TYPE_CL_TRUNC);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -280,7 +280,7 @@ namespace vessel
       dpsLogRecordHeader jres;
       jpad.setType(LOG_TYPE_CL_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

@@ -68,10 +68,10 @@ namespace engine
    {
    }
 
-   void _pmdSyncMgr::setLogAccess( ILogAccessor *pLogAccess )
+   void _pmdSyncMgr::setLogAccess( IDataJournal *pLogAccess )
    {
       _pLogAccessor = pLogAccess ;
-      _completeLSN = _pLogAccessor->getCurrentLsn().offset ;
+      _completeLSN = _pLogAccessor->getCurrentLsnOffset() ;
    }
 
    void _pmdSyncMgr::setMainUnit( IDataSyncBase *pUnit )
@@ -135,7 +135,7 @@ namespace engine
    {
       if ( _pLogAccessor )
       {
-         _completeLSN = _pLogAccessor->getCurrentLsn().offset ;
+         _completeLSN = _pLogAccessor->getCurrentLsnOffset() ;
       }
       return _completeLSN ;
    }

@@ -413,7 +413,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -453,7 +453,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -481,7 +481,7 @@ namespace vessel
       jpad.setType(LOG_TYPE_CL_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

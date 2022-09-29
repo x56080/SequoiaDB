@@ -3596,4 +3596,126 @@ namespace engine
       goto done ;
    }
 
+#if defined (SDB_ENGINE)
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSIDFROMEREQ, "dpsGetTransIDFromRequest" )
+   INT32 dpsGetTransIDFromRequest( const dpsWriteRequest &req,
+                                   DPS_TRANS_ID &transID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_GETTRANSIDFROMEREQ ) ;
+
+      DPS_TRANSID_NODEID transIDNodeID = DPS_INVALID_TRANSID_NODEID ;
+      DPS_TRANSID_SN transIDSN = DPS_INVALID_TRANSID_SN ;
+      utilSlice s ;
+      transID.reset() ;
+
+      // transaction ID of V0 doesn't have node ID component, we need to
+      // test the existence of DPS_LOG_PUBLIC_TRANSID_NODEID tag to find
+      // out version of transaction ID
+
+      if ( !req.seek( DPS_LOG_PUBLIC_TRANSID, s ) )
+      {
+         // NOTE: not all DPS records have transaction ID, to avoid
+         //       misunderstanding, no need to print error message, let the
+         //       caller to check and print errors
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      transIDSN = *( s.castTo<DPS_TRANSID_SN>() ) ;
+
+      if ( !req.seek( DPS_LOG_PUBLIC_TRANSID_NODEID, s ) )
+      {
+         // has no node ID tag, it is a transaction ID of V0
+         // which only uses DPS_LOG_PUBLIC_TRANSID tag
+         // convert to V1
+         transID.convertFromV0( transIDSN ) ;
+      }
+      else
+      {
+         // has node ID tag, it is a transaction ID of V1
+         transIDNodeID = *( s.castTo<DPS_TRANSID_NODEID>() ) ;
+         transID.setNodeID( transIDNodeID ) ;
+         transID.setSN( transIDSN ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSTIMEFROMECTX, "dpsGetTransTimeFromCtx" )
+   INT32 dpsGetTransTimeFromCtx( const dpsWriteContext &ctx,
+                                 const DPS_TRANS_ID &transID,
+                                 stpLogicalTimeUS &time )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_GETTRANSTIMEFROMECTX ) ;
+
+      // no transaction time for non-global transactions
+      if ( !transID.isGlobTrans() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      // for global transactions, there is two logical time for transaction
+      // - transaction begin time: which is in record of first operator of
+      //   transaction
+      // - transaction commit time: which is in record of transaction
+      //   pre-commit or commit
+      // NOTE: no time error for pre-commit and commit record, which will
+      //       reuse time error of transaction begin time
+      if ( LOG_TYPE_TS_COMMIT == ctx.getRecord()._type )
+      {
+         // pre-commit or commit DPS record of global transaction has
+         // commit time of transaction
+
+         // get time component
+         utilSlice s;
+         if ( !ctx.getReq()->seek( DPS_LOG_PUBLIC_TRANS_TIME, s ) )
+         {
+            // print debug log, it might have no commit time for commit record
+            // ( in second commit phase )
+            PD_LOG( PDDEBUG, "Failed to get transaction time for commit "
+                    "record" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         time.setTime( *( s.castTo<UINT64>() ) ) ;
+      }
+      else if ( transID.isFirstOp() )
+      {
+         // get time error component
+         // NOTE: DPS record of first operator of transaction has
+         //       transaction begin time
+         utilSlice s;
+         if ( !ctx.getReq()->seek( DPS_LOG_PUBLIC_TRANS_TIME_ERROR, s) )
+         {
+            PD_LOG( PDERROR, "Failed to get transaction time error for "
+                    "first operator record" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         // transaction time is compacted in transID
+         time.setTime( transID.getLogicalTime() ) ;
+         time.setTimeError( *( s.castTo<UINT32>() ) ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_GETTRANSTIMEFROMECTX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+#endif//SDB_ENGINE
+
 }

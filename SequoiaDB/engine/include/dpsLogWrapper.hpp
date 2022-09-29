@@ -41,8 +41,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "sdbInterface.hpp"
-#include "sdbIPersistence.hpp"
+#include "interface/IDataProtectionService.h"
 #include "dpsReplicaLogMgr.hpp"
 #include "dpsArchiveMgr.hpp"
 #include "../bson/bsonelement.h"
@@ -63,58 +62,10 @@ namespace engine
 
 
    /*
-      _dpsLogAccessor define
-   */
-   class _dpsLogAccessor
-   {
-      public:
-         _dpsLogAccessor() {}
-         virtual ~_dpsLogAccessor() {}
-
-      public:
-         virtual INT32     search( const DPS_LSN &minLsn,
-                                   _dpsMessageBlock *mb,
-                                   UINT8 type = DPS_SEARCH_ALL,
-                                   INT32 maxNum = 1,        // -1 for unlimited
-                                   INT32 maxTime = -1,      // -1 for unlimited
-                                   INT32 maxSize = 5242880  // -1 for unlimited
-                                   ) = 0 ;
-
-         virtual INT32     searchHeader( const DPS_LSN &lsn,
-                                         _dpsMessageBlock *mb,
-                                         UINT8 type = DPS_SEARCH_ALL ) = 0 ;
-
-         virtual DPS_LSN   getStartLsn ( BOOLEAN logBufOnly = FALSE ) = 0 ;
-
-         virtual DPS_LSN   getCurrentLsn() = 0 ;
-         virtual DPS_LSN   expectLsn() = 0 ;
-         virtual DPS_LSN   commitLsn() = 0 ;
-
-         virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                         DPS_LSN &memBeginLsn,
-                                         DPS_LSN &endLsn,
-                                         DPS_LSN *pExpectLsn,
-                                         DPS_LSN *committed ) = 0 ;
-
-         virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                         DPS_LSN &endLsn,
-                                         DPS_LSN *pExpectLsn,
-                                         DPS_LSN *committed ) = 0 ;
-
-         virtual INT32     move( const DPS_LSN_OFFSET &offset,
-                                 const DPS_LSN_VER &version ) = 0 ;
-
-         virtual INT32     recordRow( const CHAR *row, UINT32 len ) = 0 ;
-
-   } ;
-   typedef _dpsLogAccessor ILogAccessor ;
-
-
-   /*
       _dpsLogWrapper define
    */
-   class _dpsLogWrapper : public _IControlBlock, public ILogAccessor,
-                          public IDataSyncBase
+   class _dpsLogWrapper : public IControlBlock,
+                          public IDataProtectionService
    {
    private:
       _dpsReplicaLogMgr          _buf ;
@@ -134,64 +85,88 @@ namespace engine
       _dpsLogWrapper() ;
       virtual ~_dpsLogWrapper() ;
 
-      virtual SDB_CB_TYPE cbType() const { return SDB_CB_DPS ; }
-      virtual const CHAR* cbName() const { return "DPSCB" ; }
+   public:/// IControlBlock
+      virtual SDB_CB_TYPE cbType() const override { return SDB_CB_DPS ; }
+      virtual const CHAR* cbName() const override { return "DPSCB" ; }
 
-      virtual INT32  init () ;
-      virtual INT32  active () ;
-      virtual INT32  deactive () ;
-      virtual INT32  fini () ;
-      virtual void   onConfigChange() ;
+      virtual INT32  init() override ;
+      virtual INT32  active() override ;
+      virtual INT32  deactive() override ;
+      virtual INT32  fini() override ;
+      virtual void   onConfigChange() override ;
+
+   public:/// IDataSyncBase
+      virtual BOOLEAN isClosed() const override ;
+      virtual BOOLEAN canSync( BOOLEAN &force ) const override ;
+
+      virtual INT32 sync( BOOLEAN force,
+                          BOOLEAN sync,
+                          IExecutor* cb ) override ;
+
+      virtual void lock() override ;
+      virtual void unlock() override ;
+
+   public:/// IDataJournal
+      virtual DPS_LSN getMinFileLSN() override { return getStartLsn(FALSE) ; }
+      virtual DPS_LSN getMinBufLSN() override { return getStartLsn(TRUE) ; }
+      virtual DPS_LSN getCurrentLSN() override { return getCurrentLsn() ; }
+      virtual DPS_LSN getExpectedLSN() override { return expectLsn() ; }
+      virtual DPS_LSN getCommittedLSN() override { return commitLsn() ; }
+
+      virtual void getLsnWindow( DPS_LSN &minFileLSN,
+                                 DPS_LSN &minBufLSN,
+                                 DPS_LSN &currentLSN,
+                                 DPS_LSN *expectedLSN,
+                                 DPS_LSN *committedLSN ) override ;
+
+      virtual INT32 write( const dpsWriteRequest &request,
+                           const dpsWriteOptions &o,
+                           dpsLogRecordHeader *result ) override ;
+
+      virtual INT32 search( const DPS_LSN &lsn,
+                            const dpsSearchOptions &o,
+                            dpsMessageBlock &block )  override ;
+
+      virtual INT32 replicate( const CHAR *rawdata, UINT32 size ) override
+      {
+         return recordRow(rawdata, size);
+      }
+
+      virtual INT32 commit( DPS_LSN_OFFSET offset ) override ;
+
+      virtual INT32 move( const DPS_LSN_OFFSET &lsn,
+                          const DPS_LSN_VER &version ) override ;
+
+   public:/// IDataProtectionService
+      virtual void regEventHandler( dpsEventHandler *handler ) override ;
+      virtual void unregEventHandler( dpsEventHandler *handler ) override ;
+      virtual INT32 completeOpr( IExecutor *executor, INT32 w ) override ;
+      virtual INT32 archive() override ;
+
+   public: /// make it compatible with old interfaces.
+      INT32 search( const DPS_LSN &minLsn,
+                    _dpsMessageBlock *mb,
+                    UINT8 type = DPS_SEARCH_ALL,
+                    INT32 maxNum = 1,
+                    INT32 maxTime = -1,
+                    INT32 maxSize = 5242880 ) ;
+
+      INT32 searchHeader( const DPS_LSN &lsn,
+                          _dpsMessageBlock *mb,
+                          UINT8 type = DPS_SEARCH_ALL ) ;
+
+      DPS_LSN getStartLsn ( BOOLEAN logBufOnly = FALSE ) ;
+
+      DPS_LSN expectLsn() ;
+      DPS_LSN commitLsn() ;
+      DPS_LSN getCurrentLsn() ;
+
+      void getLsnWindow( DPS_LSN &beginLsn,
+                         DPS_LSN &endLsn,
+                         DPS_LSN *pExpectLsn,
+                         DPS_LSN *committed );
 
    public:
-      virtual INT32     search( const DPS_LSN &minLsn,
-                                _dpsMessageBlock *mb,
-                                UINT8 type = DPS_SEARCH_ALL,
-                                INT32 maxNum = 1,
-                                INT32 maxTime = -1,
-                                INT32 maxSize = 5242880 ) ;
-
-      virtual INT32     searchHeader( const DPS_LSN &lsn,
-                                      _dpsMessageBlock *mb,
-                                      UINT8 type = DPS_SEARCH_ALL ) ;
-
-      virtual DPS_LSN   getStartLsn ( BOOLEAN logBufOnly = FALSE ) ;
-
-      virtual DPS_LSN   getCurrentLsn() ;
-      virtual DPS_LSN   expectLsn() ;
-      virtual DPS_LSN   commitLsn() ;
-
-      virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                      DPS_LSN &memBeginLsn,
-                                      DPS_LSN &endLsn,
-                                      DPS_LSN *pExpectLsn,
-                                      DPS_LSN *committed ) ;
-
-      virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                      DPS_LSN &endLsn,
-                                      DPS_LSN *pExpectLsn,
-                                      DPS_LSN *committed ) ;
-
-      virtual INT32     move( const DPS_LSN_OFFSET &offset,
-                              const DPS_LSN_VER &version ) ;
-
-      virtual INT32     recordRow( const CHAR *row, UINT32 len ) ;
-
-   public:
-         virtual BOOLEAN      isClosed() const ;
-         virtual BOOLEAN      canSync( BOOLEAN &force ) const ;
-
-         virtual INT32        sync( BOOLEAN force,
-                                    BOOLEAN sync,
-                                    IExecutor* cb ) ;
-
-         virtual void         lock() ;
-         virtual void         unlock() ;
-
-   public:
-      void regEventHandler( dpsEventHandler *pHandler ) ;
-      void unregEventHandler( dpsEventHandler *pHandler ) ;
-
       void beforeFS() ;
       void afterFS() ;
 
@@ -223,14 +198,6 @@ namespace engine
       {
          return _initialized ;
       }
-      OSS_INLINE INT32 archive()
-      {
-         if ( !_initialized )
-         {
-            return SDB_OK ;
-         }
-         return _archiver.run() ;
-      }
 
       // note flushAll function is ONLY USED IN TESTCASE
       // engine should NEVER call flushAll in any situation.
@@ -259,10 +226,11 @@ namespace engine
 
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
 
+      INT32 recordRow( const CHAR *row, UINT32 len ) ;
+
    public:
       INT32 prepare( dpsMergeInfo &info ) ;
       void  writeData ( dpsMergeInfo &info ) ;
-      INT32 completeOpr( _pmdEDUCB *cb, INT32 w ) ;
 
       void setLogFileSz ( UINT32 logFileSz )
       {

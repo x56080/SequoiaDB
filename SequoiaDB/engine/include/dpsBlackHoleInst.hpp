@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IDataProtectionService.h
+   Source File Name = dpsBlackHoleInst.hpp
 
    Descriptive Name =
 
@@ -33,33 +33,40 @@
 
 ******************************************************************************/
 
-#ifndef SDB_I_DATA_PROTECTION_SERVICE_H_
-#define SDB_I_DATA_PROTECTION_SERVICE_H_
+#ifndef DPS_BLACK_HOLE_HPP_
+#define DPS_BLACK_HOLE_HPP_
 
-#include "interface/IDataJournal.h"
-#include "sdbIPersistence.hpp"
+#include "interface/IDataProtectionService.h"
+#include <atomic>
 
 namespace engine
 {
-   class _IDataProtectionService : public IDataJournal,
-                                   public IDataSyncBase
+   class dpsBlackHoleInst : public IDataProtectionService
    {
       public:
-         _IDataProtectionService() = default;
-         virtual ~_IDataProtectionService() = default;
-         _IDataProtectionService(const _IDataProtectionService &) = delete;
-         _IDataProtectionService &operator=(const _IDataProtectionService &) = delete;
-      
+         dpsBlackHoleInst() = default;
+         virtual ~dpsBlackHoleInst() = default;
+
       public:
-         virtual void regEventHandler(dpsEventHandler *handler) = 0;
-         virtual void unregEventHandler(dpsEventHandler *handler) = 0;
-         virtual INT32 completeOpr(IExecutor *executor, INT32 w) = 0;
-         virtual INT32 archive() = 0;
 
-   };//class _IDataProtectionService
-   using IDataProtectionService = _IDataProtectionService;
+      private:
+         
+      
+      private:
+         OSS_INLINE UINT32 _getVersion()const
+         {
+            return _version.load(std::memory_order_relaxed);
+         }
+         OSS_INLINE UINT64 _getOffset()const
+         {
+            return _offset.load(std::memory_order_relaxed);
+         }
 
+      private:
+         std::atomic<UINT32> _version{1};
+         std::atomic<UINT64> _offset{0};
+   };//class dpsBlackHole
 } // namespace engine
 
 
-#endif//SDB_I_DATA_PROTECTION_SERVICE_H_
+#endif//DPS_BLACK_HOLE_HPP_

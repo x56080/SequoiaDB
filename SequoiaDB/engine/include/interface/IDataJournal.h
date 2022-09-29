@@ -39,33 +39,10 @@
 #include "sdbInterface.hpp"
 #include "dpsLogRecord.hpp"
 #include "dpsMessageBlock.hpp"
-#include "dpsWriteRequest.hpp"
+#include "dpsRequest.hpp"
 
 namespace engine
 {
-   struct dpsWriteOptions : public SDBObject
-   {
-      UINT32 csid = DMS_INVALID_LOGICCSID;
-      UINT32 clid = DMS_INVALID_LOGICCLID;
-      INT32 extentPos = -1;
-      UINT64 transTime = DPS_INVALID_TRANS_TIME;
-      BOOLEAN notify = FALSE;
-      BOOLEAN transEnabled = FALSE;
-      BOOLEAN irrversible = FALSE;
-      BOOLEAN flushAtOnce = FALSE;
-      IExecutor *executor = nullptr;
-   };//struct dpsWriteOptions
-
-   struct dpsSearchOptions : public SDBObject
-   {
-      BOOLEAN searchMem = TRUE;
-      BOOLEAN searchFile = TRUE;
-      BOOLEAN onlyHeader = FALSE;
-      INT32 limits = 1;
-      INT32 maxTime = -1;
-      INT32 maxSize = 5242880;
-   };//struct dpsSearchOptions
-
    class IDataJournal : public SDBObject
    {
       public:
@@ -73,7 +50,6 @@ namespace engine
          virtual ~IDataJournal() = default;
          IDataJournal(const IDataJournal &) = delete;
          IDataJournal &operator=(const IDataJournal &) = delete;
-
       public:
          virtual DPS_LSN getMinFileLSN() = 0;
          virtual DPS_LSN getMinBufLSN() = 0;
@@ -81,9 +57,9 @@ namespace engine
          virtual DPS_LSN getExpectedLSN() = 0;
          virtual DPS_LSN getCommittedLSN() = 0;
 
-         virtual void getLsnWindow(DPS_LSN *minFileLSN,
-                                   DPS_LSN *minBufLSN,
-                                   DPS_LSN *currentLSN,
+         virtual void getLsnWindow(DPS_LSN &minFileLSN,
+                                   DPS_LSN &minBufLSN,
+                                   DPS_LSN &currentLSN,
                                    DPS_LSN *expectedLSN,
                                    DPS_LSN *committedLSN) = 0;
 
@@ -119,9 +95,13 @@ namespace engine
 
          virtual INT32 replicate(const CHAR *rawdata, UINT32 size) = 0;
 
-         virtual INT32 flush(DPS_LSN_OFFSET lsn) = 0;
+         /// commit all if lsn is invalid
+         virtual INT32 commit(DPS_LSN_OFFSET offset) = 0;
 
-         virtual INT32 move(DPS_LSN_VER version, DPS_LSN_OFFSET lsn) = 0;
+         INT32 flush(DPS_LSN_OFFSET offset) {return commit(offset);}
+
+         virtual INT32 move(const DPS_LSN_OFFSET &lsn,
+                            const DPS_LSN_VER &version) = 0;
    };//class IDataJournal
 } // namespace engine
 

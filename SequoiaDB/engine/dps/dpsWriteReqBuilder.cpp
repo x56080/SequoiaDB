@@ -37,39 +37,32 @@
 
 namespace engine
 {
-   dpsWriteReqBuilder::~dpsWriteReqBuilder()
+   constexpr UINT32 _DEFAULT_BUFFER_SIZE = 8192;
+
+   dpsWriteReqBuilder::dpsWriteReqBuilder()
    {
-      if (nullptr != _buffer)
-      {
-         SDB_THREAD_FREE(_buffer);
-      }
+      utilFragAllocator::options ao;
+      ao.defaultBlockSize = _DEFAULT_BUFFER_SIZE;
+      _allocator.setOptions(ao);
+   }
+
+   dpsWriteReqBuilder::dpsWriteReqBuilder(const options &o)
+   {
+      SDB_ASSERT(0 < o.defaultBufferBlockSize, "can not be invalid");
+      utilFragAllocator::options ao;
+      ao.defaultBlockSize = o.defaultBufferBlockSize;
+      _allocator.setOptions(ao);
    }
 
    void dpsWriteReqBuilder::reset()
    {
-      _done = FALSE;
-      _o = options();
       _type = LOG_TYPE_DUMMY;
       _flags = 0;
+      _totalDataSize = 0;
       _elementNum = 0;
-      _bufferSize = 0;
-      _bufferOffset = 0;
-      if (nullptr != _buffer)
-      {
-         SDB_THREAD_FREE(_buffer);
-         _buffer = nullptr;
-      }
+      _elements = nullptr;
+      _allocator.resetBlocks();
 
-      return;
-   }
-
-   void dpsWriteReqBuilder::refresh()
-   {
-      _done = FALSE;
-      _type = LOG_TYPE_DUMMY;
-      _flags = 0;
-      _elementNum = 0;
-      _bufferOffset = 0;
       return;
    }
 
@@ -79,28 +72,12 @@ namespace engine
 
       req._type = _type;
       req._flags = _flags;
+      req._totalDataSize = _totalDataSize;
       req._elementNum = _elementNum;
-      req._bufferSize = _bufferOffset;
-      req._buffer = _buffer;
-      req._bufferOwned = _buffer;
+      req._elements = _elements;
+      req._rep = _allocator.reap();
 
-      _bufferSize = 0;
-      _buffer = nullptr;
-      refresh();
-      return std::move(req);
-   }
-
-   dpsWriteRequest dpsWriteReqBuilder::done()
-   {
-      dpsWriteRequest req;
-
-      _done = TRUE;
-
-      req._type = _type;
-      req._flags = _flags;
-      req._elementNum = _elementNum;
-      req._bufferSize = _bufferOffset;
-      req._buffer = _buffer;
+      reset();
 
       return std::move(req);
    }
@@ -108,13 +85,12 @@ namespace engine
    INT32 dpsWriteReqBuilder::append(DPS_TAG tag, UINT32 size, const void *data)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!isDone(), "can not be done");
 
       if (OSS_UNLIKELY(DPS_INVALID_TAG == tag ||
                        0 == size ||
                        nullptr == data))
       {
-         SDB_ASSERT(FALSE, "invalid tag");
+         SDB_ASSERT(FALSE, "invalid arg");
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -124,28 +100,40 @@ namespace engine
          rc = SDB_DPS_CORRUPTED_LOG;
          goto error;
       }
-      
-#if defined (_DEBUG)
-      SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
-#endif//_DEBUG
-      
-      rc = _ensureFreeBuffer(getElementBufferSize(size));
-      if (SDB_OK != rc)
+      else
       {
-         PD_LOG(PDERROR, "failed to ensure buffer to write:%d", rc);
-         goto error;
+         CHAR *buffer = nullptr;
+         UINT32 bufferSize = getElementBufferSize(size);
+      #if defined (_DEBUG)
+         SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
+      #endif//_DEBUG
+         
+         rc = _ensureMetaBlock();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to ensure element meta block:%d", rc);
+            goto error;
+         }
+
+         buffer = (CHAR *)_allocator.malloc(bufferSize);
+         if (OSS_UNLIKELY(nullptr == buffer))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         reinterpret_cast<dpsRecordEle *>(buffer)->tag = tag;
+         reinterpret_cast<dpsRecordEle *>(buffer)->len = size;
+         ossMemcpy(buffer + sizeof(dpsRecordEle), data, size);
+         _elements[_elementNum].reset(bufferSize, buffer);
+         ++_elementNum;
+         _totalDataSize += bufferSize;
       }
-
-      getElementPtr()->tag = tag;
-      getElementPtr()->len = size;
-      _moveOffset(sizeof(dpsRecordEle));
-
-      ossMemcpy(getWritePtr(size), data, size);
-      _moveOffset(size);
-      ++_elementNum;
    done:
       return rc;
    error:
+      /// no need to free buffer here, it managed by allocator.
       goto done;
    }
 
@@ -153,74 +141,36 @@ namespace engine
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
-      UINT32 offset = 0;
+
       for (UINT32 i = 0; i < _elementNum; ++i)
       {
-         const dpsRecordEle *ele = (const dpsRecordEle *)(_buffer + offset);
+         const dpsRecordEle *ele = _elements[i].castTo<dpsRecordEle>();
          if (tag == ele->tag)
          {
             r = TRUE;
             break;
          }
-         offset += getElementBufferSize(ele->len);
       }
       return r;
    }
 
-   INT32 dpsWriteReqBuilder::_ensureFreeBuffer(UINT32 size)
+   INT32 dpsWriteReqBuilder::_ensureMetaBlock()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < size, "can not be invalid");
-      UINT32 bufferSize = 0;
-      CHAR *buffer = nullptr;
-      
-      if (size <= getFreeBufferSize())
+      if (nullptr == _elements)
       {
-         goto done;
-      }
+         constexpr UINT32 bufferSize = DPS_MERGE_BLOCK_MAX_DATA * sizeof(utilSlice);
+         _elements = (utilSlice *)_allocator.malloc(bufferSize);
+         if (OSS_UNLIKELY(nullptr == _elements))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
 
-      if (0 == _bufferSize)
-      {
-         bufferSize = _o.initBufferSize;
+         ///WARNING: slices will be reset when appending,
+         ///wild ptr may saved in _elements now.
       }
-      else if (_bufferSize < _o.doubleBufThreshold)
-      {
-         bufferSize = OSS_MAX((_o.minBufferGrowthSize + _bufferSize),
-                               (_bufferSize << 1));
-      }
-      else
-      {
-         bufferSize = _bufferSize + _o.minBufferGrowthSize;
-      }
-
-      if (bufferSize < (_bufferOffset + size))
-      {
-         /// still not enough
-         UINT32 delta = size - (bufferSize - _bufferOffset);
-         bufferSize += ossAlignX(delta, _o.minBufferGrowthSize);
-      }
-
-      buffer = (CHAR *)SDB_THREAD_ALLOC(bufferSize);
-      if (OSS_UNLIKELY(nullptr == buffer))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem for %d bytes.", bufferSize);
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      if (0 < _bufferOffset)
-      {
-         ossMemcpy(buffer, _buffer, _bufferOffset);
-      }
-
-      if (nullptr != _buffer)
-      {
-         SDB_THREAD_FREE(_buffer);
-         _buffer = nullptr;
-      }
-
-      _buffer = buffer;
-      _bufferSize = bufferSize;
    done:
       return rc;
    error:

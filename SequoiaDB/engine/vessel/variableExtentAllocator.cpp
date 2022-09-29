@@ -1036,7 +1036,6 @@ namespace vessel
 
    BOOLEAN variableExtentAllocator::test(PAGE_ID pid)
    {
-      BOOLEAN r = TRUE;
       UINT32 maxFilePcnt = _o.maxPageCountPerSegment * _o.maxSegmentCountPerFile;
       UINT32 fd = pid / maxFilePcnt;
       ossSLatchGuard guard(&_latch, SHARED);

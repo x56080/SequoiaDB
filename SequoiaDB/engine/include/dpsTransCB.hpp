@@ -57,6 +57,7 @@
 #include "dpsUtil.hpp"
 #include "utilConcurrentMap.hpp"
 #include "../bson/bson.hpp"
+#include "dpsWriteContext.hpp"
 
 using namespace bson ;
 
@@ -865,6 +866,9 @@ namespace engine
       void     clearTransInfo() ;
 
       void     saveTransInfoFromLog( const dpsLogRecord &record,
+                                     BOOLEAN checkRstPITWindow ) ;
+
+      void     saveTransInfoFromCtx( const dpsWriteContext &ctx,
                                      BOOLEAN checkRstPITWindow ) ;
       // rollback transaction info to expect LSN ( generally it is older than
       // replayer's completed LSN )

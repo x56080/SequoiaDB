@@ -346,7 +346,7 @@ namespace vessel
       /// dummy log
       jpad.setType(LOG_TYPE_CS_CRT);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, o, &jres);
       if (SDB_OK != rc)
       {

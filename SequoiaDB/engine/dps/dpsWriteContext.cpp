@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IDataProtectionService.h
+   Source File Name = dpsWriteContext.cpp
 
    Descriptive Name =
 
@@ -33,33 +33,26 @@
 
 ******************************************************************************/
 
-#ifndef SDB_I_DATA_PROTECTION_SERVICE_H_
-#define SDB_I_DATA_PROTECTION_SERVICE_H_
-
-#include "interface/IDataJournal.h"
-#include "sdbIPersistence.hpp"
+#include "dpsWriteContext.hpp"
+#include "pdTrace.hpp"
+#include "pmdEDU.hpp"
 
 namespace engine
 {
-   class _IDataProtectionService : public IDataJournal,
-                                   public IDataSyncBase
+   dpsWriteContext::dpsWriteContext(const dpsWriteRequest *req,
+                                    const dpsWriteOptions *o):
+   _req(req),
+   _o(o)
    {
-      public:
-         _IDataProtectionService() = default;
-         virtual ~_IDataProtectionService() = default;
-         _IDataProtectionService(const _IDataProtectionService &) = delete;
-         _IDataProtectionService &operator=(const _IDataProtectionService &) = delete;
-      
-      public:
-         virtual void regEventHandler(dpsEventHandler *handler) = 0;
-         virtual void unregEventHandler(dpsEventHandler *handler) = 0;
-         virtual INT32 completeOpr(IExecutor *executor, INT32 w) = 0;
-         virtual INT32 archive() = 0;
+      _init();
+   }
 
-   };//class _IDataProtectionService
-   using IDataProtectionService = _IDataProtectionService;
+   void dpsWriteContext::_init()
+   {
+      SDB_ASSERT(nullptr != _req && nullptr != _o, "can not be invalid");
+      _irreversible = (nullptr == _o->executor ||
+                       !_o->executor->getTransID().isGlobTrans() ||
+                       !_o->transEnabled);
 
+   }
 } // namespace engine
-
-
-#endif//SDB_I_DATA_PROTECTION_SERVICE_H_

@@ -531,7 +531,9 @@ dpsFiles = [
       "dps/dpsUtil.cpp",
       "dps/dpsDeadlockDetector.cpp",
       "dps/dpsWriteReqBuilder.cpp",
-      "dps/dpsWriteRequest.cpp"
+      "dps/dpsRequest.cpp",
+      "dps/dpsWriteContext.cpp",
+      "dps/dpsBlackHoleInst.cpp"
       ]
 
 omsvcFiles = [
@@ -831,6 +833,9 @@ clientTestFiles = [
 #dpsloggingTestFiles = [
 #      "test/dps/dpsLoggingTest.cpp"
 #      ]
+dpsTestFiles = [
+       "test/dps/dpsReqBuilderTest.cpp"
+]
 #genRecordTestFiles = [
 #      "test/genRecordTest.cpp"
 #      ]
@@ -1011,7 +1016,7 @@ env.StaticLibrary('vessel', vesselFiles)
 env.StaticLibrary('vessel_unit_test_common', vesselUnitTestCommonFiles)
 
 #gtest main
-#dpsgtest = env.Object ( 'dpsgtest', gtestMainFile )
+dpsgtest = env.Object ( 'dpsgtest',gtestMainFile )
 #nettest = env.Object ( 'nettest', gtestMainFile )
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
@@ -1094,6 +1099,9 @@ if hasTestcase:
 #   dpsloggingtest = env.Program("dpsloggingtest", [ dpsloggingTestFiles, dpsgtest],
 #          LIBDEPS=["qgm","bar","rest","cat","coord","gtest",snappy_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","gtest","net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
+   dpstest = env.Program("dpstest", [ dpsTestFiles, dpsgtest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
 #   genRecordTest = env.Program("genRecordTest",genRecordTestFiles,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1202,6 +1210,7 @@ if hasTestcase:
 #   env.Install( '#/tests', pdtest )
 #   env.Install( '#/tests', cryptotest )
 #   env.Install( '#/tests', dpsloggingtest )
+   env.Install( '#/tests', dpstest )
 #   env.Install( '#/tests', genRecordTest )
    #env.Install( '#/tests', replTest )
 #   env.Install( '#/tests', netTest )

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsWriteRequest.cpp
+   Source File Name = dpsRequest.cpp
 
    Descriptive Name =
 
@@ -33,48 +33,32 @@
 
 ******************************************************************************/
 
-#include "dpsWriteRequest.hpp"
+#include "dpsRequest.hpp"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 
 namespace engine
 {
-   dpsWriteRequest::~dpsWriteRequest()
-   {
-      if (nullptr != _bufferOwned)
-      {
-         SDB_THREAD_FREE(_bufferOwned);
-      }
-   }
-
    dpsWriteRequest::dpsWriteRequest(dpsWriteRequest &&o):
    _type(o._type),
    _flags(o._flags),
+   _totalDataSize(o._totalDataSize),
    _elementNum(o._elementNum),
-   _bufferSize(o._bufferSize),
-   _buffer(o._buffer),
-   _bufferOwned(o._bufferOwned)
+   _elements(o._elements),
+   _rep(std::move(o._rep))
    {
-      o._bufferOwned = nullptr;
       o.reset();
    }
 
    dpsWriteRequest &dpsWriteRequest::operator=(dpsWriteRequest &&o)
    {
-      if (nullptr != _bufferOwned)
-      {
-         SDB_THREAD_FREE(_bufferOwned);
-         _bufferOwned = nullptr;
-      }
-
+      reset();
       _type = o._type;
       _flags = o._flags;
       _elementNum = o._elementNum;
-      _bufferSize = o._bufferSize;
-      _buffer = o._buffer;
-      _bufferOwned = o._bufferOwned;
-
-      o._bufferOwned = nullptr;
+      _elements = o._elements;
+      _totalDataSize = o._totalDataSize;
+      _rep = std::move(o._rep);
       o.reset();
       return *this;
    }
@@ -83,14 +67,34 @@ namespace engine
    {
       _type = LOG_TYPE_DUMMY;
       _flags = 0;
+      _totalDataSize = 0;
       _elementNum = 0;
-      _bufferSize = 0;
-      _buffer = nullptr;
-      if (nullptr != _bufferOwned)
-      {
-         SDB_THREAD_FREE(_bufferOwned);
-         _bufferOwned = nullptr;
-      }
+      _elements = nullptr; /// _elements's memory managed by _rep.
+      _rep.reset();
       return;
+   }
+
+   const utilSlice &dpsWriteRequest::getElement(UINT32 pos)const
+   {
+      SDB_ASSERT(pos < _elementNum, "out of bound");
+      return _elements[pos];
+   }
+
+   BOOLEAN dpsWriteRequest::seek(DPS_TAG tag, utilSlice &data)const
+   {
+      SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
+      BOOLEAN r = FALSE;
+      data.reset();
+      for (UINT32 i = 0; i < _elementNum; ++i)
+      {
+         if (tag == _elements[i].castTo<dpsRecordEle>()->tag)
+         {
+            data = _elements[i].getSliceFromOffsetToEnd(sizeof(dpsRecordEle));
+            r = TRUE;
+            break;
+         }
+      }
+
+      return r;
    }
 } // namespace engine

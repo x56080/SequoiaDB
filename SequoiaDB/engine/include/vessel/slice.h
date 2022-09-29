@@ -104,6 +104,16 @@ namespace vessel
             return s;
          }
 
+         OSS_INLINE slice getSliceFromOffsetToEnd(UINT32 offset)const
+         {
+            slice s;
+            if (offset < _size)
+            {
+               s.reset(_size - offset, _data + offset);
+            }
+            return s;
+         }
+
          OSS_INLINE INT32 compare(const slice &o)const
          {
             UINT32 n = OSS_MIN(_size, o._size);

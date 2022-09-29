@@ -77,9 +77,9 @@ namespace vessel
             return DPS_LSN(_lsn.load(std::memory_order_relaxed), 1);
          }
 
-         virtual void getLsnWindow(DPS_LSN *minFileLSN,
-                                    DPS_LSN *minBufLSN,
-                                    DPS_LSN *currentLSN,
+         virtual void getLsnWindow(DPS_LSN &minFileLSN,
+                                    DPS_LSN &minBufLSN,
+                                    DPS_LSN &currentLSN,
                                     DPS_LSN *expectedLSN,
                                     DPS_LSN *committedLSN)
          {
@@ -91,7 +91,7 @@ namespace vessel
                              const dpsWriteOptions &o,
                              dpsLogRecordHeader *result)
          {
-            UINT32 size = sizeof(dpsLogRecordHeader) + request.getBufferSize();
+            UINT32 size = sizeof(dpsLogRecordHeader) + request.getElementDataSize();
             UINT64 lsn = _lsn.fetch_add(ossAlign4(size), std::memory_order_relaxed);
             if (nullptr != result)
             {
@@ -119,8 +119,9 @@ namespace vessel
             return SDB_OK;
          }
 
-         virtual INT32 flush(DPS_LSN_OFFSET lsn) {return SDB_OK;}
-         virtual INT32 move(DPS_LSN_VER version, DPS_LSN_OFFSET lsn) {return SDB_OK;}
+         virtual INT32 commit(DPS_LSN_OFFSET offset) {return SDB_OK;}
+         virtual INT32 move(const DPS_LSN_OFFSET &lsn,
+                            const DPS_LSN_VER &version) {return SDB_OK;}
       private:
          std::atomic_ullong _lsn = {};
    };//class dummyDataJournal

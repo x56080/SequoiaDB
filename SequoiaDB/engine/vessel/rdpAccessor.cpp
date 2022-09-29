@@ -2629,7 +2629,7 @@ namespace vessel
       jpad.setType(LOG_TYPE_VESSEL_RDP_INSERT);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -2656,7 +2656,7 @@ namespace vessel
       jpad.setType(LOG_TYPE_DATA_UPDATE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -2683,7 +2683,7 @@ namespace vessel
       jpad.setType(LOG_TYPE_DATA_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

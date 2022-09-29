@@ -36,44 +36,39 @@
 #ifndef DPS_WRITE_REQ_BUILDER_HPP_
 #define DPS_WRITE_REQ_BUILDER_HPP_
 
-#include "dpsWriteRequest.hpp"
+#include "dpsRequest.hpp"
 #include "dpsTrace.hpp"
 #include "ossLikely.hpp"
+#include "utilFragAllocator.hpp"
+
+#include <array>
 
 namespace engine
 {
    class dpsWriteReqBuilder : public SDBObject
    {
       public:
-         dpsWriteReqBuilder() = default;
-         ~dpsWriteReqBuilder();
+         struct options : public SDBObject
+         {
+            UINT32 defaultBufferBlockSize = 8192;
+         };
+
+      public:
+         dpsWriteReqBuilder();
+         dpsWriteReqBuilder(const options &o);
+         ~dpsWriteReqBuilder() = default;
          dpsWriteReqBuilder(const dpsWriteReqBuilder &) = delete;
          dpsWriteReqBuilder &operator=(const dpsWriteReqBuilder &) = delete;
 
       public:
-         struct options : public SDBObject
-         {
-            UINT32 initBufferSize = 4096;
-            UINT32 minBufferGrowthSize = 128;
-            UINT32 doubleBufThreshold = 512 << 10;
-         };
-
-      public:
          void reset();
-         void refresh();
          OSS_INLINE void setType(DPS_LOG_TYPE type) {_type = type;}
          OSS_INLINE DPS_LOG_TYPE getType()const {return _type;}
          OSS_INLINE void setFlag(UINT32 flag) {OSS_BIT_SET(_flags, flag);}
          OSS_INLINE UINT16 getFlags()const {return _flags;}
-         OSS_INLINE void setOptions(const options &o) {_o = o;}
-         OSS_INLINE BOOLEAN isDone()const {return _done;}
-         OSS_INLINE void setDone() {_done = TRUE;}
 
          /// return owned request and reset builder.
          dpsWriteRequest reap();
-
-         dpsWriteRequest done();
-
       public:
          ///WARNING: the data size is according to the exact type of T.
          template<typename T>
@@ -97,58 +92,26 @@ namespace engine
          template<typename T>
          INT32 appendObj(DPS_TAG tag, const T &v)
          {
-            return appendRawData(tag, sizeof(T), &v);
+            return append(tag, sizeof(T), &v);
          }
 
          INT32 append(DPS_TAG tag, UINT32 size, const void *data);
 
       private:
-         INT32 _ensureFreeBuffer(UINT32 size);
+         INT32 _ensureMetaBlock();
          BOOLEAN _isTagDuplicated(DPS_TAG tag)const;
          OSS_INLINE UINT32 getElementBufferSize(UINT32 valSize)const
          {
             return sizeof(dpsRecordEle) + valSize;
          }
 
-         OSS_INLINE dpsRecordEle *getElementPtr()
-         {
-            SDB_ASSERT(sizeof(dpsRecordEle) <= getFreeBufferSize(), "out of resource");
-            return reinterpret_cast<dpsRecordEle *>(_buffer + _bufferOffset);
-         }
-
-         template<class T>
-         T *getObjectPtr()
-         {
-            SDB_ASSERT(sizeof(T) <= getFreeBufferSize(), "out ouf resource");
-            return reinterpret_cast<T *>(_buffer + _bufferOffset);
-         }
-
-         OSS_INLINE CHAR *getWritePtr(UINT32 size)
-         {
-            SDB_ASSERT(0 < size && size <= getFreeBufferSize(), "invalid ptr");
-            return _buffer + _bufferOffset;
-         }
-
-         OSS_INLINE void _moveOffset(UINT32 size)
-         {
-            SDB_ASSERT((_bufferOffset + size) <= _bufferSize, "out of resource");
-            _bufferOffset += size;
-         }
-
-         OSS_INLINE UINT32 getFreeBufferSize()const
-         {
-            return _bufferSize - _bufferOffset;
-         }
       private:
-         BOOLEAN _done = FALSE;
-         options _o;
          DPS_LOG_TYPE _type = LOG_TYPE_DUMMY;
          UINT16 _flags = 0;
+         UINT32 _totalDataSize = 0;
          UINT32 _elementNum = 0;
-         UINT32 _bufferSize = 0;
-         UINT32 _bufferOffset = 0;
-         CHAR *_buffer = nullptr;
-
+         utilSlice *_elements = nullptr;
+         utilFragAllocator _allocator;
    };//class dpsWriteReqBuilder
 
    template<typename T>
@@ -156,7 +119,6 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       static_assert(std::numeric_limits<T>::is_specialized, "must be numeric");
-      SDB_ASSERT(!isDone(), "can not be done");
 
       if (OSS_UNLIKELY(DPS_INVALID_TAG == tag))
       {
@@ -165,7 +127,7 @@ namespace engine
       }
       else if (OSS_UNLIKELY(DPS_MERGE_BLOCK_MAX_DATA == _elementNum))
       {
-         SDB_ASSERT(FALSE, "out of max element cout");
+         SDB_ASSERT(FALSE, "out of max element count");
          rc = SDB_DPS_CORRUPTED_LOG;
          goto error;
       }
@@ -174,21 +136,30 @@ namespace engine
       #if defined (_DEBUG)
          SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
       #endif//_DEBUG
-         UINT32 size = sizeof(T);
-         rc = _ensureFreeBuffer(getElementBufferSize(size));
+         CHAR *buffer = nullptr;
+         constexpr UINT32 size = sizeof(T);
+         UINT32 bufferSize = getElementBufferSize(size);
+         rc = _ensureMetaBlock();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to ensure buffer to write:%d", rc);
+            PD_LOG(PDERROR, "failed to ensure element meta block:%d", rc);
             goto error;
          }
 
-         getElementPtr()->tag = tag;
-         getElementPtr()->len = size;
-         _moveOffset(sizeof(dpsRecordEle));
+         buffer = (CHAR *)_allocator.malloc(bufferSize);
+         if (OSS_UNLIKELY(nullptr == buffer))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
 
-         *reinterpret_cast<T*>(getWritePtr(size)) = v;
-         _moveOffset(size);
+         reinterpret_cast<dpsRecordEle *>(buffer)->tag = tag;
+         reinterpret_cast<dpsRecordEle *>(buffer)->len = size;
+         *reinterpret_cast<T *>(buffer + sizeof(dpsRecordEle)) = v;
+         _elements[_elementNum].reset(bufferSize, buffer);
          ++_elementNum;
+         _totalDataSize += bufferSize;
       }
    done:
       return rc;

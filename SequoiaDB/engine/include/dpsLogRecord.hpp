@@ -233,10 +233,6 @@ namespace engine
 
       INT32 load ( const CHAR *pData, BOOLEAN checkEnd = FALSE ) ;
 
-      INT32 loadBody( const CHAR *pData,
-                      INT32 totalSize,
-                      BOOLEAN checkEnd = FALSE ) ;
-
       INT32 loadRowBody() ;
 
       iterator find( DPS_TAG tag ) const ;
@@ -273,6 +269,9 @@ namespace engine
 
    protected :
       void _clearTags () ;
+      INT32 _loadBody( const CHAR *pData,
+                       INT32 totalSize,
+                       BOOLEAN checkEnd = FALSE ) ;
 
    private:
       dpsLogRecordHeader _head ;

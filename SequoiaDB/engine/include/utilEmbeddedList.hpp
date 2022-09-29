@@ -177,7 +177,8 @@ namespace engine
          void clear();
 
          /// node must be managed by current list!
-         void erase(T_NODE_PTR node);
+         /// return the next node ptr.
+         T_NODE_PTR erase(T_NODE_PTR node);
 
       private:
          void _release()
@@ -321,31 +322,34 @@ namespace engine
    }
 
    template<typename T, typename NodeReference, typename DeleteNode>
-   void utilEmbeddedList<T, NodeReference, DeleteNode>::erase(T_NODE_PTR node)
+   typename utilEmbeddedList<T, NodeReference, DeleteNode>::T_NODE_PTR
+   utilEmbeddedList<T, NodeReference, DeleteNode>::erase(T_NODE_PTR node)
    {
+      SDB_ASSERT(0 < _size, "invalid size");
       SDB_ASSERT(nullptr != node, "can not be invalid");
+      UTIL_EMBEDDED_LIST_NODE<T> *ref = _getNodeRef(node);
+      T_NODE_PTR next = ref->_getNext();
       if (node == _front)
       {
          _deleteNode(popFront());
-         --_size;
       }
       else if (node == _back)
       {
          _deleteNode(popBack());
-         --_size;
       }
       else
       {
-         UTIL_EMBEDDED_LIST_NODE<T> *ref = _getNodeRef(node);
          T_NODE_PTR pre = ref->_getPre();
          T_NODE_PTR next = ref->_getNext();
          _getNodeRef(pre)->_setNext(next);
          _getNodeRef(next)->_setPre(pre);
          _deleteNode(node);
-         --_size;
+         
       }
 
-      return;
+      --_size;
+
+      return next;
    }
 
 #pragma pack()

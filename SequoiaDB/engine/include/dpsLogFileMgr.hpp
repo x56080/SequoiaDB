@@ -96,7 +96,7 @@ namespace engine
 
       DPS_LSN getStartLSN ( BOOLEAN mustExist = TRUE ) ;
 
-      UINT32 getLogFileSz ()
+      UINT32 getLogFileSz () const
       {
          return _logFileSz ;
       }
@@ -104,7 +104,7 @@ namespace engine
       {
          _logFileNum = logFileNum ;
       }
-      UINT32 getLogFileNum ()
+      UINT32 getLogFileNum () const
       {
          return _logFileNum ;
       }

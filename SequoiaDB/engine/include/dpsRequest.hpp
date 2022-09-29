@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsWriteRequest.hpp
+   Source File Name = dpsRequest.hpp
 
    Descriptive Name =
 
@@ -33,19 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef DPS_WRITE_REQUEST_HPP_
-#define DPS_WRITE_REQUEST_HPP_
+#ifndef DPS_REQUEST_HPP_
+#define DPS_REQUEST_HPP_
 
 #include "dpsLogRecord.hpp"
+#include "utilFragAllocator.hpp"
+#include "utilSlice.hpp"
 
 namespace engine
 {
+   struct dpsWriteOptions
+   {
+      OSS_INLINE BOOLEAN hasTransTime()const
+      {
+         return DPS_INVALID_TRANS_TIME != transTime;
+      }
+
+      INT32 csid = -1;
+      INT32 clid = -1;
+      INT32 extentPos = -1;
+      UINT64 transTime = DPS_INVALID_TRANS_TIME;
+      BOOLEAN notify = FALSE;
+      BOOLEAN transEnabled = FALSE;
+      BOOLEAN flushAtOnce = FALSE;
+      IExecutor *executor = nullptr;
+   };//struct dpsWriteOptions
+
    class dpsWriteRequest : public SDBObject
    {
       friend class dpsWriteReqBuilder;
       public:
          dpsWriteRequest() = default;
-         ~dpsWriteRequest();
+         ~dpsWriteRequest() = default;
          dpsWriteRequest(const dpsWriteRequest &) = delete;
          dpsWriteRequest &operator=(const dpsWriteRequest &) = delete;
          dpsWriteRequest(dpsWriteRequest &&);
@@ -54,20 +73,30 @@ namespace engine
       public:
          OSS_INLINE DPS_LOG_TYPE getType()const {return _type;}
          OSS_INLINE UINT16 getFlags()const {return _flags;}
-         OSS_INLINE UINT32 getBufferSize()const {return _bufferSize;}
+         OSS_INLINE UINT32 getElementDataSize()const {return _totalDataSize;}
          OSS_INLINE UINT32 getElementNum()const {return _elementNum;}
-         OSS_INLINE const CHAR *getElementsBuffer()const {return _buffer;}
-         OSS_INLINE BOOLEAN isOwned()const {return _buffer == _bufferOwned;}
+         const utilSlice &getElement(UINT32 pos)const;
+         BOOLEAN seek(DPS_TAG tag, utilSlice &data)const;
          void reset();
 
       private:
          DPS_LOG_TYPE _type = LOG_TYPE_DUMMY;
          UINT16 _flags = 0;
+         UINT32 _totalDataSize = 0;
          UINT32 _elementNum = 0;
-         UINT32 _bufferSize = 0;/// it is not the real buffer size, it is element data size.
-         const CHAR *_buffer = nullptr;
-         CHAR *_bufferOwned = nullptr;
+         utilSlice *_elements = nullptr;
+         utilFragAllocator::repertory _rep;
    };//class dpsWriteRequest
+
+   struct dpsSearchOptions
+   {
+      BOOLEAN searchMem = TRUE;
+      BOOLEAN searchFile = TRUE;
+      BOOLEAN onlyHeader = FALSE;
+      INT32 limits = 1;
+      INT32 maxTime = -1;
+      INT32 maxSize = 5242880;
+   };//struct dpsSearchOptions
 } // namespace engine
 
 
