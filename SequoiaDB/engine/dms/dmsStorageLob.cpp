@@ -931,6 +931,8 @@ namespace engine
 
       mbContext->mbStat()->updateTotalLobSize( pageIncSize ) ;
 
+      _incWriteRecord() ;
+
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
@@ -1415,12 +1417,13 @@ namespace engine
          lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
          context->mbStat()->updateTotalLobSize( lobPieceLen ) ;
          _statVaildLobSize( context, ( _dmsLobMeta* )record._data, NULL ) ;
-         _incWriteRecord() ;
       }
       else
       {
          context->mbStat()->updateTotalLobSize( record._dataLen ) ;
       }
+
+      _incWriteRecord() ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__FILLPAGE, rc ) ;
@@ -2807,13 +2810,13 @@ namespace engine
          {
             _statVaildLobSize( mbContext, NULL, (_dmsLobMeta *)pRecord->_data ) ;
          }
-         _incWriteRecord() ;
       }
       else
       {
          mbContext->mbStat()->updateTotalLobSize( 0 - (INT64)blk->_dataLen ) ;
       }
 
+      _incWriteRecord() ;
       blk->reset() ;
       blk->setRemoved() ;
 
