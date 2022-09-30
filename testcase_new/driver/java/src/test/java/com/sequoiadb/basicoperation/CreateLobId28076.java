@@ -1,11 +1,13 @@
 package com.sequoiadb.basicoperation;
 
+import com.sequoiadb.auth.Util;
 import com.sequoiadb.base.*;
 import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -34,6 +36,9 @@ public class CreateLobId28076 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( !Util.isCluster( this.sdb ) ) {
+            throw new SkipException( "Skip StandAlone" );
+        }
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
