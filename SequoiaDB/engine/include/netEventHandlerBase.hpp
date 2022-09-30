@@ -138,7 +138,7 @@ namespace engine
       virtual NET_EVENT_HANDLER_TYPE getHandlerType() const = 0 ;
       virtual INT32 syncConnect( const CHAR *hostName,
                                  const CHAR *serviceName ) = 0 ;
-      virtual void asyncRead() = 0 ;
+      virtual INT32 asyncRead() = 0 ;
       virtual INT32 syncSend( const void *buff, UINT32 len ) = 0 ;
       virtual void close() = 0 ;
       virtual CHAR *msg() = 0 ;
