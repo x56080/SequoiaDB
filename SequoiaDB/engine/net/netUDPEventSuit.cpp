@@ -89,18 +89,29 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_ASYNCREAD, "_netUDPEventSuit::asyncRead" )
-   void _netUDPEventSuit::asyncRead()
+   INT32 _netUDPEventSuit::asyncRead()
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT_ASYNCREAD ) ;
 
-      _sock.async_receive_from(
-                     buffer( _buffer, _bufferSize ),
-                     _remoteEndPoint,
-                     boost::bind( ( &_netUDPEventSuit::_readCallback ),
-                                  _getShared(),
-                                  boost::asio::placeholders::error ) ) ;
+      try
+      {
+         _sock.async_receive_from(
+                        buffer( _buffer, _bufferSize ),
+                        _remoteEndPoint,
+                        boost::bind( ( &_netUDPEventSuit::_readCallback ),
+                                     _getShared(),
+                                     boost::asio::placeholders::error ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to async read, occur exception: %s,"
+                 " rc: %d", e.what(), rc ) ;
+      }
 
       PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT_ASYNCREAD ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_SYNCBROADCAST, "_netUDPEventSuit::syncBroadcast" )
@@ -501,8 +512,14 @@ namespace engine
          {
             PD_LOG( PDWARNING, "UDP connection receive timeout: %s,%d",
                     error.message().c_str(), error.value() ) ;
-            asyncRead() ;
-            goto done ;
+            if ( SDB_OK == asyncRead() )
+            {
+               goto done ;
+            }
+            else
+            {
+               goto error_close ;
+            }
          }
          else if ( error.value() == boost::system::errc::operation_canceled ||
                    error.value() == boost::system::errc::no_such_file_or_directory ||
@@ -546,7 +563,10 @@ namespace engine
          handler->readCallback( message ) ;
       }
 
-      asyncRead() ;
+      if ( SDB_OK != asyncRead() )
+      {
+         goto error_close ;
+      }
 
    done:
       PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT__READCALLBACK ) ;
@@ -601,7 +621,11 @@ namespace engine
       _restartTimer.setInfo( hostName, serviceName, bufferSize ) ;
 
       setOptions() ;
-      asyncRead() ;
+      rc = asyncRead() ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__NETUDPEVENTSUIT_LISTEN, rc ) ;

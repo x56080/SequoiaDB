@@ -75,7 +75,7 @@ namespace engine
 
       virtual INT32 syncConnect( const CHAR *hostName,
                                  const CHAR *serviceName ) ;
-      virtual void asyncRead() ;
+      virtual INT32 asyncRead() ;
       virtual INT32 syncSendRaw( const void *buf, UINT32 len ) ;
       virtual void close() ;
       virtual void setOpt() ;

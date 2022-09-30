@@ -116,9 +116,9 @@ namespace engine
       goto done ;
    }
 
-   void _netUDPEventHandler::asyncRead()
+   INT32 _netUDPEventHandler::asyncRead()
    {
-      // do nothing
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVNHND_SYNCSENDRAW, "_netUDPEventHandler::syncSendRaw" )
