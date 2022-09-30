@@ -891,6 +891,8 @@ namespace engine
          blk->setOld() ;
       }
 
+      _incWriteRecord() ;
+
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
@@ -1365,8 +1367,9 @@ namespace engine
       if ( DMS_LOB_META_SEQUENCE == record._sequence )
       {
          context->mbStat()->_totalLobs++ ;
-         _incWriteRecord() ;
       }
+
+      _incWriteRecord() ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__FILLPAGE, rc ) ;
@@ -2666,9 +2669,9 @@ namespace engine
       if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
       {
          mbContext->mbStat()->_totalLobs -= 1 ;
-         _incWriteRecord() ;
       }
 
+      _incWriteRecord() ;
       blk->reset() ;
       blk->setRemoved() ;
 
