@@ -2622,8 +2622,9 @@ error:
    INT32 _rtnDeleteConfig::_fillAliasNameToDelConf()
    {
       INT32 rc = SDB_OK ;
+      CHAR *lowerFieldName = NULL ;
 
-      if( _newCfgObj.isEmpty() )
+      if ( _newCfgObj.isEmpty() )
       {
          goto done ;
       }
@@ -2631,12 +2632,24 @@ error:
       try
       {
          BSONObjBuilder newCfgBob ;
-         BSONObjIterator itr( _newCfgObj );
+         BSONObjIterator itr( _newCfgObj ) ;
          while ( itr.more() )
          {
             BSONElement ele = itr.next() ;
-            const CHAR* fieldName = ele.fieldName() ;
-            const CHAR* aliasName = pmdGetConfigAliasName( fieldName ) ;
+            const CHAR *fieldName = ele.fieldName() ;
+            const CHAR *aliasName = pmdGetConfigAliasName( fieldName ) ;
+            INT32 rc = utilStrToLower( fieldName, lowerFieldName ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
+               goto error ;
+            }
+            if ( NULL != lowerFieldName)
+            {
+               newCfgBob.append( lowerFieldName, 1 ) ;
+               SDB_OSS_FREE( lowerFieldName ) ;
+               lowerFieldName = NULL ;
+            }
 
             if ( *aliasName &&
                  !_newCfgObj.hasField( aliasName ) )
@@ -2656,6 +2669,11 @@ error:
       }
 
    done:
+      if ( NULL != lowerFieldName )
+      {
+         SDB_OSS_FREE( lowerFieldName ) ;
+         lowerFieldName = NULL ;
+      }
       return rc ;
    error:
       goto done ;
@@ -2676,7 +2694,7 @@ error:
 
          _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
          _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
-
+         
          rc = _fillAliasNameToDelConf() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to fill alias name to delete "
                       "config, rc: %d", rc ) ;
