@@ -659,9 +659,14 @@ namespace engine
          return 0 ;
       }
 
-      void updateTotalLobSize( INT64 size )
+      void addTotalLobSize( INT64 size )
       {
          ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobSize ), size ) ;
+      }
+
+      void subTotalLobSize( INT64 size )
+      {
+         addTotalLobSize( 0 - size ) ;
       }
 
       void resetTotalLobSize()
@@ -669,7 +674,7 @@ namespace engine
          ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobSize ), 0 ) ;
       }
 
-      void updateTotalValidLobSize( INT64 size )
+      void addTotalValidLobSize( INT64 size )
       {
          ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), size ) ;
       }

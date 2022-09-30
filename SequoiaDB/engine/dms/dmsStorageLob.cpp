@@ -929,7 +929,7 @@ namespace engine
          blk->setOld() ;
       }
 
-      mbContext->mbStat()->updateTotalLobSize( pageIncSize ) ;
+      mbContext->mbStat()->addTotalLobSize( pageIncSize ) ;
 
       _incWriteRecord() ;
 
@@ -1415,12 +1415,12 @@ namespace engine
       {
          context->mbStat()->_totalLobs++ ;
          lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-         context->mbStat()->updateTotalLobSize( lobPieceLen ) ;
+         context->mbStat()->addTotalLobSize( lobPieceLen ) ;
          _statVaildLobSize( context, ( _dmsLobMeta* )record._data, NULL ) ;
       }
       else
       {
-         context->mbStat()->updateTotalLobSize( record._dataLen ) ;
+         context->mbStat()->addTotalLobSize( record._dataLen ) ;
       }
 
       _incWriteRecord() ;
@@ -2803,8 +2803,8 @@ namespace engine
       if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
       {
          mbContext->mbStat()->_totalLobs -= 1 ;
-         lobPieceLen = 0 - DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
-         mbContext->mbStat()->updateTotalLobSize( lobPieceLen ) ;
+         lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
+         mbContext->mbStat()->subTotalLobSize( lobPieceLen ) ;
          /// If lobPieceLen <= 0 means lobLen is 0.
          if ( 0 < lobPieceLen && NULL != pRecord )
          {
@@ -2813,7 +2813,7 @@ namespace engine
       }
       else
       {
-         mbContext->mbStat()->updateTotalLobSize( 0 - (INT64)blk->_dataLen ) ;
+         mbContext->mbStat()->subTotalLobSize( blk->_dataLen ) ;
       }
 
       _incWriteRecord() ;
@@ -3137,7 +3137,6 @@ namespace engine
       }
 
       incLen = newLen - oldLen ;
-      mbContext->mbStat()->updateTotalValidLobSize( incLen ) ;
+      mbContext->mbStat()->addTotalValidLobSize( incLen ) ;
    }
 }
-
