@@ -134,7 +134,7 @@ namespace engine
          void   makeStat( UINT64 curTick ) ;
 
       public:
-         void  asyncRead() ;
+         INT32 asyncRead() ;
 
          INT32 syncConnect( const CHAR *hostName,
                             const CHAR *serviceName ) ;

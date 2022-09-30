@@ -980,10 +980,17 @@ namespace engine
             eh->close() ;
             *pHandle = NET_INVALID_HANDLE ;
 
-            PD_LOG( PDERROR, "Handlee connected failed, rc: %d", rc ) ;
+            PD_LOG( PDERROR, "Handle connected failed, rc: %d", rc ) ;
             goto error ;
          }
-         eh->asyncRead() ;
+         rc = eh->asyncRead() ;
+         if ( rc )
+         {
+            *pHandle = NET_INVALID_HANDLE ;
+
+            PD_LOG( PDERROR, "Async read failed, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -1033,8 +1040,12 @@ namespace engine
                rc = eh->syncConnect( host, service ) ;
                if ( SDB_OK == rc )
                {
+                  rc = eh->asyncRead() ;
+                  if ( SDB_OK != rc )
+                  {
+                     goto error ;
+                  }
                   hasConnect = TRUE ;
-                  eh->asyncRead() ;
                }
             }
 
