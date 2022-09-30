@@ -964,6 +964,7 @@ namespace engine
                inMsg._pMsg = ( MsgHeader* )pNewMsg ;
             }
 
+            OSS_BIT_CLEAR( pQueryMsg->flags, FLG_FORCE_INDEX_SELECTOR ) ;
             options.setCLFullName( pCollectionName ) ;
             options.setQuery( objQuery ) ;
             options.setOrderBy( objOrderby ) ;

@@ -191,6 +191,12 @@ namespace engine
             copiedOptions.setOrderBy( dummy ) ;
             copiedOptions.setSkip( 0 ) ;
             copiedOptions.setLimit( -1 ) ;
+            // if count query has range in index field, set flag so that
+            // rtn context know the count query can try to use index cover
+            if ( hasRange )
+            {
+               copiedOptions.setFlag( FLG_FORCE_INDEX_SELECTOR ) ;
+            }
 
             rc = rtnQuery ( copiedOptions, cb, dmsCB, rtnCB, queryContextID,
                             &pContextBase ) ;
