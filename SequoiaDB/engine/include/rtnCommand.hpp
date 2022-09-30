@@ -1131,7 +1131,6 @@ namespace engine
 
       private:
          virtual INT32 _fillAliasNameToDelConf() ;
-         virtual INT32 lowerFieldName();
 
       private:
          BSONObj _newCfgObj ;

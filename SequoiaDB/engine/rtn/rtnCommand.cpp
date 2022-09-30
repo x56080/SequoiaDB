@@ -2768,7 +2768,8 @@ error:
             INT32 rc = utilStrToLower( fieldName, lowerFieldName ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, "
+                       "rc: %d", rc ) ;
                goto error ;
             }
             if ( NULL != lowerFieldName)
@@ -2806,57 +2807,6 @@ error:
       goto done ;
    }
 
-   INT32 _rtnDeleteConfig::lowerFieldName()
-   {
-      INT32 rc = SDB_OK ;
-      BSONObjBuilder newObjBuilder ;
-      BSONObjIterator itr( _newCfgObj ) ;
-      CHAR *lowerFieldName = NULL ;
-      if( _newCfgObj.isEmpty() )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         while ( itr.more() )
-         {
-            BSONElement ele =  itr.next() ;
-            const CHAR *srcFieldName = ele.fieldName() ;
-            INT32 rc = utilStrToLower( srcFieldName, lowerFieldName ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            newObjBuilder.appendAs( ele, lowerFieldName ) ;
-
-            if ( NULL != lowerFieldName) 
-            {
-               SDB_OSS_FREE( lowerFieldName ) ;
-               lowerFieldName = NULL ;
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred when lowering the"
-         " FieldName: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
-      }
-      _newCfgObj = newObjBuilder.obj() ;
-
-      done:
-         if( NULL != lowerFieldName )
-         {
-            SDB_OSS_FREE( lowerFieldName ) ;
-            lowerFieldName = NULL ;
-         }
-         return rc ;
-      error:
-         goto done ;
-   }
-
    INT32 _rtnDeleteConfig::init( INT32 flags, INT64 numToSkip,
                                  INT64 numToReturn,
                                  const CHAR *pMatcherBuff,
@@ -2871,7 +2821,6 @@ error:
          BSONObj options = BSONObj( pMatcherBuff ) ;
 
          _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
-         _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
          rc = _fillAliasNameToDelConf() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to fill alias name to delete "
                       "config, rc: %d", rc ) ;
