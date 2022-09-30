@@ -16,13 +16,18 @@
 
 package com.sequoiadb.flink.table;
 
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.util.LookupUtil;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
+import com.sequoiadb.flink.source.SDBLookupTableFunction;
 import com.sequoiadb.flink.source.SDBSource;
 import com.sequoiadb.flink.table.pushdown.FilterPushDownSupport;
 
 import org.apache.flink.table.connector.ChangelogMode;
+import org.apache.flink.table.connector.source.TableFunctionProvider;
 import org.apache.flink.table.connector.source.DynamicTableSource;
+import org.apache.flink.table.connector.source.LookupTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceProvider;
 import org.apache.flink.table.connector.source.abilities.SupportsFilterPushDown;
@@ -38,15 +43,14 @@ import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 
 public class SDBDynamicTableSource implements ScanTableSource,
         SupportsProjectionPushDown,
         SupportsFilterPushDown,
-        SupportsLimitPushDown {
+        SupportsLimitPushDown,
+        LookupTableSource {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBDynamicTableSource.class);
 
@@ -60,7 +64,6 @@ public class SDBDynamicTableSource implements ScanTableSource,
     public SDBDynamicTableSource(SDBSourceOptions sourceOptions,
                                  DataType produceDatatype) {
         LOG.info("source options: {}", sourceOptions);
-
         this.sourceOptions = sourceOptions;
         this.producedDatatype = produceDatatype;
     }
@@ -86,6 +89,7 @@ public class SDBDynamicTableSource implements ScanTableSource,
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext runtimeProviderContext) {
         SDBDataConverter dataConverter
                 = new SDBDataConverter(((RowType) producedDatatype.getLogicalType()));
+
         return SourceProvider.of(new SDBSource(
                 dataConverter,
                 sourceOptions,
@@ -147,8 +151,32 @@ public class SDBDynamicTableSource implements ScanTableSource,
     @Override
     public Result applyFilters(List<ResolvedExpression> resolvedExpressionList) {
         matcher = FilterPushDownSupport.toBsonMatcher(resolvedExpressionList);
-
         //return all expression to flink,internal processing returned expressions
         return Result.of(new ArrayList<>(), resolvedExpressionList);
     }
+
+    /**
+     * the below function implement to LookupTableSource Interface.
+     * This function is called when the user uses the lookup syntax
+     * in the flink-sdb connector.
+     *
+     * @param context provided by flink to get joined fields
+     * @return LookupRuntimeProvider
+     */
+
+    @Override
+    public LookupRuntimeProvider getLookupRuntimeProvider(LookupContext context) {
+
+        int[][] keys = context.getKeys();
+
+        if (LookupUtil.isNestedType(keys)) {
+            throw new SDBException("LookupTableSource doesn't support nested types when using SequoiaDB as the source/sink.");
+        }
+
+        RowType joinedRowType = LookupUtil.getJoinedRowType(producedDatatype, keys);
+
+        return TableFunctionProvider.of(
+                new SDBLookupTableFunction(producedDatatype, sourceOptions, joinedRowType));
+    }
+
 }
