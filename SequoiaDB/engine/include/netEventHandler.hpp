@@ -86,7 +86,7 @@ namespace engine
          virtual void  close() ;
 
       public:
-         virtual void  asyncRead() ;
+         virtual INT32 asyncRead() ;
 
          virtual INT32 syncConnect( const CHAR *hostName,
                                     const CHAR *serviceName ) ;
