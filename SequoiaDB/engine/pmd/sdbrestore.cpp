@@ -718,6 +718,24 @@ namespace engine
          goto error ;
       }
 
+      // only for getconfig
+      if ( TRUE == optMgr._getConfOnly )
+      {
+         // the final config is now in the krcb
+         string output;
+         // The unfield flag causes the dump to skip unset/default values
+         rc = krcb->getOptionCB()->restore( restoreLogger.getConf(),
+                                            &(optMgr._vm ) ) ;
+         if( rc )
+         {
+            std::cerr << "Init option cb failed: " << rc << std::endl ;
+            goto error ;
+         }
+         rc = krcb->getOptionCB()->toString( output, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+         std::cout << output << std::endl ;
+         return rc ;
+      }
+
       // load the existing configuration (from path or backup file)
       rc = getBaseConf( optMgr, restoreLogger.getConf(), baseConf ) ;
       if ( rc )
@@ -732,17 +750,6 @@ namespace engine
       {
          std::cerr << "Init option cb failed: " << rc << std::endl ;
          goto error ;
-      }
-
-      // only for getconfig
-      if ( TRUE == optMgr._getConfOnly )
-      {
-         // the final config is now in the krcb
-         string output;
-         // The unfield flag causes the dump to skip unset/default values
-         rc = krcb->getOptionCB()->toString( output, PMD_CFG_MASK_SKIP_UNFIELD );
-         std::cout << output << std::endl ;
-         return rc ;
       }
 
       // initialize variables
