@@ -141,7 +141,8 @@ namespace engine
                     dmsMBContext *mbContext,
                     _pmdEDUCB *cb,
                     SDB_DPSCB *dpscb,
-                    BOOLEAN onlyRemoveNewPage = FALSE ) ;
+                    BOOLEAN onlyRemoveNewPage = FALSE,
+                    const CHAR *pOldData = NULL ) ;
 
       /// user should make sure that the length of
       ///  buf is enough

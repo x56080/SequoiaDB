@@ -1437,7 +1437,8 @@ namespace engine
                                  dmsMBContext *mbContext,
                                  pmdEDUCB *cb,
                                  SDB_DPSCB *dpscb,
-                                 BOOLEAN onlyRemoveNewPage )
+                                 BOOLEAN onlyRemoveNewPage,
+                                 const CHAR *pOldData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_REMOVE ) ;
@@ -1466,7 +1467,7 @@ namespace engine
       ossSpinSLatch *pLatch = NULL ;
       dmsLobRecord oldRecord ;
       UINT32 readLen = 0 ;
-      BOOLEAN hasSubmit = FALSE ;
+      BOOLEAN needSubmit = FALSE, isMetaPage = FALSE ;
 
       if ( _needDelayOpen )
       {
@@ -1581,57 +1582,47 @@ namespace engine
 
       /// When dpscb is NULL or not page 0, not to alloc the page when page is
       /// not in cache( use len = 0 )
-      if ( DMS_LOB_META_SEQUENCE == blk->_sequence || dpscb )
+      isMetaPage = DMS_LOB_META_SEQUENCE == blk->_sequence ;
+      oldLen = blk->_dataLen ;
+      if ( dpscb )
       {
-         readLen = blk->_dataLen ;
+         // for DPS, we need whole page to write DPS log
+         readLen = oldLen ;
       }
+      else if ( isMetaPage )
+      {
+         // for meta page, we need meta data to calculate valid size
+         // if old data is passed, we can use the old data to calculate
+         // otherwise, read from file
+         if ( NULL == pOldData )
+         {
+            readLen = DMS_LOB_META_LENGTH ;
+         }
+      }
+
       _pCacheUnit->prepareWrite( page, 0, readLen, cb, cContext ) ;
-
-      if ( DMS_LOB_META_SEQUENCE == blk->_sequence )
+      if ( readLen > 0 )
       {
-         /// alloc memory
-         rc = cb->allocBuff( blk->_dataLen, &oldData, NULL ) ;
+         rc = cb->allocBuff( readLen, &oldData, NULL ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Alloc read buffer[%u] failed, rc: %d",
-                    blk->_dataLen, rc ) ;
+                    readLen, rc ) ;
             goto error ;
          }
-         rc = cContext.read( oldData, 0, blk->_dataLen, cb ) ;
+         rc = cContext.read( oldData, 0, readLen, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
             goto error ;
          }
 
-         rc = mbContext->pause() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to pause mb lock, rc: %d", rc ) ;
-
-         /// submit the read data
-         oldLen = cContext.submit( cb ) ;
-         SDB_ASSERT( oldLen == readLen, "impossible" ) ;
-         hasSubmit = TRUE ;
-         oldRecord._data = oldData ;
-
-         rc = mbContext->resume() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to resume mb lock, rc: %d", rc ) ;
+         needSubmit = TRUE ;
       }
-      else if ( dpscb )
+      else if ( isMetaPage && NULL != pOldData )
       {
-         /// alloc memory
-         rc = cb->allocBuff( blk->_dataLen, &oldData, NULL ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Alloc read buffer[%u] failed, rc: %d",
-                    blk->_dataLen, rc ) ;
-            goto error ;
-         }
-         rc = cContext.read( oldData, 0, blk->_dataLen, cb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
-            goto error ;
-         }
+         // use the passed old data
+         oldRecord._data = oldData ;
       }
 
       /// lock bucket
@@ -1643,7 +1634,7 @@ namespace engine
 
       /// remove and release the page
       rc = _removePage( page, blk, &bucketNumber, mbContext,
-                        pLatch ? TRUE : FALSE, TRUE, &oldRecord ) ;
+                        pLatch ? TRUE : FALSE, TRUE ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to remove page:%d, rc:%d", page, rc ) ;
@@ -1658,14 +1649,18 @@ namespace engine
          locked = FALSE ;
       }
 
-      if ( dpscb )
+      /// submit the read data
+      if ( needSubmit )
       {
          /// submit the read data
-         if ( !hasSubmit )
-         {
-            oldLen = cContext.submit( cb ) ;
-         }
+         UINT32 submitLen = cContext.submit( cb ) ;
+         SDB_ASSERT( submitLen == readLen, "impossible" ) ;
+         oldRecord._data = oldData ;
+         needSubmit = FALSE ;
+      }
 
+      if ( dpscb )
+      {
          rc = dpsLobRm2Record( fullName,
                                record._oid,
                                record._sequence,
@@ -1707,6 +1702,14 @@ namespace engine
          mbContext->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                      DMS_FILE_LOB,
                                                      cb->isDoRollback() ) ;
+      }
+
+      // calculate lob valid size
+      if ( isMetaPage && DMS_GET_LOB_PIECE_LENGTH( oldLen ) > 0 )
+      {
+         SDB_ASSERT( NULL != oldRecord._data, "should have meta data" ) ;
+         _statVaildLobSize( mbContext, NULL,
+                            (const dmsLobMeta *)( oldRecord._data ) ) ;
       }
 
       /// discard the page

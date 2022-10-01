@@ -205,7 +205,8 @@ namespace engine
                             SDB_DPSCB *dpsCB,
                             dmsStorageUnit *su = NULL,
                             dmsMBContext *mbContext = NULL,
-                            BOOLEAN onlyRemoveNewPiece = FALSE ) ;
+                            BOOLEAN onlyRemoveNewPiece = FALSE,
+                            const CHAR *pOldData = NULL ) ;
 
    INT32 rtnQueryAndInvalidateLob( const CHAR *fullName,
                                    const bson::OID &oid,
