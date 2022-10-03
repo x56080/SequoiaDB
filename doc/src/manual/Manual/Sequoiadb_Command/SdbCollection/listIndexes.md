@@ -33,8 +33,8 @@ SdbCollection
 | IndexFlag | string    | 索引当前状态，取值如下： <br> "Normal"：正常 <br> "Creating"：正在创建 <br> "Dropping"：正在删除 <br> "Truncating"：正在清空 <br> "Invalid"：无效                                                        |
 | Type      | string    | 索引类型，取值如下： <br> "Positive"：正序索引 <br> "Reverse"：逆序索引 <br> "Text"：全文索引                                       |
 | NotArray| boolean   | 索引的任意一个字段是否允许为数组，取值如下： <br> "true"：不允许为数组 <br> "false"：允许为数组    |
-| Standalone| boolean   | 是否为独立索引 |
-| dropDups  | boolean   | 暂不开放       |
+| Global | boolean   | 是否为全局索引（内部使用） |
+| dropDups  | boolean   | 是否自动删除相同的键值（内部使用）       |
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -67,6 +67,7 @@ v3.4 及以上版本
     "enforced": true,
     "NotNull": false，
     "NotArray": false
+    "Global": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"

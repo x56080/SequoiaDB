@@ -33,8 +33,8 @@ When the function executes successfully, it will return an object of type SdbCur
 | IndexFlag | string    | Index current state, the value is as follows: <br> "Normal": Normal <br> "Creating": Creating <br> "Dropping": Dropping <br> "Truncating": Truncating <br> "Invalid": Invalid                                                       |
 | Type      | string    | Index type, the value is as follows:<br> "Positive": Positive index <br> "Reverse": Reverse index <br> "Text": Full-text index                                     |
 | NotArray| boolean   | Whether any field of the index is allowed to be an array, the value is as follows:<br> "true": Not allowed to be an array. <br> "false": Allowed as an array.    |
-|Standalone| boolean    | Whether it is an independent index. |
-| dropDups  | boolean   | Not open                                  |
+| Global | boolean    | Whether it is a global index (internal use) |
+| dropDups  | boolean   | Whether to automatically delete the same key value (internal use) |
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -67,6 +67,7 @@ List the information of all indexes in the collection "sample.employee".
     "enforced": true,
     "NotNull": false，
     "NotArray": false
+    "Global": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"

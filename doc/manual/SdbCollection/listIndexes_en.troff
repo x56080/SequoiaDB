@@ -428,17 +428,17 @@ T}
 T{
 10
 T}@T{
-Standalone
+Global
 T}@T{
 boolean
 T}@T{
-Whether it is an
+Whether it is a global
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-independent index.
+index (internal use)
 T}
 T{
 11
@@ -447,7 +447,25 @@ dropDups
 T}@T{
 boolean
 T}@T{
-Not open
+Whether to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+automatically delete
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the same key value (
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+internal use)
 T}
 .TE
 .PP
@@ -483,6 +501,7 @@ List the information of all indexes in the collection "sample.employee".
     "enforced": true,
     "NotNull": false，
     "NotArray": false
+    "Global": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"

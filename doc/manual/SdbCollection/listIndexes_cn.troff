@@ -378,11 +378,17 @@ T}
 T{
 10
 T}@T{
-Standalone
+Global
 T}@T{
 boolean
 T}@T{
-是否为独立索引
+是否为全局索引
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+（内部使用）
 T}
 T{
 11
@@ -391,7 +397,19 @@ dropDups
 T}@T{
 boolean
 T}@T{
-暂不开放
+是否自动删除相
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+同的键值（内部
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+使用）
 T}
 .TE
 .PP
@@ -425,6 +443,7 @@ v3.4 及以上版本
     "enforced": true,
     "NotNull": false，
     "NotArray": false
+    "Global": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"
