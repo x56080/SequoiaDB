@@ -30,7 +30,7 @@ detail ( \f[I]boolean，选填\f[] )
 .IP \[bu] 2
 详细信息将返回索引的频繁数值集合（Most Common Values，MCV）统计信息
 .IP \[bu] 2
-仅在 SequoiaDB v3.6.1 及以上版本中生效
+仅在 SequoiaDB v3.4.8 及以上版本中生效
 .RE
 .SH 返回值
 .PP

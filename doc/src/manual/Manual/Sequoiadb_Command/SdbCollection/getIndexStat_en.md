@@ -25,7 +25,7 @@ This function is used to get statistics of the specified index.
     Whether to get index details. The default value is false, which means not to get.
 
     - Details will return MCV(Most Common Values) statistics of the index.
-    - Only valid in SequoiaDB v3.6.1 and above versions.
+    - Only valid in SequoiaDB v3.4.8 and above versions.
 
 ##RETURN VALUE##
 
