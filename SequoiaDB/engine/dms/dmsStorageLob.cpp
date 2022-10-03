@@ -1420,7 +1420,7 @@ namespace engine
       }
       else
       {
-         context->mbStat()->addTotalLobSize( record._dataLen ) ;
+         context->mbStat()->addTotalLobSize( blk->_dataLen ) ;
       }
 
       _incWriteRecord() ;
@@ -1705,7 +1705,7 @@ namespace engine
       }
 
       // calculate lob valid size
-      if ( isMetaPage && DMS_GET_LOB_PIECE_LENGTH( oldLen ) > 0 )
+      if ( isMetaPage )
       {
          SDB_ASSERT( NULL != oldRecord._data, "should have meta data" ) ;
          _statVaildLobSize( mbContext, NULL,
@@ -2808,8 +2808,7 @@ namespace engine
          mbContext->mbStat()->_totalLobs -= 1 ;
          lobPieceLen = DMS_GET_LOB_PIECE_LENGTH( blk->_dataLen ) ;
          mbContext->mbStat()->subTotalLobSize( lobPieceLen ) ;
-         /// If lobPieceLen <= 0 means lobLen is 0.
-         if ( 0 < lobPieceLen && NULL != pRecord )
+         if ( NULL != pRecord )
          {
             _statVaildLobSize( mbContext, NULL, (_dmsLobMeta *)pRecord->_data ) ;
          }
@@ -3140,6 +3139,9 @@ namespace engine
       }
 
       incLen = newLen - oldLen ;
-      mbContext->mbStat()->addTotalValidLobSize( incLen ) ;
+      if ( 0 != incLen )
+      {
+         mbContext->mbStat()->addTotalValidLobSize( incLen ) ;
+      }
    }
 }
