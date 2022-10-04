@@ -2637,13 +2637,13 @@ error:
          {
             BSONElement ele = itr.next() ;
             const CHAR *fieldName = ele.fieldName() ;
-            const CHAR *aliasName = pmdGetConfigAliasName( fieldName ) ;
             INT32 rc = utilStrToLower( fieldName, lowerFieldName ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
                goto error ;
             }
+            const CHAR *aliasName = pmdGetConfigAliasName( lowerFieldName ) ;
             if ( NULL != lowerFieldName)
             {
                newCfgBob.append( lowerFieldName, 1 ) ;
