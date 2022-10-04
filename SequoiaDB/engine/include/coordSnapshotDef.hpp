@@ -183,7 +183,9 @@
                                                 TotalTbScan:\"$Details.$[0].TotalTbScan\",\
                                                 TotalIxScan:\"$Details.$[0].TotalIxScan\",\
                                                 ResetTimestamp:\"$Details.$[0].ResetTimestamp\",\
-                                                NodeName:\"$Details.$[0].NodeName\"\
+                                                NodeName:\"$Details.$[0].NodeName\",\
+                                                CreateTime:\"$Details.$[0].CreateTime\",\
+                                                UpdateTime:\"$Details.$[0].UpdateTime\"\
                                                 }\
                                        }\n\
                                        {$project:{\
@@ -199,7 +201,7 @@
                                                          TotalDataWrite:1,TotalIndexWrite:1,TotalUpdate:1,\
                                                          TotalDelete:1,TotalInsert:1,TotalSelect:1,TotalRead:1,\
                                                          TotalWrite:1,TotalTbScan:1,TotalIxScan:1,ResetTimestamp:1,\
-                                                         NodeName:1}\
+                                                         NodeName:1,CreateTime:1,UpdateTime:1}\
                                                 }\
                                        }\n\
                                        {$group:{\
@@ -253,7 +255,9 @@
                                                 LobUsageRate:{$first:\"$LobUsageRate\"},\
                                                 AvgLobSize:{$first:\"$AvgLobSize\"},\
                                                 Collection:{$mergearrayset:\"$Collection\"},\
-                                                Group:{$addtoset:\"$GroupName\"}\
+                                                Group:{$addtoset:\"$GroupName\"},\
+                                                CreateTime:{$min:\"$CreateTime\"},\
+                                                UpdateTime:{$max:\"$UpdateTime\"}\
                                                 }\
                                        }\n\
                                        {$match:{$and:[{Name:{$exists:1}},\

@@ -1257,6 +1257,9 @@ namespace engine
          goto error ;
       }
 
+      _storageInfo._createTime = _pDataSu->getCreateTime() ;
+      _storageInfo._updateTime = _pDataSu->getUpdateTime() ;
+
    done:
       PD_TRACE_EXITRC ( SDB__DMSSU_OPEN, rc ) ;
       return rc ;
@@ -1454,8 +1457,6 @@ namespace engine
       rc = _pIndexSu->setLobPageSize( lobPageSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set LOB page size in index storage "
                    "unit, rc: %d", rc ) ;
-
-      _storageInfo._lobdPageSize = lobPageSize ;
 
    done :
       PD_TRACE_EXITRC( SDB__DMSSU_SETLOBPAGESIZE, rc ) ;
@@ -2263,6 +2264,9 @@ namespace engine
          OSS_BIT_CLEAR( context->mb()->_attributes, attributeMask ) ;
       }
 
+      // on metadata updated
+      _pDataSu->_onMBUpdated( context->mbID() ) ;
+
       // Flush MME
       _pDataSu->flushMME( _pDataSu->isSyncDeep() ) ;
 
@@ -2431,6 +2435,9 @@ namespace engine
       {
          OSS_BIT_SET( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) ;
       }
+
+      // on metadata updated
+      _pDataSu->_onMBUpdated( context->mbID() ) ;
 
       // Flush MME
       _pDataSu->flushMME( _pDataSu->isSyncDeep() ) ;
@@ -2975,6 +2982,8 @@ namespace engine
       storageUnit._size = totalSize() ;
       storageUnit._CSID = CSID() ;
       storageUnit._logicalCSID = LogicalCSID() ;
+      storageUnit._createTime = getCreateTime() ;
+      storageUnit._updateTime = getUpdateTime() ;
 
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO_SU ) ;
    }
@@ -3054,6 +3063,9 @@ namespace engine
       /// cache info
       collectionSpace._dirtyPage = cacheUnit()->dirtyPages() ;
       collectionSpace._type = type() ;
+
+      collectionSpace._createTime = getCreateTime() ;
+      collectionSpace._updateTime = getUpdateTime() ;
 
       rc = dumpInfo ( collectionSpace._collections, sys, FALSE ) ;
 
@@ -3361,6 +3373,9 @@ namespace engine
          info._dataIsValid = mbStat->_commitFlag.peek() ? TRUE : FALSE ;
          info._idxIsValid = mbStat->_idxCommitFlag.peek() ? TRUE : FALSE ;
          info._lobIsValid = mbStat->_lobCommitFlag.peek() ? TRUE : FALSE ;
+
+         info._createTime = mbStat->_createTime ;
+         info._updateTime = mbStat->_updateTime ;
 
          info._crudCB.setFromOnce( mbStat->_crudCB ) ;
 

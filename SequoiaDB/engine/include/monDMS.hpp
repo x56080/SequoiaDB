@@ -154,6 +154,9 @@ namespace engine
       BOOLEAN _idxIsValid ;
       BOOLEAN _lobIsValid ;
 
+      UINT64  _createTime ;
+      UINT64  _updateTime ;
+
       monCRUDCB _crudCB ;
 
       _detailedInfo ()
@@ -196,6 +199,9 @@ namespace engine
          _dataIsValid         = FALSE ;
          _idxIsValid          = FALSE ;
          _lobIsValid          = FALSE ;
+
+         _createTime          = 0 ;
+         _updateTime          = 0 ;
       }
    } ;
    typedef class _detailedInfo detailedInfo ;
@@ -432,6 +438,9 @@ namespace engine
       UINT32 _dirtyPage ;
       DMS_STORAGE_TYPE _type ;
 
+      UINT64 _createTime ;
+      UINT64 _updateTime ;
+
       _monCollectionSpace ()
       {
          ossMemset ( _name, 0, sizeof(_name)) ;
@@ -465,6 +474,9 @@ namespace engine
 
          _dirtyPage = 0 ;
          _type = DMS_STORAGE_NORMAL ;
+
+         _createTime = 0 ;
+         _updateTime = 0 ;
       }
       _monCollectionSpace ( const _monCollectionSpace &right )
       {
@@ -500,6 +512,9 @@ namespace engine
 
          _dirtyPage = right._dirtyPage ;
          _type = right._type ;
+
+         _createTime = right._createTime ;
+         _updateTime = right._updateTime ;
       }
       ~_monCollectionSpace()
       {
@@ -544,6 +559,10 @@ namespace engine
 
          _dirtyPage = right._dirtyPage ;
          _type = right._type ;
+
+         _createTime = right._createTime ;
+         _updateTime = right._updateTime ;
+
          return *this ;
       }
    } ;
@@ -566,6 +585,8 @@ namespace engine
       SINT32 _numCollections ;
       SINT32 _collectionHWM ;
       SINT64 _size ;
+      UINT64 _createTime ;
+      UINT64 _updateTime ;
 
       OSS_INLINE BOOLEAN operator<(const _monStorageUnit &r) const
       {
@@ -594,6 +615,8 @@ namespace engine
          _numCollections = 0 ;
          _collectionHWM = 0 ;
          _size = 0 ;
+         _createTime = 0 ;
+         _updateTime = 0 ;
       }
    } ;
    typedef class _monStorageUnit       monStorageUnit ;

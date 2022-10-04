@@ -2551,6 +2551,12 @@ namespace engine
       // Flush immediately to avoid corruption of this page in crash.
       flushPages( context->mb()->_mbOptExtentID, pageSize(), isSyncDeep() ) ;
 
+      // on metadata updated
+      _onMBUpdated( context->mbID() ) ;
+
+      // Flush MME
+      flushMME( isSyncDeep() ) ;
+
       rc = optExtent->getOption( (CHAR **)&_options[ mbID ], NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection extend option from extent "
                    "failed, rc: %d", rc ) ;

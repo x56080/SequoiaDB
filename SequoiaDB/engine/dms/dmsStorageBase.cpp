@@ -544,6 +544,24 @@ namespace engine
       return 0 ;
    }
 
+   UINT64 _dmsStorageBase::getCreateTime() const
+   {
+      if ( _dmsHeader )
+      {
+         return _dmsHeader->_createTime ;
+      }
+      return 0 ;
+   }
+
+   UINT64 _dmsStorageBase::getUpdateTime() const
+   {
+      if ( _dmsHeader )
+      {
+         return _dmsHeader->_updateTime ;
+      }
+      return 0 ;
+   }
+
    void _dmsStorageBase::restoreForCrash()
    {
       _isCrash = FALSE ;
@@ -882,6 +900,11 @@ namespace engine
                  _dmsHeader->_commitLsn,
                  strTime, _dmsHeader->_commitTime ) ;
       }
+      else
+      {
+         _dmsHeader->_createTime = ossGetCurrentMilliseconds() ;
+         _dmsHeader->_updateTime = _dmsHeader->_createTime ;
+      }
 
       // SME, 16MB
       rc = map ( DMS_SME_OFFSET, DMS_SME_SZ, (void**)&_dmsSME ) ;
@@ -1131,6 +1154,8 @@ namespace engine
          goto error ;
       }
 
+      _onHeaderUpdated() ;
+
 #ifdef _WINDOWS
       /// modify the header
       ossStrncpy( _dmsHeader->_name, csName, DMS_SU_NAME_SZ ) ;
@@ -1198,7 +1223,7 @@ namespace engine
       if ( _dmsHeader )
       {
          _dmsHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
-
+         _onHeaderUpdated() ;
          flushHeader( TRUE ) ;
       }
 
@@ -1211,9 +1236,13 @@ namespace engine
 
       _lobPageSize = lobPageSize ;
       _pStorageInfo->_lobdPageSize = lobPageSize ;
-      _dmsHeader->_lobdPageSize = lobPageSize ;
 
-      flushHeader( TRUE ) ;
+      if ( _dmsHeader )
+      {
+         _dmsHeader->_lobdPageSize = lobPageSize ;
+         _onHeaderUpdated() ;
+         flushHeader( TRUE ) ;
+      }
 
       return rc ;
    }

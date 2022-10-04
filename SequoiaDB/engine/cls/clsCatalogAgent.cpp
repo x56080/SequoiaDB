@@ -719,6 +719,8 @@ namespace engine
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
       _repairCheck = FALSE ;
       _dataSourceID = UTIL_INVALID_DS_UID ;
+      _createTime = 0 ;
+      _updateTime = 0 ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -2315,6 +2317,40 @@ namespace engine
       else
       {
          _mapping.clear() ;
+      }
+
+      // create time
+      ele = catSet.getField( FIELD_NAME_CREATE_TIME ) ;
+      if ( ele.type() == String )
+      {
+         _createTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+      }
+      else
+      {
+         if ( EOO != ele.type() )
+         {
+            PD_LOG( PDWARNING, "Failed to get field [%s], "
+                    "type %d is invalid", FIELD_NAME_CREATE_TIME,
+                    ele.type() ) ;
+         }
+         _createTime = 0 ;
+      }
+
+      // update time
+      ele = catSet.getField( FIELD_NAME_UPDATE_TIME ) ;
+      if ( ele.type() == Timestamp )
+      {
+         _updateTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+      }
+      else
+      {
+         if ( EOO != ele.type() )
+         {
+            PD_LOG( PDWARNING, "Failed to get field [%s], "
+                    "type %d is invalid", FIELD_NAME_UPDATE_TIME,
+                    ele.type() ) ;
+         }
+         _updateTime = 0 ;
       }
 
       //need to update map and also the vector, usually CATALOGINFO field is

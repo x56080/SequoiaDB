@@ -52,6 +52,9 @@ using namespace bson ;
 namespace engine
 {
 
+   // initial size of BSONObj builder for CATALOG object
+   #define CAT_BUILDER_INIT_SIZE ( 128 )
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGROUPNAMEVALIDATE, "catGroupNameValidate" )
    INT32 catGroupNameValidate ( const CHAR *pName, BOOLEAN isSys )
    {
@@ -1098,24 +1101,43 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CAATADDCL2CS ) ;
-      BSONObj boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
+      BSONObj boMatcher, updator, hint ;
 
-      BSONObjBuilder updateBuild ;
-      BSONObjBuilder sub( updateBuild.subobjStart("$addtoset") ) ;
 
-      BSONObj newCLObj = BSON( CAT_COLLECTION_NAME << clName <<
-                               CAT_CL_UNIQUEID << (INT64)clUniqueID ) ;
-      BSONObjBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
-      sub1.append( "0", newCLObj ) ;
-      sub1.done() ;
+      try
+      {
+         boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
 
-      sub.done() ;
+         BSONObjBuilder updateBuild( CAT_BUILDER_INIT_SIZE ) ;
+         BSONObjBuilder sub( updateBuild.subobjStart("$addtoset") ) ;
 
-      BSONObj uniqueIDObj = BSON( CAT_CS_CLUNIQUEHWM << (INT64)clUniqueID );
-      updateBuild.appendObject( "$set", uniqueIDObj.objdata() ) ;
+         BSONObj newCLObj = BSON( CAT_COLLECTION_NAME << clName <<
+                                  CAT_CL_UNIQUEID << (INT64)clUniqueID ) ;
+         BSONArrayBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
+         sub1.append( newCLObj ) ;
+         sub1.done() ;
 
-      BSONObj updator = updateBuild.obj() ;
-      BSONObj hint ;
+         sub.done() ;
+
+         BSONObjBuilder setBuilder( updateBuild.subobjStart( "$set" ) ) ;
+         setBuilder.append( CAT_CS_CLUNIQUEHWM, (INT64)clUniqueID ) ;
+
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         setBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+
+         setBuilder.doneFast() ;
+
+         updator = updateBuild.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build set updator, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, boMatcher, updator,
                       hint, 0, cb, dmsCB, dpsCB, w ) ;
@@ -1143,25 +1165,49 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATDELCLFROMCS ) ;
 
+      BSONObj modifier, matcher, dummy ;
+
       rc = rtnResolveCollectionName( clFullName.c_str(), clFullName.size(),
                                      szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
                                      szCLName, DMS_COLLECTION_NAME_SZ ) ;
       PD_RC_CHECK( rc, PDWARNING, "Resolve collection name[%s] failed, rc: %d",
                    clFullName.c_str(), rc ) ;
 
+      try
       {
-         BSONObj modifier = BSON( "$pull_by" << BSON( CAT_COLLECTION <<
-                                     BSON( CAT_COLLECTION_NAME << szCLName ) ) ) ;
-         BSONObj matcher = BSON( CAT_COLLECTION_SPACE_NAME << szCSName ) ;
-         BSONObj dummy ;
+         BSONObjBuilder builder( CAT_BUILDER_INIT_SIZE ) ;
+         BSONObjBuilder pullBuilder( builder.subobjStart( "$pull_by" ) ) ;
+         BSONObjBuilder clBuilder( pullBuilder.subobjStart( CAT_COLLECTION ) ) ;
+         clBuilder.append( CAT_COLLECTION_NAME, szCLName ) ;
+         clBuilder.doneFast() ;
+         pullBuilder.doneFast() ;
 
-         rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, modifier,
-                         dummy, 0, cb, dmsCB, dpsCB, w ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update collection: %s, match: %s, "
-                      "updator: %s, rc: %d", CAT_COLLECTION_SPACE_COLLECTION,
-                      matcher.toString().c_str(), modifier.toString().c_str(),
-                      rc ) ;
+         BSONObjBuilder setBuilder( builder.subobjStart( "$set" ) ) ;
+
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         setBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+
+         setBuilder.doneFast() ;
+         modifier = builder.obj() ;
+
+         matcher = BSON( CAT_COLLECTION_SPACE_NAME << szCSName ) ;
       }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build updator, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, modifier,
+                      dummy, 0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update collection: %s, match: %s, "
+                   "updator: %s, rc: %d", CAT_COLLECTION_SPACE_COLLECTION,
+                   matcher.toString().c_str(), modifier.toString().c_str(),
+                   rc ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB_CATDELCLFROMCS, rc ) ;
@@ -1316,22 +1362,39 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATUPDATECSCL ) ;
 
-      BSONObj matcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
-      BSONObj dummy ;
+      BSONObj matcher, modifier, dummy ;
 
-      BSONObjBuilder builder ;
-      BSONObjBuilder subBuilder( builder.subobjStart( "$set" ) ) ;
-      BSONArrayBuilder arrBuilder( subBuilder.subarrayStart( CAT_COLLECTION ) ) ;
-      for ( vector<PAIR_CLNAME_ID>::iterator iter = collections.begin() ;
-            iter != collections.end() ;
-            ++ iter )
+      try
       {
-         arrBuilder << BSON( CAT_COLLECTION_NAME << iter->first
-                          << CAT_CL_UNIQUEID << (INT64)iter->second ) ;
+         BSONObjBuilder builder( CAT_BUILDER_INIT_SIZE ) ;
+         BSONObjBuilder subBuilder( builder.subobjStart( "$set" ) ) ;
+         BSONArrayBuilder arrBuilder( subBuilder.subarrayStart( CAT_COLLECTION ) ) ;
+         for ( vector<PAIR_CLNAME_ID>::iterator iter = collections.begin() ;
+               iter != collections.end() ;
+               ++ iter )
+         {
+            arrBuilder << BSON( CAT_COLLECTION_NAME << iter->first
+                             << CAT_CL_UNIQUEID << (INT64)iter->second ) ;
+         }
+         arrBuilder.done() ;
+
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         subBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+
+         subBuilder.done() ;
+         modifier = builder.obj() ;
+
+         matcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
       }
-      arrBuilder.done() ;
-      subBuilder.done() ;
-      BSONObj modifier = builder.obj() ;
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build updator, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, modifier,
                       dummy, 0, cb, dmsCB, dpsCB, w ) ;
@@ -1359,20 +1422,56 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATUPDATECS ) ;
 
-      BSONObj boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
-      BSONObjBuilder updateBuilder ;
-      BSONObj updator ;
-      BSONObj hint ;
+      BSONObj boMatcher, updator, hint ;
 
-      if ( !setObject.isEmpty() )
+
+      try
       {
-         updateBuilder.append( "$set", setObject ) ;
+         BSONObjBuilder updateBuilder( CAT_BUILDER_INIT_SIZE ) ;
+
+         BOOLEAN hasUpdateTime =
+               ( setObject.hasField( FIELD_NAME_UPDATE_TIME ) ) ||
+               ( unsetObject.hasField( FIELD_NAME_UPDATE_TIME ) ) ;
+
+         if ( hasUpdateTime )
+         {
+            if ( !setObject.isEmpty() )
+            {
+               updateBuilder.append( "$set", setObject ) ;
+            }
+         }
+         else
+         {
+            BSONObjBuilder tmpBuilder( updateBuilder.subobjStart( "$set" ) ) ;
+            if ( !setObject.isEmpty() )
+            {
+               tmpBuilder.appendElements( setObject ) ;
+            }
+
+            UINT64 currentTime = ossGetCurrentMilliseconds() ;
+            CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+            ossMillisecondsToString( currentTime, timestamp ) ;
+            tmpBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+
+            tmpBuilder.doneFast() ;
+         }
+
+         if ( !unsetObject.isEmpty() )
+         {
+            updateBuilder.append( "$unset", unsetObject ) ;
+         }
+
+         updator = updateBuilder.obj() ;
+
+         boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
       }
-      if ( !unsetObject.isEmpty() )
+      catch ( exception &e )
       {
-         updateBuilder.append( "$unset", unsetObject ) ;
+         PD_LOG( PDERROR, "Failed to build updator, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
-      updator = updateBuilder.obj() ;
 
       rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, boMatcher, updator,
                       hint, 0, cb, dmsCB, dpsCB, w ) ;
@@ -1682,23 +1781,60 @@ namespace engine
       SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
 
       PD_TRACE_ENTRY ( SDB_CATUPDATECATALOG ) ;
-      BSONObj hint, updator ;
-      BSONObj match = BSON( CAT_CATALOGNAME_NAME << clFullName ) ;
-      BSONObjBuilder updateBuilder ;
+      BSONObj hint, updator, match ;
 
-      if ( incVersion )
+      try
       {
-         updateBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+         BSONObjBuilder updateBuilder( CAT_BUILDER_INIT_SIZE ) ;
+
+         BOOLEAN hasUpdateTime =
+                  ( setInfo.hasField( FIELD_NAME_UPDATE_TIME ) ) ||
+                  ( unsetInfo.hasField( FIELD_NAME_UPDATE_TIME ) ) ;
+
+         if ( incVersion )
+         {
+            updateBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+         }
+
+         if ( hasUpdateTime )
+         {
+            if ( !setInfo.isEmpty() )
+            {
+               updateBuilder.append( "$set", setInfo ) ;
+            }
+         }
+         else
+         {
+            BSONObjBuilder tmpBuilder( updateBuilder.subobjStart( "$set" ) ) ;
+            if ( !setInfo.isEmpty() )
+            {
+               tmpBuilder.appendElements( setInfo ) ;
+            }
+
+            UINT64 currentTime = ossGetCurrentMilliseconds() ;
+            CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+            ossMillisecondsToString( currentTime, timestamp ) ;
+            tmpBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+
+            tmpBuilder.doneFast() ;
+         }
+
+         if ( !unsetInfo.isEmpty() )
+         {
+            updateBuilder.append( "$unset", unsetInfo ) ;
+         }
+
+         updator = updateBuilder.obj() ;
+
+         match = BSON( CAT_CATALOGNAME_NAME << clFullName ) ;
       }
-      if ( !setInfo.isEmpty() )
+      catch ( exception &e )
       {
-         updateBuilder.append( "$set", setInfo ) ;
+         PD_LOG( PDERROR, "Failed to build updator and matcher, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
-      if ( !unsetInfo.isEmpty() )
-      {
-         updateBuilder.append( "$unset", unsetInfo ) ;
-      }
-      updator = updateBuilder.obj() ;
 
       rc = rtnUpdate( CAT_COLLECTION_INFO_COLLECTION,
                       match, updator, hint,
@@ -6244,6 +6380,14 @@ namespace engine
          {
             builder.append( FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
          }
+      }
+
+      {
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         builder.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+         builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
       }
 
       catRecord = builder.obj () ;

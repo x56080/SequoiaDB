@@ -276,6 +276,24 @@ void ossTimestampToUTCString( ossTimestamp &Tm, CHAR * pStr )
    }
 }
 
+UINT64 ossTimestampToMilliseconds( const ossTimestamp &timestamp )
+{
+   return ( (UINT64)timestamp.time ) * 1000L + timestamp.microtm / 1000L ;
+}
+
+void ossMillisecondsToString( UINT64 milliseconds, CHAR *pStr )
+{
+   ossTimestamp tm( milliseconds ) ;
+   ossTimestampToString( tm, pStr ) ;
+}
+
+UINT64 ossStringToMilliseconds( const CHAR *pStr )
+{
+   ossTimestamp tm ;
+   ossStringToTimestamp( pStr, tm ) ;
+   return ossTimestampToMilliseconds( tm ) ;
+}
+
 // convert time_t from local to UTC in the same DateString
 // for example:
 //   [in] local timezone:CST, date:"2019-08-06 20:13:54", local:1565093634

@@ -365,6 +365,9 @@ namespace engine
          INT64    getMaxRecNum() const { return _maxRecNum ; }
          BOOLEAN  getOverWrite() const { return _overwrite ; }
 
+         UINT64   getCreateTime() const { return _createTime ; }
+         UINT64   getUpdateTime() const { return _updateTime ; }
+
          const clsAutoIncSet*    getAutoIncSet() const ;
          clsAutoIncSet*          getAutoIncSet() ;
 
@@ -483,6 +486,9 @@ namespace engine
 
          UTIL_DS_UID       _dataSourceID ;
          string            _mapping ;
+
+         UINT64            _createTime ;
+         UINT64            _updateTime ;
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 

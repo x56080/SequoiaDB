@@ -98,6 +98,9 @@ namespace engine
 
       utilCSUniqueID _csUniqueID ;
 
+      UINT64      _createTime ;
+      UINT64      _updateTime ;
+
       _dmsStorageInfo ()
       {
          _pageSize      = DMS_PAGE_SIZE_DFT ;
@@ -119,6 +122,9 @@ namespace engine
          _extDataHandler = NULL ;
 
          _csUniqueID     = UTIL_UNIQUEID_NULL ;
+
+         _createTime     = 0 ;
+         _updateTime     = 0 ;
       }
    };
    typedef _dmsStorageInfo dmsStorageInfo ;
@@ -145,7 +151,9 @@ namespace engine
       UINT64 _commitTime ;                               // commit timestamp
       utilCSUniqueID _csUniqueID ;                       // cs unique id
       UINT32 _segmentSize ;                              // segment size
-      CHAR   _pad [ 65328 ] ;
+      UINT64 _createTime ;
+      UINT64 _updateTime ;
+      CHAR   _pad [ 65312 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -397,6 +405,9 @@ namespace engine
          UINT32               getCommitFlag() const ;
          UINT64               getCommitTime() const ;
 
+         UINT64               getCreateTime() const ;
+         UINT64               getUpdateTime() const ;
+
          void                 restoreForCrash() ;
          BOOLEAN              isCrashed() const ;
          void                 setCrashed() ;
@@ -565,6 +576,17 @@ namespace engine
 
       protected:
          virtual INT32 _extendSegments( UINT32 numSeg ) ;
+
+         virtual void _onHeaderUpdated( UINT64 updateTime = 0 )
+         {
+            if ( NULL != _dmsHeader )
+            {
+               updateTime = ( 0 == updateTime ) ?
+                            ( ossGetCurrentMilliseconds() ) :
+                            ( updateTime ) ;
+               _dmsHeader->_updateTime = updateTime ;
+            }
+         }
 
       protected:
          // No space will extent new segment

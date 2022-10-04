@@ -661,6 +661,9 @@
 #define FIELD_NAME_WAITER_SESSIONID          "WaiterSessionID"
 #define FIELD_NAME_HOLDER_SESSIONID          "HolderSessionID"
 
+#define FIELD_NAME_CREATE_TIME               "CreateTime"
+#define FIELD_NAME_UPDATE_TIME               "UpdateTime"
+
 /// strategy field begin
 #define FIELD_NAME_NICE                      "Nice"
 #define FIELD_NAME_TASK_NAME                 "TaskName"
