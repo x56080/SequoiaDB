@@ -2764,7 +2764,6 @@ error:
          {
             BSONElement ele = itr.next() ;
             const CHAR *fieldName = ele.fieldName() ;
-            const CHAR *aliasName = pmdGetConfigAliasName( fieldName ) ;
             INT32 rc = utilStrToLower( fieldName, lowerFieldName ) ;
             if ( rc )
             {
@@ -2772,6 +2771,7 @@ error:
                        "rc: %d", rc ) ;
                goto error ;
             }
+            const CHAR *aliasName = pmdGetConfigAliasName( fieldName ) ;
             if ( NULL != lowerFieldName)
             {
                newCfgBob.append( lowerFieldName, 1 ) ;
