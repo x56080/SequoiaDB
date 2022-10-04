@@ -151,9 +151,10 @@ namespace engine
       UINT64 _commitTime ;                               // commit timestamp
       utilCSUniqueID _csUniqueID ;                       // cs unique id
       UINT32 _segmentSize ;                              // segment size
-      UINT64 _createTime ;
-      UINT64 _updateTime ;
-      CHAR   _pad [ 65312 ] ;
+      CHAR   _pad1[ 4 ] ;                                // reserved
+      UINT64 _createTime ;                               // create time
+      UINT64 _updateTime ;                               // update time
+      CHAR   _pad [ 65308 ] ;
 
       _dmsStorageUnitHeader()
       {
