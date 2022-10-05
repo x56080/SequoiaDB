@@ -2558,7 +2558,7 @@ error:
                PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
                goto error ;
             }
-            const CHAR *aliasName = pmdGetConfigAliasName( fieldName ) ;
+            const CHAR *aliasName = pmdGetConfigAliasName( lowerFieldName ) ;
             if ( NULL != lowerFieldName)
             {
                newCfgBob.append( lowerFieldName, 1 ) ;
