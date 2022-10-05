@@ -70,9 +70,7 @@ public class Connection27521 extends SdbTestBase {
                 throw e;
             }
         }
-
-        // TODO: SEQUOIADBMAINSTREAM-8796
-         /*
+        
         wrongUrl = "";
         try {
             ds = SequoiadbDatasource.builder().serverAddress( wrongUrl )
@@ -80,11 +78,10 @@ public class Connection27521 extends SdbTestBase {
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
                 throw e;
             }
         }
-        */
 
         // test d：指定不可用地址
         wrongUrl = SdbTestBase.hostName + ":" + "30";
