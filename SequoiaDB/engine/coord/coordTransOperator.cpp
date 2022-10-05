@@ -821,6 +821,11 @@ namespace engine
          goto error ;
       }
 
+      if ( _groupSession.getPropSite()->getTransNodeSize() > 0 )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
+      }
+
       // complete, delete transaction
       _groupSession.getPropSite()->endTrans( cb ) ;
 
@@ -949,6 +954,11 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Rollback transaction failed, rc: %d", rc ) ;
          goto error ;
+      }
+
+      if ( _groupSession.getPropSite()->getTransNodeSize() )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
       }
 
    done:

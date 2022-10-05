@@ -785,7 +785,7 @@ namespace engine
       /// IP:00000000, PORT:0000, TID:00000000
       /// SNPRINTF will truncate the last char, so need + 2
       //  CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
-      //  
+      //
       CHAR szTmp[ DPS_TRANS_RELATED_ID_STR_LEN + 1 ] = { 0 } ;
 
       if ( 0 != relatedNID )
@@ -822,6 +822,10 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_MONDBDUMP ) ;
       ob.append( FIELD_NAME_TOTALNUMCONNECTS, (SINT64)mondbcb->getCurConns() ) ;
+      ob.append( FIELD_NAME_TOTALQUERY,       (SINT64)mondbcb->totalGeneralQuery ) ;
+      ob.append( FIELD_NAME_TOTALSLOWQUERY,   (SINT64)mondbcb->totalGeneralSlowQuery ) ;
+      ob.append( FIELD_NAME_TOTALTRANSCOMMIT, (SINT64)mondbcb->totalTransCommit ) ;
+      ob.append( FIELD_NAME_TOTALTRANSROLLBACK, (SINT64)mondbcb->totalTransRollback ) ;
       ob.append( FIELD_NAME_TOTALDATAREAD,    (SINT64)mondbcb->totalDataRead ) ;
       ob.append( FIELD_NAME_TOTALINDEXREAD,   (SINT64)mondbcb->totalIndexRead ) ;
       ob.append( FIELD_NAME_TOTALDATAWRITE,   (SINT64)mondbcb->totalDataWrite ) ;
@@ -866,6 +870,10 @@ namespace engine
       CHAR   timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
 
       PD_TRACE_ENTRY ( SDB_MONSESSIONMONEDUFULL ) ;
+      ob.append( FIELD_NAME_TOTALQUERY, (SINT64)full._monApplCB.totalGeneralQuery ) ;
+      ob.append( FIELD_NAME_TOTALSLOWQUERY, (SINT64)full._monApplCB.totalGeneralSlowQuery ) ;
+      ob.append( FIELD_NAME_TOTALTRANSCOMMIT, (SINT64)full._monApplCB.totalTransCommit ) ;
+      ob.append( FIELD_NAME_TOTALTRANSROLLBACK, (SINT64)full._monApplCB.totalTransRollback ) ;
       ob.append( FIELD_NAME_TOTALDATAREAD, (SINT64)full._monApplCB.totalDataRead ) ;
       ob.append( FIELD_NAME_TOTALINDEXREAD, (SINT64)full._monApplCB.totalIndexRead ) ;
       ob.append( FIELD_NAME_TOTALDATAWRITE, (SINT64)full._monApplCB.totalDataWrite ) ;
@@ -6170,9 +6178,9 @@ namespace engine
             // holder transId
             dpsTransIDToString( info.holder, strTransID, DPS_TRANS_STR_LEN ) ;
             ob.append( FIELD_NAME_HOLDER_TRANSID, strTransID ) ;
-            // waiter trans cost 
+            // waiter trans cost
             ob.append( FIELD_NAME_WAITER_TRANS_COST,(INT64)info.waiterCost );
-            // holder trans cost 
+            // holder trans cost
             ob.append( FIELD_NAME_HOLDER_TRANS_COST,(INT64)info.holderCost );
             // waiter sessionID
             ob.append( FIELD_NAME_WAITER_SESSIONID,(INT64)info.waiterSessionID);
@@ -6191,7 +6199,7 @@ namespace engine
             // waiter related sessionID
             ob.append( FIELD_NAME_WAITER_RELATED_SESSIONID,
                        (INT64)info.waiterRelatedSessionID ) ;
-            // holder related sessionID 
+            // holder related sessionID
             ob.append( FIELD_NAME_HOLDER_RELATED_SESSIONID,
                        (INT64)info.holderRelatedSessionID ) ;
             // waiter related GroupID

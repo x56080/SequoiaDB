@@ -258,7 +258,7 @@ typedef enum
  */
 struct _monClassQueryTmpData
 {
-   UINT32            dataRead ;
+   UINT32           dataRead ;
    UINT32           indexRead ;
    UINT32           dataWrite ;
    UINT32           indexWrite ;
@@ -712,7 +712,7 @@ private:
    ossAtomic32 _numPendingDelete ;
 
    /**< The current data collection level for this class */
-   MON_DATA_LEVEL _curCollectionLvl ; 
+   MON_DATA_LEVEL _curCollectionLvl ;
    /**< The minimum collection level when monClass objects will get created */
    MON_DATA_LEVEL _minOperationalLvl ;
 

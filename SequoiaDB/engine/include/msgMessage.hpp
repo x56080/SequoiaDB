@@ -144,6 +144,29 @@ OSS_INLINE BOOLEAN isTransWriteMsg( INT32 opCode, const MsgHeader *pMsg )
    return ret ;
 }
 
+OSS_INLINE BOOLEAN isGeneralQueryOp( INT32 opCode )
+{
+   BOOLEAN result = TRUE ;
+   switch ( opCode )
+   {
+      case MSG_COM_SESSION_INIT_REQ:
+      case MSG_COM_REMOTE_DISC:
+      case MSG_BS_INTERRUPTE:
+      case MSG_BS_INTERRUPTE_SELF:
+      case MSG_BS_DISCONNECT:
+      case MSG_BS_KILL_CONTEXT_REQ:
+      case MSG_BS_LOB_CLOSE_REQ:
+      case MSG_BS_ADVANCE_REQ:
+      case MSG_BS_GETMORE_REQ:
+         result = FALSE ;
+         break ;
+      default:
+         break ;
+   }
+
+   return result ;
+}
+
 OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )
 {
    BOOLEAN result = TRUE ;

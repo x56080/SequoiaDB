@@ -80,6 +80,10 @@ namespace engine
       ossAtomicExchange64( &totalInsert, 0 ) ;
       ossAtomicExchange64( &totalSelect, 0 ) ;
       ossAtomicExchange64( &totalRead, 0 ) ;
+      ossAtomicExchange64( &totalGeneralQuery, 0 ) ;
+      ossAtomicExchange64( &totalGeneralSlowQuery, 0 ) ;
+      ossAtomicExchange64( &totalTransCommit, 0 ) ;
+      ossAtomicExchange64( &totalTransRollback, 0 ) ;
 
       ossAtomicExchange64( &receiveNum, 0 ) ;
 
@@ -110,6 +114,10 @@ namespace engine
       totalInsert               = rhs.totalInsert ;
       totalSelect               = rhs.totalSelect ;
       totalRead                 = rhs.totalRead ;
+      totalGeneralQuery         = rhs.totalGeneralQuery ;
+      totalGeneralSlowQuery     = rhs.totalGeneralSlowQuery ;
+      totalTransCommit          = rhs.totalTransCommit ;
+      totalTransRollback        = rhs.totalTransRollback ;
 
       receiveNum                = rhs.receiveNum ;
 
@@ -173,6 +181,11 @@ namespace engine
       totalSelect               = rhs.totalSelect ;
       totalRead                 = rhs.totalRead ;
 
+      totalGeneralQuery         = rhs.totalGeneralQuery ;
+      totalGeneralSlowQuery     = rhs.totalGeneralSlowQuery ;
+      totalTransCommit          = rhs.totalTransCommit ;
+      totalTransRollback        = rhs.totalTransRollback ;
+
       totalReadTime             = rhs.totalReadTime ;
       totalWriteTime            = rhs.totalWriteTime ;
       _connectTimestamp         = rhs._connectTimestamp ;
@@ -215,6 +228,10 @@ namespace engine
       totalInsert                += rhs.totalInsert ;
       totalSelect                += rhs.totalSelect ;
       totalRead                  += rhs.totalRead ;
+      totalGeneralQuery          += rhs.totalGeneralQuery ;
+      totalGeneralSlowQuery      += rhs.totalGeneralSlowQuery ;
+      totalTransCommit           += rhs.totalTransCommit ;
+      totalTransRollback         += rhs.totalTransRollback ;
 
       totalReadTime              += rhs.totalReadTime ;
       totalWriteTime             += rhs.totalWriteTime ;
@@ -256,6 +273,11 @@ namespace engine
       totalInsert = 0 ;
       totalSelect = 0 ;
       totalRead  = 0 ;
+
+      totalGeneralQuery = 0 ;
+      totalGeneralSlowQuery = 0 ;
+      totalTransCommit = 0 ;
+      totalTransRollback = 0 ;
 
       totalReadTime.clear() ;
       totalWriteTime.clear() ;
