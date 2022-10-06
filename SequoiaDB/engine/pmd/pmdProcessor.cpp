@@ -1426,6 +1426,7 @@ namespace engine
          PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
          goto error ;
       }
+
    done:
       return rc ;
    error:

@@ -935,6 +935,7 @@ namespace engine
       coordQueryLobOperator queryOpr ;
       coordQueryConf queryConf ;
       coordSendOptions sendOpt ;
+      monAppCB *monAppCB = cb ? cb->getMonAppCB() : NULL ;
 
       contextID = -1 ;
 
@@ -1001,6 +1002,8 @@ namespace engine
 
       // set context id
       contextID = context->contextID() ;
+
+      DMS_MON_OP_COUNT_INC( monAppCB, MON_LOB_LIST, 1 ) ;
 
    done:
       if ( NULL != pNewMsg )

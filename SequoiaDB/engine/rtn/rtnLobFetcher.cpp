@@ -96,7 +96,7 @@ namespace engine
       return rc ;
    error:
       _fini() ;
-      goto done ;      
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNLOBFETCHER_FETCH, "_rtnLobFetcher::fetch" )

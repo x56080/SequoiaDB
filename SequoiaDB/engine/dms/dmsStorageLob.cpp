@@ -646,7 +646,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _fillPage( record, pageID, mbContext ) ;
+      rc = _fillPage( record, pageID, cb, mbContext ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to fill page, rc:%d", rc ) ;
@@ -702,7 +702,7 @@ namespace engine
       {
          PD_LOG( PDEVENT, "Rollback lob piece[%s]",
                  record.toString().c_str(), pageID ) ;
-         _rollback( record, pageID, mbContext, pageFilled ) ;
+         _rollback( record, pageID, cb, mbContext, pageFilled ) ;
       }
       goto done ;
    }
@@ -1018,7 +1018,7 @@ namespace engine
          locked = TRUE ;
       }
 
-      rc = _find( record, mbContext->clLID(), page ) ;
+      rc = _find( record, mbContext->clLID(), cb, page ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find piece[%s], rc:%d",
@@ -1152,7 +1152,7 @@ namespace engine
       /// When using update
       if ( updateWhenExist )
       {
-         rc = _find( record, mbContext->clLID(), foundPage ) ;
+         rc = _find( record, mbContext->clLID(), cb, foundPage ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to find piece[%s], rc:%d",
@@ -1201,11 +1201,6 @@ namespace engine
          {
             *pHasUpdated = TRUE ;
          }
-      }
-
-      if ( cb->getMonQueryCB() )
-      {
-         cb->getMonQueryCB()->lobWrite ++ ;
       }
 
    done:
@@ -1277,7 +1272,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), page ) ;
+      rc = _find( record, mbContext->clLID(), cb, page ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find page of record[%s], rc:%d",
@@ -1301,11 +1296,6 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to read data from file, rc:%d", rc ) ;
          goto error ;
-      }
-
-      if ( cb->getMonQueryCB() )
-      {
-         cb->getMonQueryCB()->lobRead ++ ;
       }
 
    done:
@@ -1355,6 +1345,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__FILLPAGE, "_dmsStorageLob::_fillPage" )
    INT32 _dmsStorageLob::_fillPage( const dmsLobRecord &record,
                                     DMS_LOB_PAGEID page,
+                                    pmdEDUCB *cb,
                                     dmsMBContext *context )
    {
       INT32 rc = SDB_OK ;
@@ -1402,7 +1393,7 @@ namespace engine
 #endif
 
       rc = _push2Bucket( _getBucket( record._hash ),
-                         page, *blk, &record ) ;
+                         page, cb, *blk, &record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push page[%d] to bucket[%d], rc: %d",
@@ -1549,7 +1540,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _find( record, mbContext->clLID(), page, &bucketNumber ) ;
+      rc = _find( record, mbContext->clLID(), cb, page, &bucketNumber ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to find record[%s], rc:%d",
@@ -1633,7 +1624,7 @@ namespace engine
       }
 
       /// remove and release the page
-      rc = _removePage( page, blk, &bucketNumber, mbContext,
+      rc = _removePage( page, blk, &bucketNumber, cb, mbContext,
                         pLatch ? TRUE : FALSE, TRUE ) ;
       if ( SDB_OK != rc )
       {
@@ -1756,11 +1747,14 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__FIND, "_dmsStorageLob::_find" )
    INT32 _dmsStorageLob::_find( const _dmsLobRecord &record,
                                 UINT32 clID,
+                                pmdEDUCB *cb,
                                 DMS_LOB_PAGEID &page,
                                 UINT32 *bucket )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__FIND ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
       UINT32 bucketNumber = _getBucket( record._hash ) ;
       DMS_LOB_PAGEID pageInBucket = DMS_LOB_INVALID_PAGEID ;
       dmsExtRW extRW ;
@@ -1771,6 +1765,7 @@ namespace engine
       pageInBucket = _dmsBME->_buckets[bucketNumber] ;
       while ( DMS_LOB_INVALID_PAGEID != pageInBucket )
       {
+         DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_ADDRESSING, 1 ) ;
          extRW = extent2RW( pageInBucket, -1 ) ;
          extRW.setNothrow( TRUE ) ;
          blk = extRW.readPtr<_dmsLobDataMapBlk>() ;
@@ -1823,11 +1818,13 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__PUSH2BUCKET, "_dmsStorageLob::_push2Bucket" )
    INT32 _dmsStorageLob::_push2Bucket( UINT32 bucket,
                                        DMS_LOB_PAGEID pageId,
+                                       pmdEDUCB *cb,
                                        _dmsLobDataMapBlk &blk,
                                        const dmsLobRecord *pRecord )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__PUSH2BUCKET ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
       ossScopedLock lock( _getBucketLatch( bucket ), EXCLUSIVE ) ;
 
@@ -1835,6 +1832,7 @@ namespace engine
       /// empty bucket
       if ( DMS_LOB_INVALID_PAGEID == pageInBucket )
       {
+         DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_ADDRESSING, 1 ) ;
          pageInBucket = pageId ;
          blk._prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
          blk._nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
@@ -1847,6 +1845,7 @@ namespace engine
          const _dmsLobDataMapBlk *lastBlk = NULL ;
          do
          {
+            DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_ADDRESSING, 1 ) ;
             /// Modify the list, well set to the null collection,
             /// because other collection's page data is not change
             extRW = extent2RW( tmpPage, -1 ) ;
@@ -2555,7 +2554,7 @@ namespace engine
                /// add page to bucket
                DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
                testBucketNo = _getBucket( __hash ) ;
-               rc = _push2Bucket( testBucketNo, current, *blk, &record ) ;
+               rc = _push2Bucket( testBucketNo, current, NULL, *blk, &record ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Push page[%d] to bucket failed, rc: %d",
@@ -2720,6 +2719,7 @@ namespace engine
    INT32 _dmsStorageLob::_removePage( DMS_LOB_PAGEID page,
                                       _dmsLobDataMapBlk *blk,
                                       const UINT32 *bucket,
+                                      pmdEDUCB *cb,
                                       dmsMBContext *mbContext,
                                       BOOLEAN hasLockBucket,
                                       BOOLEAN needRelease,
@@ -2727,6 +2727,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__REMOVEPAGE ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       UINT32 bucketNumber = 0 ;
       INT64 lobPieceLen   = 0 ;
 
@@ -2817,6 +2818,8 @@ namespace engine
       {
          mbContext->mbStat()->subTotalLobSize( blk->_dataLen ) ;
       }
+      /// monitor lob page which is removed
+      DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_TRUNCATE, 1 ) ;
 
       _incWriteRecord() ;
       blk->reset() ;
@@ -2954,7 +2957,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _removePage( current, blk, NULL, mbContext, FALSE ) ;
+         rc = _removePage( current, blk, NULL, cb, mbContext, FALSE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", rc ) ;
@@ -3027,6 +3030,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__ROLLBACK, "_dmsStorageLob::_rollback" )
    INT32 _dmsStorageLob::_rollback( const dmsLobRecord &record,
                                     DMS_LOB_PAGEID page,
+                                    pmdEDUCB *cb,
                                     dmsMBContext *mbContext,
                                     BOOLEAN pageFilled )
    {
@@ -3066,7 +3070,7 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         rc = _removePage( page, blk, NULL, mbContext, FALSE, TRUE, &record ) ;
+         rc = _removePage( page, blk, NULL, cb, mbContext, FALSE, TRUE, &record ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", page, rc ) ;

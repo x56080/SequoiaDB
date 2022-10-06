@@ -425,6 +425,16 @@ namespace engine
       INT64 _freeDataSize ;
       INT64 _freeIndexSize ;
       INT64 _freeLobSpace ;
+      INT64 _totalLobGet ;
+      INT64 _totalLobPut ;
+      INT64 _totalLobDelete ;
+      INT64 _totalLobReadSize ;
+      INT64 _totalLobWriteSize ;
+      INT64 _totalLobRead ;
+      INT64 _totalLobWrite ;
+      INT64 _totalLobTruncate ;
+      INT64 _totalLobAddressing ;
+      INT64 _totalLobList ;
 
       /// commit info
       UINT64 _dataCommitLsn ;
@@ -464,6 +474,16 @@ namespace engine
          _freeDataSize = 0 ;
          _freeIndexSize = 0 ;
          _freeLobSpace = 0 ;
+         _totalLobGet = 0 ;
+         _totalLobPut = 0 ;
+         _totalLobDelete = 0 ;
+         _totalLobReadSize = 0 ;
+         _totalLobWriteSize = 0 ;
+         _totalLobRead = 0 ;
+         _totalLobWrite = 0 ;
+         _totalLobTruncate = 0 ;
+         _totalLobAddressing = 0 ;
+         _totalLobList = 0 ;
 
          _dataCommitLsn = -1 ;
          _idxCommitLsn = -1 ;
@@ -502,6 +522,16 @@ namespace engine
          _freeDataSize = right._freeDataSize ;
          _freeIndexSize = right._freeIndexSize ;
          _freeLobSpace = right._freeLobSpace ;
+         _totalLobGet = right._totalLobGet ;
+         _totalLobPut = right._totalLobPut ;
+         _totalLobDelete = right._totalLobDelete ;
+         _totalLobReadSize = right._totalLobReadSize ;
+         _totalLobWriteSize = right._totalLobWriteSize ;
+         _totalLobRead = right._totalLobRead ;
+         _totalLobWrite = right._totalLobWrite ;
+         _totalLobTruncate = right._totalLobTruncate ;
+         _totalLobAddressing = right._totalLobAddressing ;
+         _totalLobList = right._totalLobList ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;
@@ -549,6 +579,16 @@ namespace engine
          _freeDataSize = right._freeDataSize ;
          _freeIndexSize = right._freeIndexSize ;
          _freeLobSpace = right._freeLobSpace ;
+         _totalLobGet = right._totalLobGet ;
+         _totalLobPut = right._totalLobPut ;
+         _totalLobDelete = right._totalLobDelete ;
+         _totalLobReadSize = right._totalLobReadSize ;
+         _totalLobWriteSize = right._totalLobWriteSize ;
+         _totalLobRead = right._totalLobRead ;
+         _totalLobWrite = right._totalLobWrite ;
+         _totalLobTruncate = right._totalLobTruncate ;
+         _totalLobAddressing = right._totalLobAddressing ;
+         _totalLobList = right._totalLobList ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;

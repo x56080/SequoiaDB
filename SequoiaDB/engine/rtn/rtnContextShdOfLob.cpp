@@ -40,6 +40,7 @@
 #include "rtnLob.hpp"
 #include "clsMgr.hpp"
 #include "ossUtil.hpp"
+#include "rtnLobMetricsSubmitor.hpp"
 
 using namespace bson ;
 
@@ -63,11 +64,13 @@ namespace engine
     _mbContext( NULL ),
     _dmsCB( NULL ),
     _reopened( FALSE ),
-    _isMetaWrote( FALSE )
+    _isMetaWrote( FALSE ),
+    _opType( MON_LOB_OP_NONE )
    {
       _pData = NULL ;
       _dataLen = 0 ;
       _offset = 0 ;
+      _totalDeltaMonApp.reset() ;
    }
 
    _rtnContextShdOfLob::~_rtnContextShdOfLob()
@@ -127,6 +130,7 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       _utilSectionMgr sectionMgr ;
       BOOLEAN writeDMS = FALSE ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       rc = _parseOpenArgs( lob, sectionMgr ) ;
       if ( SDB_OK != rc )
@@ -220,21 +224,22 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_OPEN, rc ) ;
       return rc ;
    error:
+      _onExceptionHappen() ;
       close( cb ) ;
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB_WRITE, "_rtnContextShdOfLob::write" )
-   INT32 _rtnContextShdOfLob::write( UINT32 sequence,
-                                     UINT32 offset,
-                                     UINT32 len,
-                                     const CHAR *data,
-                                     _pmdEDUCB *cb,
-                                     BOOLEAN orUpdate )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB__WRITE, "_rtnContextShdOfLob::_write" )
+   INT32 _rtnContextShdOfLob::_write( UINT32 sequence,
+                                      UINT32 offset,
+                                      UINT32 len,
+                                      const CHAR *data,
+                                      _pmdEDUCB *cb,
+                                      BOOLEAN orUpdate )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB__WRITE ) ;
       BOOLEAN updated = FALSE ;
-      PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB_WRITE ) ;
 
       if ( orUpdate )
       {
@@ -272,10 +277,69 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_WRITE, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB__WRITE, rc ) ;
       return rc ;
    error:
+      _onExceptionHappen() ;
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB_WRITE, "_rtnContextShdOfLob::write" )
+   INT32 _rtnContextShdOfLob::write( UINT32 sequence,
+                                     UINT32 offset,
+                                     UINT32 len,
+                                     const CHAR *data,
+                                     _pmdEDUCB *cb,
+                                     BOOLEAN orUpdate )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB_WRITE ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
+
+      rc = _write( sequence, offset, len, data, cb, orUpdate ) ;
+      if ( SDB_OK == rc )
+      {
+         // monitor lob bytes write by client
+         RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, len ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_WRITE, rc ) ;
+      return rc ;
+   }
+
+   UINT32 _rtnContextShdOfLob::_getDataLen( UINT32 sequence,
+                                            UINT32 offset,
+                                            UINT32 len )
+   {
+      UINT32 dataLen = 0 ;
+      if ( DMS_LOB_META_SEQUENCE == sequence )
+      {
+         // we are in meta page, let's calculate the lob data size
+         // inside this page
+         if ( offset + len <= DMS_LOB_META_LENGTH )
+         {
+            dataLen = 0 ;
+         }
+         else if ( offset <= DMS_LOB_META_LENGTH &&
+                   ( offset + len ) > DMS_LOB_META_LENGTH )
+         {
+            dataLen = offset + len - DMS_LOB_META_LENGTH ;
+         }
+         else if ( offset > DMS_LOB_META_LENGTH )
+         {
+            dataLen = len ;
+         }
+         else
+         {
+            SDB_ASSERT( FALSE, "impossible" ) ;
+         }
+      }
+      else
+      {
+         dataLen = len ;
+      }
+      return dataLen ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB_UPDATE, "_rtnContextShdOfLob::update" )
@@ -288,7 +352,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN accessInfoLocked = FALSE ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB_UPDATE ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
       BOOLEAN writeDMS = FALSE ;
+      UINT32 dataLen = 0 ;
+
+      // monitor lob bytes write by client
+      dataLen = _getDataLen( sequence, offset, len ) ;
+      RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, dataLen ) ;
 
       rc = _dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable[%d]", rc ) ;
@@ -392,7 +463,7 @@ namespace engine
          // And in 3.0.1 we also send UPDATE message,
          // in order to compatible with version<3.0.
          // But actually we should WRITE the meta sequence.
-         rc = write( sequence, offset, len, data, cb ) ;
+         rc = _write( sequence, offset, len, data, cb ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
@@ -422,9 +493,11 @@ namespace engine
       {
          _dmsCB->writeDown( cb ) ;
       }
+
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_UPDATE, rc ) ;
       return rc ;
    error:
+      _onExceptionHappen() ;
       goto done ;
    }
 
@@ -599,6 +672,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN accessInfoLocked = FALSE ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB__OPEN ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
       if ( _isMainShd &&
            ( SDB_IS_LOBREADONLY_MODE( _mode ) ||
              SDB_LOB_MODE_TRUNCATE == _mode ) )
@@ -606,6 +681,11 @@ namespace engine
          UINT32 readLen = 0 ;
          UINT32 len = _su->getLobPageSize() ;
          dmsLobRecord record ;
+
+         // monitor operation
+         _opType |= SDB_IS_LOBREADONLY_MODE( _mode ) ?
+                    MON_LOB_OP_GET : MON_LOB_OP_DELETE ;
+
          // SDB_LOB_MODE_SHAREREAD can't open withData because data should be
          // locked before read data.
          BOOLEAN withData = ( SDB_LOB_MODE_READ == _mode && !_reopened ) ?
@@ -676,6 +756,9 @@ namespace engine
                rt->columns.sequence = DMS_LOB_META_SEQUENCE ;
                rt->columns.len = _dataLen - sizeof( MsgLobTuple ) ;
                rt->columns.offset = DMS_LOB_META_LENGTH ;
+               /// monitor lob bytes read by client
+               RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_READ_BYTES,
+                                            rt->columns.len ) ;
             }
          }
          else
@@ -696,6 +779,13 @@ namespace engine
          _rtnLobMetaCache* metaCache = NULL ;
          const _dmsLobMeta* meta = NULL ;
          SDB_ASSERT( NULL != _accessInfo, "_accessInfo is null" ) ;
+
+         // monitor operation
+         _opType |= MON_LOB_OP_PUT ;
+         if ( SDB_IS_LOBSREADWRITE_MODE( _mode ) )
+         {
+            _opType |= MON_LOB_OP_GET ;
+         }
 
          _accessInfo->lock() ;
          accessInfoLocked = TRUE ;
@@ -834,6 +924,7 @@ namespace engine
       else if ( SDB_LOB_MODE_CREATEONLY == _mode && _isMainShd )
       {
          _dmsLobMeta meta ;
+         _opType |= MON_LOB_OP_PUT ;
 
          rc = rtnGetLobMetaData( _getRealCLName(),
                                  _oid, cb, meta,
@@ -856,6 +947,8 @@ namespace engine
       }
       else if ( _isMainShd && SDB_LOB_MODE_REMOVE == _mode )
       {
+         _opType |= MON_LOB_OP_DELETE ;
+
          rc = rtnGetLobMetaData( _getRealCLName(),
                                  _oid, cb, _meta,
                                  _su, _mbContext, TRUE ) ;
@@ -979,6 +1072,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB_READV ) ;
       SDB_ASSERT( NULL != tuples && 0 < cnt, "can not be null" ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
       UINT32 totalRead = 0 ;
       UINT32 i = 0 ;
       UINT32 len = 0 ;
@@ -1038,6 +1133,10 @@ namespace engine
          _dataLen = 0 ;
          onceRead += sizeof( MsgLobTuple ) ; /// | tuple | data | tuple | data |
          totalRead += onceRead ;
+
+         // monitor lob bytes read by client
+         RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_READ_BYTES,
+                                      rt->columns.len ) ;
       }
 
       *data = _buf ;
@@ -1046,15 +1145,28 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_READV, rc ) ;
       return rc ;
    error:
+      _onExceptionHappen() ;
       goto done ;
    }
 
    INT32 _rtnContextShdOfLob::remove( UINT32 sequence,
                                       _pmdEDUCB *cb )
    {
-      return rtnRemoveLobPiece( _getRealCLName(),
+      INT32 rc = SDB_OK ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
+
+      rc = rtnRemoveLobPiece( _getRealCLName(),
                                 _oid, sequence, cb,
                                 _w, _dpsCB, _su, _mbContext ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+done:
+      return rc ;
+error:
+   _onExceptionHappen() ;
+   goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTSHDOFLOB_LOCK, "_rtnContextShdOfLob::lock" )
@@ -1063,8 +1175,9 @@ namespace engine
                                     INT64 length )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN locked= FALSE ;
+      BOOLEAN locked = FALSE ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB_LOCK ) ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       SDB_ASSERT( NULL != _accessInfo, "_accessInfo is null" ) ;
       SDB_ASSERT( length > 0, "length <= 0" ) ;
@@ -1090,6 +1203,7 @@ namespace engine
          _accessInfo->unlock() ;
          locked = FALSE ;
       }
+
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_LOCK, rc ) ;
       return rc ;
    error:
@@ -1103,6 +1217,7 @@ namespace engine
 
       _isOpened = FALSE ;
       _closeWithException = FALSE ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
       if ( NULL != _accessInfo )
       {
@@ -1113,6 +1228,40 @@ namespace engine
 
       if ( _mbContext && _su )
       {
+         // monitor Lob operation count
+         if ( _isMainShd && _opType )
+         {
+            rtnLobMetricsSubmitor submitor( cb, this ) ;
+            if ( _opType & MON_LOB_OP_GET )
+            {
+               RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
+            }
+            if ( _opType & MON_LOB_OP_PUT )
+            {
+               RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
+            }
+            if ( _opType & MON_LOB_OP_DELETE )
+            {
+               RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
+            }
+         }
+
+         // no matter error happen or not, we will still
+         // submit the change from session to others
+         if ( pMonAppCB && pMonAppCB->mondbcb )
+         {
+            pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
+         }
+         if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
+         {
+            pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
+         }
+         if (  _mbContext->mbStat() )
+         {
+            _mbContext->mbStat()->_crudCB.incMetrics( _totalDeltaMonApp ) ;
+         }
+
+         // release mbContext
          _su->data()->releaseMBContext( _mbContext ) ;
          _mbContext = NULL ;
       }
@@ -1253,6 +1402,19 @@ namespace engine
       {
          return _fullName.c_str() ;
       }
+   }
+
+   void _rtnContextShdOfLob::onSubmit( const monAppCB &delta )
+   {
+      _totalDeltaMonApp += delta ;
+      getMonCB()->incMetrics( delta ) ;
+   }
+
+   INT32 _rtnContextShdOfLob::_onExceptionHappen()
+   {
+      // when error happen, reset lob operation type to None
+      _opType = MON_LOB_OP_NONE ;
+      return SDB_OK ;
    }
 }
 

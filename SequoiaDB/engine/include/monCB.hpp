@@ -110,6 +110,13 @@ namespace engine
       }                                                              \
    }
 
+   #define MON_APP_DELTA( begin, end ) \
+      ( ( end ) < ( begin ) ? 0 : ( end ) - ( begin ) )
+
+   #define MON_APP_TICK_DELTA( begin, end ) \
+      ( ( end ) < ( begin ) ? ( ossTickDelta () ) : ( end ) - ( begin ) )
+
+
    /*
       Common Define
    */
@@ -132,11 +139,9 @@ namespace engine
       MON_COUNTER_OPERATION_NONE = 0,
       MON_DATA_READ,
       MON_INDEX_READ,
-      MON_LOB_READ,
       MON_TEMP_READ,
       MON_DATA_WRITE,
       MON_INDEX_WRITE,
-      MON_LOB_WRITE,
       MON_TEMP_WRITE,
       MON_UPDATE,
       MON_DELETE,
@@ -150,14 +155,52 @@ namespace engine
       MON_TRANS_ROLLBACK,
       MON_GENERAL_QUERY,
       MON_GENERAL_SLOW_QUERY,
-      MON_COUNTER_OPERATION_MAX = MON_READ,
+      MON_LOB_GET,
+      MON_LOB_PUT,
+      MON_LOB_DELETE,
+      MON_LOB_LIST,
+      MON_LOB_READ,
+      MON_LOB_WRITE,
+      MON_LOB_TRUNCATE,
+      MON_LOB_ADDRESSING,
+      MON_COUNTER_OPERATION_MAX = MON_LOB_ADDRESSING,
 
       MON_TIME_OPERATION_NONE = 1000,
       MON_TOTAL_WAIT_TIME,
       MON_TOTAL_READ_TIME,
       MON_TOTAL_WRITE_TIME,
-      MON_TIME_OPERATION_MAX = MON_TOTAL_WRITE_TIME
+      MON_TIME_OPERATION_MAX = MON_TOTAL_WRITE_TIME,
+
+      MON_BYTE_COUNT_NONE = 2000,
+      MON_LOB_READ_BYTES,
+      MON_LOB_WRITE_BYTES,
+      MON_BYTE_COUNT_MAX  = MON_LOB_WRITE_BYTES
    } ;
+
+   enum MON_UPDATE_CLASS
+   {
+      MON_UPDATE_NONE       = 0x00000000,
+      MON_UPDATE_CONTEXT    = 0x00000001,
+      MON_UPDATE_SESSION    = 0x00000002,
+      MON_UPDATE_CL         = 0x00000004,
+      MON_UPDATE_CS         = 0x00000008,
+      MON_UPDATE_SDB        = 0x00000010,
+      MON_UPDATE_TASK       = 0x00000020
+   } ;
+
+   enum MON_LOB_OP_TYPES
+   {
+      MON_LOB_OP_NONE       = 0x00000000,
+      MON_LOB_OP_PUT        = 0x00000001,
+      MON_LOB_OP_GET        = 0x00000002,
+      MON_LOB_OP_DELETE     = 0x00000004,
+      MON_LOB_OP_LIST       = 0x00000008
+   } ;
+
+   #define MON_UPDATE_CLASS_DEFAULT ( MON_UPDATE_SESSION | MON_UPDATE_SDB | \
+                                      MON_UPDATE_TASK | MON_UPDATE_CL )
+
+   class _monAppCB ;
 
    /*
       _monRuntimeCB define
@@ -168,10 +211,8 @@ namespace engine
          _monCRUDCB ()
          : _totalDataRead( 0 ),
            _totalIndexRead( 0 ),
-           _totalLobRead( 0 ),
            _totalDataWrite( 0 ),
            _totalIndexWrite( 0 ),
-           _totalLobWrite( 0 ),
            _totalUpdate( 0 ),
            _totalDelete( 0 ),
            _totalInsert( 0 ),
@@ -179,7 +220,17 @@ namespace engine
            _totalRead( 0 ),
            _totalWrite( 0 ),
            _totalTbScan( 0 ),
-           _totalIxScan( 0 )
+           _totalIxScan( 0 ),
+           _totalLobGet( 0 ),
+           _totalLobPut( 0 ),
+           _totalLobDelete( 0 ),
+           _totalLobList( 0 ),
+           _totalLobReadSize( 0 ),
+           _totalLobWriteSize( 0 ),
+           _totalLobRead( 0 ),
+           _totalLobWrite( 0 ),
+           _totalLobTruncate( 0 ),
+           _totalLobAddressing( 0 )
          {
             ossGetCurrentTime( _resetTimestamp ) ;
          }
@@ -187,10 +238,8 @@ namespace engine
          _monCRUDCB ( const _monCRUDCB & monCB )
          : _totalDataRead( monCB._totalDataRead ),
            _totalIndexRead( monCB._totalIndexRead ),
-           _totalLobRead( monCB._totalIndexRead ),
            _totalDataWrite( monCB._totalDataWrite ),
            _totalIndexWrite( monCB._totalIndexWrite ),
-           _totalLobWrite( monCB._totalIndexWrite ),
            _totalUpdate( monCB._totalUpdate ),
            _totalDelete( monCB._totalDelete ),
            _totalInsert( monCB._totalInsert ),
@@ -199,6 +248,16 @@ namespace engine
            _totalWrite( monCB._totalWrite ),
            _totalTbScan( monCB._totalTbScan ),
            _totalIxScan( monCB._totalIxScan ),
+           _totalLobGet( monCB._totalLobGet ),
+           _totalLobPut( monCB._totalLobPut ),
+           _totalLobDelete( monCB._totalLobDelete ),
+           _totalLobList( monCB._totalLobList ),
+           _totalLobReadSize( monCB._totalLobReadSize ),
+           _totalLobWriteSize( monCB._totalLobWriteSize ),
+           _totalLobRead( monCB._totalLobRead ),
+           _totalLobWrite( monCB._totalLobWrite ),
+           _totalLobTruncate( monCB._totalLobTruncate ),
+           _totalLobAddressing( monCB._totalLobAddressing ),
            _resetTimestamp( monCB._resetTimestamp )
          {
          }
@@ -212,10 +271,8 @@ namespace engine
          {
             _totalDataRead = 0 ;
             _totalIndexRead = 0 ;
-            _totalLobRead = 0 ;
             _totalDataWrite = 0 ;
             _totalIndexWrite = 0 ;
-            _totalLobWrite = 0 ;
             _totalUpdate = 0 ;
             _totalDelete = 0 ;
             _totalInsert = 0 ;
@@ -224,6 +281,16 @@ namespace engine
             _totalWrite = 0 ;
             _totalTbScan = 0 ;
             _totalIxScan = 0 ;
+            _totalLobGet = 0 ;
+            _totalLobPut = 0 ;
+            _totalLobDelete = 0 ;
+            _totalLobList = 0 ;
+            _totalLobReadSize = 0 ;
+            _totalLobWriteSize = 0 ;
+            _totalLobRead = 0 ;
+            _totalLobWrite = 0 ;
+            _totalLobTruncate = 0 ;
+            _totalLobAddressing = 0 ;
             ossGetCurrentTime( _resetTimestamp ) ;
          }
 
@@ -231,11 +298,9 @@ namespace engine
          {
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalDataRead ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalIndexRead ), 0 ) ;
-            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobRead ), 0 ) ;
 
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalDataWrite ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalIndexWrite ), 0 ) ;
-            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobWrite ), 0 ) ;
 
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalUpdate ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalDelete ), 0 ) ;
@@ -243,9 +308,18 @@ namespace engine
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalSelect ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalRead ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalWrite ), 0 ) ;
-
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalTbScan ), 0 ) ;
             ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalIxScan ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobGet ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobPut ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobDelete ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobList ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobReadSize ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobWriteSize ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobRead ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobWrite ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobTruncate ), 0 ) ;
+            ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobAddressing ), 0 ) ;
             ossGetCurrentTime( _resetTimestamp ) ;
          }
 
@@ -253,11 +327,9 @@ namespace engine
          {
             _totalDataRead = monCB._totalDataRead ;
             _totalIndexRead = monCB._totalIndexRead ;
-            _totalLobRead = monCB._totalLobRead ;
 
             _totalDataWrite = monCB._totalDataWrite ;
             _totalIndexWrite = monCB._totalIndexWrite ;
-            _totalLobWrite = monCB._totalLobWrite ;
 
             _totalUpdate = monCB._totalUpdate ;
             _totalDelete = monCB._totalDelete ;
@@ -265,9 +337,19 @@ namespace engine
             _totalSelect = monCB._totalSelect ;
             _totalRead = monCB._totalRead ;
             _totalWrite = monCB._totalWrite ;
-
             _totalTbScan = monCB._totalTbScan ;
             _totalIxScan = monCB._totalIxScan ;
+            _totalLobGet = monCB._totalLobGet ;
+            _totalLobPut = monCB._totalLobPut ;
+            _totalLobDelete = monCB._totalLobDelete ;
+            _totalLobList = monCB._totalLobList ;
+            _totalLobReadSize = monCB._totalLobReadSize ;
+            _totalLobWriteSize = monCB._totalLobWriteSize ;
+            _totalLobRead = monCB._totalLobRead ;
+            _totalLobWrite = monCB._totalLobWrite ;
+            _totalLobTruncate = monCB._totalLobTruncate ;
+            _totalLobAddressing = monCB._totalLobAddressing ;
+
             _resetTimestamp = monCB._resetTimestamp ;
          }
 
@@ -275,10 +357,8 @@ namespace engine
          {
             _totalDataRead = OSS_ONCE_UINT64_GET( monCB._totalDataRead ) ;
             _totalIndexRead = OSS_ONCE_UINT64_GET( monCB._totalIndexRead ) ;
-            _totalLobRead = OSS_ONCE_UINT64_GET( monCB._totalLobRead ) ;
             _totalDataWrite = OSS_ONCE_UINT64_GET( monCB._totalDataWrite ) ;
             _totalIndexWrite = OSS_ONCE_UINT64_GET( monCB._totalIndexWrite ) ;
-            _totalLobWrite = OSS_ONCE_UINT64_GET( monCB._totalLobWrite ) ;
             _totalUpdate = OSS_ONCE_UINT64_GET( monCB._totalUpdate ) ;
             _totalDelete = OSS_ONCE_UINT64_GET( monCB._totalDelete ) ;
             _totalInsert = OSS_ONCE_UINT64_GET( monCB._totalInsert ) ;
@@ -287,6 +367,17 @@ namespace engine
             _totalWrite = OSS_ONCE_UINT64_GET( monCB._totalWrite ) ;
             _totalTbScan = OSS_ONCE_UINT64_GET( monCB._totalTbScan ) ;
             _totalIxScan = OSS_ONCE_UINT64_GET( monCB._totalIxScan ) ;
+            _totalLobGet = OSS_ONCE_UINT64_GET( monCB._totalLobGet ) ;
+            _totalLobPut = OSS_ONCE_UINT64_GET( monCB._totalLobPut ) ;
+            _totalLobDelete = OSS_ONCE_UINT64_GET( monCB._totalLobDelete ) ;
+            _totalLobList = OSS_ONCE_UINT64_GET( monCB._totalLobList ) ;
+            _totalLobReadSize = OSS_ONCE_UINT64_GET( monCB._totalLobReadSize ) ;
+            _totalLobWriteSize = OSS_ONCE_UINT64_GET( monCB._totalLobWriteSize ) ;
+            _totalLobRead = OSS_ONCE_UINT64_GET( monCB._totalLobRead ) ;
+            _totalLobWrite = OSS_ONCE_UINT64_GET( monCB._totalLobWrite ) ;
+            _totalLobTruncate = OSS_ONCE_UINT64_GET( monCB._totalLobTruncate ) ;
+            _totalLobAddressing = OSS_ONCE_UINT64_GET( monCB._totalLobAddressing ) ;
+
             _resetTimestamp = monCB._resetTimestamp ;
          }
 
@@ -300,17 +391,11 @@ namespace engine
                case MON_INDEX_READ :
                   _totalIndexRead += delta ;
                   break ;
-               case MON_LOB_READ :
-                  _totalLobRead += delta ;
-                  break ;
                case MON_DATA_WRITE :
                   _totalDataWrite += delta ;
                   break ;
                case MON_INDEX_WRITE :
                   _totalIndexWrite += delta ;
-                  break ;
-               case MON_LOB_WRITE :
-                  _totalLobWrite += delta ;
                   break ;
                case MON_UPDATE :
                   _totalUpdate += delta ;
@@ -330,6 +415,36 @@ namespace engine
                case MON_READ :
                   _totalRead += delta ;
                   break ;
+               case MON_LOB_GET :
+                  _totalLobGet += delta ;
+                  break ;
+               case MON_LOB_PUT :
+                  _totalLobPut += delta ;
+                  break ;
+               case MON_LOB_DELETE :
+                  _totalLobDelete += delta ;
+                  break ;
+               case MON_LOB_LIST:
+                  _totalLobList += delta ;
+                  break ;
+               case MON_LOB_READ_BYTES :
+                  _totalLobReadSize += delta ;
+                  break ;
+               case MON_LOB_WRITE_BYTES :
+                  _totalLobWriteSize += delta ;
+                  break ;
+               case MON_LOB_READ :
+                  _totalLobRead += delta ;
+                  break ;
+               case MON_LOB_WRITE :
+                  _totalLobWrite += delta ;
+                  break ;
+               case MON_LOB_TRUNCATE:
+                  _totalLobTruncate += delta ;
+                  break ;
+               case MON_LOB_ADDRESSING :
+                  _totalLobAddressing += delta ;
+                  break ;
                default :
                   break ;
             }
@@ -347,20 +462,12 @@ namespace engine
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalIndexRead ),
                                     delta ) ;
                   break ;
-               case MON_LOB_READ :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobRead ),
-                                    delta ) ;
-                  break ;
                case MON_DATA_WRITE :
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDataWrite ),
                                     delta ) ;
                   break ;
                case MON_INDEX_WRITE :
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalIndexWrite ),
-                                    delta ) ;
-                  break ;
-               case MON_LOB_WRITE :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobWrite ),
                                     delta ) ;
                   break ;
                case MON_UPDATE :
@@ -389,6 +496,47 @@ namespace engine
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalRead ),
                                     delta ) ;
                   break ;
+               case MON_LOB_GET :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobGet ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_PUT :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobPut ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_DELETE :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobDelete ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_LIST :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobList ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_READ_BYTES :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobReadSize ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_WRITE_BYTES :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobWriteSize ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_READ :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobRead ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_WRITE :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobWrite ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_TRUNCATE :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobTruncate ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_ADDRESSING :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobAddressing ),
+                                    delta ) ;
+                  break ;
+
                default :
                   break ;
             }
@@ -404,13 +552,16 @@ namespace engine
             ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalIxScan ), delta ) ;
          }
 
+         void incMetrics( const _monAppCB &delta ) ;
+
+      private:
+         void _increase( MON_OPERATION_TYPES op, UINT64 delta ) ;
+
       public :
          UINT64 _totalDataRead ;
          UINT64 _totalIndexRead ;
-         UINT64 _totalLobRead ;
          UINT64 _totalDataWrite ;
          UINT64 _totalIndexWrite ;
-         UINT64 _totalLobWrite ;
 
          UINT64 _totalUpdate ;
          UINT64 _totalDelete ;
@@ -421,6 +572,17 @@ namespace engine
 
          UINT64 _totalTbScan ;
          UINT64 _totalIxScan ;
+
+         UINT64 _totalLobGet ;
+         UINT64 _totalLobPut ;
+         UINT64 _totalLobDelete ;
+         UINT64 _totalLobList ;
+         UINT64 _totalLobReadSize ;
+         UINT64 _totalLobWriteSize ;
+         UINT64 _totalLobRead ;
+         UINT64 _totalLobWrite ;
+         UINT64 _totalLobTruncate ;
+         UINT64 _totalLobAddressing ;
 
          ossTimestamp _resetTimestamp ;
    } ;
@@ -435,10 +597,8 @@ namespace engine
    public :
       volatile UINT64 totalDataRead ;
       volatile UINT64 totalIndexRead ;
-      volatile UINT64 totalLobRead ;
       volatile UINT64 totalDataWrite ;
       volatile UINT64 totalIndexWrite ;
-      volatile UINT64 totalLobWrite ;
 
       volatile UINT64 totalUpdate ;
       volatile UINT64 totalDelete ;
@@ -452,6 +612,17 @@ namespace engine
       volatile UINT64 totalGeneralSlowQuery ;
       volatile UINT64 totalTransCommit ;
       volatile UINT64 totalTransRollback ;
+
+      volatile UINT64 totalLobGet ;        // total number of lob read by client
+      volatile UINT64 totalLobPut ;        // total number of lob writed by client
+      volatile UINT64 totalLobDelete ;     // total number of lob removed/truncated by client
+      volatile UINT64 totalLobList ;       // total number of list lob operation by client
+      volatile UINT64 totalLobReadSize ;   // total lob bytes read by client
+      volatile UINT64 totalLobWriteSize ;  // total lob bytes writed by client
+      volatile UINT64 totalLobRead ;       // total number of lob page read in server
+      volatile UINT64 totalLobWrite ;      // total number of lob page writed in server
+      volatile UINT64 totalLobTruncate ;   // total number of lob page truncated in server
+      volatile UINT64 totalLobAddressing ; // total number of addressing in lobm
 
       volatile UINT64 receiveNum ;
 
@@ -510,20 +681,12 @@ namespace engine
                ossFetchAndAdd64( &totalIndexRead, delta ) ;
                break ;
 
-            case MON_LOB_READ :
-               ossFetchAndAdd64( &totalLobRead, delta ) ;
-               break ;
-
             case MON_DATA_WRITE :
                ossFetchAndAdd64( &totalDataWrite, delta ) ;
                break ;
 
             case MON_INDEX_WRITE :
                ossFetchAndAdd64( &totalIndexWrite, delta ) ;
-               break ;
-
-            case MON_LOB_WRITE :
-               ossFetchAndAdd64( &totalLobWrite, delta ) ;
                break ;
 
             case MON_UPDATE :
@@ -572,6 +735,54 @@ namespace engine
 
             case MON_TRANS_ROLLBACK:
                ossFetchAndAdd64( &totalTransRollback, delta ) ;
+
+            case MON_LOB_GET :
+               ossFetchAndAdd64( &totalLobGet, delta ) ;
+               break ;
+
+            case MON_LOB_PUT :
+               ossFetchAndAdd64( &totalLobPut, delta ) ;
+               break ;
+
+            case MON_LOB_DELETE :
+               ossFetchAndAdd64( &totalLobDelete, delta ) ;
+               break ;
+
+            case MON_LOB_LIST:
+               ossFetchAndAdd64( &totalLobList, delta ) ;
+               break ;
+
+            case MON_LOB_READ :
+               ossFetchAndAdd64( &totalLobRead, delta ) ;
+               break ;
+
+            case MON_LOB_WRITE :
+               ossFetchAndAdd64( &totalLobWrite, delta ) ;
+               break ;
+
+            case MON_LOB_TRUNCATE :
+               ossFetchAndAdd64( &totalLobTruncate, delta ) ;
+               break ;
+
+            case MON_LOB_ADDRESSING :
+               ossFetchAndAdd64( &totalLobAddressing, delta ) ;
+               break ;
+
+            default:
+               break ;
+         }
+      }
+
+      void monByteCountInc( MON_OPERATION_TYPES op, UINT64 delta )
+      {
+         switch ( op )
+         {
+            case MON_LOB_READ_BYTES :
+               ossFetchAndAdd64( &totalLobReadSize, delta ) ;
+               break ;
+
+            case MON_LOB_WRITE_BYTES :
+               ossFetchAndAdd64( &totalLobWriteSize, delta ) ;
                break ;
 
             default:
@@ -600,7 +811,11 @@ namespace engine
       _monDBCB& operator= ( const _monDBCB &rhs ) ;
       void   reset() ;
       void   recordActivateTimestamp() ;
+      void   incMetrics( const _monAppCB &delta ) ;
 
+   private:
+      void   _increase( MON_OPERATION_TYPES op, UINT64 delta ) ;
+      void   _increase( MON_OPERATION_TYPES op, ossTickDelta &delta ) ;
    } ;
    typedef _monDBCB monDBCB ;
 
@@ -619,16 +834,25 @@ namespace engine
       volatile UINT64               _totalContexts ;
       volatile UINT64               _totalDataRead ;
       volatile UINT64               _totalIndexRead ;
-      volatile UINT64               _totalLobRead ;
       volatile UINT64               _totalDataWrite ;
       volatile UINT64               _totalIndexWrite ;
-      volatile UINT64               _totalLobWrite ;
       volatile UINT64               _totalUpdate ;
       volatile UINT64               _totalDelete ;
       volatile UINT64               _totalInsert ;
       volatile UINT64               _totalSelect ;
       volatile UINT64               _totalRead ;
       volatile UINT64               _totalWrite ;
+
+      volatile UINT64               _totalLobGet ;
+      volatile UINT64               _totalLobPut ;
+      volatile UINT64               _totalLobDelete ;
+      volatile UINT64               _totalLobList ;
+      volatile UINT64               _totalLobReadSize ;
+      volatile UINT64               _totalLobWriteSize ;
+      volatile UINT64               _totalLobRead ;
+      volatile UINT64               _totalLobWrite ;
+      volatile UINT64               _totalLobTruncate ;
+      volatile UINT64               _totalLobAddressing ;
 
       ossTimestamp                  _startTimestamp ;
       ossTimestamp                  _resetTimestamp ;
@@ -657,17 +881,11 @@ namespace engine
             case MON_INDEX_READ :
                ossFetchAndAdd64( &_totalIndexRead, delta ) ;
                break ;
-            case MON_LOB_READ :
-               ossFetchAndAdd64( &_totalLobRead, delta ) ;
-               break ;
             case MON_DATA_WRITE :
                ossFetchAndAdd64( &_totalDataWrite, delta ) ;
                break ;
             case MON_INDEX_WRITE :
                ossFetchAndAdd64( &_totalIndexWrite, delta ) ;
-               break ;
-            case MON_LOB_WRITE :
-               ossFetchAndAdd64( &_totalLobWrite, delta ) ;
                break ;
             case MON_UPDATE :
                ossFetchAndAdd64( &_totalUpdate, delta ) ;
@@ -686,6 +904,45 @@ namespace engine
                break ;
             case MON_READ :
                ossFetchAndAdd64( &_totalRead, delta ) ;
+               break ;
+            case MON_LOB_GET :
+               ossFetchAndAdd64( &_totalLobGet, delta ) ;
+               break ;
+            case MON_LOB_PUT :
+               ossFetchAndAdd64( &_totalLobPut, delta ) ;
+               break ;
+            case MON_LOB_DELETE :
+               ossFetchAndAdd64( &_totalLobDelete, delta ) ;
+               break ;
+            case MON_LOB_LIST:
+               ossFetchAndAdd64( &_totalLobList, delta ) ;
+               break ;
+            case MON_LOB_READ :
+               ossFetchAndAdd64( &_totalLobRead, delta ) ;
+               break ;
+            case MON_LOB_WRITE :
+               ossFetchAndAdd64( &_totalLobWrite, delta ) ;
+               break ;
+            case MON_LOB_TRUNCATE :
+               ossFetchAndAdd64( &_totalLobTruncate, delta ) ;
+               break ;
+            case MON_LOB_ADDRESSING :
+               ossFetchAndAdd64( &_totalLobAddressing, delta ) ;
+               break ;
+            default:
+               break ;
+         }
+      }
+
+      void monByteCountInc( MON_OPERATION_TYPES op, UINT64 delta )
+      {
+         switch ( op )
+         {
+            case MON_LOB_READ_BYTES :
+               ossFetchAndAdd64( &_totalLobReadSize, delta ) ;
+               break ;
+            case MON_LOB_WRITE_BYTES :
+               ossFetchAndAdd64( &_totalLobWriteSize, delta ) ;
                break ;
             default:
                break ;
@@ -707,6 +964,11 @@ namespace engine
       }
 
       void reset() ;
+      void incMetrics( const _monAppCB &delta ) ;
+
+   private:
+      void _increase( MON_OPERATION_TYPES op, UINT64 delta ) ;
+
    } ;
    typedef _monSvcTaskInfo monSvcTaskInfo ;
 
@@ -726,10 +988,8 @@ namespace engine
 
       UINT64 totalDataRead ;
       UINT64 totalIndexRead ;
-      UINT64 totalLobRead ;
       UINT64 totalDataWrite ;
       UINT64 totalIndexWrite ;
-      UINT64 totalLobWrite ;
 
       UINT64 totalUpdate ;
       UINT64 totalDelete ;
@@ -742,6 +1002,17 @@ namespace engine
 
       UINT64 totalTransCommit ;
       UINT64 totalTransRollback ;
+
+      UINT64 totalLobGet ;        // total number of lob read by client
+      UINT64 totalLobPut ;        // total number of lob writed by client
+      UINT64 totalLobDelete ;     // total number of lob removed/truncated by client
+      UINT64 totalLobList ;       // total number of list lob operation by client
+      UINT64 totalLobReadSize ;   // total lob bytes read by client
+      UINT64 totalLobWriteSize ;  // total lob bytes writed by client
+      UINT64 totalLobRead ;       // total number of lob page read in server
+      UINT64 totalLobWrite ;      // total number of lob page writed in server
+      UINT64 totalLobTruncate ;   // total number of lob page truncated in server
+      UINT64 totalLobAddressing ; // total number of lob addressing in server
 
       ossTickDelta   totalReadTime ;
       ossTickDelta   totalWriteTime ;
@@ -776,88 +1047,154 @@ namespace engine
          mondbcb->monOperationTimeInc( op, delta ) ;
       }
 
-      void monOperationCountInc( MON_OPERATION_TYPES op, UINT64 delta = 1 )
+      void monOperationCountInc( MON_OPERATION_TYPES op,
+                                 UINT64 delta = 1,
+                                 INT32 updateClass = MON_UPDATE_CLASS_DEFAULT )
       {
-         switch ( op )
+         if ( updateClass & MON_UPDATE_SESSION )
          {
-            case MON_DATA_READ :
-               totalDataRead += delta ;
-               break ;
+            switch ( op )
+            {
+               case MON_DATA_READ :
+                  totalDataRead += delta ;
+                  break ;
 
-            case MON_INDEX_READ :
-               totalIndexRead += delta ;
-               break ;
+               case MON_INDEX_READ :
+                  totalIndexRead += delta ;
+                  break ;
 
-            case MON_LOB_READ :
-               totalLobRead += delta ;
-               break ;
+               case MON_DATA_WRITE :
+                  totalDataWrite += delta ;
+                  break ;
 
-            case MON_DATA_WRITE :
-               totalDataWrite += delta ;
-               break ;
+               case MON_INDEX_WRITE :
+                  totalIndexWrite += delta ;
+                  break ;
 
-            case MON_INDEX_WRITE :
-               totalIndexWrite += delta ;
-               break ;
+               case MON_UPDATE :
+                  totalUpdate += delta ;
+                  break ;
 
-            case MON_LOB_WRITE :
-               totalLobWrite += delta ;
-               break ;
+               case MON_DELETE :
+                  totalDelete += delta ;
+                  break ;
 
-            case MON_UPDATE :
-               totalUpdate += delta ;
-               break ;
+               case MON_INSERT :
+                  totalInsert += delta ;
+                  break ;
 
-            case MON_DELETE :
-               totalDelete += delta ;
-               break ;
+               case MON_SELECT :
+                  totalSelect += delta ;
+                  break ;
 
-            case MON_INSERT :
-               totalInsert += delta ;
-               break ;
+               case MON_READ :
+                  totalRead += delta ;
+                  break ;
 
-            case MON_SELECT :
-               totalSelect += delta ;
-               break ;
+               case MON_GENERAL_QUERY:
+                  totalGeneralQuery += delta ;
+                  break ;
 
-            case MON_READ :
-               totalRead += delta ;
-               break ;
+               case MON_GENERAL_SLOW_QUERY:
+                  totalGeneralSlowQuery += delta ;
+                  break ;
 
-            case MON_GENERAL_QUERY:
-               totalGeneralQuery += delta ;
-               break ;
+               case MON_TRANS_COMMIT:
+                  totalTransCommit += delta ;
+                  break ;
 
-            case MON_GENERAL_SLOW_QUERY:
-               totalGeneralSlowQuery += delta ;
-               break ;
+               case MON_TRANS_ROLLBACK:
+                  totalTransRollback += delta ;
+                  break ;
 
-            case MON_TRANS_COMMIT:
-               totalTransCommit += delta ;
-               break ;
+               case MON_LOB_GET :
+                  totalLobGet += delta ;
+                  break ;
 
-            case MON_TRANS_ROLLBACK:
-               totalTransRollback += delta ;
-               break ;
+               case MON_LOB_PUT :
+                  totalLobPut += delta ;
+                  break ;
 
-            default:
-               break ;
+               case MON_LOB_DELETE :
+                  totalLobDelete += delta ;
+                  break ;
+
+               case MON_LOB_LIST:
+                  totalLobList += delta ;
+                  break ;
+
+               case MON_LOB_READ :
+                  totalLobRead += delta ;
+                  break ;
+
+               case MON_LOB_WRITE :
+                  totalLobWrite += delta ;
+                  break ;
+
+               case MON_LOB_TRUNCATE :
+                  totalLobTruncate += delta ;
+                  break ;
+
+               case MON_LOB_ADDRESSING :
+                  totalLobAddressing += delta ;
+                  break ;
+
+               default:
+                  break ;
+            }
          }
-         mondbcb->monOperationCountInc( op, delta ) ;
-
-         if ( _taskInfo )
+         if ( updateClass & MON_UPDATE_SDB )
+         {
+            mondbcb->monOperationCountInc( op, delta ) ;
+         }
+         if ( _taskInfo && ( updateClass & MON_UPDATE_TASK ) )
          {
             _taskInfo->monOperationCountInc( op, delta ) ;
          }
-         if ( _mbCRUDCB )
+         if ( _mbCRUDCB && ( updateClass & MON_UPDATE_CL ) )
+         {
+            _mbCRUDCB->increaseOnce( op, delta ) ;
+         }
+      }
+
+      void monByteCountInc( MON_OPERATION_TYPES op, UINT64 delta,
+                            INT32 updateClass = MON_UPDATE_CLASS_DEFAULT )
+      {
+         if ( updateClass & MON_UPDATE_SESSION )
+         {
+            switch ( op )
+            {
+               case MON_LOB_READ_BYTES :
+                  totalLobReadSize += delta ;
+                  break ;
+
+               case MON_LOB_WRITE_BYTES :
+                  totalLobWriteSize += delta ;
+                  break ;
+
+               default:
+                  break ;
+            }
+         }
+         if ( updateClass & MON_UPDATE_SDB )
+         {
+            mondbcb->monByteCountInc( op, delta ) ;
+         }
+         if ( _taskInfo && ( updateClass & MON_UPDATE_TASK ) )
+         {
+            _taskInfo->monByteCountInc( op, delta ) ;
+         }
+         if ( _mbCRUDCB && ( updateClass & MON_UPDATE_CL ) )
          {
             _mbCRUDCB->increaseOnce( op, delta ) ;
          }
       }
 
       _monAppCB() ;
+      _monAppCB( const _monAppCB& monApp ) ;
       _monAppCB &operator= ( const _monAppCB &rhs ) ;
       _monAppCB &operator+= ( const _monAppCB &rhs ) ;
+      const _monAppCB operator- ( const _monAppCB& rhs ) ;
 
       void setSvcTaskInfo( monSvcTaskInfo *pSvcTaskInfo ) ;
       monSvcTaskInfo* getSvcTaskInfo() ;
@@ -887,6 +1224,7 @@ namespace engine
       {
          _mbCRUDCB = crudCB ;
       }
+
    } ;
 
    typedef _monAppCB  monAppCB ;
@@ -933,6 +1271,16 @@ namespace engine
          OSS_INLINE UINT64 getLobWrite() const
          {
             return _lobWrite ;
+         }
+
+         OSS_INLINE UINT64 getLobTruncate() const
+         {
+            return _lobTruncate ;
+         }
+
+         OSS_INLINE UINT64 getLobAddressing() const
+         {
+            return _lobAddressing ;
          }
 
          OSS_INLINE UINT32 getReturnBatches () const
@@ -1012,6 +1360,16 @@ namespace engine
             _lobWrite += delta ;
          }
 
+         OSS_INLINE void monLobTruncateInc( UINT64 delta )
+         {
+            _lobTruncate += delta ;
+         }
+
+         OSS_INLINE void monLobAddressingInc( UINT64 delta )
+         {
+            _lobAddressing += delta ;
+         }
+
          OSS_INLINE void monWaitTimeInc ( ossTickDelta &delta )
          {
             _waitTime += delta ;
@@ -1048,12 +1406,19 @@ namespace engine
             monExecuteTimeInc( delta ) ;
          }
 
+         void incMetrics( const _monAppCB &delta ) ;
+
+      private:
+         void _increase( MON_OPERATION_TYPES op, UINT64 delta ) ;
+
       public :
          INT64          _contextID ;
          UINT64         _dataRead ;
          UINT64         _indexRead ;
          UINT64         _lobRead ;
          UINT64         _lobWrite ;
+         UINT64         _lobTruncate ;
+         UINT64         _lobAddressing ;
          UINT32         _returnBatches ;
          UINT64         _returnRecords ;
          ossTimestamp   _startTimestamp ;

@@ -274,11 +274,13 @@ namespace engine
       }
 
       INT32 _push2Bucket( UINT32 bucket, DMS_LOB_PAGEID pageId,
+                          pmdEDUCB *cb,
                           _dmsLobDataMapBlk &blk,
                           const dmsLobRecord *pRecord = NULL ) ;
 
       INT32 _find( const _dmsLobRecord &record,
                    UINT32 clID,
+                   pmdEDUCB *cb,
                    DMS_LOB_PAGEID &page,
                    UINT32 *bucket = NULL ) ;
 
@@ -288,6 +290,7 @@ namespace engine
 
       INT32 _fillPage( const dmsLobRecord &record,
                        DMS_LOB_PAGEID page,
+                       pmdEDUCB *cb,
                        dmsMBContext *mbContext ) ;
 
       /// only release space of page. will not change other meta data.
@@ -297,6 +300,7 @@ namespace engine
       INT32 _removePage( DMS_LOB_PAGEID page,
                          _dmsLobDataMapBlk *blk,
                          const UINT32 *bucket,
+                         pmdEDUCB *cb,
                          dmsMBContext *mbContext,
                          BOOLEAN hasLockBucket,
                          BOOLEAN needRelease = TRUE,
@@ -304,6 +308,7 @@ namespace engine
 
       INT32 _rollback( const dmsLobRecord &record,
                        DMS_LOB_PAGEID page,
+                       pmdEDUCB *cb,
                        dmsMBContext *mbContext,
                        BOOLEAN pageFilled ) ;
 

@@ -56,6 +56,7 @@ namespace engine
       {
          return _su ;
       }
+
    private:
       virtual INT32 _prepare( _pmdEDUCB *cb ) ;
 
@@ -114,6 +115,8 @@ namespace engine
       INT32 _getAccessPrivilege( const CHAR *fullName,
                                  const bson::OID &oid,
                                  INT32 mode ) ;
+
+      virtual void _onIncreaseMetrics( const monAppCB &delta ) ;
 
    private:
       void        _closeInner( _pmdEDUCB *cb ) ;

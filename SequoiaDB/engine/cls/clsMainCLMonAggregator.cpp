@@ -166,6 +166,16 @@ namespace engine
          _detail._crudCB._totalWrite += sub._crudCB._totalWrite ;
          _detail._crudCB._totalTbScan += sub._crudCB._totalTbScan ;
          _detail._crudCB._totalIxScan += sub._crudCB._totalIxScan ;
+         _detail._crudCB._totalLobGet += sub._crudCB._totalLobGet ;
+         _detail._crudCB._totalLobPut += sub._crudCB._totalLobPut ;
+         _detail._crudCB._totalLobDelete += sub._crudCB._totalLobDelete ;
+         _detail._crudCB._totalLobList += sub._crudCB._totalLobList ;
+         _detail._crudCB._totalLobReadSize += sub._crudCB._totalLobReadSize ;
+         _detail._crudCB._totalLobWriteSize += sub._crudCB._totalLobWriteSize ;
+         _detail._crudCB._totalLobRead += sub._crudCB._totalLobRead ;
+         _detail._crudCB._totalLobWrite += sub._crudCB._totalLobWrite ;
+         _detail._crudCB._totalLobTruncate += sub._crudCB._totalLobTruncate ;
+         _detail._crudCB._totalLobAddressing += sub._crudCB._totalLobAddressing ;
          _detail._crudCB._resetTimestamp =  sub._crudCB._resetTimestamp ;
 
          // special field

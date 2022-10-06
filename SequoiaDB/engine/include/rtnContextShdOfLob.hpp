@@ -40,6 +40,7 @@
 #include "rtnLobAccessManager.hpp"
 #include "dmsLobDef.hpp"
 #include "ossMemPool.hpp"
+#include "monInterface.hpp"
 
 namespace engine
 {
@@ -47,7 +48,7 @@ namespace engine
    class _dmsStorageUnit ;
    class _SDB_DMSCB ;
 
-   class _rtnContextShdOfLob : public _rtnContextBase
+   class _rtnContextShdOfLob : public _rtnContextBase, public _IMonSubmitEvent
    {
       DECLARE_RTN_CTX_AUTO_REGISTER()
    public:
@@ -142,6 +143,9 @@ namespace engine
          return _oid ;
       }
 
+   public:
+      virtual void onSubmit( const monAppCB &delta ) ;
+
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
       virtual void  _toString( stringstream &ss ) ;
@@ -149,6 +153,13 @@ namespace engine
    private:
       INT32 _open( _pmdEDUCB *cb, _utilSectionMgr &sectionMgr,
                    const CHAR **data, UINT32 &read ) ;
+
+      INT32 _write( UINT32 sequence,
+                    UINT32 offset,
+                    UINT32 len,
+                    const CHAR *data,
+                    _pmdEDUCB *cb,
+                    BOOLEAN orUpdate = FALSE ) ;
 
       INT32 _getAccessPrivilege() ;
 
@@ -162,6 +173,10 @@ namespace engine
       INT32 _extendBuf( UINT32 len ) ;
 
       const CHAR *_getRealCLName() ;
+
+      UINT32 _getDataLen( UINT32 sequence, UINT32 offset, UINT32 len ) ;
+
+      INT32  _onExceptionHappen() ;
 
    private:
       std::string          _fullName ;
@@ -190,6 +205,8 @@ namespace engine
       _SDB_DMSCB*          _dmsCB ;
       BOOLEAN              _reopened ;
       BOOLEAN              _isMetaWrote ; // used in CREATEONLY mode
+      INT32                _opType ;
+      _monAppCB            _totalDeltaMonApp ; // keep the changes of the session
    } ;
    typedef class _rtnContextShdOfLob rtnContextShdOfLob ;
 }

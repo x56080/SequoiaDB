@@ -3043,14 +3043,25 @@ namespace engine
       collectionSpace._freeDataSize  = totalDataFreeSize ;
       collectionSpace._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
       collectionSpace._freeIndexSize = totalIndexFreeSize ;
+
       collectionSpace._lobCapacity = totalSize( DMS_SU_LOB ) ;
       collectionSpace._lobMetaCapacity = totalSize( DMS_SU_LOB_META ) ;
-
       collectionSpace._freeLobSpace = totalLobFreeSpace ;
       collectionSpace._totalLobPages = statInfo._totalLobPages ;
       collectionSpace._totalLobs = statInfo._totalLobs ;
       collectionSpace._totalLobSize = statInfo._totalLobSize ;
       collectionSpace._totalValidLobSize = statInfo._totalValidLobSize ;
+
+      collectionSpace._totalLobGet = statInfo._totalLobGet ;
+      collectionSpace._totalLobPut = statInfo._totalLobPut ;
+      collectionSpace._totalLobDelete = statInfo._totalLobDelete ;
+      collectionSpace._totalLobList = statInfo._totalLobList ;
+      collectionSpace._totalLobReadSize = statInfo._totalLobReadSize ;
+      collectionSpace._totalLobWriteSize = statInfo._totalLobWriteSize ;
+      collectionSpace._totalLobRead = statInfo._totalLobRead ;
+      collectionSpace._totalLobWrite = statInfo._totalLobWrite ;
+      collectionSpace._totalLobTruncate = statInfo._totalLobTruncate ;
+      collectionSpace._totalLobAddressing = statInfo._totalLobAddressing ;
 
       /// sync info
       collectionSpace._dataCommitLsn = getCurrentDataLSN() ;
@@ -3275,29 +3286,41 @@ namespace engine
 
       dmsMBStatInfo *mbStat = NULL ;
 
-      // lock meta
-      _pDataSu->_metadataLatch.get_shared() ;
-
-      dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
-      while ( it != _pDataSu->_collectionNameMap.end() )
+      /// Guard
       {
-         mbStat = &_pDataSu->_mbStatInfo[it->second] ;
+         ossScopedLock lock( &_pDataSu->_metadataLatch, SHARED ) ;
 
-         ++statInfo._clNum ;
-         statInfo._totalCount += mbStat->_totalRecords ;
-         statInfo._totalDataPages += mbStat->_totalDataPages ;
-         statInfo._totalIndexPages += mbStat->_totalIndexPages ;
-         statInfo._totalLobPages += mbStat->_totalLobPages ;
-         statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
-         statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
-         statInfo._totalLobs += mbStat->_totalLobs ;
-         statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
-         statInfo._totalLobSize += mbStat->_totalLobSize ;
-         ++it ;
+         dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
+         while ( it != _pDataSu->_collectionNameMap.end() )
+         {
+            mbStat = &_pDataSu->_mbStatInfo[it->second] ;
+
+            ++statInfo._clNum ;
+            statInfo._totalCount += mbStat->_totalRecords ;
+            statInfo._totalDataPages += mbStat->_totalDataPages ;
+            statInfo._totalIndexPages += mbStat->_totalIndexPages ;
+            statInfo._totalLobPages += mbStat->_totalLobPages ;
+            statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
+            statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+
+            statInfo._totalLobs += mbStat->_totalLobs ;
+            statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
+            statInfo._totalLobSize += mbStat->_totalLobSize ;
+
+            statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
+            statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
+            statInfo._totalLobDelete += mbStat->_crudCB._totalLobDelete ;
+            statInfo._totalLobList += mbStat->_crudCB._totalLobList ;
+            statInfo._totalLobReadSize += mbStat->_crudCB._totalLobReadSize ;
+            statInfo._totalLobWriteSize += mbStat->_crudCB._totalLobWriteSize ;
+            statInfo._totalLobRead += mbStat->_crudCB._totalLobRead ;
+            statInfo._totalLobWrite += mbStat->_crudCB._totalLobWrite ;
+            statInfo._totalLobTruncate += mbStat->_crudCB._totalLobTruncate ;
+            statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
+
+            ++it ;
+         }
       }
-
-      // release meta
-      _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }
 
