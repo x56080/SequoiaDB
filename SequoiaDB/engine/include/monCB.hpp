@@ -735,6 +735,7 @@ namespace engine
 
             case MON_TRANS_ROLLBACK:
                ossFetchAndAdd64( &totalTransRollback, delta ) ;
+               break ;
 
             case MON_LOB_GET :
                ossFetchAndAdd64( &totalLobGet, delta ) ;
