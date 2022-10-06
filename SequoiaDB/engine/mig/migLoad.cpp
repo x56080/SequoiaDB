@@ -59,7 +59,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__MIGLOADJSONPS__SENDMSG );
       SDB_ASSERT ( _sock, "_sock is NULL" ) ;
       va_list ap;
-      pmdEDUCB *eduCB = pmdGetKRCB()->getEDUMgr()->getEDU() ;
+      pmdEDUCB *eduCB = pmdGetThreadEDUCB() ;
       CHAR buffer[ PD_LOG_STRINGMAX ] ;
       boost::unique_lock<boost::mutex> lock ( _mutex ) ;
 
