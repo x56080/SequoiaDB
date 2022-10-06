@@ -224,7 +224,9 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_OPEN, rc ) ;
       return rc ;
    error:
-      _onExceptionHappen() ;
+      // only when fail to open context,
+      // we reset lob operation type to None
+      _opType = MON_LOB_OP_NONE ;
       close( cb ) ;
       goto done ;
    }
@@ -280,7 +282,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB__WRITE, rc ) ;
       return rc ;
    error:
-      _onExceptionHappen() ;
       goto done ;
    }
 
@@ -497,7 +498,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_UPDATE, rc ) ;
       return rc ;
    error:
-      _onExceptionHappen() ;
       goto done ;
    }
 
@@ -1145,7 +1145,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_READV, rc ) ;
       return rc ;
    error:
-      _onExceptionHappen() ;
       goto done ;
    }
 
@@ -1165,7 +1164,6 @@ namespace engine
 done:
       return rc ;
 error:
-   _onExceptionHappen() ;
    goto done ;
    }
 
@@ -1410,11 +1408,5 @@ error:
       getMonCB()->incMetrics( delta ) ;
    }
 
-   INT32 _rtnContextShdOfLob::_onExceptionHappen()
-   {
-      // when error happen, reset lob operation type to None
-      _opType = MON_LOB_OP_NONE ;
-      return SDB_OK ;
-   }
 }
 

@@ -176,8 +176,6 @@ namespace engine
 
       UINT32 _getDataLen( UINT32 sequence, UINT32 offset, UINT32 len ) ;
 
-      INT32  _onExceptionHappen() ;
-
    private:
       std::string          _fullName ;
       std::string          _subCLName ;

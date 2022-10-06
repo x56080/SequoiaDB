@@ -282,6 +282,9 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_OPEN, rc ) ;
       return rc ;
    error:
+      // only when fail to open stream,
+      // we reset lob operation type to None
+      _opType = MON_LOB_OP_NONE ;
       closeWithException( cb, &submitor ) ;
       goto done ;
    }
@@ -450,9 +453,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_CLOSEWITHEXCEPTION ) ;
-
-      // when error happen, reset lob operation type to None
-      _opType = MON_LOB_OP_NONE ;
 
       if ( !isOpened() )
       {
