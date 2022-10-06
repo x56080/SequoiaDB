@@ -2,8 +2,8 @@
  * @Description   : seqDB-14114:设置不同的timeout值执行操作超时
  * @Author        : wuyan
  * @CreateTime    : 2018.01.29
- * @LastEditTime  : 2021.07.16
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.10.06
+ * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "_14114";
@@ -19,11 +19,18 @@ function test ( testPara )
    for( var i = 0; i < timeoutValues.length; i++ )
    {
       db.setSessionAttr( { PreferedInstance: "M", Timeout: timeoutValues[i] } );
-
-      assert.tryThrow( SDB_TIMEOUT, function()
+      try
       {
+         //如果执行时间小于2s内不会超时
          dbcl.update( { $set: { a: "aaaaaa" } } );
-      } );
+      }
+      catch( e )
+      {
+         if( e.message != SDB_TIMEOUT )
+         {
+            throw new Error( e );
+         }
+      }
 
       checkTimeoutValue( timeoutValues[i] );
       db.setSessionAttr( { Timeout: -1 } );
