@@ -2338,7 +2338,7 @@ namespace engine
 
       // update time
       ele = catSet.getField( FIELD_NAME_UPDATE_TIME ) ;
-      if ( ele.type() == Timestamp )
+      if ( ele.type() == String )
       {
          _updateTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
       }
