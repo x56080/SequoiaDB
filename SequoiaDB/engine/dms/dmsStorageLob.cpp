@@ -802,9 +802,12 @@ namespace engine
          if ( newDataLen > 0 )
          {
             if ( DMS_LOB_META_SEQUENCE == record._sequence &&
-                 blk->_dataLen < DMS_LOB_META_LENGTH )
+                 orgBlkLen < DMS_LOB_META_LENGTH )
             {
-               pageIncSize = newDataLen - DMS_LOB_META_LENGTH ;
+               if ( newDataLen > DMS_LOB_META_LENGTH )
+               {
+                  pageIncSize = newDataLen - DMS_LOB_META_LENGTH ;
+               }
             }
             else
             {
