@@ -22,7 +22,11 @@ $SNAPSHOT_SESSION
 | ProcessEventCount | int64         | 已经处理请求的数量                                 |
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                   |
 | RelatedID         | string        | 会话的内部标识                                     |
-| Contexts          | array    | 上下文 ID 数组，为该会话所包含的所有上下文列表     |
+| Contexts          | array         | 上下文 ID 数组，为该会话所包含的所有上下文列表     |
+| TotalQuery        | int64         | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64         | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64         | 总事务提交数量                                     |
+| TotalTransRollback| int64         | 总事务回滚数量                                     |
 | TotalDataRead     | int64         | 数据记录读                                         |
 | TotalIndexRead    | int64         | 索引读                                             |
 | TotalDataWrite    | int64         | 数据记录写                                         |
@@ -71,6 +75,10 @@ $SNAPSHOT_SESSION
   "MemPoolSize": 0,
   "RelatedID": "c0a8143ea41000000fb8",
   "Contexts": [],
+  "TotalQuery": 0,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
