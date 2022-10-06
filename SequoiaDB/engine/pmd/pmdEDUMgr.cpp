@@ -119,8 +119,7 @@ namespace engine
       _pMonitorThd = NULL ;
       _pDeadCheckThd = NULL ;
 
-      _EDUIDBase = ossPack32To64( ossRand(),
-                                  (UINT32)( ossGetCurrentProcessID() ) ) ;
+      _EDUIDBase = 1 ;
    }
 
    _pmdEDUMgr::~_pmdEDUMgr()
