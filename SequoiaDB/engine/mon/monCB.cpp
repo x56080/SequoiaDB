@@ -290,6 +290,10 @@ namespace engine
      totalInsert( monApplCB.totalInsert ),
      totalSelect( monApplCB.totalSelect ),
      totalRead( monApplCB.totalRead ),
+     totalGeneralQuery( monApplCB.totalGeneralQuery ),
+     totalGeneralSlowQuery( monApplCB.totalGeneralSlowQuery ),
+     totalTransCommit( monApplCB.totalTransCommit ),
+     totalTransRollback( monApplCB.totalTransRollback ),
      totalLobGet( monApplCB.totalLobGet ),
      totalLobPut( monApplCB.totalLobPut ),
      totalLobDelete( monApplCB.totalLobDelete ),
@@ -427,6 +431,15 @@ namespace engine
       delta.totalInsert        = MON_APP_DELTA( begin.totalInsert, totalInsert ) ;
       delta.totalSelect        = MON_APP_DELTA( begin.totalSelect, totalSelect ) ;
       delta.totalRead          = MON_APP_DELTA( begin.totalRead, totalRead ) ;
+
+      delta.totalGeneralQuery  = MON_APP_DELTA( begin.totalGeneralQuery,
+                                                totalGeneralQuery ) ;
+      delta.totalGeneralSlowQuery = MON_APP_DELTA( begin.totalGeneralSlowQuery,
+                                                   totalGeneralSlowQuery ) ;
+      delta.totalTransCommit   = MON_APP_DELTA( begin.totalTransCommit,
+                                                totalTransCommit ) ;
+      delta.totalTransRollback = MON_APP_DELTA( begin.totalTransRollback,
+                                                totalTransRollback ) ;
 
       delta.totalLobGet        = MON_APP_DELTA( begin.totalLobGet, totalLobGet ) ;
       delta.totalLobPut        = MON_APP_DELTA( begin.totalLobPut, totalLobPut ) ;
