@@ -388,7 +388,7 @@ namespace engine
       const CHAR *clName = NULL ;
       _monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
-      if ( !_isOpened )
+      if ( _fullName.empty() )
       {
          goto done ;
       }
