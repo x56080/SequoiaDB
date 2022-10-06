@@ -68,7 +68,7 @@ namespace engine
       INT32 _getMetaInfo( _pmdEDUCB *cb, BSONObj &obj ) ;
       INT32 _getSequenceInfo( _pmdEDUCB *cb, BSONObj &obj ) ;
       INT32 _reallocate( UINT32 len ) ;
-      void  _close() ;
+      void  _close( _pmdEDUCB *cb ) ;
    private:
       _rtnLobFetcher _fetcher ;
       CHAR *_buf ;

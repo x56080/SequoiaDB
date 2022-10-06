@@ -58,13 +58,16 @@ namespace engine
 
    _rtnContextListLob::~_rtnContextListLob()
    {
+   	pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      _close( cb ) ;
+
       if ( NULL != _buf )
       {
          SDB_OSS_FREE( _buf ) ;
          _buf = NULL ;
          _bufLen = 0 ;
       }
-      _close() ;
    }
 
    _dmsStorageUnit* _rtnContextListLob::getSU()
@@ -373,16 +376,22 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLISTLOB__CLOSE, "_rtnContextListLob::_close" )
-   void _rtnContextListLob::_close()
+   void _rtnContextListLob::_close( _pmdEDUCB *cb )
    {
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLISTLOB__CLOSE ) ;
+
       INT32 rc = SDB_OK ;
       dmsStorageUnitID suID ;
       _dmsStorageUnit *su = NULL ;
       _dmsMBContext *mbContext = NULL ;
-      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       const CHAR *clName = NULL ;
-      _monAppCB *pMonAppCB = pmdGetThreadEDUCB()->getMonAppCB() ;
+      _monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      if ( !_isOpened )
+      {
+         goto done ;
+      }
 
       // submit snapshot changes to sdb/svctask monitor
       if ( pMonAppCB && pMonAppCB->mondbcb )
@@ -399,16 +408,16 @@ namespace engine
                                             &su, &clName, suID ) ;
       if ( SDB_OK != rc || !su )
       {
-         PD_LOG( PDERROR, "failed to resolve collection:%s, rc:%d",
+         PD_LOG( PDERROR, "Resolve collection[%s] failed, rc: %d",
                  _fullName.c_str(), rc ) ;
          goto error ;
       }
 
-      rc = su->data()->getMBContext( &mbContext, clName, -1 ) ;
+      rc = su->data()->getMBContext( &mbContext, clName, SHARED ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to resolve collection name:%s",
-                 clName ) ;
+         PD_LOG( PDERROR, "Get collection[%s] mb-context failed, rc: %d",
+                 clName, rc ) ;
          goto error ;
       }
 
@@ -423,10 +432,6 @@ namespace engine
    done:
       if ( NULL != mbContext && NULL != su )
       {
-         if ( mbContext->isMBLock() )
-         {
-            mbContext->mbUnlock() ;
-         }
          su->data()->releaseMBContext( mbContext ) ;
          mbContext = NULL ;
       }
