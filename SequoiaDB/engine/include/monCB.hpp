@@ -1192,7 +1192,7 @@ namespace engine
       }
 
       _monAppCB() ;
-      _monAppCB( const _monAppCB& monApp ) ;
+      _monAppCB( const _monAppCB &monApp ) ;
       _monAppCB &operator= ( const _monAppCB &rhs ) ;
       _monAppCB &operator+= ( const _monAppCB &rhs ) ;
       const _monAppCB operator- ( const _monAppCB& rhs ) ;

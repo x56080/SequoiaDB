@@ -277,48 +277,10 @@ namespace engine
       mondbcb = pmdGetKRCB()->getMonDBCB() ;
    }
 
-   _monAppCB::_monAppCB( const _monAppCB& monApplCB )
-   : _taskInfo( monApplCB._taskInfo ),
-     _mbCRUDCB( NULL ),
-     mondbcb( monApplCB.mondbcb ),
-     totalDataRead( monApplCB.totalDataRead ),
-     totalIndexRead( monApplCB.totalIndexRead ),
-     totalDataWrite( monApplCB.totalDataWrite ),
-     totalIndexWrite( monApplCB.totalIndexWrite ),
-     totalUpdate( monApplCB.totalUpdate ),
-     totalDelete( monApplCB.totalDelete ),
-     totalInsert( monApplCB.totalInsert ),
-     totalSelect( monApplCB.totalSelect ),
-     totalRead( monApplCB.totalRead ),
-     totalGeneralQuery( monApplCB.totalGeneralQuery ),
-     totalGeneralSlowQuery( monApplCB.totalGeneralSlowQuery ),
-     totalTransCommit( monApplCB.totalTransCommit ),
-     totalTransRollback( monApplCB.totalTransRollback ),
-     totalLobGet( monApplCB.totalLobGet ),
-     totalLobPut( monApplCB.totalLobPut ),
-     totalLobDelete( monApplCB.totalLobDelete ),
-     totalLobList( monApplCB.totalLobList ),
-     totalLobReadSize( monApplCB.totalLobReadSize ),
-     totalLobWriteSize( monApplCB.totalLobWriteSize ),
-     totalLobRead( monApplCB.totalLobRead ),
-     totalLobWrite( monApplCB.totalLobWrite ),
-     totalLobTruncate( monApplCB.totalLobTruncate ),
-     totalLobAddressing( monApplCB.totalLobAddressing ),
-     totalReadTime( monApplCB.totalReadTime ),
-     totalWriteTime( monApplCB.totalWriteTime ),
-     _connectTimestamp( monApplCB._connectTimestamp ),
-     _resetTimestamp( monApplCB._resetTimestamp ),
-     _lastOpType( monApplCB._lastOpType ),
-     _cmdType( monApplCB._cmdType ),
-     _lastOpBeginTime( monApplCB._lastOpBeginTime ),
-     _lastOpEndTime( monApplCB._lastOpEndTime ),
-     _readTimeSpent( monApplCB._readTimeSpent ),
-     _writeTimeSpent( monApplCB._writeTimeSpent )
+   _monAppCB::_monAppCB( const _monAppCB &rhs )
    {
-      // reset first 4 bytes to make sure both length of message and
-      // first char of formatted detail are reset
-      *( (INT32 *)_lastOpDetail ) = 0 ;
-      _lastOpMsgSaved = FALSE ;
+      reset() ;
+      operator=( rhs ) ;
    }
 
    _monAppCB &_monAppCB::operator= ( const _monAppCB &rhs )
@@ -541,7 +503,6 @@ namespace engine
          _lastOpEndTime = pmdGetKRCB()->getCurTime() ;
          ossTickDelta delta = _lastOpEndTime - _lastOpBeginTime ;
          opTimeSpentInc( delta ) ;
-         _lastOpBeginTime.clear() ;
       }
    }
 
