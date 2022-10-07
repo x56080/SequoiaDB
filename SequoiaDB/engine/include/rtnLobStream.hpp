@@ -291,6 +291,8 @@ namespace engine
       INT64 _calculateLockedLobLen( INT64 lobLen, BOOLEAN wholeLobLocked,
                                     INT64 lockedEnd ) ;
 
+      void _increaseLobOpCount( _pmdEDUCB *cb ) ;
+
       void _increaseMetrics( _pmdEDUCB *cb ) ;
 
    private:

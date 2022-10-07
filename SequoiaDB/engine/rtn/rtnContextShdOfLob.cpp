@@ -215,6 +215,9 @@ namespace engine
       PD_LOG( PDDEBUG, "Open SHARD_LOB context on [%s/%s], mode [%d/%s]",
               getFullName(), _getRealCLName(), _mode, rtnLobOpName( _mode ) ) ;
 
+      // monitor Lob operation count
+      _increaseLobOpCount( cb ) ;
+
    done:
       /// write down
       if ( writeDMS )
@@ -1226,24 +1229,6 @@ error:
 
       if ( _mbContext && _su )
       {
-         // monitor Lob operation count
-         if ( _isMainShd && _opType )
-         {
-            rtnLobMetricsSubmitor submitor( cb, this ) ;
-            if ( _opType & MON_LOB_OP_GET )
-            {
-               RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
-            }
-            if ( _opType & MON_LOB_OP_PUT )
-            {
-               RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
-            }
-            if ( _opType & MON_LOB_OP_DELETE )
-            {
-               RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
-            }
-         }
-
          // no matter error happen or not, we will still
          // submit the change from session to others
          if ( pMonAppCB && pMonAppCB->mondbcb )
@@ -1406,6 +1391,27 @@ error:
    {
       _totalDeltaMonApp += delta ;
       getMonCB()->incMetrics( delta ) ;
+   }
+
+   void _rtnContextShdOfLob::_increaseLobOpCount( _pmdEDUCB *cb )
+   {
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      if ( _isMainShd && _opType )
+      {
+         if ( _opType & MON_LOB_OP_GET )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_PUT )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_DELETE )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
+         }
+      }
    }
 
 }

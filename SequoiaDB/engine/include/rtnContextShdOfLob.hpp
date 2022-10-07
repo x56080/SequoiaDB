@@ -176,6 +176,8 @@ namespace engine
 
       UINT32 _getDataLen( UINT32 sequence, UINT32 offset, UINT32 len ) ;
 
+      void   _increaseLobOpCount( _pmdEDUCB *cb ) ;
+
    private:
       std::string          _fullName ;
       std::string          _subCLName ;

@@ -278,6 +278,9 @@ namespace engine
 
       _opened = TRUE ;
 
+      // monitor Lob operation count
+      _increaseLobOpCount( cb ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_OPEN, rc ) ;
       return rc ;
@@ -364,7 +367,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_CLOSE ) ;
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       if ( !isOpened() )
@@ -406,23 +408,6 @@ namespace engine
          {
             PD_LOG( PDERROR, "failed to close for truncate:%d", rc ) ;
             goto error ;
-         }
-      }
-
-      // monitor Lob operation count
-      if ( _opType )
-      {
-         if ( _opType & MON_LOB_OP_GET )
-         {
-            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
-         }
-         if ( _opType & MON_LOB_OP_PUT )
-         {
-            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
-         }
-         if ( _opType & MON_LOB_OP_DELETE )
-         {
-            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
          }
       }
 
@@ -1561,6 +1546,27 @@ namespace engine
       if ( _pMonSubmitEvent )
       {
          _pMonSubmitEvent->onSubmit( delta ) ;
+      }
+   }
+
+   void _rtnLobStream::_increaseLobOpCount( _pmdEDUCB *cb )
+   {
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      if ( _opType )
+      {
+         if ( _opType & MON_LOB_OP_GET )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_PUT )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_DELETE )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
+         }
       }
    }
 
