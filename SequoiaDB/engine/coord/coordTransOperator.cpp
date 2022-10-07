@@ -949,16 +949,16 @@ namespace engine
                           cb->getTransID(),
                           cb->getTransID() ) ;
 
+      if ( _groupSession.getPropSite()->getTransNodeSize() )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
+      }
+
       rc = _coordTransOperator::rollback( cb ) ;
       if ( rc )
       {
          PD_LOG( PDWARNING, "Rollback transaction failed, rc: %d", rc ) ;
          goto error ;
-      }
-
-      if ( _groupSession.getPropSite()->getTransNodeSize() )
-      {
-         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
       }
 
    done:
