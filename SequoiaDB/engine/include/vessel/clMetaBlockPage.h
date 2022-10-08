@@ -67,16 +67,6 @@ namespace vessel
 #pragma pack(4)
    struct clMetaBlock
    {
-      clMetaBlock()
-      {
-      }
-
-      OSS_INLINE clMetaBlock &operator=(const clMetaBlock &o)
-      {
-         ossMemcpy(this, &o, sizeof(clMetaBlock));
-         return *this;
-      }
-
       OSS_INLINE BOOLEAN isValid()const
       {
          return CL_META_BLOCK_VERSION == version &&

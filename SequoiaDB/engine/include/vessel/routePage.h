@@ -52,16 +52,6 @@ namespace vessel
 #pragma pack(4)
    struct routePageHead
    {
-      OSS_INLINE routePageHead &operator=(const routePageHead &o)
-      {
-         version = o.version;
-         size = o.size;
-         logicalId = o.logicalId;
-         lvl = o.lvl;
-         pad = o.pad;
-         return *this;
-      }
-
       UINT16 version = 0;
       /// WARNING: size never shrinks.
       UINT16 size = 0;

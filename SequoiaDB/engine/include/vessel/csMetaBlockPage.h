@@ -64,17 +64,6 @@ namespace vessel
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
       UINT32 maxCLLogicalID = DMS_INVALID_LOGICCLID;
 
-      csMetaBlock &operator=(const csMetaBlock &o)
-      {
-         version = o.version;
-         status = o.status;
-         type = o.type;
-         flags = o.flags;
-         ossMemcpy(name, o.name, sizeof(name));
-         maxCLLogicalID = o.maxCLLogicalID;
-         return *this;
-      }
-
       OSS_INLINE BOOLEAN isOnline()const
       {
          return CS_STATUS_ONLINE == status;
