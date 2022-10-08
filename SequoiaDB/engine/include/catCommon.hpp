@@ -565,6 +565,21 @@ namespace engine
                                  BSONObj &catRecord,
                                  INT16 w ) ;
 
+   /* Set Location */
+   INT32 catSetLocation ( UINT32 locID, const ossPoolString &location,
+                          UINT16 nodeID, const BSONObj &groupObj,
+                          ossPoolString &oldLocation,
+                          BSONObjBuilder &updatorBuilder,
+                          BSONObjBuilder &matcherBuilder ) ;
+
+   /* Remove Location */
+   INT32 catRemoveLocation ( UINT16         nodeID,
+                             const BSONObj  &groupObj,
+                             BSONObjBuilder &updatorBuilder,
+                             BSONObjBuilder &matcherBuilder,
+                             BOOLEAN        isRemoveNode,
+                             ossPoolString  *oldLocation ) ;
+
    /* Create Node */
    INT32 catCreateNodeStep ( const string &groupName, const string &hostName,
                              const string &dbPath, UINT32 instanceID,

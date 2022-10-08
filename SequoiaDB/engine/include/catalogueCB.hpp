@@ -42,6 +42,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "ossMemPool.hpp"
 #include "pmdDef.hpp"
 #include "msg.hpp"
 #include "netRouteAgent.hpp"
@@ -72,6 +73,22 @@ namespace engine
       typedef std::map<UINT16, UINT16>    NODE_ID_MAP;
       typedef std::vector<_catEventHandler *> VEC_EVENT_HANDLER ;
 
+      struct catLocationInfo
+      {
+      public:
+         catLocationInfo( UINT32 locationID, UINT32 count )
+         {
+            _locationID = locationID ;
+            _count = count ;
+         } ;
+
+         UINT32 _locationID ;
+         UINT32 _count ;
+      } ;
+
+      typedef ossPoolMap<ossPoolString, catLocationInfo>  CAT_LOC2ID_MAP ;
+      typedef ossPoolMap<UINT32, ossPoolString> CAT_ID2LOC_MAP ;
+
       public:
          sdbCatalogueCB() ;
          virtual ~sdbCatalogueCB() ;
@@ -85,6 +102,7 @@ namespace engine
          virtual INT32  fini () ;
          virtual void   onConfigChange() ;
          virtual void   onConfigSave() ;
+         void           loadNodeInfo () ;
 
          virtual void   onRegistered( const MsgRouteID &nodeID ) ;
          virtual void   onPrimaryChange( BOOLEAN primary,
@@ -103,6 +121,24 @@ namespace engine
          UINT16   allocSystemNodeID() ;
          BOOLEAN  checkGroupActived( const CHAR *gpName, BOOLEAN &gpExist  ) ;
          BOOLEAN  checkGroupActived( UINT32 groupID, BOOLEAN &gpExist ) ;
+
+         INT32    insertLocID( const ossPoolString &locName,
+                                      UINT32 locID,
+                                      UINT16 refCount = 1 ) ;
+         void     releaseLocID( const ossPoolString &locName ) ;
+         UINT32   allocLocID( const ossPoolString &locName ) ;
+
+         void     releaseNode( UINT16 nodeID, const ossPoolString &locName ) ;
+
+         BOOLEAN getNodeInfoChanged()
+         {
+            return _nodeInfoChanged ;
+         }
+
+         void setNodeInfoChanged( BOOLEAN nodeInfoChanged )
+         {
+            _nodeInfoChanged = nodeInfoChanged ;
+         }
 
          void        clearInfo() ;
          GRP_ID_MAP* getGroupMap( BOOLEAN isActive = TRUE ) ;
@@ -217,9 +253,12 @@ namespace engine
          NODE_ID_MAP          _sysNodeIdMap ;
          GRP_ID_MAP           _grpIdMap ;
          GRP_ID_MAP           _deactiveGrpIdMap ;
+         CAT_LOC2ID_MAP       _locIdMap ;
+         CAT_ID2LOC_MAP       _idLocMap ;
          UINT16               _iCurNodeId ;
          UINT16               _curSysNodeId ;
          UINT32               _iCurGrpId ;
+         UINT32               _nextLocId ;
 
          catMainController    _catMainCtrl ;
          catCatalogueManager  _catlogueMgr ;
@@ -232,6 +271,9 @@ namespace engine
          MsgRouteID           _primaryID ;
          BOOLEAN              _isActived ;
          BOOLEAN              _needForceSecondary ;
+
+         // Use to record whether the node info has changed
+         BOOLEAN              _nodeInfoChanged ;
 
          VEC_EVENT_HANDLER    _vecEventHandler ;
 

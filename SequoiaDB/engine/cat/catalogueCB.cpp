@@ -250,10 +250,11 @@ namespace engine
       _iCurNodeId          = CAT_DATA_NODE_ID_BEGIN;
       _iCurGrpId           = CAT_DATA_GROUP_ID_BEGIN;
       _curSysNodeId        = SYS_NODE_ID_BEGIN;
+      _nextLocId           = CAT_NODE_LOCATION_ID_BEGIN ;
       _primaryID.value     = MSG_INVALID_ROUTEID ;
       _isActived           = FALSE ;
       _needForceSecondary  = FALSE ;
-
+      _nodeInfoChanged     = FALSE ;
       _inPacketLevel       = 0 ;
    }
 
@@ -569,6 +570,8 @@ namespace engine
       _sysNodeIdMap.clear() ;
       _grpIdMap.clear() ;
       _deactiveGrpIdMap.clear() ;
+      _locIdMap.clear() ;
+      _idLocMap.clear() ;
    }
 
    sdbCatalogueCB::GRP_ID_MAP * sdbCatalogueCB::getGroupMap( BOOLEAN isActive )
@@ -1108,16 +1111,158 @@ namespace engine
       return id;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_INSERTLOCID, "sdbCatalogueCB::insertLocID" )
+   INT32 sdbCatalogueCB::insertLocID( const ossPoolString &locName,
+                                      UINT32 locID,
+                                      UINT16 refCount )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATALOGCB_INSERTLOCID ) ;
+      PD_TRACE1 ( SDB_CATALOGCB_INSERTLOCID, PD_PACK_UINT ( locID ) ) ;
+
+      CAT_LOC2ID_MAP::iterator nameItr = _locIdMap.find( locName ) ;
+      CAT_ID2LOC_MAP::const_iterator idItr = _idLocMap.find( locID ) ;
+      if ( nameItr != _locIdMap.end() )
+      {
+         // If the location is existed, increase the catLocationInfo count
+         nameItr->second._count += refCount ;
+         setNodeInfoChanged( TRUE ) ;
+      }
+      else
+      {
+         // Insert the new location and make sure _nextLocId is not allocated,
+         // because allocLocID can also increase _nextLocId
+         if ( locID >= CAT_NODE_LOCATION_ID_BEGIN &&
+              locID <= CAT_NODE_LOCATION_ID_END &&
+              idItr == _idLocMap.end() )
+         {
+            try
+            {
+               setNodeInfoChanged( TRUE ) ;
+               _locIdMap.insert( CAT_LOC2ID_MAP::value_type( locName,
+                                 catLocationInfo( locID, refCount ) ) ) ;
+               _idLocMap.insert( CAT_ID2LOC_MAP::value_type( locID, locName ) ) ;
+            }
+            catch( exception &e )
+            {
+               // Rollback if occured exception
+               _locIdMap.erase( locName ) ;
+               _idLocMap.erase( locID ) ;
+               setNodeInfoChanged( FALSE ) ;
+
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Inserting locationID map occured exception: ",
+                       "%s, rc: %d", e.what(), rc ) ;
+               goto error ;
+            }
+            _nextLocId = _nextLocId > locID ? _nextLocId : locID + 1 ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Inserting an invalid locationID" ) ;
+            rc = SDB_INVALIDARG ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXIT ( SDB_CATALOGCB_INSERTLOCID ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // Decrease the catLocationInfo count,
+   // and check if the catLocationInfo need to be erased in _idLocMap and _locIdMap
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_RELEASELOCID, "sdbCatalogueCB::releaseLocID" )
+   void sdbCatalogueCB::releaseLocID( const ossPoolString &locName )
+   {
+      PD_TRACE_ENTRY ( SDB_CATALOGCB_RELEASELOCID ) ;
+
+      CAT_LOC2ID_MAP::iterator it = _locIdMap.find( locName ) ;
+      if ( it != _locIdMap.end() )
+      {
+         // Decrease the catLocationInfo count
+         --it->second._count ;
+
+         // Check the catLocationInfo count
+         if ( 0 == it->second._count )
+         {
+            _idLocMap.erase( it->second._locationID ) ;
+            _locIdMap.erase( it ) ;
+         }
+
+         setNodeInfoChanged( TRUE ) ;
+      }
+
+      PD_TRACE_EXIT ( SDB_CATALOGCB_RELEASELOCID ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_ALLOCLOCID, "sdbCatalogueCB::allocLocID" )
+   UINT32 sdbCatalogueCB::allocLocID( const ossPoolString &locName )
+   {
+      PD_TRACE_ENTRY ( SDB_CATALOGCB_ALLOCLOCID ) ;
+
+      UINT32 i = 0 ;
+      UINT32 locID = MSG_INVALID_LOCATIONID ;
+
+      CAT_LOC2ID_MAP::const_iterator itr = _locIdMap.find( locName ) ;
+      if ( itr != _locIdMap.end() )
+      {
+         locID = itr->second._locationID ;
+      }
+      else
+      {
+         // If the location is not existed, alloc a new one
+         while ( i++ <= CAT_NODE_LOCATION_ID_END - CAT_NODE_LOCATION_ID_BEGIN )
+         {
+            if ( _nextLocId > CAT_NODE_LOCATION_ID_END ||
+                 _nextLocId < CAT_NODE_LOCATION_ID_BEGIN )
+            {
+               _nextLocId = CAT_NODE_LOCATION_ID_BEGIN ;
+            }
+            CAT_ID2LOC_MAP::const_iterator it = _idLocMap.find( _nextLocId ) ;
+            if ( it == _idLocMap.end() )
+            {
+               locID = _nextLocId++ ;
+               goto done ;
+            }
+            ++_nextLocId ;
+         }
+         PD_LOG( PDWARNING, "All the locationID had been allocated" ) ;
+      }
+
+   done:
+      PD_TRACE_EXIT ( SDB_CATALOGCB_ALLOCLOCID ) ;
+      return locID ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_RELEASENODE,"sdbCatalogueCB::releaseNode" )
+   void sdbCatalogueCB::releaseNode( UINT16 nodeID,
+                                     const ossPoolString &locName )
+   {
+      PD_TRACE_ENTRY ( SDB_CATALOGCB_RELEASENODE ) ;
+
+      releaseNodeID( nodeID ) ;
+      if ( ! locName.empty() )
+      {
+         releaseLocID( locName ) ;
+      }
+
+      PD_TRACE_EXIT ( SDB_CATALOGCB_RELEASENODE ) ;
+   }
+
+
    // The caller must make sure id has the correct serviceID
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_UPDATEROUTEID, "sdbCatalogueCB::onRegistered" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_ONREGISTERED,"sdbCatalogueCB::onRegistered" )
    void sdbCatalogueCB::onRegistered ( const MsgRouteID &nodeID )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_CATALOGCB_UPDATEROUTEID ) ;
+      PD_TRACE_ENTRY ( SDB_CATALOGCB_ONREGISTERED ) ;
       MsgRouteID id ;
       id.value = nodeID.value ;
       id.columns.serviceID = MSG_ROUTE_CAT_SERVICE ;
-      PD_TRACE1 ( SDB_CATALOGCB_UPDATEROUTEID,
+      PD_TRACE1 ( SDB_CATALOGCB_ONREGISTERED,
                   PD_PACK_ULONG ( id.value ) ) ;
 
       rc = _pNetWork->updateRoute( _routeID, id ) ;
@@ -1130,7 +1275,7 @@ namespace engine
       }
       _pNetWork->setLocalID( id ) ;
       _routeID.value = id.value ;
-      PD_TRACE_EXIT ( SDB_CATALOGCB_UPDATEROUTEID ) ;
+      PD_TRACE_EXIT ( SDB_CATALOGCB_ONREGISTERED ) ;
    }
 
    void sdbCatalogueCB::onPrimaryChange( BOOLEAN primary,

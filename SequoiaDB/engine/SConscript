@@ -587,7 +587,8 @@ catFiles = [
       "cat/catRecycleBinManager.cpp",
       "cat/catRecycleBinProcessor.cpp",
       "cat/catRecycleReturnInfo.cpp",
-      "cat/catContextRecycleBin.cpp"
+      "cat/catContextRecycleBin.cpp",
+      "cat/catCommandNode.cpp"
       ]
 
 coordFiles = [

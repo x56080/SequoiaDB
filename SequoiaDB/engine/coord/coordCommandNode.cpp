@@ -48,6 +48,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "utilCommon.hpp"
+#include "coordCMDEventHandler.hpp"
 
 using namespace bson;
 
@@ -2570,6 +2571,85 @@ namespace engine
          svcname = _pSvcName ;
       }
       return hostname + ":" + svcname ;
+   }
+
+   /* 
+      _coordCMDAlterNode implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDAlterNode,
+                                      CMD_NAME_ALTER_NODE,
+                                      FALSE ) ;
+   _coordCMDAlterNode::_coordCMDAlterNode()
+   {
+   }
+
+   _coordCMDAlterNode::~_coordCMDAlterNode()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERNODE_EXE, "_coordCMDAlterNode::execute" )
+   INT32 _coordCMDAlterNode::execute( MsgHeader *pMsg,
+                                      pmdEDUCB *cb,
+                                      INT64 &contextID,
+                                      rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERNODE_EXE ) ;
+
+      BSONObj hintObj ;
+      BSONElement ele ;
+      UINT32 groupID = INVALID_GROUPID ;
+      coordNodeCMDHelper helper ;
+
+      // Get groupID
+      const CHAR *pHint = NULL ;
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL,
+                            NULL, NULL, NULL, NULL, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse message, rc: %d", rc ) ;
+
+      try
+      {
+         hintObj.init( pHint ) ;
+         ele = hintObj.getField( FIELD_NAME_GROUPID ) ;
+         groupID = ele.numberInt() ;
+      }
+      catch ( const std::exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse hint object: %s", pHint ) ;
+         goto error ;
+      }
+
+      // Send to cataGroup
+      rc = executeOnCataGroup( pMsg, cb, NULL, NULL, TRUE, NULL, buf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute command [%s] on catalog, "
+                   "rc: %d", getName(), rc ) ;
+
+      // Determine which group to notify
+      if ( CATALOG_GROUPID ==  groupID )
+      {
+         // Notify to all group
+         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
+      }
+      else if ( COORD_GROUPID == groupID ||
+                ( DATA_GROUP_ID_BEGIN <= groupID &&
+                  DATA_GROUP_ID_END >= groupID ) )
+      {
+         // Notify to coord or data group
+         helper.notify2GroupNodes( _pResource, groupID, cb ) ;
+      }
+      else
+      {
+         // Except coord, cata, data groupID
+         PD_LOG( PDWARNING, "Failed to notify to group, got invalid groupID: %d",
+                 groupID ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_ALTERNODE_EXE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*

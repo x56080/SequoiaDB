@@ -2751,6 +2751,10 @@ namespace sdbclient
       // start the node
       virtual INT32 start () = 0 ;
 
+      virtual INT32 setLocation ( const CHAR *pLocation ) = 0 ;
+
+      virtual INT32 setAttributes ( const bson::BSONObj & options ) = 0 ;
+
       // modify config for the current node
 /*      virtual INT32 modifyConfig ( std::map<std::string,std::string>
                                    &config ) = 0 ; */
@@ -2927,6 +2931,44 @@ namespace sdbclient
          }
          return pNode->start () ;
       }
+
+      /** \fn INT32 setLocation ( const CHAR *pLocation )
+          \brief Alter node to set Location.
+          \param [in] pLocation The location of node to be changed.
+
+              Location     : The location of node, if the parameter is "",
+                             it means to remove the node location
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setLocation ( const CHAR *pLocation )
+      {
+         if ( !pNode )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pNode->setLocation( pLocation ) ;
+      }
+
+      /** \fn INT32 setAttributes ( const bson::BSONObj & options )
+          \brief Alter node.
+          \param [in] options The options of node to be changed, e.g. { "Location": "A" }.
+
+              Location     : The location of node
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setAttributes ( const bson::BSONObj & options )
+      {
+         if ( !pNode )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pNode->setAttributes( options ) ;
+      }
+
 /*      INT32 modifyConfig ( std::map<std::string,std::string> &config )
       {
          if ( !pNode )

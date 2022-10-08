@@ -44,6 +44,8 @@
 #include "coordCommandWithLocation.hpp"
 #include "coordCommandRecycleBin.hpp"
 #include "coordCommandData.hpp"
+#include "msgReplicator.hpp"
+#include "coordUtil.hpp"
 
 using namespace bson;
 
@@ -222,6 +224,159 @@ namespace engine
       }
       PD_TRACE_EXITRC( COORD_DATACMDHELPER_DROPCS, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordNodeCMDHelper implement
+   */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2GROUPNODES, "_coordNodeCMDHelper::notify2GroupNodes" )
+   INT32 _coordNodeCMDHelper::notify2GroupNodes( coordResource *pResource,
+                                                 UINT32 groupID,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES ) ;
+
+      CoordGroupInfoPtr groupPtr ;
+      pmdRemoteSessionSite *pSite = NULL ;
+      pmdRemoteSession *pSession = NULL ;
+      coordRemoteHandlerBase baseHander ;
+      pmdSubSession *pSub        = NULL ;
+
+      _MsgClsGInfoUpdated updated ;
+      updated.groupID = groupID ;
+      MsgRouteID routeID ;
+      UINT32 index = 0 ;
+
+      // Create remote session
+      pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
+      if ( !pSite )
+      {
+         PD_LOG( PDERROR, "Remote session is NULL in cb" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      pSession = pSite->addSession( -1, &baseHander ) ;
+      if ( !pSession )
+      {
+         PD_LOG( PDERROR, "Create remote session failed in session[%s]",
+                 cb->getName() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      // Get group info by groupID, store in groupPtr
+      rc = pResource->updateGroupInfo( groupID, groupPtr, cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Update group info failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      // Send msg to group nodes
+      while ( SDB_OK == groupPtr->getNodeID( index++, routeID ) )
+      {
+         pSub = pSession->addSubSession( routeID.value ) ;
+         pSub->setReqMsg( ( MsgHeader* )&updated, PMD_EDU_MEM_NONE ) ;
+
+         rcTmp = pSession->sendMsg( pSub ) ;
+         rc = ( rcTmp && !rc ) ? rcTmp : rc ;
+      }
+
+   done:
+      if ( pSession )
+      {
+         pSite->removeSession( pSession->sessionID() ) ;
+      }
+      PD_TRACE_EXIT ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2ALLNODES, "_coordNodeCMDHelper::notify2AllNodes" )
+   INT32 _coordNodeCMDHelper::notify2AllNodes( coordResource *pResource,
+                                               BOOLEAN exceptSelf,
+                                               pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 rcTmp = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_NODECMDHELPER_NOTIFY2ALLNODES ) ;
+
+      MsgHeader ntyMsg ;
+      CoordGroupList grpLst ;
+      SET_ROUTEID nodes ;
+      pmdRemoteSessionSite *pSite = NULL ;
+      pmdRemoteSession *pSession = NULL ;
+      coordRemoteHandlerBase baseHander ;
+      pmdSubSession *pSub        = NULL ;
+      SET_ROUTEID::iterator it ;
+
+      // Create remote session
+      pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
+      if ( !pSite )
+      {
+         PD_LOG( PDERROR, "Remote session is NULL in cb" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      pSession = pSite->addSession( -1, &baseHander ) ;
+      if ( !pSession )
+      {
+         PD_LOG( PDERROR, "Create remote session failed in session[%s]",
+                 cb->getName() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      // Get group list, store in grpLst
+      pResource->updateGroupList( grpLst, cb, NULL, FALSE, FALSE, TRUE ) ;
+
+      // Get all nodes, store in nodes
+      rc = coordGetGroupNodes( pResource, cb, BSONObj(),
+                               NODE_SEL_ALL, grpLst, nodes ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
+
+      // Check
+      if ( nodes.size() == 0 )
+      {
+         PD_LOG( PDWARNING, "Not found any node" ) ;
+         rc = SDB_CLS_NODE_NOT_EXIST ;
+         goto error ;
+      }
+      if ( exceptSelf )
+      {
+         MsgRouteID routeID ;
+         routeID = pmdGetNodeID() ;
+         routeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+         nodes.erase( routeID.value ) ;
+      }
+
+      ntyMsg.messageLength = sizeof( MsgHeader ) ;
+      ntyMsg.opCode = MSG_CAT_GRP_CHANGE_NTY ;
+
+      // Send msg to group nodes
+      for ( it = nodes.begin(); it != nodes.end(); it++ )
+      {
+         pSub = pSession->addSubSession( *it ) ;
+         pSub->setReqMsg( &ntyMsg, PMD_EDU_MEM_NONE ) ;
+
+         rcTmp = pSession->sendMsg( pSub ) ;
+         rc = ( rcTmp && !rc ) ? rcTmp : rc ;
+      }
+
+   done:
+      if ( pSession )
+      {
+         pSite->removeSession( pSession->sessionID() ) ;
+      }
+      PD_TRACE_EXIT ( COORD_NODECMDHELPER_NOTIFY2ALLNODES ) ;
+      return rc ;
+
    error:
       goto done ;
    }

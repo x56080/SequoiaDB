@@ -70,6 +70,8 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
+      INT32 loadNodeInfo() ;
+
    // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
@@ -121,12 +123,20 @@ namespace engine
 
       INT32 _getNodeInfoByConf( BSONObj &boConf, BSONObjBuilder &bobNodeInfo ) ;
 
+   public:
+      INT32 setLocation( UINT16 nodeID,
+                         UINT32 groupID,
+                         const ossPoolString &newLoc ) ;
+
+      INT32 removeLocation( UINT16 nodeID,
+                            UINT32 groupID ) ;
+
    private:
-      _SDB_DMSCB                 *_pDmsCB;
-      _dpsLogWrapper             *_pDpsCB;
-      _SDB_RTNCB                 *_pRtnCB;
-      sdbCatalogueCB             *_pCatCB;
-      pmdEDUCB                   *_pEduCB;
+      _SDB_DMSCB                 *_pDmsCB ;
+      _dpsLogWrapper             *_pDpsCB ;
+      _SDB_RTNCB                 *_pRtnCB ;
+      sdbCatalogueCB             *_pCatCB ;
+      pmdEDUCB                   *_pEduCB ;
 
    } ;
 }

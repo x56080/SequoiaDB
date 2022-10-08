@@ -212,6 +212,25 @@ namespace engine
    typedef class _coordDataCMDHelper coordDataCMDHelper ;
 
    /*
+      _coordNodeCMDHelper
+   */
+   class _coordNodeCMDHelper
+   {
+   public:
+      _coordNodeCMDHelper() {}
+      ~_coordNodeCMDHelper() {}
+
+      INT32 notify2GroupNodes( coordResource *pResource,
+                               UINT32 groupID,
+                               pmdEDUCB *cb ) ;
+
+      INT32 notify2AllNodes( coordResource *pResource,
+                             BOOLEAN exceptSelf,
+                             pmdEDUCB *cb ) ;
+   } ;
+   typedef class _coordNodeCMDHelper coordNodeCMDHelper ;
+
+   /*
       _coordCMDGlobIdxHandler define
     */
    class _coordCMDGlobIdxHandler : public _coordCMDEventHandler

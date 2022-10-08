@@ -519,6 +519,9 @@
 #define FIELD_NAME_NODE_SELECT               "NodeSelect"
 #define FIELD_NAME_RAWDATA                   "RawData"
 #define FIELD_NAME_SYS_AGGR                  "$Aggr"
+#define FIELD_NAME_NODE_LOCATION             "Location"
+#define FIELD_NAME_NODE_LOCATIONS            "Locations"
+#define FIELD_NAME_NODE_LOCATIONID           "LocationID"
 
 #define FIELD_NAME_FREELOGSPACE              "freeLogSpace"
 #define FIELD_NAME_VSIZE                     "vsize"
@@ -1009,6 +1012,11 @@
 #define DATA_GROUP_ID_END                    ( 60000 + DATA_GROUP_ID_BEGIN )
 #define CATA_NODE_MAX_NUM                    CLS_REPLSET_MAX_NODE_SIZE
 
+// Use for location attributes
+#define MSG_INVALID_LOCATIONID              0
+#define MSG_LOCATION_ID_BEGIN               1
+#define MSG_LOCATION_ID_END                 1000000
+
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
 
 #define MSG_HINT_MARK_LEN                    4
@@ -1118,6 +1126,7 @@ enum SDB_LOB_MODE
 #define SDB_CATALOG_CS_CAPPED    "capped"
 
 #define SDB_CATALOG_DOMAIN_GROUPS "groups"
+#define SDB_CATALOG_NODE_LOCATION "location"
 
 #define SDB_ALTER_ACTION_CREATE     "create"
 #define SDB_ALTER_ACTION_DROP       "drop"
@@ -1226,5 +1235,16 @@ enum SDB_LOB_MODE
 
 /// set attributes
 #define SDB_ALTER_DOMAIN_SET_ATTR      SDB_ALTER_ACTION_SET_ATTR
+
+/// alter node
+#define CMD_NAME_ALTER_NODE            "alter node"
+
+/// set location
+#define SDB_ALTER_NODE_SET_LOCATION    SDB_ALTER_ACTION_SET \
+                                       SDB_ALTER_DELIMITER \
+                                       SDB_CATALOG_NODE_LOCATION
+
+/// set attributes
+#define SDB_ALTER_NODE_SET_ATTR        SDB_ALTER_ACTION_SET_ATTR
 
 #endif // MSGDEF_H__

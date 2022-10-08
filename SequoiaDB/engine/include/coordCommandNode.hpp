@@ -546,6 +546,23 @@ namespace engine
    typedef _coordCMDRemoveNode coordCMDRemoveNode ;
 
    /*
+      _coordCMDAlterNode define
+   */
+   class _coordCMDAlterNode : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDAlterNode() ;
+         virtual ~_coordCMDAlterNode() ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+   } ;
+   typedef _coordCMDAlterNode coordCMDAlterNode ;
+
+   /*
       _coordCMDReelection define
    */
    class _coordCMDReelection : public _coordCommandBase

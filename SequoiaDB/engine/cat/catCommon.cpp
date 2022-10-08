@@ -7529,6 +7529,243 @@ namespace engine
       return seqNameStream.str() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSETLOCATION, "catSetLocation" )
+   INT32 catSetLocation ( UINT32 locID, const ossPoolString &location,
+                          UINT16 nodeID, const BSONObj &groupObj,
+                          ossPoolString &oldLocation,
+                          BSONObjBuilder &updatorBuilder,
+                          BSONObjBuilder &matcherBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATSETLOCATION ) ;
+
+      BSONObj nodeListObj ;
+      ossPoolSet<ossPoolString> locSet ;
+
+      rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                   CAT_GROUP_NAME, rc ) ;
+
+      try
+      {
+         // Parse nodeList array
+         BSONObjIterator nodeItr( nodeListObj ) ;
+         while ( nodeItr.more() )
+         {
+            BSONElement nodeEle = nodeItr.next() ;
+            BSONObj nodeObj = nodeEle.embeddedObject() ;
+
+            BSONElement nodeIDEle = nodeObj.getField( CAT_NODEID_NAME ) ;
+            BSONElement locationEle = nodeObj.getField( CAT_LOCATION_NAME ) ;
+
+            if ( nodeIDEle.eoo() || ! nodeIDEle.isNumber() )
+            {
+               PD_LOG( PDWARNING, "Failed to get the field(%s)",
+                       CAT_NODEID_NAME );
+               rc = SDB_INVALIDARG;
+               goto error ;
+            }
+
+            if ( ! locationEle.eoo() )
+            {
+               if ( nodeIDEle.numberInt() == nodeID )
+               {
+                  oldLocation = locationEle.valuestrsafe() ;
+               }
+               else
+               {
+                  locSet.insert( locationEle.valuestrsafe() ) ;
+               }
+            }
+         }
+
+         // Build updator and matcher
+         // Set location in Group
+         BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
+         setBuilder.append( CAT_GROUP_NAME ".$1." CAT_LOCATION_NAME,
+                            location.c_str() ) ;
+         setBuilder.doneFast() ;
+
+         // Match nodeList update
+         matcherBuilder.append( CAT_GROUP_NAME ".$1." CAT_NODEID_NAME, nodeID ) ;
+
+         ossPoolSet<ossPoolString>::const_iterator itr = locSet.find( location ) ;
+         BOOLEAN existNewLoc = itr == locSet.end() ? FALSE : TRUE ;
+
+         if ( oldLocation.empty() )
+         {
+            if ( ! existNewLoc )
+            {
+               BSONObjBuilder pushBuilder( updatorBuilder.subobjStart( "$push" ) ) ;
+               BSONObjBuilder locBuilder(
+                              pushBuilder.subobjStart( CAT_LOCATIONS_NAME ) ) ;
+
+               locBuilder.append( CAT_LOCATION_NAME, location.c_str() ) ;
+               locBuilder.append( CAT_LOCATIONID_NAME, locID ) ;
+
+               locBuilder.doneFast() ;
+               pushBuilder.doneFast() ;
+            }
+         }
+         else
+         {
+            itr = locSet.find( oldLocation ) ;
+            BOOLEAN existOldLoc = itr == locSet.end() ? FALSE : TRUE ;
+
+            if ( ! existNewLoc && existOldLoc )
+            {
+               BSONObjBuilder pushBuilder( updatorBuilder.subobjStart( "$push" ) ) ;
+               BSONObjBuilder locBuilder(
+                              pushBuilder.subobjStart( CAT_LOCATIONS_NAME ) ) ;
+
+               locBuilder.append( CAT_LOCATION_NAME, location.c_str() ) ;
+               locBuilder.append( CAT_LOCATIONID_NAME, locID ) ;
+
+               locBuilder.doneFast() ;
+               pushBuilder.doneFast() ;
+            }
+            if ( existNewLoc && ! existOldLoc )
+            {
+               BSONObjBuilder pullBuilder(
+                              updatorBuilder.subobjStart( "$pull_by" ) ) ;
+               BSONObjBuilder locBuilder(
+                              pullBuilder.subobjStart( CAT_LOCATIONS_NAME ) ) ;
+               locBuilder.append( CAT_LOCATION_NAME, oldLocation.c_str() ) ;
+               locBuilder.doneFast() ;
+               pullBuilder.doneFast() ;
+            }
+            if ( ! existNewLoc && ! existOldLoc )
+            {
+               BSONObjBuilder setBuilder(
+                              updatorBuilder.subobjStart( "$set" ) ) ;
+               setBuilder.append( CAT_LOCATIONS_NAME ".$2." CAT_LOCATION_NAME,
+                                  location.c_str() ) ;
+               setBuilder.append( CAT_LOCATIONS_NAME ".$2." CAT_LOCATIONID_NAME,
+                                  locID ) ;
+               setBuilder.doneFast() ;
+
+               matcherBuilder.append(
+               CAT_LOCATIONS_NAME ".$2." CAT_LOCATION_NAME, oldLocation.c_str() ) ;
+            }
+         }
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATSETLOCATION, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATREMOVELOCATION, "catRemoveLocation" )
+   INT32 catRemoveLocation ( UINT16         nodeID,
+                             const BSONObj  &groupObj,
+                             BSONObjBuilder &updatorBuilder,
+                             BSONObjBuilder &matcherBuilder,
+                             BOOLEAN        isRemoveNode,
+                             ossPoolString  *oldLocation )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATREMOVELOCATION ) ;
+
+      BSONObj nodeListObj ;
+      ossPoolString tmpOldLoc ;
+      ossPoolSet<ossPoolString> locationSet ;
+
+      rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                   CAT_GROUP_NAME, rc ) ;
+
+      try
+      {
+         // Parse nodeList array and prepare locationSet
+         BSONObjIterator nodeItr( nodeListObj ) ;
+         while ( nodeItr.more() )
+         {
+            BSONElement nodeEle = nodeItr.next() ;
+            BSONObj nodeObj = nodeEle.embeddedObject() ;
+
+            BSONElement nodeIDEle = nodeObj.getField( CAT_NODEID_NAME ) ;
+            BSONElement locationEle = nodeObj.getField( CAT_LOCATION_NAME ) ;
+
+            if ( nodeIDEle.eoo() || ! nodeIDEle.isNumber() )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDWARNING, "Failed to get the field(%s)",
+                       CAT_NODEID_NAME );
+               goto error ;
+            }
+
+            if ( ! locationEle.eoo() )
+            {
+               if ( nodeIDEle.numberInt() == nodeID )
+               {
+                  tmpOldLoc = locationEle.valuestrsafe() ;
+               }
+               else
+               {
+                  locationSet.insert( locationEle.valuestrsafe() ) ;
+               }
+            }
+         }
+
+         // Build updator and matcher
+         if ( ! isRemoveNode && ! tmpOldLoc.empty() )
+         {
+            // Set location in Group
+            BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
+            unsetBuilder.append( CAT_GROUP_NAME ".$1." CAT_LOCATION_NAME, "" ) ;
+            unsetBuilder.doneFast() ;
+
+            // Match nodeList update
+            matcherBuilder.append( CAT_GROUP_NAME ".$1." CAT_NODEID_NAME, nodeID ) ;
+
+         }
+
+         if ( ! tmpOldLoc.empty() )
+         {
+            // Set location in Locations
+            if ( locationSet.end() == locationSet.find( tmpOldLoc ) )
+            {
+               BSONObjBuilder pullBuilder(
+                              updatorBuilder.subobjStart( "$pull_by" ) ) ;
+               BSONObjBuilder locBuilder(
+                              pullBuilder.subobjStart( CAT_LOCATIONS_NAME ) ) ;
+               locBuilder.append( CAT_LOCATION_NAME, tmpOldLoc.c_str() ) ;
+               locBuilder.doneFast() ;
+               pullBuilder.doneFast() ;
+            }
+         }
+
+         if ( ! isRemoveNode )
+         {
+            *oldLocation = tmpOldLoc ;
+         }
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATREMOVELOCATION, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATENODESTEP, "catCreateNodeStep" )
    INT32 catCreateNodeStep ( const string &groupName, const string &hostName,
                              const string &dbPath, UINT32 instanceID,
@@ -7663,7 +7900,7 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATREMOVENODESTEP ) ;
 
-      BSONObjBuilder updateBuilder ;
+      BSONObjBuilder updatorBuilder, matcherBuilder ;
       BSONObj updator, matcher, dummyObj ;
       BSONArray baNewNodeList ;
       BSONObj boGroup ;
@@ -7675,16 +7912,30 @@ namespace engine
                    groupName.c_str(), rc ) ;
 
       rc = _catRemoveNode( boGroup, nodeID, baNewNodeList ) ;
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to get new node list" ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get new node list" ) ;
 
-      // update group info
-      updateBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
-      updateBuilder.append( "$set", BSON( FIELD_NAME_GROUP << baNewNodeList ) ) ;
+      rc = catRemoveLocation( nodeID, boGroup, updatorBuilder,
+                              matcherBuilder, TRUE, NULL ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to build removeLocation builder" ) ;
 
-      updator = updateBuilder.obj() ;
+      try
+      {
+         // update group info
+         updatorBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+         updatorBuilder.append( "$set", BSON( FIELD_NAME_GROUP << baNewNodeList ) ) ;
 
-      matcher = BSON( FIELD_NAME_GROUPNAME << groupName ) ;
+         updator = updatorBuilder.obj() ;
+
+         matcherBuilder.append( FIELD_NAME_GROUPNAME, groupName ) ;
+         matcher = matcherBuilder.obj() ;
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d",
+               e.what(), rc ) ;
+         goto error ;
+      }
 
       rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, dummyObj,
                       0, cb, pDmsCB, pDpsCB, w ) ;

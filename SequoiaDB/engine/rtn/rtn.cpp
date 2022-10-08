@@ -155,6 +155,39 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETPOOLSTRELE, "rtnGetPoolStringElement" )
+   INT32 rtnGetPoolStringElement ( const BSONObj &obj, const CHAR *fieldName,
+                                  ossPoolString &value )
+   {
+      SINT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNGETPOOLSTRELE ) ;
+      SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toPoolString().c_str() ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be String",
+                    obj.toPoolString().c_str()) ;
+         value = ele.valuestrsafe() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_RTNGETPOOLSTRELE, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETOBJELE, "rtnGetObjElement" )
    INT32 rtnGetObjElement ( const BSONObj &obj, const CHAR *fieldName,
                             BSONObj &value )

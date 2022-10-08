@@ -108,6 +108,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_ACTIVE, "catNodeManager::active" )
    INT32 catNodeManager::active()
    {
+      return loadNodeInfo() ;
+   }
+
+   INT32 catNodeManager::loadNodeInfo()
+   {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_CATNODEMGR_ACTIVE ) ;
@@ -1486,6 +1491,9 @@ namespace engine
                rc = SDB_OK ;
                goto done ;
             }
+
+            // Use to record the location count in group
+            ossPoolMap<ossPoolString, UINT16> tmpLocMap ;
             // for each elements in the group
             BSONObjIterator i( beNodes.embeddedObject() );
             while ( i.more() )
@@ -1496,6 +1504,7 @@ namespace engine
                BSONElement beNodeID = boTmp.getField( CAT_NODEID_NAME );
                BSONElement beHost = boTmp.getField( CAT_HOST_FIELD_NAME );
                BSONElement beService = boTmp.getField( CAT_SERVICE_FIELD_NAME );
+               BSONElement beLocation = boTmp.getField( CAT_LOCATION_NAME ) ;
                // get node id
                if ( beNodeID.eoo() || ! beNodeID.isNumber() )
                {
@@ -1567,7 +1576,69 @@ namespace engine
                      rc = SDB_OK;
                   }//end of while ( j.moreWithEOO() )
                }
+
+               // Get location
+               if ( !beLocation.eoo() && String == beLocation.type() )
+               {
+                  ++tmpLocMap[ beLocation.valuestrsafe() ] ;
+               }
             }//end of while ( i.moreWithEOO() )
+
+            // Get node locations
+            BSONElement beLocations = obj.getField( CAT_LOCATIONS_NAME ) ;
+            if ( beLocations.eoo() )
+            {
+               PD_LOG( PDINFO, "Failed to get the field(%s),",
+                       CAT_LOCATIONS_NAME ) ;
+               rc = SDB_OK ;
+               goto done ;
+            }
+            else if ( Array != beLocations.type() )
+            {
+               PD_LOG( PDWARNING, "Failed to get the field(%s)",
+                       CAT_LOCATION_NAME ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            // Insert the Locations info
+            BSONObjIterator it( beLocations.embeddedObject() ) ;
+            while ( it.more() )
+            {
+               BSONElement beTmp = it.next() ;
+
+               BSONObj boTmp = beTmp.embeddedObject() ;
+               BSONElement beLocation = boTmp.getField( CAT_LOCATION_NAME ) ;
+               BSONElement beLocID = boTmp.getField( CAT_LOCATIONID_NAME ) ;
+
+               // Get location
+               if ( beLocation.eoo() || String != beLocation.type() )
+               {
+                  PD_LOG( PDWARNING, "Failed to get the field(%s)",
+                          CAT_LOCATION_NAME ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               ossPoolString location( beLocation.valuestrsafe() ) ;
+
+               // Get lcoationID
+               if ( beLocID.eoo() || !beLocID.isNumber() )
+               {
+                  PD_LOG( PDWARNING, "Failed to get the field(%s)",
+                          CAT_LOCATIONID_NAME );
+                  rc = SDB_INVALIDARG;
+                  goto error ;
+               }
+               UINT32 locationID = beLocID.numberInt() ;
+
+               rc = _pCatCB->insertLocID( location, locationID,
+                                          tmpLocMap[location] ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to insert into locationID map, "
+                          "rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
          }
       } // try
       catch ( std::exception &e )
@@ -2145,6 +2216,139 @@ namespace engine
    INT16 catNodeManager::_majoritySize()
    {
       return _pCatCB->majoritySize() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_SETLOCATION, "catNodeManager::setLocation" )
+   INT32 catNodeManager::setLocation( UINT16 nodeID,
+                                      UINT32 groupID,
+                                      const ossPoolString &newLoc )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_SETLOCATION ) ;
+
+      BSONObj groupObj ;
+      BSONObj updator, matcher ;
+      BSONObjBuilder updatorBuilder, matcherBuilder ; 
+      ossPoolString oldLocation ;
+
+      // Get SYSCAT.SYSNODES
+      rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group info, rc: %d", rc ) ;
+
+      try
+      {
+         // Alloc locationID
+         UINT32 locID = _pCatCB->allocLocID( newLoc ) ;
+         if ( MSG_INVALID_LOCATIONID == locID )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDWARNING, "LocationID[%d] is invalid", locID ) ;
+            goto error ;
+         }
+
+         // Build updator and matcher
+         rc = catSetLocation( locID, newLoc, nodeID, groupObj, oldLocation,
+                              updatorBuilder, matcherBuilder ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to build setLocation builder" ) ;
+
+         matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
+         updatorBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+
+         // Update Group
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+
+         rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
+                         0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update node[%d] from group[%d], "
+                      "matcher: %s, updator: %s, rc: %d", nodeID, groupID,
+                      matcher.toString(), updator.toString(), rc ) ;
+
+         // Insert and release locationID
+         rc = _pCatCB->insertLocID( newLoc, locID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to insert into locationID map, "
+                    "rc: %d", rc ) ;
+            goto error ;
+         }
+         if ( ! oldLocation.empty() )
+         {
+            _pCatCB->releaseLocID( oldLocation ) ;
+         }
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_SETLOCATION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_REMOVELOCATION, "catNodeManager::removeLocation" )
+   INT32 catNodeManager::removeLocation( UINT16 nodeID,
+                                         UINT32 groupID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_REMOVELOCATION ) ;
+
+      BSONObj groupObj ;
+      BSONObj updator, matcher ;
+      BSONObjBuilder updatorBuilder, matcherBuilder ;
+      ossPoolString oldLocation ;
+
+      // Get SYSCAT.SYSNODES
+      rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get group info, rc: %d", rc ) ;
+
+      try
+      {
+         // Build updator and matcher
+         rc = catRemoveLocation( nodeID, groupObj, updatorBuilder,
+                                 matcherBuilder, FALSE, &oldLocation ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to build removeLocation builder" ) ;
+
+         matcherBuilder.append( CAT_GROUPID_NAME, groupID ) ;
+         updatorBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+
+         // Update Group
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+
+         rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
+                         0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update node[%d] from group[%d], "
+                      "matcher: %s, updator: %s, rc: %d", nodeID, groupID,
+                      matcher.toPoolString(), updator.toPoolString(), rc ) ;
+
+         // Release locationID
+         if ( ! oldLocation.empty() )
+         {
+            _pCatCB->releaseLocID( oldLocation ) ;
+         }
+      }
+      catch( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMANAGER_REMOVELOCATION, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 }
 

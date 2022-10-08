@@ -256,7 +256,8 @@ namespace engine
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
       INT32 _getRemovedGroupsObj ( const BSONObj &boNodeList,
-                                   UINT16 &removeNodeID ) ;
+                                   UINT16 &removeNodeID,
+                                   ossPoolString &location ) ;
 
       INT32 _deactiveGroup ( _pmdEDUCB *cb, INT16 w ) ;
 
@@ -264,6 +265,7 @@ namespace engine
       std::string _hostName ;
       std::string _localSvc ;
       std::string _nodeName ;
+      ossPoolString _location ;
       INT32 _nodeCount ;
       UINT16 _nodeID ;
       BOOLEAN _forced ;

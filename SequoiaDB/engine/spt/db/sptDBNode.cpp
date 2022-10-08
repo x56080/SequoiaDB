@@ -45,6 +45,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBNode, start )
    JS_MEMBER_FUNC_DEFINE( _sptDBNode, stop )
    JS_MEMBER_FUNC_DEFINE( _sptDBNode, connect )
+   JS_MEMBER_FUNC_DEFINE( _sptDBNode, setLocation )
+   JS_MEMBER_FUNC_DEFINE( _sptDBNode, setAttributes )
 
    JS_BEGIN_MAPPING( _sptDBNode, SPT_NODE_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -52,6 +54,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "start", start )
       JS_ADD_MEMBER_FUNC( "stop", stop )
       JS_ADD_MEMBER_FUNC( "connect", connect )
+      JS_ADD_MEMBER_FUNC( "setLocation", setLocation )
+      JS_ADD_MEMBER_FUNC( "setAttributes", setAttributes )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBNode::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBNode::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBNode::bsonToJSObj )
@@ -248,6 +252,73 @@ namespace engine
          SDB_OSS_DEL pRetSdb ;
          pRetSdb = NULL ;
       }
+      goto done ;
+   }
+
+   INT32 _sptDBNode::setLocation( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string locationName ;
+      BSONObj options ;
+
+      rc = arg.getString( 0, locationName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Location name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Location name must be string" ) ;
+         goto error ;
+      }
+
+      rc = _node.setLocation( locationName.c_str() ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set location" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBNode::setAttributes( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+
+      if ( arg.argc() == 0 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Options can't be null" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 0, options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _node.setAttributes( options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set attributes" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

@@ -4754,6 +4754,119 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbNodeImpl::_innerAlter( const CHAR* taskName, const BSONObj* options )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *command = CMD_ADMIN_PREFIX CMD_NAME_ALTER_NODE ;
+      BSONObj queryObj, hintObj ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder, hintBuilder ;
+         
+         // Build Action and Options
+         queryBuilder.append( FIELD_NAME_ACTION, taskName ) ;
+
+         if ( NULL == options )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else
+         {
+            queryBuilder.append( FIELD_NAME_OPTIONS, *options ) ;
+         }
+
+         queryObj = queryBuilder.obj() ;
+
+         // Build GroupID and NodeID
+         hintBuilder.append( FIELD_NAME_GROUPID, _replicaGroupID ) ;
+         hintBuilder.append( FIELD_NAME_NODEID, _nodeID ) ;
+
+         hintObj = hintBuilder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      // check connection
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand( command, &queryObj, NULL, NULL, &hintObj,
+                                     0, 0, 0, -1, NULL ) ;
+
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbNodeImpl::setLocation ( const CHAR *pLocation )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObjBuilder builder ;
+      BSONObj option ;
+
+      if ( NULL == pLocation )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // build { Location: pLocation }
+         builder.append( FIELD_NAME_NODE_LOCATION, pLocation ) ;
+         option = builder.obj() ;
+      }
+      catch( const std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _innerAlter( SDB_ALTER_NODE_SET_LOCATION, &option ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
+   INT32 _sdbNodeImpl::setAttributes ( const BSONObj & options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _innerAlter( SDB_ALTER_NODE_SET_ATTR, &options ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+   }
+
    /*
       _sdbReplicaGroupImpl implement
    */
@@ -5768,15 +5881,15 @@ do                                                            \
    }
 
    INT32 _sdbCollectionSpaceImpl::_runCommand ( const CHAR *pString,
-                                           const BSONObj *arg1,
-                                           const BSONObj *arg2,
-                                           const BSONObj *arg3,
-                                           const BSONObj *arg4,
-                                           SINT32 flag,
-                                           UINT64 reqID,
-                                           SINT64 numToSkip,
-                                           SINT64 numToReturn,
-                                           _sdbCursor **ppCursor )
+                                                const BSONObj *arg1,
+                                                const BSONObj *arg2,
+                                                const BSONObj *arg3,
+                                                const BSONObj *arg4,
+                                                SINT32 flag,
+                                                UINT64 reqID,
+                                                SINT64 numToSkip,
+                                                SINT64 numToReturn,
+                                                _sdbCursor **ppCursor )
    {
       INT32 rc = SDB_OK ;
 

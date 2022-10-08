@@ -874,6 +874,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_ROLLBACK_INT, rc ) ;
       if ( CAT_INVALID_NODEID != _nodeID )
       {
+         // TODO: use _pCatCB->releaseNode()
          _pCatCB->releaseNodeID( _nodeID ) ;
       }
       return rc ;
@@ -1047,7 +1048,7 @@ namespace engine
 
       isSpareGroup = ( _targetName.compare( SPARE_GROUPNAME ) == 0 ) ;
 
-      rc = _getRemovedGroupsObj( boNodeList, _nodeID ) ;
+      rc = _getRemovedGroupsObj( boNodeList, _nodeID, _location ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get removed node ID" ) ;
 
@@ -1190,11 +1191,6 @@ namespace engine
 
       replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
 
-      BSONObjBuilder updateBuilder ;
-      BSONObj updator, matcher, dummyObj ;
-      BSONArray baNewNodeList ;
-      BSONObj boGroup ;
-
       if ( !_needDeactive )
       {
          // Re-check again for parallel removing nodes from the same group
@@ -1237,8 +1233,8 @@ namespace engine
                     "Failed to remove node [%s] from group [%s], rc: %d",
                     _nodeName.c_str(), _targetName.c_str(), rc ) ;
 
-      // release node
-      _pCatCB->releaseNodeID( _nodeID ) ;
+      // release node and location
+      _pCatCB->releaseNode( _nodeID, _location ) ;
 
       if ( _needDeactive )
       {
@@ -1256,7 +1252,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXRMNODE_GETRMGRPOBJ, "_catCtxRemoveNode::_getRemovedGroupsObj" )
    INT32 _catCtxRemoveNode::_getRemovedGroupsObj ( const BSONObj &boNodeList,
-                                                   UINT16 &removeNodeID )
+                                                   UINT16 &removeNodeID,
+                                                   ossPoolString &location )
    {
       INT32 rc = SDB_OK ;
 
@@ -1298,6 +1295,15 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field [%s], rc: %d",
                          FIELD_NAME_NODEID, rc ) ;
+            
+            // Some nodes may not have location, so ignore the SDB_FIELD_NOT_EXIST
+            rc = rtnGetPoolStringElement( boNode, FIELD_NAME_LOCATION, location ) ;
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                         FIELD_NAME_LOCATION, rc ) ;
             break ;
          }
       }

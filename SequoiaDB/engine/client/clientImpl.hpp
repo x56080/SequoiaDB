@@ -798,6 +798,15 @@ namespace sdbclient
 
       // start the node
       INT32 start () { return _stopStart ( TRUE ) ; }
+
+   protected:
+      INT32 _innerAlter ( const CHAR * taskName, const BSONObj * options ) ;
+
+   public:
+      INT32 setLocation ( const CHAR *pLocation ) ;
+
+      INT32 setAttributes ( const BSONObj & options ) ;
+
    } ;
 
    typedef class _sdbNodeImpl sdbNodeImpl ;

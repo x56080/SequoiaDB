@@ -2145,12 +2145,22 @@ namespace engine
    INT32 catMainController::onBeginCommand ( MsgHeader *pReqMsg )
    {
       catSetSyncW( 0 ) ;
+      _pCatCB->setNodeInfoChanged( FALSE ) ;
       return catTransBegin( _pEDUCB ) ;
    }
 
    INT32 catMainController::onEndCommand ( MsgHeader *pReqMsg, INT32 result )
    {
-      return catTransEnd( result, _pEDUCB, _pDpsCB ) ;
+      INT32 rc = SDB_OK ;
+
+      rc = catTransEnd( result, _pEDUCB, _pDpsCB ) ;
+      if ( SDB_OK != result && TRUE == _pCatCB->getNodeInfoChanged() )
+      {
+         _pCatCB->_catNodeMgr.loadNodeInfo() ;
+      }
+      _pCatCB->setNodeInfoChanged( FALSE ) ;
+
+      return rc ;
    }
 
    INT32 catMainController::waitSync ( const NET_HANDLE &handle,
@@ -2177,7 +2187,16 @@ namespace engine
 
    INT32 catMainController::onSendReply ( MsgOpReply *pReply, INT32 result )
    {
-      return catTransEnd( result, _pEDUCB, _pDpsCB ) ;
+      INT32 rc = SDB_OK ;
+
+      rc = catTransEnd( result, _pEDUCB, _pDpsCB ) ;
+      if ( SDB_OK != result && TRUE == _pCatCB->getNodeInfoChanged() )
+      {
+         _pCatCB->_catNodeMgr.loadNodeInfo() ;
+      }
+      _pCatCB->setNodeInfoChanged( FALSE ) ;
+
+      return rc ;
    }
 
    //PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_DELAYREPLY, "catMainController::_processDelayReply" )
