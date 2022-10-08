@@ -1,10 +1,10 @@
-[^_^]: 
+[^_^]:
 
     数据库快照
     作者：何嘉文
     时间：20190307
     评审意见
-    
+
     王涛：
     许建辉：
     市场部：
@@ -31,7 +31,7 @@ SDB_SNAP_DATABASE
 | GroupName             | string    | 该逻辑节点所属的复制组名，standalone 模式下该字段为空字符串     |
 | IsPrimary             | boolean   | 是否为主节点，standalone 模式下该字段为 false                   |
 | ServiceStatus         | boolean   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
-| Status                | string    | 节点状态，取值如下：<br/>            "Normal"：正常工作状态 <br/>              "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据 <br/>           "FullSync"：全量同步状态 <br/>              "OfflineBackup"：[数据备份][regular_bar]状态   | 
+| Status                | string    | 节点状态，取值如下：<br/>            "Normal"：正常工作状态 <br/>              "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据 <br/>           "FullSync"：全量同步状态 <br/>              "OfflineBackup"：[数据备份][regular_bar]状态   |
 | FTStatus              | string | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
 | BeginLSN.Offset       | int64 | 起始 LSN 的偏移                                                            |
 | BeginLSN.Version      | int32   | 起始 LSN 的版本号                                                               |
@@ -63,6 +63,10 @@ SDB_SNAP_DATABASE
 | Disk.TotalSpace       | int64 | 数据库路径总空间，单位为字节                                                  |
 | Disk.FreeSpace        | int64 | 数据库路径空闲空间，单位为字节                                                |
 | TotalNumConnects      | int32     | 数据库连接请求数量                                              |
+| TotalQuery            | int64     | 总查询数量（广义查询，泛指在数据库上执行的所有操作）               |
+| TotalSlowQuery        | int64     | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）             |
+| TotalTransCommit      | int64     | 总事务提交数量                                                  |
+| TotalTransRollback    | int64     | 总事务回滚数量                                                  |
 | TotalDataRead         | int64     | 总数据读请求                                                    |
 | TotalIndexRead        | int64     | 总索引读请求                                                    |
 | TotalDataWrite        | int64     | 总数据写请求                                                    |
@@ -106,6 +110,10 @@ SDB_SNAP_DATABASE
 | 字段名            | 类型      | 描述                                          |
 | ----------------- | --------- | --------------------------------------------- |
 | TotalNumConnects  | int32     | 数据库连接请求数量                            |
+| TotalQuery        | int64     | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64     | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64     | 总事务提交数量                                     |
+| TotalTransRollback| int64     | 总事务回滚数量                                     |
 | TotalDataRead     | int64     | 总数据读请求                                  |
 | TotalIndexRead    | int64     | 总索引读请求                                  |
 | TotalDataWrite    | int64     | 总数据写请求                                  |
@@ -203,6 +211,10 @@ SDB_SNAP_DATABASE
        "FreeSpace": 45332840448
      },
      "TotalNumConnects": 11,
+     "TotalQuery": 1,
+     "TotalSlowQuery": 0,
+     "TotalTransCommit": 0,
+     "TotalTransRollback": 0,
      "TotalDataRead": 0,
      "TotalIndexRead": 0,
      "TotalDataWrite": 0,
@@ -246,6 +258,10 @@ SDB_SNAP_DATABASE
    ```lang-json
    {
      "TotalNumConnects": 0,
+     "TotalQuery": 15,
+     "TotalSlowQuery": 0,
+     "TotalTransCommit": 0,
+     "TotalTransRollback": 0,
      "TotalDataRead": 4,
      "TotalIndexRead": 0,
      "TotalDataWrite": 3,

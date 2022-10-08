@@ -1204,7 +1204,7 @@ namespace engine
          MON_START_OP( _pEDUCB->getMonAppCB() ) ;
          _pEDUCB->getMonAppCB()->setLastOpType( opCode ) ;
 
-         if ( _pEDUCB->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != opCode )
+         if ( _pEDUCB->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
          {
             monQuery = pmdGetKRCB()->getMonMgr()->
                        registerMonitorObject<monClassQuery>() ;
@@ -1224,6 +1224,9 @@ namespace engine
 
                _pEDUCB->setMonQueryCB( monQuery ) ;
             }
+
+            DMS_MON_OP_COUNT_INC( _pEDUCB->getMonAppCB(),
+                                  MON_GENERAL_QUERY, 1 ) ;
          }
          startTime.sample() ;
 

@@ -418,6 +418,8 @@ namespace engine
          goto done ;
       }
 
+      DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
+
       if ( !dpsCB )
       {
          goto done ;
@@ -577,6 +579,9 @@ namespace engine
       {
          goto done;
       }
+
+      DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
+
       if ( !dpsCB )
       {
          goto done ;

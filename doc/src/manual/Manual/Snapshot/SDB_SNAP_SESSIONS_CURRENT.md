@@ -1,10 +1,10 @@
-[^_^]: 
+[^_^]:
     当前会话快照
 
 
 当前会话快照可以列出当前用户的会话。
 
-> **Note:**  
+> **Note:**
 >
 > 如果连接协调节点查询快照，返回的是当前会话通过协调节点所连接的编目节点和数据节点的会话。
 
@@ -30,6 +30,10 @@ SDB_SNAP_SESSIONS_CURRENT
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                   |
 | RelatedID         | string     | 会话的内部标识                                     |
 | Contexts          | bson array | 该会话所有上下文的 ID                              |
+| TotalQuery        | int64      | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64      | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64      | 总事务提交数量                                     |
+| TotalTransRollback| int64      | 总事务回滚数量                                     |
 | TotalDataRead     | int64      | 数据记录读                                         |
 | TotalIndexRead    | int64      | 索引读                                             |
 | TotalDataWrite    | int64      | 数据记录写                                         |
@@ -80,6 +84,10 @@ SDB_SNAP_SESSIONS_CURRENT
   "Contexts": [
     15
   ],
+  "TotalQuery": 12,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
