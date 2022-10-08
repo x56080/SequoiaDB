@@ -231,6 +231,12 @@ BOOLEAN monArchiveQuery ( monClass *obj )
 
    if ((responseTime/1000) >= pmdGetKRCB()->getOptionCB()->slowQueryThreshold())
    {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      if ( cb )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_GENERAL_SLOW_QUERY, 1 ) ;
+      }
+
       return TRUE ;
    }
    else

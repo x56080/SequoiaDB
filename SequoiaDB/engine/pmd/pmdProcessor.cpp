@@ -104,7 +104,7 @@ namespace engine
       // the context of the original operation already had the monQuery.
       // The cb will set the monQuery with the monQuery from the original
       // context when we find the original context later on.
-      if ( eduCB()->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != opCode)
+      if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
       {
          monQuery = pmdGetKRCB()->getMonMgr()->
                     registerMonitorObject<monClassQuery>() ;
@@ -116,6 +116,8 @@ namespace engine
             monQuery->tid = eduCB()->getTID() ;
             eduCB()->setMonQueryCB( monQuery ) ;
          }
+
+         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
       }
 
       startTime.sample() ;
@@ -2315,7 +2317,7 @@ namespace engine
       // the context of the original operation already had the monQuery.
       // The cb will set the monQuery with the monQuery from the original
       // context when we find the original context later on.
-      if ( eduCB()->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != msg->opCode )
+      if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( msg->opCode ) )
       {
          monQueryCB = pmdGetKRCB()->getMonMgr()->
                       registerMonitorObject<monClassQuery>() ;
@@ -2330,6 +2332,8 @@ namespace engine
 
             eduCB()->setMonQueryCB( monQueryCB ) ;
          }
+
+         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
       }
 
       startTime.sample() ;

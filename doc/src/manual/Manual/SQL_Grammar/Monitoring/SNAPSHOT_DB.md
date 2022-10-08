@@ -49,6 +49,10 @@ $SNAPSHOT_DB
 | Disk.TotalSpace       | int64  | 数据库路径总空间，单位为字节                                                  |
 | Disk.FreeSpace        | int64  | 数据库路径空闲空间，单位为字节                                                |
 | TotalNumConnects      | int32  | 数据库连接请求数量                                                              |
+| TotalQuery            | int64  | 总查询数量（广义查询，泛指在数据库上执行的所有操作）                               |
+| TotalSlowQuery        | int64  | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）                             |
+| TotalTransCommit      | int64  | 总事务提交数量                                                                  |
+| TotalTransRollback    | int64  | 总事务回滚数量                                                                  |
 | TotalDataRead         | int64  | 总数据读请求                                                                    |
 | TotalIndexRead        | int64  | 总索引读请求                                                                    |
 | TotalDataWrite        | int64  | 总数据写请求                                                                    |
@@ -150,6 +154,10 @@ $SNAPSHOT_DB
     "FreeSpace": 138432405504
   },
   "TotalNumConnects": 0,
+  "TotalQuery": 71,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 182083,
   "TotalIndexRead": 445888,
   "TotalDataWrite": 611764,

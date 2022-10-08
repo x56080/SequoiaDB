@@ -1,4 +1,4 @@
-[^_^]: 
+[^_^]:
 
     会话快照
     作者：何嘉文
@@ -37,6 +37,10 @@ SDB_SNAP_SESSIONS
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                       |
 | RelatedID         | string     | 会话的内部标识                                     |
 | Contexts          | bson array | 该会话所有上下文的 ID                              |
+| TotalQuery        | int64      | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64      | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64      | 总事务提交数量                                     |
+| TotalTransRollback| int64      | 总事务回滚数量                                     |
 | TotalDataRead     | int64      | 数据记录读                                         |
 | TotalIndexRead    | int64      | 索引读                                             |
 | TotalDataWrite    | int64      | 数据记录写                                         |
@@ -86,6 +90,10 @@ SDB_SNAP_SESSIONS
   "MemPoolSize": 0,
   "RelatedID": "c0a81e442e7200008c8a",
   "Contexts": [],
+  "TotalQuery": 1,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
@@ -112,5 +120,5 @@ SDB_SNAP_SESSIONS
 
 [^_^]:
     本文使用到的所有链接及引用。
-    
+
 [edu_url]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md

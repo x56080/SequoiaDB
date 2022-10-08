@@ -827,6 +827,11 @@ namespace engine
          goto error ;
       }
 
+      if ( _groupSession.getPropSite()->getTransNodeSize() > 0 )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
+      }
+
       // complete, delete transaction
       _groupSession.getPropSite()->endTrans( cb ) ;
 
@@ -952,6 +957,11 @@ namespace engine
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),
                           cb->getTransID() ) ;
+
+      if ( _groupSession.getPropSite()->getTransNodeSize() )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
+      }
 
       rc = _coordTransOperator::rollback( cb ) ;
       if ( rc )

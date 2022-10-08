@@ -146,6 +146,10 @@ namespace engine
       MON_INSERT_REPL,
       MON_SELECT,
       MON_READ,
+      MON_TRANS_COMMIT,
+      MON_TRANS_ROLLBACK,
+      MON_GENERAL_QUERY,
+      MON_GENERAL_SLOW_QUERY,
       MON_COUNTER_OPERATION_MAX = MON_READ,
 
       MON_TIME_OPERATION_NONE = 1000,
@@ -441,6 +445,13 @@ namespace engine
       volatile UINT64 totalInsert ;
       volatile UINT64 totalSelect ;  // total records into result set
       volatile UINT64 totalRead ;    // total records readed from disk
+      volatile UINT64 totalGeneralQuery ; // Generalized query operation,
+                                          // including almost any operations
+                                          // on the database, except some
+                                          // internal operations.
+      volatile UINT64 totalGeneralSlowQuery ;
+      volatile UINT64 totalTransCommit ;
+      volatile UINT64 totalTransRollback ;
 
       volatile UINT64 receiveNum ;
 
@@ -545,6 +556,22 @@ namespace engine
 
             case MON_READ :
                ossFetchAndAdd64( &totalRead, delta ) ;
+               break ;
+
+            case MON_GENERAL_QUERY:
+               ossFetchAndAdd64( &totalGeneralQuery, delta ) ;
+               break ;
+
+            case MON_GENERAL_SLOW_QUERY:
+               ossFetchAndAdd64( &totalGeneralSlowQuery, delta ) ;
+               break ;
+
+            case MON_TRANS_COMMIT:
+               ossFetchAndAdd64( &totalTransCommit, delta ) ;
+               break ;
+
+            case MON_TRANS_ROLLBACK:
+               ossFetchAndAdd64( &totalTransRollback, delta ) ;
                break ;
 
             default:
@@ -710,6 +737,12 @@ namespace engine
       UINT64 totalSelect ;  // total records into result set
       UINT64 totalRead ;    // total records readed from disk
 
+      UINT64 totalGeneralQuery ;
+      UINT64 totalGeneralSlowQuery ;
+
+      UINT64 totalTransCommit ;
+      UINT64 totalTransRollback ;
+
       ossTickDelta   totalReadTime ;
       ossTickDelta   totalWriteTime ;
       ossTimestamp   _connectTimestamp ;
@@ -789,6 +822,22 @@ namespace engine
 
             case MON_READ :
                totalRead += delta ;
+               break ;
+
+            case MON_GENERAL_QUERY:
+               totalGeneralQuery += delta ;
+               break ;
+
+            case MON_GENERAL_SLOW_QUERY:
+               totalGeneralSlowQuery += delta ;
+               break ;
+
+            case MON_TRANS_COMMIT:
+               totalTransCommit += delta ;
+               break ;
+
+            case MON_TRANS_ROLLBACK:
+               totalTransRollback += delta ;
                break ;
 
             default:

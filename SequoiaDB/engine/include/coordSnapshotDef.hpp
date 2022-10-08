@@ -39,6 +39,10 @@
 
 #define COORD_SNAPSHOTDB_INPUT_BASE    "{$group:{\
                                                 TotalNumConnects:{$sum:\"$TotalNumConnects\"},\
+                                                TotalQuery:{$sum:\"$TotalQuery\"},\
+                                                TotalSlowQuery:{$sum:\"$TotalSlowQuery\"},\
+                                                TotalTransCommit:{$sum:\"$TotalTransCommit\"},\
+                                                TotalTransRollback:{$sum:\"$TotalTransRollback\"},\
                                                 TotalDataRead:{$sum:\"$TotalDataRead\"},\
                                                 TotalIndexRead:{$sum:\"$TotalIndexRead\"},\
                                                 TotalDataWrite:{$sum:\"$TotalDataWrite\"},\
