@@ -183,7 +183,8 @@ namespace engine
          virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
 
       private:
-         INT32    _appendSubData ( const pmdEDUEvent &event ) ;
+         INT32    _appendSubData ( const pmdEDUEvent &event,
+                                   BOOLEAN &isTakeOver ) ;
 
          void     _delPrepareContext( const MsgRouteID &routeID ) ;
 
