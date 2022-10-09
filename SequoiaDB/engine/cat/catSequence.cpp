@@ -412,7 +412,7 @@ namespace engine
       if ( getCacheSize() <= 0 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid CacheSize[%lld]",
+         PD_LOG( PDERROR, "Invalid CacheSize[%d]",
                  getCacheSize() ) ;
          goto error ;
       }
@@ -420,7 +420,7 @@ namespace engine
       if ( getAcquireSize() <= 0 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid FetchSize[%lld]",
+         PD_LOG( PDERROR, "Invalid FetchSize[%d]",
                  getAcquireSize() ) ;
          goto error ;
       }
@@ -428,7 +428,7 @@ namespace engine
       if ( getAcquireSize() > getCacheSize() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "AcquireSize[%lld] is greater than CacheSize[%lld]",
+         PD_LOG( PDERROR, "AcquireSize[%d] is greater than CacheSize[%d]",
                  getAcquireSize(), getCacheSize() ) ;
          goto error ;
       }
@@ -454,7 +454,7 @@ namespace engine
       if ( (UINT64)getCacheSize() > sequenceNum )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "CacheSize[%d] is greater than amount of sequence value[%lld]",
+         PD_LOG( PDERROR, "CacheSize[%d] is greater than amount of sequence value[%llu]",
                  getCacheSize(), sequenceNum ) ;
          goto error ;
       }
@@ -462,7 +462,7 @@ namespace engine
       if ( (UINT64)getAcquireSize() > sequenceNum )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "FetchSize[%d] is greater than amount of sequence value[%lld]",
+         PD_LOG( PDERROR, "FetchSize[%d] is greater than amount of sequence value[%llu]",
                  getAcquireSize(), sequenceNum ) ;
          goto error ;
       }
