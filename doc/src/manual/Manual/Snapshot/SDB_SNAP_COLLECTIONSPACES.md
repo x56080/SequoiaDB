@@ -34,7 +34,7 @@ SDB_SNAP_COLLECTIONSPACES
 | MaxCapacitySize | int64      | 集合空间的最大容量上限，单位为字节           |
 | MaxDataCapSize  | int64      | 集合空间数据文件最大容量上限，单位为字节     |
 | MaxIndexCapSize | int64      | 集合空间索引文件最大容量上限，单位为字节     |
-| MaxLobCapSize   | int64      | 集合空间大对象文件最大容量上限<br>v3.4.8 及以上版本中，该字段已更名为 MaxLobCapacity |
+| MaxLobCapSize   | int64      | 集合空间大对象文件最大容量上限，单位为字节<br>v3.4.8 及以上版本中，该字段已更名为 MaxLobCapacity |
 | NumCollections  | int32      | 集合数量                                     |
 | TotalRecords    | int32      | 集合空间的记录总数                           |
 | TotalSize       | int64      | 集合空间的总大小，单位为字节                 |
@@ -44,18 +44,18 @@ SDB_SNAP_COLLECTIONSPACES
 | TotalIndexSize  | int64      | 集合空间索引文件总大小，单位为字节           |
 | FreeIndexSize   | int64      | 集合空间索引文件空闲空间大小，单位为字节     |
 | FreeLobSize    | int64      | 集合空间大对象文件空闲空间大小，单位为字节<br>v3.4.8 及以上版本中，该字段已更名为 FreeLobSpace  |
-| MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限（仅在 v3.4.8 及以上版本生效） |
-| LobCapacity     | int64      | 集合空间大对象文件的存储容量（仅在 v3.4.8 及以上版本生效） |
-| LobMetaCapacity | int64      | 集合空间大对象元数据文件大小（仅在 v3.4.8 及以上版本生效） |
+| MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限，单位为字节（仅在 v3.4.8 及以上版本生效） |
+| LobCapacity     | int64      | 集合空间大对象文件的存储容量，单位为字节（仅在 v3.4.8 及以上版本生效） |
+| LobMetaCapacity | int64      | 集合空间大对象元数据文件大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | TotalLobs       | int64      | 集合空间大对象文件总数（仅在 v3.4.8 及以上版本生效）  |
 | TotalLobPages    | int64      | 集合空间大对象文件已使用空间数据页个数（仅在 v3.4.8 及以上版本生效）    |
-| TotalUsedLobSpace   | int64      | 集合空间大对象文件已使用的空间大小（仅在 v3.4.8 及以上版本生效） |
+| TotalUsedLobSpace   | int64      | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | UsedLobSpaceRatio    | double      |  集合空间大对象文件已使用的空间占存储容量的比率（仅在 v3.4.8 及以上版本生效） |
-| FreeLobSpace     | int64    | 集合空间大对象文件空闲空间大小（仅在 v3.4.8 及以上版本生效） |
-| TotalLobSize     | int64      | 集合空间大对象文件的数据总大小<br>v3.4.8 以下版本该字段为大对象数据文件和元数据文件的总大小，v3.4.8 及以上版本为大对象数据文件的总大小 |
-| TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小（仅在 v3.4.8 及以上版本生效） |
+| FreeLobSpace     | int64    | 集合空间大对象文件空闲空间大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
+| TotalLobSize     | int64      | 集合空间大对象文件的数据总大小，单位为字节<br>v3.4.8 以下版本该字段为大对象文件的总大小，v3.4.8 及以上版本为大对象文件的数据总大小 |
+| TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v3.4.8 及以上版本生效）<br>使用率越高，空间浪费越少 |
-| AvgLobSize      | int64      | 集合空间大对象文件平均大小（仅在 v3.4.8 及以上版本生效） |
+| AvgLobSize      | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
@@ -66,7 +66,6 @@ SDB_SNAP_COLLECTIONSPACES
 | TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
-| TotalLobs       | int64      | 集合空间大对象文件总数（仅在 v3.4.8 及以上版本生效）  |
 | DataCommitLSN   | int64      | 集合空间数据文件最后提交 LSN                 |
 | IndexCommitLSN  | int64      | 集合空间索引文件最后提交 LSN                 |
 | LobCommitLSN    | int64      | 集合空间大对象文件最后提交 LSN               |
@@ -95,19 +94,19 @@ SDB_SNAP_COLLECTIONSPACES
 | FreeDataSize    | int64      | 集合空间数据文件空闲空间大小，单位为字节     |
 | TotalIndexSize  | int64      | 集合空间索引文件总大小，单位为字节           |
 | FreeIndexSize   | int64      | 集合空间索引文件空闲空间大小，单位为字节     |
-| LobCapacity     | int64      | 集合空间大对象文件的存储容量（仅在 v3.4.8 及以上版本生效） |
-| LobMetaCapacity | int64      | 集合空间大对象元数据文件大小（仅在 v3.4.8 及以上版本生效） |
-| MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限（仅在 v3.4.8 及以上版本生效） |
+| LobCapacity     | int64      | 集合空间大对象文件的存储容量，单位为字节（仅在 v3.4.8 及以上版本生效） |
+| LobMetaCapacity | int64      | 集合空间大对象元数据文件大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
+| MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | TotalLobPages    | int64      | 集合空间Lob 已使用空间数据页个数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobs       | int64      | 集合空间大对象文件总数（仅在 v3.4.8 及以上版本生效） |
-| TotalUsedLobSpace   | int64     | 集合空间大对象文件已使用的空间大小（仅在 v3.4.8 及以上版本生效） |
+| TotalUsedLobSpace   | int64     | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | UsedLobSpaceRatio   | double    |  集合空间大对象文件已使用的空间占存储容量的比率（仅在 v3.4.8 及以上版本生效） |
-| FreeLobSpace     | int64    | 集合空间大对象文件空闲空间大小（仅在 v3.4.8 及以上版本生效） |
+| FreeLobSpace     | int64    | 集合空间大对象文件空闲空间大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | FreeLobSize    | int64      | 集合空间大对象文件空闲空间大小，单位为字节<br>v3.4.8 及以上版本中，该字段已更名为 FreeLobSpace  |
-| TotalLobSize     | int64      | 集合空间大对象文件的数据总大小<br>v3.4.8 以下版本该字段为大对象数据文件和元数据文件的总大小，v3.4.8 及以上版本为大对象数据文件的总大小 |
-| TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小（仅在 v3.4.8 及以上版本生效） |
+| TotalLobSize     | int64      | 集合空间大对象文件的数据总大小，单位为字节<br>v3.4.8 以下版本该字段为大对象文件的总大小，v3.4.8 及以上版本为大对象文件的数据总大小 |
+| TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v3.4.8 及以上版本生效）<br>使用率越高，空间浪费越少 |
-| AvgLobSize     | int64      | 集合空间大对象文件平均大小（仅在 v3.4.8 及以上版本生效） |
+| AvgLobSize     | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.4.8 及以上版本生效） |
