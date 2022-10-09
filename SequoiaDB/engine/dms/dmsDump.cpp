@@ -172,6 +172,15 @@ namespace engine
                               " HWM of IdxInnerID: 0x%08x (%u)"OSS_NEWLINE,
                               header->_idxInnerHWM, header->_idxInnerHWM ) ;
 
+         ossMillisecondsToString( header->_createTime, strTime ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Create Timestamp : %s (%llu)"OSS_NEWLINE,
+                              strTime, header->_createTime ) ;
+
+         ossMillisecondsToString( header->_updateTime, strTime ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Update Timestamp : %s (%llu)"OSS_NEWLINE,
+                              strTime, header->_updateTime ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
 
@@ -514,6 +523,23 @@ namespace engine
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Extend option extent ID: 0x%08x (%d)"OSS_NEWLINE,
                              mb->_mbOptExtentID, mb->_mbOptExtentID ) ;
+
+         // create timestamp
+         CHAR strCreateTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( mb->_createTime, strCreateTime ) ;
+
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Create Timestamp  : %s (%llu)"OSS_NEWLINE,
+                              strCreateTime, mb->_createTime ) ;
+
+         // update timestamp
+         CHAR strUpdateTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( mb->_updateTime, strUpdateTime ) ;
+
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Update Timestamp  : %s (%llu)"OSS_NEWLINE,
+                              strUpdateTime, mb->_updateTime ) ;
+
          // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Deleted list :"OSS_NEWLINE ) ;

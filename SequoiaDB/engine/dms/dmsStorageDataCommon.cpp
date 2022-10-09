@@ -1023,6 +1023,10 @@ namespace engine
                _dmsMME->_mbList[i]._totalOrgDataLen ;
             _mbStatInfo[i]._startLID =
                _dmsMME->_mbList[i]._logicalID ;
+
+            _mbStatInfo[i]._createTime = _dmsMME->_mbList[i]._createTime ;
+            _mbStatInfo[i]._updateTime = _dmsMME->_mbList[i]._updateTime ;
+
             /*
              * The following branch is for using newer program(SequoiaDB 2.0 or
              * later) with data of elder versions(Before 2.0). As dictionary
@@ -2322,11 +2326,16 @@ namespace engine
       mb = &_dmsMME->_mbList[newCollectionID] ;
       mb->reset( pName, clUniqueID, newCollectionID, logicalID,
                  attributes, compressionType ) ;
+      mb->_createTime = ossGetCurrentMilliseconds() ;
+      mb->_updateTime = mb->_createTime ;
       _mbStatInfo[ newCollectionID ].reset() ;
       _mbStatInfo[ newCollectionID ]._startLID = logicalID ;
+      _mbStatInfo[ newCollectionID ]._createTime = mb->_createTime ;
+      _mbStatInfo[ newCollectionID ]._updateTime = mb->_updateTime ;
       _compressorEntry[ newCollectionID ].reset() ;
 
       _dmsHeader->_numMB++ ;
+      _onHeaderUpdated() ;
       _collectionInsert( pName, newCollectionID, clUniqueID ) ;
 
       if ( isBlockScanSupport() )
@@ -2658,6 +2667,7 @@ namespace engine
          _collectionRemove( pName, clUniqueID ) ;
          DMS_SET_MB_FREE( context->mb()->_flag ) ;
          _dmsHeader->_numMB-- ;
+         _onHeaderUpdated() ;
       }
 
       if ( _pEventHolder )
@@ -3194,6 +3204,9 @@ namespace engine
       {
          _mbStatInfo[ mbID ]._startLID = *newStartLID ;
       }
+
+      // on metadata updated
+      _onMBUpdated( mbID ) ;
 
       if ( dpscb )
       {
@@ -5286,6 +5299,9 @@ namespace engine
       mb->_dictExtentID = dictExtID ;
       mb->_dictVersion = UTIL_LZW_DICT_VERSION ;
 
+      // on metadata updated
+      _onMBUpdated( context->mbID() ) ;
+
       /// Make sure the dict persist
       flushMME( isSyncDeep() ) ;
 
@@ -5454,6 +5470,24 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED, "_dmsStorageDataCommon::_onMBUpdated" )
+   void _dmsStorageDataCommon::_onMBUpdated( UINT16 mbID )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED ) ;
+
+      SDB_ASSERT( mbID < DMS_MME_SLOTS, "mb ID is invalid" ) ;
+
+      UINT64 updateTime = ossGetCurrentMilliseconds() ;
+
+      _dmsMME->_mbList[ mbID ]._updateTime = updateTime ;
+      _mbStatInfo[ mbID ]._updateTime = updateTime ;
+
+      // update on storage unit
+      _onHeaderUpdated( updateTime ) ;
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED ) ;
    }
 
    /*

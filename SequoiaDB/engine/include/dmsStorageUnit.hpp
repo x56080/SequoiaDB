@@ -406,6 +406,16 @@ namespace engine
                                    BOOLEAN &idxFlag,
                                    BOOLEAN &lobFlag ) const ;
 
+         UINT64      getCreateTime() const
+         {
+            return _storageInfo._createTime ;
+         }
+
+         UINT64      getUpdateTime() const
+         {
+            return _storageInfo._updateTime ;
+         }
+
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
                              BOOLEAN sys = FALSE ) ;
