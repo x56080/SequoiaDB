@@ -3984,8 +3984,11 @@ namespace engine
          ob.append ( FIELD_NAME_FREE_LOB_SPACE, full._freeLobSpace ) ;
          ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, full._totalLobSize ) ;
          ob.append ( FIELD_NAME_TOTAL_VALID_LOB_SIZE, full._totalValidLobSize ) ;
+         /// Because lob page 0 is unevenly distributed on data nodes, the
+         /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+         /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
          ob.append ( FIELD_NAME_LOB_USAGE_RATE,
-                     utilPercentage( full._totalValidLobSize, totalUsedLobSpace ) ) ;
+                     utilPercentage( full._totalLobSize, totalUsedLobSpace ) ) ;
          ob.append ( FIELD_NAME_AVG_LOB_SIZE, avgLobSize ) ;
 
          ob.append ( FIELD_NAME_TOTALLOBGET, full._totalLobGet ) ;
