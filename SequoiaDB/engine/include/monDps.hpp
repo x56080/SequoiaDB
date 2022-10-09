@@ -257,6 +257,7 @@ namespace engine
          DPS_LSN_OFFSET       _curTransLsn ;
          UINT64               _eduID ;
          UINT64               _relatedNID ;
+         UINT64               _relatedEDUID ;
          UINT32               _relatedTID ;
          UINT32               _locksNum ;
          monTransLockCur      _waitLock ;
@@ -278,6 +279,7 @@ namespace engine
             _curTransLsn = DPS_INVALID_LSN_OFFSET ;
             _eduID = 0 ;
             _relatedNID = 0 ;
+            _relatedEDUID = PMD_INVALID_EDUID ;
             _relatedTID = 0 ;
             _locksNum = 0 ;
             _lockList.clear() ;

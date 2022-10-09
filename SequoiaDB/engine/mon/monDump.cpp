@@ -750,15 +750,12 @@ namespace engine
 
    void monAppendSessionIdentify( BSONObjBuilder &ob,
                                   UINT64 relatedNID,
-                                  UINT32 relatedTID,
+                                  UINT64 relatedEDUID,
                                   const CHAR * fieldName = NULL )
    {
       UINT32 ip = 0 ;
       UINT32 port = 0 ;
-      /// IP:00000000, PORT:0000, TID:00000000
-      /// SNPRINTF will truncate the last char, so need + 2
-      //  CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
-      //
+      /// IP:00000000, PORT:0000, TID:0000000000000000
       CHAR szTmp[ DPS_TRANS_RELATED_ID_STR_LEN + 1 ] = { 0 } ;
 
       if ( 0 != relatedNID )
@@ -770,8 +767,8 @@ namespace engine
          ip = _netFrame::getLocalAddress() ;
          port = pmdGetLocalPort() ;
       }
-      ossSnprintf( szTmp, sizeof(szTmp)-1, "%08x%04x%08x",
-                   ip, (UINT16)port, relatedTID ) ;
+      ossSnprintf( szTmp, sizeof(szTmp)-1, "%08x%04x%016llx",
+                   ip, (UINT16)port, relatedEDUID ) ;
       if ( NULL == fieldName )
       {
          ob.append( FIELD_NAME_RELATED_ID, szTmp ) ;
@@ -2628,7 +2625,7 @@ namespace engine
          builder.append( FIELD_NAME_RESERVED_LOG_SPACE,
                          (INT64)( _curTransInfo._reservedLogSpace ) ) ;
          monAppendSessionIdentify( builder, _curTransInfo._relatedNID,
-                                   _curTransInfo._relatedTID ) ;
+                                   _curTransInfo._relatedEDUID ) ;
 
          _curEduInfo = builder.obj() ;
          _slice = 0 ;
@@ -3096,7 +3093,7 @@ namespace engine
          ob.append ( FIELD_NAME_EDUNAME, simple._eduName ) ;
          ob.append ( FIELD_NAME_SOURCE, simple._source ) ;
          monAppendSessionIdentify( ob, simple._relatedNID,
-                                   simple._relatedTID ) ;
+                                   simple._relatedEDUID ) ;
 
          obj = ob.done () ;
 
@@ -3157,7 +3154,7 @@ namespace engine
                     (SINT64)full._processEventCount ) ;
          ob.append( FIELD_NAME_MEMPOOL_SIZE, (INT32)full._memPoolSize ) ;
          monAppendSessionIdentify( ob, full._relatedNID,
-                                   full._relatedTID ) ;
+                                   full._relatedEDUID ) ;
          /// add contexts
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_CONTEXTS ) ) ;
          ossPoolSet<SINT64>::const_iterator itCtx ;
@@ -6385,12 +6382,12 @@ namespace engine
             // waiter RelatedID
             monAppendSessionIdentify( ob,
                                       info.waiterRelatedID,
-                                      info.waiterRelatedTID,
+                                      info.waiterRelatedSessionID,
                                       FIELD_NAME_WAITER_RELATED_ID ) ;
             // holder RelatedID
             monAppendSessionIdentify( ob,
                                       info.holderRelatedID,
-                                      info.holderRelatedTID,
+                                      info.holderRelatedSessionID,
                                       FIELD_NAME_HOLDER_RELATED_ID ) ;
             // waiter related sessionID
             ob.append( FIELD_NAME_WAITER_RELATED_SESSIONID,

@@ -657,8 +657,9 @@ typedef ossPoolSet< dpsTransWait >   DPS_TRANS_WAIT_SET ;
 typedef DPS_TRANS_WAIT_SET::iterator DPS_TRANS_WAIT_SET_IT ;
 
 
-// IP:00000000, PORT:0000, TID:00000000
-#define DPS_TRANS_RELATED_ID_STR_LEN ( 8 + 4 + 8 + 2 )
+// IP:00000000, PORT:0000, EDUID:0000000000000000
+/// SNPRINTF will truncate the last char, so need + 2
+#define DPS_TRANS_RELATED_ID_STR_LEN ( 8 + 4 + 16 + 2 )
 
 class dpsTransRelatedIDs : public utilPooledObject
 {

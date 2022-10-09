@@ -1188,10 +1188,12 @@ namespace engine
       if ( _pSession )
       {
          simple._relatedNID = _pSession->identifyID() ;
+         simple._relatedEDUID = _pSession->identifyEDUID() ;
          simple._relatedTID = _pSession->identifyTID() ;
       }
       else
       {
+         simple._relatedEDUID = _eduID ;
          simple._relatedTID = _tid ;
          simple._relatedNID = 0 ;
       }
@@ -1242,10 +1244,12 @@ namespace engine
       if ( _pSession )
       {
          full._relatedNID = _pSession->identifyID() ;
+         full._relatedEDUID = _pSession->identifyEDUID() ;
          full._relatedTID = _pSession->identifyTID() ;
       }
       else
       {
+         full._relatedEDUID = _eduID ;
          full._relatedTID = _tid ;
          full._relatedNID = 0 ;
       }
@@ -1323,10 +1327,12 @@ namespace engine
          if ( _pSession )
          {
             transInfo._relatedNID = _pSession->identifyID() ;
+            transInfo._relatedEDUID = _pSession->identifyEDUID() ;
             transInfo._relatedTID = _pSession->identifyTID() ;
          }
          else
          {
+            transInfo._relatedEDUID = _eduID ;
             transInfo._relatedTID = _tid ;
             transInfo._relatedNID = 0 ;
          }
