@@ -157,7 +157,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETPOOLSTRELE, "rtnGetPoolStringElement" )
    INT32 rtnGetPoolStringElement ( const BSONObj &obj, const CHAR *fieldName,
-                                  ossPoolString &value )
+                                   ossPoolString &value )
    {
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETPOOLSTRELE ) ;

@@ -257,7 +257,7 @@ namespace engine
             {
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "Group [%s] doesn't support to set location",
-                           _groupName ) ;
+                           _groupName.c_str() ) ;
                goto error ;
             }
 
@@ -316,7 +316,7 @@ namespace engine
                   {
                      rc = SDB_INVALIDARG ;
                      PD_LOG_MSG( PDERROR, "Group [%s] doesn't support to "
-                                 "set location", _groupName ) ;
+                                 "set location", _groupName.c_str() ) ;
                      goto error ;
                   }
 
@@ -370,7 +370,7 @@ namespace engine
          else
          {
             PD_LOG( PDERROR, "Failed to alter node, "
-                    "received unknown action[%s]", _actionName ) ;
+                    "received unknown action[%s]", _actionName.c_str() ) ;
          }
       }
       catch( exception &e )

@@ -2262,7 +2262,7 @@ namespace engine
                          0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update node[%d] from group[%d], "
                       "matcher: %s, updator: %s, rc: %d", nodeID, groupID,
-                      matcher.toString(), updator.toString(), rc ) ;
+                      matcher.toPoolString().c_str(), updator.toPoolString().c_str(), rc ) ;
 
          // Insert and release locationID
          rc = _pCatCB->insertLocID( newLoc, locID ) ;
@@ -2327,7 +2327,7 @@ namespace engine
                          0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update node[%d] from group[%d], "
                       "matcher: %s, updator: %s, rc: %d", nodeID, groupID,
-                      matcher.toPoolString(), updator.toPoolString(), rc ) ;
+                      matcher.toPoolString().c_str(), updator.toPoolString().c_str(), rc ) ;
 
          // Release locationID
          if ( ! oldLocation.empty() )
