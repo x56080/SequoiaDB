@@ -2154,6 +2154,20 @@ namespace engine
          detail = BSON( SPT_ERR << "Oid must be string" ) ;
          goto error ;
       }
+      if( SPT_OID_STR_LENGTH != oidStr.size() )
+      {
+         stringstream ss ;
+         ss << "The length of oid str must be " << SPT_OID_STR_LENGTH ;
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      if ( !utilIsValidOID( oidStr.c_str() ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Oid string invalid" ) ;
+         goto error ;
+      }
       rc = arg.getNative( 1, &length, SPT_NATIVE_INT64 ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
@@ -2163,12 +2177,6 @@ namespace engine
       else if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Length must be number" ) ;
-         goto error ;
-      }
-      if ( !utilIsValidOID( oidStr.c_str() ) )
-      {
-         rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Oid string invalid" ) ;
          goto error ;
       }
 
