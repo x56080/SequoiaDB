@@ -103,6 +103,8 @@ namespace engine
 
    _coordOperator::~_coordOperator()
    {
+      // Use finalize to avoid throwing exception in destructor.
+      _finalize() ;
    }
 
    INT64 _coordOperator::getTimeout() const
@@ -576,5 +578,18 @@ namespace engine
       // do nothing
    }
 
+   void _coordOperator::_finalize()
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         _groupSession.finalize() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s, rc: %d", e.what(), rc ) ;
+      }
+   }
 }
 
