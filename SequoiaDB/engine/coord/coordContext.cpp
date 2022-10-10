@@ -512,13 +512,17 @@ namespace engine
          }
          else
          {
-            rc = _appendSubData( event ) ;
+            BOOLEAN isTakeOver = FALSE ;
+            rc = _appendSubData( event, isTakeOver ) ;
+            if ( isTakeOver )
+            {
+               event.reset() ;
+            }
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to append the data, rc: %d", rc ) ;
                break ;
             }
-            event.reset() ;
             pReply = NULL ;
          }
       } // end while
@@ -579,13 +583,16 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextCoord::_appendSubData( const pmdEDUEvent &event )
+   INT32 _rtnContextCoord::_appendSubData( const pmdEDUEvent &event,
+                                           BOOLEAN &isTakeOver )
    {
       INT32 rc = SDB_OK ;
       MsgOpReply *pReply = (MsgOpReply *)event._Data ;
       EMPTY_CONTEXT_MAP::iterator iter ;
       coordSubContext *pSubContext = NULL ;
       BOOLEAN skipData = FALSE ;
+
+      isTakeOver = FALSE ;
 
       if ( pReply->header.opCode != MSG_BS_GETMORE_RES ||
            (UINT32)pReply->header.messageLength < sizeof( MsgOpReply ) )
@@ -634,10 +641,9 @@ namespace engine
          }
       }
 
-      // after appendData success, the data-pointer is manage by subContext.
-      // if the data-pointer will be delete by others, the clearData should be
-      // called first.
+      // after appendData success, the data-pointer is manage by subContext
       pSubContext->appendData( event ) ;
+      isTakeOver = TRUE ;
 
       rc = _processSubContext( pSubContext, skipData ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process sub-context"
@@ -797,12 +803,8 @@ namespace engine
          _emptyContextMap.erase( it ) ;
 
          pReply->header.opCode = MSG_BS_GETMORE_RES ;
-         rc = _appendSubData( event ) ;
-         if ( SDB_OK == rc )
-         {
-            takeOver = TRUE ;
-         }
-         else
+         rc = _appendSubData( event, takeOver ) ;
+         if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Append sub data failed, rc: %d", rc ) ;
             goto error ;
@@ -1316,12 +1318,12 @@ namespace engine
 
    void _coordSubContext::clearData()
    {
-      //don't delete it, the fun-caller will delete it
+      pmdEduEventRelease( _event, NULL ) ;
       _event.reset() ;
-      _pData = NULL;
-      _curOffset = 0;
-      _recordNum = 0;
-      _isOrderKeyChange = TRUE;
+      _pData = NULL ;
+      _curOffset = 0 ;
+      _recordNum = 0 ;
+      _isOrderKeyChange = TRUE ;
    }
 
    MsgRouteID _coordSubContext::getRouteID()
