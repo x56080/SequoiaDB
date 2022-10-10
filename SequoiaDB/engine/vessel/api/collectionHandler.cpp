@@ -68,6 +68,12 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionHandler::getMetaData(IExecutor *executor,
+                                        bson::BSONObj &data)
+   {
+      SDB_ASSERT(FALSE, "todo");
+      return SDB_OK;
+   }
 
    INT32 collectionHandler::listIndex(IExecutor *executor,
                                       ossPoolVector<bson::BSONObj> &indexes)

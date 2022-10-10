@@ -38,23 +38,59 @@
 #define CLS_RESOURCE_HPP__
 
 #include "clsRemoteResource.hpp"
+#include "clsStorageResource.hpp"
 
 namespace engine
 {
 
-   /*
-      _clsResource define
-    */
-   class _clsResource : public SDBObject, public _clsRemoteResource
+/*
+   _clsResource define
+ */
+class _clsResource : public SDBObject
+{
+public:
+   _clsResource()
    {
-   protected:
-      virtual UINT32 _getCataInfoParseGroupID() const
-      {
-         return _selfNodeID.columns.groupID ;
-      }
-   } ;
-   typedef class _clsResource clsResource ;
+   }
 
-}
+public:
+   INT32 init( std::unique_ptr< clsStorageResourceAgent > &&agent );
+
+   INT32 init( _netRouteAgent *pAgent,
+               pmdOptionsCB *pOptionsCB,
+               std::unique_ptr< clsStorageResourceAgent > &&agent,
+               _coordDataSourceMgr *pDSMgr = nullptr );
+
+   void fini();
+
+   clsRemoteResource *getCataResource();
+
+   clsStorageResource *getStorageResource();
+
+   void removeCS( const CHAR *csName, BOOLEAN needRemoveRelated = FALSE );
+
+   void removeCS( const CHAR *csName,
+                  ossPoolVector< ossPoolString > &subCLs,
+                  ossPoolSet< ossPoolString > &mainCLs );
+
+   void removeCL( const CHAR *clFullName );
+
+   void removeCL( const CHAR *clFullName, CoordCataInfoPtr &removedCataPtr );
+
+   void removeCLWithMain( const CHAR *clFullName );
+
+   void removeCLWithMain( const CHAR *clFullName,
+                          CoordCataInfoPtr &removedCataPtr,
+                          CoordCataInfoPtr &removedMainCataPtr );
+
+   void invalidateAllCLCache();
+
+private:
+   clsRemoteResource _cataResource;
+   clsStorageResource _storageResource;
+};
+typedef class _clsResource clsResource;
+
+} // namespace engine
 
 #endif // CLS_RESOURCE_HPP__

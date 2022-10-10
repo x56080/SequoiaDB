@@ -196,7 +196,7 @@ namespace engine
 
          vector< pmdAddrPair > getImageCatVec() ;
 
-         clsResource*   getImageResource() ;
+         clsRemoteResource*   getImageResource() ;
          clsDCBaseInfo* getDCBaseInfo() { return &_baseInfo ; }
          clsDCBaseInfo* getImageDCBaseInfo( pmdEDUCB *cb,
                                             BOOLEAN update = FALSE ) ;
@@ -325,7 +325,7 @@ namespace engine
                                      INT64 millsec = DC_UPDATE_TIMEOUT ) ;
 
       private:
-         clsResource                   _imageResource ;
+         clsRemoteResource             _imageResource ;
          BOOLEAN                       _init ;
 
          clsDCBaseInfo                 _baseInfo ;       // this dc base info

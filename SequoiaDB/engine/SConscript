@@ -365,7 +365,8 @@ dmsFiles = [
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
-      "dms/dmsRBSGCJob.cpp"
+      "dms/dmsRBSGCJob.cpp",
+      "dms/dmsCollectionHandler.cpp"
       ]
 
 ixmFiles = [
@@ -499,9 +500,13 @@ clsFiles = [
       "cls/clsMainCLMonAggregator.cpp",
       "cls/clsRemoteOperator.cpp",
       "cls/clsRemoteResource.cpp",
+      "cls/clsStorageResource.cpp",
+      "cls/clsStorageResourceAgent.cpp",
+      "cls/clsCLMetaCache.cpp",
       "cls/clsResourceContainer.cpp",
       "cls/clsResource.cpp",
       "cls/clsIndexJob.cpp",
+      "cls/clsIndexInfo.cpp",
       "cls/clsRecycleBinJob.cpp",
       "cls/clsRecycleBinManager.cpp"
       ]
@@ -850,7 +855,8 @@ dpsTestFiles = [
 #      ]
 clsTestFiles = [
       "test/cls/clsTest.cpp",
-      "test/cls/clsCataAgentTest.cpp"
+      "test/cls/clsCataAgentTest.cpp",
+      "test/cls/clsStorageResourceTest.cpp"
       ]
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"

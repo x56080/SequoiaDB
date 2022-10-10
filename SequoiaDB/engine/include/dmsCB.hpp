@@ -41,6 +41,7 @@
 #define DMSCB_HPP_
 
 #include "core.hpp"
+#include "interface/IDataManagementService.h"
 #include "oss.hpp"
 #include "ossMem.hpp"
 #include "dms.hpp"
@@ -141,7 +142,7 @@ namespace engine
    /*
       _SDB_DMSCB define
    */
-   class _SDB_DMSCB : public _IControlBlock
+   class _SDB_DMSCB : public _IControlBlock, public IDataManagementService
    {
    private :
       monSpinSLatch _mutex ;
@@ -324,17 +325,27 @@ namespace engine
       _SDB_DMSCB() ;
       virtual ~_SDB_DMSCB() ;
 
-      virtual SDB_CB_TYPE cbType() const { return SDB_CB_DMS ; }
-      virtual const CHAR* cbName() const { return "DMSCB" ; }
+      virtual SDB_CB_TYPE cbType() const override{ return SDB_CB_DMS ; }
+      virtual const CHAR* cbName() const override{ return "DMSCB" ; }
 
-      virtual INT32  init () ;
-      virtual INT32  active () ;
-      virtual INT32  deactive () ;
-      virtual INT32  fini () ;
-      virtual void   onConfigChange() ;
+      virtual INT32  init () override ;
+      virtual INT32  active () override ;
+      virtual INT32  deactive () override ;
+      virtual INT32  fini () override ;
+      virtual void   onConfigChange() override ;
+
+      virtual INT32 openCL( IExecutor *executor,
+                            const CHAR *fullName,
+                            const dmsOpenCLOptions &o,
+                            DATA_COLLECTION_PTR &ptr ) override ;
+
+      virtual INT32 openCL( IExecutor *executor,
+                            utilCLUniqueID uniqueId,
+                            const dmsOpenCLOptions &o,
+                            DATA_COLLECTION_PTR &ptr ) override ;
 
       INT32 findCollectionSpace(const CHAR *pName,
-                                dmsStorageUnitID &suId);
+                                dmsStorageUnitID &suId) ;
 
       INT32 nameToSUAndLock ( const CHAR *pName,
                               dmsStorageUnitID &suID,

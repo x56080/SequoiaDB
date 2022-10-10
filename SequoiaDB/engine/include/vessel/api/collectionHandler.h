@@ -85,6 +85,9 @@ namespace vessel
          virtual INT32 createIndex(IExecutor *executor,
                                    const dmsBuildIndexOptions &o,
                                    const bson::BSONObj &indexDef) override;
+         
+         virtual INT32 getMetaData(IExecutor *executor,
+                                   bson::BSONObj &data) override;
 
          virtual INT32 listIndex(IExecutor *executor,
                                  ossPoolVector<bson::BSONObj> &indexes) override;

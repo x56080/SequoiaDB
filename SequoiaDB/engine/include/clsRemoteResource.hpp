@@ -113,6 +113,14 @@ namespace engine
       void setNodeID( const MsgRouteID &nodeID )
       {
          _selfNodeID.value = nodeID.value ;
+         if (_selfNodeID.columns.groupID == COORD_GROUPID)
+         {
+            _selfParseGroupID = INVALID_GROUPID;
+         }
+         else
+         {
+            _selfParseGroupID = _selfNodeID.columns.groupID;
+         }
       }
 
       const MsgRouteID &getNodeID() const
@@ -310,11 +318,12 @@ namespace engine
 
       virtual UINT32 _getCataInfoParseGroupID() const
       {
-         return INVALID_GROUPID ;
+         return _selfParseGroupID ;
       }
 
    protected:
       MsgRouteID                       _selfNodeID ;
+      INT32                            _selfParseGroupID ;
       MAP_GROUP_INFO                   _mapGroupInfo ;
       MAP_GROUP_NAME                   _mapGroupName ;
       ossSpinSLatch                    _nodeMutex ;
