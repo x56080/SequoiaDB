@@ -1575,7 +1575,11 @@ namespace engine
 
    _pmdRemoteSessionSite::~_pmdRemoteSessionSite()
    {
-      SDB_ASSERT( 0 == _mapSession.size(), "Has session not removed" ) ;
+      if ( 0 != _mapSession.size() )
+      {
+         // sessions may leak with contexts
+         PD_LOG( PDWARNING, "Remote site has remote session leaks" ) ;
+      }
       SDB_ASSERT( NULL == _pEDUCB, "EDU is not NULL" ) ;
       _pEDUCB = NULL ;
       _pHandler = NULL ;
