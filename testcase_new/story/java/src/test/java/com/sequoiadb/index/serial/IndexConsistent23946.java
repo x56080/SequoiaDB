@@ -126,10 +126,13 @@ public class IndexConsistent23946 extends SdbTestBase {
     public void tearDown() {
         try {
             if ( runSuccess ) {
-                if ( sdb.isCollectionSpaceExist( csName ) )
+                if ( sdb.isCollectionSpaceExist( csName ) ) {
                     sdb.dropCollectionSpace( csName );
-                if ( sdb.isCollectionSpaceExist( newCSName ) )
+                }
+
+                if ( sdb.isCollectionSpaceExist( newCSName ) ) {
                     sdb.dropCollectionSpace( newCSName );
+                }
             }
         } finally {
             sdb.close();
@@ -186,7 +189,6 @@ public class IndexConsistent23946 extends SdbTestBase {
             String mainclName, String subclName1, String subclName2 ) {
         cs.createCollection( subclName1, ( BSONObject ) JSON
                 .parse( "{ShardingKey:{no:1},AutoSplit:true}" ) );
-        // CollectionSpace cs2 = sdb.getCollectionSpace( SdbTestBase.csName );
         cs.createCollection( subclName2 );
 
         BSONObject optionsM = new BasicBSONObject();
@@ -207,21 +209,36 @@ public class IndexConsistent23946 extends SdbTestBase {
     private void reCreateIndexAndCheckResult( Sequoiadb db, String csName,
             String mainclName, String subclName1, String subclName2,
             String indexName ) throws Exception {
-        DBCollection dbcl = db.getCollectionSpace( csName )
-                .getCollection( mainclName );
-        dbcl.createIndex( indexName, "{testa:1}", false, false );
-        IndexUtils.checkIndexTask( db, "Create index", csName, mainclName,
-                indexName );
-        IndexUtils.checkIndexTaskResult( db, "Create index", csName, subclName1,
-                indexName, 0 );
-        IndexUtils.checkIndexTaskResult( db, "Create index", csName, subclName2,
-                indexName, 0 );
-        IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
-                true );
-        IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,
-                true );
+        CollectionSpace cs = db.getCollectionSpace( csName );
+        DBCollection dbcl = cs.getCollection( mainclName );
+        if ( !dbcl.isIndexExist( indexName ) ) {
+            dbcl.createIndex( indexName, "{testa:1}", false, false );
+            IndexUtils.checkIndexTask( db, "Create index", csName, mainclName,
+                    indexName );
+            IndexUtils.checkIndexTaskResult( db, "Create index", csName,
+                    subclName1, indexName, 0 );
+            IndexUtils.checkIndexTaskResult( db, "Create index", csName,
+                    subclName2, indexName, 0 );
+            IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
+                    true );
+            IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,
+                    true );
 
-        IndexUtils.checkRecords( dbcl, insertRecords, "",
-                "{'':'" + indexName + "'}" );
+            IndexUtils.checkRecords( dbcl, insertRecords, "",
+                    "{'':'" + indexName + "'}" );
+        } else {
+            boolean isIndexInSubcl1 = cs.getCollection( subclName1 )
+                    .isIndexExist( indexName );
+            boolean isIndexInSubcl2 = cs.getCollection( subclName2 )
+                    .isIndexExist( indexName );
+            // 可能出现其中一个子表创建索引成功，另一个子表索引失败回滚，校验只有一个子表上有索引，另一个子表上索引回滚删除
+            if ( isIndexInSubcl1 ) {
+                Assert.assertFalse( isIndexInSubcl2,
+                        "only one subcl should have index!" );
+            } else {
+                Assert.assertTrue( isIndexInSubcl2,
+                        "only one subcl should have index!" );
+            }
+        }
     }
 }
