@@ -36,6 +36,7 @@ public interface SDBClientProvider extends Serializable, Closeable {
 
     Sequoiadb recreateClient() throws IOException;
 
+
     class Builder {
         private List<String> hosts;
         private String collectionSpace;
