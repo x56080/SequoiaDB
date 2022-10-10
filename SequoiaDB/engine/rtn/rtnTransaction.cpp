@@ -250,6 +250,14 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
+      curTransID = cb->getTransID() ;
+      preTransLsn = cb->getCurTransLsn() ;
+
+      if ( DPS_INVALID_TRANS_ID != curTransID )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
+      }
+
       pRemoteOperator = cb->getRemoteOperator() ;
       if ( NULL != pRemoteOperator )
       {
@@ -260,9 +268,6 @@ namespace engine
             rc = SDB_OK ;
          }
       }
-
-      curTransID = cb->getTransID() ;
-      preTransLsn = cb->getCurTransLsn() ;
 
       if ( curTransID == DPS_INVALID_TRANS_ID ||
            preTransLsn == DPS_INVALID_LSN_OFFSET )
@@ -281,8 +286,6 @@ namespace engine
          sdbGetTransCB()->releaseRBLogSpace( cb ) ;
          goto done ;
       }
-
-      DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
 
       if ( !dpsCB )
       {
@@ -367,6 +370,11 @@ namespace engine
       transID = cb->getTransID() ;
       rollbackID = sdbGetTransCB()->getRollbackID( transID ) ;
 
+      if ( DPS_INVALID_TRANS_ID != transID )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
+      }
+
       pRemoteOperator = cb->getRemoteOperator() ;
       if ( NULL != pRemoteOperator )
       {
@@ -383,8 +391,6 @@ namespace engine
       {
          goto done;
       }
-
-      DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
 
       if ( !dpsCB )
       {
