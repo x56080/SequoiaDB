@@ -231,7 +231,10 @@ namespace engine
       _detail._currCompressRatio = _detail._currCompressRatio / _doneSubCLCount ;
       // Calculate the average of lob info
       _detail._usedLobSpaceRatio = utilPercentage( _detail._totalUsedLobSpace, _totalLobCapacity ) ;
-      _detail._lobUsageRate = utilPercentage( _detail._totalValidLobSize, _detail._totalUsedLobSpace ) ;
+      /// Because lob page 0 is unevenly distributed on data nodes, the
+      /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+      /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
+      _detail._lobUsageRate = utilPercentage( _detail._totalLobSize, _detail._totalUsedLobSpace ) ;
       if ( 0 < _detail._totalLobs )
       {
          _detail._avgLobSize = _detail._totalValidLobSize / _detail._totalLobs ;
