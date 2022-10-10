@@ -3043,6 +3043,7 @@ namespace engine
       rtnIndexJob *indexJob = NULL ;
       clsCatalogSet *pCatSet = NULL ;
       BOOLEAN useSync = FALSE ;
+      BOOLEAN jobSubmit = FALSE ;
 
       if ( LOG_TYPE_IX_CRT != recordHeader->_type &&
            LOG_TYPE_IX_DELETE != recordHeader->_type )
@@ -3110,8 +3111,7 @@ namespace engine
            0 == ossStrcmp( indexJob->getIndexName(), IXM_ID_KEY_NAME ) )
       {
          indexJob->doit() ;
-         SDB_OSS_DEL indexJob ;
-         indexJob = NULL ;
+         goto done ;
       }
       else
       {
@@ -3119,6 +3119,7 @@ namespace engine
          // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
          // drop index should not drop really, so it's error, need to use
          // RTN_JOB_MUTEX_STOP_CONT
+         jobSubmit = TRUE ;
          rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT,
                                         &jobEduID ) ;
 
@@ -3145,6 +3146,10 @@ namespace engine
       }
 
    done:
+      if ( !jobSubmit && indexJob )
+      {
+         SDB_OSS_DEL indexJob ;
+      }
       PD_TRACE_EXITRC ( SDB_STARTINXJOB, rc );
       return rc ;
    error:
