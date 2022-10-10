@@ -185,7 +185,8 @@ namespace engine
          virtual INT32 _processGetMoreHint( const BSONObj &hint ) ;
 
       private:
-         INT32    _appendSubData ( const pmdEDUEvent &event ) ;
+         INT32    _appendSubData ( const pmdEDUEvent &event,
+                                   BOOLEAN &isTakeOver ) ;
 
          void     _delPrepareContext( const MsgRouteID &routeID ) ;
 
