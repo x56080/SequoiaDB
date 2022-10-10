@@ -372,6 +372,11 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
+      if ( cb->getTransID().isValid() )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
+      }
+
       pRemoteOperator = cb->getRemoteOperator() ;
       if ( NULL != pRemoteOperator )
       {
@@ -417,8 +422,6 @@ namespace engine
          transCB->releaseRBLogSpace( cb ) ;
          goto done ;
       }
-
-      DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
 
       if ( !dpsCB )
       {
@@ -563,6 +566,11 @@ namespace engine
       transID = cb->getTransID() ;
       rollbackID = transCB->getRollbackID( transID ) ;
 
+      if ( transID.isValid() )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
+      }
+
       pRemoteOperator = cb->getRemoteOperator() ;
       if ( NULL != pRemoteOperator )
       {
@@ -579,8 +587,6 @@ namespace engine
       {
          goto done;
       }
-
-      DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
 
       if ( !dpsCB )
       {
