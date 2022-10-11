@@ -704,6 +704,12 @@ namespace engine
                                 dmsMBContext *context,
                                 const CHAR *dictionary,
                                 UINT32 dictSize, BOOLEAN force = FALSE ) ;
+
+   INT32 rtnParseCmdLocationMatcher( const BSONObj &query,
+                                     BSONObj &nodesMatcher,
+                                     BSONObj &newMatcher,
+                                     BOOLEAN ignoreNodeParam = FALSE,
+                                     BOOLEAN ignoreCtrlParam = FALSE ) ;
 }
 
 #endif
