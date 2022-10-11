@@ -59,8 +59,6 @@ public class SDBSinkOptions extends SDBClientOptions {
 
     private String writeMode;
 
-    private boolean hasMultiPartition;
-
     private HashSet<String> primaryKey;
     private String[] upsertKey = new String[]{};
 
@@ -82,7 +80,6 @@ public class SDBSinkOptions extends SDBClientOptions {
         this.overwrite = options.get(SDBConfigOptions.OVERWRITE);
 
         this.writeMode = options.get(SDBConfigOptions.WRITE_MODE);
-        this.hasMultiPartition = options.get(SDBConfigOptions.HAS_MULTI_PARTITION);
     }
 
     @Override
@@ -164,10 +161,6 @@ public class SDBSinkOptions extends SDBClientOptions {
 
     public HashSet<String> getPrimaryKey() {
         return primaryKey;
-    }
-
-    public boolean hasMultiPartition() {
-        return hasMultiPartition;
     }
 
     public void computeIdempotentWriteOptimization(Optional<UniqueConstraint> flinkPrimaryKey) {

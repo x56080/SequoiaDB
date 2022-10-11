@@ -25,13 +25,11 @@ import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.types.RowKind;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -162,29 +160,6 @@ public class CGBCanalJsonDecodingFormat implements DecodingFormat<Deserializatio
                         }
                         return TimestampData.fromEpochMillis(
                                 Long.parseLong(row.getString(pos).toString()));
-                    }
-                }),
-
-        EXTRA_OP_TYPE(
-                "$extra-op-type",
-                DataTypes.STRING().nullable(),
-                DataTypes.FIELD("__type", DataTypes.STRING()),
-                new MetadataConverter() {
-                    @Override
-                    public Object convert(GenericRowData row, int pos) {
-                        return row.getString(pos);
-                    }
-                }),
-
-        EXTRA_PROMISE(
-                "$extra-promise",
-                DataTypes.STRING().nullable(),
-                DataTypes.FIELD("$extra_promise", DataTypes.STRING()),
-                new MetadataConverter() {
-                    @Override
-                    public Object convert(GenericRowData row, int pos) {
-                        return StringData.fromString(
-                                UUID.nameUUIDFromBytes(row.toString().getBytes(StandardCharsets.UTF_8)).toString());
                     }
                 }),
         ;
