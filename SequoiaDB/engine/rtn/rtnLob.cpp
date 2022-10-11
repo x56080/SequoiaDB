@@ -1135,7 +1135,7 @@ namespace engine
 
       record.set( &oid, sequence, 0, 0, NULL ) ;
       rc = lobEnv.getSU()->lob()->remove( record, lobEnv.getMBContext(), cb,
-                                          dpsCB, onlyRemoveNewPiece ) ;
+                                          dpsCB, onlyRemoveNewPiece, pOldData ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to remove lob[%s],"

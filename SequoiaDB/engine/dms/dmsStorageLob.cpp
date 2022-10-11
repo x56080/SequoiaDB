@@ -1616,7 +1616,7 @@ namespace engine
       else if ( isMetaPage && NULL != pOldData )
       {
          // use the passed old data
-         oldRecord._data = oldData ;
+         oldRecord._data = pOldData ;
       }
 
       /// lock bucket
