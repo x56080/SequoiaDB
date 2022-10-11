@@ -221,8 +221,9 @@ TEST_F( forceSessionTest, withOption )
    bson_finish( &option ) ;
 
    // force session with db connected to coord
-   sdbDisconnect( nodeDb ) ;
-   sdbReleaseConnection( nodeDb ) ;
    rc = sdbForceSession( db, sessionId, &option ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to force session " << sessionId ;	 
+
+   sdbDisconnect( nodeDb ) ;
+   sdbReleaseConnection( nodeDb ) ;
 }	
