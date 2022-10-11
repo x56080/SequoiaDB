@@ -139,6 +139,13 @@ namespace engine
          contextID = pContext->contextID() ;
       }
 
+      rc = _onExecuteOnNodes( pMsg, cb, contextID, faileds, sucNodes, buf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to do after executing on nodes, rc: %d", rc ) ;
+         goto error ;
+      }
+
       if ( -1 != contextID )
       {
          if ( monProcessorPtr.get() )
@@ -197,6 +204,16 @@ namespace engine
    INT32 _coordCmdWithLocation::_posExcute( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             ROUTE_RC_MAP &faileds )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _coordCmdWithLocation::_onExecuteOnNodes( MsgHeader *pMsg,
+                                                   pmdEDUCB *cb,
+                                                   INT64 &contextID,
+                                                   ROUTE_RC_MAP &faileds,
+                                                   SET_ROUTEID &sucNodes,
+                                                   rtnContextBuf *buf )
    {
       return SDB_OK ;
    }
@@ -308,6 +325,7 @@ namespace engine
       INT64 newContextID = -1 ;
       rtnQueryOptions queryOption ;
       monDataSetFetch *dsFetch = NULL ;
+      BSONObj nodesMatcher, newMatcher ;
 
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
       if ( rc )
@@ -315,6 +333,9 @@ namespace engine
          PD_LOG( PDERROR, "Extract message failed, rc: %d", rc ) ;
          goto error ;
       }
+
+      rc = rtnParseCmdLocationMatcher( queryOption.getQuery(), nodesMatcher, newMatcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cmd location matcher, rc: %d", rc ) ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, pContext,
                               newContextID, cb ) ;
@@ -325,7 +346,7 @@ namespace engine
       }
 
       rc = pContext->open( queryOption.getSelector(),
-                           queryOption.getQuery(),
+                           newMatcher,
                            queryOption.getLimit(),
                            queryOption.getSkip() ) ;
       if ( rc )
@@ -638,7 +659,7 @@ namespace engine
          /// add aggr operators
          BSONObj nodeMatcher ;
          BSONObj newMatcher ;
-         rc = parseMatcher( queryOption.getQuery(), nodeMatcher, newMatcher ) ;
+         rc = rtnParseCmdLocationMatcher( queryOption.getQuery(), nodeMatcher, newMatcher ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse matcher failed, rc: %d", rc ) ;
 
          /// add nodes matcher to the botton

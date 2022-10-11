@@ -132,13 +132,6 @@ namespace engine
          INT32    parseUserAggr( const BSONObj &hint,
                                  vector< BSONObj > &vecObj,
                                  BSONObj &newHint ) ;
-
-         INT32    parseMatcher( const BSONObj &query,
-                                BSONObj &nodesMatcher,
-                                BSONObj &newMatcher,
-                                BOOLEAN ignoreNodeParam = FALSE,
-                                BOOLEAN ignoreCtrlParam = FALSE ) ;
-
    } ;
    typedef _aggrCmdBase aggrCmdBase ;
 

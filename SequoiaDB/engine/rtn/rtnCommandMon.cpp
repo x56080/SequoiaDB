@@ -176,7 +176,7 @@ namespace engine
          selector = BSONObj( _selectBuff ) ;
          orderBy = BSONObj( _orderByBuff ) ;
 
-         rc = parseMatcher( tmpMatcher, nodeMatcher, matcher, TRUE ) ;
+         rc = rtnParseCmdLocationMatcher( tmpMatcher, nodeMatcher, matcher, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse matcher failed, rc: %d", rc ) ;
       }
       catch( std::exception &e )
@@ -292,7 +292,7 @@ namespace engine
             selector = BSONObj( _selectBuff ) ;
             orderBy = BSONObj( _orderByBuff ) ;
 
-            rc = parseMatcher( tmpMatcher, nodeMatcher, matcher, TRUE ) ;
+            rc = rtnParseCmdLocationMatcher( tmpMatcher, nodeMatcher, matcher, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Parse matcher failed, rc: %d", rc ) ;
          }
       }
