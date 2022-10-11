@@ -204,6 +204,9 @@ void ossTimestampToString( ossTimestamp &Tm, CHAR * pStr ) ;
 // convert ossTimestamp into UTC calendar time string
 void ossTimestampToUTCString( ossTimestamp &Tm, CHAR * pStr ) ;
 
+void ossMillisecondsToString( UINT64 milliseconds, CHAR *pStr ) ;
+UINT64 ossStringToMilliseconds( const CHAR *pStr ) ;
+
 // convert time_t from local to UTC in the same DateString
 // for example:
 //   [in] local timezone:CST, date:"2019-08-06 20:13:54", local:1565093634

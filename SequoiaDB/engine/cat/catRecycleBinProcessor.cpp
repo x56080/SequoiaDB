@@ -2467,6 +2467,14 @@ namespace engine
                   builder.append( element ) ;
                }
             }
+            else if ( 0 == ossStrcmp( FIELD_NAME_UPDATE_TIME, fieldName ) )
+            {
+               // refresh update time
+               UINT64 currentTime = ossGetCurrentMilliseconds() ;
+               CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+               ossMillisecondsToString( currentTime, timestamp ) ;
+               builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+            }
             else
             {
                builder.append( element ) ;
@@ -2856,6 +2864,14 @@ namespace engine
             {
                // NOTE: we don't have index definition of global index
                // drop index instead, so don't append the global index field
+            }
+            else if ( 0 == ossStrcmp( FIELD_NAME_UPDATE_TIME, fieldName ) )
+            {
+               // refresh update time
+               UINT64 currentTime = ossGetCurrentMilliseconds() ;
+               CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+               ossMillisecondsToString( currentTime, timestamp ) ;
+               builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
             }
             else
             {

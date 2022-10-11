@@ -122,6 +122,9 @@ namespace engine
       _detail._lobPageSize = DMS_PAGE_SIZE512K ;
       _detail._attribute = pCataSet->getAttribute() ;
       _detail._compressType = pCataSet->getCompressType() ;
+
+      _detail._createTime = pCataSet->getCreateTime() ;
+      _detail._updateTime = pCataSet->getUpdateTime() ;
    }
 
    void _clsMainCLMonInfo::append( const monCollection &subCLInfo )
@@ -188,6 +191,14 @@ namespace engine
          if ( !sub._dictCreated )
          {
             _detail._dictCreated = FALSE ;
+         }
+         if ( sub._createTime < _detail._createTime )
+         {
+            _detail._createTime = sub._createTime ;
+         }
+         if ( sub._updateTime > _detail._updateTime )
+         {
+            _detail._updateTime = sub._updateTime ;
          }
          _detail._currCompressRatio += sub._currCompressRatio ;
       }
