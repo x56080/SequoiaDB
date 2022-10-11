@@ -1817,7 +1817,15 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Detach dataProcessor occured exception: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Detach data processor occurred exception: %s", e.what() ) ;
+         // Failed to detach, disconnect the session
+         if ( NULL != eduCB()->getRemoteSite() )
+         {
+            pmdRemoteSessionSite *pSite =
+                              (pmdRemoteSessionSite *)( eduCB()->getRemoteSite() ) ;
+            pSite->disconnectAllSubSession() ;
+         }
+         eduCB()->disconnect() ;
       }
       // do self
       if ( sdbGetPMDController()->getRSManager() )

@@ -126,8 +126,6 @@ namespace engine
          INT32    reopen () ;
          void     setModify( BOOLEAN modify ) ;
 
-         void     killSubContexts( _pmdEDUCB *cb ) ;
-
          /*
             Unit: millisec
          */
@@ -194,6 +192,11 @@ namespace engine
          INT32    _reOrderSubContext() ;
          INT32    _prepareSubCtxData( _pmdEDUCB *cb ) ;
 
+         // release sub contexts with killing remote contexts
+         void     _killSubContexts( _pmdEDUCB *cb ) ;
+         // release sub contexts without killing remote contexts
+         void     _destroySubContexts() ;
+
       private:
          EMPTY_CONTEXT_MAP          _emptyContextMap ;
          EMPTY_CONTEXT_MAP          _prepareContextMap ;
@@ -205,7 +208,6 @@ namespace engine
          ROUTE_RC_MAP               _nokRC ;
 
          _coordNoSessionInitHandler _handler ;
-         _pmdRemoteSessionSite      *_pSite ;
          _pmdRemoteSession          *_pSession ;
 
          BOOLEAN                    _isModify ;

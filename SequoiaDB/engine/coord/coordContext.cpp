@@ -68,7 +68,6 @@ namespace engine
       _preRead          = preRead ;
       _needReOrder      = FALSE ;
 
-      _pSite            = NULL ;
       _pSession         = NULL ;
 
       _isModify         = FALSE ;
@@ -76,12 +75,20 @@ namespace engine
 
    _rtnContextCoord::~_rtnContextCoord ()
    {
-      unregisterAllProcessors() ;
       if ( NULL != _pSession )
       {
          pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-         killSubContexts( cb ) ;
-         _pSite->removeSession( _pSession->sessionID() ) ;
+         if ( NULL != cb->getRemoteSite() )
+         {
+            pmdRemoteSessionSite *pSite =
+                  (pmdRemoteSessionSite *)( cb->getRemoteSite() ) ;
+            _killSubContexts( cb ) ;
+            pSite->removeSession( _pSession->sessionID() ) ;
+         }
+         else
+         {
+            _destroySubContexts() ;
+         }
       }
    }
 
@@ -163,8 +170,8 @@ namespace engine
       return recordNum + _rtnContextBase::getCachedRecordNum() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__KILLSUBCTXS, "_rtnContextCoord::killSubContexts" )
-   void _rtnContextCoord::killSubContexts( pmdEDUCB * cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__KILLSUBCTXS, "_rtnContextCoord::_killSubContexts" )
+   void _rtnContextCoord::_killSubContexts( pmdEDUCB * cb )
    {
       UINT32 tid = 0 ;
       PD_TRACE_ENTRY ( SDB_CTXCOOR__KILLSUBCTXS ) ;
@@ -185,9 +192,20 @@ namespace engine
       {
          rtnSubContext* rtnSubCtx = *itSub ;
          pSubContext = dynamic_cast<coordSubContext*>( rtnSubCtx ) ;
-         _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
-                                    pSubContext->getRouteID().value,
-                                    pSubContext ) ) ;
+
+         try
+         {
+            _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
+                                       pSubContext->getRouteID().value,
+                                       pSubContext ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to move context to prepare contexts, "
+                    "occur exception %s", e.what() ) ;
+            _releaseSubContext( rtnSubCtx ) ;
+         }
+
          ++itSub ;
       }
       _orderedContexts.clear() ;
@@ -195,9 +213,19 @@ namespace engine
       EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
       while ( it != _emptyContextMap.end() )
       {
-         _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
-                                    it->first,
-                                    it->second ) ) ;
+         try
+         {
+            _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
+                                       it->first,
+                                       it->second ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to move context to prepare contexts, "
+                    "occur exception %s", e.what() ) ;
+            _releaseSubContext( it->second ) ;
+         }
+
          ++it ;
       }
       _emptyContextMap.clear() ;
@@ -265,6 +293,48 @@ namespace engine
       PD_TRACE_EXIT( SDB_CTXCOOR__KILLSUBCTXS ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__DESSUBCTXS, "_rtnContextCoord::_destroySubContexts" )
+   void _rtnContextCoord::_destroySubContexts()
+   {
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__DESSUBCTXS ) ;
+
+      for ( SUB_ORDERED_CTX_SET_IT itSub = _orderedContexts.begin() ;
+            _orderedContexts.end() != itSub ;
+            ++ itSub )
+      {
+         rtnSubContext *pSubContext = *itSub ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( pSubContext ) ;
+      }
+      _orderedContexts.clear() ;
+
+      for ( EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
+            it != _emptyContextMap.end() ;
+            ++ it )
+      {
+         rtnSubContext *pSubContext = it->second ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( it->second ) ;
+      }
+      _emptyContextMap.clear() ;
+
+      // release all context
+      for ( EMPTY_CONTEXT_MAP::iterator it = _prepareContextMap.begin() ;
+            it != _prepareContextMap.end() ;
+            ++ it )
+      {
+         rtnSubContext *pSubContext = it->second ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( pSubContext ) ;
+      }
+      _prepareContextMap.clear() ;
+
+      PD_TRACE_EXIT( SDB_CTXCOOR__DESSUBCTXS ) ;
+   }
+
    const CHAR* _rtnContextCoord::name() const
    {
       return "COORD" ;
@@ -280,6 +350,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      pmdRemoteSessionSite *pSite = NULL ;
       coordSessionPropSite *pPropSite = NULL ;
       INT64 timeout = -1 ;
 
@@ -289,20 +360,20 @@ namespace engine
          goto error ;
       }
 
-      _pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
-      if ( !_pSite )
+      pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
+      if ( !pSite )
       {
          PD_LOG( PDERROR, "Session[%s] is invalid: remote site is NULL",
                  cb->getName() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
-      pPropSite = ( coordSessionPropSite* )_pSite->getUserData() ;
+      pPropSite = ( coordSessionPropSite* )pSite->getUserData() ;
       if ( pPropSite )
       {
          timeout = pPropSite->getOperationTimeout() ;
       }
-      _pSession = _pSite->addSession( timeout, &_handler ) ;
+      _pSession = pSite->addSession( timeout, &_handler ) ;
       if ( !_pSession )
       {
          PD_LOG( PDERROR, "Create remote session failed in session[%s]",
@@ -1185,13 +1256,19 @@ namespace engine
          coordSubContext *ctx = (coordSubContext *)subCtx ;
          ctx->clearData() ;
 
-         if ( -1 != ctx->contextID() )
+         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+         if ( -1 != ctx->contextID() &&
+              NULL != cb &&
+              NULL != cb->getRemoteSite() )
          {
             pmdRemoteSession *pSession = NULL ;
             pmdSubSession *pSub = NULL ;
             MsgOpKillContexts msgKillContext ;
 
-            pSession = _pSite->addSession( COORD_SUBCTX_KILLCONTEXT_TIMEOUT ) ;
+            pmdRemoteSessionSite *pSite =
+                  (pmdRemoteSessionSite *)( cb->getRemoteSite() ) ;
+
+            pSession = pSite->addSession( COORD_SUBCTX_KILLCONTEXT_TIMEOUT ) ;
             pSub = pSession->addSubSession( ctx->getRouteID().value ) ;
 
             /// send kill context
@@ -1214,7 +1291,7 @@ namespace engine
 
             if ( pSession )
             {
-               _pSite->removeSession( pSession ) ;
+               pSite->removeSession( pSession ) ;
             }
          }
       }
