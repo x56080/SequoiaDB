@@ -51,7 +51,7 @@ SDB_LIST_SESSIONS_CURRENT
   "Type": "ShardAgent",
   "Name": "hostname1:11821",
   "Source": "",
-  "RelatedID": "7f0001019c4000006dd9"
+  "RelatedID": "7f0001019c400000000000000015"
 }
 ```
 
