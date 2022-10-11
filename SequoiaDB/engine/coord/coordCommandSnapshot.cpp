@@ -985,6 +985,12 @@ namespace engine
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotLatchWaitsIntr,
                                       CMD_NAME_SNAPSHOT_LATCHWAITS_INTR,
                                       TRUE ) ;
+   void _coordCMDSnapshotLatchWaitsIntr::_preSet( pmdEDUCB *cb,
+                                                  coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
 
    /*
     * _coordCMDSnapshotLockWaits implement
@@ -1103,6 +1109,12 @@ namespace engine
    {
    }
 
+   void _coordCMDSnapshotTransWaitsIntr::_preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
+   }
 
    /*
     * _coordCMDSnapshotTransDeadlock implement
@@ -1144,6 +1156,13 @@ namespace engine
    {
    }
 
+   void _coordCMDSnapshotTransDeadlockIntr::_preSet( pmdEDUCB *cb,
+                                                     coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
+   }
 
    INT32 _coordCMDSnapshotTransDeadlockIntr::_getMonProcessor
    (
@@ -1156,14 +1175,14 @@ namespace engine
          rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
 
       if ( NULL == tmpPtr.get() )
-      {  
+      {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
       }
       else
-      {  
+      {
          ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
-      } 
+      }
       return rc ;
    }
 
