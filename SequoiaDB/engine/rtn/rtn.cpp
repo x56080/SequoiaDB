@@ -2617,5 +2617,109 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 rtnParseCmdLocationMatcher( const BSONObj &query,
+                                     BSONObj &nodesMatcher,
+                                     BSONObj &newMatcher,
+                                     BOOLEAN ignoreNodeParam,
+                                     BOOLEAN ignoreCtrlParam )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder matcherBuilder ;
+      BSONObjBuilder nodesCondBuilder ;
+
+      try
+      {
+         BSONObjIterator iter( query ) ;
+         while( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+
+            /// $and:[{a:{$eq:1}},{global:{$et:1}}]
+            if ( Array == ele.type() &&
+                 0 == ossStrcmp( ele.fieldName(), "$and" ) )
+            {
+               BSONObj tmpNodeMatcher ;
+               BSONObj tmpNewMatcher ;
+               BSONArrayBuilder subMatcher(
+                  matcherBuilder.subarrayStart( ele.fieldName() ) ) ;
+
+               BSONObjIterator subItr( ele.embeddedObject() ) ;
+               while ( subItr.more() )
+               {
+                  BSONElement subEle = subItr.next() ;
+                  if ( Object != subEle.type() )
+                  {
+                     PD_LOG( PDERROR, "Parse mather obj[%s] failed: "
+                             "invalid $and", query.toString().c_str() ) ;
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     BSONObj tmpObj = subEle.embeddedObject() ;
+                     rc = rtnParseCmdLocationMatcher( tmpObj, tmpNodeMatcher,
+                                                      tmpNewMatcher,
+                                                      ignoreNodeParam,
+                                                      ignoreCtrlParam ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Parse matcher[%s] failed",
+                                  query.toString().c_str() ) ;
+
+                     subMatcher.append( tmpNewMatcher ) ;
+                     nodesCondBuilder.appendElements( tmpNodeMatcher ) ;
+                  }
+               } /// end while
+               subMatcher.done() ;
+            }
+            else if ( !ignoreNodeParam && (
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPID ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPNAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPS ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_NODEID ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_HOST ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), PMD_OPTION_SVCNAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_SERVICE_NAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_NODE_NAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_INSTANCEID ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), PMD_OPTION_INSTANCE_ID )
+                     ) )
+            {
+               nodesCondBuilder.append( ele ) ;
+            }
+            else if ( !ignoreCtrlParam && (
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_NODE_SELECT ) ||
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_GLOBAL ) ||
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_ROLE ) ||
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_RAWDATA )
+                     ) )
+            {
+               nodesCondBuilder.append( ele ) ;
+            }
+            else
+            {
+               matcherBuilder.append( ele );
+            }
+         }
+
+         newMatcher = matcherBuilder.obj() ;
+         nodesMatcher = nodesCondBuilder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when parsing cmd location "
+                 "matcher: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 
