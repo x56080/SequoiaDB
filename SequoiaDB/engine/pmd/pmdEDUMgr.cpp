@@ -1448,11 +1448,11 @@ namespace engine
                   while ( TRUE )
                   {
                      EDUID newID = _allocEDUID() ;
-                     cb->setID( newID ) ;
 
                      // check if has duplicated EDUID
                      if ( _mapIdles.insert( make_pair( newID, cb ) ).second )
                      {
+                        cb->setID( newID ) ;
                         break ;
                      }
                   }
@@ -1571,6 +1571,7 @@ namespace engine
          {
             try
             {
+               EDUID runEDUID = cb->getID() ;
                while ( TRUE )
                {
                   // the ID is generated when
@@ -1580,14 +1581,20 @@ namespace engine
 
                   // but the ID checking of idle map and run map are individual,
                   // so still need to check if has duplicated EDUID in run map
-                  if ( _mapRuns.insert( make_pair( cb->getID(), cb ) ).second )
+                  if ( _mapRuns.insert( make_pair( runEDUID, cb ) ).second )
                   {
+                     // moved to run map, erase from idle map
+                     _mapIdles.erase( it ) ;
+                     // new allocated EDUID
+                     if ( runEDUID != cb->getID() )
+                     {
+                        cb->setID( runEDUID ) ;
+                     }
                      break ;
                   }
 
                   // found duplicated one, allocate new EDUID and retry
-                  EDUID newID = _allocEDUID() ;
-                  cb->setID( newID ) ;
+                  runEDUID = _allocEDUID() ;
                }
             }
             catch ( std::exception &e )
@@ -1596,7 +1603,6 @@ namespace engine
                PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
                goto error ;
             }
-            _mapIdles.erase( it ) ;
 
             cb->setType( type ) ;
             SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
