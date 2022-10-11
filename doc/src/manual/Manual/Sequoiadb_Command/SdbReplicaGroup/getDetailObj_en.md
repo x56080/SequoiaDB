@@ -36,10 +36,54 @@ v3.4.2 and above
 
 ##EXAMPLES##
 
-1. Get detailed information of the replica group named group1.
+Get details of a replication group named "group1", which exists with one node.
 
-	```lang-javascript
-	> var rg = db.getRG("group1") 
-	> rg.getDetailObj()
-	```
+```lang-javascript
+> var rg = db.getRG("group1") 
+> rg.getDetailObj()
+```
 
+The result is as follow:
+
+```lang-text
+{
+  "Group": [
+    {
+      "HostName": "localhost",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11830/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11830"
+        },
+        {
+          "Type": 1,
+          "Name": "11831"
+        },
+        {
+          "Type": 2,
+          "Name": "11832"
+        }
+      ],
+      "NodeID": 1002,
+      "Location": "GuangZhou"
+    }
+  ],
+  "GroupID": 1001,
+  "GroupName": "group1",
+  "Locations": [
+    {
+      "Location": "GuangZhou",
+      "LocationID": 1
+    }
+  ],
+  "PrimaryNode": 1004,
+  "Role": 0,
+  "Status": 1,
+  "Version": 7,
+  "_id": {
+    "$oid": "580043577e70618777a2cf39"
+  }
+}
+```

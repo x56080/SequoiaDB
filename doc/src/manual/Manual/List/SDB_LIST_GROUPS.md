@@ -29,8 +29,11 @@ SDB_LIST_GROUPS
 | Group.Service.Type | int32   | 复制组中节点的服务类型，取值如下：<br> 0：直连服务，对应数据库参数 svcname <br> 1：复制服务，对应数据库参数 replname <br> 2：分区服务，对应数据库参数 shardname<br> 3：编目服务，对应数据库参数 catalogname |
 | Group.Service.Name | string | 复制组中节点的服务名，服务名可以为端口号，或 services 文件中的服务名 |
 | Group.NodeID       | int32  | 复制组中节点的 ID              |
+| Group.Location     | string | 复制组中节点的位置信息        |
 | GroupID            | int32      | 复制组 ID                                           |
 | GroupName          | string     | 复制组名称                                            |
+| Locations.Location | string     | 复制组中节点的位置信息  |
+| Locations.LocationID | int32    | 复制组中节点的位置信息 ID |
 | PrimaryNode        | int32      | 主节点 ID                                           |
 | Role               | int32      | 复制组角色，取值如下：<br>0：数据节点<br>1：协调节点<br>2：编目节点 |
 | Status             | string     | 复制组状态，取值如下：<br>1：已激活<br>0：未激活<br>不存在：未激活分区组            |
@@ -73,11 +76,18 @@ SDB_LIST_GROUPS
           "Name": "11803"
         }
       ],
-      "NodeID": 1
+      "NodeID": 1,
+      "Location": "GuangZhou"
     }
   ],
   "GroupID": 1,
   "GroupName": "SYSCatalogGroup",
+  "Locations": [
+    {
+      "Location": "GuangZhou",
+      "LocationID": 1
+    }
+  ],
   "PrimaryNode": 1,
   "Role": 2,
   "Status": 1,

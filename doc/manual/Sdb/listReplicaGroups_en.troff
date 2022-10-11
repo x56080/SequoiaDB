@@ -65,7 +65,8 @@ Return all replication group information
         "Name": "11803"
       }
     ],
-    "NodeID": 1000
+    "NodeID": 1000,
+    "Location": "GuangZhou"
   },
   {
     "dbpath": "/opt/sequoiadb/data/11850",
@@ -93,6 +94,12 @@ Return all replication group information
 ],
 "GroupID": 1001,
 "GroupName": "group",
+"Locations": [
+  {
+    "Location": "GuangZhou",
+    "LocationID": 1
+  }
+],
 "PrimaryNode": 1001,
 "Role": 0,
 "Status": 1,

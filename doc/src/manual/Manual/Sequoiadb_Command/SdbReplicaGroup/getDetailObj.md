@@ -66,11 +66,18 @@ v3.4.2 及以上版本
           "Name": "11832"
         }
       ],
-      "NodeID": 1002
+      "NodeID": 1002,
+      "Location": "GuangZhou"
     }
   ],
   "GroupID": 1001,
   "GroupName": "group1",
+  "Locations": [
+    {
+      "Location": "GuangZhou",
+      "LocationID": 1
+    }
+  ],
   "PrimaryNode": 1004,
   "Role": 0,
   "Status": 1,

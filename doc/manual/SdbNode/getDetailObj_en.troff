@@ -57,9 +57,10 @@ Retrun the detail of current node
       "Name": "11832"
     }
   ],
-    "NodeID": 1002,
-    "GroupID": 1001,
-    "GroupName": "group1"
+  "Location": "GuangZhou",
+  "NodeID": 1002,
+  "GroupID": 1001,
+  "GroupName": "group1"
 }
 \f[]
 .fi

@@ -36,71 +36,78 @@ v2.0 及以上版本
 
 * 返回所有复制组信息
 
-	```lang-javascript
-	> db.listReplicaGroups()
-	{
-	"Group": 
-	[
-	  {
-		"dbpath": "/opt/sequoiadb/data/11800",
-		"HostName": "vmsvr2-suse-x64",
-		"Service": [
-		  {
-			"Type": 0,
-			"Name": "11800"
-		  },
-		  {
-			"Type": 1,
-			"Name": "11801"
-		  },
-		  {
-			"Type": 2,
-			"Name": "11802"
-		  },
-		  {
-			"Type": 3,
-			"Name": "11803"
-		  }
-		],
-		"NodeID": 1000
-	  },
-	  {
-		"dbpath": "/opt/sequoiadb/data/11850",
-		"HostName": "vmsvr2-suse-x64",
-		"Service": [
-		  {
-			"Type": 0,
-			"Name": "11850"
-		  },
-		  {
-			"Type": 1,
-			"Name": "11851"
-		  },
-		  {
-			"Type": 2,
-			"Name": "11852"
-		  },
-		  {
-			"Type": 3,
-			"Name": "11853"
-		  }
-		],
-		"NodeID": 1001
-	  }
-	],
-	"GroupID": 1001,
-	"GroupName": "group",
-	"PrimaryNode": 1001,
-	"Role": 0,
-	"Status": 1,
-	"Version": 5,
-	"_id": {
-	  "$oid": "517b2fc33d7e6f820fc0eb57"
-	  }
-	}
-	```
+    ```lang-javascript
+    > db.listReplicaGroups()
+    {
+    "Group": 
+    [
+      {
+        "dbpath": "/opt/sequoiadb/data/11800",
+        "HostName": "vmsvr2-suse-x64",
+        "Service": [
+          {
+            "Type": 0,
+            "Name": "11800"
+          },
+          {
+            "Type": 1,
+            "Name": "11801"
+          },
+          {
+            "Type": 2,
+            "Name": "11802"
+          },
+          {
+            "Type": 3,
+            "Name": "11803"
+          }
+        ],
+        "NodeID": 1000,
+        "Location": "GuangZhou"
+      },
+      {
+        "dbpath": "/opt/sequoiadb/data/11850",
+        "HostName": "vmsvr2-suse-x64",
+        "Service": [
+          {
+            "Type": 0,
+            "Name": "11850"
+          },
+          {
+            "Type": 1,
+            "Name": "11851"
+          },
+          {
+            "Type": 2,
+            "Name": "11852"
+          },
+          {
+            "Type": 3,
+            "Name": "11853"
+          }
+        ],
+        "NodeID": 1001
+      }
+    ],
+    "GroupID": 1001,
+    "GroupName": "group",
+    "Locations": [
+      {
+        "Location": "GuangZhou",
+        "LocationID": 1
+      }
+    ],
+    "PrimaryNode": 1001,
+    "Role": 0,
+    "Status": 1,
+    "Version": 5,
+    "_id": {
+      "$oid": "517b2fc33d7e6f820fc0eb57"
+      }
+    }
+    ```
 
-	这个复制组有两个节点：11800和11850，其中11850为主节点。复制组详细信息请见[复制组列表][LIST_GROUPS]
+    这个复制组有两个节点：11800和11850，其中11850为主节点。复制组详细信息请见[复制组列表][LIST_GROUPS]
 
 
 [^_^]:

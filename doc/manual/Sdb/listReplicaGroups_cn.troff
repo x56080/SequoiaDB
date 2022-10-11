@@ -61,7 +61,8 @@ v2.0 及以上版本
         "Name": "11803"
       }
     ],
-    "NodeID": 1000
+    "NodeID": 1000,
+    "Location": "GuangZhou"
   },
   {
     "dbpath": "/opt/sequoiadb/data/11850",
@@ -89,6 +90,12 @@ v2.0 及以上版本
 ],
 "GroupID": 1001,
 "GroupName": "group",
+"Locations": [
+  {
+    "Location": "GuangZhou",
+    "LocationID": 1
+  }
+],
 "PrimaryNode": 1001,
 "Role": 0,
 "Status": 1,
