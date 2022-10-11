@@ -24,7 +24,7 @@ import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 
-
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;

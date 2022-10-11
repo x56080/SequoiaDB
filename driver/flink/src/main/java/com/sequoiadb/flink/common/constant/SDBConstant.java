@@ -44,7 +44,7 @@ public class SDBConstant {
 
     public static final String ERR_NODES = "ErrNodes";
 
-    public static final String DATA_BLOCKS = "Datablocks";
+    public static final String DATA_BLOCKS= "Datablocks";
 
     public static final String TRANS_MAX_LOCK_NUM = "TransMaxLockNum";
     public static final String PAGE_SIZE = "PageSize";
@@ -58,7 +58,7 @@ public class SDBConstant {
     public static final String COMPRESSION_TYPE = "CompressionType";
     public static final String AUTO_SPLIT = "AutoSplit";
     public static final String ENSURE_SHARDING_INDEX = "EnsureShardingIndex";
-
+    
     public static final String INDEX_DEF = "IndexDef";
     public static final String UNIQUE = "unique";
     public static final String KEY = "key";
@@ -82,10 +82,4 @@ public class SDBConstant {
 
     public static final String IN_MERGE = "in";
     public static final String NIN_MERGE = "nin";
-
-
-    //Lookup
-    public static final String INDEX_DEF_KEY_NAME = "name";
-
-    public static final String SDB_ID_INDEX = "$id";
 }

@@ -16,12 +16,10 @@
 
 package com.sequoiadb.flink.common.client;
 
-
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.constant.SDBConstant;
@@ -36,10 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-
 
 public class SDBCollectionProvider implements SDBClientProvider {
 
@@ -143,54 +138,6 @@ public class SDBCollectionProvider implements SDBClientProvider {
         return getClient();
     }
 
-    /**
-     * obtain all index information of Sequoiadb table created by flink
-     *
-     * @return List<BSONObject>: a list of indexDef in Bson format
-     */
-
-    public List<BSONObject> getIndexDefList() {
-        List<BSONObject> indexList = new ArrayList<>();
-
-        try (DBCursor indexIterator = getCollection().getIndexes()) {
-            // get index bsonObject iteator from Sequoiadb
-            while (indexIterator.hasNext()) {
-                BSONObject indexBsonObj = indexIterator.getNext();
-                //get indexdef corresponding a bsonObject from index bsonObject
-                BSONObject indexDef = (BSONObject) indexBsonObj.get(SDBConstant.INDEX_DEF);
-                indexList.add(indexDef);
-            }
-        } catch (BaseException e) {
-            throw new SDBException("cannot get collection index from Sequoiadb");
-        }
-
-        return indexList;
-    }
-
-
-    /**
-     * return a list of string type index column names
-     * this is to help me determine whether the join field of Lookup Join uses
-     * the index field.
-     *
-     * @return List<String>
-     */
-
-    public List<String> getIndexColumnNames() {
-        List<String> indexNameList = new ArrayList<>();
-        List<BSONObject> indexDefList = getIndexDefList();
-
-        for (BSONObject index : indexDefList) {
-            BSONObject key = (BSONObject) index.get(SDBConstant.KEY);
-            Iterator<String> indexIterator = key.keySet().iterator();
-            while (indexIterator.hasNext()) {
-                indexNameList.add(indexIterator.next());
-            }
-        }
-
-        return indexNameList;
-    }
-
     public CollectionSpace ensureCollectionSpace(SDBSinkOptions sinkOptions) {
         BSONObject options = new BasicBSONObject();
         options.put(SDBConstant.PAGE_SIZE, sinkOptions.getPageSize());
@@ -227,7 +174,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         }
 
-        if (sinkOptions.getAutoPartition()) {
+        if(sinkOptions.getAutoPartition()) {
             if (shardingKey != null) {
                 BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
                 //verity pk contain all fields in sharding key
@@ -247,7 +194,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
                 options.put(SDBConstant.AUTO_SPLIT, true);
             }
         } else {
-            if (shardingKey != null) {
+            if(shardingKey != null){
                 throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
                         "while shardingkey(%s) is specified. ", shardingKey));
             }
