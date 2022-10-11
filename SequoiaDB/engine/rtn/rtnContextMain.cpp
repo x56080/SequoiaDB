@@ -58,6 +58,7 @@ namespace engine
 
    _rtnContextMain::~_rtnContextMain()
    {
+      unregisterAllProcessors() ;
       SDB_ASSERT( _orderedContexts.empty(),
                   "ordered contexts should be empty" ) ;
       SAFE_OSS_DELETE( _keyGen ) ;

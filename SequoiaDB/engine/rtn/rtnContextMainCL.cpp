@@ -217,7 +217,6 @@ namespace engine
 
    _rtnContextMainCL::~_rtnContextMainCL()
    {
-      unregisterAllProcessors() ;
       _deleteSubContexts() ;
    }
 
