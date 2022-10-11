@@ -26,7 +26,6 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
@@ -196,10 +195,13 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
         // get data from json root
         try {
             GenericRowData row = (GenericRowData) jsonDeserializer.deserialize(message);
-            String beforeJson = row.getField(findFieldPosByName(BEFORE, jsonRowType))
-                    .toString();
-            JsonNode jsonNode = objectMapper.readTree(beforeJson);
-            GenericRowData before = (GenericRowData) rowDeserializer.convertToRowData(jsonNode);
+            GenericRowData before = null;
+
+            Object beforeJson = row.getField(findFieldPosByName(BEFORE, jsonRowType));
+            if (beforeJson != null) {
+                JsonNode jsonNode = objectMapper.readTree(beforeJson.toString());
+                before = (GenericRowData) rowDeserializer.convertToRowData(jsonNode);
+            }
 
             GenericRowData after = convertRootRowInAfter(row, physicalDataType);
             String op = row.getField(findFieldPosByName(TYPE, jsonRowType)).toString();
@@ -224,9 +226,7 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
         } catch (Throwable cause) {
             // a big try-catch to protect the processing.
             if (!ignoreParseErrors) {
-                throw new IOException(
-                        String.format("corrupt cgb json message '%s'.", new String(message)),
-                        cause);
+                throw new IOException("corrupt cgb json message.", cause);
             }
         }
     }
