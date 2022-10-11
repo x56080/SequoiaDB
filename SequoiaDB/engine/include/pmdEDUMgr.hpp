@@ -94,8 +94,6 @@ namespace engine
       typedef vector< IIOService* >       VEC_IOSERVICE ;
       typedef map<EDUID, pmdEDUCB*>       MAP_EDUCB ;
       typedef MAP_EDUCB::iterator         MAP_EDUCB_IT ;
-      typedef map<UINT32,EDUID>           MAP_TID2EDU ;
-      typedef MAP_TID2EDU::iterator       MAP_TID2EDU_IT ;
       typedef map<INT32,EDUID>            MAP_SYSTEMEDU ;
       typedef MAP_SYSTEMEDU::iterator     MAP_SYSTEMEDU_IT ;
 
@@ -189,8 +187,6 @@ namespace engine
 
          pmdEDUCB*         getEDUByID( EDUID eduID ) ;
          INT32             getEDUTypeByID( EDUID eduID ) ;
-         pmdEDUCB*         getEDU() ;
-         pmdEDUCB*         getEDU( UINT32 tid ) ;
 
          INT32             waitUntil( EDUID eduID,
                                       EDU_STATUS status,
@@ -239,11 +235,10 @@ namespace engine
 
          BOOLEAN           destroyAll( INT64 timeout = -1 ) ;
 
-         void              setEDU ( UINT32 tid, EDUID eduid ) ;
          void              returnEDU( pmdEDUCB *cb, BOOLEAN &destroyed ) ;
          BOOLEAN           forceDestory( pmdEDUCB *cb, UINT32 idleTime ) ;
 
-         pmdEDUCB*         findAndRemove( EDUID eduID ) ;
+         void              findAndRemove( pmdEDUCB *cb ) ;
 
          UINT32            calIdleLowSize( UINT32 *pRunSize = NULL,
                                            UINT32 *pIdleSize = NULL,
@@ -259,15 +254,18 @@ namespace engine
                                             UINT32 sysSize,
                                             UINT32 poolSize ) ;
 
+         // WARN: should be called under latch protection
+         EDUID             _allocEDUID() ;
+
       private:
          VEC_IOSERVICE              _vecIOServices ;
          ossSpinSLatch              _latch ;
-         EDUID                      _EDUID ;
+
+         EDUID                      _EDUIDBase ;
 
          MAP_EDUCB                  _mapRuns ;
          MAP_EDUCB                  _mapIdles ;
 
-         MAP_TID2EDU                _mapTid2Edu ;
          MAP_SYSTEMEDU              _mapSystemEdu ;
 
          BOOLEAN                    _isDestroyed ;

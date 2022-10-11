@@ -338,7 +338,7 @@ namespace engine
       UINT32 dictBufLen = UTIL_MAX_DICT_TOTAL_SIZE ;
       CHAR *dictBuf = NULL ;
       BOOLEAN writable = FALSE ;
-      pmdEDUCB *cb = pmdGetKRCB()->getEDUMgr()->getEDU() ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       ossTimestamp begin ;
       ossTimestamp end ;
       utilLZWDictCreator creator ;

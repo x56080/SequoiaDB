@@ -959,8 +959,7 @@ namespace engine
       dmsStorageUnit   *su       = NULL ;
       pmdKRCB          *krcb     = pmdGetKRCB () ;
       SDB_DMSCB        *dmsCB    = krcb->getDMSCB () ;
-      pmdEDUMgr        *eduMgr   = krcb->getEDUMgr () ;
-      pmdEDUCB         *eduCB    = eduMgr->getEDU() ;
+      pmdEDUCB         *eduCB    = pmdGetThreadEDUCB() ;
       dmsStorageLoadOp dmsLoadExtent ;
       MON_CS_LIST csList ;
       MON_CS_LIST::iterator it ;
