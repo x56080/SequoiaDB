@@ -11,13 +11,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * @descreption seqDB-27521:SequoiadbDatasource.builder()方式设置serverAddress(String
+ * @Description seqDB-27521:SequoiadbDatasource.builder()方式设置serverAddress(String
  *              address)
- * @author Xu Mingxing
- * @date 2022/9/14
- * @updateUser
- * @updateDate
- * @updateRemark
+ * @author xumingxing
+ * @Date 2022.09.14
  * @version 1.0
  */
 
@@ -71,8 +68,6 @@ public class Connection27521 extends SdbTestBase {
             }
         }
 
-        // TODO: SEQUOIADBMAINSTREAM-8796
-         /*
         wrongUrl = "";
         try {
             ds = SequoiadbDatasource.builder().serverAddress( wrongUrl )
@@ -80,11 +75,10 @@ public class Connection27521 extends SdbTestBase {
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
+            if ( e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode() ) {
                 throw e;
             }
         }
-        */
 
         // test d：指定不可用地址
         wrongUrl = SdbTestBase.hostName + ":" + "30";
