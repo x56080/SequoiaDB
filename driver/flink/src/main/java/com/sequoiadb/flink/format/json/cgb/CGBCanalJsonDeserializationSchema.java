@@ -41,8 +41,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.sequoiadb.flink.format.json.cgb.CGBCanalJsonDecodingFormat.ReadableMetadata;
-import static com.sequoiadb.flink.format.json.cgb.CGBCanalJsonDecodingFormat.ReadableMetadata.EXTRA_OP_TYPE;
-import static com.sequoiadb.flink.format.json.cgb.CGBCanalJsonDecodingFormat.ReadableMetadata.EXTRA_PROMISE;
 
 public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<RowData> {
 
@@ -55,12 +53,7 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
     private static final String OP_UPDATE = "UPDATE";
     private static final String OP_DELETE = "DELETE";
 
-    // extra op type
-    private static final String OP_UPDATE_PK_BEFORE = "UPDATE_PK_BEFORE";
-    private static final String OP_UPDATE_PK_AFTER = "UPDATE_PK_AFTER";
-
     // cgb technical field
-    private static final String VERSION = "__version";
     private static final String TYPE = "__type";
     private static final String BEFORE = "__before";
 
@@ -76,14 +69,10 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
     private final TypeInformation<RowData> producedTypeInfo;
 
     private final boolean ignoreParseErrors;
-    private final String[] upsertKey;
     private final int[] upsertKeyPositions;
 
     private final RowType jsonRowType;
     private final DataType physicalDataType;
-
-    private final int extraPromisePos;
-    private final int extraOpTypePos;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -117,7 +106,6 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
         this.producedTypeInfo = producedTypeInfo;
         this.ignoreParseErrors = ignoreParseErrors;
 
-        this.upsertKey = upsertKey;
         this.upsertKeyPositions = new int[upsertKey.length];
         for (int i = 0; i < upsertKey.length; i++) {
             int pos = findFieldPosByName(upsertKey[i], physicalRowType);
@@ -129,10 +117,6 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
             }
             upsertKeyPositions[i] = pos;
         }
-
-        this.extraOpTypePos =
-                requestedMetadata.indexOf(EXTRA_OP_TYPE);
-        this.extraPromisePos = requestedMetadata.indexOf(EXTRA_PROMISE);
     }
 
     private static RowType createJsonRowType(
@@ -240,24 +224,6 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
         if (before != null && hasPriKeyChanges(before)) {
             fillPriKeyInBefore(before, after);
             GenericRowData producedBefore = convertToFinalRow(rootRow, before);
-            int physicalArity = after.getArity();
-            if (extraOpTypePos == -1 || extraPromisePos == -1) {
-                throw new IOException(
-                        String.format("can't perform update primary key without defining metadata: \n" +
-                                "%s",
-                                String.join("\n", EXTRA_OP_TYPE.key, EXTRA_PROMISE.key)));
-            }
-
-            // fill promise in before to associate 'before' and 'after' of
-            // the 'update primary key' changelog.
-            producedBefore.setField(physicalArity + extraPromisePos,
-                    producedAfter.getField(physicalArity + extraPromisePos));
-
-            // set extra op type. for now, there are 'UPDATE_PK_BEFORE' and 'UPDATE_PK_AFTER'
-            producedBefore.setField(physicalArity + extraOpTypePos,
-                    StringData.fromString(OP_UPDATE_PK_BEFORE));
-            producedAfter.setField(physicalArity + extraOpTypePos,
-                    StringData.fromString(OP_UPDATE_PK_AFTER));
             out.collect(producedBefore);
         }
 
