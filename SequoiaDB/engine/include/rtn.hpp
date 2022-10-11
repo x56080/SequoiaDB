@@ -747,6 +747,12 @@ namespace engine
                             dmsExtentID expectedIndexLID,
                             dmsStorageUnit *su,
                             dmsMBContext *mbContext ) ;
+
+   INT32 rtnParseCmdLocationMatcher( const BSONObj &query,
+                                     BSONObj &nodesMatcher,
+                                     BSONObj &newMatcher,
+                                     BOOLEAN ignoreNodeParam = FALSE,
+                                     BOOLEAN ignoreCtrlParam = FALSE ) ;
 }
 
 #endif
