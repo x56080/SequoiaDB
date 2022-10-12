@@ -2493,7 +2493,7 @@ error:
          {
             BSONElement ele = iter.next() ;
             const CHAR *srcFieldName = ele.fieldName() ;
-            INT32 rc = utilStrToLower( srcFieldName, lowerFieldName ) ;
+            rc = utilStrToLower( srcFieldName, lowerFieldName ) ;
             if ( rc )
             {
                goto error ;
@@ -2637,7 +2637,7 @@ error:
          {
             BSONElement ele = itr.next() ;
             const CHAR *fieldName = ele.fieldName() ;
-            INT32 rc = utilStrToLower( fieldName, lowerFieldName ) ;
+            rc = utilStrToLower( fieldName, lowerFieldName ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
@@ -2694,7 +2694,7 @@ error:
 
          _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
          _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
-         
+
          rc = _fillAliasNameToDelConf() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to fill alias name to delete "
                       "config, rc: %d", rc ) ;
