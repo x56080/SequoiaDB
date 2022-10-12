@@ -2,8 +2,8 @@
  * @Description   : seqDB-18263:指定快照查询参数Mode为Run查询配置快照信息
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.24
- * @LastEditTime  : 2022.09.03
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2022.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -48,7 +48,7 @@ function changeConf ( nodeName )
    }
    catch( e )
    {
-      if( e.message != SDB_RTN_CONF_NOT_TAKE_EFFECT )
+      if( e != SDB_RTN_CONF_NOT_TAKE_EFFECT )
       {
          throw new Error( e );
       }
