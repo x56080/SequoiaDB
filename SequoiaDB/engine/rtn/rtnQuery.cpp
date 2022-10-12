@@ -500,8 +500,8 @@ namespace engine
    error:
       if ( -1 != sortContextID )
       {
-         rtnCB->contextDelete ( contextID, cb ) ;
-         contextID = -1 ;
+         rtnCB->contextDelete ( sortContextID, cb ) ;
+         sortContextID = -1 ;
       }
       contextID = old ;
       if ( NULL != ppContext )
