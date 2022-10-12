@@ -37,7 +37,7 @@ $LIST_SESSION
   "Type": "DpsRollback",
   "Name": "",
   "Source": "",
-  "RelatedID": "c0a8143ea02800005ae8"
+  "RelatedID": "c0a8143ea0280000000000000004"
 }
 {
   "NodeName": "hostname:41000",
@@ -47,7 +47,7 @@ $LIST_SESSION
   "Type": "Task",
   "Name": "PAGEMAPPING-JOB-D",
   "Source": "",
-  "RelatedID": "c0a8143ea02800005ae9"
+  "RelatedID": "c0a8143ea0280000000000000005"
 }
 ...
 ```

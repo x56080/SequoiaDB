@@ -134,7 +134,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
     "Duration": 8784
   },
   "TransactionLocksNum": 2,
-  "RelatedID": "c0a81457c35000006b76",
+  "RelatedID": "c0a81457c350000000000000005c",
   "GotLocks": [
     {
       "CSID": 1,

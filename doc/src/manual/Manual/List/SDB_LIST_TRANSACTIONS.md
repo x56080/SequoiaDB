@@ -103,7 +103,7 @@ WaitLock 字段中锁对象的信息如下：
     "Duration": 42903
   },
   "TransactionLocksNum": 2,
-  "RelatedID": "c0a81457c35000006b76"
+  "RelatedID": "c0a81457c350000000000000005c"
 }
 
 Return 2 row(s).

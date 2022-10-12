@@ -39,7 +39,7 @@ $LIST_SESSION_CUR
   "Type": "ShardAgent",
   "Name": "Type:Shard,NetID:5,R-TID:24371,R-IP:192.168.20.62,R-Port:50000",
   "Source": "",
-  "RelatedID": "c0a8143ec35000005f33"
+  "RelatedID": "c0a8143ec350000000000000001d"
 }
 {
   "NodeName": "hostname:30010",
@@ -49,7 +49,7 @@ $LIST_SESSION_CUR
   "Type": "ShardAgent",
   "Name": "Type:Shard,NetID:1,R-TID:24371,R-IP:192.168.20.62,R-Port:50000",
   "Source": "",
-  "RelatedID": "c0a8143ec35000005f33"
+  "RelatedID": "c0a8143ec3500000000000000019"
 }
 ...
 ```

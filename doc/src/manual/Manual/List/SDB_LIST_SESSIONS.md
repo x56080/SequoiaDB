@@ -51,7 +51,7 @@ SDB_LIST_SESSIONS
   "Type": "TCPListener",
   "Name": "",
   "Source": "MySQL:hostname1:32762:3",
-  "RelatedID": "7f000101a41000006d9c"
+  "RelatedID": "7f000101a4100000000000000001"
 }
 ```
 

@@ -69,6 +69,6 @@ WaitLock 字段中锁对象的信息如下：
   "BeginTransLSN": 3314225744,
   "WaitLock": {},
   "TransactionLocksNum": 3,
-  "RelatedID": "c0a8143ec35000005f33"
+  "RelatedID": "c0a8143ec3500000000000000014"
 }
 ```
