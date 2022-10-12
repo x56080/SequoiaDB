@@ -274,10 +274,13 @@ namespace engine
    } ;
    typedef class _dpsLogRecord dpsLogRecord ;
 
+// for maximum length of record
+// - for update record, 16MB * 2 for both full old and new values, plus
+//   4096 for match keys and sharding keys...
 const UINT32 DPS_RECORD_MAX_LEN = DMS_COLLECTION_SPACE_NAME_SZ +
                                   DMS_COLLECTION_NAME_SZ + 2 +
                                   sizeof( _dpsLogRecordHeader ) +
-                                  DMS_RECORD_USER_MAX_SZ * 2 ;
+                                  DMS_RECORD_USER_MAX_SZ * 2 + 4096 ;
 }
 
 

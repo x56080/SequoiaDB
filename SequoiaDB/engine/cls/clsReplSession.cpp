@@ -1127,6 +1127,27 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
+         // check record length
+         if ( recordHeader->_length < sizeof( dpsLogRecordHeader ) ||
+              recordHeader->_length > DPS_RECORD_MAX_LEN )
+         {
+            PD_LOG( PDERROR, "Session[%s]: length of row record "
+                    "[LSN: %llu, length: %u] is wrong", sessionName(),
+                    recordHeader->_lsn, recordHeader->_length ) ;
+            SDB_ASSERT( FALSE, "record length is invalid" ) ;
+            rc = SDB_DPS_CORRUPTED_LOG ;
+            goto error ;
+         }
+         else if ( log + recordHeader->_length > logs + len )
+         {
+            PD_LOG( PDERROR, "Session[%s]: length of row record "
+                    "[LSN: %llu, length: %u] is out of message "
+                    "[total %u, left %u]", sessionName(), recordHeader->_lsn,
+                    recordHeader->_length, len, log + len - logs ) ;
+            SDB_ASSERT( FALSE, "record length is invalid" ) ;
+            rc = SDB_DPS_CORRUPTED_LOG ;
+            goto error ;
+         }
 
          PD_LOG( PDDEBUG, "Session[%s]: Replay record [lsn offset: %lld, "
                  "version: %d, len:%d, preLsn:%lld]", sessionName(),
