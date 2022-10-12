@@ -369,6 +369,13 @@ namespace engine
       dsFetch = NULL ;
       pContext->setMonProcessor( processorPtr ) ;
 
+      if ( !queryOption.getOrderBy().isEmpty() )
+      {
+         rc = rtnSort( pContext, queryOption.getOrderBy(), cb, queryOption.getSkip(),
+                       queryOption.getLimit(), contextID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
+      }
+
    done:
       return rc ;
    error:
