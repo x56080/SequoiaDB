@@ -69,8 +69,6 @@ public class SequoiadbDatasource {
     // for thread safe
     private ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
     private final Object _objForReleaseConn = new Object();
-    // for error report
-    private volatile BaseException _lastException;
     // for session
     private volatile BSONObject _sessionAttr = null;
     // for others
@@ -78,6 +76,8 @@ public class SequoiadbDatasource {
     private double MULTIPLE = 1.5;
     private volatile int _preDeleteInterval = 0;
     private static final int _deleteInterval = 180000; // 3min
+    // for error report
+    private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
 
     // finalizer guardian
     @SuppressWarnings("unused")
@@ -1247,6 +1247,7 @@ public class SequoiadbDatasource {
                 if (address != null) {
                     try {
                         sdb = new Sequoiadb(address, _username, _password, _normalNwOpt);
+                        clearLastException();
                         // when success, let's return the connection
                         break;
                     } catch (BaseException e) {
@@ -1263,6 +1264,7 @@ public class SequoiadbDatasource {
                     }
                 } else {
                     sdb = _newConnByAbnormalAddr();
+                    clearLastException();
                     break;
                 }
             }
@@ -1339,12 +1341,17 @@ public class SequoiadbDatasource {
     }
 
     private void _setLastException(BaseException e) {
-        _lastException = e;
+        lastException.set(e);
     }
 
     private BaseException _getLastException() {
-        BaseException exp = _lastException;
-        return exp;
+        BaseException e = lastException.get();
+        clearLastException();
+        return e;
+    }
+
+    private void clearLastException() {
+        lastException.remove();
     }
 
     private void _handleErrorAddr(String addr) {
@@ -1394,7 +1401,6 @@ public class SequoiadbDatasource {
                     sdb = new Sequoiadb(addr, _username, _password, _normalNwOpt);
                     break;
                 } catch (BaseException e) {
-                    _setLastException(e);
                     String errType = e.getErrorType();
                     if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                             errType.equals("SDB_NET_CANNOT_CONNECT")) {
