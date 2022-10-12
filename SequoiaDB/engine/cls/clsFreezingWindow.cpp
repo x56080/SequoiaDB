@@ -1479,6 +1479,12 @@ namespace engine
                isRelated = FALSE ;
                rc = SDB_OK ;
             }
+            else if ( SDB_CLS_NO_CATALOG_INFO == rc )
+            {
+               // don't know the status, regarded as related
+               isRelated = TRUE ;
+               rc = SDB_OK ;
+            }
             else if ( ( NULL != pCatSet ) &&
                       ( ( !pCatSet->isMainCL() ) ||
                         ( !pCatSet->hasSubCLLocateOnCS( _objName ) ) ) )
