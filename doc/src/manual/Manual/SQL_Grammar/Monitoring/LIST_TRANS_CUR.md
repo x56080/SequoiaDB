@@ -38,7 +38,7 @@ $LIST_TRANS_CUR
   "IsLockEscalated": false,
   "UsedLogSpace": 100,
   "ReservedLogSpace": 116,
-  "RelatedID": "c0a8143ec35000005f33"
+  "RelatedID": "c0a8143ec3500000000000000014"
 }
 ```
 
