@@ -46,6 +46,7 @@ namespace engine
 {
 
    #define PMD_SESSION_FORCE_TIMEOUT         ( 1800 * OSS_ONE_SEC )
+   #define PMD_RETRY_WAITTIME                ( 100 )
 
    /*
       _pmdSessionMeta implement
@@ -759,25 +760,35 @@ namespace engine
       PD_TRACE_ENTRY( PMD_SESSMGR_FORCENTY ) ;
 
       BOOLEAN ret = TRUE ;
-      ossScopedLock lock( &_forceLatch ) ;
-
-      if ( _isStop )
+   retry:
       {
-         ret = FALSE ;
-      }
-      else
-      {
-         // push session into the force list
-         _forceSessions.push_back( sessionID ) ;
-         // create timer to clean up the session if there's no timer exist
-         if ( NET_INVALID_TIMER_ID == _forceChecktimer )
+         ossScopedLock lock( &_forceLatch ) ;
+         if ( _isStop )
          {
-            // _checkForceSession must wait for _forceLatch before ierate force
-            // session list, so there's no concurrent issue
-            _pRTAgent->addTimer( 1, _pTimerHandle, _forceChecktimer ) ;
+            ret = FALSE ;
+         }
+         else
+         {
+            try
+            {
+               // push session into the force list
+               _forceSessions.push_back( sessionID ) ;
+            }
+            catch ( std::exception &e )
+            {
+               lock.release() ;
+               ossSleep( PMD_RETRY_WAITTIME ) ;
+               goto retry ;
+            }
+            // create timer to clean up the session if there's no timer exist
+            if ( NET_INVALID_TIMER_ID == _forceChecktimer )
+            {
+               // _checkForceSession must wait for _forceLatch before ierate force
+               // session list, so there's no concurrent issue
+               _pRTAgent->addTimer( 1, _pTimerHandle, _forceChecktimer ) ;
+            }
          }
       }
-
       PD_TRACE_EXITRC ( PMD_SESSMGR_FORCENTY, ret ) ;
       return ret ;
    }
