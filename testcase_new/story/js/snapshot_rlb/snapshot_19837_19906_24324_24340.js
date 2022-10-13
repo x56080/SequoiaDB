@@ -5,8 +5,8 @@
  *                : seqDB-24340:SdbSnapshotOption接口指定options为空     
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.18
- * @LastEditTime  : 2022.09.02
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2022.10.13
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -50,9 +50,6 @@ function test ()
    var coordRG = db.getCoordRG();
    var coord = coordRG.getNode( coordArr[1] );
 
-   var cataRG = db.getCataRG();
-   var cata = cataRG.getSlave();
-
    var groups = testPara.groups;
    var group = groups[0][0];
    var GroupName = group["GroupName"];
@@ -61,12 +58,10 @@ function test ()
 
    var nodeAddresses = [
       { "hostName": coord.getHostName(), "svcName": coord.getServiceName() },
-      { "hostName": cata.getHostName(), "svcName": cata.getServiceName() },
       { "hostName": data.getHostName(), "svcName": data.getServiceName() }
    ];
 
    coord.stop();
-   cata.stop();
    data.stop();
 
    try
@@ -138,7 +133,6 @@ function test ()
    } finally
    {
       coord.start();
-      cata.start();
       data.start();
    }
 }
