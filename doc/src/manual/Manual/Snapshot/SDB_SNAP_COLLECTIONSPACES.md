@@ -53,6 +53,8 @@ SDB_SNAP_COLLECTIONSPACES
 | LobCommitted    | boolean    | 集合空间大对象文件当前是否有效提交           |
 | DirtyPage       | int32      | 集合空间大对象文件在开启缓存下脏页数量       |
 | Type            | int32      | 集合空间类型，取值如下：<br>0：普通集合空间<br>1：固定（Capped）集合空间 |
+| CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 ##协调节点字段信息##
 
@@ -73,6 +75,8 @@ SDB_SNAP_COLLECTIONSPACES
 | TotalLobSize    | int64      | 集合空间大对象文件总大小，单位为字节         |
 | FreeLobSize     | int64      | 集合空间大对象文件空闲空间大小，单位为字节   |
 | Group           | bson array | 该集合空间所在的复制组名列表                 |
+| CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 ##示例##
 
@@ -121,7 +125,9 @@ SDB_SNAP_COLLECTIONSPACES
      "IndexCommitted": false,
      "LobCommitted": true,
      "DirtyPage": 0
-     "Type": 0
+     "Type": 0,
+     "CreateTime": "2022-10-06-18.04.31.008000",
+     "UpdateTime": "2022-10-06-18.05.49.384000"
    }
    ...
    ```
@@ -156,7 +162,9 @@ SDB_SNAP_COLLECTIONSPACES
      ],
      "Group": [
        "group1"
-     ]
+     ],
+     "CreateTime": "2022-10-06-18.04.31.008000",
+     "UpdateTime": "2022-10-06-18.05.49.384000"
    }
    ...
    ```
