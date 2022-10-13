@@ -271,8 +271,8 @@ public class MetaDataUtils extends SdbTestBase {
                     ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
                     while ( cursor.hasNext() ) {
                         BSONObject clList = ( BSONObject ) cursor.getNext();
-                        if ( clList.get( "Name" ).toString()
-                                .indexOf( clName ) >= 0 ) {
+                        String name = clList.get( "Name" ).toString() ;
+                        if ( name.indexOf("SYSRECYCLE") == -1 && name.indexOf( clName ) >= 0 ) {
                             oneNodeData.add( clList );
                         }
                     }
