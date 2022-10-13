@@ -52,7 +52,9 @@ $SNAPSHOT_CL
 | Details.TotalWrite      | int64  | 集合写入记录数量 |
 | Details.TotalTbScan     | int64  | 集合使用表扫描次数 |
 | Details.TotalIxScan     | int64  | 集合使用索引扫描次数 |
-| Details.ResetTimestamp  | timestamp | 重置快照的时间 |
+| Details.ResetTimestamp  | string | 重置快照的时间 |
+| Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 ##示例##
 
@@ -111,7 +113,9 @@ $SNAPSHOT_CL
       "TotalWrite": 1052000,
       "TotalTbScan": 0,
       "TotalIxScan": 6,
-      "ResetTimestamp": "2019-06-24-17.12.30.279933"
+      "ResetTimestamp": "2022-10-06-18.04.31.090482",
+      "CreateTime": "2022-10-06-18.04.31.090000",
+      "UpdateTime": "2022-10-06-18.04.31.164000"
     }
   ]
 }

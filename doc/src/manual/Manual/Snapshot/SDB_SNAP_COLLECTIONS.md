@@ -68,7 +68,9 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalWrite      | int64 | 集合写入记录数量 |
 | Details.TotalTbScan     | int64 | 集合使用表扫描次数 |
 | Details.TotalIxScan     | int64 | 集合使用索引扫描次数 |
-| Details.ResetTimestamp  | timestamp | 重置快照的时间 |
+| Details.ResetTimestamp  | string | 重置快照的时间 |
+| Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 协调节点字段信息
 ----
@@ -101,8 +103,10 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.TotalWrite      | int64 | 集合写入记录数量 |
 | Details.Group.TotalTbScan     | int64 | 集合使用表扫描次数 |
 | Details.Group.TotalIxScan     | int64 | 集合使用索引扫描次数 |
-| Details.Group.ResetTimestamp  | timestamp | 重置快照的时间 |
+| Details.Group.ResetTimestamp  | string | 重置快照的时间 |
 | Details.Group.NodeName            | string        | 节点名，格式为<主机名>:<服务名>                         |
+| Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 
 示例
@@ -163,7 +167,9 @@ SDB_SNAP_COLLECTIONS
          "TotalWrite": 100,
          "TotalTbScan": 0,
          "TotalIxScan": 0,
-         "ResetTimestamp": "2019-06-19-17.46.32.867539"
+         "ResetTimestamp": "2022-10-06-18.04.31.090482",
+         "CreateTime": "2022-10-06-18.04.31.090000",
+         "UpdateTime": "2022-10-06-18.04.31.164000"
        }
      ]
    }
@@ -210,8 +216,10 @@ SDB_SNAP_COLLECTIONS
              "TotalWrite": 100,
              "TotalTbScan": 0,
              "TotalIxScan": 0,
-             "ResetTimestamp": "2019-06-19-17.46.32.867539",
-             "NodeName": "hostname:11820"
+             "ResetTimestamp": "2022-10-06-18.04.31.090482",
+             "NodeName": "hostname:11820",
+             "CreateTime": "2022-10-06-18.04.31.090000",
+             "UpdateTime": "2022-10-06-18.04.31.164000"
            }
          ]
        }
