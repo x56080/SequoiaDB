@@ -646,8 +646,7 @@ namespace engine
       pNewShortName = ossStrchr( pRename->getTo(), '.' ) + 1 ;
 
       /// update local catalog info
-      rc = pResource->getCataResource()->updateCataInfo(
-          pRename->getTo(), cataPtr, cb ) ;
+      rc = pResource->getCataResource()->updateCataInfo( pRename->getTo(), cataPtr, cb ) ;
       if ( SDB_DMS_NOTEXIST == rc )
       {
          /// The dest collection is not exist, finish
@@ -1322,8 +1321,7 @@ namespace engine
 
       /// clear local catalog info
       CoordCataInfoPtr cataPtr ;
-      rc = pResource->getCataResource()->updateCataInfo(
-          clFullName, cataPtr, cb ) ;
+      rc = pResource->getCataResource()->updateCataInfo( clFullName, cataPtr, cb ) ;
       if ( SDB_DMS_NOTEXIST == rc ||
            SDB_DMS_CS_NOTEXIST == rc )
       {

@@ -3181,8 +3181,8 @@ namespace engine
       {
          clsResource *pResource = sdbGetShardCB()->getResource() ;
          CoordCataInfoPtr cataPtr ;
-         if ( SDB_OK == pResource->getCataResource()->getOrUpdateCataInfo(
-                            collection, cataPtr, cb ) )
+         if ( SDB_OK == pResource->getCataResource()->getOrUpdateCataInfo( collection,
+                                                                           cataPtr, cb ) )
          {
             if ( CLS_REPLSET_MAX_NODE_SIZE == cataPtr->getCatalogSet()->getW() )
             {

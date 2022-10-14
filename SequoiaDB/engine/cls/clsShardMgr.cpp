@@ -261,8 +261,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _pResource->getCataResource()->addGroupInfo(
-          CATALOG_GROUPID, _mapNodes, 0 ) ;
+      rc = _pResource->getCataResource()->addGroupInfo( CATALOG_GROUPID, _mapNodes, 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Update catalog group info failed, rc: %d",
                    rc ) ;
 
@@ -709,8 +708,7 @@ namespace engine
       /// update node status
       {
          CoordGroupInfoPtr groupPtr ;
-         INT32 rcTmp =
-             _pResource->getCataResource()->getGroupInfo( groupID, groupPtr ) ;
+         INT32 rcTmp = _pResource->getCataResource()->getGroupInfo( groupID, groupPtr ) ;
          if ( SDB_OK == rcTmp )
          {
             _clsUpdateNodeStatus( groupPtr.get(), hosts ) ;
@@ -910,8 +908,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 times = 0 ;
 
-      CoordGroupInfoPtr groupPtr =
-          _pResource->getCataResource()->getCataGroupInfo() ;
+      CoordGroupInfoPtr groupPtr = _pResource->getCataResource()->getCataGroupInfo() ;
       if ( NULL != groupPtr.get() )
       {
          /// clear all node status
@@ -1450,8 +1447,7 @@ namespace engine
          }
 
          /// update catalog group info
-         _pResource->getCataResource()->addGroupInfo(
-             CATALOG_GROUPID, mapNodes, primary ) ;
+         _pResource->getCataResource()->addGroupInfo( CATALOG_GROUPID, mapNodes, primary ) ;
 
          /// update catalog net info
          it = _mapNodes.begin() ;
@@ -1548,8 +1544,7 @@ namespace engine
                  SDB_DMS_EOC == rc )
             {
                // in that case, let's clear local group cache information
-               _pResource->getCataResource()->removeGroupInfo(
-                   pEventInfo->groupID ) ;
+               _pResource->getCataResource()->removeGroupInfo( pEventInfo->groupID ) ;
                pEventInfo->event.signalAll( SDB_CLS_GRP_NOT_EXIST ) ;
             }
             else if ( SDB_CLS_NOT_PRIMARY == rc )
@@ -2006,8 +2001,7 @@ namespace engine
 
       while ( TRUE )
       {
-         rc = _pResource->getCataResource()->getOrUpdateGroupInfo(
-             groupID, groupPtr, cb ) ;
+         rc = _pResource->getCataResource()->getOrUpdateGroupInfo( groupID, groupPtr, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get group item for route ID %s, "
                       "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
          PD_CHECK( NULL != groupPtr.get(), SDB_CLS_NO_GROUP_INFO, error, PDERROR,
@@ -3170,8 +3164,7 @@ namespace engine
          builder.appendBool( FIELD_NAME_IS_PRIMARY, pmdIsPrimary() ) ;
          builder.append( FIELD_NAME_GROUPNAME, groupName ) ;
 
-         CoordGroupInfoPtr cataGroupPtr =
-             _pResource->getCataResource()->getCataGroupInfo() ;
+         CoordGroupInfoPtr cataGroupPtr = _pResource->getCataResource()->getCataGroupInfo() ;
 
          if ( cataGroupPtr->nodeCount() > 0 )
          {

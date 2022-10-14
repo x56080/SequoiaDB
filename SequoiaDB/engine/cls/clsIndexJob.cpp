@@ -622,8 +622,7 @@ namespace engine
          clsResource *pResource = sdbGetShardCB()->getResource() ;
          CoordCataInfoPtr cataPtr ;
 
-         rc = pResource->getCataResource()->getOrUpdateCataInfo(
-             _clFullName, cataPtr, _pEDUCB ) ;
+         rc = pResource->getCataResource()->getOrUpdateCataInfo(_clFullName, cataPtr, _pEDUCB ) ;
          if ( SDB_OK == rc )
          {
             clsCatalogSet *pCatSet = cataPtr->getCatalogSet() ;

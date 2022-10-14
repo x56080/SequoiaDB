@@ -973,8 +973,7 @@ namespace engine
       clsResource *resource = sdbGetShardCB()->getResource() ;
 
       /// need to update sub collection catalog info
-      if ( SDB_OK != resource->getCataResource()->updateCataInfo(
-                         _subCLName, cataPtr, cb ) )
+      if ( SDB_OK != resource->getCataResource()->updateCataInfo( _subCLName, cataPtr, cb ) )
       {
          resource->removeCL( _subCLName ) ;
       }
@@ -1563,9 +1562,7 @@ namespace engine
 
          if ( CMD_ALTER_COLLECTION == type() )
          {
-            sdbGetShardCB()
-                ->getResource()
-                ->removeCL( collectionFullName() );
+            sdbGetShardCB()->getResource()->removeCL( collectionFullName() );
             sdbGetClsCB()->invalidateCata( collectionFullName() ) ;
          }
       }

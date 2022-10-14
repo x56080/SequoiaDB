@@ -1656,10 +1656,10 @@ retry:
          goto error ;
       }
       pmdGetKRCB()
-          ->getClsCB()
-          ->getResource()
-          ->getStorageResource()
-          ->removeCLMetaCache( pCollection ) ;
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( pCollection ) ;
 
       PD_LOG( PDEVENT, "Create index[%s] for collection[%s] succeed",
               indexObj.toString().c_str(), pCollection ) ;
@@ -1726,10 +1726,10 @@ retry:
          goto error ;
       }
       pmdGetKRCB()
-          ->getClsCB()
-          ->getResource()
-          ->getStorageResource()
-          ->removeCLMetaCache( clUniqID ) ;
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( clUniqID ) ;
 
       PD_LOG( PDEVENT, "Create index[%s] for collection[%llu] succeed",
               indexObj.toString().c_str(), clUniqID ) ;
@@ -1816,10 +1816,10 @@ retry:
          goto error ;
       }
       pmdGetKRCB()
-          ->getClsCB()
-          ->getResource()
-          ->getStorageResource()
-          ->removeCLMetaCache( pCollection ) ;
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( pCollection ) ;
 
       PD_LOG( PDEVENT, "Drop index[%s] for collection[%s] succeed",
               identifier.toString().c_str(), pCollection ) ;
@@ -1900,10 +1900,10 @@ retry:
          goto error ;
       }
       pmdGetKRCB()
-          ->getClsCB()
-          ->getResource()
-          ->getStorageResource()
-          ->removeCLMetaCache( clUniqID ) ;
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( clUniqID ) ;
 
       PD_LOG( PDEVENT, "Drop index[%s] for collection[%llu] succeed",
               identifier.toString().c_str(), clUniqID ) ;

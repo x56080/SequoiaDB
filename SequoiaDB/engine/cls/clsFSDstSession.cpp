@@ -3457,8 +3457,9 @@ namespace engine
             if ( !mainCLName.empty() )
             {
                CoordCataInfoPtr mainCataInfoPtr ;
-               INT32 rcTmp = _pResource->getCataResource()->updateCataInfo(
-                   mainCLName.c_str(), mainCataInfoPtr, _pEDUCB ) ;
+               INT32 rcTmp = _pResource->getCataResource()->updateCataInfo( mainCLName.c_str(),
+                                                                            mainCataInfoPtr,
+                                                                            _pEDUCB ) ;
                if ( rcTmp )
                {
                   PD_LOG( PDWARNING, "Session[%s]: Update catalog info "
