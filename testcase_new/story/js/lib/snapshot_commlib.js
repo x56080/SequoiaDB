@@ -422,3 +422,22 @@ function getSnapshotLobStatToCL ( cursor, isRawData )
    actLobStats.sort( sortBy( "NodeName" ) );
    return actLobStats;
 }
+
+function getSnapshotResults ( cursor, fields )
+{
+   if( fields == undefined ) { fields = ["TotalTransCommit", "TotalTransRollback", "NodeName"]; }
+   var results = [];
+   while( cursor.next() )
+   {
+      var result = {};
+      var obj = cursor.current().toObj();
+      for( var i in fields )
+      {
+         result[fields[i]] = obj[fields[i]];
+      }
+      results.push( result );
+   }
+   cursor.close();
+   results.sort( sortBy( "NodeName" ) );
+   return results;
+}
