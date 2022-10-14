@@ -2,7 +2,7 @@
  * @Description   : seqDB-23825:分区表且被切分到多个数据组，读写数据并snapshot查看集合统计信息，truncate后恢复 
  * @Author        : liuli
  * @CreateTime    : 2022.03.04
- * @LastEditTime  : 2022.08.22
+ * @LastEditTime  : 2022.10.14
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -26,7 +26,8 @@ function test ()
    dbcl.insert( docs );
 
    commCheckLSN( db );
-   var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, { Name: csName + "." + clName }, {}, { "Details.Group.NodeName": 1 } );
+   var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, { Name: csName + "." + clName },
+      { "Details.Group.UpdateTime": { "$include": 0 } }, { "Details.Group.NodeName": 1 } );
    var expSnapshot = cursor.current().toObj();
 
    dbcl.truncate();
@@ -35,7 +36,8 @@ function test ()
    db.getRecycleBin().returnItem( recycleName );
 
    commCheckLSN( db );
-   var cursorNew = db.snapshot( SDB_SNAP_COLLECTIONS, { Name: csName + "." + clName }, {}, { "Details.Group.NodeName": 1 } );
+   var cursorNew = db.snapshot( SDB_SNAP_COLLECTIONS, { Name: csName + "." + clName },
+      { "Details.Group.UpdateTime": { "$include": 0 } }, { "Details.Group.NodeName": 1 } );
    var actSnapshot = cursorNew.current().toObj();
    assert.equal( expSnapshot, actSnapshot );
 
