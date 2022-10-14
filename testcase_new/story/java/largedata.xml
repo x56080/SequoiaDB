@@ -32,7 +32,8 @@
     <!--SEQUOIADBMAINSTREAM-3978-->
     <test name="fulltext" parallel="classes" thread-count="5">
         <packages>
-            <package name="com.sequoiadb.fulltext.largedata" />
+		    <!--CI-1001-->
+            <!--<package name="com.sequoiadb.fulltext.largedata" />-->
         </packages>     
     </test>
     <test name="index" parallel="classes" thread-count="5">
