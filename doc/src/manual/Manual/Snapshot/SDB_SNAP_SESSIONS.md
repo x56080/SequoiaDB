@@ -13,13 +13,11 @@
 
 会话快照可以列出所有用户的会话和系统会话。
 
-标识
-----
+##标识##
 
 SDB_SNAP_SESSIONS
 
-字段信息
-----
+##字段信息##
 
 | 字段名            | 类型       | 描述                                               |
 | ----------------- | ---------- | -------------------------------------------------- |
@@ -73,13 +71,12 @@ SDB_SNAP_SESSIONS
 | UserCPU           | double     | 用户 CPU，单位为秒                                 |
 | SysCPU            | double     | 系统 CPU，单位为秒                                 |
 
-示例
-----
+##示例##
 
 查看会话快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_SESSIONS,{ Role:"coord" } )
+> db.snapshot(SDB_SNAP_SESSIONS, {Role:"coord"})
 ```
 
 输出结果如下：
@@ -100,14 +97,10 @@ SDB_SNAP_SESSIONS
   "MemPoolSize": 0,
   "RelatedID": "c0a81e442e720000000000000001",
   "Contexts": [],
-  "TotalQuery": 435744500837,
-  "TotalSlowQuery": {
-    "$numberLong": "6057904448766738432"
-  },
-  "TotalTransCommit": {
-    "$numberLong": "7310307881782441071"
-  },
-  "TotalTransRollback": 29810,
+  "TotalQuery": 1,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,

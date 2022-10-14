@@ -71,7 +71,7 @@ SDB_SNAP_SESSIONS_CURRENT
 查看当前会话快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_SESSIONS_CURRENT )
+> db.snapshot(SDB_SNAP_SESSIONS_CURRENT)
 ```
 
 输出结果如下：
@@ -94,18 +94,10 @@ SDB_SNAP_SESSIONS_CURRENT
   "Contexts": [
     38
   ],
-  "TotalQuery": {
-    "$numberLong": "4049052965798949940"
-  },
-  "TotalSlowQuery": {
-    "$numberLong": "3976735869837390900"
-  },
-  "TotalTransCommit": {
-    "$numberLong": "3904960854615930675"
-  },
-  "TotalTransRollback": {
-    "$numberLong": "3689636878213985585"
-  },
+  "TotalQuery": 1,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
