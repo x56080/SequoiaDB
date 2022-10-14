@@ -196,7 +196,7 @@ namespace engine
 
          vector< pmdAddrPair > getImageCatVec() ;
 
-         clsRemoteResource*   getImageResource() ;
+         clsRemoteResource* getImageResource() ;
          clsDCBaseInfo* getDCBaseInfo() { return &_baseInfo ; }
          clsDCBaseInfo* getImageDCBaseInfo( pmdEDUCB *cb,
                                             BOOLEAN update = FALSE ) ;

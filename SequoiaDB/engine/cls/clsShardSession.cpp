@@ -1433,8 +1433,8 @@ namespace engine
             const CHAR *collectionName = _pCollectionName ;
             SDB_ASSERT( NULL != collectionName, "collection name is invalid" ) ;
             CoordCataInfoPtr cataPtr ;
-            rc = _pResource->getCataResource()->updateCataInfo(
-                _pCollectionName, cataPtr, _pEDUCB ) ;
+            rc = _pResource->getCataResource()->updateCataInfo( _pCollectionName, cataPtr,
+                                                                _pEDUCB ) ;
             if ( SDB_OK == rc )
             {
                _hasUpdateCataInfo = TRUE ;
@@ -1794,8 +1794,7 @@ namespace engine
       ossPoolVector<BSONObj>::iterator itIdx ;
 
       /// update collection's catalog info
-      rc = _pResource->getCataResource()->getOrUpdateCataInfo(
-          clFullName, cataPtr, _pEDUCB ) ;
+      rc = _pResource->getCataResource()->getOrUpdateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] Update collection[%s]'s "
                    "catalog info failed, rc: %d", sessionName(),
                    clFullName, rc ) ;
@@ -2238,8 +2237,7 @@ namespace engine
                    csName, clNameInData, csName, clName, rc ) ;
 
       /// 4) check catalog again, in case that someone rename back
-      rc = _pResource->getCataResource()->updateCataInfo(
-          clFullName, cataPtr, _pEDUCB );
+      rc = _pResource->getCataResource()->updateCataInfo( clFullName, cataPtr, _pEDUCB );
       if ( SDB_OK == rc )
       {
          tmpUniqueID = cataPtr->clUniqueID() ;
@@ -4827,8 +4825,8 @@ namespace engine
          CoordCataInfoPtr subCataPtr ;
          pSubCLName = (*iter).c_str() ;
 
-         rc = _pResource->getCataResource()->getOrUpdateCataInfo(
-             pSubCLName, subCataPtr, _pEDUCB ) ;
+         rc = _pResource->getCataResource()->getOrUpdateCataInfo( pSubCLName, subCataPtr,
+                                                                  _pEDUCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get catalog info for "
                       "sub-collection [%s], rc: %d", pSubCLName, rc ) ;
          /// not on the node, ignore

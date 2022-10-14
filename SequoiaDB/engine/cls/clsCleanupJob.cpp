@@ -191,8 +191,8 @@ namespace engine
             goto error ;
          }
 
-         rc = pResource->getCataResource()->updateCataInfo(
-             _clFullName.c_str(), cataPtr, _pEDUCB ) ;
+         rc = pResource->getCataResource()->updateCataInfo( _clFullName.c_str(),
+                                                            cataPtr, _pEDUCB ) ;
          if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
          {
             dropCollection = TRUE ;
@@ -335,8 +335,8 @@ namespace engine
             goto error ;
          }
 
-         rc = pResource->getCataResource()->getOrUpdateCataInfo(
-             _clFullName.c_str(), cataPtr, eduCB() ) ;
+         rc = pResource->getCataResource()->getOrUpdateCataInfo( _clFullName.c_str(),
+                                                                 cataPtr, eduCB() ) ;
          if ( SDB_OK != rc )
          {
             if ( SDB_DMS_NOTEXIST != rc )
@@ -657,8 +657,8 @@ namespace engine
                   goto error ;
                }
 
-               rc = pResource->getCataResource()->getOrUpdateCataInfo(
-                   _clFullName.c_str(), cataPtr, eduCB() ) ;
+               rc = pResource->getCataResource()->getOrUpdateCataInfo( _clFullName.c_str(),
+                                                                       cataPtr, eduCB() ) ;
                if ( SDB_OK != rc )
                {
                   if ( SDB_DMS_NOTEXIST != rc )

@@ -303,8 +303,8 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS;
       dmsMBContext *mbContext = nullptr;
       const CHAR **ppCollectionName = nullptr;
-      rc = rtnResolveCollectionNameAndLock(
-         clFullName, this, &su, ppCollectionName, suID, SHARED );
+      rc = rtnResolveCollectionNameAndLock( clFullName, this, &su, ppCollectionName, suID,
+                                            SHARED );
       PD_RC_CHECK( rc,
                    PDWARNING,
                    "Failed to loop up su by collection name[%s], rc: %d",

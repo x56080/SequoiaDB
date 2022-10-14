@@ -803,8 +803,7 @@ namespace engine
             if ( added )
             {
                // check image group whether exist
-               if ( SDB_OK != pResource->groupName2ID(
-                                  allGroups[ i ].c_str(), tmpID ) )
+               if ( SDB_OK != pResource->groupName2ID( allGroups[ i ].c_str(), tmpID ) )
                {
                   PD_LOG( PDERROR, "Image group[%s] is not exist",
                           allGroups[i].c_str() ) ;
@@ -999,8 +998,7 @@ namespace engine
       rc = pDCMgr->updateImageAllGroups( _pEduCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Update image all groups failed, rc: %d",
                    rc ) ;
-      pDCMgr->getImageResource()->getGroupNames(
-          allGroups, TRUE, TRUE ) ;
+      pDCMgr->getImageResource()->getGroupNames( allGroups, TRUE, TRUE ) ;
       for ( UINT32 i = 0 ; i < allGroups.size() ; ++i )
       {
          if ( pBaseInfo->getRImageGroups()->find( allGroups[i] ) ==
