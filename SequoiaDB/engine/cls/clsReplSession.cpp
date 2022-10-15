@@ -468,6 +468,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN_HNDSSTRES );
 
+      _repl->getSyncEmptyEvent()->reset() ;
+
       if ( (UINT32)header->messageLength < sizeof( _MsgReplConsultationRes ) )
       {
          /// the message is old( no hashValue, no reserved )
@@ -676,6 +678,9 @@ namespace engine
          sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset ) ;
          sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
       }
+
+      _repl->getSyncEmptyEvent()->signalAll() ;
+
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN_HNDSSTRES ) ;
       return SDB_OK ;
    }
