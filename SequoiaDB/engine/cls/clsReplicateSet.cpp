@@ -563,36 +563,45 @@ namespace engine
       itr = nodes.begin() ;
       for ( ; itr != nodes.end(); itr++ )
       {
-        if ( itr->first == _info.local.value )
-        {
-           hasLocal = TRUE ;
-           continue ;
-        }
-        else if ( !itr->second._isActive )
-        {
-           if ( g_startShiftTime < 0 )
-           {
-              /// when has overed the start shift time, need ignore
-              /// the nodes there are not actived
-              continue ;
-           }
-           itr->second._isActive = TRUE ;
-           changeStatus = TRUE ;
-        }
-        if ( SDB_OK == _agent->updateRoute( itr->second._id,
-                                            itr->second ) )
-        {
-           _info.mtx.lock_w() ;
-           _clsGroupBeat &beat = (_info.info[itr->first]).beat ;
-           _info.mtx.release_w() ;
-           beat.identity = itr->second._id ;
-           beat.beatID = 0 ;
-           /// we alive the changed node here. if it is unnormal,
-           /// break it out later.
-           _alive( itr->second._id, FALSE ) ;
-           PD_LOG( PDEVENT, "add node [%s:%s]",
-                   itr->second._host, itr->second._service[0].c_str() ) ;
-        }
+         if ( itr->first == _info.local.value )
+         {
+            hasLocal = TRUE ;
+            continue ;
+         }
+         else if ( !itr->second._isActive )
+         {
+            if ( g_startShiftTime < 0 )
+            {
+               /// when has overed the start shift time, need ignore
+               /// the nodes there are not actived
+               continue ;
+            }
+            itr->second._isActive = TRUE ;
+            changeStatus = TRUE ;
+         }
+         if ( SDB_OK == _agent->updateRoute( itr->second._id,
+                                             itr->second ) )
+         {
+            try
+            {
+               ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
+               _clsGroupBeat &beat = (_info.info[itr->first]).beat ;
+               beat.identity = itr->second._id ;
+               beat.beatID = 0 ;
+            }
+            catch ( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+
+            /// we alive the changed node here. if it is unnormal,
+            /// break it out later.
+            _alive( itr->second._id, FALSE ) ;
+            PD_LOG( PDEVENT, "add node [%s:%s]",
+                    itr->second._host, itr->second._service[0].c_str() ) ;
+         }
       } // for ( ; itr != nodes.end(); itr++ )
 
       if ( !hasLocal )
