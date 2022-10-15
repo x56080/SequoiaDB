@@ -35,6 +35,7 @@
 #include "msgDef.h"
 #include "../client/client_internal.h"
 #include "msg.hpp"
+#include "impUtil.hpp"
 
 #if defined( _LINUX ) || defined (_AIX)
 #include <arpa/inet.h>
@@ -94,6 +95,9 @@ namespace import
    {
       INT32 rc = SDB_OK ;
       sdbConnectionStruct *connection = NULL ;
+      CHAR sourceInfo[ IMP_UTIL_SOURCE_INFO_MAX + 1 ] = { 0 } ;
+      bson option ;
+      bson_init( &option ) ;
 
       SDB_ASSERT( SDB_INVALID_HANDLE == _connection, "Already connected" ) ;
       SDB_ASSERT( SDB_INVALID_HANDLE == _collectionSpace,
@@ -119,6 +123,22 @@ namespace import
                           "rc = %d, usessl=%d",
                  _hostname.c_str(), _svcname.c_str(), rc, _useSSL ) ;
          goto error ;
+      }
+
+      // set source info
+      genSourceInfo( sourceInfo, IMP_UTIL_SOURCE_INFO_MAX, "sdbimprt" ) ;
+      bson_append_string( &option, FIELD_NAME_SOURCE, sourceInfo ) ;
+      rc = bson_finish( &option ) ;
+      if ( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG( PDERROR, "Failed to build bson, rc = %d", rc ) ;
+         goto error ;
+      }
+      rc = sdbSetSessionAttr( _connection, &option ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to set session attribute, rc = %d. Continue to import", rc ) ;
       }
 
       connection = (sdbConnectionStruct*)_connection ;
@@ -172,6 +192,7 @@ namespace import
       }
 
    done:
+      bson_destroy( &option ) ;
       return rc ;
    error:
       goto done ;
