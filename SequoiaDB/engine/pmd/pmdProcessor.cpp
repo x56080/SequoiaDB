@@ -63,6 +63,7 @@
 #include "clsResourceContainer.hpp"
 #include "pdSecure.hpp"
 #include "rtnInsertModifier.hpp"
+#include "monCB.hpp"
 
 using namespace bson ;
 
@@ -2351,6 +2352,7 @@ namespace engine
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc )
       {
          contextBuff.release() ;
+         MON_CLEAR_OP_DETAIL( eduCB()->getMonAppCB() ) ;
          rc = _pmdDataProcessor::processMsg( msg, contextBuff, contextID,
                                              needReply, needRollback,
                                              builder ) ;

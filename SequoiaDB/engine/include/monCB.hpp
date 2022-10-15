@@ -85,6 +85,18 @@ namespace engine
       }                                                              \
    }
 
+   #define MON_CLEAR_OP_DETAIL( _pMonAppCB_ )                        \
+   {                                                                 \
+      if ( NULL != _pMonAppCB_ )                                     \
+      {                                                              \
+         try {                                                       \
+            _pMonAppCB_->setLastOpType( 0 ) ;                        \
+            _pMonAppCB_->setUnknownCmdType() ;                       \
+            _pMonAppCB_->clearLastOpDetail() ;                       \
+         } catch ( ...) {}                                           \
+      }                                                              \
+   }
+
    #define MON_SAVE_OP_OPTION( _pMonAppCB_, msg, options )           \
    {                                                                 \
       if ( NULL != _pMonAppCB_ )                                     \
@@ -879,6 +891,7 @@ namespace engine
       void saveLastOpQuery( const MsgHeader *message,
                             const rtnQueryOptions &options ) ;
       void saveLastOpDetail( const CHAR *format, ... ) ;
+      void clearLastOpDetail() ;
       void formatLastOpDetail( const rtnQueryOptions &options ) ;
       void formatLastOpDetail( const MsgHeader *message,
                                INT32 expectingOpType ) ;
