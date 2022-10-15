@@ -614,6 +614,14 @@ namespace engine
       return ;
    }
 
+   void _monAppCB::clearLastOpDetail()
+   {
+      _lastOpMsgSaved = FALSE ;
+      // reset first 4 bytes to make sure both length of message and
+      // first char of formatted detail are reset
+      *( (INT32 *)_lastOpDetail ) = 0 ;
+   }
+
    void _monAppCB::formatLastOpDetail( const rtnQueryOptions &options )
    {
       // reset flag first
