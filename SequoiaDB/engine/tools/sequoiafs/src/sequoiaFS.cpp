@@ -949,7 +949,7 @@ INT32 sequoiaFS::_initRootPath(sdb *db)
    newDirMeta.setCtime(ctime);
    newDirMeta.setMtime(mtime);
    newDirMeta.setAtime(mtime);
-   newDirMeta.setSymLink('\0');
+   newDirMeta.setSymLink( NULL );
 
    rc = _doSetDirNodeAttr(sysDirMetaCL, newDirMeta);
    if(SDB_OK != rc)
@@ -1813,7 +1813,7 @@ INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode, struct fuse_context *conte
    newDirMeta.setCtime(ctime);
    newDirMeta.setMtime(ctime);
    newDirMeta.setAtime(ctime);
-   newDirMeta.setSymLink('\0');
+   newDirMeta.setSymLink( NULL );
 
    rc = fsDao.transBegin();
    if(SDB_OK != rc)

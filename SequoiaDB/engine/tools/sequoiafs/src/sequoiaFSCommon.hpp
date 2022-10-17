@@ -174,7 +174,7 @@ namespace sequoiafs
          void setSymLink( const CHAR* sym )
          {
             int len = 0;
-            if(sym != NULL)
+            if ( NULL != sym )
             {
                ossStrncpy(_symLink, sym, ossStrlen(sym));
                len = ossStrlen(sym) < (sizeof(_symLink) - 1) ?
