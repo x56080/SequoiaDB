@@ -3565,6 +3565,18 @@
                            "en": "getServiceName()"
                         },
                         {
+                           "id": 1665564401,
+                           "file": "setAttributes",
+                           "cn": "setAttributes()",
+                           "en": "setAttributes()"
+                        },
+                        {
+                           "id": 1665564402,
+                           "file": "setLocation",
+                           "cn": "setLocation()",
+                           "en": "setLocation()"
+                        },
+                        {
                            "id": 1432190882,
                            "file": "start",
                            "cn": "start()",
