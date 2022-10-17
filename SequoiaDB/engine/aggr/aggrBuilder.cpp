@@ -369,7 +369,8 @@ namespace engine
                                     INT64 skip,
                                     INT64 limit,
                                     _pmdEDUCB *cb,
-                                    SINT64 &contextID )
+                                    SINT64 &contextID,
+                                    IRtnMonProcessorPtr monPtr )
    {
       INT32 rc = SDB_OK ;
 
@@ -400,7 +401,7 @@ namespace engine
       }
 
       // need dump context to process selector
-      if ( !selector.isEmpty() )
+      if ( !selector.isEmpty() || monPtr.get() )
       {
          rtnContextDump::sharePtr context ;
 
@@ -425,6 +426,7 @@ namespace engine
 
          context->setMonFetch( dsFetch, TRUE ) ;
          dsFetch = NULL ;
+         context->setMonProcessor( monPtr ) ;
       }
       else
       {

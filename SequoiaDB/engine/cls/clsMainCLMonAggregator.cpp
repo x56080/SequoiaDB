@@ -32,6 +32,7 @@
 *******************************************************************************/
 
 #include "clsMainCLMonAggregator.hpp"
+#include "utilMath.hpp"
 
 using namespace bson ;
 
@@ -101,6 +102,7 @@ namespace engine
       _clUniqueID = pCataSet->clUniqueID() ;
       _totalSubCLCount = subCLCount ;
       _doneSubCLCount = 0 ;
+      _totalLobCapacity = 0 ;
 
       // no meaning field
       _detail._blockID = (UINT16) -1 ;
@@ -145,6 +147,9 @@ namespace engine
          _detail._totalDataPages += sub._totalDataPages * dataPageMultiple ;
          _detail._totalIndexPages += sub._totalIndexPages * dataPageMultiple ;
          _detail._totalLobPages += sub._totalLobPages * lobPageMultiple ;
+         _detail._totalUsedLobSpace += sub._totalUsedLobSpace ;
+         _detail._totalLobSize += sub._totalLobSize ;
+         _detail._totalValidLobSize += sub._totalValidLobSize ;
          _detail._totalDataFreeSpace += sub._totalDataFreeSpace ;
          _detail._totalIndexFreeSpace += sub._totalIndexFreeSpace ;
 
@@ -161,6 +166,16 @@ namespace engine
          _detail._crudCB._totalWrite += sub._crudCB._totalWrite ;
          _detail._crudCB._totalTbScan += sub._crudCB._totalTbScan ;
          _detail._crudCB._totalIxScan += sub._crudCB._totalIxScan ;
+         _detail._crudCB._totalLobGet += sub._crudCB._totalLobGet ;
+         _detail._crudCB._totalLobPut += sub._crudCB._totalLobPut ;
+         _detail._crudCB._totalLobDelete += sub._crudCB._totalLobDelete ;
+         _detail._crudCB._totalLobList += sub._crudCB._totalLobList ;
+         _detail._crudCB._totalLobReadSize += sub._crudCB._totalLobReadSize ;
+         _detail._crudCB._totalLobWriteSize += sub._crudCB._totalLobWriteSize ;
+         _detail._crudCB._totalLobRead += sub._crudCB._totalLobRead ;
+         _detail._crudCB._totalLobWrite += sub._crudCB._totalLobWrite ;
+         _detail._crudCB._totalLobTruncate += sub._crudCB._totalLobTruncate ;
+         _detail._crudCB._totalLobAddressing += sub._crudCB._totalLobAddressing ;
          _detail._crudCB._resetTimestamp =  sub._crudCB._resetTimestamp ;
 
          // special field
@@ -201,6 +216,7 @@ namespace engine
             _detail._updateTime = sub._updateTime ;
          }
          _detail._currCompressRatio += sub._currCompressRatio ;
+         _totalLobCapacity += (UINT64)( sub._totalUsedLobSpace / sub._usedLobSpaceRatio ) ;
       }
       ++_doneSubCLCount ;
    }
@@ -213,6 +229,20 @@ namespace engine
       _detail._totalLobPages /= ( _detail._lobPageSize / DMS_PAGE_SIZE_BASE ) ;
       // Calculate the average compression ratio
       _detail._currCompressRatio = _detail._currCompressRatio / _doneSubCLCount ;
+      // Calculate the average of lob info
+      _detail._usedLobSpaceRatio = utilPercentage( _detail._totalUsedLobSpace, _totalLobCapacity ) ;
+      /// Because lob page 0 is unevenly distributed on data nodes, the
+      /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+      /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
+      _detail._lobUsageRate = utilPercentage( _detail._totalLobSize, _detail._totalUsedLobSpace ) ;
+      if ( 0 < _detail._totalLobs )
+      {
+         _detail._avgLobSize = _detail._totalValidLobSize / _detail._totalLobs ;
+      }
+      else
+      {
+         _detail._avgLobSize = 0 ;
+      }
 
       ossStrncpy( out._name, _name, sizeof( _name ) ) ;
       out._clUniqueID = _clUniqueID ;

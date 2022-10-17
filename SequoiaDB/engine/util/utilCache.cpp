@@ -33,6 +33,8 @@
 *******************************************************************************/
 
 #include "utilCache.hpp"
+#include "pmdEDU.hpp"
+#include "monCB.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
@@ -40,6 +42,16 @@
 
 namespace engine
 {
+
+#define _UTIL_MON_LOB_OP_COUNT_INC( _pIExecutor_, op, delta )                 \
+   {                                                                          \
+      if ( NULL != _pIExecutor_ )                                             \
+      {                                                                       \
+         ((_pmdEDUCB *)_pIExecutor_)->getMonAppCB()->monOperationCountInc(    \
+                                                        op, delta,            \
+                                                        MON_UPDATE_SESSION ) ;\
+      }                                                                       \
+   }
 
    #define UTIL_MAX_EXCEED_SLOT_SIZE            ( 3 )
    #define UTIL_MIN_EXCEED_SLOT_SIZE            ( 5 )
@@ -1973,6 +1985,8 @@ namespace engine
                           pFile->getFileName(), rc ) ;
                }
             }
+            // monitor page write
+            _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_WRITE, 1 ) ;
          }
          else
          {
@@ -1998,6 +2012,8 @@ namespace engine
                   _pPage->load( _pData, _offset, len ) ;
                }
             }
+            // monitor page read
+            _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_READ, 1 ) ;
          }
 
          if ( rc )
@@ -2079,6 +2095,8 @@ namespace engine
                     pFile->getFileName(), rc ) ;
             goto error ;
          }
+         /// monitor page read
+         _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_READ, 1 ) ;
          /// load with no data
          rc = _pPage->loadWithoutData( offset, len ) ;
          if ( rc )
@@ -2105,6 +2123,8 @@ namespace engine
                     pFile->getFileName(), rc ) ;
             goto error ;
          }
+         /// monitor page read
+         _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_READ, 1 ) ;
          /// write to page
          rc = _pPage->load( pBuff, offset, readLen ) ;
          if ( rc )

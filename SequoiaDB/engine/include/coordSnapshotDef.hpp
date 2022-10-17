@@ -55,6 +55,16 @@
                                                 ReplInsert:{$sum:\"$ReplInsert\"},\
                                                 TotalSelect:{$sum:\"$TotalSelect\"},\
                                                 TotalRead:{$sum:\"$TotalRead\"},\
+                                                TotalLobGet:{$sum:\"$TotalLobGet\"},\
+                                                TotalLobPut:{$sum:\"$TotalLobPut\"},\
+                                                TotalLobDelete:{$sum:\"$TotalLobDelete\"},\
+                                                TotalLobList:{$sum:\"$TotalLobList\"},\
+                                                TotalLobReadSize:{$sum:\"$TotalLobReadSize\"},\
+                                                TotalLobWriteSize:{$sum:\"$TotalLobWriteSize\"},\
+                                                TotalLobRead:{$sum:\"$TotalLobRead\"},\
+                                                TotalLobWrite:{$sum:\"$TotalLobWrite\"},\
+                                                TotalLobTruncate:{$sum:\"$TotalLobTruncate\"},\
+                                                TotalLobAddressing:{$sum:\"$TotalLobAddressing\"},\
                                                 TotalReadTime:{$sum:\"$TotalReadTime\"},\
                                                 TotalWriteTime:{$sum:\"$TotalWriteTime\"},\
                                                 freeLogSpace:{$sum:\"$freeLogSpace\"},\
@@ -166,6 +176,12 @@
                                                 TotalDataPages:\"$Details.$[0].TotalDataPages\",\
                                                 TotalIndexPages:\"$Details.$[0].TotalIndexPages\",\
                                                 TotalLobPages:\"$Details.$[0].TotalLobPages\",\
+                                                TotalUsedLobSpace:\"$Details.$[0].TotalUsedLobSpace\",\
+                                                UsedLobSpaceRatio:\"$Details.$[0].UsedLobSpaceRatio\",\
+                                                TotalLobSize:\"$Details.$[0].TotalLobSize\",\
+                                                TotalValidLobSize:\"$Details.$[0].TotalValidLobSize\",\
+                                                LobUsageRate:\"$Details.$[0].LobUsageRate\",\
+                                                AvgLobSize:\"$Details.$[0].AvgLobSize\",\
                                                 TotalDataFreeSpace:\"$Details.$[0].TotalDataFreeSpace\",\
                                                 TotalIndexFreeSpace:\"$Details.$[0].TotalIndexFreeSpace\",\
                                                 TotalDataRead:\"$Details.$[0].TotalDataRead\",\
@@ -180,6 +196,16 @@
                                                 TotalWrite:\"$Details.$[0].TotalWrite\",\
                                                 TotalTbScan:\"$Details.$[0].TotalTbScan\",\
                                                 TotalIxScan:\"$Details.$[0].TotalIxScan\",\
+                                                TotalLobGet:\"$Details.$[0].TotalLobGet\",\
+                                                TotalLobPut:\"$Details.$[0].TotalLobPut\",\
+                                                TotalLobDelete:\"$Details.$[0].TotalLobDelete\",\
+                                                TotalLobList:\"$Details.$[0].TotalLobList\",\
+                                                TotalLobReadSize:\"$Details.$[0].TotalLobReadSize\",\
+                                                TotalLobWriteSize:\"$Details.$[0].TotalLobWriteSize\",\
+                                                TotalLobRead:\"$Details.$[0].TotalLobRead\",\
+                                                TotalLobWrite:\"$Details.$[0].TotalLobWrite\",\
+                                                TotalLobTruncate:\"$Details.$[0].TotalLobTruncate\",\
+                                                TotalLobAddressing:\"$Details.$[0].TotalLobAddressing\",\
                                                 ResetTimestamp:\"$Details.$[0].ResetTimestamp\",\
                                                 NodeName:\"$Details.$[0].NodeName\",\
                                                 CreateTime:\"$Details.$[0].CreateTime\",\
@@ -192,11 +218,19 @@
                                                 GroupName:1,\
                                                 Details:{ID:1,LogicalID:1,Sequence:1,\
                                                          Indexes:1,Status:1,TotalRecords:1,TotalLobs:1,TotalDataPages:1,\
-                                                         TotalIndexPages:1,TotalLobPages:1,TotalDataFreeSpace:1,\
+                                                         TotalIndexPages:1,TotalLobPages:1,TotalUsedLobSpace:1,\
+                                                         UsedLobSpaceRatio:1,TotalLobSize:1,TotalValidLobSize:1,\
+                                                         LobUsageRate:1,AvgLobSize:1,TotalDataFreeSpace:1,\
                                                          TotalIndexFreeSpace:1,TotalDataRead:1,TotalIndexRead:1,\
                                                          TotalDataWrite:1,TotalIndexWrite:1,TotalUpdate:1,\
                                                          TotalDelete:1,TotalInsert:1,TotalSelect:1,TotalRead:1,\
-                                                         TotalWrite:1,TotalTbScan:1,TotalIxScan:1,ResetTimestamp:1,\
+                                                         TotalWrite:1,TotalTbScan:1,TotalIxScan:1,\
+                                                         TotalLobGet:1,TotalLobPut:1,TotalLobDelete:1,\
+                                                         TotalLobList:1,\
+                                                         TotalLobReadSize:1,TotalLobWriteSize:1,\
+                                                         TotalLobRead:1,TotalLobWrite:1,TotalLobTruncate:1,\
+                                                         TotalLobAddressing:1,\
+                                                         ResetTimestamp:1,\
                                                          NodeName:1,CreateTime:1,UpdateTime:1}\
                                                 }\
                                        }\n\
@@ -237,8 +271,29 @@
                                                 FreeDataSize:{$sum:\"$FreeDataSize\"},\
                                                 TotalIndexSize:{$sum:\"$TotalIndexSize\"},\
                                                 FreeIndexSize:{$sum:\"$FreeIndexSize\"},\
-                                                TotalLobSize:{$sum:\"$TotalLobSize\"},\
+                                                LobCapacity:{$sum:\"$LobCapacity\"},\
+                                                LobMetaCapacity:{$sum:\"$LobMetaCapacity\"},\
+                                                MaxLobCapacity:{$sum:\"$MaxLobCapacity\"},\
+                                                TotalLobPages:{$sum:\"$TotalLobPages\"},\
+                                                TotalLobs:{$sum:\"$TotalLobs\"},\
+                                                TotalUsedLobSpace:{$sum:\"$TotalUsedLobSpace\"},\
+                                                UsedLobSpaceRatio:{$first:\"$UsedLobSpaceRatio\"},\
+                                                FreeLobSpace:{$sum:\"$FreeLobSpace\"},\
                                                 FreeLobSize:{$sum:\"$FreeLobSize\"},\
+                                                TotalLobSize:{$sum:\"$TotalLobSize\"},\
+                                                TotalValidLobSize:{$sum:\"$TotalValidLobSize\"},\
+                                                LobUsageRate:{$first:\"$LobUsageRate\"},\
+                                                AvgLobSize:{$first:\"$AvgLobSize\"},\
+                                                TotalLobGet:{$sum:\"$TotalLobGet\"},\
+                                                TotalLobPut:{$sum:\"$TotalLobPut\"},\
+                                                TotalLobDelete:{$sum:\"$TotalLobDelete\"},\
+                                                TotalLobList:{$sum:\"$TotalLobList\"},\
+                                                TotalLobReadSize:{$sum:\"$TotalLobReadSize\"},\
+                                                TotalLobWriteSize:{$sum:\"$TotalLobWriteSize\"},\
+                                                TotalLobRead:{$sum:\"$TotalLobRead\"},\
+                                                TotalLobWrite:{$sum:\"$TotalLobWrite\"},\
+                                                TotalLobTruncate:{$sum:\"$TotalLobTruncate\"},\
+                                                TotalLobAddressing:{$sum:\"$TotalLobAddressing\"},\
                                                 Collection:{$mergearrayset:\"$Collection\"},\
                                                 Group:{$addtoset:\"$GroupName\"},\
                                                 CreateTime:{$min:\"$CreateTime\"},\

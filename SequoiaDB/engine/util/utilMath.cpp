@@ -96,4 +96,13 @@ namespace engine
       return ret ;
    }
 
+   FLOAT64 utilPercentage( INT64 x, INT64 y )
+   {
+      INT32 z = 0 ;
+      if ( 0 == y ) {
+         return z ;
+      }
+      z = (INT32)( x / (FLOAT64)y * 100.0 ) ;
+      return z / 100.0 ;
+   }
 }

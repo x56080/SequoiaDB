@@ -42,6 +42,7 @@
 #include "catGTSDef.hpp"
 #include "msgMessage.hpp"
 #include "rtn.hpp"
+#include "rtnSnapshotProcessor.hpp"
 
 using namespace bson ;
 
@@ -612,6 +613,24 @@ namespace engine
    const CHAR* _coordCMDSnapshotSpaces::getInnerAggrContent()
    {
       return COORD_SNAPSHOTCS_INPUT ;
+   }
+
+   INT32 _coordCMDSnapshotSpaces::_getAggrMonProcessor( IRtnMonProcessorPtr & ptr )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnCSSnapshotProcessorPtr tmpPtr =
+         rtnCSSnapshotProcessorPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
+      if ( NULL == tmpPtr.get() )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
+      }
+      else
+      {
+         ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
+      }
+      return rc ;
    }
 
    /*
