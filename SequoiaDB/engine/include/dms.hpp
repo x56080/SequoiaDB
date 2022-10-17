@@ -412,6 +412,14 @@ namespace engine
       }                                                    \
    }
 
+#define DMS_MON_LOB_OP_COUNT_INC( _pMonAppCB_, op, delta )                    \
+   {                                                                          \
+      if ( NULL != _pMonAppCB_ )                                              \
+      {                                                                       \
+         _pMonAppCB_->monOperationCountInc( op, delta, MON_UPDATE_SESSION ) ; \
+      }                                                                       \
+   }
+
    /****************************************************************************
     * Specify the matrix for collection flag and access type, returns TRUE means
     * access is allowed, otherwise return FALSE

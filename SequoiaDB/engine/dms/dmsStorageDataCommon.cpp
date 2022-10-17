@@ -703,6 +703,18 @@ namespace engine
                _dmsMME->_mbList[i]._totalDataLen =
                   _mbStatInfo[i]._totalDataLen ;
             }
+            if ( _dmsMME->_mbList[i]._totalLobSize !=
+                 _mbStatInfo[i]._totalLobSize )
+            {
+               _dmsMME->_mbList[i]._totalLobSize =
+                 _mbStatInfo[i]._totalLobSize ;
+            }
+            if ( _dmsMME->_mbList[i]._totalValidLobSize !=
+                 _mbStatInfo[i]._totalValidLobSize )
+            {
+               _dmsMME->_mbList[i]._totalValidLobSize =
+                 _mbStatInfo[i]._totalValidLobSize ;
+            }
             if ( _dmsMME->_mbList[i]._totalOrgDataLen !=
                  _mbStatInfo[i]._totalOrgDataLen )
             {
@@ -1019,6 +1031,10 @@ namespace engine
                _dmsMME->_mbList[i]._lastCompressRatio ;
             _mbStatInfo[i]._totalDataLen =
                _dmsMME->_mbList[i]._totalDataLen ;
+            _mbStatInfo[i]._totalLobSize =
+               _dmsMME->_mbList[i]._totalLobSize ;
+            _mbStatInfo[i]._totalValidLobSize =
+               _dmsMME->_mbList[i]._totalValidLobSize;
             _mbStatInfo[i]._totalOrgDataLen =
                _dmsMME->_mbList[i]._totalOrgDataLen ;
             _mbStatInfo[i]._startLID =

@@ -99,13 +99,7 @@ namespace engine
       _preSet( cb, ctrlParam ) ;
 
       rc = _getMonProcessor( monProcessorPtr ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR,
-                 "Pre-excute failed to acquire an IRtnMonProcessor obj, rc: %d",
-                 rc ) ;
-         goto error ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;
 
       rc = _preExcute( pMsg, cb, ctrlParam, ignoreRCList ) ;
       if ( rc )
@@ -622,6 +616,12 @@ namespace engine
    {
    }
 
+   INT32 _coordCMDMonBase::_getAggrMonProcessor( IRtnMonProcessorPtr &ptr )
+   {
+      ptr = IRtnMonProcessorPtr() ;
+      return SDB_OK ;
+   }
+
    INT32 _coordCMDMonBase::execute( MsgHeader *pMsg,
                                     pmdEDUCB *cb,
                                     INT64 &contextID,
@@ -640,8 +640,12 @@ namespace engine
       coordCtrlParam ctrlParam ;
       vector< BSONObj > vecUserAggr ;
       BSONObj newHint ;
+      IRtnMonProcessorPtr monPtr ;
 
       contextID = -1 ;
+
+      rc = _getAggrMonProcessor( monPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;
 
       // Return data during QUERY to reduce GETMORE operation.
       ((MsgOpQuery*)pMsg)->flags |= FLG_QUERY_WITH_RETURNDATA ;
@@ -738,7 +742,8 @@ namespace engine
                            queryOption.getSelector(),
                            newHint,
                            0, -1,
-                           cb, contextID ) ;
+                           cb, contextID,
+                           monPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
       }
       else

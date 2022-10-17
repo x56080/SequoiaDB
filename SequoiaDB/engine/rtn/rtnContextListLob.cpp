@@ -36,6 +36,8 @@
 #include "rtnTrace.hpp"
 #include "rtnLob.hpp"
 #include "rtnLobPieces.hpp"
+#include "rtnLobMetricsSubmitor.hpp"
+#include "dmsCB.hpp"
 
 using namespace bson ;
 
@@ -52,11 +54,15 @@ namespace engine
     _skip( 0 ),
     _returnNum( -1 )
    {
-
+      _totalDeltaMonApp.reset() ;
    }
 
    _rtnContextListLob::~_rtnContextListLob()
    {
+   	pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      _close( cb ) ;
+
       if ( NULL != _buf )
       {
          SDB_OSS_FREE( _buf ) ;
@@ -77,6 +83,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLISTLOB_OPEN ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
       BSONElement fullName ;
 
       _query = query.getOwned() ;
@@ -118,10 +126,13 @@ namespace engine
          _suLogicalID = _fetcher.getSu()->LogicalCSID() ;
       }
 
+      DMS_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_LIST, 1 ) ;
+
       _fullName.assign( fullName.valuestr() ) ;
 
       _isOpened = TRUE ;
       _hitEnd = FALSE ;
+
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLISTLOB_OPEN, rc ) ;
       return rc ;
@@ -129,11 +140,18 @@ namespace engine
       goto done ;
    }
 
+   void _rtnContextListLob::onSubmit( const monAppCB & delta )
+   {
+      _totalDeltaMonApp += delta ;
+      getMonCB()->incMetrics( delta ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLISTLOB__PREPAGEDATA, "_rtnContextListLob::_prepareData" )
    INT32 _rtnContextListLob::_prepareData( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLISTLOB__PREPAGEDATA ) ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
       BSONObj obj ;
       INT32 returnObjNum = 0 ;
 
@@ -315,7 +333,7 @@ namespace engine
       _dmsLobInfoOnPage info ;
       BSONObjBuilder builder ;
 
-      rc = _fetcher.fetch( cb, info ) ;
+      rc = _fetcher.fetch( cb, info, NULL ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -358,6 +376,78 @@ namespace engine
       }
    done:
       return rc;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLISTLOB__CLOSE, "_rtnContextListLob::_close" )
+   void _rtnContextListLob::_close( _pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( SDB__RTNCONTEXTLISTLOB__CLOSE ) ;
+
+      INT32 rc = SDB_OK ;
+      dmsStorageUnitID suID ;
+      _dmsStorageUnit *su = NULL ;
+      _dmsMBContext *mbContext = NULL ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      const CHAR *clName = NULL ;
+      _monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      if ( _fullName.empty() )
+      {
+         goto done ;
+      }
+
+      // submit snapshot changes to sdb/svctask monitor
+      if ( pMonAppCB && pMonAppCB->mondbcb )
+      {
+         pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
+      }
+      if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
+      {
+         pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
+      }
+
+      // get MBContext, and submit snapshot changes to cl monitor
+      rc = rtnResolveCollectionNameAndLock( _fullName.c_str(), dmsCB,
+                                            &su, &clName, suID ) ;
+      if ( SDB_OK != rc || !su )
+      {
+         PD_LOG( PDERROR, "Resolve collection[%s] failed, rc: %d",
+                 _fullName.c_str(), rc ) ;
+         goto error ;
+      }
+
+      rc = su->data()->getMBContext( &mbContext, clName, SHARED ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Get collection[%s] mb-context failed, rc: %d",
+                 clName, rc ) ;
+         goto error ;
+      }
+
+      if ( mbContext && mbContext->mbStat() )
+      {
+         // submit to cl
+         mbContext->mbStat()->_crudCB.incMetrics( _totalDeltaMonApp ) ;
+      }
+
+      _isOpened = FALSE ;
+
+   done:
+      if ( NULL != mbContext && NULL != su )
+      {
+         su->data()->releaseMBContext( mbContext ) ;
+         mbContext = NULL ;
+      }
+      if ( NULL != su )
+      {
+         dmsCB->suUnlock ( suID ) ;
+         su = NULL ;
+         suID = DMS_INVALID_CS ;
+      }
+      PD_TRACE_EXITRC( SDB__RTNCONTEXTLISTLOB__CLOSE, rc ) ;
+      return ;
    error:
       goto done ;
    }

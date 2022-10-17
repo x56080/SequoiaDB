@@ -87,19 +87,28 @@ _monClass::~_monClass() {}
 
 _monClassQueryTmpData& _monClassQueryTmpData::operator=(const _monAppCB& cb)
 {
-   dataRead  = cb.totalDataRead ;
-   dataWrite = cb.totalDataWrite ;
-   indexRead = cb.totalIndexRead ;
-   indexWrite = cb.totalIndexWrite ;
+   dataRead      = cb.totalDataRead ;
+   dataWrite     = cb.totalDataWrite ;
+   indexRead     = cb.totalIndexRead ;
+   indexWrite    = cb.totalIndexWrite ;
+   lobRead       = cb.totalLobRead ;
+   lobWrite      = cb.totalLobWrite ;
+   lobTruncate   = cb.totalLobTruncate ;
+   lobAddressing = cb.totalLobAddressing ;
+
    return *this ;
 }
 
 void _monClassQueryTmpData::diff(_monAppCB &cb)
 {
-   dataRead  = cb.totalDataRead - dataRead ;
-   dataWrite = cb.totalDataWrite - dataWrite ;
-   indexRead = cb.totalIndexRead - indexRead ;
-   indexWrite = cb.totalIndexWrite - indexWrite ;
+   dataRead      = MON_APP_DELTA( dataRead , cb.totalDataRead ) ;
+   dataWrite     = MON_APP_DELTA( dataWrite , cb.totalDataWrite ) ;
+   indexRead     = MON_APP_DELTA( indexRead , cb.totalIndexRead ) ;
+   indexWrite    = MON_APP_DELTA( indexWrite , cb.totalIndexWrite ) ;
+   lobRead       = MON_APP_DELTA( lobRead , cb.totalLobRead ) ;
+   lobWrite      = MON_APP_DELTA( lobWrite , cb.totalLobWrite ) ;
+   lobTruncate   = MON_APP_DELTA( lobTruncate , cb.totalLobTruncate ) ;
+   lobAddressing = MON_APP_DELTA( lobAddressing , cb.totalLobAddressing ) ;
 }
 
 _monClassContainer::_monClassContainer ( MON_CLASS_TYPE type )

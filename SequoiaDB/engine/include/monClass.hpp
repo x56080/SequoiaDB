@@ -262,9 +262,20 @@ struct _monClassQueryTmpData
    UINT32           indexRead ;
    UINT32           dataWrite ;
    UINT32           indexWrite ;
+   UINT32           lobRead ;
+   UINT32           lobWrite ;
+   UINT32           lobTruncate ;
+   UINT32           lobAddressing ;
 
    _monClassQueryTmpData()
-      : dataRead(0), indexRead(0), dataWrite(0), indexWrite(0)
+      : dataRead(0),
+        indexRead(0),
+        dataWrite(0),
+        indexWrite(0),
+        lobRead(0),
+        lobWrite(0),
+        lobTruncate(0),
+        lobAddressing(0)
    {}
 
    _monClassQueryTmpData& operator=(const _monAppCB& cb) ;
@@ -292,10 +303,12 @@ public:
    ossTickDelta  lockWaitTime ;  /**! Time spent on lock wait */
    UINT32            dataRead ;  /**! Total data read (record)*/
    UINT32           indexRead ;  /**! Total index read (record)*/
-   UINT32             lobRead ;  /**! Total LOB read */
    UINT32           dataWrite ;  /**! Total data write (record) */
    UINT32          indexWrite ;  /**! Total index write (record) */
-   UINT32            lobWrite ;  /**! Total LOB write */
+   UINT32             lobRead ;  /**! Total LOB read (number of times) */
+   UINT32            lobWrite ;  /**! Total LOB write (number of times) */
+   UINT32         lobTruncate ;  /**! Total LOB truncate (number of times) */
+   UINT32       lobAddressing ;  /**! Total LOB addressing (number of times) */
    UINT32        rowsReturned ;  /**! Total number of rows returned */
    UINT32          numMsgSent ;  /**! Total # of msgs sent to remote nodes */
    ossPoolSet<UINT32>   nodes ;  /**! Node ID where messages were sent to */
@@ -313,10 +326,12 @@ public:
         sessionID( 0 ),
         dataRead( 0 ),
         indexRead( 0 ),
-        lobRead( 0 ),
         dataWrite( 0 ),
         indexWrite( 0 ),
+        lobRead( 0 ),
         lobWrite( 0 ),
+        lobTruncate( 0 ),
+        lobAddressing( 0 ),
         rowsReturned( 0 ),
         numMsgSent( 0 ),
         relatedTID( 0 ),
@@ -337,10 +352,12 @@ public:
        lockWaitTime( monClassQuery.lockWaitTime ),
        dataRead( monClassQuery.dataRead ),
        indexRead( monClassQuery.indexRead ),
-       lobRead( monClassQuery.lobRead ),
        dataWrite( monClassQuery.dataWrite ),
        indexWrite( monClassQuery.indexWrite ),
+       lobRead( monClassQuery.lobRead ),
        lobWrite( monClassQuery.lobWrite ),
+       lobTruncate( monClassQuery.lobTruncate ),
+       lobAddressing( monClassQuery.lobAddressing ),
        rowsReturned( monClassQuery.rowsReturned ),
        numMsgSent( monClassQuery.numMsgSent ),
        relatedNID( monClassQuery.relatedNID ),
@@ -383,6 +400,10 @@ public:
       dataWrite += tmpData.dataWrite ;
       indexRead += tmpData.indexRead ;
       indexWrite += tmpData.indexWrite ;
+      lobRead += tmpData.lobRead ;
+      lobWrite += tmpData.lobWrite ;
+      lobTruncate += tmpData.lobTruncate ;
+      lobAddressing += tmpData.lobAddressing ;
    }
 
 private:

@@ -205,6 +205,8 @@ namespace engine
             return COORD_SHOWERRORMODE_AGGR ;
          }
 
+         virtual INT32  _getAggrMonProcessor( IRtnMonProcessorPtr & ptr ) ;
+
       protected:
          INT32 _handleHints ( BSONObj &hint, UINT32 mask ) ;
 

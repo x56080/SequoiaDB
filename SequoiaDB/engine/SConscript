@@ -284,6 +284,7 @@ rtnFiles = [
       "rtn/rtnLobAccessManager.cpp",
       "rtn/rtnLobPieces.cpp",
       "rtn/rtnLobMetaCache.cpp",
+      "rtn/rtnLobMetricsSubmitor.cpp",
       "rtn/rtnIxmKeySorter.cpp",
       "rtn/rtnDictCreatorJob.cpp",
       "rtn/rtnAnalyze.cpp",
@@ -306,6 +307,7 @@ rtnFiles = [
       "rtn/rtnLocalTask.cpp",
       "rtn/rtnDetectDeadlock.cpp",
       "rtn/rtnRecycleBinManager.cpp",
+      "rtn/rtnSnapshotProcessor.cpp",
       "rtn/rtnHintModifier.cpp",
       "rtn/rtnInsertModifier.cpp"
       ]

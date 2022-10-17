@@ -37,10 +37,11 @@
 
 #include "rtnContext.hpp"
 #include "rtnLobFetcher.hpp"
+#include "monInterface.hpp"
 
 namespace engine
 {
-   class _rtnContextListLob : public _rtnContextBase
+   class _rtnContextListLob : public _rtnContextBase, public _IMonSubmitEvent
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextListLob )
    public:
@@ -61,6 +62,8 @@ namespace engine
       INT32 open( const BSONObj &query, const BSONObj &selector,
                   const BSONObj &hint, INT64 skip,
                   INT64 returnNum, _pmdEDUCB *cb ) ;
+   public:
+      virtual void onSubmit(const monAppCB & delta) ;
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -70,6 +73,7 @@ namespace engine
       INT32 _getMetaInfo( _pmdEDUCB *cb, BSONObj &obj ) ;
       INT32 _getSequenceInfo( _pmdEDUCB *cb, BSONObj &obj ) ;
       INT32 _reallocate( UINT32 len ) ;
+      void  _close( _pmdEDUCB *cb ) ;
    private:
       _rtnLobFetcher _fetcher ;
       UINT32 _suLogicalID ;
@@ -85,6 +89,8 @@ namespace engine
 
       _mthSelector _selectorParser ;
       _mthMatchTree _matchTree ;
+
+      monAppCB      _totalDeltaMonApp ;
    } ;
    typedef class _rtnContextListLob rtnContextListLob ;
 }

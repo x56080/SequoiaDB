@@ -36,6 +36,7 @@
 #define RTN_CONTEXTLOB_HPP_
 
 #include "rtnContext.hpp"
+#include "monInterface.hpp"
 
 using namespace bson ;
 
@@ -47,7 +48,7 @@ namespace engine
    /*
       _rtnContextLob define
    */
-   class _rtnContextLob : public _rtnContextBase
+   class _rtnContextLob : public _rtnContextBase, public _IMonSubmitEvent
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextLob )
    public:
@@ -101,6 +102,8 @@ namespace engine
       virtual void     getErrorInfo( INT32 rc,
                                      _pmdEDUCB *cb,
                                      rtnContextBuf &buffObj ) ;
+   public:
+      virtual void onSubmit( const monAppCB &delta ) ;
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;

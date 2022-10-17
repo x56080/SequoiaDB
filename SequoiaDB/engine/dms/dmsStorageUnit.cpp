@@ -49,6 +49,7 @@
 #include "dmsStorageDataFactory.hpp"
 #include "dmsTransContext.hpp"
 #include "dmsOprHandler.hpp"
+#include "utilMath.hpp"
 
 namespace engine
 {
@@ -3789,7 +3790,7 @@ namespace engine
                                    statInfo._totalDataFreeSpace ;
       INT64 totalIndexFreeSize   = totalFreeSize( DMS_SU_INDEX ) +
                                    statInfo._totalIndexFreeSpace ;
-      INT64 totalLobFreeSize     = totalFreeSize( DMS_SU_LOB ) ;
+      INT64 totalLobFreeSpace     = totalFreeSize( DMS_SU_LOB ) ;
 
       ossMemset( collectionSpace._name, 0, sizeof(collectionSpace._name) ) ;
       ossStrncpy( collectionSpace._name, CSName(), DMS_COLLECTION_SPACE_NAME_SZ );
@@ -3802,13 +3803,30 @@ namespace engine
       collectionSpace._clNum    = statInfo._clNum ;
       collectionSpace._totalRecordNum = statInfo._totalCount ;
       collectionSpace._freeSize = totalDataFreeSize + totalIndexFreeSize +
-                                  totalLobFreeSize ;
+                                  totalLobFreeSpace ;
       collectionSpace._totalDataSize = totalSize( DMS_SU_DATA ) ;
       collectionSpace._freeDataSize  = totalDataFreeSize ;
       collectionSpace._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
       collectionSpace._freeIndexSize = totalIndexFreeSize ;
-      collectionSpace._totalLobSize = totalSize( DMS_SU_LOB ) ;
-      collectionSpace._freeLobSize = totalLobFreeSize ;
+
+      collectionSpace._lobCapacity = totalSize( DMS_SU_LOB ) ;
+      collectionSpace._lobMetaCapacity = totalSize( DMS_SU_LOB_META ) ;
+      collectionSpace._freeLobSpace = totalLobFreeSpace ;
+      collectionSpace._totalLobPages = statInfo._totalLobPages ;
+      collectionSpace._totalLobs = statInfo._totalLobs ;
+      collectionSpace._totalLobSize = statInfo._totalLobSize ;
+      collectionSpace._totalValidLobSize = statInfo._totalValidLobSize ;
+
+      collectionSpace._totalLobGet = statInfo._totalLobGet ;
+      collectionSpace._totalLobPut = statInfo._totalLobPut ;
+      collectionSpace._totalLobDelete = statInfo._totalLobDelete ;
+      collectionSpace._totalLobList = statInfo._totalLobList ;
+      collectionSpace._totalLobReadSize = statInfo._totalLobReadSize ;
+      collectionSpace._totalLobWriteSize = statInfo._totalLobWriteSize ;
+      collectionSpace._totalLobRead = statInfo._totalLobRead ;
+      collectionSpace._totalLobWrite = statInfo._totalLobWrite ;
+      collectionSpace._totalLobTruncate = statInfo._totalLobTruncate ;
+      collectionSpace._totalLobAddressing = statInfo._totalLobAddressing ;
 
       /// sync info
       collectionSpace._dataCommitLsn = getCurrentDataLSN() ;
@@ -3882,9 +3900,13 @@ namespace engine
       }
       if ( ( type & DMS_SU_LOB ) && _pLobSu->isOpened() )
       {
+         totalSize +=
+            ( _pLobSu->getLobData()->getFileSz() - DMS_HEADER_SZ ) ;
+      }
+      if ( ( type & DMS_SU_LOB_META ) && _pLobSu->isOpened() )
+      {
          totalSize += ( (INT64)( _pLobSu->getHeader()->_storageUnitSize ) <<
                         _pLobSu->pageSizeSquareRoot() ) ;
-         totalSize += _pLobSu->getLobData()->getFileSz() ;
       }
 
    done:
@@ -4029,28 +4051,41 @@ namespace engine
 
       dmsMBStatInfo *mbStat = NULL ;
 
-      // lock meta
-      _pDataSu->_metadataLatch.get_shared() ;
-
-      dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
-      while ( it != _pDataSu->_collectionNameMap.end() )
+      /// Guard
       {
-         mbStat = &_pDataSu->_mbStatInfo[it->second] ;
+         ossScopedLock lock( &_pDataSu->_metadataLatch, SHARED ) ;
 
-         ++statInfo._clNum ;
-         statInfo._totalCount += mbStat->_totalRecords ;
-         statInfo._totalLobs += mbStat->_totalLobs ;
-         statInfo._totalDataPages += mbStat->_totalDataPages ;
-         statInfo._totalIndexPages += mbStat->_totalIndexPages ;
-         statInfo._totalLobPages += mbStat->_totalLobPages ;
-         statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
-         statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+         dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
+         while ( it != _pDataSu->_collectionNameMap.end() )
+         {
+            mbStat = &_pDataSu->_mbStatInfo[it->second] ;
 
-         ++it ;
+            ++statInfo._clNum ;
+            statInfo._totalCount += mbStat->_totalRecords ;
+            statInfo._totalDataPages += mbStat->_totalDataPages ;
+            statInfo._totalIndexPages += mbStat->_totalIndexPages ;
+            statInfo._totalLobPages += mbStat->_totalLobPages ;
+            statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
+            statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+
+            statInfo._totalLobs += mbStat->_totalLobs ;
+            statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
+            statInfo._totalLobSize += mbStat->_totalLobSize ;
+
+            statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
+            statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
+            statInfo._totalLobDelete += mbStat->_crudCB._totalLobDelete ;
+            statInfo._totalLobList += mbStat->_crudCB._totalLobList ;
+            statInfo._totalLobReadSize += mbStat->_crudCB._totalLobReadSize ;
+            statInfo._totalLobWriteSize += mbStat->_crudCB._totalLobWriteSize ;
+            statInfo._totalLobRead += mbStat->_crudCB._totalLobRead ;
+            statInfo._totalLobWrite += mbStat->_crudCB._totalLobWrite ;
+            statInfo._totalLobTruncate += mbStat->_crudCB._totalLobTruncate ;
+            statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
+
+            ++it ;
+         }
       }
-
-      // release meta
-      _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }
 
@@ -4058,6 +4093,7 @@ namespace engine
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
+      INT64 lobCapacity = 0 ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CL ) ;
 
@@ -4069,6 +4105,7 @@ namespace engine
 
       mb = _pDataSu->getMBInfo( mbID ) ;
       mbStat = _pDataSu->getMBStatInfo( mbID ) ;
+      lobCapacity = totalSize( DMS_SU_LOB ) ;
 
       PD_CHECK( DMS_IS_MB_INUSE ( mb->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
@@ -4096,6 +4133,22 @@ namespace engine
          info._dictVersion = mb->_dictVersion ;
 
          info._totalLobs = mbStat->_totalLobs ;
+         info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
+         info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
+         info._totalLobSize = mbStat->_totalLobSize ;
+         info._totalValidLobSize = mbStat->_totalValidLobSize ;
+         /// Because lob page 0 is unevenly distributed on data nodes, the
+         /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+         /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
+         info._lobUsageRate = utilPercentage( info._totalLobSize, info._totalUsedLobSpace ) ;
+         if ( 0 < info._totalLobs )
+         {
+            info._avgLobSize = info._totalValidLobSize / info._totalLobs ;
+         }
+         else
+         {
+            info._avgLobSize = 0 ;
+         }
 
          info._pageSize = getPageSize() ;
          info._lobPageSize = getLobPageSize() ;

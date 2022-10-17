@@ -43,6 +43,7 @@
 #include "msgDef.hpp"
 #include "rtnLob.hpp"
 #include "../bson/bson.hpp"
+#include "monInterface.hpp"
 
 namespace engine
 {
@@ -52,11 +53,12 @@ namespace engine
    class _dpsLogWrapper ;
    class _rtnContextBase ;
    class _rtnContextBuf ;
+   class _rtnLobMetricsSubmitor ;
 
-   class _rtnLobStream : public SDBObject
+   class _rtnLobStream : public SDBObject, public IMonSubmitEvent
    {
    public:
-      _rtnLobStream() ;
+      _rtnLobStream( IMonSubmitEvent *pMonSubmitEvent = NULL ) ;
       virtual ~_rtnLobStream() ;
 
    public:
@@ -97,7 +99,8 @@ namespace engine
       INT32 truncate( INT64 len,
                       _pmdEDUCB *cb ) ;
 
-      INT32 closeWithException( _pmdEDUCB *cb ) ;
+      INT32 closeWithException( _pmdEDUCB *cb,
+                                _rtnLobMetricsSubmitor *pSubmitor = NULL ) ;
 
       INT32 getMetaData( bson::BSONObj &meta ) ;
 
@@ -155,6 +158,9 @@ namespace engine
          return _getMode() ;
       }
 
+   public:
+      virtual void onSubmit( const monAppCB &delta ) ;
+
    protected:
       OSS_INLINE _dmsLobMeta &_getMeta()
       {
@@ -197,6 +203,8 @@ namespace engine
       }
 
       UINT32 _getSequence( INT64 offset ) const ;
+
+      virtual void _onIncreaseMetrics( const monAppCB &delta ) {}
 
    private:
       virtual INT32 _prepare( _pmdEDUCB *cb ) = 0 ;
@@ -283,6 +291,10 @@ namespace engine
       INT64 _calculateLockedLobLen( INT64 lobLen, BOOLEAN wholeLobLocked,
                                     INT64 lockedEnd ) ;
 
+      void _increaseLobOpCount( _pmdEDUCB *cb ) ;
+
+      void _increaseMetrics( _pmdEDUCB *cb ) ;
+
    private:
       INT64                _uniqueId ;
       CHAR                 _fullName[ DMS_COLLECTION_SPACE_NAME_SZ +
@@ -307,6 +319,9 @@ namespace engine
       BOOLEAN              _wholeLobLocked ;
 
       BOOLEAN              _truncated ;
+      IMonSubmitEvent*     _pMonSubmitEvent ;
+      INT32                _opType ;
+      _monAppCB            _totalDeltaMonApp ; // keep the changes of the session
    } ;
    typedef class _rtnLobStream rtnLobStream ;
 

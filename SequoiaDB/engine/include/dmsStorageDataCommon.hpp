@@ -189,8 +189,8 @@ namespace engine
 
       utilCLUniqueID _clUniqueID ;
 
-      // reserved for LOB statistics
-      CHAR           _pad3[ 16 ] ;
+      UINT64         _totalLobSize ;
+      UINT64         _totalValidLobSize ;
 
       UINT64         _createTime ;
       UINT64         _updateTime ;
@@ -258,6 +258,8 @@ namespace engine
 
          _totalOrgDataLen        = 0 ;
          _totalDataLen           = 0 ;
+         _totalLobSize           = 0 ;
+         _totalValidLobSize      = 0 ;
 
          _maxGlobTransID         = 0 ;
          _commitFlag             = 0 ;
@@ -421,6 +423,8 @@ namespace engine
       UINT64      _totalDataLen ;
       UINT32      _startLID ;
       UINT32      _flag ;
+      UINT64      _totalLobSize ;
+      UINT64      _totalValidLobSize ;
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
@@ -479,6 +483,8 @@ namespace engine
          _totalDataLen           = 0 ;
          _startLID               = DMS_INVALID_CLID ;
          _flag                   = 0 ;
+         _totalLobSize           = 0 ;
+         _totalValidLobSize      = 0 ;
          _commitFlag.init( 0 ) ;
          _lastLSN.init( ~0 ) ;
          _lastWriteTick          = 0 ;
@@ -669,6 +675,31 @@ namespace engine
             return (UINT32)( avgSize ) ;
          }
          return 0 ;
+      }
+
+      void addTotalLobSize( INT64 size )
+      {
+         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobSize ), size ) ;
+      }
+
+      void subTotalLobSize( INT64 size )
+      {
+         addTotalLobSize( 0 - size ) ;
+      }
+
+      void resetTotalLobSize()
+      {
+         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobSize ), 0 ) ;
+      }
+
+      void addTotalValidLobSize( INT64 size )
+      {
+         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), size ) ;
+      }
+
+      void resetTotalValidLobSize()
+      {
+         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), 0 ) ;
       }
 
       _dmsMBStatInfo ()

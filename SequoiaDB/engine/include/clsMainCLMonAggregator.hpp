@@ -71,6 +71,7 @@ namespace engine
          detailedInfo   _detail ;
          UINT32         _totalSubCLCount ;
          UINT32         _doneSubCLCount ;
+         UINT64         _totalLobCapacity ;
    } ;
    typedef _clsMainCLMonInfo clsMainCLMonInfo ;
 

@@ -16,12 +16,13 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = utilMath.hpp
+   Source File Name = monInterface.hpp
 
-   Descriptive Name = math utility
+   Descriptive Name = N/A
 
    When/how to use: this program may be used on binary and text-formatted
-   versions of Runtime component.
+   versions of monitoring component. This file contains structure for
+   application and snapshot.
 
    Dependencies: N/A
 
@@ -30,52 +31,37 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          09/04/2017  HAS Initial Draft
+          03/10/2022  TZB  Initial Draft
 
    Last Changed =
 
-******************************************************************************/
+*******************************************************************************/
+#ifndef MON_INTERFACE_HPP__
+#define MON_INTERFACE_HPP__
 
-
-#ifndef UTILMATH_HPP__
-#define UTILMATH_HPP__
-
-
-
-#include "ossTypes.h"
-
+#include "core.hpp"
+#include "oss.hpp"
+#include "monCB.hpp"
 
 namespace engine
 {
 
-   OSS_INLINE INT64 utilAbs( INT64 value )
+   /*
+      _IMonSubmitEvent define
+   */
+   class _IMonSubmitEvent
    {
-      return value >= 0 ? value : -value ;
-   }
+      public:
+         _IMonSubmitEvent() {}
+         virtual ~_IMonSubmitEvent() {}
 
-   OSS_INLINE INT32 utilAbs( INT32 value )
-   {
-      return value >= 0 ? value : -value ;
-   }
+      public:
+         virtual void onSubmit( const monAppCB &delta ) = 0 ;
+   } ;
+   typedef _IMonSubmitEvent IMonSubmitEvent ;
 
-   OSS_INLINE BOOLEAN utilCanConvertToINT32( INT64 value )
-   {
-      return value <= OSS_SINT32_MAX_LL && value >= OSS_SINT32_MIN_LL ;
-   }
 
-   //
-   // overflow check in basic operation
-   //
-   BOOLEAN utilAddIsOverflow( INT64 l, INT64 r, INT64 result ) ;
-
-   BOOLEAN utilSubIsOverflow( INT64 l, INT64 r, INT64 result ) ;
-
-   BOOLEAN utilMulIsOverflow( INT64 l, INT64 r, INT64 result ) ;
-
-   BOOLEAN utilDivIsOverflow( INT64 l, INT64 r ) ;
-
-   FLOAT64 utilPercentage( INT64 x, INT64 y ) ;
 }
 
+#endif // MON_INTERFACE_HPP__
 
-#endif // UTILMATH_HPP__

@@ -38,6 +38,8 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "rtnContext.hpp"
+#include "rtnContextLob.hpp"
+#include "rtnLobMetricsSubmitor.hpp"
 
 using namespace bson ;
 
@@ -97,7 +99,7 @@ namespace engine
       }
    }
 
-   _rtnLobStream::_rtnLobStream()
+   _rtnLobStream::_rtnLobStream( IMonSubmitEvent *pMonSubmitEvent )
    :_uniqueId( -1 ),
     _dpsCB( NULL ),
     _opened( FALSE ),
@@ -108,8 +110,11 @@ namespace engine
     _offset( 0 ),
     _hasPiecesInfo( FALSE ),
     _wholeLobLocked( FALSE ),
-    _truncated( FALSE )
+    _truncated( FALSE ),
+    _pMonSubmitEvent( pMonSubmitEvent ),
+    _opType( MON_LOB_OP_NONE )
    {
+      _totalDeltaMonApp.reset() ;
       ossMemset( _fullName, 0, DMS_COLLECTION_SPACE_NAME_SZ +
                                DMS_COLLECTION_NAME_SZ + 2 ) ;
    }
@@ -129,6 +134,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_OPEN ) ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       ossMemcpy( _fullName, fullName, ossStrlen( fullName ) ) ;
       ossMemcpy( &_oid, &oid, sizeof( oid ) ) ;
@@ -159,6 +166,8 @@ namespace engine
 
       if ( SDB_IS_LOBREADONLY_MODE(mode) )
       {
+         /// monitor operation
+         _opType |= MON_LOB_OP_GET ;
          rc = _open4Read( cb ) ;
          /// AUDIT
          PD_AUDIT_OP_WITHNAME( AUDIT_DQL, rtnLobOpName(mode), AUDIT_OBJ_CL,
@@ -169,18 +178,26 @@ namespace engine
       }
       else if ( SDB_HAS_LOBWRITE_MODE(mode) )
       {
+         _opType |= MON_LOB_OP_PUT ;
+         if ( SDB_IS_LOBSREADWRITE_MODE( _mode ) )
+         {
+            _opType |= MON_LOB_OP_GET ;
+         }
          rc = _open4Write( cb ) ;
       }
       else if ( SDB_LOB_MODE_CREATEONLY == mode )
       {
+         _opType |= MON_LOB_OP_PUT ;
          rc = _open4Create( cb ) ;
       }
       else if ( SDB_LOB_MODE_REMOVE == mode )
       {
+         _opType |= MON_LOB_OP_DELETE ;
          rc = _open4Remove( cb ) ;
       }
       else if ( SDB_LOB_MODE_TRUNCATE == mode )
       {
+         _opType |= MON_LOB_OP_DELETE ;
          rc = _open4Truncate( cb ) ;
       }
       else
@@ -241,6 +258,9 @@ namespace engine
                goto error ;
             }
             _offset += readLen ;
+            /// monitor lob bytes read by client
+            RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_READ_BYTES,
+                                         readLen ) ;
          }
       }
 
@@ -258,11 +278,17 @@ namespace engine
 
       _opened = TRUE ;
 
+      // monitor Lob operation count
+      _increaseLobOpCount( cb ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_OPEN, rc ) ;
       return rc ;
    error:
-      closeWithException( cb ) ;
+      // only when fail to open stream,
+      // we reset lob operation type to None
+      _opType = MON_LOB_OP_NONE ;
+      closeWithException( cb, &submitor ) ;
       goto done ;
    }
 
@@ -341,6 +367,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_CLOSE ) ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
+
       if ( !isOpened() )
       {
          goto done ;
@@ -383,6 +411,12 @@ namespace engine
          }
       }
 
+      // submit the changes manually and then sync
+      // the changes to other snapshots
+      // must be called before _close()
+      submitor.submit() ;
+      _increaseMetrics( cb ) ;
+
       rc = _close( cb ) ;
       if ( SDB_OK != rc )
       {
@@ -394,15 +428,17 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_CLOSE, rc ) ;
       return rc ;
    error:
-      closeWithException( cb ) ;
+      closeWithException( cb, &submitor ) ;
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOBSTREAM_CLOSEWITHEXCEPTION, "_rtnLobStream::closeWithException" )
-   INT32 _rtnLobStream::closeWithException( _pmdEDUCB *cb )
+   INT32 _rtnLobStream::closeWithException( _pmdEDUCB *cb,
+                                            _rtnLobMetricsSubmitor *pSubmitor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_CLOSEWITHEXCEPTION ) ;
+
       if ( !isOpened() )
       {
          goto done ;
@@ -450,6 +486,14 @@ namespace engine
                  getOID().str().c_str(), _mode ) ;
       }
 
+      // submit the changes manually and then sync
+      // the changes to other snapshots
+      if ( pSubmitor )
+      {
+         pSubmitor->submit() ;
+      }
+      _increaseMetrics( cb ) ;
+
       _opened = FALSE ;
    done:
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_CLOSEWITHEXCEPTION, rc ) ;
@@ -478,6 +522,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_WRITE ) ;
       RTN_LOB_TUPLES tuples ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       if ( !isOpened() )
       {
@@ -494,6 +540,9 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      // monitor lob bytes write by client
+      RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, len ) ;
 
       if ( SDB_IS_LOBSREADWRITE_MODE( _mode ) )
       {
@@ -577,7 +626,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_WRITE, rc ) ;
       return rc ;
    error:
-      closeWithException( cb ) ;
+      closeWithException( cb, &submitor ) ;
       goto done ;
    }
 
@@ -592,6 +641,8 @@ namespace engine
       UINT32 readLen = 0 ;
       INT64 lockedEnd = -1 ;
       RTN_LOB_TUPLES tuples ;
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
 
       SDB_ASSERT( _meta.isDone(), "lob has not been completed yet" ) ;
 
@@ -678,8 +729,9 @@ namespace engine
             PD_LOG( PDERROR, "failed to read data from pool:%d", rc ) ;
             goto error ;
          }
-
          _offset += readLen ;
+         // monitor lob bytes write by client
+         RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_READ_BYTES, readLen ) ;
          goto done ;
       }
 
@@ -725,11 +777,15 @@ namespace engine
 
       _offset += len ;
       read = readLen ;
+
+      // monitor lob bytes write by client
+      RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_READ_BYTES, readLen ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_RTNLOBSTREAM_READ, rc ) ;
       return rc ;
    error:
-      closeWithException( cb ) ;
+      closeWithException( cb, &submitor ) ;
       goto done ;
    }
 
@@ -909,6 +965,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_TRUNCATE ) ;
+      rtnLobMetricsSubmitor submitor( cb, this ) ;
+
       SDB_ASSERT( ( SDB_LOB_MODE_REMOVE == _mode && 0 == len ) ||
                   SDB_LOB_MODE_TRUNCATE == _mode,
                   "invalid mode or len" ) ;
@@ -1481,5 +1539,56 @@ namespace engine
    error:
       goto done ;
    }
+
+   void _rtnLobStream::onSubmit( const monAppCB &delta )
+   {
+      _totalDeltaMonApp += delta ;
+      if ( _pMonSubmitEvent )
+      {
+         _pMonSubmitEvent->onSubmit( delta ) ;
+      }
+   }
+
+   void _rtnLobStream::_increaseLobOpCount( _pmdEDUCB *cb )
+   {
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      if ( _opType )
+      {
+         if ( _opType & MON_LOB_OP_GET )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_PUT )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_DELETE )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
+         }
+      }
+   }
+
+   void _rtnLobStream::_increaseMetrics( _pmdEDUCB *cb )
+   {
+      if ( cb )
+      {
+         monAppCB *pMonAppCB = cb->getMonAppCB() ;
+         // submit from session snapshot to database and svcTask snapshot
+         if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
+         {
+            pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
+         }
+         if ( pMonAppCB && pMonAppCB->mondbcb )
+         {
+            pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
+         }
+         // submit from session snapshot to other snapshot
+         _onIncreaseMetrics( _totalDeltaMonApp ) ;
+         _totalDeltaMonApp.reset() ;
+      }
+   }
+
 }
 

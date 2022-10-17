@@ -59,6 +59,22 @@ using namespace bson;
 namespace engine
 {
 
+#define RTN_MON_LOB_OP_COUNT_INC( _pMonAppCB_, op, delta )                    \
+   {                                                                          \
+      if ( NULL != _pMonAppCB_ )                                              \
+      {                                                                       \
+         _pMonAppCB_->monOperationCountInc( op, delta, MON_UPDATE_SESSION ) ; \
+      }                                                                       \
+   }
+
+#define RTN_MON_LOB_BYTES_COUNT_INC( _pMonAppCB_, op, delta )                 \
+   {                                                                          \
+      if ( NULL != _pMonAppCB_ )                                              \
+      {                                                                       \
+         _pMonAppCB_->monByteCountInc( op, delta, MON_UPDATE_SESSION ) ;      \
+      }                                                                       \
+   }
+
    class _dmsScanner ;
    class _rtnContextData ;
    class _rtnContextDump ;
