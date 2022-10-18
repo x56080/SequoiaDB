@@ -5,8 +5,8 @@
  *                : seqDB-24340:SdbSnapshotOption接口指定options为空     
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.18
- * @LastEditTime  : 2022.09.02
- * @LastEditors   : Xu Mingxing
+ * @LastEditTime  : 2022.10.18
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipExistOneNodeGroup = true;
@@ -68,6 +68,7 @@ function test ()
    coord.stop();
    cata.stop();
    data.stop();
+   commCheckBusinessStatus( db );
 
    try
    {
@@ -140,6 +141,7 @@ function test ()
       coord.start();
       cata.start();
       data.start();
+      commCheckBusinessStatus( db );
    }
 }
 
