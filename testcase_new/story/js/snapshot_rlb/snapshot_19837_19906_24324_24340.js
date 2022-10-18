@@ -5,7 +5,7 @@
  *                : seqDB-24340:SdbSnapshotOption接口指定options为空     
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.18
- * @LastEditTime  : 2022.10.13
+ * @LastEditTime  : 2022.10.18
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -63,6 +63,7 @@ function test ()
 
    coord.stop();
    data.stop();
+   commCheckBusinessStatus( db );
 
    try
    {
@@ -134,6 +135,7 @@ function test ()
    {
       coord.start();
       data.start();
+      commCheckBusinessStatus( db );
    }
 }
 

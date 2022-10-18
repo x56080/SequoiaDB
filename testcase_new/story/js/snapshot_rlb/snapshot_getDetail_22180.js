@@ -142,16 +142,30 @@ function getGroupsWithNodeNum ( nodesNum )
 
 function updateConf ( db, configs, options )
 {
-   assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
+   try
    {
       db.updateConf( configs, options );
-   } );
+   }
+   catch( e )
+   {
+      if( e != SDB_COORD_NOT_ALL_DONE && e != SDB_RTN_CONF_NOT_TAKE_EFFECT )
+      {
+         throw new Error( e );
+      }
+   }
 }
 
 function deleteConf ( db, configs, options )
 {
-   assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
+   try
    {
       db.deleteConf( configs, options );
-   } );
+   }
+   catch( e )
+   {
+      if( e != SDB_COORD_NOT_ALL_DONE && e != SDB_RTN_CONF_NOT_TAKE_EFFECT )
+      {
+         throw new Error( e );
+      }
+   }
 }
