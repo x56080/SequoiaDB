@@ -104,8 +104,8 @@ public class CLBulkInsert {
         assertEquals(2, i);
         for (i = 0; i < list.size(); i++) {
             record = list.get(i);
-            if (null != record.get(Constants.OID)) {
-                assertTrue("Record should not contain oid add by bulk insert", false);
+            if (null == record.get(Constants.OID)) {
+                assertTrue("Record should contain oid add by bulk insert", false);
             }
         }
 
@@ -125,11 +125,11 @@ public class CLBulkInsert {
             cursor.getNext();
             i++;
         }
-        assertEquals(4, i);
+        assertEquals(2, i);
         for (i = 0; i < list.size(); i++) {
             record = list.get(i);
             if (null == record.get(Constants.OID)) {
-                assertTrue("Record has no oid add by bulk insert", false);
+                assertTrue("Record should not contain oid add by bulk insert", false);
             }
         }
 
@@ -157,32 +157,11 @@ public class CLBulkInsert {
             cursor.getNext();
             i++;
         }
-        assertEquals(8, i);
-        for (i = 0; i < list.size(); i++) {
-            record = list.get(i);
-            if (null == record.get(Constants.OID)) {
-                assertTrue("Record has no oid add by bulk insert", false);
-            }
-            if (null != record.get("a")) {
-                ObjectId id = (ObjectId) record.get(Constants.OID);
-                if (false == id.toString().endsWith(oid.toString())) {
-                    assertTrue("Record's oid should not be changed by bulk insert", false);
-                }
-            }
-            if (null != record.get("b")) {
-                String id = (String) record.get(Constants.OID);
-                if (false == id.toString().equals("2")) {
-                    assertTrue("Record's oid should not be changed by bulk insert", false);
-                }
-            }
-            if (null != record.get("c")) {
-                int id = (Integer) record.get(Constants.OID);
-                if (3 != id) {
-                    assertTrue("Record's oid should not be changed by bulk insert", false);
-                }
-            }
-        }
-        assertEquals(4, i);
+        assertEquals(6, i);
+        assertEquals(oid, obj.get(Constants.OID));
+        assertEquals("2", obj1.get(Constants.OID));
+        assertEquals(3, obj2.get(Constants.OID));
+        assertEquals(4, list.size());
 
         // case 4:
         try {

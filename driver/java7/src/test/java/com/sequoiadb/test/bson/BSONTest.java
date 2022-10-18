@@ -84,14 +84,8 @@ public class BSONTest {
         System.out.println("ts is: " + obj.toString());
 
         cl.insert(obj);
-        cursor = cl.query();
-        BSONObject record = null;
-        try {
-            record = cursor.getNext();
-        } finally {
-            cursor.close();
-        }
-        assertEquals(obj, record);
+        BSONObject record = cl.queryOne();
+        assertEquals(obj.get("ts"), record.get("ts"));
 
         // case 4: 2017/01/01 10:25:59:123456
         obj = new BasicBSONObject();

@@ -78,9 +78,23 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 	//@Override
 	public byte[] encode(BSONObject o) {
+		return encode(o, null);
+	}
+
+	public byte[] encode(BSONObject o, BSONObject extendObj) {
+		// No need to support extended data when o is BasicBSONList
+		if ((o instanceof BasicBSONList) && extendObj != null) {
+			throw new IllegalArgumentException("Type " + o.getClass().getName() + " does not support extended data");
+		}
+
+		// extendObj does not need to support type BasicBSONList
+		if (extendObj instanceof BasicBSONList) {
+			throw new IllegalArgumentException("extendObj should be BasicBSONObject but is " + extendObj.getClass().getName());
+		}
+
 		BasicOutputBuffer buf = new BasicOutputBuffer();
 		set(buf);
-		putObject(o);
+		putObject(o, extendObj);
 		done();
 		return buf.toByteArray();
 	}
@@ -117,13 +131,17 @@ public class BasicBSONEncoder implements BSONEncoder {
 	 */
 	//@Override
 	public int putObject(BSONObject o) {
-		return putObject(null, o);
+		return putObject(null, o, null);
+	}
+
+	public int putObject(BSONObject o, BSONObject extendObj) {
+		return putObject(null, o, extendObj);
 	}
 
 	/**
 	 * this is really for embedded objects
 	 */
-	protected int putObject(String name, BSONObject o) {
+	protected int putObject(String name, BSONObject o, BSONObject extendObj) {
 
 		if (o == null) throw new NullPointerException("can't save a null object");
 
@@ -147,7 +165,13 @@ public class BasicBSONEncoder implements BSONEncoder {
 		boolean rewriteID = myType == OBJECT && name == null;
 
 		if (myType == OBJECT) {
-			if (rewriteID && o.containsField("_id")) _putObjectField("_id", o.get("_id"));
+			if (rewriteID) {
+				if (o.containsField("_id")) {
+					_putObjectField("_id", o.get("_id"));
+				} else if (extendObj != null && extendObj.containsField("_id")) {
+					_putObjectField("_id", extendObj.get("_id"));
+				}
+			}
 
 			{
 				Object temp = o.get("_transientFields");
@@ -176,9 +200,19 @@ public class BasicBSONEncoder implements BSONEncoder {
 				Object val = o.get(s);
 
 				_putObjectField(s, val);
-
 			}
 		}
+
+		// Append extended object. Nested data does not need to add extended data
+		if (rewriteID && extendObj != null) {
+			for (String key : extendObj.keySet()) {
+				if (key.equals("_id")) {
+					continue;
+				}
+				_putObjectField(key, extendObj.get(key));
+			}
+		}
+
 		_buf.write(EOO);
 
 		_buf.writeInt(sizePos, _buf.getPosition() - sizePos);
@@ -216,7 +250,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 		else if (val instanceof ObjectId)
 			putObjectId(name, (ObjectId) val);
 		else if (val instanceof BSONObject)
-			putObject(name, (BSONObject) val);
+			putObject(name, (BSONObject) val, null);
 		else if (val instanceof Boolean)
 			putBoolean(name, (Boolean) val);
 		else if (val instanceof Pattern)

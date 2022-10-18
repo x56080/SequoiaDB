@@ -19,7 +19,11 @@ import org.bson.io.*;
 public interface BSONEncoder {
     public byte[] encode( BSONObject o );
 
+    public byte[] encode( BSONObject o, BSONObject extendObj );
+
     public int putObject( BSONObject o );
+
+    public int putObject( BSONObject o, BSONObject extendObj );
 
     public void done();
 

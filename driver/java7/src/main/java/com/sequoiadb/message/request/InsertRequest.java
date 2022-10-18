@@ -22,6 +22,7 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 
@@ -60,27 +61,32 @@ public class InsertRequest extends SdbRequest {
     public InsertRequest(String collectionName, BSONObject doc, int flag) {
         this(collectionName);
 
+        BSONObject extendObj = null;
         this.flag = flag;
 
         if (doc == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "doc is null");
         }
-        // prepare oid and try to return it
+
+        Object objId = doc.get(OID);
+        if (objId == null) {
+            objId = ObjectId.get();
+            extendObj = new BasicBSONObject(OID, objId);
+        }
         if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0) {
-            Object objId = doc.get(OID);
-            if (objId == null) {
-                objId = ObjectId.get();
+            oid = objId;
+            // Compatible with previous behavior
+            if (!doc.containsField(OID)) {
                 doc.put(OID, objId);
             }
-            oid = objId;
         }
         docsBytes = new ArrayList<byte[]>(1);
-        byte[] docBytes = Helper.encodeBSONObj(doc);
+        byte[] docBytes = Helper.encodeBSONObj(doc, extendObj);
         docsBytes.add(docBytes);
         length += Helper.alignedSize(docBytes.length);
     }
 
-    public InsertRequest(String collectionName, List<BSONObject> docs, int flag, boolean ensureOID) {
+    public InsertRequest(String collectionName, List<BSONObject> docs, int flag) {
         this(collectionName);
 
         this.flag = flag;
@@ -93,14 +99,23 @@ public class InsertRequest extends SdbRequest {
         }
         docsBytes = new ArrayList<byte[]>(docs.size());
         int index = 0;
+        BasicBSONObject extendObj = new BasicBSONObject();
         for (BSONObject doc : docs) {
-            if (ensureOID && !doc.containsField(OID)) {
-                doc.put(OID, ObjectId.get());
+            Object objId = doc.get(OID);
+            if (objId == null) {
+                objId = ObjectId.get();
+                extendObj.put(OID, objId);
             }
-            if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0 && doc.containsField(OID)) {
-                ((BasicBSONList) oid).put(index++, doc.get(OID));
+            if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0) {
+                ((BasicBSONList) oid).put(index++, objId);
             }
-            byte[] docBytes = Helper.encodeBSONObj(doc);
+            // Compatible with previous behavior
+            if (!doc.containsField(OID)) {
+                doc.put(OID, objId);
+            }
+
+            byte[] docBytes = Helper.encodeBSONObj(doc, extendObj);
+            extendObj.clear();
             docsBytes.add(docBytes);
             length += Helper.alignedSize(docBytes.length);
         }
