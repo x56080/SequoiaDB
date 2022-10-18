@@ -412,9 +412,14 @@ public class BSON {
      * @return the bytes.
      */
     public static byte[] encode(BSONObject o) {
+        return encode(o, null);
+    }
+
+    // Internal use
+    public static byte[] encode(BSONObject o, BSONObject extendObj) {
         BSONEncoder e = _staticEncoder.get();
         try {
-            return e.encode(o);
+            return e.encode(o, extendObj);
         } finally {
             e.done();
         }
