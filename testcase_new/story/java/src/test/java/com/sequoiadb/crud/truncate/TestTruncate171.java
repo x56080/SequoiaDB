@@ -60,8 +60,7 @@ public class TestTruncate171 extends SdbTestBase {
         }
     }
 
-    // 问题单SEQUOIADBMAINSTREAM-8614未修改，暂时屏蔽用例
-    @Test(enabled = false)
+    @Test()
     public void test() {
         TruncateThread truncateThread = new TruncateThread();
         SplitThread splitThread = new SplitThread();
@@ -113,6 +112,8 @@ public class TestTruncate171 extends SdbTestBase {
                 if ( e.getErrorCode() != SDBError.SDB_DMS_TRUNCATED
                         .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
                                 .getErrorCode() ) {
                     throw e;
                 }
