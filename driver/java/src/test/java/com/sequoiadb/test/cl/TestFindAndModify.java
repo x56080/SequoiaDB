@@ -67,7 +67,7 @@ public class TestFindAndModify {
         int i = 0;
         while (cursor.hasNext()) {
             BSONObject result = cursor.getNext();
-            assertEquals(true, result.equals(v2));
+            assertEquals(v2, result);
             i++;
         }
         assertEquals(1, i);
