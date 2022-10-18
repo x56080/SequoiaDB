@@ -22,6 +22,10 @@ $SNAPSHOT_CONTEXT_CUR
 | Contexts.Description      | string   | 上下文的描述信息，如：包含当前的查询条件 |
 | Contexts.DataRead         | int64    | 所读数据                                 |
 | Contexts.IndexRead        | int64    | 所读索引                                 |
+| Contexts.LobRead        | int64  | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| Contexts.LobWrite       | int64  | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| Contexts.LobTruncate    | int64  | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| Contexts.LobAddressing  | int64  | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.QueryTimeSpent   | double   | 查询总时间，单位为秒                   |
 | Contexts.StartTimestamp   | timestamp   | 创建时间                                 |
 
@@ -41,13 +45,18 @@ $SNAPSHOT_CONTEXT_CUR
   "SessionID": 29,
   "Contexts": [
     {
-      "ContextID": 143397,
+      "ContextID": 14,
       "Type": "DUMP",
       "Description": "IsOpened:1,IsTrans:0,HitEnd:0,BufferSize:0",
       "DataRead": 0,
       "IndexRead": 0,
+      "LobRead": 0,
+      "LobWrite": 0,
+      "LobTruncate": 0,
+      "LobAddressing": 0,
       "QueryTimeSpent": 0,
-      "StartTimestamp": "2019-06-03-14.47.17.144611"
+      "StartTimestamp": "2022-10-09-10.39.11.912364"
+
     }
   ]
 }
@@ -56,13 +65,17 @@ $SNAPSHOT_CONTEXT_CUR
   "SessionID": 25,
   "Contexts": [
     {
-      "ContextID": 13203,
+      "ContextID": 14,
       "Type": "DUMP",
       "Description": "IsOpened:1,IsTrans:0,HitEnd:0,BufferSize:0",
       "DataRead": 0,
       "IndexRead": 0,
+      "LobRead": 0,
+      "LobWrite": 0,
+      "LobTruncate": 0,
+      "LobAddressing": 0,
       "QueryTimeSpent": 0,
-      "StartTimestamp": "2019-06-03-14.47.17.144643"
+      "StartTimestamp": "2022-10-09-10.39.11.912395"
     }
   ]
 }

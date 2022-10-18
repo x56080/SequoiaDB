@@ -43,10 +43,16 @@ SDB_SNAP_COLLECTIONS
 | Details.PageSize                | int32         | 集合页的大小                                            |
 | Details.LobPageSize             | int32         | 大对象页的大小                                          |
 | Details.TotalRecords            | int64         | 集合的记录总数                                          |
-| Details.TotalLobs               | int64         | 集合的大对象总数                                        |
+| Details.TotalLobs               | int64         | 集合大对象文件总数 |
 | Details.TotalDataPages          | int32         | 集合的数据页总数                                        |
 | Details.TotalIndexPages         | int32         | 集合的索引页总数                                        |
-| Details.TotalLobPages           | int32         | 集合的大对象页总数                                      |
+| Details.TotalLobPages           | int32         | 集合大对象文件已使用空间数据页个数 |
+| Details.TotalUsedLobSpace   | int64      | 集合大对象文件已使用的空间大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
+| Details.UsedLobSpaceRatio    | double      | 集合大对象文件已使用的空间占其所在集合空间存储容量的比率（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobSize     | int64      | 集合大对象文件的数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效）    |
+| Details.TotalValidLobSize | int64     | 集合大对象文件有效数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
+| Details.LobUsageRate    | double  | 集合大对象文件的有效使用率（仅在 v3.6.1 及以上版本生效）<br>使用率越高，空间浪费越少 |
+| Details.AvgLobSize     | int64      | 集合大对象文件平均大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | Details.TotalDataFreeSpace      | int64         | 集合的数据空闲空间，单位为字节                          |
 | Details.TotalIndexFreeSpace     | int64         | 集合的索引空闲空间，单位为字节                          |
 | Details.CurrentCompressionRatio | double        | 集合的的压缩率                                          |
@@ -68,6 +74,16 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalWrite      | int64 | 集合写入记录数量 |
 | Details.TotalTbScan     | int64 | 集合使用表扫描次数 |
 | Details.TotalIxScan     | int64 | 集合使用索引扫描次数 |
+| Details.TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| Details.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | Details.ResetTimestamp  | string | 重置快照的时间 |
 | Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
 | Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
@@ -86,9 +102,16 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.Indexes             | int32         | 该集合所包含的索引数量                                  |
 | Details.Group.Status              | string        | 集合当前状态，取值如下：<br>"Free"：空闲<br>"Normal"：正常<br>"Dropped"：被删除<br>"Offline Reorg Shadow Copy Phase"：离线重组复制阶段<br>"Offline Reorg Truncate Phase"：离线重组清除阶段<br>"Offline Reorg Copy Back Phase"：离线重组重入阶段<br>"Offline Reorg Rebuild Phase"：离线重组重建索引阶段 |
 | Details.Group.TotalRecords        | int64         | 集合的记录总数                                          |
+| Details.Group.TotalLobs               | int64         | 集合大对象文件总数 |
 | Details.Group.TotalDataPages      | int32         | 集合的数据页总数                                        |
 | Details.Group.TotalIndexPages     | int32         | 集合的索引页总数                                        |
-| Details.Group.TotalLobPages       | int32         | 集合的大对象页总数                                      |
+| Details.Group.TotalLobPages           | int32         | 集合大对象文件已使用空间数据页个数 |
+| Details.Group.TotalUsedLobSpace   | int64      | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.UsedLobSpaceRatio    | double      | 集合大对象文件已使用的空间占其所在集合空间存储容量的比率（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobSize     | int64      | 集合大对象文件的数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效）    |
+| Details.Group.TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v3.6.1 及以上版本生效）<br>使用率越高，空间浪费越少 |
+| Details.Group.AvgLobSize     | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.TotalDataFreeSpace  | int64         | 集合的数据空闲空间，单位为字节                          |
 | Details.Group.TotalIndexFreeSpace | int64         | 集合的索引空闲空间，单位为字节                          |
 | Details.Group.TotalDataRead   | int64 | 集合数据读请求 |
@@ -103,6 +126,16 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.TotalWrite      | int64 | 集合写入记录数量 |
 | Details.Group.TotalTbScan     | int64 | 集合使用表扫描次数 |
 | Details.Group.TotalIxScan     | int64 | 集合使用索引扫描次数 |
+| Details.Group.TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| Details.Group.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.ResetTimestamp  | string | 重置快照的时间 |
 | Details.Group.NodeName            | string        | 节点名，格式为<主机名>:<服务名>                         |
 | Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
@@ -123,50 +156,66 @@ SDB_SNAP_COLLECTIONS
    ```lang-json
    {
      "Name": "sample.employee",
-     "UniqueID": 261993005057,
+     "UniqueID": 4294967297,
      "CollectionSpace": "sample",
      "Details": [
        {
-         "NodeName": "hostname:11890",
+         "NodeName": "hostname:11820",
          "GroupName": "group1",
-         "InternalV": 1,
+         "InternalV": 2,
          "ID": 0,
          "LogicalID": 0,
          "Sequence": 1,
-         "Indexes": 8,
+         "Indexes": 1,
          "Status": "Normal",
-         "Attribute": "",
-         "CompressionType": "",
+         "Attribute": "Compressed",
+         "CompressionType": "lzw",
          "DictionaryCreated": false,
          "DictionaryVersion": 0,
          "PageSize": 65536,
          "LobPageSize": 262144,
          "TotalRecords": 0,
-         "TotalLobs": 0,
+         "TotalLobs": 1,
          "TotalDataPages": 0,
-         "TotalIndexPages": 6,
-         "TotalLobPages": 0,
+         "TotalIndexPages": 2,
+         "TotalLobPages": 1,
+         "TotalUsedLobSpace": 262144,
+         "UsedLobSpaceRatio": 0,
+         "TotalLobSize": 150,
+         "TotalValidLobSize": 150,
+         "LobUsageRate": 0,
+         "AvgLobSize": 150,
          "TotalDataFreeSpace": 0,
-         "TotalIndexFreeSpace": 196545,
+         "TotalIndexFreeSpace": 65515,
          "CurrentCompressionRatio": 1,
-         "DataCommitLSN": 160,
-         "IndexCommitLSN": 180,
-         "LobCommitLSN": -1,
-         "DataCommitted": false,
-         "IndexCommitted": false,
+         "DataCommitLSN": 80,
+         "IndexCommitLSN": 80,
+         "LobCommitLSN": 164,
+         "DataCommitted": true,
+         "IndexCommitted": true,
          "LobCommitted": true,
          "TotalDataRead": 0,
          "TotalIndexRead": 0,
-         "TotalDataWrite": 100,
-         "TotalIndexWrite": 100,
+         "TotalDataWrite": 0,
+         "TotalIndexWrite": 0,
          "TotalUpdate": 0,
          "TotalDelete": 0,
-         "TotalInsert": 100,
+         "TotalInsert": 0,
          "TotalSelect": 0,
          "TotalRead": 0,
-         "TotalWrite": 100,
+         "TotalWrite": 0,
          "TotalTbScan": 0,
          "TotalIxScan": 0,
+         "TotalLobGet": 0,
+         "TotalLobPut": 1,
+         "TotalLobDelete": 0,
+         "TotalLobList": 0,
+         "TotalLobReadSize": 0,
+         "TotalLobWriteSize": 150,
+         "TotalLobRead": 0,
+         "TotalLobWrite": 1,
+         "TotalLobTruncate": 0,
+         "TotalLobAddressing": 1,
          "ResetTimestamp": "2022-10-06-18.04.31.090482",
          "CreateTime": "2022-10-06-18.04.31.090000",
          "UpdateTime": "2022-10-06-18.04.31.164000"
@@ -187,7 +236,7 @@ SDB_SNAP_COLLECTIONS
    ```lang-json
    {
      "Name": "sample.employee",
-     "UniqueID": 261993005058,
+     "UniqueID": 4294967297,
      "Details": [
        {
          "GroupName": "group1",
@@ -198,24 +247,41 @@ SDB_SNAP_COLLECTIONS
              "Sequence": 1,
              "Indexes": 1,
              "Status": "Normal",
-             "TotalRecords": 1,
-             "TotalDataPages": 1,
+             "TotalRecords": 0,
+             "TotalLobs": 1,
+             "TotalDataPages": 0,
              "TotalIndexPages": 2,
-             "TotalLobPages": 0,
-             "TotalDataFreeSpace": 4004,
-             "TotalIndexFreeSpace": 4046,
+             "TotalLobPages": 1,
+             "TotalUsedLobSpace": 262144,
+             "UsedLobSpaceRatio": 0,
+             "TotalLobSize": 150,
+             "TotalValidLobSize": 150,
+             "LobUsageRate": 0,
+             "AvgLobSize": 150,
+             "TotalDataFreeSpace": 0,
+             "TotalIndexFreeSpace": 65515,
              "TotalDataRead": 0,
              "TotalIndexRead": 0,
-             "TotalDataWrite": 100,
-             "TotalIndexWrite": 100,
+             "TotalDataWrite": 0,
+             "TotalIndexWrite": 0,
              "TotalUpdate": 0,
              "TotalDelete": 0,
-             "TotalInsert": 100,
+             "TotalInsert": 0,
              "TotalSelect": 0,
              "TotalRead": 0,
-             "TotalWrite": 100,
+             "TotalWrite": 0,
              "TotalTbScan": 0,
              "TotalIxScan": 0,
+             "TotalLobGet": 0,
+             "TotalLobPut": 1,
+             "TotalLobDelete": 0,
+             "TotalLobList": 0,
+             "TotalLobReadSize": 0,
+             "TotalLobWriteSize": 150,
+             "TotalLobRead": 0,
+             "TotalLobWrite": 1,
+             "TotalLobTruncate": 0,
+             "TotalLobAddressing": 1,
              "ResetTimestamp": "2022-10-06-18.04.31.090482",
              "NodeName": "hostname:11820",
              "CreateTime": "2022-10-06-18.04.31.090000",

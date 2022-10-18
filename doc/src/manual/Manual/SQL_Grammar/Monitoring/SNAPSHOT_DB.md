@@ -65,6 +65,16 @@ $SNAPSHOT_DB
 | ReplInsert            | int64  | 复制插入记录数量                                                                |
 | TotalSelect           | int64  | 总选择记录数量                                                                  |
 | TotalRead             | int64  | 总读取记录数量                                                                  |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalReadTime         | int64  | 总读取时间，单位为毫秒                                                        |
 | TotalWriteTime        | int64  | 总写入时间，单位为毫秒                                                        |
 | ActivateTimestamp     | timestamp | 数据库节点启动时间                                                         |
@@ -105,95 +115,106 @@ $SNAPSHOT_DB
   "NodeName": "hostname:41000",
   "HostName": "hostname",
   "ServiceName": "41000",
-  "GroupName": "db2",
-  "IsPrimary": false,
+  "GroupName": "group2",
+  "IsPrimary": true,
   "ServiceStatus": true,
   "Status": "Normal",
   "FTStatus": "",
   "BeginLSN": {
-    "Offset": 2013265920,
-    "Version": 1
+    "Offset": -1,
+    "Version": 0
   },
   "CurrentLSN": {
-    "Offset": 3314225876,
-    "Version": 1
+    "Offset": -1,
+    "Version": 0
   },
   "CommittedLSN": {
-    "Offset": 3314225876,
-    "Version": 1
+    "Offset": -1,
+    "Version": 0
   },
-  "CompleteLSN": 3314226020,
+  "CompleteLSN": 0,
   "LSNQueSize": 0,
   "TransInfo": {
-    "TotalCount": 1,
-    "BeginLSN": 3314225744
+    "TotalCount": 0,
+    "BeginLSN": -1
   },
   "NodeID": [
     1001,
-    1002
+    1001
   ],
   "Version": {
     "Major": 3,
-    "Minor": 2,
-    "Fix": 1,
-    "Release": 41325,
-    "GitVersion": "7b21adc4206894102682a621a4b49f17ed96a46f",
-    "Build": "2019-05-30-15.48.53(Debug)"
+    "Minor": 4,
+    "Fix": 8,
+    "Release": 43611,
+    "GitVersion": "e0b89a77ec66e4ccecdc02b085029bca4c7aef4a",
+    "Build": "2022-10-08-12.27.37(Enterprise Debug)"
   },
-  "CurrentActiveSessions": 19,
-  "CurrentIdleSessions": 12,
+  "Edition": "Enterprise",
+  "CurrentActiveSessions": 27,
+  "CurrentIdleSessions": 9,
   "CurrentSystemSessions": 12,
-  "CurrentTaskSessions": 5,
+  "CurrentTaskSessions": 6,
   "CurrentContexts": 1,
-  "ReceivedEvents": 1122566,
+  "ReceivedEvents": 26,
   "Role": "data",
   "Disk": {
-    "DatabasePath": "/opt/test/41000/",
-    "LoadPercent": 34,
-    "TotalSpace": 211139878912,
-    "FreeSpace": 138432405504
+    "DatabasePath": "/opt/sequoiadb/database/data/11830/",
+    "LoadPercent": 0,
+    "TotalSpace": 754868568064,
+    "FreeSpace": 622475874304
   },
   "TotalNumConnects": 0,
-  "TotalQuery": 71,
+  "TotalQuery": 26,
   "TotalSlowQuery": 0,
   "TotalTransCommit": 0,
   "TotalTransRollback": 0,
-  "TotalDataRead": 182083,
-  "TotalIndexRead": 445888,
-  "TotalDataWrite": 611764,
-  "TotalIndexWrite": 943444,
-  "TotalUpdate": 14502,
-  "TotalDelete": 95970,
-  "TotalInsert": 501098,
-  "ReplUpdate": 14502,
-  "ReplDelete": 95968,
-  "ReplInsert": 501098,
-  "TotalSelect": 2164,
-  "TotalRead": 181154,
+  "TotalDataRead": 0,
+  "TotalIndexRead": 0,
+  "TotalDataWrite": 0,
+  "TotalIndexWrite": 0,
+  "TotalUpdate": 0,
+  "TotalDelete": 0,
+  "TotalInsert": 0,
+  "ReplUpdate": 0,
+  "ReplDelete": 0,
+  "ReplInsert": 0,
+  "TotalSelect": 0,
+  "TotalRead": 0,
+  "TotalLobGet": 0,
+  "TotalLobPut": 0,
+  "TotalLobDelete": 0,
+  "TotalLobList": 0,
+  "TotalLobReadSize": 0,
+  "TotalLobWriteSize": 0,
+  "TotalLobRead": 0,
+  "TotalLobWrite": 0,
+  "TotalLobTruncate": 0,
+  "TotalLobAddressing": 0,
   "TotalReadTime": 0,
   "TotalWriteTime": 0,
-  "ActivateTimestamp": "2019-05-31-09.38.06.394521",
-  "ResetTimestamp": "2019-05-31-09.38.06.394521",
-  "UserCPU": "274.790000",
-  "SysCPU": "430.920000",
-  "freeLogSpace": 956610128,
-  "vsize": 2412945408,
-  "rss": 88946,
-  "fault": 116,
-  "TotalMapped": 956825600,
-  "svcNetIn": 1054928,
-  "svcNetOut": 6801875,
-  "shardNetIn": 3580367,
-  "shardNetOut": 2284882,
-  "replNetIn": 3413945536,
-  "replNetOut": 99794796,
+  "ActivateTimestamp": "2022-10-09-09.34.53.243408",
+  "ResetTimestamp": "2022-10-09-09.34.53.243408",
+  "UserCPU": "6.480000",
+  "SysCPU": "4.630000",
+  "freeLogSpace": 1342177280,
+  "vsize": 2973097984,
+  "rss": 52417,
+  "fault": 0,
+  "TotalMapped": 142868480,
+  "svcNetIn": 0,
+  "svcNetOut": 0,
+  "shardNetIn": 11188,
+  "shardNetOut": 102525,
+  "replNetIn": 0,
+  "replNetOut": 0,
   "SchdlrType": 0,
   "SchdlrTypeDesp": "NONE",
   "Run": 1,
   "Wait": 0,
   "SchdlrMgrEvtNum": 0,
-  "SchdlrTimes": 0
-  "MemPoolSize": 56868864
+  "SchdlrTimes": 0,
+  "MemPoolSize": 100581376
 }
 ...
 ```

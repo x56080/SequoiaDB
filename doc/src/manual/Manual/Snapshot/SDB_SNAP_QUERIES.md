@@ -60,11 +60,12 @@ SDB_SNAP_QUERIES
 | DataWrite              | int32    | 数据记录写                                                                               |
 | IndexRead              | int32    | 索引读                                                                                   |
 | IndexWrite             | int32    | 索引写                                                                                   |
-| LobRead                | int32    | 大对象数据读                                                                             |
-| LobWrite               | int32    | 大对象数据写                                                                             |
+| LobRead                | int32    | 服务端中 LOB 分片的读次数 |
+| LobWrite               | int32    | 服务端中 LOB 分片的写次数  |
+| LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TransLockWaitTime      | int32    | 锁等待时间，单位为毫秒                                                                   |
 | LatchWaitTime          | int32    | 闩锁等待时间，单位为毫秒                                                                 |
-
 
 ## 示例
 
@@ -116,21 +117,21 @@ SDB_SNAP_QUERIES
 
     ```lang-json
     {
-      "NodeName": "sdbserver:42000",
+      "NodeName": "sdbserver:11820",
       "NodeID": [
         1000,
-        1002
+        1000
       ],
-      "StartTimestamp": "2020-06-12-11.29.44.906939",
-      "EndTimestamp": "2020-06-12-11.29.45.409923",
-      "TID": 10850,
+      "StartTimestamp": "2022-10-06-18.48.10.028437",
+      "EndTimestamp": "--",
+      "TID": 5980,
       "OpType": "QUERY",
       "Name": "$snapshot queries",
-      "QueryTimeSpent": 0.118,
+      "QueryTimeSpent": 0,
       "ReturnNum": 0,
       "RelatedNID": 0,
       "RelatedTID": 0,
-      "SessionID": 47,
+      "SessionID": 35,
       "AccessPlanID": -1,
       "DataRead": 0,
       "DataWrite": 0,
@@ -138,6 +139,8 @@ SDB_SNAP_QUERIES
       "IndexWrite": 0,
       "LobRead": 0,
       "LobWrite": 0,
+      "LobTruncate": 0,
+      "LobAddressing": 0,
       "TransLockWaitTime": 0,
       "LatchWaitTime": 0
     }

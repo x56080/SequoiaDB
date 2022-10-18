@@ -50,8 +50,10 @@ $SNAPSHOT_QUERIES
 | DataWrite              | int32    | 数据记录写                                                                               |
 | IndexRead              | int32    | 索引读                                                                                   |
 | IndexWrite             | int32    | 索引写                                                                                   |
-| LobRead                | int32    | 大对象数据读                                                                             |
-| LobWrite               | int32    | 大对象数据写                                                                             |
+| LobRead                | int32    | 服务端中 LOB 分片的读次数 |
+| LobWrite               | int32    | 服务端中 LOB 分片的写次数  |
+| LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TransLockWaitTime      | int32    | 锁等待时间，单位为毫秒                                                                   |
 | LatchWaitTime          | int32    | 闩锁等待时间，单位为毫秒                                                                 |
 
@@ -134,6 +136,8 @@ $SNAPSHOT_QUERIES
       "IndexWrite": 0,
       "LobRead": 0,
       "LobWrite": 0,
+      "LobTruncate": 0,
+      "LobAddressing": 0,
       "TransLockWaitTime": 0,
       "LatchWaitTime": 0
     }

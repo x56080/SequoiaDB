@@ -34,6 +34,10 @@ SDB_SNAP_CONTEXTS_CURRENT
 | Contexts.Description    | string | 上下文的描述信息，如：当前的查询条件                     |
 | Contexts.DataRead       | int64  | 所读数据                                                 |
 | Contexts.IndexRead      | int64  | 所读索引                                                 |
+| Contexts.LobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| Contexts.LobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| Contexts.LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| Contexts.LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.QueryTimeSpent | double | 查询总时间，单位为秒                                     |
 | Contexts.StartTimestamp | timestamp | 创建时间                                              |
 
@@ -51,16 +55,20 @@ SDB_SNAP_CONTEXTS_CURRENT
 ```lang-json
 {
   "NodeName": "hostname1:11820",
-  "SessionID": 28,
+  "SessionID": 32,
   "Contexts": [
     {
-      "ContextID": 12,
+      "ContextID": 17,
       "Type": "DUMP",
-      "Description": "BufferSize:0",
+      "Description": "IsOpened:1,IsTrans:0,HitEnd:0,BufferSize:0",
       "DataRead": 0,
       "IndexRead": 0,
+      "LobRead": 0,
+      "LobWrite": 0,
+      "LobTruncate": 0,
+      "LobAddressing": 0,
       "QueryTimeSpent": 0,
-      "StartTimestamp": "2013-09-27-18.25.17.311168"
+      "StartTimestamp": "2022-10-06-18.37.52.712712"
     }
   ]
 }

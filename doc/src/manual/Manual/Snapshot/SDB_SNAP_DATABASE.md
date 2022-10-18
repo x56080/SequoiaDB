@@ -4,7 +4,7 @@
     作者：何嘉文
     时间：20190307
     评审意见
-
+    
     王涛：
     许建辉：
     市场部：
@@ -79,6 +79,16 @@ SDB_SNAP_DATABASE
 | ReplInsert            | int64     | 复制插入记录数量                                                |
 | TotalSelect           | int64     | 总选择记录数量                                                  |
 | TotalRead             | int64     | 总读取记录数量                                                  |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalReadTime         | int64     | 总读取时间，单位为毫秒                                          |
 | TotalWriteTime        | int64     | 总写入时间，单位为毫秒                                          |
 | ActivateTimestamp     | timestamp | 数据库启动时间                                                  |
@@ -126,6 +136,16 @@ SDB_SNAP_DATABASE
 | ReplInsert        | int64     | 复制插入记录数量                              |
 | TotalSelect       | int64     | 总选择记录数量                                |
 | TotalRead         | int64     | 总读取记录数量                                |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalReadTime     | int64     | 总读取时间，单位为毫秒                        |
 | TotalWriteTime    | int64     | 总写入时间，单位为毫秒                        |
 | freeLogSpace      | int64     | 空闲日志空间，单位为字节                      |
@@ -160,11 +180,11 @@ SDB_SNAP_DATABASE
    输出结果如下：
    ```lang-json
    {
-     "NodeName": "hostname1:11810",
+     "NodeName": "hostname1:11820",
      "HostName": "hostname1",
-     "ServiceName": "11810",
+     "ServiceName": "11820",
      "GroupName": "group1",
-     "IsPrimary": false,
+     "IsPrimary": true,
      "ServiceStatus": true,
      "Status": "Normal",
      "FTStatus": "",
@@ -173,14 +193,14 @@ SDB_SNAP_DATABASE
        "Version": 1
      },
      "CurrentLSN": {
-       "Offset": -1,
-       "Version": 0
+       "Offset": 164,
+       "Version": 1
      },
      "CommittedLSN": {
-       "Offset": -1,
-       "Version": 0
+       "Offset": 164,
+       "Version": 1
      },
-     "CompleteLSN": -1,
+     "CompleteLSN": 1468,
      "LSNQueSize": 0,
      "TransInfo": {
        "TotalCount": 0,
@@ -191,27 +211,29 @@ SDB_SNAP_DATABASE
        1000
      ],
      "Version": {
-       "Major": 1,
-       "Minor": 8,
-       "Fix": 0,
-       "Release": 13971,
-       "GitVersion": "7b21adc4206894102682a621a4b49f17ed96a46f",
-       "Build": "2014-08-07-11.04.12(Debug)"
+       "Major": 3,
+       "Minor": 4,
+       "Fix": 8,
+       "Release": 43597,
+       "GitVersion": "6c1922758c5d89ed124f4326122fc32d2a468505",
+       "Build": "2022-10-06-10.43.42(Enterprise Debug)"
      },
-     "CurrentActiveSessions": 18,
-     "CurrentIdleSessions": 0,
-     "CurrentSystemSessions": 5,
+     "Edition": "Enterprise",
+     "CurrentActiveSessions": 26,
+     "CurrentIdleSessions": 10,
+     "CurrentSystemSessions": 12,
+     "CurrentTaskSessions": 6,
      "CurrentContexts": 1,
-     "ReceivedEvents": 0,
+     "ReceivedEvents": 16,
      "Role": "data",
      "Disk": {
-       "DatabasePath": "/home/users/sdbadmin/sequoiadb",
-       "LoadPercent": 46,
-       "TotalSpace": 84543193088,
-       "FreeSpace": 45332840448
+       "DatabasePath": "/opt/sequoiadb/database/data/11820/",
+       "LoadPercent": 0,
+       "TotalSpace": 754868568064,
+       "FreeSpace": 628498378752
      },
-     "TotalNumConnects": 11,
-     "TotalQuery": 1,
+     "TotalNumConnects": 2,
+     "TotalQuery": 14,
      "TotalSlowQuery": 0,
      "TotalTransCommit": 0,
      "TotalTransRollback": 0,
@@ -227,24 +249,40 @@ SDB_SNAP_DATABASE
      "ReplInsert": 0,
      "TotalSelect": 0,
      "TotalRead": 0,
+     "TotalLobGet": 0,
+     "TotalLobPut": 1,
+     "TotalLobDelete": 0,
+     "TotalLobList": 0,
+     "TotalLobReadSize": 0,
+     "TotalLobWriteSize": 150,
+     "TotalLobRead": 0,
+     "TotalLobWrite": 1,
+     "TotalLobTruncate": 0,
+     "TotalLobAddressing": 1,
      "TotalReadTime": 0,
      "TotalWriteTime": 0,
-     "ActivateTimestamp": "2014-08-07-13.04.16.248083",
-     "ResetTimestamp": "2014-08-07-13.04.16.248083",
-     "UserCPU": "7.980000",
-     "SysCPU": "10.700000",
+     "ActivateTimestamp": "2022-10-06-18.00.07.588438",
+     "ResetTimestamp": "2022-10-06-18.00.07.588438",
+     "UserCPU": "0.730000",
+     "SysCPU": "2.170000",
      "freeLogSpace": 1342177280,
-     "vsize": 1745002496,
-     "rss": 12929,
-     "fault": 12,
-     "TotalMapped": 918945792,
-     "svcNetIn": 3051,
-     "svcNetOut": 9245,
-     "shardNetIn": 3054,
-     "shardNetOut": 9265,
+     "vsize": 3302031360,
+     "rss": 56151,
+     "fault": 0,
+     "TotalMapped": 667385856,
+     "svcNetIn": 468,
+     "svcNetOut": 6185,
+     "shardNetIn": 9939,
+     "shardNetOut": 9454,
      "replNetIn": 0,
-     "replNetOut": 0
-     "MemPoolSize": 56868864
+     "replNetOut": 0,
+     "SchdlrType": 0,
+     "SchdlrTypeDesp": "NONE",
+     "Run": 0,
+     "Wait": 0,
+     "SchdlrMgrEvtNum": 0,
+     "SchdlrTimes": 0,
+     "MemPoolSize": 108975104
    }
    ```
 
@@ -257,44 +295,47 @@ SDB_SNAP_DATABASE
    输出结果如下：
    ```lang-json
    {
-     "TotalNumConnects": 0,
-     "TotalQuery": 15,
+     "TotalNumConnects": 1,
+     "TotalQuery": 18,
      "TotalSlowQuery": 0,
-     "TotalTransCommit": 0,
+     "TotalTransCommit": 21,
      "TotalTransRollback": 0,
-     "TotalDataRead": 4,
-     "TotalIndexRead": 0,
-     "TotalDataWrite": 3,
-     "TotalIndexWrite": 3,
-     "TotalUpdate": 0,
+     "TotalDataRead": 682,
+     "TotalIndexRead": 561,
+     "TotalDataWrite": 27,
+     "TotalIndexWrite": 24,
+     "TotalUpdate": 19,
      "TotalDelete": 0,
-     "TotalInsert": 3,
+     "TotalInsert": 8,
      "ReplUpdate": 0,
      "ReplDelete": 0,
-     "ReplInsert": 2,
-     "TotalSelect": 606,
-     "TotalRead": 4,
+     "ReplInsert": 0,
+     "TotalSelect": 307,
+     "TotalRead": 403,
+     "TotalLobGet": 0,
+     "TotalLobPut": 2,
+     "TotalLobDelete": 0,
+     "TotalLobList": 1,
+     "TotalLobReadSize": 0,
+     "TotalLobWriteSize": 300,
+     "TotalLobRead": 0,
+     "TotalLobWrite": 1,
+     "TotalLobTruncate": 0,
+     "TotalLobAddressing": 1,
      "TotalReadTime": 0,
      "TotalWriteTime": 0,
      "freeLogSpace": 5368709120,
-     "vsize": 5660057600,
-     "rss": 44765,
-     "fault": 25,
-     "TotalMapped": 2144206848,
-     "svcNetIn": 0,
-     "svcNetOut": 0,
-     "shardNetIn": 38228,
-     "shardNetOut": 393997,
-     "replNetIn": 40743956,
-     "replNetOut": 40743956,
-     "ErrNodes": [
-       {
-         "NodeName": "hostname1:11850",
-         "GroupName": "group2",
-         "Flag": -79,
-         "ErrInfo": {}
-       }
-     ]
+     "vsize": 13657559040,
+     "rss": 257087,
+     "fault": 9,
+     "TotalMapped": 1377402880,
+     "svcNetIn": 1536,
+     "svcNetOut": 1057,
+     "shardNetIn": 33090,
+     "shardNetOut": 22375,
+     "replNetIn": 0,
+     "replNetOut": 0,
+     "ErrNodes": []
    }
    ```
 

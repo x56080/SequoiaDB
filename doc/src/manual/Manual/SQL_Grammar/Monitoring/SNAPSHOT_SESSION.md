@@ -36,6 +36,16 @@ $SNAPSHOT_SESSION
 | TotalInsert       | int64         | 总插入记录数量                                     |
 | TotalSelect       | int64         | 总选取记录数量                                     |
 | TotalRead         | int64         | 总数据读                                           |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalReadTime     | int64         | 总数据读时间，单位为毫秒                           |
 | TotalWriteTime    | int64         | 总数据写时间，单位为毫秒                           |
 | ReadTimeSpent     | int64         | 读取记录的时间，单位为毫秒                         |
@@ -62,20 +72,23 @@ $SNAPSHOT_SESSION
 ```lang-json
 {
   "NodeName": "hostname:42000",
-  "SessionID": 183,
+  "SessionID": 26,
   "TID": 4024,
-  "Status": "Idle",
+  "Status": "Running",
   "IsBlocked": false,
-  "Type": "Unknow",
-  "Name": "",
+  "Type": "Agent",
+  "Name": "127.0.0.1:59140",
   "Doing": "",
   "Source": "",
   "QueueSize": 0,
-  "ProcessEventCount": 0,
-  "MemPoolSize": 0,
-  "RelatedID": "c0a8143ea41000000000000000b7",
-  "Contexts": [],
-  "TotalQuery": 0,
+  "ProcessEventCount": 58,
+  "MemPoolSize": 68502,
+  "RelatedID": "c0a810482e22000000000000001a",
+  "Contexts": [
+    97,
+    99
+  ],
+  "TotalQuery": 10,
   "TotalSlowQuery": 0,
   "TotalTransCommit": 0,
   "TotalTransRollback": 0,
@@ -86,20 +99,30 @@ $SNAPSHOT_SESSION
   "TotalUpdate": 0,
   "TotalDelete": 0,
   "TotalInsert": 0,
-  "TotalSelect": 0,
+  "TotalSelect": 16,
   "TotalRead": 0,
+  "TotalLobGet": 0,
+  "TotalLobPut": 0,
+  "TotalLobDelete": 0,
+  "TotalLobList": 1,
+  "TotalLobReadSize": 0,
+  "TotalLobWriteSize": 0,
+  "TotalLobRead": 0,
+  "TotalLobWrite": 0,
+  "TotalLobTruncate": 0,
+  "TotalLobAddressing": 0,
   "TotalReadTime": 0,
   "TotalWriteTime": 0,
   "ReadTimeSpent": 0,
   "WriteTimeSpent": 0,
-  "ConnectTimestamp": "1970-01-01-08.00.00.000000",
-  "ResetTimestamp": "2019-06-03-14.34.57.118778",
-  "LastOpType": "UNKNOW",
-  "LastOpBegin": "--",
+  "ConnectTimestamp": "2022-10-09-10.42.24.712047",
+  "ResetTimestamp": "2022-10-09-10.42.24.712047",
+  "LastOpType": "SQL",
+  "LastOpBegin": "2022-10-09-10.48.18.882268",
   "LastOpEnd": "--",
-  "LastOpInfo": "",
-  "UserCPU": 0.01,
-  "SysCPU": 0
+  "LastOpInfo": "select * from $SNAPSHOT_SESSION",
+  "UserCPU": 0.07,
+  "SysCPU": 0.02
 }
 ```
 
