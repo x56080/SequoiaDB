@@ -127,85 +127,6 @@ namespace engine
       return "" ;
    }
 
-   INT32 _coordNodeCMD2Phase::notifyCatalogChange2AllNodes( pmdEDUCB *cb,
-                                                            BOOLEAN exceptSelf )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 rcTmp = SDB_OK ;
-      MsgHeader ntyMsg ;
-      CoordGroupList grpLst ;
-      SET_ROUTEID nodes ;
-      pmdRemoteSessionSite *pSite = NULL ;
-      pmdRemoteSession *pSession = NULL ;
-      coordRemoteHandlerBase baseHander ;
-      pmdSubSession *pSub           = NULL ;
-      SET_ROUTEID::iterator it ;
-
-      ntyMsg.messageLength = sizeof( MsgHeader ) ;
-      ntyMsg.opCode = MSG_CAT_GRP_CHANGE_NTY ;
-
-      pSite = (pmdRemoteSessionSite*)cb->getRemoteSite() ;
-      if ( !pSite )
-      {
-         PD_LOG( PDERROR, "Remote session is NULL in cb" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      pSession = pSite->addSession( getTimeout(), &baseHander ) ;
-      if ( !pSession )
-      {
-         PD_LOG( PDERROR, "Create remote session failed in session[%s]",
-                 cb->getName() ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      _pResource->updateGroupList( grpLst, cb, NULL, FALSE, FALSE, TRUE ) ;
-
-      // get nodes
-      rc = coordGetGroupNodes( _pResource, cb, BSONObj(), NODE_SEL_ALL,
-                               grpLst, nodes ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
-      if ( nodes.size() == 0 )
-      {
-         PD_LOG( PDWARNING, "Not found any node" ) ;
-         rc = SDB_CLS_NODE_NOT_EXIST ;
-         goto error ;
-      }
-      if ( exceptSelf )
-      {
-         MsgRouteID routeID ;
-         routeID = pmdGetNodeID() ;
-         routeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
-         nodes.erase( routeID.value ) ;
-      }
-
-      /// send msg
-      it = nodes.begin() ;
-      while( it != nodes.end() )
-      {
-         pSub = pSession->addSubSession( *it ) ;
-         pSub->setReqMsg( &ntyMsg, PMD_EDU_MEM_NONE ) ;
-
-         rcTmp = pSession->sendMsg( pSub ) ;
-         ++it ;
-
-         if ( rcTmp && !rc )
-         {
-            rc = rcTmp ;
-         }
-      }
-
-   done:
-      if ( pSession )
-      {
-         pSite->removeSession( pSession->sessionID() ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
    /*
     * _coordNodeCMD3Phase implement
     */
@@ -2151,6 +2072,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_CREATENODE_COMPLETE ) ;
 
       CoordGroupInfoPtr groupPtr ;
+      coordNodeCMDHelper helper ;
 
       // update group info on local node, in case that it isn't registered
       // in the cluster. ignored error.
@@ -2160,7 +2082,7 @@ namespace engine
       if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) )
       {
          // notify all nodes, except local node
-         notifyCatalogChange2AllNodes( cb, TRUE ) ;
+         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
       }
 
       PD_TRACE_EXIT ( COORD_CREATENODE_COMPLETE ) ;
@@ -2430,7 +2352,8 @@ namespace engine
 
       /// notify the other nodes to update groupinfo.
       /// here we do not care whether they succeed.
-      _notify2GroupNodes( cb, pArgs ) ;
+      coordNodeCMDHelper helper ;
+      helper.notify2GroupNodes( _pResource, pArgs->_targetName.c_str(), cb ) ;
 
       /// ignore the stop result, because remove or clear will
       /// retry to stop in sdbcm
@@ -2508,6 +2431,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_REMOVENODE_DOCOMPLETE ) ;
 
       CoordGroupInfoPtr groupPtr ;
+      coordNodeCMDHelper helper ;
 
       // update group info on local node, in case that it isn't registered
       // in the cluster. ignored error.
@@ -2517,35 +2441,11 @@ namespace engine
       if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) )
       {
          // notify all nodes, except local node
-         notifyCatalogChange2AllNodes( cb, TRUE ) ;
+         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
       }
 
       PD_TRACE_EXIT ( COORD_REMOVENODE_DOCOMPLETE ) ;
       return SDB_OK ;
-   }
-
-   void _coordCMDRemoveNode::_notify2GroupNodes( pmdEDUCB *cb,
-                                                 coordCMDArguments *pArgs )
-   {
-      CoordGroupInfoPtr groupPtr ;
-      _netRouteAgent *pAgent = _pResource->getRouteAgent() ;
-
-      if ( SDB_OK == _pResource->updateGroupInfo( pArgs->_targetName.c_str(),
-                                                  groupPtr,
-                                                  cb ) )
-      {
-         _MsgClsGInfoUpdated updated ;
-         updated.groupID = groupPtr->groupID() ;
-
-         MsgRouteID routeID ;
-         UINT32 index = 0 ;
-
-         while ( SDB_OK == groupPtr->getNodeID( index++, routeID,
-                                                MSG_ROUTE_SHARD_SERVCIE ) )
-         {
-            pAgent->syncSend( routeID, (MsgHeader *)&updated ) ;
-         }
-      }
    }
 
    AUDIT_OBJ_TYPE _coordCMDRemoveNode::_getAuditObjectType() const

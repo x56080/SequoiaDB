@@ -231,67 +231,98 @@ namespace engine
    /*
       _coordNodeCMDHelper implement
    */
-   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2GROUPNODES, "_coordNodeCMDHelper::notify2GroupNodes" )
-   INT32 _coordNodeCMDHelper::notify2GroupNodes( coordResource *pResource,
-                                                 UINT32 groupID,
-                                                 pmdEDUCB *cb )
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2GROUPNODES, "_coordNodeCMDHelper::_notify2GroupNodes" )
+   INT32 _coordNodeCMDHelper::_notify2GroupNodes( coordResource *pResource,
+                                                  const CoordGroupInfoPtr &groupPtr,
+                                                  pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES ) ;
 
-      CoordGroupInfoPtr groupPtr ;
-      pmdRemoteSessionSite *pSite = NULL ;
-      pmdRemoteSession *pSession = NULL ;
-      coordRemoteHandlerBase baseHander ;
-      pmdSubSession *pSub        = NULL ;
+      // Use netRouteAgent instead of pmdRemoteSession, because session will send message by shardsession.
+      _netRouteAgent *pAgent = pResource->getRouteAgent() ;
 
       _MsgClsGInfoUpdated updated ;
-      updated.groupID = groupID ;
+      updated.groupID = groupPtr->groupID() ;
       MsgRouteID routeID ;
       UINT32 index = 0 ;
 
-      // Create remote session
-      pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
-      if ( !pSite )
+      // If the group is empty, do nothing
+      if ( 0 == groupPtr->nodeCount() )
       {
-         PD_LOG( PDERROR, "Remote session is NULL in cb" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      pSession = pSite->addSession( -1, &baseHander ) ;
-      if ( !pSession )
-      {
-         PD_LOG( PDERROR, "Create remote session failed in session[%s]",
-                 cb->getName() ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      // Get group info by groupID, store in groupPtr
-      rc = pResource->updateGroupInfo( groupID, groupPtr, cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Update group info failed, rc: %d", rc ) ;
+         rc = SDB_CLS_EMPTY_GROUP ;
+         PD_LOG( PDWARNING, "There is no node in group, groupID[%u], rc: %d",
+                 groupPtr->groupID(), rc ) ;
          goto error ;
       }
 
       // Send msg to group nodes
       while ( SDB_OK == groupPtr->getNodeID( index++, routeID ) )
       {
-         pSub = pSession->addSubSession( routeID.value ) ;
-         pSub->setReqMsg( ( MsgHeader* )&updated, PMD_EDU_MEM_NONE ) ;
-
-         rcTmp = pSession->sendMsg( pSub ) ;
+         rcTmp = pAgent->syncSend( routeID, ( MsgHeader* )&updated ) ;
          rc = ( rcTmp && !rc ) ? rcTmp : rc ;
       }
 
    done:
-      if ( pSession )
-      {
-         pSite->removeSession( pSession->sessionID() ) ;
-      }
-      PD_TRACE_EXIT ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES ) ;
+      PD_TRACE_EXITRC ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2GROUPNODES_BY_GEOUPID, "_coordNodeCMDHelper::notify2GroupNodes" )
+   INT32 _coordNodeCMDHelper::notify2GroupNodes( coordResource *pResource,
+                                                 UINT32 groupID,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES_BY_GEOUPID ) ;
+
+      CoordGroupInfoPtr groupPtr ;
+
+      // Get group info by groupID, store in groupPtr
+      rc = pResource->updateGroupInfo( groupID, groupPtr, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to update group info, "
+                   "groupID[%u], rc: %d", groupID, rc ) ;
+
+      // Notify to group nodes
+      rc = _notify2GroupNodes( pResource, groupPtr, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to notify group nodes, "
+                   "groupID[%u], rc: %d", groupID, rc ) ;
+
+      done:
+         PD_TRACE_EXITRC ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES_BY_GEOUPID, rc ) ;
+         return rc ;
+
+      error:
+         goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_NODECMDHELPER_NOTIFY2GROUPNODES_BY_GROUPNAME, "_coordNodeCMDHelper::notify2GroupNodes" )
+   INT32 _coordNodeCMDHelper::notify2GroupNodes( coordResource *pResource,
+                                                 const CHAR* groupName,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES_BY_GROUPNAME ) ;
+
+      CoordGroupInfoPtr groupPtr ;
+
+      // Get group info by groupName, store in groupPtr
+      rc = pResource->updateGroupInfo( groupName, groupPtr, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to update group info, "
+                   "groupName[%s], rc: %d", groupName, rc ) ;
+
+      // Notify to group nodes
+      rc = _notify2GroupNodes( pResource, groupPtr, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to notify group nodes, "
+                   "groupName[%s], rc: %d", groupName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( COORD_NODECMDHELPER_NOTIFY2GROUPNODES_BY_GROUPNAME, rc ) ;
       return rc ;
 
    error:
@@ -374,7 +405,7 @@ namespace engine
       {
          pSite->removeSession( pSession->sessionID() ) ;
       }
-      PD_TRACE_EXIT ( COORD_NODECMDHELPER_NOTIFY2ALLNODES ) ;
+      PD_TRACE_EXITRC ( COORD_NODECMDHELPER_NOTIFY2ALLNODES, rc ) ;
       return rc ;
 
    error:

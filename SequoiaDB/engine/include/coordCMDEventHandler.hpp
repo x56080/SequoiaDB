@@ -224,9 +224,18 @@ namespace engine
                                UINT32 groupID,
                                pmdEDUCB *cb ) ;
 
+      INT32 notify2GroupNodes( coordResource *pResource,
+                               const CHAR* groupName,
+                               pmdEDUCB *cb ) ;
+
       INT32 notify2AllNodes( coordResource *pResource,
                              BOOLEAN exceptSelf,
                              pmdEDUCB *cb ) ;
+
+   private:
+      INT32 _notify2GroupNodes( coordResource *pResource,
+                                const CoordGroupInfoPtr &groupPtr,
+                                pmdEDUCB *cb ) ;
    } ;
    typedef class _coordNodeCMDHelper coordNodeCMDHelper ;
 

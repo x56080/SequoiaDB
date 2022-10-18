@@ -73,11 +73,6 @@ namespace engine
 
          virtual INT32 _doAudit ( coordCMDArguments *pArgs, INT32 rc ) ;
 
-      protected:
-
-         INT32         notifyCatalogChange2AllNodes( pmdEDUCB *cb,
-                                             BOOLEAN exceptSelf = FALSE ) ;
-
       private:
          virtual AUDIT_OBJ_TYPE     _getAuditObjectType() const ;
          virtual string _getAuditObjectName( coordCMDArguments *pArgs ) const ;
@@ -525,10 +520,6 @@ namespace engine
          virtual INT32 _doComplete ( MsgHeader *pMsg,
                                      pmdEDUCB * cb,
                                      coordCMDArguments *pArgs ) ;
-
-      protected:
-         void           _notify2GroupNodes( pmdEDUCB * cb,
-                                            coordCMDArguments *pArgs ) ;
 
       private:
          virtual AUDIT_OBJ_TYPE     _getAuditObjectType() const ;
