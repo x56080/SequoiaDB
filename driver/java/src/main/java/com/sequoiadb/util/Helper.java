@@ -84,7 +84,11 @@ public final class Helper {
     }
 
     public static byte[] encodeBSONObj(BSONObject obj) {
-        return BSON.encode(obj);
+        return encodeBSONObj(obj, null);
+    }
+
+    public static byte[] encodeBSONObj(BSONObject obj, BSONObject extendObj) {
+        return BSON.encode(obj, extendObj);
     }
 
     public static BSONObject decodeBSONBytes(byte[] bytes) {
