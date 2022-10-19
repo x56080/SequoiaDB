@@ -84,9 +84,9 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.4.8 及以上版本生效） |
 | Details.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.4.8 及以上版本生效） |
 | Details.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.4.8 及以上版本生效） |
-| Details.ResetTimestamp  | timestamp | 重置快照的时间 |
-| Details.CreateTime | timestamp | 创建集合的时间（仅在 v3.4.8 及以上版本生效） |
-| Details.UpdateTime |timestamp | 更新集合元数据的时间（仅在 v3.4.8 及以上版本生效） |
+| Details.ResetTimestamp  | string | 重置快照的时间 |
+| Details.CreateTime | string | 创建集合的时间（仅在 v3.4.8 及以上版本生效） |
+| Details.UpdateTime |string | 更新集合元数据的时间（仅在 v3.4.8 及以上版本生效） |
 
 
 协调节点字段信息
@@ -137,10 +137,10 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.4.8 及以上版本生效） |
 | Details.Group.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.4.8 及以上版本生效） |
 | Details.Group.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.4.8 及以上版本生效） |
-| Details.Group.ResetTimestamp  | timestamp | 重置快照的时间 |
+| Details.Group.ResetTimestamp  | string | 重置快照的时间 |
 | Details.Group.NodeName            | string        | 节点名，格式为<主机名>:<服务名>                         |
-| Details.Group.CreateTime | timestamp | 创建集合的时间（仅在 v3.4.8 及以上版本生效） |
-| Details.Group.UpdateTime | timestamp | 更新集合元数据的时间（仅在 v3.4.8 及以上版本生效） |
+| Details.Group.CreateTime | string | 创建集合的时间（仅在 v3.4.8 及以上版本生效） |
+| Details.Group.UpdateTime | string | 更新集合元数据的时间（仅在 v3.4.8 及以上版本生效） |
 
 示例
 ----

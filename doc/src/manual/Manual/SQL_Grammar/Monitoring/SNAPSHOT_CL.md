@@ -68,9 +68,9 @@ $SNAPSHOT_CL
 | Details.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.4.8 及以上版本生效） |
 | Details.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.4.8 及以上版本生效） |
 | Details.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.4.8 及以上版本生效） |
-| Details.ResetTimestamp  | timestamp | 重置快照的时间 |
-| Details.CreateTime | timestamp | 创建集合的时间（仅在 v3.4.8 及以上版本生效） |
-| Details.UpdateTime | timestamp | 更新集合元数据的时间（仅在 v3.4.8 及以上版本生效） |
+| Details.ResetTimestamp  | string | 重置快照的时间 |
+| Details.CreateTime | string | 创建集合的时间（仅在 v3.4.8 及以上版本生效） |
+| Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.4.8 及以上版本生效） |
 
 ##示例##
 

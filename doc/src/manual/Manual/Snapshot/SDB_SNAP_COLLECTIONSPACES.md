@@ -74,8 +74,8 @@ SDB_SNAP_COLLECTIONSPACES
 | LobCommitted    | boolean    | 集合空间大对象文件当前是否有效提交           |
 | DirtyPage       | int32      | 集合空间大对象文件在开启缓存下脏页数量       |
 | Type            | int32      | 集合空间类型，取值如下：<br>0：普通集合空间<br>1：固定（Capped）集合空间 |
-| CreateTime | timestamp | 创建集合空间的时间（仅在 v3.4.8 及以上版本生效） |
-| UpdateTime | timestamp | 更新集合空间元数据的时间（仅在 v3.4.8 及以上版本生效） |
+| CreateTime | string | 创建集合空间的时间（仅在 v3.4.8 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.4.8 及以上版本生效） |
 
 
 ##协调节点字段信息##
@@ -118,8 +118,8 @@ SDB_SNAP_COLLECTIONSPACES
 | TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.4.8 及以上版本生效） |
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.4.8 及以上版本生效） |
 | Group           | bson array | 该集合空间所在的复制组名列表                 |
-| CreateTime | timestamp | 创建集合空间的时间（仅在 v3.4.8 及以上版本生效） |
-| UpdateTime | timestamp | 更新集合空间元数据的时间（仅在 v3.4.8 及以上版本生效） |
+| CreateTime | string | 创建集合空间的时间（仅在 v3.4.8 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.4.8 及以上版本生效） |
 
 ##示例##
 
