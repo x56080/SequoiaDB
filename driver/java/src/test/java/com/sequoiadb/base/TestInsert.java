@@ -48,7 +48,7 @@ public class TestInsert extends SingleCSCLTestCase {
         DBCursor cursor = cl.query();
         assertTrue(cursor.hasNext());
         BSONObject res = cursor.getNext();
-        assertTrue(res.equals(obj));
+        assertEquals(res, obj);
         assertFalse(cursor.hasNext());
         cursor.close();
 
@@ -155,7 +155,8 @@ public class TestInsert extends SingleCSCLTestCase {
 
         // case 4:
         BSONObject result4 = cl.insertRecords(objectList2, DBCollection.FLG_INSERT_CONTONDUP);
-        Assert.assertNull(result4);
+        Assert.assertEquals(0L, result4.get("InsertedNum"));
+        Assert.assertEquals(3L, result4.get("DuplicatedNum"));
 
         // case 5:
         List<BSONObject> objectList3 = new ArrayList<BSONObject>();
@@ -176,7 +177,8 @@ public class TestInsert extends SingleCSCLTestCase {
 
         cl.ensureOID(false);
         BSONObject result5 = cl.insertRecords(objectList3, 0);
-        Assert.assertNull(result5);
+        Assert.assertEquals(3L, result5.get("InsertedNum"));
+
         cl.ensureOID(false);
         BSONObject result6 = cl.insertRecords(objectList4, DBCollection.FLG_INSERT_RETURN_OID);
         Assert.assertNotNull(result6);

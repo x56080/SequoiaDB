@@ -376,14 +376,9 @@ public class DBCollection {
         if (docs == null) {
             throw new BaseException( SDBError.SDB_INVALIDARG, "The inserted data cannot be null!" );
         }
-        // try to ensure oid
-        if ( ( flag & InsertOption.FLG_INSERT_RETURN_OID ) != 0 ) {
-            if ( !isOIDEnsured() ) {
-                ensureOID(true );
-            }
-        }
+
         // build and send message
-        InsertRequest request = new InsertRequest( collectionFullName, docs, flag, ensureOID );
+        InsertRequest request = new InsertRequest( collectionFullName, docs, flag );
         SdbReply response = sequoiadb.requestAndResponse( request );
         sequoiadb.throwIfError( response );
         sequoiadb.upsertCache( collectionFullName );
@@ -605,6 +600,7 @@ public class DBCollection {
      * Set whether ensure OID of record when bulk insert records to SequoiaDB.
      *
      * @param flag whether ensure OID of record
+     * @deprecated
      */
     public void ensureOID(boolean flag) {
         ensureOID = flag;
@@ -612,6 +608,7 @@ public class DBCollection {
 
     /**
      * @return True if ensure OID of record when bulk insert records to SequoiaDB and false if not.
+     * @deprecated
      */
     public boolean isOIDEnsured() {
         return ensureOID;
