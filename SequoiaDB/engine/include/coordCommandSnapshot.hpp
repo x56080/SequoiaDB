@@ -57,7 +57,6 @@ namespace engine
          virtual ~_coordCMDSnapshotIntrBase() ;
       private:
          virtual BOOLEAN _useContext() { return TRUE ; }
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
          virtual UINT32  _getControlMask() const { return COORD_CTRL_MASK_ALL ; }
 
    } ;
@@ -93,6 +92,7 @@ namespace engine
                                       pmdEDUCB *cb,
                                       coordCtrlParam &ctrlParam,
                                       SET_RC &ignoreRCList ) ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCmdSnapshotReset coordCmdSnapshotReset ;
 
@@ -215,6 +215,8 @@ namespace engine
       public:
          _coordCMDSnapshotSystemIntr() ;
          virtual ~_coordCMDSnapshotSystemIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCMDSnapshotSystemIntr coordCMDSnapshotSystemIntr ;
 
@@ -242,6 +244,8 @@ namespace engine
       public:
          _coordCMDSnapshotHealthIntr() ;
          virtual ~_coordCMDSnapshotHealthIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCMDSnapshotHealthIntr coordCMDSnapshotHealthIntr ;
 
@@ -330,6 +334,7 @@ namespace engine
       public:
          _coordCMDSnapshotCLIntr() ;
          virtual ~_coordCMDSnapshotCLIntr() ;
+      private:
          void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotCLIntr coordCMDSnapshotCLIntr ;
@@ -360,6 +365,7 @@ namespace engine
       public:
          _coordCMDSnapshotCSIntr() ;
          virtual ~_coordCMDSnapshotCSIntr() ;
+      private:
          void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotCSIntr coordCMDSnapshotCSIntr ;
@@ -388,6 +394,8 @@ namespace engine
       public:
          _coordCMDSnapshotContextIntr() ;
          virtual ~_coordCMDSnapshotContextIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCMDSnapshotContextIntr coordCMDSnapshotContextIntr ;
 
@@ -442,6 +450,8 @@ namespace engine
       public:
          _coordCMDSnapshotSessionIntr() ;
          virtual ~_coordCMDSnapshotSessionIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCMDSnapshotSessionIntr coordCMDSnapshotSessionIntr ;
 
@@ -531,6 +541,7 @@ namespace engine
       public:
          _coordCMDSnapshotAccessPlansIntr () ;
          virtual ~_coordCMDSnapshotAccessPlansIntr () ;
+      private:
          void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
 
@@ -560,6 +571,8 @@ namespace engine
       public:
          _coordCMDSnapshotConfigsIntr() ;
          virtual ~_coordCMDSnapshotConfigsIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCMDSnapshotConfigsIntr coordCMDSnapshotConfigsIntr ;
 
@@ -587,6 +600,7 @@ namespace engine
       public:
          _coordCMDSnapshotSvcTasksIntr() ;
          virtual ~_coordCMDSnapshotSvcTasksIntr() ;
+      private:
          void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotSvcTasksIntr coordCMDSnapshotSvcTasksIntr ;
@@ -643,6 +657,7 @@ namespace engine
       public:
          _coordSnapshotQueriesIntr() ;
          virtual ~_coordSnapshotQueriesIntr() ;
+      private:
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordSnapshotQueriesIntr coordSnapshotQueriesIntr ;
@@ -671,6 +686,8 @@ namespace engine
       public:
          _coordCMDSnapshotLatchWaitsIntr() {}
          virtual ~_coordCMDSnapshotLatchWaitsIntr() {}
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotLatchWaitsIntr coordCMDSnapshotLatchWaitsIntr ;
 
@@ -698,6 +715,7 @@ namespace engine
       public:
          _coordCMDSnapshotLockWaitsIntr() {}
          virtual ~_coordCMDSnapshotLockWaitsIntr() {}
+      private:
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotLockWaitsIntr coordCMDSnapshotLockWaitsIntr ;
@@ -726,6 +744,7 @@ namespace engine
       public:
          _coordCMDSnapshotIndexStatsIntr() {}
          virtual ~_coordCMDSnapshotIndexStatsIntr() {}
+      private:
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotIndexStatsIntr coordCMDSnapshotIndexStatsIntr ;
@@ -754,6 +773,8 @@ namespace engine
       public:
          _coordCMDSnapshotTransWaitsIntr() ;
          virtual ~_coordCMDSnapshotTransWaitsIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotTransWaitsIntr coordCMDSnapshotTransWaitsIntr ;
 
@@ -783,8 +804,9 @@ namespace engine
          virtual ~_coordCMDSnapshotTransDeadlockIntr() ;
          virtual const CHAR* pushdownCommandName() ;
       protected:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
          virtual INT32 _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
-         
+
          virtual COORD_SHOWERROR_TYPE _getDefaultShowErrorType() const
          {
             return COORD_SHOWERROR_IGNORE ;

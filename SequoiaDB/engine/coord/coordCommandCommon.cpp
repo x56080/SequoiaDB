@@ -496,6 +496,7 @@ namespace engine
    {
       ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 
    INT32 _coordCMDMonIntrBase::_onLocalMode( INT32 flag )
