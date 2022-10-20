@@ -1101,6 +1101,7 @@ namespace engine
       PMD_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
       const RTN_INSTANCE_LIST & instanceList = instanceOption.getInstanceList() ;
       COORD_POS_ARRAY tempPositions ;
+      COORD_POS_ARRAY orderTemp ;
       UINT8 unselectMask = 0xFF ;
       UINT32 nodeCount = groupNodes.size() ;
       BOOLEAN foundPrimary = FALSE ;
@@ -1156,11 +1157,12 @@ namespace engine
                   // save to result
                   if ( PMD_PREFER_INSTANCE_MODE_ORDERED == mode )
                   {
-                     // the preferred mode is ordered,
-                     // save the position one by one
+                     // the preferred mode is ordered, save the position
+                     // into candidate positions which will be shuffled after
+                     // the end of the loop
                      try
                      {
-                        selectedPositions.push_back( pos ) ;
+                        orderTemp.append( pos ) ;
                      }
                      catch ( exception &e )
                      {
@@ -1189,6 +1191,17 @@ namespace engine
 
                   OSS_BIT_CLEAR( unselectMask, 1 << pos ) ;
                }
+            }
+            // shuffle candidate positions of slave nodes which have same instanceid
+            // into selected positions
+            // NOTE: the preferred mode is ordered in this case
+            if ( !orderTemp.empty() )
+            {
+               SDB_ASSERT( PMD_PREFER_INSTANCE_MODE_ORDERED == mode,
+                           "should be ordered mode" ) ;
+               rc = _shufflePositions( orderTemp, selectedPositions ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to shuffle positions, rc: %d",
+                            rc ) ;
             }
          }
       }
@@ -1478,6 +1491,25 @@ namespace engine
                                              COORD_POS_LIST & positionList )
    {
       INT32 rc = SDB_OK ;
+      if ( 0 == positionArray.size() )
+      {
+         goto done ;
+      }
+      if ( 1 == positionArray.size() )
+      {
+         try
+         {
+            positionList.push_back( positionArray[0] ) ;
+         }
+         catch ( exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Failed to add selected position, error: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+         positionArray.clear() ;
+         goto done ;
+      }
 
       for ( UINT32 i = 0 ; i < positionArray.size() ; i ++ )
       {
