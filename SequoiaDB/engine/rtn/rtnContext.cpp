@@ -272,7 +272,12 @@ namespace engine
          }
 
          _readOffset -= alignedSize ;
-         ossMemcpy( &(_buffer[_readOffset]), obj.objdata(), obj.objsize() ) ;
+
+         // if from the same position, no need to copy
+         if ( (const CHAR *)( obj.objdata() ) != (const CHAR *)( &(_buffer[_readOffset]) ) )
+         {
+            ossMemcpy( &(_buffer[_readOffset]), obj.objdata(), obj.objsize() ) ;
+         }
       }
 
       _numRecords++ ;
