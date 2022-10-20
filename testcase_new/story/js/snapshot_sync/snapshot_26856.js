@@ -2,7 +2,7 @@
  * @Description   : seqDB-26856:System对象获取cpu和memory消息
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.02
- * @LastEditTime  : 2022.09.16
+ * @LastEditTime  : 2022.10.20
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 main( test );
@@ -56,8 +56,8 @@ function checkSnapshot ( cpuExpect, memExpect )
       var actualFree1 = memInfo1["Free"];
       var actualFree2 = memInfo2["Free"];
       var expectedFree = memExpect["FreeRAM"] / 1024 / 1024;
-      almostEqual( actualFree1, expectedFree, 0.05 );
-      almostEqual( actualFree2, expectedFree, 0.05 );
+      almostEqual( actualFree1, expectedFree, 0.1 );
+      almostEqual( actualFree2, expectedFree, 0.1 );
       var actualAvailable1 = memInfo1["Available"];
       var actualAvailable2 = memInfo2["Available"];
       var expectedAvailable = memExpect["AvailableRAM"] / 1024;
@@ -74,6 +74,6 @@ function almostEqual ( actual, expected, errorRange )
    // 系统获取与快照获取有误差,但误差不能大于实际值 * 误差范围
    if( absolute > ( actual * errorRange ) )
    {
-      throw new Error( "数据库快照磁盘或内存与系统不一致！", + "实际值为:" + actual, "期望值为:" + expected );
+      throw new Error( "数据库快照磁盘或内存与系统不一致！实际值为:" + actual + ",期望值为:" + expected );
    }
 }

@@ -2,7 +2,7 @@
  * @Description   : seqDB-26850:连接协调节点，获取非聚合的系统快照内存和磁盘与系统内存磁盘对比
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.02
- * @LastEditTime  : 2022.09.16
+ * @LastEditTime  : 2022.10.20
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 main( test );
@@ -86,7 +86,7 @@ function checkSnapshot ( sdb, cpuExpect, memExpect, uniqueHostName )
          {
             var actual = obj["Memory"][key];
             var expected = memExpect[key];
-            almostEqual( actual, expected, 0.05 );
+            almostEqual( actual, expected, 0.1 );
          }
       }
    }
@@ -101,6 +101,6 @@ function almostEqual ( actual, expected, errorRange )
    // 系统获取与快照获取有误差,但误差不能大于实际值 * 误差范围
    if( absolute > ( actual * errorRange ) )
    {
-      throw new Error( "数据库快照磁盘或内存与系统不一致！", + "实际值为:" + actual, "期望值为:" + expected );
+      throw new Error( "数据库快照磁盘或内存与系统不一致！实际值为:" + actual + ",期望值为:" + expected );
    }
 }
