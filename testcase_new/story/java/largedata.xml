@@ -36,7 +36,8 @@
             <!--<package name="com.sequoiadb.fulltext.largedata" />-->
         </packages>     
     </test>
-    <test name="index" parallel="classes" thread-count="5">
+    <!--CI-1014索引用例写入数据量较大通过减少并发数减少内存开销-->
+    <test name="index" parallel="classes" thread-count="2">
         <packages>
             <package name="com.sequoiadb.index"/>
         </packages>
