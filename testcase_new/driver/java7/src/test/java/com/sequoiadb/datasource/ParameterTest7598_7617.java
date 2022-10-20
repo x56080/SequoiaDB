@@ -1,6 +1,6 @@
 package com.sequoiadb.datasource;
 
-
+import com.sequoiadb.exception.SDBError;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -37,13 +37,81 @@ public class ParameterTest7598_7617 extends DataSourceTestBase {
     }
 
     @Test
+    public void test() throws Exception {
+        DatasourceOptions options = new DatasourceOptions();
+        try {
+            // deltaIncCount < 0
+            options.setDeltaIncCount( -1 );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
+        }
+        try {
+            // deltaIncCount = 0
+            options.setDeltaIncCount( 0 );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
+        }
+        // deltaIncCount > maxCount
+        options.setDeltaIncCount( 600 );
+
+        try {
+            // maxIdleCount < 0
+            options.setMaxIdleCount( -1 );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
+        }
+        // maxIdleCount = 0
+        options.setMaxIdleCount( 0 );
+        // maxIdleCount > maxCount
+        options.setMaxIdleCount( 600 );
+
+        try {
+            // maxCount < 0
+            options.setMaxCount( -1 );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
+        }
+        // maxCount = 0
+        options.setMaxCount( 0 );
+
+        try {
+            // keepAliveTimeout < 0
+            options.setKeepAliveTimeout( -1 );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
+        }
+        // keepAliveTimeout = 0
+        options.setKeepAliveTimeout( 0 );
+
+        try {
+            // syncCoordInterval < 0
+            options.setSyncCoordInterval( -1 );
+            Assert.fail( "unexpect result" );
+        } catch ( BaseException e ) {
+            Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(),
+                    e.getErrorCode() );
+        }
+        // syncCoordInterval = 0
+        options.setSyncCoordInterval( 0 );
+    }
+
+    @Test
     void keepAliveTest7598() {
         try {
             // 小于checkInteval
             DatasourceOptions option = new DatasourceOptions();
             option.setKeepAliveTimeout( 5000 );
             datasource.updateDatasourceOptions( option );
-
             Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
@@ -53,7 +121,6 @@ public class ParameterTest7598_7617 extends DataSourceTestBase {
             DatasourceOptions option = new DatasourceOptions();
             option.setKeepAliveTimeout( -100 );
             datasource.updateDatasourceOptions( option );
-
             Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
@@ -80,109 +147,39 @@ public class ParameterTest7598_7617 extends DataSourceTestBase {
         return new Object[][] { { negative }, { minVal }, { maxVal }, };
     }
 
-    @Test(dataProvider = "val-provider")
-    void deltaIncCountTest7609( int val ) {
-        try {
-            if ( val > 0 )
-                return;
-            DatasourceOptions option = new DatasourceOptions();
-            option.setDeltaIncCount( val );
-            datasource.updateDatasourceOptions( option );
-
-            Assert.assertTrue( false );
-        } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
-        }
-    }
-
-    @Test(dataProvider = "val-provider")
-    void maxIdelCountTest7610( int val ) {
-        try {
-            if ( val >= 0 )
-                return;
-            DatasourceOptions option = new DatasourceOptions();
-            option.setMaxIdleCount( val );
-            datasource.updateDatasourceOptions( option );
-
-            Assert.assertTrue( false );
-        } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
-        }
-    }
-
-    @Test(dataProvider = "val-provider")
-    void maxCountTest7611( int val ) {
-        if ( val >= 0 )
-            return;
-        try {
-            DatasourceOptions option = new DatasourceOptions();
-            option.setMaxCount( val );
-            datasource.updateDatasourceOptions( option );
-
-            Assert.assertFalse( true );
-        } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
-        }
-    }
-
-    @Test(dataProvider = "val-provider")
-    void syncCoordIntervalTest7612( int val ) {
-        if ( val >= 0 )
-            return;
-        try {
-            DatasourceOptions option = new DatasourceOptions();
-            option.setSyncCoordInterval( val );
-            datasource.updateDatasourceOptions( option );
-
-            Assert.assertTrue( false );
-        } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
-        }
-    }
-
     @Test
-    void addCoordTest7613_7614() {
-        try {
-            datasource.addCoord( this.coordAddr );
-        } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
-        }
+    void addCoordTest7616() {
+        datasource.addCoord( this.coordAddr );
 
         try {
             datasource.addCoord( "" );
+            Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
 
         try {
             datasource.addCoord( null );
+            Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
     }
 
     @Test
-    void delCoordTest7616_7617() {
-        try {
-            datasource.removeCoord( this.coordAddr );
-        } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
-        }
-
-        try {
-            datasource.removeCoord( this.coordAddr );
-        } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
-        }
+    void delCoordTest7617() {
+        datasource.removeCoord( this.coordAddr );
 
         try {
             datasource.removeCoord( "" );
+            Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
 
         try {
             datasource.removeCoord( null );
+            Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
