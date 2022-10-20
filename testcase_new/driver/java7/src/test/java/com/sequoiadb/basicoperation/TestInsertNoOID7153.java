@@ -3,6 +3,7 @@ package com.sequoiadb.basicoperation;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sequoiadb.base.result.InsertResult;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -18,10 +19,10 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
+import static com.sequoiadb.testcommon.CommLib.checkRecordsResult;
+
 /**
- * FileName: TestInsertNoOID7153.java test interface: ensureOID (boolean flag)
- * isOIDEnsured ()
- * 
+ * @Description: seqDB-7153:ensureOID接口验证
  * @author wuyan
  * @Date 2016.9.12
  * @version 1.00
@@ -34,124 +35,68 @@ public class TestInsertNoOID7153 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            System.out.printf( "connect %s failed, errMsg:%s\n",
-                    SdbTestBase.coordUrl, e.getMessage() );
-            AssertJUnit.assertTrue( false );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         createCL();
     }
 
     private void createCL() {
-        try {
-            if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
-                sdb.createCollectionSpace( SdbTestBase.csName );
-            }
-        } catch ( BaseException e ) {
-            // -33 CS exist,ignore exceptions
-            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
+        if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
+            sdb.createCollectionSpace( SdbTestBase.csName );
         }
-        try {
-            cs = sdb.getCollectionSpace( SdbTestBase.csName );
-            cl = cs.createCollection( clName );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
-                    + e.getMessage() );
-        }
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cl = cs.createCollection( clName );
     }
 
-    /**
-     * test isOIDEnsured() ,and ensureOID(boolean flag), set flag=true
-     */
+    @Test
     public void bulkInsert() {
-        try {
-            List< BSONObject > list = new ArrayList< BSONObject >();
-            BSONObject obj = new BasicBSONObject();
-            obj.put( "no", 1 );
-            obj.put( "str", "test_" + String.valueOf( 100 ) );
-            list.add( obj );
-            cl.ensureOID( true );
-            cl.bulkInsert( list, DBCollection.FLG_INSERT_CONTONDUP );
+        //* test isOIDEnsured() ,and ensureOID(boolean flag), set flag=true
+        List< BSONObject > list = new ArrayList<>();
+        BSONObject obj1 = new BasicBSONObject();
+        BSONObject obj2 = new BasicBSONObject();
+        obj1.put( "no", 1 );
+        obj1.put( "str", "test_" + String.valueOf( 100 ) );
+        obj2.put( "no", 2 );
+        obj2.put( "str", "test_" + String.valueOf( 10 ) );
+        list.add( obj1 );
+        list.add( obj2 );
+        cl.ensureOID( true );
+        cl.bulkInsert( list );
 
-            // check if there is a _id, if _id not exist then error
-            Assert.assertEquals( true, list.toString().contains( "_id" ),
-                    "the _id is not exist" );
-
-            // check the interface:isOIDEnsured(),the return is true
-            Assert.assertEquals( true, cl.isOIDEnsured(),
-                    "the isOIDEnsured is error" + cl.isOIDEnsured() );
-
-            // check the _id of client generation insert success.
-            BSONObject listObj = ( BasicBSONObject ) list.get( 0 );
-            Object idValue = listObj.get( "_id" );
-            DBCursor tmpCursor = cl.query();
-            BasicBSONObject actRecs = null;
-            while ( tmpCursor.hasNext() ) {
-                actRecs = ( BasicBSONObject ) tmpCursor.getNext();
-            }
-            Assert.assertEquals( idValue, actRecs.get( "_id" ),
-                    "actIdValue: " + actRecs.get( "_id" ) );
-            System.out.println( "---bulkinsert Datas is ok" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "bulkinsert fail " + e.getErrorType() );
+        // check if there is a _id, if _id not exist then error
+        for( int i = 0; i< list.size();i ++){
+            BSONObject expRecord = list.get(i);
+            Assert.assertTrue(expRecord.containsField("_id"));
         }
 
-    }
+        // check the interface:isOIDEnsured(),the return is true
+        Assert.assertTrue( cl.isOIDEnsured() );
 
-    /**
-     * test isOIDEnsured() ,and ensureOID(boolean flag), set flag=false
-     */
-    public void bulkInsertNoId() {
-        try {
-            List< BSONObject > list = new ArrayList< BSONObject >();
-            BSONObject obj = new BasicBSONObject();
-            obj.put( "str", "test_" + String.valueOf( 100 ) );
-            list.add( obj );
-            cl.ensureOID( false );
-            cl.bulkInsert( list, 0 );
-            // check if there is a _id, if _id not exist then error
-            Assert.assertEquals( false, list.toString().contains( "_id" ),
-                    "the _id is exist" );
+        // check the _id of client generation insert success.
+        DBCursor tmpCursor = cl.query();
+        checkRecordsResult(tmpCursor, list );
 
-            // check the interface:isOIDEnsured(),the return is true
-            Assert.assertEquals( false, cl.isOIDEnsured(),
-                    "the isOIDEnsured is error" + cl.isOIDEnsured() );
+        //test isOIDEnsured() ,and ensureOID(boolean flag), set flag=false
+        cl.truncate();
+        cl.ensureOID( false );
+        cl.bulkInsert( list, 0 );
 
-            // check insert result.the sdb exist id
-            DBCursor tmpCursor = cl.query();
-            BasicBSONObject actRecs = null;
-            while ( tmpCursor.hasNext() ) {
-                actRecs = ( BasicBSONObject ) tmpCursor.getNext();
-            }
-            Assert.assertEquals( true, actRecs.toString().contains( "_id" ) );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "bulkInsertNoId fail " + e.getErrorType() );
+        // check the interface:isOIDEnsured()
+        Assert.assertFalse( cl.isOIDEnsured() );
+        // check if there is a _id, if _id not exist then error
+        for( int i = 0; i< list.size();i ++){
+            BSONObject expRecord = list.get(i);
+            Assert.assertTrue(expRecord.containsField("_id"));
         }
+
+        DBCursor tmpCursor1 = cl.query();
+        checkRecordsResult(tmpCursor1, list );
     }
 
     @AfterClass
     public void tearDown() {
-        try {
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
-            sdb.disconnect();
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        if (cs.isCollectionExist(clName)) {
+            cs.dropCollection(clName);
         }
-    }
-
-    @Test
-    public void testInsertToBson() {
-        try {
-            bulkInsert();
-            bulkInsertNoId();
-        } catch ( BaseException e ) {
-            e.printStackTrace();
-            Assert.assertTrue( false, e.getMessage() );
-        }
+        sdb.close();
     }
 }
