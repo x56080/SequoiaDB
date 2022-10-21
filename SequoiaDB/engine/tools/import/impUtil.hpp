@@ -42,11 +42,16 @@ using namespace std;
 namespace import
 {
    #define IMP_UTIL_TIMEZONE_MAX 720
+   #define IMP_UTIL_SOURCE_INFO_MAX  256
 
    UINT32 RC2ShellRC(INT32 rc);
    INT32 parseFileList(const string& fileList, vector<string>& files);
    INT32 checkDateTimeFormat(const string& format) ;
    BOOLEAN initTimezoneEnv() ;
+   /**
+    * output format is: "<pTag>:<hostname>:<PID>:<TID>"
+    */
+   INT32 genSourceInfo( CHAR *pOutBuf, INT32 len, const CHAR *pTag ) ;
 }
 
 #endif /* IMP_UTIL_HPP_ */
