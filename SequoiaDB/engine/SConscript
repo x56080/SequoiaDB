@@ -820,6 +820,9 @@ clsTestFiles = [
 ossTestFiles = [
       "test/oss/ossHashFloatTest.cpp"
       ]
+utilStrTestFiles = [
+      "test/util/utilStrTest.cpp"
+]
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"
       ]
@@ -959,6 +962,7 @@ env.StaticLibrary('omsvc', omsvcFiles)
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
 osstest = env.Object('osstest', gtestMainFile)
+utilstrtest = env.Object('utilstrtest', gtestMainFile)
 ixmgentest = env.Object('ixmgentest', gtestMainFile)
 rtncontexttest = env.Object('rtncontexttest', gtestMainFile)
 mthtest = env.Object('mthtest', gtestMainFile)
@@ -1066,6 +1070,9 @@ if hasTestcase:
    ossTest = env.Program("ossTest", [ ossTestFiles, osstest],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   utilStrTest = env.Program("utilStrTest", [ utilStrTestFiles, utilstrtest],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    ixmgenTest = env.Program("ixmgenTest", [ ixmgenTestFiles, ixmgentest ],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1140,6 +1147,7 @@ if hasTestcase:
 #   env.Install( '#/tests', npipeClientTest )
    env.Install( '#/tests', clsTest )
    env.Install( '#/tests', ossTest )
+   env.Install( '#/tests', utilStrTest)
    env.Install( '#/tests', ixmgenTest )
    env.Install( '#/tests', idxHashTest )
    env.Install( '#/tests', rtnContextTest )

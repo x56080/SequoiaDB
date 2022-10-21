@@ -61,8 +61,9 @@
 using namespace bson ;
 using namespace std ;
 
-#define RTN_MIN_TRACE_BUFFER_SIZE 1
-#define RTN_MAX_TRACE_BUFFER_SIZE 1024
+#define RTN_MIN_TRACE_BUFFER_SIZE     1
+#define RTN_MAX_TRACE_BUFFER_SIZE     1024
+#define RTN_CONFIG_NAME_BUFFER_SIZE   32
 
 namespace engine
 {
@@ -2485,17 +2486,41 @@ error:
       _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
       BSONObjBuilder newObjBuilder ;
       CHAR *lowerFieldName = NULL ;
+      UINT32 buffSize = 0 ;
 
       try
       {
-         BSONObjIterator iter( cfgObj );
+         BSONObjIterator iter( cfgObj ) ;
+         lowerFieldName = (CHAR *)SDB_OSS_MALLOC( RTN_CONFIG_NAME_BUFFER_SIZE ) ;
+         buffSize = RTN_CONFIG_NAME_BUFFER_SIZE ;
+         if ( !lowerFieldName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto error ;
+         }
          while ( iter.more() )
          {
             BSONElement ele = iter.next() ;
             const CHAR *srcFieldName = ele.fieldName() ;
-            rc = utilStrToLower( srcFieldName, lowerFieldName ) ;
+            if ( buffSize < ossStrlen( srcFieldName ) + 1 )
+            {
+               CHAR *newLowerFieldName = (CHAR *)SDB_OSS_REALLOC( lowerFieldName,
+                                                                  ossStrlen( srcFieldName) + 1 ) ;
+               if ( !newLowerFieldName )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+                  goto error ;
+               }
+               lowerFieldName = newLowerFieldName ;
+               buffSize = ossStrlen( srcFieldName ) + 1 ;
+            }
+            ossMemset( lowerFieldName, 0, buffSize ) ;
+            rc = utilStrToLower( srcFieldName, lowerFieldName, buffSize ) ;
             if ( rc )
             {
+               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
                goto error ;
             }
             if ( ele.isNumber() || String == ele.type() )
@@ -2509,29 +2534,21 @@ error:
             }
             else
             {
-               PD_LOG( PDERROR, "Field[%s] type[%d] is not "
-                       "number/boolean/string", ele.fieldName(),
-                       ele.type() ) ;
                rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Field[%s] type[%d] is not number/boolean/string, rc: %d",
+                       ele.fieldName(), ele.type(), rc ) ;
                goto error ;
             }
-
-            if ( NULL != lowerFieldName )
-            {
-               SDB_OSS_FREE( lowerFieldName ) ;
-               lowerFieldName = NULL ;
-            }
          }
+         _newCfgObj = newObjBuilder.obj() ;
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDWARNING, "Exception during updateConf init: %s",
-                 e.what() ) ;
          rc = ossException2RC( &e ) ;
+         PD_LOG( PDWARNING, "Exception during updateConf init: %s, rc: %d",
+                 e.what(), rc ) ;
          goto error ;
       }
-
-      _newCfgObj = newObjBuilder.obj() ;
 
    done:
       if ( NULL != lowerFieldName )
@@ -2623,7 +2640,7 @@ error:
    {
       INT32 rc = SDB_OK ;
       CHAR *lowerFieldName = NULL ;
-
+      UINT32 buffSize = 0 ;
       if ( _newCfgObj.isEmpty() )
       {
          goto done ;
@@ -2633,24 +2650,40 @@ error:
       {
          BSONObjBuilder newCfgBob ;
          BSONObjIterator itr( _newCfgObj ) ;
+         lowerFieldName = (CHAR *)SDB_OSS_MALLOC( RTN_CONFIG_NAME_BUFFER_SIZE ) ;
+         buffSize = RTN_CONFIG_NAME_BUFFER_SIZE ;
+         if ( !lowerFieldName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto error ;
+         }
          while ( itr.more() )
          {
             BSONElement ele = itr.next() ;
             const CHAR *fieldName = ele.fieldName() ;
-            rc = utilStrToLower( fieldName, lowerFieldName ) ;
+            if ( buffSize < ossStrlen( fieldName ) + 1 )
+            {
+               CHAR *newLowerFieldName = (CHAR *)SDB_OSS_REALLOC( lowerFieldName,
+                                                                  ossStrlen( fieldName ) + 1 ) ;
+               if ( !newLowerFieldName )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+                  goto error ;
+               }
+               lowerFieldName = newLowerFieldName ;
+               buffSize = ossStrlen( fieldName ) + 1 ;
+            }
+            ossMemset( lowerFieldName, 0, buffSize ) ;
+            rc = utilStrToLower( fieldName, lowerFieldName, buffSize ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
                goto error ;
             }
             const CHAR *aliasName = pmdGetConfigAliasName( lowerFieldName ) ;
-            if ( NULL != lowerFieldName)
-            {
-               newCfgBob.append( lowerFieldName, 1 ) ;
-               SDB_OSS_FREE( lowerFieldName ) ;
-               lowerFieldName = NULL ;
-            }
-
+            newCfgBob.append( lowerFieldName, 1 ) ;
             if ( *aliasName &&
                  !_newCfgObj.hasField( aliasName ) )
             {
