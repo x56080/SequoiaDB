@@ -32,7 +32,7 @@ public class UploadPart19924 extends S3TestBase {
     private String bucketName = "bucket19924";
     private String keyName = "key19924";
     private AmazonS3 s3Client = null;
-    private long fileSize = 420 * 1024 * 1024;
+    private long fileSize = 220 * 1024 * 1024;
     private long partSize = 5 * 1024 * 1024;
     private File localPath = null;
     private File file = null;
@@ -62,7 +62,7 @@ public class UploadPart19924 extends S3TestBase {
     private void testUpload() throws Exception {
         uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
                 keyName );
-        ThreadExecutor es = new ThreadExecutor();
+        ThreadExecutor es = new ThreadExecutor(180000);
         int filePosition = 0;
 
         for ( int i = 1; filePosition < fileSize; i += 2 ) {
