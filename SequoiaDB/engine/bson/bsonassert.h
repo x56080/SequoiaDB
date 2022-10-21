@@ -39,6 +39,8 @@
 
 #include "stringdata.h"
 
+// Current msgid = 13656
+
 namespace bson {
 
     using std::string;
