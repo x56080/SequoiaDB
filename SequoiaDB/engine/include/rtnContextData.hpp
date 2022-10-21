@@ -67,10 +67,11 @@ namespace engine
       {
          INT32 cmpStart = 0 ;
          INT32 cmpEnd   = 0 ;
-         INT32 maxNum   = l.prefixNum > r.prefixNum ?
-                                        l.prefixNum : r.prefixNum ;
+         INT32 minNum   = l.prefixNum > r.prefixNum ?
+                                        r.prefixNum : l.prefixNum ;
 
-         cmpStart = woNCompare( l.startKey, r.startKey, maxNum, _orderBy ) ;
+         // Compare the start key of minimun prefix num.
+         cmpStart = woNCompare( l.startKey, r.startKey, minNum, _orderBy ) ;
 
          if ( cmpStart < 0 )
          {
@@ -78,22 +79,71 @@ namespace engine
          }
          else if ( 0 == cmpStart )
          {
-            if ( l.startIncluded && !r.startIncluded )
+            /*
+              There are two cases of unequal prefix num, the sorted section is:
+                left section => right section
+              1. left prefix num less than right prefix num and left start
+                 include is true. eg:
+                   left section:
+                   {
+                     prefix num : 2,
+                     start key : { "1" : 3, "2": 1999 },
+                     start include : true
+                   }
+                   right section:
+                   {
+                     prefix num : 3,
+                     start key : { "1" : 3, "2": 1999 , "3": 18},
+                     start include : -
+                   }
+              2. left prefix num greater than right prefix num and right start
+                 include is false. eg:
+                   left section:
+                   {
+                     prefix num : 3,
+                     start key : { "1" : 3, "2": 1999 , "3": 18},
+                     start include : -
+                   }
+                   right section:
+                   {
+                     prefix num : 2,
+                     start key : { "1" : 3, "2": 1999 },
+                     start include : false
+                   }
+            */
+            if ( l.prefixNum < r.prefixNum )
             {
-               return TRUE ;
+               if ( l.startIncluded )
+               {
+                  return TRUE;      
+               }
             }
-            else if ( l.startIncluded == r.startIncluded )
+            else if ( l.prefixNum > r.prefixNum )
             {
-               cmpEnd = woNCompare( l.endKey, r.endKey, maxNum, _orderBy ) ;
-               if ( cmpEnd > 0 )
+               if ( !r.startIncluded )
+               {
+                  return TRUE;
+               }
+            }
+            else
+            {
+               if ( l.startIncluded && !r.startIncluded )
                {
                   return TRUE ;
                }
-               else if ( 0 == cmpEnd )
+               else if ( l.startIncluded == r.startIncluded )
                {
-                  if( l.endIncluded && !r.endIncluded )
+                  cmpEnd = woNCompare( l.endKey, r.endKey, minNum, _orderBy ) ;
+                  if ( cmpEnd > 0 )
                   {
                      return TRUE ;
+                  }
+                  else if ( 0 == cmpEnd )
+                  {
+                     if( l.endIncluded && !r.endIncluded )
+                     {
+                        return TRUE ;
+                     }
                   }
                }
             }
