@@ -30,6 +30,7 @@
 
 *******************************************************************************/
 #include "impUtil.hpp"
+#include "ossSocket.hpp"
 #include "utilCommon.hpp"
 #include "utilIniParserEx.hpp"
 #include "pd.hpp"
@@ -737,4 +738,21 @@ namespace import
    }
 
 #endif
+
+   INT32 genSourceInfo( CHAR *pOutBuf, INT32 len, const CHAR *pTag )
+   {
+      CHAR hostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+
+      if ( !pOutBuf || 0 >= len || !pTag )
+      {
+         return SDB_INVALIDARG ;
+      }
+      ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
+      ossSnprintf ( pOutBuf, len, "%s:%s:%d:%d", pTag,
+                    hostName,
+                    ossGetCurrentProcessID(),
+                    ossGetCurrentThreadID() ) ;
+      return SDB_OK ;
+   }
+
 }
