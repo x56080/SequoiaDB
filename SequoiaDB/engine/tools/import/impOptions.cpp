@@ -35,6 +35,7 @@
 #include "pd.hpp"
 #include "utilPasswdTool.hpp"
 #include "utilParam.hpp"
+#include "utilTool.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -735,7 +736,9 @@ namespace import
          }
          else
          {
-            ossStrToBoolean(linePriority.c_str(), &_linePriority);
+            rc = ossStrToBoolean( linePriority.c_str(), &_linePriority ) ;
+            SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                          IMP_OPTION_LINEPRIORITY ) ;
          }
       }
       else
@@ -753,13 +756,17 @@ namespace import
       if (has(IMP_OPTION_ERRORSTOP))
       {
          string errorStop = get<string>(IMP_OPTION_ERRORSTOP);
-         ossStrToBoolean(errorStop.c_str(), &_errorStop);
+         rc = ossStrToBoolean( errorStop.c_str(), &_errorStop ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_ERRORSTOP ) ;
       }
 
       if (has(IMP_OPTION_FORCE))
       {
          string force = get<string>(IMP_OPTION_FORCE);
-         ossStrToBoolean(force.c_str(), &_force);
+         rc = ossStrToBoolean( force.c_str(), &_force ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_FORCE ) ;
       }
 
       if (has(IMP_OPTION_JOBS))
@@ -789,7 +796,9 @@ namespace import
       if (has(IMP_OPTION_SSL))
       {
          string ssl = get<string>(IMP_OPTION_SSL);
-         ossStrToBoolean(ssl.c_str(), &_useSSL);
+         rc = ossStrToBoolean( ssl.c_str(), &_useSSL ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_SSL ) ;
       }
 
       if (has(IMP_OPTION_DELCHAR))
@@ -908,7 +917,9 @@ namespace import
       if (has(IMP_OPTION_HEADERLINE))
       {
          string headerline = get<string>(IMP_OPTION_HEADERLINE);
-         ossStrToBoolean(headerline.c_str(), &_hasHeaderLine);
+         rc = ossStrToBoolean( headerline.c_str(), &_hasHeaderLine ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_HEADERLINE ) ;
       }
 
       if (has(IMP_OPTION_UNICODE))
@@ -956,25 +967,33 @@ namespace import
       if (has(IMP_OPTION_SPARSE))
       {
          string sparse = get<string>(IMP_OPTION_SPARSE);
-         ossStrToBoolean(sparse.c_str(), &_autoAddField);
+         rc = ossStrToBoolean( sparse.c_str(), &_autoAddField ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_SPARSE ) ;
       }
 
       if (has(IMP_OPTION_EXTRA))
       {
          string extra = get<string>(IMP_OPTION_EXTRA);
-         ossStrToBoolean(extra.c_str(), &_autoCompletion);
+         rc = ossStrToBoolean( extra.c_str(), &_autoCompletion ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_EXTRA ) ;
       }
 
       if (has(IMP_OPTION_CAST))
       {
          string cast = get<string>(IMP_OPTION_CAST);
-         ossStrToBoolean(cast.c_str(), &_cast);
+         rc = ossStrToBoolean( cast.c_str(), &_cast ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_CAST ) ;
       }
 
       if (has(IMP_OPTION_STRICTFIELDNUM))
       {
          string strict = get<string>(IMP_OPTION_STRICTFIELDNUM);
-         ossStrToBoolean(strict.c_str(), &_strictFieldNum);
+         rc = ossStrToBoolean( strict.c_str(), &_strictFieldNum ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_STRICTFIELDNUM ) ;
       }
 
       if (has(IMP_OPTION_DATEFMT))
@@ -1062,31 +1081,42 @@ namespace import
       if (has(IMP_OPTION_SHARDING))
       {
          string sharding = get<string>(IMP_OPTION_SHARDING);
-         ossStrToBoolean(sharding.c_str(), &_enableSharding);
+         rc = ossStrToBoolean( sharding.c_str(), &_enableSharding ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_SHARDING ) ;
       }
 
       if (has(IMP_OPTION_COORD))
       {
          string coord = get<string>(IMP_OPTION_COORD);
-         ossStrToBoolean(coord.c_str(), &_enableCoord);
+         rc = ossStrToBoolean( coord.c_str(), &_enableCoord ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_COORD ) ;
       }
 
       if (has(IMP_OPTION_TRANSACTION))
       {
          string tx = get<string>(IMP_OPTION_TRANSACTION);
-         ossStrToBoolean(tx.c_str(), &_enableTransaction);
+         rc = ossStrToBoolean( tx.c_str(), &_enableTransaction ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_TRANSACTION ) ;
       }
 
       if (has(IMP_OPTION_ALLOWKEYDUP))
       {
          string allowKeyDup = get<string>(IMP_OPTION_ALLOWKEYDUP);
-         ossStrToBoolean(allowKeyDup.c_str(), &_allowKeyDuplication);
+         rc = ossStrToBoolean( allowKeyDup.c_str(), &_allowKeyDuplication ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_ALLOWKEYDUP ) ;
       }
 
       if( has( IMP_OPTION_REPLACEKEYDUP ) )
       {
          string replaceKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP ) ;
-         ossStrToBoolean( replaceKeyDup.c_str(), &_replaceKeyDuplication ) ;
+         rc = ossStrToBoolean( replaceKeyDup.c_str(),
+                               &_replaceKeyDuplication ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_REPLACEKEYDUP ) ;
 
          if( _replaceKeyDuplication && _allowKeyDuplication )
          {
@@ -1123,7 +1153,9 @@ namespace import
       if (has(IMP_OPTION_IGNORENULL))
       {
          string ignoreNull = get<string>(IMP_OPTION_IGNORENULL);
-         ossStrToBoolean(ignoreNull.c_str(), &_ignoreNull);
+         rc = ossStrToBoolean( ignoreNull.c_str(), &_ignoreNull ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
+                                       IMP_OPTION_IGNORENULL ) ;
       }
 
    done:

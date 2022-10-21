@@ -245,7 +245,8 @@ utilFiles = [
       "util/utilRecycleItem.cpp",
       "util/utilUniqueID.cpp",
       "util/base64.cpp",
-      "util/utilSecure.cpp"
+      "util/utilSecure.cpp",
+      "util/utilTool.cpp"
       ]
 
 dpsFiles = [
