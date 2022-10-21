@@ -3,7 +3,7 @@
  *                  seqDB-19918:指定showError和showErrorMode查询节点健康快照    
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.08.25
- * @LastEditTime  : 2022.10.18
+ * @LastEditTime  : 2022.10.21
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -40,7 +40,6 @@ function test ()
    coord.stop();
    cata.stop();
    data.stop();
-   commCheckBusinessStatus( db );
 
    try
    {
