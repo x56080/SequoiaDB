@@ -287,6 +287,7 @@ accesses) is the same as if
 
         /* returns the pre-grow write position */
         inline char* grow(int by) {
+            uassert( 13656, "grow len should not be negative", by >= 0 ) ;
             int oldlen = l;
             int newLen = l + by;
             int minSize = newLen + reservedBytes;
