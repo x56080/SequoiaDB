@@ -15,8 +15,8 @@ public class SnapshotUtil extends SdbTestBase {
     public static final int INSERT_NUMS = 1000;
     private static ArrayList< String > lobStats = new ArrayList<>();
     private static ArrayList< String > checkRangeKeys = new ArrayList<>();
-    private static int lobdSize = 128 * 1024 * 1024;
-    private static int lobmSize = 83984384;
+    public static double lobdSize = 128 * 1024 * 1024;
+    public static double lobmSize = ( 80 * 1024 + 96 ) * 1024;
 
     static {
         // lob相关指标
