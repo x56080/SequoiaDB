@@ -410,6 +410,55 @@ UINT32 ossHashFileName ( const CHAR *fileName )
       pFileName++ ;
    return ossHash ( pFileName, (INT32)ossStrlen ( pFileName ) ) ;
 }
+
+/**
+ * Wrapper of mktime. Supports automatic DST(daylight saving time) corrention.
+ *
+ * DST introduce:
+ * 1. DST begin, the time skips an hour, and the skipped time is called the
+ * time gap, such as 2:30.
+ *    CST(+8h)  |    Time gap(+1h)   |   CDT(+9h)
+ * -------------|----------_---------|-------------->
+ *             1:59       2:30      3:00
+ *
+ * 2. DST end, the time needs to be rolled back 1h, and there are duplication
+ * times at this time, such as two 1:30
+ *    CDT(+9h)  |  Time repeat(-1h)  |   CST(+8)
+ * -------------|----------_---------|-------_------>
+ *             1:59       1:30      1:00    1:30
+ */
+time_t ossMkTime ( struct tm *timePtr )
+{
+   time_t result = 0 ;
+   time_t retryResult = 0 ;
+   struct tm fixTime = { 0 } ;
+
+   if ( !timePtr )
+   {
+      return -1 ;
+   }
+   fixTime = *timePtr ;
+
+   // Set isdst to 0 to handle repeated times as non-DST
+   timePtr->tm_isdst = 0 ;
+   result = mktime( timePtr ) ;
+   if ( 1 == timePtr->tm_isdst )
+   {
+      // DST corrention
+      fixTime.tm_isdst = 1 ;
+      retryResult = mktime( &fixTime ) ;
+      // 1. If isdst did not change, it means that the time is DST, and the
+      // corrected time is correct.
+      // 2. If isdst changed, it means that the time is time gap, and it
+      // does not require corrention.
+      if ( fixTime.tm_isdst == timePtr->tm_isdst )
+      {
+         result = retryResult ;
+      }
+   }
+   return result ;
+}
+
 // blow hash function is coming from
 // http://www.azillionmonkeys.com/qed/hash.html
 #undef get16bits

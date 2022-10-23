@@ -500,7 +500,7 @@ namespace engine
          t.tm_min   = minute ;
          t.tm_sec   = second ;
 
-         tm = mktime( &t ) ;
+         tm = ossMkTime( &t ) ;
       }
       if ( NULL != usec )
       {
@@ -570,7 +570,7 @@ namespace engine
          t.tm_mon   = month - 1 ;
          t.tm_mday  = day    ;
 
-         timep = mktime( &t ) ;
+         timep = ossMkTime( &t ) ;
          millis = timep * 1000 ;
       }
 

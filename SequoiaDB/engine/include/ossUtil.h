@@ -137,6 +137,10 @@ size_t ossVsnprintf (CHAR * buf, size_t size, const CHAR * fmt, va_list ap);
 INT32 ossStrToBoolean(const CHAR* pString, BOOLEAN* pBoolean);
 UINT32 ossHash ( const CHAR *data, INT32 len ) ;
 UINT32 ossHashFileName ( const CHAR *fileName ) ;
+
+// Wrapper of mktime. Supports automatic DST(daylight saving time) corrention.
+time_t ossMkTime ( struct tm *timePtr ) ;
+
 #if defined (_WINDOWS)
 INT32 ossWC2ANSI ( LPCWSTR lpcszWCString,
                    LPSTR   *lppszString,

@@ -211,7 +211,6 @@ void ossGmtime ( time_t &Time, struct tm &TM )
 #endif
 }
 
-//
 // convert ossTimestamp to string
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSTS2STR, "ossTimestampToString" )
 void ossTimestampToString( ossTimestamp &Tm, CHAR * pStr )
@@ -315,7 +314,7 @@ time_t ossTimeDiffWithUTC()
    struct tm utc ;
    ossLocalTime( time, local ) ;
    ossGmtime( time, utc ) ;
-   return mktime( &local ) - mktime( &utc ) ;
+   return ossMkTime( &local ) - ossMkTime( &utc ) ;
 }
 
 INT32 ossTimeGetMaxDay( INT32 year, INT32 month )
@@ -372,7 +371,7 @@ void ossStringToTimestamp( const CHAR * pStr, ossTimestamp &Tm )
    tmp.tm_year -= 1900 ;
    tmp.tm_mon  -= 1 ;
 
-   Tm.time = mktime( &tmp ) ;
+   Tm.time = ossMkTime( &tmp ) ;
 
    PD_TRACE_EXIT ( SDB_STR2OSSTS );
 }
@@ -390,7 +389,7 @@ void ossStringToTimestamp( const CHAR *pStr, ossTimestamp &Tm,
    tmp.tm_year -= 1900 ;
    tmp.tm_mon  -= 1 ;
 
-   Tm.time = mktime( &tmp ) ;
+   Tm.time = ossMkTime( &tmp ) ;
 }
 
 

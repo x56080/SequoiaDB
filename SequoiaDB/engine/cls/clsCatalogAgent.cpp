@@ -4964,7 +4964,7 @@ namespace engine
       clsNormalizeTM( tmTime ) ;
       tmpTM = tmTime ;
 
-      localSeconds = mktime( &tmTime ) ;
+      localSeconds = ossMkTime( &tmTime ) ;
       if ( tmpTM.tm_mday != tmTime.tm_mday || tmpTM.tm_mon != tmTime.tm_mon )
       {
          rc = SDB_INVALIDARG ;
