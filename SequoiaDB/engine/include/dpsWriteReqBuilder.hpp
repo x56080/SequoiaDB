@@ -40,8 +40,7 @@
 #include "dpsTrace.hpp"
 #include "ossLikely.hpp"
 #include "utilFragAllocator.hpp"
-
-#include <array>
+#include "dpsTrivialElement.hpp"
 
 namespace engine
 {
@@ -96,6 +95,12 @@ namespace engine
          }
 
          INT32 append(DPS_TAG tag, UINT32 size, const void *data);
+
+      public:
+         dpsTrivialElement startToBuildTsElement();
+
+         /// ele will be reset after appending.
+         INT32 appendTsElement(DPS_TAG tag, dpsTrivialElement &ele);
 
       private:
          INT32 _ensureMetaBlock();

@@ -538,7 +538,10 @@ dpsFiles = [
       "dps/dpsWriteReqBuilder.cpp",
       "dps/dpsRequest.cpp",
       "dps/dpsWriteContext.cpp",
-      "dps/dpsBlackHoleInst.cpp"
+      "dps/dpsBlackHoleInst.cpp",
+      "dps/dpsTrivialElement.cpp",
+      "dps/dpsTrivialStrDef.cpp",
+      "dps/dpsTrivialStrField.cpp"
       ]
 
 omsvcFiles = [

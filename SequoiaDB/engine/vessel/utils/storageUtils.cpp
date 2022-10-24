@@ -351,19 +351,19 @@ namespace vessel
       data.append(manifestBsonProperties::PAGE_SIZE, manifest.dataArgs.pageSize);
       data.append(manifestBsonProperties::PAGE_COUNT, manifest.dataArgs.maxPageCountPerSeg);
       data.append(manifestBsonProperties::SEG_COUNT, manifest.dataArgs.maxSegmentCountPerFile);
-      data.done();
+      data.doneFast();
 
       bson::BSONObjBuilder index(builder.subobjStart(manifestBsonProperties::IDX_ARGS));
       index.append(manifestBsonProperties::PAGE_SIZE, manifest.idxArgs.pageSize);
       index.append(manifestBsonProperties::PAGE_COUNT, manifest.idxArgs.maxPageCountPerSeg);
       index.append(manifestBsonProperties::SEG_COUNT, manifest.idxArgs.maxSegmentCountPerFile);
-      index.done();
+      index.doneFast();
 
       bson::BSONObjBuilder lob(builder.subobjStart(manifestBsonProperties::LOB_ARGS));
       lob.append(manifestBsonProperties::PAGE_SIZE, manifest.lobArgs.pageSize);
       lob.append(manifestBsonProperties::PAGE_COUNT, manifest.lobArgs.maxPageCountPerSeg);
       lob.append(manifestBsonProperties::SEG_COUNT, manifest.lobArgs.maxSegmentCountPerFile);
-      lob.done();
+      lob.doneFast();
 
       return builder.obj();
    }

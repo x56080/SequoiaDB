@@ -54,8 +54,10 @@ namespace engine
       _allocator.setOptions(ao);
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER_RESET, "dpsWriteReqBuilder::reset" )
    void dpsWriteReqBuilder::reset()
    {
+      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER_RESET);
       _type = LOG_TYPE_DUMMY;
       _flags = 0;
       _totalDataSize = 0;
@@ -63,11 +65,14 @@ namespace engine
       _elements = nullptr;
       _allocator.resetBlocks();
 
+      PD_TRACE_EXIT(SDB__DPSWREQBUILDER_RESET);
       return;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER_REAP, "dpsWriteReqBuilder::reap" )
    dpsWriteRequest dpsWriteReqBuilder::reap()
    {
+      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER_REAP);
       dpsWriteRequest req;
 
       req._type = _type;
@@ -79,12 +84,15 @@ namespace engine
 
       reset();
 
+      PD_TRACE_EXIT(SDB__DPSWREQBUILDER_REAP);
       return std::move(req);
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER_APPEND, "dpsWriteReqBuilder::append" )
    INT32 dpsWriteReqBuilder::append(DPS_TAG tag, UINT32 size, const void *data)
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER_APPEND);
 
       if (OSS_UNLIKELY(DPS_INVALID_TAG == tag ||
                        0 == size ||
@@ -131,14 +139,17 @@ namespace engine
          _totalDataSize += bufferSize;
       }
    done:
+      PD_TRACE_EXITRC(SDB__DPSWREQBUILDER_APPEND, rc);
       return rc;
    error:
       /// no need to free buffer here, it managed by allocator.
       goto done;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER__ISTAGDUP, "dpsWriteReqBuilder::_isTagDuplicated" )
    BOOLEAN dpsWriteReqBuilder::_isTagDuplicated(DPS_TAG tag)const
    {
+      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER__ISTAGDUP);
       BOOLEAN r = FALSE;
       SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
 
@@ -151,12 +162,17 @@ namespace engine
             break;
          }
       }
+
+      PD_TRACE_EXIT(SDB__DPSWREQBUILDER__ISTAGDUP);
       return r;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER__ENSUREMB, "dpsWriteReqBuilder::_ensureMetaBlock" )
    INT32 dpsWriteReqBuilder::_ensureMetaBlock()
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER__ENSUREMB);
+
       if (nullptr == _elements)
       {
          constexpr UINT32 bufferSize = DPS_MERGE_BLOCK_MAX_DATA * sizeof(utilSlice);
@@ -172,6 +188,55 @@ namespace engine
          ///wild ptr may saved in _elements now.
       }
    done:
+      PD_TRACE_EXITRC(SDB__DPSWREQBUILDER__ENSUREMB, rc);
+      return rc;
+   error:
+      goto done;
+   }
+
+   dpsTrivialElement dpsWriteReqBuilder::startToBuildTsElement()
+   {
+      return std::move(dpsTrivialElement(&_allocator));
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER__APPENDTSE, "dpsWriteReqBuilder::appendTsElement" )
+   INT32 dpsWriteReqBuilder::appendTsElement(DPS_TAG tag, dpsTrivialElement &ele)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER__APPENDTSE);
+      SDB_ASSERT(ele._allocator = &_allocator, "must be same");
+
+      if (OSS_UNLIKELY(DPS_INVALID_TAG == tag ||
+                       !ele.isDone()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(DPS_MERGE_BLOCK_MAX_DATA == _elementNum))
+      {
+         SDB_ASSERT(FALSE, "out of max element count");
+         rc = SDB_DPS_CORRUPTED_LOG;
+         goto error;
+      }
+      else
+      {
+      #if defined (_DEBUG)
+         SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
+      #endif//_DEBUG
+
+         reinterpret_cast<dpsRecordEle *>(ele._buffer)->tag = tag;
+         reinterpret_cast<dpsRecordEle *>(ele._buffer)->len = ele._size;
+         _elements[_elementNum].reset(ele._size, ele._buffer);
+         ++_elementNum;
+         _totalDataSize += (ele._size + sizeof(dpsRecordEle));
+      }
+      
+
+   done:
+      /// do not free element's buffer!
+      ele._reset();
+
+      PD_TRACE_EXITRC(SDB__DPSWREQBUILDER__APPENDTSE, rc);
       return rc;
    error:
       goto done;
