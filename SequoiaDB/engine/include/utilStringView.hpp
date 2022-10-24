@@ -37,6 +37,7 @@
 #ifndef UTIL_STRING_VIEW_HPP__
 #define UTIL_STRING_VIEW_HPP__
 
+#include "ossMemPool.hpp"
 #include "ossTypes.h"
 #include "ossUtil.hpp"
 #include <cstddef>
@@ -74,7 +75,12 @@ public:
    utilStringView( const CHAR *data, size_type len ) : _ptr( data ), _length( len )
    {
    }
-   utilStringView( const std::string &str ) : utilStringView( str.data(), str.size() )
+   utilStringView( const std::string &str )
+   : utilStringView( str.data(), str.size() )
+   {
+   }
+   utilStringView( const ossPoolString &str )
+   : utilStringView( str.data(), str.size() )
    {
    }
 
