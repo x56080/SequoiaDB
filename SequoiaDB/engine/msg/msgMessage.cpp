@@ -675,7 +675,7 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
       }
       pCurrent = &pBuffer[offset] ;
    }
-   if ( ossAlign4( pInsert->header.messageLength ) < offset )
+   if ( (INT32)ossAlign4( pInsert->header.messageLength ) < offset )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
