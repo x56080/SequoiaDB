@@ -18,23 +18,17 @@ package com.sequoiadb.flink.common.client;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
 public interface SDBClientProvider extends Serializable, Closeable {
 
-    Sequoiadb getClient();
-
     CollectionSpace getCollectionSpace();
 
     DBCollection getCollection();
-
-    Sequoiadb recreateClient() throws IOException;
 
 
     class Builder {
