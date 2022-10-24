@@ -682,7 +682,7 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if ( pInsert->header.messageLength <= offset )
+      if ( (INT32)pInsert->header.messageLength <= offset )
       {
          break ;
       }
