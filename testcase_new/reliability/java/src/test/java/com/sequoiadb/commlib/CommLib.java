@@ -1,8 +1,8 @@
 package com.sequoiadb.commlib;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -45,7 +45,7 @@ public class CommLib {
      * @param sdb
      * @return true/false, true is only on group, false is multiple group
      */
-    public boolean OneGroupMode( Sequoiadb sdb ) {
+    public static boolean OneGroupMode( Sequoiadb sdb ) {
         if ( getDataGroupNames( sdb ).size() < 2 ) {
             System.out.printf( "Only one group." );
             return true;
@@ -60,7 +60,7 @@ public class CommLib {
      * @return dataGroupNames
      */
     public static ArrayList< String > getDataGroupNames( Sequoiadb sdb ) {
-        ArrayList< String > dataGroupNames = new ArrayList< >();
+        ArrayList< String > dataGroupNames = new ArrayList<>();
         try {
             dataGroupNames = sdb.getReplicaGroupNames();
             dataGroupNames.remove( "SYSCatalogGroup" );
@@ -81,7 +81,7 @@ public class CommLib {
      */
     public static List< String > getNodeAddress( Sequoiadb sdb,
             String rgName ) {
-        List< String > nodeAddrs = new ArrayList< >();
+        List< String > nodeAddrs = new ArrayList<>();
         try {
             ReplicaGroup tmpArray = sdb.getReplicaGroup( rgName );
             BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
@@ -111,7 +111,7 @@ public class CommLib {
      * @return csInfoOfCata
      */
     public ArrayList< BSONObject > getCSInfoOfCatalog( Sequoiadb sdb ) {
-        ArrayList< BSONObject > csInfoOfCata = new ArrayList< >();
+        ArrayList< BSONObject > csInfoOfCata = new ArrayList<>();
         Sequoiadb cataDB = null;
         try {
             String nodeName = sdb.getReplicaGroup( "SYSCATALOG" ).getMaster()
@@ -241,7 +241,7 @@ public class CommLib {
                 int maxCnt = 20;
                 boolean checkSucc = false;
                 do {
-                    ArrayList< String > allNodeData = new ArrayList< >();
+                    ArrayList< String > allNodeData = new ArrayList<>();
 
                     for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                         Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ),
@@ -249,7 +249,7 @@ public class CommLib {
                         DBCursor cursor = dataDB.listCollections();
 
                         // get the data for each node
-                        ArrayList< BSONObject > oneNodeData = new ArrayList< >();
+                        ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                         while ( cursor.hasNext() ) {
                             BSONObject clList = cursor.getNext();
                             if ( clList.get( "Name" ).toString()
@@ -346,7 +346,7 @@ public class CommLib {
                     int maxCnt = 8;
                     boolean checkSucc = false;
                     do {
-                        ArrayList< String > allNodeData = new ArrayList< >();
+                        ArrayList< String > allNodeData = new ArrayList<>();
                         for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                             Sequoiadb dataDB = new Sequoiadb(
                                     nodeAddrs.get( j ), "", "" );
@@ -356,7 +356,7 @@ public class CommLib {
                                     .getCollectionSpace( tmpCSName )
                                     .getCollection( tmpCLName ).getIndexes();
                             // get the data for each node
-                            ArrayList< BSONObject > oneNodeData = new ArrayList< >();
+                            ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                             while ( cur.hasNext() ) {
                                 BSONObject idxList = cur.getNext();
                                 oneNodeData.add( idxList );
@@ -502,7 +502,7 @@ public class CommLib {
     /**
      * compare node's data within the group
      * 
-     * @param .......
+     * @param rgName
      * @param matcher,
      *            matching condition for query
      */
@@ -518,7 +518,7 @@ public class CommLib {
             int maxCnt = 15;
             boolean checkSucc = false;
             do {
-                ArrayList< String > allNodeData = new ArrayList< >();
+                ArrayList< String > allNodeData = new ArrayList<>();
 
                 for ( int i = 0; i < nodeAdrrs.size(); ++i ) {
                     dataDB = new Sequoiadb( nodeAdrrs.get( i ), "", "" );
@@ -527,7 +527,7 @@ public class CommLib {
                     DBCursor cursor = clDB.query( matcher, null, null, null );
 
                     // get the data for each node
-                    ArrayList< BSONObject > oneNodeData = new ArrayList< >();
+                    ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                     while ( cursor.hasNext() ) {
                         BSONObject csInfo = cursor.getNext();
                         oneNodeData.add( csInfo );
@@ -961,7 +961,7 @@ public class CommLib {
         // 根据匹配条件筛选复制组主节点，context只残留在主节点上.
         DBCursor snapshot = db.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE,
                 matcher, "{'NodeName': 1}", null );
-        List< String > nodes = new ArrayList< >();
+        List< String > nodes = new ArrayList<>();
         while ( snapshot.hasNext() ) {
             BasicBSONObject obj = ( BasicBSONObject ) snapshot.getNext();
             if ( !obj.containsField( "ErrNodes" ) ) {
@@ -1020,5 +1020,155 @@ public class CommLib {
      */
     public static void waitContextClose( Sequoiadb db, String match ) {
         waitContextClose( db, match, 300, true );
+    }
+    /**
+     * @description: 获取group下的所有节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
+     * @param db
+     *          db连接
+     * @param groupName
+     *          需要获取的group名
+     * @return
+     */
+    public static List< BasicBSONObject > getGroupNodes( Sequoiadb db,
+                                                         String groupName ) {
+
+        List< BasicBSONObject > nodeAddrs = new ArrayList<>();
+        try {
+            ReplicaGroup tmpArray = db.getReplicaGroup( groupName );
+            BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
+            BasicBSONList groups = ( BasicBSONList ) doc.get( "Group" );
+
+            for ( int i = 0; i < groups.size(); ++i ) {
+                BasicBSONObject group = ( BasicBSONObject ) groups.get( i );
+                String hostName = group.getString( "HostName" );
+                BasicBSONList service = ( BasicBSONList ) group
+                        .get( "Service" );
+                BasicBSONObject srcInfo = ( BasicBSONObject ) service.get( 0 );
+                String svcName = srcInfo.getString( "Name" );
+                String nodeID = group.getString( "NodeID" );
+                nodeAddrs.add( new BasicBSONObject( "hostName", hostName )
+                        .append( "svcName", svcName )
+                        .append( "nodeID", nodeID ) );
+            }
+        } catch ( BaseException e ) {
+            throw e;
+        }
+        return nodeAddrs;
+    }
+
+    /**
+     * @description: 获取CL所在的所有节点
+     * @param db
+     *          db连接
+     * @param csName
+     *          需要获取的CS名
+     * @param clName
+     *          需要获取的CL名
+     * @return
+     */
+    public static List< BasicBSONObject > getCLNodes( Sequoiadb db,
+                                                      String csName, String clName ) {
+        List< String > groupName = new ArrayList<>();
+        List< BasicBSONObject > nodeAddrs = new ArrayList<>();
+        List< BasicBSONObject > nodeInfo = new ArrayList<>();
+        DBCollection dbcl = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        groupName = CommLib.getCLGroups( dbcl );
+        for ( int i = 0; i < groupName.size(); i++ ) {
+            nodeInfo = getGroupNodes( db, groupName.get( i ) );
+            for ( int j = 0; j < nodeInfo.size(); j++ ) {
+                nodeAddrs.add( nodeInfo.get( j ) );
+            }
+        }
+        return nodeAddrs;
+    }
+
+    /**
+     * @description: 循环获取CL,超过60s未获取到报超时
+     * @param db
+     *          需要获取CL的db连接
+     * @param csName
+     *          对应的CS名
+     * @param clName
+     *          需要获取的CL名
+     * @return
+     */
+    public static DBCollection getCL( Sequoiadb db, String csName,
+                                      String clName ) {
+        int doTime = 0;
+        int timeOut = 60;
+        DBCollection dbcl = null;
+        while ( doTime < timeOut ) {
+            try {
+                dbcl = db.getCollectionSpace( csName ).getCollection( clName );
+                break;
+            } catch ( BaseException e ) {
+                if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorType()
+                        && e.getErrorType() != SDBError.SDB_DMS_CS_NOTEXIST
+                        .getErrorType() ) {
+                    throw e;
+                }
+            }
+            try {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
+                e.printStackTrace();
+            }
+            doTime++;
+        }
+        if ( doTime >= timeOut ) {
+            Assert.fail( "get collection time out" );
+        }
+        return dbcl;
+    }
+
+    /**
+     * 获取原始集合对应的数据组，原始集合可以是普通表、分区表
+     *
+     * @param cl
+     * @return List<String> 返回所有数据组
+     * @Author liuxiaoxuan
+     * @Date 2018-11-15
+     */
+    public static List< String > getCLGroups( DBCollection cl ) {
+        List< String > groupNames = new ArrayList<>();
+        Sequoiadb db = cl.getSequoiadb();
+        if ( CommLib.isStandAlone( db ) ) {
+            return groupNames;
+        }
+
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put( "Name", cl.getFullName() );
+        DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG, matcher,
+                null, null );
+        while ( cur.hasNext() ) {
+            BasicBSONList bsonLists = ( BasicBSONList ) cur.getNext()
+                    .get( "CataInfo" );
+            for ( int i = 0; i < bsonLists.size(); i++ ) {
+                BasicBSONObject obj = ( BasicBSONObject ) bsonLists.get( i );
+                groupNames.add( obj.getString( "GroupName" ) );
+            }
+        }
+
+        // groupNames元素去重
+        HashSet< String > uniqueSet = new HashSet<>( groupNames );
+        groupNames.clear();
+        groupNames.addAll( uniqueSet );
+
+        // groupNames数组元素排序
+        Collections.sort( groupNames, new Comparator< Object >() {
+            @Override
+            public int compare( Object o1, Object o2 ) {
+                String str1 = ( String ) o1;
+                String str2 = ( String ) o2;
+                if ( str1.compareToIgnoreCase( str2 ) < 0 ) {
+                    return -1;
+                }
+                return 1;
+            }
+        } );
+
+        return groupNames;
     }
 }
