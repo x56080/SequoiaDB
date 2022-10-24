@@ -598,6 +598,7 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
    const CHAR *pCurrent = NULL ;
    BOOLEAN hasHint = FALSE ;
    const MsgOpInsert *pInsert = (const MsgOpInsert*)pBuffer ;
+   INT32 objSize = 0 ;
 
    /// check length
    if ( pInsert->header.messageLength < _minSize )
@@ -631,7 +632,8 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
    count = 0 ;
    while ( TRUE )
    {
-      size = ossAlign4( *((SINT32*)pCurrent) ) ;
+      objSize = *((SINT32*)pCurrent) ;
+      size = ossAlign4( objSize ) ;
       if ( size < MSG_BSON_MIN_LEN )
       {
          // If there is a hint in the insertion message, it's ALWAYS at the end
@@ -675,11 +677,21 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
       ++count ;
       offset += size ;
 
+      if ( '\0' != *( pCurrent + objSize - 1 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
       if ( pInsert->header.messageLength <= offset )
       {
          break ;
       }
       pCurrent = &pBuffer[offset] ;
+   }
+   if ( ossAlign4( pInsert->header.messageLength ) < offset )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
    PD_TRACE2 ( SDB_MSGEXTRACTINSERT, PD_PACK_STRING(*ppCollectionName),
                                      PD_PACK_INT(count) );
