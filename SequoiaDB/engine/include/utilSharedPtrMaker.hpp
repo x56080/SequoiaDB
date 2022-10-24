@@ -46,7 +46,7 @@ namespace engine
    std::shared_ptr<T> makeSharedPtrFromPool(Args &&... args)
    {
       typename ossPoolAllocator<T>::Type alloc;
-      return std::allocate_shared<T>(alloc, args...);
+      return std::allocate_shared<T>(alloc, std::forward<Args>(args)...);
    }
 } // namespace engine
 

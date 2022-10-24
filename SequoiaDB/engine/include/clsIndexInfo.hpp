@@ -41,80 +41,118 @@
 #include "ossMemPool.hpp"
 #include "pmdEDU.hpp"
 #include "utilUniqueID.hpp"
+#include "clsResourceStatDef.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
 
 namespace engine
 {
-class _clsIndexInfo : public SDBObject
-{
-public:
-   static _clsIndexInfo buildIndexInfoFromBson( const BSONObj & );
-   _clsIndexInfo() = default;
-   _clsIndexInfo( const CHAR *indexName,
+   class _clsIndexInfo : public SDBObject
+   {
+   public:
+      static INT32 buildIndexInfoFromBson( const BSONObj &obj,
+                                           std::shared_ptr< _clsIndexInfo > &infoPtr );
+      _clsIndexInfo() = default;
+
+   public:
+      INT32 init( const CHAR *indexName,
                   utilIdxInnerID idxInnerID,
                   const OID &oid,
-                  BSONObj keyPattern,
+                  const BSONObj &keyPattern,
                   BOOLEAN isUnique,
                   BOOLEAN isEnforced,
                   BOOLEAN isNotNull,
                   BOOLEAN isNotArray,
-                  BOOLEAN isDropDups );
+                  BOOLEAN isDropDups,
+                  const CLS_INDEX_STAT_PTR &statPtr );
+      void reset();
 
-public:
-   utilIdxInnerID getIdxInnerID() const;
-   const CHAR *getIndexName() const;
-   const OID &getOID() const;
-   const BSONObj &getKeyPattern() const;
-   BOOLEAN isUnique() const;
-   BOOLEAN isEnforced() const;
-   BOOLEAN isNotNull() const;
-   BOOLEAN isNotArray() const;
-   BOOLEAN isDropDups() const;
-   BOOLEAN isIDIndex() const;
+      OSS_INLINE void resetStat()
+      {
+         _statPtr = CLS_DEFAULT_INDEX_STAT;
+      }
 
-private:
-   // From low bit to high bit, respectively indicate:
-   // unique, enforced, notNull, notArray, dropDups, isIDIndex, compression
-   enum class FLAGS_FIELD
-   {
-      UNIQUE = 1,
-      ENFORCED = (1 << 1),
-      NOT_NULL = (1 << 2),
-      NOT_ARRAY = (1 << 3),
-      DROP_DUPS = (1 << 4),
-      IS_ID_INDEX = (1 << 5)
+      OSS_INLINE void setStat( const CLS_INDEX_STAT_PTR &statPtr )
+      {
+         _statPtr = statPtr;
+      }
+
+      OSS_INLINE void setUnique( BOOLEAN isUnique )
+      {
+         if ( isUnique )
+         {
+            OSS_BIT_SET( _flags, static_cast< UINT32 >( _clsIndexInfo::FLAGS_FIELD::UNIQUE ) );
+         }
+         else
+         {
+            OSS_BIT_CLEAR( _flags, static_cast< UINT32 >( _clsIndexInfo::FLAGS_FIELD::UNIQUE ) );
+         }
+      }
+
+      INT32 setKeyPattern( const BSONObj &pattern );
+
+   public:
+      utilIdxInnerID getIdxInnerID() const;
+      const CHAR *getIndexName() const;
+      const OID &getOID() const;
+      const BSONObj &getKeyPattern() const;
+      const CONST_CLS_INDEX_STAT_PTR &getStat() const;
+      BOOLEAN isUnique() const;
+      BOOLEAN isEnforced() const;
+      BOOLEAN isNotNull() const;
+      BOOLEAN isNotArray() const;
+      BOOLEAN isDropDups() const;
+      BOOLEAN isIDIndex() const;
+
+   private:
+      // From low bit to high bit, respectively indicate:
+      // unique, enforced, notNull, notArray, dropDups, isIDIndex, compression
+      enum class FLAGS_FIELD
+      {
+         UNIQUE = 1,
+         ENFORCED = ( 1 << 1 ),
+         NOT_NULL = ( 1 << 2 ),
+         NOT_ARRAY = ( 1 << 3 ),
+         DROP_DUPS = ( 1 << 4 ),
+         IS_ID_INDEX = ( 1 << 5 )
+      };
+
+   private:
+      ossPoolString _name;
+      utilIdxInnerID _idxInnerID = UTIL_UNIQUEID_NULL;
+      OID _oid;
+      BSONObj _keyPattern;
+      UINT32 _flags = 0;
+      CONST_CLS_INDEX_STAT_PTR _statPtr = CLS_DEFAULT_INDEX_STAT;
    };
 
-private:
-   std::string _name;
-   utilIdxInnerID _idxInnerID = 0;
-   OID _oid;
-   BSONObj _keyPattern;
-   UINT32 _flags = 0;
-};
+   using clsIndexInfo = _clsIndexInfo;
+   using CLS_INDEX_INFO_PTR = std::shared_ptr< clsIndexInfo >;
+   using CONST_CLS_INDEX_INFO_PTR = std::shared_ptr< const clsIndexInfo >;
 
-using clsIndexInfo = _clsIndexInfo;
+   class _clsIndexInfoSet : public SDBObject
+   {
+   public:
+      static INT32 buildIndexSetFromBsonVec( const ossPoolVector< BSONObj > &,
+                                             std::shared_ptr< _clsIndexInfoSet > &infoSetPtr );
 
-class _clsIndexInfoSet : public SDBObject
-{
-public:
-   static std::shared_ptr< _clsIndexInfoSet > buildIndexSetFromBsonVec(
-       const ossPoolVector< BSONObj > & );
+      _clsIndexInfoSet() = default;
+      _clsIndexInfoSet( const _clsIndexInfoSet &o ) : _vecInfo( o._vecInfo ) {}
+      _clsIndexInfoSet( _clsIndexInfoSet &&o ) : _vecInfo( std::move( o._vecInfo ) ) {}
 
-public:
-   const clsIndexInfo *get( const CHAR *indexName ) const;
-   const clsIndexInfo *get( utilIdxInnerID idxInnerID ) const;
-   const clsIndexInfo *get( const OID &oid);
-   const ossPoolVector< clsIndexInfo > &getAll() const;
+   public:
+      CLS_INDEX_INFO_PTR get( const CHAR *indexName ) const;
+      CLS_INDEX_INFO_PTR get( utilIdxInnerID idxInnerID ) const;
+      CLS_INDEX_INFO_PTR get( const OID &oid ) const;
+      const ossPoolVector< CLS_INDEX_INFO_PTR > &getVec() const;
+      ossPoolVector< CLS_INDEX_INFO_PTR > &getVec();
 
-private:
-   ossPoolVector< clsIndexInfo > _vecInfo;
-};
-using clsIndexInfoSet = _clsIndexInfoSet;
-using clsIndexInfoSetPtr = std::shared_ptr< clsIndexInfoSet >;
-
+   protected:
+      ossPoolVector< CLS_INDEX_INFO_PTR > _vecInfo;
+   };
+   using clsIndexInfoSet = _clsIndexInfoSet;
+   using CLS_INDEX_INFO_SET_PTR = std::shared_ptr< clsIndexInfoSet >;
+   using CONST_CLS_INDEX_INFO_SET_PTR = std::shared_ptr< const clsIndexInfoSet >;
 } // namespace engine
-
 #endif

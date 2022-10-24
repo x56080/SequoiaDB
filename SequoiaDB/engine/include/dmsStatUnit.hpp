@@ -43,6 +43,7 @@
 #include "oss.hpp"
 #include "dms.hpp"
 #include "ixm.hpp"
+#include "clsStatMCVSet.hpp"
 #include "utilMap.hpp"
 #include "utilSUCache.hpp"
 #include "utilString.hpp"
@@ -79,210 +80,8 @@ namespace engine
    // Default selectivity of a $et predicate
    #define DMS_STAT_PRED_EQ_DEF_SELECTIVITY    ( 0.005 )
 
-   #define DMS_STAT_ROUND( x, min, max ) \
-           ( OSS_MIN( OSS_MAX( ( x ), ( min ) ), ( max ) ) )
-
-   #define DMS_STAT_ROUND_SELECTIVITY( x ) \
-           DMS_STAT_ROUND( ( x ), ( 0.0 ), ( 1.0 ) )
-
-   #define DMS_STAT_FRACTION_SCALE             ( 10000 )
-
    #define DMS_STAT_ROUND_INT( x ) \
            ( ( ( x ) >= 0.0 ) ? floor( ( x ) + 0.5 ) : ceil( ( x ) - 0.5 ) )
-
-   /*
-      _dmsStatKey define
-    */
-   class _dmsStatKey
-   {
-      public :
-         _dmsStatKey ( BOOLEAN included = TRUE )
-         : _included( included )
-         {
-         }
-
-         virtual ~_dmsStatKey () {}
-
-         virtual INT32 compareValue ( INT32 cmpFlag, INT32 incFlag,
-                                      const BSONObj &rValue ) = 0 ;
-
-         virtual BOOLEAN compareAllValues ( UINT32 startIdx, INT32 cmpFlag,
-                                            const BSONObj &rValue ) = 0 ;
-
-         virtual string toString () = 0 ;
-
-         virtual UINT32 size () = 0 ;
-
-         virtual const BSONElement &firstElement () = 0 ;
-
-         OSS_INLINE BOOLEAN isIncluded () const
-         {
-            return _included ;
-         }
-
-         OSS_INLINE void setIncluded ( BOOLEAN included )
-         {
-            _included = included ;
-         }
-
-      protected :
-         OSS_INLINE INT32 _equalButLeftMore ( INT32 incFlag )
-         {
-            // The compared elements are equal, but left has more elements,
-            // normally it is left > right
-            // But if incFlag is -1 which means a virtual $minKey is appended
-            // left, so right > left
-            return incFlag < 0 ? -1 : 1 ;
-         }
-
-         OSS_INLINE INT32 _equalButRightMore ( INT32 incFlag )
-         {
-            // The compared elements are equal, but right has more elements,
-            // normally it is left < right
-            // But if incFlag is 1 which means a virtual $maxKey is appended to
-            // left, so left > right
-            return incFlag > 0 ? 1 : -1 ;
-         }
-
-         OSS_INLINE INT32 _equalDefault ( INT32 incFlag )
-         {
-            // The compared elements are equal
-            // If $maxKey is appended to left, left > right
-            // If $minKey is appended to left, left < right
-            return incFlag > 0 ? 1 : ( incFlag < 0 ? -1 : 0 ) ;
-         }
-
-      protected :
-         BOOLEAN _included ;
-   } ;
-
-   typedef class _dmsStatKey dmsStatKey ;
-
-   /*
-      _dmsStatValues define
-    */
-   class _dmsStatValues : public SDBObject
-   {
-      public :
-         _dmsStatValues () ;
-
-         virtual ~_dmsStatValues () ;
-
-         INT32 init ( UINT32 size, UINT32 allocSize ) ;
-
-         INT32 pushBack ( const BSONObj &boValue ) ;
-
-         INT32 binarySearch ( dmsStatKey &keyValue, INT32 cmpFlag,
-                              INT32 keyIncFlag, BOOLEAN &isEqual ) const ;
-
-         OSS_INLINE UINT32 getSize () const
-         {
-            return _size ;
-         }
-
-         OSS_INLINE void setValue ( UINT32 idx, const BSONObj &boValue )
-         {
-            if ( idx < _size )
-            {
-               _pValues[ idx ] = boValue.getOwned() ;
-            }
-         }
-
-         OSS_INLINE const BSONObj &getValue ( UINT32 idx ) const
-         {
-            SDB_ASSERT( idx < _size, "Wrong index" ) ;
-            return _pValues[ idx ] ;
-         }
-
-         INT32 checkValues ( UINT32 numKeys, const BSONObj &keyPattern ) ;
-
-      protected :
-
-         void _clear () ;
-
-         BOOLEAN _inRange ( UINT32 idx, dmsStatKey *pStartKey,
-                            dmsStatKey *pStopKey ) const ;
-
-      protected :
-         UINT32            _numKeys ;
-         UINT32            _size ;
-         UINT32            _allocSize ;
-         BSONObj *         _pValues ;
-   } ;
-
-   /*
-      _dmsStatMCVSet define
-    */
-   class _dmsStatMCVSet : public _dmsStatValues
-   {
-      public :
-         _dmsStatMCVSet () ;
-
-         virtual ~_dmsStatMCVSet () ;
-
-         INT32 init ( UINT32 size, UINT32 allocSize ) ;
-
-         INT32 pushBack ( const BSONObj &boValue, UINT16 fraction ) ;
-
-         OSS_INLINE void setFrac ( UINT32 idx, UINT16 fraction )
-         {
-            if ( idx < _size )
-            {
-               _pFractions[ idx ] = fraction ;
-            }
-         }
-
-         OSS_INLINE double getFrac ( UINT32 idx ) const
-         {
-            if ( idx < _size )
-            {
-               return (double)_pFractions[ idx ] / (double)DMS_STAT_FRACTION_SCALE ;
-            }
-            return 0.0 ;
-         }
-
-         OSS_INLINE UINT16 getFracInt ( UINT32 idx ) const
-         {
-            if ( idx < _size )
-            {
-               return _pFractions[ idx ] ;
-            }
-            return 0 ;
-         }
-
-         OSS_INLINE void setTotalFrac ()
-         {
-            UINT16 totalFrac = 0 ;
-            for ( UINT32 i = 0 ; i < _size ; i++ )
-            {
-               totalFrac += _pFractions[ i ] ;
-            }
-            totalFrac = DMS_STAT_ROUND( totalFrac, 0, DMS_STAT_FRACTION_SCALE ) ;
-            _totalFrac = totalFrac ;
-         }
-
-         OSS_INLINE double getTotalFrac () const
-         {
-            return (double)_totalFrac / (double)DMS_STAT_FRACTION_SCALE ;
-         }
-
-         void clear () ;
-
-         INT32 evalOperator ( dmsStatKey *pStartKey, dmsStatKey *pStopKey,
-                              BOOLEAN &hitMCV,
-                              double &predSelectivity,
-                              double &scanSelectivity ) const ;
-
-         INT32 evalETOperator ( dmsStatKey &key, BOOLEAN &hitMCV,
-                                double &predSelectivity,
-                                double &scanSelectivity ) const ;
-
-      protected :
-         UINT16 *          _pFractions ;
-         UINT16            _totalFrac ;
-   } ;
-
-   typedef class _dmsStatMCVSet dmsStatMCVSet ;
 
    /*
       _dmsStatUnit define
@@ -534,42 +333,42 @@ namespace engine
 
          OSS_INLINE double getNullFrac () const
          {
-            return (double)_nullFrac / (double)DMS_STAT_FRACTION_SCALE ;
+            return (double)_nullFrac / (double)CLS_STAT_FRACTION_SCALE ;
          }
 
          OSS_INLINE void setNullFrac ( UINT16 nullFrac )
          {
-            _nullFrac = DMS_STAT_ROUND( nullFrac, 0, DMS_STAT_FRACTION_SCALE ) ;
+            _nullFrac = CLS_STAT_ROUND( nullFrac, 0, CLS_STAT_FRACTION_SCALE ) ;
          }
 
          OSS_INLINE double getUndefFrac () const
          {
-            return (double)_undefFrac / (double)DMS_STAT_FRACTION_SCALE ;
+            return (double)_undefFrac / (double)CLS_STAT_FRACTION_SCALE ;
          }
 
          OSS_INLINE void setUndefFrac ( UINT16 undefFrac )
          {
-            _undefFrac = DMS_STAT_ROUND( undefFrac, 0, DMS_STAT_FRACTION_SCALE ) ;
+            _undefFrac = CLS_STAT_ROUND( undefFrac, 0, CLS_STAT_FRACTION_SCALE ) ;
          }
 
          INT32 initMCVSet ( UINT32 allocSize ) ;
 
          INT32 pushMCVSet ( const BSONObj &boValue, double fraction ) ;
 
-         INT32 evalRangeOperator ( dmsStatKey &startKey,
-                                   dmsStatKey &stopKey,
+         INT32 evalRangeOperator ( clsStatKey &startKey,
+                                   clsStatKey &stopKey,
                                    double &predSelectivity,
                                    double &scanSelectivity ) const ;
 
-         INT32 evalETOperator ( dmsStatKey &key,
+         INT32 evalETOperator ( clsStatKey &key,
                                 double &predSelectivity,
                                 double &scanSelectivity ) const ;
 
-         INT32 evalGTOperator ( dmsStatKey &startKey,
+         INT32 evalGTOperator ( clsStatKey &startKey,
                                 double &predSelectivity,
                                 double &scanSelectivity ) const ;
 
-         INT32 evalLTOperator ( dmsStatKey &stopKey,
+         INT32 evalLTOperator ( clsStatKey &stopKey,
                                 double &predSelectivity,
                                 double &scanSelectivity ) const ;
 
@@ -586,7 +385,7 @@ namespace engine
          INT32 _initKeyPattern ( const BSONObj &boKeyPattern ) ;
          INT32 _initMCV ( const BSONObj &boMCV ) ;
 
-         INT32 _evalOperator ( dmsStatKey *pStartKey, dmsStatKey *pStopKey,
+         INT32 _evalOperator ( clsStatKey *pStartKey, clsStatKey *pStopKey,
                                double &predSelectivity, double &scanSelectivity ) const ;
 
       protected :
@@ -624,7 +423,7 @@ namespace engine
          UINT16            _nullFrac ;
          UINT16            _undefFrac ;
 
-         dmsStatMCVSet     _mcvSet ;
+         clsStatMCVSet     _mcvSet ;
    } ;
 
    typedef _dmsIndexStat dmsIndexStat ;
