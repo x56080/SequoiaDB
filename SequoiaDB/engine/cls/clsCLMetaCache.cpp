@@ -34,39 +34,86 @@
 
 *******************************************************************************/
 #include "clsCLMetaCache.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
-_clsCLMetaCache::_clsCLMetaCache( const CHAR *clFullName,
-                                  utilCLUniqueID cluid,
-                                  const clsIndexInfoSetPtr &o )
-: _name( clFullName ), _cluid( cluid ), _indexSetPtr( o )
-{
-}
+   _clsCLMetaCache::_clsCLMetaCache( ossPoolString &&clFullName,
+                                     utilCLUniqueID clUID,
+                                     const CLS_CL_STAT_PTR &clStatPtr,
+                                     CLS_INDEX_INFO_SET_PTR &&infoSetPtr )
+   : _name( std::move( clFullName ) )
+   , _clUID( clUID )
+   , _clStatPtr( clStatPtr )
+   , _indexInfoSetPtr( std::move( infoSetPtr ) )
+   {
+   }
 
-_clsCLMetaCache::_clsCLMetaCache( const CHAR *clFullName,
-                                  utilCLUniqueID cluid,
-                                  clsIndexInfoSetPtr &&o )
-: _name( clFullName ), _cluid( cluid ), _indexSetPtr( std::move( o ) )
-{
-}
+   INT32 _clsCLMetaCache::init( const CHAR *clFullName,
+                                utilCLUniqueID clUID,
+                                const CLS_CL_STAT_PTR &clStatPtr,
+                                CLS_INDEX_INFO_SET_PTR &&infoSetPtr )
+   {
+      INT32 rc = SDB_OK;
+      PD_CHECK( clFullName, SDB_INVALIDARG, error, PDERROR, "can not be nullptr" );
+      PD_CHECK( UTIL_IS_VALID_CLUNIQUEID( clUID ), SDB_INVALIDARG, error, PDERROR,
+                "collection unique id[%d] must be valid", clUID );
+      try
+      {
+         _name = ossPoolString( clFullName );
+         _clUID = clUID;
+         _clStatPtr = clStatPtr;
+         _indexInfoSetPtr = std::move( infoSetPtr );
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e );
+         PD_LOG( PDERROR, "occur exception: %s", e.what() );
+         goto error;
+      }
 
-_clsCLMetaCache::_clsCLMetaCache( std::string &&clFullName,
-                                  utilCLUniqueID cluid,
-                                  clsIndexInfoSetPtr &&o )
-: _name( std::move( clFullName ) )
-, _cluid( cluid )
-, _indexSetPtr( std::move( o ) )
-{
-}
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
 
-clsIndexInfoSetPtr &_clsCLMetaCache::_getIndexSet()
-{
-   return _indexSetPtr;
-}
+   void _clsCLMetaCache::reset()
+   {
+      _name.clear();
+      _clUID = UTIL_UNIQUEID_NULL;
+      _clStatPtr = CLS_DEFAULT_CL_STAT;
+      _indexInfoSetPtr = nullptr;
+   }
 
-const std::string& _clsCLMetaCache::_getCLFullName()
-{
-   return _name;
-}
+   void _clsCLMetaCache::resetCLStat()
+   {
+      _clStatPtr = CLS_DEFAULT_CL_STAT;
+   }
+
+   void _clsCLMetaCache::setCLStat( const CLS_CL_STAT_PTR &clStatPtr )
+   {
+      _clStatPtr = clStatPtr;
+   }
+
+   void _clsCLMetaCache::setIndexInfoSetPtr( const CLS_INDEX_INFO_SET_PTR &infoSetPtr )
+   {
+      _indexInfoSetPtr = infoSetPtr;
+   }
+
+   CLS_INDEX_INFO_SET_PTR &_clsCLMetaCache::_getIndexInfoSet()
+   {
+      return _indexInfoSetPtr;
+   }
+
+   const ossPoolString &_clsCLMetaCache::_getCLFullName() const
+   {
+      return _name;
+   }
+
+   CLS_CL_STAT_PTR &_clsCLMetaCache::_getCLStat()
+   {
+      return _clStatPtr;
+   }
 } // namespace engine

@@ -502,6 +502,8 @@ clsFiles = [
       "cls/clsRemoteResource.cpp",
       "cls/clsStorageResource.cpp",
       "cls/clsStorageResourceAgent.cpp",
+      "cls/clsResourceStatDef.cpp",
+      "cls/clsStatMCVSet.cpp",
       "cls/clsCLMetaCache.cpp",
       "cls/clsResourceContainer.cpp",
       "cls/clsResource.cpp",

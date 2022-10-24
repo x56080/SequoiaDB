@@ -1791,7 +1791,7 @@ namespace engine
                                           (double)param._samplePercent ) ;
          }
 
-         sampleRecords = DMS_STAT_ROUND( sampleRecords,
+         sampleRecords = CLS_STAT_ROUND( sampleRecords,
                                          SDB_ANALYZE_SAMPLE_MIN,
                                          SDB_ANALYZE_SAMPLE_MAX ) ;
 

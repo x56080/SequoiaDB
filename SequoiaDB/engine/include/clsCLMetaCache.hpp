@@ -36,35 +36,44 @@
 #ifndef CLS_CL_META_CACHE_HPP__
 #define CLS_CL_META_CACHE_HPP__
 #include "clsIndexInfo.hpp"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
-class _clsCLMetaCache
-{
-   friend class _clsStorageResource;
+   class _clsCLMetaCache
+   {
+      friend class _clsStorageResource;
 
-public:
-   _clsCLMetaCache( const CHAR *clFullName,
-                    utilCLUniqueID cluid,
-                    const clsIndexInfoSetPtr & );
-   _clsCLMetaCache( const CHAR *clFullName,
-                    utilCLUniqueID cluid,
-                    clsIndexInfoSetPtr && );
-   _clsCLMetaCache( std::string &&clFullName,
-                    utilCLUniqueID cluid,
-                    clsIndexInfoSetPtr && );
+   public:
+      _clsCLMetaCache() = default;
+      _clsCLMetaCache( ossPoolString &&clFullName,
+                       utilCLUniqueID cluid,
+                       const CLS_CL_STAT_PTR & = CLS_DEFAULT_CL_STAT,
+                       CLS_INDEX_INFO_SET_PTR && = nullptr );
 
-private:
-   clsIndexInfoSetPtr &_getIndexSet();
-   const std::string &_getCLFullName();
+   public:
+      INT32 init( const CHAR *clFullName,
+                  utilCLUniqueID clUID,
+                  const CLS_CL_STAT_PTR & = CLS_DEFAULT_CL_STAT,
+                  CLS_INDEX_INFO_SET_PTR && = nullptr );
+      void reset();
+      void resetCLStat();
+      void setCLStat( const CLS_CL_STAT_PTR &clStatPtr );
+      void setIndexInfoSetPtr( const CLS_INDEX_INFO_SET_PTR &infoSetPtr );
 
-private:
-   // name is collection full name like [csName].[clName]
-   std::string _name;
-   utilCLUniqueID _cluid = UTIL_UNIQUEID_NULL;
-   clsIndexInfoSetPtr _indexSetPtr = nullptr;
-};
-using clsCLMetaCache = _clsCLMetaCache;
-using clsCLMetaCachePtr = std::shared_ptr< clsCLMetaCache >;
+   private:
+      const ossPoolString &_getCLFullName() const;
+      CLS_INDEX_INFO_SET_PTR &_getIndexInfoSet();
+      CLS_CL_STAT_PTR &_getCLStat();
+
+   private:
+      // name is collection full name like [csName].[clName]
+      ossPoolString _name;
+      utilCLUniqueID _clUID = UTIL_UNIQUEID_NULL;
+      CLS_CL_STAT_PTR _clStatPtr = CLS_DEFAULT_CL_STAT;
+      CLS_INDEX_INFO_SET_PTR _indexInfoSetPtr = nullptr;
+   };
+   using clsCLMetaCache = _clsCLMetaCache;
+   using clsCLMetaCachePtr = std::shared_ptr< clsCLMetaCache >;
 } // namespace engine
 #endif

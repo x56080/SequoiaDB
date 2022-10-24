@@ -63,7 +63,7 @@ namespace engine
       _optStatListKey define
     */
    class _optStatListKey : public ossPoolList<const rtnKeyBoundary *>,
-                           public _dmsStatKey
+                           public _clsStatKey
    {
       public :
          _optStatListKey () ;
@@ -110,7 +110,7 @@ namespace engine
       _optStatElementKey define
     */
    class _optStatElementKey : public BSONElement,
-                              public _dmsStatKey
+                              public _clsStatKey
    {
       public :
          explicit _optStatElementKey ( const BSONElement &element,
@@ -163,8 +163,8 @@ namespace engine
                                         BOOLEAN &isAllRange ) const ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
-                                      dmsStatKey &startKey,
-                                      dmsStatKey &stopKey,
+                                      clsStatKey &startKey,
+                                      clsStatKey &stopKey,
                                       BOOLEAN isEqual,
                                       INT32 majorType,
                                       BOOLEAN mixCmp,
@@ -234,8 +234,8 @@ namespace engine
                                     double &scanSelectivity ) const ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
-                                      dmsStatKey &startKey,
-                                      dmsStatKey &stopKey,
+                                      clsStatKey &startKey,
+                                      clsStatKey &stopKey,
                                       BOOLEAN isEqual,
                                       INT32 majorType,
                                       BOOLEAN mixCmp,
@@ -359,8 +359,8 @@ namespace engine
                                    double &scanSelectivity ) ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
-                                      dmsStatKey &startKey,
-                                      dmsStatKey &stopKey,
+                                      clsStatKey &startKey,
+                                      clsStatKey &stopKey,
                                       BOOLEAN isEqual,
                                       INT32 majorType,
                                       BOOLEAN mixCmp,
