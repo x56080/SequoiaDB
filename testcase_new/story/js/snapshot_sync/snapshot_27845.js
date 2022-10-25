@@ -2,7 +2,7 @@
  * @Description   : seqDB-27845:目标组有lob，源组部分切分至目标组
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.10.15
- * @LastEditTime  : 2022.10.21
+ * @LastEditTime  : 2022.10.25
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27845";
@@ -52,11 +52,11 @@ function test ( testPara )
    var csInfo = getSnapshotLobStat( cursor );
 
    // 获取集合快照信息，非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: groupName } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: groupName } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData1 = getSnapshotLobStatToCL( cursor, true );
 
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: dstGroupNames[0] } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: dstGroupNames[0] } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData2 = getSnapshotLobStatToCL( cursor, true );
    // 执行部分切分
@@ -97,7 +97,7 @@ function test ( testPara )
       }
    }
 
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: groupName } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: groupName } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    checkSnapshotToCL( cursor, clInfoRawData1, true );
 
@@ -113,7 +113,7 @@ function test ( testPara )
       clInfoRawData2[i]["UsedLobSpaceRatio"] = Math.floor( clInfoRawData2[i]["TotalUsedLobSpace"] / clInfoRawData2[i]["LobCapacity"] * 100 ) / 100
       clInfoRawData2[i]["AvgLobSize"] = fileSize / 1;
    }
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: dstGroupNames[0] } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: dstGroupNames[0] } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    checkSnapshotToCL( cursor, clInfoRawData2, true );
 

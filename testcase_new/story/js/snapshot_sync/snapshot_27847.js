@@ -2,7 +2,7 @@
  * @Description   : seqDB-27847:目标组无lob，源组部分切分至目标组
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.10.13
- * @LastEditTime  : 2022.10.20
+ * @LastEditTime  : 2022.10.25
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27847";
@@ -59,10 +59,10 @@ function test ( testPara )
    var csInfo = getSnapshotLobStat( cursor );
 
    // 集合快照非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: groupName } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true, GroupName: groupName } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData1 = getSnapshotLobStatToCL( cursor, true );
-   var option = new SdbSnapshotOption().cond( { Name: expCSName + "." + expCLName, RawData: true, GroupName: dstGroupName } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: expCSName + "." + expCLName, RawData: true, GroupName: dstGroupName } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData2 = getSnapshotLobStatToCL( cursor, true );
 
