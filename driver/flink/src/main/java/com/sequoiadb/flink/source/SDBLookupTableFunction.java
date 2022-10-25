@@ -112,7 +112,9 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
         }
 
         if (noIndexColumns.size() > 0) {
-            LOG.warn(String.join(",", noIndexColumns) + " column used by join are not part of any indexes in Sequoiadb!" +
+            System.out.println("Column (" + String.join(",", noIndexColumns) + ") used by join are not part of any indexes in Sequoiadb!" +
+                    " You may consider creating indexes using the join fields.");
+            LOG.warn("Column (" + String.join(",", noIndexColumns) + ") used by join are not part of any indexes in Sequoiadb!" +
                     " You may consider creating indexes using the join fields.");
         }
         super.open(context);
