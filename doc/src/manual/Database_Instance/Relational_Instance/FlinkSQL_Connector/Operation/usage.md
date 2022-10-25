@@ -199,7 +199,7 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
         'hosts'='sdbServer1:11810,sdbServer2:11810,sdbServer3:11810',
         'collecionspace'='sample',
         'collection'='employee',
-        'writemode'='upsert',
+        'writemode'='retract',
         'parallelism'='4'
     );
     ```
