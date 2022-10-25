@@ -67,8 +67,7 @@ public class IndexConsistent24315 extends SdbTestBase {
         IndexUtils.insertData( dbcl, recsNum );
     }
 
-    // TODO:// http://jira:8080/browse/SEQUOIADBMAINSTREAM-7394
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
         DropIndex dropIndex1 = new DropIndex( indexName1 );
@@ -103,12 +102,24 @@ public class IndexConsistent24315 extends SdbTestBase {
             Assert.assertFalse( sdb.isCollectionSpaceExist( csName1 ) );
             Assert.assertTrue( cs2.isCollectionExist( subclName2 ) );
             IndexUtils.checkNoTask( sdb, "Drop index", csName2, subclName2 );
-            IndexUtils.checkIndexConsistent( sdb, csName2, subclName2,
-                    indexName1, true );
-            IndexUtils.checkIndexConsistent( sdb, csName2, subclName2,
-                    indexName2, true );
-        }
+            DBCollection cl2 = sdb.getCollectionSpace( csName2 )
+                    .getCollection( subclName2 );
+            if ( cl2.isIndexExist( indexName1 ) ) {
+                IndexUtils.checkIndexConsistent( sdb, csName2, subclName2,
+                        indexName1, true );
+            } else {
+                IndexUtils.checkIndexConsistent( sdb, csName2, subclName2,
+                        indexName1, false );
+            }
 
+            if ( cl2.isIndexExist( indexName2 ) ) {
+                IndexUtils.checkIndexConsistent( sdb, csName2, subclName2,
+                        indexName2, true );
+            } else {
+                IndexUtils.checkIndexConsistent( sdb, csName2, subclName2,
+                        indexName2, false );
+            }
+        }
         runSuccess = true;
     }
 
@@ -139,10 +150,8 @@ public class IndexConsistent24315 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void getCL() {
-
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cl = db.getCollectionSpace( csName1 ).getCollection( mainclName );
-
         }
 
         @ExecuteOrder(step = 2)
