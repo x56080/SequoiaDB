@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.common.client;
 
@@ -60,27 +60,28 @@ public class SDBSinkClient implements SDBClient {
     private final String PRIMARY_KEY = "PRIMARY";
 
     private SDBSinkClient(
-        List<String> hosts,
-        String collectionSpace,
-        String collection, 
-        String username,
-        String password,
-        SDBSinkOptions sdboptions) {
+            List<String> hosts,
+            String collectionSpace,
+            String collection,
+            String username,
+            String password,
+            SDBSinkOptions sdboptions) {
 
-            this.hosts = hosts;
-            this.collectionSpace = collectionSpace;
-            this.collection = collection;
-            this.username = username;
-            this.password = password;
-            this.sdboptions = sdboptions;
-            
+        this.hosts = hosts;
+        this.collectionSpace = collectionSpace;
+        this.collection = collection;
+        this.username = username;
+        this.password = password;
+        this.sdboptions = sdboptions;
+
     }
+
     private SDBSinkClient(
-        List<String> hosts,
-        String collectionSpace,
-        String collection, 
-        String username,
-        String password
+            List<String> hosts,
+            String collectionSpace,
+            String collection,
+            String username,
+            String password
     ) {
         this.hosts = hosts;
         this.collectionSpace = collectionSpace;
@@ -95,16 +96,16 @@ public class SDBSinkClient implements SDBClient {
      * @param sdbOptions            Sinkoptions from user input
      * @return SDBClient
      */
-    public static SDBClient createClient(SDBSinkOptions sdbOptions){
+    public static SDBClient createClient(SDBSinkOptions sdbOptions) {
         LOG.info("create SDBSinkClient");
         return new SDBSinkClient(
-            sdbOptions.getHosts(),
-            sdbOptions.getCollectionSpace(),
-            sdbOptions.getCollection(),
-            sdbOptions.getUsername(),
-            sdbOptions.getPassword(),
-            sdbOptions);
-            
+                sdbOptions.getHosts(),
+                sdbOptions.getCollectionSpace(),
+                sdbOptions.getCollection(),
+                sdbOptions.getUsername(),
+                sdbOptions.getPassword(),
+                sdbOptions);
+
     }
 
     /*
@@ -113,20 +114,20 @@ public class SDBSinkClient implements SDBClient {
      * @param hosts                 list of SDB hosts
      * @return SDBClient
      */
-    public static SDBClient createClientWithHost(SDBSinkOptions sdbOptions, List<String> hosts){
+    public static SDBClient createClientWithHost(SDBSinkOptions sdbOptions, List<String> hosts) {
         LOG.info("create SDBSinkClient with hosts");
         return new SDBSinkClient(
-            hosts,
-            sdbOptions.getCollectionSpace(),
-            sdbOptions.getCollection(),
-            sdbOptions.getUsername(),
-            sdbOptions.getPassword(),
-            sdbOptions);
+                hosts,
+                sdbOptions.getCollectionSpace(),
+                sdbOptions.getCollection(),
+                sdbOptions.getUsername(),
+                sdbOptions.getPassword(),
+                sdbOptions);
     }
 
     /*
      * return if collection has uniqueindex
-     * by requst index info from SDB
+     * by request index info from SDB
      * @param hosts                 SDB hosts
      * @param collectionSpace       collection space name
      * @param collection            collection name
@@ -135,19 +136,19 @@ public class SDBSinkClient implements SDBClient {
      * @return boolean
      */
     public static List<HashSet<String>> checkUniqueIndex(
-        List<String> hosts, String collectionSpace, String collection, String username, String password){
+            List<String> hosts, String collectionSpace, String collection, String username, String password) {
         ConfigOptions options = new ConfigOptions();
-        Sequoiadb db = new Sequoiadb(hosts, username, password, options); 
+        Sequoiadb db = new Sequoiadb(hosts, username, password, options);
         Boolean unique = false;
         List<HashSet<String>> unique_indexes = new ArrayList<HashSet<String>>();
         LOG.info("check idempotent");
         try {
-            DBCursor indexes =db.getCollectionSpace(collectionSpace).getCollection(collection).getIndexes();
+            DBCursor indexes = db.getCollectionSpace(collectionSpace).getCollection(collection).getIndexes();
             while (indexes.hasNext()) {
-                BSONObject index = (BSONObject)indexes.getNext().get(SDBConstant.INDEX_DEF);
-                unique = (Boolean)index.get(SDBConstant.UNIQUE);
+                BSONObject index = (BSONObject) indexes.getNext().get(SDBConstant.INDEX_DEF);
+                unique = (Boolean) index.get(SDBConstant.UNIQUE);
                 if (unique) {
-                    BSONObject keys = (BSONObject)index.get(SDBConstant.KEY);
+                    BSONObject keys = (BSONObject) index.get(SDBConstant.KEY);
                     unique_indexes.add(new HashSet<String>(keys.toMap().keySet()));
                 }
             }
@@ -174,7 +175,7 @@ public class SDBSinkClient implements SDBClient {
             ConfigOptions options = new ConfigOptions();
             options.setSocketKeepAlive(true);
             sdb = new Sequoiadb(hosts, username, password, options);
-            try { 
+            try {
                 /* Because it is a new feature in 3.4.5
                  * It will fail when set it in older version SDB
                  * added it in try catch to stop flink applcation crashing
@@ -187,7 +188,7 @@ public class SDBSinkClient implements SDBClient {
                     throw e;
                 }
             }
-        }        
+        }
         return sdb;
     }
 
@@ -199,16 +200,12 @@ public class SDBSinkClient implements SDBClient {
      * @return CollectionSpace
      */
     @Override
-    public CollectionSpace getCS() { 
+    public CollectionSpace getCS() {
         if (cs == null) {
             try {
                 cs = getClient().getCollectionSpace(collectionSpace);
             } catch (BaseException e) {
-                if (e.getErrorCode() == SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode()) {
-                    cs = ensureCollectionSpaceWithOptions(collectionSpace);
-                } else {
-                    throw e;
-                }
+                throw new SDBException("cannot get collection space from Sequoiadb.", e);
             }
         }
         return cs;
@@ -224,14 +221,10 @@ public class SDBSinkClient implements SDBClient {
     @Override
     public DBCollection getCL() {
         if (cl == null) {
-            try{
+            try {
                 cl = getCS().getCollection(collection);
             } catch (BaseException e) {
-                if (e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
-                    cl = ensureCollectionWithOptions(collection, sdboptions.getPrimaryKey());
-                } else {
-                    throw e;
-                }
+                throw new SDBException("cannot get collection from Sequoiadb.", e);
             }
         }
         return cl;
@@ -250,8 +243,8 @@ public class SDBSinkClient implements SDBClient {
     /**
      * return a SDB collection space.
      * A new collection space will be created with options
-     * @param collectionSpaceStr       name of collection space
      *
+     * @param collectionSpaceStr name of collection space
      * @return collectionSpace
      */
     private CollectionSpace ensureCollectionSpaceWithOptions(String collectionSpaceStr) {
@@ -279,14 +272,13 @@ public class SDBSinkClient implements SDBClient {
 
     /**
      * create collection with options if collection isn't exist.
-     *
+     * <p>
      * A new collection will be created with options
-     * @param collection        name of collection
-     * @param primaryKey        primary specified in flink sql table
      *
+     * @param collection name of collection
+     * @param primaryKey primary specified in flink sql table
      * @return DBCollection
-     *
-     * @throws BaseException    throw exception when collection is already exist.
+     * @throws BaseException throw exception when collection is already exist.
      */
     private DBCollection ensureCollectionWithOptions(String collection, HashSet<String> primaryKey) {
         BSONObject options = new BasicBSONObject();
@@ -299,7 +291,7 @@ public class SDBSinkClient implements SDBClient {
             }
         }
 
-        if(sdboptions.getAutoPartition()) {
+        if (sdboptions.getAutoPartition()) {
             if (shardingKey != null) {
                 BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
                 //verity pk contain all fields in sharding key
@@ -319,7 +311,7 @@ public class SDBSinkClient implements SDBClient {
                 options.put(SDBConstant.AUTO_SPLIT, true);
             }
         } else {
-            if(shardingKey != null){
+            if (shardingKey != null) {
                 throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
                         "while shardingkey(%s) is specified. ", shardingKey));
             }
@@ -328,7 +320,7 @@ public class SDBSinkClient implements SDBClient {
         options.put(SDBConstant.COMPRESSION_TYPE, sdboptions.getCompressionType());
 
 
-        String Group =  sdboptions.getGroup();
+        String Group = sdboptions.getGroup();
         if (Group != null) {
             options.put(SDBConstant.GROUP, Group);
         }
