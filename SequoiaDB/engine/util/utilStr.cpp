@@ -155,81 +155,58 @@ namespace engine
       return utilStrLtrim ( utilStrRtrim ( s ) ) ;
    }
 
-   INT32 utilStrToUpper( const CHAR *src, CHAR *&upper )
+   INT32 utilStrToUpper( const CHAR *src, CHAR *dst, UINT32 dstSize )
    {
       INT32 rc = SDB_OK ;
-      CHAR *tmp = NULL ;
-      UINT32 size = 0 ;
-      if ( NULL == src )
+      UINT32 len = 0 ;
+      if ( NULL == src || NULL == dst )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
-      size = ossStrlen( src) + 1 ;
-      tmp = (CHAR *)SDB_OSS_MALLOC(size) ;
-      if ( NULL == tmp )
+      len = ossStrlen( src ) + 1 ;
+      if ( len > dstSize )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       /// '\0' is contained.
-      for ( UINT32 i = 0; i < size ; i++ )
+      for ( UINT32 i = 0 ; i < len ; i++ )
       {
-         tmp[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ?
-                    src[i] - 32 : src[i] ;
+         dst[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ? src[i] - 32 : src[i] ;
       }
 
-      upper = tmp ;
    done:
       return rc ;
    error:
-      if ( NULL != tmp )
-      {
-         SDB_OSS_FREE( tmp ) ;
-         tmp = NULL ;
-      }
       goto done ;
    }
 
-   INT32 utilStrToLower( const CHAR *src, CHAR *&lower )
+   INT32 utilStrToLower( const CHAR *src, CHAR *dst, UINT32 dstSize )
    {
       INT32 rc = SDB_OK ;
-      CHAR *tmp = NULL ;
-      UINT32 size = 0 ;
-      if ( NULL == src )
+      UINT32 len = 0 ;
+      if ( NULL == src || NULL == dst )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
-      size = ossStrlen( src) + 1 ;
-      tmp = (CHAR *)SDB_OSS_MALLOC(size) ;
-      if ( NULL == tmp )
+      len = ossStrlen( src ) + 1 ;
+      if ( len > dstSize )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       /// '\0' is contained.
-      for ( UINT32 i = 0; i < size ; i++ )
+      for ( UINT32 i = 0; i < len ; i++ )
       {
-         tmp[i] = ( src[i] >= 'A' && src[i] <= 'Z' ) ?
+         dst[i] = ( src[i] >= 'A' && src[i] <= 'Z' ) ?
                     src[i] + 32 : src[i] ;
       }
 
-      lower = tmp ;
    done:
       return rc ;
    error:
-      if ( NULL != tmp )
-      {
-         SDB_OSS_FREE( tmp ) ;
-         tmp = NULL ;
-      }
       goto done ;
    }
 

@@ -530,7 +530,15 @@ namespace engine
          }
 
          isFunc = TRUE ;
-         rc = utilStrToUpper( field.value.attr().begin(), pFuncName ) ;
+         INT32 size = field.value.attr().size() + 1 ;
+         pFuncName = (CHAR *)SDB_OSS_MALLOC( size ) ;
+         if ( NULL == pFuncName )
+         {
+            rc = SDB_OOM;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto  error ;
+         }
+         rc = utilStrToUpper( field.value.attr().begin(), pFuncName, size ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -566,7 +574,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMOPTIAGGREGATION_HASEXPR, "_qgmOptiAggregation::hasExpr" 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMOPTIAGGREGATION_HASEXPR, "_qgmOptiAggregation::hasExpr"
    BOOLEAN _qgmOptiAggregation::hasExpr() const
    {
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION_HASEXPR ) ;

@@ -94,9 +94,9 @@ namespace engine
                TRUE : FALSE ;
    }
 
-   INT32 utilStrToUpper( const CHAR *src, CHAR *&upper ) ;
+   INT32 utilStrToUpper( const CHAR *src, CHAR *dst, UINT32 dstSize ) ;
 
-   INT32 utilStrToLower( const CHAR *src, CHAR *&lower ) ;
+   INT32 utilStrToLower( const CHAR *src, CHAR *dst, UINT32 dstSize ) ;
 
    BOOLEAN utilStrIsDigit( const string& str ) ;
 
