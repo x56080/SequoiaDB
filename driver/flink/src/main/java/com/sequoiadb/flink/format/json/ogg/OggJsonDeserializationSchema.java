@@ -19,6 +19,7 @@
 package com.sequoiadb.flink.format.json.ogg;
 
 import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.metadata.ExtraRowKind;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -88,6 +89,7 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
     private final boolean ignoreParseErrors;
     private final int[] upsertKeyPositions;
 
+    private final int erkPos;
     private final RowType jsonRowType;
 
     public OggJsonDeserializationSchema(
@@ -118,16 +120,16 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
         for (int i = 0; i < upsertKey.length; i++) {
             int pos = findFieldPosByName(upsertKey[i], physicalRowType);
             if (pos == -1) {
-                if (pos == -1) {
-                    throw new SDBException(
-                            String.format("can't match primary key: %s in schema: %s.",
-                                    upsertKey[i],
-                                    physicalRowType));
-                }
-                upsertKeyPositions[i] = pos;
+                throw new SDBException(
+                        String.format("can't match primary key: %s in schema: %s.",
+                                upsertKey[i],
+                                physicalRowType));
             }
+            upsertKeyPositions[i] = pos;
         }
 
+        this.erkPos = requestedMetadata
+                .indexOf(ReadableMetadata.EXTRA_ROW_KIND);
     }
 
     private static RowType createJsonRowType(
@@ -167,7 +169,13 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
     }
 
     private static int findFieldPos(ReadableMetadata metadata, RowType jsonRowType) {
-        return jsonRowType.getFieldNames().indexOf(metadata.requiredJsonField.getName());
+        final int pos = jsonRowType
+                .getFieldNames()
+                .indexOf(metadata.requiredJsonField.getName());
+        if (pos < 0) {
+            return -1;
+        }
+        return pos;
     }
 
     @Override
@@ -217,7 +225,7 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
         } catch (Throwable t) {
             // a big try catch to protect the processing.
             if (!ignoreParseErrors) {
-                throw new IOException("Corrupt Ogg JSON message.", t);
+                throw new IOException(String.format("Corrupt Ogg JSON message. %s", new String(message)), t);
             }
         }
     }
@@ -244,14 +252,20 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
 
     private void emitRow(GenericRowData rootRow,
             GenericRowData before, GenericRowData after, Collector<RowData> out) throws IOException {
-        GenericRowData producedAfter = convertToFinalRow(rootRow, after);
+        GenericRowData producedAft = convertToFinalRow(rootRow, after);
 
         if (hasPriKeyChanges(before, after)) {
-            GenericRowData producedBefore = convertToFinalRow(rootRow, before);
-            out.collect(producedBefore);
+            GenericRowData producedBef = convertToFinalRow(rootRow, before);
+
+            if (erkPos != -1) {
+                final int physicalArity = after.getArity();
+                producedBef.setField(erkPos + physicalArity, ExtraRowKind.UPDATE_PK_BEF.getCode());
+                producedAft.setField(erkPos + physicalArity, ExtraRowKind.UPDATE_PK_AFT.getCode());
+            }
+            out.collect(producedBef);
         }
 
-        out.collect(producedAfter);
+        out.collect(producedAft);
     }
 
     private GenericRowData convertToFinalRow(GenericRowData rootRow, GenericRowData physicalRow) {

@@ -16,10 +16,14 @@
 
 package com.sequoiadb.flink.common.util;
 
-import com.github.rholder.retry.*;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
+import com.github.rholder.retry.BlockStrategies;
+
 import com.google.common.base.Predicate;
-import com.sequoiadb.flink.common.exception.SDBException;
-import org.apache.commons.lang3.time.StopWatch;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

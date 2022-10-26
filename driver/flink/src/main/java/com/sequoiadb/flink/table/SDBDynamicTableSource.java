@@ -43,8 +43,10 @@ import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 public class SDBDynamicTableSource implements ScanTableSource,
         SupportsProjectionPushDown,
