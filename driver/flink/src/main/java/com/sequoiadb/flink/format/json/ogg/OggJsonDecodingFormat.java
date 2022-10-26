@@ -18,6 +18,8 @@
 
 package com.sequoiadb.flink.format.json.ogg;
 
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.metadata.ExtraRowKind;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.common.TimestampFormat;
@@ -27,18 +29,19 @@ import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.types.RowKind;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -249,6 +252,32 @@ public class OggJsonDecodingFormat implements DecodingFormat<DeserializationSche
                         LocalDateTime ldt = fromTemporalAccessor(
                                 DEFAULT_TIMESTAMP_FORMATTER.parse(dateStr), 6);
                         return TimestampData.fromLocalDateTime(ldt);
+                    }
+                }),
+
+        EXTRA_ROW_KIND(
+                "$extra-row-kind",
+                DataTypes.INT().nullable(),
+                DataTypes.FIELD("op_type", DataTypes.INT()),
+                new MetadataConverter() {
+                    private static final long serialVersionUID = 1;
+
+                    @Override
+                    public Object convert(GenericRowData row, int pos) {
+                        String opType = row.getString(pos).toString();
+                        switch (opType) {
+                            case "I":
+                                return ExtraRowKind.INSERT.getCode();
+                            case "U":
+                                return ExtraRowKind.UPDATE_AFT.getCode();
+                            case "D":
+                                return ExtraRowKind.DELETE.getCode();
+
+                            default:
+                                throw new SDBException(String.format(
+                                        "unsupported op type %s for retract-ogg",
+                                        opType));
+                        }
                     }
                 }),
         ;
