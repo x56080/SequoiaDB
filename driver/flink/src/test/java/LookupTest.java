@@ -1,10 +1,12 @@
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.DBQuery;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.flink.common.client.SDBClientProvider;
+import com.sequoiadb.flink.common.client.SDBCollectionProvider;
 import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.common.util.LookupUtil;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -15,60 +17,132 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.CloseableIterator;
+import org.apache.flink.util.Preconditions;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 
+@RunWith(Parameterized.class)
 public class LookupTest {
 
     private static final TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.newInstance().inStreamingMode().build());
+    private final String hosts;
+    private final String username;
+    private final String password;
+    private final String lookupCsString;
+    private final String lookupClString1;
+    private final String lookupClString2;
+    private final String lookupClString3;
+    private static Sequoiadb sdb;
+    private CollectionSpace collectionSpace;
+    private DBCollection collection1;
+    private DBCollection collection2;
+    private DBCollection collection3;
+    private SDBCollectionProvider lookup1CollectionProvider;
 
-    private static final String hosts = "192.168.30.42:11810";
+    public LookupTest(String hosts, String username, String password, String lookupCsString, String lookupClString1, String lookupClString2, String lookupClString3) {
+        Preconditions.checkNotNull(hosts);
+        Preconditions.checkNotNull(username);
+        Preconditions.checkNotNull(password);
+        Preconditions.checkNotNull(lookupCsString);
+        this.hosts = hosts;
+        this.username = username;
+        this.password = password;
+        this.lookupCsString = lookupCsString;
+        this.lookupClString1 = lookupClString1;
+        this.lookupClString2 = lookupClString2;
+        this.lookupClString3 = lookupClString3;
+        this.lookup1CollectionProvider = (SDBCollectionProvider) SDBClientProvider.builder()
+                .withHosts(Arrays.asList(hosts.split(",")))
+                .withCollectionSpace(lookupCsString)
+                .withCollection(lookupClString1)
+                .withUsername(username)
+                .withPassword(password)
+                .build();
 
-    private static final String username = "sdbadmin";
-
-    private static final String password = "sdbadmin";
-
-    private static final String csString = "lookup";
-
-    private static final String clString1 = "sdbtest1";
-    private static final String clString2 = "sdbtest2";
-    private static final String clString3 = "sdbtest3";
-
-    private static final Sequoiadb sdb = new Sequoiadb(hosts, username, password);
-
-    private static CollectionSpace collectionSpace;
-
-    private static DBCollection collection1;
-
-    private static DBCollection collection2;
-
-    private static DBCollection collection3;
+        try {
+            sdb = new Sequoiadb(hosts, username, password);
+        } catch (BaseException e) {
+            throw new SDBException("cannot get Squoiadb connection.");
+        }
+        initLookupTest();
+    }
 
 
-    static {
+    /**
+     * Pass in the parameters corresponding to the constructor
+     *
+     * @return
+     */
+    @Parameterized.Parameters
+    public static Collection initLookupParameters() {
+        return Arrays.asList(new String[][]{
+                {"192.168.16.187:11810", "sdbadmin", "sdbadmin", "lookupCS", "lookupCL1", "lookupCL2", "lookupCL3"}
+        });
+    }
+
+    public void initLookupTest() {
         // get a sdb DBCollection connection
         try {
-            collectionSpace = sdb.getCollectionSpace(csString);
-            collection1 = collectionSpace.getCollection(clString1);
-            collection2 = collectionSpace.getCollection(clString2);
-            collection3 = collectionSpace.getCollection(clString3);
-        } catch (BaseException ex) {
-            if (ex.getErrorCode() == SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode()) {
-                throw new SDBException(
-                        String.format("collection space %s does not exist on node: %s.", csString, sdb.getNodeName())
-                );
-            } else if (ex.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
-                throw new SDBException(
-                        String.format("at least one collection  does not exist on node: %s.", sdb.getNodeName())
-                );
+            collectionSpace = sdb.getCollectionSpace(lookupCsString);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode()) {
+                collectionSpace = sdb.createCollectionSpace(lookupCsString);
+            } else {
+                sdb.close();
+                throw e;
             }
-            throw ex;
         }
 
+        try {
+            collection1 = collectionSpace.getCollection(lookupClString1);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
+                collection1 = collectionSpace.createCollection(lookupClString1);
+                initCLWithIndexAndData(collection1);
+            } else {
+                sdb.close();
+                throw e;
+            }
+        }
+
+        try {
+            collection2 = collectionSpace.getCollection(lookupClString2);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
+                collection2 = collectionSpace.createCollection(lookupClString2);
+                initCLWithIndexAndData(collection2);
+            } else {
+                sdb.close();
+                throw e;
+            }
+        }
+
+        try {
+            collection3 = collectionSpace.getCollection(lookupClString3);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
+                collection3 = collectionSpace.createCollection(lookupClString3);
+                initCLWithIndexAndData(collection3);
+            } else {
+                sdb.close();
+                throw e;
+            }
+        }
 
         //create a datagen table to emit data
         String datagenSql = "CREATE TABLE IF NOT EXISTS datagentest (" +
@@ -101,8 +175,8 @@ public class LookupTest {
                 ") WITH (" +
                 "'connector' = 'sequoiadb'," +
                 "'hosts' = '" + hosts + "'," +
-                "'collection' = '" + clString1 + "'," +
-                "'collectionspace' = '" + csString + "'," +
+                "'collection' = '" + lookupClString1 + "'," +
+                "'collectionspace' = '" + lookupCsString + "'," +
                 "'username' = '" + username + "'," +
                 "'password' = '" + password + "'," +
                 "'overwrite' = 'false')";
@@ -114,8 +188,8 @@ public class LookupTest {
                 ") WITH (" +
                 "'connector' = 'sequoiadb'," +
                 "'hosts' = '" + hosts + "'," +
-                "'collection' = '" + clString2 + "'," +
-                "'collectionspace' = '" + csString + "'," +
+                "'collection' = '" + lookupClString2 + "'," +
+                "'collectionspace' = '" + lookupCsString + "'," +
                 "'username' = '" + username + "'," +
                 "'password' = '" + password + "'," +
                 "'overwrite' = 'false')";
@@ -127,8 +201,8 @@ public class LookupTest {
                 ") WITH (" +
                 "'connector' = 'sequoiadb'," +
                 "'hosts' = '" + hosts + "'," +
-                "'collection' = '" + clString3 + "'," +
-                "'collectionspace' = '" + csString + "'," +
+                "'collection' = '" + lookupClString3 + "'," +
+                "'collectionspace' = '" + lookupCsString + "'," +
                 "'username' = '" + username + "'," +
                 "'password' = '" + password + "'," +
                 "'overwrite' = 'false')";
@@ -137,9 +211,7 @@ public class LookupTest {
         tEnv.executeSql(sdbSql1);
         tEnv.executeSql(sdbSql2);
         tEnv.executeSql(sdbSql3);
-
     }
-
 
     /**
      * The two result include a true result and an execution result.
@@ -149,12 +221,12 @@ public class LookupTest {
      * all key from the hashmap.This way can ensure result exactly.
      */
     @Test
-    public void lookupOneFieldJoinTest() {
+    public void testLookupOneFieldJoin() {
 
         String lookupJoinSql = "SELECT d1.ID,s1.ID FROM datagentest AS d1 " +
                 "LEFT JOIN sdbtest1 FOR SYSTEM_TIME AS OF d1.proc_time AS s1 ON d1.ID = s1.ID";
 
-        Assert.assertTrue(isLookupJoin(lookupJoinSql));
+        Assert.assertTrue("This sql isn't a Lookup join.", isLookupJoin(lookupJoinSql));
 
         // get all data from sdb to query  by using map form
         HashMap<Object, BSONObject> integerBSONObjectHashMap = getHashMapWithObjectKey(collection1, "ID");
@@ -168,11 +240,11 @@ public class LookupTest {
 
 
     @Test
-    public void lookupTwoFieldJoinTest() {
+    public void testLookupTwoFieldJoin() {
         String lookupJoinSql = "SELECT d1.ID,d1.age,s1.ID,s1.age FROM datagentest AS d1 " +
-                "LEFT JOIN sdbtest1 FOR SYSTEM_TIME AS OF d1.proc_time AS s1 ON d1.ID = s1.ID AND d1.age = s1.age  ";
+                "LEFT JOIN sdbtest1 FOR SYSTEM_TIME AS OF d1.proc_time AS s1 ON d1.ID = s1.ID AND d1.age = s1.age";
 
-        Assert.assertTrue(isLookupJoin(lookupJoinSql));
+        Assert.assertTrue("This sql isn't a Lookup join.", isLookupJoin(lookupJoinSql));
         // get all data from sdb to query  by using map form
         // hashmap : key => Tuple2(ID,age) value => BsonObject
         HashMap<Tuple2<Object, Object>, BSONObject> tuple2BSONObjectHashMap = getHashMapWithTuple2Key(collection1, "ID", "age");
@@ -185,13 +257,13 @@ public class LookupTest {
     }
 
     @Test
-    public void multiDimTableLookup() {
+    public void testMultiDimTableLookup() {
         String lookupJoinSql = "SELECT d1.ID,d1.age,s1.ID,s2.age,s2.ID,s3.ID FROM datagentest AS d1 " +
-                "INNER JOIN sdbtest1 FOR SYSTEM_TIME AS OF d1.proc_time AS s1 ON d1.ID = s1.ID \n" +
-                "INNER JOIN sdbtest2 FOR SYSTEM_TIME AS OF d1.proc_time AS s2 ON d1.ID = s2.ID AND d1.age = s2.age\n" +
-                "INNER JOIN sdbtest3 FOR SYSTEM_TIME AS OF d1.proc_time AS s3 ON d1.ID = s3.ID";
+                "LEFT JOIN sdbtest1 FOR SYSTEM_TIME AS OF d1.proc_time AS s1 ON d1.ID = s1.ID \n" +
+                "LEFT JOIN sdbtest2 FOR SYSTEM_TIME AS OF d1.proc_time AS s2 ON d1.ID = s2.ID AND d1.age = s2.age\n" +
+                "LEFT JOIN sdbtest3 FOR SYSTEM_TIME AS OF d1.proc_time AS s3 ON d1.ID = s3.ID";
 
-        Assert.assertTrue(isLookupJoin(lookupJoinSql));
+        Assert.assertTrue("This sql isn't a Lookup join.", isLookupJoin(lookupJoinSql));
         // get sdbtest1 from Sequpiadb as hashmap
         HashMap<Tuple2<Object, Object>, BSONObject> sdbtest1HashMapWithIDAndAge = getHashMapWithTuple2Key(collection1, "ID", "age");
 
@@ -214,7 +286,7 @@ public class LookupTest {
 
 
     @Test
-    public void getJoinedRowType() {
+    public void testGetJoinedRowType() {
         // defined a table schema
         DataType produceType = DataTypes.ROW(
                 DataTypes.FIELD("a", DataTypes.INT().notNull(), "must be not null"),
@@ -235,6 +307,28 @@ public class LookupTest {
         RowType joinedRowType = LookupUtil.getJoinedRowType(produceType, joinKeys);
 
         Assert.assertTrue(assertEqual(result, joinedRowType));
+    }
+
+    @Test
+    public void testIsNestedType() {
+        int[][] nestedKey = {{0}, {1, 2}};
+        int[][] noNestedKey = {{0}, {2}};
+        boolean nestedExpection = true;
+        boolean noNestedExpection = false;
+
+        Assert.assertSame(nestedExpection, LookupUtil.isNestedType(nestedKey));
+        Assert.assertSame(noNestedExpection, LookupUtil.isNestedType(noNestedKey));
+    }
+
+    @Test
+    public void testGetIndexColumnNames() {
+        List<String> exceptIndexes = new ArrayList<>();
+        exceptIndexes.add("_id");
+        exceptIndexes.add("ID");
+        exceptIndexes.add("ID");
+        List<String> indexColumnNames = lookup1CollectionProvider.getIndexColumnNames();
+
+        Assert.assertEquals(exceptIndexes, indexColumnNames);
     }
 
     public boolean assertEqual(RowType result, RowType joinedRowType) {
@@ -305,14 +399,14 @@ public class LookupTest {
                 lookupList.add(next);
             }
         } catch (Exception e) {
-            throw new SDBException("get Row data from lookup Iterator failed\n", e);
+            throw new SDBException("get Row data from lookup Iterator failed.\n", e);
         } finally {
             try {
                 if (lookupResultCollect != null) {
                     lookupResultCollect.close();
                 }
             } catch (Exception e) {
-                throw new SDBException("flink lookup Iterator close failed\n", e);
+                throw new SDBException("flink lookup Iterator close failed.\n", e);
             }
         }
         return lookupList;
@@ -363,5 +457,42 @@ public class LookupTest {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("LookupJoin");
         return lookupJoinExplain.contains(stringBuilder);
+    }
+
+    public static void initCLWithIndexAndData(DBCollection cl) {
+
+        BSONObject indexKeyBSON = new BasicBSONObject();
+        indexKeyBSON.put("ID", 1);
+        BSONObject indexOption = new BasicBSONObject();
+        indexOption.put("Unique", true);
+        indexOption.put("NotNull", true);
+        cl.createIndex("lookupIdIndex", indexKeyBSON, indexOption);
+
+        String str = "abcdefghijklmnopqrstyvwxyz1234567890";
+        int length = 6;
+        int[] num = {100, 1000, 10000};
+        Random random = new Random();
+        List<BSONObject> bsonList = new ArrayList<>();
+        for (int i = 0; i <= num[random.nextInt(3)]; i++) {
+            BasicBSONObject bsonObj = new BasicBSONObject();
+            bsonObj.put("ID", i);
+            bsonObj.put("name", str.substring(random.nextInt(str.length() - length), str.length() - 1));
+            bsonObj.put("age", random.nextInt(100));
+        }
+        try {
+            sdb.beginTransaction();
+            cl.bulkInsert(bsonList);
+            sdb.commit();
+        } catch (BaseException e) {
+            sdb.close();
+            throw new SDBException("failed to bulkinsert data into Sequoiadb.", e);
+        }
+    }
+
+    @After
+    public void close() {
+        if (sdb != null) {
+            sdb.close();
+        }
     }
 }

@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -101,12 +102,20 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
         RowType joinedRowType = rowDataToBsonConverter.getRowType();
         List<String> joinedFields = joinedRowType.getFieldNames();
 
+        List<String> noIndexColumns = new ArrayList<>();
+
         // compare whether their joined fields includes an index
         for (String joinedField : joinedFields) {
             if (!indexNameList.contains(joinedField)) {
-                LOG.warn(joinedField + " column used by join are not part of any indexes in Sequoiadb!" +
-                        " You may consider creating indexes using the join fields");
+                noIndexColumns.add(joinedField);
             }
+        }
+
+        if (noIndexColumns.size() > 0) {
+            System.out.println("Column (" + String.join(",", noIndexColumns) + ") used by join are not part of any indexes in Sequoiadb!" +
+                    " You may consider creating indexes using the join fields.");
+            LOG.warn("Column (" + String.join(",", noIndexColumns) + ") used by join are not part of any indexes in Sequoiadb!" +
+                    " You may consider creating indexes using the join fields.");
         }
         super.open(context);
     }
