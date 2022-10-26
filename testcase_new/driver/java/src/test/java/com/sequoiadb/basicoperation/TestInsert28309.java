@@ -91,7 +91,7 @@ public class TestInsert28309 extends SdbTestBase {
         // 执行切分，设置100%切分到目标组
         cl.split( srcGroupName, destGroupName, 100 );
         // 直连源组和目标组主节点检查数据
-        CommLib.checkAllSplitToDestGroupResult( csName, clName,
+        Commlib.checkAllSplitToDestGroupResult( csName, clName,
                 srcMaterNodeInfo, destMaterNodeInfo, recordNum, expResults );
 
         // coord查询数据值正确
