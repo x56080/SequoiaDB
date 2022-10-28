@@ -1432,8 +1432,8 @@ namespace engine
             if ( String != e.type() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                       FIELD_NAME_ROLE, option.toString().c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_ROLE, option.toString().c_str(), rc ) ;
                goto error ;
             }
             else
@@ -1442,8 +1442,8 @@ namespace engine
                     authGetBuiltinRoleID( e.valuestrsafe() ) )
                {
                   rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR, "Role %s is invalid when creating a user, "
-                          "rc: %d", e.valuestrsafe(), rc ) ;
+                  PD_LOG_MSG( PDERROR, "Role %s is invalid when creating a user, rc: %d",
+                              e.valuestrsafe(), rc ) ;
                   goto error ;
                }
             }
