@@ -274,7 +274,11 @@ do                                                            \
     */
    _sdbBase::_sdbBase (CLIENT_CLASS_TYPE type) :
    _type( type ),
-   _connection( NULL )
+   _connection( NULL ),
+   _pSendBuffer ( NULL ),
+   _sendBufferSize ( 0 ),
+   _pReceiveBuffer ( NULL ),
+   _receiveBufferSize ( 0 )
    {}
 
    INT32 _sdbBase::_regHandle( _sdbImpl *connection, ossValuePtr ptr )
@@ -298,9 +302,32 @@ do                                                            \
       // had been destroyed or not
       if ( _connection )
       {
-         _onUnregHandleInConn() ;
+         _resetErrorAndResultBuf();
          _connection->_unregisterHandle( _type, ptr ) ;
          _connection = NULL ;
+      }
+   }
+
+   void _sdbBase::_resetErrorAndResultBuf()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -310,10 +337,6 @@ do                                                            \
     */
    _sdbCursorImpl::_sdbCursorImpl () :
    _sdbBase( CLIENT_CLASS_CURSOR ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _contextID ( -1 ),
    _isClosed ( FALSE ),
    _totalRead ( 0 ),
@@ -345,28 +368,6 @@ do                                                            \
       }
    }
 
-   void _sdbCursorImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
-      }
-   }
 
    void _sdbCursorImpl::_close()
    {
@@ -759,10 +760,6 @@ do                                                            \
     */
    _sdbCollectionImpl::_sdbCollectionImpl () :
    _sdbBase( CLIENT_CLASS_CL ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _pAppendOIDBuffer ( NULL ),
    _appendOIDBufferSize ( 0 )
    {
@@ -773,10 +770,6 @@ do                                                            \
 
    _sdbCollectionImpl::_sdbCollectionImpl ( CHAR *pCollectionFullName ) :
    _sdbBase( CLIENT_CLASS_CL ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _pAppendOIDBuffer ( NULL ),
    _appendOIDBufferSize ( 0 ),
    _version ( CATALOG_DEFAULT_VERSION )
@@ -787,10 +780,6 @@ do                                                            \
    _sdbCollectionImpl::_sdbCollectionImpl ( CHAR *pCollectionSpaceName,
                                             CHAR *pCollectionName ) :
    _sdbBase( CLIENT_CLASS_CL ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _pAppendOIDBuffer ( NULL ),
    _appendOIDBufferSize ( 0 )
    {
@@ -876,29 +865,6 @@ do                                                            \
       if ( _pAppendOIDBuffer )
       {
          SDB_OSS_FREE ( _pAppendOIDBuffer ) ;
-      }
-   }
-
-   void _sdbCollectionImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -5833,21 +5799,13 @@ do                                                            \
     * Collection Space Implementation
     */
    _sdbCollectionSpaceImpl::_sdbCollectionSpaceImpl () :
-   _sdbBase( CLIENT_CLASS_CS ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_CS )
    {
       ossMemset ( _collectionSpaceName, 0, sizeof ( _collectionSpaceName ) ) ;
    }
 
    _sdbCollectionSpaceImpl::_sdbCollectionSpaceImpl( CHAR *pCollectionSpaceName )
-   : _sdbBase( CLIENT_CLASS_CS ),
-     _pSendBuffer ( NULL ),
-     _sendBufferSize ( 0 ),
-     _pReceiveBuffer ( NULL ),
-     _receiveBufferSize ( 0 )
+   : _sdbBase( CLIENT_CLASS_CS )
    {
       _setName ( pCollectionSpaceName ) ;
    }
@@ -5862,29 +5820,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbCollectionSpaceImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -6498,21 +6433,13 @@ do                                                            \
     * SequoiaDB Domain Implementation
     */
    _sdbDomainImpl::_sdbDomainImpl () :
-   _sdbBase( CLIENT_CLASS_DOMAIN ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ) ,
-   _pReceiveBuffer ( NULL ) ,
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_DOMAIN )
    {
       ossMemset( _domainName, 0, sizeof ( _domainName ) ) ;
    }
 
    _sdbDomainImpl::_sdbDomainImpl ( const CHAR *pDomainName ) :
-   _sdbBase( CLIENT_CLASS_DOMAIN ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ) ,
-   _pReceiveBuffer ( NULL ) ,
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_DOMAIN )
    {
       _setName( pDomainName ) ;
    }
@@ -6527,29 +6454,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbDomainImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -6884,11 +6788,7 @@ do                                                            \
     * SequoiaDB Data Center Implementation
     */
    _sdbDataCenterImpl::_sdbDataCenterImpl () :
-   _sdbBase( CLIENT_CLASS_DC ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ) ,
-   _pReceiveBuffer ( NULL ) ,
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_DC )
    {
       ossMemset( _dcName, 0, sizeof ( _dcName ) ) ;
    }
@@ -6903,29 +6803,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbDataCenterImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -7707,10 +7584,6 @@ do                                                            \
     */
    _sdbLobImpl::_sdbLobImpl () :
    _sdbBase( CLIENT_CLASS_LOB ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _isOpen( FALSE ),
    _contextID ( -1 ),
    _mode( -1 ),
@@ -7747,29 +7620,6 @@ do                                                            \
       {
          SAFE_OSS_FREE ( _pReceiveBuffer ) ;
          _receiveBufferSize = 0 ;
-      }
-   }
-
-   void _sdbLobImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -8863,21 +8713,13 @@ do                                                            \
    }
 
    _sdbDataSourceImpl::_sdbDataSourceImpl()
-   : _sdbBase( CLIENT_CLASS_DS ),
-     _pSendBuffer ( NULL ),
-     _sendBufferSize ( 0 ) ,
-     _pReceiveBuffer ( NULL ) ,
-     _receiveBufferSize ( 0 )
+   : _sdbBase( CLIENT_CLASS_DS )
    {
       ossMemset( _dataSourceName, 0, sizeof( _dataSourceName ) ) ;
    }
 
    _sdbDataSourceImpl::_sdbDataSourceImpl( const CHAR *pDataSourceName )
-   : _sdbBase( CLIENT_CLASS_DS ),
-     _pSendBuffer ( NULL ),
-     _sendBufferSize ( 0 ) ,
-     _pReceiveBuffer ( NULL ) ,
-     _receiveBufferSize ( 0 )
+   : _sdbBase( CLIENT_CLASS_DS )
    {
       _setName( pDataSourceName ) ;
    }
@@ -8892,29 +8734,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbDataSourceImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 

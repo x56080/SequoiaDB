@@ -93,11 +93,19 @@ namespace sdbclient
        */
       void             _unregHandle( ossValuePtr ptr ) ;
 
-      virtual void     _onUnregHandleInConn() {}
+   private :
+      /**
+       * clean Error and Result external buffer pointer.
+       */
+      void             _resetErrorAndResultBuf() ;
 
    protected :
       CLIENT_CLASS_TYPE     _type ;
       _sdbImpl             *_connection ;
+      CHAR                 *_pSendBuffer ;
+      INT32                 _sendBufferSize ;
+      CHAR                 *_pReceiveBuffer ;
+      INT32                 _receiveBufferSize ;
    } ;
 
    /*
@@ -108,11 +116,6 @@ namespace sdbclient
    private :
       _sdbCursorImpl ( const _sdbCursorImpl& other ) ;
       _sdbCursorImpl& operator=( const _sdbCursorImpl& ) ;
-
-      CHAR                 *_pSendBuffer ;
-      INT32                _sendBufferSize ;
-      CHAR                 *_pReceiveBuffer ;
-      INT32                _receiveBufferSize ;
 
       SINT64               _contextID ;
       BOOLEAN              _isClosed ;
@@ -129,7 +132,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32    _killCursor () ;
@@ -164,10 +166,6 @@ namespace sdbclient
 #if defined CLIENT_THREAD_SAFE
       ossSpinSLatch            _mutex ;
 #endif
-      CHAR                    *_pSendBuffer ;
-      INT32                    _sendBufferSize ;
-      CHAR                    *_pReceiveBuffer ;
-      INT32                    _receiveBufferSize ;
       CHAR                    *_pAppendOIDBuffer ;
       INT32                    _appendOIDBufferSize ;
       INT32                   _version ;
@@ -185,7 +183,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32    _setName ( const CHAR *pCollectionFullName ) ;
@@ -940,10 +937,6 @@ namespace sdbclient
       ossSpinSLatch _mutex ;
 #endif
 
-      CHAR                    *_pSendBuffer ;
-      INT32                    _sendBufferSize ;
-      CHAR                    *_pReceiveBuffer ;
-      INT32                    _receiveBufferSize ;
       CHAR _collectionSpaceName [ CLIENT_CS_NAMESZ+1 ] ;
 
    private:
@@ -955,7 +948,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32 _setName ( const CHAR *pCollectionSpaceName ) ;
@@ -1073,10 +1065,6 @@ namespace sdbclient
       ossSpinSLatch           _mutex ;
 #endif
 
-      CHAR                    *_pSendBuffer ;
-      INT32                   _sendBufferSize ;
-      CHAR                    *_pReceiveBuffer ;
-      INT32                   _receiveBufferSize ;
       CHAR _domainName[ CLIENT_DOMAIN_NAMESZ+1 ] ;
 
     private:
@@ -1088,7 +1076,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
    private:
       INT32 _setName ( const CHAR *pDomainName ) ;
 
@@ -1161,10 +1148,6 @@ namespace sdbclient
       ossSpinSLatch           _mutex ;
 #endif
 
-      CHAR                    *_pSendBuffer ;
-      INT32                   _sendBufferSize ;
-      CHAR                    *_pReceiveBuffer ;
-      INT32                   _receiveBufferSize ;
       CHAR _dcName[ CLIENT_DC_NAMESZ+1 ] ;
 
    private:
@@ -1176,7 +1159,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32 _setName ( const CHAR *pClusterName,
@@ -1326,11 +1308,6 @@ namespace sdbclient
       ossSpinSLatch           _mutex ;
 #endif
 
-      CHAR                    *_pSendBuffer ;
-      INT32                   _sendBufferSize ;
-      CHAR                    *_pReceiveBuffer ;
-      INT32                   _receiveBufferSize ;
-
       BOOLEAN                 _isOpen ;
       SINT64                  _contextID ;
       INT32                   _mode ;
@@ -1356,7 +1333,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
 
    private :
       void _close () ;
@@ -1475,10 +1451,6 @@ namespace sdbclient
       ossSpinSLatch            _mutex ;
 #endif
 
-      CHAR              *_pSendBuffer ;
-      INT32              _sendBufferSize ;
-      CHAR              *_pReceiveBuffer ;
-      INT32              _receiveBufferSize ;
       CHAR               _dataSourceName[ CLIENT_DATASOURCE_NAMESZ + 1 ] ;
 
    private:
@@ -1490,7 +1462,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-      virtual void _onUnregHandleInConn() ;
 
    private:
       INT32 _setName( const CHAR *pDataSourceName ) ;
