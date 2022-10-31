@@ -361,6 +361,15 @@ namespace engine
          goto done ;
       }
 
+      // Check before taking the cl lock, to avoid IO when accessing dmsMB. As the cs is locked
+      // above, we can get the mbStat.
+      if ( job._lastWriteTick != 0 &&
+           job._lastWriteTick == su->data()->getMBStatInfo( job._clID )->_lastWriteTick )
+      {
+         retry = TRUE ;
+         goto done ;
+      }
+
       // Lock the collection, and check if its data match the condition. If yes,
       // start to create the dictionary.
       rc = su->data()->getMBContext( &mbContext, job._clID,
@@ -376,6 +385,8 @@ namespace engine
          PD_LOG( PDERROR, "Get mb context failed, rc: %d", rc ) ;
          goto error ;
       }
+
+      job._lastWriteTick = mbContext->mbStat()->_lastWriteTick ;
 
       if ( DMS_INVALID_EXTENT != mbContext->mb()->_dictExtentID ||
            UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
@@ -493,6 +504,9 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Create compression dictionary failed[%d]. "
                             "Will try again later", rc ) ;
+         // For other failures, need to retry again, event the mbstat info of the collection does
+         // not change.
+         job._lastWriteTick = 0 ;
          rc = SDB_OK ;
          retry = TRUE ;
       }

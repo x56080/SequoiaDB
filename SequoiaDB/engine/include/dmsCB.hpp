@@ -115,15 +115,16 @@ namespace engine
       UINT32 _suLID ;
       UINT16 _clID ;
       UINT32 _clLID ;
-      UINT64 _createTime ;
       UINT64 _recordNum ;
+      UINT64 _lastWriteTick ;
 
       _dmsDictJob()
       : _suID( DMS_INVALID_SUID ),
         _suLID( DMS_INVALID_SUID ),
         _clID( DMS_INVALID_CLID ),
         _clLID( DMS_INVALID_CLID ),
-        _recordNum( 0 )
+        _recordNum( 0 ),
+        _lastWriteTick( 0 )
       {
       }
 
@@ -133,8 +134,8 @@ namespace engine
         _suLID( suLID ),
         _clID( clID ),
         _clLID( clLID ),
-        _createTime( 0 ),
-        _recordNum( 0 )
+        _recordNum( 0 ),
+        _lastWriteTick( 0 )
       {
       }
    } ;

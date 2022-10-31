@@ -3578,7 +3578,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
    void _SDB_DMSCB::pushDictJob( dmsDictJob job )
    {
-      job._createTime = pmdGetDBTick() ;
       _dictWaitQue.push( job ) ;
    }
 
