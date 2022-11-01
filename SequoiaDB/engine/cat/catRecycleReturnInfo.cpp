@@ -449,17 +449,18 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ADDCHGUIDCL ) ;
 
       utilCLUniqueID newCLUniqueID = UTIL_UNIQUEID_NULL ;
+      utilReturnNameInfo info( clName.c_str() ) ;
 
       rc = catGetReturnCLUID( clUniqueID, newCLUniqueID, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to change collection unique "
                    "ID [%llu], rc: %d", clUniqueID, rc ) ;
 
-      if ( _renameCLMap.end() == _renameCLMap.find( clName ) )
-      {
-         PD_CHECK( lockMgr.tryLockCollection( clName.c_str(), EXCLUSIVE ),
-                   SDB_LOCK_FAILED, error, PDERROR,
-                   "Failed to lock rename collection [%s]", clName.c_str() ) ;
-      }
+      rc = getReturnCLName( info ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get return name of "
+                   "collection [%s], rc: %d", clName.c_str(), rc ) ;
+      PD_CHECK( lockMgr.tryLockCollection( info.getReturnName(), EXCLUSIVE ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock return collection [%s]", info.getReturnName() ) ;
 
       rc = _BASE::addChangeUIDCL( clUniqueID, newCLUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add change unique ID collection "
