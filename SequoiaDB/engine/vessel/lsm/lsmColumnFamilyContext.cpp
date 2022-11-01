@@ -46,10 +46,8 @@ namespace vessel
 
    void lsmColumnFamilyContext::setHandle(rocksdb::ColumnFamilyHandle *handle)
    {
-      if (nullptr == _handle)
-      {
-         _handle = handle;
-      }
+      SDB_ASSERT(nullptr != handle, "can not be null");
+      _handle = handle;
    }
 
    DPS_LSN_OFFSET lsmColumnFamilyContext::beginToFlush()

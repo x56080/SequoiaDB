@@ -139,7 +139,7 @@ class test_executor : public IExecutor
       */
       /// for read
       virtual UINT64    getBeginLsn () const {return 0;}
-      virtual UINT64    getEndLsn() const {return dummyDataJournal::instance()->getCurrentLSN();}
+      virtual UINT64    getEndLsn() const {return dummyDataJournal::instance()->getCurrentLsnOffset();}
       virtual UINT32    getLsnCount () const {return 0;}
       virtual BOOLEAN   isDoRollback () const {return FALSE;}
 

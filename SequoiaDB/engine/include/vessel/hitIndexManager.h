@@ -147,6 +147,7 @@ namespace vessel
             globalIndexID maxId;
             UINT64 lsn = 0;
             ossPoolList<_csTransferJob> cjobs;
+            UINT64 startTime = 0;
          };
 
       private:

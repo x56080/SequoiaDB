@@ -279,6 +279,8 @@ namespace vessel
          }
       }
 
+      _job.startTime = ossGetCurrentMilliseconds();
+
       PD_LOG(PDDEBUG, "[%d] cs job built in sst file[%s]",
              _job.cjobs.size(), _filesToTransfer.back().c_str());
          
@@ -510,6 +512,8 @@ namespace vessel
    {
       SDB_ASSERT(_job.isValid(), "can not be invalid");
 
+      UINT64 millis = ossGetCurrentMilliseconds();
+      PD_LOG(PDDEBUG, "cost time[%lld] to transfer file", millis - _job.startTime);
       _job.reset();
       INT32 rc = _popBackSSTAndRemove();
       if (SDB_OK != rc)
@@ -656,9 +660,12 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (hasJob && !_workers.isValid())
       {
+         instanceEnv *env = GET_THREAD_CONTEXT()->getEnv();
          backgroundWorkers::options o;
-         o.maxWorkerNum = 4;
-         rc = _workers.init(GET_THREAD_CONTEXT()->getEnv(), o);
+
+         o.maxWorkerNum = env->options.hitTransferWorkerCount;
+         SDB_ASSERT(0 < o.maxWorkerNum, "can not be invalid");
+         rc = _workers.init(env, o);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init background workers:%d", rc);
@@ -908,6 +915,7 @@ namespace vessel
       maxId.reset();
       lsn = 0;
       cjobs.clear();
+      startTime = 0;
    }
 
 } // namespace vessel

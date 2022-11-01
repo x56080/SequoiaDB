@@ -174,7 +174,7 @@ namespace engine
       // Let's clear them and reload from beginning
       _clearTags() ;
 
-      rc = loadBody( rowData, dataLen, FALSE ) ;
+      rc = _loadBody( rowData, dataLen, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
       }
 
@@ -185,12 +185,12 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGRECD_LOADBODY, "_dpsLogRecord::loadBody" )
-   INT32 _dpsLogRecord::loadBody( const CHAR * pData,
-                                  INT32 totalSize,
-                                  BOOLEAN checkEnd )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGRECD__LOADBODY, "_dpsLogRecord::_loadBody" )
+   INT32 _dpsLogRecord::_loadBody( const CHAR * pData,
+                                   INT32 totalSize,
+                                   BOOLEAN checkEnd )
    {
-      PD_TRACE_ENTRY ( SDB__DPSLGRECD_LOADBODY );
+      PD_TRACE_ENTRY ( SDB__DPSLGRECD__LOADBODY );
       SDB_ASSERT( pData, "pData can't be null!" ) ;
 
       INT32 rc = SDB_OK ;
@@ -235,7 +235,7 @@ namespace engine
          location += ( valueSize + DPS_RECORD_ELE_HEADER_LEN ) ;
       }
    done:
-      PD_TRACE_EXITRC ( SDB__DPSLGRECD_LOADBODY, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DPSLGRECD__LOADBODY, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -272,7 +272,7 @@ namespace engine
       totalSize = _head._length
                   - sizeof( dpsLogRecordHeader )
                   - DPS_RECORD_ELE_HEADER_LEN ;
-      rc = loadBody( location, totalSize, checkEnd ) ;
+      rc = _loadBody( location, totalSize, checkEnd ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
    done:
       PD_TRACE_EXITRC ( SDB__DPSLGRECD_LOAD, rc );

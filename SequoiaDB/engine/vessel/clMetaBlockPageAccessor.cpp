@@ -40,7 +40,7 @@
 #include "vessel/outerResource.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/logicalPageBuffer.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 
 namespace engine
 {
@@ -397,8 +397,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_CL_CRT);
@@ -413,7 +413,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -437,8 +437,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_VESSEL_CRP_UPDATE);
@@ -453,7 +453,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
@@ -474,14 +474,14 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_CL_DELETE);
       jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

@@ -104,6 +104,16 @@ namespace vessel
             return s;
          }
 
+         OSS_INLINE slice getSliceFromOffsetToEnd(UINT32 offset)const
+         {
+            slice s;
+            if (offset < _size)
+            {
+               s.reset(_size - offset, _data + offset);
+            }
+            return s;
+         }
+
          OSS_INLINE INT32 compare(const slice &o)const
          {
             UINT32 n = OSS_MIN(_size, o._size);
@@ -181,6 +191,13 @@ namespace vessel
                len++;
             }
             return slice(len, _data);
+         }
+
+         template<class T>
+         const T *castTo(UINT32 offset=0)const
+         {
+            return (sizeof(T) + offset ) <= _size ?
+                   reinterpret_cast<const T *>(_data) : nullptr;
          }
 
       private:

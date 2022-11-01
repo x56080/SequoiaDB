@@ -39,7 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "sdbIPersistence.hpp"
-#include "dpsLogWrapper.hpp"
+#include "interface/IDataJournal.h"
 #include "rtnBackgroundJobBase.hpp"
 #include "ossMemPool.hpp"
 
@@ -63,7 +63,7 @@ namespace engine
                                  BOOLEAN syncDeep ) ;
          void              fini() ;
 
-         void              setLogAccess( ILogAccessor *pLogAccess ) ;
+         void              setLogAccess( IDataJournal *pLogAccess ) ;
 
          void              exitJob( BOOLEAN isControl ) ;
 
@@ -110,7 +110,7 @@ namespace engine
          UINT32               _idleAgent ;
          UINT32               _maxSyncJob ;
          BOOLEAN              _syncDeep ;
-         ILogAccessor         *_pLogAccessor ;
+         IDataJournal         *_pLogAccessor ;
          UINT64               _completeLSN ;
 
          ossEvent             _ntyEvent ;

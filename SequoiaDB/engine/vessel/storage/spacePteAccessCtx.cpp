@@ -55,6 +55,34 @@ namespace vessel
       return;
    }
 
+   void spacePteAccessCtx::exportDirtyFiles(const storageCoreArgs &args,
+                                            ossPoolSet<UINT32> &files)const
+   {
+      SDB_ASSERT(args.isValid(), "can not be invalid");
+      UINT32 pcnt = args.getMaxPageCountInFile();
+      for (auto itr = _pmap.cbegin(); itr != _pmap.cend(); ++itr)
+      {
+         if (INVALID_PAGE_ID != itr->second)
+         {
+            files.insert(itr->second / pcnt);
+         }
+      }
+      return;
+   }
+
+   void spacePteAccessCtx::exportDirtyPids(sparseBitmap32 &pids)const
+   {
+      for (auto itr = _pmap.cbegin(); itr != _pmap.cend(); ++itr)
+      {
+         if (INVALID_PAGE_ID != itr->second)
+         {
+            pids.set(itr->second);
+         }
+      }
+
+      return;
+   }
+
    void spacePteAccessCtx::set(PAGE_ID lpid, PAGE_ID pid)
    {
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");

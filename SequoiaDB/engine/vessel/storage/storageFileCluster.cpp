@@ -819,7 +819,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFileCluster::fsyncSegment(UINT32 globalSegmentId)const
+   INT32 storageFileCluster::fsyncSegment(UINT32 globalSegmentId, BOOLEAN sync)const
    {
       INT32 rc = SDB_OK;
       storageFile *file = nullptr;
@@ -850,7 +850,7 @@ namespace vessel
       }
 
       segmentInFile = globalSegmentId % args.maxSegmentCountPerFile;
-      rc = file->fsyncSegment(segmentInFile, TRUE);
+      rc = file->fsyncSegment(segmentInFile, sync);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync segment[%d,%d], rc:%d",
@@ -863,7 +863,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFileCluster::fysncPage(PAGE_ID pid)const
+   INT32 storageFileCluster::fysncPage(PAGE_ID pid, BOOLEAN sync)const
    {
       INT32 rc = SDB_OK;
       UINT32 fileId = 0;
@@ -897,7 +897,7 @@ namespace vessel
          goto error;
       }
 
-      rc = file->fsyncPage(pidInFile, TRUE);
+      rc = file->fsyncPage(pidInFile, sync);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", pidInFile, rc);

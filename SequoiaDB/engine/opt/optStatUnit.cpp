@@ -63,7 +63,7 @@ namespace engine
     */
    _optStatListKey::_optStatListKey ()
    : ossPoolList<const rtnKeyBoundary *> (),
-     _dmsStatKey( TRUE )
+     _clsStatKey( TRUE )
    {
    }
 
@@ -227,7 +227,7 @@ namespace engine
    _optStatElementKey::_optStatElementKey ( const BSONElement &element,
                                             BOOLEAN included )
    : BSONElement( element ),
-     _dmsStatKey( included )
+     _clsStatKey( included )
    {
    }
 
@@ -548,8 +548,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALKEYPAIR, "_optIndexStat::evalKeyPair" )
    double _optIndexStat::evalKeyPair ( const CHAR *pFieldName,
-                                       dmsStatKey &startKey,
-                                       dmsStatKey &stopKey,
+                                       clsStatKey &startKey,
+                                       clsStatKey &stopKey,
                                        BOOLEAN isEqual,
                                        INT32 majorType,
                                        BOOLEAN mixCmp,
@@ -752,8 +752,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT_EVALKEYPAIR, "_optCollectionStat::evalKeyPair" )
    double _optCollectionStat::evalKeyPair ( const CHAR *pFieldName,
-                                            dmsStatKey &startKey,
-                                            dmsStatKey &stopKey,
+                                            clsStatKey &startKey,
+                                            clsStatKey &stopKey,
                                             BOOLEAN isEqual,
                                             INT32 majorType,
                                             BOOLEAN mixCmp,

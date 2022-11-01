@@ -1433,8 +1433,8 @@ namespace engine
             const CHAR *collectionName = _pCollectionName ;
             SDB_ASSERT( NULL != collectionName, "collection name is invalid" ) ;
             CoordCataInfoPtr cataPtr ;
-            rc = _pResource->updateCataInfo( _pCollectionName, cataPtr,
-                                             _pEDUCB ) ;
+            rc = _pResource->getCataResource()->updateCataInfo( _pCollectionName, cataPtr,
+                                                                _pEDUCB ) ;
             if ( SDB_OK == rc )
             {
                _hasUpdateCataInfo = TRUE ;
@@ -1454,8 +1454,8 @@ namespace engine
                   if ( !_hasUpdateCataInfo )
                   {
                      CoordCataInfoPtr cataPtr ;
-                     rc = _pResource->updateCataInfo( _pCollectionName, cataPtr,
-                                                      _pEDUCB ) ;
+                     rc = _pResource->getCataResource()->updateCataInfo(
+                         _pCollectionName, cataPtr, _pEDUCB ) ;
                      if ( SDB_OK == rc )
                      {
                         ++loopTime ;
@@ -1482,8 +1482,8 @@ namespace engine
                // if slave data node doesn't have the cs/cl, but catalog has the
                // cs/cl, it may be that rename operation hasn't been replayed.
                CoordCataInfoPtr cataPtr ;
-               rc = _pResource->updateCataInfo( _pCollectionName, cataPtr,
-                                                _pEDUCB ) ;
+               rc = _pResource->getCataResource()->updateCataInfo(
+                   _pCollectionName, cataPtr, _pEDUCB );
                if ( SDB_OK == rc )
                {
                   rc = SDB_CLS_DATA_NOT_SYNC ;
@@ -1794,7 +1794,7 @@ namespace engine
       ossPoolVector<BSONObj>::iterator itIdx ;
 
       /// update collection's catalog info
-      rc = _pResource->getOrUpdateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
+      rc = _pResource->getCataResource()->getOrUpdateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] Update collection[%s]'s "
                    "catalog info failed, rc: %d", sessionName(),
                    clFullName, rc ) ;
@@ -1865,7 +1865,7 @@ namespace engine
          if( 0 == groupCount )
          {
             /// first clear
-            _pResource->removeCataInfo( clFullName ) ;
+            _pResource->removeCL( clFullName ) ;
 
             if ( pParent && FALSE == mustOnSelf )
             {
@@ -2237,7 +2237,7 @@ namespace engine
                    csName, clNameInData, csName, clName, rc ) ;
 
       /// 4) check catalog again, in case that someone rename back
-      rc = _pResource->updateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
+      rc = _pResource->getCataResource()->updateCataInfo( clFullName, cataPtr, _pEDUCB );
       if ( SDB_OK == rc )
       {
          tmpUniqueID = cataPtr->clUniqueID() ;
@@ -3148,7 +3148,7 @@ namespace engine
             if ( rc && CMD_CREATE_COLLECTION == pCommand->type() )
             {
                /// create collection failed, so we need to clear cache
-               _pResource->removeCataInfo( pCommand->collectionFullName() ) ;
+               _pResource->removeCL( pCommand->collectionFullName() ) ;
             }
          }
          if ( SDB_OK != rc )
@@ -4195,7 +4195,8 @@ namespace engine
       CoordCataInfoPtr cataPtr ;
       clsCatalogSet* set = NULL ;
 
-      rc = _pResource->getOrUpdateCataInfo( clName, cataPtr, _pEDUCB ) ;
+      rc = _pResource->getCataResource()->getOrUpdateCataInfo(
+          clName, cataPtr, _pEDUCB );
       PD_RC_CHECK( rc, PDERROR, "Failed to update catalog of collection[%s], "
                    "rc: %d", clName, rc ) ;
       set = cataPtr->getCatalogSet() ;
@@ -4229,7 +4230,8 @@ namespace engine
             goto done;
          }
 
-         rc = _pResource->getCataInfo( pCollectionName, cataPtr ) ;
+         rc = _pResource->getCataResource()->getCataInfo( pCollectionName,
+                                                          cataPtr ) ;
          if ( SDB_CAT_NO_MATCH_CATALOG == rc )
          {
             rc = SDB_CLS_NO_CATALOG_INFO ;
@@ -4579,7 +4581,8 @@ namespace engine
       CLS_ORDER2SUBCLIDX_MAP sortedSubCLIdxMap ;
       CLS_SUBCL_LIST sortedSubCLList ;
 
-      rc = _pResource->getCataInfo( pCollectionName, cataPtr ) ;
+      rc = _pResource->getCataResource()->getCataInfo( pCollectionName,
+                                                       cataPtr ) ;
       if ( SDB_CAT_NO_MATCH_CATALOG == rc )
       {
          rc = SDB_OK ;
@@ -4804,7 +4807,8 @@ namespace engine
       clsCatalogSet *pCataSet = NULL ;
       CLS_SUBCL_LIST_IT iter ;
 
-      rc = _pResource->getCataInfo( pCollectionName, cataPtr ) ;
+      rc = _pResource->getCataResource()->getCataInfo( pCollectionName,
+                                                       cataPtr ) ;
       if ( SDB_CAT_NO_MATCH_CATALOG == rc )
       {
          rc = SDB_CLS_NO_CATALOG_INFO ;
@@ -4821,13 +4825,14 @@ namespace engine
          CoordCataInfoPtr subCataPtr ;
          pSubCLName = (*iter).c_str() ;
 
-         rc = _pResource->getOrUpdateCataInfo( pSubCLName, subCataPtr, _pEDUCB ) ;
+         rc = _pResource->getCataResource()->getOrUpdateCataInfo( pSubCLName, subCataPtr,
+                                                                  _pEDUCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get catalog info for "
                       "sub-collection [%s], rc: %d", pSubCLName, rc ) ;
          /// not on the node, ignore
          if ( 0 == subCataPtr->getCatalogSet()->groupCount() )
          {
-            _pResource->removeCataInfo( pSubCLName ) ;
+            _pResource->removeCL( pSubCLName ) ;
 
             ++iter ;
             continue ;
@@ -4842,7 +4847,7 @@ namespace engine
       if ( subCLList.empty() )
       {
          /// is empty main collection
-         _pResource->removeCataInfo( pCollectionName ) ;
+         _pResource->removeCL( pCollectionName ) ;
       }
 
    done:
@@ -7653,7 +7658,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _pResource->getCataInfo( name, cataPtr ) ;
+      rc = _pResource->getCataResource()->getCataInfo( name, cataPtr ) ;
       if ( SDB_CAT_NO_MATCH_CATALOG == rc )
       {
          rc = SDB_CLS_NO_CATALOG_INFO ;
@@ -7701,7 +7706,7 @@ namespace engine
       {
          if ( 0 == groupCount )
          {
-            _pResource->removeCataInfo( name ) ;
+            _pResource->removeCL( name ) ;
          }
          PD_LOG ( PDINFO, "Collecton[%s]: self verions:%d, coord version:%d, "
                   "groupCount:%d", name, curVer, version, groupCount ) ;
@@ -7819,8 +7824,7 @@ namespace engine
                                                 _pDmsCB, _pDpsCB ) ;
          if ( SDB_OK == rcTmp )
          {
-            _pResource->removeCataInfoByCS( csName, TRUE ) ;
-
+            _pResource->removeCS( csName, TRUE );
             PD_LOG( PDEVENT, "Drop remain collection space[%s]", csName ) ;
             rcTmp = SDB_DMS_CS_NOTEXIST ;
          }
@@ -7841,7 +7845,7 @@ namespace engine
                                            curClUniqueID ) ;
          if ( SDB_OK == rcTmp )
          {
-            _pResource->removeCataInfo( clName ) ;
+            _pResource->removeCL( clName ) ;
 
             PD_LOG( PDEVENT, "Drop remain collection[%s]", clName ) ;
             rcTmp = SDB_DMS_NOTEXIST ;
@@ -7875,7 +7879,7 @@ namespace engine
          rcTmp = _pDmsCB->dropEmptyCollectionSpace( csName, _pEDUCB, _pDpsCB ) ;
          if ( SDB_OK == rcTmp )
          {
-            _pResource->removeCataInfoByCS( csName, TRUE ) ;
+            _pResource->removeCS( csName, TRUE ) ;
 
             PD_LOG( PDEVENT, "Drop emtpy collection space[%s]", csName ) ;
             rc = SDB_DMS_CS_NOTEXIST ;

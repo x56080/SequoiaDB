@@ -39,6 +39,7 @@
 #include "oss.hpp"
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
+#include "utilMemListPool.hpp"
 
 using namespace std ;
 

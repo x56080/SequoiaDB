@@ -3003,6 +3003,103 @@ namespace engine
       return ;
    }
 
+      // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SAVETRANSINFOFROMCTX, "dpsTransCB::saveTransInfoFromCtx" )
+   void dpsTransCB::saveTransInfoFromCtx( const dpsWriteContext &ctx,
+                                          BOOLEAN checkRstPITWindow )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_SAVETRANSINFOFROMCTX ) ;
+
+      DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET;
+      DPS_TRANS_ID transID ;
+      INT32 transStatus = DPS_TRANS_DOING ;
+      stpLogicalTimeUS transTime ;
+      const dpsWriteRequest *req = ctx.getReq() ;
+      SDB_ASSERT( nullptr != req, "can not be invalid" ) ;
+
+      if ( SDB_OK != dpsGetTransIDFromRequest( *req, transID ) )
+      {
+         // Failed to get transaction ID from record
+         // ( maybe it is not in transaction )
+         if ( checkRstPITWindow &&
+              LOG_TYPE_DUMMY != ctx.getRecord()._type )
+         {
+            // for irreversible operators, push restore window
+            // NOTE: dummy logs are meaningless, and only used to fullfill the
+            // log files, so skip dummy logs
+            pushRestoreWindow() ;
+         }
+         goto done ;
+      }
+
+      if ( checkRstPITWindow && !transID.isGlobTrans() )
+      {
+         // operators in non-global transactions are irreversible as well
+         pushRestoreWindow() ;
+      }
+
+      if ( transID.isValid() )
+      {
+         if ( isRollback( transID ) )
+         {
+            transStatus = DPS_TRANS_ROLLBACK ;
+            utilSlice s;
+
+            if ( req->seek( DPS_LOG_PUBLIC_PRETRANS, s ) )
+            {
+               lsnOffset = *( s.castTo<DPS_LSN_OFFSET>() ) ;
+            }
+            else
+            {
+               lsnOffset = DPS_INVALID_LSN_OFFSET ;
+            }
+         }
+         else if ( LOG_TYPE_TS_COMMIT == ctx.getRecord()._type )
+         {
+            utilSlice s;
+            if ( !req->seek( DPS_LOG_TSCOMMIT_ATTR, s ) ||
+                  DPS_TS_COMMIT_ATTR_PRE != *( s.castTo<UINT8>() ) )
+            {
+               lsnOffset = DPS_INVALID_LSN_OFFSET ;
+               transStatus = DPS_TRANS_COMMIT ;
+            }
+            else
+            {
+               lsnOffset = ctx.getRecord()._lsn ;
+               transStatus = DPS_TRANS_WAIT_COMMIT ;
+            }
+
+            if ( transID.isGlobTrans() )
+            {
+               dpsGetTransTimeFromCtx( ctx, transID, transTime ) ;
+            }
+         }
+         else
+         {
+            lsnOffset = ctx.getRecord()._lsn ;
+            if ( isFirstOp( transID ) )
+            {
+               addBeginLsn( lsnOffset, transID ) ;
+
+               if ( transID.isGlobTrans() )
+               {
+                  dpsGetTransTimeFromCtx( ctx, transID, transTime ) ;
+               }
+            }
+         }
+
+         if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
+         {
+            delBeginLsn( transID ) ;
+         }
+         updateTransInfo( transID, lsnOffset, transStatus, transTime,
+                          checkRstPITWindow ) ;
+      }
+
+   done:
+      PD_TRACE_EXIT ( SDB_DPSTRANSCB_SAVETRANSINFOFROMCTX ) ;
+      return ;
+   }
+
    void dpsTransCB::addHisTrans( const DPS_TRANS_ID &transID,
                                  const dpsHisTransStatus &histInfo,
                                  BOOLEAN checkRstPITWindow )

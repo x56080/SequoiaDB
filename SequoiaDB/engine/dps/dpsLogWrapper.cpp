@@ -460,10 +460,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_COMPLETEOPR, "_dpsLogWrapper::completeOpr" )
-   INT32 _dpsLogWrapper::completeOpr( _pmdEDUCB * cb, INT32 w )
+   INT32 _dpsLogWrapper::completeOpr( IExecutor *executor, INT32 w )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLGWRAPP_COMPLETEOPR ) ;
+      pmdEDUCB *cb = static_cast<pmdEDUCB *>(executor);
 
       if ( w > 1 && cb && 0 != cb->getLsnCount() &&
            _vecEventHandler.size() > 0 )
@@ -642,6 +643,67 @@ namespace engine
       DPS_LSN lsn = expectLsn() ;
       _buf.afterFS( lsn.offset, lsn.version ) ;
    }
+
+   INT32 _dpsLogWrapper::search( const DPS_LSN &lsn,
+                                 const dpsSearchOptions &o,
+                                 dpsMessageBlock &block )
+   {
+      UINT8 type = 0;
+      if (o.searchMem)
+      {
+         type |= DPS_SEARCH_MEM;
+      }
+      if (o.searchFile)
+      {
+         type |= DPS_SEARCH_FILE;
+      }
+      return o.onlyHeader ?
+             searchHeader(lsn, &block, type ) :
+             search( lsn, &block, type,
+                     o.limits, o.maxTime, o.maxSize ) ;
+   }
+
+   INT32 _dpsLogWrapper::write( const dpsWriteRequest &request,
+                                const dpsWriteOptions &o,
+                                dpsLogRecordHeader *result )
+   {
+      return _buf.write( request, o, result );
+   }
+
+   INT32 _dpsLogWrapper::commit( DPS_LSN_OFFSET offset )
+   {
+      INT32 rc = SDB_OK ;
+      if ( DPS_INVALID_LSN_OFFSET != offset )
+      {
+         DPS_LSN committedLSN = _buf.commitLsn() ;
+         if ( offset <= committedLSN.offset )
+         {
+            goto done ;
+         }
+      }
+
+      rc = _buf.commit( FALSE, nullptr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to commit log record with lsn[%lld], rc:%d",
+                 offset, rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dpsLogWrapper::archive()
+   {
+      if ( !_initialized )
+      {
+         return SDB_OK ;
+      }
+      return _archiver.run() ;
+   }
+
 
    /*
       get dps cb

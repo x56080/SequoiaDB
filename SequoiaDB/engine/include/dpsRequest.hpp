@@ -36,54 +36,59 @@
 #ifndef DPS_REQUEST_HPP_
 #define DPS_REQUEST_HPP_
 
-#include "dpsLogDef.hpp"
-#include "dms.hpp"
+#include "dpsLogRecord.hpp"
+#include "utilFragAllocator.hpp"
+#include "utilSlice.hpp"
 
 namespace engine
 {
-   class dpsPackedRequest : public SDBObject
+   struct dpsWriteOptions
    {
-      public:
-         dpsPackedRequest() = default;
-         explicit dpsPackedRequest(UINT16 type,
-                                   UINT16 flags,
-                                   UINT32 packedEleSize,
-                                   const CHAR *eleBuffer):
-         _type(type),
-         _flags(flags),
-         _packedEleSize(packedEleSize),
-         _elementBuffer(eleBuffer){}
+      OSS_INLINE BOOLEAN hasTransTime()const
+      {
+         return DPS_INVALID_TRANS_TIME != transTime;
+      }
 
-         ~dpsPackedRequest() = default;
-         dpsPackedRequest(const dpsPackedRequest &) = default;
-         dpsPackedRequest &operator=(const dpsPackedRequest &) = default;
-
-      public:
-         OSS_INLINE UINT16 getType()const {return _type;}
-         OSS_INLINE UINT16 getFlags()const {return _flags;}
-         OSS_INLINE UINT32 getPackedElementsSize()const {return _packedEleSize;}
-         OSS_INLINE const CHAR *getElementBuffer()const {return _elementBuffer;}
-
-      private:
-         UINT16 _type = LOG_TYPE_DUMMY;
-         UINT16 _flags = 0;
-         UINT32 _packedEleSize = 0;
-         const CHAR *_elementBuffer = nullptr;         
-   };//class dpsPackedRequest
-
-   struct dpsWriteOptions : public SDBObject
-   {
-      UINT32 csid = DMS_INVALID_LOGICCSID;
-      UINT32 clid = DMS_INVALID_LOGICCLID;
+      INT32 csid = -1;
+      INT32 clid = -1;
       INT32 extentPos = -1;
       UINT64 transTime = DPS_INVALID_TRANS_TIME;
       BOOLEAN notify = FALSE;
       BOOLEAN transEnabled = FALSE;
-      BOOLEAN irrversible = FALSE;
       BOOLEAN flushAtOnce = FALSE;
+      IExecutor *executor = nullptr;
    };//struct dpsWriteOptions
 
-   struct dpsSearchOptions : public SDBObject
+   class dpsWriteRequest : public SDBObject
+   {
+      friend class dpsWriteReqBuilder;
+      public:
+         dpsWriteRequest() = default;
+         ~dpsWriteRequest() = default;
+         dpsWriteRequest(const dpsWriteRequest &) = delete;
+         dpsWriteRequest &operator=(const dpsWriteRequest &) = delete;
+         dpsWriteRequest(dpsWriteRequest &&);
+         dpsWriteRequest &operator=(dpsWriteRequest &&);
+
+      public:
+         OSS_INLINE DPS_LOG_TYPE getType()const {return _type;}
+         OSS_INLINE UINT16 getFlags()const {return _flags;}
+         OSS_INLINE UINT32 getElementDataSize()const {return _totalDataSize;}
+         OSS_INLINE UINT32 getElementNum()const {return _elementNum;}
+         const utilSlice &getElement(UINT32 pos)const;
+         BOOLEAN seek(DPS_TAG tag, utilSlice &data)const;
+         void reset();
+
+      private:
+         DPS_LOG_TYPE _type = LOG_TYPE_DUMMY;
+         UINT16 _flags = 0;
+         UINT32 _totalDataSize = 0;
+         UINT32 _elementNum = 0;
+         utilSlice *_elements = nullptr;
+         utilFragAllocator::repertory _rep;
+   };//class dpsWriteRequest
+
+   struct dpsSearchOptions
    {
       BOOLEAN searchMem = TRUE;
       BOOLEAN searchFile = TRUE;
@@ -92,8 +97,7 @@ namespace engine
       INT32 maxTime = -1;
       INT32 maxSize = 5242880;
    };//struct dpsSearchOptions
-
 } // namespace engine
 
 
-#endif//DPS_REQUEST_HPP_
+#endif//DPS_WRITE_REQUEST_HPP_

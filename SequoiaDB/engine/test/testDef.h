@@ -1,0 +1,138 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*******************************************************************************/
+
+#include "dpsDef.hpp"
+#include "dpsTransLockDef.hpp"
+#include "ossSharedLatch.hpp"
+#include "sdbInterface.hpp"
+#include "vessel/dummyJournal.h"
+namespace engine {
+class testExecutor : public IExecutor
+{
+   public:
+      testExecutor()
+      {
+         _id = ossRand();
+      }
+      virtual ~testExecutor(){}
+
+   public:
+      virtual EDUID     getID() const
+      {
+         return _id;
+      }
+      virtual UINT32    getTID() const
+      {
+         return ossGetCurrentThreadID();
+      }
+
+      /*
+         Session Related
+      */
+      virtual ISession* getSession() {return NULL;}
+      virtual IRemoteSite* getRemoteSite() {return NULL;}
+
+      /*
+         Status and Control
+      */
+      virtual BOOLEAN   isInterrupted ( BOOLEAN onlyFlag = FALSE ) {return FALSE;}
+      virtual BOOLEAN   isDisconnected () {return FALSE;}
+      virtual BOOLEAN   isForced () {return FALSE;}
+
+      virtual BOOLEAN   isWritingDB() const {return FALSE;}
+      virtual UINT64    getWritingID() const {return 0;}
+      virtual void      writingDB( BOOLEAN writing ) {}
+      virtual void      writingDB( BOOLEAN writing, const CHAR* name ) {}
+
+      virtual UINT32    getProcessedNum() const {return 0;}
+      virtual void      incEventCount( UINT32 step = 1 ) {}
+
+      virtual UINT32    getQueSize() {return 0;}
+
+      /*
+         Resource Info
+      */
+      virtual sdbLockItem* getLockItem( SDB_LOCK_TYPE lockType ) {return NULL;}
+      virtual INT32        appendInfo( EDU_INFO_TYPE type, const CHAR * format, ...) {return SDB_OK;}
+      virtual INT32        printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) {return SDB_OK;}
+      virtual const CHAR*  getInfo ( EDU_INFO_TYPE type ) {return NULL;}
+      virtual void         resetInfo ( EDU_INFO_TYPE type ) {}
+
+      /*
+         Buffer Manager
+      */
+      virtual INT32     allocBuff( UINT32 len,
+                                    CHAR **ppBuff,
+                                    UINT32 *pRealSize = NULL ) {return -1;}
+
+      virtual INT32     reallocBuff( UINT32 len,
+                                       CHAR **ppBuff,
+                                       UINT32 *pRealSize = NULL ) {return -1;}
+
+      virtual void      releaseBuff( CHAR *pBuff ) {}
+
+      virtual void*     getAlignedBuff( UINT32 size,
+                                          UINT32 *pRealSize = NULL,
+                                          UINT32 alignment =
+                                          OSS_FILE_DIRECT_IO_ALIGNMENT ) {return NULL;}
+
+      virtual void      releaseAlignedBuff() {return ;}
+
+      virtual CHAR*     getBuffer( UINT32 len ) {return NULL;}
+
+      virtual void      releaseBuffer() {}
+
+      /*
+         Operation Related
+      */
+      /// for read
+      virtual UINT64    getBeginLsn () const {return 0;}
+      virtual UINT64    getEndLsn() const {return vessel::dummyDataJournal::instance()->getCurrentLsnOffset();}
+      virtual UINT32    getLsnCount () const {return 0;}
+      virtual BOOLEAN   isDoRollback () const {return FALSE;}
+
+      virtual const DPS_TRANS_ID &getTransID () const {return transID;}
+      virtual UINT64    getCurTransLsn () const {return -1;}
+      /// for write
+      virtual void      resetLsn() {}
+      virtual void      insertLsn( UINT64 lsn,
+                                    BOOLEAN isRollback = FALSE ) {}
+
+      virtual void      setTransID( const DPS_TRANS_ID &transID ) {}
+      virtual void      setCurTransLsn( UINT64 lsn ) {}
+
+      /*
+         Context Related
+      */
+      virtual BOOLEAN      contextInsert( INT64 contextID ) {return FALSE;}
+      virtual void      contextDelete( INT64 contextID ) {}
+      virtual INT64     contextPeek() {return -1;}
+      virtual BOOLEAN   contextFind( INT64 contextID ) {return FALSE;}
+      virtual UINT32    contextNum() {return 0;}
+
+      virtual BOOLEAN   isLogTimeOn() const {return FALSE;}
+      virtual UINT32    getLogWriteMod() const {return DPS_LOG_WRITE_MOD_INCREMENT;}
+
+   public:
+      EDUID _id = 0;
+      DPS_TRANS_ID transID;
+
+   public:
+      ossPoolMap<_dpsTransLockId, ossSharedLatchMode> _locked;
+};//
+}

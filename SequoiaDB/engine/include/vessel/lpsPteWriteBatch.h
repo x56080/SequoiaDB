@@ -40,6 +40,7 @@
 #include "vessel/lpageMappingPteCtx.h"
 #include "vessel/spacePteAccessCtx.h"
 #include "ossMemPool.hpp"
+#include "vessel/storageFileDef.h"
 #include <mutex>
 
 namespace engine
@@ -61,6 +62,7 @@ namespace vessel
          OSS_INLINE UINT32 getWritingPSN() const {return _viewer.getPSN() + 1;}
          OSS_INLINE BOOLEAN hasPteMapping()const {return !_mctx.isEmpty();}
          void reset();
+         ossPoolSet<UINT32> exportDirtyFiles(const storageCoreArgs &args)const;
 
       private:
          lpsPteWriteBatch(lpsPteViewer &&viewer);

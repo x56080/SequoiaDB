@@ -66,11 +66,6 @@ namespace vessel
    void atomicOperationList::abort(requestContext *context)
    {
       SDB_ASSERT(NULL != context, "can not be null");
-      DPS_LSN_OFFSET lsn = getOplistLsn();
-      if (DPS_INVALID_LSN_OFFSET != lsn)
-      {
-         context->getOuterResource()->journal->abortOpl(lsn);
-      }
       fini();
       return;
    }

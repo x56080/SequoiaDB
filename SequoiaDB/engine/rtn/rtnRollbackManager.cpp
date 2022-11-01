@@ -245,7 +245,7 @@ INT32 rtnPITRollbackManager::_init()
    }
 
    // Start at the end of the log
-   _cursor = _dpsCB->getCurrentLsn().offset;
+   _cursor = _dpsCB->getCurrentLsnOffset();
 
    // Get the total log space
    _remainingLogSpace = _dpsCB->getLogFileNum() * _dpsCB->getLogFileSz();

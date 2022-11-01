@@ -70,6 +70,9 @@ namespace engine
                                    const dmsBuildIndexOptions &o,
                                    const bson::BSONObj &indexDef) = 0;
 
+         virtual INT32 getMetaData( IExecutor *executor,
+                                    bson::BSONObj &data ) = 0;
+
          virtual INT32 listIndex(IExecutor *executor,
                                  ossPoolVector<bson::BSONObj> &indexes) = 0;
 

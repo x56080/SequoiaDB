@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodeItem.cpp
+   Source File Name = dpsWriteContext.cpp
 
    Descriptive Name =
 
@@ -33,40 +33,26 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeNodeItem.h"
-#include "ixmKey.hpp"
+#include "dpsWriteContext.hpp"
 #include "pdTrace.hpp"
-#include "ossLikely.hpp"
+#include "pmdEDU.hpp"
 
 namespace engine
 {
-namespace vessel
-{
-   void btreeNodeItem::reset()
+   dpsWriteContext::dpsWriteContext(const dpsWriteRequest *req,
+                                    const dpsWriteOptions *o):
+   _req(req),
+   _o(o)
    {
-      _rid.reset();
-      _slot.reset();
-      _entry.reset();
-      return;
+      _init();
    }
 
-   void btreeNodeItem::init(PAGE_ID lpid,
-                            RECORD_SLOT_POS pos,
-                            const btreeItemSlot &slot,
-                            const btreeKeyStringEntry &entry)
+   void dpsWriteContext::_init()
    {
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
-      SDB_ASSERT(slot.isValid(), "can not be invalid");
-      SDB_ASSERT(entry.isValid(), "can not be invalid");
-      _rid.setPid(lpid);
-      _rid.setPos(pos);
-      _slot = slot;
-      _entry = entry;
-      return;
+      SDB_ASSERT(nullptr != _req && nullptr != _o, "can not be invalid");
+      _irreversible = (nullptr == _o->executor ||
+                       !_o->executor->getTransID().isGlobTrans() ||
+                       !_o->transEnabled);
+
    }
-
-} // namespace vessel
-
 } // namespace engine
-

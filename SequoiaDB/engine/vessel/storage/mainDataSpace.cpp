@@ -49,7 +49,7 @@
 #include "vessel/storageUtils.h"
 #include "vessel/idMapFile.h"
 #include "vessel/storageFileMaintainer.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 
 namespace engine
 {

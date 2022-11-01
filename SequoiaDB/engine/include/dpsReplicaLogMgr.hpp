@@ -52,6 +52,7 @@
 #include "ossQueue.hpp"
 #include "dpsMetaFile.hpp"
 #include "utilCircularQueue.hpp"
+#include "dpsWriteContext.hpp"
 
 #include <vector>
 using namespace std ;
@@ -198,6 +199,10 @@ namespace engine
       INT32 preparePages ( dpsMergeInfo &info ) ;
       // secondary step: write data to pages
       void  writeData ( dpsMergeInfo &info ) ;
+
+      INT32 write(const dpsWriteRequest &request,
+                  const dpsWriteOptions &o,
+                  dpsLogRecordHeader *result) ;
 
       INT32 search( const DPS_LSN &minLsn, _dpsMessageBlock *mb,
                     UINT8 type, BOOLEAN onlyHeader,
@@ -361,9 +366,27 @@ namespace engine
          return pageID >= _pageNum ? 0 : pageID ;
       }
 
-      UINT32 _generateDummySize( dpsMergeBlock &block,
-                                 dpsLogRecordHeader &head,
-                                 UINT32 logFileSz ) ;
+      UINT32 _generateDummySize( BOOLEAN isRow, 
+                                 UINT32 recordSize ) const ;
+
+      OSS_INLINE UINT32 _getAliengedRecordSize(UINT32 bodySize) const
+      {
+         return ossAlign4(DPS_LOG_HEAD_SIZE + bodySize);
+      }
+
+      void _allocateDummyRecord( dpsWriteContext &ctx );
+
+      void _prepareLogBuffers(UINT32 size, dpsPageMeta &pm ) ;
+
+      void _allocateFormalRecord( dpsWriteContext &ctx ) ;
+
+      UINT32 _getCurrentFileFreeSize() const ;
+
+      void _writeToBuffer( dpsWriteContext &ctx ) ;
+
+      void _writeToBuffer( const dpsLogRecordHeader &header,
+                           const dpsPageMeta &pm,
+                           const dpsWriteRequest *req) ;
    };
    typedef class _dpsReplicaLogMgr dpsReplicaLogMgr;
 }

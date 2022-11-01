@@ -41,7 +41,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/requestContext.h"
 #include "vessel/collectionProperties.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 #include "vessel/outerResource.h"
 
 namespace engine
@@ -331,8 +331,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != context, "can not be null");
       IDataJournal *journal = context->getOuterResource()->journal;
-      dpsStackJournalPad jpad;
-      dpsPackedRequest jrequest;
+      dpsWriteReqBuilder jpad;
+      dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
@@ -355,7 +355,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

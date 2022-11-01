@@ -537,7 +537,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(isValidRecordSlotPosition(pos), "can not be invalid");
       
-      DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->journal->getMinFileLSN();
+      DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->journal->getMinFileLsnOffset();
       DPS_LSN_OFFSET lsn = _lpb.getRuntimeBuffer().getPageHead()->lsn;
       BOOLEAN nolock = _o.nolockWhenScanForNone ||
                        (DPS_INVALID_LSN_OFFSET != minFileLsn &&

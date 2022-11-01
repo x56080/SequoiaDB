@@ -58,6 +58,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include "stpOptions.hpp"
 
 using namespace std ;
 using namespace bson ;

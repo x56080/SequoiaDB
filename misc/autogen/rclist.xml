@@ -3146,6 +3146,14 @@
       </code>
 
       <code>
+         <name>SDB_NOT_SUPPORTED</name>
+         <description>
+            <en>The operation has not been supported</en>
+            <cn>操作尚未支持</cn>
+         </description>
+      </code>
+
+      <code>
          <tag>vessel</tag>
          <name>SDB_VESSEL_INTERNAL_ERR</name>
          <description>

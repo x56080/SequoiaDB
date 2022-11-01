@@ -52,18 +52,6 @@ namespace vessel
 #pragma pack(4)
    struct lobExtentMetaBlock
    {
-      lobExtentMetaBlock(){}
-      ~lobExtentMetaBlock(){}
-      lobExtentMetaBlock(const lobExtentMetaBlock &o)
-      {
-         ossMemcpy(this, &o, sizeof(lobExtentMetaBlock));
-      }
-      lobExtentMetaBlock &operator=(const lobExtentMetaBlock &o)
-      {
-         ossMemcpy(this, &o, sizeof(lobExtentMetaBlock));
-         return *this;
-      }
-
       OSS_INLINE BOOLEAN isValid()const
       {
          return LOB_EXTENT_META_BLOCK_VERSION == (UINT32)version &&

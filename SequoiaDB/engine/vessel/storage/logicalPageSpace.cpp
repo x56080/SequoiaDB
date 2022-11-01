@@ -41,7 +41,7 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/storageFileMaintainer.h"
-#include "dpsJournalPad.hpp"
+#include "dpsWriteReqBuilder.hpp"
 #include "vessel/containerUtils.h"
 #include "vessel/pageInitializer.h"
 #include "dpsLogRecordDef.hpp"
@@ -1173,9 +1173,9 @@ namespace vessel
       slice rs;
       liteIOBuffer iobuffer;
 
-      dpsPoolJournalPad jpad;
+      dpsWriteReqBuilder jpad;
       dpsLogRecordHeader jres;
-      dpsPackedRequest jrequest;
+      dpsWriteRequest jrequest;
       IDataJournal *journal = context->getEnv()->resource.journal;
 
       if (OSS_UNLIKELY(nullptr == context ||
@@ -1224,7 +1224,7 @@ namespace vessel
          goto error;
       }
 
-      jrequest = jpad.done();
+      jrequest = jpad.reap();
       rc = journal->write(jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {

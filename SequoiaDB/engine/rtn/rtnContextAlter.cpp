@@ -508,7 +508,7 @@ namespace engine
                 "Failed to get mbContext" ) ;
 
       // Update catalog cache
-      rc = pResource->updateCataInfo( collection, cataPtr, cb ) ;
+      rc = pResource->getCataResource()->updateCataInfo( collection, cataPtr, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update collection catalog, "
                    "rc: %d", rc ) ;
 

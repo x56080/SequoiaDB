@@ -45,127 +45,88 @@
 
 namespace engine
 {
-   class dmsCreateCSOptions : public SDBObject
+   struct dmsCreateCSOptions : public SDBObject
    {
-      public:
-         UINT32 dataPageSize = DMS_PAGE_SIZE64K;
-         UINT32 idxPageSize = DMS_PAGE_SIZE64K;
-         UINT32 lobdPageSize = DMS_PAGE_SIZE4K;
-         DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
-   };//class dmsCreateCSOptions
+      UINT32 dataPageSize = DMS_PAGE_SIZE64K;
+      UINT32 idxPageSize = DMS_PAGE_SIZE64K;
+      UINT32 lobdPageSize = DMS_PAGE_SIZE4K;
+      DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
+   };//struct dmsCreateCSOptions
 
-   class dmsCreateCLOptions : public SDBObject
+   struct dmsCreateCLOptions : public SDBObject
    {
-      public:
-         utilCLInnerID innerID = UTIL_UNIQUEID_NULL;
-         UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
-         UINT8 pageMinFreePercent = 10;
-   };//class dmsCreateCLOptions
+      utilCLInnerID innerID = UTIL_UNIQUEID_NULL;
+      UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
+      UINT8 pageMinFreePercent = 10;
+   };//struct dmsCreateCLOptions
 
-   class dmsRemoveCLOptions : public SDBObject
+   struct dmsRemoveCLOptions : public SDBObject
    {
 
    };
 
-   class dmsTruncateCLOptions : public SDBObject
+   struct dmsTruncateCLOptions : public SDBObject
    {
       
    };
 
-   class dmsOpenCLOptions : public SDBObject
+   struct dmsOpenCLOptions : public SDBObject
    {
 
-   };////class dmsOpenCLOptions
+   };////struct dmsOpenCLOptions
 
-   class dmsBuildIndexOptions : public SDBObject
+   struct dmsBuildIndexOptions : public SDBObject
    {
-      public:
-         dmsBuildIndexOptions &operator=(const dmsBuildIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
+      OSS_INLINE BOOLEAN isSortingDisabled()const
+      {
+         return 0 == sortBufferSize;
+      }
 
-      public:
-         OSS_INLINE BOOLEAN isSortingDisabled()const
-         {
-            return 0 == sortBufferSize;
-         }
+      UINT32 sortBufferSize = (UINT32)64 << 20; /// 64MB
+      BOOLEAN blockDML = FALSE;
+   };//struct dmsBuildIndexOptions
 
-      public:
-         UINT32 sortBufferSize = (UINT32)64 << 20; /// 64MB
-         BOOLEAN blockDML = FALSE;
-   };//class dmsBuildIndexOptions
-
-   class dmsInsertRecordOptions : public SDBObject
+   struct dmsInsertRecordOptions : public SDBObject
    {
-      public:
-         dmsInsertRecordOptions &operator=(const dmsInsertRecordOptions &o)
-         {
-            stripingId = o.stripingId;
-            return *this;
-         }
-      public:
-         dmsStripingId stripingId;
-   };//class dmsInsertRecordOptions
+      dmsStripingId stripingId;
+   };//struct dmsInsertRecordOptions
 
-   class dmsUpdateRecordOptions : public SDBObject
+   struct dmsUpdateRecordOptions : public SDBObject
    {
-      public:
-         dmsUpdateRecordOptions &operator=(const dmsUpdateRecordOptions &o)
-         {
-            stripingId = o.stripingId;
-            return *this;
-         }
-      public:
-         dmsStripingId stripingId;
-   };//class dmsUpdateRecordOptions
+      dmsStripingId stripingId;
+   };//struct dmsUpdateRecordOptions
 
-   class dmsDeleteRecordOptions : public SDBObject
+   struct dmsDeleteRecordOptions : public SDBObject
    {
 
-   };//class dmsDeleteRecordOptions
+   };//struct dmsDeleteRecordOptions
 
-   class dmsScanOptions : public SDBObject
+   struct dmsScanOptions : public SDBObject
    {
-      public:
-         dmsScanOptions &operator=(const dmsScanOptions &o)
-         {
-            scanFor = o.scanFor;
-            rowCountLimit = o.rowCountLimit;
-            filter = o.filter;
-            pageStep = o.pageStep;
-            return *this;
-         }
+      DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
+      INT64 rowCountLimit = -1;
+      IRecordFilter *filter = NULL;
+      INT32 pageStep = -1;
+   };//struct dmsScanOptions
 
-      public:
-         DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
-         INT64 rowCountLimit = -1;
-         IRecordFilter *filter = NULL;
-         INT32 pageStep = -1;
-   };//class dmsScanOptions
-
-   class dmsIndexScanOptions : public SDBObject
+   struct dmsIndexScanOptions : public SDBObject
    {
-      public:
-         DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
-         INT64 rowCountLimit = -1;
-         BOOLEAN indexCovered = FALSE;
-         UINT32 stepSize = 64;
-   };//class dmsIndexScanOptions
+      DMS_SCAN_FOR scanFor = DMS_SCAN_FOR::NONE;
+      INT64 rowCountLimit = -1;
+      BOOLEAN indexCovered = FALSE;
+      UINT32 stepSize = 64;
+   };//struct dmsIndexScanOptions
 
-   class dmsCreateDataSnapshotOptions
+   struct dmsCreateDataSnapshotOptions
    {
-      public:
 
-   };//class dmsCreateDataSnapshotOptions
 
-   class dmsListLobChunkOptions : public SDBObject
+   };//struct dmsCreateDataSnapshotOptions
+
+   struct dmsListLobChunkOptions : public SDBObject
    {
-      public:
-         INT32 chunkId = -1;
-   };//class dmsListLobChunkOptions
+      INT32 chunkId = -1;
+   };//struct dmsListLobChunkOptions
 } // namespace engine
 
 

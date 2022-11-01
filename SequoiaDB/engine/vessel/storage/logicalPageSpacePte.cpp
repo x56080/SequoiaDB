@@ -639,6 +639,13 @@ namespace vessel
          goto done;
       }
 
+      // rc = _fsyncDirtyClusterFiles(batch);
+      // if (OSS_UNLIKELY(SDB_OK != rc))
+      // {
+      //    PD_LOG(PDERROR, "failed to fsync dirty files:%d", rc);
+      //    goto error;
+      // }
+
       rc = _getMetaFile().fsync();
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
@@ -856,21 +863,41 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(nullptr != ctx, "can not be invalid");
-      ossPoolSet<UINT32> segments;
-      const storageFileManifest &manifest = getFileCluster()->getManifest();
-      ctx->exportDirtySegments(manifest.args, segments);
-      PD_LOG(PDDEBUG, "begin to flush pte pages[%d], segment num[%d]",
-             ctx->_pmap.size(), segments.size());
-      for (auto itr = segments.cbegin(); itr != segments.cend(); ++itr)
+      sparseBitmap32 pids;
+      ctx->exportDirtyPids(pids);
+      PD_LOG(PDDEBUG, "begin to flush pte pages[%d]", pids.getTotalNum());
+      sparseBitmap32::iterator itr;
+      while (pids.next(itr))
       {
-         INT32 rc = getFileCluster()->fsyncSegment(*itr);
+         INT32 rc = getFileCluster()->fysncPage(itr.get(), FALSE);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            PD_LOG(PDERROR, "failed to fsync file segment[%d], rc:%d", *itr, rc);
+            PD_LOG(PDERROR, "failed to fsync file segment[%d], rc:%d", itr.get(), rc);
             goto error;
          }
       }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpacePte::_fsyncDirtyClusterFiles(const lpsPteWriteBatch &batch)
+   {
+      INT32 rc = SDB_OK;
+      const storageFileManifest &manifest = getFileCluster()->getManifest();
+      ossPoolSet<UINT32> files = batch.exportDirtyFiles(manifest.args);
+      PD_LOG(PDDEBUG, "[%d] dirty files exported", files.size());
+      for (auto i = files.cbegin(); i != files.cend(); ++i)
+      {
+         INT32 rc = getFileCluster()->fsyncFile(*i);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to fsync file[%d], rc:%d", *i, rc);
+            goto error;
+         }
+      }
    done:
       return rc;
    error:

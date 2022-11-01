@@ -125,19 +125,6 @@ namespace vessel
 
    struct createStorageFileOptions
    {
-      createStorageFileOptions(){}
-      ~createStorageFileOptions(){}
-
-      createStorageFileOptions &operator=(const createStorageFileOptions &o)
-      {
-         //dir = o.dir;
-         secretValue = o.secretValue;
-         args = o.args;
-         replaceWhenCreate = o.replaceWhenCreate;
-         createAsTmpFile = o.createAsTmpFile;
-         return *this;
-      }
-
       UINT32 secretValue = 0;
       storageCoreArgs args;
       BOOLEAN replaceWhenCreate = FALSE;
@@ -156,34 +143,18 @@ namespace vessel
    }; // struct createStorageFileOptions
 
 
-   struct storageFileCtlFlag
+   enum storageFileCtlFlag : INT32
    {
-      static constexpr UINT32 MMAP_DATA_SEGMENT = 0x01; 
-   };//struct storageFileCtlFlag
+      MMAP_DATA_SEGMENT = 0x01,
+   };//enum storageFileCtlFlag
 
 
    /// common head
    struct storageFileHead
    {
-      storageFileHead(){}
-      ~storageFileHead(){}
-
-      storageFileHead &operator=(const storageFileHead &o)
-      {
-         ossMemcpy(magicChars, o.magicChars, sizeof(storageFileHead));
-         return *this;
-      }
-
       void reset()
       {
          ossMemset(this, 0, sizeof(storageFileHead));
-      }
-
-      BOOLEAN compareCoreArgs(const storageFileHead &h)const
-      {
-         return pageSize == h.pageSize &&
-                maxPageCountPerSeg == h.maxPageCountPerSeg &&
-                maxSegmentCountPerFile == h.maxSegmentCountPerFile;
       }
 
       storageCoreArgs getCoreArgs()const

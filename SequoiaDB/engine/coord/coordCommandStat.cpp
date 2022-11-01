@@ -813,8 +813,8 @@ namespace engine
          goto error ;
       }
 
-      _nullRecords = ( _sampleRecords * nullFrac ) / DMS_STAT_FRACTION_SCALE ;
-      _undefRecords = ( _sampleRecords * undefFrac ) / DMS_STAT_FRACTION_SCALE ;
+      _nullRecords = ( _sampleRecords * nullFrac ) / CLS_STAT_FRACTION_SCALE ;
+      _undefRecords = ( _sampleRecords * undefFrac ) / CLS_STAT_FRACTION_SCALE ;
    done:
       return rc ;
    error:
@@ -858,9 +858,9 @@ namespace engine
          if ( _sampleRecords > 0 )
          {
             nullFrac =
-                  ( _nullRecords * DMS_STAT_FRACTION_SCALE ) / _sampleRecords ;
+                  ( _nullRecords * CLS_STAT_FRACTION_SCALE ) / _sampleRecords ;
             undefFrac =
-                  ( _undefRecords * DMS_STAT_FRACTION_SCALE ) / _sampleRecords ;
+                  ( _undefRecords * CLS_STAT_FRACTION_SCALE ) / _sampleRecords ;
          }
          ob.append( FIELD_NAME_NULL_FRAC, nullFrac ) ;
          ob.append( FIELD_NAME_UNDEF_FRAC, undefFrac ) ;

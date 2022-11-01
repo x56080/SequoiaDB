@@ -72,42 +72,6 @@ namespace vessel
 #pragma pack(4)
    struct pageHead
    {
-      pageHead() = default;
-      ~pageHead() = default;
-
-      OSS_INLINE pageHead(const pageHead &o):
-      version(o.version),
-      checksum(o.checksum),
-      type(o.type),
-      flags(o.flags),
-      size(o.size),
-      pid(o.pid),
-      lpid(o.lpid),
-      psv(o.psv),
-      lsn(o.lsn),
-      reserved(o.reserved)
-      {
-         eyeCatcher[0] = o.eyeCatcher[0];
-         eyeCatcher[1] = o.eyeCatcher[1];
-      }
-
-      OSS_INLINE pageHead &operator=(const pageHead &o)
-      {
-         eyeCatcher[0] = o.eyeCatcher[0];
-         eyeCatcher[1] = o.eyeCatcher[1];
-         version = o.version;
-         checksum = o.checksum;
-         type = o.type;
-         flags = o.flags;
-         size = o.size;
-         pid = o.pid;
-         lpid = o.lpid;
-         psv = o.psv;
-         lsn = o.lsn;
-         reserved = o.reserved;
-         return *this;
-      }
-
       OSS_INLINE void reset()
       {
          eyeCatcher[0] = 0;

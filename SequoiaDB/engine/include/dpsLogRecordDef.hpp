@@ -43,7 +43,7 @@
 
 namespace engine
 {
-   enum DPS_LOG_PUBLIC
+   enum DPS_LOG_PUBLIC : UINT8
    {
       DPS_LOG_PUBLIC_INVALID = 0,
       DPS_LOG_PUBLIC_BEGIN = 200,

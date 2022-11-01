@@ -942,6 +942,9 @@ namespace vessel
          }
 
          _bac.incTransferTick();
+         PD_LOG(PDDEBUG, "refreshed btree[%s] stats:%s",
+                obj->getProperties().getName().c_str(),
+                _bac.getStats().toBSON().toPoolString().c_str());
       }
 
    done:

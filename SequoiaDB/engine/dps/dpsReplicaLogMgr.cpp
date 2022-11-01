@@ -46,6 +46,8 @@
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
 #include "dpsTransCB.hpp"
+#include "dpsWriteContext.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
@@ -349,17 +351,17 @@ namespace engine
       goto done ;
    }
 
-   UINT32 _dpsReplicaLogMgr::_generateDummySize( dpsMergeBlock &block,
-                                                 dpsLogRecordHeader &head,
-                                                 UINT32 logFileSz )
+   UINT32 _dpsReplicaLogMgr::_generateDummySize( BOOLEAN isRow, 
+                                                 UINT32 recordSize ) const
    {
       UINT32 dummyLogSize = 0 ;
-      if ( !block.isRow() )
+      UINT32 logFileSize = _logger.getLogFileSz() ;
+      if (!isRow)
       {
-         if ( ( _lsn.offset / logFileSz ) !=
-               ( _lsn.offset + head._length - 1 ) / logFileSz )
+         if ( ( _lsn.offset / logFileSize ) !=
+              ( _lsn.offset + recordSize - 1 ) / logFileSize )
          {
-            dummyLogSize = logFileSz - ( _lsn.offset % logFileSz ) ;
+            dummyLogSize = logFileSize - ( _lsn.offset % logFileSize ) ;
          }
       }
 
@@ -395,7 +397,7 @@ namespace engine
          /// at last lock mtx. So, this don't block read operations
          _writeMutex.get() ;
 
-         checkDummySize = _generateDummySize( block, head, logFileSz ) ;
+         checkDummySize = _generateDummySize( block.isRow(), head._length ) ;
          while ( _idleSize.peek() < head._length + checkDummySize )
          {
             PD_LOG ( PDWARNING, "No space in log buffer for %d bytes data, "
@@ -1784,5 +1786,269 @@ namespace engine
             _vecEventHandler[i]->afterFS( offset, version ) ;
          }
       }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_WRITE, "_dpsReplicaLogMgr::write" )
+   INT32 _dpsReplicaLogMgr::write( const dpsWriteRequest &request,
+                                   const dpsWriteOptions &o,
+                                   dpsLogRecordHeader *result )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY(SDB__DPSRPCMGR_WRITE) ;
+      BOOLEAN locked = FALSE ;
+      dpsWriteContext ctx(&request, &o);
+      UINT32 alignedRecordSize = _getAliengedRecordSize( ctx.getElementDataSize() ) ;
+      UINT32 dummyRecordSize = 0;
+
+      if ( nullptr != result )
+      {
+         result->clear() ;
+      }
+
+      if ( OSS_UNLIKELY( _restoreFlag ) )
+      {
+         PD_LOG( PDERROR, "log mgr is restoring" );
+         rc = SDB_SYS;
+         goto error;
+      }
+      else if ( OSS_UNLIKELY( _totalSize < alignedRecordSize ) )
+      {
+         PD_LOG ( PDERROR, "dps total memory size[%d] less than record size[%d]",
+                  _totalSize, alignedRecordSize ) ;
+         rc = SDB_SYS ;
+         SDB_ASSERT ( 0, "system error" ) ;
+         goto error ;
+      }
+      
+      /// first to lock writeMutex, then make sure idle space is enough,
+      /// at last lock mtx. So, this don't block read operations
+      _writeMutex.get() ;
+      dummyRecordSize = _generateDummySize( FALSE, alignedRecordSize) ;
+      while ( _idleSize.peek() < alignedRecordSize + dummyRecordSize )
+      {
+         PD_LOG ( PDWARNING, "No space in log buffer for %d bytes data, "
+                  "%d bytes dummmy, currently left %d bytes", alignedRecordSize,
+                  dummyRecordSize, _idleSize.peek() ) ;
+         _allocateEvent.wait ( OSS_ONE_SEC ) ;
+      }
+
+      _mtx.get();
+      locked = TRUE ;
+      
+      if ( DPS_INVALID_LSN_VERSION == _lsn.version || _incVersion )
+      {
+         ++_lsn.version ;
+         _incVersion = FALSE ;
+      }
+
+      if ( 0 < dummyRecordSize )
+      {
+         /// never split one log record into different files,
+         /// if the free space of current file is not enough to
+         /// save log record, append a dummy record to it and
+         /// save record to the next file.
+         _allocateDummyRecord( ctx ) ;
+      }
+
+      _allocateFormalRecord( ctx ) ;
+
+      _mtx.release() ;
+      _writeMutex.release() ;
+      locked = FALSE ;
+
+      if ( ctx.isDummyRecordFilled() )
+      {
+         _writeToBuffer( ctx.getDummmyRecord(),
+                         ctx.getDummyPageMeta(),
+                         nullptr ) ;
+         SHARED_UNLOCK_NODES( ctx.getDummyPageMeta() ) ;
+      }
+
+      _writeToBuffer( ctx.getRecord(), ctx.getPageMeta(), ctx.getReq() ) ;
+      SHARED_UNLOCK_NODES( ctx.getPageMeta() ) ;
+
+      if ( nullptr != _transCB &&
+           _transCB->isTransOn() &&
+           !_restoreFlag )
+      {
+         _transCB->saveTransInfoFromCtx( ctx, FALSE ) ;
+      }
+
+      if ( nullptr != result )
+      {
+         *result = ctx.getRecord() ;
+      }
+
+   done:
+      if ( locked )
+      {
+         _mtx.release() ;
+         _writeMutex.release() ;
+      }
+      PD_TRACE_EXITRC( SDB__DPSRPCMGR_WRITE, rc );
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD, "_dpsReplicaLogMgr::_allocateDummyRecord" )
+   void _dpsReplicaLogMgr::_allocateDummyRecord( dpsWriteContext &ctx )
+   {
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD ) ;
+      dpsLogRecordHeader &header = ctx.getDummmyRecord() ;
+      UINT32 alignedRecordSize = _getAliengedRecordSize( ctx.getElementDataSize() ) ;
+      UINT32 dummyRecordSize = _generateDummySize( FALSE, alignedRecordSize ) ;
+      UINT32 logFileSz = _logger.getLogFileSz() ;
+      UINT32 fileFreeSize = logFileSz - ( _lsn.offset % logFileSz ) ;
+      SDB_ASSERT ( dummyRecordSize >= sizeof ( dpsLogRecordHeader ),
+                   "dummy log size is smaller than log head" ) ;
+      SDB_ASSERT ( dummyRecordSize % sizeof(SINT32) == 0,
+                   "dummy log size is not 4 bytes aligned" ) ;
+      SDB_ASSERT ( fileFreeSize == dummyRecordSize, "must be same" ) ;
+
+      _prepareLogBuffers( dummyRecordSize, ctx.getDummyPageMeta() ) ;
+
+      header._length = dummyRecordSize ;
+      header._type = LOG_TYPE_DUMMY ;
+      header._lsn = _lsn.offset ;
+      header._version = _lsn.version ;
+      header._preLsn = _currentLsn.offset ;
+      _currentLsn = _lsn ;
+      _lsn.offset += dummyRecordSize ;
+
+      if ( ctx.getOptions()->notify && _vecEventHandler.size() > 0 )
+      {
+         const dpsWriteOptions *o = ctx.getOptions() ;
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            _vecEventHandler[i]->onPrepareLog( o->csid,
+                                               o->clid,
+                                               o->extentPos,
+                                               header._lsn ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD ) ;
+      return ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD, "_dpsReplicaLogMgr::_allocateFormalRecord" )
+   void _dpsReplicaLogMgr::_allocateFormalRecord( dpsWriteContext &ctx )
+   {
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD ) ;
+      dpsLogRecordHeader &header = ctx.getRecord() ;
+      const dpsWriteRequest *req = ctx.getReq() ;
+      UINT32 recordSize = _getAliengedRecordSize( ctx.getElementDataSize() ) ;
+      UINT32 freeSize = _getCurrentFileFreeSize() ;
+      SDB_ASSERT( recordSize <= freeSize, "invalid free size" ) ;
+      if ( freeSize < ( sizeof(dpsLogRecordHeader) + recordSize ) )
+      {
+         /// extend record size if no more record can be saved in current file
+         recordSize += ( freeSize - recordSize );
+      }
+
+      _prepareLogBuffers( recordSize, ctx.getPageMeta() ) ;
+
+      header._type = req->getType() ;
+      header._length = recordSize ;
+      header._lsn = _lsn.offset ;
+      header._version = _lsn.version ;
+      header._preLsn = _currentLsn.offset ;
+
+      if (0 == _lsn.offset % _logger.getLogFileSz() )
+      {
+         // record will be saved in a new log file, save snapshot of
+         // transaction information into next file's header
+         // NOTE: the next file ( file to store current log record ) will be
+         // write later in asynchronous, so we only save the summary in cache
+         // of the file, then the write processing of log file will save into
+         // disk from cache
+         dpsLogSummary summary ;
+         UINT32 fileID = header._lsn / _logger.getLogFileSz() ;
+         _transCB->dumpLogSummary( TRUE, summary ) ;
+         _logger.updateCachedSummary( fileID, summary ) ;
+      }
+
+      // Update the max LR size as needed. Protected under _writeMutex
+      _transCB->updateMaxLRSize( recordSize, _lsn.offset ) ;
+      if ( ctx.getOptions()->hasTransTime() )
+      {
+         // there is transaction time with the log, update the restore PIT
+         // window
+         _transCB->updateRestoreWindow( ctx.getOptions()->transTime ) ;
+      }
+      else if ( ctx.isIrreversible() )
+      {
+         // the log is irreversible, push the restore PIT window
+         _transCB->pushRestoreWindow() ;
+      }
+
+      _currentLsn = _lsn ;
+      _lsn.offset += header._length ;
+
+      if ( ctx.getOptions()->notify && _vecEventHandler.size() > 0 )
+      {
+         const dpsWriteOptions *o = ctx.getOptions() ;
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            _vecEventHandler[i]->onPrepareLog( o->csid,
+                                               o->clid,
+                                               o->extentPos,
+                                               header._lsn ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD ) ;
+      return ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__PREPARELOGBUFFERS, "_dpsReplicaLogMgr::_prepareLogBuffers")
+   void _dpsReplicaLogMgr::_prepareLogBuffers(UINT32 size, dpsPageMeta &pm )
+   {
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR__PREPARELOGBUFFERS ) ;
+      _allocate( size, pm );
+      SHARED_LOCK_NODES( pm );
+      _push2SendQueue( pm );
+      PD_TRACE_EXIT( SDB__DPSRPCMGR__PREPARELOGBUFFERS ) ;
+      return ;
+   }
+
+   UINT32 _dpsReplicaLogMgr::_getCurrentFileFreeSize() const
+   {
+      return _logger.getLogFileSz() - ( _lsn.offset % _logger.getLogFileSz() ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__WRITETOBUFFER, "_dpsReplicaLogMgr::_writeToBuffer")
+   void _dpsReplicaLogMgr::_writeToBuffer( const dpsLogRecordHeader &header,
+                                           const dpsPageMeta &pm,
+                                           const dpsWriteRequest *req )
+   {
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR__WRITETOBUFFER ) ;
+      SDB_ASSERT( pm.valid(), "can not be invalid" ) ;
+      UINT32 offset = pm.offset ;
+      UINT32 work = pm.beginSub ;
+      UINT32 elementSize = nullptr == req ?
+                           0 : req->getElementDataSize() ;
+
+      _mergePage((CHAR *)(&header), sizeof( dpsLogRecordHeader ), work, offset ) ;
+
+      if ( nullptr != req )
+      {
+         for ( UINT32 i = 0; i < req->getElementNum(); ++i )
+         {
+            const utilSlice &s = req->getElement( i ) ;
+            _mergePage( s.data(), s.size(), work, offset ) ;
+         }
+      }
+
+      if ( ( elementSize + sizeof(dpsRecordEle) + sizeof(dpsLogRecordHeader) ) <=
+             header._length )
+      {
+         CHAR stop[sizeof(dpsRecordEle)] = {} ;
+         _mergePage( stop, sizeof(stop), work, offset ) ;
+      }
+      
+      PD_TRACE_EXIT( SDB__DPSRPCMGR__WRITETOBUFFER ) ;
+      return ;
    }
 }

@@ -48,6 +48,7 @@
 #include "utilBitmap.hpp"
 #include "utilArray.hpp"
 #include "utilRecycleItem.hpp"
+#include "dpsWriteContext.hpp"
 
 using namespace bson ;
 
@@ -478,6 +479,15 @@ namespace engine
    INT32 dpsGetTransTimeFromRecord( const dpsLogRecord &record,
                                     const DPS_TRANS_ID &transID,
                                     stpLogicalTimeUS &time ) ;
+
+#if defined (SDB_ENGINE)
+   INT32 dpsGetTransIDFromRequest( const dpsWriteRequest &req,
+                                   DPS_TRANS_ID &transID ) ;
+
+   INT32 dpsGetTransTimeFromCtx( const dpsWriteContext &ctx,
+                                 const DPS_TRANS_ID &transID,
+                                 stpLogicalTimeUS &time ) ;
+#endif
 
 }
 

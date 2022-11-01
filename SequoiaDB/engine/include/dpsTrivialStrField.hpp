@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodeItem.h
+   Source File Name = dpsTrivialStrField.hpp
 
    Descriptive Name =
 
@@ -33,58 +33,51 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_NODE_ITEM_H_
-#define VESSEL_BTREE_NODE_ITEM_H_
+#ifndef DPS_TRIVIAL_STR_FIELD_HPP__
+#define DPS_TRIVIAL_STR_FIELD_HPP__
 
-#include "vessel/btreeNodePage.h"
-#include "vessel/btreeKeyStringEntry.h"
+#include "dpsTrivialStrDef.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
-{
-namespace vessel
-{
-   class btreeNodeItem : public SDBObject
+{  
+   class _dpsTrivialStrField : public SDBObject
    {
+      friend class _dpsTrivialString;
+
       public:
-         btreeNodeItem() = default;
-         ~btreeNodeItem() = default;
-         btreeNodeItem(const btreeNodeItem &o) = delete;
-         btreeNodeItem &operator=(const btreeNodeItem &o) = delete;
-      public:
-         OSS_INLINE const recordID &getIndexRid() const
-         {
-            return _rid;
-         }
+         _dpsTrivialStrField() = default;
 
-         OSS_INLINE const btreeItemSlot &getSlot() const
-         {
-            return _slot;
-         }
-
-         /// key slice may be empty
-         OSS_INLINE const btreeKeyStringEntry &getEntry() const
-         {
-            return _entry;
-         }
-      public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return _rid.isValid();
-         }
-
-         void reset();
-
-         void init(PAGE_ID lpid,
-                   RECORD_SLOT_POS pos,
-                   const btreeItemSlot &slot,
-                   const btreeKeyStringEntry &entry);
       private:
-         btreeItemSlot _slot;
-         btreeKeyStringEntry _entry;
-         recordID _rid;/// index item rid
-   };//class btreeNodeItem
-} // namespace vessel
+         explicit _dpsTrivialStrField(const void *data);
+      
+      public:
+         OSS_INLINE BOOLEAN isValid() const
+         {
+            return nullptr != _fh;
+         }
 
+      public:
+         DPS_TS_FIELD_TAG getTag() const;
+         UINT32 getValueSize() const;
+         UINT32 getFieldSize() const;
+         const CHAR *getRawValue() const;
+         BOOLEAN isEndingField() const;
+
+         template<typename T>
+         T getNumericValue() const
+         {
+            static_assert(std::numeric_limits<T>::is_specialized, "must be numeric");
+            UINT32 size = getValueSize();
+            SDB_ASSERT(size == sizeof(T), "must be same");
+            return *reinterpret_cast<const T *>(getRawValue());
+         }
+
+      private:
+         const dpsTsFieldHeader *_fh = nullptr;
+   };//class _dpsTrivialStrField
+   using dpsTrivialStrField = class _dpsTrivialStrField;
 } // namespace engine
 
-#endif//VESSEL_BTREE_NODE_ITEM_H_
+
+#endif//DPS_TRIVIAL_STR_FIELD_HPP__

@@ -1619,7 +1619,6 @@ retry:
       PD_TRACE_ENTRY ( SDB_RTNCREATEINDEXCOMMAND ) ;
       SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-
       dmsStorageUnit *su            = NULL ;
       dmsStorageUnitID suID         = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
@@ -1656,6 +1655,11 @@ retry:
                   pCollection, indexObj.toString().c_str(), rc ) ;
          goto error ;
       }
+      pmdGetKRCB()
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( pCollection ) ;
 
       PD_LOG( PDEVENT, "Create index[%s] for collection[%s] succeed",
               indexObj.toString().c_str(), pCollection ) ;
@@ -1721,6 +1725,11 @@ retry:
                   "rc: %d", indexObj.toString().c_str(), clUniqID, rc ) ;
          goto error ;
       }
+      pmdGetKRCB()
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( clUniqID ) ;
 
       PD_LOG( PDEVENT, "Create index[%s] for collection[%llu] succeed",
               indexObj.toString().c_str(), clUniqID ) ;
@@ -1806,6 +1815,11 @@ retry:
                   pCollection, identifier.toString().c_str(), rc ) ;
          goto error ;
       }
+      pmdGetKRCB()
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( pCollection ) ;
 
       PD_LOG( PDEVENT, "Drop index[%s] for collection[%s] succeed",
               identifier.toString().c_str(), pCollection ) ;
@@ -1885,6 +1899,11 @@ retry:
                   identifier.toString().c_str(), clUniqID, rc ) ;
          goto error ;
       }
+      pmdGetKRCB()
+         ->getClsCB()
+         ->getResource()
+         ->getStorageResource()
+         ->removeCLMetaCache( clUniqID ) ;
 
       PD_LOG( PDEVENT, "Drop index[%s] for collection[%llu] succeed",
               identifier.toString().c_str(), clUniqID ) ;
