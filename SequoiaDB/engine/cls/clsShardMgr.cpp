@@ -859,6 +859,7 @@ namespace engine
       UINT32 retryTimes = 0 ;
       BOOLEAN needRetry = FALSE ;
       BOOLEAN hasUpCataGrp = FALSE ;
+      ossScopedLock catScopedLock( &_catLatch, FALSE ) ;
 
       if ( !pCollectionName )
       {
@@ -870,14 +871,14 @@ namespace engine
    retry:
       ++retryTimes ;
       needRetry = FALSE ;
-      _catLatch.get() ;
+      catScopedLock.lock () ;
       // look for sync event from cache
       // memory will be released in this function, when there's no thread
       // wait for the event
       pEventInfo = _findCatSyncEvent( pCollectionName, clUniqueID, TRUE ) ;
       if ( !pEventInfo )
       {
-         _catLatch.release () ;
+         catScopedLock.release () ;
          rc = SDB_OOM ;
          PD_LOG ( PDERROR, "Failed to allocate memory for event info, "
                   "rc = %d", rc ) ;
@@ -905,7 +906,7 @@ namespace engine
          // note this counter must be protected within catLatch
          pEventInfo->waitNum++ ;
       }
-      _catLatch.release () ;
+      catScopedLock.release () ;
 
       // we wait for the event if we didn't send anything, or the sent
       // complete successfully
@@ -948,7 +949,7 @@ namespace engine
          }
 
          // if send=TRUE, must reset send flag
-         _catLatch.get () ;
+         catScopedLock.lock () ;
          // decrease the wait number, this must be protected within catLatch
          pEventInfo->waitNum-- ;
 
@@ -975,7 +976,7 @@ namespace engine
             }
          }
 
-         _catLatch.release () ;
+         catScopedLock.release () ;
       }
 
       /// if need retry, update catalog and retry
@@ -1005,11 +1006,12 @@ namespace engine
       UINT32 retryTimes = 0 ;
       BOOLEAN needRetry = FALSE ;
       BOOLEAN hasUpCataGrp = FALSE ;
+      ossScopedLock catScopedLock( &_catLatch, FALSE ) ;
 
    retry:
       ++retryTimes ;
       needRetry = FALSE ;
-      _catLatch.get() ;
+      catScopedLock.lock () ;
 
       // let's try to create or find existing sync event for a given group
       // memory will be released in this function if there's no other threads
@@ -1017,7 +1019,7 @@ namespace engine
       pEventInfo = _findNMSyncEvent( groupID, TRUE ) ;
       if ( !pEventInfo )
       {
-         _catLatch.release () ;
+         catScopedLock.release () ;
          rc = SDB_OOM ;
          PD_LOG ( PDERROR, "Failed to allocate event info for group %d, "
                   "rc = %d", groupID, rc ) ;
@@ -1045,7 +1047,7 @@ namespace engine
          pEventInfo->waitNum++ ;
       }
 
-      _catLatch.release () ;
+      catScopedLock.release () ;
 
       // wait only when someone else is already sent the request
       // or the sent from current thread success
@@ -1088,7 +1090,7 @@ namespace engine
          }
 
          // if send=TRUE, must reset send flag
-         _catLatch.get () ;
+         catScopedLock.lock () ;
          pEventInfo->waitNum-- ;
 
          if ( send )
@@ -1108,7 +1110,7 @@ namespace engine
             _mapSyncNMEvent.erase ( groupID ) ;
          }
 
-         _catLatch.release () ;
+         catScopedLock.release () ;
       }
 
       /// if need retry, update catalog and retry
