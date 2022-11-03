@@ -127,6 +127,9 @@ namespace engine
       :tag(DPS_INVALID_TAG),
        len(0)
       {}
+      explicit _dpsRecordEle(DPS_TAG t, UINT32 l):
+      tag(t),
+      len(l) {}
    public:
       DPS_TAG tag ;
       UINT32 len ;

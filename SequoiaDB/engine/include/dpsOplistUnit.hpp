@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsRequest.cpp
+   Source File Name = dpsOplistUnit.hpp
 
    Descriptive Name =
 
@@ -33,51 +33,35 @@
 
 ******************************************************************************/
 
-#include "dpsRequest.hpp"
-#include "ossLikely.hpp"
-#include "pdTrace.hpp"
+#ifndef DPS_OPLIST_UNIT_HPP__
+#define DPS_OPLIST_UNIT_HPP__
+
+#include "dpsLogRecord.hpp"
 
 namespace engine
 {
-   dpsWriteRequest::dpsWriteRequest(dpsWriteRequest &&o) noexcept:
-   _type(o._type),
-   _flags(o._flags),
-   _body(std::move(o._body))
+   class _dpsOplistUnit : public SDBObject
    {
-      o.reset();
-   }
+      public:
+         _dpsOplistUnit() = default ;
+         _dpsOplistUnit( const dpsLogRecordHeader &rh ):
+         _rh(rh) {}
 
-   dpsWriteRequest &dpsWriteRequest::operator=(dpsWriteRequest &&o) noexcept
-   {
-      _type = o._type;
-      _flags = o._flags;
-      _body = std::move(o._body);
-      o.reset();
-      return *this;
-   }
+      public:
+         OSS_INLINE const dpsLogRecordHeader &getRecordHeader() const
+         {
+            return _rh ;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getLSN() const
+         {
+            return _rh._lsn ;
+         }
 
-   void dpsWriteRequest::reset()
-   {
-      _type = LOG_TYPE_DUMMY;
-      _flags = 0;
-      _body.reset();
-      return;
-   }
-
-   BOOLEAN dpsWriteRequest::seek(DPS_TAG tag, utilSlice &value) const
-   {
-      BOOLEAN r = FALSE ; 
-      dpsRecordElements::iterator itr = _body.seek(tag) ;
-      if ( itr.isValid() )
-      {
-         value = itr.getValue() ;
-         r = TRUE ;
-      }
-      else
-      {
-         value.reset() ;
-      }
-
-      return r ;
-   }
+      private:
+         dpsLogRecordHeader _rh ;
+   } ;// class _dpsOplistUnit
+   using dpsOplistUnit = class _dpsOplistUnit ;
 } // namespace engine
+
+
+#endif//DPS_OPLIST_UNIT_HPP__

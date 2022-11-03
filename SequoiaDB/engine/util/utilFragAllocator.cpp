@@ -57,7 +57,7 @@ namespace engine
       _rep.reset();
    }
 
-   _utilFragAllocator::repertory _utilFragAllocator::reap()
+   _utilFragAllocator::repository _utilFragAllocator::reap()
    {
       return std::move(_rep);
    }

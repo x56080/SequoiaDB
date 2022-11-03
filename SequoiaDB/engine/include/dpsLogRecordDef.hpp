@@ -74,6 +74,12 @@ namespace engine
 	  ///vessel only
       DPS_LOG_PUBLIC_VESSEL_GPID = 220,
       DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 221,
+
+
+      DPS_LOG_PUBLIC_CL_UNIQUE_ID = 230,
+      DPS_LOG_PUBLIC_PAGE_ADDR = 231,
+      DPS_LOG_PUBLIC_OPL_NODE = 232,
+      DPS_LOG_PUBLIC_OPL_ROLLBACK_INFO = 233,
    } ;
 
 /// number in public can not be used in definition !

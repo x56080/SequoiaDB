@@ -216,7 +216,9 @@ utilFiles = [
       "util/utilRecycleBinConf.cpp",
       "util/utilRecycleReturnInfo.cpp",
       "util/utilSecure.cpp",
-      "util/utilFragAllocator.cpp"
+      "util/utilFragAllocator.cpp",
+      "util/utilUniqueBuffer.cpp",
+      "util/utilBufferBuilder.cpp"
       ]
 
 rtnFiles = [
@@ -542,8 +544,8 @@ dpsFiles = [
       "dps/dpsWriteContext.cpp",
       "dps/dpsBlackHoleInst.cpp",
       "dps/dpsTrivialElement.cpp",
-      "dps/dpsTrivialStrDef.cpp",
-      "dps/dpsTrivialStrField.cpp"
+      "dps/dpsTrivialStrField.cpp",
+      "dps/dpsRecordElements.cpp"
       ]
 
 omsvcFiles = [

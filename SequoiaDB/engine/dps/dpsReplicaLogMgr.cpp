@@ -2027,18 +2027,13 @@ namespace engine
       SDB_ASSERT( pm.valid(), "can not be invalid" ) ;
       UINT32 offset = pm.offset ;
       UINT32 work = pm.beginSub ;
-      UINT32 elementSize = nullptr == req ?
-                           0 : req->getElementDataSize() ;
+      UINT32 elementSize = nullptr == req ? 0 : req->getElements().getSize() ;
 
-      _mergePage((CHAR *)(&header), sizeof( dpsLogRecordHeader ), work, offset ) ;
+      _mergePage((const CHAR *)(&header), sizeof( dpsLogRecordHeader ), work, offset ) ;
 
-      if ( nullptr != req )
+      if ( nullptr != req && 0 < elementSize )
       {
-         for ( UINT32 i = 0; i < req->getElementNum(); ++i )
-         {
-            const utilSlice &s = req->getElement( i ) ;
-            _mergePage( s.data(), s.size(), work, offset ) ;
-         }
+         _mergePage( req->getElements().getBuf(), elementSize, work, offset ) ;
       }
 
       if ( ( elementSize + sizeof(dpsRecordEle) + sizeof(dpsLogRecordHeader) ) <=

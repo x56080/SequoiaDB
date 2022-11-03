@@ -53,28 +53,20 @@ namespace engine
    UINT32 _dpsTrivialStrField::getValueSize() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      UINT32 size = _fh->size;
-      if (size < DPS_TS_SIZE_BOUND)
-      {
-         return size;
-      }
-      else
-      {
-         return reinterpret_cast<const dpsTsFieldHeaderExt *>(_fh)->size;
-      }
+      return _fh->size;
    }
 
    UINT32 _dpsTrivialStrField::getFieldSize() const
    {
       UINT32 valueSize = getValueSize();
-      return dpsGetTsFieldHeadSize(valueSize) + valueSize;
+      return DPS_TS_FIELD_HEAD_SIZE + valueSize;
    }
 
    const CHAR *_dpsTrivialStrField::getRawValue() const
    {
       UINT32 valueSize = getValueSize();
       return 0 == valueSize ?
-             nullptr : reinterpret_cast<const CHAR *>(_fh) + dpsGetTsFieldHeadSize(valueSize);
+             nullptr : reinterpret_cast<const CHAR *>(_fh) + getFieldSize();
    }
 
    BOOLEAN _dpsTrivialStrField::isEndingField() const

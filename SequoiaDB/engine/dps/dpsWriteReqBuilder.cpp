@@ -39,19 +39,15 @@ namespace engine
 {
    constexpr UINT32 _DEFAULT_BUFFER_SIZE = 8192;
 
-   dpsWriteReqBuilder::dpsWriteReqBuilder()
+   dpsWriteReqBuilder::dpsWriteReqBuilder():
+   _buf(utilBufferBuilder::options(_DEFAULT_BUFFER_SIZE))
    {
-      utilFragAllocator::options ao;
-      ao.defaultBlockSize = _DEFAULT_BUFFER_SIZE;
-      _allocator.setOptions(ao);
    }
 
-   dpsWriteReqBuilder::dpsWriteReqBuilder(const options &o)
+   dpsWriteReqBuilder::dpsWriteReqBuilder(UINT32 defaultBufSize):
+   _buf(utilBufferBuilder::options(defaultBufSize))
    {
-      SDB_ASSERT(0 < o.defaultBufferBlockSize, "can not be invalid");
-      utilFragAllocator::options ao;
-      ao.defaultBlockSize = o.defaultBufferBlockSize;
-      _allocator.setOptions(ao);
+      SDB_ASSERT(0 < defaultBufSize, "can not be invalid");
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER_RESET, "dpsWriteReqBuilder::reset" )
@@ -60,10 +56,8 @@ namespace engine
       PD_TRACE_ENTRY(SDB__DPSWREQBUILDER_RESET);
       _type = LOG_TYPE_DUMMY;
       _flags = 0;
-      _totalDataSize = 0;
       _elementNum = 0;
-      _elements = nullptr;
-      _allocator.resetBlocks();
+      _buf.restart() ;
 
       PD_TRACE_EXIT(SDB__DPSWREQBUILDER_RESET);
       return;
@@ -77,10 +71,9 @@ namespace engine
 
       req._type = _type;
       req._flags = _flags;
-      req._totalDataSize = _totalDataSize;
-      req._elementNum = _elementNum;
-      req._elements = _elements;
-      req._rep = _allocator.reap();
+      UINT32 size = _buf.getSize();
+      INT32 num = static_cast<INT32>(_elementNum);
+      req._body = std::move(dpsRecordElements(_buf.release(), size, num));
 
       reset();
 
@@ -110,33 +103,24 @@ namespace engine
       }
       else
       {
-         CHAR *buffer = nullptr;
-         UINT32 bufferSize = getElementBufferSize(size);
       #if defined (_DEBUG)
          SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
       #endif//_DEBUG
          
-         rc = _ensureMetaBlock();
-         if (SDB_OK != rc)
+         dpsRecordEle e(tag, size);
+         rc = _buf.reserve(_getElementBufferSize(size));
+         if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            PD_LOG(PDERROR, "failed to ensure element meta block:%d", rc);
+            PD_LOG(PDERROR, "failed to reserve buffer size:%d", rc);
             goto error;
          }
 
-         buffer = (CHAR *)_allocator.malloc(bufferSize);
-         if (OSS_UNLIKELY(nullptr == buffer))
-         {
-            PD_LOG(PDERROR, "failed to allocate mem.");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         reinterpret_cast<dpsRecordEle *>(buffer)->tag = tag;
-         reinterpret_cast<dpsRecordEle *>(buffer)->len = size;
-         ossMemcpy(buffer + sizeof(dpsRecordEle), data, size);
-         _elements[_elementNum].reset(bufferSize, buffer);
+         rc = _buf.appendObj(e);
+         SDB_ASSERT(SDB_OK, "can not be failed");
+         rc = _buf.append(size, data);
+         SDB_ASSERT(SDB_OK, "can not be failed");
          ++_elementNum;
-         _totalDataSize += bufferSize;
+
       }
    done:
       PD_TRACE_EXITRC(SDB__DPSWREQBUILDER_APPEND, rc);
@@ -153,92 +137,15 @@ namespace engine
       BOOLEAN r = FALSE;
       SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
 
-      for (UINT32 i = 0; i < _elementNum; ++i)
-      {
-         const dpsRecordEle *ele = _elements[i].castTo<dpsRecordEle>();
-         if (tag == ele->tag)
-         {
-            r = TRUE;
-            break;
-         }
-      }
+      dpsRecordElements elements(_buf.getBuf().get(), _buf.getSize()) ;
 
       PD_TRACE_EXIT(SDB__DPSWREQBUILDER__ISTAGDUP);
-      return r;
+      return elements.contains(tag);
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER__ENSUREMB, "dpsWriteReqBuilder::_ensureMetaBlock" )
-   INT32 dpsWriteReqBuilder::_ensureMetaBlock()
+   dpsTrivialElement dpsWriteReqBuilder::startToBuildTsElement(DPS_TAG tag)
    {
-      INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER__ENSUREMB);
-
-      if (nullptr == _elements)
-      {
-         constexpr UINT32 bufferSize = DPS_MERGE_BLOCK_MAX_DATA * sizeof(utilSlice);
-         _elements = (utilSlice *)_allocator.malloc(bufferSize);
-         if (OSS_UNLIKELY(nullptr == _elements))
-         {
-            PD_LOG(PDERROR, "failed to allocate mem.");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         ///WARNING: slices will be reset when appending,
-         ///wild ptr may saved in _elements now.
-      }
-   done:
-      PD_TRACE_EXITRC(SDB__DPSWREQBUILDER__ENSUREMB, rc);
-      return rc;
-   error:
-      goto done;
-   }
-
-   dpsTrivialElement dpsWriteReqBuilder::startToBuildTsElement()
-   {
-      return std::move(dpsTrivialElement(&_allocator));
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSWREQBUILDER__APPENDTSE, "dpsWriteReqBuilder::appendTsElement" )
-   INT32 dpsWriteReqBuilder::appendTsElement(DPS_TAG tag, dpsTrivialElement &ele)
-   {
-      INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY(SDB__DPSWREQBUILDER__APPENDTSE);
-      SDB_ASSERT(ele._allocator = &_allocator, "must be same");
-
-      if (OSS_UNLIKELY(DPS_INVALID_TAG == tag ||
-                       !ele.isDone()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(DPS_MERGE_BLOCK_MAX_DATA == _elementNum))
-      {
-         SDB_ASSERT(FALSE, "out of max element count");
-         rc = SDB_DPS_CORRUPTED_LOG;
-         goto error;
-      }
-      else
-      {
-      #if defined (_DEBUG)
-         SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
-      #endif//_DEBUG
-
-         reinterpret_cast<dpsRecordEle *>(ele._buffer)->tag = tag;
-         reinterpret_cast<dpsRecordEle *>(ele._buffer)->len = ele._size;
-         _elements[_elementNum].reset(ele._size, ele._buffer);
-         ++_elementNum;
-         _totalDataSize += (ele._size + sizeof(dpsRecordEle));
-      }
-      
-
-   done:
-      /// do not free element's buffer!
-      ele._reset();
-
-      PD_TRACE_EXITRC(SDB__DPSWREQBUILDER__APPENDTSE, rc);
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
+      return std::move(dpsTrivialElement(&_buf, tag));
    }
 } // namespace engine

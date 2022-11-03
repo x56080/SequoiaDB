@@ -51,7 +51,7 @@ namespace engine
       public:
          OSS_INLINE const dpsWriteRequest *getReq()const {return _req;}
          OSS_INLINE const dpsWriteOptions *getOptions()const {return _o;}
-         OSS_INLINE UINT32 getElementDataSize()const {return _req->getElementDataSize();}
+         OSS_INLINE UINT32 getElementDataSize()const {return _req->getElements().getSize();}
          OSS_INLINE BOOLEAN isDummyRecordFilled()const {return 0 < _dummyRecord._length;}
          OSS_INLINE dpsLogRecordHeader &getDummmyRecord() {return _dummyRecord;}
          OSS_INLINE dpsPageMeta &getDummyPageMeta() {return _dummyPageMeta;}

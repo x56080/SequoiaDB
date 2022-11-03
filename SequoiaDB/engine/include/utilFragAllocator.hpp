@@ -125,22 +125,22 @@ namespace engine
          using MB_NODE_LIST = UTIL_EMBEDDED_LIST<memBlockNode, MB_NODE_REF, MB_NODE_DELETER>;
 
       public:
-         class repertory
+         class repository
          {
             friend class _utilFragAllocator;
             public:
-               repertory() = default;
-               ~repertory()
+               repository() = default;
+               ~repository()
                {
                   reset();
                }
-               repertory(const repertory &) = delete;
-               repertory &operator=(const repertory &) = delete;
-               repertory(repertory &&o):
+               repository(const repository &) = delete;
+               repository &operator=(const repository &) = delete;
+               repository(repository &&o):
                _sl(std::move(o._sl)),
                _el(std::move(o._el))
                {}
-               repertory &operator=(repertory &&o)
+               repository &operator=(repository &&o)
                {
                   _sl = std::move(o._sl);
                   _el = std::move(o._el);
@@ -162,10 +162,10 @@ namespace engine
             private:
                MB_NODE_LIST _sl;
                MB_NODE_LIST _el;
-         };//class repertory
+         };//class repository
 
           
-         repertory reap();         
+         repository reap();         
 
       private:
          void *_allocateExclusiveBlock(size_t size);
@@ -186,7 +186,7 @@ namespace engine
 
       private:
          options _o;
-         repertory _rep;
+         repository _rep;
    };//class _utilFragAllocator
    using utilFragAllocator = _utilFragAllocator;
 

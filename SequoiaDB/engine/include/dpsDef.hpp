@@ -65,7 +65,7 @@
 #define DPS_DMP_OPT_FORMATTED      0x00000004
 
 #define DPS_INVALID_TAG    0
-#define DPS_DUMMY_TAG      256
+#define DPS_DUMMY_TAG      255
 #define DPS_TAG            UINT8
 
 #define DPS_MAX_TAGV_LEN  16777215

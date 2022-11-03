@@ -37,8 +37,9 @@
 #define DPS_TRIVIAL_ELEMENT_HPP__
 
 #include "dpsTrivialString.hpp"
-#include "utilFragAllocator.hpp"
+#include "utilBufferBuilder.hpp"
 #include "ossLikely.hpp"
+#include "dpsDef.hpp"
 
 namespace engine
 {
@@ -47,20 +48,19 @@ namespace engine
       friend class dpsWriteReqBuilder;
       public:
          _dpsTrivialElement() = default;
+         ~_dpsTrivialElement();
          _dpsTrivialElement(const _dpsTrivialElement &) = delete;
          _dpsTrivialElement &operator=(const _dpsTrivialElement &) = delete;
          _dpsTrivialElement(_dpsTrivialElement &&);
          _dpsTrivialElement &operator=(_dpsTrivialElement &&);
 
       private:
-         explicit _dpsTrivialElement(utilFragAllocator *allocator);
+         explicit _dpsTrivialElement(utilBufferBuilder *buf, DPS_TAG tag);
 
       public:
          void reset();
 
          void done();
-
-         BOOLEAN isDone()const;
 
          INT32 append(DPS_TS_FIELD_TAG tag,
                       UINT32 size,
@@ -77,22 +77,21 @@ namespace engine
       private:
          void _reset();
 
-         CHAR *_ensureBuffer(UINT32 size);
+         INT32 _initBuf();
 
-      private:
-         OSS_INLINE UINT32 _getFreeBufSize()const
+         void _resetLastFieldEndingFlag();
+
+         OSS_INLINE BOOLEAN _isBufInited() const
          {
-            return _bufferSize - _size;
+            return _originalBufSize < _buf->getSize();
          }
-
-         UINT32 _getFreeBufOffset()const;
          
       private:
-         utilFragAllocator *_allocator = nullptr;
-         CHAR *_buffer = nullptr;
-         UINT32 _bufferSize = 0;
+         utilBufferBuilder *_buf = nullptr;
+         DPS_TAG _tag = DPS_INVALID_TAG;
+         UINT32 _originalBufSize = 0;
          UINT32 _size = 0;
-         dpsTsFieldHeader *_last = nullptr;
+         UINT32 _lastFieldOffset = 0;
    };//class _utilTrivialString
    using dpsTrivialElement = _dpsTrivialElement;
 
@@ -101,28 +100,49 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       static_assert(std::numeric_limits<T>::is_specialized, "must be numeric");
-      SDB_ASSERT(nullptr != _allocator, "can not be invalid");
-      SDB_ASSERT(!(tag & DPS_TS_FIELD_ENDING_FLAG), "invalid tag");
-      SDB_ASSERT(nullptr == _last || !_last->isEnding(), "no more appending");
+      SDB_ASSERT(nullptr != _buf, "can not be invalid");
+      SDB_ASSERT(dpsIsValidTsTag(tag), "invalid tag");
 
-      UINT32 size = DPS_TS_FIELD_HEAD_SIZE + sizeof(T);
-      CHAR *buffer = _ensureBuffer(size);
-      if (OSS_UNLIKELY(nullptr == buffer))
+      if (!_isBufInited())
       {
-         rc = SDB_OOM;
-         goto error;
+         rc = _initBuf();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init buf:%d", rc);
+            goto error;
+         }
       }
-      else
+      
+      /// not else
       {
-         dpsInitTsFieldHead(tag, sizeof(T), size, buffer);
-         *reinterpret_cast<T*>(buffer + DPS_TS_FIELD_HEAD_SIZE) = value;
-         _size += size;
-         _last = reinterpret_cast<dpsTsFieldHeader *>(buffer);
+         _resetLastFieldEndingFlag();
+         UINT32 offset = _buf->getSize();
+
+         dpsTsFieldHeader header;
+         header.setTag(tag);
+         header.size = sizeof(T);
+         rc = _buf->appendObj(header);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append field header:%d", rc);
+            goto error;
+         }
+
+         rc = _buf->appendNumeric(value);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append value:%d", rc);
+            goto error;
+         }
+
+         _size += (DPS_TS_FIELD_HEAD_SIZE + sizeof(T));
+         _lastFieldOffset = offset;
       }
 
    done:
       return rc;
    error:
+      reset();
       goto done;
    }
 
@@ -130,8 +150,53 @@ namespace engine
    INT32 _dpsTrivialElement::appendObj(DPS_TS_FIELD_TAG tag,
                                        const T &value)
    {
+      INT32 rc = SDB_OK;
       static_assert(std::is_standard_layout<T>::value, "must be standard layout");
-      return append(tag, sizeof(T), &value);
+      SDB_ASSERT(nullptr != _buf, "can not be invalid");
+      SDB_ASSERT(dpsIsValidTsTag(tag), "invalid tag");
+      SDB_ASSERT(sizeof(value) < DPS_TS_SIZE_BOUND, "invalid size");
+      
+      if (!_isBufInited())
+      {
+         rc = _initBuf();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init buf:%d", rc);
+            goto error;
+         }
+      }
+      
+      /// not else
+      {
+         _resetLastFieldEndingFlag();
+         UINT32 offset = _buf->getSize();
+
+         dpsTsFieldHeader header;
+         header.setTag(tag);
+         header.size = sizeof(T);
+         rc = _buf->appendObj(header);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append field header:%d", rc);
+            goto error;
+         }
+
+         rc = _buf->appendObj(value);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to append value:%d", rc);
+            goto error;
+         }
+
+         _size += (DPS_TS_FIELD_HEAD_SIZE + sizeof(T));
+         _lastFieldOffset = offset;
+      }
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
    }
 } // namespace engine
 

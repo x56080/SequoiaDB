@@ -43,12 +43,15 @@ namespace engine
 {
    using DPS_TS_FIELD_TAG = UINT8;
    using DPS_TS_FIELD_MB = UINT8;
-   using DPS_TS_EXT_SIZE_BLOCK = UINT16;
 
    constexpr DPS_TS_FIELD_MB DPS_TS_FIELD_TAG_MASK = 0x7F;
-   constexpr DPS_TS_FIELD_MB DPS_TS_FIELD_ENDING_FLAG = 0x80;
+   constexpr DPS_TS_FIELD_MB DPS_TS_MORE_FIELD_FLAG = ~DPS_TS_FIELD_TAG_MASK;
    constexpr UINT32 DPS_TS_SIZE_BOUND = 0xFF;
 
+   OSS_INLINE BOOLEAN dpsIsValidTsTag(DPS_TS_FIELD_TAG tag)
+   {
+      return tag <= DPS_TS_FIELD_TAG_MASK;
+   }
 #pragma pack(1)
    struct dpsTsFieldHeader
    {
@@ -66,38 +69,24 @@ namespace engine
       {
          return mb & DPS_TS_FIELD_TAG_MASK;
       }
-      OSS_INLINE void setEnding()
+      OSS_INLINE void setMore()
       {
-         mb |= DPS_TS_FIELD_ENDING_FLAG;
+         mb |= DPS_TS_MORE_FIELD_FLAG;
       }
       OSS_INLINE BOOLEAN isEnding() const
       {
-         return mb & DPS_TS_FIELD_ENDING_FLAG;
+         return 0 == (mb & DPS_TS_MORE_FIELD_FLAG);
+      }
+      OSS_INLINE BOOLEAN hasMore() const 
+      {
+         return 0 != (mb & DPS_TS_MORE_FIELD_FLAG);
       }
 
       DPS_TS_FIELD_MB mb = 0;
       UINT8 size = 0;
    };
    constexpr UINT32 DPS_TS_FIELD_HEAD_SIZE = sizeof(dpsTsFieldHeader);
-
-   struct dpsTsFieldHeaderExt
-   {
-      dpsTsFieldHeader h;
-      DPS_TS_EXT_SIZE_BLOCK size = 0;
-   };
-   constexpr UINT32 DPS_TS_FIELD_HEAD_EXT_SIZE = sizeof(dpsTsFieldHeaderExt);
 #pragma pack()
-
-   OSS_INLINE UINT32 dpsGetTsFieldHeadSize(UINT32 valueSize)
-   {
-      return valueSize < DPS_TS_SIZE_BOUND ?
-             DPS_TS_FIELD_HEAD_SIZE : DPS_TS_FIELD_HEAD_EXT_SIZE;
-   }
-
-   void dpsInitTsFieldHead(DPS_TS_FIELD_TAG tag,
-                           UINT32 valueSize,
-                           UINT32 bufSize,
-                           void *buf);
 
 } // namespace engine
 

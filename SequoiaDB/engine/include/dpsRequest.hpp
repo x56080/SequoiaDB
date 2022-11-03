@@ -37,8 +37,7 @@
 #define DPS_REQUEST_HPP_
 
 #include "dpsLogRecord.hpp"
-#include "utilFragAllocator.hpp"
-#include "utilSlice.hpp"
+#include "dpsRecordElements.hpp"
 
 namespace engine
 {
@@ -67,25 +66,21 @@ namespace engine
          ~dpsWriteRequest() = default;
          dpsWriteRequest(const dpsWriteRequest &) = delete;
          dpsWriteRequest &operator=(const dpsWriteRequest &) = delete;
-         dpsWriteRequest(dpsWriteRequest &&);
-         dpsWriteRequest &operator=(dpsWriteRequest &&);
+         dpsWriteRequest(dpsWriteRequest &&) noexcept;
+         dpsWriteRequest &operator=(dpsWriteRequest &&) noexcept;
 
       public:
          OSS_INLINE DPS_LOG_TYPE getType()const {return _type;}
          OSS_INLINE UINT16 getFlags()const {return _flags;}
-         OSS_INLINE UINT32 getElementDataSize()const {return _totalDataSize;}
-         OSS_INLINE UINT32 getElementNum()const {return _elementNum;}
-         const utilSlice &getElement(UINT32 pos)const;
-         BOOLEAN seek(DPS_TAG tag, utilSlice &data)const;
+         OSS_INLINE UINT32 getElementDataSize() const { return _body.getSize(); }
+         const dpsRecordElements &getElements() const { return _body ; }
+         BOOLEAN seek(DPS_TAG tag, utilSlice &value) const;
          void reset();
 
       private:
          DPS_LOG_TYPE _type = LOG_TYPE_DUMMY;
          UINT16 _flags = 0;
-         UINT32 _totalDataSize = 0;
-         UINT32 _elementNum = 0;
-         utilSlice *_elements = nullptr;
-         utilFragAllocator::repertory _rep;
+         dpsRecordElements _body ;
    };//class dpsWriteRequest
 
    struct dpsSearchOptions

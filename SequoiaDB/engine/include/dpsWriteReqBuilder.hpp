@@ -39,22 +39,18 @@
 #include "dpsRequest.hpp"
 #include "dpsTrace.hpp"
 #include "ossLikely.hpp"
-#include "utilFragAllocator.hpp"
 #include "dpsTrivialElement.hpp"
+#include "utilBufferBuilder.hpp"
+
+#include <limits>
 
 namespace engine
 {
    class dpsWriteReqBuilder : public SDBObject
    {
       public:
-         struct options : public SDBObject
-         {
-            UINT32 defaultBufferBlockSize = 8192;
-         };
-
-      public:
          dpsWriteReqBuilder();
-         dpsWriteReqBuilder(const options &o);
+         dpsWriteReqBuilder(UINT32 defaultBufSize);
          ~dpsWriteReqBuilder() = default;
          dpsWriteReqBuilder(const dpsWriteReqBuilder &) = delete;
          dpsWriteReqBuilder &operator=(const dpsWriteReqBuilder &) = delete;
@@ -88,24 +84,18 @@ namespace engine
             return appendNumeric(tag, v);
          }
 
-         template<typename T>
-         INT32 appendObj(DPS_TAG tag, const T &v)
-         {
-            return append(tag, sizeof(T), &v);
-         }
+         template<class T>
+         INT32 appendObj(DPS_TAG tag, const T &v);
 
          INT32 append(DPS_TAG tag, UINT32 size, const void *data);
 
       public:
-         dpsTrivialElement startToBuildTsElement();
-
-         /// ele will be reset after appending.
-         INT32 appendTsElement(DPS_TAG tag, dpsTrivialElement &ele);
+         ///WARNING: do not append any other element when building trivial element!
+         dpsTrivialElement startToBuildTsElement(DPS_TAG tag);
 
       private:
-         INT32 _ensureMetaBlock();
          BOOLEAN _isTagDuplicated(DPS_TAG tag)const;
-         OSS_INLINE UINT32 getElementBufferSize(UINT32 valSize)const
+         OSS_INLINE UINT32 _getElementBufferSize(UINT32 valSize)const
          {
             return sizeof(dpsRecordEle) + valSize;
          }
@@ -113,10 +103,8 @@ namespace engine
       private:
          DPS_LOG_TYPE _type = LOG_TYPE_DUMMY;
          UINT16 _flags = 0;
-         UINT32 _totalDataSize = 0;
          UINT32 _elementNum = 0;
-         utilSlice *_elements = nullptr;
-         utilFragAllocator _allocator;
+         utilBufferBuilder _buf;
    };//class dpsWriteReqBuilder
 
    template<typename T>
@@ -141,30 +129,65 @@ namespace engine
       #if defined (_DEBUG)
          SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
       #endif//_DEBUG
-         CHAR *buffer = nullptr;
-         constexpr UINT32 size = sizeof(T);
-         UINT32 bufferSize = getElementBufferSize(size);
-         rc = _ensureMetaBlock();
-         if (SDB_OK != rc)
+
+         dpsRecordEle e(tag, sizeof(T));
+
+         rc = _buf.reserve(_getElementBufferSize(sizeof(T)));
+         if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            PD_LOG(PDERROR, "failed to ensure element meta block:%d", rc);
+            PD_LOG(PDERROR, "failed to reserve buffer size:%d", rc);
             goto error;
          }
 
-         buffer = (CHAR *)_allocator.malloc(bufferSize);
-         if (OSS_UNLIKELY(nullptr == buffer))
-         {
-            PD_LOG(PDERROR, "failed to allocate mem.");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         reinterpret_cast<dpsRecordEle *>(buffer)->tag = tag;
-         reinterpret_cast<dpsRecordEle *>(buffer)->len = size;
-         *reinterpret_cast<T *>(buffer + sizeof(dpsRecordEle)) = v;
-         _elements[_elementNum].reset(bufferSize, buffer);
+         rc = _buf.appendObj(e);
+         SDB_ASSERT(SDB_OK, "can not be failed");
+         rc = _buf.appendNumeric(v);
+         SDB_ASSERT(SDB_OK, "can not be failed");
          ++_elementNum;
-         _totalDataSize += bufferSize;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   template<class T>
+   INT32 dpsWriteReqBuilder::appendObj(DPS_TAG tag, const T &v)
+   {
+      INT32 rc = SDB_OK;
+      static_assert(std::is_standard_layout<T>::value, "must be standard layout");
+
+      if (OSS_UNLIKELY(DPS_INVALID_TAG == tag))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(DPS_MERGE_BLOCK_MAX_DATA == _elementNum))
+      {
+         SDB_ASSERT(FALSE, "out of max element count");
+         rc = SDB_DPS_CORRUPTED_LOG;
+         goto error;
+      }
+      else
+      {
+      #if defined (_DEBUG)
+         SDB_ASSERT(!_isTagDuplicated(tag), "duplicated tag");
+      #endif//_DEBUG
+
+         dpsRecordEle e(tag, sizeof(T));
+
+         rc = _buf.reserve(_getElementBufferSize(sizeof(T)));
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to reserve buffer size:%d", rc);
+            goto error;
+         }
+
+         rc = _buf.appendObj(e);
+         SDB_ASSERT(SDB_OK, "can not be failed");
+         rc = _buf.appendObj(v);
+         SDB_ASSERT(SDB_OK, "can not be failed");
+         ++_elementNum;
       }
    done:
       return rc;

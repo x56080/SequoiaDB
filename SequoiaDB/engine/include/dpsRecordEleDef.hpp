@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsTrivialStrDef.cpp
+   Source File Name = dpsRecordEleDef.hpp
 
    Descriptive Name =
 
@@ -33,33 +33,29 @@
 
 ******************************************************************************/
 
-#include "dpsTrivialStrDef.hpp"
-#include "pdTrace.hpp"
+#ifndef DPS_RECORD_ELE_DEF_HPP__
+#define DPS_RECORD_ELE_DEF_HPP__
+
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
-   void dpsInitTsFieldHead(DPS_TS_FIELD_TAG tag,
-                           UINT32 valueSize,
-                           UINT32 bufSize,
-                           void *buf)
+#pragma pack(4)
+   struct dpsEleOplNode
    {
-      SDB_ASSERT(nullptr != buf, "can not be invalid");
-      UINT32 headSize = dpsGetTsFieldHeadSize(valueSize);
-      SDB_ASSERT((headSize + valueSize) <= bufSize, "out of buf size");
-      if (valueSize < DPS_TS_SIZE_BOUND)
-      {
-         dpsTsFieldHeader *h = reinterpret_cast<dpsTsFieldHeader *>(buf);
-         h->setTag(tag);
-         h->size = valueSize;
-      }
-      else
-      {
-         dpsTsFieldHeaderExt *h = reinterpret_cast<dpsTsFieldHeaderExt *>(buf);
-         h->h.setTag(tag);
-         h->h.size = DPS_TS_SIZE_BOUND;
-         h->size = valueSize;
-      }
+      UINT64 oplLSN = ~0;
+      UINT64 preLSN = ~0;
+   };
 
-      return;
-   }
+   struct dpsElePageAddr
+   {
+      INT32 lpid = -1;
+      INT64 gpid = -1;
+   };
+
+#pragma pack()
 } // namespace engine
+
+
+#endif//DPS_RECORD_ELE_DEF_HPP__
