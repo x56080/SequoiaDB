@@ -2,8 +2,8 @@
  * @Description   : seqDB-24245:源集群设置不继承会话访问属性，单值指定preferedinstance存在的同时设置PreferedStrict
  * @Author        : Wu Yan
  * @CreateTime    : 2021.06.07
- * @LastEditTime  : 2021.06.07
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.11.03
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
@@ -40,7 +40,7 @@ function test ()
       {
          var hostName = groups[0][i + 1].HostName;
          var svcName = groups[0][i + 1].svcname;
-         updateConf( datasrcDB, { instanceid: instanceid[i] }, { NodeName: hostName + ":" + svcName }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+         updateConf( datasrcDB, { instanceid: instanceid[i] }, { NodeName: hostName + ":" + svcName }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       }
       datasrcDB.getRG( groupName ).stop();
       datasrcDB.getRG( groupName ).start();
@@ -72,7 +72,7 @@ function test ()
    finally
    {
       datasrcDB.getRG( groupName ).start();
-      deleteConf( datasrcDB, { instanceid: 1 }, { GroupName: groupName }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1 }, { GroupName: groupName }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       datasrcDB.getRG( groupName ).stop();
       datasrcDB.getRG( groupName ).start();
       commCheckBusinessStatus( datasrcDB );
