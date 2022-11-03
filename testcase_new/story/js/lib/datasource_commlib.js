@@ -147,7 +147,7 @@ function updateConf ( db, configs, options, errno )
    }
    catch( e )
    {
-      if( errno === undefined || e.message !== errno.toString() )
+      if( errno.indexOf( Number( e ) ) == -1 )
       {
          throw e;
       }
@@ -162,7 +162,7 @@ function deleteConf ( db, configs, options, errno )
    }
    catch( e )
    {
-      if( errno === undefined || e.message !== errno.toString() )
+      if( errno.indexOf( Number( e ) ) == -1 )
       {
          throw e;
       }

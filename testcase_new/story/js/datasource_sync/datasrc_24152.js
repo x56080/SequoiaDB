@@ -2,8 +2,8 @@
  * @Description   : seqDB-24152:源集群设置会话访问属性，指定preferedinstance为多个组中的instanceid 
  * @Author        : Wu Yan
  * @CreateTime    : 2021.05.06
- * @LastEditTime  : 2021.06.07
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.11.03
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
@@ -29,7 +29,7 @@ function test ()
    var groups = commGetGroups( datasrcDB );
    var srcGroupName = dataGroupNames[0];
    var destGroupName = dataGroupNames[1];
-   var dscl = commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: srcGroupName } );   
+   var dscl = commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: srcGroupName } );
    dscl.split( srcGroupName, destGroupName, 50 );
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
 
@@ -47,11 +47,11 @@ function test ()
 
    try
    {
-      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: srcNode.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: srcNode.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       srcNode.stop();
       srcNode.start();
 
-      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: destNode.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: destNode.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       destNode.stop();
       destNode.start();
       commCheckBusinessStatus( datasrcDB );
@@ -66,10 +66,10 @@ function test ()
    {
       srcNode.start();
       destNode.start();
-      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: srcNode.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: srcNode.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       srcNode.stop();
       srcNode.start();
-      updateConf( datasrcDB, { instanceid: 1 }, { NodeName: destNode.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: destNode.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       destNode.stop();
       destNode.start();
       commCheckBusinessStatus( datasrcDB );
