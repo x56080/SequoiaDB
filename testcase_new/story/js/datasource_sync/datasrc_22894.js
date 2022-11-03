@@ -2,7 +2,7 @@
  * @Description   : seqDB-22894:设置会话属性访问数据源，其中数据源配置会话属性不同
  * @Author        : Wu Yan
  * @CreateTime    : 2021.05.06
- * @LastEditTime  : 2022.07.05
+ * @LastEditTime  : 2022.11.03
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -34,7 +34,7 @@ function test ()
    try
    {
       var instanceidConf = 200;
-      updateConf( datasrcDB, { instanceid: instanceid, preferedinstance: instanceidConf }, { NodeName: node.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      updateConf( datasrcDB, { instanceid: instanceid, preferedinstance: instanceidConf }, { NodeName: node.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       node.stop();
       node.start();
       commCheckBusinessStatus( datasrcDB );
@@ -46,7 +46,7 @@ function test ()
    }
    finally
    {
-      deleteConf( datasrcDB, { instanceid: 1, preferedinstance: 1 }, { NodeName: node.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1, preferedinstance: 1 }, { NodeName: node.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       node.stop();
       node.start();
       commCheckBusinessStatus( datasrcDB );

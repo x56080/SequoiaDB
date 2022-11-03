@@ -3,8 +3,8 @@
  *                  seqDB-22855:场景b：修改为继承会话属性
  * @Author        : Wu Yan
  * @CreateTime    : 2021.05.06
- * @LastEditTime  : 2021.06.07
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.11.03
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
@@ -21,7 +21,7 @@ function test ()
    commCreateCS( datasrcDB, srcCSName );
    var groups = commGetGroups( datasrcDB );
    var groupName = groups[0][0].GroupName;
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1,Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: groupName } );
 
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { InheritSessionAttr: false } );
    //集合空间级映射
@@ -43,7 +43,7 @@ function test ()
    try
    {
       datasrcDB.getRG( groupName ).start();
-      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       node.stop();
       node.start();
       commCheckBusinessStatus( datasrcDB );
@@ -68,7 +68,7 @@ function test ()
    finally
    {
       node.start();
-      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       node.stop();
       node.start();
       commCheckBusinessStatus( datasrcDB );
