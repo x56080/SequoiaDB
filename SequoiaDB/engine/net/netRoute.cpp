@@ -344,16 +344,22 @@ namespace engine
       PD_TRACE_EXIT ( SDB__NETRT_CLEAR );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRT_DEL, "_netRoute::del" )
    void _netRoute::del( const _MsgRouteID &id, BOOLEAN &hasDel )
    {
+      PD_TRACE_ENTRY ( SDB__NETRT_DEL );
+
       hasDel = FALSE ;
+      _MsgRouteID tmp = id ;
+      tmp.columns.serviceID = 0 ;
       ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
-      NET_ROUTE_MAP::iterator it = _route.find( id.value ) ;
+      NET_ROUTE_MAP::iterator it = _route.find( tmp.value ) ;
       if ( it != _route.end() )
       {
          _route.erase( it ) ;
          hasDel = TRUE ;
       }
+      PD_TRACE_EXIT ( SDB__NETRT_DEL );
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRT_GETUDPEP, "_netRoute::getUDPEndPoint" )

@@ -632,6 +632,9 @@ namespace engine
             _info.alives.erase( itr2->first ) ;
             _info.info.erase( itr2++ ) ;
             _info.mtx.release_w() ;
+
+            // Remove node route in _agent._route._route
+            _agent->delRoute( tmp ) ;
          }
          else
          {
