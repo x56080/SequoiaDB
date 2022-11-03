@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = test.cpp
+   Source File Name = ossTimeTest.cpp
 
    Descriptive Name =
 
@@ -44,8 +44,29 @@ using namespace std ;
 void checkOssMkTime( std::string time_str, time_t expected )
 {
    struct tm temp_tm = { 0 };
-   time_t actual = 0 ;
-   strptime(time_str.c_str(), "%Y-%m-%d %H:%M:%S", &temp_tm);
+   time_t actual     = 0 ;
+   INT32 year        = 0 ;
+   INT32 month       = 0 ;
+   INT32 day         = 0 ;
+   INT32 hour        = 0 ;
+   INT32 minute      = 0 ;
+   INT32 second      = 0 ;
+
+   sscanf ( time_str.c_str(),
+           "%d-%d-%d %d:%d:%d",
+            &year   ,
+            &month  ,
+            &day    ,
+            &hour   ,
+            &minute ,
+            &second ) ;
+
+   temp_tm.tm_year  = year - 1900 ;
+   temp_tm.tm_mon   = month - 1 ;
+   temp_tm.tm_mday  = day    ;
+   temp_tm.tm_hour  = hour   ;
+   temp_tm.tm_min   = minute ;
+   temp_tm.tm_sec   = second ;
 
    actual = ossMkTime( &temp_tm ) ;
    ASSERT_EQ( actual, expected ) ;
