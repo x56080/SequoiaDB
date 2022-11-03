@@ -76,7 +76,7 @@ namespace engine
 
       specInstance = PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       curPreferInstStr = ossStrtok( preferInstStrCopy, ",", &lastParsed ) ;
-      while ( NULL != curPreferInstStr && '\0' != curPreferInstStr )
+      while ( NULL != curPreferInstStr && '\0' != curPreferInstStr[0] )
       {
          hasParsed = FALSE ;
          if ( 0 == ossStrcasecmp( curPreferInstStr,

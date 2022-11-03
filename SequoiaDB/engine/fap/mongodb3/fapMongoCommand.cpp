@@ -6852,7 +6852,7 @@ INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* pClientName,
    }
 
    pCurStr = ossStrtok( clientVerStrCpy, ".", &pLastParsed ) ;
-   while ( '\0' != pCurStr )
+   while ( NULL != pCurStr && '\0' != pCurStr[0] )
    {
       if( 0 == i )
       {
