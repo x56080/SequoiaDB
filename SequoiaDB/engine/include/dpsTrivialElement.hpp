@@ -152,9 +152,9 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       static_assert(std::is_standard_layout<T>::value, "must be standard layout");
+      static_assert(sizeof(T) < DPS_TS_SIZE_BOUND, "out of valid size");
       SDB_ASSERT(nullptr != _buf, "can not be invalid");
       SDB_ASSERT(dpsIsValidTsTag(tag), "invalid tag");
-      SDB_ASSERT(sizeof(value) < DPS_TS_SIZE_BOUND, "invalid size");
       
       if (!_isBufInited())
       {

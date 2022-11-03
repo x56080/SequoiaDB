@@ -80,15 +80,13 @@ namespace engine
    void _dpsTrivialElement::reset()
    {
       PD_TRACE_ENTRY(SDB__DPSTSELEMENT_RESET);
-      if (nullptr != _buf)
+      if (nullptr != _buf && _originalBufSize != _buf->getSize())
       {
-         if (_originalBufSize != _buf->getSize())
-         {
-            /// rollback buf builder's size
-            _buf->shrink(_originalBufSize);
-         }
-         _reset();
+         /// rollback buf builder's size
+         _buf->shrink(_originalBufSize);
       }
+
+      _reset();
 
       PD_TRACE_EXIT(SDB__DPSTSELEMENT_RESET);
       return;
@@ -111,8 +109,11 @@ namespace engine
          SDB_ASSERT(_originalBufSize < _buf->getSize(), "impossible");
          utilUniqueBuffer &buf = _buf->getBuf();
          reinterpret_cast<dpsRecordEle*>(buf.getByOffset(_originalBufSize))->len = _size;
-      }
 
+         /// reset _buf to avoid rollback.
+         _buf = nullptr;
+      }
+      
       reset();
 
       return;

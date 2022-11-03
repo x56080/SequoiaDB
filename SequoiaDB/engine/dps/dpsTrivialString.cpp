@@ -38,6 +38,13 @@
 
 namespace engine
 {
+   _dpsTrivialString::_dpsTrivialString(const CHAR *data, UINT32 size):
+   _data(data),
+   _size(size)
+   {
+      SDB_ASSERT(nullptr != data, "can not be invalid");
+   }
+
    UINT32 _dpsTrivialString::_calcAndCacheSize() const
    {
       SDB_ASSERT(isValid(), "can not be invalid");

@@ -149,7 +149,7 @@ TEST_F(dpsReqBuilderTest, trivial)
    ASSERT_TRUE(req.seek(2, slice));
    dpsTrivialString ts(slice.getData(), slice.getSize());
    auto itr = ts.begin();
-   UINT32 i = 1;
+   UINT32 i = 0;
    while (itr.isValid())
    {
       ASSERT_TRUE(itr.getField().isValid());
@@ -157,5 +157,6 @@ TEST_F(dpsReqBuilderTest, trivial)
       ASSERT_EQ(itr.getField().getNumericValue<UINT32>(), i);
       ASSERT_EQ(itr.getField().getValueSize(), sizeof(UINT32));
       itr.next();
+      ++i;
    }
 }

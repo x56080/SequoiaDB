@@ -545,7 +545,8 @@ dpsFiles = [
       "dps/dpsBlackHoleInst.cpp",
       "dps/dpsTrivialElement.cpp",
       "dps/dpsTrivialStrField.cpp",
-      "dps/dpsRecordElements.cpp"
+      "dps/dpsRecordElements.cpp",
+      "dps/dpsTrivialString.cpp"
       ]
 
 omsvcFiles = [

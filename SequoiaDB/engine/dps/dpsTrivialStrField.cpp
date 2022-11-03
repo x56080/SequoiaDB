@@ -66,7 +66,7 @@ namespace engine
    {
       UINT32 valueSize = getValueSize();
       return 0 == valueSize ?
-             nullptr : reinterpret_cast<const CHAR *>(_fh) + getFieldSize();
+             nullptr : reinterpret_cast<const CHAR *>(_fh) + DPS_TS_FIELD_HEAD_SIZE;
    }
 
    BOOLEAN _dpsTrivialStrField::isEndingField() const
