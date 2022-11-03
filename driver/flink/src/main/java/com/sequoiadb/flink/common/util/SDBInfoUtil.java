@@ -12,30 +12,29 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.common.util;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.common.constant.SDBConstant;
+import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.strategy.NodeInfo;
 import com.sequoiadb.flink.source.strategy.ShardingInfo;
-
 import org.bson.BSONObject;
 import org.bson.types.BasicBSONList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SDBInfoUtil {
 
@@ -223,7 +222,7 @@ public class SDBInfoUtil {
         return abnormalNodes;
     }
 
-    public static boolean containValidation(BSONObject bsonObject1, BSONObject bsonObject2){
+    public static boolean containValidation(BSONObject bsonObject1, BSONObject bsonObject2) {
         Set<String> keySet1 = bsonObject1.keySet();
         Set<String> keySet2 = bsonObject2.keySet();
 

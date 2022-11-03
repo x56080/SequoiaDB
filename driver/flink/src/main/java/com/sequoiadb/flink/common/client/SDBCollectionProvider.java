@@ -16,9 +16,11 @@
 
 package com.sequoiadb.flink.common.client;
 
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
@@ -34,7 +36,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
 
 public class SDBCollectionProvider implements SDBClientProvider {
 
@@ -59,7 +64,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
     private final SDBSinkOptions sinkOptions;
 
     // sequoiadb handler
-    private transient Sequoiadb sequoiadb;
+    private transient Sequoiadb sdb;
     private transient CollectionSpace collectionSpace;
     private transient DBCollection collection;
 
@@ -84,16 +89,35 @@ public class SDBCollectionProvider implements SDBClientProvider {
         this.sinkOptions = sinkOptions;
     }
 
-    @Override
-    public Sequoiadb getClient() {
-        try {
-            if (sequoiadb == null) {
-                sequoiadb = new Sequoiadb(hosts, username, password, new ConfigOptions());
+    /*
+     * return a SDB Client.
+     * SDB client is not init until it is used.
+     * To avoid lock level upgrade caused slow down,
+     * TransMaxLockNum is configured.
+     * @return Sequoiadb
+     */
+
+    private Sequoiadb getClient() {
+        if (sdb == null) {
+            ConfigOptions options = new ConfigOptions();
+            options.setSocketKeepAlive(true);
+            sdb = new Sequoiadb(hosts, username, password, options);
+            try {
+                /* Because it is a new feature in 3.4.5
+                 * It will fail when set it in older version SDB
+                 * and the error is caught.
+                 * but the error doesn't affect the normal usage of Sequoiadb session
+                 */
+                BasicBSONObject sessionOptions = new BasicBSONObject();
+                sessionOptions.put(SDBConstant.TRANS_MAX_LOCK_NUM, -1);
+                sdb.setSessionAttr(sessionOptions);
+            } catch (BaseException e) {
+                if (e.getErrorCode() != SDBError.SDB_INVALIDARG.getErrorCode()) {
+                    throw e;
+                }
             }
-        } catch (Exception ex) {
-            throw new SDBException("cannot connect to SequoiaDB", ex);
         }
-        return sequoiadb;
+        return sdb;
     }
 
     @Override
@@ -102,17 +126,12 @@ public class SDBCollectionProvider implements SDBClientProvider {
             try {
                 collectionSpace = getClient().getCollectionSpace(collectionSpaceStr);
             } catch (BaseException ex) {
-                if (ex.getErrorCode() == SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode()) {
-                    collectionSpace = ensureCollectionSpace(sinkOptions);
-                } else {
-                    throw new SDBException("cannot get collection space from Sequoiadb.", ex);
-                }
-            } catch (Exception ex) {
                 throw new SDBException("cannot get collection space from Sequoiadb.", ex);
             }
         }
         return collectionSpace;
     }
+
 
     @Override
     public DBCollection getCollection() {
@@ -120,48 +139,99 @@ public class SDBCollectionProvider implements SDBClientProvider {
             try {
                 collection = getCollectionSpace().getCollection(collectionStr);
             } catch (BaseException ex) {
-                if (ex.getErrorCode() == SDBError.SDB_DMS_NOTEXIST.getErrorCode()) {
-                    collection = ensureCollection(sinkOptions);
-                } else {
-                    throw new SDBException("cannot get collection from Sequoiadb.", ex);
-                }
-            } catch (Exception ex) {
                 throw new SDBException("cannot get collection from Sequoiadb.", ex);
             }
         }
         return collection;
     }
 
-    @Override
-    public Sequoiadb recreateClient() throws IOException {
-        close();
-        return getClient();
+
+    /**
+     * obtain all index information of Sequoiadb table created by flink
+     *
+     * @return List<BSONObject>: a list of indexDef in Bson format
+     */
+
+    public List<BSONObject> getIndexDefList() {
+        List<BSONObject> indexList = new ArrayList<>();
+
+        try (DBCursor indexIterator = getCollection().getIndexes()) {
+            // get index bsonObject iteator from Sequoiadb
+            while (indexIterator.hasNext()) {
+                BSONObject indexBsonObj = indexIterator.getNext();
+                //get indexdef corresponding a bsonObject from index bsonObject
+                BSONObject indexDef = (BSONObject) indexBsonObj.get(SDBConstant.INDEX_DEF);
+                indexList.add(indexDef);
+            }
+        } catch (BaseException e) {
+            throw new SDBException("cannot get collection index from Sequoiadb");
+        }
+
+        return indexList;
     }
 
-    public CollectionSpace ensureCollectionSpace(SDBSinkOptions sinkOptions) {
-        BSONObject options = new BasicBSONObject();
-        options.put(SDBConstant.PAGE_SIZE, sinkOptions.getPageSize());
+
+    /**
+     * return a list of string type index column names
+     * this is to help me determine whether the join field of Lookup Join uses
+     * the index field.
+     *
+     * @return List<String>
+     */
+
+    public List<String> getIndexColumnNames() {
+        List<String> indexNameList = new ArrayList<>();
+        List<BSONObject> indexDefList = getIndexDefList();
+
+        for (BSONObject index : indexDefList) {
+            BSONObject key = (BSONObject) index.get(SDBConstant.KEY);
+            Iterator<String> indexIterator = key.keySet().iterator();
+            while (indexIterator.hasNext()) {
+                indexNameList.add(indexIterator.next());
+            }
+        }
+
+        return indexNameList;
+    }
+
+    /**
+     * check if collectionSpace and collection in user definition of flink table exists
+     * create if it doesn't exist,including the index.
+     *
+     * @param sinkOptions include user definition
+     */
+    public static void ensureCollectionSpaceWithCollection(SDBSinkOptions sinkOptions) {
+
+        Sequoiadb sdb = new Sequoiadb(
+                sinkOptions.getHosts(),
+                sinkOptions.getUsername(),
+                sinkOptions.getPassword(),
+                new ConfigOptions()
+        );
+
+        boolean isCreatedCS = false;
+
+        BSONObject optionsCS = new BasicBSONObject();
+        optionsCS.put(SDBConstant.PAGE_SIZE, sinkOptions.getPageSize());
 
         String domain = sinkOptions.getDomain();
         if (domain != null) {
-            options.put(SDBConstant.DOMAIN, domain);
+            optionsCS.put(SDBConstant.DOMAIN, domain);
         }
 
         CollectionSpace collectionSpace = null;
         try {
-            collectionSpace = getClient().createCollectionSpace(collectionSpaceStr, options);
+            collectionSpace = sdb.createCollectionSpace(sinkOptions.getCollectionSpace(), optionsCS);
+            isCreatedCS = true;
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_DMS_CS_EXIST.getErrorCode()) {
-                collectionSpace = getClient().getCollectionSpace(collectionSpaceStr);
+                collectionSpace = sdb.getCollectionSpace(sinkOptions.getCollectionSpace());
             } else {
                 throw ex;
             }
         }
-        return collectionSpace;
-    }
 
-    public DBCollection ensureCollection(SDBSinkOptions sinkOptions) {
-        BSONObject options = new BasicBSONObject();
+        BSONObject optionsCL = new BasicBSONObject();
         String shardingKey = sinkOptions.getShardingKey();
         String[] primaryKey = sinkOptions.getUpsertKey();
 
@@ -174,7 +244,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         }
 
-        if(sinkOptions.getAutoPartition()) {
+        if (sinkOptions.getAutoPartition()) {
             if (shardingKey != null) {
                 BSONObject skBson = (BSONObject) JSON.parse(shardingKey);
                 //verity pk contain all fields in sharding key
@@ -184,66 +254,85 @@ public class SDBCollectionProvider implements SDBClientProvider {
                             "primary key to create a new table", pkBson, skBson));
                 }
 
-                options.put(SDBConstant.SHARDING_KEY, skBson);
-                options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
-                options.put(SDBConstant.AUTO_SPLIT, true);
+                optionsCL.put(SDBConstant.SHARDING_KEY, skBson);
+                optionsCL.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+                optionsCL.put(SDBConstant.AUTO_SPLIT, true);
             } else if (!pkBson.isEmpty()) {
                 // if user don't specify sharding key, using primary key as sharding key.
-                options.put(SDBConstant.SHARDING_KEY, pkBson);
-                options.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
-                options.put(SDBConstant.AUTO_SPLIT, true);
+                optionsCL.put(SDBConstant.SHARDING_KEY, pkBson);
+                optionsCL.put(SDBConstant.SHARDING_TYPE, sinkOptions.getShardingType());
+                optionsCL.put(SDBConstant.AUTO_SPLIT, true);
             }
         } else {
-            if(shardingKey != null){
+            if (shardingKey != null) {
                 throw new SDBException(String.format("Incompatible parameters passed in: autopartition is false " +
                         "while shardingkey(%s) is specified. ", shardingKey));
             }
         }
-        options.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
-        options.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
+        optionsCL.put(SDBConstant.REPL_SIZE, sinkOptions.getReplSize());
+        optionsCL.put(SDBConstant.COMPRESSION_TYPE, sinkOptions.getCompressionType());
 
         String Group = sinkOptions.getGroup();
         if (Group != null) {
-            options.put(SDBConstant.GROUP, Group);
+            optionsCL.put(SDBConstant.GROUP, Group);
         }
 
-        DBCollection cl = null;
+        DBCollection collection = null;
         try {
-            cl = getCollectionSpace().createCollection(collectionStr, options);
+            collection = collectionSpace.createCollection(sinkOptions.getCollection(), optionsCL);
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_DMS_EXIST.getErrorCode()) {
-                cl = getCollectionSpace().getCollection(collectionStr);
+                collection = collectionSpace.getCollection(sinkOptions.getCollection());
+                return;
             } else {
+                try{
+                    // delete collectionSpace when it failed to create collection
+                    if(isCreatedCS){
+                        sdb.dropCollectionSpace(sinkOptions.getCollectionSpace());
+                    }
+                } catch (BaseException e) {
+                    throw new SDBException("cleanup collectionSpace or collection failed.",e);
+                }
                 throw ex;
             }
         }
 
         try {
-            if (cl != null && !pkBson.isEmpty()) {
-                cl.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
+            if (collection != null && !pkBson.isEmpty()) {
+                collection.createIndex(PRIMARY_KEY_NAME, pkBson, INDEX_OPTIONS);
             }
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_IXM_EXIST.getErrorCode()) {
                 // ignore when primary key is already exist
             } else {
+                // directly delete collection
+                // there isn't the collection that exists in the first place
+                try{
+                    collectionSpace.dropCollection(sinkOptions.getCollection());
+                    if(isCreatedCS){
+                        sdb.dropCollectionSpace(sinkOptions.getCollectionSpace());
+                    }
+                } catch (BaseException e) {
+                    throw new SDBException("cleanup collectionSpace or collection failed.",e);
+                }
                 throw ex;
             }
+        } finally {
+            sdb.close();
         }
-
-        return cl;
     }
 
     @Override
     public void close() throws IOException {
         try {
-            if (sequoiadb != null) {
-                sequoiadb.close();
+            if (sdb != null) {
+                sdb.close();
             }
         } catch (Exception ex) {
             throw new SDBException("close sequoiadb connection failed.",
                     ex);
         } finally {
-            sequoiadb = null;
+            sdb = null;
             collectionSpace = null;
             collection = null;
         }
