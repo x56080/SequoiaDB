@@ -2,8 +2,8 @@
  * @Description   : seqDB-22855:修改数据源InheritSessionAttr属性
  * @Author        : Wu Yan
  * @CreateTime    : 2021.06.04
- * @LastEditTime  : 2021.06.09
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2022.11.03
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -35,7 +35,7 @@ function test ()
 
    try
    {
-      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: srcSlaveNode.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      updateConf( datasrcDB, { instanceid: instanceid }, { NodeName: srcSlaveNode.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       srcSlaveNode.stop();
       srcSlaveNode.start();
       commCheckBusinessStatus( datasrcDB );
@@ -68,7 +68,7 @@ function test ()
    finally
    {
       srcSlaveNode.start();
-      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: srcSlaveNode.toString() }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+      deleteConf( datasrcDB, { instanceid: 1 }, { NodeName: srcSlaveNode.toString() }, [SDB_RTN_CONF_NOT_TAKE_EFFECT, SDB_COORD_NOT_ALL_DONE] );
       srcSlaveNode.stop();
       srcSlaveNode.start();
       commCheckBusinessStatus( datasrcDB );
