@@ -62,6 +62,10 @@ public class SDBSinkOptions extends SDBClientOptions {
     private HashSet<String> primaryKey;
     private String[] upsertKey = new String[]{};
 
+    private final String eventTsFieldName;
+    private final int stateTtl;
+    private final boolean partitionedSource;
+
     public SDBSinkOptions(ReadableConfig options) {
         super(options);
 
@@ -80,6 +84,13 @@ public class SDBSinkOptions extends SDBClientOptions {
         this.overwrite = options.get(SDBConfigOptions.OVERWRITE);
 
         this.writeMode = options.get(SDBConfigOptions.WRITE_MODE);
+
+        this.eventTsFieldName = options.get(
+                SDBConfigOptions.SINK_RETRACT_EVENT_TS_FIELD_NAME);
+        this.stateTtl = options.get(
+                SDBConfigOptions.SINK_RETRACT_STATE_TTL);
+        this.partitionedSource = options.get(
+                SDBConfigOptions.SINK_RETRACT_PARTITIONED_SOURCE);
     }
 
     @Override
@@ -161,6 +172,18 @@ public class SDBSinkOptions extends SDBClientOptions {
 
     public HashSet<String> getPrimaryKey() {
         return primaryKey;
+    }
+
+    public String getEventTsFieldName() {
+        return eventTsFieldName;
+    }
+
+    public int getStateTtl() {
+        return stateTtl;
+    }
+
+    public boolean isPartitionedSource() {
+        return partitionedSource;
     }
 
     public void computeIdempotentWriteOptimization(Optional<UniqueConstraint> flinkPrimaryKey) {

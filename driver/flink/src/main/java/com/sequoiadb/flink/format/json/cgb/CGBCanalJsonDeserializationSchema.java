@@ -17,6 +17,7 @@
 package com.sequoiadb.flink.format.json.cgb;
 
 import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.metadata.ExtraRowKind;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.common.TimestampFormat;
@@ -219,15 +220,20 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
 
     private void emitRow(GenericRowData rootRow,
             GenericRowData before, GenericRowData after, Collector<RowData> out) throws IOException {
-        GenericRowData producedAfter = convertToFinalRow(rootRow, after);
+        GenericRowData producedAft = convertToFinalRow(rootRow, after);
 
         if (before != null && hasPriKeyChanges(before)) {
+            final int erkPos = findFieldPosByMetadata(
+                    ReadableMetadata.EXTRA_ROW_KIND, jsonRowType);
             fillPriKeyInBefore(before, after);
-            GenericRowData producedBefore = convertToFinalRow(rootRow, before);
-            out.collect(producedBefore);
+            GenericRowData producedBef = convertToFinalRow(rootRow, before);
+
+            producedBef.setField(erkPos, ExtraRowKind.UPDATE_PK_BEF);
+            producedAft.setField(erkPos, ExtraRowKind.UPDATE_PK_AFT);
+            out.collect(producedBef);
         }
 
-        out.collect(producedAfter);
+        out.collect(producedAft);
     }
 
     private GenericRowData convertToFinalRow(GenericRowData rootRow, GenericRowData physicalRow) {

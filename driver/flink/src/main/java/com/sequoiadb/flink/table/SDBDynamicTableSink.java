@@ -20,6 +20,7 @@ import com.sequoiadb.flink.common.client.SDBCollectionProvider;
 import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
+import com.sequoiadb.flink.sink.SDBPartitionedSink;
 import com.sequoiadb.flink.sink.SDBRetractSink;
 import com.sequoiadb.flink.sink.SDBSink;
 import com.sequoiadb.flink.sink.SDBUpsertSink;
@@ -37,6 +38,11 @@ import org.slf4j.LoggerFactory;
 public class SDBDynamicTableSink implements DynamicTableSink {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBDynamicTableSink.class);
+
+    // sink write mode
+    private static final String APPEND_ONLY = "append-only";
+    private static final String UPSERT = "upsert";
+    private static final String RETRACT = "retract";
 
     private final DataType physicalDataType;
 
@@ -81,14 +87,18 @@ public class SDBDynamicTableSink implements DynamicTableSink {
             SDBCollectionProvider.ensureCollectionSpaceWithCollection(sinkOptions);
         }
 
-        if ("append-only".equals(sinkOptions.getWriteMode())) {
+        if (APPEND_ONLY.equals(sinkOptions.getWriteMode())) {
             return SinkProvider.of(
                     new SDBSink<>(sinkOptions, converter), sinkOptions.getSinkParallelism());
-        } else if ("retract".equals(sinkOptions.getWriteMode())) {
+        } else if (RETRACT.equals(sinkOptions.getWriteMode())) {
+            if (sinkOptions.isPartitionedSource()) {
+                return SinkProvider.of(new SDBPartitionedSink(converter, sinkOptions),
+                        sinkOptions.getSinkParallelism());
+            }
             return SinkProvider.of(
                     new SDBRetractSink(converter, sinkOptions),
                     sinkOptions.getSinkParallelism());
-        } else if ("upsert".equals(sinkOptions.getWriteMode())) {
+        } else if (UPSERT.equals(sinkOptions.getWriteMode())) {
             return SinkProvider.of(
                     new SDBUpsertSink(converter, sinkOptions), sinkOptions.getSinkParallelism());
         } else {

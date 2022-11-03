@@ -16,10 +16,8 @@
 
 package com.sequoiadb.flink.table.pushdown;
 
-import com.esotericsoftware.minlog.Log;
 import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.common.exception.SDBException;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -27,9 +25,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
-
 
 /**
  * combined into a bson format expression according to different operation types
