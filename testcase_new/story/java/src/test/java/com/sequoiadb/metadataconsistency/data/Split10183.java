@@ -3,6 +3,7 @@ package com.sequoiadb.metadataconsistency.data;
 import java.util.ArrayList;
 import java.util.Random;
 
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.threadexecutor.ResultStore;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -101,8 +102,13 @@ public class Split10183 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -175 // -175:The mutex task already exist
-                        && eCode != -147 && eCode != -23 && eCode != -190 ) {
+                if ( eCode != SDBError.SDB_CLS_MUTEX_TASK_EXIST.getErrorCode()
+                        && eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode()
+                        && eCode != SDBError.SDB_TASK_HAS_CANCELED
+                                .getErrorCode() ) {
                     throw e;
                 }
             }
@@ -118,7 +124,10 @@ public class Split10183 extends SdbTestBase {
                 db.getCollectionSpace( csName ).dropCollection( clName );
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -147 && eCode != -23 && eCode != -190 ) {
+                if ( eCode != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && eCode != SDBError.SDB_DMS_NOTEXIST.getErrorCode()
+                        && eCode != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
             }

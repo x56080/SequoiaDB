@@ -2,6 +2,7 @@ package com.sequoiadb.split;
 
 import java.util.List;
 
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -89,7 +90,9 @@ public class Split10527A extends SdbTestBase {
                 Assert.assertFalse(
                         sdb.isCollectionSpaceExist( customCSName ) );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
+                if ( e.getErrorCode() != SDBError.SDB_LOCK_FAILED.getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     Assert.assertTrue(
                             sdb.isCollectionSpaceExist( customCSName ) );
                 }
@@ -137,9 +140,16 @@ public class Split10527A extends SdbTestBase {
                 }
                 cl.split( srcGroupName, destGroupName, 90 );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -34 && e.getErrorCode() != -23
-                        && e.getErrorCode() != -147 && e.getErrorCode() != -190
-                        && e.getErrorCode() != -243 ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
+                                .getErrorCode() ) {
                     throw e;
                 }
             } finally {
