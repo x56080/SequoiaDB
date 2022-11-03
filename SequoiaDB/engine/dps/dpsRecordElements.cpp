@@ -222,7 +222,7 @@ namespace engine
       if ( isValid() )
       {
          const _dpsRecordEle *e = _getElementHeader() ;
-         if ( _size <= ((sizeof( _dpsRecordEle ) << 1) + e->len) )
+         if ( _size >= ((sizeof( _dpsRecordEle ) << 1) + e->len) )
          {
             _data += ( sizeof( _dpsRecordEle ) + e->len ) ;
             _size -= ( sizeof( _dpsRecordEle ) + e->len ) ;
@@ -234,7 +234,7 @@ namespace engine
             else
             {
             #if defined (_DEBUG)
-               SDB_ASSERT( _size <= (sizeof(_dpsRecordEle) + _getElementHeader()->len),
+               SDB_ASSERT( _size >= (sizeof(_dpsRecordEle) + _getElementHeader()->len),
                            "invalid element size!" ) ;
             #endif
                return TRUE ;

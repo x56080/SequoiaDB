@@ -140,9 +140,9 @@ namespace engine
          }
 
          rc = _buf.appendObj(e);
-         SDB_ASSERT(SDB_OK, "can not be failed");
+         SDB_ASSERT(SDB_OK == rc, "can not be failed");
          rc = _buf.appendNumeric(v);
-         SDB_ASSERT(SDB_OK, "can not be failed");
+         SDB_ASSERT(SDB_OK == rc, "can not be failed");
          ++_elementNum;
       }
    done:
@@ -184,9 +184,9 @@ namespace engine
          }
 
          rc = _buf.appendObj(e);
-         SDB_ASSERT(SDB_OK, "can not be failed");
+         SDB_ASSERT(SDB_OK == rc, "can not be failed");
          rc = _buf.appendObj(v);
-         SDB_ASSERT(SDB_OK, "can not be failed");
+         SDB_ASSERT(SDB_OK == rc, "can not be failed");
          ++_elementNum;
       }
    done:

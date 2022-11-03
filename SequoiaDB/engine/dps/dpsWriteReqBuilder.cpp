@@ -134,7 +134,6 @@ namespace engine
    BOOLEAN dpsWriteReqBuilder::_isTagDuplicated(DPS_TAG tag)const
    {
       PD_TRACE_ENTRY(SDB__DPSWREQBUILDER__ISTAGDUP);
-      BOOLEAN r = FALSE;
       SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
 
       dpsRecordElements elements(_buf.getBuf().get(), _buf.getSize()) ;
