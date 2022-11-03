@@ -205,7 +205,7 @@ namespace engine
       if ( isValid() )
       {
          const _dpsRecordEle *e = _getElementHeader() ;
-         s.reset( e->len, _data + e->len ) ;
+         s.reset( e->len, _data + sizeof( _dpsRecordEle ) ) ;
       }
 
       return s ;      
