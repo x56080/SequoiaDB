@@ -408,7 +408,7 @@ namespace engine
       _MsgSyncNotify msg ;
       msg.header.TID = CLS_TID_REPL_SYC ;
 
-      _info->mtx.lock_r() ;
+      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
@@ -429,8 +429,6 @@ namespace engine
             /// do nothing
          }
       }
-
-      _info->mtx.release_r() ;
 
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG_NOTIFY ) ;
       return ;
