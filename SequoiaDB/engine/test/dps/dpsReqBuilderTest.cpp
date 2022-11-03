@@ -34,6 +34,7 @@
 ******************************************************************************/
 
 #include "dpsWriteReqBuilder.hpp"
+#include "dpsLogRecordDef.hpp"
 #include <gtest/gtest.h>
 
 using namespace engine;
@@ -46,53 +47,115 @@ class dpsReqBuilderTest :  public testing::Test
    virtual void SetUp(){}
 };
 
-TEST_F(dpsReqBuilderTest, base_test_1)
+TEST_F(dpsReqBuilderTest, appendAndCheckElements)
 {
    INT32 rc = SDB_OK;
    dpsWriteReqBuilder builder;
    dpsWriteRequest req;
 
-   constexpr UINT32 flags = 0x03;
-   constexpr DPS_LOG_TYPE type = LOG_TYPE_DATA_INSERT;
-   constexpr UINT32 numericFields = 10;
-   constexpr UINT32 padSize = 4096;
-   CHAR pad[padSize];
-   ossMemset(pad, 'a', sizeof(pad));
+   DPS_LOG_TYPE type = LOG_TYPE_CS_CRT;
+   UINT16 flags = 0x01;
+   std::string name = "foo";
+   UINT32 unique = 1;
+   UINT32 size = 64 * 1024;
 
-   builder.setFlag(flags);
    builder.setType(type);
-   
-   /// valid tag start with 1.
-   for (UINT32 i = 1; i <= numericFields; ++i)
-   {
-      rc = builder.appendInt32(i, i);
-      ASSERT_EQ(rc, SDB_OK);
-   }
-
-   rc = builder.append(numericFields + 1, padSize, pad);
-   ASSERT_EQ(rc, SDB_OK);
+   builder.setFlag(flags);
+   rc = builder.append(DPS_LOG_CSCRT_CSNAME, name.size(), name.c_str());
+   ASSERT_EQ(SDB_OK, rc);
+   rc = builder.appendNumeric(DPS_LOG_CSCRT_PAGESIZE, size);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = builder.appendInt32(DPS_LOG_CSCRT_CSUNIQUEID, unique);
+   ASSERT_EQ(SDB_OK, rc);
 
    req = builder.reap();
+   ASSERT_EQ(req.getFlags(), flags);
+   ASSERT_EQ(req.getType(), type);
+   ASSERT_EQ(req.getElements().getElementNum(), (UINT32)3);
 
-   ASSERT_EQ(flags, req.getFlags());
-   ASSERT_EQ(type, req.getType());
-   ASSERT_EQ(numericFields + 1, req.getElementNum());
+   utilSlice slice;
+   ASSERT_TRUE(req.seek(DPS_LOG_CSCRT_CSNAME, slice));
+   ASSERT_TRUE(slice.isValid());
+   ASSERT_EQ(0, ossMemcmp(name.c_str(), slice.data(), slice.getSize()));
 
-   for (UINT32 i = 0; i < numericFields; ++i)
+   ASSERT_FALSE(req.seek(DPS_LOG_CSCRT_VESSEL_SID, slice));
+   ASSERT_FALSE(slice.isValid());
+
+   ASSERT_TRUE(req.seek(DPS_LOG_CSCRT_PAGESIZE, slice));
+   ASSERT_TRUE(slice.isValid());
+   const UINT32 *resSize = slice.castTo<UINT32>();
+   ASSERT_EQ(*resSize, size);
+
+   ASSERT_TRUE(req.seek(DPS_LOG_CSCRT_CSUNIQUEID, slice));
+   ASSERT_TRUE(slice.isValid());
+   resSize = slice.castTo<UINT32>();
+   ASSERT_EQ(*resSize, unique);
+
+   req.reset();
+   ASSERT_FALSE(req.seek(DPS_LOG_CSCRT_CSNAME, slice));
+   ASSERT_FALSE(slice.isValid());
+}
+
+TEST_F(dpsReqBuilderTest, elementsItr)
+{
+   INT32 rc = SDB_OK;
+   dpsWriteReqBuilder builder;
+   dpsWriteRequest req;
+
+   rc = builder.appendInt32(1, 1);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = builder.appendInt32(2, 2);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = builder.appendInt32(3, 3);
+   ASSERT_EQ(SDB_OK, rc);
+
+   req = builder.reap();
+   const dpsRecordElements &eles = req.getElements();
+   UINT32 i = 1;
+   auto itr = eles.begin();
+   while (itr.isValid())
    {
-      const utilSlice &e = req.getElement(i);
-      ASSERT_EQ(sizeof(dpsRecordEle) + sizeof(UINT32), e.getSize());
-      utilSlice data;
-      BOOLEAN r = req.seek(i + 1, data);
-      ASSERT_TRUE(r);
-      ASSERT_EQ(sizeof(UINT32), data.size());
-      ASSERT_EQ(i + 1, *(data.castTo<UINT32>()));
+      ASSERT_EQ(itr.getTag(), i);
+      ASSERT_EQ(*(UINT32 *)(itr.getValue().getData()), i);
+      ++i;
+      itr.next();
    }
+}
 
-   utilSlice padData;
-   BOOLEAN r = req.seek(numericFields + 1, padData);
-   ASSERT_TRUE(r);
-   ASSERT_EQ(padSize, padData.size());
-   INT32 cmp = ossMemcmp(pad, padData.data(), padSize);
-   ASSERT_EQ(0, cmp);
+TEST_F(dpsReqBuilderTest, trivial)
+{
+   INT32 rc = SDB_OK;
+   dpsWriteReqBuilder builder;
+   dpsWriteRequest req;
+   constexpr UINT32 padSize = 4096;
+   UINT32 eleCount = 10;
+   CHAR pad[4096] = {};
+   ossMemset(pad, 'a', sizeof(pad)); 
+   builder.append(1, padSize, pad);
+
+   dpsTrivialElement te = builder.startToBuildTsElement(2);
+   for (UINT32 i = 0; i < eleCount; ++i)
+   {
+      rc = te.appendNumeric(i, i);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   te.done();
+
+   utilSlice slice;
+   req = builder.reap();
+   ASSERT_TRUE(req.seek(1, slice));
+   ASSERT_EQ(0, ossMemcmp(pad, slice.getData(), padSize));
+   
+   ASSERT_TRUE(req.seek(2, slice));
+   dpsTrivialString ts(slice.getData(), slice.getSize());
+   auto itr = ts.begin();
+   UINT32 i = 1;
+   while (itr.isValid())
+   {
+      ASSERT_TRUE(itr.getField().isValid());
+      ASSERT_EQ(itr.getField().getTag(), i);
+      ASSERT_EQ(itr.getField().getNumericValue<UINT32>(), i);
+      ASSERT_EQ(itr.getField().getValueSize(), sizeof(UINT32));
+      itr.next();
+   }
 }
