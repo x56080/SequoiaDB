@@ -1928,11 +1928,16 @@ namespace engine
          BSONObj object ;
 
          rc = rtnGetMore( contextID, 1, buffObj, cb, _rtnCB ) ;
-         if ( SDB_DMS_EOC == rc )
+         if ( SDB_OK != rc )
          {
-            rc = SDB_OK ;
-            contextID = -1 ;
-            goto done ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               contextID = -1 ;
+               goto done ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get objects from collection [%s], "
+                         "rc: %d", collection, rc ) ;
          }
 
          try

@@ -623,11 +623,16 @@ namespace engine
 
          // get one result
          rc = rtnGetMore( contextID, 1, buffObj, cb, _rtnCB ) ;
-         if ( SDB_DMS_EOC == rc )
+         if ( SDB_OK != rc )
          {
-            rc = SDB_OK ;
-            contextID = -1 ;
-            goto done ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               contextID = -1 ;
+               goto done ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle items from query, "
+                         "rc: %d", rc ) ;
          }
 
          try
