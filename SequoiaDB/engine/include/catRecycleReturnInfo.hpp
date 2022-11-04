@@ -326,7 +326,7 @@ namespace engine
                                  catCtxLockMgr &lockMgr,
                                  pmdEDUCB *cb ) ;
 
-      INT32 addRenameCLByRecyID( const utilReturnNameInfo &nameInfo,
+      INT32 addRenameCLByRecyID( const catCheckCLInfo &checkInfo,
                                  utilRecycleID recycleID,
                                  catCtxLockMgr &lockMgr,
                                  pmdEDUCB *cb ) ;
