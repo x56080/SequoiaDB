@@ -89,6 +89,9 @@ WITH(
 |  parallelism            | int32   | Sink 并发度，默认值为 1，取值应小于当前 Flink 集群的总 Slot 数量 <br> 建议取值为 SequoiaDB 集群中协调节点数量的倍数                           | 否   |  
 | overwrite           | boolean | Sink 是否开启覆写，默认值为 true，表示开启 <br> 该参数仅在 append-only 模式下有效，建议取值如下： <br> 1）在批量写入的场景下，建议取值为 false，以提高写入效率  <br>  2）在实时写入的场景下，建议取值为 true，以保证数据一致性 <br> 取值为 true 时，需保证 Flink 映射表存在主键，且所映射的 SequoiaDB 集合存在对应的唯一索引                                                              | 否   |
 | writemode               | string  | 数据写入模式，默认值为"append-only"，取值如下：<br> "append-only"：仅支持 INSERT 操作 <br> "upsert"：支持 INSERT、UPDATE、DELETE 操作，但不支持变更主键 <br> "retract"：在"upsert"模式的基础上，支持主键更新操作 <br> 根据使用场景建议取值如下：<br> 1）在追加写入的场景下，建议取值为"append-only"，以提高写入效率 <br> 2）增量数据更新、数据加工及其混合场景下，建议取值为"upsert"或"retract"，此时需要保证所操作的记录存在主键 | 否 |
+| sink.retract.partitioned-source  | boolean  | 增量数据更新场景下，上游数据源是否为分区数据源（例如 Kafka 多分区 Topic），默认值为 false，表示不为多分区数据源<br>该参数仅在 writemode 取值为"retract"时有效 | 否 |
+| sink.retract.event-ts-field-name | string  | 事件时间对应的字段名<br>当参数 sink.retract.partitioned-source 取值为 true 并生效时，用户需从业务字段中选取 TIMESTAMP(6) 或更高精度的时间戳作为事件时间，以保证增量数据更新结果正确 | 否 |
+| sink.retract.state-ttl | int32  | 状态存活时间，默认值为 1，单位为 min<br>当参数 sink.retract.partitioned-source 取值为 true 并生效时，用户需设置状态存活时间，同时开启 Flink Checkpoint 机制，避免因状态无法保存导致增量数据结果不准确 | 否 |
 
 ##保证精确一次性##
 
