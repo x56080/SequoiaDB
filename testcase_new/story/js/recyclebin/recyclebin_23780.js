@@ -2,7 +2,7 @@
  * @Description   : seqDB-23780:dropCS后修改域删除数据组，恢复CS
  * @Author        : liuli
  * @CreateTime    : 2021.04.06
- * @LastEditTime  : 2022.04.13
+ * @LastEditTime  : 2022.11.04
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipOneGroup = true;
@@ -28,7 +28,7 @@ function test ()
 
    // 删除CS后删除domain中集合所在的数据组
    db.dropCS( csName );
-   mydomain.alter( { Groups: [groupNames[0], groupNames[1]] } );
+   mydomain.alter( { Groups: [groupNames[0]] } );
 
    // 恢复dropCS项目
    var recycleName = getOneRecycleName( db, csName, "Drop" );
@@ -51,7 +51,7 @@ function test ()
    // 再次删除domain中集合所在的数据组
    assert.tryThrow( SDB_DOMAIN_IS_OCCUPIED, function()
    {
-      mydomain.alter( { Groups: [groupNames[0], groupNames[1]] } );
+      mydomain.alter( { Groups: [groupNames[0]] } );
    } );
 
    commDropCS( db, csName );
