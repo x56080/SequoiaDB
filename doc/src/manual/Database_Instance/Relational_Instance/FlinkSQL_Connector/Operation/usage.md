@@ -92,13 +92,7 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
 
 ##数据更新##
 
-数据更新操作将根据[表配置][connection]分为"upsert"和"retract"模式。在进行数据更新时，需要注意以下事项：
-
-- 所创建的 Source 和 Sink 表必须定义主键，确保表能按主键进行 Hash Shuffle。
-- 对于"retract"模式，目前仅支持 Kafka 作为上游数据源。如果 Kafka 源存在多个分区，需要将参数 sink.retract.partitioned-source 设置为 true，并通过 sink.retract.event-ts-field-name 指定事件时间字段，以保证结果的准确性。
-- 指定为"retract"模式时，仅支持使用 SequoiaDB 提供的 retract-ogg table format。retract-ogg 的使用方法与 Flink 1.15 及以上版本提供的 ogg-json 一致，只需要将 format 名称替换为 retract-ogg 即可，具体选项可参考 [Flink 官网][flink]。除 Flink 提供的参数外，SequoiaDB 新增参数 retract-ogg.table.primary-keys，用于指定源表的主键字段，多个字段间采用逗号(,)分隔，具体使用方式可参考下述示例。
-
-下述以 Kafka 作为上游数据源为例，介绍不同模式的数据更新步骤。
+在进行数据更新时，所创建的 Source 和 Sink 表必须定义主键，确保表能按主键进行 Hash Shuffle。数据更新操作根据[表配置][connection]分为"upsert"和"retract"模式，下述将以 Kafka 作为上游数据源为例，介绍不同模式的数据更新步骤。
 
 ###upsert 模式###
 
@@ -138,7 +132,7 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
     > (
     >     'connector'='sequoiadb',
     >     'hosts'='sdbServer1:11810,sdbServer2:11810,sdbServer3:11810',
-    >     'collecionspace'='sample',
+    >     'collectionspace'='sample',
     >     'collection'='employee',
     >     'writemode'='upsert',
     >     'parallelism'='4'
@@ -152,6 +146,17 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
     ```
 
 ###retract 模式###
+
+对于"retract"模式，目前仅支持 Kafka 作为上游数据源。如果 Kafka 源存在多个分区，需要将参数 sink.retract.partitioned-source 设置为 true，并通过 sink.retract.event-ts-field-name 指定事件时间字段，以保证结果的准确性。除此之外，该模式下仅支持使用 SequoiaDB 提供的 retract-ogg table format。retract-ogg 的使用方法与 Flink 1.15 及以上版本提供的 ogg-json 一致，只需要将 format 名称替换为 retract-ogg 即可，具体选项可参考 [Flink 官网][flink]。
+
+除 Flink 提供的参数外，SequoiaDB 新增以下参数进一步确保数据更新结果的正确性：
+
+| 参数名                  | 类型    | 描述           | 必填 |
+| ----------------------- | ------- | -------------- | ---- |
+| retract-ogg.table.primary-keys | string | 源表的主键字段，多个字段间采用逗号(,)分隔，如"id,name" | 是 |
+| retract-ogg.changelog.partition-policy | string | Changelog 进入多分区源（如 Kafka）时的分区规则，默认值为"p-by-aft"，可选取值如下：<br>"p-by-bef"：根据 Update 类型 Changelog before 中的主键值进行分区 <br>"p-by-aft"：根据 Update 类型 Changelog after 中的主键值进行分区 | 是 |
+
+
 
 **Kafka 单分区场景**
 
@@ -174,7 +179,7 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
     > (
     >    'connector'='kafka',
     >    'topic'='testTopic',
-    >     'properties.bootstrap.servers'='kafkaServer:9092',
+    >    'properties.bootstrap.servers'='kafkaServer:9092',
     >    'properties.group.id'='testGroup',
     >    'scan.startup.mode'='earliest-offset',
     >    'format'='retract-ogg',
@@ -199,7 +204,7 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
     > (
     >     'connector'='sequoiadb',
     >     'hosts'='sdbServer1:11810,sdbServer2:11810,sdbServer3:11810',
-    >     'collecionspace'='sample',
+    >     'collectionspace'='sample',
     >     'collection'='employee',
     >     'writemode'='retract',
     >     'parallelism'='4'
@@ -238,7 +243,8 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
     >     'properties.group.id'='testGroup',
     >     'scan.startup.mode'='earliest-offset',
     >     'format'='retract-ogg',
-    >     'retract-ogg.table.primary-keys'='id'
+    >     'retract-ogg.table.primary-keys'='id',
+    >     'retract-ogg.changelog.partition-policy'='p-by-aft'
     > );
     ```
 
@@ -259,7 +265,7 @@ Flink SQL> INSERT INTO employee VALUES (2, 'Alice', 18);
     > (
     >     'connector'='sequoiadb',
     >     'hosts'='sdbServer1:11810,sdbServer2:11810,sdbServer3:11810',
-    >     'collecionspace'='sample',
+    >     'collectionspace'='sample',
     >     'collection'='employee',
     >     'writemode'='retract',
     >     'parallelism'='4',

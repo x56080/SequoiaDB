@@ -47,6 +47,7 @@ public class CGBCanalJsonFormatFactory
         OPTIONAL_OPTIONS.add(JSON_MAP_NULL_KEY_MODE);
         OPTIONAL_OPTIONS.add(JSON_MAP_NULL_KEY_LITERAL);
         OPTIONAL_OPTIONS.add(PRIMARY_KEYS);
+        OPTIONAL_OPTIONS.add(CHANGELOG_PARTITION_POLICY);
     }
 
     /** Validator for gdb canal decoding format. **/
@@ -73,7 +74,9 @@ public class CGBCanalJsonFormatFactory
         }
         final String[] upsertKey = upsertKeyStr.split(",");
 
-        return new CGBCanalJsonDecodingFormat(ignoreParseErrors, timestampFormat, upsertKey);
+        String cPartitionPolicy = formatOptions.get(CHANGELOG_PARTITION_POLICY);
+
+        return new CGBCanalJsonDecodingFormat(ignoreParseErrors, timestampFormat, upsertKey, cPartitionPolicy);
     }
 
     @Override

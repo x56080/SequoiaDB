@@ -38,8 +38,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -63,15 +65,25 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
 
     private static final long serialVersionUID = 1L;
 
+    private static final Set<String> SUPPORTED_CHANGELOG_PARTITION_POLICIES = new HashSet<>();
+
     private static final String OP_CREATE = "I"; // insert
     private static final String OP_UPDATE = "U"; // update
     private static final String OP_DELETE = "D"; // delete
     private static final String OP_TRUNCATE = "T"; // truncate
 
+    private static final String P_BY_BEF = "p-by-bef";
+    private static final String P_BY_AFT = "p-by-aft";
+
     private static final String REPLICA_IDENTITY_EXCEPTION =
             "The \"before\" field of %s message is null, "
                     + "if you are using Ogg Postgres Connector, "
                     + "please check the Postgres table has been set REPLICA IDENTITY to FULL level.";
+
+    static {
+        SUPPORTED_CHANGELOG_PARTITION_POLICIES.add(P_BY_BEF);
+        SUPPORTED_CHANGELOG_PARTITION_POLICIES.add(P_BY_AFT);
+    }
 
     /** The deserializer to deserialize Ogg JSON data. */
     private final JsonRowDataDeserializationSchema jsonDeserializer;
@@ -88,6 +100,7 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
     /** Flag indicating whether to ignore invalid fields/rows (default: throw an exception). */
     private final boolean ignoreParseErrors;
     private final int[] upsertKeyPositions;
+    private final String cPartitionPolicy;
 
     private final int erkPos;
     private final RowType jsonRowType;
@@ -98,7 +111,8 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
             TypeInformation<RowData> producedTypeInfo,
             boolean ignoreParseErrors,
             TimestampFormat timestampFormat,
-            String[] upsertKey) {
+            String[] upsertKey,
+            String cPartitionPolicy) {
         this.jsonRowType = createJsonRowType(physicalDataType, requestedMetadata);
         this.jsonDeserializer =
                 new JsonRowDataDeserializationSchema(
@@ -126,6 +140,13 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
                                 physicalRowType));
             }
             upsertKeyPositions[i] = pos;
+        }
+
+        this.cPartitionPolicy = cPartitionPolicy;
+        if (!SUPPORTED_CHANGELOG_PARTITION_POLICIES.contains(cPartitionPolicy)) {
+            throw new SDBException(
+                    String.format("unrecognized changelog partition policy: %s",
+                            cPartitionPolicy));
         }
 
         this.erkPos = requestedMetadata
@@ -254,13 +275,34 @@ public final class OggJsonDeserializationSchema implements DeserializationSchema
             GenericRowData before, GenericRowData after, Collector<RowData> out) throws IOException {
         GenericRowData producedAft = convertToFinalRow(rootRow, after);
 
+        // if it has primary key changes, split changelog into UPDATE_PK_BEF, UPDATE_PK_AFT
         if (hasPriKeyChanges(before, after)) {
             GenericRowData producedBef = convertToFinalRow(rootRow, before);
 
+            /**
+             * Set $extra-row-kind if metadata has been defined (erkPos == -1 means
+             * It hasn't been defined).
+             *
+             * Currently, $extra-row-kind is only provided to the
+             * {@link com.sequoiadb.flink.sink.writer.SDBPartitionedSinkWriter} for use, and upstream
+             * does not need to check if it is defined.
+             */
             if (erkPos != -1) {
                 final int physicalArity = after.getArity();
                 producedBef.setField(erkPos + physicalArity, ExtraRowKind.UPDATE_PK_BEF.getCode());
                 producedAft.setField(erkPos + physicalArity, ExtraRowKind.UPDATE_PK_AFT.getCode());
+
+                if (P_BY_BEF.equals(cPartitionPolicy)) {
+                    // if update changelog is partitioned by primary-keys in before field,
+                    // UPDATE_PK_BEF is still in current pipeline, turn into a DELETE op.
+                    producedBef.setRowKind(RowKind.DELETE);
+                    producedBef.setField(erkPos + physicalArity, ExtraRowKind.DELETE.getCode());
+                } else if (P_BY_AFT.equals(cPartitionPolicy)) {
+                    // if update changelog is partitioned by primary-keys in after field,
+                    // UPDATE_PK_AFT is still in current pipeline, turn into an INSERT op.
+                    producedAft.setRowKind(RowKind.INSERT);
+                    producedAft.setField(erkPos + physicalArity, ExtraRowKind.INSERT.getCode());
+                }
             }
             out.collect(producedBef);
         }

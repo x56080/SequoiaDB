@@ -16,6 +16,8 @@
 
 package com.sequoiadb.flink.format.json.cgb;
 
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.metadata.ExtraRowKind;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.common.TimestampFormat;
@@ -25,7 +27,6 @@ import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.types.RowKind;
@@ -54,13 +55,15 @@ public class CGBCanalJsonDecodingFormat implements DecodingFormat<Deserializatio
     private final boolean ignoreParseErrors;
     private final TimestampFormat timestampFormat;
     private final String[] upsertKeys;
+    private final String cPartitionPolicy;
 
     public CGBCanalJsonDecodingFormat(
-            boolean ignoreParseErrors, TimestampFormat timestampFormat, String[] upsertKey) {
+            boolean ignoreParseErrors, TimestampFormat timestampFormat, String[] upsertKey, String cPartitionPolicy) {
         this.ignoreParseErrors = ignoreParseErrors;
         this.timestampFormat = timestampFormat;
         this.upsertKeys = upsertKey;
         this.metadataKeys = Collections.emptyList();
+        this.cPartitionPolicy = cPartitionPolicy;
     }
 
     @Override
@@ -94,7 +97,8 @@ public class CGBCanalJsonDecodingFormat implements DecodingFormat<Deserializatio
                 producedTypeInfo,
                 ignoreParseErrors,
                 timestampFormat,
-                upsertKeys);
+                upsertKeys,
+                cPartitionPolicy);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -162,7 +166,20 @@ public class CGBCanalJsonDecodingFormat implements DecodingFormat<Deserializatio
 
                     @Override
                     public Object convert(GenericRowData row, int pos) {
-                        return row.getString(pos);
+                        String opType = row.getString(pos).toString();
+                        switch (opType) {
+                            case "INSERT":
+                                return ExtraRowKind.INSERT.getCode();
+                            case "UPDATE":
+                                return ExtraRowKind.UPDATE_AFT.getCode();
+                            case "DELETE":
+                                return ExtraRowKind.DELETE.getCode();
+
+                            default:
+                                throw new SDBException(String.format(
+                                        "unsupported op type %s for cgb-canal",
+                                        opType));
+                        }
                     }
                 }),
         ;

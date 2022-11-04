@@ -44,5 +44,16 @@ public class OggJsonFormatOptions {
                     .stringType()
                     .noDefaultValue();
 
+    /**
+     * UPDATE Type Changelog's Partition Policy, default is u-by-aft
+     *  1. p-by-bef: partitioned by primary-keys in Ogg Log's before field
+     *  2. p-by-aft: partitioned by primary-keys in Ogg Log's after field
+     */
+    public static final ConfigOption<String> CHANGELOG_PARTITION_POLICY =
+            ConfigOptions
+                    .key("changelog.partition-policy")
+                    .stringType()
+                    .defaultValue("p-by-aft");
+
     private OggJsonFormatOptions() {}
 }
