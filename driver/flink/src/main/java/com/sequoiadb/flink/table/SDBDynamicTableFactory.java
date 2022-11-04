@@ -26,7 +26,9 @@ import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -128,6 +130,20 @@ public class SDBDynamicTableFactory implements DynamicTableSourceFactory, Dynami
 
         LOG.info("creating sequoiadb dynamic table sink, sink options: {}",
                 sinkOptions);
+
+        int parallelism = context
+                .getConfiguration()
+                .get(CoreOptions.DEFAULT_PARALLELISM);
+        String writeMode = sinkOptions.getWriteMode();
+        if (SDBDynamicTableSink.RETRACT.equals(writeMode) &&
+                sinkOptions.isPartitionedSource()) {
+            if (parallelism == sinkOptions.getSinkParallelism()) {
+                throw new SDBException(
+                        "In retract mode, please ensure that sink parallelism is different from " +
+                                "parallelism.default, otherwise the upstream changelog cannot " +
+                                "be shuffled by Hash(Primary Key), resulting in an incorrect final result.");
+            }
+        }
 
         return new SDBDynamicTableSink(sinkOptions, resolvedSchema);
     }

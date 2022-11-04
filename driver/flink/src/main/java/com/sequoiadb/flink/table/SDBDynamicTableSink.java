@@ -40,9 +40,9 @@ public class SDBDynamicTableSink implements DynamicTableSink {
     private static final Logger LOG = LoggerFactory.getLogger(SDBDynamicTableSink.class);
 
     // sink write mode
-    private static final String APPEND_ONLY = "append-only";
-    private static final String UPSERT = "upsert";
-    private static final String RETRACT = "retract";
+    public static final String APPEND_ONLY = "append-only";
+    public static final String UPSERT = "upsert";
+    public static final String RETRACT = "retract";
 
     private final DataType physicalDataType;
 

@@ -85,7 +85,10 @@ public class OggJsonFormatFactory
         }
         final String[] upsertKey = upsertKeyStr.split(",");
 
-        return new OggJsonDecodingFormat(ignoreParseErrors, timestampFormat, upsertKey);
+        final String cPartitionPolicy = formatOptions.get(CHANGELOG_PARTITION_POLICY);
+
+        return new OggJsonDecodingFormat(
+                ignoreParseErrors, timestampFormat, upsertKey, cPartitionPolicy);
     }
 
     @Override
@@ -148,6 +151,7 @@ public class OggJsonFormatFactory
         options.add(JSON_MAP_NULL_KEY_LITERAL);
         options.add(ENCODE_DECIMAL_AS_PLAIN_NUMBER);
         options.add(PRIMARY_KEYS);
+        options.add(CHANGELOG_PARTITION_POLICY);
         return options;
     }
 }
