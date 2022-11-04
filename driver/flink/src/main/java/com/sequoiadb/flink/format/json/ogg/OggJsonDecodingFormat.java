@@ -73,12 +73,15 @@ public class OggJsonDecodingFormat implements DecodingFormat<DeserializationSche
     private final boolean ignoreParseErrors;
     private final TimestampFormat timestampFormat;
     private final String[] upsertKeys;
+    private final String cPartitionPolicy;
 
-    public OggJsonDecodingFormat(boolean ignoreParseErrors, TimestampFormat timestampFormat, String[] upsertKey) {
+    public OggJsonDecodingFormat(
+            boolean ignoreParseErrors, TimestampFormat timestampFormat, String[] upsertKey, String cPartitionPolicy) {
         this.ignoreParseErrors = ignoreParseErrors;
         this.timestampFormat = timestampFormat;
         this.upsertKeys = upsertKey;
         this.metadataKeys = Collections.emptyList();
+        this.cPartitionPolicy = cPartitionPolicy;
     }
 
     @Override
@@ -112,7 +115,8 @@ public class OggJsonDecodingFormat implements DecodingFormat<DeserializationSche
                 producedTypeInfo,
                 ignoreParseErrors,
                 timestampFormat,
-                upsertKeys);
+                upsertKeys,
+                cPartitionPolicy);
     }
 
     // --------------------------------------------------------------------------------------------

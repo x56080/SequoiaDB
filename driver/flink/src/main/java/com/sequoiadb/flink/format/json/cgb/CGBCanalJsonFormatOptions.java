@@ -40,5 +40,11 @@ public class CGBCanalJsonFormatOptions {
                     .stringType()
                     .noDefaultValue();
 
+    public static final ConfigOption<String> CHANGELOG_PARTITION_POLICY =
+            ConfigOptions
+                    .key("changelog.partition-policy")
+                    .stringType()
+                    .defaultValue("p-by-aft");
+
     private CGBCanalJsonFormatOptions() {}
 }

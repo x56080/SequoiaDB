@@ -5,7 +5,9 @@ import com.sequoiadb.base.result.UpdateResult;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.client.SDBClientProvider;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.common.metadata.ExtraRowKind;
+import com.sequoiadb.flink.config.SDBConfigOptions;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.sink.state.EventState;
@@ -33,6 +35,10 @@ import java.util.stream.Stream;
 
 import static com.sequoiadb.flink.sink.writer.SDBPartitionedSinkWriter.ReadableMetadata.EXTRA_ROW_KIND;
 
+/**
+ * SDBPartitionedSinkWriter supports consuming changelogs in multi partitions, such as
+ * Kafka multi partitions in the topic.
+ */
 public class SDBPartitionedSinkWriter
         implements SinkWriter<RowData, Void, Map<BSONObject, EventState>> {
 
@@ -40,21 +46,40 @@ public class SDBPartitionedSinkWriter
 
     private static final String MODIFIER_SET = "$set";
 
+    private static final int MAX_TIMESTAMP_PRECISION = 9;
+
     private final String[] upsertKeys;
     private final int[] metadataPositions;
 
     private final String eventTsFieldName;
     private final int eventTsPos;
 
+    /**
+     * Notes:
+     *   All state is exclusively owned by per Writer, not shared among Writers.
+     *   So concurrency control is not required.
+     */
+
+    /** stateMap is to keep the latest primary key change time of each record **/
     private Map<BSONObject, EventState> stateMap = new ConcurrentHashMap<>();
+
+    /**
+     * blockedMap is to keep those changelogs which can not apply to SequoiaDB.
+     * For example,
+     *  1. waiting for late update_pk_aft(insert) changelog
+     *  2. waiting for late update_pk_bef(delete) changelog
+     *
+     *  So queue those changelogs until late changelog arrives.
+     */
     private final Map<BSONObject,
-            Queue<Tuple3<RowKind, BSONObject, TimestampData>>> blockedMap = new HashMap<>();
+            Deque<Tuple3<RowKind, BSONObject, TimestampData>>> blockedMap = new HashMap<>();
 
     private final SDBDataConverter converter;
     private final SDBSinkOptions sinkOptions;
 
     private transient final SDBClientProvider provider;
 
+    // using async thread pool for state cleanup
     private transient ScheduledExecutorService stateCleanupDaemon;
     private transient ScheduledFuture cleanupFuture;
 
@@ -62,10 +87,22 @@ public class SDBPartitionedSinkWriter
             SDBDataConverter converter, SDBSinkOptions sinkOptions, List<Map<BSONObject, EventState>> states) {
         this.upsertKeys = sinkOptions.getUpsertKey();
         this.eventTsFieldName = sinkOptions.getEventTsFieldName();
+        if (eventTsFieldName == null || "".equals(eventTsFieldName)) {
+            throw new SDBException(
+                    String.format("%s must be specified, can not be null or empty.",
+                            SDBConfigOptions.SINK_RETRACT_EVENT_TS_FIELD_NAME
+                                    .toString()));
+        }
 
         RowType rowType = converter.getRowType();
         this.metadataPositions = getMetadataPositions(rowType);
         this.eventTsPos = getEventTsPos(rowType);
+        if (eventTsPos < 0) {
+            throw new SDBException(
+                    String.format("event timestamp field [%s] are not in %s.",
+                            eventTsFieldName,
+                            converter.getRowType().asSummaryString()));
+        }
 
         this.provider = SDBClientProvider.builder()
                 .withHosts(sinkOptions.getHosts())
@@ -78,13 +115,19 @@ public class SDBPartitionedSinkWriter
         this.converter = converter;
         this.sinkOptions = sinkOptions;
 
-        if (!states.isEmpty()) {
+        if (!states.isEmpty()) { // if last state is not empty, recover from it.
             this.stateMap = new ConcurrentHashMap<>(states.get(0));
+
+            // considering that the job may fail and retry.
+            // when job recovers from last checkpoint's state, it is necessary
+            // to reset the processing time of all states.
+            LocalDateTime now = LocalDateTime.now();
             this.stateMap.forEach((pk, state) -> {
-                state.setProcessingTime(TimestampData.fromLocalDateTime(LocalDateTime.now()));
+                state.setProcessingTime(TimestampData.fromLocalDateTime(now));
             });
         }
 
+        // stateTtl is less or equal than zero means state will be never clean up.
         if (sinkOptions.getStateTtl() > 0) {
             final int stateTtl = sinkOptions.getStateTtl();
             this.stateCleanupDaemon =
@@ -93,16 +136,25 @@ public class SDBPartitionedSinkWriter
             this.cleanupFuture =
                     stateCleanupDaemon.scheduleAtFixedRate(
                             () -> {
+                                /**
+                                 * There is no need to consider concurrency control.
+                                 * 1. ConcurrentHashMap can avoid write-write conflicts
+                                 * 2. For read-write conflict, reader will only see
+                                      an expired state, just like the state not being cleaned up in time.
+                                 * So It can be ignored.
+                                 */
                                 Iterator<Map.Entry<BSONObject, EventState>> iterator = stateMap
                                         .entrySet()
                                         .iterator();
+
+                                LocalDateTime currSysTime = LocalDateTime.now();
                                 while (iterator.hasNext()) {
                                     Map.Entry<BSONObject, EventState> entry = iterator.next();
 
                                     LocalDateTime processingTime = entry.getValue()
                                             .getProcessingTime()
                                             .toLocalDateTime();
-                                    Duration duration = Duration.between(processingTime, LocalDateTime.now());
+                                    Duration duration = Duration.between(processingTime, currSysTime);
                                     if (duration.toMinutes() > stateTtl) {
                                         iterator.remove();
                                     }
@@ -135,43 +187,67 @@ public class SDBPartitionedSinkWriter
         }
     }
 
-    private boolean checkIfOutOfDate(
+    /**
+     * check if changelog is expired
+     *
+     * @param matcher
+     * @param currentEventTs
+     * @return
+     */
+    private boolean checkIfExpired(
             BSONObject matcher, TimestampData currentEventTs) {
-        EventState state = stateMap.get(matcher);
+        EventState latestState = stateMap.get(matcher);
 
-        if (state != null) {
-            TimestampData latestUpdatePkTs = state.getEventTime();
-            if (currentEventTs.compareTo(latestUpdatePkTs) <= 0) {
-                return true;
-            }
+        if (latestState == null) {
+            return false;
         }
-        return false;
+
+        return currentEventTs
+                .compareTo(latestState.getEventTime()) <= 0;
     }
 
-    // ============ Handle Func ================
+    // ===================================================
+    //                Changelog Handler
+    // ===================================================
 
+    /**
+     * handle INSERT changelog,
+     *
+     * 1. check if expired
+     * 2. append to queue if it is already blocked
+     * 3. try to write changelog to SequoiaDB, append to blocking queue if failed
+     *
+     * @param changelog
+     */
     private void handleInsert(RowData changelog) {
         BSONObject record = converter
                 .toExternal(changelog, sinkOptions.getIgnoreNullField());
         BSONObject matcher = createMatcher(record);
         TimestampData currEventTs = readEventTs(changelog);
 
-        if (checkIfOutOfDate(matcher, currEventTs)) {
+        // discard if changelog is expired
+        if (checkIfExpired(matcher, currEventTs)) {
             return;
         }
 
+        // if corresponding queue is already exists, then append current changelog
+        // directly to the blocking queue.
         if (blockedMap.containsKey(matcher)) {
             blockedMap.get(matcher)
                       .offer(new Tuple3<>(RowKind.INSERT, record, currEventTs));
             return;
         }
 
+        // try to insert changelog to SequoiaDB, if -38(duplicate key exists occurs)
+        // occurs, means that missing a delay UPDATE_PK_BEF(delete).
+        // So, we need to append current changelog to blocking queue.
         try {
             provider.getCollection()
                     .insertRecord(record);
         } catch (BaseException ex) {
             if (ex.getErrorCode() == SDBError.SDB_IXM_DUP_KEY.getErrorCode()) {
-                Queue<Tuple3<RowKind, BSONObject, TimestampData>> blockedChangelogs = blockedMap.get(matcher);
+                Deque<Tuple3<RowKind, BSONObject, TimestampData>> blockedChangelogs = blockedMap.get(matcher);
+                // init blocking queue
                 if (blockedChangelogs == null) {
                     blockedChangelogs = new ArrayDeque<>();
                     blockedMap.put(matcher, blockedChangelogs);
@@ -183,27 +259,43 @@ public class SDBPartitionedSinkWriter
         }
     }
 
+    /**
+     * handle UPDATE changelog,
+     *
+     * 1. check if expired
+     * 2. append to queue if it is already blocked
+     * 3. try to write changelog to SequoiaDB, append to blocking queue if failed
+     *
+     * @param changelog
+     */
     private void handleUpdate(RowData changelog) {
         BSONObject record = converter
                 .toExternal(changelog, sinkOptions.getIgnoreNullField());
         BSONObject matcher = createMatcher(record);
         TimestampData currEventTs = readEventTs(changelog);
 
-        if (checkIfOutOfDate(matcher, currEventTs)) {
+        // discard if changelog is expired
+        if (checkIfExpired(matcher, currEventTs)) {
             return;
         }
 
+        // if corresponding queue is already exists, then append current changelog
+        // directly to the blocking queue.
         if (blockedMap.containsKey(matcher)) {
             blockedMap.get(matcher)
                       .offer(new Tuple3<>(RowKind.UPDATE_AFTER, record, currEventTs));
             return;
         }
 
+        // try to update record in SequoiaDB, if it doesn't match a record
+        // (ModifiedNum == 0), means that missing a delay UPDATE_PK_AFT(insert).
+        // So, we need to append current changelog to blocking queue.
         UpdateResult result = provider
                 .getCollection()
                 .updateRecords(matcher, createModifier(MODIFIER_SET, record));
         if (0 == result.getModifiedNum()) {
-            Queue<Tuple3<RowKind, BSONObject, TimestampData>> blockedChangelogs = blockedMap.get(matcher);
+            Deque<Tuple3<RowKind, BSONObject, TimestampData>> blockedChangelogs = blockedMap.get(matcher);
+            // init blocking queue
             if (blockedChangelogs == null) {
                 blockedChangelogs = new ArrayDeque<>();
                 blockedMap.put(matcher, blockedChangelogs);
@@ -212,13 +304,22 @@ public class SDBPartitionedSinkWriter
         }
     }
 
+    /**
+     * handle DELETE changelog,
+     *
+     * 1. check if expired
+     * 2. append to queue if it is already blocked
+     * 3. try to write changelog to SequoiaDB, append to blocking queue if failed
+     *
+     * @param changelog
+     */
     private void handleDelete(RowData changelog) {
         BSONObject record = converter
                 .toExternal(changelog, sinkOptions.getIgnoreNullField());
         BSONObject matcher = createMatcher(record);
         TimestampData currEventTs = readEventTs(changelog);
 
-        if (checkIfOutOfDate(matcher, currEventTs)) {
+        if (checkIfExpired(matcher, currEventTs)) {
             return;
         }
 
@@ -227,11 +328,15 @@ public class SDBPartitionedSinkWriter
                       .offer(new Tuple3<>(RowKind.DELETE, record, currEventTs));
         }
 
+        // try to delete record in SequoiaDB, if it doesn't match a record
+        // (DeletedNum == 0), means that missing a delay UPDATE_PK_AFT(insert).
+        // So, we need to append current changelog to blocking queue.
         DeleteResult result = provider
                 .getCollection()
                 .deleteRecords(matcher);
         if (0 == result.getDeletedNum()) {
-            Queue<Tuple3<RowKind, BSONObject, TimestampData>> blockedChangelogs = blockedMap.get(matcher);
+            Deque<Tuple3<RowKind, BSONObject, TimestampData>> blockedChangelogs = blockedMap.get(matcher);
+            // init blocking queue
             if (blockedChangelogs == null) {
                 blockedChangelogs = new ArrayDeque<>();
                 blockedMap.put(matcher, blockedChangelogs);
@@ -240,7 +345,16 @@ public class SDBPartitionedSinkWriter
         }
     }
 
-    // ================ pk update handler ===============
+    // ===================================================
+    //        UPDATE_PK_BEF, UPDATE_PK_AFT handler
+    // ===================================================
+
+    /**
+     * handle UPDATE_PK_BEF, UPDATE_PK_AFT changelog
+     *
+     * @param rowKind
+     * @param changelog
+     */
     private void handlePkUpdate(ExtraRowKind rowKind, RowData changelog) {
         BSONObject record = converter
                 .toExternal(changelog, sinkOptions.getIgnoreNullField());
@@ -250,12 +364,20 @@ public class SDBPartitionedSinkWriter
         if (stateMap.containsKey(matcher)) {
             TimestampData latestUpdatePkTs = stateMap.get(matcher)
                     .getEventTime();
+            /**
+             * discard expired record, time equation can not be ruled out for now.
+             * because when processing UPDATE_PK_BEF, UPDATE_PK_AFT, the writer
+             * will update stateMap firstly, then write to SequoiaDB (not an atomic op).
+             * So the writer still need to write the record once again when recovering
+             * from checkpoint.
+             */
             if (currEventTs.compareTo(latestUpdatePkTs) < 0) {
                 return;
             }
         }
 
-        // update event timestamp
+        // update event state, including the latest update pk time, and processing time.
+        // using write ahead policy.
         EventState state = new EventState(currEventTs,
                 TimestampData.fromLocalDateTime(LocalDateTime.now()));
         stateMap.put(matcher, state);
@@ -272,45 +394,55 @@ public class SDBPartitionedSinkWriter
         flushBlockedQueue(matcher);
     }
 
+    /**
+     * flush the blocking queue corresponding to the given matcher
+     *
+     * @param matcher
+     */
     private void flushBlockedQueue(BSONObject matcher) {
-        Queue<Tuple3<RowKind, BSONObject, TimestampData>> blockedQueue = blockedMap.get(matcher);
-        if (blockedQueue == null) {
+        Deque<Tuple3<RowKind, BSONObject, TimestampData>> blockedQueue = blockedMap.get(matcher);
+        if (blockedQueue == null || blockedQueue.isEmpty()) {
             return;
         }
 
+        /**
+         * The changelogs in blocking queue is sequential and full-column,
+         * replay the last changelog directly is the same as replaying all changelogs
+         * in sequence.
+         * So here just need to replay the last changelog in blocking queue.
+         */
+        Tuple3<RowKind, BSONObject, TimestampData> tuple = blockedQueue.getLast();
+
+        // discard if the latest changelog in blocking queue is expired
         EventState state = stateMap.get(matcher);
         if (state != null) {
             TimestampData latestUpdatePkTs = state.getEventTime();
-            while (!blockedQueue.isEmpty() &&
-                    blockedQueue.peek().f2.compareTo(latestUpdatePkTs) < 0) {
-                // skip expired records
-                blockedQueue.poll();
+            if (tuple.f2.compareTo(latestUpdatePkTs) < 0) {
+                // all changelogs are expired,
+                // remove the whole blocking queue from the map.
+                blockedMap.remove(matcher);
+                return;
             }
         }
 
-        while (!blockedQueue.isEmpty()) {
-            Tuple3<RowKind, BSONObject, TimestampData> tuple = blockedQueue.poll();
-            BSONObject record = tuple.f1;
+        // write latest changelog in blocking queue
+        BSONObject record = tuple.f1;
+        switch (tuple.f0) {
+            case INSERT:
+            case UPDATE_AFTER:
+                provider.getCollection()
+                        .upsertRecords(matcher, createModifier(MODIFIER_SET, record));
+                break;
 
-            // tuple.f0 -> row kind (op type) of this record
-            switch (tuple.f0) {
-                case INSERT:
-                    provider.getCollection()
-                            .insertRecord(record);
-                    break;
-
-                case UPDATE_AFTER:
-                    provider.getCollection()
-                            .updateRecords(matcher, createModifier(MODIFIER_SET, record));
-                    break;
-
-                case UPDATE_BEFORE:
-                case DELETE:
-                    provider.getCollection()
-                            .deleteRecords(matcher);
-                    break;
-            }
+            case UPDATE_BEFORE:
+            case DELETE:
+                provider.getCollection()
+                        .deleteRecords(matcher);
+                break;
         }
+
+        // remove blocking queue from blockedMap
+        blockedMap.remove(matcher);
     }
 
     private BSONObject createMatcher(BSONObject record) {
@@ -333,7 +465,13 @@ public class SDBPartitionedSinkWriter
         return Lists.newArrayList();
     }
 
-    // checkpoint
+    /**
+     * snapshot current state, add to checkpoint
+     *
+     * @param checkpointId
+     * @return
+     * @throws IOException
+     */
     @Override
     public List<Map<BSONObject, EventState>> snapshotState(long checkpointId)
             throws IOException {
@@ -398,6 +536,14 @@ public class SDBPartitionedSinkWriter
                 .toArray();
     }
 
+    /**
+     * read metadata from row data by metadata definition
+     *
+     * @param rowData
+     * @param metadata
+     * @return
+     * @param <T>
+     */
     private <T> T readMetadata(RowData rowData, ReadableMetadata metadata) {
         final int pos = metadataPositions[metadata.ordinal()];
         if (pos < 0) {
@@ -416,7 +562,9 @@ public class SDBPartitionedSinkWriter
     }
 
     private TimestampData readEventTs(RowData changelog) {
-        return changelog.getTimestamp(eventTsPos, 9);
+        return changelog.getTimestamp(
+                eventTsPos,
+                MAX_TIMESTAMP_PRECISION); // always get it with maximum precision
     }
 
 }
