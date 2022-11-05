@@ -26,9 +26,8 @@ using namespace engine ;
 TEST( utilStrTest, strToLower )
 {
    const CHAR *testStr = "TEST_STR_TO_LOWER" ;
-   UINT32 size = ossStrlen( testStr ) + 1 ;
-   CHAR result[size] ;
-   utilStrToLower( testStr, result, size ) ;
+   CHAR result[30] = { 0 } ;
+   utilStrToLower( testStr, result, sizeof( result ) ) ;
    ASSERT_STREQ( result, "test_str_to_lower" ) ;
 }
 
@@ -36,8 +35,7 @@ TEST( utilStrTest, strToLower )
 TEST( utilStrTest, strToUpper )
 {
    const CHAR *testStr = "test_str_to_upper" ;
-   UINT32 size = ossStrlen( testStr ) + 1 ;
-   CHAR result[size] ;
-   utilStrToUpper( testStr, result, size ) ;
+   CHAR result[30] = { 0 } ;
+   utilStrToUpper( testStr, result, sizeof( result) ) ;
    ASSERT_STREQ( result, "TEST_STR_TO_UPPER" ) ;
 }
