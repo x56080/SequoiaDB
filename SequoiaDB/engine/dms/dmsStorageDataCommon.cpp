@@ -3325,6 +3325,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to copy indexes for collection [%s], "
                    "rc: %d", newName, rc ) ;
 
+      // copy the monitor metrics
+      tmpMBContext->mbStat()->_crudCB.set( oldMBContext->mbStat()->_crudCB ) ;
+
       for ( ossPoolVector< BSONObj >::iterator iter = droppedIndexList.begin() ;
             iter != droppedIndexList.end() ;
             ++ iter )
