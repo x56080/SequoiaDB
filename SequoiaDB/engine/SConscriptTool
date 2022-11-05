@@ -243,7 +243,8 @@ utilFiles = [
       "util/utilIniParserEx.cpp",
       "util/utilAuthSCRAMSHA.cpp",
       "util/base64.cpp",
-      "util/utilSecure.cpp"
+      "util/utilSecure.cpp",
+      "util/utilTool.cpp"
       ]
 
 dpsFiles = [
