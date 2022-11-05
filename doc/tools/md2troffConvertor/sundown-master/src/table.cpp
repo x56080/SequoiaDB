@@ -261,7 +261,7 @@ size_t _char_to_word(string &text, vector<string> &output)
     return output.size();
 }
 
-size_t _split_word(vector<string> &input, vector<string> &output)
+void _split_word(vector<string> &input, vector<string> &output)
 {
     vector<string>::iterator it ;
     string temp ;
