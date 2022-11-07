@@ -41,6 +41,7 @@
 #include "vessel/collectionOptions.h"
 #include "vessel/bufferPoolOptions.h"
 #include "vessel/lsm/lsmDBOptions.h"
+#include "vessel/hitRateLimitOptions.h"
 
 namespace engine
 {
@@ -95,6 +96,7 @@ namespace vessel
 
          lobcBufferPoolOptions lobcPoolOptions;
          lsmDBOptions lsmOptions;
+         hitRateLimitOptions limitOptions;
    }; /// end of class openDBOptions
 
    class closeDBOptions : public SDBObject

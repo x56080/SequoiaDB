@@ -979,6 +979,32 @@ namespace vessel
       goto done;
    }
 
+   INT32 lsmDB::getSSTCount(LSM_CF_ID id, UINT32 &sstCount)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::ColumnFamilyMetaData meta;
+      sstCount = 0;
+
+      if (OSS_UNLIKELY(LSM_CF_INVALID == id))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      _db->GetColumnFamilyMetaData(_getHandle(id), &meta);
+      sstCount = meta.file_count;
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 ////////////////////////////////
    lsmColumnFamily GET_HYBRID_INDEX_COLUMN_FAMILY()
    {

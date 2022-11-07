@@ -128,6 +128,8 @@ namespace vessel
 
          INT32 removeSST(const std::string &name);
 
+         INT32 getSSTCount(LSM_CF_ID id, UINT32 &sstCount);
+
       private:
          rocksdb::ColumnFamilyDescriptor _getDescriptor(LSM_CF_ID id,
                                           const rocksdb::Options &opt) const;

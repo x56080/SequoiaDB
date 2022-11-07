@@ -157,6 +157,8 @@ namespace vessel
          goto error;
       }
 
+      _env.hitMgr.setLimiter(options.limitOptions);
+
       rc = activeBackgroundThreads(options);
       if (SDB_OK != rc)
       {

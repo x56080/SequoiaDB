@@ -85,6 +85,8 @@ namespace vessel
                      BOOLEAN dirIncluded,
                      BOOLEAN creationAsc,
                      ossPoolVector<std::string> &ssts);
+      
+      INT32 getSSTCount(UINT32 &sstCount);
 
    private:
       lsmDB *_db = nullptr;

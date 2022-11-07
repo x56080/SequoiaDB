@@ -188,5 +188,27 @@ namespace vessel
       goto done;
    }
 
+   INT32 lsmColumnFamily::getSSTCount(UINT32 &sstCount)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _db->getSSTCount(_cfId, sstCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "get sst file count failed, rc:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 } // namespace vessel
 } // namespace engine

@@ -87,6 +87,7 @@ namespace vessel
       _filesToTransfer.clear();
       _job.reset();
       _status = _STATUS::DEACTIVED;
+      _limiter.reset();
    }
 
    void hitIndexManager::attach()
@@ -100,6 +101,10 @@ namespace vessel
       
       PD_LOG(PDINFO, "hit manager attached");
       _status = _STATUS::STANDBY;
+
+      lsmColumnFamily cf = GET_HYBRID_INDEX_COLUMN_FAMILY();
+      UINT32 timeout = 1000;
+      std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
       do
       {
@@ -144,6 +149,17 @@ namespace vessel
          {
             /// not standby or quiting, do nothing.
          }
+
+         // get sst count and adjust rate limiter after 1000ms timeout.
+         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+         if ((end - start).count() >= timeout)
+         {
+            UINT32 sstCount = 0;
+            cf.getSSTCount(sstCount);
+            _limiter.adjustSleepTime(sstCount);
+            start = end;
+         }
+
       } while (!_isDeactived());
       
       _job.reset();
@@ -872,6 +888,15 @@ namespace vessel
       goto done;
    }
 
+   INT32 hitIndexManager::setLimiter(const hitRateLimitOptions &o)
+   {
+      return _limiter.set(o);
+   }
+
+   void hitIndexManager::limitRate() const
+   {
+      _limiter.limitRate();
+   }
 
 //////////////////////////_csTransferJob
    hitIndexManager::_csTransferJob::_csTransferJob(_csTransferJob &&o) noexcept :
