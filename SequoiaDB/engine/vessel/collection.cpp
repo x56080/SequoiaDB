@@ -719,6 +719,13 @@ namespace vessel
 
       context->setIndexReqCount(ra.getSize());
 
+      if (!ra.isEmpty())
+      {
+         // Block the write thread through sleep function to limit index write rate.
+         // Avoid read performance degradation caused by too many sst files.
+         context->getEnv()->hitMgr.limitRate();
+      }
+
       rc = insertRecordData(context, request);
       if (SDB_OK != rc)
       {
@@ -799,7 +806,7 @@ namespace vessel
       guard.autoLock();
       context->setClProperties(_entryBlock.getProperties());
       context->setStripingId(request.o.stripingId);
-      
+
       rc = lockAndFetchRecordToModify(context, request.rid);
       if (SDB_OK != rc)
       {
@@ -849,6 +856,13 @@ namespace vessel
       }
 
       newRecord.reset(updater->getResultRecordSize(), updater->getResultRecord());
+
+      if (!ra.isEmpty())
+      {
+         // Block the write thread through sleep function to limit index write rate.
+         // Avoid read performance degradation caused by too many sst files.
+         context->getEnv()->hitMgr.limitRate();
+      }
 
       rc = updateRecordData(context, newRecord);
       if (SDB_OK != rc)
@@ -942,6 +956,13 @@ namespace vessel
             PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
             goto error;
          }
+      }
+
+      if (!ra.isEmpty())
+      {
+         // Block the write thread through sleep function to limit index write rate.
+         // Avoid read performance degradation caused by too many sst files.
+         context->getEnv()->hitMgr.limitRate();
       }
 
       rc = removeRecordData(context);
@@ -3354,6 +3375,10 @@ namespace vessel
                   goto error;
                }
             }
+
+            // Block the write thread through sleep function to limit index write rate.
+            // Avoid read performance degradation caused by too many sst files.
+            context->getEnv()->hitMgr.limitRate();
 
             rc = hit.insert(context, obj, keySet, obj->getRebornLSN(),
                             rid, scanner.getCurrentTransID());

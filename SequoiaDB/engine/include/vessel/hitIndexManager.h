@@ -42,6 +42,8 @@
 #include "vessel/backgroundEvent.h"
 #include "vessel/backgroundWorkers.h"
 #include "vessel/lpsPteWriteBatch.h"
+#include "vessel/hitRateLimiter.h"
+
 
 #include <atomic>
 
@@ -69,6 +71,10 @@ namespace vessel
       public:/// callback functions!
          void attach();
          INT32 executeTask(UINT32 taskId);
+
+      public:
+         INT32 setLimiter(const hitRateLimitOptions &o);
+         void limitRate() const;
 
       private:
          using _FILE_VEC = ossPoolVector<std::string>;
@@ -232,6 +238,7 @@ namespace vessel
          _fileTransferJob _job;
 
          backgroundWorkers _workers;
+         hitRateLimiter _limiter;
    };//hitIndexManager
 } // namespace vessel
 
