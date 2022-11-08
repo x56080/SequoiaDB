@@ -2166,7 +2166,7 @@ namespace engine
       BOOLEAN syncSpecCS = FALSE ;
       UINT32 syncCSNum = 0 ;
 
-      if ( !dpsCB || !dpsCB )
+      if ( !dpsCB || !dmsCB )
       {
          /// do nothing
          goto done ;
