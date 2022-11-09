@@ -212,7 +212,7 @@ namespace vessel
       }
       else if (!_scanner.clearBit(offset))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -529,7 +529,7 @@ namespace vessel
          ossScopedLock guard(_latch);
          if (pageId < (INT32)(_o.bitmapBeginPage))
          {
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
          else if (_pages.size() <= getRealPos(pageId))
@@ -574,7 +574,7 @@ namespace vessel
 
          if (pageId < (INT32)(_o.bitmapBeginPage))
          {
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
          else if (_pages.size() <= getRealPos(pageId))
@@ -587,7 +587,7 @@ namespace vessel
          if (NULL == page)
          {
             PD_LOG(PDERROR, "page obj is not valid at[%d]", pageId);
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
 

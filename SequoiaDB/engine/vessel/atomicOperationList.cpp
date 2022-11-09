@@ -84,7 +84,7 @@ namespace vessel
       else if (isReadonly())
       {
          SDB_ASSERT(FALSE, "impossible");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 

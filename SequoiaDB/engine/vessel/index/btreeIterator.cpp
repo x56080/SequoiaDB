@@ -267,7 +267,7 @@ namespace vessel
              (!forPrev && cmp > 0))
          {
             PD_LOG(PDERROR, "invalid advanced key string");
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
       }

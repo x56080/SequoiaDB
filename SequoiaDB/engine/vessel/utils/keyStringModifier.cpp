@@ -96,13 +96,13 @@ namespace vessel
       if (!force && !rid.isValid())
       {
          PD_LOG(PDERROR, "can not modify invalid rid unforced");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (rid.isMaxRid())
       {
          PD_LOG(PDERROR, "already been max rid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       rid.setPos(rid.getPos() + 1);
@@ -146,13 +146,13 @@ namespace vessel
       if (!force && !rid.isValid())
       {
          PD_LOG(PDERROR, "can not modify invalid rid unforced");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (rid.isMinRid())
       {
          PD_LOG(PDERROR, "already been min rid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       rid.setPos(rid.getPos() - 1);

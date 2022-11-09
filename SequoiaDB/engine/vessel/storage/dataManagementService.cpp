@@ -345,9 +345,8 @@ namespace vessel
 
       /// dummy log
       jpad.setType(LOG_TYPE_CS_CRT);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, o, &jres);
+      rc = journal->write(context->getExecutor(), jrequest, o, &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -1207,7 +1206,7 @@ namespace vessel
       if (!_suAllocator.test(sid))
       {
          PD_LOG(PDERROR, "sid[%d] already been occupied");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1439,7 +1438,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "page size[%d] does not match storage page size[%d",
                    *pageSize, psz);
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
       }

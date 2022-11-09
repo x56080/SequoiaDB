@@ -76,7 +76,7 @@ namespace vessel
                _chain.back().size != _chain.back().getCapacity(_pageSize))
       {
          PD_LOG(PDERROR, "the size and capacity of pre extent should be same");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (MAX_LOB_CHUNK_SIZE < (_size + desc.size))

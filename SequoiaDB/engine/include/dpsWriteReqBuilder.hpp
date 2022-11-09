@@ -41,6 +41,7 @@
 #include "ossLikely.hpp"
 #include "dpsTrivialElement.hpp"
 #include "utilBufferBuilder.hpp"
+#include "dpsRecordElements.hpp"
 
 #include <limits>
 
@@ -59,11 +60,15 @@ namespace engine
          void reset();
          OSS_INLINE void setType(DPS_LOG_TYPE type) {_type = type;}
          OSS_INLINE DPS_LOG_TYPE getType()const {return _type;}
-         OSS_INLINE void setFlag(UINT32 flag) {OSS_BIT_SET(_flags, flag);}
+         OSS_INLINE void setFlag(UINT16 flag) {OSS_BIT_SET(_flags, flag);}
+         OSS_INLINE void overwriteFlags(UINT16 flags) {_flags = flags;}
          OSS_INLINE UINT16 getFlags()const {return _flags;}
 
          /// return owned request and reset builder.
          dpsWriteRequest reap();
+
+         dpsRecordElements peekElements() const ;
+
       public:
          ///WARNING: the data size is according to the exact type of T.
          template<typename T>
@@ -97,8 +102,11 @@ namespace engine
          BOOLEAN _isTagDuplicated(DPS_TAG tag)const;
          OSS_INLINE UINT32 _getElementBufferSize(UINT32 valSize)const
          {
-            return sizeof(dpsRecordEle) + valSize;
+            /// always reserve one more byte to save ending tag.
+            return sizeof(dpsRecordEle) + valSize + sizeof(DPS_TAG);
          }
+
+         void _appendEndTag();
 
       private:
          DPS_LOG_TYPE _type = LOG_TYPE_DUMMY;

@@ -146,7 +146,8 @@ namespace engine
                                     DPS_LSN *expectedLSN,
                                     DPS_LSN *committedLSN ) override ;
 
-         virtual INT32 write( const dpsWriteRequest &request,
+         virtual INT32 write( IExecutor *executor,
+                              const dpsWriteRequest &request,
                               const dpsWriteOptions &o,
                               dpsLogRecordHeader *result ) override ;
 

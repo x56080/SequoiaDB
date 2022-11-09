@@ -147,7 +147,7 @@ namespace vessel
       else if (OSS_UNLIKELY(isSpaceIdLocked()))
       {
          SDB_ASSERT(FALSE, "do not relock sid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -181,7 +181,7 @@ namespace vessel
       else if (OSS_UNLIKELY(isSpaceIdLocked()))
       {
          SDB_ASSERT(FALSE, "do not relock sid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -326,7 +326,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -364,7 +364,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 

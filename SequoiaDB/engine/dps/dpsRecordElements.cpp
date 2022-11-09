@@ -50,7 +50,7 @@ namespace engine
    _buf( buf.get() ),
    _owner( std::move(buf) )
    {
-      SDB_ASSERT( 0 == _size || nullptr != _buf, "can not be invalid" ) ;
+      SDB_ASSERT( nullptr != _buf, "can not be invalid" ) ;
    }
 
    _dpsRecordElements::_dpsRecordElements( const CHAR *buf,
@@ -60,7 +60,7 @@ namespace engine
    _elementNum( num ),
    _buf( buf )
    {
-      SDB_ASSERT( 0 == _size || nullptr != _buf, "can not be invalid" ) ;
+      SDB_ASSERT( nullptr != _buf, "can not be invalid" ) ;
    }
 
    _dpsRecordElements::_dpsRecordElements( _dpsRecordElements &&o ) noexcept :
@@ -128,7 +128,6 @@ namespace engine
          return 0 ;
       }
    }
-
    
    _dpsRecordElements::iterator _dpsRecordElements::begin() const
    {

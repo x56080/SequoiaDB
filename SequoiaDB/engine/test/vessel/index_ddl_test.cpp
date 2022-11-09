@@ -898,7 +898,7 @@ void thread_interference_remove(vesselImpl *db,
       rc = handler->removeIndex(&session, indexName.c_str());
       if (SDB_OK == rc || 
           SDB_IXM_NOTEXIST == rc ||
-          SDB_VESSEL_OPERATOION_NOT_PERMITTED == rc)
+          SDB_INVALID_OPERATION == rc)
       {
          continue;
       }

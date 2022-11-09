@@ -2876,7 +2876,7 @@ namespace vessel
       if (totalLvl0Count < minCount)
       {
          PD_LOG(PDERROR, "invalid totalLvl0Count[%d]", totalLvl0Count);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (getMaxLvl0Cnt(capacity) < totalLvl0Count)

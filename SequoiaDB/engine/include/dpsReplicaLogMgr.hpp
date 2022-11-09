@@ -200,9 +200,10 @@ namespace engine
       // secondary step: write data to pages
       void  writeData ( dpsMergeInfo &info ) ;
 
-      INT32 write(const dpsWriteRequest &request,
-                  const dpsWriteOptions &o,
-                  dpsLogRecordHeader *result) ;
+      INT32 write( IExecutor *executor,
+                   const dpsWriteRequest &request,
+                   const dpsWriteOptions &o,
+                   dpsLogRecordHeader *result ) ;
 
       INT32 search( const DPS_LSN &minLsn, _dpsMessageBlock *mb,
                     UINT8 type, BOOLEAN onlyHeader,
@@ -385,8 +386,8 @@ namespace engine
       void _writeToBuffer( dpsWriteContext &ctx ) ;
 
       void _writeToBuffer( const dpsLogRecordHeader &header,
-                           const dpsPageMeta &pm,
-                           const dpsWriteRequest *req) ;
+                           const utilSlice &body,
+                           const dpsPageMeta &pm ) ;
    };
    typedef class _dpsReplicaLogMgr dpsReplicaLogMgr;
 }

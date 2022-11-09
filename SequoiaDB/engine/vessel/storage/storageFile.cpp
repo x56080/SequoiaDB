@@ -79,7 +79,7 @@ namespace vessel
       {
          /// Do not open file with shadow suffix.
          /// User should rename it to formal file first.
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -543,7 +543,7 @@ namespace vessel
       else if (OSS_UNLIKELY(!isSegmentMmaped()))
       {
          SDB_ASSERT(FALSE, "not a mmap file");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -662,7 +662,7 @@ namespace vessel
       else if (OSS_UNLIKELY(!isSegmentMmaped()))
       {
          SDB_ASSERT(FALSE, "not a mmap file");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -707,7 +707,7 @@ namespace vessel
       else if (OSS_UNLIKELY(!isSegmentMmaped()))
       {
          SDB_ASSERT(FALSE, "not a mmap file");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -753,7 +753,7 @@ namespace vessel
       else if (OSS_UNLIKELY(!isSegmentMmaped()))
       {
          SDB_ASSERT(FALSE, "not a mmap file");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -789,7 +789,7 @@ namespace vessel
       else if (OSS_UNLIKELY(!isSegmentMmaped()))
       {
          SDB_ASSERT(FALSE, "not a mmap file");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 

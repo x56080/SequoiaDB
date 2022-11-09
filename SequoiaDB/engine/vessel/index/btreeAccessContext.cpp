@@ -174,7 +174,7 @@ namespace vessel
       else if (_path.empty())
       {
          PD_LOG(PDERROR, "can not push child node into path with out root");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -421,7 +421,7 @@ namespace vessel
       else if (!isWritable())
       {
          PD_LOG(PDERROR, "context is not writable");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -465,7 +465,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isWritable()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (!buffer)
@@ -589,7 +589,7 @@ namespace vessel
       else if (!isWritable())
       {
          PD_LOG(PDERROR, "context is not writable");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else

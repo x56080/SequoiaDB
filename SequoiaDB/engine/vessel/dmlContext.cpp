@@ -69,7 +69,7 @@ namespace vessel
                !_uniqueKeyHash.empty())
       {
          SDB_ASSERT(FALSE, "do not relock");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (!ra.withConstraint())

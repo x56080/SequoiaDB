@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsWriteContext.cpp
+   Source File Name = dpsRequestContext.cpp
 
    Descriptive Name =
 
@@ -33,40 +33,28 @@
 
 ******************************************************************************/
 
-#include "dpsWriteContext.hpp"
+#include "dpsRequestContext.hpp"
 #include "pdTrace.hpp"
-#include "pmdEDU.hpp"
+#include "ossLikely.hpp"
+
 
 namespace engine
 {
-   dpsWriteContext::dpsWriteContext(IExecutor *executor,
-                                    const dpsWriteRequest *req,
-                                    const dpsWriteOptions *o):
-   _executor(executor),
-   _req(req),
-   _o(o)
+   void _dpsRequestContext::reset()
    {
-      _init();
+      _o = dpsWriteOptions() ;
+      _oplCtx = nullptr ;
+      _toCompleteOpl = FALSE ;
+      _oplRollbackTarget.reset() ;
+      _builder.reset() ;
+      _req.reset() ;
+      _result = dpsLogRecordHeader() ;
+      return ;
    }
 
-   UINT32 dpsWriteContext::getRecordBodySize() const
+   void _dpsRequestContext::endToBuildRequest()
    {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSize() : _req->getElementDataSize() ;
-   }
-
-   utilSlice dpsWriteContext::getRecordBodyData() const
-   {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSlice() : _req->getElements().getSlice() ;
-   }
-
-   void dpsWriteContext::_init()
-   {
-      SDB_ASSERT(nullptr != _req && nullptr != _o, "can not be invalid");
-      _irreversible = (nullptr == _executor ||
-                       !_executor->getTransID().isGlobTrans() ||
-                       !_o->transEnabled);
-
+      _req = _builder.reap() ;
    }
 } // namespace engine
+

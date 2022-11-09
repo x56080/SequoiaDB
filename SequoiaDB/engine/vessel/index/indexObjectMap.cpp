@@ -347,7 +347,7 @@ namespace vessel
          if (!obj->isNormal())
          {
             PD_LOG(PDERROR, "unnormal index[%s] found", obj->getProperties().getName().c_str());
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
       }
@@ -383,7 +383,7 @@ namespace vessel
          if (!obj->isNormal())
          {
             PD_LOG(PDERROR, "unnormal index[%s] found", obj->getProperties().getName().c_str());
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
       }

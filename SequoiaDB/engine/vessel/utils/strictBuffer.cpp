@@ -58,7 +58,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isWritable()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (OSS_UNLIKELY(0 == size || NULL == data))

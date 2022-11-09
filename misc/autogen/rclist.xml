@@ -3154,6 +3154,22 @@
       </code>
 
       <code>
+         <name>SDB_DPS_BROKEN_OPL</name>
+         <description>
+            <en>The operation list has been broken</en>
+            <cn>日志操作链已损坏</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_INVALID_OPERATION</name>
+         <description>
+            <en>The operation is not valid</en>
+            <cn>非法的操作</cn>
+         </description>
+      </code>
+
+      <code>
          <tag>vessel</tag>
          <name>SDB_VESSEL_INTERNAL_ERR</name>
          <description>
@@ -3303,15 +3319,6 @@
          <description>
             <en>the resources has not been initialized yet</en>
             <cn>目标资源尚未完成初始化</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_OPERATOION_NOT_PERMITTED</name>
-         <description>
-            <en>the operation is not permitted</en>
-            <cn>操作不被允许</cn>
          </description>
       </code>
 

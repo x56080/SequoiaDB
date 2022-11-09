@@ -37,6 +37,7 @@
 #include "pdTrace.hpp"
 #include <atomic>
 #include <mutex>
+#include <memory>
 
 namespace engine
 {
@@ -119,7 +120,8 @@ namespace engine
             }
          }
 
-         virtual INT32 write(const dpsWriteRequest &request,
+         virtual INT32 write(IExecutor *executor,
+                             const dpsWriteRequest &request,
                              const dpsWriteOptions &o,
                              dpsLogRecordHeader *result) override
          {
@@ -209,13 +211,24 @@ namespace engine
             return SDB_NOT_SUPPORTED;
          }
 
+         virtual INT32 process(IExecutor *executor, dpsRequestContext &ctx) override
+         {
+            return SDB_NOT_SUPPORTED;
+         }
+
+         virtual INT32 loadOpl( const DPS_LSN &lastNodeLSN,
+                                dpsOperationList &opl ) override
+         {
+            return SDB_NOT_SUPPORTED;
+         }
+
       public:
          virtual BOOLEAN isClosed() const override {return FALSE;}
          virtual BOOLEAN canSync( BOOLEAN &force ) const override {return TRUE;}
 
          virtual INT32 sync( BOOLEAN force,
-                           BOOLEAN sync,
-                           IExecutor* cb ) override {return SDB_OK;}
+                             BOOLEAN sync,
+                             IExecutor* cb ) override {return SDB_OK;}
 
          virtual void lock() override {}
          virtual void unlock() override {}
@@ -242,9 +255,8 @@ namespace engine
          DPS_LSN_VER _version = 1;
    };//class dpsBlackHoleInst
 
-   IDataProtectionService *getDpsBlackHoleInst()
+   std::unique_ptr<IDataProtectionService> dpsCreateBlackHoleInst()
    {
-      static dpsBlackHoleInst inst;
-      return &inst;
+      return std::move(std::unique_ptr<IDataProtectionService>(SDB_OSS_NEW dpsBlackHoleInst()));
    }
 } // namespace engine

@@ -94,7 +94,7 @@ namespace vessel
       }
 
       jpad.setType(LOG_TYPE_IX_CRT);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      
       rc = jpad.append(DPS_LOG_PUBLIC_FULLNAME,
                        fullName.size() + 1,
                        fullName.c_str());
@@ -115,7 +115,7 @@ namespace vessel
 
       jrequest = jpad.reap();
 
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(tc->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -157,10 +157,9 @@ namespace vessel
       }
 
       jpad.setType(LOG_TYPE_IX_CRT);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(tc->getExecutor(),  jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -199,10 +198,10 @@ namespace vessel
       }
 
       jpad.setType(LOG_TYPE_IX_DELETE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(tc->getExecutor(),  jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -227,9 +226,9 @@ namespace vessel
       dpsWriteRequest jrequest;
 
       jpad.setType(LOG_TYPE_VESSEL_ROUTE_PAGE_UPDATE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), nullptr);
+      rc = journal->write(context->getExecutor(),  jrequest, dpsWriteOptions(), nullptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -252,9 +251,9 @@ namespace vessel
       dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
       jpad.setType(LOG_TYPE_CL_TRUNC);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(tc->getExecutor(),  jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -279,9 +278,9 @@ namespace vessel
       dpsWriteRequest jrequest;
       dpsLogRecordHeader jres;
       jpad.setType(LOG_TYPE_CL_DELETE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
+      
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(tc->getExecutor(),  jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);

@@ -119,7 +119,8 @@ namespace engine
                                  DPS_LSN *expectedLSN,
                                  DPS_LSN *committedLSN ) override ;
 
-      virtual INT32 write( const dpsWriteRequest &request,
+      virtual INT32 write( IExecutor *executor,
+                           const dpsWriteRequest &request,
                            const dpsWriteOptions &o,
                            dpsLogRecordHeader *result ) override ;
 
@@ -142,6 +143,9 @@ namespace engine
       virtual void unregEventHandler( dpsEventHandler *handler ) override ;
       virtual INT32 completeOpr( IExecutor *executor, INT32 w ) override ;
       virtual INT32 archive() override ;
+      virtual INT32 process( IExecutor *executor, dpsRequestContext &ctx ) override ;
+      virtual INT32 loadOpl( const DPS_LSN &lastNodeLSN,
+                             dpsOperationList &opl ) override ;
 
    public: /// make it compatible with old interfaces.
       INT32 search( const DPS_LSN &minLsn,
@@ -256,6 +260,18 @@ namespace engine
       BOOLEAN isInRestore() ;
 
       DPS_LSN_OFFSET readOldestBeginLsnOffset() const ;
+
+   private:
+      INT32 _preprocess( IExecutor *executor, dpsRequestContext &ctx ) ;
+
+      INT32 _prebuildOpl( IExecutor *executor, dpsRequestContext &ctx ) ;
+
+      void _notifyEventHandlers( DPS_LSN_OFFSET lsn );
+
+      INT32 _extractOplNode( const CHAR *data,
+                             UINT32 size,
+                             DPS_LSN &preNode,
+                             utilUniqueBuffer &buffer ) const ;
 
    };
    typedef class _dpsLogWrapper SDB_DPSCB ;

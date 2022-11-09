@@ -546,7 +546,12 @@ dpsFiles = [
       "dps/dpsTrivialElement.cpp",
       "dps/dpsTrivialStrField.cpp",
       "dps/dpsRecordElements.cpp",
-      "dps/dpsTrivialString.cpp"
+      "dps/dpsTrivialString.cpp",
+      "dps/dpsOplistNode.cpp",
+      "dps/dpsOperationList.cpp",
+      "dps/dpsOplBuildingCtx.cpp",
+      "dps/dpsOplistContext.cpp",
+      "dps/dpsRequestContext.cpp"
       ]
 
 omsvcFiles = [

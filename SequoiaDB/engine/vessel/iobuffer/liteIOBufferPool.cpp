@@ -776,7 +776,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isFlushing()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (_job.getTotalTaskNum() < (taskId.offset + taskId.size))

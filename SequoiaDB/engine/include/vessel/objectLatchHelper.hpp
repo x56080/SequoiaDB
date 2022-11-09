@@ -152,7 +152,7 @@ namespace vessel
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
                SDB_ASSERT(FALSE, "do not relock");
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               rc = SDB_INVALID_OPERATION;
                goto error;
             }
 #endif//_DEBUG
@@ -278,7 +278,7 @@ namespace vessel
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
                SDB_ASSERT(FALSE, "do not relock");
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               rc = SDB_INVALID_OPERATION;
                goto error;
             }
 #endif//_DEBUG
@@ -323,7 +323,7 @@ namespace vessel
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
                SDB_ASSERT(FALSE, "do not relock");
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               rc = SDB_INVALID_OPERATION;
                goto error;
             }
 #endif//_DEBUG
@@ -367,7 +367,7 @@ namespace vessel
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
                SDB_ASSERT(FALSE, "do not relock");
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               rc = SDB_INVALID_OPERATION;
                goto error;
             }
 #endif//_DEBUG

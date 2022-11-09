@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsOplistUnit.hpp
+   Source File Name = dpsPubElementDef.hpp
 
    Descriptive Name =
 
@@ -33,35 +33,43 @@
 
 ******************************************************************************/
 
-#ifndef DPS_OPLIST_UNIT_HPP__
-#define DPS_OPLIST_UNIT_HPP__
+#ifndef DPS_PUB_ELEMENT_DEF_HPP__
+#define DPS_PUB_ELEMENT_DEF_HPP__
 
-#include "dpsLogRecord.hpp"
+#include "dpsLogDef.hpp"
 
 namespace engine
 {
-   class _dpsOplistUnit : public SDBObject
+#pragma pack(4)
+   struct dpsOplNodeEle
    {
-      public:
-         _dpsOplistUnit() = default ;
-         _dpsOplistUnit( const dpsLogRecordHeader &rh ):
-         _rh(rh) {}
+      dpsOplNodeEle() = default ;
+      dpsOplNodeEle(const DPS_LSN &lsn, const DPS_LSN &pre):
+      oplLSN(lsn),
+      preLSN(pre) {}
 
-      public:
-         OSS_INLINE const dpsLogRecordHeader &getRecordHeader() const
-         {
-            return _rh ;
-         }
-         OSS_INLINE DPS_LSN_OFFSET getLSN() const
-         {
-            return _rh._lsn ;
-         }
+      DPS_LSN oplLSN;
+      DPS_LSN preLSN;
+   };
 
-      private:
-         dpsLogRecordHeader _rh ;
-   } ;// class _dpsOplistUnit
-   using dpsOplistUnit = class _dpsOplistUnit ;
+   struct dpsOplRollbackInfoEle
+   {
+      dpsOplRollbackInfoEle() = default;
+      dpsOplRollbackInfoEle(UINT64 offset, UINT32 version):
+      targetLSN(offset, version){}
+      dpsOplRollbackInfoEle(const DPS_LSN &target):
+      targetLSN(target){}
+      DPS_LSN targetLSN;
+   };
+
+   struct dpsPageAddrEle
+   {
+      INT32 lpid = -1;
+      INT64 gpid = -1;
+   };
+
+#pragma pack()
 } // namespace engine
 
 
-#endif//DPS_OPLIST_UNIT_HPP__
+#endif//DPS_PUB_ELEMENT_DEF_HPP__

@@ -87,7 +87,8 @@ namespace vessel
          }
 
       public:
-         virtual INT32 write(const dpsWriteRequest &request,
+         virtual INT32 write(IExecutor *executor,
+                             const dpsWriteRequest &request,
                              const dpsWriteOptions &o,
                              dpsLogRecordHeader *result)
          {

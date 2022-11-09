@@ -77,10 +77,26 @@ namespace engine
          return *this ;
       }
 
+      BOOLEAN operator==( const DPS_LSN &lsn ) const
+      {
+         return offset == lsn.offset && version == lsn.version ;
+      }
+
+      BOOLEAN operator!=( const DPS_LSN &lsn ) const
+      {
+         return offset != lsn.offset || version != lsn.version ;
+      }
+
       BOOLEAN invalid() const
       {
          return ( DPS_INVALID_LSN_OFFSET == offset ) ||
                 ( DPS_INVALID_LSN_VERSION == version ) ;
+      }
+
+      OSS_INLINE BOOLEAN isValid() const
+      {
+         return DPS_INVALID_LSN_OFFSET != offset &&
+                DPS_INVALID_LSN_VERSION != version ;
       }
 
       void set( DPS_LSN_OFFSET offset, DPS_LSN_VER  version )

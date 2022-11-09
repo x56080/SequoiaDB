@@ -71,10 +71,15 @@ namespace engine
 
       req._type = _type;
       req._flags = _flags;
-      UINT32 size = _buf.getSize();
-      INT32 num = static_cast<INT32>(_elementNum);
-      req._body = std::move(dpsRecordElements(_buf.release(), size, num));
 
+      if (0 < _elementNum)
+      {
+         _appendEndTag() ;
+         UINT32 size = _buf.getSize();
+         INT32 num = static_cast<INT32>(_elementNum);
+         req._body = std::move(dpsRecordElements(_buf.release(), size, num));
+      }
+      
       reset();
 
       PD_TRACE_EXIT(SDB__DPSWREQBUILDER_REAP);
@@ -116,9 +121,9 @@ namespace engine
          }
 
          rc = _buf.appendObj(e);
-         SDB_ASSERT(SDB_OK, "can not be failed");
+         SDB_ASSERT(SDB_OK == rc, "can not be failed");
          rc = _buf.append(size, data);
-         SDB_ASSERT(SDB_OK, "can not be failed");
+         SDB_ASSERT(SDB_OK == rc, "can not be failed");
          ++_elementNum;
 
       }
@@ -146,5 +151,20 @@ namespace engine
    {
       SDB_ASSERT(DPS_INVALID_TAG != tag, "can not be invalid");
       return std::move(dpsTrivialElement(&_buf, tag));
+   }
+
+   dpsRecordElements dpsWriteReqBuilder::peekElements() const
+   {
+      return std::move(dpsRecordElements(_buf.getBuf().get(),
+                                         _buf.getSize(),
+                                         (INT32)_elementNum));
+   }
+
+   void dpsWriteReqBuilder::_appendEndTag()
+   {
+      SDB_ASSERT( 0 < _elementNum, "one element appended at least" ) ;
+      /// we always reserve one more byte to save end tag when appending element.
+      INT32 rc = _buf.appendUint8(DPS_INVALID_TAG);
+      SDB_ASSERT( SDB_OK == rc, "can not be failed");
    }
 } // namespace engine

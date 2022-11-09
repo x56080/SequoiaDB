@@ -56,7 +56,6 @@ namespace vessel
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_VESSEL_PAGE_INIT);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
                        GLOBAL_PAGE_ID_SIZE,
@@ -86,7 +85,7 @@ namespace vessel
       }
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(context->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);

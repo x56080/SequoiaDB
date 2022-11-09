@@ -890,7 +890,7 @@ namespace vessel
          // restore is not permitted in this case.
          if (minLsn < checkpointLsn)
          {
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             PD_LOG(PDERROR,
                    "min lsn[%llu] is less than checkpoint lsn[%llu]",
                    minLsn, checkpointLsn);

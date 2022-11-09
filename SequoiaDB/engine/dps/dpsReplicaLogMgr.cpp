@@ -1789,16 +1789,18 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_WRITE, "_dpsReplicaLogMgr::write" )
-   INT32 _dpsReplicaLogMgr::write( const dpsWriteRequest &request,
+   INT32 _dpsReplicaLogMgr::write( IExecutor *executor,
+                                   const dpsWriteRequest &request,
                                    const dpsWriteOptions &o,
                                    dpsLogRecordHeader *result )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY(SDB__DPSRPCMGR_WRITE) ;
       BOOLEAN locked = FALSE ;
-      dpsWriteContext ctx(&request, &o);
-      UINT32 alignedRecordSize = _getAliengedRecordSize( ctx.getElementDataSize() ) ;
-      UINT32 dummyRecordSize = 0;
+      dpsWriteContext ctx(executor, &request, &o);
+      UINT32 originalRecordSize = _getAliengedRecordSize( ctx.getOriginalEleSize() ) ;
+      UINT32 dummyRecordSize = 0 ;
+      UINT32 alignedRecordSize = 0 ;
 
       if ( nullptr != result )
       {
@@ -1811,15 +1813,16 @@ namespace engine
          rc = SDB_SYS;
          goto error;
       }
-      else if ( OSS_UNLIKELY( _totalSize < alignedRecordSize ) )
+      else if ( OSS_UNLIKELY( _totalSize < originalRecordSize ) )
       {
          PD_LOG ( PDERROR, "dps total memory size[%d] less than record size[%d]",
-                  _totalSize, alignedRecordSize ) ;
+                  _totalSize, originalRecordSize ) ;
          rc = SDB_SYS ;
          SDB_ASSERT ( 0, "system error" ) ;
          goto error ;
       }
       
+      alignedRecordSize = _getAliengedRecordSize( ctx.getRecordBodySize() ) ;
       /// first to lock writeMutex, then make sure idle space is enough,
       /// at last lock mtx. So, this don't block read operations
       _writeMutex.get() ;
@@ -1859,12 +1862,12 @@ namespace engine
       if ( ctx.isDummyRecordFilled() )
       {
          _writeToBuffer( ctx.getDummmyRecord(),
-                         ctx.getDummyPageMeta(),
-                         nullptr ) ;
+                         utilSlice(), 
+                         ctx.getDummyPageMeta()) ;
          SHARED_UNLOCK_NODES( ctx.getDummyPageMeta() ) ;
       }
 
-      _writeToBuffer( ctx.getRecord(), ctx.getPageMeta(), ctx.getReq() ) ;
+      _writeToBuffer( ctx.getRecord(), ctx.getRecordBodyData(), ctx.getPageMeta() ) ;
       SHARED_UNLOCK_NODES( ctx.getPageMeta() ) ;
 
       if ( nullptr != _transCB &&
@@ -1896,7 +1899,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD ) ;
       dpsLogRecordHeader &header = ctx.getDummmyRecord() ;
-      UINT32 alignedRecordSize = _getAliengedRecordSize( ctx.getElementDataSize() ) ;
+      UINT32 alignedRecordSize = _getAliengedRecordSize( ctx.getRecordBodySize() ) ;
       UINT32 dummyRecordSize = _generateDummySize( FALSE, alignedRecordSize ) ;
       UINT32 logFileSz = _logger.getLogFileSz() ;
       UINT32 fileFreeSize = logFileSz - ( _lsn.offset % logFileSz ) ;
@@ -1938,7 +1941,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD ) ;
       dpsLogRecordHeader &header = ctx.getRecord() ;
       const dpsWriteRequest *req = ctx.getReq() ;
-      UINT32 recordSize = _getAliengedRecordSize( ctx.getElementDataSize() ) ;
+      UINT32 recordSize = _getAliengedRecordSize( ctx.getRecordBodySize() ) ;
       UINT32 freeSize = _getCurrentFileFreeSize() ;
       SDB_ASSERT( recordSize <= freeSize, "invalid free size" ) ;
       if ( freeSize < ( sizeof(dpsLogRecordHeader) + recordSize ) )
@@ -2020,25 +2023,23 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__WRITETOBUFFER, "_dpsReplicaLogMgr::_writeToBuffer")
    void _dpsReplicaLogMgr::_writeToBuffer( const dpsLogRecordHeader &header,
-                                           const dpsPageMeta &pm,
-                                           const dpsWriteRequest *req )
+                                           const utilSlice &body,
+                                           const dpsPageMeta &pm )
    {
       PD_TRACE_ENTRY( SDB__DPSRPCMGR__WRITETOBUFFER ) ;
       SDB_ASSERT( pm.valid(), "can not be invalid" ) ;
       UINT32 offset = pm.offset ;
       UINT32 work = pm.beginSub ;
-      UINT32 elementSize = nullptr == req ? 0 : req->getElements().getSize() ;
 
       _mergePage((const CHAR *)(&header), sizeof( dpsLogRecordHeader ), work, offset ) ;
 
-      if ( nullptr != req && 0 < elementSize )
+      if ( 0 < body.size() )
       {
-         _mergePage( req->getElements().getBuf(), elementSize, work, offset ) ;
+         _mergePage( body.data(), body.size(), work, offset ) ;
       }
-
-      if ( ( elementSize + sizeof(dpsRecordEle) + sizeof(dpsLogRecordHeader) ) <=
-             header._length )
+      else if ( (sizeof(dpsRecordEle) + sizeof(dpsLogRecordHeader)) <= header._length )
       {
+         /// make sure record will end by invalid tag if body is empty.
          CHAR stop[sizeof(dpsRecordEle)] = {} ;
          _mergePage( stop, sizeof(stop), work, offset ) ;
       }

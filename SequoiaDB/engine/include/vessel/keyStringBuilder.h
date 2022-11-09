@@ -430,7 +430,7 @@ namespace vessel
       T tmp = val;
       if (BUILDER_STATUS::DONE == _status)
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG(PDERROR, "building process has already done");
          goto error;
       }

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsBlackHoleInst.hpp
+   Source File Name = dpsOplistDef.hpp
 
    Descriptive Name =
 
@@ -33,40 +33,22 @@
 
 ******************************************************************************/
 
-#ifndef DPS_BLACK_HOLE_HPP_
-#define DPS_BLACK_HOLE_HPP_
+#ifndef DPS_OPLIST_DEF_HPP__
+#define DPS_OPLIST_DEF_HPP__
 
-#include "interface/IDataProtectionService.h"
-#include <atomic>
+#include "dpsDef.hpp"
 
 namespace engine
 {
-   class dpsBlackHoleInst : public IDataProtectionService
+   enum DPS_OPLIST_STATUS : INT32
    {
-      public:
-         dpsBlackHoleInst() = default;
-         virtual ~dpsBlackHoleInst() = default;
+      START = 0x00,
+      BUILDING = 0x01,
+      ROLLING_BACK = 0x02,
+      COMPLETED = 0x03,
+   };
 
-      public:
-
-      private:
-         
-      
-      private:
-         OSS_INLINE UINT32 _getVersion()const
-         {
-            return _version.load(std::memory_order_relaxed);
-         }
-         OSS_INLINE UINT64 _getOffset()const
-         {
-            return _offset.load(std::memory_order_relaxed);
-         }
-
-      private:
-         std::atomic<UINT32> _version{1};
-         std::atomic<UINT64> _offset{0};
-   };//class dpsBlackHole
 } // namespace engine
 
 
-#endif//DPS_BLACK_HOLE_HPP_
+#endif//DPS_OPLIST_DEF_HPP__

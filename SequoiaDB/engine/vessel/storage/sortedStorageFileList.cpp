@@ -129,7 +129,7 @@ namespace vessel
       {
          PD_LOG(PDERROR, "invalid sequence[%lld], last sequence is[%lld]",
                 file->getSequence(), _list.back()->getSequence());
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else

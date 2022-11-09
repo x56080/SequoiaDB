@@ -1141,7 +1141,8 @@ END
       return commitLsn();
    }
 
-   INT32 _catDCLogMgr::write( const dpsWriteRequest &request,
+   INT32 _catDCLogMgr::write( IExecutor *executor,
+                              const dpsWriteRequest &request,
                               const dpsWriteOptions &o,
                               dpsLogRecordHeader *result )
    {

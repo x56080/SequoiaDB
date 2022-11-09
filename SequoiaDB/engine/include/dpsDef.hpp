@@ -65,7 +65,6 @@
 #define DPS_DMP_OPT_FORMATTED      0x00000004
 
 #define DPS_INVALID_TAG    0
-#define DPS_DUMMY_TAG      255
 #define DPS_TAG            UINT8
 
 #define DPS_MAX_TAGV_LEN  16777215
@@ -81,9 +80,47 @@
 typedef UINT64 DPS_LSN_OFFSET ;
 typedef UINT32 DPS_LSN_VER ;
 
-constexpr UINT16 DPS_LOG_FLAG_VESSEL = 0x01;
-constexpr UINT16 DPS_LOG_FLAG_OPL = 0x02;
-constexpr UINT16 DPS_LOG_FLAG_OPL_TAIL = 0x04;
+enum DPS_LOG_RECORD_FLAG : UINT16
+{
+   _OPL_RESERVED0 = 0x01,
+   _OPL_RESERVED1 = 0x02,
+   COMPRESSED = 0x04,
+   _RESERVED0 = 0x08,
+   NBS_OPERATION = 0x10,
+};
+
+OSS_INLINE BOOLEAN dpsIsRecordCompressed(UINT16 flags)
+{
+   return flags & DPS_LOG_RECORD_FLAG::COMPRESSED;
+}
+
+enum DPS_OPL_NODE_TYPE : UINT16
+{
+   NONE = 0x00,
+   HEAD = 0x01,
+   BODY = 0x02,
+   TAIL = 0x03,
+   _MASK = TAIL,
+};
+
+OSS_INLINE DPS_OPL_NODE_TYPE dpsGetOplNodeType(UINT16 flags)
+{
+   return static_cast<DPS_OPL_NODE_TYPE>(flags & DPS_OPL_NODE_TYPE::_MASK);
+}
+
+OSS_INLINE void dpsResetOplNodeType(UINT16 &flags)
+{
+   constexpr UINT32 _MASK = ~DPS_OPL_NODE_TYPE::_MASK;
+   flags &= _MASK;
+   return;
+}
+
+OSS_INLINE void dpsSetOplNodeType(DPS_OPL_NODE_TYPE type, UINT16 &flags)
+{
+   dpsResetOplNodeType(flags);
+   flags |= type;
+   return;
+}
 
 #define DPS_LOG_WRITE_MOD_INCREMENT 0
 #define DPS_LOG_WRITE_MOD_FULL      1

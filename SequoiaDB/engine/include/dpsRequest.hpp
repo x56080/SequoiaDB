@@ -55,7 +55,7 @@ namespace engine
       BOOLEAN notify = FALSE;
       BOOLEAN transEnabled = FALSE;
       BOOLEAN flushAtOnce = FALSE;
-      IExecutor *executor = nullptr;
+      BOOLEAN compress = TRUE ;
    };//struct dpsWriteOptions
 
    class dpsWriteRequest : public SDBObject

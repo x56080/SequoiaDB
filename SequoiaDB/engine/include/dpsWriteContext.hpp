@@ -44,14 +44,15 @@ namespace engine
    class dpsWriteContext : public SDBObject
    {
       public:
-         dpsWriteContext(const dpsWriteRequest *req,
+         dpsWriteContext(IExecutor *executor,
+                         const dpsWriteRequest *req,
                          const dpsWriteOptions *o);
          ~dpsWriteContext() = default;
 
       public:
          OSS_INLINE const dpsWriteRequest *getReq()const {return _req;}
          OSS_INLINE const dpsWriteOptions *getOptions()const {return _o;}
-         OSS_INLINE UINT32 getElementDataSize()const {return _req->getElements().getSize();}
+         OSS_INLINE UINT32 getOriginalEleSize()const {return _req->getElements().getSize();}
          OSS_INLINE BOOLEAN isDummyRecordFilled()const {return 0 < _dummyRecord._length;}
          OSS_INLINE dpsLogRecordHeader &getDummmyRecord() {return _dummyRecord;}
          OSS_INLINE dpsPageMeta &getDummyPageMeta() {return _dummyPageMeta;}
@@ -60,19 +61,29 @@ namespace engine
          OSS_INLINE dpsLogRecordHeader &getRecord() {return _record;}
          OSS_INLINE const dpsLogRecordHeader &getRecord()const {return _record;}
          OSS_INLINE dpsPageMeta &getPageMeta() {return _pageMeta;}
+
+         OSS_INLINE void setCompressedRecord( utilUniqueBuffer &&b )
+         {
+            _compressedRecord = std::move( b ) ;
+         }
+
+      public:
+         UINT32 getRecordBodySize() const ;
+         utilSlice getRecordBodyData() const ;
          
       private:
          void _init();
 
       private:
+         IExecutor *_executor = nullptr;
          const dpsWriteRequest *_req = nullptr;
          const dpsWriteOptions *_o = nullptr;
          BOOLEAN _irreversible = FALSE;
-         UINT32 _alignedRecordSize = 0;
          dpsLogRecordHeader _dummyRecord;
          dpsPageMeta _dummyPageMeta;
          dpsLogRecordHeader _record;
          dpsPageMeta _pageMeta;
+         utilUniqueBuffer _compressedRecord ;
    };//class dpsWriteContext
 } // namespace engine
 

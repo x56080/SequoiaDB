@@ -499,7 +499,7 @@ namespace vessel
          {
             PD_LOG(PDERROR, "invalid hash code[%d] to push back of [%d]",
                    hash, highSlot->hash);
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            rc = SDB_INVALID_OPERATION;
             goto error;
          }
          else if (highSlot->hash == hash)
@@ -507,7 +507,7 @@ namespace vessel
             if (0 <= highBlock->compare(*block))
             {
                PD_LOG(PDERROR, "invalid block[%s] to push back", block->toString().c_str());
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               rc = SDB_INVALID_OPERATION;
                goto error;
             }
          }
@@ -857,7 +857,7 @@ namespace vessel
           block->chainPos != (oldTailBlock->chainPos + 1))
       {
          PD_LOG(PDERROR, "invalid old tail[%d] located", oldTailPos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -937,7 +937,7 @@ namespace vessel
       {
          PD_LOG(PDERROR, "extended size[%d] out of block capacity[%d]",
                 block->size + deltaSize, block->pcnt * lobdPageSize);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 

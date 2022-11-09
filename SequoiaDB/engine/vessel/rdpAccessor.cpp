@@ -949,7 +949,7 @@ namespace vessel
       else if (!rrs->isValidAndVisible() || 
                !rrs->isNormalRecord())
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG(PDERROR, "invalid, invisible and non-normal record " 
                          "cannot be set to overflowed, rc:%d", rc);
          goto error;
@@ -1441,7 +1441,7 @@ namespace vessel
       else if (!rs->isValidAndVisible() || 
                !rs->isOverflowedRecord())
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG(PDERROR, "can not update invalid record info, rc:%d", rc);
          goto error;
       }
@@ -1647,7 +1647,7 @@ namespace vessel
       {
          PD_LOG(PDERROR, "record size[%d] out of valid range[%d]",
                 row.getSize(), rs->getMaxSpaceSize());
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -2133,7 +2133,7 @@ namespace vessel
       if (!rs.isValid() || !rs.isNormalRecord())
       {
          PD_LOG(PDERROR, "slot type is not normal:%d", rs.type);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -2194,7 +2194,7 @@ namespace vessel
 
       if(!rs.isValidAndVisible() || !rs.isOverflowedRecord())
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG(PDERROR, "slot type is not overflowed, rc:%d", rc);
          goto error;
       }
@@ -2264,7 +2264,7 @@ namespace vessel
 
       if (!rs.isValid() || !rs.isBigRecordEntry())
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG(PDERROR, "slot type is not big record, rc:%d", rc);
          goto error;
       }
@@ -2344,7 +2344,7 @@ namespace vessel
 
       if (!rs.isValid() || !rs.isBigRecordBody() || !rs.isInvisible())
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -2457,7 +2457,7 @@ namespace vessel
       }
       else
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG(PDERROR, "not a big record slice, rc:%d", rc);
          goto error;
       }
@@ -2519,7 +2519,7 @@ namespace vessel
       else if (rs.isTombstone())
       {
          PD_LOG(PDERROR, "pos[%d] already been tombstone", pos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -2627,10 +2627,9 @@ namespace vessel
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_VESSEL_RDP_INSERT);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(context->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -2654,10 +2653,9 @@ namespace vessel
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_DATA_UPDATE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(context->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);
@@ -2681,10 +2679,9 @@ namespace vessel
       dpsLogRecordHeader jres;
 
       jpad.setType(LOG_TYPE_DATA_DELETE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(context->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);

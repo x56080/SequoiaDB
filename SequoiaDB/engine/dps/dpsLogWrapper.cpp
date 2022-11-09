@@ -47,6 +47,7 @@
 #include "dpsLogRecordDef.hpp"
 #include "pmd.hpp"
 #include "dpsUtil.hpp"
+#include "dpsPubElementDef.hpp"
 
 namespace engine
 {
@@ -663,11 +664,59 @@ namespace engine
                      o.limits, o.maxTime, o.maxSize ) ;
    }
 
-   INT32 _dpsLogWrapper::write( const dpsWriteRequest &request,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_WRITE, "_dpsLogWrapper::write" )
+   INT32 _dpsLogWrapper::write( IExecutor *executor,
+                                const dpsWriteRequest &request,
                                 const dpsWriteOptions &o,
                                 dpsLogRecordHeader *result )
    {
-      return _buf.write( request, o, result );
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLGWRAPP_WRITE ) ;
+      dpsLogRecordHeader lres ;
+      dpsLogRecordHeader *rptr = nullptr == result ? & lres : result ;
+
+      rc = _buf.write( executor, request, o, rptr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to write dps request:%d", rc ) ;
+         goto error ;
+      }
+
+      ///TODO: atomic number
+      _lastWriteTick = pmdGetDBTick() ;
+      ++_writeReordNum ;
+
+      /// the lsn in result must be the last lsn of current executor,
+      /// even there was a dummy record created.
+      /// Actually, we do not need to care about dummy record here.
+
+      if ( nullptr != executor )
+      {
+         executor->insertLsn( rptr->_lsn ) ;
+
+         if ( o.transEnabled && executor->getTransID().isValid() )
+         {
+            DPS_TRANS_ID transID = executor->getTransID() ;
+            dpsTransCB * transCB = sdbGetTransCB() ;
+            executor->setCurTransLsn( rptr->_lsn ) ;
+            if ( transCB->isFirstOp( transID ) )
+            {
+               transCB->clearFirstOpTag( transID ) ;
+               executor->setTransID( transID ) ;
+            }
+         }
+      }
+
+      if ( o.notify )
+      {
+         _notifyEventHandlers( rptr->_lsn ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGWRAPP_WRITE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _dpsLogWrapper::commit( DPS_LSN_OFFSET offset )
@@ -704,6 +753,269 @@ namespace engine
       return _archiver.run() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_PROCESS, "_dpsLogWrapper::process" )
+   INT32 _dpsLogWrapper::process( IExecutor *executor, dpsRequestContext &ctx )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLGWRAPP_PROCESS ) ;
+      if ( OSS_UNLIKELY( nullptr == executor) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = _preprocess( executor, ctx ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to preprocess dps request:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = write( executor, ctx.getReq(), ctx.getWriteOptions(), ctx.getResultPtr() ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to write dps log record:%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGWRAPP_PROCESS, rc ) ;
+      return rc ;
+   error:
+      goto done ; 
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP__PREPROCESS, "_dpsLogWrapper::_preprocess" )
+   INT32 _dpsLogWrapper::_preprocess( IExecutor *executor, dpsRequestContext &ctx )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLGWRAPP__PREPROCESS ) ;
+      SDB_ASSERT( nullptr != executor, "can not be invalid" ) ;
+
+      if ( ctx.hasOplCtx() && ctx.getOplCtx()->hasBuildingOpl() )
+      {
+         rc = _prebuildOpl( executor, ctx ) ;
+         if ( SDB_OK != rc ) 
+         {
+            PD_LOG( PDERROR, "failed to build op list:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+      ctx.endToBuildRequest() ;
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGWRAPP__PREPROCESS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP__PREBUILDOPL, "_dpsLogWrapper::_prebuildOpl" )
+   INT32 _dpsLogWrapper::_prebuildOpl( IExecutor *executor, dpsRequestContext &ctx )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLGWRAPP__PREBUILDOPL ) ;
+
+      dpsWriteReqBuilder &builder = ctx.getBuilder() ;
+      UINT16 flags = builder.getFlags() ;
+      dpsOplistContext *opl = ctx.getOplCtx() ;
+      SDB_ASSERT( nullptr != opl && opl->hasBuildingOpl(), "can not be invalid" ) ;
+      
+#if defined (_DEBUG)
+      {
+         dpsRecordElements __e = builder.peekElements() ;
+         SDB_ASSERT( !__e.contains( DPS_LOG_PUBLIC_OPL_NODE ), "opl node already exists!" ) ;
+         SDB_ASSERT( !__e.contains( DPS_LOG_PUBLIC_OPL_ROLLBACK_INFO ),
+                     "opl rollback info already exists!" ) ;
+      }
+#endif 
+
+      if ( opl->isFreshOpl() )
+      {
+         dpsSetOplNodeType( DPS_OPL_NODE_TYPE::HEAD, flags ) ;
+      }
+      else if ( ctx.isToCompleteOpl() )
+      {
+         DPS_OPL_NODE_TYPE type = ctx.isToCompleteOpl() ?
+                                  DPS_OPL_NODE_TYPE::TAIL : DPS_OPL_NODE_TYPE::BODY ;
+         dpsSetOplNodeType( type, flags ) ;
+         rc = builder.appendObj( DPS_LOG_PUBLIC_OPL_NODE,
+                                 dpsOplNodeEle( opl->getOplLSN(), opl->getPreNodeLSN() ) ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to append opl node info:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( ctx.hasOplRollbackTarget() )
+      {
+         if ( !opl->isOplRollingBack() )
+         {
+            opl->setOplRollingBack() ;
+         }
+
+         rc = builder.appendObj( DPS_LOG_PUBLIC_OPL_ROLLBACK_INFO,
+                                 dpsOplRollbackInfoEle(ctx.getOplRollbackTarget() ) ) ;
+         if ( SDB_OK != rc ) 
+         {
+            PD_LOG( PDERROR, "failed to append rolback info:%d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         SDB_ASSERT( !opl->isOplRollingBack(), "target to roll back missed!" ) ;
+      }
+
+      builder.overwriteFlags( flags ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGWRAPP__PREBUILDOPL, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _dpsLogWrapper::_notifyEventHandlers( DPS_LSN_OFFSET lsn )
+   {
+      SDB_ASSERT( DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid" ) ;
+      for ( auto itr = _vecEventHandler.begin(); itr != _vecEventHandler.end(); ++itr )
+      {
+         (*itr)->onWriteLog( lsn ) ;
+      }
+      return ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_LOADOPL, "_dpsLogWrapper::loadOpl" )
+   INT32 _dpsLogWrapper::loadOpl( const DPS_LSN &lastNodeLSN,
+                                  dpsOperationList &opl )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLGWRAPP_LOADOPL ) ;
+      dpsSearchOptions o ;
+      dpsMessageBlock mb ;
+      DPS_LSN target = lastNodeLSN ;
+      ossPoolList<utilUniqueBuffer> l ;
+      opl.reset() ;
+
+      if ( OSS_UNLIKELY(lastNodeLSN.invalid()) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      do
+      {
+         utilUniqueBuffer buffer ;
+         DPS_LSN preLSN ;
+         rc = this->search( target, o, mb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to search record[%lld], rc:%d", target.offset, rc ) ;
+            goto error ;
+         }
+
+         rc = _extractOplNode( mb.startPtr(), mb.length(), preLSN, buffer ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to resave record data:%d", rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            l.push_front( std::move( buffer ) ) ;
+         }
+         catch( std::exception& e )
+         {
+            PD_LOG( PDERROR, "unexpected exception:%s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+         target = preLSN ;
+         
+      } while ( !target.invalid() );
+      
+      rc = opl.initFromRecords( std::move(l) ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to init opl:%d", rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGWRAPP_LOADOPL, rc ) ;
+      return rc ;
+   error:
+      opl.reset() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP__EXTRACEOPLN, "_dpsLogWrapper::_extractOplNode" )
+   INT32 _dpsLogWrapper::_extractOplNode( const CHAR *data,
+                                          UINT32 size,
+                                          DPS_LSN &preNode,
+                                          utilUniqueBuffer &buffer ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DPSLGWRAPP__EXTRACEOPLN ) ;
+      SDB_ASSERT( nullptr != data, "can not be invalid" ) ;
+      SDB_ASSERT( DPS_LOG_HEAD_SIZE <= size, "can not be invalid" ) ;
+      preNode.reset() ;
+      buffer.reset() ;
+
+      const dpsLogRecordHeader *header = reinterpret_cast<const dpsLogRecordHeader *>( data ) ;
+      dpsRecordElements elements( data + DPS_LOG_HEAD_SIZE,
+                                  size - DPS_LOG_HEAD_SIZE ) ;
+      DPS_OPL_NODE_TYPE type = dpsGetOplNodeType( header->_flags ) ;
+
+      if ( DPS_OPL_NODE_TYPE::NONE == type )
+      {
+         PD_LOG( PDERROR, "record[%lld] is not opl node", header->_lsn ) ;
+         rc = SDB_DPS_BROKEN_OPL ;
+         goto error ;
+      }
+      else if ( DPS_OPL_NODE_TYPE::HEAD != type )
+      {
+         dpsRecordElements::iterator itr = elements.seek( DPS_LOG_PUBLIC_OPL_NODE ) ;
+         if ( OSS_UNLIKELY(!itr.isValid()) )
+         {
+            PD_LOG( PDERROR, "failed to seek opl node info in record[%lld]", header->_lsn ) ;
+            rc = SDB_DPS_BROKEN_OPL ;
+            goto error ;
+         }
+
+         if ( OSS_UNLIKELY(itr.getValue().size() != sizeof(dpsOplNodeEle)) )
+         {
+            PD_LOG( PDERROR, "invalid element size[%d] found in record[%lld]",
+                    itr.getValue().size(), header->_lsn ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         preNode = itr.getValue().castTo<dpsOplNodeEle>()->preLSN ;
+         SDB_ASSERT( !preNode.invalid(), "impossible" ) ; 
+      }
+
+      buffer = utilUniqueBuffer::allocate( size ) ;
+      if ( OSS_UNLIKELY(!buffer) )
+      {
+         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      ossMemcpy( buffer.get(), data, size ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGWRAPP__EXTRACEOPLN, rc ) ;
+      return rc ;
+   error:
+      preNode.reset() ;
+      buffer.reset() ;
+      goto done ;
+   }
 
    /*
       get dps cb

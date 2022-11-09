@@ -76,7 +76,7 @@ namespace vessel
       else if (nullptr == _ac)
       {
          SDB_ASSERT(FALSE, "has no access ctx");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else

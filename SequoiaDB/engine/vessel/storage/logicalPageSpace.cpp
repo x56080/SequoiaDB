@@ -558,7 +558,7 @@ namespace vessel
       }
       else if (!_isReservedLpid(lpid))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (!context->testLpidLocked(getSpaceType(), lpid, &mode) ||
@@ -626,7 +626,7 @@ namespace vessel
       else if (OSS_UNLIKELY(_fcluster.getCoreArgs().maxPageCountPerSeg < count))
       {
          PD_LOG(PDERROR, "batch count[%d] out of segment size", count);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1214,7 +1214,6 @@ namespace vessel
       }
 
       jpad.setType(LOG_TYPE_VESSEL_COPY_PAGE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
       rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
                        pageSize,
                        reinterpret_cast<const void *>(iobuffer.getBufferPtr()));
@@ -1225,7 +1224,7 @@ namespace vessel
       }
 
       jrequest = jpad.reap();
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(context->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write journal:%d", rc);

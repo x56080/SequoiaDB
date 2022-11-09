@@ -1064,7 +1064,7 @@ namespace vessel
                                     removed + i))
             {
                PD_LOG(PDERROR, "failed to validate block to be removed");
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               rc = SDB_INVALID_OPERATION;
                goto error;
             }
          }
@@ -1338,13 +1338,13 @@ namespace vessel
       if (chain.getChainSize() != block->chainPos)
       {
          PD_LOG(PDERROR, "invalid block with chain pos[%d] to append", block->chainPos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (MAX_LOB_CHUNK_SIZE < (block->size + chain.getCurrentCapacity()))
       {
          PD_LOG(PDERROR, "out of lob chunk size");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1471,7 +1471,7 @@ namespace vessel
       if (chain.getFreeSizeInLastExtent() < deltaSize)
       {
          PD_LOG(PDERROR, "delta size[%d] is out of extent space", deltaSize);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 

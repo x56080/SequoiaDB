@@ -38,6 +38,8 @@
 
 #include "interface/IDataJournal.h"
 #include "sdbIPersistence.hpp"
+#include "dpsRequestContext.hpp"
+#include "dpsOperationList.hpp"
 
 namespace engine
 {
@@ -55,6 +57,9 @@ namespace engine
          virtual void unregEventHandler(dpsEventHandler *handler) = 0;
          virtual INT32 completeOpr(IExecutor *executor, INT32 w) = 0;
          virtual INT32 archive() = 0;
+         virtual INT32 process(IExecutor *executor, dpsRequestContext &ctx) = 0 ;
+         virtual INT32 loadOpl( const DPS_LSN &lastNodeLSN,
+                                dpsOperationList &opl ) = 0 ;
 
    };//class _IDataProtectionService
    using IDataProtectionService = _IDataProtectionService;

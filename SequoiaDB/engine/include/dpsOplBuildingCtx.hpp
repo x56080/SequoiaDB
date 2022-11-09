@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsRecordEleDef.hpp
+   Source File Name = dpsOplBuildingCtx.hpp
 
    Descriptive Name =
 
@@ -33,29 +33,41 @@
 
 ******************************************************************************/
 
-#ifndef DPS_RECORD_ELE_DEF_HPP__
-#define DPS_RECORD_ELE_DEF_HPP__
+#ifndef DPS_OPL_BUILDING_CTX_HPP__
+#define DPS_OPL_BUILDING_CTX_HPP__
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "dpsOplistDef.hpp"
+#include "dpsLogDef.hpp"
 
 namespace engine
 {
-#pragma pack(4)
-   struct dpsEleOplNode
+   class _dpsOplBuildingCtx : public SDBObject
    {
-      UINT64 oplLSN = ~0;
-      UINT64 preLSN = ~0;
-   };
+      public:
+         OSS_INLINE const DPS_LSN &getLSN() const { return _lsn ; }
+         OSS_INLINE const DPS_LSN &getCurrentTailLSN() const { return _currentTail ; }
+         OSS_INLINE UINT32 getSize() const { return _size ; }
+         OSS_INLINE DPS_OPLIST_STATUS getStatus() const { return _status ; }
+         OSS_INLINE BOOLEAN isCompleted() const
+         {
+            return DPS_OPLIST_STATUS::COMPLETED == _status ;
+         }
 
-   struct dpsElePageAddr
-   {
-      INT32 lpid = -1;
-      INT64 gpid = -1;
-   };
+      public:
+         void reset() ;
+         void push( const DPS_LSN &node ) ;
+         void beginToRollBack() ;
+         void setCompleted() ;
 
-#pragma pack()
+      private:
+         DPS_LSN _lsn ;
+         DPS_LSN _currentTail ;
+         UINT32 _size = 0 ;
+         DPS_OPLIST_STATUS _status = DPS_OPLIST_STATUS::START ;
+
+   };//class _dpsOplBuildingCtx
+   using dpsOplBuildingCtx = class _dpsOplBuildingCtx ;
 } // namespace engine
 
 
-#endif//DPS_RECORD_ELE_DEF_HPP__
+#endif//DPS_OPL_BUILDING_CTX_HPP__

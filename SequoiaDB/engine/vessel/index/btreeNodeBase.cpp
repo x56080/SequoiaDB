@@ -487,7 +487,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -528,13 +528,13 @@ namespace vessel
       else if (!isLeaf())
       {
          PD_LOG(PDERROR, "can not split non-leaf node and insert entry");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (nullptr == _getTreeCtx())
       {
          PD_LOG(PDERROR, "tree context is invalid");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1053,7 +1053,7 @@ namespace vessel
       }
       if (OSS_UNLIKELY(!isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1231,7 +1231,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (!hasFreeSpaceToInsert(raisedKey.entry.getRawDataSize(), &needCompact))
@@ -1356,7 +1356,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1370,7 +1370,7 @@ namespace vessel
       else if (INVALID_PAGE_ID == getChild(pos))
       {
          PD_LOG(PDERROR, "already has no child in pos[%d]", pos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1428,7 +1428,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (getItemCount() <= (UINT16)pos)
@@ -1480,7 +1480,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (getItemCount() < (UINT16)pos)
@@ -1491,7 +1491,7 @@ namespace vessel
       else if (INVALID_PAGE_ID != getChild(pos))
       {
          PD_LOG(PDERROR, "child at [%d] is valid", pos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 
@@ -1544,7 +1544,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(isLeaf()))
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
       else if (OSS_UNLIKELY(!raisedKey.isValid()))
@@ -2548,7 +2548,7 @@ namespace vessel
       if (head->totalSlotCount < _MIN_SPLIT_ITEM_COUNT)
       {
          PD_LOG(PDERROR, "too few item count to split");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALID_OPERATION;
          goto error;
       }
 

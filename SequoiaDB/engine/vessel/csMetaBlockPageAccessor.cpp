@@ -182,7 +182,6 @@ namespace vessel
       IDataJournal *journal = context->getOuterResource()->journal;
 
       jpad.setType(LOG_TYPE_VESSEL_CSMB_UPDATE);
-      jpad.setFlag(DPS_LOG_FLAG_VESSEL);
 
       rc = jpad.append(DPS_LOG_PUBLIC_VESSEL_GPID,
                        sizeof(GLOBAL_PAGE_ID), &gpid);
@@ -217,7 +216,7 @@ namespace vessel
 
       jrequest = jpad.reap();
 
-      rc = journal->write(jrequest, dpsWriteOptions(), &jres);
+      rc = journal->write(context->getExecutor(), jrequest, dpsWriteOptions(), &jres);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failedd to write journal:%d", rc);
