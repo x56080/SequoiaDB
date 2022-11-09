@@ -61,7 +61,7 @@ namespace engine
          _dpsRecordElements &operator=( _dpsRecordElements && ) noexcept ;
 
       public:
-         OSS_INLINE BOOLEAN isValid() const{ return nullptr != _buf ; }
+         BOOLEAN isValid() const ;
          OSS_INLINE BOOLEAN isOwned() const { return _owner.isValid() ; }
          OSS_INLINE void reset()
          {

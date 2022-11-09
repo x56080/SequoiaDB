@@ -50,7 +50,7 @@ namespace engine
    _buf( buf.get() ),
    _owner( std::move(buf) )
    {
-      SDB_ASSERT( nullptr != _buf, "can not be invalid" ) ;
+
    }
 
    _dpsRecordElements::_dpsRecordElements( const CHAR *buf,
@@ -60,7 +60,7 @@ namespace engine
    _elementNum( num ),
    _buf( buf )
    {
-      SDB_ASSERT( nullptr != _buf, "can not be invalid" ) ;
+
    }
 
    _dpsRecordElements::_dpsRecordElements( _dpsRecordElements &&o ) noexcept :
@@ -80,6 +80,11 @@ namespace engine
       _owner = std::move( o._owner ) ;
       o.reset() ;
       return *this ;
+   }
+
+   BOOLEAN _dpsRecordElements::isValid() const
+   {
+      return nullptr != _buf && sizeof(dpsRecordEle) <= _size ;
    }
 
    INT32 _dpsRecordElements::getOwned()
