@@ -14,7 +14,7 @@ import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 
-public class CommLib {
+public class  CommLib {
     /**
      * Judge the mode
      * 
@@ -733,4 +733,16 @@ public class CommLib {
             }
         }
     }
+
+    public static void checkRecordsResult(DBCursor queryCursor, List< BSONObject > expRecords ){
+        ArrayList< BSONObject > actRecords = new ArrayList< BSONObject >();
+        while ( queryCursor.hasNext() ) {
+            BSONObject queryRecord = queryCursor.getNext();
+           // queryRecord.removeField("_id");
+            actRecords.add( queryRecord );
+        }
+        queryCursor.close();
+        Assert.assertEquals( actRecords, expRecords);
+    }
+
 }
