@@ -14,7 +14,7 @@ import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 
-public class  CommLib {
+public class CommLib {
     /**
      * Judge the mode
      * 
