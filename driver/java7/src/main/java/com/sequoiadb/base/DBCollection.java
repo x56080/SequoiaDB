@@ -1056,9 +1056,13 @@ public class DBCollection {
      *                    </ul>
      * @param options    The rules of query explain, the options are as below:
      *                   <ul>
-     *                   <li>Run : Whether execute query explain or not, true for executing query explain
-     *                   then get the data and time information; false for not executing query explain but
-     *                   get the query explain information only. e.g. {Run:true}
+     *                   <li>Run: Whether execute query explain or not, true for executing query explain
+     *                   then get the data and time information, default to be false. e.g. {Run: true}
+     *                   <li>Detail: Whether return detail info, such as coord, data and context information,
+     *                   default to be false. e.g. {Detail: true}
+     *                   <li>Location: Filter return info, need a BSONObject as value, only support "GroupID"
+     *                   and "GroupName" as the BSONObject key, if Location options is explicitly set, the Detail
+     *                   options will automatically set to be true, default to be null. e.g. {Location: {GroupName: "group1"}}
      *                   </ul>
      * @return a DBCursor instance of the result
      * @throws BaseException If error happens.
