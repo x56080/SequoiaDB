@@ -9,8 +9,8 @@ main( test );
 
 function test ()
 {
-   var csName = "csName_";
-   var clName = "clName_";
+   var csName = "csName_28680";
+   var clName = "clName_28680";
    commDropCS( db, csName );
    commCreateCS( db, csName );
    db.getCS( csName ).createCL( clName );
