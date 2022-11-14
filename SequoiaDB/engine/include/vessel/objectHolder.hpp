@@ -78,7 +78,7 @@ namespace vessel
          {
             if (isFree())
             {
-               _obj = SDB_OSS_NEW T(args...);
+               _obj = SDB_OSS_NEW T(std::forward<Args>...);
             }
             return _obj;
          }

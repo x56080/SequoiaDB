@@ -61,7 +61,7 @@ namespace engine
          template<class Function, class ... Args>
          static void active(ossThread &t, Function&& f, Args&& ...args)
          {
-            t._thread = std::move(std::thread(f, args...));
+            t._thread = std::move(std::thread(f, std::forward<Args>...));
          }
 
          BOOLEAN isJoinable()const;
