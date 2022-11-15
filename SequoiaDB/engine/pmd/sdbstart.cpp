@@ -647,6 +647,8 @@ namespace engine
                               utilDBTypeStr( (SDB_TYPE)info._type ),
                               info._svcname.c_str(), info._pid ) ;
                   ++succeedNum ;
+                  // node already started so restore rc from SDB_SRC_PERM to SDB_OK
+                  rc = SDB_OK ;
                   continue ;
                }
             }
