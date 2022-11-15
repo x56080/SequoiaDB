@@ -2,8 +2,8 @@
  * @Description   : seqDB-27840 删除CL，CS在group下还存在CL
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.25
- * @LastEditTime  : 2022.10.12
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.15
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27840";
 testConf.skipStandAlone = true;
@@ -45,7 +45,7 @@ function test ( testPara )
    var csInfo = getSnapshotLobStat( cursor );
 
    // 获取集合快照信息，非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: csName + "." + clName1, RawData: true } );
+   var option = new SdbSnapshotOption().cond( { Name: csName + "." + clName1, RawData: true } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData = getSnapshotLobStatToCL( cursor, true )
 

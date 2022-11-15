@@ -2,7 +2,7 @@
  * @Description   : seqDB-27857:getLob操作失败，查看统计指标
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.10.13
- * @LastEditTime  : 2022.10.20
+ * @LastEditTime  : 2022.11.15
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27857";
@@ -39,7 +39,7 @@ function test ( testPara )
    var csInfo = getSnapshotLobStat( cursor );
 
    // 获取集合快照信息，非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData = getSnapshotLobStatToCL( cursor, true );
 

@@ -2,8 +2,8 @@
  * @Description   : seqDB-27852:truncateLob，truncate部分占一个大对象页 
  * @Author        : liuli
  * @CreateTime    : 2022.09.25
- * @LastEditTime  : 2022.10.12
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.15
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27852";
 testConf.csOpt = { LobPageSize: 32768 };
@@ -60,7 +60,7 @@ function test ( testPara )
    var clInfo = getSnapshotLobStatToCL( cursor, false );
 
    // 获取集合快照信息，非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } ).sort( { "Details.NodeName": 1 } );
    var cursor = sdb.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData = getSnapshotLobStatToCL( cursor, true );
 

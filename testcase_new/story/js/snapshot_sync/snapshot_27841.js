@@ -2,8 +2,8 @@
  * @Description   : seqDB-27841:删除CL，是CS中group下最后一个CL 
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.09.25
- * @LastEditTime  : 2022.10.12
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.15
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27841";
 testConf.skipStandAlone = true;
@@ -58,7 +58,7 @@ function test ( testPara )
    cursor.close();
 
    // 获取集合快照信息，非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: csName + "." + clName1, RawData: true } );
+   var option = new SdbSnapshotOption().cond( { Name: csName + "." + clName1, RawData: true } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData = getSnapshotLobStatToCL( cursor, true )
 

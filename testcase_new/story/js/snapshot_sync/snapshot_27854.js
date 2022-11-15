@@ -2,8 +2,8 @@
  * @Description   : seqDB-27854:执行listLobs后查看快照 
  * @Author        : liuli
  * @CreateTime    : 2022.09.30
- * @LastEditTime  : 2022.10.12
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.15
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27854";
 testConf.clName = COMMCLNAME + "_27854";
@@ -61,7 +61,7 @@ function test ()
    var clInfo = getSnapshotLobStatToCL( cursor, false );
 
    // 获取集合快照信息，非聚合结果
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } ).sort( { "Details.NodeName": 1 } );
    var cursor = sdb.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData = getSnapshotLobStatToCL( cursor, true );
 

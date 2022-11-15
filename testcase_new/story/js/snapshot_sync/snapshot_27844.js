@@ -2,8 +2,8 @@
  * @Description   : seqDB-27844:目标组有lob，源组100%切分至目标组
  * @Author        : liuli
  * @CreateTime    : 2022.09.25
- * @LastEditTime  : 2022.10.14
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.15
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.csName = COMMCSNAME + "_27844";
 testConf.clName = COMMCLNAME + "_27844";
@@ -64,7 +64,7 @@ function test ( testPara )
    // 获取构造的预期CL非聚合结果
    var option = new SdbSnapshotOption().cond( {
       Name: testConf.csName + "." + testConf.clName, RawData: true, Group: dstGroupNames[0]
-   } ).sort( { NodeName: 1 } );
+   } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    var clInfoRawData = getSnapshotLobStatToCL( cursor, true );
 
@@ -130,7 +130,7 @@ function test ( testPara )
       clInfoRawData[i]["UsedLobSpaceRatio"] = Math.floor( clInfoRawData[i]["TotalUsedLobSpace"] / clInfoRawData[i]["LobCapacity"] * 100 ) / 100
       clInfoRawData[i]["AvgLobSize"] = fileSize / 1;
    }
-   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } ).sort( { NodeName: 1 } );
+   var option = new SdbSnapshotOption().cond( { Name: testConf.csName + "." + testConf.clName, RawData: true } ).sort( { "Details.NodeName": 1 } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, option );
    checkSnapshotToCL( cursor, clInfoRawData, true );
 
