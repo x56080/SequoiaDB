@@ -69,7 +69,8 @@ namespace engine
       _clsFreezingItem( const _clsFreezingItem &item )
       : _blockID( item._blockID ),
         _transWhiteList( item._transWhiteList ),
-        _ctxWhiteList( item._ctxWhiteList )
+        _ctxWhiteList( item._ctxWhiteList ),
+        _queryIDWhiteList( item._queryIDWhiteList )
       {
       }
 
@@ -114,11 +115,26 @@ namespace engine
                                                                TRUE : FALSE ;
       }
 
+      // WARNING: may throw exception
+      // NOTE: used as element in set
+      OSS_INLINE void updateQueryIDWhiteList( const ossPoolSet<MsgQueryID> &whiteList ) const
+      {
+         // union
+         _queryIDWhiteList.insert( whiteList.begin(), whiteList.end() ) ;
+      }
+
+      OSS_INLINE BOOLEAN isInQueryIDWhiteList( const MsgQueryID &queryID ) const
+      {
+         return ( ( !queryID.isInvalid() ) &&
+                  ( _queryIDWhiteList.end() != _queryIDWhiteList.find( queryID ) ) ) ? TRUE : FALSE ;
+      }
+
       _clsFreezingItem &operator =( const _clsFreezingItem &item )
       {
          _blockID = item._blockID ;
          _transWhiteList = item._transWhiteList ;
          _ctxWhiteList = item._ctxWhiteList ;
+         _queryIDWhiteList = item._queryIDWhiteList ;
          return (*this) ;
       }
 
@@ -138,6 +154,7 @@ namespace engine
       // white list for locked transactions
       mutable DPS_TRANS_ID_SET _transWhiteList ;
       mutable RTN_CTX_ID_SET   _ctxWhiteList ;
+      mutable ossPoolSet<MsgQueryID> _queryIDWhiteList ;
    } ;
 
    typedef class _clsFreezingItem clsFreezingItem ;
@@ -163,6 +180,9 @@ namespace engine
          INT32 updateCLCtxWhiteList( const CHAR *pName,
                                      UINT64 opID,
                                      const RTN_CTX_ID_SET &whiteList ) ;
+         INT32 updateCLQueryIDWhiteList( const CHAR *pName,
+                                         UINT64 opID,
+                                         const ossPoolSet<MsgQueryID> &whiteList ) ;
          void  unregisterCL ( const CHAR *pName, UINT64 opID ) ;
 
          INT32 registerCS ( const CHAR *pName, UINT64 &opID ) ;
@@ -172,6 +192,9 @@ namespace engine
          INT32 updateCSCtxWhiteList( const CHAR *pName,
                                      UINT64 opID,
                                      const RTN_CTX_ID_SET &whiteList ) ;
+         INT32 updateCSQueryIDWhiteList( const CHAR *pName,
+                                         UINT64 opID,
+                                         const ossPoolSet<MsgQueryID> &whiteList ) ;
          void  unregisterCS ( const CHAR *pName, UINT64 opID ) ;
 
          INT32 registerWhole( UINT64 &opID ) ;
@@ -179,6 +202,8 @@ namespace engine
                                           const DPS_TRANS_ID_SET &whiteList ) ;
          INT32 updateWholeCtxWhiteList( UINT64 opID,
                                         const RTN_CTX_ID_SET &whiteList ) ;
+         INT32 updateWholeQueryIDWhiteList( UINT64 opID,
+                                            const ossPoolSet<MsgQueryID> &whiteList ) ;
          void  unregisterWhole( UINT64 opID ) ;
 
          void  unregisterAll() ;

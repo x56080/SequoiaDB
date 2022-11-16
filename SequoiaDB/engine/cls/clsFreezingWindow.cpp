@@ -321,6 +321,11 @@ namespace engine
 
       SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
 
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
       try
       {
          ossScopedLock lock( &_latch ) ;
@@ -466,6 +471,11 @@ namespace engine
 
       SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
 
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
       try
       {
          ossScopedLock lock( &_latch ) ;
@@ -491,6 +501,153 @@ namespace engine
       PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDWHOLECTXWHITELST, rc ) ;
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDCLQUERYIDWHITELST, "_clsFreezingWindow::updateCLQueryIDWhiteList" )
+   INT32 _clsFreezingWindow::updateCLQueryIDWhiteList( const CHAR *pName,
+                                                       UINT64 opID,
+                                                       const ossPoolSet<MsgQueryID> &whiteList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDCLQUERYIDWHITELST ) ;
+
+      SDB_ASSERT( NULL != pName, "name is invalid" ) ;
+      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
+
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         ossScopedLock lock( &_latch ) ;
+
+         MAP_WINDOW::iterator iterCL ;
+         OP_SET::iterator iterItem ;
+
+         ossPoolString name( pName ) ;
+         iterCL = _mapWindow.find( name ) ;
+         PD_CHECK( iterCL != _mapWindow.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection [%s]",
+                   pName ) ;
+
+         iterItem = iterCL->second.find( opID ) ;
+         PD_CHECK( iterItem != iterCL->second.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection [%s], "
+                   "op [%llu]", pName, opID ) ;
+
+         iterItem->updateQueryIDWhiteList( whiteList ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update white list for collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDCLQUERYIDWHITELST, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDCSQUERYIDWHITELST, "_clsFreezingWindow::updateCSQueryIDWhiteList" )
+   INT32 _clsFreezingWindow::updateCSQueryIDWhiteList( const CHAR *pName,
+                                                       UINT64 opID,
+                                                       const ossPoolSet<MsgQueryID> &whiteList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDCSQUERYIDWHITELST ) ;
+
+      SDB_ASSERT( NULL != pName, "name is invalid" ) ;
+      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
+
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         ossScopedLock lock( &_latch ) ;
+
+         MAP_CS_WINDOW::iterator iterCS ;
+         OP_SET::iterator iterItem ;
+
+         ossPoolString name( pName ) ;
+         iterCS = _mapCSWindow.find( name ) ;
+         PD_CHECK( iterCS != _mapCSWindow.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection space [%s]",
+                   pName ) ;
+
+         iterItem = iterCS->second.find( opID ) ;
+         PD_CHECK( iterItem != iterCS->second.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for collection space [%s], "
+                   "op [%llu]", pName, opID ) ;
+
+         iterItem->updateQueryIDWhiteList( whiteList ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update white list for collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDCSQUERYIDWHITELST, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFREEZWND_UPDWHOLEQUERYIDWHITELST, "_clsFreezingWindow::updateWholeQueryIDWhiteList" )
+   INT32 _clsFreezingWindow::updateWholeQueryIDWhiteList( UINT64 opID,
+                                                          const ossPoolSet<MsgQueryID> &whiteList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSFREEZWND_UPDWHOLEQUERYIDWHITELST ) ;
+
+      SDB_ASSERT( 0 != opID, "block ID is invalid" ) ;
+
+      if ( whiteList.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         ossScopedLock lock( &_latch ) ;
+
+         OP_SET::iterator iterItem ;
+
+         iterItem = _setWholeID.find( opID ) ;
+         PD_CHECK( iterItem != _setWholeID.end(), SDB_SYS, error, PDERROR,
+                   "Failed to find freezing item for whole DB, op [%llu]",
+                   opID ) ;
+
+         iterItem->updateQueryIDWhiteList( whiteList ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update white list for whole DB, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSFREEZWND_UPDWHOLEQUERYIDWHITELST, rc ) ;
+      return rc ;
    error:
       goto done ;
    }
@@ -753,6 +910,7 @@ namespace engine
    {
       DPS_TRANS_ID transID = cb->getTransID() ;
       INT64 contextID = cb->getCurrentContextID() ;
+      const MsgQueryID& queryID = cb->getOperator()->getGlobalID().getQueryID() ;
       OP_SET::const_iterator cit = setID.begin() ;
       while ( cit != setID.end () )
       {
@@ -765,6 +923,7 @@ namespace engine
          }
          else if ( *cit < testOPID &&
                    !cit->isInTransWhiteList( transID ) &&
+                   !cit->isInQueryIDWhiteList( queryID ) &&
                    !cit->isInCtxWhiteList( contextID ) )
          {
             result = TRUE ;
