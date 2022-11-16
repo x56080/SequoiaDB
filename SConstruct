@@ -1037,14 +1037,16 @@ Export("debugBuild")
 Export("cov")
 Export("boost_lib_dir")
 Export("intel_decimal_lib_dir")
-Export("rocksdb_lib")
-Export("zstd_lib")
-Export("bzip2_lib")
+if guess_os == "linux":
+    Export("rocksdb_lib")
+    Export("zstd_lib")
+    Export("bzip2_lib")
+    Export("rocksdbLibName")
 Export("rocksdb_lib_dir")
 Export("zstd_lib_dir")
 Export("bzip2_lib_dir")
 Export("sqlite_dir")
-Export("rocksdbLibName")
+
 
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
