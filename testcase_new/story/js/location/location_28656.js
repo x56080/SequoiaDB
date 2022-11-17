@@ -2,9 +2,11 @@
  * @Description   : seqDB-28656:使用setAttributes设置option参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.15
+ * @LastEditTime  : 2022.11.17
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 function test ()
 {

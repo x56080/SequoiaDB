@@ -5,6 +5,8 @@
  * @LastEditTime  : 2022.11.17
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 function test ()
 {

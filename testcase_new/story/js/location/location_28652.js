@@ -2,7 +2,7 @@
  * @Description   : seqDB-28652:coord节点使用setAttributes设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.15
+ * @LastEditTime  : 2022.11.17
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;

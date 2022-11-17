@@ -2,9 +2,11 @@
  * @Description   : seqDB-28649:data节点使用setLocation设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.14
- * @LastEditTime  : 2022.11.15
+ * @LastEditTime  : 2022.11.17
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 function test ()
 {
