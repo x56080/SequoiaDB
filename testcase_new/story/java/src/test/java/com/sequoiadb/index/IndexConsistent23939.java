@@ -63,7 +63,7 @@ public class IndexConsistent23939 extends SdbTestBase {
         options.put( "Group", srcGroupName );
         cl = cs.createCollection( clName, options );
         cl.split( srcGroupName, destGroupName, 50 );
-        IndexUtils.insertData( cl, recsNum );
+        IndexUtils.insertDataWithOutReturn( cl, recsNum );
     }
 
     @Test

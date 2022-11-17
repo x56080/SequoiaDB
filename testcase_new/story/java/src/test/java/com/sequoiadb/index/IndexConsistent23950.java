@@ -53,7 +53,7 @@ public class IndexConsistent23950 extends SdbTestBase {
         cl.createIndex( idxName, new BasicBSONObject( "testno", 1 ), false,
                 false );
         int recordNum = 10000;
-        IndexUtils.insertData( cl, recordNum );
+        IndexUtils.insertDataWithOutReturn( cl, recordNum );
     }
 
     @Test

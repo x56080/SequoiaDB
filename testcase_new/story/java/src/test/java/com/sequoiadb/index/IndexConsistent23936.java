@@ -68,7 +68,7 @@ public class IndexConsistent23936 extends SdbTestBase {
         option2.put( "UpBound", new BasicBSONObject( "no", 10000 ) );
         maincl.attachCollection( csName + "." + subCLName2, option2 );
         int recordNum = 10000;
-        IndexUtils.insertData( maincl, recordNum );
+        IndexUtils.insertDataWithOutReturn( maincl, recordNum );
     }
 
     @Test

@@ -51,7 +51,7 @@ public class IndexConsistent26362 extends SdbTestBase {
         DBCollection dbcl = cs.createCollection( clName, optionsM );
 
         int recordNum = 10000;
-        IndexUtils.insertData( dbcl, recordNum );
+        IndexUtils.insertDataWithOutReturn( dbcl, recordNum );
     }
 
     // SEQUOIADBMAINSTREAM-8311

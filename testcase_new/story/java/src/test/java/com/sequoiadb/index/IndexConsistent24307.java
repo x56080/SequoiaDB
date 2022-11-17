@@ -63,7 +63,7 @@ public class IndexConsistent24307 extends SdbTestBase {
         cs2 = sdb.createCollectionSpace( csName2 );
         dbcl = createAndAttachCL( cs1, cs2, mainclName, subclName1,
                 subclName2 );
-        IndexUtils.insertData( dbcl, recsNum );
+        IndexUtils.insertDataWithOutReturn( dbcl, recsNum );
     }
 
     @Test
