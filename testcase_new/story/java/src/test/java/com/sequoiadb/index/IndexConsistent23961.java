@@ -54,7 +54,7 @@ public class IndexConsistent23961 extends SdbTestBase {
         keyValue.put( "no", 1 );
         options.put( "ShardingKey", keyValue );
         cl = cs.createCollection( clName, options );
-        IndexUtils.insertData( cl, recsNum );
+        IndexUtils.insertDataWithOutReturn( cl, recsNum );
     }
 
     @Test

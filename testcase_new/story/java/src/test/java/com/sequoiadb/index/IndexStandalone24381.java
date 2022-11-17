@@ -47,7 +47,7 @@ public class IndexStandalone24381 extends SdbTestBase {
         BasicBSONObject options = new BasicBSONObject();
         options.put( "ReplSize", 0 );
         cl = cs.createCollection( clName, options );
-        IndexUtils.insertData( cl, recsNum );
+        IndexUtils.insertDataWithOutReturn( cl, recsNum );
     }
 
     @Test

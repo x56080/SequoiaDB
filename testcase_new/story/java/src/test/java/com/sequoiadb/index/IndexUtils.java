@@ -71,6 +71,38 @@ public class IndexUtils {
         return insertData( dbcl, recordNum, 50 );
     }
 
+    public static void insertDataWithOutReturn( DBCollection dbcl,
+            int recordNum, int length ) {
+        ArrayList< BSONObject > insertRecord = new ArrayList< BSONObject >();
+        int batchNum = 5000;
+        if ( recordNum < batchNum ) {
+            batchNum = recordNum;
+        }
+        int count = 0;
+        for ( int i = 0; i < recordNum / batchNum; i++ ) {
+            List< BSONObject > batchRecords = new ArrayList< BSONObject >();
+            for ( int j = 0; j < batchNum; j++ ) {
+                String stringValue = getRandomString( length );
+                int value = count++;
+                BSONObject obj = new BasicBSONObject();
+                obj.put( "testa", stringValue );
+                obj.put( "testb", value );
+                obj.put( "no", value );
+                obj.put( "testno", value );
+                obj.put( "teststr", "teststr" + value );
+                batchRecords.add( obj );
+            }
+            dbcl.insert( batchRecords );
+            insertRecord.addAll( batchRecords );
+            batchRecords.clear();
+        }
+    }
+
+    public static void insertDataWithOutReturn( DBCollection dbcl,
+            int recordNum ) {
+        insertDataWithOutReturn( dbcl, recordNum, 50 );
+    }
+
     public static void checkRecords( DBCollection dbcl,
             List< BSONObject > expRecords, String matcher, String hint ) {
         DBCursor cursor = dbcl.query( matcher, "", "{'no':1}", hint );

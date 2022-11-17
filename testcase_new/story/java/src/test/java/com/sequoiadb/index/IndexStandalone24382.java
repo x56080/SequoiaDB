@@ -47,7 +47,7 @@ public class IndexStandalone24382 extends SdbTestBase {
         options.put( "ShardingKey", keyValue );
         options.put( "ReplSize", 0 );
         cl = cs.createCollection( clName, options );
-        IndexUtils.insertData( cl, recsNum );
+        IndexUtils.insertDataWithOutReturn( cl, recsNum );
     }
 
     @Test

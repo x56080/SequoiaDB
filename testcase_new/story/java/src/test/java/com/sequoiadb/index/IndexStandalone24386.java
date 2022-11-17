@@ -46,7 +46,7 @@ public class IndexStandalone24386 extends SdbTestBase {
         }
         cs = sdb.createCollectionSpace( csName );
         dbcl = createAndAttachCL( cs, mainclName, subclName1, subclName2 );
-        IndexUtils.insertData( dbcl, recsNum );
+        IndexUtils.insertDataWithOutReturn( dbcl, recsNum );
     }
 
     @Test

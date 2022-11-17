@@ -61,7 +61,7 @@ public class IndexConsistent23958 extends SdbTestBase {
         DBCollection maincl = createAndAttachCL( cs, mainclName, subclName1,
                 subclName2 );
         maincl.createIndex( indexName, "{testno:1,no:-1}", true, false );
-        IndexUtils.insertData( maincl, recsNum );
+        IndexUtils.insertDataWithOutReturn( maincl, recsNum );
     }
 
     @Test
