@@ -2,7 +2,7 @@
  * @Description   : seqDB-28680:恢复回收站项目，编目快照中更新时间信息验证
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.11.09
- * @LastEditTime  : 2022.11.15
+ * @LastEditTime  : 2022.11.17
  * @LastEditors   : Xu Mingxing
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -22,7 +22,8 @@ function test ()
 
    // 查看编目快照信息
    var cursor = db.snapshot( SDB_SNAP_CATALOG, { Name: csName + "." + clName } );
-   var pre_updateTime = cursor.current().toObj().UpdateTime;
+   var preUpdateTime = cursor.current().toObj().UpdateTime;
+   cursor.close();
 
    dbcl.truncate();
    // 恢复集合数据
@@ -30,11 +31,12 @@ function test ()
    db.getRecycleBin().returnItem( recycleName );
    // 查看编目快照信息,更新后
    var cursor = db.snapshot( SDB_SNAP_CATALOG, { Name: csName + "." + clName } );
-   var post_updateTime = cursor.current().toObj().UpdateTime;
+   var postUpdateTime = cursor.current().toObj().UpdateTime;
+   cursor.close();
    // updateTime更新为当前恢复数据的时间
-   if( post_updateTime <= pre_updateTime )
+   if( postUpdateTime <= preUpdateTime )
    {
-      throw new Error( "post-updateTime: " + post_updateTime + ", pre-updateTime: " + pre_updateTime + ", expected post-updateTime to be more than pre-updateTime" );
+      throw new Error( "postUpdateTime: " + postUpdateTime + ", preUpdateTime: " + preUpdateTime + ", expected postUpdateTime to be more than preUpdateTime" );
    }
 
    dbcs.dropCL( clName );
@@ -43,11 +45,12 @@ function test ()
    db.getRecycleBin().returnItem( recycleName );
    // 查看编目快照信息,更新后
    var cursor = db.snapshot( SDB_SNAP_CATALOG, { Name: csName + "." + clName } );
-   var post_updateTime = cursor.current().toObj().UpdateTime;
+   var postUpdateTime = cursor.current().toObj().UpdateTime;
+   cursor.close();
    // updateTime更新为当前恢复集合的时间 
-   if( post_updateTime <= pre_updateTime )
+   if( postUpdateTime <= preUpdateTime )
    {
-      throw new Error( "post-updateTime: " + post_updateTime + ", pre-updateTime: " + pre_updateTime + ", expected post-updateTime to be more than pre-updateTime" );
+      throw new Error( "postUpdateTime: " + postUpdateTime + ", preUpdateTime: " + preUpdateTime + ", expected postUpdateTime to be more than preUpdateTime" );
    }
 
    db.dropCS( csName );
@@ -56,11 +59,12 @@ function test ()
    db.getRecycleBin().returnItem( recycleName );
    // 查看编目快照信息,更新后
    var cursor = db.snapshot( SDB_SNAP_CATALOG, { Name: csName + "." + clName } );
-   var post_updateTime = cursor.current().toObj().UpdateTime;
+   var postUpdateTime = cursor.current().toObj().UpdateTime;
+   cursor.close();
    // updateTime更新为当前恢复集合空间的时间
-   if( post_updateTime <= pre_updateTime )
+   if( postUpdateTime <= preUpdateTime )
    {
-      throw new Error( "post-updateTime: " + post_updateTime + ", pre-updateTime: " + pre_updateTime + ", expected post-updateTime to be more than pre-updateTime" );
+      throw new Error( "postUpdateTime: " + postUpdateTime + ", preUpdateTime: " + preUpdateTime + ", expected postUpdateTime to be more than preUpdateTime" );
    }
 
    commDropCS( db, csName );
