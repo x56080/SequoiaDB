@@ -10,16 +10,8 @@
 
 sdbdpsdump 是 SequoiaDB 巨杉数据库的同步日志文件 dump 工具，该工具可以解析 replicalog 同步日志文件的内容，并且给出结果报告。
 
-运行需求
-----
+##语法规则##
 
-- sdbdpsdump 不需要与数据库连接。
-- 运行 sdbdpsdump 命令的用户必须对数据库的 replicalog 同步日志文件拥有读权限。
-
-连接
-
-语法规则
-----
 ```lang-text
 sdbdpsdump [--source | -s arg][--output | -o arg][ --type | -t arg]
 
@@ -38,8 +30,7 @@ sdbdpsdump --help | -h
 sdbdpsdump --version | -v
 ```
 
-参数说明
-----
+##参数说明##
 
 - **--help, -h**
   
@@ -114,8 +105,7 @@ sdbdpsdump --version | -v
 >
 > 无论用户是否指定 --meta 选项，sdbdpsdump 都会打印日志文件的元数据信息。
 
-示例
-----
+##常见场景##
 
 * sdbdpsdump 解析指定目录 `/opt/sequoiadb/database/data/11860/replicalog` 中的 replicalog 文件，并只解析类型为 1（数据插入）的日志，输出到当前目录 `out.log`
 
