@@ -1049,6 +1049,7 @@
 #define MSG_INVALID_LOCATIONID              0
 #define MSG_LOCATION_ID_BEGIN               1
 #define MSG_LOCATION_ID_END                 1000000
+#define MSG_LOCATION_NAMESZ                 256
 
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
 

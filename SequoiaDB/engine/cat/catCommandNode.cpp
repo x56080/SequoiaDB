@@ -106,7 +106,7 @@ namespace engine
             }
             if ( _nodeID == tmpNodeIDEle.numberInt() )
             {
-               _nodeObj = nodeObj ;
+               _nodeObj = nodeObj.getOwned() ;
                break ;
             }
          }
@@ -265,24 +265,31 @@ namespace engine
             BSONElement newLocEle = _option.getField( CAT_LOCATION_NAME ) ;
             if ( newLocEle.eoo() || String != newLocEle.type() )
             {
-               rc = SDB_INVALIDARG;
-               PD_LOG( PDWARNING, "Failed to get the field(%s)",
-                       CAT_LOCATION_NAME );
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDWARNING, "Failed to get the field(%s)",
+                           CAT_LOCATION_NAME ) ;
+               goto error ;
+            }
+            // ele.valuestrsize include the length of '\0'
+            if ( MSG_LOCATION_NAMESZ < newLocEle.valuestrsize() - 1 )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
                goto error ;
             }
             const ossPoolString newLoc( newLocEle.valuestrsafe() ) ;
 
-            BSONElement oldLocEle = _nodeObj.getField( FIELD_NAME_LOCATION ) ;
+            BSONElement oldLocEle = _nodeObj.getField( CAT_LOCATION_NAME ) ;
             if ( ! oldLocEle.eoo() && String != oldLocEle.type() )
             {
-               rc = SDB_INVALIDARG;
+               rc = SDB_CAT_CORRUPTION ;
                PD_LOG( PDWARNING, "Failed to get the field(%s)",
-                       CAT_LOCATION_NAME );
+                       CAT_LOCATION_NAME ) ;
                goto error ;
             }
+            const ossPoolString oldLoc( oldLocEle.valuestrsafe() ) ;
 
             // Compare oldLocation and newLocation
-            const ossPoolString oldLoc( oldLocEle.valuestrsafe() ) ;
             if ( oldLoc == newLoc )
             {
                PD_LOG( PDDEBUG, "The old and new location are same, do nothing" ) ;
@@ -322,9 +329,16 @@ namespace engine
 
                   if ( optionEle.eoo() || String != optionEle.type() )
                   {
-                     PD_LOG( PDWARNING, "Failed to get the field(%s)",
-                             CAT_LOCATION_NAME );
-                     rc = SDB_INVALIDARG;
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDWARNING, "Failed to get the field(%s)",
+                                 CAT_LOCATION_NAME ) ;
+                     goto error ;
+                  }
+                  // ele.valuestrsize include the length of '\0'
+                  if ( MSG_LOCATION_NAMESZ < optionEle.valuesize() - 1 )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
                      goto error ;
                   }
                   const ossPoolString newLoc( optionEle.valuestrsafe() ) ;
@@ -333,8 +347,8 @@ namespace engine
                   if ( ! oldLocEle.eoo() && String != optionEle.type() )
                   {
                      PD_LOG( PDWARNING, "Failed to get the field(%s)",
-                             CAT_LOCATION_NAME );
-                     rc = SDB_INVALIDARG;
+                             CAT_LOCATION_NAME ) ;
+                     rc = SDB_CAT_CORRUPTION ;
                      goto error ;
                   }
 
