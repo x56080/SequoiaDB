@@ -60,17 +60,18 @@ namespace engine
          _pmdSession( SOCKET fd ) ;
          virtual ~_pmdSession() ;
 
-         virtual UINT64    identifyID() ;
-         virtual MsgRouteID identifyNID() ;
-         virtual UINT32    identifyTID() ;
-         virtual UINT64    identifyEDUID() ;
+         virtual UINT64          identifyID() ;
+         virtual MsgRouteID      identifyNID() ;
+         virtual UINT32          identifyTID() ;
+         virtual UINT64          identifyEDUID() ;
 
-         virtual void*     getSchedItemPtr() ;
-         virtual void      setSchedItemVer( INT32 ver ) ;
+         virtual void*           getSchedItemPtr() ;
+         virtual void            setSchedItemVer( INT32 ver ) ;
 
          virtual void            clear() ;
 
          virtual const CHAR*     sessionName() const ;
+         virtual BOOLEAN         isBusinessSession() const { return TRUE ; }
          virtual IClient*        getClient() { return &_client ; }
 
          virtual _dpsLogWrapper* getDPSCB() { return _pDPSCB ; }

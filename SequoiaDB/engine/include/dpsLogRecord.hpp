@@ -57,7 +57,7 @@ namespace engine
        _length( 0 ),
        _version( DPS_INVALID_LSN_VERSION ),
        _type( LOG_TYPE_DUMMY ),
-       _reserved1( 0 ),
+       _flags( 0 ),
        _reserved2( 0 )
       {
 
@@ -69,7 +69,7 @@ namespace engine
        _length( header._length ),
        _version( header._version ),
        _type( header._type ),
-       _reserved1( header._reserved1),
+       _flags( header._flags ),
        _reserved2( header._reserved2 )
       {
 
@@ -84,7 +84,7 @@ namespace engine
          _length = header._length ;
          _version = header._version ;
          _type = header._type ;
-         _reserved1 = header._reserved1 ;
+         _flags = header._flags ;
          _reserved2 = header._reserved2 ;
          return *this ;
       }
@@ -96,8 +96,18 @@ namespace engine
          _length = 0 ;
          _version = DPS_INVALID_LSN_VERSION ;
          _type = LOG_TYPE_DUMMY ;
-         _reserved1 = 0 ;
+         _flags = 0 ;
          _reserved2 = 0 ;
+      }
+
+      void setFlag( UINT16 flag )
+      {
+         OSS_BIT_SET( _flags, flag ) ;
+      }
+
+      void clearFlag( UINT16 flag )
+      {
+         OSS_BIT_CLEAR( _flags, flag ) ;
       }
 
    public:
@@ -112,7 +122,7 @@ namespace engine
       // 0x18 - 0x19
       UINT16 _type;
       // 0x1A - 0x1B
-      UINT16 _reserved1 ;
+      UINT16 _flags ;
       // 0x1C - 0x1F
       UINT32 _reserved2 ;
    } ;

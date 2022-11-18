@@ -59,6 +59,7 @@ namespace engine
       virtual _pmdEDUCB*      eduCB () const = 0 ;
       virtual EDUID           eduID () const = 0 ;
 
+      virtual BOOLEAN         isBusinessSession() const { return FALSE ; }
       virtual IProcessor*     getProcessor() ;
       virtual _dpsLogWrapper* getDPSCB() { return NULL ; }
       virtual void            attachProcessor( _pmdProcessorBase *pProcessor ) ;

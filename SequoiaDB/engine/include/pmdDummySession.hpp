@@ -45,9 +45,10 @@ namespace engine
    class _pmdDummySession : public _pmdSessionBase
    {
    public:
-      _pmdDummySession()
+      _pmdDummySession( BOOLEAN isBusinessSession = FALSE )
       : _pEDUCB( NULL ),
-        _eduID( PMD_INVALID_EDUID )
+        _eduID( PMD_INVALID_EDUID ),
+        _isBusinessSession( isBusinessSession )
       {
       }
 
@@ -61,6 +62,7 @@ namespace engine
 
       virtual const CHAR*      sessionName() const { return "Dummy-Session" ; }
       virtual SDB_SESSION_TYPE sessionType() const { return SDB_SESSION_DUMMY ; }
+      virtual BOOLEAN          isBusinessSession() const { return _isBusinessSession ; }
       virtual INT32            getServiceType() const { return 0 ; }
       virtual IClient*         getClient()            { return &_client ; }
 
@@ -77,6 +79,7 @@ namespace engine
       _pmdEDUCB               *_pEDUCB ;
       EDUID                    _eduID ;
       pmdInnerClient           _client ;
+      BOOLEAN                  _isBusinessSession ;
    } ;
 
    typedef _pmdDummySession pmdDummySession ;

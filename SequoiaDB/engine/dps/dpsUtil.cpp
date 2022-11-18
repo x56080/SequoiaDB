@@ -45,6 +45,9 @@
 namespace engine
 {
 
+#define DPS_RECORD_FLAGS_NON_BUSINESSOP            "NonBusinessOP"
+#define DPS_STATUS_SEPARATOR                       " | "
+
    dpsLogConfig &dpsGetGlobalLogConfig()
    {
       static dpsLogConfig g_logConfig ;
@@ -117,8 +120,6 @@ namespace engine
       return dpsTransIDToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
    }
 
-   #define DPS_STATUS_SEPARATOR                       " | "
-
    static void _dpsAppendFlagString( CHAR *pBuffer,
                                      UINT32 bufSize,
                                      const CHAR *flagStr )
@@ -161,6 +162,31 @@ namespace engine
    {
       CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       return dpsTransIDAttrToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+   }
+
+
+
+   void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
+                                 const CHAR *flagStr )
+   {
+      if ( 0 != *pBuffer )
+      {
+         ossStrncat( pBuffer, DPS_STATUS_SEPARATOR,
+                     bufSize - ossStrlen( pBuffer ) ) ;
+      }
+      ossStrncat( pBuffer, flagStr, bufSize - ossStrlen( pBuffer ) ) ;
+   }
+
+   void dpsFlags2String( UINT16 flags, CHAR * pBuffer, INT32 bufSize )
+   {
+      SDB_ASSERT ( pBuffer, "pBuffer can't be NULL" ) ;
+      ossMemset ( pBuffer, 0, bufSize ) ;
+
+      // business operation
+      if ( OSS_BIT_TEST( flags, DPS_FLG_NON_BS_OP ) )
+      {
+         dpsAppendFlagString( pBuffer, bufSize, DPS_RECORD_FLAGS_NON_BUSINESSOP ) ;
+      }
    }
 
 }

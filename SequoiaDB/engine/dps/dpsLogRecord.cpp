@@ -51,6 +51,8 @@
 using namespace bson ;
 namespace engine
 {
+#define DPS_RECORD_FLAGS_STATUS_LEN 127
+
 #define DPS_RECORD_ELE_HEADER_LEN 5
 
 #define DPS_GET_RECORD_TAG(a) \
@@ -343,6 +345,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DPSLGRECD_DUMP ) ;
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
+      CHAR   tmpStr[ DPS_RECORD_FLAGS_STATUS_LEN + 1 ] = {0} ;
 
       // for hex dump
       if ( DPS_DMP_OPT_HEX & options )
@@ -377,12 +380,14 @@ namespace engine
       {
          dpsLogRecord::iterator itrTransID, itrTransLsn, itrTransRel ;
          dpsLogRecord::iterator itrTime ;
+         dpsFlags2String( _head._flags, tmpStr, DPS_RECORD_FLAGS_STATUS_LEN ) ;
 
          /* dump output looks like:
           * Version : 0x00000001(1)
           * LSN     : 0x0000000012345678(305419896)
           * PreLSN  : 0x0000000010002354(268444500)
           * Length  : 356
+          * Flags   : 0x0010(NonBusinessOP)
           * Type    : INSERT(1)
           * Name    : foo.bar
           * Insert  : { hello: "world" }
@@ -400,6 +405,9 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Length : %d"OSS_NEWLINE,
                               _head._length ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Flags  : 0x%04hx(%s)"OSS_NEWLINE, _head._flags,
+                              tmpStr ) ;
 
          itrTime = this->find( DPS_LOG_PUBLIC_TIME ) ;
          if ( itrTime.valid() )
