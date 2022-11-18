@@ -3,6 +3,9 @@ package com.sequoiadb.transaction.metadata;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -17,7 +20,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
@@ -63,29 +65,27 @@ public class Transaction18213A extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws Exception {
         // 开启并发事务
-        OperatorTh operatorTh = new OperatorTh();
-        operatorTh.start();
+        ThreadExecutor th = new ThreadExecutor();
+        th.addWorker( new OperatorTh() );
+        th.addWorker( new DropCLTh() );
 
-        DropCLTh dropCLTh = new DropCLTh();
-        dropCLTh.start();
-
-        Assert.assertTrue( operatorTh.isSuccess(), operatorTh.getErrorMsg() );
-        Assert.assertTrue( dropCLTh.isSuccess(), dropCLTh.getErrorMsg() );
+        th.run();
     }
 
-    private class OperatorTh extends SdbThreadBase {
+    private class OperatorTh {
         private Sequoiadb db;
         private DBCollection cl;
 
-        private OperatorTh() {
+        @ExecuteOrder(step = 1)
+        private void operatorTh() {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cl = db.getCollectionSpace( csName ).getCollection( clName );
         }
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 2)
+        private void test() {
             try {
                 TransUtils.beginTransaction( db );
                 insertDatas( cl, 10000, 20000 );
@@ -94,7 +94,10 @@ public class Transaction18213A extends SdbTestBase {
                 cl.update( "{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}",
                         "{$inc:{a:10}}", "{}'':'idx18213'" );
             } catch ( BaseException e ) {
-                if ( -321 != e.getErrorCode() ) {
+                if ( e.getErrorCode() != SDBError.SDB_DMS_TRUNCATED
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
                     throw e;
                 }
             } finally {
@@ -105,27 +108,34 @@ public class Transaction18213A extends SdbTestBase {
     }
 
     // 在事务内 truncate 集合
-    private class DropCLTh extends SdbThreadBase {
+    private class DropCLTh {
         private Sequoiadb db;
 
-        private DropCLTh() {
+        @ExecuteOrder(step = 1)
+        private void dropCLTh() {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         }
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 2)
+        private void test() {
             try {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 while ( true ) {
                     try {
-                        Thread.sleep( 1000 );
+                        try {
+                            Thread.sleep( 1000 );
+                        } catch ( InterruptedException e ) {
+                            e.printStackTrace();
+                        }
                         TransUtils.beginTransaction( db );
                         cl.truncate();
                         db.commit();
                         break;
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(), -190 );
+                        Assert.assertEquals( e.getErrorCode(),
+                                SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                        .getErrorCode() );
                     }
                 }
             } finally {
@@ -136,7 +146,7 @@ public class Transaction18213A extends SdbTestBase {
     }
 
     private void insertDatas( DBCollection cl, int startId, int endId ) {
-        List< BSONObject > records = new ArrayList< >();
+        List< BSONObject > records = new ArrayList<>();
         for ( int i = startId; i < endId; i++ ) {
             records.add( ( BSONObject ) JSON
                     .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" ) );
