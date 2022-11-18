@@ -88,7 +88,7 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
    >   **Note:**
    >
-   >   获取协调节点组，可参考 [Sdb.getRG\(\)][getRG] 
+   >   获取协调节点组，可参考 [Sdb.getCoordRG()][getCoordRG] 
 
 3. 在 sdbserver2 中新建协调节点
 
@@ -107,7 +107,7 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 在 SDB Shell 中查看协调节点的列表
 
 ```lang-javascript
-> db.getCoordRG().getDetail()
+> db.getCoordRG().getDetailObj()
 ```
 
 ## 故障恢复 ##
@@ -119,4 +119,4 @@ SequoiaDB 巨杉数据库中有两类协调节点：
      本文所有引用和链接
 [createCoord]:manual/Manual/Sequoiadb_Command/Oma/createCoord.md
 [cluster_deployment]:manual/Deployment/cluster_deployment.md
-[getRG]:manual/Manual/Sequoiadb_Command/Sdb/getRG.md
+[getCoordRG]:manual/Manual/Sequoiadb_Command/Sdb/getCoordRG.md

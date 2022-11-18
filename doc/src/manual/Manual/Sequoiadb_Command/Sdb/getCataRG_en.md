@@ -39,7 +39,7 @@ Get a reference of catalog replication group.
 Get the details of the replication group through reference.
 
 ```lang-javascript
-> rg.getDetail()
+> rg.getDetailObj()
 {
   "Group": [
     {

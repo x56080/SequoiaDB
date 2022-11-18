@@ -43,7 +43,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> rg.getDetail()
+> rg.getDetailObj()
 {
   "Group": [
     {
