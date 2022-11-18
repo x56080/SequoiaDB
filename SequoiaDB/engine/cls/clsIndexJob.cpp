@@ -46,6 +46,7 @@ namespace engine
    // normal thread use it
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type, UINT32 locationID,
                                clsIdxTask* pTask )
+   : _session( TRUE )
    {
       _type = type ;
 
@@ -92,6 +93,7 @@ namespace engine
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type,
                                dmsIdxTaskStatusPtr idxStatPtr,
                                CLS_INDEX_THREAD_MODE threadMod )
+   : _session( TRUE )
    {
       _type = type ;
 

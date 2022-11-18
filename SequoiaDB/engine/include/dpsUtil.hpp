@@ -120,6 +120,13 @@ namespace engine
       }
    } dpsTransIDHash ;
 
+   void dpsFlags2String( UINT16 flags, CHAR * pBuffer, INT32 bufSize ) ;
+
+   void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
+                             const CHAR *flagStr ) ;
+
+   typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
+
 }
 
 #endif // DPSUTIL_HPP_

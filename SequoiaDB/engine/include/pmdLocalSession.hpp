@@ -53,10 +53,10 @@ namespace engine
          _pmdLocalSession( SOCKET fd ) ;
          virtual ~_pmdLocalSession () ;
 
-         virtual INT32     getServiceType() const ;
+         virtual INT32            getServiceType() const ;
          virtual SDB_SESSION_TYPE sessionType() const ;
 
-         virtual INT32     run() ;
+         virtual INT32            run() ;
 
       protected:
          INT32          _processMsg( MsgHeader *msg ) ;
