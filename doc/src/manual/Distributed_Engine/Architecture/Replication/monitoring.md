@@ -170,10 +170,8 @@ SequoiaDB 巨杉数据库提供多个快照，以查看当前数据库系统的�
 [primary]:manual/Distributed_Engine/Architecture/Replication/architecture.md#主节点
 [fullsync]:manual/Distributed_Engine/Architecture/Replication/architecture.md#全量同步
 [backup_offline]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md
-[replicalog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志
+[replicalog]:manual/Distributed_Engine/Architecture/Transactions/transaction_log.md
 [heartbeat]:manual/Distributed_Engine/Architecture/Replication/election.md#节点心跳
 [slave]:manual/Distributed_Engine/Architecture/Replication/architecture.md#备节点
 [syncstrategy]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
-[replicalog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志
-[replicalog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志
 [resetSnapshot]:manual/Manual/Sequoiadb_Command/Sdb/resetSnapshot.md
