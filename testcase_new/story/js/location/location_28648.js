@@ -2,7 +2,7 @@
  * @Description   : seqDB-28648:catalog节点使用setLocation设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.14
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -17,7 +17,7 @@ function test ()
    //获取一个catalog节点
    var catalog = db.getCatalogRG().getSlave();
    var nodeName = catalog.getHostName() + ":" + catalog.getServiceName();
-   //设置location
+   //删除location
    catalog.setLocation( "" );
    var expLocation = undefined;
    checkNodeLocation( catalog, expLocation );

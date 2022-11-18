@@ -2,7 +2,7 @@
  * @Description   : seqDB-28652:coord节点使用setAttributes设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -19,25 +19,25 @@ function test ()
    var nodeName = coord.getHostName() + ":" + coord.getServiceName();
 
    // 设置location
-   coord.setAttributes( { Location: location2 } );
-   checkLocationDeatil( db, groupName, nodeName, location2 );
+   coord.setAttributes( { Location: location1 } );
+   checkLocationDeatil( db, groupName, nodeName, location1 );
    var groupVersion1 = getGroupVersion( db, groupName );
-   var locationID1 = getLocationID( db, groupName, location2 );
+   var locationID1 = getLocationID( db, groupName, location1 );
 
    // 再次设置相同location
-   coord.setAttributes( { Location: location2 } );
+   coord.setAttributes( { Location: location1 } );
    var cursor = db.listReplicaGroups();
-   checkLocationToGroup( cursor, groupName, nodeName, location2 );
-   var locationID2 = getLocationID( db, groupName, location2 );
+   checkLocationToGroup( cursor, groupName, nodeName, location1 );
+   var locationID2 = getLocationID( db, groupName, location1 );
    var groupVersion2 = getGroupVersion( db, groupName );
    assert.equal( locationID1, locationID2 );
    assert.equal( groupVersion1, groupVersion2 );
 
    // 修改节点的location
-   coord.setAttributes( { Location: location1 } );
-   checkLocationDeatil( db, groupName, nodeName, location1 );
+   coord.setAttributes( { Location: location2 } );
+   checkLocationDeatil( db, groupName, nodeName, location2 );
    var groupVersion3 = getGroupVersion( db, groupName );
-   var locationID3 = getLocationID( db, groupName, location1 );
+   var locationID3 = getLocationID( db, groupName, location2 );
    compareSize( locationID2, locationID3 );
    compareSize( groupVersion2, groupVersion3 );
 

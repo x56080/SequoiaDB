@@ -2,7 +2,7 @@
  * @Description   : seqDB-28661:data节点设置Location后，分离节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.16
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -11,7 +11,7 @@ main( test );
 function test ()
 {
    var location = "location_28659";
-   var groupName = "group1";
+   var groupName = commGetDataGroupNames( db )[0];
    var groupsArray = commGetGroups( db );
    var hostName = groupsArray[0][1].HostName;
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
@@ -22,12 +22,9 @@ function test ()
    try
    {
       var dataRG = db.getRG( groupName );
-      dataRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
-      dataRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
+      var data1 = dataRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
+      var data2 = dataRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
       dataRG.start();
-
-      var data1 = dataRG.getNode( hostName, port1 );
-      var data2 = dataRG.getNode( hostName, port2 );
 
       var nodeName1 = data1.getHostName() + ":" + data1.getServiceName();
       var nodeName2 = data2.getHostName() + ":" + data2.getServiceName();
@@ -57,33 +54,13 @@ function test ()
       dataRG.detachNode( hostName, port2, { KeepData: false } );
       var groupVersion3 = getGroupVersion( db, groupName );
       compareSize( groupVersion2, groupVersion3 );
-
-      dataRG.attachNode( hostName, port1, { KeepData: false } );
-      dataRG.attachNode( hostName, port2, { KeepData: false } );
    }
    finally
    {
-      try
-      {
-         dataRG.removeNode( hostName, port1 );
-      }
-      catch( e )
-      {
-         if( e.message != SDB_CLS_NODE_NOT_EXIST )
-         {
-            throw e;
-         }
-      }
-      try
-      {
-         dataRG.removeNode( hostName, port2 );
-      }
-      catch( e )
-      {
-         if( e.message != SDB_CLS_NODE_NOT_EXIST )
-         {
-            throw e;
-         }
-      }
+
+      dataRG.attachNode( hostName, port1, { KeepData: false } );
+      dataRG.attachNode( hostName, port2, { KeepData: false } );
+      removeND( dataRG, hostName, port1 );
+      removeND( dataRG, hostName, port2 );
    }
 }

@@ -2,7 +2,7 @@
  * @Description   : seqDB-28658:catalog节点设置Location后，移除节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.16
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -22,12 +22,9 @@ function test ()
    try
    {
       var catalogRG = db.getCatalogRG();
-      catalogRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
-      catalogRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
+      var catalog1 = catalogRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
+      var catalog2 = catalogRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
       catalogRG.start();
-
-      var catalog1 = catalogRG.getNode( hostName, port1 );
-      var catalog2 = catalogRG.getNode( hostName, port2 );
 
       var nodeName1 = catalog1.getHostName() + ":" + catalog1.getServiceName();
       var nodeName2 = catalog2.getHostName() + ":" + catalog2.getServiceName();
@@ -60,27 +57,7 @@ function test ()
    }
    finally
    {
-      try
-      {
-         catalogRG.removeNode( hostName, port1 );
-      }
-      catch( e )
-      {
-         if( e.message != SDB_CLS_NODE_NOT_EXIST )
-         {
-            throw e;
-         }
-      }
-      try
-      {
-         catalogRG.removeNode( hostName, port2 );
-      }
-      catch( e )
-      {
-         if( e.message != SDB_CLS_NODE_NOT_EXIST )
-         {
-            throw e;
-         }
-      }
+      removeND( catalogRG, hostName, port1 );
+      removeND( catalogRG, hostName, port2 );
    }
 }

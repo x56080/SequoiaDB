@@ -2,17 +2,17 @@
  * @Description   : seqDB-28650:不同节点属于相同group，设置Location相同
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.14
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
 
 main( test );
 function test ()
 {
    var location1 = "location_28650_1";
    var location2 = "location_28650_2";
-   var groupName = "group1"
 
    //获取data节点1
    var dataGroupName1 = commGetDataGroupNames( db )[0];
@@ -25,7 +25,7 @@ function test ()
 
    // 设置节点1的location
    data1.setLocation( location1 );
-   checkLocationDeatil( db, groupName, dataNodeName1, location1 );
+   checkLocationDeatil( db, dataGroupName1, dataNodeName1, location1 );
    var groupVersion1 = getGroupVersion( db, dataGroupName1 );
    var locationID1 = getLocationID( db, dataGroupName1, location1 );
 
@@ -39,7 +39,7 @@ function test ()
 
    // 再次设置节点1的location
    data1.setLocation( location2 );
-   checkLocationDeatil( db, groupName, dataNodeName1, location2 );
+   checkLocationDeatil( db, dataGroupName1, dataNodeName1, location2 );
    var groupVersion4 = getGroupVersion( db, dataGroupName1 );
    var locationID3 = getLocationID( db, dataGroupName1, location2 );
    compareSize( groupVersion1, groupVersion4 );
@@ -56,7 +56,7 @@ function test ()
 
    // 删除节点1的location
    data1.setLocation( "" );
-   checkLocationDeatil( db, groupName, dataNodeName1, undefined );
+   checkLocationDeatil( db, dataGroupName1, dataNodeName1, undefined );
    var groupVersion6 = getGroupVersion( db, dataGroupName1 );
    compareSize( groupVersion4, groupVersion6 );
 

@@ -2,7 +2,7 @@
  * @Description   : seqDB-28653:catalog节点使用setAttributes设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -25,27 +25,27 @@ function test ()
    var groupVersion1 = getGroupVersion( db, groupName );
 
    // 设置location
-   catalog.setAttributes( { Location: location2 } );
+   catalog.setAttributes( { Location: location1 } );
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName } );
-   checkLocationToGroup( cursor, groupName, nodeName, location2 );
+   checkLocationToGroup( cursor, groupName, nodeName, location1 );
    var groupVersion2 = getGroupVersion( db, groupName );
-   var locationID1 = getLocationID( db, groupName, location2 );
+   var locationID1 = getLocationID( db, groupName, location1 );
    compareSize( groupVersion1, groupVersion2 );
 
    // 修改location
-   catalog.setAttributes( { Location: location1 } );
-   checkNodeLocation( catalog, location1 );
+   catalog.setAttributes( { Location: location2 } );
+   checkNodeLocation( catalog, location2 );
    var groupVersion3 = getGroupVersion( db, groupName );
-   var locationID2 = getLocationID( db, groupName, location1 );
+   var locationID2 = getLocationID( db, groupName, location2 );
    compareSize( groupVersion2, groupVersion3 );
    compareSize( locationID1, locationID2 );
 
    // 设置相同location
-   catalog.setAttributes( { Location: location1 } );
+   catalog.setAttributes( { Location: location2 } );
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName } );
-   checkLocationToGroup( cursor, groupName, nodeName, location1 );
+   checkLocationToGroup( cursor, groupName, nodeName, location2 );
    var groupVersion4 = getGroupVersion( db, groupName );
-   var locationID3 = getLocationID( db, groupName, location1 );
+   var locationID3 = getLocationID( db, groupName, location2 );
    assert.equal( locationID2, locationID3 );
    assert.equal( groupVersion3, groupVersion4 );
 

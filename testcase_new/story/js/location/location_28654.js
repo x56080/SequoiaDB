@@ -2,7 +2,7 @@
  * @Description   : seqDB-28654:data节点使用setAttributes设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -19,11 +19,11 @@ function test ()
    var nodeName = data.getHostName() + ":" + data.getServiceName();
 
    // 设置location
-   data.setAttributes( { Location: location2 } );
+   data.setAttributes( { Location: location1 } );
    var cursor = db.listReplicaGroups();
-   checkLocationToGroup( cursor, dataGroupName, nodeName, location2 );
+   checkLocationToGroup( cursor, dataGroupName, nodeName, location1 );
    var groupVersion1 = getGroupVersion( db, dataGroupName );
-   var locationID1 = getLocationID( db, dataGroupName, location2 );
+   var locationID1 = getLocationID( db, dataGroupName, location1 );
 
    //删除location
    data.setAttributes( { Location: "" } );
@@ -32,19 +32,19 @@ function test ()
    compareSize( groupVersion1, groupVersion2 );
 
    // 再次设置location
-   data.setAttributes( { Location: location1 } );
+   data.setAttributes( { Location: location2 } );
    var cursor = db.listReplicaGroups();
-   checkLocationToGroup( cursor, dataGroupName, nodeName, location1 );
+   checkLocationToGroup( cursor, dataGroupName, nodeName, location2 );
    var groupVersion3 = getGroupVersion( db, dataGroupName );
-   var locationID2 = getLocationID( db, dataGroupName, location1 );
+   var locationID2 = getLocationID( db, dataGroupName, location2 );
    compareSize( groupVersion2, groupVersion3 );
    compareSize( locationID1, locationID2 );
 
    // 设置相同location
-   data.setAttributes( { Location: location1 } );
-   checkLocationDeatil( db, dataGroupName, nodeName, location1 );
+   data.setAttributes( { Location: location2 } );
+   checkLocationDeatil( db, dataGroupName, nodeName, location2 );
    var groupVersion4 = getGroupVersion( db, dataGroupName );
-   var locationID3 = getLocationID( db, dataGroupName, location1 );
+   var locationID3 = getLocationID( db, dataGroupName, location2 );
    assert.equal( locationID2, locationID3 );
    assert.equal( groupVersion3, groupVersion4 );
 

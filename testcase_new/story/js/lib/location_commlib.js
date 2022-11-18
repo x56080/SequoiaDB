@@ -1,6 +1,6 @@
 import( "../lib/main.js" );
-import( "../lib/basic_operation/commlib.js" );
 
+// 获取复制组的详细信息进行校验
 function checkLocationDeatil ( db, groupName, nodeName, location )
 {
    var rg = db.getRG( groupName );
@@ -48,14 +48,14 @@ function checkLocationDeatil ( db, groupName, nodeName, location )
       assert.equal( checkNode, true, nodeName + " docs node exist, group info " + JSON.stringify( groupInfo ) );
    }
 }
-
+// 获取复制组节点的详细信息进行校验
 function checkNodeLocation ( node, expLocation )
 {
    var nodeObj = node.getDetailObj().toObj();
    actLocation = nodeObj.Location;
    assert.equal( actLocation, expLocation );
 }
-
+// 获取复制组信息进行校验
 function checkLocationToGroup ( cursor, groupName, nodeName, location )
 {
    while( cursor.next() )
@@ -110,6 +110,7 @@ function checkLocationToGroup ( cursor, groupName, nodeName, location )
    }
 }
 
+//获取复制组中locations中的locationID
 function getLocationID ( db, groupName, location )
 {
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName }, { Locations: "" } );
@@ -136,6 +137,7 @@ function getLocationID ( db, groupName, location )
    return locationID;
 }
 
+//获取复制组中的version字段
 function getGroupVersion ( db, groupName )
 {
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName }, { Version: "" } );
@@ -152,5 +154,21 @@ function compareSize ( minSize, maxSize )
    if( minSize >= maxSize )
    {
       throw new Error( "minSize:" + minSize + ", maxSize:" + minSize );
+   }
+}
+
+//移除节点
+function removeND ( rg, hostName, port )
+{
+   try
+   {
+      rg.removeNode( hostName, port );
+   }
+   catch( e )
+   {
+      if( e != SDB_CLS_NODE_NOT_EXIST )
+      {
+         throw e;
+      }
    }
 }

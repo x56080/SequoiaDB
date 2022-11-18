@@ -2,7 +2,7 @@
  * @Description   : seqDB-28655:使用setLocation设置Location参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -11,7 +11,7 @@ main( test );
 function test ()
 {
    // 获取一个catalog节点
-   var catalog = db.getCatalogRG().getSlave( 2 );
+   var catalog = db.getCatalogRG().getSlave();
 
    //设置节点location为非法值
    assert.tryThrow( SDB_INVALIDARG, function()
