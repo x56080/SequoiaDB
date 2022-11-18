@@ -2,7 +2,7 @@
  * @Description   : seqDB-28649:data节点使用setLocation设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.14
- * @LastEditTime  : 2022.11.17
+ * @LastEditTime  : 2022.11.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -13,7 +13,7 @@ function test ()
    var location1 = "location_28649_1";
    var location2 = "location_28649_2";
 
-   //获取一个data节点
+   // 获取一个data节点
    var dataGroupName = commGetDataGroupNames( db )[0];
    var data = db.getRG( dataGroupName ).getSlave();
    var nodeName = data.getHostName() + ":" + data.getServiceName();

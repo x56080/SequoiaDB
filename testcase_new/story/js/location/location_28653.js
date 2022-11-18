@@ -14,11 +14,11 @@ function test ()
    var location2 = "location_28653_2";
    var groupName = "SYSCatalogGroup";
 
-   //获取一个catalog节点
+   // 获取一个catalog节点
    var catalog = db.getCatalogRG().getSlave();
    var nodeName = catalog.getHostName() + ":" + catalog.getServiceName();
 
-   //设置location为""
+   // 设置location为""
    catalog.setAttributes( { Location: "" } );
    var expLocation = undefined;
    checkNodeLocation( catalog, expLocation );

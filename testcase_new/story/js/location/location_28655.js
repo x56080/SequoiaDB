@@ -13,7 +13,7 @@ function test ()
    // 获取一个catalog节点
    var catalog = db.getCatalogRG().getSlave();
 
-   //设置节点location为非法值
+   // 设置节点location为非法值
    assert.tryThrow( SDB_INVALIDARG, function()
    {
       catalog.setLocation( 1 );
@@ -32,7 +32,7 @@ function test ()
    } );
    checkNodeLocation( catalog, undefined );
 
-   //使用setLocation不设置值
+   // 使用setLocation不设置值
    assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       catalog.setLocation();
@@ -72,6 +72,6 @@ function test ()
       checkNodeLocation( catalog, location );
    }
 
-   //清理location
+   // 清理location
    catalog.setLocation( "" );
 }

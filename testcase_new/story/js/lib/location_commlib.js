@@ -1,6 +1,11 @@
 import( "../lib/main.js" );
 
-// 获取复制组的详细信息进行校验
+/******************************************************************************
+ * @description: 获取复制组的详细信息进行校验
+ * @param {string} groupName  // 复制组名
+ * @param {string} nodeName  // 节点名
+ * @param {string} location  // 需要校验的location
+ ******************************************************************************/
 function checkLocationDeatil ( db, groupName, nodeName, location )
 {
    var rg = db.getRG( groupName );
@@ -48,14 +53,26 @@ function checkLocationDeatil ( db, groupName, nodeName, location )
       assert.equal( checkNode, true, nodeName + " docs node exist, group info " + JSON.stringify( groupInfo ) );
    }
 }
-// 获取复制组节点的详细信息进行校验
+
+/******************************************************************************
+ * @description: 获取复制组节点的详细信息进行校验
+ * @param {string} node  // 节点名
+ * @param {string} expLocation  // 需要校验的location
+ ******************************************************************************/
 function checkNodeLocation ( node, expLocation )
 {
    var nodeObj = node.getDetailObj().toObj();
    actLocation = nodeObj.Location;
    assert.equal( actLocation, expLocation );
 }
-// 获取复制组信息进行校验
+
+/******************************************************************************
+ * @description: 获取复制组信息进行校验
+ * @param {SdbCursor} cursor  
+ * @param {string} groupName  // 复制组名
+ * @param {string} nodeName  // 节点名
+ * @param {string} location  // 需要校验的location
+ ******************************************************************************/
 function checkLocationToGroup ( cursor, groupName, nodeName, location )
 {
    while( cursor.next() )
@@ -110,7 +127,11 @@ function checkLocationToGroup ( cursor, groupName, nodeName, location )
    }
 }
 
-//获取复制组中locations中的locationID
+/******************************************************************************
+ * @description: 获取复制组中locations中的locationID
+ * @param {string} groupName  // 复制组名
+ * @param {string} location  // 需要校验的location
+ ******************************************************************************/
 function getLocationID ( db, groupName, location )
 {
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName }, { Locations: "" } );
@@ -137,7 +158,10 @@ function getLocationID ( db, groupName, location )
    return locationID;
 }
 
-//获取复制组中的version字段
+/******************************************************************************
+ * @description: 获取复制组中的version字段
+ * @param {string} groupName  // 复制组名
+ ******************************************************************************/
 function getGroupVersion ( db, groupName )
 {
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName }, { Version: "" } );
@@ -157,8 +181,12 @@ function compareSize ( minSize, maxSize )
    }
 }
 
-//移除节点
-function removeND ( rg, hostName, port )
+/******************************************************************************
+ * @description: 移除节点
+ * @param {string} hostName  // 机器的主机名
+ * @param {string} port  // 节点的端口号
+ ******************************************************************************/
+function removeNode ( rg, hostName, port )
 {
    try
    {

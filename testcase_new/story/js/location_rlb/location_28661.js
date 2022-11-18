@@ -50,7 +50,7 @@ function test ()
       compareSize( groupVersion2, groupVersion3 );
       compareSize( locationID1, locationID2 );
 
-      //分离备节点2
+      // 分离备节点2
       dataRG.detachNode( hostName, port2, { KeepData: false } );
       var groupVersion3 = getGroupVersion( db, groupName );
       compareSize( groupVersion2, groupVersion3 );
@@ -60,7 +60,7 @@ function test ()
 
       dataRG.attachNode( hostName, port1, { KeepData: false } );
       dataRG.attachNode( hostName, port2, { KeepData: false } );
-      removeND( dataRG, hostName, port1 );
-      removeND( dataRG, hostName, port2 );
+      removeNode( dataRG, hostName, port1 );
+      removeNode( dataRG, hostName, port2 );
    }
 }

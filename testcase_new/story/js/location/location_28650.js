@@ -14,10 +14,10 @@ function test ()
    var location1 = "location_28650_1";
    var location2 = "location_28650_2";
 
-   //获取data节点1
+   // 获取data节点1
    var dataGroupName1 = commGetDataGroupNames( db )[0];
    var data1 = db.getRG( dataGroupName1 ).getSlave();
-   //获取data节点2
+   // 获取data节点2
    var dataGroupName2 = commGetDataGroupNames( db )[1];
    var data2 = db.getRG( dataGroupName2 ).getSlave();
    var dataNodeName1 = data1.getHostName() + ":" + data1.getServiceName();

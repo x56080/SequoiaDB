@@ -14,7 +14,7 @@ function test ()
    // 获取coord节点
    var coord = db.getCoordRG().getSlave();
 
-   //设置节点参数为非法值
+   // 设置节点参数为非法值
    assert.tryThrow( SDB_INVALIDARG, function()
    {
       coord.setAttributes( { GroupID: location } );

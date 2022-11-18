@@ -14,10 +14,10 @@ function test ()
    var location2 = "location_28648_2";
    var groupName = "SYSCatalogGroup";
 
-   //获取一个catalog节点
+   // 获取一个catalog节点
    var catalog = db.getCatalogRG().getSlave();
    var nodeName = catalog.getHostName() + ":" + catalog.getServiceName();
-   //删除location
+   // 删除location
    catalog.setLocation( "" );
    var expLocation = undefined;
    checkNodeLocation( catalog, expLocation );
@@ -55,6 +55,6 @@ function test ()
    compareSize( groupVersion4, groupVersion5 );
    compareSize( locationID2, locationID3 );
 
-   //清理location
+   // 清理location
    catalog.setLocation( "" );
 }

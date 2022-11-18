@@ -50,14 +50,14 @@ function test ()
       compareSize( groupVersion2, groupVersion3 );
       compareSize( locationID1, locationID2 );
 
-      //移除备节点2
+      // 移除备节点2
       dataRG.removeNode( hostName, port2 );
       var groupVersion3 = getGroupVersion( db, groupName );
       compareSize( groupVersion2, groupVersion3 );
    }
    finally
    {
-      removeND( dataRG, hostName, port1 );
-      removeND( dataRG, hostName, port2 );
+      removeNode( dataRG, hostName, port1 );
+      removeNode( dataRG, hostName, port2 );
    }
 }

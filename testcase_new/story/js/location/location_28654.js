@@ -13,7 +13,7 @@ function test ()
    var location1 = "location_28654_1";
    var location2 = "location_28654_2";
 
-   //获取一个data节点
+   // 获取一个data节点
    var dataGroupName = commGetDataGroupNames( db )[1];
    var data = db.getRG( dataGroupName ).getSlave();
    var nodeName = data.getHostName() + ":" + data.getServiceName();
@@ -25,7 +25,7 @@ function test ()
    var groupVersion1 = getGroupVersion( db, dataGroupName );
    var locationID1 = getLocationID( db, dataGroupName, location1 );
 
-   //删除location
+   // 删除location
    data.setAttributes( { Location: "" } );
    checkLocationDeatil( db, dataGroupName, nodeName, undefined );
    var groupVersion2 = getGroupVersion( db, dataGroupName );

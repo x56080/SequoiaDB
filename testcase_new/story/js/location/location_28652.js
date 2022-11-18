@@ -14,7 +14,7 @@ function test ()
    var location2 = "location_28652_2";
    var groupName = "SYSCoord";
 
-   //获取一个coord节点
+   // 获取一个coord节点
    var coord = db.getCoordRG().getSlave();
    var nodeName = coord.getHostName() + ":" + coord.getServiceName();
 
@@ -48,7 +48,7 @@ function test ()
    var groupVersion4 = getGroupVersion( db, groupName );
    compareSize( groupVersion3, groupVersion4 );
 
-   //再次删除节点的location
+   // 再次删除节点的location
    coord.setAttributes( { Location: "" } );
    checkLocationDeatil( db, groupName, nodeName, undefined );
    var groupVersion5 = getGroupVersion( db, groupName );
