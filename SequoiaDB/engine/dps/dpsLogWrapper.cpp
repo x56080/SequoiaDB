@@ -548,6 +548,17 @@ namespace engine
          goto done;
       }
 
+      if( NULL != sdbGetThreadExecutor() )
+      {
+         ISession* session = sdbGetThreadExecutor()->getSession() ;
+
+         if( NULL == session || !session->isBusinessSession() )
+         {
+            dpsLogRecordHeader& head = info.getMergeBlock().record().head() ;
+            head.setFlag( DPS_FLG_NON_BS_OP ) ;
+         }
+      }
+
       rc = _buf.preparePages( info ) ;
       if ( rc )
       {

@@ -314,6 +314,7 @@ namespace engine
 
          virtual const CHAR*        sessionName() const = 0 ;
          virtual SDB_SESSION_TYPE   sessionType() const = 0 ;
+         virtual BOOLEAN            isBusinessSession() const = 0 ;
          virtual INT32              getServiceType() const = 0 ;
          virtual IClient*           getClient() = 0 ;
 

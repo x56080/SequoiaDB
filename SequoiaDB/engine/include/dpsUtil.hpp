@@ -67,6 +67,11 @@ namespace engine
 
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID ) ;
 
+   void dpsFlags2String( UINT16 flags, CHAR * pBuffer, INT32 bufSize ) ;
+
+   void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
+                             const CHAR *flagStr ) ;
+
    typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
 
 }

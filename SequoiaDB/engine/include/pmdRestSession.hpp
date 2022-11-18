@@ -524,10 +524,10 @@ namespace engine
          _pmdRestSession( SOCKET fd ) ;
          virtual ~_pmdRestSession () ;
 
-         virtual INT32     getServiceType() const ;
+         virtual INT32            getServiceType() const ;
          virtual SDB_SESSION_TYPE sessionType() const ;
 
-         virtual INT32     run() ;
+         virtual INT32            run() ;
 
       public:
          CHAR*             getFixBuff() ;

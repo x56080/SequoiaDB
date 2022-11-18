@@ -96,6 +96,7 @@ namespace engine
 
          virtual const CHAR*      sessionName() const ;
          virtual SDB_SESSION_TYPE sessionType() const ;
+         virtual BOOLEAN          isBusinessSession() const { return TRUE ; }
          virtual const CHAR*      className() const { return "Shard" ; }
          virtual EDU_TYPES eduType () const ;
          virtual void clear() ;

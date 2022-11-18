@@ -164,13 +164,14 @@ sdbdpsdump --version | -v
    
    ```
    
-   dump 解析数据插入的日志，记录日志版本、当前日志 LSN 、上一条日志 LSN 、日志长度 Length 、日志类型 Type 、集合空间名 FullName、插入记录等
+   dump 解析数据插入的日志，记录日志版本、当前日志 LSN 、上一条日志 LSN 、日志长度 Length 、日志标签 Flags 、日志类型 Type 、集合空间名 FullName、插入记录等
    
    ```lang-text
    Version: 0x00000001(1)
     LSN    : 0x0000000000000120(288)
     PreLSN : 0x00000000000000a4(164)
     Length : 112
+    Flags  : 0x0010(NonBusinessOP)
     Type   : INSERT(1)
     FullName : sample.employee
     Insert : { "_id": { "$oid": "5c9496946e610774ac9a1c65" }, "a": 0, "no": 0, "test": "test0" }
@@ -190,13 +191,14 @@ sdbdpsdump --version | -v
    $ sdbdpsdump -s /opt/sequoiadb/database/data/11860/replicalog/ -o update.log -t 2
    ```
 
-   dump 解析数据更新的日志，记录日志版本、当前日志 LSN 、上一条日志 LSN 、日志长度 Length 、日志类型 Type 、集合空间名 FullName、更新记录等
+   dump 解析数据更新的日志，记录日志版本、当前日志 LSN 、上一条日志 LSN 、日志长度 Length 、日志标签 Flags 、日志类型 Type 、集合空间名 FullName、更新记录等
 
    ```lang-text
     Version: 0x00000001(1)
     LSN    : 0x0000000000000580(1408)
     PreLSN : 0x0000000000000510(1296)
     Length : 196
+    Flags  : 0x0000()
     Type   : UPDATE(2)
     FullName : sample.employee
     Orig id : { "_id": { "$oid": "5c9496946e610774ac9a1c67" } }
@@ -233,6 +235,7 @@ sdbdpsdump --version | -v
     LSN    : 0x00000010b305055c(71722927452)
     PreLSN : 0x00000010b3050504(71722927364)
     Length : 88
+    Flags  : 0x0000()
     Type   : INSERT(1)
     FullName : sample.employee
     Insert : { "_id": { "$oid": "5cc69c950fb91f653845a92d" }, "a": 9 }
@@ -249,6 +252,7 @@ sdbdpsdump --version | -v
     LSN    : 0x00000010b30505b4(71722927540)
     PreLSN : 0x00000010b305055c(71722927452)
     Length : 88
+    Flags  : 0x0000()
     Type   : DELETE(3)
     CLName : sample.employee
     Orig   : { "_id": { "$oid": "5cc69c950fb91f653845a926" }, "a": 2 }
@@ -270,6 +274,7 @@ sdbdpsdump --version | -v
     LSN    : 0x00000010b305060c(71722927628)
     PreLSN : 0x00000010b30505b4(71722927540)
     Length : 172
+    Flags  : 0x0000()
     Type   : UPDATE(2)
     FullName : sample.employee
     Orig id : { "_id": { "$oid": "5cc69c950fb91f653845a925" } }
@@ -292,6 +297,7 @@ sdbdpsdump --version | -v
     LSN    : 0x00000010b30506b8(71722927800)
     PreLSN : 0x00000010b305060c(71722927628)
     Length : 140
+    Flags  : 0x0000()
     Type   : IX CREATE(8)
     CLName : sample.employee
     IXDef  : { "_id": { "$oid": "5cc69ccdeba8a8886df90d6e" }, "key": { "a": 1 }, "name": "testindex", "unique": false, "enforced": false }
