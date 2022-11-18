@@ -45,7 +45,7 @@ Get the details of the replication group through reference.
 .IP
 .nf
 \f[C]
-> rg.getDetail()
+> rg.getDetailObj()
 {
   "Group": [
     {

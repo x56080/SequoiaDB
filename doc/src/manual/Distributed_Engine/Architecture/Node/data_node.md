@@ -84,7 +84,7 @@
 在 SDB Shell 中查看数据复制组 datagroup1 中数据节点的列表
 
 ```lang-bash
-> db.getRG("datagroup1").getDetail()
+> db.getRG("datagroup1").getDetailObj()
 ```
 
 ## 故障恢复 ##
