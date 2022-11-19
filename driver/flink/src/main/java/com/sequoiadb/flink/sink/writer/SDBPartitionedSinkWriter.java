@@ -46,6 +46,9 @@ public class SDBPartitionedSinkWriter
 
     private static final String MODIFIER_SET = "$set";
 
+    // trigger state cleaner on every minute
+    private static final int DEFAULT_STATE_CLEANUP_DURATION = 1;
+
     private static final int MAX_TIMESTAMP_PRECISION = 9;
 
     private final String[] upsertKeys;
@@ -148,6 +151,7 @@ public class SDBPartitionedSinkWriter
                                         .iterator();
 
                                 LocalDateTime currSysTime = LocalDateTime.now();
+                                int tot = 0;
                                 while (iterator.hasNext()) {
                                     Map.Entry<BSONObject, EventState> entry = iterator.next();
 
@@ -158,10 +162,16 @@ public class SDBPartitionedSinkWriter
                                     if (duration.toMinutes() > stateTtl) {
                                         iterator.remove();
                                     }
+
+                                    ++tot;
                                 }
+
+                                LOG.info("state cleanup finished, total: {}", tot);
                             },
-                            stateTtl,
-                            stateTtl,
+                            // initial delay is 0
+                            0,
+                            // clean up period, default is on every minute
+                            DEFAULT_STATE_CLEANUP_DURATION,
                             TimeUnit.MINUTES);
         }
     }
