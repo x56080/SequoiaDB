@@ -2,7 +2,7 @@
  * @Description   : seqDB-28660:catalog节点设置Location后，分离节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.16
- * @LastEditTime  : 2022.11.18
+ * @LastEditTime  : 2022.11.19
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -16,8 +16,8 @@ function test ()
    var hostName = groupsArray[0][1].HostName;
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
    var port2 = parseInt( RSRVPORTBEGIN ) + 20;
-   var dbpath1 = "cata/" + port1;
-   var dbpath2 = "cata/" + port2;
+   var dbpath1 = RSRVNODEDIR + "cata/" + port1;
+   var dbpath2 = RSRVNODEDIR + "cata/" + port2;
 
    try
    {
@@ -57,8 +57,8 @@ function test ()
    }
    finally
    {
-      catalogRG.attachNode( hostName, port1, { KeepData: false } );
-      catalogRG.attachNode( hostName, port2, { KeepData: false } );
+      attachNode( catalogRG, hostName, port1, { KeepData: false } );
+      attachNode( catalogRG, hostName, port2, { KeepData: false } );
       removeNode( catalogRG, hostName, port1 );
       removeNode( catalogRG, hostName, port2 );
    }

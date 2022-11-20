@@ -2,7 +2,7 @@
  * @Description   : seqDB-28661:data节点设置Location后，分离节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.16
- * @LastEditTime  : 2022.11.18
+ * @LastEditTime  : 2022.11.19
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -16,8 +16,8 @@ function test ()
    var hostName = groupsArray[0][1].HostName;
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
    var port2 = parseInt( RSRVPORTBEGIN ) + 20;
-   var dbpath1 = "data/" + port1;
-   var dbpath2 = "data/" + port2;
+   var dbpath1 = RSRVNODEDIR + "data/" + port1;
+   var dbpath2 = RSRVNODEDIR + "data/" + port2;
 
    try
    {
@@ -57,9 +57,8 @@ function test ()
    }
    finally
    {
-
-      dataRG.attachNode( hostName, port1, { KeepData: false } );
-      dataRG.attachNode( hostName, port2, { KeepData: false } );
+      attachNode( dataRG, hostName, port1, { KeepData: false } );
+      attachNode( dataRG, hostName, port2, { KeepData: false } );
       removeNode( dataRG, hostName, port1 );
       removeNode( dataRG, hostName, port2 );
    }

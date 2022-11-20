@@ -22,6 +22,7 @@ function checkLocationDeatil ( db, groupName, nodeName, location )
 
    if( location != undefined )
    {
+      // 当传入的location不在actLacation中时，报错
       if( actLocations.indexOf( location ) == -1 )
       {
          throw new Error( "expect location : " + location + " ,actual locations : " + actLocations );
@@ -50,6 +51,7 @@ function checkLocationDeatil ( db, groupName, nodeName, location )
             var checkNode = true;
          }
       }
+      // 当遍历完所有group没有得到需要匹配的节点，报错
       assert.equal( checkNode, true, nodeName + " docs node exist, group info " + JSON.stringify( groupInfo ) );
    }
 }
@@ -77,7 +79,9 @@ function checkLocationToGroup ( cursor, groupName, nodeName, location )
 {
    while( cursor.next() )
    {
+      // 游标遍历复制组
       var actGroupName = cursor.current().toObj().GroupName;
+      // 当游标中的复制组与校验复制组相等时，获取出locations内容与Group内容
       if( actGroupName == groupName )
       {
          var locations = cursor.current().toObj().Locations;
@@ -89,12 +93,14 @@ function checkLocationToGroup ( cursor, groupName, nodeName, location )
    var actLocations = [];
    for( var i in locations )
    {
+      // 获取Locations字段中的location存入actLocations中
       var actLocation = locations[i]["Location"];
       actLocations.push( actLocation );
    }
 
    if( location != undefined )
    {
+      // 当传入的location不在actLacation中时，报错
       if( actLocations.indexOf( location ) == -1 )
       {
          throw new Error( "expect location : " + location + " ,actual locations : " + actLocations );
@@ -116,6 +122,7 @@ function checkLocationToGroup ( cursor, groupName, nodeName, location )
             }
          }
          var actNodeName = hostName + ":" + serviceName;
+         // 判断传入的节点与需要校验的节点是否相等
          if( actNodeName == nodeName )
          {
             var nodeLocation = groupInfo[i]["Location"];
@@ -123,6 +130,7 @@ function checkLocationToGroup ( cursor, groupName, nodeName, location )
             var checkNode = true;
          }
       }
+      // 当遍历完所有group没有得到需要匹配的节点，报错
       assert.equal( checkNode, true, nodeName + " docs node exist, group info " + JSON.stringify( groupInfo ) );
    }
 }
@@ -195,6 +203,27 @@ function removeNode ( rg, hostName, port )
    catch( e )
    {
       if( e != SDB_CLS_NODE_NOT_EXIST )
+      {
+         throw e;
+      }
+   }
+}
+
+/******************************************************************************
+ * @description: 将节点加入当前复制组
+ * @param {string} hostName  // 机器的主机名
+ * @param {string} port  // 节点的端口号
+ * @param {json} option  // 设置是否保留新加节点原有的数据
+ ******************************************************************************/
+function attachNode ( rg, hostName, port, option )
+{
+   try
+   {
+      rg.attachNode( hostName, port, option );
+   }
+   catch( e )
+   {
+      if( e != SDBCM_NODE_NOTEXISTED )
       {
          throw e;
       }

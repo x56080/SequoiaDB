@@ -2,7 +2,7 @@
  * @Description   : seqDB-28654:data节点使用setAttributes设置Location
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.18
+ * @LastEditTime  : 2022.11.19
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -14,7 +14,7 @@ function test ()
    var location2 = "location_28654_2";
 
    // 获取一个data节点
-   var dataGroupName = commGetDataGroupNames( db )[1];
+   var dataGroupName = commGetDataGroupNames( db )[0];
    var data = db.getRG( dataGroupName ).getSlave();
    var nodeName = data.getHostName() + ":" + data.getServiceName();
 

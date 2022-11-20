@@ -2,7 +2,7 @@
  * @Description   : seqDB-28659:data节点设置Location后，移除节点
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.16
- * @LastEditTime  : 2022.11.18
+ * @LastEditTime  : 2022.11.19
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -16,8 +16,8 @@ function test ()
    var hostName = groupsArray[0][1].HostName;
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
    var port2 = parseInt( RSRVPORTBEGIN ) + 20;
-   var dbpath1 = "data/" + port1;
-   var dbpath2 = "data/" + port2;
+   var dbpath1 = RSRVNODEDIR + "data/" + port1;
+   var dbpath2 = RSRVNODEDIR + "data/" + port2;
 
    try
    {
