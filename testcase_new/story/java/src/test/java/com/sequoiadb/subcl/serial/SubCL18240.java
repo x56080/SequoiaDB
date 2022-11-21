@@ -36,12 +36,12 @@ public class SubCL18240 extends SdbTestBase {
     @BeforeClass
     private void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        cata = sdb.getReplicaGroup( "SYSCatalogGroup" ).getMaster().connect();
 
         if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
             throw new SkipException(
                     "The mode is standlone, or only one group, skip the testCase." );
         }
+        cata = sdb.getReplicaGroup( "SYSCatalogGroup" ).getMaster().connect();
 
         CollectionSpace mCS = sdb.createCollectionSpace( MAIN_CS_NAME );
         CollectionSpace sCS = sdb.createCollectionSpace( SUB_CS_NAME );
@@ -71,9 +71,9 @@ public class SubCL18240 extends SdbTestBase {
         BSONObject info = cursor.getNext();
         long tdr = ( long ) info.get( "TotalDataRead" );
         long tir = ( long ) info.get( "TotalIndexRead" );
-        long expDiffValue = 5 * RUN_TIMES; // test value, error in existence,
-                                           // ensure that the diff is not too
-                                           // big
+        long expDiffValue = 20 * RUN_TIMES; // test value, error in existence,
+                                            // ensure that the diff is not too
+                                            // big
         long actDiffValue = Math.abs( tdr - tir );
         // System.out.println("TotalDataRead: " + tdr + ", TotalIndexRead: " +
         // tir + ", actDiffValue: " + actDiffValue);
