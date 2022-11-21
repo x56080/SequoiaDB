@@ -839,13 +839,11 @@ function getSequoiadbConf( replaceInstallPath )
       if ( aLine.substr( 0,1 ) == "#" ) continue ;   // this line is a note
 
       var aNode = aLine.split( "," ) ;
+      // replace 'localhost' to real hostname
+      aNode[2] = aNode[2].replace( /localhost/g, MY_HOSTNAME ) ;
 
       checkSequoiadbConf( aNode, iLine, nodeNameList ) ;
       nodeNameList.push( aNode[2] + ":" + aNode[3] ) ;
-      iLine++ ;
-
-      // replace 'localhost' to real hostname
-      aNode[2] = aNode[2].replace( /localhost/g, MY_HOSTNAME ) ;
 
       // replace installed path
       if ( replaceInstallPath )
