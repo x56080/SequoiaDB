@@ -410,7 +410,7 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
         # zic -l Asia/Shanghai
         ```
 
-    - 查看时区，若打印以下信息，说明时区已设置为 Asia/Shanghai：
+    - 查看时区，若显示 CST 则说明时区已设置为 Asia/Shanghai：
 
         ```lang-bash
         # date
