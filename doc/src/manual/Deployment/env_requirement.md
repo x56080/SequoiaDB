@@ -76,12 +76,13 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 * 配置主机名/IP地址映射
 * 配置防火墙
 * 配置 SELinux
+* 配置时区
 
 配置说明：
 
 * 需要使用 root 用户权限进行配置，应确保 root 用户对相关命令或配置文件具有访问权限。
 * 示例中“sdbserver1”为主机名称，用户可以根据需要修改该主机名。
-* 主机名、主机名/IP地址映射、防火墙和 SELinux 需要在每台物理机器上进行配置。
+* 主机名、主机名/IP地址映射、防火墙、SELinux 和时区需要在每台物理机器上进行配置。
 
 ###配置主机名###
 
@@ -389,3 +390,97 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
     Policy deny_unknown status:     allowed
     Max kernel policy version:      28
     ```
+
+###设置时区###
+
+为保证时间数据正确，要求 SequoiaDB 集群中所有机器的时区保持一致。下述以中国上海时区为例，介绍具体步骤。
+
+[^_^]:tab
+- SUSE:
+
+    - 设置为 Asia/Shanghai 时区
+
+        ```lang-bash
+        # sed -i "s/TIMEZONE=.*/TIMEZONE=Asia\/Shanghai/g" /etc/sysconfig/clock
+        ```
+
+    - 更新文件 `/etc/localtime`
+
+        ```lang-bash
+        # zic -l Asia/Shanghai
+        ```
+
+    - 查看时区，若显示 CST 则说明时区已设置为 Asia/Shanghai：
+
+        ```lang-bash
+        # date
+          Sat Nov  5 17:57:06 CST 2022
+        ```
+
+- Red Hat:
+
+    - 设置为 Asia/Shanghai 时区
+
+        ```lang-bash
+        # timedatectl set-timezone Asia/Shanghai
+        ```
+
+    - 查看时区
+
+        ```lang-bash
+        # timedatectl status
+        ...
+        Time zone: Asia/Shanghai (CST, +0800)
+        ...
+        ```
+
+- Ubuntu:
+
+    - 设置为 Asia/Shanghai 时区
+
+        ```lang-bash
+        # timedatectl set-timezone Asia/Shanghai
+        ```
+
+    - 查看时区
+
+        ```lang-bash
+        # timedatectl status
+        ...
+        Time zone: Asia/Shanghai (CST, +0800)
+        ...
+        ```
+
+- UOS V20:
+
+    - 设置为 Asia/Shanghai 时区
+
+        ```lang-bash
+        # timedatectl set-timezone Asia/Shanghai
+        ```
+
+    - 查看时区
+
+        ```lang-bash
+        # timedatectl status
+        ...
+        Time zone: Asia/Shanghai (CST, +0800)
+        ...
+        ```
+
+- Kylin V10:
+
+    - 设置为 Asia/Shanghai 时区
+
+        ```lang-bash
+        # timedatectl set-timezone Asia/Shanghai
+        ```
+
+    - 查看时区
+
+        ```lang-bash
+        # timedatectl status
+        ...
+        Time zone: Asia/Shanghai (CST, +0800)
+        ...
+        ```
