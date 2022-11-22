@@ -164,6 +164,7 @@ namespace engine
          return it->second->_getIndexInfoSet();
       }
       PD_TRACE_EXIT( SDB__CLSSTORAGERESOURCE__GETCLINDEXINFOSET1 );
+      return nullptr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTORAGERESOURCE__GETCLINDEXINFOSET2, "_clsStorageResource::_getCLIndexInfoSet" )
@@ -187,6 +188,7 @@ namespace engine
          return it->second->_getIndexInfoSet();
       }
       PD_TRACE_EXIT( SDB__CLSSTORAGERESOURCE__GETCLINDEXINFOSET2 );
+      return nullptr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTORAGERESOURCE__GETCLMETACACHE1, "_clsStorageResource::_getCLMetaCache" )
@@ -210,6 +212,7 @@ namespace engine
          return it->second;
       }
       PD_TRACE_EXIT( SDB__CLSSTORAGERESOURCE__GETCLMETACACHE1 );
+      return nullptr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTORAGERESOURCE__GETCLMETACACHE2, "_clsStorageResource::_getCLMetaCache" )
@@ -233,6 +236,7 @@ namespace engine
          return it->second;
       }
       PD_TRACE_EXIT( SDB__CLSSTORAGERESOURCE__GETCLMETACACHE2 );
+      return nullptr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTORAGERESOURCE__GETINDEXSTAT1, "_clsStorageResource::_getIndexStat" )
@@ -273,6 +277,7 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__CLSSTORAGERESOURCE__GETINDEXSTAT1 );
+      return nullptr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTORAGERESOURCE__GETINDEXSTAT2, "_clsStorageResource::_getIndexStat" )
@@ -311,6 +316,7 @@ namespace engine
          }
       }
       PD_TRACE_EXIT( SDB__CLSSTORAGERESOURCE__GETINDEXSTAT2 );
+      return nullptr ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTORAGERESOURCE_GETORUPDATECLINDEXSET1, "_clsStorageResource::getOrUpdateCLIndexSet" )

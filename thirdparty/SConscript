@@ -742,17 +742,19 @@ snappy_compiler = SnappyCompiler('snappy')
 lz4_compiler = LZ4Compiler('lz4')
 zlib_compiler = ZlibCompiler('zlib')
 intelDecimal_compiler = IntelDecimalLibCompiler('intelDecimal')
-rocksdb_compiler = RocksDBCompiler( 'rocksdb' )
-zstd_compiler = zstdCompiler( 'zstd' )
-bzip2_compiler = bzip2Compiler( 'bzip2' )
 
 components.append(snappy_compiler)
 components.append(lz4_compiler)
 components.append(zlib_compiler)
 components.append(intelDecimal_compiler)
-components.append(zstd_compiler)
-components.append(bzip2_compiler)
-components.append(rocksdb_compiler)
+
+if "linux" == guess_os:
+    rocksdb_compiler = RocksDBCompiler( 'rocksdb' )
+    zstd_compiler = zstdCompiler( 'zstd' )
+    bzip2_compiler = bzip2Compiler( 'bzip2' )
+    components.append(zstd_compiler)
+    components.append(bzip2_compiler)
+    components.append(rocksdb_compiler)
 
 if usemdocml:
     mdocml_compiler = MdocmlCompiler('mdocml')
