@@ -60,12 +60,12 @@ class SLF4JImpl implements Log {
     }
 
     @Override
-    public void warm(String info) {
+    public void warn(String info) {
         logger.warn(info);
     }
 
     @Override
-    public void warm(String info, Throwable e) {
+    public void warn(String info, Throwable e) {
         logger.warn(info, e);
     }
 

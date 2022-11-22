@@ -32,9 +32,9 @@ public interface Log {
 
     void info(String info, Throwable e);
 
-    void warm(String info);
+    void warn(String info);
 
-    void warm(String info, Throwable e);
+    void warn(String info, Throwable e);
 
     void error(String info);
 

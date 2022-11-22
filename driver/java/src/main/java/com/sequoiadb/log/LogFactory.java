@@ -16,9 +16,6 @@
 
 package com.sequoiadb.log;
 
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
-
 /**
  * LogFactory of SequoiaDB driver.
  */

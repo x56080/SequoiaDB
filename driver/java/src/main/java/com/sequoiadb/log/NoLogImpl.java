@@ -50,11 +50,11 @@ class NoLogImpl implements Log {
     }
 
     @Override
-    public void warm(String info) {
+    public void warn(String info) {
     }
 
     @Override
-    public void warm(String info, Throwable e) {
+    public void warn(String info, Throwable e) {
     }
 
     @Override
