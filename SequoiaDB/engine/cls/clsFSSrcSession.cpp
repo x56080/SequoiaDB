@@ -3358,8 +3358,8 @@ namespace engine
          goto done ;
       }
 
-      rc = _pResource->getCataResource()->updateCataInfo(
-          _curCollecitonName.c_str(), cataPtr, _pEDUCB ) ;
+      rc = _pResource->getCataResource()->updateCataInfo( _curCollecitonName.c_str(),
+                                                          cataPtr, _pEDUCB ) ;
       if ( SDB_OK != rc && SDB_DMS_NOTEXIST != rc )
       {
          goto done ;

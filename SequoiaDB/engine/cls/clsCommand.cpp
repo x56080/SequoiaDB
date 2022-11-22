@@ -926,8 +926,7 @@ namespace engine
       clsResource *resource = sdbGetShardCB()->getResource() ;
 
       /// need to update sub collection catalog info
-      if ( SDB_OK != resource->getCataResource()->updateCataInfo(
-                         _subCLName, cataPtr, cb ) )
+      if ( SDB_OK != resource->getCataResource()->updateCataInfo( _subCLName, cataPtr, cb ) )
       {
          resource->removeCL( _subCLName ) ;
       }

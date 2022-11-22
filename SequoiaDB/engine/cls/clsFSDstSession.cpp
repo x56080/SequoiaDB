@@ -3429,8 +3429,8 @@ namespace engine
          CoordCataInfoPtr cataPtr ;
 
          //need to update catalog
-         INT32 rc = _pResource->getCataResource()->updateCataInfo(
-             _pTask->collectionName(), cataPtr, _pEDUCB ) ;
+         INT32 rc = _pResource->getCataResource()->updateCataInfo( _pTask->collectionName(),
+                                                                   cataPtr, _pEDUCB ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
             _step = STEP_END_NTY ;

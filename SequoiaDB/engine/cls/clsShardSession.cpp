@@ -4195,8 +4195,7 @@ namespace engine
       CoordCataInfoPtr cataPtr ;
       clsCatalogSet* set = NULL ;
 
-      rc = _pResource->getCataResource()->getOrUpdateCataInfo(
-          clName, cataPtr, _pEDUCB );
+      rc = _pResource->getCataResource()->getOrUpdateCataInfo( clName, cataPtr, _pEDUCB );
       PD_RC_CHECK( rc, PDERROR, "Failed to update catalog of collection[%s], "
                    "rc: %d", clName, rc ) ;
       set = cataPtr->getCatalogSet() ;
