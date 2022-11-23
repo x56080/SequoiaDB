@@ -456,26 +456,206 @@ union _MsgRouteID
 typedef union _MsgRouteID MsgRouteID ;
 #define MSG_INVALID_ROUTEID  0
 
+#define MSG_GET_IDENTIFY_ID( tid, nodeID )  (((UINT64)tid<<16)|(UINT16)(nodeID))
+#define MSG_GET_SEQUENCE( highSeq, lowSeq ) (((UINT64)highSeq<<32)|(UINT32)(lowSeq))
+
+// 2  + 8   + 4      + 4            + 8           + 2
+// 0x + tid + nodeID + highSequence + lowSequence
+// SNPRINTF will truncate the last char, so need + 2
+#define MSG_QUERY_ID_HEX_STR_LEN   28
+
+struct _MsgQueryID
+{
+#ifdef __cplusplus
+public:
+   _MsgQueryID()
+   {
+      _tid = 0 ;
+      _nodeID = 0 ;
+      _highSequence = 0 ;
+      _lowSequence = 0 ;
+   }
+
+   void inc()
+   {
+      _lowSequence++ ;
+
+      if ( 0 == _lowSequence )
+      {
+         _highSequence += 1 ;
+      }
+   }
+
+   void init( UINT32 tid, UINT16 nodeID, UINT16 random )
+   {
+      _tid = tid ;
+      _nodeID = nodeID ;
+      _highSequence = random ;
+      _lowSequence = 0 ;
+   }
+
+   UINT64 getIdentifyID() const
+   {
+      return MSG_GET_IDENTIFY_ID( _tid, _nodeID ) ;
+   }
+
+   UINT64 getSequence() const
+   {
+      return MSG_GET_SEQUENCE( _highSequence, _lowSequence ) ;
+   }
+
+   BOOLEAN isInvalid() const
+   {
+      return 0 == getIdentifyID() ? TRUE : FALSE ;
+   }
+
+   BOOLEAN operator==( const _MsgQueryID &rhs ) const
+   {
+      return  ( _tid == rhs._tid &&
+                _nodeID == rhs._nodeID &&
+                _highSequence == rhs._highSequence &&
+                _lowSequence == rhs._lowSequence ) ;
+   }
+
+   BOOLEAN operator!=( const _MsgQueryID &rhs ) const
+   {
+      return this->operator==(rhs) ? FALSE : TRUE ;
+   }
+
+   BOOLEAN operator<( const _MsgQueryID &rhs ) const
+   {
+      INT32 ret = getIdentifyID() - rhs.getIdentifyID() ;
+      if ( ret < 0 )
+      {
+         return TRUE ;
+      }
+      else if ( 0 == ret )
+      {
+         ret = getSequence() - rhs.getSequence() ;
+         if ( ret < 0 )
+         {
+            return TRUE ;
+         }
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN operator>( const _MsgQueryID &rhs ) const
+   {
+      return rhs < *this ? TRUE : FALSE ;
+   }
+
+   UINT32 toHexStr( CHAR* pStr, UINT32 strLen ) const
+   {
+      UINT32 len = 0 ;
+
+      if ( pStr )
+      {
+         len += ossSnprintf( pStr + len, strLen - len, "0x%08x%04x%04x%08x",
+                             _tid, _nodeID, _highSequence, _lowSequence ) ;
+      }
+
+      return len ;
+   }
+
+private:
+#endif
+   UINT32 _tid ;
+   UINT16 _nodeID ;
+   UINT16 _highSequence ;
+   UINT32 _lowSequence ;
+} ;
+typedef struct _MsgQueryID MsgQueryID ;
+
+// 2  + 24      + 8         + 2
+// 0x + queryID + queryOpID
+// SNPRINTF will truncate the last char, so need + 2
+#define MSG_GLOBAL_ID_HEX_STR_LEN   ( MSG_QUERY_ID_HEX_STR_LEN + 8 )
+
 // A global unique ID for each message. It can be used to trace the message in
 // the whole cluster.
-typedef struct _MsgGlobalID
+struct _MsgGlobalID
 {
-   SINT32 ip ;
-   UINT16 port ;
-   SINT16 random ;
-   UINT32 tid ;
-   UINT32 sequence ;
 #ifdef __cplusplus
+public:
    _MsgGlobalID()
-   : ip(0),
-     port(0),
-     random(0),
-     tid(0),
-     sequence(0)
    {
+      _queryOpID = 0 ;
    }
-#endif /* __cplusplus */
-} MsgGlobalID ;
+
+   void incQueryID()
+   {
+      _queryID.inc() ;
+      _queryOpID = 0 ;
+   }
+
+   void incQueryOpID()
+   {
+      _queryOpID++ ;
+   }
+
+   void set( const MsgQueryID &queryID, UINT32 queryOpID )
+   {
+      _queryID = queryID ;
+      _queryOpID = queryOpID ;
+   }
+
+   const _MsgQueryID& getQueryID() const { return _queryID ; }
+   UINT32 getQueryOpID() const { return _queryOpID ; }
+
+   BOOLEAN isInvalid() const
+   {
+      return _queryID.isInvalid() ? TRUE : FALSE ;
+   }
+
+   BOOLEAN operator==( const _MsgGlobalID &rhs ) const
+   {
+      return ( _queryOpID == rhs._queryOpID &&
+               _queryID == rhs._queryID ) ;
+   }
+
+   BOOLEAN operator!=( const _MsgGlobalID &rhs ) const
+   {
+      return this->operator==(rhs) ? FALSE : TRUE ;
+   }
+
+   BOOLEAN operator<( const _MsgGlobalID &rhs ) const
+   {
+      if ( _queryID < rhs._queryID )
+      {
+         return TRUE ;
+      }
+      else if ( rhs._queryID < _queryID )
+      {
+         return FALSE ;
+      }
+      return _queryOpID < rhs._queryOpID ? TRUE : FALSE ;
+   }
+
+   BOOLEAN operator>( const _MsgGlobalID &rhs ) const
+   {
+      return rhs < *this ? TRUE : FALSE ;
+   }
+
+   UINT32 toHexStr( CHAR* pStr, UINT32 strLen ) const
+   {
+      UINT32 len = 0 ;
+
+      if ( pStr )
+      {
+         len += _queryID.toHexStr( pStr + len, strLen - len ) ;
+         len += ossSnprintf( pStr + len, strLen - len, "%08x", _queryOpID ) ;
+      }
+
+      return len ;
+   }
+
+private:
+#endif
+   MsgQueryID  _queryID ;
+   UINT32      _queryOpID ;
+} ;
+typedef struct _MsgGlobalID MsgGlobalID ;
 
 // system info request packet is very special since we do NOT know the endianess
 // of server and client
@@ -514,7 +694,9 @@ struct _MsgSysInfoReply
    UINT8            version ;
    UINT8            subVersion ;
    UINT8            fixVersion ;
-   CHAR             pad[93] ;
+   CHAR             reserved ;
+   MsgGlobalID      globalID ;
+   CHAR             pad[76] ;
    CHAR             fingerprint[4] ;   // Fingerprint of the reply message.
                                        // Actually part of the md5 value.
 } ;

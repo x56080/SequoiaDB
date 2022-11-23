@@ -318,6 +318,7 @@ public:
    ossPoolString    queryText ;  /**! Full query text */
    ossTickDelta remoteNodesResponseTime ; /*! Time spent waiting remote nodes */
    ossTickDelta msgSentTime ;    /**! Time spent sending msgs to remote nodes */
+   MsgQueryID   queryID ;        /**! The id of a query statement */
 
    _monClassQuery ()
      :  clientTID( 0 ),
@@ -375,6 +376,7 @@ public:
       nodes = monClassQuery.nodes ;
       queryText.assign( monClassQuery.queryText ) ;
       _type = MON_CLASS_QUERY ;
+      queryID = monClassQuery.queryID ;
    }
 
    static MON_CLASS_TYPE getType () { return MON_CLASS_QUERY ; }

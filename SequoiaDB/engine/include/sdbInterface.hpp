@@ -298,6 +298,22 @@ namespace engine
    typedef _IClient IClient ;
 
    /*
+      _IOperator define
+   */
+   class _IOperator : public SDBObject
+   {
+   public:
+      _IOperator() {}
+      virtual ~_IOperator() {}
+
+   public:
+      virtual const MsgHeader* getMsg() const = 0 ;
+      virtual const MsgGlobalID& getGlobalID() const = 0 ;
+      virtual void  updateGlobalID( const MsgGlobalID &globalID ) = 0 ;
+   } ;
+   typedef _IOperator IOperator ;
+
+   /*
       _ISession define
    */
    class _ISession : public SDBObject
@@ -317,6 +333,7 @@ namespace engine
          virtual BOOLEAN            isBusinessSession() const = 0 ;
          virtual INT32              getServiceType() const = 0 ;
          virtual IClient*           getClient() = 0 ;
+         virtual IOperator*         getOperator() = 0 ;
 
          virtual void*              getSchedItemPtr() = 0 ;
          virtual void               setSchedItemVer( INT32 ver ) = 0 ;

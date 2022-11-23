@@ -433,6 +433,7 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg can't be null" ) ;
 
       INT32 rc = SDB_OK ;
+
       rc = _restTransfer->trans( pAdaptor, request, msg ) ;
       if ( SDB_OK != rc )
       {

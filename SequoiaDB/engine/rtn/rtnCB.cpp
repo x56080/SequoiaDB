@@ -279,6 +279,28 @@ namespace engine
       _contextTimeout = optionCB->contextTimeout() ;
    }
 
+   void _SDB_RTNCB::_setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext )
+   {
+      if ( cb )
+      {
+         pmdOperator *pOperator = cb->getOperator() ;
+         MsgGlobalID sessionOpGlobalID  = pOperator->getGlobalID() ;
+         MsgGlobalID contextGlobalID    = pContext->getGlobalID() ;
+
+         if ( sessionOpGlobalID.getQueryID() != contextGlobalID.getQueryID() )
+         {
+            // when getMore, the queryOpID should add 1
+            contextGlobalID.incQueryOpID() ;
+            pContext->_setGlobalID( contextGlobalID ) ;
+            pOperator->updateGlobalID( contextGlobalID ) ;
+         }
+         else if ( sessionOpGlobalID.getQueryOpID() != contextGlobalID.getQueryOpID() )
+         {
+            pContext->_setGlobalID( sessionOpGlobalID ) ;
+         }
+      }
+   }
+
    INT32 _SDB_RTNCB::contextFind( INT64 contextID,
                                   rtnContextPtr &context,
                                   _pmdEDUCB *cb )
@@ -297,6 +319,7 @@ namespace engine
          else
          {
             context = ret.first ;
+            _setGlobalID( cb, context ) ;
          }
       }
       else
@@ -322,6 +345,7 @@ namespace engine
          if ( type == tempContext->getType() )
          {
             context = tempContext ;
+            _setGlobalID( cb, context ) ;
          }
          else
          {
@@ -690,6 +714,8 @@ namespace engine
       {
          context->disableTimeout() ;
       }
+
+      context->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
 
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
                "writing ID %llu)",

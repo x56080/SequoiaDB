@@ -742,6 +742,7 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
       PD_LOG ( PDERROR, "Failed to check buffer" ) ;
       goto error ;
    }
+
    // now the buffer is large enough
    pQuery                        = (MsgOpQuery*)(*ppBuffer) ;
    pQuery->version               = 1 ;
@@ -759,6 +760,7 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.flags          = FLAG_RESULT_DETAIL | FLAG_PROCESS_DETAIL ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+
    ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pQuery->name, CollectionName, pQuery->nameLength ) ;

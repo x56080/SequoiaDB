@@ -177,6 +177,7 @@ namespace engine
       SINT64       _contextID ;
       std::string  _typeDesp ;
       std::string  _info ;
+      MsgQueryID   _queryID ;
       monContextCB _monContext ;
 
       _monContextFull ( SINT64 cid, const monContextCB &monCtxCB )

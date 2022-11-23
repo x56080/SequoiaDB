@@ -469,6 +469,11 @@ namespace engine
       BOOLEAN hasUpdate = FALSE ;
       CoordGroupInfoPtr cataGroupPtr ;
 
+      if ( pMsg->globalID.isInvalid() )
+      {
+         pMsg->globalID = _pEDUCB->getOperator()->getGlobalID() ;
+      }
+
 retry :
       // sanity check
       if ( !_pAgent )

@@ -2538,6 +2538,12 @@ namespace engine
             cb->initMonAppCB() ;
             cb->initConf() ;
 
+            if ( cb->getOperator()->getGlobalID().isInvalid() &&
+                 0 != pmdGetNodeID().columns.nodeID )
+            {
+               cb->initOperator() ;
+            }
+
             rc = pItem->_pFunc( cb, event._Data ) ;
             // copy name
             ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;

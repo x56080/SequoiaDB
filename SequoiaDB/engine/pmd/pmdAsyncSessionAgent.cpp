@@ -82,8 +82,8 @@ namespace engine
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       NET_HANDLE netHandle = 0 ;
       UINT32 poolType = 0 ;
-
       pmdAsyncSessionScope assitScope( pSession, cb ) ;
+      IOperator *pSdbOp = pSession->getOperator() ;
 
       while ( TRUE )
       {
@@ -147,6 +147,8 @@ namespace engine
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
                }
 
+               ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
+
                pSession->onDispatchMsgBegin( netHandle, pMsg ) ;
                pSession->dispatchMsg ( netHandle, pMsg, &timeDiff ) ;
                pSession->onDispatchMsgEnd( timeDiff ) ;
@@ -165,6 +167,8 @@ namespace engine
                {
                   pBuffInfo->setFree () ;
                }
+
+               ((pmdOperator*)pSdbOp)->clearMsg() ;
             }
             else
             {

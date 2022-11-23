@@ -38,6 +38,7 @@
 #include "oss.hpp"
 #include "sdbInterface.hpp"
 #include "pmdIProcessor.hpp"
+#include "pmdOperator.hpp"
 
 namespace engine
 {
@@ -64,6 +65,7 @@ namespace engine
       virtual _dpsLogWrapper* getDPSCB() { return NULL ; }
       virtual void            attachProcessor( _pmdProcessorBase *pProcessor ) ;
       virtual void            detachProcessor() ;
+      virtual IOperator*      getOperator() ;
 
    protected:
       _pmdProcessorBase *_processor ;

@@ -243,6 +243,8 @@ namespace engine
          _pMemPool->clear() ;
          _pMemPool->setName( "PoolIdle" ) ;
       }
+
+      _operator.clearMsg() ;
    }
 
    void _pmdEDUCB::shrink()
@@ -1015,6 +1017,16 @@ namespace engine
          _transExecutor.clearMBStats() ;
       }
 #endif //SDB_ENGINE
+   }
+
+   void _pmdEDUCB::initOperator()
+   {
+      MsgGlobalID globalID ;
+      MsgQueryID queryID ;
+      UINT16 nodeID = pmdGetNodeID().columns.nodeID ;
+      queryID.init( _tid, nodeID, (UINT16)ossRand() ) ;
+      globalID.set( queryID, 0 ) ;
+      _operator.updateGlobalID( globalID ) ;
    }
 
    void _pmdEDUCB::updateConf()
