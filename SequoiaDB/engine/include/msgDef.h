@@ -80,6 +80,7 @@
 #define FIELD_NAME_MAX_CAPACITY_SIZE         "MaxCapacitySize"
 #define FIELD_NAME_MAX_DATA_CAP_SIZE         "MaxDataCapSize"
 #define FIELD_NAME_MAX_INDEX_CAP_SIZE        "MaxIndexCapSize"
+#define FIELD_NAME_QUERY_ID                  "QueryID"
 // Deprecated
 #define FIELD_NAME_MAX_LOB_CAP_SIZE          "MaxLobCapSize"
 // Use MaxLobCapacity instead of MaxLobCapSize

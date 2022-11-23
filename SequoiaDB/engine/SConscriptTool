@@ -168,6 +168,7 @@ pmdMTFiles = [
       "pmd/pmdInnerClient.cpp",
       "pmd/pmdAsyncHandler.cpp",
       "pmd/pmdSessionBase.cpp",
+      "pmd/pmdDummySession.cpp",
       "pmd/pmdAsyncSession.cpp",
       "pmd/pmdCBMgrEntryPoint.cpp",
       "pmd/pmdAsyncNetEntryPoint.cpp",

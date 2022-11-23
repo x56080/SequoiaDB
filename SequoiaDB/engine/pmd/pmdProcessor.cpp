@@ -115,6 +115,7 @@ namespace engine
             monQuery->sessionID = eduCB()->getID() ;
             monQuery->opCode = opCode ;
             monQuery->tid = eduCB()->getTID() ;
+            monQuery->queryID = msg->globalID.getQueryID() ;
             eduCB()->setMonQueryCB( monQuery ) ;
          }
 
@@ -2288,6 +2289,7 @@ namespace engine
             monQueryCB->tid = eduCB()->getTID() ;
             monQueryCB->clientTID = msg->TID ;
             monQueryCB->clientHost.assign(getClient()->getFromIPAddr()) ;
+            monQueryCB->queryID = msg->globalID.getQueryID() ;
 
             eduCB()->setMonQueryCB( monQueryCB ) ;
          }

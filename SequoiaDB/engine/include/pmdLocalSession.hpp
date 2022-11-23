@@ -89,6 +89,9 @@ namespace engine
          virtual void            _onAttach () ;
          virtual void            _onDetach () ;
 
+      private:
+         void _saveOrSetMsgGlobalID( MsgHeader *pMsg ) ;
+
       protected:
          MsgOpReply           _replyHeader ;
          BOOLEAN              _needReply ;

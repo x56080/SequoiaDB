@@ -168,6 +168,7 @@ namespace engine
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
             item._info = (*it).second->toString() ;
+            item._queryID = (*it).second->getGlobalID().getQueryID() ;
 
             contextList[ eduID ].insert( item ) ;
          }
@@ -234,6 +235,9 @@ namespace engine
       {
          return &_idxStatusManager ;
       }
+
+   private:
+      void  _setGlobalID( _pmdEDUCB *cb, rtnContext *pContext ) ;
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

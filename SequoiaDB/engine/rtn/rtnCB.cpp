@@ -217,6 +217,28 @@ namespace engine
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
    }
 
+   void _SDB_RTNCB::_setGlobalID( _pmdEDUCB *cb, rtnContext *pContext )
+   {
+      if ( cb && pContext )
+      {
+         pmdOperator *pOperator = cb->getOperator() ;
+         MsgGlobalID sessionOpGlobalID  = pOperator->getGlobalID() ;
+         MsgGlobalID contextGlobalID    = pContext->getGlobalID() ;
+
+         if ( sessionOpGlobalID.getQueryID() != contextGlobalID.getQueryID() )
+         {
+            // when getMore, the queryOpID should add 1
+            contextGlobalID.incQueryOpID() ;
+            pContext->_setGlobalID( contextGlobalID ) ;
+            pOperator->updateGlobalID( contextGlobalID ) ;
+         }
+         else if ( sessionOpGlobalID.getQueryOpID() != contextGlobalID.getQueryOpID() )
+         {
+            pContext->_setGlobalID( sessionOpGlobalID ) ;
+         }
+      }
+   }
+
    rtnContext* _SDB_RTNCB::contextFind ( SINT64 contextID, _pmdEDUCB *cb )
    {
       rtnContext *pContext = NULL ;
@@ -231,6 +253,7 @@ namespace engine
          else
          {
             pContext = ret.first ;
+            _setGlobalID( cb, pContext ) ;
          }
       }
 
@@ -454,6 +477,8 @@ namespace engine
          (*context)->getMonCB()->recordStartTimestamp() ;
       }
       (*context)->setOpID( pEDUCB->getWritingID() ) ;
+
+      (*context)->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
 
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
                "writing ID %llu)",

@@ -260,6 +260,7 @@ namespace engine
    {
       friend class _rtnContextParaData ;
       friend class _rtnExplainBase ;
+      friend class _SDB_RTNCB ;
 
       typedef boost::shared_ptr<ossRWMutex>     ctxMutexPtr ;
 
@@ -353,6 +354,14 @@ namespace engine
          }
 
          BOOLEAN        isAffectGIndex() const { return _isAffectGIndex ; }
+
+         const MsgGlobalID& getGlobalID() const { return _globalID ; }
+
+      private:
+         void _setGlobalID( const MsgGlobalID &globalID )
+         {
+            _globalID = globalID ;
+         }
 
       // prefetch
       public:
@@ -569,6 +578,8 @@ namespace engine
          BOOLEAN                 _isTransCtx ;
 
          BOOLEAN                 _isAffectGIndex ;
+
+         MsgGlobalID             _globalID ;
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;

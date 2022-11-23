@@ -726,6 +726,7 @@ namespace engine
                monQuery->sessionID = _pEDUCB->getID() ;
                monQuery->opCode = opCode ;
                monQuery->tid = _pEDUCB->getTID() ;
+               monQuery->queryID = _pEDUCB->getOperator()->getGlobalID().getQueryID() ;
 
                ISession *pSession = _pEDUCB->getSession() ;
                if ( pSession )

@@ -37,6 +37,7 @@
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
+#include "pmdDummySession.hpp"
 
 namespace engine
 {
@@ -55,6 +56,17 @@ namespace engine
       INT64 maxEventTime = pObj->getMaxProcEventTime() * 1000000 ;
       INT64 *pMsgTimeSpan = maxMsgTime >= 0 ? &timeSpan : NULL ;
       INT64 *pEventTimeSpan = maxEventTime >= 0 ? &timeSpan : NULL ;
+      BOOLEAN attachedDummySession = FALSE ;
+      pmdDummySession session ;
+      IOperator *pSdbOp = NULL ;
+
+      if ( NULL == cb->getSession() )
+      {
+         session.attachCB( cb ) ;
+         attachedDummySession = TRUE ;
+      }
+
+      pSdbOp = session.getOperator() ;
 
       pObj->attachCB( cb ) ;
 
@@ -90,6 +102,10 @@ namespace engine
             //Dispatch event msg to cb manager
             else if ( PMD_EDU_EVENT_MSG == eventData._eventType )
             {
+               MsgHeader *pMsg = ((MsgHeader*)(eventData._Data)) ;
+
+               ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
+
                //restore handle
                pObj->dispatchMsg( (NET_HANDLE)eventData._userData,
                                   (MsgHeader*)(eventData._Data),
@@ -103,6 +119,8 @@ namespace engine
                           GET_REQUEST_TYPE(pMsg->opCode), pMsg->requestID,
                           pMsg->TID, pMsg->messageLength, timeSpan ) ;
                }
+
+               ((pmdOperator*)pSdbOp)->clearMsg() ;
             }
             else
             {
@@ -127,6 +145,10 @@ namespace engine
 
    done:
       pObj->detachCB( cb ) ;
+      if ( attachedDummySession )
+      {
+         session.detachCB() ;
+      }
       PD_TRACE_EXITRC ( SDB_PMDCBMGREP, rc );
       return rc ;
    error:

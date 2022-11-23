@@ -3274,6 +3274,7 @@ namespace engine
          CHAR timestampStr[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
          UINT32 seconds = 0 ;
          UINT32 microseconds = 0 ;
+         CHAR queryIDStr[MSG_QUERY_ID_HEX_STR_LEN+1] = { 0 } ;
 
          it = _contextInfoList.begin() ;
          std::set<monContextFull> &setInfo = it->second ;
@@ -3290,6 +3291,9 @@ namespace engine
             const monContextFull &ctx = *itSet ;
             ossTimestamp startTime( ctx._monContext.getStartTimestamp() ) ;
             BSONObjBuilder sub( ba.subobjStart() ) ;
+
+            ctx._queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
+            sub.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
 
             sub.append( FIELD_NAME_CONTEXTID, ctx._contextID ) ;
             sub.append( FIELD_NAME_TYPE, ctx._typeDesp ) ;
@@ -5516,6 +5520,7 @@ namespace engine
       FLOAT64 lockWaitTime ;
       ossTickConversionFactor factor ;
       SDB_ROLE role = pmdGetKRCB()->getDBRole() ;
+      CHAR queryIDStr[MSG_QUERY_ID_HEX_STR_LEN+1] = { 0 } ;
 
       try
       {
@@ -5549,6 +5554,8 @@ namespace engine
          builder.append( FIELD_NAME_NAME, _itr->name.c_str() ) ;
          builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
          builder.append( FIELD_NAME_RETURN_NUM, _itr->rowsReturned ) ;
+         _itr->queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
+         builder.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
 
          if ( SDB_ROLE_COORD == role )
          {

@@ -191,6 +191,10 @@ namespace engine
       _pReqMsg->TID = cb->getTID() ;
       _reqOpCode = _pReqMsg->opCode ;
       _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
+      if ( _pReqMsg->globalID.isInvalid() )
+      {
+         _pReqMsg->globalID = cb->getOperator()->getGlobalID() ;
+      }
 
       isIgnored = FALSE ;
 
@@ -1528,6 +1532,10 @@ namespace engine
       pMsg->requestID = _pEDUCB->incCurRequestID() ;
       pMsg->routeID.value = MSG_INVALID_ROUTEID ;
       pMsg->TID = _pEDUCB->getTID() ;
+      if ( pMsg->globalID.isInvalid() )
+      {
+         pMsg->globalID = _pEDUCB->getOperator()->getGlobalID() ;
+      }
 
       rc = pSub->getConnection()->syncSend( pMsg ) ;
       if ( rc )
