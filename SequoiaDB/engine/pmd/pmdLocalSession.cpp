@@ -309,7 +309,9 @@ namespace engine
       INT32 fixVersion = 0 ;
       BOOLEAN endianConvert = FALSE ;
       md5::md5digest digest ;
+      MsgGlobalID globalID = getOperator()->getGlobalID() ;
       MsgSysInfoReply reply ;
+
       reply.header.specialSysInfoLen      = MSG_SYSTEM_INFO_LEN ;
       reply.header.eyeCatcher             = MSG_SYSTEM_INFO_EYECATCHER ;
       reply.header.realMessageLength      = sizeof(MsgSysInfoReply) ;
@@ -320,6 +322,12 @@ namespace engine
       reply.version                       = version ;
       reply.subVersion                    = subVersion ;
       reply.fixVersion                    = fixVersion ;
+      reply.reserved                      = 0 ;
+
+      globalID.incQueryID() ;
+      reply.globalID = globalID ;
+      getOperator()->updateGlobalID( globalID ) ;
+
       ossMemset( reply.pad, 0, sizeof( reply.pad ) ) ;
 
       md5::md5( (const void *)&reply,
@@ -401,29 +409,51 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
+   void _pmdLocalSession::_saveOrSetMsgGlobalID( MsgHeader *pMsg )
+   {
+      SDB_ASSERT( pMsg, "msg can't be NULL" ) ;
+      IOperator *pOperator = getOperator() ;
+      MsgGlobalID globalID = pOperator->getGlobalID() ;
+
+      if ( pMsg->globalID.getQueryID().getIdentifyID() != globalID.getQueryID().getIdentifyID() )
+      {
+         // The msg may be sent by the old version client
+         // The msg's globalID of old version client is not initialized, so it's a random value
+         globalID.incQueryID() ;
+         pMsg->globalID = globalID ;
+      }
+
+      ((pmdOperator*)pOperator)->setMsg( pMsg ) ;
+
+      return ;
+   }
+
+   INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
+
       _pEDUCB->clearProcessInfo() ;
 
+      _saveOrSetMsgGlobalID( pMsg ) ;
+
       // set reply header ( except flags, length )
-      getClient()->registerInMsg( msg ) ;
+      getClient()->registerInMsg( pMsg ) ;
       _replyHeader.contextID          = -1 ;
       _replyHeader.numReturned        = 0 ;
       _replyHeader.startFrom          = 0 ;
       _replyHeader.header.eye         = MSG_COMM_EYE_DEFAULT ;
-      _replyHeader.header.opCode      = MAKE_REPLY_TYPE(msg->opCode) ;
-      _replyHeader.header.requestID   = msg->requestID ;
-      _replyHeader.header.TID         = msg->TID ;
+      _replyHeader.header.opCode      = MAKE_REPLY_TYPE(pMsg->opCode) ;
+      _replyHeader.header.requestID   = pMsg->requestID ;
+      _replyHeader.header.TID         = pMsg->TID ;
       _replyHeader.header.routeID     = pmdGetNodeID() ;
       _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
       _replyHeader.header.flags       = 0 ;
-      _replyHeader.header.globalID    = msg->globalID ;
+      _replyHeader.header.globalID    = pMsg->globalID ;
       ossMemset( _replyHeader.header.reserve, 0,
                  sizeof(_replyHeader.header.reserve) ) ;
       _replyHeader.returnMask         = 0 ;
 
-      if ( isNoReplyMsg( msg->opCode ) )
+      if ( isNoReplyMsg( pMsg->opCode ) )
       {
          _needReply = FALSE ;
       }
@@ -434,9 +464,9 @@ namespace engine
 
       // start operator
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
-      _pEDUCB->getMonAppCB()->setLastOpType( msg->opCode ) ;
+      _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
 
-      rc = getClient()->checkPrivilege( msg ) ;
+      rc = getClient()->checkPrivilege( pMsg ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Authorization failed for the operation, rc: %d",
@@ -471,6 +501,8 @@ namespace engine
       getClient()->unregisterInMsg() ;
 
       _pEDUCB->clearProcessInfo() ;
+
+      ((pmdOperator*)getOperator())->clearMsg() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )

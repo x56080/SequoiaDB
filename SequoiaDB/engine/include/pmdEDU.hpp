@@ -56,6 +56,7 @@
 #include "ossMemPool.hpp"
 #include "monClass.hpp"
 #include "stpLogicalTime.hpp"
+#include "pmdOperator.hpp"
 
 #if defined ( SDB_ENGINE )
 #include "dpsLogDef.hpp"
@@ -299,6 +300,11 @@ namespace engine
 
          BOOLEAN           isDoReplay() const { return _doReplay ; }
          void              setDoReplay( BOOLEAN doReplay ) { _doReplay = doReplay ; }
+
+         /*
+            IOperator related
+         */
+         pmdOperator*      getOperator() { return &_operator ; }
 
    public:
       _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type ) ;
@@ -803,6 +809,8 @@ namespace engine
 
       void        initConf() ;
 
+      void        initOperator() ;
+
       /*
          Only for pmdEDUMgr call, and must under pmdEDUMgr::_latch protected
       */
@@ -934,6 +942,7 @@ namespace engine
       BOOLEAN                 _isAffectGIndex ;
 
       BOOLEAN                 _doReplay ;
+      pmdOperator             _operator ;
    };
    typedef class _pmdEDUCB pmdEDUCB ;
 

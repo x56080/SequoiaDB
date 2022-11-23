@@ -115,6 +115,7 @@ namespace engine
          pNewAdd->requestID = pOldHeader->requestID ;
          pNewAdd->routeID.value = pOldHeader->routeID.value ;
          pNewAdd->TID = pOldHeader->TID ;
+         pNewAdd->globalID = pOldHeader->globalID ;
          pos += pHeader->messageLength ;
 
          if ( MSG_PACKET == pOldHeader->opCode )
@@ -127,6 +128,7 @@ namespace engine
             pMsgPacket->header.requestID = pOldHeader->requestID ;
             pMsgPacket->header.routeID.value = pOldHeader->routeID.value ;
             pMsgPacket->header.TID = pOldHeader->TID ;
+            pMsgPacket->header.globalID = pOldHeader->globalID ;
          }
          // set glob time type request if needed
          pMsgPacket->header.opCode =

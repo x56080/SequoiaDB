@@ -1504,7 +1504,7 @@ namespace engine
    done:
       if ( pBuffer )
       {
-         SDB_OSS_FREE ( pBuffer ) ;
+         SDB_OSS_FREE( pBuffer ) ;
          pBuffer = NULL ;
       }
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR__SENDCATAQUERYREQ, rc ) ;

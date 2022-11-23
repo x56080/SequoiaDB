@@ -1510,6 +1510,7 @@ namespace engine
       if ( pBuff )
       {
          SDB_OSS_FREE( pBuff ) ;
+         pBuff = NULL ;
       }
       return rc ;
    error:

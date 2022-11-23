@@ -196,6 +196,7 @@ namespace engine
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
             item._info = (*it).second.get()->toString() ;
+            item._queryID = (*it).second->getGlobalID().getQueryID() ;
 
             contextList[ eduID ].insert( item ) ;
          }
@@ -270,7 +271,8 @@ namespace engine
       BOOLEAN hasUnloadCS( const CHAR* csName ) ;
 
    private:
-      void _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
+      void  _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
+      void  _setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext ) ;
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

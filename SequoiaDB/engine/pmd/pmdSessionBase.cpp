@@ -71,6 +71,15 @@ namespace engine
       _processor = NULL ;
    }
 
+   IOperator* _pmdSessionBase::getOperator()
+   {
+      if ( eduCB() )
+      {
+         return eduCB()->getOperator() ;
+      }
+      return NULL ;
+   }
+
    /*
       _pmdProcessorBase implement
    */
