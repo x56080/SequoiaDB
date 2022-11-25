@@ -103,7 +103,7 @@ public class IdIndex10210 extends SdbTestBase {
                     "" )) {
                 db.dropCollectionSpace( csName );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -34 ) {
+                if ( e.getErrorCode() != -34 && e.getErrorCode() != -190 ) {
                     throw e;
                 }
             }
