@@ -2,8 +2,8 @@
  * @Description   : seqDB-26597:游标advance，IndexValue指定嵌套字段
  * @Author        : liuli
  * @CreateTime    : 2022.06.02
- * @LastEditTime  : 2022.06.02
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.28
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_26597";
 

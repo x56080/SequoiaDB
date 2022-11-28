@@ -58,4 +58,5 @@ function test ( testPara )
    for( i = 0; i < 50; i++ ) { cursor.next() }
    var actResult2 = [cursor.next().toObj()["a"], cursor.next().toObj()["b"]];
    assert.equal( actResult2, expResult2 );
+   cursor.close();
 }
