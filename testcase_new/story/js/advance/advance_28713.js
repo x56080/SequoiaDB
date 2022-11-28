@@ -5,6 +5,7 @@
  * @LastEditTime  : 2022.11.28
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
+testConf.skipStandAlone = true;
 
 main( test );
 function test ( testPara )
