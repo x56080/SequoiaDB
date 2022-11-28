@@ -1,5 +1,5 @@
 /******************************************************************************
- * @Description   :  seqDB-28713:游标advance,IndexValue指定嵌套字段检查内存泄漏
+ * @Description   : seqDB-28713:游标advance,IndexValue指定嵌套字段检查内存泄漏
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.25
  * @LastEditTime  : 2022.11.28
@@ -50,12 +50,17 @@ function test ( testPara )
    var cursor = maincl.find().sort( { a: 1 } ).hint( { "": "a" } );
    cursor.next();
    cursor._cursor.advance( { "IndexValue": { "a": recsNum }, "Type": 1, "PrefixNum": 1 } );
-   var expResult1 = [70, 3];
+   cursor.close();
+
    cursor.next();
+   var expResult1 = [70, 3];
    var actResult1 = [cursor.next().toObj()["a"], cursor.next().toObj()["b"]];
    assert.equal( actResult1, expResult1 );
+   cursor.close();
+
    var expResult2 = [80, 2];
    for( i = 0; i < 50; i++ ) { cursor.next() }
    var actResult2 = [cursor.next().toObj()["a"], cursor.next().toObj()["b"]];
    assert.equal( actResult2, expResult2 );
+   cursor.close();
 }
