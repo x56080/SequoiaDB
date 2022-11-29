@@ -2,7 +2,7 @@
  * @Description   : seqDB-28713:游标advance,IndexValue指定嵌套字段检查内存泄漏
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.25
- * @LastEditTime  : 2022.11.28
+ * @LastEditTime  : 2022.11.29
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -10,11 +10,11 @@ testConf.skipStandAlone = true;
 main( test );
 function test ( testPara )
 {
-   var csName = "cs_1";
-   var mainCLName = "mainCL_1";
-   var subCLName1 = "subCL_1";
-   var subCLName2 = "subCL_2";
-   var subCLName3 = "subCL_3";
+   var csName = "cs_28713";
+   var mainCLName = "mainCL_28713";
+   var subCLName1 = "subCL_28713_1";
+   var subCLName2 = "subCL_28713_2";
+   var subCLName3 = "subCL_28713_3";
    var groupName1 = testPara.groups[0][0].GroupName;
 
    commDropCS( db, csName );
