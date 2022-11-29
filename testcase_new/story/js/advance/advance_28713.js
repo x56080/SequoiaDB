@@ -10,7 +10,7 @@ testConf.skipStandAlone = true;
 main( test );
 function test ( testPara )
 {
-   var csName = "cs_1";
+   var csName = "cs_28713";
    var mainCLName = "mainCL_28713";
    var subCLName1 = "subCL_28713_1";
    var subCLName2 = "subCL_28713_2";
