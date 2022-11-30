@@ -559,7 +559,7 @@ namespace engine
          }
          else if ( pReply->flags )
          {
-            _delPrepareContext( pReply->header.routeID ) ;
+            _delPrepareContext( pReply->header.routeID, TRUE ) ;
 
             if ( SDB_DMS_EOC != pReply->flags )
             {
@@ -882,7 +882,8 @@ namespace engine
       }
    }
 
-   void _rtnContextCoord::_delPrepareContext( const MsgRouteID & routeID )
+   void _rtnContextCoord::_delPrepareContext( const MsgRouteID & routeID,
+                                              BOOLEAN setInvalidContext )
    {
       EMPTY_CONTEXT_MAP::iterator iter =
          _prepareContextMap.find( routeID.value ) ;
@@ -893,6 +894,10 @@ namespace engine
 
          if ( pSubContext != NULL )
          {
+            if ( setInvalidContext )
+            {
+               pSubContext->setContextID( -1 ) ;
+            }
             _releaseSubContext( pSubContext ) ;
          }
          _prepareContextMap.erase ( iter ) ;
