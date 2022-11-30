@@ -184,7 +184,8 @@ namespace engine
          INT32    _appendSubData ( const pmdEDUEvent &event,
                                    BOOLEAN &isTakeOver ) ;
 
-         void     _delPrepareContext( const MsgRouteID &routeID ) ;
+         void     _delPrepareContext( const MsgRouteID &routeID,
+                                      BOOLEAN setInvalidContext = FALSE ) ;
 
          INT32    _send2EmptyNodes( _pmdEDUCB *cb ) ;
          INT32    _getPrepareNodesData( _pmdEDUCB *cb, BOOLEAN waitAll ) ;
