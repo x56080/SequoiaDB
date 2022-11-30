@@ -2524,26 +2524,26 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to execute command [%s] on catalog, "
                    "rc: %d", getName(), rc ) ;
 
-      // Determine which group to notify
-      if ( CATALOG_GROUPID ==  groupID )
+      if ( COORD_GROUPID == groupID ||
+           CATALOG_GROUPID ==  groupID ||
+           ( DATA_GROUP_ID_BEGIN <= groupID &&
+             DATA_GROUP_ID_END >= groupID ) )
       {
-         // Notify to all group
-         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
-      }
-      else if ( COORD_GROUPID == groupID ||
-                ( DATA_GROUP_ID_BEGIN <= groupID &&
-                  DATA_GROUP_ID_END >= groupID ) )
-      {
-         // Notify to coord or data group
+         // Notify all group nodes to update group info in clsReplicateSet
          helper.notify2GroupNodes( _pResource, groupID, cb ) ;
       }
       else
       {
-         // Except coord, cata, data groupID
+         // Only coord, cata and data groupID are valid
          PD_LOG( PDWARNING, "Failed to notify to group, got invalid groupID: %d",
                  groupID ) ;
       }
 
+      if ( CATALOG_GROUPID ==  groupID )
+      {
+         // Notify all group nodes to update group info in _clsShardMgr
+         helper.notify2AllNodes( _pResource, TRUE, cb ) ;
+      }
    done:
       PD_TRACE_EXITRC ( COORD_ALTERNODE_EXE, rc ) ;
       return rc ;
