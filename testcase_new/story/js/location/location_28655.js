@@ -2,7 +2,7 @@
  * @Description   : seqDB-28655:使用setLocation设置Location参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.18
+ * @LastEditTime  : 2022.11.30
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -39,16 +39,14 @@ function test ()
    } );
    checkNodeLocation( catalog, undefined );
 
-   // SEQUOIADBMAINSTREAM-8971
-   // SEQUOIADBMAINSTREAM-8978
    // 设置节点location大于256个字符
-   // var arr = new Array( 257 );
-   // var location = arr.join( "a" );
-   // assert.tryThrow( SDB_INVALIDARG, function()
-   // {
-   //    catalog.setLocation( location );
-   // } );
-   // checkNodeLocation( catalog, undefined );
+   var arr = new Array( 258 );
+   var location = arr.join( "a" );
+   assert.tryThrow( SDB_INVALIDARG, function()
+   {
+      catalog.setAttributes( { Location: location } );
+   } );
+   checkNodeLocation( catalog, undefined );
 
    // 设置中文location
    var location = "巨杉数据库";

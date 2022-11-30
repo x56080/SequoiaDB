@@ -2,8 +2,8 @@
  * @Description   : seqDB-28657:使用setAttributes设置option中的location参数校验
  * @Author        : liuli
  * @CreateTime    : 2022.11.14
- * @LastEditTime  : 2022.11.14
- * @LastEditors   : liuli
+ * @LastEditTime  : 2022.11.30
+ * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -35,15 +35,13 @@ function test ()
    checkNodeLocation( data, undefined );
 
    // 设置节点location大于256个字符
-   // SEQUOIADBMAINSTREAM-8971
-   // SEQUOIADBMAINSTREAM-8978
-   // var arr = new Array( 258 );
-   // var location = arr.join( "a" );
-   // assert.tryThrow( SDB_INVALIDARG, function()
-   // {
-   //    data.setAttributes( { Location: location } );
-   // } );
-   // checkNodeLocation( data, undefined );
+   var arr = new Array( 258 );
+   var location = arr.join( "a" );
+   assert.tryThrow( SDB_INVALIDARG, function()
+   {
+      data.setAttributes( { Location: location } );
+   } );
+   checkNodeLocation( data, undefined );
 
    // 设置中文location
    var location = "巨杉数据库";
