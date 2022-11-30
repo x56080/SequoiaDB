@@ -72,8 +72,9 @@ function test ()
       {
          sdbsnapshotOption = new SdbSnapshotOption().options( { ShowError: showError, ShowErrorMode: showErrorMode[i] } );
          cursor = db.snapshot( SDB_SNAP_HEALTH, sdbsnapshotOption );
-         errNodes = cursor.current().toObj()["ErrNodes"];
-         assert.equal( errNodes, undefined, "showError指定为ignore,不显示错误信息" );
+         var obj = cursor.current().toObj();
+         var errNodes = obj["ErrNodes"];
+         assert.equal( errNodes, undefined, JSON.stringify( obj ) );
       }
       cursor.close();
 
@@ -81,8 +82,9 @@ function test ()
       {
          snapshotOption = "/*+use_option(ShowError, " + showError + ") use_option(ShowErrorMode, " + showErrorMode[i] + ")*/";
          cursor = db.exec( "select * from $SNAPSHOT_HEALTH " + snapshotOption );
-         errNodes = cursor.current().toObj()["ErrNodes"];
-         assert.equal( errNodes, undefined, "showError指定为ignore,不显示错误信息" );
+         var obj = cursor.current().toObj();
+         var errNodes = obj["ErrNodes"];
+         assert.equal( errNodes, undefined, JSON.stringify( obj ) );
       }
       cursor.close();
 

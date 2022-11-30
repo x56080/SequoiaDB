@@ -50,9 +50,6 @@ function test ()
    var coordRG = db.getCoordRG();
    var coord = coordRG.getNode( coordArr[1] );
 
-   var cataRG = db.getCataRG();
-   var cata = cataRG.getSlave();
-
    var groups = testPara.groups;
    var group = groups[0][0];
    var GroupName = group["GroupName"];
@@ -61,12 +58,10 @@ function test ()
 
    var nodeAddresses = [
       { "hostName": coord.getHostName(), "svcName": coord.getServiceName() },
-      { "hostName": cata.getHostName(), "svcName": cata.getServiceName() },
       { "hostName": data.getHostName(), "svcName": data.getServiceName() }
    ];
 
    coord.stop();
-   cata.stop();
    data.stop();
 
    try
@@ -100,8 +95,9 @@ function test ()
       {
          sdbsnapshotOption = new SdbSnapshotOption().options( { ShowError: showError, ShowErrorMode: showErrorMode[i] } );
          cursor = db.snapshot( SDB_SNAP_DATABASE, sdbsnapshotOption );
-         errNodes = cursor.current().toObj()["ErrNodes"];
-         assert.equal( errNodes, undefined, "showError指定为ignore,不显示错误信息" );
+         var obj = cursor.current().toObj();
+         var errNodes = obj["ErrNodes"];
+         assert.equal( errNodes, undefined, JSON.stringify( obj ) );
       }
       cursor.close();
 
@@ -109,8 +105,9 @@ function test ()
       {
          snapshotOption = "/*+use_option(ShowError, " + showError + ") use_option(ShowErrorMode, " + showErrorMode[i] + ")*/";
          cursor = db.exec( "select * from $SNAPSHOT_DB " + snapshotOption );
-         errNodes = cursor.current().toObj()["ErrNodes"];
-         assert.equal( errNodes, undefined, "showError指定为ignore,不显示错误信息" );
+         var obj = cursor.current().toObj();
+         var errNodes = obj["ErrNodes"];
+         assert.equal( errNodes, undefined, JSON.stringify( obj ) );
       }
       cursor.close();
 
@@ -138,7 +135,6 @@ function test ()
    } finally
    {
       coord.start();
-      cata.start();
       data.start();
       commCheckBusinessStatus( db );
    }
