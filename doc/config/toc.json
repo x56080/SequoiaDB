@@ -771,6 +771,12 @@
                                  "en": "Java Environment to Build"
                               },
                               {
+                                 "id": 1669081296,
+                                 "file": "java_log_usage",
+                                 "cn": "Java 日志配置",
+                                 "en": "Java Log Configuration"
+                              },
+                              {
                                  "id": 1432190739,
                                  "file": "java_development_foundation",
                                  "cn": "Java 开发基础",
