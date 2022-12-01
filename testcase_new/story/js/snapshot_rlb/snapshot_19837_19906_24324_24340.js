@@ -160,13 +160,13 @@ function showErrNodesInformation ( cursor, nodeAddresses )
          var flag = errNodes[j]["Flag"];
          if( nodeName === hostName + ":" + svcName )
          {
-            assert.equal( flag, SDB_NET_CANNOT_CONNECT, "停节点的节点名与节点错误信息中的节点名相同" );
+            assert.equal( flag, SDB_NET_CANNOT_CONNECT, JSON.stringify( errNodes[j] ) );
             count++;
             break;
          }
       }
    }
-   assert.equal( count, nodeAddresses.length, "停节点的个数与节点错误信息中节点个数相同" );
+   assert.equal( count, nodeAddresses.length );
    cursor.close();
 }
 
@@ -175,19 +175,20 @@ function showInformation ( cursor, nodeAddresses )
    var count = 0;
    while( cursor.next() )
    {
-      var nodeName = cursor.current().toObj()["NodeName"];
-      var flag = cursor.current().toObj()["Flag"];
+      var obj = cursor.current().toObj();
+      var nodeName = obj["NodeName"];
+      var flag = obj["Flag"];
       for( var i = 0; i < nodeAddresses.length; i++ )
       {
          var hostName = nodeAddresses[i]["hostName"];
          var svcName = nodeAddresses[i]["svcName"];
          if( nodeName === hostName + ":" + svcName )
          {
-            assert.equal( flag, SDB_NET_CANNOT_CONNECT, "停节点的节点名与节点错误信息中的节点名相同" );
+            assert.equal( flag, SDB_NET_CANNOT_CONNECT, JSON.stringify( obj ) );
             count++;
          }
       }
    }
-   assert.equal( count, nodeAddresses.length, "停节点的个数与节点错误信息中节点个数相同" );
+   assert.equal( count, nodeAddresses.length );
    cursor.close();
 }
