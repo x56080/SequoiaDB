@@ -2,7 +2,7 @@
  * @Description   : seqDB-28655:使用setLocation设置Location参数校验
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.11.15
- * @LastEditTime  : 2022.11.30
+ * @LastEditTime  : 2022.12.01
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -44,7 +44,7 @@ function test ()
    var location = arr.join( "a" );
    assert.tryThrow( SDB_INVALIDARG, function()
    {
-      catalog.setAttributes( { Location: location } );
+      catalog.setLocation( location );
    } );
    checkNodeLocation( catalog, undefined );
 
