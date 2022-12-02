@@ -60,7 +60,7 @@ function test ( testPara )
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( actAccessNode !== primaryNode )
    {
-      throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + primaryNode );
+      throw new Error( "The expected result is " + expAccessNodes + ", but the actual result is " + primaryNode );
    }
 
    //2s后检查会话访问节点还为主节点
@@ -69,6 +69,6 @@ function test ( testPara )
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( actAccessNode !== primaryNode )
    {
-      throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + primaryNode );
+      throw new Error( "The expected result is " + expAccessNodes + ", but the actual result is " + primaryNode );
    }
 }
