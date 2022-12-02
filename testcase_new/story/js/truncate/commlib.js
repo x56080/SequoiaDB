@@ -89,7 +89,7 @@ function truncateVerify ( db, tableName, obj )
       var snapshotOfCLPerNode = snapShotInfoSet[i];
       if( !checkResult( snapshotOfCLPerNode, obj ) )
       {
-         throw new Error( "truncateVerify" + "compare error" );
+         throw new Error( "truncateVerify" + " compare error" + ". actual: " + JSON.stringify( snapshotOfCLPerNode ) + ", expected: " + JSON.stringify( obj ) );
       }
    }
 }
