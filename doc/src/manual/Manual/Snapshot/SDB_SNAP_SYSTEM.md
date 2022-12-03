@@ -1,9 +1,9 @@
 [^_^]:
     操作系统快照
 
-操作系统快照可以列出操作系统的状态和监控信息。
+操作系统快照可以列出当前操作系统的状态和监控信息。
 
-> Note:
+>**Note:**
 >
 > 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_SYSTEM,{RawData:true})` 获取聚合前的数据。
 
@@ -16,10 +16,10 @@ SDB_SNAP_SYSTEM
 
 | 字段名               | 类型      |  描述                                                          |
 | -------------------- | --------- | -------------------------------------------------------------- |
-| NodeName             | string    | 节点名，格式为<主机名>:<服务名>                                |
+| NodeName             | string    | 节点名，格式为`<主机名>:<服务名>`                              |
 | HostName             | string    | 数据库的主机名                                                 |
 | ServiceName          | string    | 数据库的服务名                                                 |
-| GroupName            | string    | 该逻辑节点所属的复制组名，standalone 模式下该字段为空字符串    |
+| GroupName            | string    | 节点所属复制组的名称，standalone 模式下该字段为空字符串    |
 | IsPrimary            | boolean   | 是否为主节点，standalone 模式下该字段为 false                  |
 | ServiceStatus        | boolean   | 是否为可提供服务状态 <br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status               | string    | 数据库状态，如：Normal、Shutdown、Rebuilding、FullSync、OfflineBackup |
@@ -33,25 +33,25 @@ SDB_SNAP_SYSTEM
 | LSNQueSize           | int32     | 等待同步的LSN队列长度                                          |
 | TransInfo.TotalCount | int32   | 正在执行的事务数量                                             |
 | TransInfo.BeginLSN   | int64 | 正在执行的事务的起始 LSN 的偏移                                |
-| NodeID               | bson array| 节点的 ID 信息                                                 |
+| NodeID               | bson array| 节点的 ID 信息，格式为`[<分区组 ID>, <节点 ID>]`<br>standalone 模式下该字段为[0, 0] |
 | CPU.User             | double | 操作系统启动后累计的用户 CPU 时间，单位为秒      |
 | CPU.Sys              | double | 操作系统启动后累计的系统 CPU 时间，单位为秒             |
 | CPU.Idle             | double | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒 |
 | CPU.IOWait           | double | 操作系统启动后累计的 IO 等待时间，单位为秒     |
 | CPU.Other            | double | 操作系统启动后软中断和硬中断的累计时间，单位为秒   |
-| Memory.LoadPercent   | int32   | 当前操作系统的内存使用百分比（包括文件系统缓存）               |
-| Memory.TotalRAM      | int64 | 当前操作系统的总内存空间，单位为字节                         |
-| Memory.FreeRAM       | int64 | 当前操作系统的空闲内存空间，单位为字节                   |
-| Memory.AvailableRAM  | int64 | 当前操作系统可用的内存空间，单位为字节                    |
-| Memory.TotalSwap     | int64 | 当前操作系统的总交换空间，单位为字节                          |
-| Memory.FreeSwap      | int64 | 当前操作系统的空闲交换空间，单位为字节                        |
-| Memory.TotalVirtual  | int64 | 当前操作系统的总虚拟空间，单位为字节                         |
-| Memory.FreeVirtual   | int64 | 当前操作系统的空闲虚拟空间，单位为字节                        |
-| Disk.Name            | string | 数据库路径所在的磁盘名称<br>                                   |
-| Disk.DatabasePath    | string | 数据库路径                                                     |
-| Disk.LoadPercent     | int32   | 数据库路径所在文件系统的空间占用百分比                         |
-| Disk.TotalSpace      | int64 | 数据库路径总空间，单位为字节                                 |
-| Disk.FreeSpace       | int64 | 数据库路径空闲空间，单位为字节                               |
+| Memory.LoadPercent   | int32  | 操作系统的内存使用百分比（包括文件系统缓存）               |
+| Memory.TotalRAM      | int64  | 操作系统的总内存空间，单位为字节                        |
+| Memory.FreeRAM       | int64  | 操作系统的空闲内存空间，单位为字节                   |
+| Memory.AvailableRAM  | int64  | 操作系统的可用内存空间，单位为字节                    |
+| Memory.TotalSwap     | int64  | 操作系统的总交换空间，单位为字节                          |
+| Memory.FreeSwap      | int64  | 操作系统的空闲交换空间，单位为字节                        |
+| Memory.TotalVirtual  | int64  | 操作系统的总虚拟空间，单位为字节                         |
+| Memory.FreeVirtual   | int64  | 操作系统的空闲虚拟空间，单位为字节                        |
+| Disk.Name            | string | 节点数据文件所在磁盘的名称                                   |
+| Disk.DatabasePath    | string | 节点数据文件所在路径                                                    |
+| Disk.LoadPercent     | int32  | 节点数据文件所在文件系统的空间占用百分比                         |
+| Disk.TotalSpace      | int64  | 节点数据文件所在磁盘的总存储空间，单位为字节                                 |
+| Disk.FreeSpace       | int64  | 节点数据文件所在磁盘的空闲存储空间，单位为字节                               |
 
 
 ## 协调节点字段信息
@@ -63,20 +63,19 @@ SDB_SNAP_SYSTEM
 | CPU.Idle             | double | 操作系统启动后累计的空闲时间（不包括 IO 等待时间），单位为秒 |
 | CPU.IOWait           | double | 操作系统启动后累计的 IO 等待时间，单位为秒      |
 | CPU.Other            | double | 操作系统启动后软中断和硬中断的累计时间，单位为秒   |
-| Memory.TotalRAM      | int64  | 当前操作系统的总内存空间，单位为字节        |
-| Memory.FreeRAM       | int64  | 当前操作系统的空闲内存空间，单位为字节                   |
-| Memory.AvailableRAM  | int64  | 当前操作系统可用的内存空间，单位为字节                    |
+| Memory.TotalRAM      | int64  | 操作系统的总内存空间，单位为字节        |
+| Memory.FreeRAM       | int64  | 操作系统的空闲内存空间，单位为字节                   |
+| Memory.AvailableRAM  | int64  | 操作系统的可用内存空间，单位为字节                    |
 | Memory.TotalSwap     | int64  | 交换分区的总空间，单位为字节    |
-| Memory.FreeSwap      | int64  | 当前操作系统的总交换空间，单位为字节  |
-| Memory.TotalVirtual  | int64  | 当前操作系统的总虚拟空间，单位为字节    |
-| Memory.FreeVirtual   | int64  | 当前操作系统的空闲虚拟空间，单位为字节  |
-| Disk.TotalSpace      | int64  | 数据路径下的总存储空间，单位为字节     |
-| Disk.FreeSpace       | int64  | 数据路径下的空闲存储空间，单位为字节   |
-| ErrNodes.NodeName | string    | 异常节点名，格式为<主机名>:<服务名>                    |
-| ErrNodes.GroupName| string    | 异常节点所属复制组名                                   |
+| Memory.FreeSwap      | int64  | 操作系统的总交换空间，单位为字节  |
+| Memory.TotalVirtual  | int64  | 操作系统的总虚拟空间，单位为字节    |
+| Memory.FreeVirtual   | int64  | 操作系统的空闲虚拟空间，单位为字节  |
+| Disk.TotalSpace      | int64  | 节点数据文件所在磁盘的总存储空间，单位为字节<br>如果数据文件存储在多个磁盘，该字段值为所有磁盘的存储空间总和 |
+| Disk.FreeSpace       | int64  | 节点数据文件所在磁盘的空闲存储空间，单位为字节<br>如果数据文件存储在多个磁盘，该字段值为所有磁盘的空闲存储空间总和   |
+| ErrNodes.NodeName | string    | 异常节点名，格式为`<主机名>:<服务名>`                    |
+| ErrNodes.GroupName| string    | 异常节点所属复制组的名称                                   |
 | ErrNodes.Flag     | int32     | 异常节点的[错误码][error_code_url]                     |
 | ErrNodes.ErrInfo  | bson      | 异常节点的错误信息                                     |
-
 
 ## 示例
 
