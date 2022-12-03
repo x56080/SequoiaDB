@@ -1,58 +1,26 @@
 
-quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，可以通过命令行的方式快速部署 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL。
+quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署 SequoiaDB 集群和 SQL 实例。其中，SequoiaDB 集群支持部署在单台或多台机器，SQL 实例仅支持部署在单台机器。
 
-SequoiaDB 集群支持部署在多台主机上，SequoiaSQL-MySQ/SequoiaSQL-PostgreSQL 仅支持部署在单台主机。
- 
-运行需求
-----
+##语法规则##
 
-运行 quickDeploy.sh 命令的用户必须是安装 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 时指定的用户。
+**quickDeploy.sh [--sdb] [--mysql] [--pg] [--cm=Number] [--mysqlPath=String] [--pgPath=String]**
 
-语法规则
-----
+##参数说明##
 
-```lang-text
-quickDeploy.sh [ options ] ...
-```
-
-参数说明
-----
-
-- **--help, -h**  
-
- 返回帮助信息
-
-- **--sdb**  
-
- 部署 SequoiaDB
-
-- **--mysql**  
-
- 部署 SequoiaSQL-MySQL
-  
-- **--pg**  
-
- 部署 SequoiaSQL-PostgreSQL
-  
-- **--cm \<sdbcm port\>**  
-
- 指定 sdbcm 端口号，默认为11790。当 sdbcm 为非默认端口号时，要求所有安装了 SequoiaDB 的主机 sdbcm 端口必须一致
-  
-- **--mysqlPath \<mysql installation path\>**  
-
- quickDeploy.sh 只支持部署一个 SequoiaSQL-MySQL。当机器上装有多个 SequoiaSQL-MySQL 时，指定一个 SequoiaSQL-MySQL 的安装路径。
-
-  需要配合 --mysql 使用
-  
-- **--pgPath \<pg installation path\>**  
-
- quickDeploy.sh 只支持部署一个 SequoiaSQL-PostgreSQL。当机器上装有多个 SequoiaSQL-PostgreSQL 时，指定一个 SequoiaSQL-PostgreSQL 的安装路径。
-
-  需要配合 --pg 使用。
+|参数名  |缩写     | 描述   |
+|--------|---------|--------|
+|--help  |    -h   | 获取帮助信息 |
+|--sdb   |    -    | 部署 SequoiaDB 集群 |
+|--mysql |    -    | 部署 MySQL 实例 |
+|--pg    |    -    | 部署 PostgreSQL 实例 |
+|--cm    |    -    | 指定 sdbcm 端口号，默认值为 11790 <br>在多台机器上部署集群时，需确保所有机器的 sdbcm 端口一致 |
+|--mysqlPath| -    | 指定 MySQL 实例组件的安装路径 |
+|--pgPath|    -    | 指定 PostgreSQL 实例组件的安装路径 |
 
 > **Note:**
 > 
-> 当不指定 --sdb/--mysql/--pg 参数时，quickDeploy.sh 会自动确认本机是否安装了 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL，已安装了的会自动部署。
+> - 当不指定参数 --sdb、--mysql 和 --pg 时，快速部署工具将根据本机的安装情况自动部署 SequoiaDB 集群和 SQL 实例。
+> - 快速部署工具不支持同时部署多个 MySQL 或 PostgreSQL 实例组件。如果本机安装了多个 MySQL 或 PostgreSQL 实例组件，需指定参数 --mysqlPath 或 --pgPath。
 
 默认部署
 ----
