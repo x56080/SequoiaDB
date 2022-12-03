@@ -5,35 +5,32 @@
 .hy
 .SH NAME
 .PP
-createUsr \- Create a database user to prevent illegal users from illegally
-operating the database.
+createUsr \- create database user
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.createUsr( <name>, <password>, [options] )\f[]\f[]
+\f[B]db.createUsr(<name>, <password>, [options])\f[]
 .PP
-\f[B]\f[I]db.createUsr( <User>, [options] )\f[]\f[]
+\f[B]db.createUsr(<User>, [options])\f[]
 .PP
-\f[B]\f[I]db.createUsr( <CipherUser>, [options] )\f[]\f[]
+\f[B]db.createUsr(<CipherUser>, [options])\f[]
 .SH CATEGORY
 .PP
 Sdb
 .SH DESCRIPTION
 .PP
-Create a database user to prevent illegal users from illegally operating the
-database.
+This function is used to create database users to prevent illegal users from
+operating the database.
 .SH PARAMETERS
 .PP
 .TS
 tab(@);
-l l l l l l.
+l l l l l.
 T{
 0
 T}@T{
 Name
 T}@T{
 Type
-T}@T{
-Default
 T}@T{
 Description
 T}@T{
@@ -47,11 +44,9 @@ name
 T}@T{
 string
 T}@T{
-\-\-\-
-T}@T{
 username
 T}@T{
-yes
+required
 T}
 T{
 2
@@ -60,11 +55,9 @@ password
 T}@T{
 string
 T}@T{
-\-\-\-
-T}@T{
 password
 T}@T{
-yes
+required
 T}
 T{
 3
@@ -73,11 +66,9 @@ User
 T}@T{
 object
 T}@T{
-\-\-\-
-T}@T{
 User object
 T}@T{
-yse
+required
 T}
 T{
 4
@@ -86,32 +77,27 @@ CipherUser
 T}@T{
 object
 T}@T{
-\-\-\-
-T}@T{
 CipherUser object
 T}@T{
-yes
+required
 T}
 T{
 5
 T}@T{
 options
 T}@T{
-Json
-T}@T{
-null
+object
 T}@T{
 extended options
 T}@T{
 not
 T}
 .TE
-.PP
-The detail description of \[aq]options\[aq] parameter is as follow:
+.SS options value
 .PP
 .TS
 tab(@);
-l l l l l.
+l l l l.
 T{
 0
 T}@T{
@@ -120,8 +106,6 @@ T}@T{
 Type
 T}@T{
 Description
-T}@T{
-Required or not
 T}
 _
 T{
@@ -131,16 +115,152 @@ AuditMask
 T}@T{
 string
 T}@T{
-user audit log
-T}@T{
-not
+The configuration mask
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-configuration mask
+of the user auditlog,
+T}
+T{
 T}@T{
+T}@T{
+T}@T{
+the default value is "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+SYSTEM|DDL|DCL", and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the values are as
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+follows:ACCESS,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+CLUSTER, SYSTEM, DCL,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+DDL, DML, DQL, INSERT,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+UPDATE, DELETE, OTHER,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+ALL, NONE●
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+Supports using \[aq]bitwise
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+or\[aq](|) to connect
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+multiple masks, and \[aq]
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+logic not\[aq](!)
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+prohibits a mask.
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+● A value of "ALL"
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+indicates that all
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+configuration masks are
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+selected.● A
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+value of "NONE"
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+indicates that all
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+configuration masks are
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+prohibited.
+That is,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the audit function is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+turned off.
 T}
 T{
 2
@@ -149,87 +269,150 @@ Role
 T}@T{
 String
 T}@T{
-user role
+User role.
+Currently
+T}
+T{
 T}@T{
-not
+T}@T{
+T}@T{
+only supports built\-in
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+roles in the system,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the default value is "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+admin", and the value
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+list: "admin", "monitor
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+".
+"admin" is the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+administrator role,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+which can perform any
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+operation.
+"monitor" is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the monitoring role,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+which can only perform
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+snapshot and list
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+operations.
 T}
 .TE
 .RS
 .PP
-Note：
-.RE
-.RS
+\f[B]Note:\f[]
 .IP \[bu] 2
 This interface can only be used in cluster mode.
-.RE
-.RS
 .IP \[bu] 2
-If the database has created a user, you must specify a username and password to
-connect to the database.
-.RE
-.RS
+When a user is created in the database, the username and password must be
+specified to connect to the database.
 .IP \[bu] 2
-AuditMask\[aq]s value are as follow:
-ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER.
-You can combine multiple values with \[aq]|\[aq].
-\[aq]ALL\[aq] means that all mask items are turned on, and \[aq]NONE\[aq] means
-that no mask items are turned on.
-If an item in the user audit log is not configured, the configuration of the
-corresponding mask item on the node is inherited.
-You can also use \[aq]!\[aq] to disable inheritance of this mask( e.g:
-"!DDL|DML" ).
-.RE
-.RS
+For database username and password restrications, refer to database limit.
 .IP \[bu] 2
-Role\[aq]s value are as follow: "admin"、"monitor".
-The default value is "admin".
-User of role "admin" can do anything in the database, while user of role
-"monitor" can only do snapshot and list operations.
-.RE
-.RS
-.IP \[bu] 2
-The role of the first user in the database should always be "admin".
+The first user created in the database must be in the "admin" role.
 .RE
 .SH RETURN VALUE
 .PP
-On success, return void.
+When the function executes successfully, there is no return value.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, please refer to Troubleshooting.
 .SH EXAMPLES
-.IP "1." 3
-Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq],
-and set the audit log mask.
+.IP \[bu] 2
+Create a user with username "sdbadmin" and password "sdbadmin", and set the
+auditlog mask.
+.RS 2
+.IP
 .nf
 \f[C]
-> db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
+> db.createUsr("sdbadmin", "sdbadmin", {AuditMask: "DDL|DML|!DQL"})
 \f[]
 .fi
 .RE
-.IP "2." 3
-Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq]
-using User object.
+.IP \[bu] 2
+Use the User object to create a user with username "sdbadmin" and password
+"sdbadmin".
+.RS 2
+.IP
 .nf
 \f[C]
-> var a = User( "sdbadmin", "sdbadmin" )
-> db.createUsr( a )
+> var a = User("sdbadmin", "sdbadmin")
+> db.createUsr(a)
 \f[]
 .fi
 .RE
-.IP "3." 3
-Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq]
-using CipherUser object ( User information with username \[aq]sdbadmin\[aq] and
-password \[aq]sdbadmin\[aq] must exist in the cipher test file.
-For details on how to add and delete cipher test information in cipher test
-file, please see sdbpasswd for details ).
+.IP \[bu] 2
+Use the CipherUser object to create a user with username "sdbadmin" and password
+"sdbadmin"(The user information with username "sdbadmin" and password "sdbadmin"
+in the ciphertext file.
+For details on how to add and delete ciphertext information in the ciphertext
+file, refer to sdbpasswd).
+.RS 2
+.IP
 .nf
 \f[C]
-> var a = CipherUser( "sdbadmin" )
-> db.createUsr( a )
+> var a = CipherUser("sdbadmin")
+> db.createUsr(a)
 \f[]
 .fi
 .RE

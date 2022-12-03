@@ -8,11 +8,11 @@
 createUsr \- 创建数据库用户
 .SH 语法
 .PP
-\f[B]db.createUsr( <name>, <password>, [options] )\f[]
+\f[B]db.createUsr(<name>, <password>, [options])\f[]
 .PP
-\f[B]db.createUsr( <User>, [options] )\f[]
+\f[B]db.createUsr(<User>, [options])\f[]
 .PP
-\f[B]db.createUsr( <CipherUser>, [options] )\f[]
+\f[B]db.createUsr(<CipherUser>, [options])\f[]
 .SH 类别
 .PP
 Sdb
@@ -92,7 +92,7 @@ T}@T{
 否
 T}
 .TE
-.SS options取值
+.SS options 取值
 .PP
 .TS
 tab(@);
@@ -114,103 +114,115 @@ AuditMask
 T}@T{
 String
 T}@T{
-用户审计日志配
+用户审计日志的
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-置掩码，取值列
+配置掩码，默认
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-表：ACCESS、CLUSTER
+值为"SYSTEM|DDL|DCL
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-、SYSTEM、DML、DDL
+"，取值如下：
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-、DCL、DQL、INSERT
+ACCESS、CLUSTER、
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-、DELETE、UPDATE、
+SYSTEM、DCL、DDL、
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-OTHER；ALL表示全部
+DML、DQL、INSERT、
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-开启，NONE表示全
+UPDATE、DELETE、OTHER
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-部不开启；可以
+、ALL、NONE●
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-使用‘|'连接多
+支持使用按位或
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-个取值。当某位
+（|）连接多个掩
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-掩码未配置时，
+码，逻辑非（!）
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-则继承节点相应
+禁止某个掩码
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的配置掩码；也
+● 取值"ALL"表示
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-可以通过 ‘!'
+选择全部配置掩
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-来禁止某位掩码
+码● 取值"NONE"
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的继承
+表示禁止全部配
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+置掩码，即关闭
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+审计功能
 T}
 T{
 2
@@ -290,9 +302,9 @@ T}
 .IP \[bu] 2
 当数据库创建了用户，连接数据库必须指定用户名和密码。
 .IP \[bu] 2
-数据库用户名和密码的限制请参考数据库限制
+数据库用户名和密码的限制请参考数据库限制。
 .IP \[bu] 2
-数据库中创建的第一个用户必须是 "admin" 角色
+数据库中创建的第一个用户必须是"admin"角色。
 .RE
 .SH 返回值
 .PP
@@ -313,7 +325,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
+> db.createUsr("sdbadmin", "sdbadmin", {AuditMask: "DDL|DML|!DQL"})
 \f[]
 .fi
 .RE
@@ -323,8 +335,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> var a = User( "sdbadmin", "sdbadmin" )
-> db.createUsr( a )
+> var a = User("sdbadmin", "sdbadmin")
+> db.createUsr(a)
 \f[]
 .fi
 .RE
@@ -336,8 +348,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-> var a = CipherUser( "sdbadmin" )
-> db.createUsr( a )
+> var a = CipherUser("sdbadmin")
+> db.createUsr(a)
 \f[]
 .fi
 .RE
