@@ -779,7 +779,7 @@ INT32 updateCachedVersion( const INT32 code, hashTable *tb, const CHAR *key, INT
       }
       removeCachedObject( tb, csName, TRUE ) ;
    }
-   else if ( SDB_OK == rc || SDB_CLIENT_CATA_VER_OLD == rc )
+   else if ( SDB_OK == code || SDB_CLIENT_CATA_VER_OLD == code )
    {
       pos = ossStrchr( key, '.' ) ;
       if ( NULL != pos )
