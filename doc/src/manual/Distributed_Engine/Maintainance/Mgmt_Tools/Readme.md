@@ -13,7 +13,7 @@ SequoiaDB 巨杉数据库提供多种类型数据管理工具，包括数据日�
 本章详细介绍各类管理工具的基本概念、参数说明和使用方法等，指导用户对数据库的各种问题进行优化分析，使用不同类型的工具实现有效的数据管理和维护。
 
 数据管理工具如下：
-+ [快速部署工具][quickdeploy]：用命令行的方式快速部署 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 
++ [快速部署工具][quickdeploy]：快速部署 SequoiaDB 集群和 SQL 实例 
 + [命令行工具][sdb]：SequoiaDB 数据库的接口工具
 + [本地集群检查工具][sdblist]：sdblist 是 SequoiaDB 的本地集群检查工具
 + [数据导入工具][sdbimprt]：sdbimprt 是 SequoiaDB 的数据导入工具
