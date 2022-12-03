@@ -11,8 +11,7 @@
 #define COMMA_EN           ","
 #define BACKSLASH          "\\"
 #define TABLE_LINE_LEN     24
-
-#define MATCH_STRING "<br>" ;
+#define HTML_TAG_BR        "<br>"
 
 #if defined (_WIN32)
 string _gbk2utf8(const string &input)
@@ -108,7 +107,7 @@ string _trim_element_space(string &src_str)
     return retStr;
 }
 
-void _get_elems(string &data, vector<string> &vec_out)
+void _get_elems(const string &data, vector<string> &vec_out)
 {
     const uint8_t *text = (const uint8_t *)data.c_str();
     const uint8_t *txt_pos = NULL;
@@ -180,7 +179,7 @@ size_t _utf8_to_charset(const string &input, vector<string> &output)
    return output.size();
 }
 
-size_t _char_to_word(string &text, vector<string> &output)
+size_t _char_to_word(const string &text, vector<string> &output)
 {
     size_t word_len = 0;
     vector<string> vec_chars;
@@ -261,38 +260,37 @@ size_t _char_to_word(string &text, vector<string> &output)
     return output.size();
 }
 
-void _split_word(vector<string> &input, vector<string> &output)
+void _join_tag(const vector<string> &input, vector<string> &output, const string &tag)
 {
-    vector<string>::iterator it ;
+    vector<string>::const_iterator it ;
     string temp ;
 
-    // match = "<br>" => vec_matche = [<,br,>]
-    string match = MATCH_STRING ;
-    vector<string> vec_match ;
-    _char_to_word( match, vec_match ) ;
+    // e.g: tag = "<br>" ==> vec_tag = [<,br,>]
+    vector<string> vec_tag ;
+    _char_to_word( tag, vec_tag ) ;
 
-    // it traverses each word in input.
+    // it traverses each word in input
     for ( it = input.begin(); it != input.end(); it++ )
     {
-        // if ( *it == < )
-        int i = 0 ;
-        if( *it == vec_match[ i ] )
+        // if *it matches "<"
+        int tag_index = 0 ;
+        if( *it == vec_tag[ tag_index ] )
         {
             // inside match_it traverses and matches each word in matches.
-            vector<string>::iterator match_it = it ;
-            for( ; i < vec_match.size() &&
+            vector<string>::const_iterator match_it = it ;
+            for( ; tag_index < vec_tag.size() &&
                    match_it != input.end() &&
-                   *match_it == vec_match[ i ]; i++, match_it++ )
+                   *match_it == vec_tag[ tag_index ]; tag_index++, match_it++ )
             {
                 temp += *match_it ;
             }
 
             // matched
-            if( i >= vec_match.size() )
+            if( tag_index >= vec_tag.size() )
             {
                 output.push_back( temp ) ;
                 /* remove the add of it++,
-                so it++ in next loop can points to next word.*/
+                so it++ in next input loop can points to next word.*/
                 it = --match_it ;
             }
             else
@@ -305,12 +303,12 @@ void _split_word(vector<string> &input, vector<string> &output)
             continue ;
         }
 
-        // if ( *it != < )
+        // if *it does not match "<"
         output.push_back( *it ) ;
     }
 }
 
-void _split_elem(string &text, vector<string> &vec_out)
+void _split_elem(const string &text, vector<string> &vec_out)
 {
     string one_line;
     string pre_char;
@@ -322,8 +320,9 @@ void _split_elem(string &text, vector<string> &vec_out)
     // get words, the output is: "abc", " ", ",", "1", "1024", "集合",...
     _char_to_word(text, vec_words);
 
-    // get words and tags, the output contains "<br>"
-    _split_word( vec_words, vec_words_and_tags ) ;
+    // join words to tag, e.g: join "<","br",">" to "<br>"
+    string tag = HTML_TAG_BR ;
+    _join_tag( vec_words, vec_words_and_tags, tag ) ;
 
     // build line
     for(it = vec_words_and_tags.begin(); it != vec_words_and_tags.end(); it++)
@@ -382,7 +381,7 @@ void _split_elem(string &text, vector<string> &vec_out)
     }
 }
 
-void _rebuild_table(string &text, vector<string> &vec_out)
+void _rebuild_table(const string &text, vector<string> &vec_out)
 {
     size_t line_num = 0, column_num = 0;
     size_t i = 0;
