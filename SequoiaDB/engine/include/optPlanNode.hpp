@@ -310,10 +310,10 @@ namespace engine
          virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
 
          virtual INT32 _toBSONChildNodes ( BSONObjBuilder & builder,
-                                           BOOLEAN needPlanPath ) const ;
+                                           const rtnExplainOptions &expOptions ) const ;
 
          OSS_INLINE virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                                          BOOLEAN needPlanPath ) const
+                                                          const rtnExplainOptions &expOptions ) const
          {
             return SDB_OK ;
          }
@@ -1178,9 +1178,9 @@ namespace engine
          }
 
          OSS_INLINE virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                                          BOOLEAN needPlanPath ) const
+                                                          const rtnExplainOptions &expOptions ) const
          {
-            return _toBSONMergeChildNodes( builder, needPlanPath, FALSE ) ;
+            return _toBSONMergeChildNodes( builder, expOptions.isNeedExpand(), FALSE ) ;
          }
    } ;
 
@@ -1235,9 +1235,9 @@ namespace engine
          virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
 
          OSS_INLINE virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                                          BOOLEAN needPlanPath ) const
+                                                          const rtnExplainOptions &expOptions ) const
          {
-            return _toBSONMergeChildNodes( builder, needPlanPath, TRUE ) ;
+            return _toBSONMergeChildNodes( builder, expOptions.isNeedExpand(), TRUE ) ;
          }
    } ;
 
