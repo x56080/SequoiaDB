@@ -219,7 +219,7 @@ namespace engine
 
       if ( !expOptions.isNeedFlatten() )
       {
-         rc = _toBSONChildNodes( builder, expOptions.isNeedExpand() ) ;
+         rc = _toBSONChildNodes( builder, expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for child nodes, "
                       "rc: %d", rc ) ;
       }
@@ -540,7 +540,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE__TOBSONCHILDNODES, "_optPlanNode::_toBSONChildNodes" )
    INT32 _optPlanNode::_toBSONChildNodes ( BSONObjBuilder &builder,
-                                           BOOLEAN needPlanPath ) const
+                                           const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -551,7 +551,7 @@ namespace engine
          BSONArrayBuilder subBuilder(
                      builder.subarrayStart( _getBSONChildArrayName() ) ) ;
 
-         rc = _toBSONChildNodesImpl( subBuilder, needPlanPath ) ;
+         rc = _toBSONChildNodesImpl( subBuilder, expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for child nodes, "
                       "rc: %d", rc ) ;
 
@@ -3286,7 +3286,10 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTMERGENODEBASE_TOSIMPLEBSON ) ;
 
-      rc = _toBSONChildNodes( builder, TRUE ) ;
+      rtnExplainOptions expOptions;
+      expOptions.setNeedExpand( TRUE ) ;
+
+      rc = _toBSONChildNodes( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to generate BSON for child nodes, "
                    "rc: %d" ) ;
 
