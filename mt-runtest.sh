@@ -2,6 +2,7 @@
 
 # define test root path
 storyTestRoot="testcase_new/story/js"
+storyATTestRoot="testcase_new/story_at/js"
 sdvTestRoot="testcase_new/sdv/js"
 testRoots=($storyTestRoot)
 
@@ -39,7 +40,7 @@ function showHelpInfo()
    echo "$0 --help"
    echo "$0 [-s stopFlag] [-n svcname] [-h hostname] [-j thnum]"
    echo ""
-   echo " -t type     : 运行指定类型的用例，可取story|sdv|all"
+   echo " -t type     : 运行指定类型的用例，可取story|story_at|sdv|dev|all，dev 表示运行 story 及 story_at 用例"
    echo " -s stopFlag : 发生用例错误是否停止，0表示继续，1表示停止，默认为1"
    echo " -n svcname  : 指定测试的COORD节点服务名"
    echo " -h hostname : 指定测试的COORD节点HostName或IP"
@@ -50,7 +51,7 @@ function showHelpInfo()
 
 # print content to result.txt
 # $1: the content
-function printToResultFile() 
+function printToResultFile()
 {
    echo "$1" >> ${reportDirRoot}/result.txt
 }
@@ -121,10 +122,16 @@ function analyTestType()
    case $testType in
       story )  testRoots[0]=$storyTestRoot
                ;;
+      story_at ) testRoots[0]=$storyATTestRoot
+               ;;
+      dev )    testRoots[0]=$storyTestRoot
+               testRoots[1]=$storyATTestRoot
+               ;;
       sdv )    testRoots[0]=$sdvTestRoot
                ;;
       all )    testRoots[0]=$sdvTestRoot
                testRoots[1]=$storyTestRoot
+               testRoots[2]=$storyATTestRoot
                ;;
       * )      echo "invalid testType: $testType"
                showHelpInfo 1
@@ -390,6 +397,8 @@ do
       $storyTestRoot )  testType="story"
                         ;;
       $sdvTestRoot )    testType="sdv"
+                        ;;
+      $storyATTestRoot ) testType="story_at"
                         ;;
    esac
 
