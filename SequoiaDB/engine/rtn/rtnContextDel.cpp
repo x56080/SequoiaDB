@@ -156,18 +156,24 @@ namespace engine
       clsCB *pClsCB = sdbGetClsCB() ;
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
+      rtnObjectStatCache *statCache = pRtnCB->getObjectStatCache();
       ossPoolVector< ossPoolString > subCLs ;
       ossPoolSet< ossPoolString > mainCLs ;
 
-      _pResource->removeCS( _name, subCLs, mainCLs ) ;
+      _pResource->removeCataInfoByCS( _name, subCLs, mainCLs ) ;
       pClsCB->invalidateCata( _name ) ;
+      pRtnCB->getAPM()->invalidateSUPlans( _name ) ;
+      statCache->removeCLStatInCS( _name );
+   
       for ( ossPoolVector< ossPoolString >::iterator iter = subCLs.begin() ;
             iter != subCLs.end() ;
             ++ iter )
       {
          const CHAR *subCLName = iter->c_str() ;
-         _pResource->removeCL( subCLName ) ;
+         _pResource->removeCataInfo( subCLName ) ;
          pClsCB->invalidateCata( subCLName ) ;
+         pRtnCB->getAPM()->invalidateCLPlans( subCLName ) ;
+         statCache->removeCLStat( subCLName ) ;
       }
 
       for ( ossPoolSet< ossPoolString >::iterator iter = mainCLs.begin() ;
@@ -175,11 +181,12 @@ namespace engine
             ++ iter )
       {
          const CHAR *mainCLName = iter->c_str() ;
-         _pResource->removeCL( mainCLName ) ;
+         _pResource->removeCataInfo( mainCLName ) ;
          // Clear plan cache in self
          pRtnCB->getAPM()->invalidateCLPlans( mainCLName ) ;
          // Clear plan cache in secondary nodes
          pClsCB->invalidatePlan( mainCLName ) ;
+         statCache->removeCLStat( mainCLName ) ;
       }
 
       /// already drop phrase1
@@ -200,6 +207,7 @@ namespace engine
          //invalidate plan will be executed in dms by calling onDropCS().
          pRtnCB->getAPM()->invalidateSUPlans( _name ) ;
          pClsCB->invalidateCache( _name, DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
+         statCache->removeCLStat( _name ) ;
       }
 
       rc = SDB_DMS_EOC ;
@@ -546,10 +554,11 @@ namespace engine
       clsCB * pClsCB = pmdGetKRCB()->getClsCB() ;
       clsTaskMgr * pTaskMgr = pClsCB->getTaskMgr() ;
       dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
+      rtnObjectStatCache *statCache = pRtnCB->getObjectStatCache() ;
       CoordCataInfoPtr cataPtr, mainCataPtr ;
       const CHAR *mainCLName = NULL ;
 
-      _pResource->removeCLWithMain( _collectionName, cataPtr, mainCataPtr ) ;
+      _pResource->removeCataInfoWithMain( _collectionName, cataPtr, mainCataPtr ) ;
       if ( cataPtr && cataPtr->getCatalogSet() )
       {
          if ( cataPtr->getCatalogSet()->isSubCL() )
@@ -563,6 +572,8 @@ namespace engine
       }
 
       pClsCB->invalidateCata( _collectionName ) ;
+      statCache->removeCLStat( _collectionName ) ;
+      pRtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
       // Clear catalog info and cached plans of main-collection if needed
       if ( NULL != mainCLName )
       {
@@ -570,6 +581,7 @@ namespace engine
          pClsCB->invalidateCache( mainCLName,
                                   DPS_LOG_INVALIDCATA_TYPE_CATA |
                                   DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
+         pRtnCB->getAPM()->invalidateCLPlans( mainCLName ) ;
       }
 
       // drop collection
@@ -840,8 +852,8 @@ namespace engine
          _subContextList.erase( iterCtx++ ) ;
       }
 
-      /// clear main collection's cache
-      _pResource->removeCL( _name ) ;
+      /// clear main collection's catalog info
+      _pResource->invalidateCataInfo( _name ) ;
 
       // Clear cached main-collection plans
       _pRtncb->getAPM()->invalidateCLPlans( _name ) ;
@@ -902,7 +914,8 @@ namespace engine
          /// context is killed by interrupted
          if ( cb->isInterrupted() )
          {
-            _pResource->removeCS( _oldName ) ;
+            _pResource->removeCataInfoByCS( _oldName ) ;
+
             if ( SDB_OK == clsStartRenameCheckJob( _taskPtr, _blockID ) )
             {
                _blockID = 0 ;
@@ -1102,14 +1115,14 @@ namespace engine
          goto done ;
       }
 
-      _pResource->removeCS( _oldName, subCLs, mainCLs ) ;
+      _pResource->removeCataInfoByCS( _oldName, subCLs, mainCLs ) ;
       pClsCB->invalidateCata( _oldName ) ;
       for ( ossPoolVector< ossPoolString >::iterator iter = subCLs.begin() ;
             iter != subCLs.end() ;
             ++ iter )
       {
          const CHAR *subCLName = iter->c_str() ;
-         _pResource->removeCL( subCLName ) ;
+         _pResource->removeCataInfo( subCLName ) ;
          pClsCB->invalidateCata( subCLName ) ;
       }
 
@@ -1118,7 +1131,7 @@ namespace engine
             ++ iter )
       {
          const CHAR *mainCLName = iter->c_str() ;
-         _pResource->removeCLWithMain( mainCLName ) ;
+         _pResource->removeCataInfo( mainCLName ) ;
          // Clear plan cache in self
          pRtnCB->getAPM()->invalidateCLPlans( mainCLName ) ;
          // Clear plan cache in secondary nodes
@@ -1447,7 +1460,7 @@ namespace engine
          /// context is killed by interrupted
          if ( cb->isInterrupted() )
          {
-            _pResource->removeCL( _clFullName ) ;
+            _pResource->invalidateCataInfo( _clFullName ) ;
 
             if ( SDB_OK == clsStartRenameCheckJob( _taskPtr, _blockID ) )
             {
@@ -1640,7 +1653,7 @@ namespace engine
          goto done ;
       }
 
-      _pResource->removeCLWithMain( _clFullName, cataPtr, mainCataPtr ) ;
+      _pResource->removeCataInfoWithMain( _clFullName, cataPtr, mainCataPtr ) ;
       if ( cataPtr && cataPtr->getCatalogSet() )
       {
          if ( cataPtr->getCatalogSet()->isSubCL() )
@@ -1922,7 +1935,7 @@ namespace engine
          SDB_RTNCB *pRtnCB = sdbGetRTNCB() ;
 
          /// clear main collection's catalog info
-         _pResource->removeCL( _name ) ;
+         _pResource->invalidateCataInfo( _name ) ;
 
          /// clear main collection's access plan
          pRtnCB->getAPM()->invalidateCLPlans( _name ) ;
@@ -2001,7 +2014,7 @@ namespace engine
       SDB_RTNCB *pRtnCB = sdbGetRTNCB() ;
 
       /// clear main collection's catalog info
-      _pResource->removeCL( _name ) ;
+      _pResource->invalidateCataInfo( _name ) ;
 
       /// clear main collection's access plan
       pRtnCB->getAPM()->invalidateCLPlans( _name ) ;

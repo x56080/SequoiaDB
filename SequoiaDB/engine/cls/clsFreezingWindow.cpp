@@ -1474,7 +1474,7 @@ namespace engine
             clsResource *pResource = sdbGetShardCB()->getResource() ;
             CoordCataInfoPtr cataPtr ;
             clsCatalogSet* pCatSet = NULL ;
-            rc = pResource->getCataResource()->getOrUpdateCataInfo( objName, cataPtr, cb ) ;
+            rc = pResource->getOrUpdateCataInfo( objName, cataPtr, cb ) ;
             if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
             {
                isRelated = FALSE ;

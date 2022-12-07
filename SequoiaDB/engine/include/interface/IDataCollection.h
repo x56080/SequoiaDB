@@ -37,6 +37,7 @@
 #define SDB_I_DATA_COLLECTION_HPP_
 
 #include "sdbInterface.hpp"
+#include "interface/IObjectInfo.h"
 #include "../bson/bson.hpp"
 #include "dmsEngineOptions.hpp"
 #include "utilPooledObject.hpp"
@@ -66,12 +67,11 @@ namespace engine
          virtual void close() = 0;
 
       public:
+         virtual INT32 getMetaData( IExecutor *executor, CONST_CL_META_INFO_PTR &meta ) = 0;
+
          virtual INT32 createIndex(IExecutor *executor,
                                    const dmsBuildIndexOptions &o,
                                    const bson::BSONObj &indexDef) = 0;
-
-         virtual INT32 getMetaData( IExecutor *executor,
-                                    bson::BSONObj &data ) = 0;
 
          virtual INT32 listIndex(IExecutor *executor,
                                  ossPoolVector<bson::BSONObj> &indexes) = 0;

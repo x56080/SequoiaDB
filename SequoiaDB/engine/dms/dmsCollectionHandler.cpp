@@ -36,245 +36,287 @@
 #include "dmsCollectionHandler.hpp"
 #include "dms.hpp"
 #include "dmsStorageUnit.hpp"
+#include "dmsObjectMetaInfo.hpp"
 #include "msgDef.h"
 #include "rtn.hpp"
 #include "utilUniqueID.hpp"
 
 namespace engine
 {
-dmsCollectionHandler::dmsCollectionHandler( dmsStorageUnit *su,
-                                            dmsStorageUnitID suID,
-                                            dmsMBContext *mbContext )
-: _su( su ), _suID( suID ), _mbContext( mbContext )
-{
-}
-
-dmsCollectionHandler::~dmsCollectionHandler()
-{
-   if ( _suID != DMS_INVALID_CS )
+   dmsCollectionHandler::dmsCollectionHandler( dmsStorageUnit *su,
+                                               dmsStorageUnitID suID,
+                                               dmsMBContext *mbContext )
+   : _su( su ), _suID( suID ), _mbContext( mbContext )
    {
-      SDB_ASSERT( _su && _mbContext, "can not be nullptr" );
-      _su->data()->releaseMBContext( _mbContext );
-      pmdGetKRCB()->getDMSCB()->suUnlock( _suID );
-   }
-   _reset();
-}
-
-BOOLEAN dmsCollectionHandler::isClosed() const
-{
-   return _mbContext == nullptr && _su == nullptr && _suID == DMS_INVALID_CS;
-}
-
-void dmsCollectionHandler::close()
-{
-   if ( _suID != DMS_INVALID_CS )
-   {
-      SDB_ASSERT( _su && _mbContext, "can not be nullptr" );
-      _su->data()->releaseMBContext( _mbContext );
-      pmdGetKRCB()->getDMSCB()->suUnlock( _suID );
-   }
-   _reset();
-}
-
-INT32 dmsCollectionHandler::createIndex( IExecutor *executor,
-                                         const dmsBuildIndexOptions &o,
-                                         const bson::BSONObj &indexDef )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
-
-INT32 dmsCollectionHandler::getMetaData( IExecutor *executor,
-                                         bson::BSONObj &data )
-{
-   INT32 rc = SDB_OK;
-   BSONObjBuilder builder;
-   if ( isClosed() )
-   {
-      rc = SDB_DMS_CONTEXT_IS_CLOSE;
-      PD_LOG(PDERROR, "dms collection handler is closed");
-      goto error;
-   }
-   builder.append( FIELD_NAME_NAME, _mbContext->mb()->_collectionName );
-   builder.append( FIELD_NAME_CL_UNIQUEID,
-                   (INT64)_mbContext->mb()->_clUniqueID );
-
-done:
-   return rc;
-error:
-   goto done;
-}
-
-INT32 dmsCollectionHandler::listIndex( IExecutor *executor,
-                                       ossPoolVector< bson::BSONObj > &indexes )
-{
-   INT32 rc = SDB_OK;
-   MON_IDX_LIST idxList;
-   if ( isClosed() )
-   {
-      rc = SDB_DMS_CONTEXT_IS_CLOSE;
-      PD_LOG(PDERROR, "dms collection handler is closed");
-      goto error;
-   }
-   rc = _su->getIndexes( _mbContext, idxList, FALSE );
-   PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc );
-
-   for ( MON_IDX_LIST::const_iterator it = idxList.cbegin();
-         it != idxList.cend();
-         ++it )
-   {
-      indexes.push_back( it->_indexDef );
    }
 
-done:
-   return rc;
-error:
-   goto done;
-}
+   dmsCollectionHandler::~dmsCollectionHandler()
+   {
+      if ( _suID != DMS_INVALID_CS )
+      {
+         SDB_ASSERT( _su && _mbContext, "can not be nullptr" );
+         _su->data()->releaseMBContext( _mbContext );
+         pmdGetKRCB()->getDMSCB()->suUnlock( _suID );
+      }
+      _reset();
+   }
 
-INT32 dmsCollectionHandler::removeIndex( IExecutor *executor,
-                                         const CHAR *indexName )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   BOOLEAN dmsCollectionHandler::isClosed() const
+   {
+      return _mbContext == nullptr && _su == nullptr && _suID == DMS_INVALID_CS;
+   }
 
-INT32 dmsCollectionHandler::truncate( IExecutor *executor,
-                                      const dmsTruncateCLOptions &o )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   void dmsCollectionHandler::close()
+   {
+      if ( _suID != DMS_INVALID_CS )
+      {
+         SDB_ASSERT( _su && _mbContext, "can not be nullptr" );
+         _su->data()->releaseMBContext( _mbContext );
+         pmdGetKRCB()->getDMSCB()->suUnlock( _suID );
+      }
+      _reset();
+   }
 
-INT32 dmsCollectionHandler::insertRecord( IExecutor *executor,
-                                          const bson::BSONObj &record,
-                                          const dmsInsertRecordOptions &o,
-                                          utilInsertResult *result )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::createIndex( IExecutor *executor,
+                                            const dmsBuildIndexOptions &o,
+                                            const bson::BSONObj &indexDef )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
 
-INT32 dmsCollectionHandler::insertBatch(
-   IExecutor *executor,
-   const ossPoolVector< bson::BSONObj > &batch,
-   const dmsInsertRecordOptions &o,
-   utilInsertResult *result )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::getMetaData( IExecutor *executor,
+                                            CONST_CL_META_INFO_PTR &meta )
+   {
+      INT32 rc = SDB_OK;
+      MON_IDX_LIST idxList;
+      DMS_CL_META_PTR tempCl = nullptr;
+      if ( isClosed() )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE;
+         PD_LOG( PDERROR, "dms collection handler is closed" );
+         goto error;
+      }
 
-INT32 dmsCollectionHandler::updateRecord( IExecutor *executor,
-                                          const dmsRecordID &rid,
-                                          IRecordUpdater *updater,
-                                          const dmsUpdateRecordOptions &o,
-                                          utilUpdateResult *result )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+      try
+      {
+         std::shared_ptr< ossPoolString > clFullName =
+            makeSharedPtrFromPool< ossPoolString >( _su->CSName() );
+         PD_CHECK( clFullName, SDB_OOM, error, PDERROR, "out of memory, rc: %d", rc );
+         clFullName->push_back( '.' );
+         clFullName->append( _mbContext->mb()->_collectionName );
+         tempCl = makeSharedPtrFromPool< dmsCollectionMetaInfo >(
+            clFullName, _mbContext->mb()->_clUniqueID, _mbContext->mb()->_attributes,
+            _su->getPageSizeLog2(), _mbContext->mbStat()->_totalDataPages,
+            _mbContext->mbStat()->_globTransAvailTime.peek() );
+         PD_CHECK( tempCl, SDB_OOM, error, PDERROR, "out of memory, rc: %d", rc );
 
-INT32 dmsCollectionHandler::deleteRecord( IExecutor *executor,
-                                          const dmsRecordID &rid,
-                                          const dmsDeleteRecordOptions &o,
-                                          utilDeleteResult *result )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+         rc = _su->getIndexes( _mbContext, idxList, FALSE );
+         PD_RC_CHECK( rc, PDERROR, "failed to dump indexes, rc: %d", rc );
 
-INT32 dmsCollectionHandler::scan( IExecutor *executor,
-                                  const dmsScanOptions &o,
-                                  DATA_CURSOR_PTR &cursor )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+         for ( MON_IDX_LIST::const_iterator it = idxList.cbegin(); it != idxList.cend(); ++it )
+         {
+            DMS_INDEX_META_PTR tempIndex = nullptr;
+            BSONObjBuilder builder;
+            UINT16 indexType = 0;
+            rc =  it->getIndexType(indexType);
+            PD_RC_CHECK( rc, PDERROR, "failed to get index type, name: %s.%s.%s, rc: %d", _su->CSName(),
+                         _mbContext->mb()->_collectionName, it->getIndexName(), rc );
+            builder.appendElements( it->_indexDef );
+            builder.append( IXM_FIELD_NAME_CB_EXTENT_ID, it->_indexCBExtentID );
+            builder.append( FIELD_NAME_LOGICAL_ID, (INT64)it->_indexLID );
+            builder.append( IXM_FIELD_NAME_TYPE, (INT32)indexType );
+            rc = _dmsIndexMetaInfo::buildFromBson( builder.obj(), tempIndex, clFullName );
+            PD_RC_CHECK( rc, PDERROR, "failed to build index[name: %s] meta info from bson, rc: %d",
+                         it->getIndexName(), rc );
+            rc = tempCl->pushIndexMetaInfo( tempIndex );
+            PD_RC_CHECK( rc, PDERROR, "failed to push index[name: %s] meta info, rc: %d",
+                         it->getIndexName(), rc );
+         }
+         meta = tempCl;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e );
+         PD_LOG( PDERROR, "occur exception: ", e.what() );
+         goto error;
+      }
 
-INT32 dmsCollectionHandler::scanIndex( IExecutor *executor,
-                                       const CHAR *indexName,
-                                       const rtnPredicateList &predicate,
-                                       const dmsIndexScanOptions &o,
-                                       DATA_CURSOR_PTR &cursor )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-INT32 dmsCollectionHandler::getRecordCount( IExecutor *executor, UINT64 &count )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::listIndex( IExecutor *executor,
+                                          ossPoolVector< bson::BSONObj > &indexes )
+   {
+      INT32 rc = SDB_OK;
+      MON_IDX_LIST idxList;
+      if ( isClosed() )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE;
+         PD_LOG( PDERROR, "dms collection handler is closed" );
+         goto error;
+      }
+      rc = _su->getIndexes( _mbContext, idxList, FALSE );
+      PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc );
 
-INT32 dmsCollectionHandler::insertLobChunk( IExecutor *executor,
-                                            const bson::OID &oid,
-                                            UINT32 chunkId,
-                                            UINT32 offset,
-                                            UINT32 size,
-                                            const CHAR *data )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+      for ( MON_IDX_LIST::const_iterator it = idxList.cbegin(); it != idxList.cend(); ++it )
+      {
+         BSONObjBuilder builder;
+         builder.appendElements( it->_indexDef );
+         builder.append( IXM_FIELD_NAME_CB_EXTENT_ID, it->_indexCBExtentID );
+         builder.append( FIELD_NAME_LOGICAL_ID, (INT64)it->_indexLID );
+         indexes.push_back( builder.obj() );
+      }
 
-INT32 dmsCollectionHandler::readLobChunk( IExecutor *executor,
-                                          const bson::OID &oid,
-                                          UINT32 chunkId,
-                                          UINT32 offset,
-                                          UINT32 size,
-                                          CHAR *data,
-                                          UINT32 &readSize )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-INT32 dmsCollectionHandler::removeLobChunk( IExecutor *executor,
-                                            const bson::OID &oid,
-                                            UINT32 chunkId )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor, const CHAR *indexName )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
 
-INT32 dmsCollectionHandler::updateLobChunk( IExecutor *executor,
-                                            const bson::OID &oid,
-                                            UINT32 chunkId,
-                                            UINT32 offset,
-                                            UINT32 size,
-                                            const CHAR *data,
-                                            BOOLEAN createIfNotExists )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::truncate( IExecutor *executor, const dmsTruncateCLOptions &o )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
 
-INT32 dmsCollectionHandler::truncateLobChunk( IExecutor *executor,
-                                              const bson::OID &oid,
-                                              UINT32 chunkId,
-                                              UINT32 size,
-                                              UINT32 &tsize )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::insertRecord( IExecutor *executor,
+                                             const bson::BSONObj &record,
+                                             const dmsInsertRecordOptions &o,
+                                             utilInsertResult *result )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
 
-INT32 dmsCollectionHandler::listLobChunks( IExecutor *executor,
-                                           const dmsListLobChunkOptions &o,
-                                           DATA_CURSOR_PTR &cursor )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::insertBatch( IExecutor *executor,
+                                            const ossPoolVector< bson::BSONObj > &batch,
+                                            const dmsInsertRecordOptions &o,
+                                            utilInsertResult *result )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
 
-INT32 dmsCollectionHandler::testLobChunk( IExecutor *executor,
-                                          const bson::OID &oid,
-                                          UINT32 chunkId,
-                                          dmsLobChunkProfile *profile )
-{
-   SDB_ASSERT( FALSE, "todo" );
-   return SDB_OK;
-}
+   INT32 dmsCollectionHandler::updateRecord( IExecutor *executor,
+                                             const dmsRecordID &rid,
+                                             IRecordUpdater *updater,
+                                             const dmsUpdateRecordOptions &o,
+                                             utilUpdateResult *result )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::deleteRecord( IExecutor *executor,
+                                             const dmsRecordID &rid,
+                                             const dmsDeleteRecordOptions &o,
+                                             utilDeleteResult *result )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::scan( IExecutor *executor,
+                                     const dmsScanOptions &o,
+                                     DATA_CURSOR_PTR &cursor )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::scanIndex( IExecutor *executor,
+                                          const CHAR *indexName,
+                                          const rtnPredicateList &predicate,
+                                          const dmsIndexScanOptions &o,
+                                          DATA_CURSOR_PTR &cursor )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::getRecordCount( IExecutor *executor, UINT64 &count )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::insertLobChunk( IExecutor *executor,
+                                               const bson::OID &oid,
+                                               UINT32 chunkId,
+                                               UINT32 offset,
+                                               UINT32 size,
+                                               const CHAR *data )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::readLobChunk( IExecutor *executor,
+                                             const bson::OID &oid,
+                                             UINT32 chunkId,
+                                             UINT32 offset,
+                                             UINT32 size,
+                                             CHAR *data,
+                                             UINT32 &readSize )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::removeLobChunk( IExecutor *executor,
+                                               const bson::OID &oid,
+                                               UINT32 chunkId )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::updateLobChunk( IExecutor *executor,
+                                               const bson::OID &oid,
+                                               UINT32 chunkId,
+                                               UINT32 offset,
+                                               UINT32 size,
+                                               const CHAR *data,
+                                               BOOLEAN createIfNotExists )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::truncateLobChunk( IExecutor *executor,
+                                                 const bson::OID &oid,
+                                                 UINT32 chunkId,
+                                                 UINT32 size,
+                                                 UINT32 &tsize )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::listLobChunks( IExecutor *executor,
+                                              const dmsListLobChunkOptions &o,
+                                              DATA_CURSOR_PTR &cursor )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
+
+   INT32 dmsCollectionHandler::testLobChunk( IExecutor *executor,
+                                             const bson::OID &oid,
+                                             UINT32 chunkId,
+                                             dmsLobChunkProfile *profile )
+   {
+      SDB_ASSERT( FALSE, "todo" );
+      return SDB_OK;
+   }
 } // namespace engine

@@ -47,8 +47,6 @@
 #include "utilCache.hpp"
 #include "dmsEventHandler.hpp"
 #include "dmsExtDataHandler.hpp"
-#include "dmsStatUnit.hpp"
-#include "dmsCachedPlanUnit.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
 
@@ -137,11 +135,6 @@ namespace engine
          {
             return _su ;
          }
-
-      protected :
-         INT32 _checkCollectionStat ( dmsCollectionStat *pCollectionStat ) ;
-         INT32 _checkIndexStat ( dmsIndexStat *pIndexStat,
-                                 dmsMBContext *mbContext ) ;
 
       protected :
          dmsStorageUnit *     _su ;
@@ -652,9 +645,6 @@ namespace engine
          void unsetEventHandlers () ;
 
          dmsSUCache *getSUCache ( UINT32 type ) ;
-
-         dmsStatCache *getStatCache () ;
-         dmsCachedPlanMgr *getCachedPlanMgr () ;
 
       public :
          // monitor CRUD helper functions

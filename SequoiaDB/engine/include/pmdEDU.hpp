@@ -626,7 +626,7 @@ namespace engine
       }
       DPS_LSN_OFFSET getRelatedTransLSN() const { return _relatedTransLSN ; }
       BOOLEAN  isTransaction() const ;
-      INT32    getTransIsolation() const ;
+      virtual INT32 getTransIsolation() const ;
       BOOLEAN  isTransRU () const ;
       BOOLEAN  isTransRC () const ;
       BOOLEAN  isTransRS () const ;

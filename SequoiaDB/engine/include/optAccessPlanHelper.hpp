@@ -141,17 +141,19 @@ namespace engine
                                 public _mthMatchConfigHolder
    {
       public :
-         _optAccessPlanHelper ( pmdEDUCB *eduCB,
+         _optAccessPlanHelper ( IExecutor *eduCB,
                                 OPT_PLAN_CACHE_LEVEL cacheLevel,
                                 const optAccessPlanConfig &planConfig,
                                 const mthNodeConfig &mthConfig,
+                                CONST_CL_META_INFO_PTR clMetaPtr,
+                                CONST_CL_STAT_INFO_PTR clStatPtr,
                                 const rtnExplainOptions *expOptions ) ;
 
          virtual ~_optAccessPlanHelper () ;
 
          void clear () ;
 
-         OSS_INLINE pmdEDUCB *getEDUCB()
+         OSS_INLINE IExecutor *getEDUCB()
          {
             return _eduCB ;
          }
@@ -223,6 +225,16 @@ namespace engine
             return _expOptions ;
          }
 
+         OSS_INLINE CONST_CL_META_INFO_PTR getCLMeta() const
+         {
+            return _clMetaPtr ;
+         }
+
+         OSS_INLINE CONST_CL_STAT_INFO_PTR getCLStat() const
+         {
+            return _clStatPtr ;
+         }
+
          OSS_INLINE BOOLEAN isKeepPaths () const
          {
             return NULL != _expOptions && _expOptions->isNeedSearch() ;
@@ -236,9 +248,7 @@ namespace engine
          // - storage unit, meta-block context and index control block
          //   should be valid
          INT32 checkGlobTrans( const rtnQueryOptions &options,
-                               dmsStorageUnit *su,
-                               dmsMBContext *mbContext,
-                               ixmIndexCB &indexCB ) ;
+                               const CONST_INDEX_META_INFO_PTR &pIndex );
 
          // check if index used by plan is available for global transaction
          // NOTE:
@@ -246,10 +256,7 @@ namespace engine
          //   finished, this index is not available for this transaction
          // - will return SDB_DMS_INVALID_INDEXCB for unavailable index
          // - storage unit, meta-block context and plan should be valid
-         INT32 checkGlobTrans( const rtnQueryOptions &options,
-                               dmsStorageUnit *su,
-                               dmsMBContext *mbContext,
-                               _optAccessPlan *plan ) ;
+         INT32 checkGlobTrans( const rtnQueryOptions &options, _optAccessPlan *plan ) ;
 
          // try to update rebuild time for indexes without rebuild time
          // NOTE:
@@ -257,8 +264,7 @@ namespace engine
          //   transaction stated after rebuild time ( not this time, but for
          //   later global transactions )
          // - storage unit, meta-block context should be valid
-         INT32 updateIxRebuildTime( dmsStorageUnit *su,
-                                    dmsMBContext *mbContext ) ;
+         INT32 updateIxRebuildTime() ;
 
          OSS_INLINE BOOLEAN hasNonGTIndex() const
          {
@@ -274,7 +280,7 @@ namespace engine
          void _evalEstimation ( optCollectionStat *pCollectionStat ) ;
 
       protected :
-         pmdEDUCB *           _eduCB ;
+         IExecutor *          _eduCB ;
          BSONObj              _query ;
          OPT_PLAN_CACHE_LEVEL _cacheLevel ;
          mthMatchNormalizer   _normalizer ;
@@ -301,6 +307,9 @@ namespace engine
          // indexes need to set rebuild time which are invalid for global
          // transactions
          OPT_INDEX_SET     _invalidGTIndexes ;
+
+         CONST_CL_META_INFO_PTR _clMetaPtr ;
+         CONST_CL_STAT_INFO_PTR _clStatPtr ;
 
          // explain options
          const rtnExplainOptions * _expOptions ;

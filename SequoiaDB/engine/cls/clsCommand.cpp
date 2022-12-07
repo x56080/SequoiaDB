@@ -926,13 +926,13 @@ namespace engine
       clsResource *resource = sdbGetShardCB()->getResource() ;
 
       /// need to update sub collection catalog info
-      if ( SDB_OK != resource->getCataResource()->updateCataInfo( _subCLName, cataPtr, cb ) )
+      if ( SDB_OK != resource->updateCataInfo( _subCLName, cataPtr, cb ) )
       {
-         resource->removeCL( _subCLName ) ;
+         resource->invalidateCataInfo( _subCLName ) ;
       }
 
       /// clear main catalog info
-      resource->removeCL( _collectionName ) ;
+      resource->invalidateCataInfo( _collectionName ) ;
 
       // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
@@ -972,13 +972,13 @@ namespace engine
       clsResource *resource = sdbGetShardCB()->getResource() ;
 
       /// need to update sub collection catalog info
-      if ( SDB_OK != resource->getCataResource()->updateCataInfo( _subCLName, cataPtr, cb ) )
+      if ( SDB_OK != resource->updateCataInfo( _subCLName, cataPtr, cb ) )
       {
-         resource->removeCL( _subCLName ) ;
+         resource->invalidateCataInfo( _subCLName ) ;
       }
 
       /// clear main catalog info
-      resource->removeCL( _collectionName ) ;
+      resource->invalidateCataInfo( _collectionName ) ;
 
       // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
@@ -1026,8 +1026,8 @@ namespace engine
                                      INT64 *pContextID )
    {
       clsResource *pResource = sdbGetShardCB()->getResource() ;
-      pResource->invalidateAllCLCache() ;
-      pResource->getCataResource()->invalidateGroupInfo() ;
+      pResource->invalidateCataInfo() ;
+      pResource->invalidateGroupInfo() ;
 
       return  SDB_OK ;
    }
@@ -1561,7 +1561,8 @@ namespace engine
 
          if ( CMD_ALTER_COLLECTION == type() )
          {
-            sdbGetShardCB()->getResource()->removeCL( collectionFullName() );
+            sdbGetShardCB()->getResource()->
+                  invalidateCataInfo( collectionFullName() ) ;
             sdbGetClsCB()->invalidateCata( collectionFullName() ) ;
          }
       }

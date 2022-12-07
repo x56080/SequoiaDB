@@ -2282,7 +2282,7 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
 
-            if ( ossStrcmp( ele.fieldName(), DMS_STAT_IDX_MCV ) != 0 )
+            if ( ossStrcmp( ele.fieldName(), RTN_STAT_IDX_MCV ) != 0 )
             {
                if ( 0 == ossStrcmp( ele.fieldName(), DMS_ID_KEY_NAME ) )
                {
@@ -2313,7 +2313,7 @@ namespace engine
                   }
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_CREATE_TIME ) )
+                                         RTN_STAT_CREATE_TIME ) )
                {
                   ossTimestamp tm( ele.numberLong() ) ;
                   CHAR timestampStr[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
@@ -2333,17 +2333,17 @@ namespace engine
                   ob.append( ele ) ;
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_IDX_IS_UNIQUE ) )
+                                         RTN_STAT_IDX_IS_UNIQUE ) )
                {
                   ob.appendAs( ele, IXM_FIELD_NAME_UNIQUE1 ) ;
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_IDX_INDEX_PAGES ) )
+                                         RTN_STAT_IDX_INDEX_PAGES ) )
                {
                   ob.appendAs( ele, FIELD_NAME_TOTAL_INDEX_PAGES ) ;
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_IDX_LEVELS ) )
+                                         RTN_STAT_IDX_LEVELS ) )
                {
                   ob.appendAs( ele, FIELD_NAME_TOTAL_IDX_LEVELS ) ;
                }

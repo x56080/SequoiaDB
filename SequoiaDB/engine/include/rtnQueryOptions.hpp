@@ -46,6 +46,7 @@
 #include "../bson/bson.hpp"
 #include "msg.hpp"
 #include "ossMemPool.hpp"
+#include "utilUniqueID.hpp"
 #include <string>
 
 using namespace bson ;
@@ -387,6 +388,22 @@ namespace engine
 
          void setMainCLQuery ( const CHAR *mainCLName, const CHAR *subCLName ) ;
 
+         // Collection unique id
+         OSS_INLINE void setCLUniqueID ( utilCLUniqueID clUID)
+         {
+            _clUID = clUID ;
+         }
+
+         OSS_INLINE utilCLUniqueID getCLUniqueID () const
+         {
+            return _clUID ;
+         }
+
+         OSS_INLINE BOOLEAN isUniqueIDFilled() const
+         {
+            return _clUID != UTIL_UNIQUEID_NULL ; 
+         }
+
          OSS_INLINE BOOLEAN canPrepareMore () const
          {
             return testFlag( FLG_QUERY_PREPARE_MORE )&&
@@ -419,6 +436,7 @@ namespace engine
          const CHAR *   _mainCLName ;
          ossPoolString  _mainCLNameBuf ;
          BOOLEAN        _writeOp ;
+         utilCLUniqueID _clUID ;
    } ;
 
    typedef class _rtnQueryOptions rtnQueryOptions ;

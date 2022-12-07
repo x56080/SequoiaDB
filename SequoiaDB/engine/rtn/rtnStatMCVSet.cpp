@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = clsStatMCVSet.cpp
+   Source File Name = rtnStatMCVSet.cpp
 
    Descriptive Name =
 
@@ -29,13 +29,13 @@
    defect Date        Who Description
    ====== =========== === ==============================================
           10/19/2022  ZHY Initial Draft
-
+          11/25/2022  ZHY Move to rtn module
    Last Changed =
 
 *******************************************************************************/
 
-#include "clsStatMCVSet.hpp"
-#include "clsTrace.hpp"
+#include "rtnStatMCVSet.hpp"
+#include "rtnTrace.hpp"
 #include "pdTrace.hpp"
 
 namespace engine {
@@ -43,20 +43,12 @@ namespace engine {
    /*
       _clsStatValues implement
     */
-   _clsStatValues::_clsStatValues ()
-   : _numKeys( 0 ),
-     _size( 0 ),
-     _allocSize( 0 ),
-     _pValues( NULL )
-   {
-   }
-
-   _clsStatValues::~_clsStatValues ()
+   _rtnStatValues::~_rtnStatValues ()
    {
       _clear() ;
    }
 
-   INT32 _clsStatValues::init ( UINT32 size, UINT32 allocSize )
+   INT32 _rtnStatValues::init ( UINT32 size, UINT32 allocSize )
    {
       INT32 rc = SDB_OK ;
 
@@ -83,7 +75,7 @@ namespace engine {
       goto done ;
    }
 
-   INT32 _clsStatValues::pushBack ( const BSONObj &boValue )
+   INT32 _rtnStatValues::pushBack ( const BSONObj &boValue )
    {
       if ( _size == _allocSize )
       {
@@ -94,7 +86,7 @@ namespace engine {
       return SDB_OK ;
    }
 
-   INT32 _clsStatValues::binarySearch ( clsStatKey &keyValue, INT32 cmpFlag,
+   INT32 _rtnStatValues::binarySearch ( rtnStatKey &keyValue, INT32 cmpFlag,
                                         INT32 keyIncFlag, BOOLEAN &isEqual ) const
    {
       isEqual = FALSE ;
@@ -145,12 +137,12 @@ namespace engine {
       return index ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTATVALUES_CHKVALS, "_clsStatValues::checkValues" )
-   INT32 _clsStatValues::checkValues ( UINT32 numKeys, const BSONObj &keyPattern )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSTATVALUES_CHKVALS, "_rtnStatValues::checkValues" )
+   INT32 _rtnStatValues::checkValues ( UINT32 numKeys, const BSONObj &keyPattern )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSTATVALUES_CHKVALS ) ;
+      PD_TRACE_ENTRY( SDB__RTNSTATVALUES_CHKVALS ) ;
 
       for ( UINT32 idx = 0 ; idx < _size ; idx ++ )
       {
@@ -210,13 +202,13 @@ namespace engine {
       _numKeys = numKeys ;
 
    done :
-      PD_TRACE_EXIT( SDB__CLSSTATVALUES_CHKVALS ) ;
+      PD_TRACE_EXIT( SDB__RTNSTATVALUES_CHKVALS ) ;
       return rc ;
    error :
       goto done ;
    }
 
-   void _clsStatValues::_clear ()
+   void _rtnStatValues::_clear ()
    {
       if ( _pValues )
       {
@@ -226,8 +218,8 @@ namespace engine {
       _size = 0 ;
    }
 
-   BOOLEAN _clsStatValues::_inRange ( UINT32 idx, clsStatKey *pStartKey,
-                                      clsStatKey *pStopKey ) const
+   BOOLEAN _rtnStatValues::_inRange ( UINT32 idx, rtnStatKey *pStartKey,
+                                      rtnStatKey *pStopKey ) const
    {
       if ( idx > _size )
       {
@@ -262,16 +254,9 @@ namespace engine {
    }
 
    /*
-      _clsStatMCVSet implement
+      _rtnStatMCVSet implement
     */
-   _clsStatMCVSet::_clsStatMCVSet ()
-   : _clsStatValues (),
-     _pFractions( NULL ),
-     _totalFrac( 0 )
-   {
-   }
-
-   _clsStatMCVSet::~_clsStatMCVSet ()
+   _rtnStatMCVSet::~_rtnStatMCVSet ()
    {
       if ( _pFractions )
       {
@@ -280,7 +265,7 @@ namespace engine {
       }
    }
 
-   INT32 _clsStatMCVSet::init ( UINT32 size, UINT32 allocSize )
+   INT32 _rtnStatMCVSet::init ( UINT32 size, UINT32 allocSize )
    {
       INT32 rc = SDB_OK ;
 
@@ -294,7 +279,7 @@ namespace engine {
          goto done ;
       }
 
-      rc = _clsStatValues::init( size, allocSize ) ;
+      rc = _rtnStatValues::init( size, allocSize ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to init values, rc: %d", rc ) ;
 
       _pFractions = new(std::nothrow)UINT16[ allocSize ] ;
@@ -311,9 +296,9 @@ namespace engine {
       goto done ;
    }
 
-   INT32 _clsStatMCVSet::pushBack ( const BSONObj &boValue, UINT16 fraction )
+   INT32 _rtnStatMCVSet::pushBack ( const BSONObj &boValue, UINT16 fraction )
    {
-      INT32 rc = _clsStatValues::pushBack( boValue ) ;
+      INT32 rc = _rtnStatValues::pushBack( boValue ) ;
 
       if ( SDB_OK == rc )
       {
@@ -324,7 +309,7 @@ namespace engine {
       return rc ;
    }
 
-   void _clsStatMCVSet::clear ()
+   void _rtnStatMCVSet::clear ()
    {
       if ( _pFractions )
       {
@@ -332,19 +317,19 @@ namespace engine {
          _pFractions = NULL ;
       }
       _totalFrac = 0 ;
-      _clsStatValues::_clear() ;
+      _rtnStatValues::_clear() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTATMCVSET_EVALOPTR, "_clsStatMCVSet::evalOperator" )
-   INT32 _clsStatMCVSet::evalOperator ( clsStatKey *pStartKey,
-                                        clsStatKey *pStopKey,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSTATMCVSET_EVALOPTR, "_rtnStatMCVSet::evalOperator" )
+   INT32 _rtnStatMCVSet::evalOperator ( rtnStatKey *pStartKey,
+                                        rtnStatKey *pStopKey,
                                         BOOLEAN &hitMCV,
                                         double &predSelectivity,
                                         double &scanSelectivity ) const
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSTATMCVSET_EVALOPTR ) ;
+      PD_TRACE_ENTRY( SDB__RTNSTATMCVSET_EVALOPTR ) ;
 
       BOOLEAN startIncluded = FALSE, stopIncluded = FALSE ;
       BOOLEAN startEqual = FALSE, stopEqual = FALSE ;
@@ -469,13 +454,13 @@ namespace engine {
          }
       }
 
-      scanSelectivity = (double)tmpScanSel / (double)CLS_STAT_FRACTION_SCALE  ;
-      scanSelectivity = CLS_STAT_ROUND_SELECTIVITY( scanSelectivity ) ;
+      scanSelectivity = (double)tmpScanSel / (double)RTN_STAT_FRACTION_SCALE  ;
+      scanSelectivity = RTN_STAT_ROUND_SELECTIVITY( scanSelectivity ) ;
 
       if ( checkHoles )
       {
-         predSelectivity = (double)tmpPredSel / (double)CLS_STAT_FRACTION_SCALE ;
-         predSelectivity = CLS_STAT_ROUND_SELECTIVITY( predSelectivity ) ;
+         predSelectivity = (double)tmpPredSel / (double)RTN_STAT_FRACTION_SCALE ;
+         predSelectivity = RTN_STAT_ROUND_SELECTIVITY( predSelectivity ) ;
       }
       else
       {
@@ -484,21 +469,21 @@ namespace engine {
       hitMCV = rangeCount > 0 ;
 
    done :
-      PD_TRACE_EXITRC( SDB__CLSSTATMCVSET_EVALOPTR, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNSTATMCVSET_EVALOPTR, rc ) ;
       return rc ;
    error :
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSTATMCVSET_EVALETOPTR, "_clsStatMCVSet::evalETOperator" )
-   INT32 _clsStatMCVSet::evalETOperator ( clsStatKey &key,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSTATMCVSET_EVALETOPTR, "_rtnStatMCVSet::evalETOperator" )
+   INT32 _rtnStatMCVSet::evalETOperator ( rtnStatKey &key,
                                           BOOLEAN &hitMCV,
                                           double &predSelectivity,
                                           double &scanSelectivity ) const
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSTATMCVSET_EVALETOPTR );
+      PD_TRACE_ENTRY( SDB__RTNSTATMCVSET_EVALETOPTR );
 
       BOOLEAN equal = FALSE ;
       INT32 idx = -1 ;
@@ -522,11 +507,11 @@ namespace engine {
          hitMCV = FALSE ;
       }
 
-      predSelectivity = CLS_STAT_ROUND_SELECTIVITY( tmpPredSel ) ;
+      predSelectivity = RTN_STAT_ROUND_SELECTIVITY( tmpPredSel ) ;
       scanSelectivity = predSelectivity ;
 
    done :
-      PD_TRACE_EXITRC( SDB__CLSSTATMCVSET_EVALETOPTR, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNSTATMCVSET_EVALETOPTR, rc ) ;
       return rc ;
    error :
       goto done ;

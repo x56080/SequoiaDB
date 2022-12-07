@@ -152,7 +152,6 @@ namespace engine
                               optCollectionStat * collectionStat ) ;
 
          INT32 createIxScan ( const CHAR * pCollection,
-                              const ixmIndexCB & indexCB,
                               const rtnQueryOptions & queryOptions,
                               optAccessPlanHelper & planHelper,
                               OPT_PLAN_PATH_PRIORITY priority,

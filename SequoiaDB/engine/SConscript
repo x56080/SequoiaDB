@@ -317,7 +317,12 @@ rtnFiles = [
       "rtn/rtnLocalTaskFactory.cpp",
       "rtn/rtnLocalTask.cpp",
       "rtn/rtnDetectDeadlock.cpp",
-      "rtn/rtnRecycleBinManager.cpp"
+      "rtn/rtnRecycleBinManager.cpp",
+      "rtn/rtnObjectStatCache.cpp",
+      "rtn/rtnObjectStatAgent.cpp",
+      "rtn/rtnObjectStatInfo.cpp",
+      "rtn/rtnStatMCVSet.cpp",
+      "rtn/rtnObjectInfoFetcher.cpp"
       ]
 
 msgFiles = [
@@ -362,13 +367,11 @@ dmsFiles = [
       "dms/dmsTaskStatus.cpp",
       "dms/dmsIndexBuilderImpl.cpp",
       "dms/dmsStatSUMgr.cpp",
-      "dms/dmsStatUnit.cpp",
-      "dms/dmsCachedPlanUnit.cpp",
       "dms/dmsTransLockCallback.cpp",
-      "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
       "dms/dmsRBSGCJob.cpp",
-      "dms/dmsCollectionHandler.cpp"
+      "dms/dmsCollectionHandler.cpp",
+      "dms/dmsObjectMetaInfo.cpp"
       ]
 
 ixmFiles = [
@@ -418,7 +421,8 @@ optFiles = [
       "opt/optAccessPlanKey.cpp",
       "opt/optPlanClearJob.cpp",
       "opt/optAccessPlanRuntime.cpp",
-      "opt/optAccessPlanHelper.cpp"
+      "opt/optAccessPlanHelper.cpp",
+      "opt/optPlanMarker.cpp"
       ]
 
 monFiles = [
@@ -502,15 +506,9 @@ clsFiles = [
       "cls/clsMainCLMonAggregator.cpp",
       "cls/clsRemoteOperator.cpp",
       "cls/clsRemoteResource.cpp",
-      "cls/clsStorageResource.cpp",
-      "cls/clsStorageResourceAgent.cpp",
-      "cls/clsResourceStatDef.cpp",
-      "cls/clsStatMCVSet.cpp",
-      "cls/clsCLMetaCache.cpp",
       "cls/clsResourceContainer.cpp",
       "cls/clsResource.cpp",
       "cls/clsIndexJob.cpp",
-      "cls/clsIndexInfo.cpp",
       "cls/clsRecycleBinJob.cpp",
       "cls/clsRecycleBinManager.cpp"
       ]
@@ -869,7 +867,6 @@ dpsTestFiles = [
 clsTestFiles = [
       "test/cls/clsTest.cpp",
       "test/cls/clsCataAgentTest.cpp",
-      "test/cls/clsStorageResourceTest.cpp"
       ]
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"
@@ -878,7 +875,8 @@ idxHashTestFiles = [
       "test/ixmgen/idxHashTest.cpp"
       ]
 rtnContextTestFiles = [
-      "test/rtn/rtnContextTest.cpp"
+      "test/rtn/rtnContextTest.cpp",
+      "test/rtn/rtnObjectStatCacheTest.cpp"
       ]
 mthUpdateTestFiles = [
       "test/mth/mthUpdateTest.cpp"
@@ -948,6 +946,9 @@ selectorTestFiles= [
 utilBSONTestFiles = [
       "test/utilBSONTest.cpp"
       ]
+optTestFiles = [
+      "test/opt/optAPMTest.cpp"
+]
 	  
 #vessel
 vesselFiles = Glob('vessel/*.cpp')
@@ -1049,6 +1050,7 @@ sqltest2 = env.Object('sqltest2', gtestMainFile)
 #spdtest = env.Object('spdtest', gtestMainFile)
 selectortest = env.Object('selectortest', gtestMainFile)
 vesseltest = env.Object('vesseltest', gtestMainFile)
+opttest = env.Object('opttest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
@@ -1194,6 +1196,9 @@ if hasTestcase:
    utilBSONTest = env.Program("utilBSONTest", utilBSONTestFiles,
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   optTest = env.Program("optTest", [optTestFiles, opttest],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 
 # Tools
@@ -1254,6 +1259,7 @@ if hasTestcase:
 #   env.Install( '#/tests', sqlclient )
 #   env.Install( '#/tests', performance )
    env.Install( '#/tests', selectorTest )
+   env.Install( '#/tests', optTest )
 
 # Install tools
 if hasTool:

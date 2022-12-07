@@ -145,6 +145,12 @@ class test_executor : public IExecutor
 
       virtual const DPS_TRANS_ID &getTransID () const {return transID;}
       virtual UINT64    getCurTransLsn () const {return -1;}
+   #if defined( SDB_ENGINE )
+      virtual INT32 getTransIsolation() const
+      {
+         return _transIsolation;
+      }
+   #endif
       /// for write
       virtual void      resetLsn() {}
       virtual void      insertLsn( UINT64 lsn,
@@ -165,9 +171,15 @@ class test_executor : public IExecutor
       virtual BOOLEAN   isLogTimeOn() const {return FALSE;}
       virtual UINT32    getLogWriteMod() const {return DPS_LOG_WRITE_MOD_INCREMENT;}
 
+      void setTransIsolation(TRANS_ISOLATION_LEVEL transIsolation)
+      {
+         _transIsolation = transIsolation;
+      }
+
    public:
       EDUID _id = 0;
       DPS_TRANS_ID transID;
+      TRANS_ISOLATION_LEVEL _transIsolation;
 
    public:
       ossPoolMap<_dpsTransLockId, ossSharedLatchMode> _locked;

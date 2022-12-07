@@ -466,6 +466,9 @@ namespace engine
 
          virtual const DPS_TRANS_ID &getTransID () const = 0 ;
          virtual UINT64    getCurTransLsn () const = 0 ;
+      #if defined( SDB_ENGINE )
+         virtual INT32 getTransIsolation() const = 0;
+      #endif
          /// for write
          virtual void      resetLsn() = 0 ;
          virtual void      insertLsn( UINT64 lsn,

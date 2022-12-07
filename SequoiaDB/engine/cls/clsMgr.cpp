@@ -35,7 +35,6 @@
 
 #include "clsMgr.hpp"
 #include "msgMessage.hpp"
-#include "ossErr.h"
 #include "pmd.hpp"
 #include "clsShardSession.hpp"
 #include "clsReplSession.hpp"
@@ -58,7 +57,6 @@
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
 #include "clsIndexJob.hpp"
-#include <memory>
 
 using namespace bson ;
 
@@ -592,6 +590,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
 
+      rc = _resource.init( netRouteAgent, optCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
+
       // set userOwnQueue = TRUE to avoid messages posted to EDU directly
       _pSitePropMgr = SDB_OSS_NEW _coordSessionPropMgr( TRUE ) ;
       PD_CHECK( NULL != _pSitePropMgr, SDB_OOM, error, PDERROR,
@@ -609,7 +610,7 @@ namespace engine
       // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
-      sdbGetResourceContainer()->setResource( _resource.getCataResource() ) ;
+      sdbGetResourceContainer()->setResource( &_resource ) ;
 
    done:
       return rc ;
@@ -723,19 +724,6 @@ namespace engine
          PD_LOG( PDERROR, "Allocate shard netagent failed" ) ;
          rc = SDB_OOM ;
          goto error ;
-      }
-
-      {
-         std::unique_ptr< clsStorageResourceAgent > agent =
-            newClsStorageResourceAgentImpl( pmdGetKRCB()->getDMSCB() );
-         if ( !agent )
-         {
-            rc = SDB_OOM;
-            PD_LOG( PDERROR, "out of memory" );
-            goto error;
-         }
-         rc = _resource.init( _shardNetRtAgent, optCB, std::move( agent ) );
-         PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc );
       }
 
       rc = _initRemoteSession( _shardNetRtAgent ) ;
@@ -2678,7 +2666,7 @@ namespace engine
       routeID.columns.serviceID = _shardServiceID ;
       _shardNetRtAgent->setLocalID ( routeID ) ;
 
-      _resource.getCataResource()->setNodeID( _selfNodeID ) ;
+      _resource.setNodeID( _selfNodeID ) ;
 
       // set global id
       pmdSetNodeID( _selfNodeID ) ;

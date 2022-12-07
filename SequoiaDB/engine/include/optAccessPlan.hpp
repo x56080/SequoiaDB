@@ -80,6 +80,7 @@ namespace engine
    {
       public :
          _optAccessPlan ( optAccessPlanKey &planKey,
+                          INT64 accessPlanID,
                           const mthNodeConfig &config ) ;
 
          virtual ~_optAccessPlan () ;
@@ -102,31 +103,15 @@ namespace engine
             return _isAutoPlan ;
          }
 
-         // Information of collection space
-         OSS_INLINE dmsStorageUnitID getSUID () const
-         {
-            return _key.getSUID() ;
-         }
-
-         OSS_INLINE UINT32 getSULID () const
-         {
-            return _key.getSULID() ;
-         }
-
          // Information of collection
          OSS_INLINE const CHAR *getCLFullName () const
          {
             return _key.getCLFullName() ;
          }
 
-         OSS_INLINE UINT16 getCLMBID () const
+         OSS_INLINE utilCLUniqueID getCLUniqueID () const
          {
-            return _key.getCLMBID() ;
-         }
-
-         OSS_INLINE UINT32 getCLLID () const
-         {
-            return _key.getCLLID() ;
+            return _key.getCLUniqueID() ;
          }
 
          OSS_INLINE INT64 getAccessPlanID () const
@@ -217,7 +202,6 @@ namespace engine
             return ( NULL != _pList ) ;
          }
 
-         virtual void setCachedBitmap () = 0 ;
 
          void release () ;
 
@@ -394,37 +378,22 @@ namespace engine
    {
       public :
          _optGeneralAccessPlan ( optAccessPlanKey &planKey,
+                                 INT64 accessPlanID,
                                  const mthNodeConfig &config ) ;
 
          virtual ~_optGeneralAccessPlan () ;
 
-         INT32 optimize ( dmsStorageUnit *su,
-                          dmsMBContext *mbContext,
-                          optAccessPlanHelper &planHelper ) ;
+         INT32 optimize ( optAccessPlanHelper &planHelper ) ;
 
          OSS_INLINE virtual OPT_PLAN_TYPE getPlanType () const
          {
             return OPT_PLAN_TYPE_NORMAL ;
          }
 
-         OSS_INLINE virtual void setCachedBitmap ()
-         {
-            // Set the cached plan bitmap for collection space
-            if ( NULL != _cachedPlanMgr )
-            {
-               _cachedPlanMgr->setCacheBitmapForPlan( _key.getKeyCode() ) ;
-            }
-         }
-
          OSS_INLINE virtual BOOLEAN validateParameterized ( const _optAccessPlan &plan,
                                                             const BSONObj &parameters )
          {
             return FALSE ;
-         }
-
-         OSS_INLINE virtual INT32 markParamInvalid ( dmsMBContext *mbContext )
-         {
-            return SDB_OK ;
          }
 
          OSS_INLINE virtual const optScanPathList * getSearchPaths () const
@@ -437,38 +406,20 @@ namespace engine
       protected :
          INT32 _checkOrderBy () ;
 
-         INT32 _estimateHintPlans ( dmsStorageUnit *su,
-                                    dmsMBContext *mbContext,
-                                    optAccessPlanHelper &planHelper,
-                                    dmsStatCache *statCache,
+         INT32 _estimateHintPlans ( optAccessPlanHelper &planHelper,
                                     BOOLEAN &finished ) ;
 
-         INT32 _estimatePlans ( dmsStorageUnit *su,
-                                dmsMBContext *mbContext,
-                                optAccessPlanHelper &planHelper,
-                                dmsStatCache *statCache ) ;
+         INT32 _estimatePlans( optAccessPlanHelper &planHelper ) ;
 
-         INT32 _estimateIxScanPlan ( dmsStorageUnit *su,
-                                     dmsMBContext *mbContext,
+         INT32 _estimateIxScanPlan ( const OID &indexOID,
                                      optCollectionStat *collectionStat,
                                      optAccessPlanHelper &planHelper,
-                                     const CHAR *pIndexName,
                                      OPT_PLAN_PATH_PRIORITY priority,
                                      optScanPath &ixScanPath ) ;
 
-         INT32 _estimateIxScanPlan ( dmsStorageUnit *su,
-                                     dmsMBContext *mbContext,
+         INT32 _estimateIxScanPlan ( const CHAR *indexName,
                                      optCollectionStat *collectionStat,
                                      optAccessPlanHelper &planHelper,
-                                     const OID &indexOID,
-                                     OPT_PLAN_PATH_PRIORITY priority,
-                                     optScanPath &ixScanPath ) ;
-
-         INT32 _estimateIxScanPlan ( dmsStorageUnit *su,
-                                     dmsMBContext *mbContext,
-                                     optCollectionStat *collectionStat,
-                                     optAccessPlanHelper &planHelper,
-                                     dmsExtentID indexCBExtent,
                                      OPT_PLAN_PATH_PRIORITY priority,
                                      optScanPath &ixScanPath ) ;
 
@@ -476,12 +427,8 @@ namespace engine
                                      optAccessPlanHelper &planHelper,
                                      optScanPath &tbScanPath ) ;
 
-         INT32 _usePath ( dmsStorageUnit *su,
-                          optAccessPlanHelper &planHelper,
+         INT32 _usePath ( optAccessPlanHelper &planHelper,
                           optScanPath &path ) ;
-
-         INT32 _prepareSUCaches ( dmsStorageUnit *su,
-                                  dmsMBContext *mbContext ) ;
 
          INT32 _createSearchPaths () ;
 
@@ -491,7 +438,6 @@ namespace engine
                                 const optAccessPlanHelper & planHelper ) ;
 
       protected :
-         dmsCachedPlanMgr *_cachedPlanMgr ;
          optScanPathList * _searchPaths ;
    } ;
 
@@ -517,6 +463,7 @@ namespace engine
 
       public :
          _optParamAccessPlan ( optAccessPlanKey &planKey,
+                               INT64 accessPlanID,
                                const mthNodeConfig &config ) ;
 
          virtual ~_optParamAccessPlan () ;
@@ -540,8 +487,6 @@ namespace engine
                                                  const BSONObj &parameters ) ;
 
          BOOLEAN checkSavedParam ( const BSONObj &parameters ) ;
-
-         virtual INT32 markParamInvalid ( dmsMBContext *mbContext ) ;
 
          virtual INT32 bindMatchRuntime ( mthMatchRuntime *matchRuntime ) ;
 
@@ -582,6 +527,7 @@ namespace engine
 
       public :
          _optMainCLAccessPlan ( optAccessPlanKey &planKey,
+                                INT64 accessPlanID,
                                 const mthNodeConfig &config ) ;
 
          virtual ~_optMainCLAccessPlan () ;
@@ -606,8 +552,6 @@ namespace engine
             return _score ;
          }
 
-         OSS_INLINE virtual void setCachedBitmap () {}
-
          OSS_INLINE virtual BOOLEAN isMainCLValid () const
          {
             return _isMainCLValid ;
@@ -617,16 +561,12 @@ namespace engine
 
          INT32 bindSubCLAccessPlan ( optAccessPlanHelper &planHelper,
                                      optGeneralAccessPlan *subPlan,
-                                     dmsMBContext *mbContext,
                                      const BSONObj &parameters ) ;
 
          BOOLEAN validateSubCLPlan ( const optGeneralAccessPlan *plan,
-                                     dmsMBContext *mbContext,
                                      const BSONObj &parameters ) ;
 
-         INT32 validateSubCL ( dmsStorageUnit *su,
-                               dmsMBContext *mbContext,
-                               const rtnQueryOptions &options,
+         INT32 validateSubCL ( const rtnQueryOptions &options,
                                optAccessPlanHelper &planHelper,
                                dmsExtentID &indexExtID,
                                dmsExtentID &indexLID,
@@ -634,10 +574,6 @@ namespace engine
 
          BOOLEAN checkSavedSubCL ( utilCLUniqueID subCLUID,
                                    const BSONObj & parameters ) ;
-
-         INT32 markMainCLInvalid ( dmsCachedPlanMgr *pCachedPlanMgr,
-                                   dmsMBContext *mbContext,
-                                   BOOLEAN markInvalid ) ;
 
          virtual INT32 bindMatchRuntime ( mthMatchRuntime *matchRuntime ) ;
 

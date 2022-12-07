@@ -751,6 +751,12 @@ namespace engine
                             dmsExtentID expectedIndexLID,
                             dmsStorageUnit *su,
                             dmsMBContext *mbContext ) ;
+
+   INT32 rtnUpdateGlobTranAvailTime( IExecutor *executor,
+                                     const CHAR *clFullName,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_RTNCB *rtnCB,
+                                     CONST_CL_META_INFO_PTR &clMetaInfo );
 }
 
 #endif

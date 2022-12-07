@@ -302,18 +302,17 @@ namespace engine
       dmsStorageUnit *su = nullptr;
       dmsStorageUnitID suID = DMS_INVALID_CS;
       dmsMBContext *mbContext = nullptr;
-      const CHAR **ppCollectionName = nullptr;
-      rc = rtnResolveCollectionNameAndLock( clFullName, this, &su, ppCollectionName, suID,
-                                            SHARED );
+      const CHAR *pCollectionName = nullptr;
+      rc = rtnResolveCollectionNameAndLock( clFullName, this, &su, &pCollectionName, suID, SHARED );
       PD_RC_CHECK( rc,
                    PDWARNING,
                    "Failed to loop up su by collection name[%s], rc: %d",
                    clFullName,
                    rc );
-      rc = su->data()->getMBContext( &mbContext, clFullName, SHARED );
+      rc = su->data()->getMBContext( &mbContext, pCollectionName, SHARED );
       PD_RC_CHECK( rc,
                    PDERROR,
-                   "Get collection[%llu] mb context failed, rc: %d",
+                   "Get collection[%s] mb context failed, rc: %d",
                    clFullName,
                    rc );
       ptr = std::make_shared< dmsCollectionHandler >( su, suID, mbContext );
@@ -3635,13 +3634,6 @@ namespace engine
 
          suUnlock( suID, EXCLUSIVE ) ;
       }
-
-      if ( OSS_BIT_TEST( mask, DMS_EVENT_MASK_PLAN ) )
-      {
-         // Make sure main-collection plans are invalidated
-         sdbGetRTNCB()->getAPM()->invalidateAllPlans() ;
-      }
-
       PD_TRACE_EXIT ( SDB__SDB_DMSCB_CLRSUCACHES_CSLIST ) ;
    }
 

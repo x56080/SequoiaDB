@@ -572,6 +572,8 @@ namespace engine
                rc = rtnDropIndexCommand( _clUniqID, _indexEle,
                                          cb, _dmsCB, _dpsCB, TRUE,
                                          _taskStatusPtr.get() ) ;
+               sdbGetRTNCB()->getObjectStatCache()->removeCLStat( _clFullName );
+               sdbGetRTNCB()->getAPM()->invalidateCLPlans( _clFullName );
             }
             else
             {
@@ -580,6 +582,8 @@ namespace engine
                                          _taskStatusPtr.get() ) ;
             }
          }
+
+         
 
          INT32 rcTmp = _onDoit( rc ) ;
          if ( SDB_OK == rc )

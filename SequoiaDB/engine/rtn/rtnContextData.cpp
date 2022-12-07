@@ -2460,10 +2460,9 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       rtnContextData *dataContext = NULL ;
 
-      rc = _su->data()->getMBContext( &mbContext, _planRuntime.getCLMBID(),
-                                      DMS_INVALID_CLID, DMS_INVALID_CLID, -1 ) ;
+      rc = _su->data()->getMBContextByID( &mbContext, _planRuntime.getCLUniqueID(), -1 );
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
-      PD_CHECK( _planRuntime.getCLLID() == mbContext->clLID(), SDB_DMS_NOTEXIST,
+      PD_CHECK( _planRuntime.getCLUniqueID() == mbContext->mb()->_clUniqueID, SDB_DMS_NOTEXIST,
                 error, PDERROR, "Failed to get dms mb context, rc: %d",
                 SDB_DMS_NOTEXIST ) ;
 

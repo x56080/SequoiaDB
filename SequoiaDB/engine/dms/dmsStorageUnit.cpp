@@ -1307,46 +1307,17 @@ namespace engine
    BOOLEAN _dmsCacheHolder::checkCacheUnit ( utilSUCacheUnit *pCacheUnit )
    {
       BOOLEAN exists = FALSE ;
-      INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSCACHEHOLDER_CHKUNIT ) ;
 
       switch ( pCacheUnit->getUnitType() )
       {
-         case UTIL_SU_CACHE_UNIT_CLSTAT :
-         {
-            rc = _checkCollectionStat( (dmsCollectionStat *)pCacheUnit ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Failed to check collection statistics, rc:%d", rc ) ;
-               goto error ;
-            }
-            exists = TRUE ;
-            break ;
-         }
-         case UTIL_SU_CACHE_UNIT_IXSTAT :
-         {
-            rc = _checkIndexStat( (dmsIndexStat *)pCacheUnit , NULL ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Failed to check index statistics, rc:%d", rc ) ;
-               goto error ;
-            }
-            exists = TRUE ;
-            break ;
-         }
-         case UTIL_SU_CACHE_UNIT_CLPLAN :
-            exists = TRUE ;
-            break ;
          default :
             break ;
       }
 
-   done :
       PD_TRACE_EXIT( SDB__DMSCACHEHOLDER_CHKUNIT ) ;
       return exists ;
-   error :
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCACHEHOLDER_CRTCACHE, "_dmsCacheHolder::createSUCache" )
@@ -1361,19 +1332,6 @@ namespace engine
       {
          switch ( type )
          {
-            case DMS_CACHE_TYPE_STAT :
-            {
-               if ( !isSysSU() )
-               {
-                  _pSUCaches[ type ] = SDB_OSS_NEW dmsStatCache( this ) ;
-               }
-               break ;
-            }
-            case DMS_CACHE_TYPE_PLAN :
-            {
-               _pSUCaches[ type ] = SDB_OSS_NEW dmsCachedPlanMgr( this ) ;
-               break ;
-            }
             default :
             {
                SDB_ASSERT( FALSE, "Invalid switch branch" ) ;
@@ -1436,172 +1394,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSCACHEHOLDER_DELALLCACHES ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCACHEHOLDER_CHKCLSTAT, "_dmsCacheHolder::_checkCollectionStat" )
-   INT32 _dmsCacheHolder::_checkCollectionStat( dmsCollectionStat *pCollectionStat )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSCACHEHOLDER_CHKCLSTAT ) ;
-
-      SDB_ASSERT( pCollectionStat, "pCollectionStat is invalid" ) ;
-
-      dmsMBContext *mbContext = NULL ;
-      const CHAR *pCSName = pCollectionStat->getCSName() ;
-      const CHAR *pCLName = pCollectionStat->getCLName() ;
-      INDEX_STAT_MAP &indexStats = pCollectionStat->getIndexStats() ;
-      INDEX_STAT_ITERATOR iterIdx ;
-
-      BOOLEAN needCheck =
-            ( pCollectionStat->getMBID() != UTIL_SU_INVALID_UNITID ) ;
-
-      if ( needCheck )
-      {
-         PD_CHECK( _su->LogicalCSID() == pCollectionStat->getSULogicalID(),
-                   SDB_DMS_CS_NOTEXIST, error, PDWARNING, "Failed to get "
-                   "collection space [%s] for statistics", pCSName ) ;
-      }
-      else
-      {
-         pCollectionStat->setSULogicalID( _su->LogicalCSID() ) ;
-      }
-
-      rc = _su->data()->getMBContext( &mbContext, pCLName, SHARED ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to get collection [%s], rc: %d",
-                   pCLName, rc ) ;
-
-      if ( needCheck )
-      {
-         PD_CHECK( mbContext->mbID() == pCollectionStat->getMBID() &&
-                   mbContext->clLID() == pCollectionStat->getCLLogicalID(),
-                   SDB_DMS_NOTEXIST, error, PDWARNING, "Failed to get "
-                   "collection [%s.%s] for statistics", pCSName, pCLName ) ;
-      }
-      else
-      {
-         pCollectionStat->setMBID( mbContext->mbID() ) ;
-         pCollectionStat->setCLLogicalID( mbContext->clLID() ) ;
-      }
-
-      iterIdx = indexStats.begin() ;
-      while ( iterIdx != indexStats.end() )
-      {
-         dmsIndexStat *pIndexStat = iterIdx->second ;
-         if ( SDB_OK != _checkIndexStat( pIndexStat, mbContext ) )
-         {
-            // Remove field statistics reference
-            pCollectionStat->removeFieldStat( pIndexStat->getFirstField(),
-                                              TRUE ) ;
-            // Remove index statistics reference
-            iterIdx = indexStats.erase( iterIdx ) ;
-            // Delete the index statistics
-            SAFE_OSS_DELETE( pIndexStat ) ;
-         }
-         else
-         {
-            ++ iterIdx ;
-         }
-      }
-
-   done :
-      if ( mbContext )
-      {
-         _su->data()->releaseMBContext( mbContext ) ;
-      }
-      PD_TRACE_EXITRC( SDB__DMSCACHEHOLDER_CHKCLSTAT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCACHEHOLDER_CHKIDXSTAT, "_dmsCacheHolder::_checkIndexStat" )
-   INT32 _dmsCacheHolder::_checkIndexStat ( dmsIndexStat *pIndexStat,
-                                            dmsMBContext *mbContext )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSCACHEHOLDER_CHKIDXSTAT ) ;
-
-      BOOLEAN needAllocate = !mbContext ;
-      dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
-      const CHAR *pCSName = pIndexStat->getCSName() ;
-      const CHAR *pCLName = pIndexStat->getCLName() ;
-      const CHAR *pIndexName = pIndexStat->getIndexName() ;
-
-      BOOLEAN needCheck = ( pIndexStat->getMBID() != UTIL_SU_INVALID_UNITID ) ;
-
-      if ( needCheck )
-      {
-         PD_CHECK( _su->LogicalCSID() == pIndexStat->getSULogicalID(),
-                   SDB_DMS_CS_NOTEXIST, error, PDWARNING, "Failed to get "
-                   "collection space [%s] for statistics", pCSName ) ;
-      }
-      else
-      {
-         pIndexStat->setSULogicalID( _su->LogicalCSID() ) ;
-      }
-
-      if ( !mbContext )
-      {
-         rc = _su->data()->getMBContext( &mbContext, pCLName, SHARED ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to get collection [%s], rc: %d",
-                      pCLName, rc ) ;
-      }
-
-      if ( needCheck )
-      {
-         PD_CHECK( mbContext->mbID() == pIndexStat->getMBID() &&
-                   mbContext->clLID() == pIndexStat->getCLLogicalID(),
-                   SDB_DMS_NOTEXIST, error, PDWARNING, "Failed to get "
-                   "collection [%s.%s] for statistics", pCSName, pCLName ) ;
-      }
-      else
-      {
-         pIndexStat->setMBID( mbContext->mbID() ) ;
-         pIndexStat->setCLLogicalID( mbContext->clLID() ) ;
-      }
-
-      rc = _su->index()->getIndexCBExtent( mbContext, pIndexName, indexCBExtent ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to get index [%s], rc: %d",
-                   pIndexName, rc ) ;
-
-      {
-         ixmIndexCB indexCB ( indexCBExtent, _su->index(), NULL ) ;
-
-         PD_CHECK( indexCB.isInitialized(),
-                   SDB_DMS_INIT_INDEX, error, PDWARNING,
-                   "Index [%s] is invalid", pIndexName ) ;
-         PD_CHECK( indexCB.getFlag() == IXM_INDEX_FLAG_NORMAL,
-                   SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
-                   "Index [%s] is not normal status",pIndexName ) ;
-
-         if ( needCheck )
-         {
-            PD_CHECK( pIndexStat->getIndexLogicalID() == indexCB.getLogicalID(),
-                      SDB_IXM_NOTEXIST, error, PDWARNING,
-                      "Logical ID of index [%s] are not matched", pIndexName ) ;
-         }
-         else
-         {
-            pIndexStat->setIndexLogicalID( indexCB.getLogicalID() ) ;
-         }
-
-         PD_CHECK( 0 == pIndexStat->getKeyPattern().woCompare(
-                               indexCB.keyPattern(), BSONObj(), TRUE ),
-                   SDB_IXM_NOTEXIST, error, PDWARNING,
-                   "Keys of index [%s] are not matched", pIndexName ) ;
-      }
-
-   done :
-      if ( needAllocate && mbContext )
-      {
-         _su->data()->releaseMBContext( mbContext ) ;
-      }
-      PD_TRACE_EXITRC( SDB__DMSCACHEHOLDER_CHKIDXSTAT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU, "_dmsStorageUnit::_dmsStorageUnit" )
    _dmsStorageUnit::_dmsStorageUnit ( const CHAR *pSUName,
                                       UINT32 csUniqueID,
@@ -1655,8 +1447,6 @@ namespace engine
       _storageInfo._extDataHandler = extDataHandler ;
 
       // Create caches
-      _cacheHolder.createSUCache( DMS_CACHE_TYPE_STAT ) ;
-      _cacheHolder.createSUCache( DMS_CACHE_TYPE_PLAN ) ;
       _eventHolder.setCacheHolder( &_cacheHolder ) ;
 
       PD_TRACE_EXIT ( SDB__DMSSU ) ;
@@ -4185,6 +3975,7 @@ namespace engine
             indexItem._indexFlag = indexCB.getFlag () ;
             indexItem._scanExtLID = indexCB.scanExtLID () ;
             indexItem._indexLID = indexCB.getLogicalID () ;
+            indexItem._indexCBExtentID = indexCB.getExtentID() ;
             indexItem._version = indexCB.version () ;
             // copy the index def to it's owned buffer
             indexItem._indexDef = indexCB.getDef().copy () ;
@@ -4551,16 +4342,6 @@ namespace engine
    dmsSUCache *_dmsStorageUnit::getSUCache ( UINT32 type )
    {
       return _cacheHolder.getSUCache( type ) ;
-   }
-
-   dmsStatCache *_dmsStorageUnit::getStatCache ()
-   {
-      return (dmsStatCache *)getSUCache( DMS_CACHE_TYPE_STAT ) ;
-   }
-
-   dmsCachedPlanMgr *_dmsStorageUnit::getCachedPlanMgr ()
-   {
-      return (dmsCachedPlanMgr *)getSUCache( DMS_CACHE_TYPE_PLAN ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CLEARMBCRUDCB, "_dmsStorageUnit::clearMBCRUDCB" )

@@ -123,7 +123,8 @@ namespace engine
    : _rtnReturnOptions(),
      _fullName( NULL ),
      _mainCLName( NULL ),
-     _writeOp( FALSE )
+     _writeOp( FALSE ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
    }
 
@@ -141,7 +142,8 @@ namespace engine
      _hint( hint ),
      _fullName( fullName ),
      _mainCLName( NULL ),
-     _writeOp( FALSE )
+     _writeOp( FALSE ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
    }
 
@@ -159,18 +161,20 @@ namespace engine
      _hint( hint ),
      _fullName( fullName ),
      _mainCLName( NULL ),
-     _writeOp( FALSE )
+     _writeOp( FALSE ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
    }
 
-   _rtnQueryOptions::_rtnQueryOptions ( const _rtnQueryOptions &o )
+   _rtnQueryOptions::_rtnQueryOptions( const _rtnQueryOptions &o )
    : _rtnReturnOptions( o ),
      _query( o._query ),
      _orderBy( o._orderBy ),
      _hint( o._hint ),
      _fullName( o._fullName ),
      _mainCLName( o._mainCLName ),
-     _writeOp( o._writeOp )
+     _writeOp( o._writeOp ),
+     _clUID( o._clUID )
    {
    }
 
@@ -191,6 +195,7 @@ namespace engine
       _mainCLName = NULL ;
       _fullNameBuf.clear() ;
       _fullName = NULL ;
+      _clUID = UTIL_UNIQUEID_NULL ;
    }
 
    INT32 _rtnQueryOptions::getOwned ()

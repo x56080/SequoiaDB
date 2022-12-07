@@ -56,7 +56,6 @@ namespace engine
                                           OPT_PLAN_CACHE_LEVEL cacheLevel )
    : _rtnQueryOptions( options ),
      _utilHashTableKey(),
-     _optCollectionInfo(),
      _isValid( FALSE ),
      _cacheLevel( cacheLevel )
    {
@@ -71,7 +70,6 @@ namespace engine
    _optAccessPlanKey::_optAccessPlanKey ( _optAccessPlanKey &planKey )
    : _rtnQueryOptions( planKey ),
      _utilHashTableKey( planKey ),
-     _optCollectionInfo( planKey ),
      _isValid( FALSE ),
      _cacheLevel( planKey._cacheLevel ),
      _normalizedQuery( planKey._normalizedQuery )
@@ -95,14 +93,12 @@ namespace engine
       }
 
       // Check the IDs of Collection Space and Collection
-      if ( DMS_INVALID_SUID == _suID && DMS_INVALID_SUID == planKey._suID &&
-           0 != ossStrncmp( getCLFullName(), planKey.getCLFullName(),
-                            DMS_COLLECTION_FULL_NAME_SZ ) )
+      if ( 0 !=
+           ossStrncmp( getCLFullName(), planKey.getCLFullName(), DMS_COLLECTION_FULL_NAME_SZ ) )
       {
          return FALSE ;
       }
-      else if ( _suID != planKey._suID || _suLID != planKey._suLID ||
-                _mbID != planKey._mbID || _clLID != planKey._clLID )
+      else if ( _clUID != planKey._clUID )
       {
          return FALSE ;
       }
@@ -259,21 +255,8 @@ namespace engine
 
    UINT32 _optAccessPlanKey::_generateKeyCodeHash ()
    {
-      UINT32 keyCode = 0 ;
-
-      // Information of collection space and collection
-      if ( DMS_INVALID_SUID != _suID )
-      {
-         keyCode = ossHash( (CHAR *)&_suID, sizeof( _suID ), 5 ) ;
-         keyCode ^= ossHash( (CHAR *)&_suLID, sizeof( _suLID ), 5 ) ;
-         keyCode ^= ossHash( (CHAR *)&_mbID, sizeof( _mbID ), 5 ) ;
-         keyCode ^= ossHash( (CHAR *)&_clLID, sizeof( _clLID ), 5 ) ;
-      }
-      else
-      {
-         keyCode = ossHash( getCLFullName() ) ;
-      }
-
+      UINT32 keyCode = ossHash( getCLFullName() ) ;
+      
       keyCode ^= ossHash( (CHAR *)&_cacheLevel, sizeof( _cacheLevel ), 5 ) ;
 
       // Query

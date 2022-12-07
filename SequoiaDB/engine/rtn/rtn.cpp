@@ -48,6 +48,7 @@
 #include "pmdStartup.hpp"
 #include "pmdStartupHistoryLogger.hpp"
 #include "pdTrace.hpp"
+#include "rtnObjectInfoFetcher.hpp"
 #include "rtnTrace.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "rtnIXScannerFactory.hpp"
@@ -1327,6 +1328,9 @@ namespace engine
          break ;
       }
 
+      sdbGetRTNCB()->getObjectStatCache()->removeCLStatInCS( pCollectionSpace );
+      sdbGetRTNCB()->getAPM()->invalidateSUPlans( pCollectionSpace );
+
    done :
       if ( writable )
       {
@@ -1789,6 +1793,14 @@ namespace engine
          hasLocked = TRUE ;
       }
 
+      if (mbContext->mbID() != indexCB->getMBID())
+      {
+         rc = SDB_DMS_COL_DROPPED ;
+         PD_LOG( PDERROR, "Index[extent id: %d, name: %s] mb id[%d] is not expected[%d], rc: %d",
+                 expectedExtentID, expectedIndexName, indexCB->getMBID(), mbContext->mbID(), rc );
+         goto error;
+      }
+
       if ( !indexCB->isInitialized() )
       {
          rc = su->index()->checkIndexCBExtentExist( mbContext,
@@ -1835,6 +1847,55 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 rtnUpdateGlobTranAvailTime( IExecutor *executor,
+                                     const CHAR *clFullName,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_RTNCB *rtnCB,
+                                     CONST_CL_META_INFO_PTR &clMetaInfo )
+   {
+      SDB_ASSERT( clFullName, "collection name can't be NULL" );
+      INT32 rc = SDB_OK;
+      dmsStorageUnit *su = nullptr;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      dmsMBContext *mbContext = nullptr;
+      const CHAR *pCollectionShortName = NULL;
+      UINT64 globTransAvailTime = DPS_MAX_TRANS_TIME;
+      stpAgent timeAgent;
+      stpLogicalTimeUS curTime;
+      rtnObjectInfoFetcher infoFetcher(dmsCB, rtnCB);
+      // get global logical time
+      PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
+                       "Try to get STP logical time" );
+      rc = timeAgent.getLogicalTimeUS( curTime, OSS_ONE_SEC, FALSE );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d", rc );
+      rc = rtnResolveCollectionNameAndLock( clFullName, dmsCB, &su, &pCollectionShortName, suID );
+      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s", clFullName );
+
+      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, SHARED );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc );
+      mbContext->mbStat()->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                               curTime.getTime() );
+      globTransAvailTime = mbContext->mbStat()->_globTransAvailTime.peek();
+
+      rc = infoFetcher.getCollectionMetaInfo(executor, clFullName, clMetaInfo);
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info, rc: %d", clFullName, rc );
+      SDB_ASSERT( globTransAvailTime == clMetaInfo->getGlobTransAvailTime(), "must be equal" );
+
+   done:
+      if ( su && mbContext )
+      {
+         su->data()->releaseMBContext( mbContext );
+      }
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock( suID );
+      }
+      return rc;
+   error:
+      clMetaInfo.reset();
+      goto done;
    }
 
    // Note that Only delete and update are calling this interface

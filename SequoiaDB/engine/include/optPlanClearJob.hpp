@@ -44,13 +44,15 @@
 namespace engine
 {
 
+   class _optAccessPlanManager;
+   using optAccessPlanManager = _optAccessPlanManager;
    /*
     *  _optPlanClearJob define
     */
    class _optPlanClearJob : public _rtnBaseJob
    {
       public :
-         _optPlanClearJob () ;
+         _optPlanClearJob ( optAccessPlanManager *apm );
 
          virtual ~_optPlanClearJob () ;
 
@@ -62,11 +64,14 @@ namespace engine
          virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) { return FALSE ; }
 
          virtual INT32 doit () ;
+      
+      private:
+         optAccessPlanManager *_apm;
    } ;
 
    typedef _optPlanClearJob optPlanClearJob ;
 
-   INT32 startPlanClearJob ( EDUID *pEDUID ) ;
+   INT32 startPlanClearJob ( EDUID *pEDUID, optAccessPlanManager *apm ) ;
 
 }
 

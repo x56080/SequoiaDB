@@ -404,8 +404,7 @@ namespace engine
             if ( rcTmp )
             {
                CoordGroupInfoPtr groupPtr ;
-               _pShardMgr->getResource()->getCataResource()->updateGroupInfo( group, groupPtr,
-                                                                              eduCB ) ;
+               _pShardMgr->getResource()->updateGroupInfo( group, groupPtr, eduCB ) ;
             }
 
             SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;

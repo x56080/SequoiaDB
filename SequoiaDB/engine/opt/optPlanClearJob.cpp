@@ -52,7 +52,8 @@ namespace engine
    /*
     *  _optPlanClearJob implement
     */
-   _optPlanClearJob::_optPlanClearJob ()
+   _optPlanClearJob::_optPlanClearJob ( optAccessPlanManager *apm )
+   :_apm( apm )
    {
    }
 
@@ -64,8 +65,7 @@ namespace engine
    {
       pmdEDUCB *cb = eduCB() ;
       pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr() ;
-      optAccessPlanManager *apm = sdbGetRTNCB()->getAPM() ;
-      optCachedPlanMonitor *monitor = apm->getPlanMonitor() ;
+      optCachedPlanMonitor *monitor = _apm->getPlanMonitor() ;
       ossEvent *clearEvent = monitor->getClearEvent() ;
 
       UINT64 lastClearTick = pmdGetDBTick() ;
@@ -120,12 +120,12 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 startPlanClearJob ( EDUID *pEDUID )
+   INT32 startPlanClearJob ( EDUID *pEDUID, optAccessPlanManager *apm )
    {
       INT32 rc = SDB_OK ;
       optPlanClearJob *pJob = NULL ;
 
-      pJob = SDB_OSS_NEW optPlanClearJob() ;
+      pJob = SDB_OSS_NEW optPlanClearJob( apm ) ;
       if ( !pJob )
       {
          rc = SDB_OOM ;

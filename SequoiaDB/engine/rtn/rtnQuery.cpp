@@ -37,6 +37,7 @@
 
 *******************************************************************************/
 #include "rtn.hpp"
+#include "clsMgr.hpp"
 #include "dmsStorageUnit.hpp"
 #include "dmsCB.hpp"
 #include "mthSelector.hpp"
@@ -49,6 +50,8 @@
 #include "rtnContextExplain.hpp"
 #include "rtnContextTS.hpp"
 #include "rtnQueryModifier.hpp"
+#include "rtnObjectInfoFetcher.hpp"
+#include "rtnCollectionInfo.hpp"
 
 using namespace bson ;
 
@@ -672,6 +675,7 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       rtnContextData::sharePtr dataContext ;
       rtnContextPtr context ;
+      const CHAR *clFullName = options.getCLFullName();
       const CHAR *pCollectionShortName = NULL ;
       optAccessPlanManager *apm = NULL ;
       optAccessPlanRuntime *planRuntime = NULL ;
@@ -689,6 +693,13 @@ namespace engine
       rtnRemoteMessenger* messenger = rtnCB->getRemoteMessenger() ;
 
       UINT32 scannerRetryTime = 0 ;
+      pdLogShield shield;
+      rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
+      CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+      CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+      rc = infoFetcher.getCollectionMetaInfo( cb, clFullName, clMetaInfo );
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info, rc: %d", clFullName, rc );
+      options.setCLUniqueID( clMetaInfo->getCLUniqueID() );
 
       // check if the adapter is registered.
       if ( messenger && messenger->isReady() )
@@ -718,7 +729,7 @@ namespace engine
       if ( options.testFlag( FLG_QUERY_EXPLAIN ) )
       {
          rc = rtnExplain( options, cb, dmsCB, rtnCB, contextID, ppContext ) ;
-         if ( SDB_OK != rc )
+         if ( SDB_OK != rc ) 
          {
             PD_LOG( PDERROR, "failed to explain query:%d", rc ) ;
             goto error ;
@@ -758,25 +769,15 @@ namespace engine
          writable = TRUE ;
       }
 
-      // This prevents other sessions drop the collectionspace during accessing
-      rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
-                                             &su, &pCollectionShortName,
-                                             suID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
-                   options.getCLFullName() ) ;
-
-      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
-
       /// if collection don't have $id index, can't modify( update or remove )
       if ( options.testFlag( FLG_QUERY_MODIFY ) &&
-           OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX ) )
+           OSS_BIT_TEST( clMetaInfo->getAttributes(), DMS_MB_ATTR_NOIDINDEX ) )
       {
-         PD_LOG( PDERROR, "Can not modify data when autoIndexId is false" ) ;
          rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+         PD_LOG( PDERROR, "Can not modify data when autoIndexId is false, rc: %d", rc) ;
          goto error ;
       }
-
+      
       // if a transaction isolation is RR and it starts before
       // the split operation finishes, and it is a read operator ( not find
       // and modify )return with error SDB_GLOB_TRANS_NOT_AVAILABLE
@@ -785,26 +786,13 @@ namespace engine
            cb->isGlobTrans() &&
            ( TRANS_ISOLATION_RR == cb->getTransIsolation() ) )
       {
-         UINT64 globTransAvailTime =
-               mbContext->mbStat()->_globTransAvailTime.peek() ;
+         UINT64 globTransAvailTime = clMetaInfo->getGlobTransAvailTime();
          stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
          if ( DPS_MAX_TRANS_TIME == globTransAvailTime )
          {
-            stpAgent timeAgent ;
-            stpLogicalTimeUS curTime ;
-            // get global logical time
-            PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
-                             "Try to get STP logical time" ) ;
-            rc = timeAgent.getLogicalTimeUS( curTime,
-                                             OSS_ONE_SEC,
-                                             FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d",
-                         rc ) ;
-            mbContext->mbStat()
-                     ->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
-                                                           curTime.getTime() ) ;
-            globTransAvailTime =
-                  mbContext->mbStat()->_globTransAvailTime.peek() ;
+            rc = rtnUpdateGlobTranAvailTime( cb, options.getCLFullName(), dmsCB, rtnCB, clMetaInfo );
+            PD_RC_CHECK( rc, PDERROR, "Failed to update globTranAvailTime for collection, rc: %d",
+                         options.getCLFullName(), rc );
          }
          PD_CHECK( ( ( 0 == globTransAvailTime ) ||
                      ( globTransAvailTime < txBeginTm.getTime() ) ),
@@ -900,23 +888,26 @@ namespace engine
       SDB_ASSERT( apm, "apm shouldn't be NULL" ) ;
 
 retry:
-      // plan is released in context destructor
-      // selector, numToSkip and numToReturn are not considered in plan cache
-      // now, so put dummy ones to find the plan
-      rc = apm->getAccessPlan( options, su, mbContext, (*planRuntime),
-                               expOptions ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
-                   "context %lld, rc: %d", options.getCLFullName(), contextID,
-                   rc ) ;
+   rc = infoFetcher.getCollectionStatInfo( cb, clFullName, clStatInfo );
+   PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info, rc: %d", clFullName );
 
-      // used force hint, but hint failed
-      if ( options.testFlag( FLG_QUERY_FORCE_HINT ) &&
-           planRuntime->isHintFailed() )
-      {
-         PD_LOG( PDERROR, "Query used force hint[%s] failed",
-                 options.getHint().toString().c_str() ) ;
-         rc = SDB_RTN_INVALID_HINT ;
-         goto error ;
+   // plan is released in context destructor
+   // selector, numToSkip and numToReturn are not considered in plan cache
+   // now, so put dummy ones to find the plan
+   rc = apm->getAccessPlan( cb, options, rtnCollectionInfo( clMetaInfo, clStatInfo ),
+                            ( *planRuntime ), expOptions );
+   PD_RC_CHECK( rc, PDERROR,
+                "Failed to get access plan for %s, "
+                "context %lld, rc: %d",
+                options.getCLFullName(), contextID, rc );
+
+   // used force hint, but hint failed
+   if ( options.testFlag( FLG_QUERY_FORCE_HINT ) && planRuntime->isHintFailed() )
+   {
+      rc = SDB_RTN_INVALID_HINT;
+      PD_LOG( PDERROR, "Query used force hint[%s] failed, rc: %d",
+              options.getHint().toString().c_str(), rc );
+      goto error;
       }
 
       // check
@@ -932,20 +923,40 @@ retry:
          else if ( indexName && ( IXSCAN != planRuntime->getScanType() ||
                    indexLID != planRuntime->getIndexLID() ) )
          {
-            PD_LOG( PDERROR, "Scan type[%d] error or indexLID[%d] is not the "
-                    "same with [%d]", planRuntime->getScanType(),
-                    planRuntime->getIndexLID(), indexLID ) ;
             rc = SDB_IXM_NOTEXIST ;
+            PD_LOG( PDERROR,
+                    "Scan type[%d] error or index unique ID[%d] is not the "
+                    "same with [%d], rc: %d",
+                    planRuntime->getScanType(), planRuntime->getIndexLID(), indexLID, rc );
             goto error ;
          }
       }
 
+      rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
+                                             &su, &pCollectionShortName,
+                                             suID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
+                   options.getCLFullName(), rc );
+
+      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+
       if ( !planRuntime->sortRequired() )
       {
+         shield.addRC( SDB_DMS_COL_DROPPED );
+         shield.addRC( SDB_IXM_NOTEXIST );
          // open context
          rc = dataContext->open( su, mbContext, cb, options, pBlockObj,
                                  direction ) ;
-         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         shield.clearRC();
+         if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
+         { 
+            planRuntime->reset() ;
+            scannerRetryTime++ ;
+            apm->invalidateCLPlans( options.getCLFullName() ) ;
+            goto retry ;
+         }
+         else if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
          {
             // Maybe in the process of scanning the index,
             // the index is deleted
@@ -953,6 +964,17 @@ retry:
             scannerRetryTime++ ;
             // We only need to try to scan once. In most cases,
             // the next scan is normal
+            if ( su && mbContext )
+            {
+               su->data()->releaseMBContext( mbContext ) ;
+               mbContext = nullptr ;
+            }
+            if ( DMS_INVALID_CS != suID )
+            {
+               dmsCB->suUnlock( suID ) ;
+               suID = DMS_INVALID_CS ;
+               su = nullptr ;
+            }
             goto retry ;
          }
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
@@ -1011,10 +1033,19 @@ retry:
             rc = SDB_RTN_QUERYMODIFY_SORT_NO_IDX ;
             goto error ;
          }
-
+         shield.addRC( SDB_DMS_COL_DROPPED );
+         shield.addRC( SDB_IXM_NOTEXIST );
          rc = dataContext->open( su, mbContext, cb, returnOptions, pBlockObj,
                                  direction ) ;
-         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         shield.clearRC();
+         if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
+         {
+            planRuntime->reset() ;
+            scannerRetryTime++ ;
+            apm->invalidateCLPlans( options.getCLFullName() ) ;
+            goto retry ;
+         }
+         else if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
          {
             // Maybe in the process of scanning the index,
             // the index is deleted
@@ -1022,6 +1053,17 @@ retry:
             scannerRetryTime++ ;
             // We only need to try to scan once. In most cases,
             // the next scan is normal
+            if ( su && mbContext )
+            {
+               su->data()->releaseMBContext( mbContext ) ;
+               mbContext = nullptr ;
+            }
+            if ( DMS_INVALID_CS != suID )
+            {
+               dmsCB->suUnlock( suID ) ;
+               suID = DMS_INVALID_CS ;
+               su = nullptr ;
+            }
             goto retry ;
          }
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
@@ -1185,10 +1227,18 @@ retry:
          // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName,
                                   0, -1, 0 ) ;
-
-         rc = rtnCB->getAPM()->getTempAccessPlan( options, su, mbContext,
-                                                  *planRuntime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc ) ;
+         rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
+         CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+         CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+         rc = infoFetcher.getCollectionMetaInfo( cb, pCollectionName, clMetaInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info, rc: %d",
+                      pCollectionName, rc );
+         rc = infoFetcher.getCollectionStatInfo( cb, pCollectionName, clStatInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info, rc: %d",
+                      pCollectionName, rc );
+         rc = rtnCB->getAPM()->getTempAccessPlan(
+            cb, options, rtnCollectionInfo( clMetaInfo, clStatInfo ), *planRuntime );
+         PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc );
 
          // Must apply the hint to find index-scan plan
          PD_CHECK ( planRuntime->getScanType() == IXSCAN &&
@@ -1225,7 +1275,7 @@ retry:
             PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
                     "expected[%d]", planRuntime->getIndexCBExtent(),
                     indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-            rc = SDB_IXM_NOTEXIST ;
+                       rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
          // get the predicate list

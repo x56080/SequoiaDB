@@ -2061,7 +2061,7 @@ namespace engine
       sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       //clear all catalog info
-      sdbGetShardCB()->getResource()->invalidateAllCLCache() ;
+      sdbGetShardCB()->getResource()->invalidateCataInfo() ;
 
       dpsCB = pmdGetKRCB()->getDPSCB() ;
       // change to meta
@@ -3429,8 +3429,9 @@ namespace engine
          CoordCataInfoPtr cataPtr ;
 
          //need to update catalog
-         INT32 rc = _pResource->getCataResource()->updateCataInfo( _pTask->collectionName(),
-                                                                   cataPtr, _pEDUCB ) ;
+         INT32 rc = _pResource->updateCataInfo( _pTask->collectionName(),
+                                                cataPtr,
+                                                _pEDUCB ) ;
          if ( SDB_DMS_NOTEXIST == rc )
          {
             _step = STEP_END_NTY ;
@@ -3445,7 +3446,7 @@ namespace engine
             if ( catSet )
             {
                mainCLName = catSet->getMainCLName();
-               NodeID selfNode = _pResource->getCataResource()->getNodeID() ;
+               NodeID selfNode = _pResource->getNodeID() ;
                // the catalog is already correct
                if ( catSet->isKeyInGroup( _pTask->splitKeyObj(),
                                           selfNode.columns.groupID ) )
@@ -3457,9 +3458,9 @@ namespace engine
             if ( !mainCLName.empty() )
             {
                CoordCataInfoPtr mainCataInfoPtr ;
-               INT32 rcTmp = _pResource->getCataResource()->updateCataInfo( mainCLName.c_str(),
-                                                                            mainCataInfoPtr,
-                                                                            _pEDUCB ) ;
+               INT32 rcTmp = _pResource->updateCataInfo( mainCLName.c_str(),
+                                                         mainCataInfoPtr,
+                                                         _pEDUCB ) ;
                if ( rcTmp )
                {
                   PD_LOG( PDWARNING, "Session[%s]: Update catalog info "

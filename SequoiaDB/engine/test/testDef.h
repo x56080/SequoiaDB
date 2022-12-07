@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "dpsDef.hpp"
+#include "dpsTransDef.hpp"
 #include "dpsTransLockDef.hpp"
 #include "ossSharedLatch.hpp"
 #include "sdbInterface.hpp"
@@ -105,6 +106,12 @@ class testExecutor : public IExecutor
       virtual UINT64    getEndLsn() const {return vessel::dummyDataJournal::instance()->getCurrentLsnOffset();}
       virtual UINT32    getLsnCount () const {return 0;}
       virtual BOOLEAN   isDoRollback () const {return FALSE;}
+   #if defined( SDB_ENGINE )
+      virtual INT32 getTransIsolation() const
+      {
+         return _transIsolation;
+      }
+   #endif
 
       virtual const DPS_TRANS_ID &getTransID () const {return transID;}
       virtual UINT64    getCurTransLsn () const {return -1;}
@@ -128,9 +135,15 @@ class testExecutor : public IExecutor
       virtual BOOLEAN   isLogTimeOn() const {return FALSE;}
       virtual UINT32    getLogWriteMod() const {return DPS_LOG_WRITE_MOD_INCREMENT;}
 
+      void setTransIsolation(TRANS_ISOLATION_LEVEL transIsolation)
+      {
+         _transIsolation = transIsolation;
+      }
+
    public:
       EDUID _id = 0;
       DPS_TRANS_ID transID;
+      TRANS_ISOLATION_LEVEL _transIsolation = TRANS_ISOLATION_RU;
 
    public:
       ossPoolMap<_dpsTransLockId, ossSharedLatchMode> _locked;

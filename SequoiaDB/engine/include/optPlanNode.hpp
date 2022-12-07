@@ -745,7 +745,7 @@ namespace engine
          _optIxScanNode () ;
 
          _optIxScanNode ( const CHAR * pCollection,
-                          const ixmIndexCB & indexCB,
+                          const CONST_INDEX_META_INFO_PTR &idxMeta,
                           INT32 estCacheSize ) ;
 
          _optIxScanNode ( const optIxScanNode & node,
@@ -753,32 +753,32 @@ namespace engine
 
          virtual ~_optIxScanNode () ;
 
-         OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
+         OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const override
          {
             return OPT_PLAN_IX_SCAN ;
          }
 
-         OSS_INLINE virtual const CHAR * getName () const
+         OSS_INLINE virtual const CHAR * getName () const override
          {
             return OPT_PLAN_NODE_NAME_IXSCAN ;
          }
 
-         OSS_INLINE virtual const CHAR * getIndexName () const
+         OSS_INLINE virtual const CHAR * getIndexName () const override
          {
             return _pIndexName.str() ;
          }
 
-         OSS_INLINE virtual INT32 getDirection () const
+         OSS_INLINE virtual INT32 getDirection () const override
          {
             return _direction ;
          }
 
-         OSS_INLINE virtual BOOLEAN isMatchAll () const
+         OSS_INLINE virtual BOOLEAN isMatchAll () const override
          {
             return _matchAll ;
          }
 
-         OSS_INLINE virtual dmsExtentID getIndexExtID () const
+         OSS_INLINE virtual dmsExtentID getIndexExtID () const override
          {
             return _indexExtID ;
          }
@@ -788,7 +788,7 @@ namespace engine
             _indexExtID = indexExtID ;
          }
 
-         OSS_INLINE virtual dmsExtentID getIndexLID () const
+         OSS_INLINE virtual dmsExtentID getIndexLID () const override
          {
             return _indexLID ;
          }
@@ -798,52 +798,52 @@ namespace engine
             _indexLID = indexLID ;
          }
 
-         OSS_INLINE virtual BSONObj getKeyPattern () const
+         OSS_INLINE virtual BSONObj getKeyPattern () const override
          {
             return _keyPattern ;
          }
 
-         OSS_INLINE virtual BSONObj getIXBound () const
+         OSS_INLINE virtual BSONObj getIXBound () const override
          {
             return _runtimeIXBound ;
          }
 
-         OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound )
+         OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound ) override
          {
             _runtimeIXBound = ixBound ;
          }
 
-         OSS_INLINE virtual optScanType getScanType () const
+         OSS_INLINE virtual optScanType getScanType () const override
          {
             return IXSCAN ;
          }
 
-         OSS_INLINE virtual double getScanSelectivity () const
+         OSS_INLINE virtual double getScanSelectivity () const override
          {
             return _scanSelectivity ;
          }
 
-         OSS_INLINE virtual double getPredSelectivity () const
+         OSS_INLINE virtual double getPredSelectivity () const override
          {
             return _predSelectivity ;
          }
 
-         OSS_INLINE virtual UINT32 getMatchedFields () const
+         OSS_INLINE virtual UINT32 getMatchedFields () const override
          {
             return _matchedFields ;
          }
 
-         OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const
+         OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const override
          {
             return _ixFromStat ;
          }
 
-         OSS_INLINE virtual UINT64 getIxRebuildTime()
+         OSS_INLINE virtual UINT64 getIxRebuildTime() override
          {
             return _ixRebuildTime.fetch() ;
          }
 
-         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime )
+         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime ) override
          {
             if ( DPS_INVALID_TRANS_TIME != rebuildTime &&
                  DPS_MAX_TRANS_TIME != rebuildTime )
@@ -863,10 +863,10 @@ namespace engine
                             optCollectionStat * collectionStat,
                             optIndexStat * indexStat ) ;
 
-         virtual void evaluate () ;
+         virtual void evaluate () override;
 
-         BOOLEAN isIndexCover() const { return _indexCover ; }
-         BOOLEAN notArray() const { return _notArray ; }
+         BOOLEAN isIndexCover() const override { return _indexCover ; }
+         BOOLEAN notArray() const override { return _notArray ; }
 
       protected :
          void _evalPredEstimation ( optAccessPlanHelper & planHelper,
@@ -882,21 +882,21 @@ namespace engine
                                        UINT64 returnSkipRecords ) ;
 
       public :
-         virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const ;
+         virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const override;
 
-         virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const ;
+         virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const override;
 
       protected :
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-                                      const rtnExplainOptions &expOptions ) const ;
+                                      const rtnExplainOptions &expOptions ) const override;
 
-         virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
+         virtual INT32 _fromBSONBasic ( const BSONObj & object ) override;
 
-         virtual INT32 _toBSONEstimateInput ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONEstimateInput ( BSONObjBuilder & builder ) const override;
 
-         virtual INT32 _toBSONEstimateFilter ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONEstimateFilter ( BSONObjBuilder & builder ) const override;
 
-         virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const override;
 
          INT32 _toBSONIOCostEval ( BSONObjBuilder & builder ) const ;
 

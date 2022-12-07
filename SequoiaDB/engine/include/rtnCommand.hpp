@@ -646,7 +646,8 @@ namespace engine
          DMS_STORAGE_TYPE           _storageType ;
    };
 
-   class _rtnDropCollection : public _rtnCommand
+   class 
+   _rtnDropCollection : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
 

@@ -148,7 +148,7 @@ namespace engine
          CoordGroupInfoPtr groupPtr ;
          _noRes  = 0 ;
          //update group info
-         if ( SDB_OK == _pResource->getCataResource()->updateGroupInfo( groupID, groupPtr, cb ) &&
+         if ( SDB_OK == _pResource->updateGroupInfo( groupID, groupPtr, cb ) &&
               NULL != groupPtr.get() )
          {
             _src = groupPtr->primary( type ) ;

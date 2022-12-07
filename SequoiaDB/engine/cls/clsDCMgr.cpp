@@ -1499,7 +1499,7 @@ namespace engine
       goto done ;
    }
 
-   clsRemoteResource *_clsDCMgr::getImageResource()
+   clsResource *_clsDCMgr::getImageResource()
    {
       return &_imageResource ;
    }

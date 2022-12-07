@@ -49,11 +49,13 @@
 #include "ixmExtent.hpp"
 #include "rtnInternalSorting.hpp"
 #include "pdTrace.hpp"
+#include "rtnObjectInfoFetcher.hpp"
 #include "rtnTrace.hpp"
 #include "rtnExtDataHandler.hpp"
 #include "rtnContextDel.hpp"
 #include "ossMemPool.hpp"
 #include "rtnTSClt.hpp"
+#include "dmsCB.hpp"
 
 using namespace bson ;
 
@@ -1076,78 +1078,104 @@ namespace engine
       monContextCB monCtxCB ;
 
       BSONObj dummy ;
-      rtnQueryOptions copiedOptions( options ) ;
-      copiedOptions.setSelector( dummy ) ;
-      copiedOptions.setSkip( 0 ) ;
-      copiedOptions.setFlag( 0 ) ;
-      copiedOptions.setLimit( -1 ) ;
+      rtnQueryOptions& optionsW = const_cast<rtnQueryOptions&>(options) ;
+      pdLogShield shield;
+      rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
+      CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+      CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+      rc = infoFetcher.getCollectionMetaInfo( cb, optionsW.getCLFullName(), clMetaInfo );
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info", optionsW.getCLFullName() );
+      optionsW.setCLUniqueID( clMetaInfo->getCLUniqueID() );
+      optionsW.setSelector( dummy ) ;
+      optionsW.setSkip( 0 ) ;
+      optionsW.setFlag( 0 ) ;
+      optionsW.setLimit( -1 ) ;
 
-      // This prevents other sessions drop the collectionspace during accessing
-      rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
-                   pCollectionName ) ;
+      
+      try{
+         apm = rtnCB->getAPM() ;
+         SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+      retry:
+         rc = infoFetcher.getCollectionStatInfo( cb, optionsW.getCLFullName(), clStatInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info",
+                      optionsW.getCLFullName() );
+         // plan is released in context destructor
+         rc = apm->getAccessPlan( cb, optionsW, rtnCollectionInfo( clMetaInfo, clStatInfo ),
+                                  planRuntime, NULL );
+         PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
+                     "context %lld, rc: %d", pCollectionName,
+                     context->contextID(), rc ) ;
 
-      apm = rtnCB->getAPM() ;
-      SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
-
-retry:
-      // plan is released in context destructor
-      rc = apm->getAccessPlan( copiedOptions, su, mbContext, planRuntime, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
-                   "context %lld, rc: %d", pCollectionName,
-                   context->contextID(), rc ) ;
-
-      if ( cb->getMonConfigCB()->timestampON )
-      {
-         monCtxCB.recordStartTimestamp() ;
-      }
-
-      startTime = krcb->getCurTime() ;
-
-      rc = mbContext->mbLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to lock collection[%s], rc: %d",
-                   pCollectionName, rc ) ;
-
-      if ( TBSCAN == planRuntime.getScanType() )
-      {
-         rc = _rtnGetDatablocks( su, cb, context, mbContext,
-                                 pCollectionShortName ) ;
-      }
-      else if ( IXSCAN == planRuntime.getScanType() )
-      {
-         rc = rtnGetIndexblocks( su, &planRuntime, cb, context, mbContext ) ;
-         if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+         if ( cb->getMonConfigCB()->timestampON )
          {
-            // Maybe in the process of scanning the index,
-            // the index is deleted
-            planRuntime.reset() ;
-            scannerRetryTime++ ;
-            // We only need to try to scan once. In most cases,
-            // the next scan is normal
-            mbContext->mbUnlock() ;
-            goto retry ;
+            monCtxCB.recordStartTimestamp() ;
          }
+
+         startTime = krcb->getCurTime() ;
+
+         // This prevents other sessions drop the collectionspace during accessing
+         rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
+                                                &pCollectionShortName, suID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
+                     pCollectionName ) ;
+
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName, SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context and lock, rc: %d", rc ) ;
+
+
+         if ( TBSCAN == planRuntime.getScanType() )
+         {
+            rc = _rtnGetDatablocks( su, cb, context, mbContext,
+                                    pCollectionShortName ) ;
+         }
+         else if ( IXSCAN == planRuntime.getScanType() )
+         {
+            shield.addRC( SDB_DMS_COL_DROPPED );
+            shield.addRC( SDB_IXM_NOTEXIST );
+            rc = rtnGetIndexblocks( su, &planRuntime, cb, context, mbContext ) ;
+            shield.clearRC();
+            if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
+            { 
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               apm->invalidateCLPlans( options.getCLFullName() ) ;
+               goto retry ;
+            }
+            else if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+            {
+               // Maybe in the process of scanning the index,
+               // the index is deleted
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               // We only need to try to scan once. In most cases,
+               // the next scan is normal
+               mbContext->mbUnlock() ;
+               goto retry ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Collection access plan scan type error: %d",
+                  planRuntime.getScanType() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] query meta, "
+                     "rc: %d", pCollectionName, rc ) ;
+
+         endTime = krcb->getCurTime() ;
+
+         monCtxCB.monQueryTimeInc( startTime, endTime ) ;
+         planRuntime.setQueryActivity( MON_SELECT, monCtxCB, optionsW, TRUE ) ;
       }
-      else
+      catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "Collection access plan scan type error: %d",
-                 planRuntime.getScanType() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         rc = SDB_SYS;
+         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc );
+         goto error;
       }
-
-      PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] query meta, "
-                   "rc: %d", pCollectionName, rc ) ;
-
-      endTime = krcb->getCurTime() ;
-
-      monCtxCB.monQueryTimeInc( startTime, endTime ) ;
-      planRuntime.setQueryActivity( MON_SELECT, monCtxCB, copiedOptions, TRUE ) ;
-
    done:
       if ( su && mbContext )
       {
@@ -1655,11 +1683,8 @@ retry:
                   pCollection, indexObj.toString().c_str(), rc ) ;
          goto error ;
       }
-      pmdGetKRCB()
-         ->getClsCB()
-         ->getResource()
-         ->getStorageResource()
-         ->removeCLMetaCache( pCollection ) ;
+      
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( pCollection );
 
       PD_LOG( PDEVENT, "Create index[%s] for collection[%s] succeed",
               indexObj.toString().c_str(), pCollection ) ;
@@ -1725,11 +1750,8 @@ retry:
                   "rc: %d", indexObj.toString().c_str(), clUniqID, rc ) ;
          goto error ;
       }
-      pmdGetKRCB()
-         ->getClsCB()
-         ->getResource()
-         ->getStorageResource()
-         ->removeCLMetaCache( clUniqID ) ;
+      
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( clUniqID );
 
       PD_LOG( PDEVENT, "Create index[%s] for collection[%llu] succeed",
               indexObj.toString().c_str(), clUniqID ) ;
@@ -1815,11 +1837,8 @@ retry:
                   pCollection, identifier.toString().c_str(), rc ) ;
          goto error ;
       }
-      pmdGetKRCB()
-         ->getClsCB()
-         ->getResource()
-         ->getStorageResource()
-         ->removeCLMetaCache( pCollection ) ;
+
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( pCollection );
 
       PD_LOG( PDEVENT, "Drop index[%s] for collection[%s] succeed",
               identifier.toString().c_str(), pCollection ) ;
@@ -1899,12 +1918,9 @@ retry:
                   identifier.toString().c_str(), clUniqID, rc ) ;
          goto error ;
       }
-      pmdGetKRCB()
-         ->getClsCB()
-         ->getResource()
-         ->getStorageResource()
-         ->removeCLMetaCache( clUniqID ) ;
 
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( clUniqID );
+      
       PD_LOG( PDEVENT, "Drop index[%s] for collection[%llu] succeed",
               identifier.toString().c_str(), clUniqID ) ;
 
@@ -1982,6 +1998,8 @@ retry:
       PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
 
       pTaskStatMgr->renameCS( csName, newCSName ) ;
+
+      sdbGetRTNCB()->getAPM()->invalidateSUPlans( csName );
 
       PD_LOG( PDEVENT, "Rename cs[%s] to [%s] succeed", csName, newCSName ) ;
 
@@ -2423,6 +2441,8 @@ retry:
 
       pTaskStatMgr->dropCL( pCollection ) ;
 
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( pCollection );
+
       PD_LOG( PDEVENT, "Drop collection[%s] succeed", pCollection ) ;
 
    done :
@@ -2501,6 +2521,8 @@ retry:
                       "%s.%s", csName, newCLShortName ) ;
          dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
          pTaskStatMgr->renameCL( clFullName, newCLFullName ) ;
+
+         sdbGetRTNCB()->getAPM()->invalidateCLPlans( clFullName );
       }
 
       PD_LOG( PDEVENT, "Rename collection[%s.%s] to [%s.%s] succeed",
@@ -2601,6 +2623,8 @@ retry:
          dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
                              mbContext->mbID(), mbContext->clLID() ) ) ;
       }
+
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( pCollection );
 
       PD_LOG( PDEVENT, "Truncate collection[%s] succeed",
               pCollection ) ;

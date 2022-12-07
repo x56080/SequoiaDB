@@ -69,6 +69,7 @@ namespace engine
       CHAR           _version ;
       dmsExtentID    _scanExtLID ;
       dmsExtentID    _indexLID ;
+      dmsExtentID    _indexCBExtentID ;
       BSONObj        _indexDef ;
       CHAR           _extDataName[ DMS_MAX_EXT_NAME_SIZE + 1 ] ;
 
@@ -78,6 +79,7 @@ namespace engine
          _version = 0 ;
          _scanExtLID = -1 ;
          _indexLID = -1 ;
+         _indexCBExtentID = DMS_INVALID_EXTENT ;
          ossMemset( _extDataName, 0, DMS_MAX_EXT_NAME_SIZE + 1 ) ;
       }
 

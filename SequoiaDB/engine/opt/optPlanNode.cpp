@@ -397,17 +397,17 @@ namespace engine
          rc = rtnGetDoubleElement( object, OPT_FIELD_START_COST, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_START_COST, rc ) ;
-         _estStartCost = (UINT64)DMS_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
+         _estStartCost = (UINT64)RTN_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
 
          rc = rtnGetDoubleElement( object, OPT_FIELD_RUN_COST, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_RUN_COST, rc ) ;
-         _estRunCost = (UINT64)DMS_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
+         _estRunCost = (UINT64)RTN_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
 
          rc = rtnGetDoubleElement( object, OPT_FIELD_TOTAL_COST, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_TOTAL_COST, rc ) ;
-         _estTotalCost = (UINT64)DMS_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
+         _estTotalCost = (UINT64)RTN_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
       }
       catch ( std::exception &e )
       {
@@ -798,8 +798,8 @@ namespace engine
       SDB_ASSERT( collectionStat, "collectionStat is invalid" ) ;
 
       _inputRecords = OPT_ROUND_NUM_DEF( collectionStat->getTotalRecords(),
-                                         DMS_STAT_DEF_TOTAL_RECORDS ) ;
-      _inputPages = OPT_ROUND_NUM( collectionStat->getTotalDataPages() ) ;
+                                         RTN_STAT_DEF_TOTAL_RECORDS ) ;
+      _inputPages = OPT_ROUND_NUM( collectionStat->getTotalDataPages( TRUE ) );
       _inputRecordSize = OPT_ROUND_NUM(
                   (UINT32)ceil( (double)collectionStat->getTotalDataSize() /
                                 (double)_inputRecords ) ) ;
@@ -1466,7 +1466,7 @@ namespace engine
    }
 
    _optIxScanNode::_optIxScanNode ( const CHAR * pCollection,
-                                    const ixmIndexCB & indexCB,
+                                    const CONST_INDEX_META_INFO_PTR &idxMeta,
                                     INT32 estCacheSize )
    : _optScanNode ( pCollection, estCacheSize ),
      _direction( 1 ),
@@ -1487,14 +1487,14 @@ namespace engine
      _ixStatTime( 0 ),
      _ixRebuildTime( DPS_INVALID_TRANS_TIME )
    {
-      if ( indexCB.isInitialized() )
+      if ( idxMeta )
       {
-         _pIndexName.append( indexCB.getName() ) ;
-         _indexExtID = indexCB.getExtentID() ;
-         _indexLID = indexCB.getLogicalID() ;
-         _keyPattern = indexCB.keyPattern().getOwned() ;
-         _ixRebuildTime.init( indexCB.getRebuildTime() ) ;
-         _notArray = indexCB.notArray() ;
+         _pIndexName.append( idxMeta->getIndexName() ) ;
+         _indexExtID = idxMeta->getExtentID();
+         _indexLID = idxMeta->getLogicalID();
+         _keyPattern = idxMeta->getKeyPattern().getOwned() ;
+         _ixRebuildTime.init( idxMeta->getStpEffectiveTime() ) ;
+         _notArray = idxMeta->isNotArray();
       }
    }
 
@@ -1577,7 +1577,7 @@ namespace engine
       _preEvaluate( queryOptions, planHelper, collectionStat ) ;
 
       _indexPages = indexStat->getIndexPages() ;
-      _indexLevels = indexStat->getIndexLevels() ;
+      _indexLevels = indexStat->getIndexLevels();
 
       BOOLEAN isBestIndex = collectionStat->isBestIndex( indexStat ) ;
 
@@ -1621,10 +1621,10 @@ namespace engine
          }
       }
 
-      if ( indexStat->isValid() )
+      if ( indexStat->isValid() && indexStat->isGreaterThanCostThreshold() )
       {
-         _ixFromStat = TRUE ;
-         _ixStatTime = indexStat->getCreateTime() ;
+            _ixFromStat = TRUE ;
+            _ixStatTime = indexStat->getCreateTime() ;
       }
 
       PD_TRACE_EXIT( SDB_OPTIXSCAN_PREEVAL ) ;

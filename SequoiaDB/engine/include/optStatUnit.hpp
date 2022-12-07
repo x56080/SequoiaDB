@@ -38,8 +38,7 @@
 #ifndef OPTSTATUNIT_HPP__
 #define OPTSTATUNIT_HPP__
 
-#include "dmsStatUnit.hpp"
-#include "dmsSUCache.hpp"
+#include "interface/IObjectInfo.h"
 #include "rtnPredicate.hpp"
 #include "ixm.hpp"
 #include "ossMemPool.hpp"
@@ -63,7 +62,7 @@ namespace engine
       _optStatListKey define
     */
    class _optStatListKey : public ossPoolList<const rtnKeyBoundary *>,
-                           public _clsStatKey
+                           public _rtnStatKey
    {
       public :
          _optStatListKey () ;
@@ -110,7 +109,7 @@ namespace engine
       _optStatElementKey define
     */
    class _optStatElementKey : public BSONElement,
-                              public _clsStatKey
+                              public _rtnStatKey
    {
       public :
          explicit _optStatElementKey ( const BSONElement &element,
@@ -163,8 +162,8 @@ namespace engine
                                         BOOLEAN &isAllRange ) const ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
-                                      clsStatKey &startKey,
-                                      clsStatKey &stopKey,
+                                      rtnStatKey &startKey,
+                                      rtnStatKey &stopKey,
                                       BOOLEAN isEqual,
                                       INT32 majorType,
                                       BOOLEAN mixCmp,
@@ -175,7 +174,7 @@ namespace engine
          virtual UINT64 getCreateTime () const = 0 ;
 
       protected :
-         INT32 _evalKeyPair ( const dmsIndexStat *pIndexStat,
+         INT32 _evalKeyPair ( const CONST_INDEX_STAT_INFO_PTR &pIndexStat,
                               rtnStatPredList::iterator &predIter,
                               rtnStatPredList::iterator &endIter,
                               optStatListKey &startKeys,
@@ -194,38 +193,46 @@ namespace engine
    class _optIndexStat : public _optStatUnit
    {
       public :
-         _optIndexStat ( const optCollectionStat &collectionStat,
-                         const ixmIndexCB &indexCB ) ;
+         _optIndexStat( const _optCollectionStat &collectionStat,
+                        const CONST_INDEX_META_INFO_PTR &pIndexMeta,
+                        const CONST_INDEX_STAT_INFO_PTR &pIndexStat );
 
          virtual ~_optIndexStat () {}
 
-         OSS_INLINE const dmsIndexStat *getIndexStat () const
+         OSS_INLINE CONST_INDEX_META_INFO_PTR getIndexMeta () const
          {
-            return _pIndexStat ;
+            return _pIndexMeta;
+         }
+
+         OSS_INLINE CONST_INDEX_STAT_INFO_PTR getIndexStat () const
+         {
+            return _pIndexStat;
          }
 
          OSS_INLINE const BSONObj &getKeyPattern () const
          {
-            return _keyPattern ;
+            return _pIndexMeta->getKeyPattern() ;
          }
 
          OSS_INLINE virtual UINT64 getTotalRecords ( BOOLEAN realTime = FALSE ) const
          {
-            return ( _pIndexStat && !realTime ) ?
-                   _pIndexStat->getTotalRecords() : _totalRecords ;
+            return ( _pIndexStat && !realTime ) ? _pIndexStat->getTotalRecords()
+                                                : _totalRecords;
          }
 
-         OSS_INLINE UINT32 getIndexPages ( BOOLEAN realTime = FALSE ) const ;
+         OSS_INLINE UINT32 getIndexPages () const ;
 
          OSS_INLINE UINT32 getIndexLevels () const
          {
-            return _pIndexStat ? _pIndexStat->getIndexLevels() :
-                                 DMS_STAT_DEF_IDX_LEVELS ;
+            return _pIndexStat ? _pIndexStat->getIndexLevels() 
+                               : RTN_STAT_DEF_IDX_LEVELS ;
          }
 
+         OSS_INLINE BOOLEAN isGreaterThanCostThreshold() const;
+         
          OSS_INLINE virtual BOOLEAN isValid () const
          {
-            return ( _pIndexStat && _pIndexStat->isValidForEstimate() ) ;
+            return ( _pIndexMeta && _pIndexStat && _pIndexStat->isValidForEstimate() );
          }
 
          double evalPredicateList ( const CHAR *pFieldName,
@@ -234,8 +241,8 @@ namespace engine
                                     double &scanSelectivity ) const ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
-                                      clsStatKey &startKey,
-                                      clsStatKey &stopKey,
+                                      rtnStatKey &startKey,
+                                      rtnStatKey &stopKey,
                                       BOOLEAN isEqual,
                                       INT32 majorType,
                                       BOOLEAN mixCmp,
@@ -247,10 +254,9 @@ namespace engine
          }
 
       protected :
-         const optCollectionStat &  _collectionStat ;
-         const dmsIndexStat *       _pIndexStat ;
-
-         BSONObj                    _keyPattern ;
+         const _optCollectionStat &_collectionStat ;
+         CONST_INDEX_META_INFO_PTR _pIndexMeta ;
+         CONST_INDEX_STAT_INFO_PTR _pIndexStat ;
    } ;
 
    typedef _optIndexStat optIndexStat ;
@@ -261,28 +267,18 @@ namespace engine
    class _optCollectionStat : public _optStatUnit
    {
       public :
-         _optCollectionStat ( UINT32 pageSizeLog2,
-                              _dmsMBContext * mbContext,
-                              const _optAccessPlanHelper & helper,
-                              const dmsStatCache * statCache ) ;
+         _optCollectionStat ( const _optAccessPlanHelper & helper ) ;
 
          virtual ~_optCollectionStat () {}
 
-         OSS_INLINE const dmsCollectionStat *getCollectionStat () const
+         OSS_INLINE CONST_INDEX_STAT_INFO_PTR getIndexStat ( const CHAR *pFieldName ) const
          {
-            return _pCollectionStat ;
+            return ( _pCollectionStat && pFieldName ) ? _pCollectionStat->seek( pFieldName ) : nullptr ;
          }
 
-         OSS_INLINE const dmsIndexStat *getIndexStat ( dmsExtentID indexLID ) const
+         OSS_INLINE CONST_INDEX_META_INFO_PTR getIndexMeta ( const CHAR *pFieldName ) const
          {
-            return ( _pCollectionStat && DMS_INVALID_EXTENT != indexLID ) ?
-                   _pCollectionStat->getIndexStat( indexLID ) : NULL ;
-         }
-
-         OSS_INLINE const dmsIndexStat *getFieldStat ( const CHAR *pFieldName ) const
-         {
-            return ( _pCollectionStat && pFieldName ) ?
-                   _pCollectionStat->getFieldStat( pFieldName ) : NULL ;
+            return ( _pCollectionStat && pFieldName ) ? _pCollectionMeta->seek( pFieldName ) : nullptr ;
          }
 
          OSS_INLINE virtual UINT64 getTotalRecords ( BOOLEAN realTime = FALSE ) const
@@ -320,12 +316,7 @@ namespace engine
 
          OSS_INLINE UINT32 getTotalIndexPages () const
          {
-            return _totalIndexPages ;
-         }
-
-         OSS_INLINE UINT64 getTotalIndexSize () const
-         {
-            return _totalIndexSize ;
+            return  _totalIndexPages ;
          }
 
          OSS_INLINE UINT32 getAvgIndexPages () const
@@ -333,15 +324,15 @@ namespace engine
             return _avgIndexPages ;
          }
 
-         OSS_INLINE UINT64 getAvgIndexSize () const
-         {
-            return _avgIndexSize ;
-         }
-
          OSS_INLINE UINT32 getAvgNumFields () const
          {
-            return _pCollectionStat ? _pCollectionStat->getAvgNumFields() :
-                                      DMS_STAT_DEF_AVG_NUM_FIELDS ;
+            return _pCollectionStat ? _pCollectionStat->getAvgNumFields()
+                                    : RTN_STAT_DEF_AVG_NUM_FIELDS;
+         }
+
+         OSS_INLINE BOOLEAN isGreaterThanCostThreshold() const
+         {
+            return _isBiggerThanCostThreshold ;
          }
 
          OSS_INLINE virtual BOOLEAN isValid () const
@@ -359,8 +350,8 @@ namespace engine
                                    double &scanSelectivity ) ;
 
          virtual double evalKeyPair ( const CHAR *pFieldName,
-                                      clsStatKey &startKey,
-                                      clsStatKey &stopKey,
+                                      rtnStatKey &startKey,
+                                      rtnStatKey &stopKey,
                                       BOOLEAN isEqual,
                                       INT32 majorType,
                                       BOOLEAN mixCmp,
@@ -377,7 +368,7 @@ namespace engine
                                   const BSONElement &beValue,
                                   BOOLEAN included ) const ;
 
-         OSS_INLINE BOOLEAN isBestIndex ( const optIndexStat *indexStat ) const
+         OSS_INLINE BOOLEAN isBestIndex ( const _optIndexStat *indexStat ) const
          {
             if ( _bestIndexStat )
             {
@@ -392,9 +383,9 @@ namespace engine
          }
 
       protected :
-         OSS_INLINE void _setBestIndex ( const dmsIndexStat *pIndexStat )
+         OSS_INLINE void _setBestIndex ( const CONST_INDEX_STAT_INFO_PTR &ptr )
          {
-            _bestIndexStat = pIndexStat ;
+            _bestIndexStat = ptr ;
          }
 
          double _evalKeyPair ( const BSONElement &startKey,
@@ -417,36 +408,37 @@ namespace engine
          double _evalLTOperator ( const BSONElement &beStop,
                                   BOOLEAN stopIncluded ) const ;
 
-         const dmsIndexStat *_getMatchedIndex ( rtnPredicateSet &predicates ) const ;
-
-         void _initCurrentStat ( _dmsMBContext *mbContext ) ;
-         void _initHistoryStat ( _dmsMBContext * mbContext,
-                                 const _optAccessPlanHelper & planHelper,
-                                 const dmsStatCache * statCache ) ;
+         CONST_INDEX_STAT_INFO_PTR _getMatchedIndex ( rtnPredicateSet &predicates ) const ;
+         
+         void _initCurrentStat () ;
 
       protected :
-         /* Init from dmsMBContext */
          UINT32            _pageSizeLog2 ;
          UINT32            _totalDataPages ;
          UINT64            _totalDataSize ;
 
          UINT32            _numIndexes ;
          UINT32            _totalIndexPages ;
-         UINT64            _totalIndexSize ;
          UINT32            _avgIndexPages ;
-         UINT64            _avgIndexSize ;
 
-         const dmsCollectionStat *  _pCollectionStat ;
-         const dmsIndexStat *       _bestIndexStat ;
+         CONST_CL_META_INFO_PTR _pCollectionMeta ;
+         CONST_CL_STAT_INFO_PTR _pCollectionStat ;
+         CONST_INDEX_STAT_INFO_PTR _bestIndexStat ;
+
+         BOOLEAN _isBiggerThanCostThreshold = FALSE;
    } ;
 
    /*
       _optIndexStat inline functions
     */
-   UINT32 _optIndexStat::getIndexPages ( BOOLEAN realTime ) const
+   UINT32 _optIndexStat::getIndexPages () const
    {
-      return ( _pIndexStat && !realTime ) ?
-             _pIndexStat->getIndexPages() : _collectionStat.getAvgIndexPages() ;
+      return ( _pIndexStat ) ? _pIndexStat->getIndexPages() : _collectionStat.getAvgIndexPages();
+   }
+
+   BOOLEAN _optIndexStat::isGreaterThanCostThreshold() const
+   {
+      return _collectionStat.isGreaterThanCostThreshold();
    }
 
    /*

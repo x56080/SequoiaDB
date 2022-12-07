@@ -39,6 +39,7 @@
 *******************************************************************************/
 
 #include "optAPM.hpp"
+#include "clsMgr.hpp"
 #include "rtn.hpp"
 #include "dmsStorageUnit.hpp"
 #include "dmsCB.hpp"
@@ -189,51 +190,44 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPCACHES_INVALIDSUPLANS, "_optAccessPlanCache::invalidateSUPlans" )
-   void _optAccessPlanCache::invalidateSUPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
-                                                 UINT32 suLID )
+   void _optAccessPlanCache::invalidateSUPlans ( utilCSUniqueID csUID )
    {
       PD_TRACE_ENTRY( SDB_OPTAPCACHES_INVALIDSUPLANS ) ;
-
-      SDB_ASSERT( pCachedPlanMgr, "pCachedPlanMgr is invalid" ) ;
 
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
       for ( UINT32 bucketID = 0 ; bucketID < getBucketNum() ; bucketID ++ )
       {
-         if ( pCachedPlanMgr->getBucketNum() != getBucketNum() ||
-              pCachedPlanMgr->testCacheBitmap( bucketID ) )
+         // Lock the clear lock shared, parallel removing for different
+         // collections or collection spaces is allowed
+         ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
+         utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
+
+         if ( NULL != pBucket )
          {
-            // Lock the clear lock shared, parallel removing for different
-            // collections or collection spaces is allowed
-            ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
-            utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
-
-            if ( NULL != pBucket )
+            optAccessPlan *pPlan = pBucket->getHead() ;
+            while ( NULL != pPlan )
             {
-               optAccessPlan *pPlan = pBucket->getHead() ;
-               while ( NULL != pPlan )
+               optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
+               if ( utilGetCSUniqueID( pPlan->getCLUniqueID() ) == csUID )
                {
-                  optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
-                  if ( pPlan->getSULID() == suLID )
+                  // Locked bucket already, safe to remove from bucket
+                  if ( pBucket->removeItem( pPlan ) )
                   {
-                     // Locked bucket already, safe to remove from bucket
-                     if ( pBucket->removeItem( pPlan ) )
-                     {
-                        // We need to reset the activity ID to check if someone
-                        // else is also deleting this plan
-                        _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
-                     }
-
-                     pPlan->release() ;
+                     // We need to reset the activity ID to check if someone
+                     // else is also deleting this plan
+                     _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
                   }
-                  pPlan = pNextPlan ;
+
+                  pPlan->release() ;
                }
-               releaseBucket( bucketID, EXCLUSIVE ) ;
+               pPlan = pNextPlan ;
             }
-            else
-            {
-               SDB_ASSERT( pBucket, "pBucket is invalid" ) ;
-            }
+            releaseBucket( bucketID, EXCLUSIVE ) ;
+         }
+         else
+         {
+            SDB_ASSERT( pBucket, "pBucket is invalid" ) ;
          }
       }
 
@@ -241,73 +235,48 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPCACHES_INVALIDCLPLANS, "_optAccessPlanCache::invalidateCLPlans" )
-   void _optAccessPlanCache::invalidateCLPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
-                                                 UINT32 suLID, UINT32 clLID )
+   void _optAccessPlanCache::invalidateCLPlans ( utilCLUniqueID clUID )
    {
       PD_TRACE_ENTRY( SDB_OPTAPCACHES_INVALIDCLPLANS ) ;
 
-      SDB_ASSERT( pCachedPlanMgr, "pCachedPlanMgr is invalid" ) ;
 
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
       for ( UINT32 bucketID = 0 ; bucketID < getBucketNum() ; bucketID ++ )
       {
-         if ( pCachedPlanMgr->getBucketNum() != getBucketNum() ||
-              pCachedPlanMgr->testCacheBitmap( bucketID ) )
+         
+         // Lock the clear lock shared, parallel removing for different
+         // collections or collection spaces is allowed
+         ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
+         utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
+
+         if ( NULL != pBucket )
          {
-            // Lock the clear lock shared, parallel removing for different
-            // collections or collection spaces is allowed
-            ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
-            utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
-            BOOLEAN clearBit = TRUE ;
-
-            if ( NULL != pBucket )
+            optAccessPlan *pPlan = pBucket->getHead() ;
+            while ( pPlan )
             {
-               optAccessPlan *pPlan = pBucket->getHead() ;
-               while ( pPlan )
+               optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
+               if (  pPlan->getCLUniqueID() == clUID )
                {
-                  optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
-                  if ( pPlan->getSULID() == suLID && pPlan->getCLLID() == clLID )
+                  // Locked bucket already, safe to remove from bucket
+                  if ( pBucket->removeItem( pPlan ) )
                   {
-                     // Locked bucket already, safe to remove from bucket
-                     if ( pBucket->removeItem( pPlan ) )
-                     {
-                        // We need to reset the activity ID to check if someone
-                        // else is also deleting this plan
-                        _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
-                     }
-                     else if ( clearBit )
-                     {
-                        // The plan is not removed, so to be safe,
-                        // could not clear the bit
-                        clearBit = FALSE ;
-                     }
-
-                     pPlan->release() ;
+                     // We need to reset the activity ID to check if someone
+                     // else is also deleting this plan
+                     _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
                   }
-                  else if ( clearBit && pPlan->getSULID() == suLID )
-                  {
-                     // Still contains plans from the same collection space
-                     // could not clear the bit
-                     clearBit = FALSE ;
-                  }
-                  pPlan = pNextPlan ;
+                  pPlan->release() ;
                }
-
-               if ( clearBit )
-               {
-                  // Bucket contains no plans of this SU any more
-                  // clear the bit
-                  pCachedPlanMgr->clearCacheBit( bucketID ) ;
-               }
-
-               releaseBucket( bucketID, EXCLUSIVE ) ;
+               pPlan = pNextPlan ;
             }
-            else
-            {
-               SDB_ASSERT( pBucket, "pBucket is invalid" ) ;
-            }
+
+            releaseBucket( bucketID, EXCLUSIVE ) ;
          }
+         else
+         {
+            SDB_ASSERT( pBucket, "pBucket is invalid" ) ;
+         }
+      
       }
 
       PD_TRACE_EXIT( SDB_OPTAPCACHES_INVALIDCLPLANS ) ;
@@ -581,7 +550,6 @@ namespace engine
                                              optAccessPlan *pPlan )
    {
       SDB_ASSERT( pPlan, "pPlan is invalid" ) ;
-      pPlan->setCachedBitmap() ;
       pPlan->incRefCount() ;
    }
 
@@ -1111,7 +1079,8 @@ namespace engine
                                        OPT_PLAN_CACHE_LEVEL cacheLevel,
                                        UINT32 sortBufferSize,
                                        INT32 optCostThreshold,
-                                       BOOLEAN enableMixCmp )
+                                       BOOLEAN enableMixCmp,
+                                       BOOLEAN activateClearJob )
    {
       INT32 rc = SDB_OK ;
 
@@ -1141,18 +1110,18 @@ namespace engine
                    "Failed to initialize plan cache sweeper" ) ;
 
          // Start cached-plan clearing background job
-         rc = _startClearJob() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to start cached-plan clearing job "
-                      "failed, rc: %d", rc ) ;
+         if ( activateClearJob )
+         {
+            rc = _startClearJob() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to start cached-plan clearing job "
+                         "failed, rc: %d", rc ) ;
+         }
       }
       else
       {
          bucketNum = 0 ;
          cacheLevel = OPT_PLAN_NOCACHE ;
       }
-
-      // Change caches in DMS level
-      sdbGetDMSCB()->changeSUCaches( getMask() ) ;
 
       // Update parameterize and fuzzy-operator by cache level
       setMthEnableParameterized( cacheLevel >= OPT_PLAN_PARAMETERIZED ) ;
@@ -1216,7 +1185,7 @@ namespace engine
                setOptCostThreshold( optCostThreshold ) ;
                setMthEnableMixCmp( enableMixCmp ) ;
 
-               sdbGetDMSCB()->clearSUCaches( DMS_EVENT_MASK_PLAN ) ;
+               _marker.clear() ;
 
                setMthEnableParameterized( cacheLevel >= OPT_PLAN_PARAMETERIZED ) ;
                setMthEnableFuzzyOptr( cacheLevel >= OPT_PLAN_FUZZYOPTR ) ;
@@ -1292,18 +1261,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_GETAP, "_optAccessPlanManager::getAccessPlan" )
-   INT32 _optAccessPlanManager::getAccessPlan ( const rtnQueryOptions &options,
-                                                dmsStorageUnit *su,
-                                                dmsMBContext *mbContext,
+   INT32 _optAccessPlanManager::getAccessPlan ( IExecutor *executor,
+                                                const rtnQueryOptions &options,
+                                                const rtnCollectionInfo &info,
                                                 optAccessPlanRuntime &planRuntime,
                                                 const rtnExplainOptions *expOptions )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTAPM_GETAP ) ;
-
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
 
       BOOLEAN gotMainCLPlan = FALSE ;
 
@@ -1317,9 +1283,7 @@ namespace engine
            NULL != options.getMainCLName() &&
            ( NULL == expOptions || !expOptions->isNeedSearch() ) )
       {
-         dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
-         if ( NULL == pCachedPlanMgr ||
-              pCachedPlanMgr->testMainCLInvalidBitmap( mbContext->mbID() ) )
+         if ( _marker.testMainCLInvalid( options.getCLFullName() ) )
          {
             // The sub-collection is not validated to use main-collection plans,
             // generate a general plan for it
@@ -1330,7 +1294,7 @@ namespace engine
             // If it is from main-collection, try to get or create main-collection
             // plan
             // Note: sub-collection name is considered as one of parameters
-            rc = _getMainCLAccessPlan( options, su, mbContext, planRuntime ) ;
+            rc = _getMainCLAccessPlan( executor, options, info, planRuntime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get main-collection access plan "
                          "for query [ %s ], rc: %d", options.toString().c_str(),
                          rc ) ;
@@ -1342,8 +1306,7 @@ namespace engine
       {
          // If cache is not initialized, or it not from main-collection, or the
          // cache level is too low, get or create normal plan
-         rc = _getCLAccessPlan( options, su, mbContext, planRuntime,
-                                expOptions ) ;
+         rc = _getCLAccessPlan( executor, options, info, planRuntime, expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                       "query [ %s ], rc: %d", options.toString().c_str(), rc ) ;
       }
@@ -1371,20 +1334,16 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_GETTEMPAP, "_optAccessPlanManager::getTempAccessPlan" )
-   INT32 _optAccessPlanManager::getTempAccessPlan ( const rtnQueryOptions &options,
-                                                    dmsStorageUnit *su,
-                                                    dmsMBContext *mbContext,
+   INT32 _optAccessPlanManager::getTempAccessPlan ( IExecutor *executor,
+                                                    const rtnQueryOptions &options,
+                                                    const rtnCollectionInfo &info,
                                                     optAccessPlanRuntime &planRuntime )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTAPM_GETTEMPAP ) ;
 
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
-
-      rc = _getCLAccessPlan( options, OPT_PLAN_NOCACHE, su, mbContext,
-                             planRuntime, NULL ) ;
+      rc = _getCLAccessPlan( executor, options, OPT_PLAN_NOCACHE, info, planRuntime, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                    "query [ %s ], rc: %d", options.toString().c_str(), rc ) ;
 
@@ -1409,6 +1368,21 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB_OPTAPM_INVALIDCLPLANS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_INVALIDCLPLANS2, "_optAccessPlanManager::invalidateCLPlans" )
+   void _optAccessPlanManager::invalidateCLPlans ( utilCLUniqueID clUID )
+   {
+      PD_TRACE_ENTRY( SDB_OPTAPM_INVALIDCLPLANS2 ) ;
+
+      SDB_ASSERT( UTIL_IS_VALID_CLUNIQUEID(clUID), "cl unique id is invalid") ;
+
+      if ( isInitialized() )
+      {
+         _planCache.invalidateCLPlans( clUID ) ;
+      }
+
+      PD_TRACE_EXIT( SDB_OPTAPM_INVALIDCLPLANS2 ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_INVALIDSUPLANS, "_optAccessPlanManager::invalidateSUPlans" )
@@ -1460,334 +1434,16 @@ namespace engine
       PD_TRACE_EXIT( SDB_OPTAPM_SETQUERYACT ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONCRTCS, "_optAccessPlanManager::onCreateCS" )
-   INT32 _optAccessPlanManager::onCreateCS ( IDmsEventHolder *pEventHolder,
-                                             IDmsSUCacheHolder *pCacheHolder,
-                                             pmdEDUCB *cb,
-                                             SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONCRTCS ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _resetSUPlanCache( pCacheHolder ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONCRTCS, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONLOADCS, "_optAccessPlanManager::onLoadCS" )
-   INT32 _optAccessPlanManager::onLoadCS ( IDmsEventHolder *pEventHolder,
-                                           IDmsSUCacheHolder *pCacheHolder,
-                                           pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONLOADCS ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _resetSUPlanCache( pCacheHolder ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONLOADCS, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONUNLOADCS, "_optAccessPlanManager::onUnloadCS" )
-   INT32 _optAccessPlanManager::onUnloadCS ( IDmsEventHolder *pEventHolder,
-                                             IDmsSUCacheHolder *pCacheHolder,
-                                             pmdEDUCB *cb,
-                                             SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONRENAMECL ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         // Only to remove SU plans
-         // no need to remove main-collection plans
-         _invalidSUPlans( pCacheHolder ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONRENAMECL, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONRENAMECS, "_optAccessPlanManager::onRenameCS" )
-   INT32 _optAccessPlanManager::onRenameCS ( IDmsEventHolder *pEventHolder,
-                                             IDmsSUCacheHolder *pCacheHolder,
-                                             const CHAR *pOldCSName,
-                                             const CHAR *pNewCSName,
-                                             pmdEDUCB *cb,
-                                             SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONRENAMECS ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _invalidSUPlans( pCacheHolder ) ;
-
-         // Run invalidation again to clear main-collection plans
-         invalidateSUPlans( pOldCSName ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONRENAMECS, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONDROPCS, "_optAccessPlanManager::onDropCS" )
-   INT32 _optAccessPlanManager::onDropCS ( SDB_EVENT_OCCUR_TYPE type,
-                                           IDmsEventHolder *pEventHolder,
-                                           IDmsSUCacheHolder *pCacheHolder,
-                                           const dmsEventSUItem &suItem,
-                                           dmsDropCSOptions *options,
-                                           pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB)
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONDROPCS ) ;
-
-      if ( SDB_EVT_OCCUR_AFTER == type )
-      {
-         SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-         if ( pCacheHolder && isInitialized() )
-         {
-            _invalidSUPlans( pCacheHolder ) ;
-
-            // Run invalidation again to clear main-collection plans
-            invalidateSUPlans( pCacheHolder->getCSName() ) ;
-         }
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONDROPCS, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONRENAMECL, "_optAccessPlanManager::onRenameCL" )
-   INT32 _optAccessPlanManager::onRenameCL ( IDmsEventHolder *pEventHolder,
-                                             IDmsSUCacheHolder *pCacheHolder,
-                                             const dmsEventCLItem &clItem,
-                                             const CHAR *pNewCLName,
-                                             pmdEDUCB *cb,
-                                             SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONRENAMECL ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONRENAMECL, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONTRUNCATECL, "_optAccessPlanManager::onTruncateCL" )
-   INT32 _optAccessPlanManager::onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
-                                               IDmsEventHolder *pEventHolder,
-                                               IDmsSUCacheHolder *pCacheHolder,
-                                               const dmsEventCLItem &clItem,
-                                               dmsTruncCLOptions *options,
-                                               pmdEDUCB *cb,
-                                               SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONTRUNCATECL ) ;
-
-      if ( SDB_EVT_OCCUR_AFTER == type )
-      {
-         SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-         if ( pCacheHolder && isInitialized() )
-         {
-            _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
-         }
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONTRUNCATECL, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONDROPCL, "_optAccessPlanManager::onDropCL" )
-   INT32 _optAccessPlanManager::onDropCL ( SDB_EVENT_OCCUR_TYPE type,
-                                           IDmsEventHolder *pEventHolder,
-                                           IDmsSUCacheHolder *pCacheHolder,
-                                           const dmsEventCLItem &clItem,
-                                           dmsDropCLOptions *options,
-                                           pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONDROPCL ) ;
-
-      if ( SDB_EVT_OCCUR_BEFORE == type )
-      {
-         SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-         if ( pCacheHolder && isInitialized() )
-         {
-            _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
-         }
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONDROPCL, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONREBUILDIDX, "_optAccessPlanManager::onRebuildIndex" )
-   INT32 _optAccessPlanManager::onRebuildIndex ( IDmsEventHolder *pEventHolder,
-                                                 IDmsSUCacheHolder *pCacheHolder,
-                                                 const dmsEventCLItem &clItem,
-                                                 const dmsEventIdxItem &idxItem,
-                                                 pmdEDUCB *cb,
-                                                 SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONREBUILDIDX ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONREBUILDIDX, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONDROPIDX, "_optAccessPlanManager::onDropIndex" )
-   INT32 _optAccessPlanManager::onDropIndex ( IDmsEventHolder *pEventHolder,
-                                              IDmsSUCacheHolder *pCacheHolder,
-                                              const dmsEventCLItem &clItem,
-                                              const dmsEventIdxItem &idxItem,
-                                              pmdEDUCB *cb,
-                                              SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONDROPIDX ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONDROPIDX, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONCLRSUCACHES, "_optAccessPlanManager::onClearSUCaches" )
-   INT32 _optAccessPlanManager::onClearSUCaches ( IDmsEventHolder *pEventHolder,
-                                                  IDmsSUCacheHolder *pCacheHolder )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONCLRSUCACHES ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _invalidSUPlans( pCacheHolder ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONCLRSUCACHES, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONCLRCLCACHES, "_optAccessPlanManager::onClearCLCaches" )
-   INT32 _optAccessPlanManager::onClearCLCaches ( IDmsEventHolder *pEventHolder,
-                                                  IDmsSUCacheHolder *pCacheHolder,
-                                                  const dmsEventCLItem &clItem )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONCLRCLCACHES ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONCLRCLCACHES, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONCHGSUCACHES, "_optAccessPlanManager::onChangeSUCaches" )
-   INT32 _optAccessPlanManager::onChangeSUCaches ( IDmsEventHolder *pEventHolder,
-                                                   IDmsSUCacheHolder *pCacheHolder )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONCHGSUCACHES ) ;
-
-      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
-
-      if ( pCacheHolder && isInitialized() )
-      {
-         _resetSUPlanCache( pCacheHolder ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONCHGSUCACHES, rc ) ;
-
-      return rc ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__GETCLAP, "_optAccessPlanManager::_getCLAccessPlan" )
-   INT32 _optAccessPlanManager::_getCLAccessPlan ( const rtnQueryOptions &options,
-                                                   dmsStorageUnit *su,
-                                                   dmsMBContext *mbContext,
+   INT32 _optAccessPlanManager::_getCLAccessPlan ( IExecutor *executor,
+                                                   const rtnQueryOptions &options,
+                                                   const rtnCollectionInfo &info,
                                                    optAccessPlanRuntime &planRuntime,
                                                    const rtnExplainOptions *expOptions )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTAPM__GETCLAP ) ;
-
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
 
       OPT_PLAN_CACHE_LEVEL cacheLevel = _cacheLevel ;
 
@@ -1800,9 +1456,7 @@ namespace engine
       // lower the cache level to normalized
       if ( cacheLevel >= OPT_PLAN_PARAMETERIZED )
       {
-         dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
-         if ( pCachedPlanMgr == NULL ||
-              pCachedPlanMgr->testParamInvalidBitmap( mbContext->mbID() ) )
+         if ( _marker.testParamInvalid( options.getCLFullName() ) )
          {
             PD_LOG( PDDEBUG, "Collection [%s] is invalid for parameterized "
                     "plans", options.getCLFullName() ) ;
@@ -1810,7 +1464,7 @@ namespace engine
          }
       }
 
-      rc = _getCLAccessPlan( options, cacheLevel, su, mbContext, planRuntime,
+      rc = _getCLAccessPlan( executor, options, cacheLevel, info, planRuntime,
                              expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                    "query [ %s ], rc: %d", options.toString().c_str(), rc ) ;
@@ -1824,10 +1478,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__GETCLAP_LEVEL, "_optAccessPlanManager::_getCLAccessPlan" )
-   INT32 _optAccessPlanManager::_getCLAccessPlan ( const rtnQueryOptions &options,
+   INT32 _optAccessPlanManager::_getCLAccessPlan ( IExecutor *executor,
+                                                   const rtnQueryOptions &options,
                                                    OPT_PLAN_CACHE_LEVEL cacheLevel,
-                                                   dmsStorageUnit *su,
-                                                   dmsMBContext *mbContext,
+                                                   const rtnCollectionInfo &info,
                                                    optAccessPlanRuntime &planRuntime,
                                                    const rtnExplainOptions *expOptions )
    {
@@ -1835,25 +1489,20 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM__GETCLAP_LEVEL ) ;
 
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
-
       optGeneralAccessPlan *pPlan = NULL ;
 
       // Construct the plan key, but needn't to get owned at this stage
       optAccessPlanKey planKey( options, cacheLevel ) ;
 
-      optAccessPlanHelper planHelper( pmdGetThreadEDUCB(),
-                                      cacheLevel, getPlanConfig(),
-                                      getMatchConfig(), expOptions ) ;
+      optAccessPlanHelper planHelper( executor, cacheLevel, getPlanConfig(), getMatchConfig(),
+                                      info.getMetaInfo(), info.getStatInfo(), expOptions );
       BOOLEAN needCache = ( isInitialized() &&
                             cacheLevel > OPT_PLAN_NOCACHE &&
                             !planHelper.isKeepPaths() ) ;
 
       planRuntime.reset() ;
 
-      rc = _prepareAccessPlanKey( su, mbContext, planKey, planHelper,
-                                  planRuntime ) ;
+      rc = _prepareAccessPlanKey( planKey, planHelper, planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare key of access plan, rc: %d",
                    rc ) ;
 
@@ -1877,26 +1526,29 @@ namespace engine
                pTmpPlan->release() ;
             }
             else if ( pPlan->isEstimatedFromStat() &&
-                      optCheckStatExpired( mbContext->mbStat()->_totalDataPages,
-                                           pPlan->getInputPages(),
-                                           planHelper.getOptCostThreshold(),
-                                           su->getPageSizeLog2() ) )
+                      optCheckStatExpired( info.getStatInfo()->getTotalDataPages(),
+                                           pPlan->getInputPages(), planHelper.getOptCostThreshold(),
+                                           info.getMetaInfo()->getPageSizeLog2() ) )
             {
-               dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
-
                // plan is expired
                PD_LOG( PDDEBUG, "Plan [%s] is expired, current pages [%d], "
                        "statistics pages [%d], cost threshold [%d]",
                        pPlan->toString().c_str(),
-                       mbContext->mbStat()->_totalDataPages,
+                       planHelper.getCLStat()->getTotalDataPages(),
                        pPlan->getInputPages(),
                        planHelper.getOptCostThreshold() ) ;
 
                // clear expired plan and flags
                _planCache.removeCachedPlan( pPlan, SHARED ) ;
-               if ( NULL != pCachedPlanMgr )
+               try
                {
-                  pCachedPlanMgr->clearParamInvalidBit( mbContext->mbID() ) ;
+                  _marker.clearParamInvalid( options.getCLFullName() );
+               }
+               catch ( std::exception &e )
+               {
+                  PD_LOG( PDWARNING, "occur exception: %s", e.what() );
+                  rc = ossException2RC( &e );
+                  goto error;
                }
 
                // release plan
@@ -1904,8 +1556,6 @@ namespace engine
                pPlan = NULL ;
             }
             else if ( SDB_OK != planHelper.checkGlobTrans( planKey,
-                                                           su,
-                                                           mbContext,
                                                            pPlan ) )
             {
                // failed to check with global transaction ( global transaction
@@ -1924,7 +1574,7 @@ namespace engine
       if ( NULL == pPlan )
       {
          // Failed to get plan from cache, create it
-         rc = _createAccessPlan( su, mbContext, planKey, planRuntime,
+         rc = _createAccessPlan( planKey, planRuntime,
                                  planHelper, &pPlan, needCache ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create access plan, rc: %d",
                       rc ) ;
@@ -1940,8 +1590,7 @@ namespace engine
             SDB_ASSERT( paramPlan, "paramPlan is invalid" ) ;
 
             // Plan is parameterized, bind the parameters
-            rc = _validateParamPlan( su, mbContext, planKey, planRuntime,
-                                     planHelper, paramPlan ) ;
+            rc = _validateParamPlan( info, planKey, planRuntime, planHelper, paramPlan ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to validate parameterized plan, "
                          "rc: %d", rc ) ;
          }
@@ -1976,31 +1625,25 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__GETMAINAP, "_optAccessPlanManager::_getMainCLAccessPlan" )
-   INT32 _optAccessPlanManager::_getMainCLAccessPlan ( const rtnQueryOptions &options,
-                                                       dmsStorageUnit *su,
-                                                       dmsMBContext *mbContext,
+   INT32 _optAccessPlanManager::_getMainCLAccessPlan ( IExecutor *executor,
+                                                       const rtnQueryOptions &options,
+                                                       const rtnCollectionInfo &info,
                                                        optAccessPlanRuntime &planRuntime )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTAPM__GETMAINAP ) ;
-
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
       SDB_ASSERT( options.getMainCLName(), "mainCLName is invalid" ) ;
 
       optAccessPlan *pPlan = NULL ;
       OPT_PLAN_CACHE_LEVEL cacheLevel = _cacheLevel ;
-      UINT16 subCLMBID = mbContext->mbID() ;
+      const CHAR * subCLFullName = options.getCLFullName();
 
-      dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
-
-      if ( NULL == pCachedPlanMgr ||
-           pCachedPlanMgr->testMainCLInvalidBitmap( subCLMBID ) )
+      if ( _marker.testMainCLInvalid( subCLFullName ) )
       {
          // The sub-collection is not validated to use main-collection plans,
          // generate a general plan for it
-         rc = _getCLAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
+         rc = _getCLAccessPlan( executor, options, info, planRuntime, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                       "query [ %s ], rc: %d", options.toString().c_str(), rc ) ;
       }
@@ -2011,12 +1654,10 @@ namespace engine
          planKey.setCLFullName( options.getMainCLName() ) ;
          planKey.setMainCLName( NULL ) ;
 
-         optAccessPlanHelper planHelper( pmdGetThreadEDUCB(),
-                                         cacheLevel, getPlanConfig(),
-                                         getMatchConfig(), FALSE ) ;
+         optAccessPlanHelper planHelper( executor, cacheLevel, getPlanConfig(), getMatchConfig(),
+                                         info.getMetaInfo(), info.getStatInfo(), FALSE );
 
-         rc = _prepareAccessPlanKey( NULL, NULL, planKey, planHelper,
-                                     planRuntime ) ;
+         rc = _prepareAccessPlanKey( planKey, planHelper, planRuntime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare key of access plan, "
                       "rc: %d", rc ) ;
 
@@ -2031,23 +1672,23 @@ namespace engine
             if ( NULL != pPlan &&
                  pPlan->isMainCLValid() &&
                  pPlan->isEstimatedFromStat() &&
-                 !pCachedPlanMgr->testParamInvalidBitmap( subCLMBID ) &&
-                 optCheckStatExpired( mbContext->mbStat()->_totalDataPages,
+                 !_marker.testParamInvalid( subCLFullName ) &&
+                 optCheckStatExpired( info.getStatInfo()->getTotalDataPages(),
                                       pPlan->getInputPages(),
                                       planHelper.getOptCostThreshold(),
-                                      su->getPageSizeLog2() ) )
+                                      info.getMetaInfo()->getPageSizeLog2() ) )
             {
                // plan is expired
                PD_LOG( PDDEBUG, "Plan [%s] is expired, current pages [%d], "
                        "statistics pages [%d], cost threshold [%d]",
                        pPlan->toString().c_str(),
-                       mbContext->mbStat()->_totalDataPages,
+                       planHelper.getCLStat()->getTotalDataPages(),
                        pPlan->getInputPages(),
                        planHelper.getOptCostThreshold() ) ;
 
                // clear expired plan and flags
                _planCache.removeCachedPlan( pPlan, SHARED ) ;
-               pCachedPlanMgr->clearMainCLInvalidBit( subCLMBID ) ;
+               _marker.erase( subCLFullName ) ;
 
                // release plan
                pPlan->release() ;
@@ -2064,8 +1705,7 @@ namespace engine
                // Could not find the main-collection plan from cache, so create
                // the plan for sub-collection and bind it to the main-collection
                // plan
-               rc = _createMainCLPlan( planKey, options, su, mbContext,
-                                       planRuntime, planHelper, &mainPlan ) ;
+               rc = _createMainCLPlan( planKey, options, planRuntime, planHelper, &mainPlan );
                PD_RC_CHECK( rc, PDERROR, "Failed to create main-collection "
                             "query, rc: %d", rc ) ;
 
@@ -2095,9 +1735,9 @@ namespace engine
 
                // use the sub-collection to create plan
                planKey.setCLFullName( options.getCLFullName() ) ;
-               planKey.setCollectionInfo( su, mbContext ) ;
-               rc = _createAccessPlan( su, mbContext, planKey, planRuntime,
-                                       planHelper, &generalPlan, FALSE ) ;
+               planKey.setCLUniqueID( options.getCLUniqueID() ) ;
+               planKey.generateKeyCodeAndValidate() ;
+               rc = _createAccessPlan( planKey, planRuntime, planHelper, &generalPlan, FALSE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to create access plan, rc: %d",
                             rc ) ;
 
@@ -2112,20 +1752,17 @@ namespace engine
                               dynamic_cast<optMainCLAccessPlan *>( pPlan ) ;
             SDB_ASSERT( mainPlan, "mainPlan is invalid " ) ;
 
-            if ( pCachedPlanMgr->testParamInvalidBitmap( subCLMBID ) ||
-                 !mainPlan->isMainCLValid() )
+            if ( _marker.testParamInvalid( subCLFullName ) || !mainPlan->isMainCLValid() )
             {
                // The sub-collection is not parameterized validated, we need
                // to verify if it is validate to main-collection plan
-               rc = _validateMainCLPlan( mainPlan, options, su, mbContext,
-                                         planRuntime, planHelper ) ;
+               rc = _validateMainCLPlan( mainPlan, options, planRuntime, planHelper ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to validate main-collection "
                             "plan, rc: %d", rc ) ;
             }
             else
             {
-               rc = _bindMainCLPlan( mainPlan, options, su, mbContext,
-                                     planRuntime, planHelper ) ;
+               rc = _bindMainCLPlan( mainPlan, options, planRuntime, planHelper ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to bind main-collection "
                             "plan, rc: %d", rc ) ;
             }
@@ -2157,9 +1794,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__PREPAREAPKEY, "_optAccessPlanManager::_prepareAccessPlanKey" )
-   INT32 _optAccessPlanManager::_prepareAccessPlanKey ( dmsStorageUnit *su,
-                                                        dmsMBContext *mbContext,
-                                                        optAccessPlanKey &planKey,
+   INT32 _optAccessPlanManager::_prepareAccessPlanKey ( optAccessPlanKey &planKey,
                                                         optAccessPlanHelper &planHelper,
                                                         optAccessPlanRuntime &planRuntime )
    {
@@ -2197,8 +1832,7 @@ namespace engine
             planRuntime.deleteMatchRuntime() ;
          }
       }
-
-      planKey.setCollectionInfo( su, mbContext ) ;
+      planKey.generateKeyCodeAndValidate() ;
 
    done :
       PD_TRACE_EXITRC( SDB_OPTAPM__PREPAREAPKEY, rc ) ;
@@ -2209,9 +1843,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__CRTAP, "_optAccessPlanManager::_createAccessPlan" )
-   INT32 _optAccessPlanManager::_createAccessPlan ( dmsStorageUnit *su,
-                                                    dmsMBContext *mbContext,
-                                                    optAccessPlanKey &planKey,
+   INT32 _optAccessPlanManager::_createAccessPlan ( optAccessPlanKey &planKey,
                                                     optAccessPlanRuntime &planRuntime,
                                                     optAccessPlanHelper &planHelper,
                                                     optGeneralAccessPlan **ppPlan,
@@ -2221,8 +1853,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM__CRTAP ) ;
 
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
       SDB_ASSERT( ppPlan, "ppPlan is invalid" ) ;
 
       optGeneralAccessPlan *pPlan = NULL ;
@@ -2232,11 +1862,13 @@ namespace engine
       if ( isParameterized )
       {
          pPlan = SDB_OSS_NEW optParamAccessPlan( planKey,
+                                                 acquireAccessPlanID(),
                                                  planHelper.getMatchConfig() ) ;
       }
       else
       {
          pPlan = SDB_OSS_NEW optGeneralAccessPlan( planKey,
+                                                   acquireAccessPlanID(),
                                                    planHelper.getMatchConfig() ) ;
       }
       PD_CHECK( NULL != pPlan, SDB_OOM, error, PDERROR,
@@ -2258,7 +1890,7 @@ namespace engine
          pPlan->getMatchRuntimeOnwed( planRuntime ) ;
       }
 
-      rc = pPlan->optimize( su, mbContext, planHelper ) ;
+      rc = pPlan->optimize( planHelper ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to optimize plan, query: %s\norder %s\nhint %s",
                    planKey.getQuery().toString().c_str(),
@@ -2356,8 +1988,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__VALIDPARAMPLAN, "_optAccessPlanManager::_validateParamPlan" )
-   INT32 _optAccessPlanManager::_validateParamPlan ( dmsStorageUnit *su,
-                                                     dmsMBContext *mbContext,
+   INT32 _optAccessPlanManager::_validateParamPlan ( const rtnCollectionInfo &info,
                                                      optAccessPlanKey &planKey,
                                                      optAccessPlanRuntime &planRuntime,
                                                      optAccessPlanHelper &planHelper,
@@ -2393,8 +2024,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _getCLAccessPlan( planKey, OPT_PLAN_NOCACHE, su, mbContext,
-                             planRuntime, NULL ) ;
+      rc = _getCLAccessPlan( planHelper.getEDUCB(), planKey, OPT_PLAN_NOCACHE, info, planRuntime, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for with "
                    "query [ %s ], rc: %d", planKey.toString().c_str(), rc ) ;
 
@@ -2418,7 +2048,7 @@ namespace engine
          // plan, mark the collection invalidate for parameterized plans
          PD_LOG( PDDEBUG, "Invalid parameterized plan [%s]",
                  plan->toString().c_str() ) ;
-         plan->markParamInvalid( mbContext ) ;
+         _marker.setParamInvalid( planKey.getCLFullName() ) ;
          _planCache.removeCachedPlan( plan, SHARED ) ;
       }
 
@@ -2433,8 +2063,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__CRTMAINCLPLAN, "_optAccessPlanManager::_createMainCLPlan" )
    INT32 _optAccessPlanManager::_createMainCLPlan ( optAccessPlanKey &planKey,
                                                     const rtnQueryOptions &subOptions,
-                                                    dmsStorageUnit *su,
-                                                    dmsMBContext *mbContext,
                                                     optAccessPlanRuntime &planRuntime,
                                                     optAccessPlanHelper &planHelper,
                                                     optMainCLAccessPlan **ppPlan )
@@ -2443,8 +2071,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM__CRTMAINCLPLAN ) ;
 
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
       SDB_ASSERT( ppPlan, "ppPlan is invalid" ) ;
 
       optMainCLAccessPlan *mainPlan = NULL ;
@@ -2452,6 +2078,7 @@ namespace engine
       BSONObj parameters ;
 
       mainPlan = SDB_OSS_NEW optMainCLAccessPlan( planKey,
+                                                  acquireAccessPlanID(),
                                                   planHelper.getMatchConfig() ) ;
       PD_CHECK( mainPlan, SDB_OOM, error, PDERROR,
                 "Failed to allocate main-collection access plan" ) ;
@@ -2487,8 +2114,10 @@ namespace engine
 
       // Generate the sub-collection plan
       // Specify the cache level, APM is not allowed to adjust it
-      rc = _getCLAccessPlan( subOptions, OPT_PLAN_NOCACHE, su, mbContext,
-                             planRuntime, NULL ) ;
+
+      rc = _getCLAccessPlan( planHelper.getEDUCB(), subOptions, OPT_PLAN_NOCACHE,
+                             rtnCollectionInfo( planHelper.getCLMeta(), planHelper.getCLStat() ),
+                             planRuntime, NULL );
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for "
                    "sub-collection with query [ %s ], rc: %d",
                    subOptions.toString().c_str(), rc ) ;
@@ -2511,7 +2140,6 @@ namespace engine
 
       rc = mainPlan->bindSubCLAccessPlan( planHelper,
                                           subPlan,
-                                          mbContext,
                                           parameters ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind main-collection access "
                    "plan, rc: %d" ) ;
@@ -2537,8 +2165,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__VALIDMAINCLPLAN, "_optAccessPlanManager::_validateMainCLPlan" )
    INT32 _optAccessPlanManager::_validateMainCLPlan ( optMainCLAccessPlan *mainPlan,
                                                       const rtnQueryOptions &subOptions,
-                                                      dmsStorageUnit *su,
-                                                      dmsMBContext *mbContext,
                                                       optAccessPlanRuntime &planRuntime,
                                                       optAccessPlanHelper &planHelper )
    {
@@ -2546,13 +2172,10 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM__VALIDMAINCLPLAN ) ;
 
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
-
       // The sub-collection is not parameterized validated, we need
       // to verify if it is validate to main-collection plan
       optGeneralAccessPlan *subPlan = NULL ;
-      dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
+      
       BSONObj parameters ;
 
       // Save parameters
@@ -2564,10 +2187,9 @@ namespace engine
 
       // Check whether the sub-collection and parameters had been
       // already validated
-      if ( mainPlan->checkSavedSubCL( mbContext->mb()->_clUniqueID,
-                                      parameters ) )
+      if ( mainPlan->checkSavedSubCL( subOptions.getCLUniqueID(), parameters ) )
       {
-         rc = _bindMainCLPlan( mainPlan, subOptions, su, mbContext,
+         rc = _bindMainCLPlan( mainPlan, subOptions,
                                planRuntime, planHelper ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to bind main-collection "
                       "plan, rc: %d", rc ) ;
@@ -2575,8 +2197,9 @@ namespace engine
       }
 
       // Specify the cache level, APM is not allowed to adjust it
-      rc = _getCLAccessPlan( subOptions, OPT_PLAN_NOCACHE, su, mbContext,
-                             planRuntime, NULL ) ;
+      rc = _getCLAccessPlan( planHelper.getEDUCB(), subOptions, OPT_PLAN_NOCACHE,
+                             rtnCollectionInfo( planHelper.getCLMeta(), planHelper.getCLStat() ),
+                             planRuntime, NULL );
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for "
                    "sub-collection with query [ %s ], rc: %d",
                    subOptions.toString().c_str(), rc ) ;
@@ -2591,13 +2214,13 @@ namespace engine
 
          // do nothing
       }
-      else if ( !mainPlan->validateSubCLPlan( subPlan, mbContext, parameters ) )
+      else if ( !mainPlan->validateSubCLPlan( subPlan, parameters ) )
       {
          // The sub-collection is not validate for the main-collection
          // plan, mark the collection invalidate for main-collection plans
          PD_LOG( PDDEBUG, "Invalid main-collection plan [%s]",
                  mainPlan->toString().c_str() ) ;
-         mainPlan->markMainCLInvalid( pCachedPlanMgr, mbContext, FALSE ) ;
+         _marker.setMainCLInvalid( subPlan->getKey().getCLFullName() ) ;
          _planCache.removeCachedPlan( mainPlan, SHARED ) ;
       }
 
@@ -2612,8 +2235,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__BINDMAINCLPLAN, "_optAccessPlanManager::_bindMainCLPlan" )
    INT32 _optAccessPlanManager::_bindMainCLPlan ( optMainCLAccessPlan *mainPlan,
                                                   const rtnQueryOptions &subOptions,
-                                                  dmsStorageUnit *su,
-                                                  dmsMBContext *mbContext,
                                                   optAccessPlanRuntime &planRuntime,
                                                   optAccessPlanHelper &planHelper )
    {
@@ -2622,10 +2243,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_OPTAPM__BINDMAINCLPLAN ) ;
 
       SDB_ASSERT( mainPlan, "mainPlan is invalid" ) ;
-      SDB_ASSERT( su, "su is invalid" ) ;
-      SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
 
-      dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
       dmsExtentID indexExtID = DMS_INVALID_EXTENT ;
       dmsExtentID indexLID = DMS_INVALID_EXTENT ;
       BOOLEAN needInvalid = FALSE ;
@@ -2633,24 +2251,20 @@ namespace engine
       // The sub-collection is parameterized validated, we need
       // to verify if it has the index specified by main-colleciton
       // plan, etc
-      rc = mainPlan->validateSubCL( su, mbContext, subOptions, planHelper,
-                                    indexExtID, indexLID, needInvalid ) ;
+      rc = mainPlan->validateSubCL( subOptions, planHelper, indexExtID, indexLID, needInvalid );
       if ( SDB_OK != rc )
       {
          if ( needInvalid )
          {
             // Failed to validate sub-collection, generate a general plan
             // for sub-collection ( e.g. missing index )
-            rc = mainPlan->markMainCLInvalid( pCachedPlanMgr,
-                                              mbContext,
-                                              TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to mark sub-collection "
-                         "invalidated to reuse main-collection plan, "
-                         "rc: %d", rc ) ;
+            _marker.setMainCLInvalid( subOptions.getCLFullName() );
          }
 
          // Create a general plan for sub-collection
-         rc = _getCLAccessPlan( subOptions, su, mbContext, planRuntime, NULL ) ;
+         rc = _getCLAccessPlan( planHelper.getEDUCB(), subOptions,
+                                rtnCollectionInfo( planHelper.getCLMeta(), planHelper.getCLStat() ),
+                                planRuntime, NULL );
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                       "query [ %s ], rc: %d", subOptions.toString().c_str(),
                       rc ) ;
@@ -2658,9 +2272,9 @@ namespace engine
          goto done ;
       }
 
-      // Bind plan info ( suID, mbID, etc )
-      rc = planRuntime.bindPlanInfo( subOptions.getCLFullName(), su, mbContext,
-                                     indexExtID, indexLID ) ;
+      // Bind plan info ( unique id, index extent id, index logical id )
+      rc = planRuntime.bindPlanInfo( subOptions.getCLFullName(), indexExtID, indexLID,
+                                     subOptions.getCLUniqueID() );
       PD_RC_CHECK( rc, PDERROR, "Failed to bind plan info, rc: %d",
                    rc ) ;
 
@@ -2686,74 +2300,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__INVALIDPLANS, "_optAccessPlanManager::_invalidSUPlans" )
-   void _optAccessPlanManager::_invalidSUPlans ( IDmsSUCacheHolder *pCacheHolder )
-   {
-      PD_TRACE_ENTRY( SDB_OPTAPM__INVALIDPLANS ) ;
-
-      SDB_ASSERT( pCacheHolder, "pCacheHolder is invalid" ) ;
-
-      dmsCachedPlanMgr *pCachedPlanMgr =
-            (dmsCachedPlanMgr *)pCacheHolder->getSUCache( DMS_CACHE_TYPE_PLAN ) ;
-      if ( pCachedPlanMgr )
-      {
-         UINT32 suLID = pCacheHolder->getSULID() ;
-
-         _planCache.invalidateSUPlans( pCachedPlanMgr, suLID ) ;
-
-         // No plans belong to this SU, clear the bitmap and free the units
-         pCachedPlanMgr->resetCacheBitmap() ;
-         pCachedPlanMgr->resetParamInvalidBitmap() ;
-         pCachedPlanMgr->resetMainCLInvalidBitmap() ;
-         pCachedPlanMgr->clearCacheUnits() ;
-      }
-      PD_TRACE_EXIT( SDB_OPTAPM__INVALIDPLANS ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__INVALIDCLPLANS, "_optAccessPlanManager::_invalidCLPlans" )
-   void _optAccessPlanManager::_invalidCLPlans ( IDmsSUCacheHolder *pCacheHolder,
-                                                 UINT16 mbID, UINT32 clLID )
-   {
-      PD_TRACE_ENTRY( SDB_OPTAPM__INVALIDCLPLANS ) ;
-
-      SDB_ASSERT( pCacheHolder, "pCacheHolder is invalid" ) ;
-
-      dmsCachedPlanMgr *pCachedPlanMgr =
-            (dmsCachedPlanMgr *)pCacheHolder->getSUCache( DMS_CACHE_TYPE_PLAN ) ;
-      if ( pCachedPlanMgr )
-      {
-         UINT32 suLID = pCacheHolder->getSULID() ;
-
-         _planCache.invalidateCLPlans( pCachedPlanMgr, suLID, clLID ) ;
-
-         pCachedPlanMgr->clearParamInvalidBit( mbID ) ;
-         pCachedPlanMgr->clearMainCLInvalidBit( mbID ) ;
-         pCachedPlanMgr->removeCacheUnit( mbID, TRUE ) ;
-      }
-
-      PD_TRACE_EXIT( SDB_OPTAPM__INVALIDCLPLANS ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__RESETSUCACHE, "_optAccessPlanManager::_resetSUPlanCache" )
-   void _optAccessPlanManager::_resetSUPlanCache ( IDmsSUCacheHolder *pCacheHolder )
-   {
-      PD_TRACE_ENTRY( SDB_OPTAPM__RESETSUCACHE ) ;
-
-      SDB_ASSERT( pCacheHolder, "pCacheHolder is invalid" ) ;
-
-      dmsCachedPlanMgr *pCachedPlanMgr =
-                           dynamic_cast<dmsCachedPlanMgr *>(pCacheHolder) ;
-      if ( pCachedPlanMgr )
-      {
-         pCachedPlanMgr->resizeBitmaps( _planCache.getBucketNum() ) ;
-         pCachedPlanMgr->resetParamInvalidBitmap() ;
-         pCachedPlanMgr->resetMainCLInvalidBitmap() ;
-         pCachedPlanMgr->clearCacheUnits() ;
-      }
-
-      PD_TRACE_EXIT( SDB_OPTAPM__RESETSUCACHE ) ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__STARTCLEARJOB, "_optAccessPlanManager::_startClearJob" )
    INT32 _optAccessPlanManager::_startClearJob ()
    {
@@ -2761,7 +2307,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM__STARTCLEARJOB ) ;
 
-      rc = startPlanClearJob( &_clearJobEduID ) ;
+      rc = startPlanClearJob( &_clearJobEduID, this ) ;
       PD_RC_CHECK( rc, PDERROR, "Start cached-plan clearing job thread "
                    "failed, rc: %d", rc ) ;
    done :

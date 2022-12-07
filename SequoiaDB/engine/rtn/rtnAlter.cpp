@@ -31,6 +31,7 @@
 *******************************************************************************/
 
 #include "rtnAlter.hpp"
+#include "clsMgr.hpp"
 #include "pd.hpp"
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
@@ -117,6 +118,10 @@ namespace engine
          // Already dropped
          rc = SDB_OK ;
       }
+
+      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
+
       PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
 
@@ -218,6 +223,9 @@ namespace engine
                       "collection [%s], rc: %d", IXM_SHARD_KEY_NAME,
                       collection, rc ) ;
       }
+
+      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
 
    done :
       PD_TRACE_EXITRC( SDB__RTNSETSHARD, rc ) ;

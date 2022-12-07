@@ -70,6 +70,11 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
+      INT32  readCataConfTemp()
+      {
+         return readCataConf();
+      }
+
    // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,

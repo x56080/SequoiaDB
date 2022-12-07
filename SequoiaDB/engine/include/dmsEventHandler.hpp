@@ -66,7 +66,6 @@ namespace engine
 
    #define DMS_EVENT_MASK_ALL    0xFFFFFFFF
    #define DMS_EVENT_MASK_STAT   0x00000001
-   #define DMS_EVENT_MASK_PLAN   0x00000002
    #define DMS_EVENT_MASK_RECY   0x00000004
 
    /*

@@ -44,6 +44,7 @@
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
+#include "rtnObjectInfoFetcher.hpp"
 #include "rtnTrace.hpp"
 #include "dmsScanner.hpp"
 #include "pdSecure.hpp"
@@ -116,6 +117,7 @@ namespace engine
       dmsStorageUnit *su               = NULL ;
       dmsMBContext   *mbContext        = NULL ;
       dmsStorageUnitID suID            = DMS_INVALID_CS ;
+      const CHAR *clFullName = options.getCLFullName();
       const CHAR *pCollectionShortName = NULL ;
       optAccessPlanManager *apm        = NULL ;
       BOOLEAN updateOne                = options.testFlag( FLG_UPDATE_ONE ) ;
@@ -130,6 +132,14 @@ namespace engine
       optAccessPlanRuntime planRuntime ;
       monContextCB monCtxCB ;
       rtnReturnOptions returnOptions ;
+
+      pdLogShield shield;
+      rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
+      CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+      CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+      rc = infoFetcher.getCollectionMetaInfo( cb, clFullName, clMetaInfo );
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info", clFullName );
+      options.setCLUniqueID( clMetaInfo->getCLUniqueID() );
 
       // updator is modifier
       if ( updator.isEmpty() )
@@ -148,61 +158,62 @@ namespace engine
       }
       writable = TRUE;
 
-      rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
-                                             &su, &pCollectionShortName,
-                                             suID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
-                   options.getCLFullName(), rc ) ;
-
-      // get mb context
-      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
-                   "rc: %d", options.getCLFullName(), rc ) ;
-
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
-                         DMS_MB_ATTR_NOIDINDEX ) )
-      {
-         PD_LOG( PDERROR, "can not update data when autoIndexId is false" ) ;
-         rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
-         goto error ;
-      }
-
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
-                         DMS_MB_ATTR_STRICTDATAMODE ) )
-      {
-         strictDataMode = TRUE ;
-      }
-
-      try
-      {
-         rc = modifier.loadPattern ( updator,
-                                     &dollarList,
-                                     TRUE,
-                                     shardingKey,
-                                     strictDataMode,
-                                     logWriteMod,
-                                     TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
-                      "%s", PD_SECURE_OBJ( updator ) ) ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s: %s",
-                  PD_SECURE_OBJ( updator ), e.what() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
       try
       {
          apm = rtnCB->getAPM() ;
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
 retry:
+         UINT32 attributes = clMetaInfo->getAttributes();
+         if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
+         {
+            PD_LOG( PDERROR, "can not update data when autoIndexId is false" );
+            rc = SDB_RTN_AUTOINDEXID_IS_FALSE;
+            goto error;
+         }
+
+         if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_STRICTDATAMODE ) )
+         {
+            strictDataMode = TRUE;
+         }
+
+         // get statistics of collection and indexes
+         rc = infoFetcher.getCollectionStatInfo( cb, clFullName, clStatInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info", clFullName );
+
+         try
+         {
+            rc = modifier.loadPattern( updator, &dollarList, TRUE, shardingKey, strictDataMode,
+                                       logWriteMod, TRUE );
+            PD_RC_CHECK( rc, PDERROR,
+                         "Invalid pattern is detected for updator: "
+                         "%s",
+                         PD_SECURE_OBJ( updator ) );
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Invalid pattern is detected for update: %s: %s",
+                    PD_SECURE_OBJ( updator ), e.what() );
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
          // plan is released when exiting the function
-         rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
+         rc = apm->getAccessPlan( cb, options, rtnCollectionInfo( clMetaInfo, clStatInfo ),
+                                  planRuntime, NULL );
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
                       "rc: %d", options.getCLFullName(), rc ) ;
+
+         rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
+                                                &su, &pCollectionShortName,
+                                                suID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
+                     options.getCLFullName(), rc ) ;
+
+         // get mb context
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
+                     "rc: %d", options.getCLFullName(), rc ) ;
 
          if ( planRuntime.getScanType() == TBSCAN )
          {
@@ -212,10 +223,20 @@ retry:
          }
          else if ( planRuntime.getScanType() == IXSCAN )
          {
+            shield.addRC( SDB_DMS_COL_DROPPED );
+            shield.addRC( SDB_IXM_NOTEXIST );
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
                                   DMS_ACCESS_TYPE_UPDATE ) ;
-            if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+            shield.clearRC();
+            if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
+            { 
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               apm->invalidateCLPlans( options.getCLFullName() ) ;
+               goto retry ;
+            }
+            else if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
             {
                // Maybe in the process of scanning the index,
                // the index is deleted
@@ -223,6 +244,18 @@ retry:
                scannerRetryTime++ ;
                // We only need to try to scan once. In most cases,
                // the next scan is normal
+               if ( su && mbContext )
+               {
+                  su->data()->releaseMBContext( mbContext ) ;
+                  mbContext = nullptr ;
+               }
+               if ( DMS_INVALID_CS != suID )
+               {
+                  dmsCB->suUnlock( suID ) ;
+                  suID = DMS_INVALID_CS ;
+                  su = nullptr ;
+               }
+               PD_LOG(PDWARNING, "");
                goto retry ;
             }
          }

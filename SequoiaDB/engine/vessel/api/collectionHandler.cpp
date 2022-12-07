@@ -68,8 +68,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::getMetaData(IExecutor *executor,
-                                        bson::BSONObj &data)
+   INT32 collectionHandler::getMetaData( IExecutor *executor,
+                                         CONST_CL_META_INFO_PTR &meta )
    {
       SDB_ASSERT(FALSE, "todo");
       return SDB_OK;

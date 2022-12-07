@@ -48,6 +48,7 @@
 #include "pd.hpp"
 #include "monEDU.hpp"
 #include "pmdEDU.hpp"
+#include "rtnObjectStatCache.hpp"
 #include "sdbInterface.hpp"
 #include "utilConcurrentMap.hpp"
 #include "optAPM.hpp"
@@ -81,6 +82,8 @@ namespace engine
       _rtnLobAccessManager _lobAccessManager ;
 
       dmsTaskStatusMgr  _taskStatusMgr ;
+
+      rtnObjectStatCache _statCache;
 
       // The following members are used for communication with search engine
       // adapter when do text searching. Search engine adapter use the shard
@@ -258,6 +261,11 @@ namespace engine
       OSS_INLINE dmsTaskStatusMgr* getTaskStatusMgr()
       {
          return &_taskStatusMgr ;
+      }
+
+      OSS_INLINE rtnObjectStatCache* getObjectStatCache()
+      {
+         return &_statCache ;
       }
 
       INT32   addUnloadCS( const CHAR* csName ) ;

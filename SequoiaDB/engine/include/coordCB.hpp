@@ -37,10 +37,9 @@
 #ifndef COORDCB_HPP__
 #define COORDCB_HPP__
 
-#include "clsRemoteResource.hpp"
-#include "clsResource.hpp"
 #include "netRouteAgent.hpp"
 #include "ossUtil.h"
+#include "coordResource.hpp"
 #include "coordRemoteSession.hpp"
 #include "pmdRemoteMsgEventHandler.hpp"
 #include "sdbInterface.hpp"
@@ -88,7 +87,7 @@ namespace engine
          UINT32         setTimer( UINT32 milliSec ) ;
          void           killTimer( UINT32 timerID ) ;
 
-         clsRemoteResource* getResource() ;
+         coordResource* getResource() ;
          netRouteAgent* getRouteAgent() ;
          pmdRemoteSessionMgr* getRSManager() ;
          coordDataSourceMgr*  getDSManager() ;
@@ -139,8 +138,8 @@ namespace engine
          INT32 _processCatGrpChgNty () ;
 
       private:
-         clsResource                   _resource;
-         clsRemoteResource             *_cataResource ;
+
+         coordResource                 _resource ;
          coordGTSAgent                 _gtsAgent ;
          pmdRemoteSessionMgr           _remoteSessionMgr ;
          coordSessionPropMgr           _sitePropMgr ;

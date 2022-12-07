@@ -1390,11 +1390,11 @@ namespace engine
                {
                   if ( NULL != clFullName )
                   {
-                     resource->removeCL( clFullName ) ;
+                     resource->invalidateCataInfo( clFullName ) ;
                   }
                   else if ( NULL != csName )
                   {
-                     resource->removeCS( csName ) ;
+                     resource->removeCataInfoByCS( csName ) ;
                   }
                   else
                   {
@@ -3181,8 +3181,9 @@ namespace engine
       {
          clsResource *pResource = sdbGetShardCB()->getResource() ;
          CoordCataInfoPtr cataPtr ;
-         if ( SDB_OK == pResource->getCataResource()->getOrUpdateCataInfo( collection,
-                                                                           cataPtr, cb ) )
+         if ( SDB_OK == pResource->getOrUpdateCataInfo( collection,
+                                                        cataPtr,
+                                                        cb ) )
          {
             if ( CLS_REPLSET_MAX_NODE_SIZE == cataPtr->getCatalogSet()->getW() )
             {

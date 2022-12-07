@@ -59,12 +59,12 @@ public:
    virtual void close() override;
 
 public:
+   virtual INT32 getMetaData( IExecutor *executor,
+                              CONST_CL_META_INFO_PTR &meta ) override;
+
    virtual INT32 createIndex( IExecutor *executor,
                               const dmsBuildIndexOptions &o,
                               const bson::BSONObj &indexDef ) override;
-
-   virtual INT32 getMetaData( IExecutor *executor,
-                              bson::BSONObj &data ) override;
 
    virtual INT32 listIndex( IExecutor *executor,
                             ossPoolVector< bson::BSONObj > &indexes ) override;

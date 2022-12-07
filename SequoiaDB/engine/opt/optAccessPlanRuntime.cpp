@@ -180,17 +180,17 @@ namespace engine
       _optCLScanInfo implement
     */
    _optCLScanInfo::_optCLScanInfo ()
-   : _optCollectionInfo(),
-     _indexExtID( DMS_INVALID_EXTENT ),
-     _indexLID( DMS_INVALID_EXTENT )
+   : _indexExtID( DMS_INVALID_EXTENT ),
+     _indexLID( DMS_INVALID_EXTENT ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
       setCLFullName( NULL ) ;
    }
 
    _optCLScanInfo::_optCLScanInfo ( const _optCLScanInfo & info )
-   : _optCollectionInfo( info ),
-     _indexExtID( info._indexExtID ),
-     _indexLID( info._indexLID )
+   : _indexExtID( info._indexExtID ),
+     _indexLID( info._indexLID ),
+     _clUID(info._clUID)
    {
       setCLFullName( info._clFullName ) ;
    }
@@ -300,11 +300,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPRTM_BINDPLANINFO, "_optAccessPlanRuntime::bindPlanInfo" )
-   INT32 _optAccessPlanRuntime::bindPlanInfo ( const CHAR *pCLFullName,
-                                               dmsStorageUnit *su,
-                                               dmsMBContext *mbContext,
-                                               dmsExtentID indexExtID,
-                                               dmsExtentID indexLID )
+   INT32 _optAccessPlanRuntime::bindPlanInfo( const CHAR *pCLFullName,
+                                              dmsExtentID indexExtID,
+                                              dmsExtentID indexLID,
+                                              utilCLUniqueID clUID )
    {
       INT32 rc = SDB_OK ;
 
@@ -316,13 +315,11 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create sub-collection scan info, "
                       "rc: %d", rc ) ;
       }
-
-      _clScanInfo->setCSInfo( su ) ;
-      _clScanInfo->setCLInfo( mbContext ) ;
+      
       _clScanInfo->setCLFullName( pCLFullName ) ;
       _clScanInfo->setIndexExtID( indexExtID ) ;
       _clScanInfo->setIndexLID( indexLID ) ;
-
+      _clScanInfo->setCLUniqueID( clUID ) ;
    done :
       PD_TRACE_EXITRC( SDB_OPTAPRTM_BINDPLANINFO, rc ) ;
       return rc ;

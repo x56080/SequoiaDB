@@ -174,6 +174,8 @@ namespace engine
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
       _contextTimeout = optionCB->contextTimeout() ;
 
+      _statCache.init( newRtnObjectStatAgentImpl( sdbGetDMSCB() ) );
+
    done:
       return rc ;
    error:
@@ -187,15 +189,6 @@ namespace engine
       UINT64 jobID = 0 ;
       rtnClearExpireContextJob *job = NULL ;
 
-      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
-           SDB_ROLE_CATALOG == pmdGetDBRole() ||
-           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
-           SDB_ROLE_OM == pmdGetDBRole() )
-      {
-         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_accessPlanManager ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
-                      "access plan manager to DMS, rc: %d", rc ) ;
-      }
 
       job = SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
       PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
@@ -228,13 +221,6 @@ namespace engine
          _remoteMessenger->deactive() ;
       }
 
-      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
-           SDB_ROLE_CATALOG == pmdGetDBRole() ||
-           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
-           SDB_ROLE_OM == pmdGetDBRole() )
-      {
-         pmdGetKRCB()->getDMSCB()->unregHandler( &_accessPlanManager ) ;
-      }
       return SDB_OK ;
    }
 
@@ -269,6 +255,8 @@ namespace engine
          SDB_OSS_DEL _pLTMgr ;
          _pLTMgr = NULL ;
       }
+
+      _statCache.fini();
 
       return SDB_OK ;
    }
