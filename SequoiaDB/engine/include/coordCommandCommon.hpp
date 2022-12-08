@@ -83,6 +83,13 @@ namespace engine
                                      pmdEDUCB *cb,
                                      ROUTE_RC_MAP &faileds ) ;
 
+         virtual INT32   _onExecuteOnNodes( MsgHeader *pMsg,
+                                            pmdEDUCB *cb,
+                                            INT64 &contextID,
+                                            ROUTE_RC_MAP &faileds,
+                                            SET_ROUTEID &sucNodes,
+                                            rtnContextBuf *buf ) ;
+
          virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
 
          virtual COORD_SHOWERROR_TYPE  _getDefaultShowErrorType() const
@@ -197,6 +204,8 @@ namespace engine
          {
             return COORD_SHOWERRORMODE_AGGR ;
          }
+
+         virtual INT32  _getAggrMonProcessor( IRtnMonProcessorPtr & ptr ) ;
 
       protected:
          INT32 _handleHints ( BSONObj &hint, UINT32 mask ) ;

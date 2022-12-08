@@ -19,10 +19,12 @@ SYSCAT.SYSCOLLECTIONS 集合中包含了该集群中所有的用户集合信息�
 |CompressionTypeDesc|string|压缩算法类型描述，取值可参考 [createCL()][createCL] 的参数 CompressionType|
 |CompressionType|number|压缩算法类型掩码，与参数 CompressionTypeDesc 对应，相应的掩码如下：<br>0：对应"snappy" <br>1：对应"lzw"|
 |EnsureShardingIndex|boolean|集合是否自动使用 ShardingKey 包含的字段创建名字为“$shard”的索引|
-|Internalv|number|hash 算法版本号（仅数据库分区集合显示，内部使用）|
+|InternalV|number|hash 算法版本号（仅数据库分区集合显示，内部使用）|
 |LobShardingKeyFormat|string|主分区集合中大对象的切分键格式（仅使用大对象的集合显示）|
 |DataSourceID|number|数据源 ID（仅使用数据源的集合显示）|
 |Mapping|string|在数据源中所映射的集合名称（仅使用数据源的集合显示）|
+| CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 **示例**
 
@@ -50,7 +52,9 @@ SYSCAT.SYSCOLLECTIONS 集合中包含了该集群中所有的用户集合信息�
           "LowBound": {"": MinKey, "": MaxKey},
           "UpBound": {"": MaxKey, "": MinKey}
           }
-        ]
+        ],
+      "CreateTime": "2022-10-06-18.04.30.874000",
+      "UpdateTime": "2022-10-06-18.04.30.874000"
     }
     ```
 

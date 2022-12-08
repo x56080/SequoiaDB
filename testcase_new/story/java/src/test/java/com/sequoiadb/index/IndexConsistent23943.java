@@ -78,7 +78,10 @@ public class IndexConsistent23943 extends SdbTestBase {
                     && createIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
                             .getErrorCode()
                     && createIndex.getRetCode() != SDBError.SDB_DMS_CS_DELETING
-                            .getErrorCode() ) {
+                            .getErrorCode()
+                    && createIndex
+                            .getRetCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
+                                    .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }
             Assert.assertFalse( sdb.isCollectionSpaceExist( csName ) );

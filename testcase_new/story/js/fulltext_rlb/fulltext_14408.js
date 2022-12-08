@@ -2,13 +2,13 @@
  * @Description   : seqDB-14408: 异常启动DB备节点不影响全文索引功能
  * @Author        : liuxiaoxuan
  * @CreateTime    : 2019.08.21
- * @LastEditTime  : 2022.04.19
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2022.08.12
+ * @LastEditors   : Gong Meiyan
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
-
-main( test );
+//SEQUOIADBMAINSTREAM-8656
+//main( test );
 
 function test ()
 {

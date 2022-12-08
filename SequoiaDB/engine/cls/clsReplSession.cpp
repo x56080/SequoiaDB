@@ -475,6 +475,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN_HNDSSTRES );
 
+      _repl->getSyncEmptyEvent()->reset() ;
+
       if ( (UINT32)header->messageLength < sizeof( _MsgReplConsultationRes ) )
       {
          /// the message is old( no hashValue, no reserved )
@@ -684,6 +686,9 @@ namespace engine
          sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset, TRUE ) ;
          sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
       }
+
+      _repl->getSyncEmptyEvent()->signalAll() ;
+
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN_HNDSSTRES ) ;
       return SDB_OK ;
    }
@@ -1135,6 +1140,27 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
+         // check record length
+         if ( recordHeader->_length < sizeof( dpsLogRecordHeader ) ||
+              recordHeader->_length > DPS_RECORD_MAX_LEN )
+         {
+            PD_LOG( PDERROR, "Session[%s]: length of row record "
+                    "[LSN: %llu, length: %u] is wrong", sessionName(),
+                    recordHeader->_lsn, recordHeader->_length ) ;
+            SDB_ASSERT( FALSE, "record length is invalid" ) ;
+            rc = SDB_DPS_CORRUPTED_LOG ;
+            goto error ;
+         }
+         else if ( log + recordHeader->_length > logs + len )
+         {
+            PD_LOG( PDERROR, "Session[%s]: length of row record "
+                    "[LSN: %llu, length: %u] is out of message "
+                    "[total %u, left %u]", sessionName(), recordHeader->_lsn,
+                    recordHeader->_length, len, log + len - logs ) ;
+            SDB_ASSERT( FALSE, "record length is invalid" ) ;
+            rc = SDB_DPS_CORRUPTED_LOG ;
+            goto error ;
+         }
 
          PD_LOG( PDDEBUG, "Session[%s]: Replay record [lsn offset: %lld, "
                  "version: %d, len:%d, preLsn:%lld]", sessionName(),
@@ -1151,7 +1177,8 @@ namespace engine
          {
             SDB_ASSERT( SDB_OOM == rc ||
                         SDB_NOSPC == rc ||
-                        SDB_IXM_DUP_KEY == rc,
+                        SDB_IXM_DUP_KEY == rc ||
+                        SDB_APP_INTERRUPT == rc,
                         "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;

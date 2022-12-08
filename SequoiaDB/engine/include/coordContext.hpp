@@ -79,7 +79,7 @@ namespace engine
       INT32          recordNum() ;
       INT32          remainLength() ;
       INT32          truncate ( INT32 num ) ;
-      INT32          getOrderKey( rtnOrderKey &orderKey ) ;
+      INT32          genOrderKey() ;
 
       OSS_INLINE INT64 getDataID () const
       {
@@ -125,8 +125,6 @@ namespace engine
 
          INT32    reopen () ;
          void     setModify( BOOLEAN modify ) ;
-
-         void     killSubContexts( _pmdEDUCB *cb ) ;
 
          /*
             Unit: millisec
@@ -180,9 +178,11 @@ namespace engine
          virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
                                             const BSONObj &arg,
                                             _pmdEDUCB *cb ) ;
+         virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
 
       private:
-         INT32    _appendSubData ( const pmdEDUEvent &event ) ;
+         INT32    _appendSubData ( const pmdEDUEvent &event,
+                                   BOOLEAN &isTakeOver ) ;
 
          void     _delPrepareContext( const MsgRouteID &routeID ) ;
 
@@ -192,11 +192,15 @@ namespace engine
          INT32    _reOrderSubContext() ;
          INT32    _prepareSubCtxData( _pmdEDUCB *cb ) ;
 
+         // release sub contexts with killing remote contexts
+         void     _killSubContexts( _pmdEDUCB *cb ) ;
+         // release sub contexts without killing remote contexts
+         void     _destroySubContexts() ;
+
       private:
          EMPTY_CONTEXT_MAP          _emptyContextMap ;
          EMPTY_CONTEXT_MAP          _prepareContextMap ;
 
-         rtnOrderKey                _emptyKey ;
          BOOLEAN                    _preRead ;
 
          BOOLEAN                    _needReOrder ;
@@ -204,7 +208,6 @@ namespace engine
          ROUTE_RC_MAP               _nokRC ;
 
          _coordNoSessionInitHandler _handler ;
-         _pmdRemoteSessionSite      *_pSite ;
          _pmdRemoteSession          *_pSession ;
 
          BOOLEAN                    _isModify ;
@@ -224,7 +227,7 @@ namespace engine
       // 1. order is required ( sort is not empty )
       // 2. has more than one sub-context
       return requireOrder() &&
-             ( _orderedContextMap.size() + _emptyContextMap.size() +
+             ( _orderedContexts.size() + _emptyContextMap.size() +
                _prepareContextMap.size() > 1 ) ;
    }
 

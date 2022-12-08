@@ -51,6 +51,7 @@
 #include "utilDataSource.hpp"
 #include "catTask.hpp"
 #include "catCommand.hpp"
+#include "authDef.hpp"
 
 using namespace bson;
 
@@ -132,6 +133,12 @@ namespace engine
          rc = _checkAndUpgradeDSCLInfo() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check and update data source and "
                       "collection information, rc: %d", rc ) ;
+      }
+      else if ( CATALOG_VERSION_V3 == version )
+      {
+         rc = _checkAndUpgradeUserRole() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check and upgrade user role, "
+                      "rc: %d", rc ) ;
       }
 
    done:
@@ -888,28 +895,6 @@ namespace engine
       return rc ;
 
    error:
-      // Cleanup the task ( ONLY for canceled task )
-      if ( CLS_INVALID_TASKID != taskID &&
-           SDB_TASK_HAS_CANCELED == rc )
-      {
-         // rollback transaction before remove task
-         INT32 tmpRC = catTransEnd( rc, _pEduCB, _pDpsCB ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDWARNING,
-                    "Failed to process error result for opCode [%d], rc: %d",
-                    opCode, tmpRC ) ;
-         }
-
-         tmpRC = catUpdateTask2Finish( taskID, SDB_TASK_HAS_CANCELED,
-                                      _pEduCB, 1 ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDWARNING,
-                    "Failed to update task [%lld] result code, rc: %d",
-                    taskID, tmpRC ) ;
-         }
-      }
       goto done ;
    }
 
@@ -1282,6 +1267,39 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKANDUPGRADEUSERROLE, "catCatalogueManager::_checkAndUpgradeUserRole" )
+   INT32 catCatalogueManager::_checkAndUpgradeUserRole()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATALOGMGR__CHECKANDUPGRADEUSERROLE ) ;
+
+      // Set the role of user who do not have one to admin.
+      try
+      {
+         BSONObj dummyObj ;
+         BSONObj query = BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE <<
+                               BSON( "$exists" << 0 ) ) ;
+         BSONObj updator = BSON( "$set" <<
+            BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE << VALUE_NAME_ADMIN ) ) ;
+         rc = rtnUpdate( AUTH_USR_COLLECTION, query, updator,
+                         dummyObj, 0, _pEduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",
+                      AUTH_USR_COLLECTION, rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATALOGMGR__CHECKANDUPGRADEUSERROLE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_PROCESSMSG, "catCatalogueManager::processMsg" )
    INT32 catCatalogueManager::processMsg( const NET_HANDLE &handle,
                                           MsgHeader *pMsg )
@@ -1592,8 +1610,6 @@ namespace engine
       // first extract pQuery and find the options
       try
       {
-         BSONObj tempObj ;
-         BSONObj queryObj ;
          BSONObj insertObj ;
          BSONObj boQuery( pQuery );
          BSONObjBuilder ob ;

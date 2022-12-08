@@ -222,9 +222,39 @@ namespace engine
 
          if ( orderby.isEmpty() )
          {
-            PD_LOG_MSG( PDERROR, "Context does not support advance without "
-                        "orderby" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
+            if ( isRange )
+            {
+               orderby = _planRuntime.getPlan()->getKeyPattern() ;
+               SDB_ASSERT( !orderby.isEmpty(), "orderby should not be empty!" ) ;
+               if ( -1 == _planRuntime.getPlan()->getDirection() )
+               {
+                  try
+                  {
+                     BSONObjBuilder ob ;
+                     BSONObjIterator it( orderby ) ;
+                     INT32 value = 0 ;
+                     while ( it.more() )
+                     {
+                        BSONElement ele = it.next() ;
+                        value = - ele.Int() ;
+                        ob.append( ele.fieldName(), value ) ;
+                     }
+                     orderby = ob.obj() ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     rc = ossException2RC( &e ) ;
+                     PD_LOG ( PDERROR, "Failed to generate orderby bson, occur "
+                              "exception: %s, rc: %d", e.what(), rc ) ;
+                  }
+               }
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Context does not support advance without "
+                           "orderby" ) ;
+               rc = SDB_OPTION_NOT_SUPPORT ;
+            }
          }
       }
 
@@ -243,10 +273,7 @@ namespace engine
       if ( _nextAdvanceSecIt == _advanceSectionList.end() )
       {
          _hitEnd = TRUE ;
-         if ( isEmpty() )
-         {
-            rc = SDB_DMS_EOC ;
-         }
+         rc = SDB_DMS_EOC ;
          goto done ;
       }
 
@@ -719,8 +746,13 @@ namespace engine
       rtnAdvanceSection sec ;
       INT32 prefixNum = -1 ;
 
-      if ( _advanceSectionList.empty() ||
+      if ( _needValidate() &&
            _nextAdvanceSecIt == _advanceSectionList.end() )
+      {
+         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
+         goto error ;
+      }
+      else if ( !_needValidate() )
       {
          goto done ;
       }
@@ -790,7 +822,7 @@ namespace engine
                {
                   if ( !sec.startIncluded )
                   {
-                     rc = SDB_IXM_ADVANCE_EOC ;
+                     rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
                      PD_LOG( PDINFO, "Advance to the next section for scanning "
                                      "record, rc: %d", rc ) ;
                      goto error ;
@@ -832,7 +864,7 @@ namespace engine
                }
                else
                {
-                  rc = SDB_IXM_ADVANCE_EOC ;
+                  rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
                   PD_LOG( PDINFO, "Advance to the next section for scanning "
                                   "record, rc: %d", rc ) ;
                   goto error ;
@@ -850,7 +882,7 @@ namespace engine
 
       if ( !matched )
       {
-         rc = SDB_IXM_ADVANCE_EOC ;
+         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
          goto error ;
       }
 
@@ -1311,6 +1343,38 @@ namespace engine
          goto error ;
       }
 
+      if ( selector.isEmpty() &&
+           IXSCAN == _planRuntime.getScanType() &&
+           returnOptions.testFlag( FLG_FORCE_INDEX_SELECTOR ) )
+      {
+         /**
+          * get index key pattern, then ergodic it and rewrite its value
+          * keyPattern: { a: 1, b: 1 }
+          * selector:   {} =>
+          *             { a: { $include: 1 }, b: { $include: 1 } }
+          */
+         try
+         {
+            BSONObj keyPattern = _planRuntime.getPlan()->getKeyPattern() ;
+            BSONObjBuilder ob ;
+            BSONObjIterator it( keyPattern ) ;
+            BSONObj includeObj = BSON( "$include" << 1 ) ;
+            while ( it.more() )
+            {
+               BSONElement ele = it.next() ;
+               ob.append( ele.fieldName(), includeObj ) ;
+            }
+            selector = ob.obj() ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG ( PDERROR, "Failed to generate selector bson, occur "
+                     "exception: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
       // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
@@ -1656,10 +1720,6 @@ namespace engine
       }
 
       rc = append( selObj, &obj ) ;
-      if ( SDB_IXM_ADVANCE_EOC == rc )
-      {
-         goto done ;
-      }
       PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                    selObj.toString().c_str(), rc ) ;
 
@@ -1682,10 +1742,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "get next record failed:rc=%d", rc ) ;
 
          rc = _selectAndAppend( selector, record ) ;
-         if ( SDB_IXM_ADVANCE_EOC == rc )
-         {
-            goto done ;
-         }
          PD_RC_CHECK( rc, PDERROR, "selectAndAppend failed:rc=%d", rc ) ;
       }
 
@@ -1745,7 +1801,7 @@ namespace engine
 
       while ( numRecords() == startNumRecords )
       {
-         _mthMatchTreeContext mthContext ;
+         _mthMatchTreeContext mthContext( NULL ) ;
          if ( NULL != dollarList )
          {
             mthContext.enableDollarList() ;
@@ -1937,7 +1993,7 @@ namespace engine
       // loop until we read something in the buffer
       while ( numRecords() == startNumRecords )
       {
-         _mthMatchTreeContext mthContext ;
+         _mthMatchTreeContext mthContext( _needValidate() ? this : NULL ) ;
          if ( NULL != dollarList )
          {
             mthContext.enableDollarList() ;
@@ -2013,10 +2069,10 @@ namespace engine
                   rc = _innerAppend( selector, generator ) ;
                   if ( SDB_IXM_ADVANCE_EOC == rc )
                   {
+                     // stop the scanner, so we can restart later
                      secScanner.stop () ;
                      goto done ;
                   }
-
                   PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
 
                   // make sure we still have room to read another
@@ -2055,6 +2111,12 @@ namespace engine
 
          if ( rc && SDB_DMS_EOC != rc )
          {
+            if ( SDB_IXM_ADVANCE_EOC == rc )
+            {
+               // stop the scanner, so we can restart later
+               secScanner.stop () ;
+               goto done ;
+            }
             PD_LOG( PDERROR, "Extent scanner failed, rc: %d", rc ) ;
             goto error ;
          }
@@ -2772,17 +2834,14 @@ namespace engine
    RTN_CTX_AUTO_REGISTER(_rtnContextTemp, RTN_CONTEXT_TEMP, "TEMP")
 
    _rtnContextTemp::_rtnContextTemp( INT64 contextID, UINT64 eduID )
-   :_rtnContextData( contextID, eduID )
+   :_rtnContextBase( contextID, eduID ),
+    _suLID( DMS_INVALID_LOGICCSID ),
+    _mbLID( DMS_INVALID_LOGICCLID )
    {
    }
 
    _rtnContextTemp::~_rtnContextTemp ()
    {
-      // release temp collection
-      if ( _dmsCB && _mbContext )
-      {
-         _dmsCB->getTempSUMgr()->release( _mbContext ) ;
-      }
    }
 
    const CHAR* _rtnContextTemp::name() const
@@ -2793,6 +2852,78 @@ namespace engine
    RTN_CONTEXT_TYPE _rtnContextTemp::getType () const
    {
       return RTN_CONTEXT_TEMP ;
+   }
+
+   INT32 _rtnContextTemp::open( UINT32 suLID,
+                                UINT32 mbLID,
+                                const CHAR *csName,
+                                const CHAR *clShortName,
+                                const CHAR *optrDesc )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _isOpened )
+      {
+         rc = SDB_DMS_CONTEXT_IS_OPEN ;
+         goto error ;
+      }
+
+      try
+      {
+         _processName.clear() ;
+         _optrDesc.clear() ;
+
+         if ( NULL != csName )
+         {
+            _processName.assign( csName ) ;
+            if ( NULL != clShortName )
+            {
+               _processName.append( "." ) ;
+               _processName.append( clShortName ) ;
+            }
+         }
+
+         if ( NULL != optrDesc )
+         {
+            _optrDesc.assign( optrDesc ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to open temp context for collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      _suLID = suLID ;
+      _mbLID = mbLID ;
+      _isOpened = TRUE ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextTemp::_prepareData( pmdEDUCB * cb )
+   {
+      SDB_ASSERT( FALSE, "should not be here" ) ;
+      return SDB_DMS_EOC ;
+   }
+
+   void _rtnContextTemp::_toString( stringstream &ss )
+   {
+      try
+      {
+         ss << ",Name:" << _processName << ",Detail:" << _optrDesc ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to build string for temp context, "
+                 "occur exception %s", e.what() ) ;
+      }
    }
 
 }

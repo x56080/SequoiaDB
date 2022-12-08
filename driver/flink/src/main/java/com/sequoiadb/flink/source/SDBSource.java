@@ -12,20 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.source;
 
-import java.util.List;
-
-import com.sequoiadb.flink.codec.SDBDataConverter;
+import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.enumerator.SDBSplitEnumerator;
 import com.sequoiadb.flink.source.reader.SDBReader;
 import com.sequoiadb.flink.source.split.SDBSplit;
 import com.sequoiadb.flink.source.split.SDBSplitListSerializer;
 import com.sequoiadb.flink.source.split.SDBSplitSerializer;
-
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.connector.source.SourceReader;
@@ -39,6 +36,8 @@ import org.bson.BasicBSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public class SDBSource implements Source<RowData, SDBSplit, List<SDBSplit>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBSource.class);
@@ -48,17 +47,20 @@ public class SDBSource implements Source<RowData, SDBSplit, List<SDBSplit>> {
 
     private final BSONObject selector = new BasicBSONObject();
     private final long limit;
+    private final BSONObject matcher;
 
-    public SDBSource(SDBDataConverter dataConverter, SDBSourceOptions sourceOptions,
-                     List<String> requiredColumns, long limit) {
+    public SDBSource(SDBDataConverter dataConverter, SDBSourceOptions sourceOptions, List<String> requiredColumns,
+                     BSONObject matcher, long limit) {
         this.dataConverter = dataConverter;
         this.sourceOptions = sourceOptions;
 
+
         requiredColumns.forEach(requiredColumn
                 -> selector.put(requiredColumn, null));
+        this.matcher = matcher;
         this.limit = limit;
 
-        LOG.info("selector: {}, limit: {}", selector, limit);
+        LOG.info("matcher: {}, selector: {}, limit: {}", matcher, selector, limit);
     }
 
     @Override
@@ -68,20 +70,20 @@ public class SDBSource implements Source<RowData, SDBSplit, List<SDBSplit>> {
 
     @Override
     public SourceReader<RowData, SDBSplit> createReader(SourceReaderContext readerContext) throws Exception {
-        return new SDBReader(readerContext, dataConverter, sourceOptions, selector, limit);
+        return new SDBReader(readerContext, dataConverter, sourceOptions, matcher, selector, limit);
     }
 
     @Override
     public SplitEnumerator<SDBSplit, List<SDBSplit>> createEnumerator(SplitEnumeratorContext<SDBSplit> enumContext)
             throws Exception {
-        return new SDBSplitEnumerator(enumContext, sourceOptions, limit);
+        return new SDBSplitEnumerator(enumContext, sourceOptions, matcher, selector, limit);
     }
 
     @Override
     public SplitEnumerator<SDBSplit, List<SDBSplit>> restoreEnumerator(SplitEnumeratorContext<SDBSplit> enumContext,
                                                                        List<SDBSplit> checkpoint)
             throws Exception {
-        return new SDBSplitEnumerator(enumContext, checkpoint, sourceOptions, limit);
+        return new SDBSplitEnumerator(enumContext, checkpoint, sourceOptions, matcher, selector, limit);
     }
 
     @Override

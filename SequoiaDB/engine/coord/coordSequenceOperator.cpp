@@ -48,12 +48,15 @@ namespace engine
    */
    _coordSeqFetchOperator::_coordSeqFetchOperator()
    {
-      const static string s_name( "SequenceFetch" ) ;
-      setName( s_name ) ;
    }
 
    _coordSeqFetchOperator::~_coordSeqFetchOperator()
    {
+   }
+
+   const CHAR* _coordSeqFetchOperator::getName() const
+   {
+      return "SequenceFetch" ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_SEQ_FETCH_EXE, "_coordSeqFetchOperator::execute" )
@@ -84,6 +87,10 @@ namespace engine
          BSONObj boQuery( pQuery ) ;
          sequenceName = boQuery.getField( FIELD_NAME_NAME ).valuestrsafe() ;
          fetchNum = boQuery.getField( FIELD_NAME_FETCH_NUM ).numberInt() ;
+
+         // add last op info
+         MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
+                             "Option:%s", boQuery.toPoolString().c_str() ) ;
 
          rc = pSequenceAgent->fetch( sequenceName, UTIL_SEQUENCEID_NULL,
                                      fetchNum, nextValue, returnNum, increment,

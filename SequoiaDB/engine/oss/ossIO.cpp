@@ -2175,6 +2175,33 @@ error :
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSEXTEND, "ossExtend" )
+INT32 ossExtend( OSSFILE * pFile,
+                 const INT64 fileSize,
+                 const INT64 incrementSize,
+                 BOOLEAN enableSparse,
+                 BOOLEAN isDirectIO )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_OSSEXTEND ) ;
+   SDB_ASSERT ( pFile, "input file is NULL" ) ;
+
+   if ( enableSparse )
+   {
+#if defined( _LINUX )
+      rc = ossFallocate( pFile, 0, fileSize, incrementSize ) ;
+#else
+      rc = ossExtentBySparse( pFile, incrementSize, isDirectIO ) ;
+#endif
+   }
+   else
+   {
+      rc = ossExtendFile( pFile, incrementSize, isDirectIO ) ;
+   }
+   PD_TRACE_EXITRC ( SDB_OSSEXTEND, rc ) ;
+   return rc ;
+}
+
 /*
  * Extend file with specified size(bytes)
  * Input
@@ -2190,7 +2217,8 @@ error :
  */
  // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSEXTFILE, "ossExtendFile" )
 INT32 ossExtendFile ( OSSFILE *pFile,
-                      const INT64 incrementSize )
+                      const INT64 incrementSize,
+                      BOOLEAN isDirectIO )
 {
    // OSS_EXTEND_DELTA is for local only, let's def and undef
 #ifdef  OSS_EXTEND_DELTA
@@ -2203,6 +2231,7 @@ INT32 ossExtendFile ( OSSFILE *pFile,
    PD_TRACE_ENTRY ( SDB_OSSEXTFILE );
    INT32    loop       = 0 ;
    INT32    remainder  = 0 ;
+   INT32    delta      = OSS_EXTEND_DELTA ;
    CHAR    *pBuffer    = NULL ;
 
    // sanity check, only take effect in debug build
@@ -2218,19 +2247,42 @@ INT32 ossExtendFile ( OSSFILE *pFile,
    SDB_VALIDATE_GOTOERROR ( SDB_OK == rc, rc,
                             "Failed to seek to end of file" ) ;
 
-   loop       = incrementSize / ( OSS_EXTEND_DELTA ) ;
-   remainder  = incrementSize % ( OSS_EXTEND_DELTA ) ;
-   pBuffer    = (CHAR*) SDB_OSS_MALLOC ( OSS_EXTEND_DELTA ) ;
+   if ( isDirectIO &&
+        0 != incrementSize % OSS_FILE_DIRECT_IO_ALIGNMENT )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "incrementSize[%lld] must be a multiple of %d, "
+              "rc:%d", incrementSize, OSS_FILE_DIRECT_IO_ALIGNMENT, rc ) ;
+      goto error ;
+   }
+   if ( isDirectIO &&
+        0 != OSS_EXTEND_DELTA % OSS_FILE_DIRECT_IO_ALIGNMENT )
+   {
+      delta = ossRoundUpToMultipleX( OSS_EXTEND_DELTA, 
+                                     OSS_FILE_DIRECT_IO_ALIGNMENT ) ;
+   }
+   loop       = incrementSize / ( delta ) ;
+   remainder  = incrementSize % ( delta ) ;
+
+   if ( isDirectIO )
+   {
+      pBuffer = (CHAR*) ossAlignedAlloc( OSS_FILE_DIRECT_IO_ALIGNMENT,
+                                         delta ) ;
+   }
+   else
+   {
+      pBuffer = (CHAR*) SDB_OSS_MALLOC ( delta ) ;
+   }
 
    // always check allocation result
    SDB_VALIDATE_GOTOERROR ( pBuffer, SDB_OOM,
                             "Failed to allocate memory" ) ;
-   ossMemset( pBuffer, 0, OSS_EXTEND_DELTA ) ;
+   ossMemset( pBuffer, 0, delta ) ;
 
    // do the main loop for extend
    for ( INT32 i = 0; i < loop ; i++ )
    {
-      rc = ossWriteN ( pFile, pBuffer, OSS_EXTEND_DELTA ) ;
+      rc = ossWriteN ( pFile, pBuffer, delta ) ;
       // do validation
       PD_RC_CHECK ( rc, PDERROR, "Failed to extend file, errno = %d",
                     ossGetLastError() ) ;
@@ -2247,7 +2299,14 @@ done :
    // final clean up here, if pBuffer is allocated, we need to free
    if ( pBuffer )
    {
-      SDB_OSS_FREE ( pBuffer ) ;
+      if ( isDirectIO )
+      {
+         SDB_OSS_ORIGINAL_FREE( pBuffer ) ;
+      }
+      else
+      {
+         SDB_OSS_FREE ( pBuffer ) ;
+      }
    }
    PD_TRACE_EXITRC ( SDB_OSSEXTFILE, rc );
    return rc;
@@ -2258,6 +2317,7 @@ error :
 
 INT32 ossExtentBySparse( OSSFILE *pFile,
                          UINT64 incrementSize,
+                         BOOLEAN isDirectIO,
                          UINT32 onceWrite )
 {
    // declare variables at top
@@ -2267,9 +2327,22 @@ INT32 ossExtentBySparse( OSSFILE *pFile,
    // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile, "input file is NULL" ) ;
 
+   if ( isDirectIO &&
+        0 != incrementSize % OSS_FILE_DIRECT_IO_ALIGNMENT )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "incrementSize[%lld] must be a multiple of %d, "
+              "rc:%d", incrementSize, OSS_FILE_DIRECT_IO_ALIGNMENT, rc ) ;
+      goto error ;
+   }
    if ( onceWrite > incrementSize )
    {
       onceWrite = incrementSize ;
+   }
+   if ( isDirectIO )
+   {
+      onceWrite = ossRoundUpToMultipleX( onceWrite, 
+                                         OSS_FILE_DIRECT_IO_ALIGNMENT ) ;
    }
 
    // seek to end of the file
@@ -2290,7 +2363,16 @@ INT32 ossExtentBySparse( OSSFILE *pFile,
       goto error ;
    }
 
-   pBuffer = ( CHAR* )SDB_OSS_MALLOC( onceWrite ) ;
+   if ( isDirectIO )
+   {
+      pBuffer = (CHAR*) ossAlignedAlloc( OSS_FILE_DIRECT_IO_ALIGNMENT,
+                                         onceWrite ) ;
+   }
+   else
+   {
+      pBuffer = (CHAR*) SDB_OSS_MALLOC ( onceWrite ) ;
+   }
+
    if ( !pBuffer )
    {
       PD_LOG( PDERROR, "Alloc memory[%d] failed", onceWrite ) ;
@@ -2309,7 +2391,14 @@ INT32 ossExtentBySparse( OSSFILE *pFile,
 done :
    if ( pBuffer )
    {
-      SDB_OSS_FREE ( pBuffer ) ;
+      if ( isDirectIO )
+      {
+         SDB_OSS_ORIGINAL_FREE( pBuffer ) ;
+      }
+      else
+      {
+         SDB_OSS_FREE ( pBuffer ) ;
+      }
    }
    return rc;
 error :

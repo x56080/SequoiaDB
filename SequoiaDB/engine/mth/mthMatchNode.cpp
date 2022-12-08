@@ -78,7 +78,9 @@ namespace engine
       }
    }
 
-   _mthMatchTreeContext::_mthMatchTreeContext()
+   _mthMatchTreeContext::_mthMatchTreeContext(
+                                       IMthMatchEventHandler * eventHandler )
+   : _eventHandler( eventHandler )
    {
       _dollarList.clear() ;
       _elements.clear() ;

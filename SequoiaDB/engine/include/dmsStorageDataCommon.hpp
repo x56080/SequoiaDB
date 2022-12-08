@@ -96,6 +96,9 @@ namespace engine
 #pragma pack()
 
 #pragma pack(4)
+
+   #define DMS_MB_SIZE                 (1024)
+
    /*
       _dmsMetadataBlock defined
    */
@@ -188,7 +191,13 @@ namespace engine
 
       utilCLUniqueID _clUniqueID ;
 
-      CHAR           _pad [ 276 ] ;
+      UINT64         _totalLobSize ;
+      UINT64         _totalValidLobSize ;
+
+      UINT64         _createTime ;
+      UINT64         _updateTime ;
+
+      CHAR           _pad [ 244 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -197,6 +206,9 @@ namespace engine
                    UINT32 attr = 0,
                    UINT8 compressType = UTIL_COMPRESSOR_INVALID )
       {
+         SDB_ASSERT( sizeof( _dmsMetadataBlock ) == DMS_MB_SIZE,
+                     "metadata block header should be 1024" ) ;
+
          INT32 i = 0 ;
          ossMemset( _collectionName, 0, sizeof( _collectionName ) ) ;
          if ( clName )
@@ -248,6 +260,8 @@ namespace engine
 
          _totalOrgDataLen        = 0 ;
          _totalDataLen           = 0 ;
+         _totalLobSize           = 0 ;
+         _totalValidLobSize      = 0 ;
 
          _maxGlobTransID         = 0 ;
          _commitFlag             = 0 ;
@@ -268,6 +282,9 @@ namespace engine
             _compressorType      = compressType ;
          }
 
+         _createTime             = 0 ;
+         _updateTime             = 0 ;
+
          // pad
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
@@ -275,7 +292,6 @@ namespace engine
    } ;
    typedef _dmsMetadataBlock  dmsMetadataBlock ;
    typedef dmsMetadataBlock   dmsMB ;
-   #define DMS_MB_SIZE                 (1024)
 
 #pragma pack()
 
@@ -394,11 +410,12 @@ namespace engine
    struct _dmsMBStatInfo
    {
       UINT64      _totalRecords ;
+      UINT32      _writePtrCount ;
       UINT32      _totalDataPages ;
       UINT32      _totalIndexPages ;
+      UINT32      _totalLobPages ;
       UINT64      _totalDataFreeSpace ;
       UINT64      _totalIndexFreeSpace ;
-      UINT32      _totalLobPages ;
       UINT64      _totalLobs ;
       UINT8       _uniqueIdxNum ;
       UINT8       _textIdxNum ;
@@ -408,6 +425,8 @@ namespace engine
       UINT64      _totalDataLen ;
       UINT32      _startLID ;
       UINT32      _flag ;
+      UINT64      _totalLobSize ;
+      UINT64      _totalValidLobSize ;
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
@@ -448,9 +467,15 @@ namespace engine
       // the last search position of delete list
       dmsRecordID _lastSearchRID ;
 
+      // cache of create time
+      UINT64      _createTime ;
+      // cache of update time
+      UINT64      _updateTime ;
+
       void reset()
       {
          _totalRecords           = 0 ;
+         _writePtrCount          = 0 ;
          _totalDataPages         = 0 ;
          _totalIndexPages        = 0 ;
          _totalDataFreeSpace     = 0 ;
@@ -465,6 +490,8 @@ namespace engine
          _totalDataLen           = 0 ;
          _startLID               = DMS_INVALID_CLID ;
          _flag                   = 0 ;
+         _totalLobSize           = 0 ;
+         _totalValidLobSize      = 0 ;
          _commitFlag.init( 0 ) ;
          _lastLSN.init( ~0 ) ;
          _lastWriteTick          = 0 ;
@@ -489,6 +516,8 @@ namespace engine
          _globTransAvailTime.init( 0 ) ;
          _lastSearchSlot = dmsMB::_max ;
          _lastSearchRID.reset() ;
+         _createTime             = 0 ;
+         _updateTime             = 0 ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -660,6 +689,31 @@ namespace engine
             return (UINT32)( avgSize ) ;
          }
          return 0 ;
+      }
+
+      void addTotalLobSize( INT64 size )
+      {
+         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobSize ), size ) ;
+      }
+
+      void subTotalLobSize( INT64 size )
+      {
+         addTotalLobSize( 0 - size ) ;
+      }
+
+      void resetTotalLobSize()
+      {
+         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobSize ), 0 ) ;
+      }
+
+      void addTotalValidLobSize( INT64 size )
+      {
+         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), size ) ;
+      }
+
+      void resetTotalValidLobSize()
+      {
+         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), 0 ) ;
       }
 
       _dmsMBStatInfo ()
@@ -1227,6 +1281,10 @@ namespace engine
 
          OSS_INLINE _dmsCompressorEntry *getCompressorEntry( UINT16 mbID ) ;
 
+         virtual void incWritePtrCount( INT32 collectionID ) ;
+
+         virtual void decWritePtrCount( INT32 collectionID ) ;
+
          /*
             Caller must hold the mbContext
          */
@@ -1366,6 +1424,15 @@ namespace engine
                                                _pmdEDUCB    *cb,
                                                BOOLEAN      bSetOvfRecrd ) = 0 ;
 
+         virtual void   _onHeaderUpdated( UINT64 updateTime = 0 )
+         {
+            _dmsStorageBase::_onHeaderUpdated( updateTime ) ;
+            if ( NULL != _dmsHeader && NULL != _pStorageInfo )
+            {
+               _pStorageInfo->_updateTime = _dmsHeader->_updateTime ;
+            }
+         }
+
          INT32 _copyIndexesWithoutTypes( dmsMBContext *oldContext,
                                          dmsMBContext *newContext,
                                          _pmdEDUCB *cb,
@@ -1383,7 +1450,8 @@ namespace engine
 
          virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                             BOOLEAN sync,
-                                            UINT64 lastTime ) ;
+                                            UINT64 lastTime,
+                                            BOOLEAN &setHeadCommFlgValid ) ;
 
          virtual INT32  _onMarkHeaderInvalid( INT32 collectionID ) ;
 
@@ -1446,6 +1514,8 @@ namespace engine
                              dmsMBStatInfo *mbStat,
                              const dmsTransRecordInfo *recordInfo,
                              _pmdEDUCB *cb ) ;
+
+         void _onMBUpdated( UINT16 mbID ) ;
 
       private:
          void               _initializeMME () ;
@@ -1635,6 +1705,8 @@ namespace engine
       if ( _dmsHeader && _dmsHeader->_createLobs != createLobs )
       {
          _dmsHeader->_createLobs = createLobs ;
+         _onHeaderUpdated() ;
+
          /// flush to file
          flushHeader( isSyncDeep() ) ;
       }

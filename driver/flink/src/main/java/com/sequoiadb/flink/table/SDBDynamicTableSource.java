@@ -12,34 +12,46 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.table;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.sequoiadb.flink.codec.SDBDataConverter;
+import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.util.LookupUtil;
 import com.sequoiadb.flink.config.SDBSourceOptions;
+import com.sequoiadb.flink.serde.SDBDataConverter;
+import com.sequoiadb.flink.source.SDBLookupTableFunction;
 import com.sequoiadb.flink.source.SDBSource;
-
+import com.sequoiadb.flink.table.pushdown.FilterPushDownSupport;
 import org.apache.flink.table.connector.ChangelogMode;
-import org.apache.flink.table.connector.source.*;
+import org.apache.flink.table.connector.source.TableFunctionProvider;
+import org.apache.flink.table.connector.source.DynamicTableSource;
+import org.apache.flink.table.connector.source.LookupTableSource;
+import org.apache.flink.table.connector.source.ScanTableSource;
+import org.apache.flink.table.connector.source.SourceProvider;
+import org.apache.flink.table.connector.source.abilities.SupportsFilterPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
+import org.apache.flink.table.expressions.ResolvedExpression;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.RowKind;
+import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+
 public class SDBDynamicTableSource implements ScanTableSource,
         SupportsProjectionPushDown,
-        SupportsLimitPushDown {
+        SupportsFilterPushDown,
+        SupportsLimitPushDown,
+        LookupTableSource {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBDynamicTableSource.class);
 
@@ -48,10 +60,11 @@ public class SDBDynamicTableSource implements ScanTableSource,
     private DataType producedDatatype;
     private long limit = -1;
 
+    private BSONObject matcher;
+
     public SDBDynamicTableSource(SDBSourceOptions sourceOptions,
                                  DataType produceDatatype) {
         LOG.info("source options: {}", sourceOptions);
-
         this.sourceOptions = sourceOptions;
         this.producedDatatype = produceDatatype;
     }
@@ -77,10 +90,12 @@ public class SDBDynamicTableSource implements ScanTableSource,
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext runtimeProviderContext) {
         SDBDataConverter dataConverter
                 = new SDBDataConverter(((RowType) producedDatatype.getLogicalType()));
+
         return SourceProvider.of(new SDBSource(
                 dataConverter,
                 sourceOptions,
                 ((RowType) producedDatatype.getLogicalType()).getFieldNames(),
+                matcher,
                 limit));
     }
 
@@ -131,7 +146,38 @@ public class SDBDynamicTableSource implements ScanTableSource,
                 new RowType(dataType.getLogicalType().isNullable(), updatedFields),
                 dataType.getConversionClass(),
                 updatedChildren
-                );
+        );
+    }
+
+    @Override
+    public Result applyFilters(List<ResolvedExpression> resolvedExpressionList) {
+        matcher = FilterPushDownSupport.toBsonMatcher(resolvedExpressionList);
+        //return all expression to flink,internal processing returned expressions
+        return Result.of(new ArrayList<>(), resolvedExpressionList);
+    }
+
+    /**
+     * the below function implement to LookupTableSource Interface.
+     * This function is called when the user uses the lookup syntax
+     * in the flink-sdb connector.
+     *
+     * @param context provided by flink to get joined fields
+     * @return LookupRuntimeProvider
+     */
+
+    @Override
+    public LookupRuntimeProvider getLookupRuntimeProvider(LookupContext context) {
+
+        int[][] keys = context.getKeys();
+
+        if (LookupUtil.isNestedType(keys)) {
+            throw new SDBException("LookupTableSource doesn't support nested types when using SequoiaDB as the source/sink.");
+        }
+
+        RowType joinedRowType = LookupUtil.getJoinedRowType(producedDatatype, keys);
+
+        return TableFunctionProvider.of(
+                new SDBLookupTableFunction(producedDatatype, sourceOptions, joinedRowType));
     }
 
 }

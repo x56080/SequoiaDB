@@ -2,30 +2,26 @@ package com.sequoiadb.test.db;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.junit.*;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.assertTrue;
 
 public class SdbConnect {
 
     private static Sequoiadb sdb;
-    private static CollectionSpace cs;
-    private static DBCollection cl;
-    private static ReplicaGroup rg;
-    private static Node node;
-    private static DBCursor cursor;
+    private static final String ERROR_ADDRESS_CONN = "ErrorHost:11810";
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -36,21 +32,10 @@ public class SdbConnect {
 
     @Before
     public void setUp() throws Exception {
-        // cs
-        if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
-            sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
-            cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        } else
-            cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
-        BSONObject conf = new BasicBSONObject();
-        conf.put("ReplSize", 0);
-        cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
     }
 
     @After
     public void tearDown() throws Exception {
-        sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
     }
 
     @Test
@@ -99,5 +84,167 @@ public class SdbConnect {
         }
     }
 
+    @Test
+    public void sdbBuilderServerAddressTest() {
+        // case 1: default value
+        try {
+            Sequoiadb db1 = Sequoiadb.builder().build();
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
 
+        // case 2: ""
+        try {
+            Sequoiadb db2 = Sequoiadb.builder().serverAddress("").build();
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 3: normal
+        try (Sequoiadb db3 = Sequoiadb.builder().serverAddress(Constants.COOR_NODE_CONN).build()) {
+            Assert.assertTrue(db3.isValid());
+        }
+
+        // case 4: address list
+        List<String> addressList = new ArrayList<>();
+        addressList.add(ERROR_ADDRESS_CONN);
+        addressList.add(Constants.COOR_NODE_CONN);
+        try (Sequoiadb db4 = Sequoiadb.builder().serverAddress(addressList).build()) {
+            Assert.assertTrue(db4.isValid());
+        }
+    }
+
+    @Test
+    public void sdbBuilderConfTest() {
+        long start = System.currentTimeMillis();
+        try {
+            ConfigOptions conf = new ConfigOptions();
+            conf.setConnectTimeout(2000);  // 2s
+            conf.setMaxAutoConnectRetryTime(0);
+
+            Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress(ERROR_ADDRESS_CONN)  // invalid address
+                    .configOptions(conf)
+                    .build();
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode(), e.getErrorCode());
+            long time = System.currentTimeMillis() - start;
+            if (time >= 3000) {
+                Assert.fail("The elapsed time dose no match the settings, the elapsed time: " + time + "ms");
+            }
+        }
+    }
+
+    @Test
+    public void sdbBuilderUserTest() {
+        // case 1: default username and password
+        UserConfig userConfig = new UserConfig();
+        Assert.assertEquals("", userConfig.getUserName());
+        Assert.assertEquals("", userConfig.getPassword());
+
+        try {
+            // case 2: connect by username and password
+            sdb.createUser(Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD);
+            try (Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress(Constants.COOR_NODE_CONN)
+                    .userConfig(new UserConfig(Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD))
+                    .build()) {
+                Assert.assertTrue(db.isValid());
+            }
+
+            // case 3: connect by cipher file
+            UserConfig userConfig3 = new UserConfig(Constants.TEST_USER_NAME,
+                    new File(Constants.TEST_USER_CIPHER_FILE), Constants.TEST_USER_TOKEN);
+            try (Sequoiadb db = Sequoiadb.builder()
+                    .serverAddress(Constants.COOR_NODE_CONN)
+                    .userConfig(userConfig3)
+                    .build()) {
+                Assert.assertTrue(db.isValid());
+            }
+        } finally {
+            sdb.removeUser(Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD);
+        }
+    }
+
+    @Test
+    public void sdbAuthSHA256ErrorTest() {
+        String userName = "authSHA256TestUser";
+        String password = "123";
+
+        // case 1: no user
+        try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, "", "")) {
+            assertTrue(db.isValid());
+        }
+        try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, password)) {
+            assertTrue(db.isValid());
+        }
+        try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, null, null)) {
+            assertTrue(db.isValid());
+        }
+
+        try {
+            sdb.createUser(userName, password);
+
+            // case 2: error password
+            try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, "errorPassword")) {
+                Assert.fail("Connect sdb with error password should be failed");
+            } catch (BaseException e) {
+                Assert.assertEquals(e.getErrorCode(), SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode());
+            }
+            try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, null)) {
+                Assert.fail("Connect sdb with error password should be failed");
+            } catch (BaseException e) {
+                Assert.assertEquals(e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode());
+            }
+
+            // case 3: no exist user
+            try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, "notExistUser",
+                    "123")) {
+                Assert.fail("Connect sdb with not exist user should be failed");
+            } catch (BaseException e) {
+                Assert.assertEquals(e.getErrorCode(), SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode());
+            }
+        } finally {
+            sdb.removeUser(userName, password);
+        }
+    }
+
+    @Test
+    public void sdbAuthSHA256Test() {
+        String userName = "authSHA256TestUser";
+        String password;
+        for (int i = 0; i < 100; i++) {
+            password = generatePassword();
+            try {
+                sdb.createUser(userName, password);
+
+                try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, password)) {
+                    assertTrue(db.isValid());
+                } catch (BaseException e) {
+                    System.out.println("userName: " + userName + "  password: " + password);
+                    throw e;
+                }
+            } finally {
+                sdb.removeUser(userName, password);
+            }
+        }
+    }
+
+    private String generatePassword() {
+        String text = new StringBuffer()
+                .append("abcdefghijklmnopqrstuvwxyz")
+                .append("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                .append("1234567890")
+                .append("!@#$%^&*()-_=+[{]}\\|;:'\",<.>/? ")
+                .toString();
+        StringBuffer password = new StringBuffer();
+
+        Random random = new Random();
+        int len = random.nextInt(text.length());
+        for (int i = 0; i < len; i++) {
+            int post = random.nextInt(text.length());
+            password.append(text.charAt(post));
+        }
+        return password.toString();
+    }
 }

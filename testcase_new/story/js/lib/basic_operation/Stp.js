@@ -13,6 +13,7 @@ var tmpStp = {
    getTimeMap: Stp.prototype.getTimeMap,
    getTimeUS: Stp.prototype.getTimeUS,
    help: Stp.prototype.help,
+   msg: Stp.prototype.msg,
    reelect: Stp.prototype.reelect,
    setPDLevel: Stp.prototype.setPDLevel,
    start: Stp.prototype.start,
@@ -38,6 +39,7 @@ Stp.prototype.getTime=function(){try{return tmpStp.getTime.apply(this,arguments)
 Stp.prototype.getTimeMap=function(){try{return tmpStp.getTimeMap.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.getTimeUS=function(){try{return tmpStp.getTimeUS.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.help=function(){try{return tmpStp.help.apply(this,arguments);}catch(e){throw new Error(e);}};
+Stp.prototype.msg=function(){try{return tmpStp.msg.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.reelect=function(){try{return tmpStp.reelect.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.setPDLevel=function(){try{return tmpStp.setPDLevel.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.start=function(){try{return tmpStp.start.apply(this,arguments);}catch(e){throw new Error(e);}};

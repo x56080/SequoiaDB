@@ -29,7 +29,7 @@ public class DeleteResult extends BaseResult {
 
     public DeleteResult( BSONObject obj ) {
         this.deletedNum = ( long ) Helper.getValue( obj, "DeletedNum",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
     }
 
     /**

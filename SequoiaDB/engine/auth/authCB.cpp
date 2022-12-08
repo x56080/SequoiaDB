@@ -37,6 +37,8 @@
 #include "authTrace.hpp"
 #include "pmdCB.hpp"
 #include "../bson/lib/md5.hpp"
+#include "authRBAC.hpp"
+#include "rtnQueryOptions.hpp"
 
 using namespace bson ;
 
@@ -78,13 +80,13 @@ namespace engine
       _authEnabled = pmdGetOptionCB()->authEnabled() ;
    }
 
-   BSONObj _authCB::_desensitization( const BSONObj &userObj )
+   INT32 _authCB::_buildSecureUserInfo( BSONObjBuilder &builder,
+                                        const BSONObj &origUserInfo )
    {
-      /// discard Password, SCRAM-SHA256, SCRAM-SHA1 fileds
+      INT32 rc = SDB_OK ;
       try
       {
-         BSONObjBuilder builder( userObj.objsize() ) ;
-         BSONObjIterator itr( userObj ) ;
+         BSONObjIterator itr( origUserInfo ) ;
          while ( itr.more() )
          {
             BSONElement e = itr.next() ;
@@ -96,14 +98,18 @@ namespace engine
             }
             builder.append( e ) ;
          }
-         return builder.obj() ;
       }
-      catch( std::exception &e )
+      catch ( std::exception &e )
       {
-         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
       }
 
-      return userObj ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /** \fn INT32 _step1( const BSONObj &obj,
@@ -320,26 +326,6 @@ namespace engine
          goto error ;
       }
 
-
-      // build server proof
-      if ( SDB_AUTH_TYPE_EXTEND_PWD == type  )
-      {
-         rc = utilAuthCaculateServerProof1( username, iterationCnt, salt,
-                                            combineNonce, identify, serverKey,
-                                            serverProof ) ;
-      }
-      else
-      {
-         BOOLEAN fromSdb = SDB_AUTH_TYPE_MD5_PWD == type ? TRUE : FALSE ;
-         rc = utilAuthCaculateServerProof( username, iterationCnt, salt,
-                                           combineNonce, identify,
-                                           serverKey, fromSdb,
-                                           serverProof ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR,
-                   "Faild to caculate server proof, rc: %d",
-                   rc ) ;
-
       // build object to return
       if ( pOutUserObj )
       {
@@ -363,9 +349,27 @@ namespace engine
 
          hashCode = base64::encode( xorRes, sizeof(xorRes) ) ;
 
-         *pOutUserObj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_2 <<
-                              SDB_AUTH_PROOF << serverProof.c_str() <<
-                              SDB_AUTH_HASHCODE << hashCode.c_str() ) ;
+         // build server proof
+         if ( SDB_AUTH_TYPE_EXTEND_PWD == type  )
+         {
+            rc = utilAuthCaculateServerProof1( username, iterationCnt, salt,
+                                               combineNonce, identify, serverKey,
+                                               serverProof ) ;
+         }
+         else
+         {
+            BOOLEAN fromSdb = SDB_AUTH_TYPE_MD5_PWD == type ? TRUE : FALSE ;
+            rc = utilAuthCaculateServerProof( username, iterationCnt, salt,
+                                              combineNonce, identify,
+                                              serverKey, fromSdb,
+                                              serverProof ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Faild to caculate server proof, rc: %d",
+                      rc ) ;
+
+         rc = _buildSCRAMSHAAuthResult( userObj, serverProof.c_str(),
+                                        hashCode.c_str(), *pOutUserObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build auth result, rc: %d", rc ) ;
       }
 
    done:
@@ -710,11 +714,23 @@ namespace engine
       {
          if ( pOutUserObj )
          {
-            BSONObj tmpObj ;
-            buffObj.nextObj( tmpObj ) ;
-            *pOutUserObj =  _desensitization( tmpObj ) ;
+            try
+            {
+               BSONObj tmpObj ;
+               buffObj.nextObj( tmpObj ) ;
+               BSONObjBuilder builder( tmpObj.objsize() ) ;
+               rc = _buildSecureUserInfo( builder, tmpObj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build secure user "
+                            "information: %d", rc ) ;
+               *pOutUserObj = builder.obj() ;
+            }
+            catch ( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
          }
-         rc = SDB_OK ;
       }
       else
       {
@@ -1022,6 +1038,9 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkRemoveUser( username, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check removing user failed, rc: %d", rc ) ;
+
       // now we remove the record from system collection
       rc = rtnDelete( AUTH_USR_COLLECTION,
                       match, hint,
@@ -1317,6 +1336,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to parse create user msg, rc: %d",
                    rc ) ;
+      rc = _checkCrtUserOption( option, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check creating user option failed, rc: %d",
+                   rc ) ;
 
       rc = _buildUserInfo( username, passwd, clearTextPasswd, option,
                            userInfoObj ) ;
@@ -1349,7 +1371,20 @@ namespace engine
       }
       else if ( pOutObj )
       {
-         *pOutObj = _desensitization( userInfoObj ) ;
+         try
+         {
+            BSONObjBuilder builder( userInfoObj.objsize() ) ;
+            rc = _buildSecureUserInfo( builder, userInfoObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build secure user "
+                         "information: %d", rc ) ;
+            *pOutObj = builder.obj() ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -1377,26 +1412,47 @@ namespace engine
             if ( String != e.type() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                       FIELD_NAME_AUDIT_MASK,
-                       option.toString().c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_AUDIT_MASK,
+                           option.toString().c_str(), rc ) ;
                goto error ;
             }
 
             rc = pdString2AuditMask( e.valuestr(), mask, TRUE ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                       FIELD_NAME_AUDIT_MASK,
-                       option.toString().c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_AUDIT_MASK,
+                           option.toString().c_str(), rc ) ;
                goto error ;
+            }
+         }
+         else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_ROLE ) )
+         {
+            if ( String != e.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                           FIELD_NAME_ROLE, option.toString().c_str(), rc ) ;
+               goto error ;
+            }
+            else
+            {
+               if ( AUTH_INVALID_ROLE_ID ==
+                    authGetBuiltinRoleID( e.valuestrsafe() ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Role %s is invalid when creating a user, rc: %d",
+                              e.valuestrsafe(), rc ) ;
+                  goto error ;
+               }
             }
          }
          else
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
-                    e.fieldName(), option.toString().c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in option[%s], rc: %d",
+                        e.fieldName(), option.toString().c_str(), rc ) ;
             goto error ;
          }
       }
@@ -1752,6 +1808,14 @@ namespace engine
                  "Field[%s] doesn't exist when create user, rc: %d",
                  SDB_AUTH_PASSWD, rc ) ;
          goto error ;
+      }
+
+      if ( !option.hasField( FIELD_NAME_ROLE ) )
+      {
+         BSONObj newOpt ;
+         rc = _rebuildUserOption( option, newOpt ) ;
+         PD_RC_CHECK( rc, PDERROR, "Rebuild user option failed, rc: %d", rc ) ;
+         option = newOpt ;
       }
 
       }
@@ -2329,6 +2393,192 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB_AUTHCB__PARSEDELUSERMSGOBJ, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__BUILDSCRAMSHAAUTHRESULT, "_authCB::_buildSCRAMSHAAuthResult" )
+   INT32 _authCB::_buildSCRAMSHAAuthResult( const BSONObj &userInfo,
+                                            const CHAR *serverProof,
+                                            const CHAR *hashCode,
+                                            BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_AUTHCB__BUILDSCRAMSHAAUTHRESULT ) ;
+      SDB_ASSERT( serverProof, "Server proof is NULL" ) ;
+      SDB_ASSERT( hashCode, "Hash code is NULL" ) ;
+
+      try
+      {
+         BSONObjBuilder builder( userInfo.objsize() + ossStrlen( serverProof )
+                                 + ossStrlen( hashCode ) ) ;
+         rc = _buildSecureUserInfo( builder, userInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build secure user information: "
+                      "%d", rc ) ;
+
+         builder.append( SDB_AUTH_STEP, SDB_AUTH_STEP_2 ) ;
+         builder.append( SDB_AUTH_PROOF, serverProof ) ;
+         builder.append( SDB_AUTH_HASHCODE, hashCode ) ;
+         result = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_AUTHCB__BUILDSCRAMSHAAUTHRESULT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__REBUILDUSEROPTION, "_authCB::_rebuildUserOption" )
+   INT32 _authCB::_rebuildUserOption( const BSONObj &oldOpt, BSONObj &newOpt )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_AUTHCB__REBUILDUSEROPTION ) ;
+
+      try
+      {
+         BSONObjBuilder builder( oldOpt.objsize() + 32 ) ;
+         builder.appendElements( oldOpt ) ;
+         builder.append( FIELD_NAME_ROLE, VALUE_NAME_ADMIN ) ;
+         newOpt = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_AUTHCB__REBUILDUSEROPTION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__CHECKCRTUSEROPTION, "_authCB::_checkCrtUserOption" )
+   INT32 _authCB::_checkCrtUserOption( const BSONObj &option, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_AUTHCB__CHECKCRTUSEROPTION ) ;
+
+      // The first user of the database should always be role of admin.
+      try
+      {
+         const CHAR *roleName = option.getStringField( FIELD_NAME_ROLE ) ;
+         UINT32 roleID = authGetBuiltinRoleID( roleName ) ;
+         if ( AUTH_ROLE_ADMIN == roleID )
+         {
+            goto done ;
+         }
+         else if ( AUTH_ROLE_MONITOR == roleID )
+         {
+            INT64 count = 0 ;
+            rtnQueryOptions queryOption ;
+
+            queryOption.setCLFullName( AUTH_USR_COLLECTION ) ;
+            rc = rtnGetCount( queryOption, pmdGetKRCB()->getDMSCB(), cb,
+                              pmdGetKRCB()->getRTNCB(), &count ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get user number failed, rc: %d", rc ) ;
+            if ( 0 == count )
+            {
+               rc = SDB_OPERATION_DENIED ;
+               PD_LOG_MSG( PDERROR, "The first user of the database should be "
+                           "role of admin, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            // The option has been checked in the parsing phase.
+            SDB_ASSERT( FALSE, "The role is invalid" ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_AUTHCB__CHECKCRTUSEROPTION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__CHECKREMOVEUSER, "_authCB::_checkRemoveUser" )
+   INT32 _authCB::_checkRemoveUser( const CHAR *username, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_AUTHCB__CHECKREMOVEUSER ) ;
+
+      try
+      {
+         // If the user to be removed is the last one, it's OK. Otherwise, need
+         // to check if any user of role admin remains.
+
+         INT64 count = 0 ;
+         rtnQueryOptions queryOption ;
+         SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+         queryOption.setCLFullName( AUTH_USR_COLLECTION ) ;
+
+         rc = rtnGetCount( queryOption, dmsCB, cb, rtnCB, &count ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get user number failed, rc: %d", rc ) ;
+
+         if ( count <= 1 )
+         {
+            goto done ;
+         }
+
+         {
+            // Check if any user(not me) of role admin exists.
+            // Query matcher:
+            // {
+            //   "$and": [
+            //      { "User": { "$ne": username } },
+            //      { "Options.Role": "admin" }
+            //   ]
+            // }
+
+            BSONObj query =
+               BSON( "$and" << BSON_ARRAY(
+                  BSON( FIELD_NAME_USER << BSON( "$ne" << username ) ) <<
+                  BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE <<
+                        VALUE_NAME_ADMIN ) ) ) ;
+
+            queryOption.setQuery( query ) ;
+            rc = rtnGetCount( queryOption, dmsCB, cb, rtnCB, &count ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get user number failed, rc: %d", rc ) ;
+
+            if ( 0 == count )
+            {
+               rc = SDB_OPERATION_DENIED ;
+               PD_LOG_MSG( PDERROR, "Only users of role monitor remain after "
+                           "removing this user, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_AUTHCB__CHECKREMOVEUSER, rc ) ;
       return rc ;
    error:
       goto done ;

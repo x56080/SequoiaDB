@@ -12,7 +12,7 @@ Sdb
 
 ##描述##
 
-该函数用于更新指定的节点配置。生效类型为“在线生效”的配置，更新后立即生效；生效类型为“重启生效”的配置，需重启节点后生效。各配置的生效类型可参考[参数说明][parameter]。
+该函数用于更新指定的节点配置。生效类型为“在线生效”的配置，更新后立即生效；生效类型为“重启生效”的配置，需重启节点后生效。各配置的生效类型可参考[参数说明][parameter]。如果需要设定非官方配置项，必须打开`Force`选项。
 
 ##参数##
 
@@ -56,6 +56,14 @@ v2.9 及以上版本
     Some configuration changes didn't take effect:
     Config 'numpreload' require(s) restart to take effect.
     ```
+
+- 强制配置非官方参数。
+	```lang-javascript
+    // 连接协调节点
+	> db = new Sdb( "localhost", 11810 )
+	> db.updateConf( { aaa: 10 }, { Force: true } )
+	```
+
 
 [^_^]:
      本文使用的所有引用及链接

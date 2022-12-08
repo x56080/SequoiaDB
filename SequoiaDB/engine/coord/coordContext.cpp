@@ -53,6 +53,8 @@ using namespace bson ;
 namespace engine
 {
 
+   #define COORD_SUBCTX_KILLCONTEXT_TIMEOUT ( 30000 )
+
    /*
       _rtnContextCoord implement
    */
@@ -66,7 +68,6 @@ namespace engine
       _preRead          = preRead ;
       _needReOrder      = FALSE ;
 
-      _pSite            = NULL ;
       _pSession         = NULL ;
 
       _isModify         = FALSE ;
@@ -74,12 +75,20 @@ namespace engine
 
    _rtnContextCoord::~_rtnContextCoord ()
    {
-      unregisterAllProcessors() ;
       if ( NULL != _pSession )
       {
          pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-         killSubContexts( cb ) ;
-         _pSite->removeSession( _pSession->sessionID() ) ;
+         if ( NULL != cb->getRemoteSite() )
+         {
+            pmdRemoteSessionSite *pSite =
+                  (pmdRemoteSessionSite *)( cb->getRemoteSite() ) ;
+            _killSubContexts( cb ) ;
+            pSite->removeSession( _pSession->sessionID() ) ;
+         }
+         else
+         {
+            _destroySubContexts() ;
+         }
       }
    }
 
@@ -142,10 +151,10 @@ namespace engine
    UINT32 _rtnContextCoord::getCachedRecordNum()
    {
       UINT32 recordNum = 0 ;
-      SUB_ORDERED_CTX_MAP::iterator it = _orderedContextMap.begin() ;
-      while( it != _orderedContextMap.end() )
+      SUB_ORDERED_CTX_SET_IT it = _orderedContexts.begin() ;
+      while( it != _orderedContexts.end() )
       {
-         rtnSubContext *pSub = it->second ;
+         rtnSubContext *pSub = *it ;
          recordNum += pSub->recordNum() ;
          ++it ;
       }
@@ -161,8 +170,8 @@ namespace engine
       return recordNum + _rtnContextBase::getCachedRecordNum() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__KILLSUBCTXS, "_rtnContextCoord::killSubContexts" )
-   void _rtnContextCoord::killSubContexts( pmdEDUCB * cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__KILLSUBCTXS, "_rtnContextCoord::_killSubContexts" )
+   void _rtnContextCoord::_killSubContexts( pmdEDUCB * cb )
    {
       UINT32 tid = 0 ;
       PD_TRACE_ENTRY ( SDB_CTXCOOR__KILLSUBCTXS ) ;
@@ -178,30 +187,51 @@ namespace engine
       }
 
       // push all ordered context to prepare map
-      SUB_ORDERED_CTX_MAP::iterator itSub = _orderedContextMap.begin() ;
-      while ( _orderedContextMap.end() != itSub )
+      SUB_ORDERED_CTX_SET_IT itSub = _orderedContexts.begin() ;
+      while ( _orderedContexts.end() != itSub )
       {
-         rtnSubContext* rtnSubCtx = itSub->second ;
+         rtnSubContext* rtnSubCtx = *itSub ;
          pSubContext = dynamic_cast<coordSubContext*>( rtnSubCtx ) ;
-         _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
-                                    pSubContext->getRouteID().value,
-                                    pSubContext ) ) ;
+
+         try
+         {
+            _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
+                                       pSubContext->getRouteID().value,
+                                       pSubContext ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to move context to prepare contexts, "
+                    "occur exception %s", e.what() ) ;
+            _releaseSubContext( rtnSubCtx ) ;
+         }
+
          ++itSub ;
       }
-      _orderedContextMap.clear() ;
+      _orderedContexts.clear() ;
 
       EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
       while ( it != _emptyContextMap.end() )
       {
-         _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
-                                    it->first,
-                                    it->second ) ) ;
+         try
+         {
+            _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
+                                       it->first,
+                                       it->second ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to move context to prepare contexts, "
+                    "occur exception %s", e.what() ) ;
+            _releaseSubContext( it->second ) ;
+         }
+
          ++it ;
       }
       _emptyContextMap.clear() ;
 
       // kill sub context
-      if ( cb && !cb->isInterrupted() )
+      if ( cb && ( !cb->isInterrupted() || cb->isOnlySelfWhenInterrupt() ) )
       {
          MsgOpKillContexts killMsg ;
          MsgRouteID routeID ;
@@ -253,12 +283,56 @@ namespace engine
       while ( it != _prepareContextMap.end() )
       {
          pSubContext = it->second ;
-         SDB_OSS_DEL pSubContext ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( pSubContext ) ;
          ++it ;
       }
       _prepareContextMap.clear() ;
 
       PD_TRACE_EXIT( SDB_CTXCOOR__KILLSUBCTXS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__DESSUBCTXS, "_rtnContextCoord::_destroySubContexts" )
+   void _rtnContextCoord::_destroySubContexts()
+   {
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__DESSUBCTXS ) ;
+
+      for ( SUB_ORDERED_CTX_SET_IT itSub = _orderedContexts.begin() ;
+            _orderedContexts.end() != itSub ;
+            ++ itSub )
+      {
+         rtnSubContext *pSubContext = *itSub ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( pSubContext ) ;
+      }
+      _orderedContexts.clear() ;
+
+      for ( EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
+            it != _emptyContextMap.end() ;
+            ++ it )
+      {
+         rtnSubContext *pSubContext = it->second ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( it->second ) ;
+      }
+      _emptyContextMap.clear() ;
+
+      // release all context
+      for ( EMPTY_CONTEXT_MAP::iterator it = _prepareContextMap.begin() ;
+            it != _prepareContextMap.end() ;
+            ++ it )
+      {
+         rtnSubContext *pSubContext = it->second ;
+         // contexts on data nodes have already been killed
+         pSubContext->setContextID( -1 ) ;
+         _releaseSubContext( pSubContext ) ;
+      }
+      _prepareContextMap.clear() ;
+
+      PD_TRACE_EXIT( SDB_CTXCOOR__DESSUBCTXS ) ;
    }
 
    const CHAR* _rtnContextCoord::name() const
@@ -276,6 +350,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      pmdRemoteSessionSite *pSite = NULL ;
       coordSessionPropSite *pPropSite = NULL ;
       INT64 timeout = -1 ;
 
@@ -285,20 +360,20 @@ namespace engine
          goto error ;
       }
 
-      _pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
-      if ( !_pSite )
+      pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
+      if ( !pSite )
       {
          PD_LOG( PDERROR, "Session[%s] is invalid: remote site is NULL",
                  cb->getName() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
-      pPropSite = ( coordSessionPropSite* )_pSite->getUserData() ;
+      pPropSite = ( coordSessionPropSite* )pSite->getUserData() ;
       if ( pPropSite )
       {
          timeout = pPropSite->getOperationTimeout() ;
       }
-      _pSession = _pSite->addSession( timeout, &_handler ) ;
+      _pSession = pSite->addSession( timeout, &_handler ) ;
       if ( !_pSession )
       {
          PD_LOG( PDERROR, "Create remote session failed in session[%s]",
@@ -396,7 +471,7 @@ namespace engine
       {
          if ( -1 == emptyIter->second->contextID() )
          {
-            SDB_OSS_DEL emptyIter->second ;
+            _releaseSubContext( emptyIter->second ) ;
             _emptyContextMap.erase( emptyIter++ ) ;
             continue ;
          }
@@ -508,13 +583,17 @@ namespace engine
          }
          else
          {
-            rc = _appendSubData( event ) ;
+            BOOLEAN isTakeOver = FALSE ;
+            rc = _appendSubData( event, isTakeOver ) ;
+            if ( isTakeOver )
+            {
+               event.reset() ;
+            }
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to append the data, rc: %d", rc ) ;
                break ;
             }
-            event.reset() ;
             pReply = NULL ;
          }
       } // end while
@@ -553,17 +632,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( _needReOrder && 1 == _orderedContextMap.size() &&
+      if ( _needReOrder && 1 == _orderedContexts.size() &&
            _requireExplicitSorting() )
       {
-         rtnSubContext* subCtx = _orderedContextMap.begin()->second ;
+         rtnSubContext* subCtx = *( _orderedContexts.begin() ) ;
 
-         _orderedContextMap.clear() ;
+         _orderedContexts.clear() ;
 
          rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
          if ( rc != SDB_OK )
          {
-            SDB_OSS_DEL subCtx ;
             PD_LOG ( PDERROR, "Failed to get orderKey failed, rc: %d", rc ) ;
             goto error ;
          }
@@ -576,13 +654,16 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextCoord::_appendSubData( const pmdEDUEvent &event )
+   INT32 _rtnContextCoord::_appendSubData( const pmdEDUEvent &event,
+                                           BOOLEAN &isTakeOver )
    {
       INT32 rc = SDB_OK ;
       MsgOpReply *pReply = (MsgOpReply *)event._Data ;
       EMPTY_CONTEXT_MAP::iterator iter ;
       coordSubContext *pSubContext = NULL ;
       BOOLEAN skipData = FALSE ;
+
+      isTakeOver = FALSE ;
 
       if ( pReply->header.opCode != MSG_BS_GETMORE_RES ||
            (UINT32)pReply->header.messageLength < sizeof( MsgOpReply ) )
@@ -631,10 +712,9 @@ namespace engine
          }
       }
 
-      // after appendData success, the data-pointer is manage by subContext.
-      // if the data-pointer will be delete by others, the clearData should be
-      // called first.
+      // after appendData success, the data-pointer is manage by subContext
       pSubContext->appendData( event ) ;
+      isTakeOver = TRUE ;
 
       rc = _processSubContext( pSubContext, skipData ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process sub-context"
@@ -662,14 +742,12 @@ namespace engine
 
          try
          {
-            _orderedContextMap.insert(
-               SUB_ORDERED_CTX_MAP::value_type( _emptyKey, pSubContext ) ) ;
+            _orderedContexts.insert( pSubContext ) ;
          }
          catch( std::exception& e )
          {
             rc = SDB_SYS ;
-            pSubContext->clearData() ;
-            SDB_OSS_DEL pSubContext ;
+            _releaseSubContext( pSubContext ) ;
             PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
             goto error ;
          }
@@ -692,8 +770,6 @@ namespace engine
          rc = _saveNonEmptyOrderedSubCtx( pSubContext ) ;
          if ( rc != SDB_OK )
          {
-            pSubContext->clearData() ;
-            SDB_OSS_DEL pSubContext ;
             PD_LOG ( PDERROR, "Failed to save sub ctx by order, rc=%d", rc ) ;
             goto error ;
          }
@@ -769,7 +845,7 @@ namespace engine
 
       SDB_ASSERT ( NULL != pReply, "pReply can't be NULL" ) ;
 
-      if ( _orderedContextMap.empty() && _emptyContextMap.empty() &&
+      if ( _orderedContexts.empty() && _emptyContextMap.empty() &&
            _prepareContextMap.empty() )
       {
          isEmpty = TRUE ;
@@ -798,12 +874,8 @@ namespace engine
          _emptyContextMap.erase( it ) ;
 
          pReply->header.opCode = MSG_BS_GETMORE_RES ;
-         rc = _appendSubData( event ) ;
-         if ( SDB_OK == rc )
-         {
-            takeOver = TRUE ;
-         }
-         else
+         rc = _appendSubData( event, takeOver ) ;
+         if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Append sub data failed, rc: %d", rc ) ;
             goto error ;
@@ -835,7 +907,7 @@ namespace engine
 
          if ( pSubContext != NULL )
          {
-            SDB_OSS_DEL pSubContext ;
+            _releaseSubContext( pSubContext ) ;
          }
          _prepareContextMap.erase ( iter ) ;
       }
@@ -883,7 +955,7 @@ namespace engine
 
       if ( -1 == subCtx->contextID() )
       {
-         SDB_OSS_DEL subCtx ;
+         _releaseSubContext( subCtx ) ;
          goto done ;
       }
 
@@ -896,7 +968,7 @@ namespace engine
       }
       catch( std::exception& e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
          goto error ;
       }
@@ -904,6 +976,7 @@ namespace engine
    done:
       return rc ;
    error:
+      _releaseSubContext( subCtx ) ;
       goto done ;
    }
 
@@ -911,11 +984,11 @@ namespace engine
                                                      rtnSubContext*& subCtx )
    {
       INT32 rc = SDB_OK ;
-      SUB_ORDERED_CTX_MAP::iterator iter ;
+      SUB_ORDERED_CTX_SET_IT iter ;
 
       subCtx = NULL ;
 
-      while ( _orderedContextMap.size() == 0 )
+      while ( _orderedContexts.size() == 0 )
       {
          if ( _emptyContextMap.size() + _prepareContextMap.size() == 0 )
          {
@@ -930,11 +1003,11 @@ namespace engine
          }
       }
 
-      SDB_ASSERT( _orderedContextMap.size() != 0,
+      SDB_ASSERT( _orderedContexts.size() != 0,
                   "_orderedContextMap should not be empty" ) ;
 
-      iter = _orderedContextMap.begin() ;
-      subCtx = iter->second ;
+      iter = _orderedContexts.begin() ;
+      subCtx = *iter ;
 
    done:
       return rc ;
@@ -953,28 +1026,35 @@ namespace engine
 
       // generally, subctx is first element of _orderedContextMap
       // so don't worry about performance
-      for ( SUB_ORDERED_CTX_MAP::iterator iter = _orderedContextMap.begin() ;
-            iter != _orderedContextMap.end() ;
-            ++iter )
+      SUB_ORDERED_CTX_SET_IT iter = _orderedContexts.begin() ;
+      if ( *iter == subCtx )
       {
-         if ( iter->second == subCtx )
+         _orderedContexts.erase( iter ) ;
+      }
+      else
+      {
+         // if the context is not the first element, need iterate the
+         // elements with the same order key in the set
+         // NOTE: should not use erase(value) in multiset, which will
+         //       remove all contexts with the same key
+         SUB_ORDERED_CTX_SET_IT_PAIR itPair =
+                                       _orderedContexts.equal_range( subCtx ) ;
+         for ( SUB_ORDERED_CTX_SET_IT iter = itPair.first ;
+               iter != itPair.second ;
+               ++ iter )
          {
-            _orderedContextMap.erase ( iter ) ;
-            break ;
+            if ( *iter == subCtx )
+            {
+               // found target
+               _orderedContexts.erase( iter ) ;
+               break ;
+            }
          }
       }
 
       rc = _saveEmptyOrderedSubCtx( subCtx ) ;
-      if ( SDB_OK != rc )
-      {
-         // rtnContextMain will delete subCtx
-         goto error ;
-      }
 
-   done:
       return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _rtnContextCoord::_saveNonEmptyNormalSubCtx( rtnSubContext* subCtx )
@@ -997,7 +1077,7 @@ namespace engine
       }
 
       if ( !_hitEnd && _emptyContextMap.empty() &&
-           _orderedContextMap.empty() && _prepareContextMap.empty() )
+           _orderedContexts.empty() && _prepareContextMap.empty() )
       {
          _hitEnd = TRUE ;
       }
@@ -1166,6 +1246,59 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__PRERELEASESUBCTX, "_rtnContextCoord::_preReleaseSubContext" )
+   void _rtnContextCoord::_preReleaseSubContext( rtnSubContext *subCtx )
+   {
+      PD_TRACE_ENTRY( SDB_CTXCOOR__PRERELEASESUBCTX ) ;
+
+      if ( NULL != subCtx )
+      {
+         coordSubContext *ctx = (coordSubContext *)subCtx ;
+         ctx->clearData() ;
+
+         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+         if ( -1 != ctx->contextID() &&
+              NULL != cb &&
+              NULL != cb->getRemoteSite() )
+         {
+            pmdRemoteSession *pSession = NULL ;
+            pmdSubSession *pSub = NULL ;
+            MsgOpKillContexts msgKillContext ;
+
+            pmdRemoteSessionSite *pSite =
+                  (pmdRemoteSessionSite *)( cb->getRemoteSite() ) ;
+
+            pSession = pSite->addSession( COORD_SUBCTX_KILLCONTEXT_TIMEOUT ) ;
+            pSub = pSession->addSubSession( ctx->getRouteID().value ) ;
+
+            /// send kill context
+            msgKillContext.contextIDs[ 0 ] = ctx->contextID() ;
+            msgKillContext.numContexts = 1 ;
+            msgKillContext.ZERO = 0 ;
+            msgKillContext.header.messageLength = sizeof( MsgOpKillContexts ) ;
+            msgKillContext.header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+            msgKillContext.header.requestID = 0 ;
+            msgKillContext.header.routeID.value = 0 ;
+            msgKillContext.header.TID = 0 ;
+
+            /// Ignore sendMsg failed
+            pSession->sendMsg( (MsgHeader*)&msgKillContext, PMD_EDU_MEM_NONE ) ;
+
+            // DON'T wait for reply, otherwise Timeout of sessionAttr may fail. Reset
+            // sub session when ignoring the reply, otherwise interrupt message will
+            // be sent to data node, the operation of data node may be interrupted.
+            pSub->resetForResend() ;
+
+            if ( pSession )
+            {
+               pSite->removeSession( pSession ) ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB_CTXCOOR__PRERELEASESUBCTX ) ;
+   }
+
    /*
       _coordSubContext implement
    */
@@ -1262,12 +1395,12 @@ namespace engine
 
    void _coordSubContext::clearData()
    {
-      //don't delete it, the fun-caller will delete it
+      pmdEduEventRelease( _event, NULL ) ;
       _event.reset() ;
-      _pData = NULL;
-      _curOffset = 0;
-      _recordNum = 0;
-      _isOrderKeyChange = TRUE;
+      _pData = NULL ;
+      _curOffset = 0 ;
+      _recordNum = 0 ;
+      _isOrderKeyChange = TRUE ;
    }
 
    MsgRouteID _coordSubContext::getRouteID()
@@ -1375,50 +1508,47 @@ namespace engine
       return _recordNum ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_COSUBCON_GETORDERKEY, "coordSubContext::getOrderKey" )
-   INT32 _coordSubContext::getOrderKey( rtnOrderKey &orderKey )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_COSUBCON_GENORDERKEY, "coordSubContext::genOrderKey" )
+   INT32 _coordSubContext::genOrderKey()
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_COSUBCON_GETORDERKEY ) ;
-      do
-      {
-         if ( !_isOrderKeyChange )
-         {
-            break ;
-         }
-         if ( _recordNum <= 0 )
-         {
-            _orderKey.clear() ;
-            break ;
-         }
-         try
-         {
-            BSONObj boRecord( (CHAR *)_pData + _curOffset ) ;
-            rc = _orderKey.generateKey( boRecord, _keyGen ) ;
-            if ( rc != SDB_OK )
-            {
-               PD_LOG ( PDERROR, "Failed to get order-key(rc=%d)", rc ) ;
-               break ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG ( PDERROR, "Failed to get order-key, occur unexpected "
-                     "error:%s", e.what() ) ;
-            break ;
-         }
-      }while ( FALSE ) ;
 
-      if ( SDB_OK == rc )
+      PD_TRACE_ENTRY( SDB_COSUBCON_GENORDERKEY ) ;
+
+      if ( !_isOrderKeyChange )
       {
-         orderKey = _orderKey ;
+         goto done ;
+      }
+      if ( _recordNum <= 0 )
+      {
+         _orderKey.clear() ;
+         goto done ;
+      }
+      try
+      {
+         BSONObj boRecord( (CHAR *)_pData + _curOffset ) ;
+         rc = _orderKey.generateKey( boRecord, _keyGen ) ;
+         if ( rc != SDB_OK )
+         {
+            PD_LOG ( PDERROR, "Failed to get order-key(rc=%d)", rc ) ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to get order-key, occur unexpected "
+                 "error: %s", e.what() ) ;
+         goto error ;
       }
 
-      PD_TRACE_EXITRC ( SDB_COSUBCON_GETORDERKEY, rc ) ;
-      return rc;
-   }
+   done:
+      PD_TRACE_EXITRC( SDB_COSUBCON_GENORDERKEY, rc ) ;
+      return rc ;
 
+   error:
+      goto done ;
+   }
 
    /*
       _rtnContextCoordExplain implement

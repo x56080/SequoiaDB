@@ -18,12 +18,16 @@ package com.sequoiadb.datasource;
 
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.base.UserConfig;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+
+import java.io.Closeable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -65,8 +69,6 @@ public class SequoiadbDatasource {
     // for thread safe
     private ReentrantReadWriteLock _rwLock = new ReentrantReadWriteLock();
     private final Object _objForReleaseConn = new Object();
-    // for error report
-    private volatile BaseException _lastException;
     // for session
     private volatile BSONObject _sessionAttr = null;
     // for others
@@ -74,6 +76,8 @@ public class SequoiadbDatasource {
     private double MULTIPLE = 1.5;
     private volatile int _preDeleteInterval = 0;
     private static final int _deleteInterval = 180000; // 3min
+    // for error report
+    private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
 
     // finalizer guardian
     @SuppressWarnings("unused")
@@ -393,6 +397,21 @@ public class SequoiadbDatasource {
             }
             return addrList;
         }
+    }
+
+    /**
+     * Get a builder to create SequoiadbDatasource instance.
+     *
+     * @return A builder of SequoiadbDatasource
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private SequoiadbDatasource( Builder builder ) {
+        String passwd = Helper.getPasswd( builder.userConfig );
+        _init(builder.addressList, builder.userConfig.getUserName(), passwd,
+                builder.configOptions, builder.datasourceOptions);
     }
 
     /**
@@ -1192,40 +1211,12 @@ public class SequoiadbDatasource {
         int maxCount = newOpt.getMaxCount();
         int keepAliveTimeout = newOpt.getKeepAliveTimeout();
         int checkInterval = newOpt.getCheckInterval();
-        int syncCoordInterval = newOpt.getSyncCoordInterval();
-        List<Object> preferredInstanceList = newOpt.getPreferredInstanceObjects();
-        String preferredInstanceMode = newOpt.getPreferredInstanceMode();
-        int sessionTimeout = newOpt.getSessionTimeout();
 
-        // 1. maxCount
-        if (maxCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "maxCount can't be less than 0");
-
-        // 2. deltaIncCount
-        if (deltaIncCount <= 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount should be more than 0");
-
-        // 3. maxIdleCount and minIdleCount
-        if (maxIdleCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be less than 0");
-        if (minIdleCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be less than 0");
         if (minIdleCount > maxIdleCount)
             throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be more than maxIdleCount");
 
-        // 4. keepAliveTimeout
-        if (keepAliveTimeout < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "keepAliveTimeout can't be less than 0");
-
-        // 5. checkInterval
-        if (checkInterval <= 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "checkInterval should be more than 0");
-        if (0 != keepAliveTimeout && checkInterval >= keepAliveTimeout)
+        if (keepAliveTimeout != 0 && checkInterval >= keepAliveTimeout)
             throw new BaseException(SDBError.SDB_INVALIDARG, "when keepAliveTimeout is not 0, checkInterval should be less than keepAliveTimeout");
-
-        // 6. syncCoordInterval
-        if (syncCoordInterval < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "syncCoordInterval can't be less than 0");
 
         if (maxCount != 0) {
             if (deltaIncCount > maxCount)
@@ -1234,53 +1225,7 @@ public class SequoiadbDatasource {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be more than maxCount");
         }
 
-        // check arguments about session
-        if (preferredInstanceList != null && preferredInstanceList.size() > 0) {
-            // check elements of preferred instance
-            for (Object obj : preferredInstanceList) {
-                if (obj instanceof String) {
-                    String s = (String) obj;
-                    if (!"M".equals(s) && !"m".equals(s) &&
-                            !"S".equals(s) && !"s".equals(s) &&
-                            !"A".equals(s) && !"a".equals(s)) {
-                        throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/['1','255'], but it is "
-                                        + s);
-                    }
-                } else if (obj instanceof Integer) {
-                    int i = (Integer) obj;
-                    if (i <= 0 || i > 255) {
-                        throw new BaseException(SDBError.SDB_INVALIDARG,
-                                "the element of preferred instance should be 'M'/'S'/'A'/'m'/'s'/'a/['1','255'], but it is "
-                                        + i);
-                    }
-                } else {
-                    throw new BaseException(SDBError.SDB_INVALIDARG,
-                            "the preferred instance should instance of int or String, but it is "
-                                    + (obj == null ? null : obj.getClass()));
-                }
-            }
-            // check preferred instance mode
-            if (!DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED.equals(preferredInstanceMode) &&
-                    !DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM.equals(preferredInstanceMode)) {
-                throw new BaseException(SDBError.SDB_INVALIDARG,
-                        String.format("the preferred instance mode should be '%s' or '%s', but it is %s",
-                                DatasourceConstants.PREFERRED_INSTANCE_MODE_ORDERED,
-                                DatasourceConstants.PREFERRED_INSTANCE_MODE_RANDOM,
-                                preferredInstanceMode));
-            }
-            // check session timeout
-            if (sessionTimeout < -1) {
-                throw new BaseException(SDBError.SDB_INVALIDARG,
-                        "the session timeout can not less than -1");
-            }
-            _sessionAttr = newOpt.getSessionAttr();
-        }
-
-        // check networkBlockTimeout
-        if (newOpt.getNetworkBlockTimeout() < 0){
-            throw new BaseException(SDBError.SDB_INVALIDARG, "invalid networkBlockTimeout: " + newOpt.getNetworkBlockTimeout());
-        }
+        _sessionAttr = newOpt.getSessionAttr();
     }
 
     private Sequoiadb _newConnByNormalAddr() throws BaseException {
@@ -1302,6 +1247,7 @@ public class SequoiadbDatasource {
                 if (address != null) {
                     try {
                         sdb = new Sequoiadb(address, _username, _password, _normalNwOpt);
+                        clearLastException();
                         // when success, let's return the connection
                         break;
                     } catch (BaseException e) {
@@ -1318,6 +1264,7 @@ public class SequoiadbDatasource {
                     }
                 } else {
                     sdb = _newConnByAbnormalAddr();
+                    clearLastException();
                     break;
                 }
             }
@@ -1394,12 +1341,17 @@ public class SequoiadbDatasource {
     }
 
     private void _setLastException(BaseException e) {
-        _lastException = e;
+        lastException.set(e);
     }
 
     private BaseException _getLastException() {
-        BaseException exp = _lastException;
-        return exp;
+        BaseException e = lastException.get();
+        clearLastException();
+        return e;
+    }
+
+    private void clearLastException() {
+        lastException.remove();
     }
 
     private void _handleErrorAddr(String addr) {
@@ -1449,7 +1401,6 @@ public class SequoiadbDatasource {
                     sdb = new Sequoiadb(addr, _username, _password, _normalNwOpt);
                     break;
                 } catch (BaseException e) {
-                    _setLastException(e);
                     String errType = e.getErrorType();
                     if (errType.equals("SDB_NETWORK") || errType.equals("SDB_INVALIDARG") ||
                             errType.equals("SDB_NET_CANNOT_CONNECT")) {
@@ -1657,6 +1608,117 @@ public class SequoiadbDatasource {
         // 2. connectTimeout, used to create connection, without updating
         // 3. socketTimeout, used for I/O socket read operations, need updating
         sdb.getConnProxy().setSoTimeout(config.getSocketTimeout());
+    }
+
+    /**
+     * The builder of SequoiadbDatasource.
+     *
+     * </p>
+     * Usage example:
+     * <pre>
+     * List<String> addressList = new ArrayList();
+     * addressList.add( "sdbserver1:11810" );
+     * addressList.add( "sdbserver2:11810" );
+     * addressList.add( "sdbserver3:11810" );
+     *
+     * SequoiadbDatasource ds = SequoiadbDatasource.builder()
+     *         .serverAddress( addressList )
+     *         .userConfig( new UserConfig( "admin", "admin" ) )
+     *         .build();
+     * </pre>
+     */
+    public static final class Builder {
+        private List<String> addressList = null;
+        private UserConfig userConfig = null;
+        private ConfigOptions configOptions = null;
+        private DatasourceOptions datasourceOptions = null;
+
+        private Builder() {
+        }
+
+        /**
+         * Set an address of SequoiaDB node, format: "Host:Port", eg: "sdbserver:11810"
+         *
+         * @param address The address of SequoiaDB node
+         */
+        public Builder serverAddress( String address ) {
+            if ( address == null || address.isEmpty() ){
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address is null or empty" );
+            }
+            this.addressList = new ArrayList<>();
+            this.addressList.add( address );
+            return this;
+        }
+
+        /**
+         * Set an address list of SequoiaDB node.
+         *
+         * @param addressList The address list of SequoiaDB node.
+         */
+        public Builder serverAddress( List<String> addressList ) {
+            if ( addressList == null || addressList.isEmpty() ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The server address list is null or empty" );
+            }
+            this.addressList = addressList;
+            return this;
+        }
+
+        /**
+         * Set the user config.
+         *
+         * @param userConfig The user config.
+         */
+        public Builder userConfig( UserConfig userConfig ) {
+            if ( userConfig == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The user config is null" );
+            }
+            this.userConfig = userConfig;
+            return this;
+        }
+
+        /**
+         * Set the options for connection.
+         *
+         * @param option The options for connection
+         */
+        public Builder configOptions( ConfigOptions option ) {
+            if ( option == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The connection options is null" );
+            }
+            this.configOptions = option;
+            return this;
+        }
+
+        /**
+         * Set the options for connection pool.
+         *
+         * @param option The options for connection pool
+         */
+        public Builder datasourceOptions( DatasourceOptions option ) {
+            if ( option == null ) {
+                throw new BaseException( SDBError.SDB_INVALIDARG, "The connection pool options is null" );
+            }
+            this.datasourceOptions = option;
+            return this;
+        }
+
+        /**
+         * Create a SequoiadbDatasource instance.
+         *
+         * @return The SequoiadbDatasource instance
+         */
+        public SequoiadbDatasource build() {
+            if ( userConfig == null ) {
+                userConfig = new UserConfig();
+            }
+            if ( configOptions == null ) {
+                configOptions = new ConfigOptions();
+            }
+            if ( datasourceOptions == null ) {
+                datasourceOptions = new DatasourceOptions();
+            }
+            return new SequoiadbDatasource( this );
+        }
     }
 }
 

@@ -49,14 +49,16 @@ namespace engine
    */
    _coordSqlOperator::_coordSqlOperator()
    {
-      const static string s_name( "Sql" ) ;
-      setName( s_name ) ;
-
       _needRollback = FALSE ;
    }
 
    _coordSqlOperator::~_coordSqlOperator()
    {
+   }
+
+   const CHAR* _coordSqlOperator::getName() const
+   {
+      return "Sql" ;
    }
 
    BOOLEAN _coordSqlOperator::needRollback() const

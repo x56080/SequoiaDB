@@ -123,7 +123,7 @@ namespace engine
 
       const CHAR *clFullName = options.getCLFullName();
       optAccessPlanRuntime planRuntime ;
-      pdLogShield shield;
+      pdLogRCShield shield;
       rtnObjectInfoFetcher infoFetcher(pmdGetKRCB()->getDMSCB(), pmdGetKRCB()->getRTNCB());
       CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
       CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;

@@ -67,6 +67,8 @@
 #include "ossMemPool.hpp"
 #include "utilStr.hpp"
 #include "pdSecure.hpp"
+#include "rtnInsertModifier.hpp"
+#include "monCB.hpp"
 
 using namespace bson ;
 
@@ -108,7 +110,7 @@ namespace engine
       // the context of the original operation already had the monQuery.
       // The cb will set the monQuery with the monQuery from the original
       // context when we find the original context later on.
-      if ( eduCB()->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != opCode)
+      if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
       {
          monQuery = pmdGetKRCB()->getMonMgr()->
                     registerMonitorObject<monClassQuery>() ;
@@ -120,6 +122,8 @@ namespace engine
             monQuery->tid = eduCB()->getTID() ;
             eduCB()->setMonQueryCB( monQuery ) ;
          }
+
+         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
       }
 
       startTime.sample() ;
@@ -619,20 +623,22 @@ namespace engine
       INT32 count = 0 ;
       const CHAR *pCollectionName = NULL ;
       const CHAR *pInsertor       = NULL ;
+      const CHAR *pHint           = NULL ;
+      rtnInsertModifier modify ;
+      rtnInsertModifier *modifyPtr = NULL ;
 
       rc = msgExtractInsert( (const CHAR *)msg, &flag, &pCollectionName,
-                             &pInsertor, count ) ;
+                             &pInsertor, count, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace insert msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
       eduCB()->setCurProcessName( pCollectionName ) ;
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
-      if ( (flag & FLG_INSERT_CONTONDUP) && (flag & FLG_INSERT_REPLACEONDUP) )
+      if ( !msgIsInsertFlagValid( flag ) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR,"Conflict insert flag(CONTONDUP and REPLACEONDUP):"
-                     "flag=%d,rc=%d", flag, rc ) ;
+         PD_LOG( PDERROR, "Insert flag[%d] is invalid[%d]", flag, rc ) ;
          goto error ;
       }
 
@@ -668,6 +674,14 @@ namespace engine
       try
       {
          BSONObj insertor( pInsertor ) ;
+         if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) && pHint )
+         {
+            rc = modify.init( BSONObj( pHint ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Init modify from insert hint[%s] "
+                         "failed[%d]", PD_SECURE_OBJ( BSONObj( pHint ) ),
+                         rc ) ;
+            modifyPtr = &modify ;
+         }
          // add list op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Insertors:%s, ObjNum:%d, "
@@ -683,7 +697,7 @@ namespace engine
                   count, pCollectionName, flag, flag ) ; */
 
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
-                         NULL, &inResult ) ;
+                         NULL, &inResult, modifyPtr ) ;
          /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc, "InsertedNum:%llu, "
@@ -738,6 +752,7 @@ namespace engine
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract query msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
+      OSS_BIT_CLEAR( flags, FLG_FORCE_INDEX_SELECTOR ) ;
 
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
@@ -910,7 +925,8 @@ namespace engine
          {
             pContext->enableCloseOnEOF() ;
          }
-         if ( flags & FLG_QUERY_WITH_RETURNDATA )
+         if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+              0 == buffObj.recordNum() )
          {
             rc = pContext->getMore( -1, buffObj, eduCB() ) ;
             if ( rc || pContext->eof() )
@@ -1438,6 +1454,7 @@ namespace engine
          PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
@@ -1755,6 +1772,8 @@ namespace engine
          messenger->removeSession( eduCB() ) ;
       }
 
+      eduCB()->setMonQueryCB( NULL ) ;
+
       // delete all context
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
@@ -1797,7 +1816,22 @@ namespace engine
    {
       // must call base _onDetach first( will kill context, but kill context
       // need the coordSession
-      pmdDataProcessor::_onDetach() ;
+      try
+      {
+         pmdDataProcessor::_onDetach() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Detach data processor occurred exception: %s", e.what() ) ;
+         // Failed to detach, disconnect the session
+         if ( NULL != eduCB()->getRemoteSite() )
+         {
+            pmdRemoteSessionSite *pSite =
+                              (pmdRemoteSessionSite *)( eduCB()->getRemoteSite() ) ;
+            pSite->disconnectAllSubSession() ;
+         }
+         eduCB()->disconnect() ;
+      }
       // do self
       if ( sdbGetPMDController()->getRSManager() )
       {
@@ -2235,7 +2269,8 @@ namespace engine
          {
             pContext->enableCloseOnEOF() ;
          }
-         if ( flag & FLG_QUERY_WITH_RETURNDATA )
+         if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
+              0 == buffObj.recordNum() )
          {
             rc = pContext->getMore( -1, buffObj, eduCB() ) ;
             if ( rc || pContext->eof() )
@@ -2288,7 +2323,7 @@ namespace engine
       // the context of the original operation already had the monQuery.
       // The cb will set the monQuery with the monQuery from the original
       // context when we find the original context later on.
-      if ( eduCB()->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != msg->opCode )
+      if ( eduCB()->getMonQueryCB() == NULL && isGeneralQueryOp( msg->opCode ) )
       {
          monQueryCB = pmdGetKRCB()->getMonMgr()->
                       registerMonitorObject<monClassQuery>() ;
@@ -2303,6 +2338,8 @@ namespace engine
 
             eduCB()->setMonQueryCB( monQueryCB ) ;
          }
+
+         DMS_MON_OP_COUNT_INC( eduCB()->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
       }
 
       startTime.sample() ;
@@ -2312,6 +2349,7 @@ namespace engine
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc )
       {
          contextBuff.release() ;
+         MON_CLEAR_OP_DETAIL( eduCB()->getMonAppCB() ) ;
          rc = _pmdDataProcessor::processMsg( msg, contextBuff, contextID,
                                              needReply, needRollback,
                                              builder ) ;
@@ -2320,6 +2358,8 @@ namespace engine
       {
          if ( eduCB()->getMonQueryCB() )
          {
+            MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
             monQueryCB = eduCB()->getMonQueryCB() ;
             ossTick endTime ;
             endTime.sample() ;

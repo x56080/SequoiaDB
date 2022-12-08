@@ -14,6 +14,7 @@
 | Role | string/array | 指定命令运行的节点角色，取值如下：<br>  "data"：数据节点<br>  "catalog"：编目节点<br>  "coord"：协调节点<br>  "all"：所有节点 | 否 |
 | RawData | boolean | 是否返回原始数据，仅对 [list](manual/Manual/Sequoiadb_Command/Sdb/list.md) 或 [snapshot](manual/Manual/Sequoiadb_Command/Sdb/snapshot.md) 命令生效，<br>为 true 则返回各节点的原始数据，不在协调节点进行聚集处理 | 否 |
 | InstanceID | number/array | 节点的实例 ID（数据节点通过的配置项 instanceid 指定）<br>有效取值范围：1 - 255 <br>指定 InstanceID 时仅选取数据节点 | 否 |
+|Force|boolean|是否强制写入，仅对 [updateConf](manual/Manual/Sequoiadb_Command/Sdb/updateConf.md) 命令生效，在需要配置非官方配置项时指定为 true，默认值为 false|否
 > **Note:**
 >
 > * 当设置了GroupID、GroupName、NodeID、HostName、ServiceName 或 NodeName 时，Global 取值被忽略，在指定的复制组或节点上执行。

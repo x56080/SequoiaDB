@@ -112,9 +112,8 @@ sdbupgradeidx [ options ] ...
 
 IndexType 取值如下：
 
-Consistent：一致性索引，表示在编目节点和各数据节点上均有索引 UniqueID
-
-Standalone：[独立索引][standalone]
+* Consistent：一致性索引，表示在编目节点和各数据节点上均有索引 UniqueID
+* Standalone：[独立索引][standalone]
 
 ###查看可升级的索引###
 
@@ -126,18 +125,6 @@ Standalone：[独立索引][standalone]
   1       sample.January            $id :     {"_id":1} Unique|Enforced|NotArray
   2       sample.January        nameIdx :    {"name":1}                        -
   3       sample.January         ageIdx :     {"age":1}                   Unique
-```
-
-###查看执行升级的索引###
-
-只有标识为“Can be Upgraded”的索引才可以执行升级。
-
-```lang-text
-===================== Upgrade Index ============================================
- ID           Collection      IndexName :     Result      ResultCode
-  1       sample.January            $id :    Succeed
-  2       sample.January        nameIdx :    Succeed
-  2       sample.January         ageIdx :     Failed      -134
 ```
 
 ###查看不可升级的索引###
@@ -270,6 +257,20 @@ Standalone：[独立索引][standalone]
     解决办法：
 
     确认该集合是否为无用的残留集合，如果是，可删除该集合。
+
+###查看执行升级的索引###
+
+只有标识为“Can be Upgraded”的索引才可以执行升级。
+
+```lang-text
+===================== Upgrade Index ============================================
+ ID           Collection      IndexName :     Result      ResultCode
+  1       sample.January            $id :    Succeed
+  2       sample.January        nameIdx :    Succeed
+  2       sample.January         ageIdx :     Failed      -134
+```
+
+索引升级时可能会受到其他业务操作、环境问题（如网络问题）的影响，出现少量索引升级失败。此时请根据 ResultCode 信息（如上述 -134）与 SequoiaDB 集群的日志信息排查问题，然后重新执行索引升级。
 
 ###查看报告总结###
 

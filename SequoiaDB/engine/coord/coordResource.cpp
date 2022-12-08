@@ -52,6 +52,7 @@
 #include "coordGTSAgent.hpp"
 #include "../bson/bson.h"
 #include "utilArray.hpp"
+#include "coordCacheCleaner.hpp"
 
 using namespace bson ;
 

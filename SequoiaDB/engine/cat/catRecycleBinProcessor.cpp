@@ -144,7 +144,7 @@ namespace engine
       }
 
       // check if has a recycled collection space
-      rc = _recyBinMgr->getItem( (utilRecycleID)csUniqueID, cb, csItem ) ;
+      rc = _recyBinMgr->getItemByOrigID( csUniqueID, cb, csItem ) ;
       if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          // if not found, it is safe to drop
@@ -2131,9 +2131,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to check conflict unique ID "
                    "collection [%s], rc: %d", clName, rc ) ;
 
-      rc = _checkDomain( catSet, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check domain of "
-                   "collection [%s], rc: %d", clName, rc ) ;
+      if ( UTIL_INVALID_DS_UID == catSet.getDataSourceID() )
+      {
+         rc = _checkDomain( catSet, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check domain of "
+                      "collection [%s], rc: %d", clName, rc ) ;
+      }
 
       rc = _groupHandler.addGroups( *( catSet.getAllGroupID() ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to save groups for "
@@ -2463,6 +2466,14 @@ namespace engine
                {
                   builder.append( element ) ;
                }
+            }
+            else if ( 0 == ossStrcmp( FIELD_NAME_UPDATE_TIME, fieldName ) )
+            {
+               // refresh update time
+               UINT64 currentTime = ossGetCurrentMilliseconds() ;
+               CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+               ossMillisecondsToString( currentTime, timestamp ) ;
+               builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
             }
             else
             {
@@ -2854,6 +2865,14 @@ namespace engine
                // NOTE: we don't have index definition of global index
                // drop index instead, so don't append the global index field
             }
+            else if ( 0 == ossStrcmp( FIELD_NAME_UPDATE_TIME, fieldName ) )
+            {
+               // refresh update time
+               UINT64 currentTime = ossGetCurrentMilliseconds() ;
+               CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+               ossMillisecondsToString( currentTime, timestamp ) ;
+               builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+            }
             else
             {
                builder.append( element ) ;
@@ -3237,5 +3256,242 @@ namespace engine
    error:
       goto done ;
    }
+
+   /*
+      _catRecycleSubCLLocker implement
+    */
+   _catRecycleSubCLLocker::_catRecycleSubCLLocker( _catRecycleBinManager *recyBinMgr,
+                                                   utilRecycleItem item,
+                                                   catCtxLockMgr &lockMgr,
+                                                   OSS_LATCH_MODE &mode,
+                                                   ossPoolSet< utilCSUniqueID > *lockedCS,
+                                                   ossPoolSet< utilCSUniqueID > &lockedSubCLCS )
+   : _catRecycleBinProcessor( recyBinMgr, item ),
+     _lockMgr( lockMgr ),
+     _lockMode( mode ),
+     _lockedCS( lockedCS ),
+     _lockedSubCLCS( lockedSubCLCS )
+   {
+   }
+   _catRecycleSubCLLocker:: ~_catRecycleSubCLLocker()
+   {
+   }
+
+   const CHAR *_catRecycleSubCLLocker::getCollection() const
+   {
+      return catGetRecycleBinRecyCL( UTIL_RECYCLE_CL ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYCLESUBCLLOCK_GETMATCHER, "_catRecycleSubCLLocker::getMatcher" )
+   INT32 _catRecycleSubCLLocker::getMatcher( ossPoolList< BSONObj > &matcherList )
+   {
+       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYCLESUBCLLOCK_GETMATCHER ) ;
+
+      try
+      {
+         BSONObj matcher = BSON( FIELD_NAME_RECYCLE_ID <<
+                                 (INT64)( _item.getRecycleID() ) <<
+                                 FIELD_NAME_MAINCLNAME <<
+                                 _item.getOriginName() ) ;
+         matcherList.push_back( matcher ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for subCL locker, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATRECYCLESUBCLLOCK_GETMATCHER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ, "_catRecycleSubCLLocker::processObject" )
+   INT32  _catRecycleSubCLLocker::processObject( const BSONObj &object,
+                                                 pmdEDUCB *cb,
+                                                 INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ ) ;
+
+      const CHAR *clName = NULL ;
+
+      try
+      {
+         BSONElement element = object.getField( CAT_COLLECTION_NAME ) ;
+         PD_CHECK( String == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not string",
+                   CAT_COLLECTION_NAME ) ;
+         clName = element.valuestr() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse collection object, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+      try
+      {
+         clsCatalogSet originSet( clName ) ;
+         rc = originSet.updateCatSet( object ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse catalog for collection "
+                      "[%s], rc: %d", _item.getOriginName(), rc ) ;
+
+         SDB_ASSERT( originSet.isSubCL(), "should be sub-collection" ) ;
+
+         if ( originSet.isSubCL() )
+         {
+            utilRecycleItem subItem ;
+            subItem.inherit( _item,
+                             clName,
+                             originSet.clUniqueID() ) ;
+
+            if ( ( _lockedCS == NULL ||
+                  !_lockedCS->count( utilGetCSUniqueID( subItem.getOriginID() ) ) ) &&
+                  !_lockedSubCLCS.count( utilGetCSUniqueID( subItem.getOriginID() ) ) )
+            {
+               PD_CHECK( _lockMgr.tryLockRecycleItem( subItem, _lockMode ),
+                         SDB_LOCK_FAILED, error, PDERROR,
+                         "Failed to lock recycle item [origin %s, recycle %s]",
+                         subItem.getOriginName(), subItem.getRecycleName() ) ;
+               _lockedSubCLCS.insert( utilGetCSUniqueID( subItem.getOriginID() ) ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to lock recycle items, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRECYCLESUBCLLOCK_PROCESSOBJ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+    /*
+      _catDropCSItemChecker implement
+    */
+   _catDropCSItemChecker::_catDropCSItemChecker( _catRecycleBinManager *recyBinMgr,
+                                                 utilRecycleItem &item )
+   : _catRecycleBinProcessor( recyBinMgr, item )
+   {
+   }
+
+   _catDropCSItemChecker::~_catDropCSItemChecker()
+   {
+   }
+
+   const CHAR *_catDropCSItemChecker::getCollection() const
+   {
+      return catGetRecycleBinRecyCL( UTIL_RECYCLE_CL ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCSITEMCHK_GETMATCHER, "_catDropCSItemChecker::getMatcher" )
+   INT32 _catDropCSItemChecker::getMatcher( ossPoolList< BSONObj > &matcherList )
+   {
+      INT32  rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATDROPCSITEMCHK_GETMATCHER ) ;
+
+      try
+      {
+         utilCSUniqueID csUniqueID = (utilCSUniqueID)( _item.getOriginID() ) ;
+         BSONObjBuilder builder ;
+         BSONObj matcher ;
+
+         // check collections in the same collection space but in another
+         // recycle item
+         rc = utilGetCSBounds( CAT_CL_UNIQUEID, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get bounds with collection "
+                      "space unique ID [%u], rc: %d", csUniqueID, rc ) ;
+
+         builder.append( FIELD_NAME_RECYCLE_ID,
+                         BSON( "$ne" << (INT64)( _item.getRecycleID() ) ) ) ;
+
+         matcher = builder.obj() ;
+
+         matcherList.push_back( matcher ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for return checker, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATDROPCSITEMCHK_GETMATCHER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCSITEMCHK_PROCESSOBJ, "_catDropCSItemChecker::processObject" )
+   INT32 _catDropCSItemChecker::processObject( const BSONObj &object,
+                                               pmdEDUCB *cb,
+                                               INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATDROPCSITEMCHK_PROCESSOBJ ) ;
+
+      const CHAR *clName = NULL ;
+      utilRecycleID recycleID = UTIL_GLOBAL_NULL ;
+      utilRecycleItem item ;
+
+      // found recycled collection space, report error, we should not drop it
+      rc = rtnGetStringElement( object, CAT_COLLECTION_NAME, &clName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from object, "
+                   "rc: %d", CAT_COLLECTION_NAME, rc ) ;
+
+      rc = rtnGetNumberLongElement( object, FIELD_NAME_RECYCLE_ID,
+                                    (INT64 &)( recycleID ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from object, "
+                   "rc: %d", FIELD_NAME_RECYCLE_ID, rc ) ;
+
+      // check if has a recycled collection space
+      rc = _recyBinMgr->getItemByRecyID( recycleID, cb, item ) ;
+      if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get recycle item [recycle ID %llu], "
+                 "which is missing for collection [%s]", recycleID, clName ) ;
+         rc = SDB_OK ;
+         goto done ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get recycle item "
+                   "[recycle ID %llu], rc: %d", recycleID, rc ) ;
+
+      PD_LOG_MSG_CHECK( FALSE, SDB_RECYCLE_CONFLICT, error, PDERROR,
+                        "Failed to drop collection space recycle item "
+                        "[origin %s, recycle %s], collection [%s] in recycle "
+                        "item [origin %s, recycle %s] is also in recycle bin",
+                        _item.getOriginName(), _item.getRecycleName(), clName,
+                        item.getOriginName(), item.getRecycleName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATDROPCSITEMCHK_PROCESSOBJ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 
 }

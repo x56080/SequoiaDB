@@ -112,6 +112,13 @@ namespace engine
                                       BOOLEAN *pRollback = NULL,
                                       INT32 transRC = SDB_OK ) ;
 
+#if defined( SDB_ENGINE )
+      /*
+         util print bson batch
+      */
+      ossPoolString utilPrintBSONBatch( const CHAR *detail, const INT32 count ) ;
+#endif
+
    /*
       util rc to shell return code
    */

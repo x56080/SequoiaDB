@@ -17,6 +17,8 @@ $LIST_CL
 | CompressionType | int32 | 压缩算法类型掩码，取值可参考 [SYSCOLLECTION 集合][syscollection] |
 | CompressionTypeDesc | string | 压缩算法类型描述，取值可参考 [SYSCOLLECTION 集合][syscollection] |
 | CataInfo | array | 集合所在的逻辑节点信息 |
+| CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 ##示例##
 
@@ -45,7 +47,9 @@ $LIST_CL
       "GroupID": 1001,
       "GroupName": "db2"
     }
-  ]
+  ],
+  "CreateTime": "2022-10-06-18.04.31.090000",
+  "UpdateTime": "2022-10-06-18.04.31.164000"
 }
 ...
 ```

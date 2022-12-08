@@ -107,6 +107,8 @@ namespace engine
          _coordTransBegin() ;
          virtual ~_coordTransBegin() ;
 
+         virtual const CHAR* getName() const ;
+
          INT32         beginTrans( pmdEDUCB *cb,
                                    BOOLEAN isAutoCommit = FALSE ) ;
 
@@ -205,6 +207,8 @@ namespace engine
          _coordTransCommit() ;
          virtual ~_coordTransCommit() ;
 
+         virtual const CHAR* getName() const ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -265,6 +269,8 @@ namespace engine
       public:
          _coordTransRollback() ;
          virtual ~_coordTransRollback() ;
+
+         virtual const CHAR* getName() const ;
 
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,

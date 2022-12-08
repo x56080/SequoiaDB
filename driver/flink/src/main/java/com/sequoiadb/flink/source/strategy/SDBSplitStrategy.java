@@ -25,10 +25,11 @@ import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
-import com.sequoiadb.flink.util.SDBInfoUtil;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 
+import org.bson.BSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,10 +85,22 @@ public interface SDBSplitStrategy {
         private static final Logger LOG = LoggerFactory.getLogger(StrategyBuilder.class);
 
         private SDBSourceOptions sourceOptions;
+        private BSONObject matcher;
+        private BSONObject selector;
         private long limit;
 
         public StrategyBuilder options(SDBSourceOptions sourceOptions) {
             this.sourceOptions = sourceOptions;
+            return this;
+        }
+
+        public StrategyBuilder matcher(BSONObject matcher) {
+            this.matcher = matcher;
+            return this;
+        }
+
+        public StrategyBuilder selector(BSONObject selector) {
+            this.selector = selector;
             return this;
         }
 
@@ -102,7 +115,7 @@ public interface SDBSplitStrategy {
             LOG.info("split mode: {}", splitMode);
             switch (splitMode) {
                 case DATA_BLOCK:    return new SDBDataBlockSplitStrategy(sourceOptions, limit);
-                case SHARDING:      return new SDBShardingSplitStrategy(sourceOptions);
+                case SHARDING:      return new SDBShardingSplitStrategy(sourceOptions, matcher, selector);
                 default:
                     throw new SDBException(String.format("unknown split mode: %s.", splitMode));
             }
@@ -129,7 +142,7 @@ public interface SDBSplitStrategy {
         private SplitMode autoDetectSplitMode() {
             try (Sequoiadb sdb = new Sequoiadb(sourceOptions.getHosts(),
                     sourceOptions.getUsername(), sourceOptions.getPassword(), new ConfigOptions())) {
-                List<ShardingInfo> shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions);
+                List<ShardingInfo> shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions, matcher, selector);
                 for (ShardingInfo shardingInfo : shardingInfos) {
                     if ("ixscan".equals(shardingInfo.scanType)) {
                         return SplitMode.SHARDING;

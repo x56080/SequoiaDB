@@ -47,9 +47,11 @@
 #include "dpsLogWrapper.hpp"
 #include "pmd.hpp"
 #include "pd.hpp"
+#include "rtnInsertModifier.hpp"
 #include "utilRenameLogger.hpp"
 #include "utilInsertResult.hpp"
 #include "dmsTaskStatus.hpp"
+#include "rtnOprHandler.hpp"
 
 #define RTN_SORT_INDEX_NAME "sort"
 using namespace bson;
@@ -57,25 +59,27 @@ using namespace bson;
 namespace engine
 {
 
+#define RTN_MON_LOB_OP_COUNT_INC( _pMonAppCB_, op, delta )                    \
+   {                                                                          \
+      if ( NULL != _pMonAppCB_ )                                              \
+      {                                                                       \
+         _pMonAppCB_->monOperationCountInc( op, delta, MON_UPDATE_SESSION ) ; \
+      }                                                                       \
+   }
+
+#define RTN_MON_LOB_BYTES_COUNT_INC( _pMonAppCB_, op, delta )                 \
+   {                                                                          \
+      if ( NULL != _pMonAppCB_ )                                              \
+      {                                                                       \
+         _pMonAppCB_->monByteCountInc( op, delta, MON_UPDATE_SESSION ) ;      \
+      }                                                                       \
+   }
+
    class _dmsScanner ;
    class _rtnContextData ;
    class _rtnContextDump ;
    class _SDB_DMSCB;
    typedef _SDB_DMSCB SDB_DMSCB;
-
-
-   class _IOperationContext : public SDBObject
-   {
-      public:
-         _IOperationContext() {}
-         virtual ~_IOperationContext() {}
-
-      public:
-         virtual INT32 getShardingKey( const CHAR* clName,
-                                       BSONObj &shardingKey ) = 0 ;
-   } ;
-
-   typedef _IOperationContext IOperationContext ;
 
    INT32 rtnReallocBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
                             INT32 newLength, INT32 alignmentSize ) ;
@@ -90,7 +94,8 @@ namespace engine
                            _dmsMBContext *mbContext,
                            _pmdEDUCB *cb,
                            _dmsScanner **ppScanner,
-                           DMS_ACCESS_TYPE accessType ) ;
+                           DMS_ACCESS_TYPE accessType,
+                           IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnGetTBScanner ( const CHAR *pCollectionShortName,
                            optAccessPlanRuntime *planRuntime,
@@ -98,7 +103,8 @@ namespace engine
                            _dmsMBContext *mbContext,
                            _pmdEDUCB *cb,
                            _dmsScanner **ppScanner,
-                           DMS_ACCESS_TYPE accessType ) ;
+                           DMS_ACCESS_TYPE accessType,
+                           IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnGetIndexSeps( optAccessPlanRuntime *planRuntime,
                           _dmsStorageUnit *su,
@@ -123,16 +129,18 @@ namespace engine
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb,
-                     IOperationContext *opContext = NULL,
-                     utilInsertResult *pResult = NULL ) ;
+                     IRtnOprHandler *opHandler = NULL,
+                     utilInsertResult *pResult = NULL,
+                     const rtnInsertModifier *modifier = NULL ) ;
 
    // for insert/update/delete, if dpsCB = NULL, that means we don't log
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_DPSCB *dpsCB, INT16 w = 1,
-                     IOperationContext *opContext = NULL,
-                     utilInsertResult *pResult = NULL ) ;
+                     IRtnOprHandler *opHandler = NULL,
+                     utilInsertResult *pResult = NULL,
+                     const rtnInsertModifier *modifier = NULL ) ;
 
    // for replaying insert operation. Only one record will be inserted in one
    // call.
@@ -140,14 +148,16 @@ namespace engine
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w = 1,
                           utilInsertResult *pResult = NULL,
-                          INT64 position = -1 ) ;
+                          INT64 position = -1,
+                          IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
                      pmdEDUCB *cb,
                      utilUpdateResult *pResult = NULL,
                      const BSONObj *shardingKey = NULL,
-                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ) ;
+                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                     IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
@@ -155,14 +165,16 @@ namespace engine
                      INT16 w = 1,
                      utilUpdateResult *pResult = NULL,
                      const BSONObj *shardingKey = NULL,
-                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ) ;
+                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                     IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpdate ( rtnQueryOptions &options, const BSONObj &updator,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
                      INT16 w = 1,
                      utilUpdateResult *pResult = NULL,
                      const BSONObj *shardingKey = NULL,
-                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ) ;
+                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                     IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpsertSet( const BSONElement& setOnInsert, BSONObj& target ) ;
 
@@ -752,11 +764,18 @@ namespace engine
                             dmsStorageUnit *su,
                             dmsMBContext *mbContext ) ;
 
+   INT32 rtnParseCmdLocationMatcher( const BSONObj &query,
+                                     BSONObj &nodesMatcher,
+                                     BSONObj &newMatcher,
+                                     BOOLEAN ignoreNodeParam = FALSE,
+                                     BOOLEAN ignoreCtrlParam = FALSE ) ;
+
    INT32 rtnUpdateGlobTranAvailTime( IExecutor *executor,
                                      const CHAR *clFullName,
                                      SDB_DMSCB *dmsCB,
                                      SDB_RTNCB *rtnCB,
                                      CONST_CL_META_INFO_PTR &clMetaInfo );
+
 }
 
 #endif

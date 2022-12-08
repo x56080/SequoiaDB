@@ -727,30 +727,40 @@ namespace bson {
         case Symbol:
         case Code:
         case bson::String:
-            massert( 10313 ,  "Insufficient bytes to calculate element size",
-              maxLen == -1 || remain > 3 );
+            massert( 10313 ,  "Failed to calculate element size",
+              maxLen == -1 || ( remain > 3 &&
+                                valuestrsize() >= 0 &&
+                                remain > valuestrsize() + 4 ) );
             x = valuestrsize() + 4;
             break;
         case CodeWScope:
-            massert( 10314 ,  "Insufficient bytes to calculate element size",
-              maxLen == -1 || remain > 3 );
+            massert( 10314 ,  "Failed to calculate element size",
+              maxLen == -1 || ( remain > 3 &&
+                                objsize() >= 0 &&
+                                remain > objsize() ) );
             x = objsize();
             break;
 
         case DBRef:
-            massert( 10315 ,  "Insufficient bytes to calculate element size",
-              maxLen == -1 || remain > 3 );
+            massert( 10315 ,  "Failed to calculate element size",
+              maxLen == -1 || ( remain > 3 &&
+                                valuestrsize() >= 0 &&
+                                remain > valuestrsize() + 4 + 12 ) );
             x = valuestrsize() + 4 + 12;
             break;
         case Object:
         case bson::Array:
-            massert( 10316 ,  "Insufficient bytes to calculate element size",
-              maxLen == -1 || remain > 3 );
+            massert( 10316 ,  "Failed to calculate element size",
+              maxLen == -1 || ( remain > 3 &&
+                                objsize() >= 0 &&
+                                remain > objsize() ) );
             x = objsize();
             break;
         case BinData:
-            massert( 10317 ,  "Insufficient bytes to calculate element size",
-              maxLen == -1 || remain > 3 );
+            massert( 10317 ,  "Failed to calculate element size",
+              maxLen == -1 || ( remain > 3 &&
+                                valuestrsize() >= 0 &&
+                                remain > valuestrsize() + 4 + 1 ) );
             x = valuestrsize() + 4 + 1/*subtype*/;
             break;
         case RegEx: {

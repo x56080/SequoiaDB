@@ -37,6 +37,8 @@ SDB_LIST_STORAGEUNITS
 | NumCollections | int32  | 集合空间下的集合个数        |
 | CollectionHWM  | int32  | 集合高水位，该集合空间中创建过的集合数量（包括被删除的集合） |
 | Size           | int64  | 存储单元大小，单位为字节       |
+| CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 示例
 ----
@@ -61,7 +63,9 @@ SDB_LIST_STORAGEUNITS
   "Sequence": 1,
   "NumCollections": 1,
   "CollectionHWM": 1,
-  "Size": 172032000
+  "Size": 172032000,
+  "CreateTime": "2022-10-06-18.04.31.008000",
+  "UpdateTime": "2022-10-06-18.05.49.384000"
 }
 {
   "NodeName": "r520-8:11890",
@@ -74,7 +78,9 @@ SDB_LIST_STORAGEUNITS
   "Sequence": 1,
   "NumCollections": 2,
   "CollectionHWM": 3,
-  "Size": 172032000
+  "Size": 172032000,
+  "CreateTime": "2022-10-06-18.04.31.090000",
+  "UpdateTime": "2022-10-06-18.04.31.164000"
 }
 ...
 ```

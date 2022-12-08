@@ -78,6 +78,25 @@ namespace engine
    } ;
 
    /*
+      _dmsDefaultScannerChecker define
+    */
+   class _dmsDefaultScannerChecker : public IDmsScannerChecker
+   {
+   public:
+      _dmsDefaultScannerChecker() {}
+      virtual ~_dmsDefaultScannerChecker() {}
+      // never need interrupt
+      BOOLEAN needInterrupt() { return FALSE ; }
+   } ;
+   typedef class _dmsDefaultScannerChecker dmsDefaultScannerChecker ;
+
+   IDmsScannerChecker *_dmsGetDefaultScannerChecker()
+   {
+      static dmsDefaultScannerChecker s_defaultScannerChecker ;
+      return &s_defaultScannerChecker ;
+   }
+
+   /*
       _SDB_DMS_CSCB implement
    */
    _SDB_DMS_CSCB::~_SDB_DMS_CSCB()
@@ -109,7 +128,8 @@ namespace engine
     _statSUMgr( this ),
     _rbsSUMgr(),
     _localSUMgr( this ),
-    _ixmKeySorterCreator( NULL )
+    _ixmKeySorterCreator( NULL ),
+    _scannerCheckerCreator( NULL )
    {
       for ( UINT32 i = 0 ; i< DMS_MAX_CS_NUM ; ++i )
       {
@@ -801,14 +821,6 @@ namespace engine
          goto error ;
       }
 
-      extHandler = pCSCB->_su->data()->getExtDataHandler() ;
-      if ( extHandler )
-      {
-         rc = extHandler->onRenameCS( pName, pNewName, cb, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "External operation on rename cs failed, "
-                                   "rc: %d", rc ) ;
-      }
-
       /// rename in map
       // 1) erase map must before reset the name, because map'key is CBCB's name
       _cscbNameMap.erase( pName ) ;
@@ -841,6 +853,13 @@ namespace engine
          _mutex.release () ;
          isLocked = FALSE ;
       }
+
+      extHandler = pCSCB->_su->data()->getExtDataHandler() ;
+      if ( extHandler )
+      {
+         extHandler->onRenameCS( pName, pNewName, cb, NULL ) ;
+      }
+
       pCSCB->_su->getEventHolder()->onRenameCS( DMS_EVENT_MASK_ALL, pName,
                                                 pNewName, cb, dpsCB ) ;
 
@@ -1540,7 +1559,7 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDINFO, "Change _dmsCBState from [%d] to [%d]",
+            PD_LOG( PDINFO, "Change dms state from [%d] to [%d]",
                     _dmsCBState, DMS_STATE_ONLINE_BACKUP ) ;
             _dmsCBState = DMS_STATE_ONLINE_BACKUP ;
          }
@@ -1563,7 +1582,7 @@ namespace engine
       else
       {
          _stateMtx.get() ;
-         PD_LOG( PDINFO, "Change _dmsCBState from [%d] to [%d]",
+         PD_LOG( PDINFO, "Change dms state from [%d] to [%d]",
                  _dmsCBState, DMS_STATE_NORMAL ) ;
          _dmsCBState = DMS_STATE_NORMAL ;
          _stateMtx.release() ;
@@ -1573,19 +1592,12 @@ namespace engine
 
    INT32 _SDB_DMSCB::registerRebuild( _pmdEDUCB *cb )
    {
-      INT32 rc = SDB_OK ;
-      rc = blockWrite( cb, SDB_DB_REBUILDING ) ;
-      if ( SDB_OK == rc )
-      {
-         PD_LOG( PDINFO, "Block write operation succeed" ) ;
-      }
-      return rc ;
+      return blockWrite( cb, SDB_DB_REBUILDING ) ;
    }
 
    void _SDB_DMSCB::rebuildDown( _pmdEDUCB *cb )
    {
       unblockWrite( cb ) ;
-      PD_LOG( PDINFO, "Unblock write operation succeed" ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_REGRESTORE, "_SDB_DMSCB::registerRestore" )
@@ -3294,6 +3306,7 @@ namespace engine
                                BOOLEAN sys, BOOLEAN dumpCL, BOOLEAN dumpIdx )
    {
       INT32 rc = SDB_OK ;
+      INT32 tmpRC = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPCSSIMPLE );
 
       ossPoolVector< ossPoolString > csNameVec ;
@@ -3311,13 +3324,13 @@ namespace engine
       {
          // As we do not take the cs metadata mutex here, so cs may have been
          // dropped after we get the names.
-         rc = nameToSUAndLock( itr->c_str(), suID, &su ) ;
-         if ( rc )
+         tmpRC = nameToSUAndLock( itr->c_str(), suID, &su ) ;
+         if ( tmpRC )
          {
-            if ( SDB_DMS_CS_NOTEXIST != rc )
+            if ( SDB_DMS_CS_NOTEXIST != tmpRC )
             {
-               PD_LOG( PDERROR, "Failed to lock collectionspace[%s], rc: %d",
-                       itr->c_str(), rc ) ;
+               PD_LOG( PDWARNING, "Failed to lock collectionspace[%s], rc: %d",
+                       itr->c_str(), tmpRC ) ;
             }
             continue ;
          }
@@ -3690,7 +3703,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_PUSHDICTJOB, "_SDB_DMSCB::pushDictJob" )
    void _SDB_DMSCB::pushDictJob( dmsDictJob job )
    {
-      job._createTime = pmdGetDBTick() ;
       _dictWaitQue.push( job ) ;
    }
 
@@ -3717,11 +3729,6 @@ namespace engine
       _ixmKeySorterCreator = creator ;
    }
 
-   dmsIxmKeySorterCreator* _SDB_DMSCB::getIxmKeySorterCreator()
-   {
-      return _ixmKeySorterCreator ;
-   }
-
    INT32 _SDB_DMSCB::createIxmKeySorter( INT64 bufSize,
                                          const _dmsIxmKeyComparer& comparer,
                                          dmsIxmKeySorter** ppSorter )
@@ -3738,6 +3745,59 @@ namespace engine
       if ( NULL != pSorter )
       {
          _ixmKeySorterCreator->releaseSorter( pSorter ) ;
+      }
+   }
+
+   void _SDB_DMSCB::setScannerCheckerCreator( IDmsScannerCheckerCreator *pCreator )
+   {
+      _scannerCheckerCreator = pCreator ;
+   }
+
+   INT32 _SDB_DMSCB::createScannerChecker( UINT32 suLID,
+                                           UINT32 mbLID,
+                                           const CHAR *csName,
+                                           const CHAR *clShortName,
+                                           const CHAR *optrDesc,
+                                           _pmdEDUCB *cb,
+                                           IDmsScannerChecker **ppChecker )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != ppChecker, "output checker is invalid" ) ;
+
+      if ( NULL != _scannerCheckerCreator )
+      {
+         rc = _scannerCheckerCreator->createChecker( suLID,
+                                                     mbLID,
+                                                     csName,
+                                                     clShortName,
+                                                     optrDesc,
+                                                     cb,
+                                                     ppChecker ) ;
+      }
+      else
+      {
+         // use the default checker
+         *ppChecker = _dmsGetDefaultScannerChecker() ;
+      }
+
+      return rc ;
+   }
+
+   void _SDB_DMSCB::releaseScannerChecker( IDmsScannerChecker *pChecker )
+   {
+      if ( NULL != pChecker )
+      {
+         if ( pChecker == _dmsGetDefaultScannerChecker() )
+         {
+            // default checker, do nothing
+         }
+         else
+         {
+            SDB_ASSERT( NULL != _scannerCheckerCreator,
+                        "scanner checker creator is invalid" ) ;
+            _scannerCheckerCreator->releaseChecker( pChecker ) ;
+         }
       }
    }
 

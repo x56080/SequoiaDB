@@ -2,7 +2,7 @@
  * @Description   : seqDB-23749:切分表创建$shard索引
  * @Author        : Yi Pan
  * @CreateTime    : 2021.03.29
- * @LastEditTime  : 2021.09.24
+ * @LastEditTime  : 2022.06.24
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -45,7 +45,7 @@ function test ( testPara )
 function checkExistIndex ( db, csName, clName, idxName )
 {
    var doTime = 0;
-   var timeOut = 10000;
+   var timeOut = 300000;
    var nodes = commGetCLNodes( db, csName + "." + clName );
    do
    {

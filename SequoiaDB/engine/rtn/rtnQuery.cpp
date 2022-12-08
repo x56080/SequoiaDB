@@ -69,7 +69,8 @@ namespace engine
                       SINT32 maxNumToReturn,    // input, max record to read
                       rtnContextBuf &buffObj,   // output
                       pmdEDUCB *cb,             // input educb
-                      SDB_RTNCB *rtnCB          // input runtimecb
+                      SDB_RTNCB *rtnCB,         // input runtimecb
+                      const BSONObj &hint       // input hint obj
                       )
    {
       INT32 rc = SDB_OK ;
@@ -88,7 +89,7 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnGetMore( context, maxNumToReturn, buffObj, cb, rtnCB ) ;
+      rc = rtnGetMore( context, maxNumToReturn, buffObj, cb, rtnCB, hint ) ;
       if ( rc )
       {
          goto error ;
@@ -106,7 +107,8 @@ namespace engine
                       SINT32 maxNumToReturn,    // input, max record to read
                       rtnContextBuf &buffObj,   // output
                       pmdEDUCB *cb,             // input educb
-                      SDB_RTNCB *rtnCB          // input runtimecb
+                      SDB_RTNCB *rtnCB,         // input runtimecb
+                      const BSONObj &hint       // input hint obj
                       )
    {
       INT32 rc = SDB_OK ;
@@ -121,19 +123,9 @@ namespace engine
          goto error ;
       }
 
-      if ( pContext->isWrite() )
+      rc = pContext->getMore( maxNumToReturn, buffObj, cb, hint ) ;
+      if ( SDB_OK != rc && SDB_DMS_EOC != rc )
       {
-         cb->setOrgReplSize( pContext->getW() ) ;
-      }
-
-      rc = pContext->getMore( maxNumToReturn, buffObj, cb ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC == rc )
-         {
-            PD_LOG( PDDEBUG, "Hit end of context" ) ;
-            goto error ;
-         }
          PD_LOG( PDERROR, "Failed to get more from context[%lld], rc: %d",
                  pContext->contextID(), rc ) ;
          /// get detial information
@@ -144,7 +136,17 @@ namespace engine
       /// wait for sync
       if ( pContext->isWrite() && pContext->getDPSCB() && pContext->getW() > 1 )
       {
+         cb->setOrgReplSize( pContext->getW() ) ;
+         // For now we don't report error, since the user will not be able to
+         // due with the situation, in which case primary node is done but the
+         // secondary nodes are not synchronized
          pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
+      }
+
+      if ( SDB_DMS_EOC == rc )
+      {
+         PD_LOG( PDDEBUG, "Hit end of context" ) ;
+         goto error ;
       }
 
    done :
@@ -191,114 +193,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNADVANCE, rc ) ;
       return rc ;
    error :
-      goto done ;
-   }
-
-   static INT32 _rtnParseQueryModify( const BSONObj &hint,
-                                      rtnQueryModifier** modifier )
-   {
-      BSONObjIterator iter( hint );
-      BOOLEAN isUpdate = FALSE ;
-      BOOLEAN isRemove = FALSE ;
-      BSONObj updator ;
-      BOOLEAN returnNew = FALSE ;
-      rtnQueryModifier* queryModifier = NULL ;
-      INT32 rc = SDB_OK ;
-
-      SDB_ASSERT( NULL != modifier, "modifier can't be null" ) ;
-
-      while ( iter.more() )
-      {
-         BSONElement elem = iter.next() ;
-
-         if ( 0 == ossStrcmp( elem.fieldName(), FIELD_NAME_MODIFY ) )
-         {
-            // $Modify
-            BSONObj modify = elem.Obj() ;
-            const CHAR* op = NULL ;
-
-            rc = rtnGetStringElement( modify, FIELD_NAME_OP, &op ) ;
-            PD_RC_CHECK( rc, PDERROR,
-               "Query and modify has invalid field[%s] in hint: %s",
-               FIELD_NAME_OP, hint.toString().c_str() ) ;
-
-            if ( 0 == ossStrcmp( op, FIELD_OP_VALUE_UPDATE ) )
-            {
-               isUpdate = TRUE ;
-
-               rc = rtnGetBooleanElement( modify, FIELD_NAME_RETURNNEW, returnNew ) ;
-               if ( SDB_INVALIDARG == rc )
-               {
-                  PD_LOG( PDERROR,
-                     "Query and modify has invalid field[%s] in hint: %s",
-                     FIELD_NAME_RETURNNEW, hint.toString().c_str() ) ;
-                  goto error ;
-               }
-
-               rc = rtnGetObjElement( modify, FIELD_NAME_OP_UPDATE, updator ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                  "Query and modify has invalid field[%s] in hint: %s",
-                  FIELD_NAME_OP_UPDATE, hint.toString().c_str() ) ;
-            }
-            else if ( 0 == ossStrcmp( op, FIELD_OP_VALUE_REMOVE ) )
-            {
-               isRemove = TRUE ;
-
-               BOOLEAN remove = FALSE ;
-               rc = rtnGetBooleanElement( modify, FIELD_NAME_OP_REMOVE, remove ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                  "Query and modify has invalid field[%s] in hint: %s",
-                  FIELD_NAME_OP_REMOVE, hint.toString().c_str() ) ;
-
-               if ( TRUE != remove )
-               {
-                  PD_LOG( PDERROR,
-                     "Query and modify has invalid field[%s] in hint: %s",
-                     FIELD_NAME_OP_REMOVE, hint.toString().c_str() ) ;
-                  goto error ;
-               }
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Query and modify has invalid hint: %s",
-                 hint.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-      }
-
-      if ( !isUpdate && !isRemove )
-      {
-         PD_LOG( PDERROR, "Query and modify has no modify hint: %s",
-                 hint.toString().c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      queryModifier = SDB_OSS_NEW rtnQueryModifier( isUpdate, isRemove, returnNew ) ;
-      if ( NULL == queryModifier )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      if ( isUpdate )
-      {
-         rc = queryModifier->loadUpdator( updator ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                  "Query and modify has invalid updator: %s",
-                  updator.toString().c_str() ) ;
-      }
-
-      *modifier = queryModifier ;
-
-   done:
-      return rc ;
-   error:
-      if ( NULL != queryModifier )
-      {
-         SDB_OSS_DEL queryModifier ;
-      }
       goto done ;
    }
 
@@ -693,7 +587,7 @@ namespace engine
       rtnRemoteMessenger* messenger = rtnCB->getRemoteMessenger() ;
 
       UINT32 scannerRetryTime = 0 ;
-      pdLogShield shield;
+      pdLogRCShield shield;
       rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
       CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
       CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
@@ -749,7 +643,15 @@ namespace engine
 
       if ( options.testFlag( FLG_QUERY_MODIFY ) )
       {
-         rc = _rtnParseQueryModify( hintTmp, &queryModifier ) ;
+         queryModifier = SDB_OSS_NEW rtnQueryModifier ;
+         if ( !queryModifier )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for query modifier failed[%d]",
+                    rc) ;
+            goto error ;
+         }
+         rc = queryModifier->init( hintTmp ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to parse query and modify:%d", rc ) ;

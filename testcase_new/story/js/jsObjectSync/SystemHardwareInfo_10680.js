@@ -259,19 +259,19 @@ function checkCpuTime ( cmd, info )
    // 转为秒数后比较，微秒有误差（去除小数部分）
    if( !isApproEqual( ( userTime + niceTime ) / 100, info.User / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check user time" + userTime + niceTime + info.User );
+      throw new Error( "checkCpuTime fail,system's user time:" + ( userTime + niceTime ) / 100 + ",getCpuInfo's user time:" + info.User / 1000 );
    }
    if( !isApproEqual( systemTime / 100, info.Sys / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check sys time" + systemTime + info.Sys );
+      throw new Error( "checkCpuTime fail,system's sys time:" + systemTime / 100 + ",getCpuInfo's sys time:" + info.Sys / 1000 );
    }
    if( !isApproEqual( idleTime / 100, info.Idle / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check idle time" + idleTime + info.Idle );
+      throw new Error( "checkCpuTime fail,system's idle time" + idleTime / 100 + ",getCpuInfo's idle time:" + info.Idle / 1000 );
    }
-   if( !isApproEqual( ( iowaitTime + irqTime + softirqTime ) / 100, info.Other / 1000 ) )
+   if( !isApproEqual( ( irqTime + softirqTime ) / 100, info.Other / 1000 ) )
    {
-      throw new Error( "checkCpuTime fail,check other time" + iowaitTime + irqTime + softirqTime + info.Other );
+      throw new Error( "checkCpuTime fail,system's other time:" + ( irqTime + softirqTime ) / 100 + ",getCpuInfo's other time:" + info.Other / 1000 );
    }
 }
 
@@ -354,7 +354,8 @@ function getDiskIO ( cmd )
 {
    var command = "head -n 1 /proc/diskstats | awk '{print NF}'";
    var columns = cmd.run( command ).split( "\n" )[0];
-   if( columns === "14" )
+   //系统内核版本不同，/proc/diskstats的列数不同
+   if( columns >= "14" )
    {
       command = "cat /proc/diskstats | awk '{print $3,$6,$10}'";
    }
@@ -364,7 +365,7 @@ function getDiskIO ( cmd )
    }
    else
    {
-      throw new Error( "getDiskIO fail,get columns in /proc/diskstats" + "7 14" + columns );
+      throw new Error( "getDiskIO fail, the columns of /proc/diskstats is " + columns + " in current kernel version." );
    }
    var result = [];
    var tmpInfo = cmd.run( command ).split( "\n" );

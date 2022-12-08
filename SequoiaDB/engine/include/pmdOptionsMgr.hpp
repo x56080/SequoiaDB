@@ -56,6 +56,8 @@
 #include <map>
 #include "../bson/bson.h"
 
+using namespace bson ;
+
 namespace engine
 {
    #define PMD_MAX_ENUM_STR_LEN        ( 32 )
@@ -142,13 +144,13 @@ namespace engine
 
       public:
          _pmdCfgExchange ( MAP_K2V *pMapField,
-                           const bson::BSONObj &dataObj,
+                           const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
          _pmdCfgExchange ( MAP_K2V *pMapField,
                            MAP_K2V *pMapColdField,
-                           const bson::BSONObj &dataObj,
+                           const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
                            UINT32 mask = 0 ) ;
@@ -225,8 +227,8 @@ namespace engine
 
          PMD_CFG_DATA_TYPE       _dataType ;
          //
-         bson::BSONObj           _dataObj ;
-         bson::BSONObjBuilder    _dataBuilder ;
+         BSONObj                 _dataObj ;
+         BSONObjBuilder          _dataBuilder ;
          po::variables_map       *_pVMFile ;
          po::variables_map       *_pVMCmd ;
          stringstream            _strStream ;
@@ -282,6 +284,21 @@ namespace engine
          _pmdCfgRecord () ;
          virtual ~_pmdCfgRecord () ;
 
+      public:
+         struct controlParams : public SDBObject
+         {
+            BOOLEAN isForce ;
+            controlParams()
+            : isForce( FALSE )
+            {
+            }
+            controlParams( BOOLEAN isForce )
+            : isForce( isForce )
+            {
+            }
+         } ;
+
+      public:
          void  setConfigHandler( IConfigHandle *pConfigHandler ) ;
          IConfigHandle* getConfigHandler() const ;
 
@@ -289,16 +306,17 @@ namespace engine
          void  resetResult () { _result = SDB_OK ; }
 
          INT32 init( po::variables_map *pVMFile, po::variables_map *pVMCMD ) ;
-         INT32 restore( const bson::BSONObj &objData,
+         INT32 restore( const BSONObj &objData,
                         po::variables_map *pVMCMD ) ;
-         INT32 change( const bson::BSONObj &objData,
+         INT32 change( const BSONObj &objData,
                        BOOLEAN isWhole = FALSE ) ;
 
-         INT32 update( const bson::BSONObj &userConfig,
+         INT32 update( const BSONObj &userConfig,
                        BOOLEAN setForRestore,
+                       const controlParams &cp,
                        bson::BSONObj &errorObj ) ;
 
-         INT32 toBSON ( bson::BSONObj &objData,
+         INT32 toBSON ( BSONObj &objData,
                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
          INT32 toString( string &str,
                          UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
@@ -334,10 +352,12 @@ namespace engine
                                 const CHAR *pValue,
                                 PMD_CFG_CHANGE changeLevel ) ;
          void  _purgeFieldMap( MAP_K2V &mapKeyField ) ;
-         INT32  _saveUpdateChange( MAP_K2V &mapKeyField,
-                                   MAP_K2V &mapColdKeyField,
-                                   BOOLEAN setForRestore,
-                                   bson::BSONObj &errorObj ) ;
+         BOOLEAN _shouldUpdateMKV( MAP_K2V &mapKeyField,
+                                   BOOLEAN isForce ) const ;
+         INT32 _saveUpdateChange( MAP_K2V &mapKeyField,
+                                  MAP_K2V &mapColdKeyField,
+                                  BOOLEAN setForRestore,
+                                  bson::BSONObj &errorObj ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;
@@ -688,6 +708,8 @@ namespace engine
          std::string getOmAddr() const ;
          OSS_INLINE BOOLEAN detectDisk() const { return _detectDisk ; }
          OSS_INLINE BOOLEAN diagSecureOn() const { return _diagSecureOn ; }
+         OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
+         OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -835,6 +857,8 @@ namespace engine
 
          BOOLEAN     _detectDisk ;
          BOOLEAN     _diagSecureOn ;
+         UINT32      _metacacheexpired ;
+         UINT32      _metacachelwm ;
 
 #ifdef SDB_ENTERPRISE
 

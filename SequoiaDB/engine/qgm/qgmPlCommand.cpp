@@ -51,6 +51,7 @@
 #include "rtnCommandList.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
+#include "authDef.hpp"
 #include <sstream>
 
 using namespace bson ;
@@ -790,6 +791,33 @@ namespace engine
          _contextID = -1 ;
       }
       return ;
+   }
+
+   INT32 _qgmPlCommand::_checkPrivilege( _pmdEDUCB *eduCB )
+   {
+      INT32 rc = SDB_OK ;
+      ISession *pSession = eduCB->getSession() ;
+      if ( pSession )
+      {
+         IClient *client = pSession->getClient() ;
+         if ( client )
+         {
+            SDB_ASSERT( AUTH_INVALID_ROLE_ID != client->getRoleID(),
+                        "Role id is invalid" ) ;
+            if ( AUTH_ROLE_MONITOR == client->getRoleID() )
+            {
+               rc = SDB_NO_PRIVILEGES ;
+               PD_LOG( PDERROR, "No privilege for the command, rc: %d",
+                       rc ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }
 

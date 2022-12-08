@@ -17,7 +17,7 @@
 package com.sequoiadb.flink.source.split;
 
 import com.sequoiadb.flink.config.SplitMode;
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import java.io.IOException;

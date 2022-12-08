@@ -53,7 +53,7 @@ public class CL10203 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor te = new ThreadExecutor();
+        ThreadExecutor te = new ThreadExecutor( 300000 );
         for ( int i = 0; i < 10; i++ ) {
             te.addWorker( new DropCL() );
             te.addWorker( new DropCS() );

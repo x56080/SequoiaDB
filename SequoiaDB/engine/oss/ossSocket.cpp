@@ -1192,6 +1192,7 @@ INT32 _ossSocket::_complete( INT32 timeout )
    FD_SET( _fd, &wfd ) ;
 
 retry:
+   rc = SDB_OK ;
    if ( -1 == ::select( _fd + 1, NULL, &wfd, NULL, &tv ) )
    {
       rc = SOCKET_GETLASTERROR ;

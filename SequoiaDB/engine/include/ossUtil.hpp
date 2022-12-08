@@ -91,8 +91,18 @@ OSS_INLINE UINT32 ossHash( const BYTE *v1, UINT32 s1,
    return hash ;
 }
 
+
+#define OSS_FLOAT64_2_UINT64(x) ossDoubleToUINT64(x)
+#define OSS_FLOAT64_2_UINT32(x) ossDoubleToUINT32(x)
+
+UINT64 ossDoubleToUINT64( FLOAT64 num );
+UINT32 ossDoubleToUINT32( FLOAT64 num );
+
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
 UINT64 ossNextPowerOf2( UINT32 num, UINT32 *pSquare = NULL ) ;
+
+OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d ) ;
+OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign = 0 ) ;
 
 #if defined (_WINDOWS)
 OSS_INLINE void ossSleepmillis ( UINT64 s )
@@ -194,6 +204,9 @@ void ossTimestampToString( ossTimestamp &Tm, CHAR * pStr ) ;
 
 // convert ossTimestamp into UTC calendar time string
 void ossTimestampToUTCString( ossTimestamp &Tm, CHAR * pStr ) ;
+
+void ossMillisecondsToString( UINT64 milliseconds, CHAR *pStr ) ;
+UINT64 ossStringToMilliseconds( const CHAR *pStr ) ;
 
 // convert time_t from local to UTC in the same DateString
 // for example:
@@ -1059,16 +1072,16 @@ UINT32 ossHexDumpBuffer
    UINT32     *   pBytesProcessed = NULL
 ) ;
 
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,   INT64 &availPhys,
-                         INT64 &totalPF,     INT64 &availPF,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
+                         INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual,
                          INT32 &overCommitMode,
                          INT64 &commitLimit,  INT64 &committedAS ) ;
 
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,   INT64 &availPhys,
-                         INT64 &totalPF,     INT64 &availPF,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
+                         INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual ) ;
 
 INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
@@ -1099,7 +1112,8 @@ INT32 ossReadlink ( const CHAR *pPath, CHAR *pLinkedPath, INT32 maxLen ) ;
 INT32 ossGetDiskIOStat ( const CHAR *pDriverName, ossDiskIOStat &ioStat ) ;
 
 INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
-                      SINT64 &idle, SINT64 &other ) ;
+                      SINT64 &idle, SINT64 &iowait,
+                      SINT64 &other ) ;
 
 typedef struct _ossProcMemInfo
 {

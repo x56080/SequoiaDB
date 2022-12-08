@@ -69,6 +69,101 @@ void ossLocalTime ( time_t &Time, struct tm &TM )
 #endif
 }
 
+// When a double value is out of the range of type unsigned long, the result of
+// converting it into a unsigned long value is different on x86 from arm. So when
+// it is out of range we handle the result as x86 did.
+UINT64 ossDoubleToUINT64( FLOAT64 num )
+{
+   // When double is out of the range of unsigned long,it has four cases.
+   // case1: when double is special value ,in NaN and -INF case we give it an
+   //        "indefinite integer value",in +INF case we give it 0
+   // case2: when double is left overflow than the min value long type can
+   //        represent,we give it an "indefinite integer value"
+   // case3: when double is smaller than zero we mod it with 2^64, which is
+   //        equivalent to ( num + 2^64 ), but the max value UINT64 can represent
+   //        is (2^64-1),so here we handle it as (OSS_UINT64_MAX - abs(num) + 1 )
+   // case4: when double if right overflow than the max value unsigned long type
+   //        can represent,we give it an 0
+   // otherwise: we do nothing
+   UINT64 ans = 0 ;
+   INT32 sign = 0 ;
+
+   if ( ossIsNaN( num ) )
+   {
+      ans = OSS_INDEF_VAL_64 ;
+   }
+   else if ( ossIsInf( num, &sign ) )
+   {
+      if ( sign == -1 )
+      {
+         ans = OSS_INDEF_VAL_64 ;
+      }
+      else
+      {
+         ans = 0 ;
+      }
+   }
+   else if ( num <= OSS_SINT64_MIN_D )
+   {
+      ans = OSS_INDEF_VAL_64 ;
+   }
+   else if ( num < 0 )
+   {
+      ans = UINT64( OSS_UINT64_MAX - UINT64( -num ) + 1 ) ;
+   }
+   else if ( num >= OSS_UINT64_MAX )
+   {
+      ans = 0 ;
+   }
+   else
+   {
+      ans = num ;
+   }
+
+   return ans ;
+}
+
+UINT32 ossDoubleToUINT32( FLOAT64 num )
+{
+   // When double is out of the range of unsigned int,it has five cases.
+   // case1: when double is special value  NaN and -INF and +INF we give it 0
+   // case2: when double is left overflow than the min value long type can
+   //        represent,we give it an 0
+   // case3: when double is smaller than zero we mod it with 2^32
+   // case4: when double is right overflow than the max value long type can
+   //        represent,we give it an 0
+   // case5: when double if right overflow than the max value unsigned int type
+   //        can represent,we mod it with 2^32
+   // otherwise: we do nothing
+   UINT32 ans = 0 ;
+   if ( ossIsNaN( num ) || ossIsInf( num ) )
+   {
+      ans = 0 ;
+   }
+   else if ( num <= OSS_SINT64_MIN_D )
+   {
+      ans = 0 ;
+   }
+   else if ( num < 0 )
+   {
+      ans = INT64( num ) % OSS_SINT64_2_32 ;
+   }
+   else if ( num >= OSS_SINT64_MAX_D )
+   {
+      ans = 0 ;
+   }
+   else if ( num > OSS_UINT32_MAX )
+   {
+      ans = INT64( num ) % OSS_SINT64_2_32 ;
+   }
+   else
+   {
+      ans = num ;
+   }
+
+   return ans ;
+}
+
 BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 * pSquare )
 {
    BOOLEAN bPowered = ( ( 0 != num ) && ( 0 == ( num & ( num -1 ) ) ) ) ;
@@ -116,7 +211,6 @@ void ossGmtime ( time_t &Time, struct tm &TM )
 #endif
 }
 
-//
 // convert ossTimestamp to string
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSTS2STR, "ossTimestampToString" )
 void ossTimestampToString( ossTimestamp &Tm, CHAR * pStr )
@@ -181,6 +275,24 @@ void ossTimestampToUTCString( ossTimestamp &Tm, CHAR * pStr )
    }
 }
 
+UINT64 ossTimestampToMilliseconds( const ossTimestamp &timestamp )
+{
+   return ( (UINT64)timestamp.time ) * 1000L + timestamp.microtm / 1000L ;
+}
+
+void ossMillisecondsToString( UINT64 milliseconds, CHAR *pStr )
+{
+   ossTimestamp tm( milliseconds ) ;
+   ossTimestampToString( tm, pStr ) ;
+}
+
+UINT64 ossStringToMilliseconds( const CHAR *pStr )
+{
+   ossTimestamp tm ;
+   ossStringToTimestamp( pStr, tm ) ;
+   return ossTimestampToMilliseconds( tm ) ;
+}
+
 // convert time_t from local to UTC in the same DateString
 // for example:
 //   [in] local timezone:CST, date:"2019-08-06 20:13:54", local:1565093634
@@ -202,7 +314,7 @@ time_t ossTimeDiffWithUTC()
    struct tm utc ;
    ossLocalTime( time, local ) ;
    ossGmtime( time, utc ) ;
-   return mktime( &local ) - mktime( &utc ) ;
+   return ossMkTime( &local ) - ossMkTime( &utc ) ;
 }
 
 INT32 ossTimeGetMaxDay( INT32 year, INT32 month )
@@ -259,7 +371,7 @@ void ossStringToTimestamp( const CHAR * pStr, ossTimestamp &Tm )
    tmp.tm_year -= 1900 ;
    tmp.tm_mon  -= 1 ;
 
-   Tm.time = mktime( &tmp ) ;
+   Tm.time = ossMkTime( &tmp ) ;
 
    PD_TRACE_EXIT ( SDB_STR2OSSTS );
 }
@@ -277,7 +389,7 @@ void ossStringToTimestamp( const CHAR *pStr, ossTimestamp &Tm,
    tmp.tm_year -= 1900 ;
    tmp.tm_mon  -= 1 ;
 
-   Tm.time = mktime( &tmp ) ;
+   Tm.time = ossMkTime( &tmp ) ;
 }
 
 
@@ -1046,6 +1158,7 @@ exit :
 #define OSS_GET_MEM_INFO_OVERCOMMIT_FILE  "/proc/sys/vm/overcommit_memory"
 #define OSS_GET_MEM_INFO_MEMTOTAL         "MemTotal"
 #define OSS_GET_MEM_INFO_MEMFREE          "MemFree"
+#define OSS_GET_MEM_INFO_MEMAVAILABLE     "MemAvailable"
 #define OSS_GET_MEM_INFO_SWAPTOTAL        "SwapTotal"
 #define OSS_GET_MEM_INFO_SWAPFREE         "SwapFree"
 #define OSS_GET_MEM_INFO_COMMITLIM        "CommitLimit"
@@ -1055,8 +1168,8 @@ exit :
 #define OSS_GET_MEM_INFO_AMPLIFIER        1024LL
 #endif
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETMEMINFO, "ossGetMemoryInfo" )
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,    INT64 &availPhys,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
                          INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual,
                          INT32 &overCommitMode,
@@ -1083,6 +1196,7 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
       loadPercent  = statex.dwMemoryLoad ;
       totalPhys    = statex.ullTotalPhys ;
       availPhys    = statex.ullAvailPhys ;
+      freePhys     = availPhys ;
       totalPF      = statex.ullTotalPageFile ;
       availPF      = statex.ullAvailPageFile ;
       totalVirtual = statex.ullTotalVirtual ;
@@ -1113,6 +1227,7 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
    while ( fgets ( lineBuffer, OSS_PROC_PATH_LEN_MAX, fp ) &&
            ( totalPhys   == -1 ||
              availPhys   == -1 ||
+             freePhys    == -1 ||
              totalPF     == -1 ||
              availPF     == -1 ||
              commitLimit == -1 ||
@@ -1129,12 +1244,20 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
          totalPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
       }
       else if ( ossStrncmp ( lineBuffer,
+                             OSS_GET_MEM_INFO_MEMAVAILABLE,
+                             ossStrlen ( OSS_GET_MEM_INFO_MEMAVAILABLE ) ) == 0 )
+      {
+         sscanf ( &lineBuffer[ossStrlen ( OSS_GET_MEM_INFO_MEMAVAILABLE )+1],
+                  "%d", &inputNum ) ;
+         availPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
+      }
+      else if ( ossStrncmp ( lineBuffer,
                              OSS_GET_MEM_INFO_MEMFREE,
                              ossStrlen ( OSS_GET_MEM_INFO_MEMFREE ) ) == 0 )
       {
          sscanf ( &lineBuffer[ossStrlen ( OSS_GET_MEM_INFO_MEMFREE )+1],
                   "%d", &inputNum ) ;
-         availPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
+         freePhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
       }
       else if (  ossStrncmp ( lineBuffer,
                               OSS_GET_MEM_INFO_SWAPTOTAL,
@@ -1221,8 +1344,8 @@ error :
    goto done ;
 }
 
-INT32 ossGetMemoryInfo ( INT32 &loadPercent,
-                         INT64 &totalPhys,    INT64 &availPhys,
+INT32 ossGetMemoryInfo ( INT32 &loadPercent,  INT64 &totalPhys,
+                         INT64 &freePhys,     INT64 &availPhys,
                          INT64 &totalPF,      INT64 &availPF,
                          INT64 &totalVirtual, INT64 &availVirtual )
 {
@@ -1230,8 +1353,8 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
    INT64 commitLimit = 0 ;
    INT64 committedAS = 0 ;
 
-   return ossGetMemoryInfo ( loadPercent,
-                             totalPhys, availPhys,
+   return ossGetMemoryInfo ( loadPercent, totalPhys,
+                             freePhys, availPhys,
                              totalPF, availPF,
                              totalVirtual, availVirtual,
                              overCommitMode,
@@ -1717,7 +1840,8 @@ typedef NTSTATUS (__stdcall *NTQUERYSYSTEMINFORMATION)
 // output is based on milliseconds
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETCPUINFO, "ossGetCPUInfo" )
 INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
-                      SINT64 &idle, SINT64 &other )
+                      SINT64 &idle, SINT64 &iowait,
+                      SINT64 &other )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSGETCPUINFO );
@@ -1738,6 +1862,7 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
    // sys time also includes idle time
    sys -= idle ;
    user /= 10000 ;
+   iowait = 0 ;
 #elif defined (_LINUX) || defined (_AIX)
    CHAR pathName [ OSS_PROC_PATH_LEN_MAX + 1 ] = { 0 } ;
    CHAR buffer [ OSS_PROC_PATH_LEN_MAX + 1 ] = { 0 } ;
@@ -1787,7 +1912,9 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
              ( ( userTime + nicedTime ) % clkTck ) * numMicrosecPerClkTck/1000;
       idle = idleTime / clkTck * 1000 +
              ( idleTime % clkTck ) * numMicrosecPerClkTck / 1000 ;
-      otherTime = ( waitTime + irqTime + softirqTime ) ;
+      iowait = waitTime / clkTck * 1000 +
+             ( waitTime % clkTck ) * numMicrosecPerClkTck / 1000 ;
+      otherTime = ( irqTime + softirqTime ) ;
       other = otherTime / clkTck * 1000 +
               ( otherTime % clkTck ) * numMicrosecPerClkTck / 1000 ;
       fclose ( fp ) ;
@@ -2494,3 +2621,28 @@ void ossMemcpyFlipBits(void* dst, const void* src, size_t len)
       *output++ = ~(*input++);
    }
 }
+OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d )
+{
+   return d != d ;
+}
+
+OSS_INLINE BOOLEAN ossIsInf( FLOAT64 d, INT32 * sign )
+{
+   volatile FLOAT64 tmp = d ;
+
+   if ( ( tmp == d ) && ( ( tmp - d ) != 0.0 ) )
+   {
+      if ( sign )
+      {
+         *sign = ( d < 0.0 ? -1 : 1 ) ;
+      }
+      return TRUE ;
+   }
+   if ( sign )
+   {
+      *sign = 0 ;
+   }
+
+   return FALSE ;
+}
+

@@ -171,9 +171,6 @@ namespace engine
                          DPS_LSN *committed );
 
    public:
-      void beforeFS() ;
-      void afterFS() ;
-
       OSS_INLINE _dpsReplicaLogMgr *getLogMgr ()
       {
          return &_buf ;

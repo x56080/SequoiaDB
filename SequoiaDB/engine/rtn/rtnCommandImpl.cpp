@@ -155,6 +155,7 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
       SINT64 queryContextID = -1 ;
+      BOOLEAN hasRange = options.hasRangeInHint() ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
@@ -164,7 +165,8 @@ namespace engine
                   pCollection, rc ) ;
          goto error ;
       }
-      if ( !options.isQueryEmpty() )
+      if ( !options.isQueryEmpty() ||
+           hasRange )
       {
          rtnContextPtr pContextBase ;
 
@@ -191,6 +193,12 @@ namespace engine
             copiedOptions.setOrderBy( dummy ) ;
             copiedOptions.setSkip( 0 ) ;
             copiedOptions.setLimit( -1 ) ;
+            // if count query has range in index field, set flag so that
+            // rtn context know the count query can try to use index cover
+            if ( hasRange )
+            {
+               copiedOptions.setFlag( FLG_FORCE_INDEX_SELECTOR ) ;
+            }
 
             rc = rtnQuery ( copiedOptions, cb, dmsCB, rtnCB, queryContextID,
                             &pContextBase ) ;
@@ -213,11 +221,15 @@ namespace engine
             }
             else
             {
-               pContextBase->enableCountMode() ;
+               if ( !hasRange )
+               {
+                  pContextBase->enableCountMode() ;
+               }
                rtnContextBuf buffObj ;
 
                if ( NULL != pContextBase->getPlanRuntime() &&
-                    pContextBase->getPlanRuntime()->isAllRangeScan() )
+                    pContextBase->getPlanRuntime()->isAllRangeScan() &&
+                    !hasRange )
                {
                   // use quick extent header count
                   rc = su->countCollection ( pCollectionShortName, totalCount,
@@ -447,8 +459,8 @@ namespace engine
       CHAR *pCollectionSpaceName = strCollectionFullName ;
       CHAR *pCollectionShortName = pDot + 1 ;
 
-      BSONElement ele = options.getHint().getField( FIELD_NAME_INDEX ) ;
-      const CHAR *pIndexName = ele.valuestrsafe() ;
+      const CHAR *pIndexName = NULL ;
+      BOOLEAN detail = FALSE ;
 
       rtnQueryOptions queryOptions ;
       queryOptions.setSelector( dummy ) ;
@@ -460,6 +472,14 @@ namespace engine
 
       try
       {
+         BSONObj hint = options.getHint() ;
+         pIndexName = hint.getField( FIELD_NAME_INDEX ).valuestrsafe() ;
+         BSONElement beOpt = hint.getField( CMD_ADMIN_PREFIX FIELD_NAME_OPTIONS ) ;
+         if ( beOpt.type() == Object )
+         {
+            detail = beOpt.embeddedObject().getField( FIELD_NAME_DETAIL ).booleanSafe() ;
+         }
+
          // { CollectionSpace: <cs>, Collection: <cl>, Index: <idx> }
          BSONObjBuilder queryOb( 128 ) ;
          queryOb.append( FIELD_NAME_COLLECTIONSPACE, pCollectionSpaceName ) ;
@@ -471,15 +491,9 @@ namespace engine
          hintOb.append( "", DMS_STAT_IDX_IDX_NAME ) ;
          queryOptions.setHint( hintOb.obj() ) ;
       }
-      catch ( std::bad_alloc &ba )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "No memory to build BSON object" ) ;
-         goto error ;
-      }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
          goto error ;
       }
@@ -502,7 +516,7 @@ namespace engine
          BSONObj stat( buffObj.data() ) ;
          BSONObjBuilder ob ;
 
-         rc = monBuildStatResult( stat, 0, ob ) ;
+         rc = monBuildStatResult( stat, 0, ob, detail ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
 
          rc = context->monAppend( ob.obj() ) ;
@@ -1079,7 +1093,7 @@ namespace engine
 
       BSONObj dummy ;
       rtnQueryOptions& optionsW = const_cast<rtnQueryOptions&>(options) ;
-      pdLogShield shield;
+      pdLogRCShield shield;
       rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
       CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
       CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
@@ -2707,6 +2721,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNTESTCSCOMMAND, rc ) ;
       return rc ;
    error :
+      pdSetLastError( rc ) ;
       goto done ;
    }
 
@@ -2868,6 +2883,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNTESTCLCOMMAND, rc ) ;
       return rc ;
    error :
+      pdSetLastError( rc ) ;
       goto done ;
    }
 

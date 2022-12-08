@@ -1064,6 +1064,7 @@ namespace engine
       const CHAR *pCSName = NULL ;
 
       contextID = -1 ;
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
 
       rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
@@ -1122,6 +1123,7 @@ namespace engine
             rc = SDB_DMS_CS_NOTEXIST ;
             PD_LOG ( PDWARNING, "Collection space[%s] doesn't exist",
                      pCSName ) ;
+            pdSetLastError( rc ) ;
          }
          else
          {
@@ -1174,6 +1176,7 @@ namespace engine
       // In early versions, test collection is done by a list command. Now we
       // first try with test command. If it failed with error of unknow nessage
       // (maybe the catalogue is old version), then try in the old way.
+      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
       rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, &pContext, NULL ) ;
       if ( rc )
       {
@@ -5203,6 +5206,7 @@ namespace engine
       PD_TRACE_ENTRY( COORDIDXHELP_EXECST ) ;
       UINT64 taskID = CLS_INVALID_TASKID ;
       INT32 retryCnt = 0 ;
+      INT32 tmpRc = SDB_OK;
 
       rc = _createTaskInCata( pMsg, cb, buf, taskID ) ;
       if ( rc )
@@ -5229,7 +5233,23 @@ namespace engine
          PD_LOG_MSG( PDERROR,
                      "Failed to notify data node to do task[%llu], rc: %d",
                      taskID, rc ) ;
-         _cancelTask( taskID, rc, buf, cb ) ;
+
+         tmpRc = _cancelTask( taskID, rc, buf, cb ) ;
+         if ( tmpRc )
+         {
+            PD_LOG( PDWARNING, "Failed to cancel task[%llu], rc: %d",
+                    taskID, tmpRc ) ;
+         }
+         else if ( !_isAsync() )
+         {
+            tmpRc = _waitTask( taskID, cb, contextID, buf ) ;
+            if ( tmpRc )
+            {
+               PD_LOG( PDWARNING, "Failed to wait task[%llu], rc: %d",
+                       taskID, tmpRc ) ;
+            }
+         }
+
          goto error ;
       }
 

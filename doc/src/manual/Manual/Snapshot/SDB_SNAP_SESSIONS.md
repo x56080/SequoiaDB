@@ -1,4 +1,4 @@
-[^_^]: 
+[^_^]:
 
     会话快照
     作者：何嘉文
@@ -13,13 +13,11 @@
 
 会话快照可以列出所有用户的会话和系统会话。
 
-标识
-----
+##标识##
 
 SDB_SNAP_SESSIONS
 
-字段信息
-----
+##字段信息##
 
 | 字段名            | 类型       | 描述                                               |
 | ----------------- | ---------- | -------------------------------------------------- |
@@ -37,6 +35,10 @@ SDB_SNAP_SESSIONS
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                       |
 | RelatedID         | string     | 会话的内部标识                                     |
 | Contexts          | bson array | 该会话所有上下文的 ID                              |
+| TotalQuery        | int64      | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64      | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64      | 总事务提交数量                                     |
+| TotalTransRollback| int64      | 总事务回滚数量                                     |
 | TotalDataRead     | int64      | 数据记录读                                         |
 | TotalIndexRead    | int64      | 索引读                                             |
 | TotalDataWrite    | int64      | 数据记录写                                         |
@@ -46,6 +48,16 @@ SDB_SNAP_SESSIONS
 | TotalInsert       | int64      | 总插入记录数量                                     |
 | TotalSelect       | int64      | 总选取记录数量                                     |
 | TotalRead         | int64      | 总数据读                                           |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
 | TotalReadTime     | int64      | 总数据读时间，单位为毫秒                           |
 | TotalWriteTime    | int64      | 总数据写时间，单位为毫秒                           |
 | ReadTimeSpent     | int64      | 读取记录的时间，单位为毫秒                         |
@@ -59,13 +71,12 @@ SDB_SNAP_SESSIONS
 | UserCPU           | double     | 用户 CPU，单位为秒                                 |
 | SysCPU            | double     | 系统 CPU，单位为秒                                 |
 
-示例
-----
+##示例##
 
 查看会话快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_SESSIONS,{ Role:"coord" } )
+> db.snapshot(SDB_SNAP_SESSIONS, {Role:"coord"})
 ```
 
 输出结果如下：
@@ -74,18 +85,22 @@ SDB_SNAP_SESSIONS
 {
   "NodeName": "hostname1:11810",
   "SessionID": 1,
-  "TID": 8680,
+  "TID": 14592,
   "Status": "Running",
   "IsBlocked": false,
-  "Type": "LogWriter",
-  "Name": "",
+  "Type": "Task",
+  "Name": "PAGEMAPPING-JOB-D",
   "Doing": "",
-  "Source": "MySQL:hostname1:32762:3",
+  "Source": "",
   "QueueSize": 0,
-  "ProcessEventCount": 1,
+  "ProcessEventCount": 364,
   "MemPoolSize": 0,
-  "RelatedID": "c0a81e442e7200008c8a",
+  "RelatedID": "c0a81e442e720000000000000001",
   "Contexts": [],
+  "TotalQuery": 1,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
@@ -95,22 +110,33 @@ SDB_SNAP_SESSIONS
   "TotalInsert": 0,
   "TotalSelect": 0,
   "TotalRead": 0,
+  "TotalLobGet": 0,
+  "TotalLobPut": 0,
+  "TotalLobDelete": 0,
+  "TotalLobList": 0,
+  "TotalLobReadSize": 0,
+  "TotalLobWriteSize": 0,
+  "TotalLobRead": 0,
+  "TotalLobWrite": 0,
+  "TotalLobTruncate": 0,
+  "TotalLobAddressing": 0,
   "TotalReadTime": 0,
   "TotalWriteTime": 0,
   "ReadTimeSpent": 0,
   "WriteTimeSpent": 0,
-  "ConnectTimestamp": "2013-09-27-13.28.38.927465",
-  "ResetTimestamp": "2013-09-27-13.28.38.927465",
+  "ConnectTimestamp": "2022-10-06-18.00.06.710172",
+  "ResetTimestamp": "2022-10-06-18.00.06.710172",
   "LastOpType": "UNKNOWN",
   "LastOpBegin": "--",
   "LastOpEnd": "--",
   "LastOpInfo": "",
-  "UserCPU": "0.410000",
-  "SysCPU": "0.150000"
+  "UserCPU": 0,
+  "SysCPU": 0
 }
+...
 ```
 
 [^_^]:
     本文使用到的所有链接及引用。
-    
+  
 [edu_url]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md

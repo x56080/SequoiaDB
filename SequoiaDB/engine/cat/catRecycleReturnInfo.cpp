@@ -390,7 +390,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYRTRNINFO_ADDRENAMECLBYRECYID, "_catRecycleReturnInfo::addRenameCLByRecyID" )
-   INT32 _catRecycleReturnInfo::addRenameCLByRecyID( const utilReturnNameInfo &nameInfo,
+   INT32 _catRecycleReturnInfo::addRenameCLByRecyID( const catCheckCLInfo &checkInfo,
                                                      utilRecycleID recycleID,
                                                      catCtxLockMgr &lockMgr,
                                                      pmdEDUCB *cb )
@@ -399,8 +399,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ADDRENAMECLBYRECYID ) ;
 
-      const CHAR *origName = nameInfo.getOriginName() ;
-      const CHAR *rtrnName = nameInfo.getReturnName() ;
+      const CHAR *origName = checkInfo.getOriginName().c_str() ;
+      const CHAR *rtrnName = checkInfo.isRenamed() ? checkInfo.getReturnName().c_str() : origName ;
       CHAR newCLName[ DMS_COLLECTION_FULL_NAME_SZ + 32 + 1 ] = { 0 } ;
       BOOLEAN isExist = FALSE ;
       BSONObj boCollection ;
@@ -420,10 +420,13 @@ namespace engine
       PD_LOG_MSG_CHECK( !isExist, SDB_DMS_EXIST, error, PDERROR,
                         "Collection [%s] already exists", newCLName ) ;
 
-      // lock collection
-      PD_CHECK( lockMgr.tryLockCollection( newCLName, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock rename collection [%s]", newCLName ) ;
+      // if cl uniqueID is conflict, it will be locked later
+      if ( !isConflictUIDCL( checkInfo.getUniqueID() ) )
+      {
+         PD_CHECK( lockMgr.tryLockCollection( newCLName, EXCLUSIVE ),
+                   SDB_LOCK_FAILED, error, PDERROR,
+                   "Failed to lock rename collection [%s]", newCLName ) ;
+      }
 
       rc = addRenameCL( origName, newCLName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add rename collection [%s] "
@@ -449,17 +452,18 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATRECYRTRNINFO_ADDCHGUIDCL ) ;
 
       utilCLUniqueID newCLUniqueID = UTIL_UNIQUEID_NULL ;
+      utilReturnNameInfo info( clName.c_str() ) ;
 
       rc = catGetReturnCLUID( clUniqueID, newCLUniqueID, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to change collection unique "
                    "ID [%llu], rc: %d", clUniqueID, rc ) ;
 
-      if ( _renameCLMap.end() == _renameCLMap.find( clName ) )
-      {
-         PD_CHECK( lockMgr.tryLockCollection( clName.c_str(), EXCLUSIVE ),
-                   SDB_LOCK_FAILED, error, PDERROR,
-                   "Failed to lock rename collection [%s]", clName.c_str() ) ;
-      }
+      rc = getReturnCLName( info ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get return name of "
+                   "collection [%s], rc: %d", clName.c_str(), rc ) ;
+      PD_CHECK( lockMgr.tryLockCollection( info.getReturnName(), EXCLUSIVE ),
+                SDB_LOCK_FAILED, error, PDERROR,
+                "Failed to lock return collection [%s]", info.getReturnName() ) ;
 
       rc = _BASE::addChangeUIDCL( clUniqueID, newCLUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add change unique ID collection "
@@ -1007,14 +1011,7 @@ namespace engine
          if ( isReturnToName && !checkInfo.isCLRenamed() )
          {
             // if the item is not full renamed, we can rename with recycle ID
-            utilReturnNameInfo nameInfo( checkInfo.getOriginName().c_str() ) ;
-            if ( checkInfo.isRenamed() )
-            {
-               nameInfo.setReturnName( checkInfo.getReturnName().c_str(),
-                                       checkInfo.getRenameMask() ) ;
-            }
-
-            rc = addRenameCLByRecyID( nameInfo, item.getRecycleID(), lockMgr,
+            rc = addRenameCLByRecyID( checkInfo, item.getRecycleID(), lockMgr,
                                       cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add rename collection, "
                          "rc: %d", rc ) ;

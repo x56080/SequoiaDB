@@ -21,11 +21,11 @@ function test ()
    var curlInfo = runCurlAndReturn( curlPara );
    if( commIsStandalone( db ) )
    {
-      var expInfo = [{ "errno": 0, "InsertedNum": 1, "DuplicatedNum": 0 }];
+      var expInfo = [{ "errno": 0, "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }];
    }
    else
    {
-      var expInfo = [{ "errno": 0 }, { "InsertedNum": 1, "DuplicatedNum": 0 }];
+      var expInfo = [{ "errno": 0 }, { "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }];
    }
    assert.equal( curlInfo, expInfo );
 
@@ -74,7 +74,7 @@ function test ()
 
 function runCurlAndReturn ( curlPara )
 {
-   if( undefined == curlPara ) 
+   if( undefined == curlPara )
    {
       throw new Error( "curlPara can not be undefined " );
    }

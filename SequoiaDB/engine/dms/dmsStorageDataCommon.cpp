@@ -429,7 +429,6 @@ namespace engine
    {
    }
 
-
    _dmsRecordRW::~_dmsRecordRW()
    {
    }
@@ -708,6 +707,18 @@ namespace engine
             {
                _dmsMME->_mbList[i]._totalDataLen =
                   _mbStatInfo[i]._totalDataLen ;
+            }
+            if ( _dmsMME->_mbList[i]._totalLobSize !=
+                 _mbStatInfo[i]._totalLobSize )
+            {
+               _dmsMME->_mbList[i]._totalLobSize =
+                 _mbStatInfo[i]._totalLobSize ;
+            }
+            if ( _dmsMME->_mbList[i]._totalValidLobSize !=
+                 _mbStatInfo[i]._totalValidLobSize )
+            {
+               _dmsMME->_mbList[i]._totalValidLobSize =
+                 _mbStatInfo[i]._totalValidLobSize ;
             }
             if ( _dmsMME->_mbList[i]._totalOrgDataLen !=
                  _mbStatInfo[i]._totalOrgDataLen )
@@ -1040,10 +1051,18 @@ namespace engine
                _dmsMME->_mbList[i]._lastCompressRatio ;
             _mbStatInfo[i]._totalDataLen =
                _dmsMME->_mbList[i]._totalDataLen ;
+            _mbStatInfo[i]._totalLobSize =
+               _dmsMME->_mbList[i]._totalLobSize ;
+            _mbStatInfo[i]._totalValidLobSize =
+               _dmsMME->_mbList[i]._totalValidLobSize;
             _mbStatInfo[i]._totalOrgDataLen =
                _dmsMME->_mbList[i]._totalOrgDataLen ;
             _mbStatInfo[i]._startLID =
                _dmsMME->_mbList[i]._logicalID ;
+
+            _mbStatInfo[i]._createTime = _dmsMME->_mbList[i]._createTime ;
+            _mbStatInfo[i]._updateTime = _dmsMME->_mbList[i]._updateTime ;
+
             /*
              * The following branch is for using newer program(SequoiaDB 2.0 or
              * later) with data of elder versions(Before 2.0). As dictionary
@@ -1180,7 +1199,8 @@ namespace engine
 
    INT32 _dmsStorageDataCommon::_onMarkHeaderValid( UINT64 &lastLSN,
                                                     BOOLEAN sync,
-                                                    UINT64 lastTime )
+                                                    UINT64 lastTime,
+                                                    BOOLEAN &setHeadCommFlgValid )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needFlush = FALSE ;
@@ -1201,7 +1221,18 @@ namespace engine
             {
                _dmsMME->_mbList[i]._commitLSN = tmpLSN ;
                _dmsMME->_mbList[i]._commitTime = lastTime ;
-               _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
+
+               if ( _mbStatInfo[i]._writePtrCount > 0 && !isClosed() )
+               {
+                  // Don't set _dmsMME->_mbList[i]._commitFlag to 1
+                  // Don't set header commitFlag to 1
+                  // Because the current write op has not completed( _writePtrCount > 0 )
+                  setHeadCommFlgValid = FALSE ;
+               }
+               else
+               {
+                  _dmsMME->_mbList[i]._commitFlag = tmpCommitFlag ;
+               }
                needFlush = TRUE ;
             }
 
@@ -1272,6 +1303,22 @@ namespace engine
          rc = flushMME( isSyncDeep() ) ;
       }
       return rc ;
+   }
+
+   void _dmsStorageDataCommon::incWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         ++_mbStatInfo[ collectionID ]._writePtrCount ;
+      }
+   }
+
+   void _dmsStorageDataCommon::decWritePtrCount( INT32 collectionID )
+   {
+      if ( collectionID >= 0 && collectionID < DMS_MME_SLOTS )
+      {
+         --_mbStatInfo[ collectionID ]._writePtrCount ;
+      }
    }
 
    UINT64 _dmsStorageDataCommon::_getOldestWriteTick() const
@@ -2439,11 +2486,16 @@ namespace engine
       mb = &_dmsMME->_mbList[newCollectionID] ;
       mb->reset( pName, clUniqueID, newCollectionID, logicalID,
                  attributes, compressionType ) ;
+      mb->_createTime = ossGetCurrentMilliseconds() ;
+      mb->_updateTime = mb->_createTime ;
       _mbStatInfo[ newCollectionID ].reset() ;
       _mbStatInfo[ newCollectionID ]._startLID = logicalID ;
+      _mbStatInfo[ newCollectionID ]._createTime = mb->_createTime ;
+      _mbStatInfo[ newCollectionID ]._updateTime = mb->_updateTime ;
       _compressorEntry[ newCollectionID ].reset() ;
 
       _dmsHeader->_numMB++ ;
+      _onHeaderUpdated() ;
       _collectionInsert( pName, newCollectionID, clUniqueID ) ;
 
       if ( isBlockScanSupport() )
@@ -2775,6 +2827,7 @@ namespace engine
          _collectionRemove( pName, clUniqueID ) ;
          DMS_SET_MB_FREE( context->mb()->_flag ) ;
          _dmsHeader->_numMB-- ;
+         _onHeaderUpdated() ;
       }
 
       if ( _pEventHolder )
@@ -3312,6 +3365,9 @@ namespace engine
          _mbStatInfo[ mbID ]._startLID = *newStartLID ;
       }
 
+      // on metadata updated
+      _onMBUpdated( mbID ) ;
+
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE, metalocked,
@@ -3412,6 +3468,9 @@ namespace engine
                                        IXM_EXTENT_TYPE_GLOBAL ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to copy indexes for collection [%s], "
                    "rc: %d", newName, rc ) ;
+
+      // copy the monitor metrics
+      tmpMBContext->mbStat()->_crudCB.set( oldMBContext->mbStat()->_crudCB ) ;
 
       for ( ossPoolVector< BSONObj >::iterator iter = droppedIndexList.begin() ;
             iter != droppedIndexList.end() ;
@@ -5561,6 +5620,9 @@ namespace engine
       mb->_dictExtentID = dictExtID ;
       mb->_dictVersion = UTIL_LZW_DICT_VERSION ;
 
+      // on metadata updated
+      _onMBUpdated( context->mbID() ) ;
+
       /// Make sure the dict persist
       flushMME( isSyncDeep() ) ;
 
@@ -5775,6 +5837,24 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED, "_dmsStorageDataCommon::_onMBUpdated" )
+   void _dmsStorageDataCommon::_onMBUpdated( UINT16 mbID )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED ) ;
+
+      SDB_ASSERT( mbID < DMS_MME_SLOTS, "mb ID is invalid" ) ;
+
+      UINT64 updateTime = ossGetCurrentMilliseconds() ;
+
+      _dmsMME->_mbList[ mbID ]._updateTime = updateTime ;
+      _mbStatInfo[ mbID ]._updateTime = updateTime ;
+
+      // update on storage unit
+      _onHeaderUpdated( updateTime ) ;
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__ONMBUPDATED ) ;
    }
 
    /*

@@ -45,7 +45,7 @@ namespace engine
 
 const CHAR* monLatchName[] =
 {
-   ""
+   "",
    "SDB_DMSCB stateMtx",
    "dmsStorageBase persistLatch",
    "dmsStorageBase commitLatch",

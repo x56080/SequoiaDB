@@ -16,7 +16,7 @@
 
 package com.sequoiadb.flink.source.split;
 
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 

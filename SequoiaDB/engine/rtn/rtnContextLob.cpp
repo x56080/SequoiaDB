@@ -346,6 +346,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_READ ) ;
+
       _readLen = len ;
       _offset = offset ;
       if ( -1 != _offset && _offset != _stream->curOffset() )
@@ -370,6 +371,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_CLOSE ) ;
+
       rc = _stream->close( cb ) ;
       if ( SDB_OK != rc )
       {
@@ -432,6 +434,11 @@ namespace engine
    const CHAR* _rtnContextLob::name() const
    {
       return "LOB" ;
+   }
+
+   void _rtnContextLob::onSubmit( const monAppCB &delta )
+   {
+      getMonCB()->incMetrics( delta ) ;
    }
 
    /*

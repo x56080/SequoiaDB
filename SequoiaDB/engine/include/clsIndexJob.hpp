@@ -76,6 +76,7 @@ namespace engine
          virtual void _onDetach() ;
 
          virtual INT32 _onDoit( INT32 resultCode ) ;
+         virtual BOOLEAN _needRetry( INT32 rc, BOOLEAN &retryLater ) ;
 
       private:
          void _clean() ;

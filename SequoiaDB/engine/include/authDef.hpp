@@ -45,6 +45,24 @@ namespace engine
 
    #define AUTH_USR_INDEX_NAME            "usrindex"
 
+   #define AUTH_INVALID_ROLE_ID           0xFFFFFFFF
+
+   // User has no role
+   #define AUTH_NULL_ROLE_ID              0xFFFFFFFE
+
+   #define AUTH_ROLE_NAME_SZ              127
+   #define AUTH_ROLE_ADMIN_NAME           "admin"
+   #define AUTH_ROLE_MONITOR_NAME         "monitor"
+
+   // Builtin role ids
+   // Note: NEVER change the value of existing enum item, as they are used as
+   //       the ids of builtin roles.
+   enum _authBuiltinRoleID
+   {
+      AUTH_ROLE_ADMIN   = 0,           // can do everything
+      AUTH_ROLE_MONITOR = 1            // can do nothing except snapshot and list
+   } ;
+   typedef _authBuiltinRoleID authBuiltinRoleID ;
 }
 
 #endif

@@ -70,7 +70,7 @@ namespace engine
       INT32 recordNum() ;
       INT32 remainLength() ;
       INT32 truncate ( INT32 num ) ;
-      INT32 getOrderKey( rtnOrderKey &orderKey );
+      INT32 genOrderKey() ;
       rtnContextBuf buffer() ;
       void setBuffer( rtnContextBuf &buffer ) ;
       void releaseBuffer() ;
@@ -158,7 +158,7 @@ namespace engine
          //    1. sort is not empty
          //    2. sort keys are not included in sharding keys
          // 2. has more than one sub-collections
-         return ( _orderedContextMap.size() > 0 || _subContextMap.size() > 1 ) &&
+         return ( _orderedContexts.size() > 0 || _subContextMap.size() > 1 ) &&
                 requireOrder() ;
       }
 
@@ -167,6 +167,8 @@ namespace engine
       virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
                                          const BSONObj &arg,
                                          _pmdEDUCB *cb ) ;
+
+      virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) ;
 
    private:
       INT32 _prepareSubCLData( SINT64 contextID,

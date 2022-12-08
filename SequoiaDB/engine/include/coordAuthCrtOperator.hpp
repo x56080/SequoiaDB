@@ -47,6 +47,8 @@ namespace engine
          _coordAuthCrtOperator() ;
          virtual ~_coordAuthCrtOperator() ;
 
+         virtual const CHAR* getName() const ;
+
          virtual INT32        execute( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
                                        INT64 &contextID,

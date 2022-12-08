@@ -686,7 +686,7 @@ namespace engine
                  rc, exitCode ) ;
          rc = SDB_OK ;
       }
-      else 
+      else
       {
          rc = runner.read( outStr ) ;
          if ( SDB_OK != rc )
@@ -697,7 +697,7 @@ namespace engine
                << rc ;
             err = ss.str() ;
             goto error ;
-         } 
+         }
       }
 
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
@@ -716,7 +716,8 @@ namespace engine
          SINT64 sys = 0 ;
          SINT64 idle = 0 ;
          SINT64 other = 0 ;
-         rc = ossGetCPUInfo( user, sys, idle, other ) ;
+         SINT64 iowait = 0 ;
+         rc = ossGetCPUInfo( user, sys, idle, iowait, other ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -724,6 +725,7 @@ namespace engine
          builder.appendNumber( CMD_USR_SYSTEM_USER, user ) ;
          builder.appendNumber( CMD_USR_SYSTEM_SYS, sys ) ;
          builder.appendNumber( CMD_USR_SYSTEM_IDLE, idle ) ;
+         builder.appendNumber( CMD_USR_SYSTEM_IOWAIT, iowait ) ;
          builder.appendNumber( CMD_USR_SYSTEM_OTHER, other ) ;
       }
       retObj = builder.obj() ;
@@ -780,8 +782,9 @@ namespace engine
          SINT64 user = 0 ;
          SINT64 sys = 0 ;
          SINT64 idle = 0 ;
+         SINT64 iowait = 0 ;
          SINT64 other = 0 ;
-         rc = ossGetCPUInfo( user, sys, idle, other ) ;
+         rc = ossGetCPUInfo( user, sys, idle, iowait, other ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -790,6 +793,7 @@ namespace engine
          builder.appendNumber( CMD_USR_SYSTEM_USER, user ) ;
          builder.appendNumber( CMD_USR_SYSTEM_SYS, sys ) ;
          builder.appendNumber( CMD_USR_SYSTEM_IDLE, idle ) ;
+         builder.appendNumber( CMD_USR_SYSTEM_IOWAIT, iowait ) ;
          builder.appendNumber( CMD_USR_SYSTEM_OTHER, other ) ;
       }
       retObj = builder.obj() ;
@@ -803,12 +807,13 @@ namespace engine
    INT32 _sptUsrSystemCommon::snapshotCpuInfo( string &err,
                                                BSONObj &retObj )
    {
-      INT32 rc     = SDB_OK ;
-      SINT64 user  = 0 ;
-      SINT64 sys   = 0 ;
-      SINT64 idle  = 0 ;
-      SINT64 other = 0 ;
-      rc = ossGetCPUInfo( user, sys, idle, other ) ;
+      INT32 rc      = SDB_OK ;
+      SINT64 user   = 0 ;
+      SINT64 sys    = 0 ;
+      SINT64 idle   = 0 ;
+      SINT64 iowait = 0 ;
+      SINT64 other  = 0 ;
+      rc = ossGetCPUInfo( user, sys, idle, iowait, other ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get cpuinfo:%d", rc ) ;
@@ -824,6 +829,7 @@ namespace engine
          builder.appendNumber( CMD_USR_SYSTEM_USER, user ) ;
          builder.appendNumber( CMD_USR_SYSTEM_SYS, sys ) ;
          builder.appendNumber( CMD_USR_SYSTEM_IDLE, idle ) ;
+         builder.appendNumber( CMD_USR_SYSTEM_IOWAIT, iowait ) ;
          builder.appendNumber( CMD_USR_SYSTEM_OTHER, other ) ;
 
          retObj = builder.obj() ;
@@ -853,14 +859,15 @@ namespace engine
       {
          INT32 loadPercent = 0 ;
          INT64 totalPhys = 0 ;
+         INT64 freePhys  = 0 ;
          INT64 availPhys = 0 ;
          INT64 totalPF = 0 ;
          INT64 availPF = 0 ;
          INT64 totalVirtual = 0 ;
          INT64 availVirtual = 0 ;
-         rc = ossGetMemoryInfo( loadPercent, totalPhys, availPhys,
-                                totalPF, availPF, totalVirtual,
-                                availVirtual ) ;
+         rc = ossGetMemoryInfo( loadPercent, totalPhys, freePhys,
+                                availPhys, totalPF, availPF,
+                                totalVirtual, availVirtual ) ;
          if ( rc )
          {
             stringstream ss ;
@@ -872,7 +879,8 @@ namespace engine
          builder.append( CMD_USR_SYSTEM_SIZE, (INT32)(totalPhys/CMD_MB_SIZE) ) ;
          builder.append( CMD_USR_SYSTEM_USED,
                          (INT32)((totalPhys-availPhys)/CMD_MB_SIZE) ) ;
-         builder.append( CMD_USR_SYSTEM_FREE,(INT32)(availPhys/CMD_MB_SIZE) ) ;
+         builder.append( CMD_USR_SYSTEM_FREE, (INT32)(freePhys/CMD_MB_SIZE) ) ;
+         builder.append( CMD_USR_SYSTEM_AVAILABLE, (INT32)(availPhys/CMD_MB_SIZE) ) ;
          builder.append( CMD_USR_SYSTEM_UNIT, "M" ) ;
          retObj = builder.obj() ;
          goto done ;
@@ -1875,7 +1883,7 @@ namespace engine
          {
             // if password has been input, we don't save command to history file.
             sdbSetIsNeedSaveHistory( FALSE ) ;
-            
+
             if ( String != elem.type() )
             {
                rc = SDB_INVALIDARG ;
@@ -2030,7 +2038,7 @@ namespace engine
                rc = SDB_INVALIDARG ;
                err = "isUnique must be bool" ;
                goto error ;
-            } 
+            }
             if ( FALSE == elem.boolean() )
             {
                cmd << " -o " ;
@@ -2059,7 +2067,7 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
-      
+
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -2259,7 +2267,7 @@ namespace engine
       BOOLEAN           nameFlag = 0 ;
 
       cmd << "userdel" ;
-      
+
       BSONObjIterator it( configObj ) ;
       while ( it.more() )
       {
@@ -2301,7 +2309,7 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
-      
+
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -4368,7 +4376,7 @@ namespace engine
 
       try
       {
-         boost::algorithm::split( splited, buf, boost::is_any_of("\t ") ) ;
+         boost::algorithm::split( splited, buf, boost::is_any_of("\t \n") ) ;
       }
       catch( std::exception &e )
       {
@@ -4406,7 +4414,9 @@ namespace engine
          builder.append( CMD_USR_SYSTEM_USED,
                          boost::lexical_cast<UINT32>(splited.at( 2 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_FREE,
-                         boost::lexical_cast<UINT32>(splited.at( 3) ) ) ;
+                         boost::lexical_cast<UINT32>(splited.at( 3 ) ) ) ;
+         builder.append( CMD_USR_SYSTEM_AVAILABLE,
+                         boost::lexical_cast<UINT32>(splited.at( 6 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_UNIT, "M" ) ;
       }
       catch ( std::exception &e )

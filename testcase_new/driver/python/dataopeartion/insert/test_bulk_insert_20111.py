@@ -34,7 +34,7 @@ class TestBulkInsert20111(testlib.SdbTestBase):
          check_Result(self.cl, {"a":count}, [record], True)
 
       ret_value = self.cl.bulk_insert(INSERT_FLG_RETURNNUM, records)
-      self.assertEqual({"DuplicatedNum": 0, "InsertedNum": len(records)}, ret_value)
+      self.assertEqual({"DuplicatedNum": 0, "InsertedNum": len(records), 'ModifiedNum': 0}, ret_value)
       self.assertEqual(self.cl.get_count(), 2*len(records))
 
    def tearDown(self):

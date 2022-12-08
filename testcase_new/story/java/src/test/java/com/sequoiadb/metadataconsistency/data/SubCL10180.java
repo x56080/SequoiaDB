@@ -64,7 +64,7 @@ public class SubCL10180 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor te = new ThreadExecutor();
+        ThreadExecutor te = new ThreadExecutor( 300000 );
         te.addWorker( new AlterSubCL() );
         te.addWorker( new DropMainCL() );
         te.run();
@@ -88,7 +88,8 @@ public class SubCL10180 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-                if ( eCode != -23 && eCode != -108 ) {
+                if ( eCode != -23 && eCode != -108 && eCode != -147
+                        && eCode != -190 ) {
                     throw e;
                 }
             }

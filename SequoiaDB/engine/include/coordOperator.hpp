@@ -336,7 +336,7 @@ namespace engine
                                                    coordProcessResult &result ) ;
 
          /*
-            Whether or not to interrupted all other sub sessions 
+            Whether or not to interrupted all other sub sessions
             when a sub session failed( send failed or returned failed )
          */
          virtual BOOLEAN            _interruptWhenFailed() const ;
@@ -361,11 +361,12 @@ namespace engine
 
       protected:
          void                 setReadOnly( BOOLEAN isReadOnly ) ;
-         void                 setName( const string &name ) ;
+
+      private:
+         void                 _finalize() ;
 
       private:
          BOOLEAN              _isReadOnly ;
-         string               _strName ;
 
       protected:
          clsRemoteResource         *_pResource ;

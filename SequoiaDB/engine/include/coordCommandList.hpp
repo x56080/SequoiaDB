@@ -57,7 +57,6 @@ namespace engine
 
       private:
          virtual BOOLEAN _useContext() { return TRUE ; }
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
          virtual UINT32  _getControlMask() const { return COORD_CTRL_MASK_ALL ; }
 
    } ;
@@ -280,6 +279,8 @@ namespace engine
       public:
          _coordCmdListContextIntr() ;
          virtual ~_coordCmdListContextIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCmdListContextIntr coordCmdListContextIntr ;
 
@@ -334,6 +335,8 @@ namespace engine
       public:
          _coordCmdListSessionIntr() ;
          virtual ~_coordCmdListSessionIntr() ;
+      private:
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
    } ;
    typedef _coordCmdListSessionIntr coordCmdListSessionIntr ;
 

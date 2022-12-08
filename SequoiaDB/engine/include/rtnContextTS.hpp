@@ -87,6 +87,8 @@ namespace engine
             return SDB_OPTION_NOT_SUPPORT ;
          }
 
+         virtual void _preReleaseSubContext( rtnSubContext *subCtx ) ;
+
       private:
          INT32 _prepareNextSubContext( pmdEDUCB *eduCB,
                                        BOOLEAN getMore = TRUE ) ;

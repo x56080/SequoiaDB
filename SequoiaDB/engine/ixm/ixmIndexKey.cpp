@@ -477,7 +477,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to initialize key field, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -499,7 +499,8 @@ namespace engine
                       const BSONObj *pObject,
                       BOOLEAN keepKeyName,
                       BOOLEAN ignoreUndefined,
-                      BSONElement *arrEle )
+                      BSONElement *arrEle,
+                      ixmKeyBuilder *pBuilder )
       : _pIndexGen( pIndexGen ),
         _pObject( pObject ),
         _keepKeyName( keepKeyName ),
@@ -508,9 +509,11 @@ namespace engine
         _pArrEle( arrEle ),
         _pArrKeyField( NULL ),
         _tempBuilder( TRUE ),
-        _pBuilder( ( NULL == pIndexGen->_pKeyBuilder ) ?
-                   ( &_tempBuilder ) :
-                   ( pIndexGen->_pKeyBuilder ) )
+        _pBuilder( ( NULL == pBuilder ) ?
+                   ( ( NULL == pIndexGen->_pKeyBuilder ) ?
+                     ( &_tempBuilder ) :
+                     ( pIndexGen->_pKeyBuilder ) ) :
+                   ( pBuilder ) )
       {
          SDB_ASSERT( NULL != _pIndexGen, "index generator is invalid" ) ;
          SDB_ASSERT( NULL != _pObject, "object is invalid" ) ;
@@ -628,9 +631,10 @@ namespace engine
                      BSONObj *pOutputKeys,
                      BOOLEAN keepKeyName,
                      BOOLEAN ignoreUndefined,
-                     BSONElement *pArrEle )
+                     BSONElement *pArrEle,
+                     ixmKeyBuilder *pBuilder )
       : _ixmKeyGenBase( pIndexGen, pObject, keepKeyName, ignoreUndefined,
-                        pArrEle ),
+                        pArrEle, pBuilder ),
         _pOutputKeys( pOutputKeys )
       {
          SDB_ASSERT( NULL != pOutputKeys, "output keys is invalid" ) ;
@@ -733,9 +737,10 @@ namespace engine
                      BSONObjSet *pOutputKeySet,
                      BOOLEAN keepKeyName,
                      BOOLEAN ignoreUndefined,
-                     BSONElement *pArrEle )
+                     BSONElement *pArrEle,
+                     ixmKeyBuilder *pBuilder )
       : _ixmKeyGenBase( pIndexGen, pObject, keepKeyName, ignoreUndefined,
-                        pArrEle ),
+                        pArrEle, pBuilder ),
         _pKeySet( pOutputKeySet )
       {
          SDB_ASSERT( NULL != pOutputKeySet, "output key set is invalid" ) ;
@@ -814,9 +819,7 @@ namespace engine
     */
    // default constructor
    _ixmIndexKeyGen::_ixmIndexKeyGen()
-   : _notArray( FALSE ),
-     _isIDIndex( FALSE ),
-     _nFields( 0 ),
+   : _nFields( 0 ),
      _pKeyBuilder( NULL )
    {
    }
@@ -828,8 +831,6 @@ namespace engine
    {
       SDB_ASSERT ( indexCB, "details can't be NULL" ) ;
       _keyPattern = indexCB->keyPattern() ;
-      _notArray = indexCB->notArray() ;
-      _isIDIndex = indexCB->isIDIndex() ;
       if ( SDB_OK != _init() )
       {
          PD_LOG( PDWARNING, "Failed to initialize key generator" ) ;
@@ -837,9 +838,7 @@ namespace engine
    }
    // create key generator from key
    _ixmIndexKeyGen::_ixmIndexKeyGen ( const BSONObj &keyDef )
-   : _notArray( FALSE ),
-     _isIDIndex( FALSE ),
-     _nFields( 0 ),
+   : _nFields( 0 ),
      _pKeyBuilder( NULL )
    {
       try
@@ -868,7 +867,8 @@ namespace engine
                                     BSONElement *pArrEle,
                                     BOOLEAN keepKeyName,
                                     BOOLEAN ignoreUndefined,
-                                    BOOLEAN *pAllUndefined )
+                                    BOOLEAN *pAllUndefined,
+                                    ixmKeyBuilder *pBuilder )
    {
       INT32 rc = SDB_OK ;
 
@@ -876,7 +876,7 @@ namespace engine
 
       BOOLEAN allUndefined = FALSE ;
       ixmKeyObjGen keyGen( this, &obj, &keys, keepKeyName, ignoreUndefined,
-                           pArrEle ) ;
+                           pArrEle, pBuilder ) ;
 
       rc = _getKeys( &keyGen, allUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get keys from object, "
@@ -901,7 +901,8 @@ namespace engine
                                     BSONElement *pArrEle,
                                     BOOLEAN keepKeyName,
                                     BOOLEAN ignoreUndefined,
-                                    BOOLEAN *pAllUndefined )
+                                    BOOLEAN *pAllUndefined,
+                                    ixmKeyBuilder *pBuilder )
    {
       INT32 rc = SDB_OK ;
 
@@ -909,7 +910,7 @@ namespace engine
 
       BOOLEAN allUndefined = FALSE ;
       ixmKeySetGen keyGen( this, &obj, &keySet, keepKeyName, ignoreUndefined,
-                           pArrEle ) ;
+                           pArrEle, pBuilder ) ;
 
       rc = _getKeys( &keyGen, allUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key set from object, "
@@ -949,7 +950,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to set key pattern, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1046,7 +1047,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to initialize key generator, "
                  "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1140,7 +1141,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed get keys from object, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1183,12 +1184,6 @@ namespace engine
          }
          else if ( Array == e.type() )
          {
-            // $id array check at _prepareInsertData/_extentUpdatedRecord
-            if( _notArray && !_isIDIndex )
-            {
-               rc = SDB_IXM_KEY_NOT_SUPPORT_ARRAY ;
-               goto error ;
-            }
             // check if already found an array
             PD_CHECK( EOO == arrEle.type(), SDB_IXM_MULTIPLE_ARRAY, error,
                       PDERROR, "Failed to extract key for field [%s], "
@@ -1274,7 +1269,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to build keys, occur exception: %s",
                  e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

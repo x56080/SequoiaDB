@@ -184,6 +184,7 @@ namespace engine
 
       SOCKET s = *(( SOCKET *) &pData ) ;
 
+      // Add try-catch to ensure the processor can be detached successfully 
       if ( SDB_ROLE_OM == pmdGetDBRole() )
       {
          _omRestSession omRS( s ) ;
@@ -191,7 +192,15 @@ namespace engine
 
          _pmdDataProcessor processor ;
          omRS.attachProcessor( &processor ) ;
-         rc = omRS.run() ;
+         try
+         {
+            rc = omRS.run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "rest session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          omRS.detachProcessor() ;
 
          omRS.detach() ;
@@ -203,8 +212,17 @@ namespace engine
 
          _pmdCoordProcessor processor ;
          restSession.attachProcessor( &processor ) ;
-         rc = restSession.run() ;
+         try
+         {
+            rc = restSession.run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "rest session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          restSession.detachProcessor() ;
+
          restSession.detach() ;
       }
       else
@@ -214,8 +232,17 @@ namespace engine
 
          _pmdDataProcessor processor ;
          restSession.attachProcessor( &processor ) ;
-         rc = restSession.run() ;
+         try
+         {
+            rc = restSession.run() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "rest session occured exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
          restSession.detachProcessor() ;
+
          restSession.detach() ;
       }
       

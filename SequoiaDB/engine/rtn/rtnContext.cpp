@@ -176,11 +176,7 @@ namespace engine
                orgObj = &obj ;
             }
             rc = _contextValidator->validate( *orgObj ) ;
-            if ( SDB_IXM_ADVANCE_EOC == rc )
-            {
-               goto done ;
-            }
-            else if ( rc )
+            if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to validate record, rc: %d", rc ) ;
                goto error ;
@@ -276,7 +272,12 @@ namespace engine
          }
 
          _readOffset -= alignedSize ;
-         ossMemcpy( &(_buffer[_readOffset]), obj.objdata(), obj.objsize() ) ;
+
+         // if from the same position, no need to copy
+         if ( (const CHAR *)( obj.objdata() ) != (const CHAR *)( &(_buffer[_readOffset]) ) )
+         {
+            ossMemcpy( &(_buffer[_readOffset]), obj.objdata(), obj.objsize() ) ;
+         }
       }
 
       _numRecords++ ;
@@ -654,11 +655,7 @@ namespace engine
       }
 
       rc = _buffer.append( result, orgResult ) ;
-      if ( SDB_IXM_ADVANCE_EOC == rc )
-      {
-         goto done ;
-      }
-      else if ( SDB_OK != rc )
+      if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to append obj to context buffer, rc: "
                            "%d", rc ) ;
@@ -743,6 +740,7 @@ namespace engine
       BOOLEAN againTry = FALSE ;
       UINT32 timeout = 0 ;
       monSvcTaskInfo *pOldInfo = NULL ;
+      pdLogRCShield logShield ;
 
       while ( timeout < OSS_ONE_SEC )
       {
@@ -790,7 +788,41 @@ namespace engine
          pOldInfo = cb->getMonAppCB()->getSvcTaskInfo() ;
          cb->getMonAppCB()->setSvcTaskInfo( _pMonAppCB->getSvcTaskInfo() ) ;
       }
-      rc = _prepareDataMonitor( cb ) ;
+
+      logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
+
+      while ( TRUE )
+      {
+         if ( _canPrepareMoreData() )
+         {
+            rc = _prepareMoreData( cb ) ;
+         }
+         else
+         {
+            rc = _prepareDataMonitor( cb ) ;
+         }
+
+         // For Data node: cl.query.sort(...).hint("$Range":{ ... })
+         if ( rc == SDB_IXM_ADVANCE_EOC )
+         {
+            pdClearLastError() ;
+            rc = _prepareDoAdvance( cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Prepare do advance failed, rc: %d", rc ) ;
+               break ;
+            }
+         }
+         else
+         {
+            break ;
+         }
+      }
+
       _prefetchRet = rc ;
       if ( rc && SDB_DMS_EOC != rc )
       {
@@ -998,6 +1030,9 @@ namespace engine
          UINT64 startDataRead = cb->getMonAppCB()->totalDataRead ;
          UINT64 startIndexRead = cb->getMonAppCB()->totalIndexRead ;
 
+         pdLogRCShield logShield ;
+         logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
+
          while ( TRUE )
          {
             if ( _canPrepareMoreData() )
@@ -1012,6 +1047,7 @@ namespace engine
             // For Data node: cl.query.sort(...).hint("$Range":{ ... })
             if ( rc == SDB_IXM_ADVANCE_EOC )
             {
+               pdClearLastError() ;
                rc = _prepareDoAdvance( cb ) ;
                if ( SDB_DMS_EOC == rc )
                {

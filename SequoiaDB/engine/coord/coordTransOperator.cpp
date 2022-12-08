@@ -386,12 +386,15 @@ namespace engine
    */
    _coordTransBegin::_coordTransBegin()
    {
-      const static string s_name( "TransBegin" ) ;
-      setName( s_name ) ;
    }
 
    _coordTransBegin::~_coordTransBegin()
    {
+   }
+
+   const CHAR* _coordTransBegin::getName() const
+   {
+      return "TransBegin" ;
    }
 
    INT32 _coordTransBegin::beginTrans( pmdEDUCB *cb, BOOLEAN isAutoCommit )
@@ -772,12 +775,15 @@ namespace engine
    */
    _coordTransCommit::_coordTransCommit()
    {
-      const static string s_name( "TransCommit" ) ;
-      setName( s_name ) ;
    }
 
    _coordTransCommit::~_coordTransCommit()
    {
+   }
+
+   const CHAR* _coordTransCommit::getName() const
+   {
+      return "TransCommit" ;
    }
 
    INT32 _coordTransCommit::executeOnDataGroup( MsgHeader *pMsg,
@@ -1127,6 +1133,11 @@ namespace engine
          goto error ;
       }
 
+      if ( _groupSession.getPropSite()->getTransNodeSize() > 0 )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_COMMIT, 1 ) ;
+      }
+
       // complete, delete transaction
       _groupSession.getPropSite()->endTrans( cb ) ;
 
@@ -1292,12 +1303,15 @@ namespace engine
    */
    _coordTransRollback::_coordTransRollback()
    {
-      const static string s_name( "TransRollback" ) ;
-      setName( s_name ) ;
    }
 
    _coordTransRollback::~_coordTransRollback()
    {
+   }
+
+   const CHAR* _coordTransRollback::getName() const
+   {
+      return "TransRollback" ;
    }
 
    INT32 _coordTransRollback::execute( MsgHeader *pMsg,
@@ -1318,6 +1332,11 @@ namespace engine
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                           "TransactionID: %s",
                           dpsTransIDToString( cb->getTransID() ).c_str() ) ;
+
+      if ( _groupSession.getPropSite()->getTransNodeSize() )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
+      }
 
       rc = _coordTransOperator::rollback( cb ) ;
       if ( rc )

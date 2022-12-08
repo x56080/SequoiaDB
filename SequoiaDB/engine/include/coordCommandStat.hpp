@@ -169,6 +169,7 @@ namespace engine
       private :
          virtual INT32 generateResult( rtnContext *pContext,
                                        pmdEDUCB *cb ) ;
+         INT32 _getResultCount( UINT32 &resCount, pmdEDUCB *cb ) ;
    } ;
    typedef _coordCMDGetIndexStat coordCMDGetIndexStat ;
 

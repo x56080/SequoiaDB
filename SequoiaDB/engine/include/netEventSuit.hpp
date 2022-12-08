@@ -80,15 +80,13 @@ namespace engine
          io_service&    getIOService() ;
          _netFrame*     getFrame() { return _pFrame ; }
 
-         void           addHandle( const NET_HANDLE &handle ) ;
+         INT32          addHandle( const NET_HANDLE &handle ) ;
          void           delHandle( const NET_HANDLE &handle ) ;
          BOOLEAN        exist( const NET_HANDLE &handle ) ;
          INT32          getHandles( SET_HANDLE &setHandle ) ;
          NET_HANDLE     getNextHandle( NET_HANDLE curHandle ) ;
          void           removeAllEH() ;
          UINT32         getHandleNum() ;
-
-         INT32          waitAttach( INT64 millsec ) ;
 
       public:
          virtual INT32     run() ;
@@ -111,7 +109,6 @@ namespace engine
 
          SET_HANDLE                       _setHandle ;
          ossRWMutex                       _rwMutex ;
-         ossEvent                         _attachEvent ;
 
          BOOLEAN                          _active ;
          UINT32                           _noAttachTimeout ;

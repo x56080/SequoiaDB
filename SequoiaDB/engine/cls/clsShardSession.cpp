@@ -51,6 +51,9 @@
 #include "dpsLogRecordDef.hpp"
 #include "dpsUtil.hpp"
 #include "rtnLob.hpp"
+#include "pdSecure.hpp"
+#include "rtnInsertModifier.hpp"
+#include "clsOprHandler.hpp"
 
 using namespace bson ;
 
@@ -537,6 +540,8 @@ namespace engine
 
       if ( _pEDUCB )
       {
+         _pEDUCB->setMonQueryCB( NULL ) ;
+
          INT64 contextID = -1 ;
          while ( -1 != ( contextID = _pEDUCB->contextPeek() ) )
          {
@@ -916,7 +921,8 @@ namespace engine
                           (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
-            agent.notifySync() ;
+            // NOTE: no need to wait, the COORD will wait
+            agent.notifySync( 0 ) ;
 
             // increase time error
             gtsAgent->incNodeTimeError( acceptTimeError ) ;
@@ -1056,7 +1062,8 @@ namespace engine
                           (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
-            agent.notifySync() ;
+            // NOTE: no need to wait, the COORD will wait
+            agent.notifySync( 0 ) ;
 
             rc = SDB_GLOB_TRANS_NOT_SYNC ;
             goto error ;
@@ -1212,7 +1219,7 @@ namespace engine
          MON_START_OP( _pEDUCB->getMonAppCB() ) ;
          _pEDUCB->getMonAppCB()->setLastOpType( opCode ) ;
 
-         if ( _pEDUCB->getMonQueryCB() == NULL && MSG_BS_GETMORE_REQ != opCode )
+         if ( _pEDUCB->getMonQueryCB() == NULL && isGeneralQueryOp( opCode ) )
          {
             monQuery = pmdGetKRCB()->getMonMgr()->
                        registerMonitorObject<monClassQuery>() ;
@@ -1232,6 +1239,9 @@ namespace engine
 
                _pEDUCB->setMonQueryCB( monQuery ) ;
             }
+
+            DMS_MON_OP_COUNT_INC( _pEDUCB->getMonAppCB(),
+                                  MON_GENERAL_QUERY, 1 ) ;
          }
          startTime.sample() ;
 
@@ -1781,7 +1791,8 @@ namespace engine
       CoordCataInfoPtr cataPtr ;
       clsCatalogSet *set            = NULL ;
       UINT32 attribute              = 0 ;
-      BOOLEAN isMainCL              = FALSE;
+      BOOLEAN isMainCL              = FALSE ;
+      BOOLEAN hasFoundIdx           = FALSE ;
       UINT32 groupCount             = 0 ;
       utilCLUniqueID clUniqueID     = UTIL_UNIQUEID_NULL ;
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
@@ -1841,6 +1852,7 @@ namespace engine
                                  IXM_ID_KEY_NAME ) )
             {
                idIdxDef = *itIdx ;
+               hasFoundIdx = TRUE ;
                break ;
             }
          }
@@ -1882,7 +1894,7 @@ namespace engine
          rc = rtnCreateCollectionCommand( clFullName, attribute,
                                           _pEDUCB, _pDmsCB, _pDpsCB, clUniqueID,
                                           compType, 0, FALSE, &extOptions,
-                                          &idIdxDef ) ;
+                                          hasFoundIdx ? &idIdxDef : NULL ) ;
          if ( SDB_DMS_EXIST == rc )
          {
             rc = SDB_OK ;
@@ -2480,9 +2492,10 @@ namespace engine
       INT16 clientW = pInsert->w ;
       INT16 replSize = 0 ;
       BOOLEAN repairCheck = FALSE ;
+      const CHAR *pHint = NULL ;
 
       rc = msgExtractInsert ( (const CHAR*)msg,  &flags, &pCollectionName,
-                              &pInsertorBuffer, recordNum ) ;
+                              &pInsertorBuffer, recordNum, &pHint ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Session[%s] extract insert msg failed[rc:%d]",
@@ -2492,11 +2505,10 @@ namespace engine
 
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
-      if ( (flags & FLG_INSERT_CONTONDUP) && (flags & FLG_INSERT_REPLACEONDUP) )
+      if ( !msgIsInsertFlagValid( flags ) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR,"Conflict insert flag(CONTONDUP and REPLACEONDUP):"
-                 "flag=%d,rc=%d", flags, rc ) ;
+         PD_LOG( PDERROR, "Insert flag[%d] is invalid[%d]", flags, rc ) ;
          goto error ;
       }
 
@@ -2533,6 +2545,14 @@ namespace engine
       try
       {
          BSONObj insertor ( pInsertorBuffer ) ;
+         rtnInsertModifier modifier ;
+
+         if ( OSS_BIT_TEST( flags, FLG_INSERT_UPDATEONDUP ) && pHint )
+         {
+            rc = modifier.init( BSONObj( pHint ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Init modifier from insertion hint[%s] "
+                         "failed[%d]", PD_SECURE_OBJ( BSONObj( pHint ) ), rc ) ;
+         }
 
          rtnQueryOptions options ;
          options.setCLFullName( pCollectionName ) ;
@@ -2549,19 +2569,20 @@ namespace engine
          if ( _isMainCL )
          {
             rc = _insertToMainCL( insertor, recordNum, flags, w, TRUE,
-                                  inResult ) ;
+                                  inResult, &modifier ) ;
             if ( SDB_OK == rc )
             {
                rc = _insertToMainCL( insertor, recordNum, flags, w, FALSE,
-                                     inResult ) ;
+                                     inResult, &modifier ) ;
             }
          }
          else
          {
-            _clsOPContext opContext( this ) ;
+            clsOprHandler opHandler( this, pCollectionName,
+                                     modifier.isModifyShardKey() ) ;
             rc = rtnInsert ( pCollectionName, insertor, recordNum, flags,
-                             _pEDUCB, _pDmsCB, _pDpsCB, w, &opContext,
-                             &inResult ) ;
+                             _pEDUCB, _pDmsCB, _pDpsCB, w, &opHandler,
+                             &inResult, &modifier ) ;
          }
       }
       catch ( std::exception &e )
@@ -2923,7 +2944,7 @@ namespace engine
          if ( pCommand->writable () )
          {
             // Only restore commands are allowed if in restoring state
-            if ( ( rc = _checkRestoring() ) && 
+            if ( ( rc = _checkRestoring() ) &&
                  ( SDB_RESTORE_IN_PROGRESS != rc ||
                    !( CMD_RESTORE_TO_TIME == pCommand->type() ||
                       CMD_RESTORE_ABORT   == pCommand->type() ||
@@ -3111,7 +3132,8 @@ namespace engine
                   {
                      context->enableCloseOnEOF() ;
                   }
-                  if ( flags & FLG_QUERY_WITH_RETURNDATA )
+                  if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+                       0 == buffObj.recordNum() )
                   {
                      rc = context->getMore( -1, buffObj, _pEDUCB ) ;
                      if ( rc || context->eof() )
@@ -4078,7 +4100,8 @@ namespace engine
    INT32 _clsShdSession::_insertToMainCL( BSONObj &objs, INT32 objNum,
                                           INT32 flags, INT16 w,
                                           BOOLEAN onlyCheck,
-                                          utilInsertResult &inResult )
+                                          utilInsertResult &inResult,
+                                          const rtnInsertModifier *modifier )
    {
       INT32 rc = SDB_OK ;
       ossValuePtr pCurPos = 0 ;
@@ -4134,13 +4157,15 @@ namespace engine
             }
             else
             {
-               clsOPContext opContext( this ) ;
+               clsOprHandler opHandler( this, collectionName, pSubCLName,
+                                        modifier ?
+                                        modifier->isModifyShardKey() : FALSE ) ;
                while ( TRUE )
                {
                   /// insert to sub collection
                   rc = rtnInsert ( pSubCLName, insertor, subObjsNum, flags,
-                                   _pEDUCB, _pDmsCB, _pDpsCB, w, &opContext,
-                                   &inResult ) ;
+                                   _pEDUCB, _pDmsCB, _pDpsCB, w, &opHandler,
+                                   &inResult, modifier ) ;
                   if ( rc )
                   {
                      rc = _processSubCLResult( rc, pSubCLName, collectionName ) ;
@@ -7893,23 +7918,4 @@ namespace engine
    error:
       goto done ;
    }
-
-   _clsOPContext::_clsOPContext( _clsShdSession *shdSession )
-   {
-      SDB_ASSERT( NULL != shdSession, "shdSession can't be null" ) ;
-      _pShdSession = shdSession ;
-   }
-
-   _clsOPContext::~_clsOPContext()
-   {
-      _pShdSession = NULL ;
-   }
-
-   INT32 _clsOPContext::getShardingKey( const CHAR* clName,
-                                        BSONObj &shardingKey )
-   {
-      return _pShdSession->_getShardingKey( clName, shardingKey ) ;
-   }
-
 }
-

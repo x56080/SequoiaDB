@@ -53,12 +53,15 @@ namespace engine
    */
    _coordAggrOperator::_coordAggrOperator()
    {
-      const static string s_name( "Arrg" ) ;
-      setName( s_name ) ;
    }
 
    _coordAggrOperator::~_coordAggrOperator()
    {
+   }
+
+   const CHAR* _coordAggrOperator::getName() const
+   {
+      return "Arrg" ;
    }
 
    BOOLEAN _coordAggrOperator::isReadOnly() const

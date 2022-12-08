@@ -85,6 +85,8 @@ namespace engine
 
    INT32 pmdParsePreferConstraintStr( const CHAR *constraintStr,
                                       PMD_PREFER_CONSTRAINT &constraint ) ;
+
+   const CHAR* pmdGetConfigAliasName( const CHAR* config ) ;
 }
 
 #endif

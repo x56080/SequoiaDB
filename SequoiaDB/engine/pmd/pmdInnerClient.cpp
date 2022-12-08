@@ -52,6 +52,7 @@ namespace engine
       _isAuthed      = TRUE ;
       _pRTAgent      = NULL ;
       _pEDUCB        = NULL ;
+      _roleID        = AUTH_INVALID_ROLE_ID ;
       _netHandle     = NET_INVALID_HANDLE ;
       _localPort     = 0 ;
       _peerPort      = 0 ;

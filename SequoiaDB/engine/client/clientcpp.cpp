@@ -274,7 +274,11 @@ do                                                            \
     */
    _sdbBase::_sdbBase (CLIENT_CLASS_TYPE type) :
    _type( type ),
-   _connection( NULL )
+   _connection( NULL ),
+   _pSendBuffer ( NULL ),
+   _sendBufferSize ( 0 ),
+   _pReceiveBuffer ( NULL ),
+   _receiveBufferSize ( 0 )
    {}
 
    INT32 _sdbBase::_regHandle( _sdbImpl *connection, ossValuePtr ptr )
@@ -298,9 +302,32 @@ do                                                            \
       // had been destroyed or not
       if ( _connection )
       {
-         _onUnregHandleInConn() ;
+         _resetErrorAndResultBuf();
          _connection->_unregisterHandle( _type, ptr ) ;
          _connection = NULL ;
+      }
+   }
+
+   void _sdbBase::_resetErrorAndResultBuf()
+   {
+      if ( !_connection )
+      {
+         return ;
+      }
+      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
+      const CHAR *pResultBuf = _connection->_pResultBuf ;
+
+      if ( pErrorBuf &&
+           ( pErrorBuf >= _pReceiveBuffer &&
+             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setErrorBuffer( NULL, 0 ) ;
+      }
+      if ( pResultBuf &&
+           ( pResultBuf >= _pReceiveBuffer &&
+             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
+      {
+         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -310,10 +337,6 @@ do                                                            \
     */
    _sdbCursorImpl::_sdbCursorImpl () :
    _sdbBase( CLIENT_CLASS_CURSOR ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _contextID ( -1 ),
    _isClosed ( FALSE ),
    _totalRead ( 0 ),
@@ -345,28 +368,6 @@ do                                                            \
       }
    }
 
-   void _sdbCursorImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
-      }
-   }
 
    void _sdbCursorImpl::_close()
    {
@@ -759,10 +760,6 @@ do                                                            \
     */
    _sdbCollectionImpl::_sdbCollectionImpl () :
    _sdbBase( CLIENT_CLASS_CL ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _pAppendOIDBuffer ( NULL ),
    _appendOIDBufferSize ( 0 )
    {
@@ -773,10 +770,6 @@ do                                                            \
 
    _sdbCollectionImpl::_sdbCollectionImpl ( CHAR *pCollectionFullName ) :
    _sdbBase( CLIENT_CLASS_CL ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _pAppendOIDBuffer ( NULL ),
    _appendOIDBufferSize ( 0 ),
    _version ( CATALOG_DEFAULT_VERSION )
@@ -787,10 +780,6 @@ do                                                            \
    _sdbCollectionImpl::_sdbCollectionImpl ( CHAR *pCollectionSpaceName,
                                             CHAR *pCollectionName ) :
    _sdbBase( CLIENT_CLASS_CL ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _pAppendOIDBuffer ( NULL ),
    _appendOIDBufferSize ( 0 )
    {
@@ -876,29 +865,6 @@ do                                                            \
       if ( _pAppendOIDBuffer )
       {
          SDB_OSS_FREE ( _pAppendOIDBuffer ) ;
-      }
-   }
-
-   void _sdbCollectionImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -1165,12 +1131,22 @@ do                                                            \
          goto error ;
       }
 
-      flags |= FLG_INSERT_RETURNNUM ;
+      // Check strictly that the hint is used with FLG_INSERT_HASHINT together.
+      if ( hint.isEmpty() )
+      {
+         OSS_BIT_CLEAR( flags, FLG_INSERT_HASHINT ) ;
+      }
+      else
+      {
+         OSS_BIT_SET( flags, FLG_INSERT_HASHINT ) ;
+      }
+
+      OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM ) ;
 
       rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                      _collectionFullName, flags, 0,
                                      newObj.objdata(),
-                                     hint.objdata(),
+                                     hint.isEmpty() ? NULL : hint.objdata(),
                                      _connection->_endianConvert ) ;
 
       if ( rc )
@@ -1331,7 +1307,16 @@ do                                                            \
          goto done ;
       }
 
-      flags |= FLG_INSERT_RETURNNUM ;
+      if ( hint.isEmpty() )
+      {
+         OSS_BIT_CLEAR( flags, FLG_INSERT_HASHINT ) ;
+      }
+      else
+      {
+         OSS_BIT_SET( flags, FLG_INSERT_HASHINT ) ;
+      }
+
+      OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM ) ;
 
       for ( SINT32 count = 0 ; count < num ; ++count )
       {
@@ -1357,8 +1342,7 @@ do                                                            \
          {
             rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                            _collectionFullName, flags, 0,
-                                           newObj.objdata(),
-                                           hint.objdata(),
+                                           newObj.objdata(), NULL,
                                            _connection->_endianConvert ) ;
             if ( rc )
             {
@@ -1379,6 +1363,17 @@ do                                                            \
          }
       }
 
+      // Append hint to the end of the message.
+      if ( !hint.isEmpty() )
+      {
+         rc = clientAppendHint2InsertMsgCpp( &_pSendBuffer, &_sendBufferSize,
+                                             hint.objdata(),
+                                             _connection->_endianConvert ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
       sub.done() ;
 
       rc = _connection->_sendAndRecv( _pSendBuffer, &_pReceiveBuffer,
@@ -1445,7 +1440,8 @@ do                                                            \
          goto error ;
       }
 
-      flags |= FLG_INSERT_RETURNNUM ;
+      OSS_BIT_CLEAR( flags, FLG_INSERT_HASHINT ) ;
+      OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM );
 
       for ( SINT32 count = 0; count < size; ++count )
       {
@@ -1470,8 +1466,7 @@ do                                                            \
          {
             rc = clientBuildInsertMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                            _collectionFullName, flags, 0,
-                                           newObj.objdata(),
-                                           (CHAR *)NULL,
+                                           newObj.objdata(), NULL,
                                            _connection->_endianConvert ) ;
             if ( rc )
             {
@@ -2394,7 +2389,7 @@ do                                                            \
                                      cursor ) ;
       /// ignore update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
-                          _collectionFullName, _version ) ;
+                           _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -4513,7 +4508,8 @@ do                                                            \
    }
 
    INT32 _sdbCollectionImpl::getIndexStat ( const CHAR *pIndexName,
-                                            bson::BSONObj &result )
+                                            bson::BSONObj &result,
+                                            BOOLEAN detail )
    {
       INT32 rc = SDB_OK ;
       BSONObj hint ;
@@ -4530,11 +4526,15 @@ do                                                            \
          goto error ;
       }
 
-      // { Collection: 'cl', Index: 'idx' }
+      // { Collection: 'cl', Index: 'idx', $Options: { Detail: false } }
       {
          BSONObjBuilder builder( 128 ) ;
          builder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
          builder.append( FIELD_NAME_INDEX, pIndexName ) ;
+         BSONObjBuilder subBuilder(
+               builder.subobjStart( CMD_ADMIN_PREFIX FIELD_NAME_OPTIONS ) ) ;
+         subBuilder.appendBool( FIELD_NAME_DETAIL, detail ) ;
+         subBuilder.done() ;
          hint = builder.obj() ;
       }
 
@@ -5799,21 +5799,13 @@ do                                                            \
     * Collection Space Implementation
     */
    _sdbCollectionSpaceImpl::_sdbCollectionSpaceImpl () :
-   _sdbBase( CLIENT_CLASS_CS ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_CS )
    {
       ossMemset ( _collectionSpaceName, 0, sizeof ( _collectionSpaceName ) ) ;
    }
 
    _sdbCollectionSpaceImpl::_sdbCollectionSpaceImpl( CHAR *pCollectionSpaceName )
-   : _sdbBase( CLIENT_CLASS_CS ),
-     _pSendBuffer ( NULL ),
-     _sendBufferSize ( 0 ),
-     _pReceiveBuffer ( NULL ),
-     _receiveBufferSize ( 0 )
+   : _sdbBase( CLIENT_CLASS_CS )
    {
       _setName ( pCollectionSpaceName ) ;
    }
@@ -5828,29 +5820,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbCollectionSpaceImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -6464,21 +6433,13 @@ do                                                            \
     * SequoiaDB Domain Implementation
     */
    _sdbDomainImpl::_sdbDomainImpl () :
-   _sdbBase( CLIENT_CLASS_DOMAIN ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ) ,
-   _pReceiveBuffer ( NULL ) ,
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_DOMAIN )
    {
       ossMemset( _domainName, 0, sizeof ( _domainName ) ) ;
    }
 
    _sdbDomainImpl::_sdbDomainImpl ( const CHAR *pDomainName ) :
-   _sdbBase( CLIENT_CLASS_DOMAIN ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ) ,
-   _pReceiveBuffer ( NULL ) ,
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_DOMAIN )
    {
       _setName( pDomainName ) ;
    }
@@ -6493,29 +6454,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbDomainImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -6850,11 +6788,7 @@ do                                                            \
     * SequoiaDB Data Center Implementation
     */
    _sdbDataCenterImpl::_sdbDataCenterImpl () :
-   _sdbBase( CLIENT_CLASS_DC ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ) ,
-   _pReceiveBuffer ( NULL ) ,
-   _receiveBufferSize ( 0 )
+   _sdbBase( CLIENT_CLASS_DC )
    {
       ossMemset( _dcName, 0, sizeof ( _dcName ) ) ;
    }
@@ -6869,29 +6803,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE ( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbDataCenterImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -7673,10 +7584,6 @@ do                                                            \
     */
    _sdbLobImpl::_sdbLobImpl () :
    _sdbBase( CLIENT_CLASS_LOB ),
-   _pSendBuffer ( NULL ),
-   _sendBufferSize ( 0 ),
-   _pReceiveBuffer ( NULL ),
-   _receiveBufferSize ( 0 ),
    _isOpen( FALSE ),
    _contextID ( -1 ),
    _mode( -1 ),
@@ -7713,29 +7620,6 @@ do                                                            \
       {
          SAFE_OSS_FREE ( _pReceiveBuffer ) ;
          _receiveBufferSize = 0 ;
-      }
-   }
-
-   void _sdbLobImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -8829,21 +8713,13 @@ do                                                            \
    }
 
    _sdbDataSourceImpl::_sdbDataSourceImpl()
-   : _sdbBase( CLIENT_CLASS_DS ),
-     _pSendBuffer ( NULL ),
-     _sendBufferSize ( 0 ) ,
-     _pReceiveBuffer ( NULL ) ,
-     _receiveBufferSize ( 0 )
+   : _sdbBase( CLIENT_CLASS_DS )
    {
       ossMemset( _dataSourceName, 0, sizeof( _dataSourceName ) ) ;
    }
 
    _sdbDataSourceImpl::_sdbDataSourceImpl( const CHAR *pDataSourceName )
-   : _sdbBase( CLIENT_CLASS_DS ),
-     _pSendBuffer ( NULL ),
-     _sendBufferSize ( 0 ) ,
-     _pReceiveBuffer ( NULL ) ,
-     _receiveBufferSize ( 0 )
+   : _sdbBase( CLIENT_CLASS_DS )
    {
       _setName( pDataSourceName ) ;
    }
@@ -8858,29 +8734,6 @@ do                                                            \
       if ( _pReceiveBuffer )
       {
          SDB_OSS_FREE( _pReceiveBuffer ) ;
-      }
-   }
-
-   void _sdbDataSourceImpl::_onUnregHandleInConn()
-   {
-      if ( !_connection )
-      {
-         return ;
-      }
-      const CHAR *pErrorBuf  = _connection->_pErrorBuf ;
-      const CHAR *pResultBuf = _connection->_pResultBuf ;
-
-      if ( pErrorBuf &&
-           ( pErrorBuf >= _pReceiveBuffer &&
-             pErrorBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setErrorBuffer( NULL, 0 ) ;
-      }
-      if ( pResultBuf &&
-           ( pResultBuf >= _pReceiveBuffer &&
-             pResultBuf < ( _pReceiveBuffer + _receiveBufferSize ) ) )
-      {
-         _connection->_setResultBuffer( NULL, 0 ) ;
       }
    }
 
@@ -9866,6 +9719,12 @@ do                                                            \
       if ( _authVersion >= AUTH_SCRAM_SHA256 )
       {
          rc = _authVer1MsgProcess( pUN, md5 ) ;
+         // During rolling upgrade, the old version of catalog node
+         // does not support the SAH256 algorithm.
+         if ( SDB_UNKNOWN_MESSAGE == rc )
+         {
+            rc = _authVer0MsgProcess( pUN, md5 ) ;
+         }
       }
       else
       {
@@ -9893,6 +9752,12 @@ do                                                            \
          if ( _authVersion >= AUTH_SCRAM_SHA256 )
          {
             rc = _authVer1MsgProcess( pUN, md5 ) ;
+            // During rolling upgrade, the old version of catalog node
+            // does not recognize the SAH256
+            if ( SDB_UNKNOWN_MESSAGE == rc )
+            {
+               rc = _authVer0MsgProcess( pUN, md5 ) ;
+            }
          }
          else
          {
@@ -11896,8 +11761,6 @@ do                                                            \
       ob.appendCode ( FIELD_NAME_FUNC, code ) ;
       ob.appendIntOrLL ( FIELD_NAME_FUNCTYPE, FMP_FUNC_TYPE_JS ) ;
       newObj = ob.obj() ;
-      // CAN NOT add FLG_QUERY_WITH_RETURNDATA flag, for the return result
-      // is not the expected result
       rc = clientBuildQueryMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                    CMD_ADMIN_PREFIX CMD_NAME_EVAL,
                                    0, 0, 0, -1, newObj.objdata(),

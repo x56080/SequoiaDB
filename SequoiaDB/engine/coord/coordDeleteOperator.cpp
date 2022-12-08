@@ -54,13 +54,16 @@ namespace engine
    */
    _coordDeleteOperator::_coordDeleteOperator()
    {
-      const static string s_name( "Delete" ) ;
-      setName( s_name ) ;
    }
 
    _coordDeleteOperator::~_coordDeleteOperator()
    {
       SDB_ASSERT( 0 == _vecBlock.size(), "Block must be empty" ) ;
+   }
+
+   const CHAR* coordDeleteOperator::getName() const
+   {
+      return "Delete" ;
    }
 
    BOOLEAN _coordDeleteOperator::isReadOnly() const
@@ -174,9 +177,9 @@ namespace engine
       }
 
    retry:
-      rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+      rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
+                "check cat version failed, rc: %d", rc ) ;
 
       pDelMsg->version = cataSel.getCataPtr()->getVersion() ;
       pDelMsg->w = 0 ;

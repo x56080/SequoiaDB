@@ -28,7 +28,7 @@ function test ()
    } );
 
    //单条插入唯一索引重复的数据，flag为SDB_INSERT_CONTONDUP
-   var expRecs = { "InsertedNum": 0, "DuplicatedNum": 1 };
+   var expRecs = { "InsertedNum": 0, "DuplicatedNum": 1, "ModifiedNum": 0 };
    var actRecs = cl.insert( { "_id": 0, "a": 1 }, SDB_INSERT_CONTONDUP ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
    {
@@ -40,7 +40,7 @@ function test ()
 
    //单条插入唯一索引重复的数据，flag为SDB_INSERT_REPLACEONDUP
    var duplicateRecord = { "_id": 0, "a": 1 };
-   expRecs = { "InsertedNum": 0, "DuplicatedNum": 1 };
+   expRecs = { "InsertedNum": 0, "DuplicatedNum": 1, "ModifiedNum": 1 };
    actRecs = cl.insert( duplicateRecord, SDB_INSERT_REPLACEONDUP ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
    {
@@ -63,7 +63,7 @@ function test ()
    idStartData = 0;
    aStartData = 10;
    var insertRecords = getBulkData( dataNum, idStartData, aStartData );
-   expRecs = { "InsertedNum": dataNum / 2, "DuplicatedNum": dataNum / 2 };
+   expRecs = { "InsertedNum": dataNum / 2, "DuplicatedNum": dataNum / 2, "ModifiedNum": 0 };
    actRecs = cl.insert( insertRecords, SDB_INSERT_CONTONDUP ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
    {
@@ -80,6 +80,7 @@ function test ()
    aStartData = 30;
    insertRecords = getBulkData( dataNum, idStartData, aStartData );
    actRecs = cl.insert( insertRecords, SDB_INSERT_REPLACEONDUP ).toObj();
+   expRecs = { "InsertedNum": dataNum / 2, "DuplicatedNum": dataNum / 2, "ModifiedNum": dataNum / 2 };
    if( !commCompareObject( expRecs, actRecs ) )
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );

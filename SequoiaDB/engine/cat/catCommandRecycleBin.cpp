@@ -543,10 +543,11 @@ namespace engine
          goto error ;
       }
 
-      PD_CHECK( localLockMgr.tryLockRecycleItem( _recycleItem, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock recycle item [origin: %s, recycle: %s]",
-                _recycleItem.getOriginName(), _recycleItem.getRecycleName() ) ;
+      rc = _recycleBinMgr->tryLockItem( _recycleItem, cb, EXCLUSIVE, localLockMgr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item "
+                   "[origin %s, recycle %s], rc: %d",
+                   _recycleItem.getOriginName(),
+                   _recycleItem.getRecycleName(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHECK, rc ) ;
@@ -557,7 +558,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCLCS, "_catCMDDropRecycleBinItem::_checkRecycledCLInCS" )
-   INT32 _catCMDDropRecycleBinItem::_checkRecycledCLInCS( const utilRecycleItem &item,
+   INT32 _catCMDDropRecycleBinItem::_checkRecycledCLInCS( utilRecycleItem &item,
                                                           _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -581,6 +582,15 @@ namespace engine
                         "[origin %s, recycle %s], there are recursive "
                         "collection recycle items inside",
                         item.getOriginName(), item.getRecycleName() ) ;
+      
+      {
+         catDropCSItemChecker checker( _recycleBinMgr, item ) ;
+
+         rc = _recycleBinMgr->processObjects( checker, cb, 1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check collections for drop "
+                      "recycle item [origin %s, recycle %s], rc: %d",
+                      item.getOriginName(), item.getRecycleName(), rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCLCS, rc ) ;
@@ -591,7 +601,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATCMDDROPRECYCLEBINITEM__CHKRECYCS, "_catCMDDropRecycleBinItem::_checkCLInRecycledCS" )
-   INT32 _catCMDDropRecycleBinItem::_checkCLInRecycledCS( const utilRecycleItem &item,
+   INT32 _catCMDDropRecycleBinItem::_checkCLInRecycledCS( utilRecycleItem &item,
                                                           _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -605,7 +615,7 @@ namespace engine
       utilCSUniqueID csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
       utilRecycleItem csItem ;
 
-      rc = _recycleBinMgr->getItem( csUniqueID, cb, csItem ) ;
+      rc = _recycleBinMgr->getItemByOrigID( csUniqueID, cb, csItem ) ;
       if ( SDB_RECYCLE_ITEM_NOTEXIST == rc )
       {
          rc = SDB_OK ;

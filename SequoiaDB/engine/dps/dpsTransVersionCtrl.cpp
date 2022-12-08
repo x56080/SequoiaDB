@@ -542,9 +542,8 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Occur exception(%s)",
-                 e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

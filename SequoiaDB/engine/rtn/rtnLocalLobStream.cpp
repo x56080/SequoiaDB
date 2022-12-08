@@ -39,6 +39,7 @@
 #include "rtn.hpp"
 #include "rtnLob.hpp"
 #include "rtnLobAccessManager.hpp"
+#include "rtnLobMetricsSubmitor.hpp"
 
 using namespace bson ;
 
@@ -109,6 +110,7 @@ namespace engine
       }
       if ( _mbContext && _su )
       {
+         // release mbContext
          _su->data()->releaseMBContext( _mbContext ) ;
          _mbContext = NULL ;
       }
@@ -567,6 +569,7 @@ namespace engine
                   tuple.tuple.columns.len,
                   tuple.data ) ;
 
+      // write or update to dms
       if ( orUpdate )
       {
          rc = _su->lob()->writeOrUpdate( record, _mbContext, cb,
@@ -857,8 +860,8 @@ namespace engine
          }
          readSize += t.tuple.columns.len ;
       }
-
       SDB_ASSERT( readSize == needLen, "impossible" ) ;
+
       rc = _getPool().push( buf, readSize,
                             RTN_LOB_GET_OFFSET_OF_LOB(
                                 pageSize,
@@ -1113,6 +1116,14 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _rtnLocalLobStream::_onIncreaseMetrics( const monAppCB &delta )
+   {
+      if ( _mbContext && _mbContext->mbStat() )
+      {
+         _mbContext->mbStat()->_crudCB.incMetrics( delta ) ;
+      }
    }
 
 }

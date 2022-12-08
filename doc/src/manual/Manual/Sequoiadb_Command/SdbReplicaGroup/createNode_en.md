@@ -38,7 +38,7 @@ This function is used to create a node in the current replication group.
 
 ##RETURN VALUE##
 
-When the function executes successfully, there is no return value.
+When the function executes successfully, it will return an object of type SdbNode.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 

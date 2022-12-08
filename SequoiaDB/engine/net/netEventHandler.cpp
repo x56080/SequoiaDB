@@ -74,9 +74,6 @@ namespace engine
      _state(NET_EVENT_HANDLER_STATE_HEADER)
    {
       _hasRecvMsg    = FALSE ;
-
-      /// attach
-      _evSuitPtr->addHandle( _handle ) ;
    }
 
    _netEventHandler::~_netEventHandler()
@@ -97,12 +94,23 @@ namespace engine
                                           const NET_HANDLE &handle )
    {
       NET_EH eh ;
+      INT32 rc = SDB_OK ;
 
       NET_TCP_EH tmpEH = NET_TCP_EH::allocRaw( ALLOC_POOL ) ;
       if ( NULL != tmpEH.get() &&
            NULL != new( tmpEH.get() ) netEventHandler( evSuitPtr, handle ) )
       {
-         eh = NET_EH::makeRaw( tmpEH.get(), ALLOC_POOL ) ;
+         // attach handle to evSuit if netEventHandler is created
+         rc = evSuitPtr->addHandle( handle ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Add handle[%d] to evSuit failed, rc: %d",
+                    handle, rc ) ;
+         }
+         else
+         {
+            eh = NET_EH::makeRaw( tmpEH.get(), ALLOC_POOL ) ;
+         }
       }
 
       return eh ;
@@ -446,8 +454,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_ASYNCRD, "_netEventHandler::asyncRead" )
-   void _netEventHandler::asyncRead()
+   INT32 _netEventHandler::asyncRead()
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETEVNHND_ASYNCRD ) ;
 
       if ( NET_EVENT_HANDLER_STATE_HEADER == _state ||
@@ -460,29 +469,39 @@ namespace engine
             goto error ;
          }
 
-         if ( NET_EVENT_HANDLER_STATE_HEADER_LAST == _state )
+         try
          {
-            async_read( _sock, buffer(
-                        (CHAR*)&_header + sizeof(MsgSysInfoRequest),
-                        _headerSz - sizeof(MsgSysInfoRequest) ),
-                        boost::bind(&_netEventHandler::_readCallback,
-                                    _getShared(),
-                                    boost::asio::placeholders::error ) ) ;
+            if ( NET_EVENT_HANDLER_STATE_HEADER_LAST == _state )
+            {
+               async_read( _sock, buffer(
+                           (CHAR*)&_header + sizeof(MsgSysInfoRequest),
+                           _headerSz - sizeof(MsgSysInfoRequest) ),
+                           boost::bind(&_netEventHandler::_readCallback,
+                                       _getShared(),
+                                       boost::asio::placeholders::error ) ) ;
+            }
+            // for MsgSysInfoRequest msg(12bytes)
+            else if ( FALSE == _hasRecvMsg )
+            {
+               async_read( _sock, buffer(&_header, sizeof(MsgSysInfoRequest)),
+                           boost::bind(&_netEventHandler::_readCallback,
+                                       _getShared(),
+                                       boost::asio::placeholders::error )) ;
+            }
+            else
+            {
+               async_read( _sock, buffer(&_header, _headerSz),
+                           boost::bind(&_netEventHandler::_readCallback,
+                                       _getShared(),
+                                       boost::asio::placeholders::error )) ;
+            }
          }
-         // for MsgSysInfoRequest msg(12bytes)
-         else if ( FALSE == _hasRecvMsg )
+         catch( std::exception &e)
          {
-            async_read( _sock, buffer(&_header, sizeof(MsgSysInfoRequest)),
-                        boost::bind(&_netEventHandler::_readCallback,
-                                    _getShared(),
-                                    boost::asio::placeholders::error )) ;
-         }
-         else
-         {
-            async_read( _sock, buffer(&_header, _headerSz),
-                        boost::bind(&_netEventHandler::_readCallback,
-                                    _getShared(),
-                                    boost::asio::placeholders::error )) ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Failed to async read, occur exception: %s,"
+                    " rc: %d", e.what(), rc ) ;
+            goto error ;
          }
       }
       else
@@ -501,17 +520,27 @@ namespace engine
                     "closed", _handle, routeID2String( _id ).c_str() ) ;
             goto error ;
          }
-         async_read( _sock, buffer(
-                     (CHAR *)((ossValuePtr)_buf + _headerSz ),
-                     len - _headerSz ),
-                     boost::bind( &_netEventHandler::_readCallback,
-                                  _getShared(),
-                                  boost::asio::placeholders::error ) ) ;
+         try
+         {
+            async_read( _sock, buffer(
+                        (CHAR *)((ossValuePtr)_buf + _headerSz ),
+                        len - _headerSz ),
+                        boost::bind( &_netEventHandler::_readCallback,
+                                     _getShared(),
+                                     boost::asio::placeholders::error ) ) ;
+         }
+         catch( std::exception &e)
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Failed to async read, occur exception: %s,"
+                    " rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
       }
 
    done:
       PD_TRACE_EXIT ( SDB__NETEVNHND_ASYNCRD ) ;
-      return ;
+      return rc ;
    error:
       if ( _isConnected )
       {

@@ -52,9 +52,11 @@ using namespace engine ;
 using namespace bson ;
 using namespace std ;
 
+#define MSG_BSON_MIN_LEN      (8)
+
 #define MSG_CHECK_BSON_LENGTH( x )                                  \
    do {                                                             \
-      if ( ossAlign4( x ) < 8 )                                     \
+      if ( ossAlign4( x ) < MSG_BSON_MIN_LEN )                                     \
       {                                                             \
          PD_LOG( PDERROR, "Invalid bson length %d", x ) ;           \
          SDB_ASSERT( FALSE, "Msg is invalid" ) ;                    \
@@ -581,19 +583,22 @@ error :
 INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
                          const CHAR **ppCollectionName,
                          const CHAR **ppInsertor,
-                         INT32 &count )
+                         INT32 &count,
+                         const CHAR **ppHint )
 {
    SDB_ASSERT ( pBuffer && pflag && ppCollectionName && ppInsertor,
                 "Invalid input" ) ;
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTINSERT ) ;
 
-   const static INT32 _minSize = ossAlign4( offsetof(MsgOpInsert, name)+1 ) ;
+   const static INT32 _minSize = ossAlign4( offsetof(MsgOpInsert, name) + 1 ) ;
 
    INT32 offset = 0 ;
    INT32 size = 0 ;
    const CHAR *pCurrent = NULL ;
+   BOOLEAN hasHint = FALSE ;
    const MsgOpInsert *pInsert = (const MsgOpInsert*)pBuffer ;
+   INT32 objSize = 0 ;
 
    /// check length
    if ( pInsert->header.messageLength < _minSize )
@@ -608,6 +613,12 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
                             pInsert->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
 
+   hasHint = OSS_BIT_TEST( *pflag, FLG_INSERT_HASHINT ) ? TRUE : FALSE ;
+   if ( !hasHint )
+   {
+      *ppHint = NULL ;
+   }
+
    // get the offset for the first BSONObj
    offset = ossAlign4( offsetof(MsgOpInsert, name) + pInsert->nameLength + 1 ) ;
    if ( pInsert->header.messageLength < offset + 5 )
@@ -621,24 +632,66 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
    count = 0 ;
    while ( TRUE )
    {
-      size = ossAlign4( *((SINT32*)pCurrent) ) ;
-      if ( size < 8 )
+      objSize = *((SINT32*)pCurrent) ;
+      size = ossAlign4( objSize ) ;
+      if ( size < MSG_BSON_MIN_LEN )
       {
-         PD_LOG( PDERROR, "Insert msg is invalid, msg length: %d, offset: %d, "
-                 "current: %d, count: %d", pInsert->header.messageLength,
-                 offset, *((SINT32*)pCurrent), count ) ;
-         SDB_ASSERT( FALSE, "Insert msg is invalid" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         // If there is a hint in the insertion message, it's ALWAYS at the end
+         // of the message, and 4 bytes(all set to 0) are placed before the
+         // hint. Both the beginning of these 4 padding bytes and the hint are
+         // 4 bytes aligned.
+         // For old versions which do not support hint in insertion, error will
+         // be returned in the else branch.
+         if ( hasHint && 0 == size &&
+              ( ( pInsert->header.messageLength - offset ) >=
+                MSG_BSON_MIN_LEN + MSG_HINT_MARK_LEN ) )
+         {
+            offset += MSG_HINT_MARK_LEN ;
+            pCurrent += MSG_HINT_MARK_LEN ;
+            size = ossAlign4( *((SINT32*)pCurrent ) ) ;
+            if ( offset + size < pInsert->header.messageLength )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Insert message length is not as expected. "
+                       "Length in msg header: %d, count length: %d, rc: %d",
+                       pInsert->header.messageLength, offset + size, rc ) ;
+               SDB_ASSERT( FALSE, "Insert msg is invalid" ) ;
+               goto error ;
+            }
+            else
+            {
+               *ppHint = &pBuffer[offset] ;
+               goto done ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Insert msg is invalid, msg length: %d, offset: %d, "
+                    "current: %d, count: %d", pInsert->header.messageLength,
+                    offset, *((SINT32*)pCurrent), count ) ;
+            SDB_ASSERT( FALSE, "Insert msg is invalid" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
       ++count ;
       offset += size ;
 
+      if ( '\0' != *( pCurrent + objSize - 1 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
       if ( pInsert->header.messageLength <= offset )
       {
          break ;
       }
       pCurrent = &pBuffer[offset] ;
+   }
+   if ( (INT32)ossAlign4( pInsert->header.messageLength ) < offset )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
    PD_TRACE2 ( SDB_MSGEXTRACTINSERT, PD_PACK_STRING(*ppCollectionName),
                                      PD_PACK_INT(count) );

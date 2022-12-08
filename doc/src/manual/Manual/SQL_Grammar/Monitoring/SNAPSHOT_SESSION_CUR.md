@@ -24,6 +24,10 @@ $SNAPSHOT_SESSIONS_CUR
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                   |
 | RelatedID         | string        | 会话的内部标识                                     |
 | Contexts          | array         | 上下文 ID 数组，为该会话所包含的所有上下文列表     |
+| TotalQuery        | int64         | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64         | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64         | 总事务提交数量                                     |
+| TotalTransRollback| int64         | 总事务回滚数量                                     |
 | TotalDataRead     | int64         | 数据记录读                                         |
 | TotalIndexRead    | int64         | 索引读                                             |
 | TotalDataWrite    | int64         | 数据记录写                                         |
@@ -33,6 +37,16 @@ $SNAPSHOT_SESSIONS_CUR
 | TotalInsert       | int64         | 总插入记录数量                                     |
 | TotalSelect       | int64         | 总选取记录数量                                     |
 | TotalRead         | int64         | 总数据读                                           |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
 | TotalReadTime     | int64         | 总数据读时间，单位为毫秒                           |
 | TotalWriteTime    | int64         | 总数据写时间，单位为毫秒                           |
 | ReadTimeSpent     | int64         | 读取记录的时间，单位为毫秒                         |
@@ -63,17 +77,21 @@ $SNAPSHOT_SESSIONS_CUR
   "TID": 23512,
   "Status": "Running",
   "IsBlocked": false,
-  "Type": "ShardAgent",
-  "Name": "Type:Shard,NetID:1,R-TID:24371,R-IP:192.168.20.62,R-Port:50000",
+  "Type": "CoordMgr",
+  "Name": "",
   "Doing": "",
   "Source": "",
   "QueueSize": 0,
-  "ProcessEventCount": 27,
-  "MemPoolSize": 0,
-  "RelatedID": "c0a8143ec35000005f33",
+  "ProcessEventCount": 79,
+  "MemPoolSize": 71574,
+  "RelatedID": "c0a810482e220000000000000002",
   "Contexts": [
-    13579
+    96
   ],
+  "TotalQuery": 0,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
@@ -83,18 +101,28 @@ $SNAPSHOT_SESSIONS_CUR
   "TotalInsert": 0,
   "TotalSelect": 0,
   "TotalRead": 0,
+  "TotalLobGet": 0,
+  "TotalLobPut": 0,
+  "TotalLobDelete": 0,
+  "TotalLobList": 0,
+  "TotalLobReadSize": 0,
+  "TotalLobWriteSize": 0,
+  "TotalLobRead": 0,
+  "TotalLobWrite": 0,
+  "TotalLobTruncate": 0,
+  "TotalLobAddressing": 0,
   "TotalReadTime": 0,
   "TotalWriteTime": 0,
-  "ReadTimeSpent": 60,
+  "ReadTimeSpent": 20,
   "WriteTimeSpent": 0,
-  "ConnectTimestamp": "2019-06-03-14.36.25.093610",
-  "ResetTimestamp": "2019-06-03-14.36.25.093609",
+  "ConnectTimestamp": "2022-10-09-09.34.53.302793",
+  "ResetTimestamp": "2022-10-09-09.34.53.302792",
   "LastOpType": "COMMAND",
-  "LastOpBegin": "2019-06-03-14.50.01.460452",
+  "LastOpBegin": "2022-10-09-10.43.19.169503",
   "LastOpEnd": "--",
   "LastOpInfo": "Command:$SNAPSHOT_SESSION_CUR, Collection:, Match:{}, Selector:{}, OrderBy:{}, Hint:{}, Skip:0, Limit:-1, Flag:0x00000200(512)",
-  "UserCPU": 9.24,
-  "SysCPU": 2
+  "UserCPU": 0.06,
+  "SysCPU": 0.03
 }
 ```
 

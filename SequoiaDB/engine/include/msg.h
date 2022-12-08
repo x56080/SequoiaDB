@@ -670,6 +670,10 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 #define FLG_INSERT_CONTONDUP    0x00000001
 #define FLG_INSERT_RETURNNUM    0x00000002
 #define FLG_INSERT_REPLACEONDUP 0x00000004
+#define FLG_INSERT_UPDATEONDUP  0x00000008
+
+// This flag indicates that a hint is sent in the insert message.
+#define FLG_INSERT_HASHINT      0x80000000
 // For Insert, 1 BSON object will be followed
 // Inserted Data
 struct _MsgOpInsert
@@ -728,6 +732,8 @@ typedef struct _MsgOpInsert MsgOpInsert ;
 #define FLG_QUERY_FOR_SHARE                  0x00040000
 // query with context which can be closed if EOF ( only use internally )
 #define FLG_QUERY_CLOSE_EOF_CTX              0x00080000
+// when select is empty, force select to use index key pattern
+#define FLG_FORCE_INDEX_SELECTOR             0x00100000
 
 // For query takes 4 document
 // Query + returnFieldSelector + orderBy + hint
@@ -1176,7 +1182,12 @@ typedef enum _PREFER_REPLICA_TYPE
 // VERSION 2
 // add CLUniqueID to sequences
 #define CATALOG_VERSION_V2    ( 2 )
-#define CATALOG_VERSION_CUR   ( CATALOG_VERSION_V2 )
+
+// VERSION 3
+// add Role in user option
+#define CATALOG_VERSION_V3   ( 3 )
+
+#define CATALOG_VERSION_CUR   ( CATALOG_VERSION_V3 )
 
 #endif // MSG_H__
 

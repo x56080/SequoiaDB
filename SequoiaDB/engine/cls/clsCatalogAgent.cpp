@@ -451,6 +451,8 @@ namespace engine
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
       _repairCheck = FALSE ;
       _dataSourceID = UTIL_INVALID_DS_UID ;
+      _createTime = 0 ;
+      _updateTime = 0 ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -2047,6 +2049,40 @@ namespace engine
       else
       {
          _mapping.clear() ;
+      }
+
+      // create time
+      ele = catSet.getField( FIELD_NAME_CREATE_TIME ) ;
+      if ( ele.type() == String )
+      {
+         _createTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+      }
+      else
+      {
+         if ( EOO != ele.type() )
+         {
+            PD_LOG( PDWARNING, "Failed to get field [%s], "
+                    "type %d is invalid", FIELD_NAME_CREATE_TIME,
+                    ele.type() ) ;
+         }
+         _createTime = 0 ;
+      }
+
+      // update time
+      ele = catSet.getField( FIELD_NAME_UPDATE_TIME ) ;
+      if ( ele.type() == String )
+      {
+         _updateTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+      }
+      else
+      {
+         if ( EOO != ele.type() )
+         {
+            PD_LOG( PDWARNING, "Failed to get field [%s], "
+                    "type %d is invalid", FIELD_NAME_UPDATE_TIME,
+                    ele.type() ) ;
+         }
+         _updateTime = 0 ;
       }
 
       //need to update map and also the vector, usually CATALOGINFO field is
@@ -3998,15 +4034,26 @@ namespace engine
          goto done;
       }
       {
-      clsNodeItem& item = _vecNodes[pos] ;
-      id = item._id ;
-      id.columns.serviceID = (UINT16)type ;
-      hostName = item._host ;
-      serviceName = item._service[(UINT16)type] ;
+         clsNodeItem& item = _vecNodes[pos] ;
+         id = item._id ;
+         id.columns.serviceID = (UINT16)type ;
+         try
+         {
+            hostName = item._host ;
+            serviceName = item._service[(UINT16)type] ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occured "
+                         "exception: %s, rc: %d", e.what(), rc ) ;
+         }
       }
    done:
       PD_TRACE_EXIT ( SDB__CLSGPIM_GETNDINFO1 ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_GETNDINFO2, "_clsGroupItem::getNodeInfo" )
@@ -4022,13 +4069,24 @@ namespace engine
          goto done ;
       }
       {
-      clsNodeItem& item = _vecNodes[pos] ;
-      hostName = item._host ;
-      serviceName = item._service[id.columns.serviceID] ;
+         clsNodeItem& item = _vecNodes[pos] ;
+         try
+         {
+            hostName = item._host ;
+            serviceName = item._service[id.columns.serviceID] ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occured "
+                         "exception: %s, rc: %d", e.what(), rc ) ;
+         }
       }
    done:
       PD_TRACE_EXIT ( SDB__CLSGPIM_GETNDINFO2 ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_GETNDINFO3, "_clsGroupItem::getNodeInfo" )
@@ -4338,9 +4396,13 @@ namespace engine
                        UINT32 partitionBit,
                        UINT32 internalVersion )
    {
-      if ( CAT_INTERNAL_VERSION_3 <= internalVersion )
+      if ( CAT_INTERNAL_VERSION_4 <= internalVersion )
       {
          return BSON_HASHER::hashObj( keyObj, partitionBit ) ;
+      }
+      else if ( CAT_INTERNAL_VERSION_3 == internalVersion )
+      {
+         return BSON_HASHER::hashObjV3( keyObj, partitionBit ) ;
       }
       else if ( CAT_INTERNAL_VERSION_2 == internalVersion )
       {
@@ -4521,7 +4583,7 @@ namespace engine
       clsNormalizeTM( tmTime ) ;
       tmpTM = tmTime ;
 
-      localSeconds = mktime( &tmTime ) ;
+      localSeconds = ossMkTime( &tmTime ) ;
       if ( tmpTM.tm_mday != tmTime.tm_mday || tmpTM.tm_mon != tmTime.tm_mon )
       {
          rc = SDB_INVALIDARG ;

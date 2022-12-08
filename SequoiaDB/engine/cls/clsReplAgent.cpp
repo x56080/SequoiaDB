@@ -301,11 +301,20 @@ namespace engine
             if ( SDB_OK == _agent->updateRoute( itr->second._id,
                                                 itr->second ) )
             {
-               _info.mtx.lock_w() ;
-               _clsGroupBeat &beat = (_info.info[itr->first]).beat ;
-               _info.mtx.release_w() ;
-               beat.identity = itr->second._id ;
-               beat.beatID = 0 ;
+               try
+               {
+                  ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
+                  _clsGroupBeat &beat = (_info.info[itr->first]).beat ;
+                  beat.identity = itr->second._id ;
+                  beat.beatID = 0 ;
+               }
+               catch ( std::exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+                  goto error ;
+               }
+
                /// we alive the changed node here. if it is unnormal,
                /// break it out later.
                _alive( itr->second._id, FALSE ) ;
@@ -364,6 +373,9 @@ namespace engine
             _info.alives.erase( itr2->first ) ;
             _info.info.erase( itr2++ ) ;
             _info.mtx.release_w() ;
+
+            // Remove node route in _agent._route._route
+            _agent->delRoute( tmp ) ;
          }
          else
          {
@@ -409,7 +421,16 @@ namespace engine
       {
          _clsSharingStatus &status = itr->second ;
          _info.mtx.lock_w() ;
-         _info.alives.insert( make_pair( itr->first, &status ) ) ;
+         try
+         {
+            _info.alives.insert( make_pair( itr->first, &status ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            _info.mtx.release_w() ;
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
          _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
          _info.mtx.release_w() ;
 

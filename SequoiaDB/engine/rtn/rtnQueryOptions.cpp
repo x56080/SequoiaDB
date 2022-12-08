@@ -374,8 +374,10 @@ namespace engine
 
       const CHAR *pInsert = NULL ;
       INT32 count = 0 ;
+      const CHAR *pHint = NULL ;
 
-      rc = msgExtractInsert( pMsg, &_flag, &_fullName, &pInsert, count ) ;
+      rc = msgExtractInsert( pMsg, &_flag, &_fullName, &pInsert, count,
+                             &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract insert message, "
                    "rc: %d", rc ) ;
 
@@ -385,9 +387,12 @@ namespace engine
       try
       {
          BSONObj insertor = BSONObj( pInsert ) ;
-
          setInsertor( insertor ) ;
          setInsertNum( count ) ;
+         if ( pHint )
+         {
+            setHint( BSONObj( pHint )  ) ;
+         }
       }
       catch ( std::exception &e )
       {

@@ -65,7 +65,7 @@ namespace engine
       INT32 checkAvailable() ;
 
       // notify the STP to synchronize with server
-      INT32 notifySync() ;
+      INT32 notifySync( INT64 timeout = STP_NOTIFY_DFT_TIMEOUT ) ;
 
       // get logical time in nanosecond in given timeout
       // output:
@@ -254,26 +254,42 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_NOTIFYSYNC, "_stpAgentService::notifySync" )
-   INT32 _stpAgentService::notifySync()
+   INT32 _stpAgentService::notifySync( INT64 timeout )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_NOTIFYSYNC ) ;
 
-      BOOLEAN available = isAvailable() ;
+      BOOLEAN available = FALSE ;
+      INT32 syncWatcher = 0 ;
 
-      if ( available )
+      // get old watcher if we need to wait
+      if ( timeout > 0 )
+      {
+         ossScopedRWLock lock( &_metaMutex, SHARED ) ;
+         if ( isAvailable() )
+         {
+            syncWatcher = getMetaData()->getSyncWatcher() ;
+            available = TRUE ;
+         }
+      }
+      else
+      {
+         available = isAvailable() ;
+      }
+
+      while ( available )
       {
          // to avoid notify too frequency
          UINT64 notifyPassed = pmdGetTickSpanTime( _lastSyncTick.fetch() ) ;
          if ( notifyPassed <= STP_SEC_TO_MILLISEC( STP_MIN_SYNC_INTERVAL ) )
          {
-            goto done ;
+            break ;
          }
          // try to get synchronize latch
          if ( !_syncLatch.try_get() )
          {
-            goto done ;
+            break ;
          }
          // notify STP to synchronize
          rc = _notifySTPSync() ;
@@ -290,6 +306,21 @@ namespace engine
             _lastSyncTick.swapGreaterThan( pmdGetDBTick() ) ;
          }
          _syncLatch.release() ;
+         break ;
+      }
+
+      // try to wait for synchronize by watcher
+      if ( timeout > 0 )
+      {
+         ossScopedRWLock lock( &_metaMutex, SHARED ) ;
+         if ( isAvailable() )
+         {
+            getMetaData()->watchSync( syncWatcher, timeout ) ;
+         }
+         else
+         {
+            available = FALSE ;
+         }
       }
 
       // check available if needed
@@ -867,7 +898,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_NOTIFYSYNC, "_stpAgent::notifySync" )
-   INT32 _stpAgent::notifySync()
+   INT32 _stpAgent::notifySync( INT64 timeout )
    {
       INT32 rc = SDB_OK ;
 
@@ -880,7 +911,7 @@ namespace engine
       PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get STP agent service" ) ;
 
-      rc = service->notifySync() ;
+      rc = service->notifySync( timeout ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to notify STP to synchronize "
                    "with server, rc: %d", rc ) ;
 

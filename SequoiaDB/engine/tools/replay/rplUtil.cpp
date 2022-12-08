@@ -124,7 +124,7 @@ namespace replay
       tm.tm_min = newMinite ;
       tm.tm_sec = newSecond ;
 
-      ossTM.time = mktime( &tm ) ;
+      ossTM.time = ossMkTime( &tm ) ;
 
       return ossTimestampToMicroseconds( ossTM ) ;
    }

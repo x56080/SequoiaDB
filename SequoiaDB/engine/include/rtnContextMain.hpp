@@ -55,7 +55,11 @@ namespace engine
                            public _rtnCtxDataDispatcher
    {
    protected:
-      typedef ossPoolMultiMap< rtnOrderKey, rtnSubContext* > SUB_ORDERED_CTX_MAP ;
+      typedef ossPoolMultiSet< rtnSubContext*,
+                               rtnSubContextComperator > SUB_ORDERED_CTX_SET ;
+      typedef SUB_ORDERED_CTX_SET::iterator SUB_ORDERED_CTX_SET_IT ;
+      typedef std::pair< SUB_ORDERED_CTX_SET_IT, SUB_ORDERED_CTX_SET_IT >
+                                                SUB_ORDERED_CTX_SET_IT_PAIR ;
 
    public:
       _rtnContextMain( INT64 contextID, UINT64 eduID ) ;
@@ -102,7 +106,7 @@ namespace engine
                                     BOOLEAN isLocate,
                                     _pmdEDUCB *cb ) ;
 
-      virtual INT32     _getAdvanceOrderby( BSONObj &orderby, 
+      virtual INT32     _getAdvanceOrderby( BSONObj &orderby,
                                             BOOLEAN isRange = FALSE ) const ;
 
    protected:
@@ -124,6 +128,7 @@ namespace engine
       virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
                                          const BSONObj &arg,
                                          _pmdEDUCB *cb ) = 0 ;
+      virtual void    _preReleaseSubContext( rtnSubContext *subCtx ) = 0 ;
 
    protected:
       INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -149,9 +154,18 @@ namespace engine
                                     const BSONObj &keyVal,
                                     const BSONObj &orderby ) ;
 
+      void _releaseSubContext( rtnSubContext *subCtx )
+      {
+         if ( NULL != subCtx )
+         {
+            _preReleaseSubContext( subCtx ) ;
+            SDB_OSS_DEL subCtx ;
+         }
+      }
+
    protected:
       rtnQueryOptions            _options ;
-      SUB_ORDERED_CTX_MAP        _orderedContextMap ;
+      SUB_ORDERED_CTX_SET        _orderedContexts ;
       _ixmIndexKeyGen*           _keyGen ;
       INT64                      _numToReturn ;
       INT64                      _numToSkip ;

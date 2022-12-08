@@ -46,6 +46,7 @@ namespace engine
    // normal thread use it
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type, UINT32 locationID,
                                clsIdxTask* pTask )
+   : _session( TRUE )
    {
       _type = type ;
 
@@ -92,6 +93,7 @@ namespace engine
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type,
                                dmsIdxTaskStatusPtr idxStatPtr,
                                CLS_INDEX_THREAD_MODE threadMod )
+   : _session( TRUE )
    {
       _type = type ;
 
@@ -360,9 +362,8 @@ namespace engine
       // do it
       rc = _rtnIndexJob::doit() ;
       // result code and finish status has been set at doit()
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to do it, rc: %d",
-                   rc ) ;
+      PD_RC_CHECK( rc, ( _retryLater ? PDWARNING : PDERROR ),
+                   "Failed to do index job, rc: %d", rc ) ;
 
    done:
       if ( writeDB )
@@ -734,6 +735,28 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _clsIndexJob::_needRetry( INT32 rc, BOOLEAN &retryLater )
+   {
+      BOOLEAN needRetry = _rtnIndexJob::_needRetry( rc, retryLater ) ;
+
+      if ( needRetry )
+      {
+         // if the scanner is interrupted, restart the job later
+         // NOTE: the job may be canceled by drop collection space,
+         // so need check later
+         if ( SDB_DMS_SCANNER_INTERRUPT == rc )
+         {
+            retryLater = TRUE ;
+         }
+         if ( retryLater )
+         {
+            _retryLater = TRUE ;
+         }
+      }
+
+      return needRetry ;
    }
 
    INT32 clsStartIndexJob( RTN_JOB_TYPE jobType, UINT32 locationID,

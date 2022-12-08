@@ -63,15 +63,17 @@ namespace engine
       setReadOnly( readOnly ) ;
 
       _needRollback = FALSE ;
-
-      const static string s_name( "Query" ) ;
-      setName( s_name ) ;
    }
 
    _coordQueryOperator::~_coordQueryOperator()
    {
       SDB_ASSERT( !_pContext, "Context must be NULL" ) ;
       SDB_ASSERT( 0 == _vecBlock.size(), "Block must be empty" ) ;
+   }
+
+   const CHAR* _coordQueryOperator::getName() const
+   {
+      return "Query" ;
    }
 
    BOOLEAN _coordQueryOperator::needRollback() const
@@ -962,6 +964,7 @@ namespace engine
                inMsg._pMsg = ( MsgHeader* )pNewMsg ;
             }
 
+            OSS_BIT_CLEAR( pQueryMsg->flags, FLG_FORCE_INDEX_SELECTOR ) ;
             options.setCLFullName( pCollectionName ) ;
             options.setQuery( objQuery ) ;
             options.setOrderBy( objOrderby ) ;
@@ -1045,9 +1048,9 @@ namespace engine
          // if DQL not command should check version
          if ( pCollectionName && CMD_ADMIN_PREFIX[0] != pCollectionName[0] )
          {
-            rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+            rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
+                      "check cat version failed, rc: %d", rc ) ;
          }
 
          if ( isUpdate && ( cataSel.getCataPtr()->isSharded() ||

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;
@@ -210,6 +211,46 @@ public class Commlib {
                     "\nexpect: " + Arrays.toString( expect ) + "\nbut actual: "
                             + Arrays.toString( actual ) + "\n" + msg + "\n" );
         }
+    }
+
+    public static void checkAllSplitToDestGroupResult( String csName,String clName,
+                                                 Node srcMaterNodeInfo, Node destMaterNodeInfo, int recordNum,
+                                                 List< BSONObject > expResults ) {
+        // 源组上cl已不存在
+        try ( Sequoiadb srcDB = new Sequoiadb( srcMaterNodeInfo.getNodeName(),
+                "", "" )) {
+            srcDB.getCollectionSpace( csName ).getCollection( clName );
+            Assert.fail( "cl should be not exist!" );
+        } catch ( BaseException e ) {
+            if( e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST.getErrorCode() &&
+                    e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST.getErrorCode() ){
+                throw e;
+            }
+        }
+
+        // 检查所有数据迁移到目标组
+        try ( Sequoiadb destDB = new Sequoiadb( destMaterNodeInfo.getNodeName(),
+                "", "" )) {
+            DBCollection cl2 = destDB.getCollectionSpace( csName )
+                    .getCollection( clName );
+            Assert.assertEquals( cl2.getCount(), recordNum );
+        }
+    }
+
+    public static long checkRecordNumOnData( String csName,String clName, Node nodeInfo,
+                                       int recordNum ) {
+        long count = 0;
+        try ( Sequoiadb srcDB = new Sequoiadb( nodeInfo.getNodeName(), "",
+                "" )) {
+            DBCollection cl = srcDB.getCollectionSpace( csName )
+                    .getCollection( clName );
+            count = cl.getCount();
+        }
+        // 切分误差在不超过50%
+        int expCount = recordNum / 2;
+        Assert.assertTrue( Math.abs( count - expCount ) / expCount < 0.5,
+                "actCount = " + count );
+        return count;
     }
 
 }

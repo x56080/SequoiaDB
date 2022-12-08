@@ -67,6 +67,7 @@
 #include "msgDef.h"
 #include "monMgr.hpp"
 #include "dpsTransVersionCtrl.hpp"
+#include "utilMath.hpp"
 
 using namespace bson ;
 using namespace boost::asio::ip ;
@@ -83,7 +84,8 @@ namespace engine
 
    #define MON_CL_DETAIL_VERSION_NULL ( 0 )
    #define MON_CL_DETAIL_VERSION_V1 ( 1 )
-   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V1
+   #define MON_CL_DETAIL_VERSION_V2 ( 2 )
+   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V2
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONGETNODENAME, "monGetNodeName" )
    static CHAR *monGetNodeName ( CHAR *nodeName,
@@ -589,14 +591,15 @@ namespace engine
       INT32 rc             = SDB_OK ;
       INT32 memLoadPercent = 0 ;
       INT64 memTotalPhys   = 0 ;
+      INT64 memFreePhys    = 0 ;
       INT64 memAvailPhys   = 0 ;
       INT64 memTotalPF     = 0 ;
       INT64 memAvailPF     = 0 ;
       INT64 memTotalVirtual= 0 ;
       INT64 memAvailVirtual= 0 ;
 
-      rc = ossGetMemoryInfo( memLoadPercent, memTotalPhys, memAvailPhys,
-                             memTotalPF, memAvailPF,
+      rc = ossGetMemoryInfo( memLoadPercent, memTotalPhys, memFreePhys,
+                             memAvailPhys, memTotalPF, memAvailPF,
                              memTotalVirtual, memAvailVirtual ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info, rc = %d", rc ) ;
 
@@ -604,7 +607,8 @@ namespace engine
          BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
          memOb.append( FIELD_NAME_LOADPERCENT, memLoadPercent ) ;
          memOb.append( FIELD_NAME_TOTALRAM, memTotalPhys ) ;
-         memOb.append( FIELD_NAME_FREERAM, memAvailPhys ) ;
+         memOb.append( FIELD_NAME_FREERAM, memFreePhys ) ;
+         memOb.append( FIELD_NAME_AVAILABLERAM, memAvailPhys ) ;
          memOb.append( FIELD_NAME_TOTALSWAP, memTotalPF ) ;
          memOb.append( FIELD_NAME_FREESWAP, memAvailPF ) ;
          memOb.append( FIELD_NAME_TOTALVIRTUAL, memTotalVirtual ) ;
@@ -627,6 +631,7 @@ namespace engine
 
       INT32 loadPctRAM        = 0 ;
       INT64 totalRAM          = 0 ;
+      INT64 freeRAM           = 0 ;
       INT64 availRAM          = 0 ;
       INT64 totalSwap         = 0 ;
       INT64 availSwap         = 0 ;
@@ -644,7 +649,7 @@ namespace engine
       ossProcLimits *limInfo  = pmdGetLimit() ;
 
       // get memory of host
-      rc = ossGetMemoryInfo( loadPctRAM, totalRAM, availRAM,
+      rc = ossGetMemoryInfo( loadPctRAM, totalRAM, freeRAM, availRAM,
                              totalSwap, availSwap, totalVM, availVM,
                              overCommitMode, commitLimit, committedAS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of host, "
@@ -803,15 +808,12 @@ namespace engine
 
    void monAppendSessionIdentify( BSONObjBuilder &ob,
                                   UINT64 relatedNID,
-                                  UINT32 relatedTID,
+                                  UINT64 relatedEDUID,
                                   const CHAR * fieldName = NULL )
    {
       UINT32 ip = 0 ;
       UINT32 port = 0 ;
-      /// IP:00000000, PORT:0000, TID:00000000
-      /// SNPRINTF will truncate the last char, so need + 2
-      //  CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
-      //
+      /// IP:00000000, PORT:0000, TID:0000000000000000
       CHAR szTmp[ DPS_TRANS_RELATED_ID_STR_LEN + 1 ] = { 0 } ;
 
       if ( 0 != relatedNID )
@@ -823,8 +825,8 @@ namespace engine
          ip = _netFrame::getLocalAddress() ;
          port = pmdGetLocalPort() ;
       }
-      ossSnprintf( szTmp, sizeof(szTmp)-1, "%08x%04x%08x",
-                   ip, (UINT16)port, relatedTID ) ;
+      ossSnprintf( szTmp, sizeof(szTmp)-1, "%08x%04x%016llx",
+                   ip, (UINT16)port, relatedEDUID ) ;
       if ( NULL == fieldName )
       {
          ob.append( FIELD_NAME_RELATED_ID, szTmp ) ;
@@ -848,6 +850,10 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_MONDBDUMP ) ;
       ob.append( FIELD_NAME_TOTALNUMCONNECTS, (SINT64)mondbcb->getCurConns() ) ;
+      ob.append( FIELD_NAME_TOTALQUERY,       (SINT64)mondbcb->totalGeneralQuery ) ;
+      ob.append( FIELD_NAME_TOTALSLOWQUERY,   (SINT64)mondbcb->totalGeneralSlowQuery ) ;
+      ob.append( FIELD_NAME_TOTALTRANSCOMMIT, (SINT64)mondbcb->totalTransCommit ) ;
+      ob.append( FIELD_NAME_TOTALTRANSROLLBACK, (SINT64)mondbcb->totalTransRollback ) ;
       ob.append( FIELD_NAME_TOTALDATAREAD,    (SINT64)mondbcb->totalDataRead ) ;
       ob.append( FIELD_NAME_TOTALINDEXREAD,   (SINT64)mondbcb->totalIndexRead ) ;
       ob.append( FIELD_NAME_TOTALDATAWRITE,   (SINT64)mondbcb->totalDataWrite ) ;
@@ -860,6 +866,16 @@ namespace engine
       ob.append( FIELD_NAME_REPLINSERT,       (SINT64)mondbcb->replInsert ) ;
       ob.append( FIELD_NAME_TOTALSELECT,      (SINT64)mondbcb->totalSelect ) ;
       ob.append( FIELD_NAME_TOTALREAD,        (SINT64)mondbcb->totalRead ) ;
+      ob.append( FIELD_NAME_TOTALLOBGET,      (SINT64)mondbcb->totalLobGet ) ;
+      ob.append( FIELD_NAME_TOTALLOBPUT,      (SINT64)mondbcb->totalLobPut ) ;
+      ob.append( FIELD_NAME_TOTALLOBDELETE,   (SINT64)mondbcb->totalLobDelete ) ;
+      ob.append( FIELD_NAME_TOTALLOBLIST,      (SINT64)mondbcb->totalLobList ) ;
+      ob.append( FIELD_NAME_TOTALLOBREADSIZE,  (SINT64)mondbcb->totalLobReadSize ) ;
+      ob.append( FIELD_NAME_TOTALLOBWRITESIZE, (SINT64)mondbcb->totalLobWriteSize ) ;
+      ob.append( FIELD_NAME_TOTALLOBREAD,      (SINT64)mondbcb->totalLobRead ) ;
+      ob.append( FIELD_NAME_TOTALLOBWRITE,     (SINT64)mondbcb->totalLobWrite ) ;
+      ob.append( FIELD_NAME_TOTALLOBTRUNCATE,  (SINT64)mondbcb->totalLobTruncate ) ;
+      ob.append( FIELD_NAME_TOTALLOBADDRESSING, (SINT64)mondbcb->totalLobAddressing ) ;
 
       mondbcb->totalReadTime.convertToTime ( factor, seconds, microseconds ) ;
       ob.append ( FIELD_NAME_TOTALREADTIME,
@@ -892,6 +908,10 @@ namespace engine
       CHAR   timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
 
       PD_TRACE_ENTRY ( SDB_MONSESSIONMONEDUFULL ) ;
+      ob.append( FIELD_NAME_TOTALQUERY, (SINT64)full._monApplCB.totalGeneralQuery ) ;
+      ob.append( FIELD_NAME_TOTALSLOWQUERY, (SINT64)full._monApplCB.totalGeneralSlowQuery ) ;
+      ob.append( FIELD_NAME_TOTALTRANSCOMMIT, (SINT64)full._monApplCB.totalTransCommit ) ;
+      ob.append( FIELD_NAME_TOTALTRANSROLLBACK, (SINT64)full._monApplCB.totalTransRollback ) ;
       ob.append( FIELD_NAME_TOTALDATAREAD, (SINT64)full._monApplCB.totalDataRead ) ;
       ob.append( FIELD_NAME_TOTALINDEXREAD, (SINT64)full._monApplCB.totalIndexRead ) ;
       ob.append( FIELD_NAME_TOTALDATAWRITE, (SINT64)full._monApplCB.totalDataWrite ) ;
@@ -901,6 +921,16 @@ namespace engine
       ob.append( FIELD_NAME_TOTALINSERT, (SINT64)full._monApplCB.totalInsert ) ;
       ob.append( FIELD_NAME_TOTALSELECT, (SINT64)full._monApplCB.totalSelect ) ;
       ob.append( FIELD_NAME_TOTALREAD, (SINT64)full._monApplCB.totalRead ) ;
+      ob.append( FIELD_NAME_TOTALLOBGET, (SINT64)full._monApplCB.totalLobGet ) ;
+      ob.append( FIELD_NAME_TOTALLOBPUT, (SINT64)full._monApplCB.totalLobPut ) ;
+      ob.append( FIELD_NAME_TOTALLOBDELETE, (SINT64)full._monApplCB.totalLobDelete ) ;
+      ob.append( FIELD_NAME_TOTALLOBLIST, (SINT64)full._monApplCB.totalLobList ) ;
+      ob.append( FIELD_NAME_TOTALLOBREADSIZE, (SINT64)full._monApplCB.totalLobReadSize ) ;
+      ob.append( FIELD_NAME_TOTALLOBWRITESIZE, (SINT64)full._monApplCB.totalLobWriteSize ) ;
+      ob.append( FIELD_NAME_TOTALLOBREAD, (SINT64)full._monApplCB.totalLobRead ) ;
+      ob.append( FIELD_NAME_TOTALLOBWRITE, (SINT64)full._monApplCB.totalLobWrite ) ;
+      ob.append( FIELD_NAME_TOTALLOBTRUNCATE, (SINT64)full._monApplCB.totalLobTruncate ) ;
+      ob.append( FIELD_NAME_TOTALLOBADDRESSING, (SINT64)full._monApplCB.totalLobAddressing ) ;
 
       full._monApplCB.totalReadTime.convertToTime ( factor,
                                                     seconds,
@@ -1588,6 +1618,17 @@ namespace engine
       ob.append( FIELD_NAME_TOTALREAD, (INT64)pInfo->_totalRead ) ;
       ob.append( FIELD_NAME_TOTALWRITE, (INT64)pInfo->_totalWrite ) ;
 
+      ob.append( FIELD_NAME_TOTALLOBGET, (INT64)pInfo->_totalLobGet ) ;
+      ob.append( FIELD_NAME_TOTALLOBPUT, (INT64)pInfo->_totalLobPut ) ;
+      ob.append( FIELD_NAME_TOTALLOBDELETE, (INT64)pInfo->_totalLobDelete ) ;
+      ob.append( FIELD_NAME_TOTALLOBLIST, (INT64)pInfo->_totalLobList ) ;
+      ob.append( FIELD_NAME_TOTALLOBREADSIZE, (INT64)pInfo->_totalLobReadSize ) ;
+      ob.append( FIELD_NAME_TOTALLOBWRITESIZE, (INT64)pInfo->_totalLobWriteSize ) ;
+      ob.append( FIELD_NAME_TOTALLOBREAD, (INT64)pInfo->_totalLobRead ) ;
+      ob.append( FIELD_NAME_TOTALLOBWRITE, (INT64)pInfo->_totalLobWrite ) ;
+      ob.append( FIELD_NAME_TOTALLOBTRUNCATE, (INT64)pInfo->_totalLobTruncate ) ;
+      ob.append( FIELD_NAME_TOTALLOBADDRESSING, (INT64)pInfo->_totalLobAddressing ) ;
+
       tmpTime = pInfo->_startTimestamp ;
       ossTimestampToString( tmpTime, timestamp ) ;
       ob.append ( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
@@ -1631,7 +1672,7 @@ namespace engine
       return rc ;
    }
 
-   INT32 _monDetailObj2InfoV1( const BSONObj &obj, detailedInfo &info )
+   INT32 _monDetailObj2InfoV2( const BSONObj &obj, detailedInfo &info )
    {
       INT32 rc = SDB_OK ;
       try
@@ -1641,239 +1682,351 @@ namespace engine
          // NodeName
          BSONElement ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_NODE_NAME ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // GroupName
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_GROUPNAME ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // InternalV
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION ),
                      "Unexcepted field here" ) ;
-         SDB_ASSERT( 1 == ele.numberInt(), "Wrong protocal version" ) ;
+         SDB_ASSERT( MON_CL_DETAIL_CURRENT_V == ele.numberInt(), "Wrong protocal version" ) ;
 
          // ID
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_ID ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._blockID = (UINT16) ele.Int() ;
 
          // LogicalID
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOGICAL_ID ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._logicID = ele.Int() ;
 
          // Sequence
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SEQUENCE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // Indexes
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INDEXES ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._numIndexes = ele.Int() ;
 
          // Status
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_STATUS ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // Attributes
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_ATTRIBUTE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // CompressionType
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COMPRESSIONTYPE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // DictionaryCreated
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DICT_CREATED ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._dictCreated = ele.Bool() ;
 
          // DictionaryVersion
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DICT_VERSION ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
 
          // PageSize
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PAGE_SIZE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._pageSize = ele.Int() ;
 
          // LobPageSize
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_PAGE_SIZE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._lobPageSize = ele.Int() ;
 
          // TotalRecords
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_RECORDS ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalRecords = ele.Long() ;
 
          // TotalLobs
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOBS ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalLobs = ele.Long() ;
 
          // TotalDataPages
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_PAGES ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalDataPages = ele.Int() ;
 
          // TotalIndexPages
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_PAGES ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalIndexPages = ele.Int() ;
 
          // TotalLobPages
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOB_PAGES ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalLobPages = ele.Int() ;
+
+         // TotalUsedLobSpace
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_USED_LOB_SPACE ),
+                     "Unexcepted field here" ) ;
+         info._totalUsedLobSpace = ele.Long() ;
+
+         // UsedLobSpaceRatio
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_USED_LOB_SPACE_RATIO ),
+                     "Unexcepted field here" ) ;
+         info._usedLobSpaceRatio = ele.Double() ;
+
+         // TotalLobSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOB_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._totalLobSize = ele.Long() ;
+
+         // TotalValidLobSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_VALID_LOB_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._totalValidLobSize = ele.Long() ;
+
+         // LobUsageRate
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_USAGE_RATE ),
+                     "Unexcepted field here" ) ;
+         info._lobUsageRate = ele.Double() ;
+
+         // AvgLobSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_AVG_LOB_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._avgLobSize = ele.Long() ;
 
          // TotalDataFreeSpace
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_FREESPACE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalDataFreeSpace = ele.Long() ;
 
          // TotalIndexFreeSpace
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_FREESPACE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._totalIndexFreeSpace = ele.Long() ;
 
          // CurrentCompressionRatio
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_CURR_COMPRESS_RATIO ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._currCompressRatio = (UINT32)(ele.Double() * 100.0) ;
 
          // DataCommitLSN
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATA_COMMIT_LSN ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._dataCommitLSN = ele.Long() ;
 
          // IndexCommitLSN
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_IDX_COMMIT_LSN ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._idxCommitLSN = ele.Long() ;
 
          // LobCommitLSN
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_COMMIT_LSN ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._lobCommitLSN = ele.Long() ;
 
          // DataCommitted
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATA_COMMITTED ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._dataIsValid = ele.Bool() ;
 
          // IndexCommitted
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_IDX_COMMITTED ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._idxIsValid = ele.Bool() ;
 
          // LobCommitted
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_COMMITTED ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._lobIsValid = ele.Bool() ;
 
          // TotalDataRead
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDATAREAD ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalDataRead = ele.Long() ;
 
          // TotalIndexRead
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXREAD ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalIndexRead = ele.Long() ;
 
          // TotalDataWrite
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDATAWRITE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalDataWrite = ele.Long() ;
 
          // TotalIndexWrite
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXWRITE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalIndexWrite = ele.Long() ;
 
          // TotalUpdate
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALUPDATE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalUpdate = ele.Long() ;
 
          // TotalDelete
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDELETE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalDelete = ele.Long() ;
 
          // TotalInsert
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINSERT ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalInsert = ele.Long() ;
 
          // TotalSelect
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALSELECT ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalSelect = ele.Long() ;
 
          // TotalRead
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALREAD ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalRead = ele.Long() ;
 
          // TotalWrite
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALWRITE ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalWrite = ele.Long() ;
 
          // TotalTbScan
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALTBSCAN ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalTbScan = ele.Long() ;
 
          // TotalIxScan
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALIXSCAN ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
          info._crudCB._totalIxScan = ele.Long() ;
 
+         // TotalLobGet
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBGET ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobGet = ele.Long() ;
+
+         // TotalLobPut
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBPUT ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobPut = ele.Long() ;
+
+         // TotalLobDelete
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBDELETE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobDelete = ele.Long() ;
+
+         // TotalLobList
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBLIST ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobList = ele.Long() ;
+
+         // TotalLobReadSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBREADSIZE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobReadSize = ele.Long() ;
+
+         // TotalLobWriteSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBWRITESIZE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobWriteSize = ele.Long() ;
+
+         // TotalLobRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobRead = ele.Long() ;
+
+         // TotalLobWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobWrite = ele.Long() ;
+
+         // TotalLobTuncate
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBTRUNCATE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobTruncate = ele.Long() ;
+
+         // TotalLobAddressing
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALLOBADDRESSING ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalLobAddressing = ele.Long() ;
+
+         // ResetTimestamp
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_RESETTIMESTAMP ),
-                     "Unexcepted field here" ) ;
+                     "Unexpected field here" ) ;
+
+         if ( iter.more() )
+         {
+            // CreateTime
+            ele = iter.next() ;
+            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_CREATE_TIME ),
+                        "Unexpected field here" ) ;
+            info._createTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+
+            // UpdateTime
+            ele = iter.next() ;
+            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UPDATE_TIME ),
+                        "Unexpected field here" ) ;
+            info._updateTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -1927,6 +2080,36 @@ namespace engine
                                      FIELD_NAME_TOTAL_LOB_PAGES ))
             {
                info._totalLobPages = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_USED_LOB_SPACE ))
+            {
+               info._totalUsedLobSpace = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_USED_LOB_SPACE_RATIO ))
+            {
+               info._usedLobSpaceRatio = ele.Double() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_LOB_SIZE ))
+            {
+               info._totalLobSize = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_VALID_LOB_SIZE ))
+            {
+               info._totalValidLobSize = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_LOB_USAGE_RATE ))
+            {
+               info._lobUsageRate = ele.Double() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_AVG_LOB_SIZE ))
+            {
+               info._avgLobSize = ele.Long() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_DATA_FREESPACE ))
@@ -1999,6 +2182,57 @@ namespace engine
                info._crudCB._totalIxScan = ele.Long() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBGET ))
+            {
+               info._crudCB._totalLobGet = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBPUT ))
+            {
+               info._crudCB._totalLobPut = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBDELETE ))
+            {
+               info._crudCB._totalLobDelete = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBLIST ))
+            {
+               info._crudCB._totalLobList = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBREADSIZE ))
+            {
+               info._crudCB._totalLobReadSize = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBWRITESIZE ))
+            {
+               info._crudCB._totalLobWriteSize = ele.Long() ;
+            }
+
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBREAD ))
+            {
+               info._crudCB._totalLobRead = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBWRITE ))
+            {
+               info._crudCB._totalLobWrite = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBTRUNCATE ))
+            {
+               info._crudCB._totalLobTruncate = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALLOBADDRESSING ))
+            {
+               info._crudCB._totalLobAddressing = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_INDEXES ))
             {
                info._numIndexes = ele.Int() ;
@@ -2053,6 +2287,16 @@ namespace engine
             {
                info._lobCommitLSN = ele.Long() ;
             }
+            else if ( 0 == ossStrcmp( ele.fieldName(),
+                                      FIELD_NAME_CREATE_TIME ) )
+            {
+               info._createTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(),
+                                      FIELD_NAME_UPDATE_TIME ) )
+            {
+               info._updateTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+            }
             // ignore _flag _attribute _dictVersion _compressType _maxGlobTransID
          }
       }
@@ -2090,9 +2334,9 @@ namespace engine
          internal_version = MON_CL_DETAIL_VERSION_NULL ;
       }
 
-      if ( MON_CL_DETAIL_VERSION_V1 == internal_version )
+      if ( MON_CL_DETAIL_VERSION_V2 == internal_version )
       {
-         rc = _monDetailObj2InfoV1( obj, info ) ;
+         rc = _monDetailObj2InfoV2( obj, info ) ;
       }
       else
       {
@@ -2145,10 +2389,17 @@ namespace engine
                      info._totalIndexPages ) ;
          ob.append ( FIELD_NAME_TOTAL_LOB_PAGES,
                      info._totalLobPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_USED_LOB_SPACE,
+                     (INT64)(info._totalUsedLobSpace) ) ;
+         ob.append ( FIELD_NAME_USED_LOB_SPACE_RATIO, info._usedLobSpaceRatio ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, (INT64)(info._totalLobSize) ) ;
+         ob.append ( FIELD_NAME_TOTAL_VALID_LOB_SIZE, (INT64)(info._totalValidLobSize) ) ;
+         ob.append ( FIELD_NAME_LOB_USAGE_RATE, info._lobUsageRate ) ;
+         ob.append ( FIELD_NAME_AVG_LOB_SIZE, (INT64)info._avgLobSize ) ;
          ob.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
-                     (long long)(info._totalDataFreeSpace )) ;
+                     (long long)(info._totalDataFreeSpace) ) ;
          ob.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
-                     (long long)(info._totalIndexFreeSpace )) ;
+                    (long long)(info._totalIndexFreeSpace) ) ;
          ob.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
                      (FLOAT64)info._currCompressRatio / 100.0 ) ;
 
@@ -2187,9 +2438,35 @@ namespace engine
                     (INT64)info._crudCB._totalTbScan ) ;
          ob.append( FIELD_NAME_TOTALIXSCAN,
                     (INT64)info._crudCB._totalIxScan ) ;
+         ob.append( FIELD_NAME_TOTALLOBGET,
+                    (INT64)info._crudCB._totalLobGet ) ;
+         ob.append( FIELD_NAME_TOTALLOBPUT,
+                    (INT64)info._crudCB._totalLobPut ) ;
+         ob.append( FIELD_NAME_TOTALLOBDELETE,
+                    (INT64)info._crudCB._totalLobDelete ) ;
+         ob.append( FIELD_NAME_TOTALLOBLIST,
+                    (INT64)info._crudCB._totalLobList ) ;
+         ob.append( FIELD_NAME_TOTALLOBREADSIZE,
+                    (INT64)info._crudCB._totalLobReadSize ) ;
+         ob.append( FIELD_NAME_TOTALLOBWRITESIZE,
+                    (INT64)info._crudCB._totalLobWriteSize ) ;
+         ob.append( FIELD_NAME_TOTALLOBREAD,
+                    (INT64)info._crudCB._totalLobRead ) ;
+         ob.append( FIELD_NAME_TOTALLOBWRITE,
+                    (INT64)info._crudCB._totalLobWrite ) ;
+         ob.append( FIELD_NAME_TOTALLOBTRUNCATE,
+                    (INT64)info._crudCB._totalLobTruncate ) ;
+         ob.append( FIELD_NAME_TOTALLOBADDRESSING,
+                    (INT64)info._crudCB._totalLobAddressing ) ;
          ossTimestamp resetTimestamp =  info._crudCB._resetTimestamp ;
          ossTimestampToString( resetTimestamp, timestamp ) ;
          ob.append( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
+
+         ossMillisecondsToString( info._createTime, timestamp ) ;
+         ob.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+
+         ossMillisecondsToString( info._updateTime, timestamp ) ;
+         ob.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
       }
       catch ( std::bad_alloc &ba )
       {
@@ -2250,11 +2527,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask, BSONObjBuilder &ob )
+   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
+                             BSONObjBuilder &ob, BOOLEAN detail )
    {
       // Modify the following places to the original record:
       // 1. Append system info( like "NodeName"... )
-      // 2. Ignore the large orginal "MCV". Show it's features by fields:
+      // 2. Show features of MCV by fields:
       // "DistinctValNum", "MaxValue", "MinValue", "NullFrac", "UndefFrac".
       // 3. Rename some fields for interface unification:
       //    "CreateTime" => "StatTimestamp";
@@ -2263,6 +2541,7 @@ namespace engine
       //    "IndexLevels" => "TotalIndexLevels";
       //    "CollectionSpace" + "Collection" => "Collection";
       // 4. Ignore "_id"
+      // 5. If parameter detail is true, show the "MCV" field. Else ignore it.
 
       INT32 rc = SDB_OK ;
       BOOLEAN hasMCV = FALSE ;
@@ -2282,7 +2561,7 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
 
-            if ( ossStrcmp( ele.fieldName(), RTN_STAT_IDX_MCV ) != 0 )
+            if ( ossStrcmp( ele.fieldName(), FIELD_NAME_MCV ) != 0 )
             {
                if ( 0 == ossStrcmp( ele.fieldName(), DMS_ID_KEY_NAME ) )
                {
@@ -2489,6 +2768,11 @@ namespace engine
 
             ob.append( FIELD_NAME_NULL_FRAC, nullFrac ) ;
             ob.append( FIELD_NAME_UNDEF_FRAC, undefFrac ) ;
+
+            if ( detail )
+            {
+               ob.append( ele ) ;
+            }
          }
 
          // If no MCV, append an empty info.
@@ -2506,6 +2790,17 @@ namespace engine
             ob.appendNull( FIELD_NAME_MAX_VALUE ) ;
             ob.append( FIELD_NAME_NULL_FRAC, 0 ) ;
             ob.append( FIELD_NAME_UNDEF_FRAC, 0 ) ;
+            if ( detail )
+            {
+               BSONObjBuilder obMCV( ob.subobjStart( FIELD_NAME_MCV ) ) ;
+               BSONArrayBuilder abValues(
+                  obMCV.subarrayStart( FIELD_NAME_VALUES ) ) ;
+               abValues.doneFast() ;
+               BSONArrayBuilder abFrac(
+                  obMCV.subarrayStart( FIELD_NAME_FRAC ) ) ;
+               abFrac.doneFast() ;
+               obMCV.doneFast() ;
+            }
          }
       }
       catch ( std::bad_alloc &ba )
@@ -2698,7 +2993,7 @@ namespace engine
          builder.append( FIELD_NAME_RESERVED_LOG_SPACE,
                          (INT64)( _curTransInfo._reservedLogSpace ) ) ;
          monAppendSessionIdentify( builder, _curTransInfo._relatedNID,
-                                   _curTransInfo._relatedTID ) ;
+                                   _curTransInfo._relatedEDUID ) ;
 
          _curEduInfo = builder.obj() ;
          _slice = 0 ;
@@ -2990,6 +3285,15 @@ namespace engine
                         (INT64)ctx._monContext.getDataRead() ) ;
             sub.append( FIELD_NAME_INDEXREAD,
                         (INT64)ctx._monContext.getIndexRead() ) ;
+            sub.append( FIELD_NAME_LOBREAD,
+                        (INT64)ctx._monContext.getLobRead() ) ;
+            sub.append( FIELD_NAME_LOBWRITE,
+                        (INT64)ctx._monContext.getLobWrite() ) ;
+            sub.append( FIELD_NAME_LOBTRUNCATE,
+                        (INT64)ctx._monContext.getLobTruncate() ) ;
+            sub.append( FIELD_NAME_LOBADDRESSING,
+                        (INT64)ctx._monContext.getLobAddressing() ) ;
+
             ctx._monContext.getQueryTime().convertToTime ( factor,
                                                            seconds,
                                                            microseconds ) ;
@@ -3166,7 +3470,7 @@ namespace engine
          ob.append ( FIELD_NAME_EDUNAME, simple._eduName ) ;
          ob.append ( FIELD_NAME_SOURCE, simple._source ) ;
          monAppendSessionIdentify( ob, simple._relatedNID,
-                                   simple._relatedTID ) ;
+                                   simple._relatedEDUID ) ;
 
          obj = ob.done () ;
 
@@ -3227,7 +3531,7 @@ namespace engine
                     (SINT64)full._processEventCount ) ;
          ob.append( FIELD_NAME_MEMPOOL_SIZE, (INT32)full._memPoolSize ) ;
          monAppendSessionIdentify( ob, full._relatedNID,
-                                   full._relatedTID ) ;
+                                   full._relatedEDUID ) ;
          /// add contexts
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_CONTEXTS ) ) ;
          ossPoolSet<SINT64>::const_iterator itCtx ;
@@ -3576,7 +3880,11 @@ namespace engine
 
    INT32 _monCollectionSpaceFetch::_fetchNextDetail( BSONObj &obj )
    {
-      INT32 rc = SDB_OK ;
+      INT32 rc                = SDB_OK ;
+      INT64 dataCapSize       = 0 ;
+      INT64 lobCapSize        = 0 ;
+      INT64 totalUsedLobSpace = 0 ;
+      INT64 avgLobSize        = 0 ;
 
       if ( _csInfo.size() == 0 )
       {
@@ -3587,12 +3895,12 @@ namespace engine
 
       try
       {
-         INT64 dataCapSize    = 0 ;
-         INT64 lobCapSize     = 0 ;
          _builder.reset() ;
          BSONObjBuilder ob( _builder ) ;
          MON_CS_LIST::iterator it ;
          MON_CL_DETAIL_MAP::const_iterator itDetail ;
+
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
 
          it = _csInfo.begin() ;
          const monCollectionSpace &full = *it ;
@@ -3630,13 +3938,19 @@ namespace engine
          {
             lobCapSize = OSS_MAX_FILE_SZ ;
          }
+         totalUsedLobSpace = full._lobCapacity - full._freeLobSpace ;
+         if ( 0 < full._totalLobs )
+         {
+            avgLobSize = full._totalValidLobSize / full._totalLobs ;
+         }
+
          ob.append ( FIELD_NAME_PAGE_SIZE, full._pageSize ) ;
          ob.append ( FIELD_NAME_LOB_PAGE_SIZE, full._lobPageSize ) ;
          ob.append ( FIELD_NAME_MAX_CAPACITY_SIZE,
                      2 * dataCapSize + lobCapSize ) ;
          ob.append ( FIELD_NAME_MAX_DATA_CAP_SIZE, dataCapSize ) ;
          ob.append ( FIELD_NAME_MAX_INDEX_CAP_SIZE, dataCapSize ) ;
-         ob.append ( FIELD_NAME_MAX_LOB_CAP_SIZE, lobCapSize ) ;
+         ob.append ( FIELD_NAME_MAX_LOB_CAP_SIZE, lobCapSize ) ; // deprecated
          ob.append ( FIELD_NAME_NUMCOLLECTIONS, full._clNum ) ;
          ob.append ( FIELD_NAME_TOTAL_RECORDS, full._totalRecordNum ) ;
          ob.append ( FIELD_NAME_TOTAL_SIZE, full._totalSize ) ;
@@ -3645,8 +3959,35 @@ namespace engine
          ob.append ( FIELD_NAME_FREE_DATA_SIZE, full._freeDataSize ) ;
          ob.append ( FIELD_NAME_TOTAL_IDX_SIZE, full._totalIndexSize ) ;
          ob.append ( FIELD_NAME_FREE_IDX_SIZE, full._freeIndexSize ) ;
+         ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSpace ) ; // deprecated
+         ob.append ( FIELD_NAME_MAX_LOB_CAPACITY, lobCapSize ) ;
+         ob.append ( FIELD_NAME_LOB_CAPACITY, full._lobCapacity ) ;
+         ob.append ( FIELD_NAME_LOB_META_CAPACITY, full._lobMetaCapacity ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOBS, full._totalLobs ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOB_PAGES, full._totalLobPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_USED_LOB_SPACE, totalUsedLobSpace) ;
+         ob.append ( FIELD_NAME_USED_LOB_SPACE_RATIO,
+                    utilPercentage( totalUsedLobSpace, full._lobCapacity ) ) ;
+         ob.append ( FIELD_NAME_FREE_LOB_SPACE, full._freeLobSpace ) ;
          ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, full._totalLobSize ) ;
-         ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSize ) ;
+         ob.append ( FIELD_NAME_TOTAL_VALID_LOB_SIZE, full._totalValidLobSize ) ;
+         /// Because lob page 0 is unevenly distributed on data nodes, the
+         /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+         /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
+         ob.append ( FIELD_NAME_LOB_USAGE_RATE,
+                     utilPercentage( full._totalLobSize, totalUsedLobSpace ) ) ;
+         ob.append ( FIELD_NAME_AVG_LOB_SIZE, avgLobSize ) ;
+
+         ob.append ( FIELD_NAME_TOTALLOBGET, full._totalLobGet ) ;
+         ob.append ( FIELD_NAME_TOTALLOBPUT, full._totalLobPut ) ;
+         ob.append ( FIELD_NAME_TOTALLOBDELETE, full._totalLobDelete ) ;
+         ob.append ( FIELD_NAME_TOTALLOBREADSIZE, full._totalLobReadSize ) ;
+         ob.append ( FIELD_NAME_TOTALLOBWRITESIZE, full._totalLobWriteSize ) ;
+         ob.append ( FIELD_NAME_TOTALLOBREAD, full._totalLobRead ) ;
+         ob.append ( FIELD_NAME_TOTALLOBWRITE, full._totalLobWrite ) ;
+         ob.append ( FIELD_NAME_TOTALLOBTRUNCATE, full._totalLobTruncate ) ;
+         ob.append ( FIELD_NAME_TOTALLOBADDRESSING, full._totalLobAddressing ) ;
+         ob.append ( FIELD_NAME_TOTALLOBLIST, full._totalLobList ) ;
 
          /// sync info
          ob.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)full._dataCommitLsn ) ;
@@ -3659,6 +4000,12 @@ namespace engine
          /// cache info
          ob.append ( FIELD_NAME_DIRTY_PAGE, (INT32)full._dirtyPage ) ;
          ob.append( FIELD_NAME_TYPE, (INT32)full._type ) ;
+
+         ossMillisecondsToString( full._createTime, timestamp ) ;
+         ob.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+
+         ossMillisecondsToString( full._updateTime, timestamp ) ;
+         ob.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
 
          obj = ob.done() ;
 
@@ -3846,6 +4193,7 @@ namespace engine
       INT64 cpuUser        = 0 ;
       INT64 cpuSys         = 0 ;
       INT64 cpuIdle        = 0 ;
+      INT64 cpuIOWait      = 0 ;
       INT64 cpuOther       = 0 ;
 
       if ( _hitEnd )
@@ -3855,7 +4203,7 @@ namespace engine
       }
 
       // cpu
-      rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuOther ) ;
+      rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuIOWait, cpuOther ) ;
        if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get cpu info, rc = %d", rc ) ;
@@ -3876,6 +4224,7 @@ namespace engine
             cpuOb.append ( FIELD_NAME_USER, ((FLOAT64)cpuUser)/1000 ) ;
             cpuOb.append ( FIELD_NAME_SYS, ((FLOAT64)cpuSys)/1000 ) ;
             cpuOb.append ( FIELD_NAME_IDLE, ((FLOAT64)cpuIdle)/1000 ) ;
+            cpuOb.append ( FIELD_NAME_IOWAIT, ((FLOAT64)cpuIOWait)/1000 ) ;
             cpuOb.append ( FIELD_NAME_OTHER, ((FLOAT64)cpuOther)/1000 ) ;
             cpuOb.done() ;
          }
@@ -4160,6 +4509,8 @@ namespace engine
          BSONObjBuilder ob( _builder ) ;
          MON_SU_LIST::iterator it ;
 
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+
          it = _suInfo.begin() ;
          const monStorageUnit &su = *it ;
 
@@ -4177,6 +4528,11 @@ namespace engine
          ob.append ( FIELD_NAME_NUMCOLLECTIONS, su._numCollections ) ;
          ob.append ( FIELD_NAME_COLLECTIONHWM, su._collectionHWM ) ;
          ob.append ( FIELD_NAME_SIZE, su._size ) ;
+
+         ossMillisecondsToString( su._createTime, timestamp ) ;
+         ob.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+         ossMillisecondsToString( su._updateTime, timestamp ) ;
+         ob.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
 
          obj = ob.done() ;
 
@@ -5336,6 +5692,8 @@ namespace engine
             builder.append( FIELD_NAME_INDEXWRITE, _itr->indexWrite ) ;
             builder.append( FIELD_NAME_LOBREAD, _itr->lobRead ) ;
             builder.append( FIELD_NAME_LOBWRITE, _itr->lobWrite ) ;
+            builder.append( FIELD_NAME_LOBTRUNCATE, _itr->lobTruncate ) ;
+            builder.append( FIELD_NAME_LOBADDRESSING, _itr->lobAddressing ) ;
             builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, lockWaitTime ) ;
             builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
          }
@@ -6469,12 +6827,12 @@ namespace engine
             // waiter RelatedID
             monAppendSessionIdentify( ob,
                                       info.waiterRelatedID,
-                                      info.waiterRelatedTID,
+                                      info.waiterRelatedSessionID,
                                       FIELD_NAME_WAITER_RELATED_ID ) ;
             // holder RelatedID
             monAppendSessionIdentify( ob,
                                       info.holderRelatedID,
-                                      info.holderRelatedTID,
+                                      info.holderRelatedSessionID,
                                       FIELD_NAME_HOLDER_RELATED_ID ) ;
             // waiter related sessionID
             ob.append( FIELD_NAME_WAITER_RELATED_SESSIONID,

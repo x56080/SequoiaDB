@@ -8,6 +8,7 @@ import java.util.Random;
 import org.bson.BSONObject;
 import org.bson.types.ObjectId;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -46,6 +47,9 @@ public class RenameCS_16284 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "Skip testCase on standalone" );
+        }
         cs = sdb.createCollectionSpace( csName );
         cl = cs.createCollection( clName );
 

@@ -88,7 +88,7 @@ namespace engine
       protected:
          virtual INT32 _onDoit( INT32 resultCode ) { return SDB_OK ; }
          INT32 _buildJobName() ;
-         BOOLEAN _needRetry( INT32 rc ) ;
+         virtual BOOLEAN _needRetry( INT32 rc, BOOLEAN &retryLater ) ;
 
       protected:
          RTN_JOB_TYPE            _type ;

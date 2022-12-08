@@ -82,15 +82,28 @@
 #define FIELD_NAME_MAX_CAPACITY_SIZE         "MaxCapacitySize"
 #define FIELD_NAME_MAX_DATA_CAP_SIZE         "MaxDataCapSize"
 #define FIELD_NAME_MAX_INDEX_CAP_SIZE        "MaxIndexCapSize"
+// Deprecated
 #define FIELD_NAME_MAX_LOB_CAP_SIZE          "MaxLobCapSize"
+// Use MaxLobCapacity instead of MaxLobCapSize
+#define FIELD_NAME_MAX_LOB_CAPACITY          "MaxLobCapacity"
+#define FIELD_NAME_LOB_CAPACITY              "LobCapacity"
+#define FIELD_NAME_LOB_META_CAPACITY         "LobMetaCapacity"
 #define FIELD_NAME_TOTAL_SIZE                "TotalSize"
 #define FIELD_NAME_FREE_SIZE                 "FreeSize"
 #define FIELD_NAME_TOTAL_DATA_SIZE           "TotalDataSize"
 #define FIELD_NAME_TOTAL_IDX_SIZE            "TotalIndexSize"
+#define FIELD_NAME_TOTAL_VALID_LOB_SIZE      "TotalValidLobSize"
 #define FIELD_NAME_TOTAL_LOB_SIZE            "TotalLobSize"
 #define FIELD_NAME_FREE_DATA_SIZE            "FreeDataSize"
 #define FIELD_NAME_FREE_IDX_SIZE             "FreeIndexSize"
+// Deprecated
 #define FIELD_NAME_FREE_LOB_SIZE             "FreeLobSize"
+// Use FreeLobSpace instead of FreeLobSize
+#define FIELD_NAME_FREE_LOB_SPACE            "FreeLobSpace"
+#define FIELD_NAME_TOTAL_USED_LOB_SPACE      "TotalUsedLobSpace"
+#define FIELD_NAME_USED_LOB_SPACE_RATIO      "UsedLobSpaceRatio"
+#define FIELD_NAME_LOB_USAGE_RATE            "LobUsageRate"
+#define FIELD_NAME_AVG_LOB_SIZE              "AvgLobSize"
 #define FIELD_NAME_COLLECTION                "Collection"
 #define FIELD_NAME_COLLECTIONSPACE           "CollectionSpace"
 #define FIELD_NAME_CATALOGINFO               "CataInfo"
@@ -173,6 +186,8 @@
 #define FIELD_NAME_INDEXWRITE                "IndexWrite"
 #define FIELD_NAME_LOBREAD                   "LobRead"
 #define FIELD_NAME_LOBWRITE                  "LobWrite"
+#define FIELD_NAME_LOBTRUNCATE               "LobTruncate"
+#define FIELD_NAME_LOBADDRESSING             "LobAddressing"
 #define FIELD_NAME_QUERYTIMESPENT            "QueryTimeSpent"
 #define FIELD_NAME_NODEWAITTIME              "RemoteNodeWaitTime"
 #define FIELD_NAME_STARTTIMESTAMP            "StartTimestamp"
@@ -191,8 +206,23 @@
 #define FIELD_NAME_TOTALWRITE                "TotalWrite"
 #define FIELD_NAME_TOTALTBSCAN               "TotalTbScan"
 #define FIELD_NAME_TOTALIXSCAN               "TotalIxScan"
+#define FIELD_NAME_TOTALLOBGET               "TotalLobGet"
+#define FIELD_NAME_TOTALLOBPUT               "TotalLobPut"
+#define FIELD_NAME_TOTALLOBDELETE            "TotalLobDelete"
+#define FIELD_NAME_TOTALLOBLIST              "TotalLobList"
+#define FIELD_NAME_TOTALLOBREADSIZE          "TotalLobReadSize"
+#define FIELD_NAME_TOTALLOBWRITESIZE         "TotalLobWriteSize"
+#define FIELD_NAME_TOTALLOBREAD              "TotalLobRead"
+#define FIELD_NAME_TOTALLOBWRITE             "TotalLobWrite"
+#define FIELD_NAME_TOTALLOBTRUNCATE          "TotalLobTruncate"
+#define FIELD_NAME_TOTALLOBADDRESSING        "TotalLobAddressing"
+
 #define FIELD_NAME_TOTALREADTIME             "TotalReadTime"
 #define FIELD_NAME_TOTALWRITETIME            "TotalWriteTime"
+#define FIELD_NAME_TOTALQUERY                "TotalQuery"
+#define FIELD_NAME_TOTALSLOWQUERY            "TotalSlowQuery"
+#define FIELD_NAME_TOTALTRANSCOMMIT          "TotalTransCommit"
+#define FIELD_NAME_TOTALTRANSROLLBACK        "TotalTransRollback"
 #define FIELD_NAME_TOTALTIME                 "Time"
 #define FIELD_NAME_TOTALCONTEXTS             "TotalContexts"
 #define FIELD_NAME_READTIMESPENT             "ReadTimeSpent"
@@ -215,11 +245,13 @@
 #define FIELD_NAME_PASSWD                    "Password"
 #define FIELD_NAME_SYS                       "Sys"
 #define FIELD_NAME_IDLE                      "Idle"
+#define FIELD_NAME_IOWAIT                    "IOWait"
 #define FIELD_NAME_OTHER                     "Other"
 #define FIELD_NAME_CPU                       "CPU"
 #define FIELD_NAME_LOADPERCENT               "LoadPercent"
 #define FIELD_NAME_TOTALRAM                  "TotalRAM"
 #define FIELD_NAME_FREERAM                   "FreeRAM"
+#define FIELD_NAME_AVAILABLERAM              "AvailableRAM"
 #define FIELD_NAME_TOTALSWAP                 "TotalSwap"
 #define FIELD_NAME_FREESWAP                  "FreeSwap"
 #define FIELD_NAME_TOTALVIRTUAL              "TotalVirtual"
@@ -467,6 +499,8 @@
 #define VALUE_NAME_HIGH                      "high"
 #define VALUE_NAME_NEVER                     "never"
 #define VALUE_NAME_NOT_SUPPORT               "notsupport"
+#define VALUE_NAME_ADMIN                     "admin"
+#define VALUE_NAME_MONITOR                   "monitor"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"
@@ -475,6 +509,7 @@
 #define FIELD_NAME_RETURNNEW                 "ReturnNew"
 #define FIELD_NAME_KEEP_SHARDING_KEY         "KeepShardingKey"
 #define FIELD_NAME_JUSTONE                   "JustOne"
+#define FIELD_NAME_UPDATE_SHARDING_KEY       "UpdateShardingKey"
 
 #define FIELD_NAME_INSERT                    "Insert"
 #define FIELD_NAME_UPDATE                    "Update"
@@ -599,6 +634,7 @@
 #define FIELD_NAME_SEQUENCE_ID               "ID"
 #define FIELD_NAME_CONTONDUP                 "ContOnDup"
 #define FIELD_NAME_REPLACEONDUP              "ReplaceOnDup"
+#define FIELD_NAME_UPDATEONDUP               "UpdateOnDup"
 #define FIELD_NAME_RETURN_OID                "ReturnOID"
 #define FIELD_NAME_AUDIT_MASK                "AuditMask"
 #define FIELD_NAME_AUDIT_CONFIG_MASK         "AuditConfigMask"
@@ -664,6 +700,7 @@
 #define FIELD_NAME_FRAC                      "Frac"
 #define FIELD_NAME_NULL_FRAC                 "NullFrac"
 #define FIELD_NAME_UNDEF_FRAC                "UndefFrac"
+#define FIELD_NAME_MCV                       "MCV"
 #define FIELD_NAME_STAT_TIMESTAMP            "StatTimestamp"
 #define FIELD_NAME_KEY_PATTERN               "KeyPattern"
 #define FIELD_NAME_TOTAL_IDX_LEVELS          "TotalIndexLevels"
@@ -688,6 +725,10 @@
 #define FIELD_NAME_HOLDER_RELATED_GROUPID    "HolderRelatedGroupID"
 #define FIELD_NAME_WAITER_SESSIONID          "WaiterSessionID"
 #define FIELD_NAME_HOLDER_SESSIONID          "HolderSessionID"
+#define FIELD_NAME_FORCE                     "Force"
+
+#define FIELD_NAME_CREATE_TIME               "CreateTime"
+#define FIELD_NAME_UPDATE_TIME               "UpdateTime"
 
 /// vessel
 #define FIELD_NAME_ENGINE_TYPE               "EngineType"
@@ -1088,6 +1129,8 @@
 #define CATA_NODE_MAX_NUM                    CLS_REPLSET_MAX_NODE_SIZE
 
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
+
+#define MSG_HINT_MARK_LEN                    4
 
 #define SDB_ROLE_DATA_STR                    "data"
 #define SDB_ROLE_COORD_STR                   "coord"

@@ -180,15 +180,14 @@ namespace engine
       _pmdRestSession implement
    */
    _pmdRestSession::_pmdRestSession( SOCKET fd )
-   :_pmdSession( fd )
+   :_pmdSession( fd ),
+    _restTransfer( sdbGetPMDController()->getRestTransfer() )
    {
       _pFixBuff         = NULL ;
       _pSessionInfo     = NULL ;
       _pRTNCB           = NULL ;
 
       _wwwRootPath      = pmdGetOptionCB()->getWWWPath() ;
-      _pRestTransfer    = SDB_OSS_NEW RestToMSGTransfer( this ) ;
-      _pRestTransfer->init() ;
    }
 
    _pmdRestSession::~_pmdRestSession()
@@ -197,12 +196,6 @@ namespace engine
       {
          sdbGetPMDController()->releaseFixBuf( _pFixBuff ) ;
          _pFixBuff = NULL ;
-      }
-
-      if ( NULL != _pRestTransfer )
-      {
-         SDB_OSS_DEL _pRestTransfer ;
-         _pRestTransfer = NULL ;
       }
    }
 
@@ -260,7 +253,7 @@ namespace engine
             goto error ;
          }
 
-         // sniff wether has data
+         // sniff whether has data
          rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
                          PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
          if ( SDB_TIMEOUT == rc )
@@ -359,6 +352,8 @@ namespace engine
             if ( _pSessionInfo )
             {
                _client.setAuthed( TRUE ) ;
+               _client.setAuthInfo( _pSessionInfo->_privCheckEnabled,
+                                    _pSessionInfo->_roleID ) ;
             }
          }
          // recv body
@@ -438,7 +433,7 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg can't be null" ) ;
 
       INT32 rc = SDB_OK ;
-      rc = _pRestTransfer->trans( pAdaptor, request, msg ) ;
+      rc = _restTransfer->trans( pAdaptor, request, msg ) ;
       if ( SDB_OK != rc )
       {
          //PD_LOG( PDERROR, "transfer rest message failed:rc=%d", rc ) ;
@@ -532,24 +527,26 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( request->isHeaderExist( OM_REST_HEAD_SDBUSER ) &&
-           request->isHeaderExist( OM_REST_HEAD_SDBPASSWD ) )
+      if ( ( !getClient()->isAuthed() &&
+             request->isHeaderExist( OM_REST_HEAD_SDBUSER ) &&
+             request->isHeaderExist( OM_REST_HEAD_SDBPASSWD ) ) )
       {
-         string userName = request->getHeader( OM_REST_HEAD_SDBUSER ) ;
-         string passwd   = request->getHeader( OM_REST_HEAD_SDBPASSWD ) ;
-
-         BSONObj bsonAuth = BSON( SDB_AUTH_USER << userName <<
-                                  SDB_AUTH_PASSWD << passwd ) ;
-         if ( !getClient()->isAuthed() )
+         try
          {
+            string userName = request->getHeader( OM_REST_HEAD_SDBUSER ) ;
+            string passwd = request->getHeader( OM_REST_HEAD_SDBPASSWD ) ;
+
             rc = getClient()->authenticate( userName.c_str(), passwd.c_str() ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG_MSG( PDERROR, "authenticate failed:rc=%d", rc ) ;
-               goto error ;
-            }
+            PD_RC_CHECK( rc, PDERROR, "Authentication failed:rc=%d", rc ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
          }
       }
+
    done:
       return rc ;
    error:
@@ -586,6 +583,14 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "check auth failed:rc=%d", rc ) ;
+         _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
+         goto error ;
+      }
+
+      rc = getClient()->checkPrivilege( msg ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "operation authorization failed:rc=%d", rc ) ;
          _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
          goto error ;
       }
@@ -865,6 +870,8 @@ namespace engine
       else
       {
          _pSessionInfo->_authOK = TRUE ;
+         _pSessionInfo->_roleID =  getClient()->getRoleID() ;
+         _pSessionInfo->_privCheckEnabled = getClient()->privCheckEnabled() ;
       }
       return rc ;
    }
@@ -884,8 +891,7 @@ namespace engine
       restTransFunc func ;
    } restCommand2Func ;
 
-   RestToMSGTransfer::RestToMSGTransfer( pmdRestSession *session )
-                     :_restSession( session )
+   RestToMSGTransfer::RestToMSGTransfer()
    {
    }
 
@@ -1059,8 +1065,18 @@ namespace engine
       len = sizeof( s_commandArray ) / sizeof( restCommand2Func ) ;
       for ( i = 0 ; i < len ; i++ )
       {
-         _mapTransFunc.insert( _value_type( s_commandArray[i].commandName,
-                                            s_commandArray[i].func ) ) ;
+         try
+         {
+            _mapTransFunc.insert( _value_type( s_commandArray[i].commandName,
+                                               s_commandArray[i].func ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Insert into _mapTransFunc occured exception: %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            break ;
+         }
       }
 
       return rc ;

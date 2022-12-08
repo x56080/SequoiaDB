@@ -38,6 +38,7 @@
 #include "utilCommon.hpp"
 #include "ossFile.hpp"
 #include "ossPath.hpp"
+#include "pd.hpp"
 
 using namespace engine ;
 
@@ -58,7 +59,7 @@ using namespace engine ;
    (COMMANDS_STRING(SECURE_OPTIONS_OUTPUT,  ",o"), po::value<string>(), "specify output file or path, default: source path" ) \
    (COMMANDS_STRING(SECURE_OPTIONS_DECRYPT, ",d"), po::value<string>(), "decrypt data")
 
-#define SECURE_OUTPUT_FILE_SUFFIX   ".decrypt"
+#define SECURE_OUTPUT_FILE_SUFFIX   PD_DFT_LOG_DECRYPT_SUFFIX
 
 _sdbSecureTool::_sdbSecureTool()
 {

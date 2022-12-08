@@ -624,6 +624,21 @@ namespace engine
          return result ;
       }
 
+      INT32 *getWatchAddress() const
+      {
+         // watch on the low bytes of second
+#if defined ( SDB_BIG_ENDIAN )
+         return (INT32 *)( &_second ) + 1 ;
+#else
+         return (INT32 *)( &_second ) ;
+#endif
+      }
+
+      INT32 getWatchValue() const
+      {
+         return *getWatchAddress() ;
+      }
+
    protected:
       // normalize ( nanosecond component should less than 1,000,000,000 )
       OSS_INLINE void _normalize()

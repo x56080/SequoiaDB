@@ -44,6 +44,8 @@ SDB_SNAP_CATALOG
 | AutoIncrement.SequenceID  | int64 | 自增字段对应序列 ID     |
 | DataSourceID      | int32  | 数据源 ID                      |
 | Mapping           | string | 在[数据源][datasource]中所映射的集合名称    |
+| CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 ##示例##
 
@@ -72,7 +74,9 @@ SDB_SNAP_CATALOG
           "GroupID": 1000,
           "GroupName": "group1"
          }
-        ]
+        ],
+      "CreateTime": "2022-10-06-18.04.31.090000",
+      "UpdateTime": "2022-10-06-18.04.31.164000"
     }
     ```
 
@@ -130,6 +134,8 @@ SDB_SNAP_CATALOG
          }
         ]
       "AutoSplit": ture,
+      "CreateTime": "2022-10-06-18.04.31.008000",
+      "UpdateTime": "2022-10-06-18.05.49.384000"
     }
     ```
 
@@ -172,6 +178,8 @@ SDB_SNAP_CATALOG
         },
       "ShardingType": "range",
       "Version": 2,
+      "CreateTime": "2022-10-06-18.04.31.008000",
+      "UpdateTime": "2022-10-06-18.05.49.384000"
     }
     ```
 

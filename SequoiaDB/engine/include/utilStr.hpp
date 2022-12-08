@@ -53,6 +53,8 @@
 #define UTIL_STR2NUM_HEX   0x00000100  // hexadecimal system
 #define UTIL_STR2NUM_ALL   0x11111111
 
+#define UTIL_OID_LEN       24
+
 using namespace std ;
 
 namespace engine
@@ -92,7 +94,9 @@ namespace engine
                TRUE : FALSE ;
    }
 
-   INT32 utilStrToUpper( const CHAR *src, CHAR *&upper ) ;
+   INT32 utilStrToUpper( const CHAR *src, CHAR *dst, UINT32 dstSize ) ;
+
+   INT32 utilStrToLower( const CHAR *src, CHAR *dst, UINT32 dstSize ) ;
 
    BOOLEAN utilStrIsDigit( const string& str ) ;
 

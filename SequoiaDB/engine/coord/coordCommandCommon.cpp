@@ -98,13 +98,7 @@ namespace engine
 
       _preSet( cb, ctrlParam ) ;
       rc = _getMonProcessor( monProcessorPtr ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR,
-                 "Pre-excute failed to acquire an IRtnMonProcessor obj, rc: %d",
-                 rc ) ;
-         goto error ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;
 
       rc = _preExcute( pMsg, cb, ctrlParam, ignoreRCList ) ;
       if ( rc )
@@ -136,6 +130,13 @@ namespace engine
       if ( pContext )
       {
          contextID = pContext->contextID() ;
+      }
+
+      rc = _onExecuteOnNodes( pMsg, cb, contextID, faileds, sucNodes, buf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to do after executing on nodes, rc: %d", rc ) ;
+         goto error ;
       }
 
       if ( -1 != contextID )
@@ -196,6 +197,16 @@ namespace engine
    INT32 _coordCmdWithLocation::_posExcute( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             ROUTE_RC_MAP &faileds )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _coordCmdWithLocation::_onExecuteOnNodes( MsgHeader *pMsg,
+                                                   pmdEDUCB *cb,
+                                                   INT64 &contextID,
+                                                   ROUTE_RC_MAP &faileds,
+                                                   SET_ROUTEID &sucNodes,
+                                                   rtnContextBuf *buf )
    {
       return SDB_OK ;
    }
@@ -307,6 +318,7 @@ namespace engine
       INT64 newContextID = -1 ;
       rtnQueryOptions queryOption ;
       monDataSetFetch *dsFetch = NULL ;
+      BSONObj nodesMatcher, newMatcher ;
 
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
       if ( rc )
@@ -314,6 +326,9 @@ namespace engine
          PD_LOG( PDERROR, "Extract message failed, rc: %d", rc ) ;
          goto error ;
       }
+
+      rc = rtnParseCmdLocationMatcher( queryOption.getQuery(), nodesMatcher, newMatcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse cmd location matcher, rc: %d", rc ) ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, pContext,
                               newContextID, cb ) ;
@@ -324,7 +339,7 @@ namespace engine
       }
 
       rc = pContext->open( queryOption.getSelector(),
-                           queryOption.getQuery(),
+                           newMatcher,
                            queryOption.getLimit(),
                            queryOption.getSkip() ) ;
       if ( rc )
@@ -346,6 +361,13 @@ namespace engine
       pContext->setMonFetch( dsFetch, TRUE ) ;
       dsFetch = NULL ;
       pContext->setMonProcessor( processorPtr ) ;
+
+      if ( !queryOption.getOrderBy().isEmpty() )
+      {
+         rc = rtnSort( pContext, queryOption.getOrderBy(), cb, queryOption.getSkip(),
+                       queryOption.getLimit(), contextID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
+      }
 
    done:
       return rc ;
@@ -473,6 +495,7 @@ namespace engine
    {
       ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 
    INT32 _coordCMDMonIntrBase::_onLocalMode( INT32 flag )
@@ -593,6 +616,12 @@ namespace engine
    {
    }
 
+   INT32 _coordCMDMonBase::_getAggrMonProcessor( IRtnMonProcessorPtr &ptr )
+   {
+      ptr = IRtnMonProcessorPtr() ;
+      return SDB_OK ;
+   }
+
    INT32 _coordCMDMonBase::execute( MsgHeader *pMsg,
                                     pmdEDUCB *cb,
                                     INT64 &contextID,
@@ -611,8 +640,12 @@ namespace engine
       coordCtrlParam ctrlParam ;
       vector< BSONObj > vecUserAggr ;
       BSONObj newHint ;
+      IRtnMonProcessorPtr monPtr ;
 
       contextID = -1 ;
+
+      rc = _getAggrMonProcessor( monPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;
 
       // Return data during QUERY to reduce GETMORE operation.
       ((MsgOpQuery*)pMsg)->flags |= FLG_QUERY_WITH_RETURNDATA ;
@@ -637,7 +670,7 @@ namespace engine
          /// add aggr operators
          BSONObj nodeMatcher ;
          BSONObj newMatcher ;
-         rc = parseMatcher( queryOption.getQuery(), nodeMatcher, newMatcher ) ;
+         rc = rtnParseCmdLocationMatcher( queryOption.getQuery(), nodeMatcher, newMatcher ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse matcher failed, rc: %d", rc ) ;
 
          /// add nodes matcher to the botton
@@ -709,7 +742,8 @@ namespace engine
                            queryOption.getSelector(),
                            newHint,
                            0, -1,
-                           cb, contextID ) ;
+                           cb, contextID,
+                           monPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
       }
       else

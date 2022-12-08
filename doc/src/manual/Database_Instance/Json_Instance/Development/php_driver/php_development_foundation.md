@@ -1,14 +1,14 @@
-本文档主要介绍如何使用 PHP 驱动接口编写使用 SequoiaDB 巨杉数据库的程序。下述为 SequoiaDB 巨杉数据库 PHP 驱动的简单示例，示例中的代码可能不完整，用户可在 `/sequoiadb/samples/PHP` 目录下获取相应的完整代码。
+本文档主要介绍如何使用 PHP 驱动接口编写使用 SequoiaDB 巨杉数据库的程序。完整的示例代码请参考 SequoiaDB 安装目录下的  `samples/PHP`
 
-##数据库操作##
+##连接数据库##
 
-* 连接数据库
+连接 SequoiaDB 数据库，之后即可访问、操作数据库。
 
   ```lang-php
   // 创建 SequoiaDB 对象
   $db = new SequoiaDB();
   // 连接数据库
-  $arr = $db -> connect( "localhost:11810" );
+  $arr = $db -> connect( "sdbserver:11810" );
   // 打印连接结果，返回的默认是 php 数组类型，返回值是 array(0){"errno"=>0}
   var_dump($arr);
   // 如果 errno 为 0，那么连接成功
@@ -17,6 +17,8 @@
      exit();
   }
   ```
+
+##数据库操作##
 
 * 选择集合空间
 
@@ -48,20 +50,25 @@
 
   ```lang-php
   // json 方式插入
-  $arr = $cl -> insert( "{test:1}" );
+  $arr = $cl -> insert( '{"name":"Tom", "age":24}' );
   // 检测结果
   if( $arr['errno'] !=0 )
   {
      exit();
   }
+  // 查看插入的结果
+  var_dump($arr);
+
   // 数组方式插入
-  $rec = array ( 'a' => 1, 'b' => new SequoiaDate('2012-12-21') ) ;
+  $rec = array ( 'name' => 'Peter', 'age' => 22 ) ;
   $arr = $cl -> insert( $rec );
   // 检测结果
   if( $arr['errno'] !=0 )
   {
      exit();
   }
+  // 查看插入的结果
+  var_dump($arr);
   ```
 
 * 查询
@@ -80,13 +87,15 @@
 * 更新
 
   ```lang-php
-  // 修改集合中的多有记录，把字段 test 的值修改为 0
-  $arr = $cl -> update( '{$set:{test:0}}' );
+  // 更新集合中的所有记录
+  $arr = $cl -> update( '{"$set":{"age":19}}' );
   // 检测结果
   if( $arr['errno'] !=0 )
   {
      exit();
   }
+  // 查看更新的结果
+  var_dump($arr);
   ```
 
 * 删除
@@ -99,9 +108,13 @@
   {
      exit();
   }
+  // 查看删除的结果
+  var_dump($arr);
   ```
 
 ## 集群操作##
+
+集群操作主要涉及复制组与节点。如下以选择、启动复制组、获取节点为例
 
 * 选择组
 
@@ -129,12 +142,12 @@
   }
   ```
 
-* 选择节点
+* 获取节点
 
   ```lang-php
   // 获取名称为"node"的节点
   // 返回 SequoiaNode 对象
-  $node = $group -> getNode( 'hostname1:11820' );
+  $node = $group -> getNode( 'sdbserver:11820' );
   // 检查对象是否空
   if( empty( $node ) )
   {

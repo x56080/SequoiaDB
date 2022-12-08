@@ -999,6 +999,8 @@ namespace engine
       try
       {
          BSONObj collection ;
+         pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
+         pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
          rc = catGetAndLockCollection ( _name, collection, cb, NULL, SHARED ) ;
          // compatible with old version
          if( SDB_DMS_CS_NOTEXIST == rc )
@@ -1313,8 +1315,14 @@ namespace engine
       {
          BSONObjBuilder newBuilder ;
          newBuilder.appendElements( _csInfo.toBson() ) ;
-         BSONObjBuilder sub1( newBuilder.subarrayStart( CAT_COLLECTION ) ) ;
+         BSONArrayBuilder sub1( newBuilder.subarrayStart( CAT_COLLECTION ) ) ;
          sub1.done() ;
+
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         newBuilder.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+         newBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
 
          BSONObj newObj = newBuilder.obj() ;
 

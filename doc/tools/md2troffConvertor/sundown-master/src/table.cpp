@@ -12,6 +12,8 @@
 #define BACKSLASH          "\\"
 #define TABLE_LINE_LEN     24
 
+#define MATCH_STRING "<br>" ;
+
 #if defined (_WIN32)
 string _gbk2utf8(const string &input)
 {
@@ -259,19 +261,72 @@ size_t _char_to_word(string &text, vector<string> &output)
     return output.size();
 }
 
+void _split_word(vector<string> &input, vector<string> &output)
+{
+    vector<string>::iterator it ;
+    string temp ;
+
+    // match = "<br>" => vec_matche = [<,br,>]
+    string match = MATCH_STRING ;
+    vector<string> vec_match ;
+    _char_to_word( match, vec_match ) ;
+
+    // it traverses each word in input.
+    for ( it = input.begin(); it != input.end(); it++ )
+    {
+        // if ( *it == < )
+        int i = 0 ;
+        if( *it == vec_match[ i ] )
+        {
+            // inside match_it traverses and matches each word in matches.
+            vector<string>::iterator match_it = it ;
+            for( ; i < vec_match.size() &&
+                   match_it != input.end() &&
+                   *match_it == vec_match[ i ]; i++, match_it++ )
+            {
+                temp += *match_it ;
+            }
+
+            // matched
+            if( i >= vec_match.size() )
+            {
+                output.push_back( temp ) ;
+                /* remove the add of it++,
+                so it++ in next loop can points to next word.*/
+                it = --match_it ;
+            }
+            else
+            {
+                // don't matched
+                output.push_back( *it ) ;
+            }
+
+            temp.clear() ;
+            continue ;
+        }
+
+        // if ( *it != < )
+        output.push_back( *it ) ;
+    }
+}
+
 void _split_elem(string &text, vector<string> &vec_out)
 {
     string one_line;
     string pre_char;
     vector<string> vec_words;
+    vector<string> vec_words_and_tags;
     vector<string>::iterator it;
     int left = TABLE_LINE_LEN;
 
     // get words, the output is: "abc", " ", ",", "1", "1024", "集合",...
     _char_to_word(text, vec_words);
 
+    // get words and tags, the output contains "<br>"
+    _split_word( vec_words, vec_words_and_tags ) ;
+
     // build line
-    for(it = vec_words.begin(); it != vec_words.end(); it++)
+    for(it = vec_words_and_tags.begin(); it != vec_words_and_tags.end(); it++)
     {
         left -= it->length();
         if (left > 0)

@@ -48,6 +48,8 @@
 #include "pmdStartup.hpp"
 #include "dmsStorageDataFactory.hpp"
 #include "dmsTransContext.hpp"
+#include "dmsOprHandler.hpp"
+#include "utilMath.hpp"
 
 namespace engine
 {
@@ -1330,6 +1332,7 @@ namespace engine
       if ( type < DMS_CACHE_TYPE_NUM &&
            NULL == _pSUCaches[ type ] )
       {
+         BOOLEAN needCreate = TRUE ;
          switch ( type )
          {
             default :
@@ -1342,9 +1345,10 @@ namespace engine
          {
             created = TRUE ;
          }
-         else
+         else if ( needCreate )
          {
-            PD_LOG( PDWARNING, "Failed to create cache unit [%u]", type ) ;
+            PD_LOG( PDWARNING, "Failed to create cache unit [%u] for CS %s",
+                    type, getCSName() ) ;
          }
       }
 
@@ -1554,6 +1558,9 @@ namespace engine
          goto error ;
       }
 
+      _storageInfo._createTime = _pDataSu->getCreateTime() ;
+      _storageInfo._updateTime = _pDataSu->getUpdateTime() ;
+
    done:
       PD_TRACE_EXITRC ( SDB__DMSSU_OPEN, rc ) ;
       return rc ;
@@ -1751,8 +1758,6 @@ namespace engine
       rc = _pIndexSu->setLobPageSize( lobPageSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set LOB page size in index storage "
                    "unit, rc: %d", rc ) ;
-
-      _storageInfo._lobdPageSize = lobPageSize ;
 
    done :
       PD_TRACE_EXITRC( SDB__DMSSU_SETLOBPAGESIZE, rc ) ;
@@ -1954,6 +1959,7 @@ namespace engine
                                           mthModifier &modifier,
                                           SINT64 maxUpdate,
                                           dmsMBContext *context,
+                                          IDmsOprHandler *opHandler,
                                           utilUpdateResult *pResult )
    {
       INT32 rc                     = SDB_OK ;
@@ -1979,7 +1985,8 @@ namespace engine
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
          dmsTBScanner tbScanner( _pDataSu, context, matchRuntime,
-                                 DMS_ACCESS_TYPE_UPDATE, maxUpdate ) ;
+                                 DMS_ACCESS_TYPE_UPDATE, maxUpdate,
+                                 0, 0, opHandler ) ;
          while ( SDB_OK == ( rc = tbScanner.advance( recordID, generator,
                                                      cb ) ) )
          {
@@ -2751,6 +2758,9 @@ namespace engine
          OSS_BIT_CLEAR( context->mb()->_attributes, attributeMask ) ;
       }
 
+      // on metadata updated
+      _pDataSu->_onMBUpdated( context->mbID() ) ;
+
       // Flush MME
       _pDataSu->flushMME( _pDataSu->isSyncDeep() ) ;
 
@@ -2982,6 +2992,9 @@ namespace engine
       {
          OSS_BIT_SET( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) ;
       }
+
+      // on metadata updated
+      _pDataSu->_onMBUpdated( context->mbID() ) ;
 
       // Flush MME
       _pDataSu->flushMME( _pDataSu->isSyncDeep() ) ;
@@ -3528,6 +3541,8 @@ namespace engine
       storageUnit._size = totalSize() ;
       storageUnit._CSID = CSID() ;
       storageUnit._logicalCSID = LogicalCSID() ;
+      storageUnit._createTime = getCreateTime() ;
+      storageUnit._updateTime = getUpdateTime() ;
 
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO_SU ) ;
    }
@@ -3569,7 +3584,7 @@ namespace engine
                                    statInfo._totalDataFreeSpace ;
       INT64 totalIndexFreeSize   = totalFreeSize( DMS_SU_INDEX ) +
                                    statInfo._totalIndexFreeSpace ;
-      INT64 totalLobFreeSize     = totalFreeSize( DMS_SU_LOB ) ;
+      INT64 totalLobFreeSpace     = totalFreeSize( DMS_SU_LOB ) ;
 
       ossMemset( collectionSpace._name, 0, sizeof(collectionSpace._name) ) ;
       ossStrncpy( collectionSpace._name, CSName(), DMS_COLLECTION_SPACE_NAME_SZ );
@@ -3582,13 +3597,30 @@ namespace engine
       collectionSpace._clNum    = statInfo._clNum ;
       collectionSpace._totalRecordNum = statInfo._totalCount ;
       collectionSpace._freeSize = totalDataFreeSize + totalIndexFreeSize +
-                                  totalLobFreeSize ;
+                                  totalLobFreeSpace ;
       collectionSpace._totalDataSize = totalSize( DMS_SU_DATA ) ;
       collectionSpace._freeDataSize  = totalDataFreeSize ;
       collectionSpace._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
       collectionSpace._freeIndexSize = totalIndexFreeSize ;
-      collectionSpace._totalLobSize = totalSize( DMS_SU_LOB ) ;
-      collectionSpace._freeLobSize = totalLobFreeSize ;
+
+      collectionSpace._lobCapacity = totalSize( DMS_SU_LOB ) ;
+      collectionSpace._lobMetaCapacity = totalSize( DMS_SU_LOB_META ) ;
+      collectionSpace._freeLobSpace = totalLobFreeSpace ;
+      collectionSpace._totalLobPages = statInfo._totalLobPages ;
+      collectionSpace._totalLobs = statInfo._totalLobs ;
+      collectionSpace._totalLobSize = statInfo._totalLobSize ;
+      collectionSpace._totalValidLobSize = statInfo._totalValidLobSize ;
+
+      collectionSpace._totalLobGet = statInfo._totalLobGet ;
+      collectionSpace._totalLobPut = statInfo._totalLobPut ;
+      collectionSpace._totalLobDelete = statInfo._totalLobDelete ;
+      collectionSpace._totalLobList = statInfo._totalLobList ;
+      collectionSpace._totalLobReadSize = statInfo._totalLobReadSize ;
+      collectionSpace._totalLobWriteSize = statInfo._totalLobWriteSize ;
+      collectionSpace._totalLobRead = statInfo._totalLobRead ;
+      collectionSpace._totalLobWrite = statInfo._totalLobWrite ;
+      collectionSpace._totalLobTruncate = statInfo._totalLobTruncate ;
+      collectionSpace._totalLobAddressing = statInfo._totalLobAddressing ;
 
       /// sync info
       collectionSpace._dataCommitLsn = getCurrentDataLSN() ;
@@ -3601,6 +3633,9 @@ namespace engine
       /// cache info
       collectionSpace._dirtyPage = cacheUnit()->dirtyPages() ;
       collectionSpace._type = type() ;
+
+      collectionSpace._createTime = getCreateTime() ;
+      collectionSpace._updateTime = getUpdateTime() ;
 
       rc = dumpInfo ( collectionSpace._collections, sys, FALSE ) ;
 
@@ -3659,9 +3694,13 @@ namespace engine
       }
       if ( ( type & DMS_SU_LOB ) && _pLobSu->isOpened() )
       {
+         totalSize +=
+            ( _pLobSu->getLobData()->getFileSz() - DMS_HEADER_SZ ) ;
+      }
+      if ( ( type & DMS_SU_LOB_META ) && _pLobSu->isOpened() )
+      {
          totalSize += ( (INT64)( _pLobSu->getHeader()->_storageUnitSize ) <<
                         _pLobSu->pageSizeSquareRoot() ) ;
-         totalSize += _pLobSu->getLobData()->getFileSz() ;
       }
 
    done:
@@ -3806,28 +3845,41 @@ namespace engine
 
       dmsMBStatInfo *mbStat = NULL ;
 
-      // lock meta
-      _pDataSu->_metadataLatch.get_shared() ;
-
-      dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
-      while ( it != _pDataSu->_collectionNameMap.end() )
+      /// Guard
       {
-         mbStat = &_pDataSu->_mbStatInfo[it->second] ;
+         ossScopedLock lock( &_pDataSu->_metadataLatch, SHARED ) ;
 
-         ++statInfo._clNum ;
-         statInfo._totalCount += mbStat->_totalRecords ;
-         statInfo._totalLobs += mbStat->_totalLobs ;
-         statInfo._totalDataPages += mbStat->_totalDataPages ;
-         statInfo._totalIndexPages += mbStat->_totalIndexPages ;
-         statInfo._totalLobPages += mbStat->_totalLobPages ;
-         statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
-         statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+         dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
+         while ( it != _pDataSu->_collectionNameMap.end() )
+         {
+            mbStat = &_pDataSu->_mbStatInfo[it->second] ;
 
-         ++it ;
+            ++statInfo._clNum ;
+            statInfo._totalCount += mbStat->_totalRecords ;
+            statInfo._totalDataPages += mbStat->_totalDataPages ;
+            statInfo._totalIndexPages += mbStat->_totalIndexPages ;
+            statInfo._totalLobPages += mbStat->_totalLobPages ;
+            statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
+            statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+
+            statInfo._totalLobs += mbStat->_totalLobs ;
+            statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
+            statInfo._totalLobSize += mbStat->_totalLobSize ;
+
+            statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
+            statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
+            statInfo._totalLobDelete += mbStat->_crudCB._totalLobDelete ;
+            statInfo._totalLobList += mbStat->_crudCB._totalLobList ;
+            statInfo._totalLobReadSize += mbStat->_crudCB._totalLobReadSize ;
+            statInfo._totalLobWriteSize += mbStat->_crudCB._totalLobWriteSize ;
+            statInfo._totalLobRead += mbStat->_crudCB._totalLobRead ;
+            statInfo._totalLobWrite += mbStat->_crudCB._totalLobWrite ;
+            statInfo._totalLobTruncate += mbStat->_crudCB._totalLobTruncate ;
+            statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
+
+            ++it ;
+         }
       }
-
-      // release meta
-      _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }
 
@@ -3835,6 +3887,7 @@ namespace engine
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
+      INT64 lobCapacity = 0 ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CL ) ;
 
@@ -3846,6 +3899,7 @@ namespace engine
 
       mb = _pDataSu->getMBInfo( mbID ) ;
       mbStat = _pDataSu->getMBStatInfo( mbID ) ;
+      lobCapacity = totalSize( DMS_SU_LOB ) ;
 
       PD_CHECK( DMS_IS_MB_INUSE ( mb->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
@@ -3873,6 +3927,22 @@ namespace engine
          info._dictVersion = mb->_dictVersion ;
 
          info._totalLobs = mbStat->_totalLobs ;
+         info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
+         info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
+         info._totalLobSize = mbStat->_totalLobSize ;
+         info._totalValidLobSize = mbStat->_totalValidLobSize ;
+         /// Because lob page 0 is unevenly distributed on data nodes, the
+         /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
+         /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
+         info._lobUsageRate = utilPercentage( info._totalLobSize, info._totalUsedLobSpace ) ;
+         if ( 0 < info._totalLobs )
+         {
+            info._avgLobSize = info._totalValidLobSize / info._totalLobs ;
+         }
+         else
+         {
+            info._avgLobSize = 0 ;
+         }
 
          info._pageSize = getPageSize() ;
          info._lobPageSize = getLobPageSize() ;
@@ -3886,6 +3956,9 @@ namespace engine
          info._dataIsValid = mbStat->_commitFlag.peek() ? TRUE : FALSE ;
          info._idxIsValid = mbStat->_idxCommitFlag.peek() ? TRUE : FALSE ;
          info._lobIsValid = mbStat->_lobCommitFlag.peek() ? TRUE : FALSE ;
+
+         info._createTime = mbStat->_createTime ;
+         info._updateTime = mbStat->_updateTime ;
 
          info._crudCB.setFromOnce( mbStat->_crudCB ) ;
 
@@ -4472,6 +4545,7 @@ namespace engine
       OSSFILE file ;
       INT64 fileSize = 0 ;
       INT64 readSize = 0 ;
+      BOOLEAN isFileInvalid = FALSE ;
       CHAR fileName[ DMS_SU_FILENAME_SZ + 1 ] = { 0 } ;
       CHAR fullFilePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR eyeCatcher[DMS_HEADER_EYECATCHER_LEN + 1 ] = { 0 } ;
@@ -4497,8 +4571,12 @@ namespace engine
       if ( fileSize < DMS_HEADER_EYECATCHER_LEN )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "File size[ %lld ] is too small. Maybe the file is "
-                 "corrupted", fileSize ) ;
+         PD_LOG( PDERROR, "File[ %s ] size[ %lld ] is too small. Maybe the file is "
+                 "corrupted", fileName, fileSize ) ;
+         if ( 0 == fileSize )
+         {
+            isFileInvalid = TRUE ;
+         }
          goto error ;
       }
 
@@ -4525,6 +4603,15 @@ namespace engine
       if ( file.isOpened() )
       {
          ossClose( file ) ;
+      }
+      if ( isFileInvalid )
+      {
+         INT32 tmpRC = SDB_OK ;
+         tmpRC = dmsRenameInvalidFile( fullFilePath ) ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Fail to rename invalid file, rc:%d", tmpRC ) ;
+         }
       }
       PD_TRACE_EXITRC( SDB__DMSSU__GETTYPEFROMFILE, rc ) ;
       return rc ;

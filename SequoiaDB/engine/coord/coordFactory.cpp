@@ -79,7 +79,6 @@ namespace engine
             else
             {
                pOperator->setReadOnly( item._isReadOnly ) ;
-               pOperator->setName( it->first._pString ) ;
             }
          }
          else

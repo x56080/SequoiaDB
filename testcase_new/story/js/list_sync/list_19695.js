@@ -19,8 +19,10 @@ function test ()
       db.createUsr( userName1, userName1, options1 );
       db.createUsr( userName2, userName2, options2 );
 
-      checkListUsers( userName1, options1 );
-      checkListUsers( userName2, options2 );
+      var option = { "Role": "admin" };
+      checkListUsers( userName1, option );
+      var option = { "Role": "admin", AuditMask: "DDL|DML|!DQL" };
+      checkListUsers( userName2, option );
    }
    finally
    {
@@ -42,6 +44,6 @@ function checkListUsers ( user, options )
 
       count++;
    }
-
+   cursor.close();
    assert.equal( count, 1 );
 }

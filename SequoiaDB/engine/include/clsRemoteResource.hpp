@@ -80,6 +80,7 @@ namespace engine
       typedef ossPoolMap<const CHAR*, CoordCataInfoPtr>::iterator       MAP_CATA_INFO_IT ;
       typedef ossPoolMap<const CHAR*, CoordCataInfoPtr>::const_iterator MAP_CATA_INFO_CIT ;
 #endif // _WINDOWS
+      friend class _coordCacheCleaner;
 
    public:
       _clsRemoteResource() ;
@@ -200,6 +201,10 @@ namespace engine
       INT32                updateOmGroupInfo( CoordGroupInfoPtr &groupPtr,
                                               _pmdEDUCB *cb ) ;
 
+      UINT64      getTotalCataInfoSize() const ;
+
+      INT32       active() ;
+
    public:
       INT32       addCataInfo( const bson::BSONObj &cataObj ) ;
       INT32       addCataInfo( const bson::BSONObj &cataObj,
@@ -308,6 +313,16 @@ namespace engine
       INT32       _processCatalogReplyByCLUID( MsgHeader *pMsg,
                                                CoordCataInfoPtr &cataPtr ) ;
 
+      void        _removeCataInfo( const CHAR *collectionName ) ;
+
+      void        _removeCataInfo( MAP_CATA_INFO_IT it ) ;
+
+      void        _removeAllCataInfo() ;
+
+      BOOLEAN     _canCleanCataInfo() ;
+
+      INT32       _doCleanCataInfo() ;
+
       virtual UINT32 _getCataInfoParseGroupID() const
       {
          return INVALID_GROUPID ;
@@ -330,6 +345,7 @@ namespace engine
 
       MAP_CATA_INFO                    _mapCataInfo ;
       ossSpinSLatch                    _cataMutex ;
+      UINT64                           _totalCataInfoSize ;
 
       _netRouteAgent                   *_pAgent ;
       pmdOptionsCB                     *_pOptionsCB ;

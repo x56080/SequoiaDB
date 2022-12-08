@@ -5,3 +5,4 @@
                      
 ****************************************************/
 import( "../lib/fulltext_commlib.js" );
+testConf.skipTest = true; // CI-1001

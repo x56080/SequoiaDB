@@ -63,13 +63,16 @@ namespace engine
    */
    _coordUpdateOperator::_coordUpdateOperator()
    {
-      const static string s_name( "Update" ) ;
-      setName( s_name ) ;
    }
 
    _coordUpdateOperator::~_coordUpdateOperator()
    {
       SDB_ASSERT( 0 == _vecBlock.size(), "Block must be empty" ) ;
+   }
+
+   const CHAR* _coordUpdateOperator::getName() const
+   {
+      return "Update" ;
    }
 
    BOOLEAN _coordUpdateOperator::isReadOnly() const
@@ -219,9 +222,9 @@ namespace engine
          BOOLEAN keepShardingKey = OSS_BIT_TEST( flag,
                                                  FLG_UPDATE_KEEP_SHARDINGKEY ) ;
 
-         rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+         rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                   "check cat version failed, rc: %d",rc );
+                   "check cat version failed, rc: %d",rc ) ;
 
          if ( cataSel.getCataPtr()->isSharded() ||
               cataSel.getCataPtr()->hasAutoIncrement() )

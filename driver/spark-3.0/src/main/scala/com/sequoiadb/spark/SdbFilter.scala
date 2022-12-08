@@ -17,11 +17,11 @@
 package com.sequoiadb.spark
 
 import java.util.regex.Pattern
-
 import org.apache.spark.sql.sources._
-import org.bson.types.BasicBSONList
+import org.bson.types.{BSONDate, BSONTimestamp, BasicBSONList}
 import org.bson.{BSON, BSONObject, BasicBSONObject}
 
+import java.time.{Instant, LocalDate}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
@@ -196,23 +196,23 @@ object SdbFilter {
                 }
             case EqualNullSafe(attribute, value) =>
                 val obj = new BasicBSONObject()
-                obj.put(ET, value)
+                obj.put(ET, convertIfJava8DateTime(value))
                 matcher = appendFilter(matcher, attribute, obj)
             case EqualTo(attribute, value) =>
                 val obj = new BasicBSONObject()
-                obj.put(ET, value)
+                obj.put(ET, convertIfJava8DateTime(value))
                 matcher = appendFilter(matcher, attribute, obj)
             case GreaterThan(attribute, value) =>
                 val obj = new BasicBSONObject()
-                obj.put(GT, value)
+                obj.put(GT, convertIfJava8DateTime(value))
                 matcher = appendFilter(matcher, attribute, obj)
             case GreaterThanOrEqual(attribute, value) =>
                 val obj = new BasicBSONObject()
-                obj.put(GTE, value)
+                obj.put(GTE, convertIfJava8DateTime(value))
                 matcher = appendFilter(matcher, attribute, obj)
             case In(attribute, values) =>
                 val array = new BasicBSONList()
-                Array.tabulate(values.length) { i => array.put(i, values(i)) }
+                Array.tabulate(values.length) { i => array.put(i, convertIfJava8DateTime(values(i))) }
 
                 val subObj = new BasicBSONObject()
                 subObj.put(IN, array)
@@ -228,11 +228,11 @@ object SdbFilter {
                 matcher = appendFilter(matcher, attribute, subObj)
             case LessThan(attribute, value) =>
                 val subObj = new BasicBSONObject()
-                subObj.put(LT, value)
+                subObj.put(LT, convertIfJava8DateTime(value))
                 matcher = appendFilter(matcher, attribute, subObj)
             case LessThanOrEqual(attribute, value) =>
                 val subObj = new BasicBSONObject()
-                subObj.put(LTE, value)
+                subObj.put(LTE, convertIfJava8DateTime(value))
                 matcher = appendFilter(matcher, attribute, subObj)
             case Not(child) =>
                 val (notObj, _) = toBSONObj(Array(child))
@@ -263,4 +263,14 @@ object SdbFilter {
 
         (matcher, unhandled.toArray)
     }
+
+    private def convertIfJava8DateTime(value: Any): Any = {
+        value match {
+            case localDate: LocalDate => BSONDate.valueOf(localDate)
+            case instant: Instant =>
+                new BSONTimestamp(instant.getEpochSecond.toInt, instant.getNano / 1000)
+            case _ => value
+        }
+    }
+
 }

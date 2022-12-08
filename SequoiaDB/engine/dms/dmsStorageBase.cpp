@@ -238,6 +238,7 @@ namespace engine
       _extentID = -1 ;
       _collectionID = -1 ;
       _attr = 0 ;
+      _hasIncWriteCount = FALSE ;
       _pBase = NULL ;
       _ptr   = ( ossValuePtr ) 0 ;
    }
@@ -246,9 +247,35 @@ namespace engine
    : _extentID( extRW._extentID ),
      _collectionID( extRW._collectionID ),
      _attr( extRW._attr ),
+     _hasIncWriteCount( FALSE ),
      _ptr( extRW._ptr ),
      _pBase( extRW._pBase )
    {
+      /*
+      If _hasIncWriteCount is FALSE, we must inc writePtrCount,
+      _pBase._mbStatInfo[collectionID]._writePtrCount.
+
+      If we don't inc writePtrCount, then the following problems will occur.
+      eg:
+      {
+         _dmsExtRW a ;
+         // now writePtrCount is 0, _hasIncWriteCount is TRUE
+         a.writePtr() ;
+         // now writePtrCount is 1, _hasIncWriteCount is FALSE
+         _dmsExtRW b( a ) ;
+         ...
+         ~a() ;
+         // now writePtrCount is 0
+         ~b() ;
+         // now writePtrCount is (UINT32)0 - 1
+      }
+      */
+
+      if ( extRW._hasIncWriteCount )
+      {
+         _pBase->incWritePtrCount( extRW._collectionID ) ;
+         _hasIncWriteCount = TRUE ;
+      }
    }
 
    _dmsExtRW::~_dmsExtRW()
@@ -256,6 +283,12 @@ namespace engine
       if ( _pBase && isDirty() )
       {
          _pBase->markDirty( _collectionID, _extentID, DMS_CHG_AFTER ) ;
+      }
+
+      if ( _hasIncWriteCount )
+      {
+         _pBase->decWritePtrCount( _collectionID ) ;
+         _hasIncWriteCount = FALSE ;
       }
    }
 
@@ -316,6 +349,11 @@ namespace engine
       }
       _markDirty() ;
       _pBase->markDirty( _collectionID, _extentID, DMS_CHG_BEFORE ) ;
+      if ( !_hasIncWriteCount )
+      {
+         _pBase->incWritePtrCount( _collectionID ) ;
+         _hasIncWriteCount = TRUE ;
+      }
       return ( CHAR* )_ptr + offset ;
    }
 
@@ -504,6 +542,24 @@ namespace engine
       if ( _dmsHeader )
       {
          return _dmsHeader->_commitTime ;
+      }
+      return 0 ;
+   }
+
+   UINT64 _dmsStorageBase::getCreateTime() const
+   {
+      if ( _dmsHeader )
+      {
+         return _dmsHeader->_createTime ;
+      }
+      return 0 ;
+   }
+
+   UINT64 _dmsStorageBase::getUpdateTime() const
+   {
+      if ( _dmsHeader )
+      {
+         return _dmsHeader->_updateTime ;
       }
       return 0 ;
    }
@@ -740,8 +796,22 @@ namespace engine
       rc = ossMmapFile::open ( _fullPathName, mode, OSS_RU|OSS_WU|OSS_RG ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to open %s, rc=%d", _fullPathName, rc ) ;
-         goto error ;
+         if ( SDB_FNE == rc && !createNew && _canRecreateNew() )
+         {
+            mode |= OSS_CREATEONLY ;
+            PD_LOG ( PDWARNING, "Try to recreate storage unit file[%s], "
+                     "mode:0x%08x", _fullPathName, mode ) ;
+            // open the file, create one if not exist
+            rc = ossMmapFile::open ( _fullPathName, mode, OSS_RU|OSS_WU|OSS_RG ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recreate storeage unit file: %s, "
+                         "rc: %d", _fullPathName, rc ) ;
+            createNew = TRUE ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Failed to open %s, rc=%d", _fullPathName, rc ) ;
+            goto error ;
+         }
       }
       if ( createNew )
       {
@@ -845,6 +915,11 @@ namespace engine
                  ( _isCrash ? "Invalid" : "Valid" ), _commitFlag,
                  _dmsHeader->_commitLsn,
                  strTime, _dmsHeader->_commitTime ) ;
+      }
+      else
+      {
+         _dmsHeader->_createTime = ossGetCurrentMilliseconds() ;
+         _dmsHeader->_updateTime = _dmsHeader->_createTime ;
       }
 
       // SME, 16MB
@@ -1095,6 +1170,8 @@ namespace engine
          goto error ;
       }
 
+      _onHeaderUpdated() ;
+
 #ifdef _WINDOWS
       /// modify the header
       ossStrncpy( _dmsHeader->_name, csName, DMS_SU_NAME_SZ ) ;
@@ -1164,7 +1241,7 @@ namespace engine
       if ( _dmsHeader )
       {
          _dmsHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
-
+         _onHeaderUpdated() ;
          flushHeader( TRUE ) ;
       }
 
@@ -1177,9 +1254,13 @@ namespace engine
 
       _lobPageSize = lobPageSize ;
       _pStorageInfo->_lobdPageSize = lobPageSize ;
-      _dmsHeader->_lobdPageSize = lobPageSize ;
 
-      flushHeader( TRUE ) ;
+      if ( _dmsHeader )
+      {
+         _dmsHeader->_lobdPageSize = lobPageSize ;
+         _onHeaderUpdated() ;
+         flushHeader( TRUE ) ;
+      }
 
       return rc ;
    }
@@ -1660,22 +1741,12 @@ namespace engine
       {
          // extend file size
       retry:
-         if ( _pStorageInfo->_enableSparse )
-         {
-#if defined( _LINUX )
-            rc = ossFallocate( &_file, 0, fileSize, incFileSize ) ;
-#else
-            rc = ossExtentBySparse( &_file, incFileSize ) ;
-#endif
-         }
-         else
-         {
-            rc = ossExtendFile( &_file, incFileSize ) ;
-         }
+         rc = ossExtend( &_file, fileSize, incFileSize,
+                         _pStorageInfo->_enableSparse ) ;
          if ( rc )
          {
             INT32 rc1 = SDB_OK ;
-            PD_LOG ( PDERROR, "Failed to extend storage unit for %llu "
+            PD_LOG ( PDWARNING, "Failed to extend storage unit for %llu "
                      "bytes, sparse:%s, rc: %d", incFileSize,
                      _pStorageInfo->_enableSparse ? "TRUE" : "FALSE", rc ) ;
 
@@ -1861,14 +1932,15 @@ namespace engine
    INT32 _dmsStorageBase::_findFreeSpace( UINT16 numPages, SINT32 & foundPage,
                                           dmsContext *context )
    {
-      UINT32 segmentSize = 0 ;
+      UINT32 totalDataPageNum = 0 ;
       INT32 rc = SDB_OK ;
       INT32 rc1 = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
 
       while ( TRUE )
       {
-         rc = _smeMgr.reservePages( numPages, foundPage, &segmentSize ) ;
+         totalDataPageNum = _pageNum ;
+         rc = _smeMgr.reservePages( numPages, foundPage ) ;
          if ( rc )
          {
             goto error ;
@@ -1883,7 +1955,9 @@ namespace engine
          // then we should call extendSegments
          if ( ossTestAndLatch( _segmentLatch.get(), EXCLUSIVE ) )
          {
-            if ( segmentSize != _smeMgr.segmentNum() )
+            // double check to avoid extending segment multiple times,
+            // _pageNum will be updated if extending segment has happened
+            if ( totalDataPageNum != _pageNum  )
             {
                ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
                continue ;
@@ -2206,6 +2280,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__MARKHEADEERVALID ) ;
+      BOOLEAN setHeadCommFlgValid = TRUE ;
 
       if ( _dmsHeader )
       {
@@ -2223,14 +2298,18 @@ namespace engine
             ossScopedLock lock( &_commitLatch ) ;
             if ( _commitFlag || force )
             {
-               _onMarkHeaderValid( lastLSN, sync, lastTime ) ;
+               _onMarkHeaderValid( lastLSN, sync, lastTime,
+                                   setHeadCommFlgValid ) ;
 
                tmpCommitFlag = _isCrash ? 0 : _commitFlag ;
                if ( hasFlushedData ||
                     tmpCommitFlag != _dmsHeader->_commitFlag ||
                     lastLSN != _dmsHeader->_commitLsn )
                {
-                  _dmsHeader->_commitFlag = tmpCommitFlag ;
+                  if ( setHeadCommFlgValid )
+                  {
+                     _dmsHeader->_commitFlag = tmpCommitFlag ;
+                  }
                   _dmsHeader->_commitLsn = lastLSN ;
                   _dmsHeader->_commitTime = lastTime ;
                   /// flush header

@@ -45,13 +45,15 @@ yum makecache fast
 yum install openssl-devel
 yum -y erase cmake
 yum -y install cmake3 gcc-c++ libstdc++-devel libcurl-devel zlib-devel
-cd /usr/bin; ln -s cmake3 cmake
+cd /usr/bin 
+ln -s cmake3 cmake
 ```
 
 7. 准备源码
 ```lang-bash
 tar -zxf 1.0.164.tar.gz -C /tmp
-mkdir -p /tmp/build; cd /tmp/build
+mkdir -p /tmp/build 
+cd /tmp/build
 cmake -DCMAKE_BUILD_TYPE=Release /tmp/aws-sdk-cpp-1.0.164
 ```
 
@@ -73,7 +75,9 @@ make install DESTDIR=/tmp/install -C aws-cpp-sdk-s3
 1. 创建文件 `s3example.cpp`
 
    ```lang-bash
-   mkdir /opt/s3cpp;touch s3example.cpp
+   mkdir /opt/s3cpp
+   cd /opt/s3cpp
+   touch s3example.cpp
    ```
 
 2. 将下面代码块复制到 `s3example.cpp` 文件中，保存并退出

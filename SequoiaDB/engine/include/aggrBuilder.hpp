@@ -45,6 +45,7 @@
 #include "qgmParamTable.hpp"
 #include "qgmPlanContainer.hpp"
 #include "sdbInterface.hpp"
+#include "rtnFetchBase.hpp"
 #include <map>
 #include <vector>
 
@@ -126,18 +127,12 @@ namespace engine
                                INT64 skip,
                                INT64 limit,
                                _pmdEDUCB *cb,
-                               SINT64 &contextID ) ;
+                               SINT64 &contextID,
+                               IRtnMonProcessorPtr monPtr = IRtnMonProcessorPtr() ) ;
 
          INT32    parseUserAggr( const BSONObj &hint,
                                  vector< BSONObj > &vecObj,
                                  BSONObj &newHint ) ;
-
-         INT32    parseMatcher( const BSONObj &query,
-                                BSONObj &nodesMatcher,
-                                BSONObj &newMatcher,
-                                BOOLEAN ignoreNodeParam = FALSE,
-                                BOOLEAN ignoreCtrlParam = FALSE ) ;
-
    } ;
    typedef _aggrCmdBase aggrCmdBase ;
 

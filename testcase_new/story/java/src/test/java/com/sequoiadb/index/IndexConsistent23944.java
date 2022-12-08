@@ -87,7 +87,10 @@ public class IndexConsistent23944 extends SdbTestBase {
             if ( createIndex.getRetCode() != SDBError.SDB_DMS_NOTEXIST
                     .getErrorCode()
                     && createIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
-                            .getErrorCode() ) {
+                            .getErrorCode()
+                    && createIndex
+                            .getRetCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
+                                    .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }
 

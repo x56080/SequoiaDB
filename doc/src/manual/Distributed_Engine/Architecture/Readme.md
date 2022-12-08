@@ -1,5 +1,5 @@
 
-SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库。下图为 SequoiaDB 的逻辑架构图：
+SequoiaDB 巨杉数据库是一款金融级分布式数据库。下图为 SequoiaDB 的逻辑架构图：
 ![系统逻辑架构][sequoiadb_infrastructure]
 
 SequoiaDB 整体架构由几个主要部分组成：

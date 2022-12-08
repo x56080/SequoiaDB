@@ -337,6 +337,7 @@ namespace engine
                                         BSONObj &originalObj,
                                         BSONObj &newObj,
                                         _pmdEDUCB *cb,
+                                        BOOLEAN isRollback,
                                         const ixmIdxHashBitmap &idxHashBitmap,
                                         utilWriteResult *pResult = NULL ) ;
 
@@ -377,13 +378,16 @@ namespace engine
 
          virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                             BOOLEAN sync,
-                                            UINT64 lastTime ) ;
+                                            UINT64 lastTime,
+                                            BOOLEAN &setHeadCommFlgValid ) ;
 
          virtual INT32  _onMarkHeaderInvalid( INT32 collectionID ) ;
 
          virtual UINT64 _getOldestWriteTick() const ;
 
          virtual void   _onRestore() ;
+
+         virtual BOOLEAN _canRecreateNew() ;
 
          INT32 _allocateIdxID( _dmsMBContext *context,
                                const CHAR *indexName,

@@ -955,10 +955,10 @@ namespace engine
          string returnStr;
          BOOLEAN hasError = FALSE ;
          BSONObj errorObject ;
-
+         pmdCfgRecord::controlParams cp( TRUE ) ;
          // update options ( will notify config changed to all STPCB modules
          // internally )
-         rc = _stpCB->getOptions()->update( _configs, FALSE, errorObject ) ;
+         rc = _stpCB->getOptions()->update( _configs, FALSE, cp, errorObject ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update config options, "
                       "rc: %d", rc ) ;
 

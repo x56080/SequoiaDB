@@ -108,6 +108,10 @@ INT32 clientAppendInsertMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,
                                  const CHAR *insertor,
                                  BOOLEAN endianConvert ) ;
 
+INT32 clientAppendHint2InsertMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                     const CHAR *hint,
+                                     BOOLEAN endianConvert ) ;
+
 INT32 clientBuildInsertMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,
                                 const CHAR *CollectionName,
                                 SINT32 flag, UINT64 reqID,
@@ -214,6 +218,9 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                              bson *insertor,
                              bson *hint,
                              BOOLEAN endianConvert ) ;
+
+INT32 clientAppendHint2InsertMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                  bson *hint, BOOLEAN endianConvert ) ;
 
 INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                        UINT64 reqID,

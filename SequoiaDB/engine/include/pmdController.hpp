@@ -84,6 +84,7 @@ namespace engine
          void           unregNet( _netFrame *pNetFrame ) ;
 
          restAdaptor*   getRestAdptor() { return &_restAdptor ; }
+         RestToMSGTransfer* getRestTransfer() { return &_restTransfer ; }
          pmdRemoteSessionMgr* getRSManager() { return _pRSManager ; }
 
       public:
@@ -139,6 +140,7 @@ namespace engine
          INT32                                  _restTimeout ;
 
          restAdaptor                            _restAdptor ;
+         RestToMSGTransfer                      _restTransfer ;
          pmdRemoteSessionMgr                    *_pRSManager ;
 
          map< _netFrame*, netFrameMon >         _mapMonNets ;

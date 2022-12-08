@@ -12,26 +12,23 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to force a standby node to be upgraded to the primary node in a replication group that does not meet the election conditions. Please use this command with caution.
+This function is used to forcibly promote the standby node to the primary node in a replication group that is not eligible for election. Before upgrading, make sure that the LSN of the target node is the maximum value in the group. If a node with a smaller LSN is forcibly promoted to master, data will be rolled back. Users can obtain node LSN information through [Node Health Detection Snapshot][SDB_SNAP_HEALTH].
+
+>**Note:**
+>
+> This function is only supported in catalog replication groups.
 
 ##PARAMETERS##
 
-|Name      |type        |Description  |Required or not |
-|--------- |----------- |------------ |----------|
-|options   |object      |Parameter set.   | not |
+options ( *object, optional* )
 
-options:
+Modify the duration of the primary node through the parameter "options":
 
-|Name    |type      |Description                           |Default|
-|--------- |---------- |------------------------------ |--------|
-|Seconds   |number     |Duration of mandatory upgrade to primary node.   |120|
+- Seconds ( *number* ): The duration of the forced upgrade to the master node, in seconds, the default value is 120.
 
-> **Note:**
->
-> * This function is currently only available in the catalog group.
-> * The primary node cannot exist in the target replication group, and the LSN of other nodes cannot be greater than the LSN of the target node.
-> * When the duration expires, all nodes will reelect according to the election rules.
-> * If a user is created, the catalog node cannot be directly connected. Users can first modify the auth parameter in the configuration file of the catalog node, and configure auth=false to turn off the authentication function of catalog. Then restart the cluster before proceeding.
+    When the specified time is exceeded, the replication group will be re-elected according to the election rule.
+
+    Format: `Seconds: 300`
 
 ##RETURN VALUE##
 
@@ -45,21 +42,32 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-v2.0 and above
+v5.0 and above
 
 ##EXAMPLES##
 
-Connect catalog node `hostname1:30000` and force it to be promoted to primary node for 300s.
+1. Connect to catalog node 11800.
 
-```lang-javascript
-> var db = new Sdb("hostname1", 30000)
-> db.forceStepUp({Seconds: 300})
-```
+    ```lang-javascript
+    > var cata = new Sdb("localhost", 11800)
+    ```
+
+    >**Note:**
+    >
+    > If the catalog node cannot be connected, the node parameter "auth" needs to be configured to false. For the configurationmethod, can refer to [Parameter Configuration][parameter].
+
+2. Forcibly promote catalog node 11800 to master with a specified duration of 300 seconds.
+
+    ```lang-javascript
+    > cata.forceStepUp({Seconds: 300})
+    ```
 
 
 [^_^]:
-   links
+     Links
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[SDB_SNAP_HEALTH]:manual/Manual/Snapshot/SDB_SNAP_HEALTH.md
+[parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md

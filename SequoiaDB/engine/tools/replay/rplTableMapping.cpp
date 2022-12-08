@@ -73,7 +73,7 @@ namespace replay
 
       //TODO: ubuntu compile error because of redefine strchr in cstring
       dotPos = ossStrchr( ( CHAR *)sourceFullName, '.' ) ;
-      if ( NULL == dotPos || dotPos == sourceFullName || dotPos + 1 == '\0' )
+      if ( NULL == dotPos || dotPos == sourceFullName || '\0' == (dotPos + 1)[0] )
       {
          rc = SDB_INVALIDARG ;
          PD_RC_CHECK( rc, PDERROR, "Source name(%s) is invalid, rc = %d",
@@ -96,7 +96,7 @@ namespace replay
 
       //TODO: ubuntu compile error because of redefine strchr in cstring
       dotPos = ossStrchr( (CHAR *)targetFullName, '.' ) ;
-      if ( NULL == dotPos || dotPos == targetFullName || dotPos + 1 == '\0' )
+      if ( NULL == dotPos || dotPos == targetFullName || '\0' == (dotPos + 1)[0] )
       {
          rc = SDB_INVALIDARG ;
          PD_RC_CHECK( rc, PDERROR, "Target name(%s) is invalid, rc = %d",

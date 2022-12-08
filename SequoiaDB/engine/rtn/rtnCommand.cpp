@@ -63,8 +63,9 @@
 using namespace bson ;
 using namespace std ;
 
-#define RTN_MIN_TRACE_BUFFER_SIZE 1
-#define RTN_MAX_TRACE_BUFFER_SIZE 1024
+#define RTN_MIN_TRACE_BUFFER_SIZE     1
+#define RTN_MAX_TRACE_BUFFER_SIZE     1024
+#define RTN_CONFIG_NAME_BUFFER_SIZE   32
 
 namespace engine
 {
@@ -2162,6 +2163,8 @@ namespace engine
                                     SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                     INT16 w , INT64 *pContextID )
    {
+      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
       return rtnTestCollectionCommand ( _objName, dmsCB ) ;
    }
 
@@ -2188,6 +2191,7 @@ namespace engine
                                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                          INT16 w , INT64 *pContextID )
    {
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
       return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
    }
 
@@ -2366,6 +2370,7 @@ error:
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnUpdateConfig)
 
    _rtnUpdateConfig::_rtnUpdateConfig()
+   : _isForce( FALSE )
    {
    }
 
@@ -2394,45 +2399,82 @@ error:
       BSONObj options = BSONObj( pMatcherBuff ) ;
       BSONObj cfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
       _newCfgObj.getOwned() ;
+      _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
       BSONObjBuilder newObjBuilder ;
+      CHAR *lowerFieldName = NULL ;
+      UINT32 buffSize = 0 ;
 
       try
       {
-         BSONObjIterator iter( cfgObj );
+         BSONObjIterator iter( cfgObj ) ;
+         lowerFieldName = (CHAR *)SDB_OSS_MALLOC( RTN_CONFIG_NAME_BUFFER_SIZE ) ;
+         buffSize = RTN_CONFIG_NAME_BUFFER_SIZE ;
+         if ( !lowerFieldName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto error ;
+         }
          while ( iter.more() )
          {
             BSONElement ele = iter.next() ;
+            const CHAR *srcFieldName = ele.fieldName() ;
+            if ( buffSize < ossStrlen( srcFieldName ) + 1 )
+            {
+               CHAR *newLowerFieldName = (CHAR *)SDB_OSS_REALLOC( lowerFieldName,
+                                                                  ossStrlen( srcFieldName) + 1 ) ;
+               if ( !newLowerFieldName )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+                  goto error ;
+               }
+               lowerFieldName = newLowerFieldName ;
+               buffSize = ossStrlen( srcFieldName ) + 1 ;
+            }
+            ossMemset( lowerFieldName, 0, buffSize ) ;
+            rc = utilStrToLower( srcFieldName, lowerFieldName, buffSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
+               goto error ;
+            }
             if ( ele.isNumber() || String == ele.type() )
             {
-               newObjBuilder.append( ele ) ;
+               newObjBuilder.appendAs( ele, lowerFieldName ) ;
             }
             else if ( Bool == ele.type() )
             {
-               newObjBuilder.append( ele.fieldName(), ele.Bool() ?
+               newObjBuilder.append( lowerFieldName, ele.Bool() ?
                                      "TRUE" : "FALSE" ) ;
             }
             else
             {
-               PD_LOG( PDERROR, "Field[%s] type[%d] is not "
-                       "number/boolean/string", ele.fieldName(),
-                       ele.type() ) ;
                rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Field[%s] type[%d] is not number/boolean/string, rc: %d",
+                       ele.fieldName(), ele.type(), rc ) ;
                goto error ;
             }
          }
+         _newCfgObj = newObjBuilder.obj() ;
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDWARNING, "Exception during updateConf init: %s",
-                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDWARNING, "Exception during updateConf init: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
       }
 
-      _newCfgObj = newObjBuilder.obj() ;
-
-      done:
-         return rc ;
-      error:
-         goto done ;
+   done:
+      if ( NULL != lowerFieldName )
+      {
+         SDB_OSS_FREE( lowerFieldName ) ;
+         lowerFieldName = NULL ;
+      }
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _rtnUpdateConfig::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
@@ -2444,7 +2486,7 @@ error:
       BSONObj returnObj ;
       pmdOptionsCB tmpOptionsCB ;
       BSONObj userConfig ;
-
+      pmdCfgRecord::controlParams cp( _isForce ) ;
       // check config value validity
       rc = tmpOptionsCB.restore( _newCfgObj, NULL ) ;
       if ( rc )
@@ -2464,7 +2506,7 @@ error:
 
       rc = optCB->update( userConfig, FALSE, returnObj ) ;
       */
-      rc = optCB->update( _newCfgObj, FALSE, returnObj ) ;
+      rc = optCB->update( _newCfgObj, FALSE, cp, returnObj ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Update config[%s] failed, rc: %d",
@@ -2492,6 +2534,7 @@ error:
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDeleteConfig)
 
    _rtnDeleteConfig::_rtnDeleteConfig()
+   : _isForce( TRUE )
    {
    }
 
@@ -2509,6 +2552,82 @@ error:
       return CMD_DELETE_CONFIG ;
    }
 
+   INT32 _rtnDeleteConfig::_fillAliasNameToDelConf()
+   {
+      INT32 rc = SDB_OK ;
+      CHAR *lowerFieldName = NULL ;
+      UINT32 buffSize = 0 ;
+      if ( _newCfgObj.isEmpty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         BSONObjBuilder newCfgBob ;
+         BSONObjIterator itr( _newCfgObj ) ;
+         lowerFieldName = (CHAR *)SDB_OSS_MALLOC( RTN_CONFIG_NAME_BUFFER_SIZE ) ;
+         buffSize = RTN_CONFIG_NAME_BUFFER_SIZE ;
+         if ( !lowerFieldName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto error ;
+         }
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            const CHAR *fieldName = ele.fieldName() ;
+            if ( buffSize < ossStrlen( fieldName ) + 1 )
+            {
+               CHAR *newLowerFieldName = (CHAR *)SDB_OSS_REALLOC( lowerFieldName,
+                                                                  ossStrlen( fieldName ) + 1 ) ;
+               if ( !newLowerFieldName )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+                  goto error ;
+               }
+               lowerFieldName = newLowerFieldName ;
+               buffSize = ossStrlen( fieldName ) + 1 ;
+            }
+            ossMemset( lowerFieldName, 0, buffSize ) ;
+            rc = utilStrToLower( fieldName, lowerFieldName, buffSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
+               goto error ;
+            }
+            const CHAR *aliasName = pmdGetConfigAliasName( lowerFieldName ) ;
+            newCfgBob.append( lowerFieldName, 1 ) ;
+            if ( *aliasName &&
+                 !_newCfgObj.hasField( aliasName ) )
+            {
+               newCfgBob.append( aliasName, 1 ) ;
+            }
+            newCfgBob.append( ele ) ;
+         }
+         _newCfgObj = newCfgBob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when filling alias name "
+                 "to delete config: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( NULL != lowerFieldName )
+      {
+         SDB_OSS_FREE( lowerFieldName ) ;
+         lowerFieldName = NULL ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _rtnDeleteConfig::init( INT32 flags, INT64 numToSkip,
                                  INT64 numToReturn,
                                  const CHAR *pMatcherBuff,
@@ -2516,11 +2635,30 @@ error:
                                  const CHAR * pOrderByBuff,
                                  const CHAR * pHintBuff )
    {
-      BSONObj options = BSONObj( pMatcherBuff ) ;
-      _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
-      _newCfgObj.getOwned() ;
+      INT32 rc = SDB_OK ;
 
-      return SDB_OK ;
+      try
+      {
+         BSONObj options = BSONObj( pMatcherBuff ) ;
+
+         _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
+         _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
+         rc = _fillAliasNameToDelConf() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to fill alias name to delete "
+                      "config, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when initing deleteConf "
+                 "command: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _rtnDeleteConfig::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
@@ -2532,6 +2670,7 @@ error:
       BSONObj returnObj ;
       BSONObj currentConf ;
       BSONObjBuilder deleteConfBuilder ;
+      pmdCfgRecord::controlParams cp( TRUE ) ;
 
       rc = optCB->toBSON( currentConf, 0 ) ;
       if ( rc )
@@ -2560,7 +2699,7 @@ error:
          goto error ;
       }
 
-      rc = optCB->update( deleteConfBuilder.obj(), TRUE, returnObj ) ;
+      rc = optCB->update( deleteConfBuilder.obj(), TRUE, cp, returnObj ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Delete config[%s] failed, rc: %d",
@@ -5095,7 +5234,7 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTORECHK_RUNTEST, &rc);
-      
+
       // restoreCheck on a data node is a type of rollback test
       rtnPITRollbackManager rollbackTester(cb, _time, DPS_TRANS_ID());
       if ((rc = rollbackTester.test()) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)

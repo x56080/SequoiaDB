@@ -53,12 +53,15 @@ namespace engine
    */
    _coordMsgOperator::_coordMsgOperator()
    {
-      const static string s_name( "Msg" ) ;
-      setName( s_name ) ;
    }
 
    _coordMsgOperator::~_coordMsgOperator()
    {
+   }
+
+   const CHAR* _coordMsgOperator::getName() const
+   {
+      return "Msg" ;
    }
 
    INT32 _coordMsgOperator::execute( MsgHeader *pMsg,

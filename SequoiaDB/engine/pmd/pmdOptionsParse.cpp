@@ -38,6 +38,7 @@
 
 #include "pmdOptionsParse.hpp"
 #include "msg.hpp"
+#include "pmdOptions.h"
 
 namespace engine
 {
@@ -75,7 +76,7 @@ namespace engine
 
       specInstance = PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       curPreferInstStr = ossStrtok( preferInstStrCopy, ",", &lastParsed ) ;
-      while ( NULL != curPreferInstStr && '\0' != curPreferInstStr )
+      while ( NULL != curPreferInstStr && '\0' != curPreferInstStr[0] )
       {
          hasParsed = FALSE ;
          if ( 0 == ossStrcasecmp( curPreferInstStr,
@@ -128,11 +129,24 @@ namespace engine
             {
                try
                {
-                  instanceList.push_back( ( UINT8 )curPrefInstInt ) ;
+                  // Remove duplicate instance id.
+                  ossPoolList<UINT8>::const_iterator itr = instanceList.begin() ;
+                  while ( itr != instanceList.end() )
+                  {
+                     if ( curPrefInstInt == *itr )
+                     {
+                        break ;
+                     }
+                     ++itr ;
+                  }
+                  if ( itr == instanceList.end() )
+                  {
+                     instanceList.push_back( ( UINT8 )curPrefInstInt ) ;
+                  }
                }
                catch( std::exception &e )
                {
-                  rc = SDB_OOM ;
+                  rc = ossException2RC( &e ) ;
                   PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
                   goto error ;
                }
@@ -245,6 +259,55 @@ namespace engine
             break ;
       }
       return "Unknown" ;
+   }
+
+   const CHAR* pmdGetConfigAliasName( const CHAR* config )
+   {
+      if ( NULL == config )
+      {
+         return "" ;
+      }
+
+      // preferedinstance / preferredinstance
+      if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST ) )
+      {
+         return PMD_OPTION_PREFINST ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST ) )
+      {
+         return PMD_OPTION_PREFERREDINST ;
+      }
+      // preferedinstancemode / preferredinstancemode
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST_MODE ) )
+      {
+         return PMD_OPTION_PREFINST_MODE ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST_MODE ) )
+      {
+         return PMD_OPTION_PREFERREDINST_MODE ;
+      }
+      // preferedstrict / preferredstrict
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST_STRICT ) )
+      {
+         return PMD_OPTION_PREFINST_STRICT ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST_STRICT ) )
+      {
+         return PMD_OPTION_PREFERREDINST_STRICT ;
+      }
+      // --preferedperiod / --preferredperiod
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFERREDINST_PERIOD ) )
+      {
+         return PMD_OPTION_PREFINST_PERIOD ;
+      }
+      else if ( 0 == ossStrcmp( config, PMD_OPTION_PREFINST_PERIOD ) )
+      {
+         return PMD_OPTION_PREFERREDINST_PERIOD ;
+      }
+      else
+      {
+         return "" ;
+      }
    }
 }
 

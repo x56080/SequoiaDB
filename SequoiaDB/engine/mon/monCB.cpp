@@ -58,6 +58,48 @@ namespace engine
    }
 
    /*
+      _monCRUDCB implement
+   */
+
+   void _monCRUDCB::_increase( MON_OPERATION_TYPES op, UINT64 delta )
+   {
+      if ( delta <= 0 )
+      {
+         return ;
+      }
+      increaseOnce( op, delta ) ;
+   }
+
+   void _monCRUDCB::incMetrics( const _monAppCB &delta )
+   {
+      // FIXME: Temporary shielding the follow metrics to avoid
+      // double submit, for they had submitted in real time
+      /*
+      // update operation count
+      _increase( MON_DATA_READ, delta.totalDataRead ) ;
+      _increase( MON_INDEX_READ, delta.totalIndexRead ) ;
+      _increase( MON_DATA_WRITE, delta.totalDataWrite ) ;
+      _increase( MON_INDEX_WRITE, delta.totalIndexWrite ) ;
+      _increase( MON_UPDATE, delta.totalUpdate ) ;
+      _increase( MON_DELETE, delta.totalDelete ) ;
+      _increase( MON_INSERT, delta.totalInsert ) ;
+      _increase( MON_SELECT, delta.totalSelect ) ;
+      _increase( MON_READ, delta.totalRead ) ;
+      */
+      _increase( MON_LOB_GET, delta.totalLobGet ) ;
+      _increase( MON_LOB_PUT, delta.totalLobPut ) ;
+      _increase( MON_LOB_DELETE, delta.totalLobDelete ) ;
+      _increase( MON_LOB_LIST, delta.totalLobList ) ;
+      _increase( MON_LOB_READ, delta.totalLobRead ) ;
+      _increase( MON_LOB_WRITE, delta.totalLobWrite ) ;
+      _increase( MON_LOB_TRUNCATE, delta.totalLobTruncate ) ;
+      _increase( MON_LOB_ADDRESSING, delta.totalLobAddressing ) ;
+      // update byte count
+      _increase( MON_LOB_READ_BYTES, delta.totalLobReadSize ) ;
+      _increase( MON_LOB_WRITE_BYTES, delta.totalLobWriteSize ) ;
+   }
+
+   /*
       _monDBCB implement
    */
    _monDBCB::_monDBCB()
@@ -70,16 +112,29 @@ namespace engine
    {
       ossAtomicExchange64( &totalDataRead, 0 ) ;
       ossAtomicExchange64( &totalIndexRead, 0 ) ;
-      ossAtomicExchange64( &totalLobRead, 0 ) ;
       ossAtomicExchange64( &totalDataWrite, 0 ) ;
       ossAtomicExchange64( &totalIndexWrite, 0 ) ;
-      ossAtomicExchange64( &totalLobWrite, 0 ) ;
 
       ossAtomicExchange64( &totalUpdate, 0 ) ;
       ossAtomicExchange64( &totalDelete, 0 ) ;
       ossAtomicExchange64( &totalInsert, 0 ) ;
       ossAtomicExchange64( &totalSelect, 0 ) ;
       ossAtomicExchange64( &totalRead, 0 ) ;
+      ossAtomicExchange64( &totalGeneralQuery, 0 ) ;
+      ossAtomicExchange64( &totalGeneralSlowQuery, 0 ) ;
+      ossAtomicExchange64( &totalTransCommit, 0 ) ;
+      ossAtomicExchange64( &totalTransRollback, 0 ) ;
+
+      ossAtomicExchange64( &totalLobGet, 0 ) ;
+      ossAtomicExchange64( &totalLobPut, 0 ) ;
+      ossAtomicExchange64( &totalLobDelete, 0 ) ;
+      ossAtomicExchange64( &totalLobList, 0 ) ;
+      ossAtomicExchange64( &totalLobReadSize, 0 ) ;
+      ossAtomicExchange64( &totalLobWriteSize, 0 ) ;
+      ossAtomicExchange64( &totalLobRead, 0 ) ;
+      ossAtomicExchange64( &totalLobWrite, 0 ) ;
+      ossAtomicExchange64( &totalLobTruncate, 0 ) ;
+      ossAtomicExchange64( &totalLobAddressing, 0 ) ;
 
       ossAtomicExchange64( &receiveNum, 0 ) ;
 
@@ -100,16 +155,30 @@ namespace engine
    {
       totalDataRead             = rhs.totalDataRead ;
       totalIndexRead            = rhs.totalIndexRead ;
-      totalLobRead              = rhs.totalLobRead ;
       totalDataWrite            = rhs.totalDataWrite ;
       totalIndexWrite           = rhs.totalIndexWrite ;
-      totalLobWrite             = rhs.totalLobWrite ;
 
       totalUpdate               = rhs.totalUpdate ;
       totalDelete               = rhs.totalDelete ;
       totalInsert               = rhs.totalInsert ;
       totalSelect               = rhs.totalSelect ;
       totalRead                 = rhs.totalRead ;
+
+      totalGeneralQuery         = rhs.totalGeneralQuery ;
+      totalGeneralSlowQuery     = rhs.totalGeneralSlowQuery ;
+      totalTransCommit          = rhs.totalTransCommit ;
+      totalTransRollback        = rhs.totalTransRollback ;
+
+      totalLobGet               = rhs.totalLobGet ;
+      totalLobPut               = rhs.totalLobPut ;
+      totalLobDelete            = rhs.totalLobDelete ;
+      totalLobList              = rhs.totalLobList ;
+      totalLobReadSize          = rhs.totalLobReadSize ;
+      totalLobWriteSize         = rhs.totalLobWriteSize ;
+      totalLobRead              = rhs.totalLobRead ;
+      totalLobWrite             = rhs.totalLobWrite ;
+      totalLobTruncate          = rhs.totalLobTruncate ;
+      totalLobAddressing        = rhs.totalLobAddressing ;
 
       receiveNum                = rhs.receiveNum ;
 
@@ -143,6 +212,59 @@ namespace engine
       return FALSE ;
    }
 
+   void _monDBCB::_increase( MON_OPERATION_TYPES op, UINT64 delta )
+   {
+      if ( delta <= 0 )
+      {
+         return ;
+      }
+      if ( MON_COUNTER_OPERATION_NONE <= op && op <= MON_COUNTER_OPERATION_MAX )
+      {
+         monOperationCountInc( op, delta ) ;
+      }
+      else if ( MON_BYTE_COUNT_NONE <= op && op <= MON_BYTE_COUNT_MAX )
+      {
+         monByteCountInc( op, delta ) ;
+      }
+   }
+
+   void _monDBCB::_increase( MON_OPERATION_TYPES op, ossTickDelta &delta )
+   {
+      if ( MON_TIME_OPERATION_NONE <= op && op <= MON_TIME_OPERATION_MAX )
+      {
+         monOperationTimeInc( op, delta ) ;
+      }
+   }
+
+   void _monDBCB::incMetrics( const _monAppCB &delta )
+   {
+      // FIXME: Temporary shielding the follow metrics to avoid
+      // double submit, for they had submitted in real time
+      /*
+      // update operation count
+      _increase( MON_DATA_READ, delta.totalDataRead ) ;
+      _increase( MON_INDEX_READ, delta.totalIndexRead ) ;
+      _increase( MON_DATA_WRITE, delta.totalDataWrite ) ;
+      _increase( MON_INDEX_WRITE, delta.totalIndexWrite ) ;
+      _increase( MON_UPDATE, delta.totalUpdate ) ;
+      _increase( MON_DELETE, delta.totalDelete ) ;
+      _increase( MON_INSERT, delta.totalInsert ) ;
+      _increase( MON_SELECT, delta.totalSelect ) ;
+      _increase( MON_READ, delta.totalRead ) ;
+      */
+      _increase( MON_LOB_GET, delta.totalLobGet ) ;
+      _increase( MON_LOB_PUT, delta.totalLobPut ) ;
+      _increase( MON_LOB_DELETE, delta.totalLobDelete ) ;
+      _increase( MON_LOB_LIST, delta.totalLobList ) ;
+      _increase( MON_LOB_READ, delta.totalLobRead ) ;
+      _increase( MON_LOB_WRITE, delta.totalLobWrite ) ;
+      _increase( MON_LOB_TRUNCATE, delta.totalLobTruncate ) ;
+      _increase( MON_LOB_ADDRESSING, delta.totalLobAddressing ) ;
+      // update byte count
+      _increase( MON_LOB_READ_BYTES, delta.totalLobReadSize ) ;
+      _increase( MON_LOB_WRITE_BYTES, delta.totalLobWriteSize ) ;
+   }
+
    /*
       _monAppCB implement
    */
@@ -155,6 +277,12 @@ namespace engine
       mondbcb = pmdGetKRCB()->getMonDBCB() ;
    }
 
+   _monAppCB::_monAppCB( const _monAppCB &rhs )
+   {
+      reset() ;
+      operator=( rhs ) ;
+   }
+
    _monAppCB &_monAppCB::operator= ( const _monAppCB &rhs )
    {
       mondbcb                   = rhs.mondbcb ;
@@ -162,16 +290,30 @@ namespace engine
 
       totalDataRead             = rhs.totalDataRead ;
       totalIndexRead            = rhs.totalIndexRead ;
-      totalLobRead              = rhs.totalLobRead ;
       totalDataWrite            = rhs.totalDataWrite ;
       totalIndexWrite           = rhs.totalIndexWrite ;
-      totalLobWrite             = rhs.totalLobWrite ;
 
       totalUpdate               = rhs.totalUpdate ;
       totalDelete               = rhs.totalDelete ;
       totalInsert               = rhs.totalInsert ;
       totalSelect               = rhs.totalSelect ;
       totalRead                 = rhs.totalRead ;
+
+      totalGeneralQuery         = rhs.totalGeneralQuery ;
+      totalGeneralSlowQuery     = rhs.totalGeneralSlowQuery ;
+      totalTransCommit          = rhs.totalTransCommit ;
+      totalTransRollback        = rhs.totalTransRollback ;
+
+      totalLobGet               = rhs.totalLobGet ;
+      totalLobPut               = rhs.totalLobPut ;
+      totalLobDelete            = rhs.totalLobDelete ;
+      totalLobList              = rhs.totalLobList ;
+      totalLobReadSize          = rhs.totalLobReadSize ;
+      totalLobWriteSize         = rhs.totalLobWriteSize ;
+      totalLobRead              = rhs.totalLobRead ;
+      totalLobWrite             = rhs.totalLobWrite ;
+      totalLobTruncate          = rhs.totalLobTruncate ;
+      totalLobAddressing        = rhs.totalLobAddressing ;
 
       totalReadTime             = rhs.totalReadTime ;
       totalWriteTime            = rhs.totalWriteTime ;
@@ -205,10 +347,8 @@ namespace engine
    {
       totalDataRead              += rhs.totalDataRead ;
       totalIndexRead             += rhs.totalIndexRead ;
-      totalLobRead               += rhs.totalLobRead ;
       totalDataWrite             += rhs.totalDataWrite ;
       totalIndexWrite            += rhs.totalIndexWrite ;
-      totalLobWrite              += rhs.totalLobWrite ;
 
       totalUpdate                += rhs.totalUpdate ;
       totalDelete                += rhs.totalDelete ;
@@ -216,6 +356,21 @@ namespace engine
       totalSelect                += rhs.totalSelect ;
       totalRead                  += rhs.totalRead ;
 
+      totalGeneralQuery          += rhs.totalGeneralQuery ;
+      totalGeneralSlowQuery      += rhs.totalGeneralSlowQuery ;
+      totalTransCommit           += rhs.totalTransCommit ;
+      totalTransRollback         += rhs.totalTransRollback ;
+
+      totalLobGet                += rhs.totalLobGet ;
+      totalLobPut                += rhs.totalLobPut ;
+      totalLobDelete             += rhs.totalLobDelete ;
+      totalLobList               += rhs.totalLobList ;
+      totalLobReadSize           += rhs.totalLobReadSize ;
+      totalLobWriteSize          += rhs.totalLobWriteSize ;
+      totalLobRead               += rhs.totalLobRead ;
+      totalLobWrite              += rhs.totalLobWrite ;
+      totalLobTruncate           += rhs.totalLobTruncate ;
+      totalLobAddressing         += rhs.totalLobAddressing ;
       totalReadTime              += rhs.totalReadTime ;
       totalWriteTime             += rhs.totalWriteTime ;
 
@@ -223,6 +378,39 @@ namespace engine
       _writeTimeSpent            += rhs._writeTimeSpent ;
 
       return *this ;
+   }
+
+   const _monAppCB _monAppCB::operator- ( const _monAppCB &rhs )
+   {
+      _monAppCB delta ;
+
+      delta.totalDataRead      = MON_APP_DELTA( rhs.totalDataRead, totalDataRead ) ;
+      delta.totalIndexRead     = MON_APP_DELTA( rhs.totalIndexRead, totalIndexRead ) ;
+      delta.totalDataWrite     = MON_APP_DELTA( rhs.totalDataWrite, totalDataWrite ) ;
+      delta.totalIndexWrite    = MON_APP_DELTA( rhs.totalIndexWrite, totalIndexWrite ) ;
+      delta.totalUpdate        = MON_APP_DELTA( rhs.totalUpdate, totalUpdate ) ;
+      delta.totalDelete        = MON_APP_DELTA( rhs.totalDelete, totalDelete ) ;
+      delta.totalInsert        = MON_APP_DELTA( rhs.totalInsert, totalInsert ) ;
+      delta.totalSelect        = MON_APP_DELTA( rhs.totalSelect, totalSelect ) ;
+      delta.totalRead          = MON_APP_DELTA( rhs.totalRead, totalRead ) ;
+
+      delta.totalLobGet        = MON_APP_DELTA( rhs.totalLobGet, totalLobGet ) ;
+      delta.totalLobPut        = MON_APP_DELTA( rhs.totalLobPut, totalLobPut ) ;
+      delta.totalLobDelete     = MON_APP_DELTA( rhs.totalLobDelete, totalLobDelete ) ;
+      delta.totalLobList       = MON_APP_DELTA( rhs.totalLobList, totalLobList ) ;
+      delta.totalLobReadSize   = MON_APP_DELTA( rhs.totalLobReadSize, totalLobReadSize ) ;
+      delta.totalLobWriteSize  = MON_APP_DELTA( rhs.totalLobWriteSize, totalLobWriteSize ) ;
+      delta.totalLobRead       = MON_APP_DELTA( rhs.totalLobRead, totalLobRead ) ;
+      delta.totalLobWrite      = MON_APP_DELTA( rhs.totalLobWrite, totalLobWrite ) ;
+      delta.totalLobTruncate   = MON_APP_DELTA( rhs.totalLobTruncate, totalLobTruncate ) ;
+      delta.totalLobAddressing = MON_APP_DELTA( rhs.totalLobAddressing, totalLobAddressing ) ;
+
+      delta.totalReadTime      = MON_APP_TICK_DELTA( rhs.totalReadTime, totalReadTime ) ;
+      delta.totalWriteTime     = MON_APP_TICK_DELTA( rhs.totalWriteTime, totalWriteTime ) ;
+      delta._readTimeSpent     = MON_APP_TICK_DELTA( rhs._readTimeSpent, _readTimeSpent ) ;
+      delta._writeTimeSpent    = MON_APP_TICK_DELTA( rhs._writeTimeSpent, _writeTimeSpent ) ;
+
+      return delta ;
    }
 
    void _monAppCB::setSvcTaskInfo( monSvcTaskInfo *pSvcTaskInfo )
@@ -246,16 +434,29 @@ namespace engine
    {
       totalDataRead = 0 ;
       totalIndexRead = 0 ;
-      totalLobRead   = 0 ;
       totalDataWrite = 0 ;
       totalIndexWrite = 0 ;
-      totalLobWrite   = 0 ;
 
       totalUpdate = 0 ;
       totalDelete = 0 ;
       totalInsert = 0 ;
       totalSelect = 0 ;
       totalRead  = 0 ;
+
+      totalGeneralQuery     = 0 ;
+      totalGeneralSlowQuery = 0 ;
+      totalTransCommit      = 0 ;
+      totalTransRollback    = 0 ;
+      totalLobGet           = 0 ;
+      totalLobPut           = 0 ;
+      totalLobDelete        = 0 ;
+      totalLobList          = 0 ;
+      totalLobReadSize      = 0 ;
+      totalLobWriteSize     = 0 ;
+      totalLobRead          = 0 ;
+      totalLobWrite         = 0 ;
+      totalLobTruncate      = 0 ;
+      totalLobAddressing    = 0 ;
 
       totalReadTime.clear() ;
       totalWriteTime.clear() ;
@@ -293,7 +494,6 @@ namespace engine
          _lastOpEndTime = pmdGetKRCB()->getCurTime() ;
          ossTickDelta delta = _lastOpEndTime - _lastOpBeginTime ;
          opTimeSpentInc( delta ) ;
-         _lastOpBeginTime.clear() ;
       }
    }
 
@@ -305,6 +505,11 @@ namespace engine
    void _monAppCB::setLastCmdType( INT32 cmdType )
    {
       _cmdType = cmdType ;
+   }
+
+   void _monAppCB::setUnknownCmdType()
+   {
+      _cmdType = CMD_UNKNOW ;
    }
 
    void _monAppCB::opTimeSpentInc( ossTickDelta delta )
@@ -398,6 +603,14 @@ namespace engine
 
    done:
       return ;
+   }
+
+   void _monAppCB::clearLastOpDetail()
+   {
+      _lastOpMsgSaved = FALSE ;
+      // reset first 4 bytes to make sure both length of message and
+      // first char of formatted detail are reset
+      *( (INT32 *)_lastOpDetail ) = 0 ;
    }
 
    void _monAppCB::formatLastOpDetail( const rtnQueryOptions &options )
@@ -556,6 +769,8 @@ namespace engine
      _indexRead( 0 ),
      _lobRead( 0 ),
      _lobWrite( 0 ),
+     _lobTruncate( 0 ),
+     _lobAddressing( 0 ),
      _returnBatches( 0 ),
      _returnRecords( 0 ),
      _startTimestamp(),
@@ -571,6 +786,8 @@ namespace engine
      _indexRead( monCtxCB._indexRead ),
      _lobRead( monCtxCB._lobRead ),
      _lobWrite( monCtxCB._lobWrite ),
+     _lobTruncate( monCtxCB._lobTruncate ),
+     _lobAddressing( monCtxCB._lobAddressing ),
      _returnBatches( monCtxCB._returnBatches ),
      _returnRecords( monCtxCB._returnRecords ),
      _startTimestamp( monCtxCB._startTimestamp ),
@@ -591,13 +808,15 @@ namespace engine
       _indexRead     = 0 ;
       _lobRead       = 0 ;
       _lobWrite      = 0 ;
+      _lobTruncate   = 0 ;
+      _lobAddressing = 0 ;
       _returnBatches = 0 ;
       _returnRecords = 0 ;
       _startTimestamp.clear() ;
       _waitTime.clear() ;
       _queryTime.clear() ;
       _executeTime.clear() ;
-   }
+    }
 
    _monContextCB & _monContextCB::operator = ( const _monContextCB & monCtxCB )
    {
@@ -606,6 +825,8 @@ namespace engine
       _indexRead        = monCtxCB._indexRead ;
       _lobRead          = monCtxCB._lobRead ;
       _lobWrite         = monCtxCB._lobWrite ;
+      _lobTruncate      = monCtxCB._lobTruncate ;
+      _lobAddressing    = monCtxCB._lobAddressing ;
       _returnBatches    = monCtxCB._returnBatches ;
       _returnRecords    = monCtxCB._returnRecords ;
       _startTimestamp   = monCtxCB._startTimestamp ;
@@ -614,6 +835,52 @@ namespace engine
       _executeTime      = monCtxCB._executeTime ;
 
       return ( *this ) ;
+   }
+
+   void _monContextCB::_increase( MON_OPERATION_TYPES op, UINT64 delta )
+   {
+      if ( delta <= 0 )
+      {
+         return ;
+      }
+      switch( op )
+      {
+         case MON_DATA_READ :
+            monDataReadInc( delta ) ;
+            break ;
+         case MON_INDEX_READ :
+            monIndexReadInc( delta ) ;
+            break ;
+         case MON_LOB_READ :
+            monLobReadInc( delta ) ;
+            break ;
+         case MON_LOB_WRITE :
+            monLobWriteInc( delta ) ;
+            break ;
+         case MON_LOB_TRUNCATE :
+            monLobTruncateInc( delta ) ;
+            break ;
+         case MON_LOB_ADDRESSING :
+            monLobAddressingInc( delta ) ;
+            break ;
+         default:
+            break ;
+      }
+   }
+
+   void _monContextCB::incMetrics( const _monAppCB &delta )
+   {
+      // FIXME: Temporary shielding the follow metrics to avoid
+      // double submit, for they had submitted in real time
+      /*
+      // update operation count
+      _increase( MON_DATA_READ, delta.totalDataRead ) ;
+      _increase( MON_INDEX_READ, delta.totalIndexRead ) ;
+      */
+      _increase( MON_LOB_READ, delta.totalLobRead ) ;
+      _increase( MON_LOB_WRITE, delta.totalLobWrite ) ;
+      _increase( MON_LOB_TRUNCATE, delta.totalLobTruncate ) ;
+      _increase( MON_LOB_ADDRESSING, delta.totalLobAddressing ) ;
    }
 
    /*
@@ -639,10 +906,8 @@ namespace engine
       ossAtomicExchange64( &_totalTime, 0 ) ;
       ossAtomicExchange64( &_totalDataRead, 0 ) ;
       ossAtomicExchange64( &_totalIndexRead, 0 ) ;
-      ossAtomicExchange64( &_totalLobRead, 0 ) ;
       ossAtomicExchange64( &_totalDataWrite, 0 ) ;
       ossAtomicExchange64( &_totalIndexWrite, 0 ) ;
-      ossAtomicExchange64( &_totalLobWrite, 0 ) ;
       ossAtomicExchange64( &_totalUpdate, 0 ) ;
       ossAtomicExchange64( &_totalDelete, 0 ) ;
       ossAtomicExchange64( &_totalInsert, 0 ) ;
@@ -651,8 +916,69 @@ namespace engine
       ossAtomicExchange64( &_totalWrite, 0 ) ;
       ossAtomicExchange64( &_totalContexts, 0 ) ;
 
+      ossAtomicExchange64( &_totalLobGet, 0 ) ;
+      ossAtomicExchange64( &_totalLobPut, 0 ) ;
+      ossAtomicExchange64( &_totalLobDelete, 0 ) ;
+      ossAtomicExchange64( &_totalLobList, 0 ) ;
+      ossAtomicExchange64( &_totalLobReadSize, 0 ) ;
+      ossAtomicExchange64( &_totalLobWriteSize, 0 ) ;
+      ossAtomicExchange64( &_totalLobRead, 0 ) ;
+      ossAtomicExchange64( &_totalLobWrite, 0 ) ;
+      ossAtomicExchange64( &_totalLobTruncate, 0 ) ;
+      ossAtomicExchange64( &_totalLobAddressing, 0 ) ;
+
       ossGetCurrentTime( _resetTimestamp ) ;
    }
+
+   void _monSvcTaskInfo::_increase( MON_OPERATION_TYPES op, UINT64 delta )
+   {
+      if ( delta <= 0 )
+      {
+         return ;
+      }
+      if ( MON_COUNTER_OPERATION_NONE <= op && op <= MON_COUNTER_OPERATION_MAX )
+      {
+         monOperationCountInc( op, delta ) ;
+      }
+      else if ( MON_TIME_OPERATION_NONE <= op && op <= MON_TIME_OPERATION_MAX )
+      {
+         monOperationTimeInc( op, delta ) ;
+      }
+      else if ( MON_BYTE_COUNT_NONE <= op && op <= MON_BYTE_COUNT_MAX )
+      {
+         monByteCountInc( op, delta ) ;
+      }
+   }
+
+   void _monSvcTaskInfo::incMetrics( const _monAppCB &delta )
+   {
+      // FIXME: Temporary shielding the follow metrics to avoid
+      // double submit, for they had submitted in real time
+      /*
+      // update operation count
+      _increase( MON_DATA_READ, delta.totalDataRead ) ;
+      _increase( MON_INDEX_READ, delta.totalIndexRead ) ;
+      _increase( MON_DATA_WRITE, delta.totalDataWrite ) ;
+      _increase( MON_INDEX_WRITE, delta.totalIndexWrite ) ;
+      _increase( MON_UPDATE, delta.totalUpdate ) ;
+      _increase( MON_DELETE, delta.totalDelete ) ;
+      _increase( MON_INSERT, delta.totalInsert ) ;
+      _increase( MON_SELECT, delta.totalSelect ) ;
+      _increase( MON_READ, delta.totalRead ) ;
+      */
+      _increase( MON_LOB_GET, delta.totalLobGet ) ;
+      _increase( MON_LOB_PUT, delta.totalLobPut ) ;
+      _increase( MON_LOB_DELETE, delta.totalLobDelete ) ;
+      _increase( MON_LOB_LIST, delta.totalLobList ) ;
+      _increase( MON_LOB_READ, delta.totalLobRead ) ;
+      _increase( MON_LOB_WRITE, delta.totalLobWrite ) ;
+      _increase( MON_LOB_TRUNCATE, delta.totalLobTruncate ) ;
+      _increase( MON_LOB_ADDRESSING, delta.totalLobAddressing ) ;
+      // update byte count
+      _increase( MON_LOB_READ_BYTES, delta.totalLobReadSize ) ;
+      _increase( MON_LOB_WRITE_BYTES, delta.totalLobWriteSize ) ;
+   }
+
 
 }
 

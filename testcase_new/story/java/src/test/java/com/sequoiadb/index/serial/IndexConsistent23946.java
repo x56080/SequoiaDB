@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
 
-import com.sequoiadb.base.DBCursor;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -67,7 +66,7 @@ public class IndexConsistent23946 extends SdbTestBase {
     @Test
     public void test() throws Exception {
         String indexName = "testindex23946";
-        ThreadExecutor es = new ThreadExecutor();
+        ThreadExecutor es = new ThreadExecutor( 300000 );
         CreateIndex createIndex = new CreateIndex( indexName );
         RenameCS renameCS = new RenameCS();
         es.addWorker( createIndex );
@@ -127,10 +126,13 @@ public class IndexConsistent23946 extends SdbTestBase {
     public void tearDown() {
         try {
             if ( runSuccess ) {
-                if ( sdb.isCollectionSpaceExist( csName ) )
+                if ( sdb.isCollectionSpaceExist( csName ) ) {
                     sdb.dropCollectionSpace( csName );
-                if ( sdb.isCollectionSpaceExist( newCSName ) )
+                }
+
+                if ( sdb.isCollectionSpaceExist( newCSName ) ) {
                     sdb.dropCollectionSpace( newCSName );
+                }
             }
         } finally {
             sdb.close();
@@ -187,7 +189,6 @@ public class IndexConsistent23946 extends SdbTestBase {
             String mainclName, String subclName1, String subclName2 ) {
         cs.createCollection( subclName1, ( BSONObject ) JSON
                 .parse( "{ShardingKey:{no:1},AutoSplit:true}" ) );
-        // CollectionSpace cs2 = sdb.getCollectionSpace( SdbTestBase.csName );
         cs.createCollection( subclName2 );
 
         BSONObject optionsM = new BasicBSONObject();
@@ -208,52 +209,36 @@ public class IndexConsistent23946 extends SdbTestBase {
     private void reCreateIndexAndCheckResult( Sequoiadb db, String csName,
             String mainclName, String subclName1, String subclName2,
             String indexName ) throws Exception {
-        // 可能出现创建任务失败取消主任务场景，则任务回滚结束,待问题单http://jira.web:8080/browse/SEQUOIADBMAINSTREAM-8393修复后去掉该方法
-        waitCanceledTask( db, "Create index", newCSName, mainclName );
-        DBCollection dbcl = db.getCollectionSpace( csName )
-                .getCollection( mainclName );
-        dbcl.createIndex( indexName, "{testa:1}", false, false );
-        IndexUtils.checkIndexTask( db, "Create index", csName, mainclName,
-                indexName );
-        IndexUtils.checkIndexTaskResult( db, "Create index", csName, subclName1,
-                indexName, 0 );
-        IndexUtils.checkIndexTaskResult( db, "Create index", csName, subclName2,
-                indexName, 0 );
-        IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
-                true );
-        IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,
-                true );
+        CollectionSpace cs = db.getCollectionSpace( csName );
+        DBCollection dbcl = cs.getCollection( mainclName );
+        if ( !dbcl.isIndexExist( indexName ) ) {
+            dbcl.createIndex( indexName, "{testa:1}", false, false );
+            IndexUtils.checkIndexTask( db, "Create index", csName, mainclName,
+                    indexName );
+            IndexUtils.checkIndexTaskResult( db, "Create index", csName,
+                    subclName1, indexName, 0 );
+            IndexUtils.checkIndexTaskResult( db, "Create index", csName,
+                    subclName2, indexName, 0 );
+            IndexUtils.checkIndexConsistent( db, csName, subclName1, indexName,
+                    true );
+            IndexUtils.checkIndexConsistent( db, csName, subclName2, indexName,
+                    true );
 
-        IndexUtils.checkRecords( dbcl, insertRecords, "",
-                "{'':'" + indexName + "'}" );
-    }
-
-    private void waitCanceledTask( Sequoiadb db, String taskTypeDesc,
-            String csName, String clName ) {
-        BSONObject matcher = new BasicBSONObject();
-        matcher.put( "Name", csName + '.' + clName );
-        matcher.put( "TaskTypeDesc", taskTypeDesc );
-        DBCursor cursor = db.listTasks( matcher, null, null, null );
-        int taskNum = 0;
-        ArrayList< BSONObject > taskInfos = new ArrayList<>();
-        BSONObject taskInfo;
-        long[] taskids = new long[ 5 ];
-        while ( cursor.hasNext() ) {
-            taskInfo = cursor.getNext();
-            long taskid = ( long ) taskInfo.get( "TaskID" );
-            taskids[ taskNum ] = taskid;
-            taskNum++;
-            taskInfos.add( taskInfo );
-        }
-        cursor.close();
-        if ( taskids.length != 0 ) {
-            db.waitTasks( taskids );
-        }
-
-        // 如果出现主任务取消情况，预期最多可以查询到两个主任务信息
-        if ( taskNum > 2 ) {
-            Assert.fail(
-                    "check main task num fail! act taskinfo =" + taskInfos );
+            IndexUtils.checkRecords( dbcl, insertRecords, "",
+                    "{'':'" + indexName + "'}" );
+        } else {
+            boolean isIndexInSubcl1 = cs.getCollection( subclName1 )
+                    .isIndexExist( indexName );
+            boolean isIndexInSubcl2 = cs.getCollection( subclName2 )
+                    .isIndexExist( indexName );
+            // 可能出现其中一个子表创建索引成功，另一个子表索引失败回滚，校验只有一个子表上有索引，另一个子表上索引回滚删除
+            if ( isIndexInSubcl1 ) {
+                Assert.assertFalse( isIndexInSubcl2,
+                        "only one subcl should have index!" );
+            } else {
+                Assert.assertTrue( isIndexInSubcl2,
+                        "only one subcl should have index!" );
+            }
         }
     }
 }

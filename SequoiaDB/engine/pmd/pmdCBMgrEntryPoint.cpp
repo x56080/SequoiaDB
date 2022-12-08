@@ -98,7 +98,7 @@ namespace engine
                {
                   MsgHeader *pMsg = (MsgHeader*)(eventData._Data) ;
                   PD_LOG( PDWARNING, "[%s] Process msg[opCode:[%d]%d, "
-                          "requestID: %lld, TID: %d, Len: %d] over %d millsecs",
+                          "requestID: %lld, TID: %d, Len: %d] over %d microsecs",
                           pObj->name(), IS_REPLY_TYPE(pMsg->opCode),
                           GET_REQUEST_TYPE(pMsg->opCode), pMsg->requestID,
                           pMsg->TID, pMsg->messageLength, timeSpan ) ;

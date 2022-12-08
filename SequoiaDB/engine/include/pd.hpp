@@ -39,13 +39,14 @@
 
 #include "pdErr.hpp"
 
-#define PD_DFT_FILE_NUM             (20)
-#define PD_MIN_FILE_NUM             (-1)
-#define PD_DFT_FILE_SZ              (100)
-#define PD_DFT_DIAGLOG              "sdbdiag.log"
-#define PD_DFT_AUDIT                "sdbaudit.log"
+#define PD_DFT_FILE_NUM               (20)
+#define PD_MIN_FILE_NUM               (-1)
+#define PD_DFT_FILE_SZ                (100)
+#define PD_DFT_DIAGLOG                "sdbdiag.log"
+#define PD_DFT_AUDIT                  "sdbaudit.log"
+#define PD_DFT_LOG_DECRYPT_SUFFIX     ".decrypt"
 
-#define PD_LOG_STRINGMAX            ( 4096 )
+#define PD_LOG_STRINGMAX              ( 4096 )
 
 #ifdef SDB_CLIENT
    #ifdef _DEBUG
@@ -174,7 +175,10 @@ void pdcheck( const CHAR* string, const CHAR* func,
 #define pdcheck(str1,str2,str3,str4)
 #endif
 
-#define LOG_MASK_IXM_DUP_KEY 0x0000000000000001
+#define LOG_MASK_IXM_DUP_KEY     ( 0x0000000000000001 )
+#define LOG_MASK_IXM_ADVANCE_EOC ( 0x0000000000000002 )
+#define LOG_MASK_DMS_CS_NOTEXIST ( 0x0000000000000004 )
+#define LOG_MASK_DMS_NOTEXIST    ( 0x0000000000000008 )
 
 void pdEnableDiaglogSecure() ;
 void pdDisableDiaglogSecure() ;
@@ -189,12 +193,14 @@ BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdIsShieldLog() ;
 void pdPrintShieldInfo() ;
 INT32 pdError( INT32 rc ) ;
+void pdSetShieldRC( INT32 rc ) ;
+void pdClearShieldRC() ;
 
-class pdLogShield
+class pdLogRCShield
 {
 public:
-   pdLogShield() ;
-   ~pdLogShield() ;
+   pdLogRCShield() ;
+   ~pdLogRCShield() ;
    void addRC( INT32 rc ) ;
    void clearRC() ;
 private:

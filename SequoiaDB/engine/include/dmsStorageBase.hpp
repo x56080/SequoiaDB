@@ -98,6 +98,9 @@ namespace engine
 
       utilCSUniqueID _csUniqueID ;
 
+      UINT64      _createTime ;
+      UINT64      _updateTime ;
+
       _dmsStorageInfo ()
       {
          _pageSize      = DMS_PAGE_SIZE_DFT ;
@@ -119,6 +122,9 @@ namespace engine
          _extDataHandler = NULL ;
 
          _csUniqueID     = UTIL_UNIQUEID_NULL ;
+
+         _createTime     = 0 ;
+         _updateTime     = 0 ;
       }
    };
    typedef _dmsStorageInfo dmsStorageInfo ;
@@ -147,7 +153,9 @@ namespace engine
       utilCSUniqueID _csUniqueID ;                       // cs unique id
       UINT32 _segmentSize ;                              // segment size
       utilIdxInnerID _idxInnerHWM ;                      // index InnerID hwm
-      CHAR   _pad [ 65324 ] ;
+      UINT64 _createTime ;                               // create time
+      UINT64 _updateTime ;                               // update time
+      CHAR   _pad [ 65308 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -332,6 +340,7 @@ namespace engine
          INT32                _extentID ;
          INT32                _collectionID ;
          UINT32               _attr ;
+         BOOLEAN              _hasIncWriteCount ;
          ossValuePtr          _ptr ;
          _dmsStorageBase      *_pBase ;
    } ;
@@ -397,6 +406,9 @@ namespace engine
          UINT64               getCommitLSN() const ;
          UINT32               getCommitFlag() const ;
          UINT64               getCommitTime() const ;
+
+         UINT64               getCreateTime() const ;
+         UINT64               getUpdateTime() const ;
 
          void                 restoreForCrash() ;
          BOOLEAN              isCrashed() const ;
@@ -505,6 +517,16 @@ namespace engine
          virtual void  syncMemToMmap () {}
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
+         virtual void incWritePtrCount( INT32 collectionID )
+         {
+            return ;
+         }
+
+         virtual void decWritePtrCount( INT32 collectionID )
+         {
+            return ;
+         }
+
       private:
          void _resetInfoByName( const CHAR *csName ) ;
 
@@ -529,6 +551,7 @@ namespace engine
                                           UINT32 &numSeg,
                                           UINT64 &incFileSize,
                                           UINT32 &incPageNum ) ;
+
          /*
             For Persistence
          */
@@ -540,7 +563,8 @@ namespace engine
 
          virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
                                             BOOLEAN sync,
-                                            UINT64 lastTime )
+                                            UINT64 lastTime,
+                                            BOOLEAN &setHeadCommFlgValid )
          {
             return SDB_OK ;
          }
@@ -561,8 +585,21 @@ namespace engine
 
          virtual void   _onRestore() {}
 
+         virtual BOOLEAN _canRecreateNew() { return FALSE ; }
+
       protected:
          virtual INT32 _extendSegments( UINT32 numSeg ) ;
+
+         virtual void _onHeaderUpdated( UINT64 updateTime = 0 )
+         {
+            if ( NULL != _dmsHeader )
+            {
+               updateTime = ( 0 == updateTime ) ?
+                            ( ossGetCurrentMilliseconds() ) :
+                            ( updateTime ) ;
+               _dmsHeader->_updateTime = updateTime ;
+            }
+         }
 
       protected:
          // No space will extent new segment

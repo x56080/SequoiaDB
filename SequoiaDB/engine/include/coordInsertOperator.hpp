@@ -40,6 +40,8 @@
 #include "coordTransOperator.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
+#include "coordKeyKicker.hpp"
+#include "rtnInsertModifier.hpp"
 
 using namespace bson ;
 
@@ -60,6 +62,8 @@ namespace engine
       public:
          _coordInsertOperator() ;
          virtual ~_coordInsertOperator() ;
+
+         virtual const CHAR* getName() const ;
 
          virtual INT32  execute( MsgHeader *pMsg,
                                  pmdEDUCB *cb,
@@ -179,19 +183,23 @@ namespace engine
                                                   pmdEDUCB *cb,
                                                   coordSendMsgIn &inMsg ) ;
 
+         virtual INT32              _prepareExtraInfoForMsg( netIOVec &iov ) ;
+
       private:
          utilInsertResult  _inResult ;
-         BOOLEAN        _hasRetry ;
+         BOOLEAN           _hasRetry ;
 
-         BOOLEAN        _hasGenerated ;
-         INT64          _lastGenerateID ;
+         BOOLEAN           _hasGenerated ;
+         INT64             _lastGenerateID ;
 
          /*
             For main collection
          */
-         VEC_OBJECT     _vecObject ;
-         GroupSubCLMap  _grpSubCLDatas ;
+         VEC_OBJECT        _vecObject ;
+         GroupSubCLMap     _grpSubCLDatas ;
 
+         rtnInsertModifier _modifier ;
+         const CHAR *      _pHint ;
    } ;
    typedef _coordInsertOperator coordInsertOperator ;
 

@@ -254,6 +254,7 @@ rtnFiles = [
       "rtn/rtnDiskIXScanner.cpp",
       "rtn/rtnMemIXTreeScanner.cpp",
       "rtn/rtnMergeIXScanner.cpp",
+      "rtn/rtnScannerChecker.cpp",
       "rtn/rtnBackup.cpp",
       "rtn/rtnRollbackManager.cpp",
       "rtn/rtnReorg.cpp",
@@ -296,6 +297,7 @@ rtnFiles = [
       "rtn/rtnLobAccessManager.cpp",
       "rtn/rtnLobPieces.cpp",
       "rtn/rtnLobMetaCache.cpp",
+      "rtn/rtnLobMetricsSubmitor.cpp",
       "rtn/rtnIxmKeySorter.cpp",
       "rtn/rtnDictCreatorJob.cpp",
       "rtn/rtnAnalyze.cpp",
@@ -322,7 +324,10 @@ rtnFiles = [
       "rtn/rtnObjectStatAgent.cpp",
       "rtn/rtnObjectStatInfo.cpp",
       "rtn/rtnStatMCVSet.cpp",
-      "rtn/rtnObjectInfoFetcher.cpp"
+      "rtn/rtnObjectInfoFetcher.cpp",
+      "rtn/rtnSnapshotProcessor.cpp",
+      "rtn/rtnHintModifier.cpp",
+      "rtn/rtnInsertModifier.cpp"
       ]
 
 msgFiles = [
@@ -510,7 +515,8 @@ clsFiles = [
       "cls/clsResource.cpp",
       "cls/clsIndexJob.cpp",
       "cls/clsRecycleBinJob.cpp",
-      "cls/clsRecycleBinManager.cpp"
+      "cls/clsRecycleBinManager.cpp",
+      "cls/clsOprHandler.cpp"
       ]
 
 dpsFiles = [
@@ -685,7 +691,8 @@ coordFiles = [
       "coord/coordDSMsgConvertor.cpp",
       "coord/coordRemoteConnection.cpp",
       "coord/coordDSChecker.cpp",
-      "coord/coordCacheAssist.cpp"
+      "coord/coordCacheAssist.cpp",
+      "coord/coordCacheCleaner.cpp"
       ]
 
 aggrFiles = [
@@ -766,7 +773,8 @@ spdFiles = [
        ]
 
 authFiles = [
-      "auth/authCB.cpp"
+      "auth/authCB.cpp",
+      "auth/authRBAC.cpp"
       ]
 
 gtestFiles = [
@@ -811,13 +819,13 @@ stpClientFiles = [
 #      "test/smwrappertest.cpp"
 #      ]
 #LatchTestFiles = [
-#      "test/ossLatchTest.cpp"
+#      "test/oss/ossLatchTest.cpp"
 #      ]
 #ossIOTestFiles = [
-#      "test/ossIOTest.cpp"
+#      "test/oss/ossIOTest.cpp"
 #      ]
 #ossIOTestFiles2 = [
-#      "test/ossIOTest2.cpp"
+#      "test/oss/ossIOTest2.cpp"
 #      ]
 #socketTestFiles = [
 #      "test/socketTest.cpp"
@@ -868,6 +876,15 @@ clsTestFiles = [
       "test/cls/clsTest.cpp",
       "test/cls/clsCataAgentTest.cpp",
       ]
+ossTestFiles = [
+      "test/oss/ossHashFloatTest.cpp"
+      ]
+ossTimeTestFiles = [
+      "test/oss/ossTimeTest.cpp"
+]
+utilStrTestFiles = [
+      "test/util/utilStrTest.cpp"
+]
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"
       ]
@@ -1040,6 +1057,9 @@ dpsgtest = env.Object ( 'dpsgtest',gtestMainFile )
 #nettest = env.Object ( 'nettest', gtestMainFile )
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
+osstest = env.Object('osstest', gtestMainFile)
+ossTimeTest = env.Object('ossTimeTest', gtestMainFile)
+utilstrtest = env.Object('utilstrtest', gtestMainFile)
 ixmgentest = env.Object('ixmgentest', gtestMainFile)
 rtncontexttest = env.Object('rtncontexttest', gtestMainFile)
 mthtest = env.Object('mthtest', gtestMainFile)
@@ -1150,6 +1170,15 @@ if hasTestcase:
    clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   ossTest = env.Program("ossTest", [ ossTestFiles, osstest],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+   ossTimeTest = env.Program("ossTimeTest", [ ossTimeTestFiles, ossTimeTest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+   utilStrTest = env.Program("utilStrTest", [ utilStrTestFiles, utilstrtest],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    ixmgenTest = env.Program("ixmgenTest", [ ixmgenTestFiles, ixmgentest ],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1243,6 +1272,9 @@ if hasTestcase:
 #   env.Install( '#/tests', npipeServerTest )
 #   env.Install( '#/tests', npipeClientTest )
    env.Install( '#/tests', clsTest )
+   env.Install( '#/tests', ossTest )
+   env.Install( '#/tests', ossTimeTest )
+   env.Install( '#/tests', utilStrTest)
    env.Install( '#/tests', ixmgenTest )
    env.Install( '#/tests', idxHashTest )
    env.Install( '#/tests', rtnContextTest )

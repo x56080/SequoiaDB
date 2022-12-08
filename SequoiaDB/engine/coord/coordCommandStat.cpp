@@ -44,6 +44,8 @@
 #include "coordTrace.hpp"
 #include "clsMainCLMonAggregator.hpp"
 #include "monDump.hpp"
+#include "utilMinHeap.hpp"
+
 
 using namespace bson ;
 
@@ -627,7 +629,14 @@ namespace engine
    class _coordIndexStat : public utilPooledObject
    {
       public:
-         static INT32 merge( const _coordIndexStat &from, _coordIndexStat &to ) ;
+         static INT32 mergeWithoutMCV( const _coordIndexStat &from,
+                                       _coordIndexStat &to ) ;
+
+         static INT32 mergeMCV( ossPoolVector< _coordIndexStat > &vec,
+                                _coordIndexStat &result ) ;
+
+         static INT32 merge( ossPoolVector< _coordIndexStat > &vec,
+                             _coordIndexStat &result ) ;
 
       public:
          _coordIndexStat() ;
@@ -638,12 +647,46 @@ namespace engine
 
          INT32 toBSON( bson::BSONObj &obj ) ;
 
-         BOOLEAN inited()
+         INT32 refine( const CoordCataInfoPtr &cataPtr ) ;
+
+         BOOLEAN inited() const
          {
             return ( _index[0] != 0 ) ;
          }
 
-         void setCollectionFullName( const CHAR *fullName ) ;
+      private:
+         // Merging 200000 MCV samples may take about 1 second
+         static const UINT32 MCV_SAMPLE_RECORDS_LIMIT = 200000 ;
+         // 10000 is a reference to the maximum of MCV size of data node
+         static const UINT32 MCV_SIZE_LIMIT = 10000 ;
+
+         typedef std::pair< bson::BSONObj, UINT32 >   _coordValRecPair ;
+         typedef ossPoolList< _coordValRecPair >      _coordMCVList ;
+         typedef std::pair< UINT32, UINT32 >          _coordFrac2Dups ;
+         typedef ossPoolMap< UINT32, UINT32 >         _coordFrac2DupsMap ;
+         typedef std::pair< _coordMCVList*, _coordMCVList::iterator > _coordListItPair ;
+
+         class _coordListItCmp
+         {
+         public:
+            BOOLEAN operator()( const _coordListItPair l,
+                                const _coordListItPair r ) const
+            {
+               const _coordMCVList::iterator &lIt = l.second ;
+               const _coordMCVList::iterator &rIt = r.second ;
+               return 0 > ( lIt->first.woCompare( rIt->first, BSONObj(), FALSE ) ) ;
+            }
+         } ;
+
+
+      private:
+         INT32 _updateTopFrac( const UINT32 finalMCVSize,
+                               const UINT32 fracRec,
+                               UINT32 &minFracRec,
+                               _coordFrac2DupsMap &topFracMap ) ;
+
+         INT32 _compressMCV( const UINT32 finalMCVSize,
+                             _coordFrac2DupsMap &topFracMap ) ;
 
       private:
          CHAR           _collection[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
@@ -660,6 +703,13 @@ namespace engine
          UINT64         _undefRecords ;
          UINT64         _sampleRecords ;
          UINT64         _totalRecords ;
+         _coordMCVList  _mcvList ;
+         // Here maintains a counter instead of using std::list::size().
+         // Because the low version(<=4.3) std::list::size() iterates all nodes
+         // to get this size. That is quite slow!
+         UINT32         _mcvListSize ;
+         BOOLEAN        _hasMCV ;
+         UINT32         _mcvSampleRecords ;
    } ;
 
    _coordIndexStat::_coordIndexStat()
@@ -674,11 +724,9 @@ namespace engine
       _undefRecords = 0 ;
       _sampleRecords = 0 ;
       _totalRecords = 0 ;
-   }
-
-   void _coordIndexStat::setCollectionFullName( const CHAR *fullName )
-   {
-      ossStrncpy( _collection, fullName, sizeof( _collection ) ) ;
+      _mcvListSize = 0 ;
+      _hasMCV = FALSE ;
+      _mcvSampleRecords = 0 ;
    }
 
    INT32 _coordIndexStat::fromBSON( const BSONObj &obj )
@@ -687,12 +735,18 @@ namespace engine
       BSONObjIterator iter( obj ) ;
       INT32 nullFrac = 0 ;
       INT32 undefFrac = 0 ;
+      BSONElement ele ;
 
       try
       {
+         ele = obj.getField( FIELD_NAME_SAMPLE_RECORDS ) ;
+         PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                   "Field '" FIELD_NAME_SAMPLE_RECORDS "' must be number" ) ;
+         _sampleRecords = ele.numberLong() ;
+
          while ( iter.more() )
          {
-            BSONElement ele = iter.next() ;
+            ele = iter.next() ;
             if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COLLECTION ) )
             {
                PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
@@ -736,12 +790,6 @@ namespace engine
                PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
                          "Field '" FIELD_NAME_KEY_PATTERN "' must be object" ) ;
                _keyPattern = ele.embeddedObject().getOwned() ;
-            }
-            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SAMPLE_RECORDS ) )
-            {
-               PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                         "Field '" FIELD_NAME_SAMPLE_RECORDS "' must be number" ) ;
-               _sampleRecords = ele.numberLong() ;
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_RECORDS ) )
             {
@@ -796,18 +844,51 @@ namespace engine
                PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                          "Field '" FIELD_NAME_NULL_FRAC "' must be number" ) ;
                nullFrac = ele.numberInt() ;
+               _nullRecords =
+                     ( _sampleRecords * nullFrac ) / RTN_STAT_FRACTION_SCALE ;
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UNDEF_FRAC ) )
             {
                PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                          "Field '" FIELD_NAME_UNDEF_FRAC "' must be number" ) ;
                undefFrac = ele.numberInt() ;
+               _undefRecords =
+                     ( _sampleRecords * undefFrac ) / RTN_STAT_FRACTION_SCALE ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MCV ) )
+            {
+               PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Field '" FIELD_NAME_MCV "' must be object" ) ;
+               {
+                  BSONObj mcvObj =  ele.embeddedObject() ;
+                  BSONObj valueArray =
+                        mcvObj.getField( FIELD_NAME_VALUES ).embeddedObject() ;
+                  BSONObjIterator valueIt( valueArray ) ;
+                  BSONObj fracArray =
+                        mcvObj.getField( FIELD_NAME_FRAC ).embeddedObject() ;
+                  BSONObjIterator fracIt( fracArray ) ;
+
+                  while ( valueIt.more() && fracIt.more() )
+                  {
+                     BSONObj value = valueIt.next().embeddedObject().getOwned() ;
+                     INT32 frac = fracIt.next().numberInt() ;
+                     FLOAT64 recInDouble = ( ( FLOAT64 ) _sampleRecords * frac )
+                           / RTN_STAT_FRACTION_SCALE ;
+                     UINT32 records = floor( recInDouble + 0.5 ) ;
+                     _coordValRecPair pair( value, records ) ;
+                     _mcvList.push_back( pair ) ;
+                     ++_mcvListSize ;
+                  }
+
+                  _hasMCV = TRUE ;
+                  _mcvSampleRecords = _sampleRecords ;
+               }
             }
          }
       }
       catch (std::exception &e)
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception occured: %s", e.what() ) ;
          goto error ;
       }
@@ -864,6 +945,38 @@ namespace engine
          ob.append( FIELD_NAME_NULL_FRAC, nullFrac ) ;
          ob.append( FIELD_NAME_UNDEF_FRAC, undefFrac ) ;
 
+         if ( _hasMCV )
+         {
+            BSONObjBuilder mcvOB( ob.subobjStart( FIELD_NAME_MCV ) ) ;
+
+            _coordMCVList::iterator it ;
+            BSONArrayBuilder valueAB( mcvOB.subarrayStart( FIELD_NAME_VALUES ) ) ;
+            for ( it = _mcvList.begin(); it != _mcvList.end(); ++it )
+            {
+               valueAB.append( it->first ) ;
+            }
+            valueAB.done() ;
+
+            BSONArrayBuilder fracAB( mcvOB.subarrayStart( FIELD_NAME_FRAC ) ) ;
+            for ( it = _mcvList.begin(); it != _mcvList.end(); ++it )
+            {
+               if ( _mcvSampleRecords > 0 )
+               {
+                  INT32 frac = ( it->second * RTN_STAT_FRACTION_SCALE ) /
+                               _mcvSampleRecords ;
+                  frac = OSS_MAX( frac, 1 ) ;
+                  fracAB.append( frac ) ;
+               }
+               else
+               {
+                  fracAB.append( 0 ) ;
+               }
+            }
+            fracAB.done() ;
+
+            mcvOB.done() ;
+         }
+
          ob.append( FIELD_NAME_SAMPLE_RECORDS, ( INT64 )_sampleRecords ) ;
          ob.append( FIELD_NAME_TOTAL_RECORDS, ( INT64 )_totalRecords ) ;
          ob.append( FIELD_NAME_STAT_TIMESTAMP, _statTimestamp ) ;
@@ -881,9 +994,51 @@ namespace engine
       goto done ;
    }
 
+   INT32 _coordIndexStat::merge( ossPoolVector< _coordIndexStat > &vec,
+                                 _coordIndexStat &result )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         result = vec[ 0 ] ;
+         for ( UINT32 i = 1; i < vec.size(); ++i )
+         {
+            rc = mergeWithoutMCV( vec[ i ], result ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to merge statistics, rc: %d", rc ) ;
+
+            if ( vec[ i ]._hasMCV )
+            {
+               result._hasMCV = TRUE ;
+            }
+         }
+
+         if ( result._hasMCV )
+         {
+            result._mcvList.clear() ;
+            result._mcvSampleRecords = 0 ;
+
+            rc = mergeMCV( vec, result ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to merge MCV, rc: %d", rc ) ;
+         }
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // Here we merge two statistics info into one. However, some field of it
    // can't easily be counted. We'll choose the max or min instead.
-   INT32 _coordIndexStat::merge( const _coordIndexStat &from, _coordIndexStat &to )
+   // This merge doesn't handle the field "MCV"
+   INT32 _coordIndexStat::mergeWithoutMCV( const _coordIndexStat &from,
+                                           _coordIndexStat &to )
    {
       INT32 rc = SDB_OK ;
       try
@@ -942,19 +1097,336 @@ namespace engine
             }
          }
       }
-      catch ( std::bad_alloc &ba )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "No memory to merge index statistics" ) ;
-         goto error ;
-      }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
          goto error ;
       }
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // For "MCV", union the result.
+   INT32 _coordIndexStat::mergeMCV( ossPoolVector< _coordIndexStat > &vec,
+                                    _coordIndexStat &result )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         SDB_ASSERT( !vec.empty(), "Vector shouldn't be empty" ) ;
+
+         _coordListItCmp cmp ;
+         _utilMinHeap< _coordListItPair, _coordListItCmp > heap( cmp ) ;
+         _coordMCVList::iterator it ;
+
+         for ( UINT32 i = 0; i < vec.size(); ++i )
+         {
+            _coordMCVList *pList = &vec[ i ]._mcvList ;
+            if ( pList->empty() )
+            {
+               continue ;
+            }
+            // Here set a limit to prevent the cost from becoming too expensive.
+            if ( result._mcvSampleRecords > MCV_SAMPLE_RECORDS_LIMIT )
+            {
+               pList->clear() ;
+               vec[ i ]._mcvSampleRecords = 0 ;
+               continue ;
+            }
+
+            it = pList->begin() ;
+            _coordListItPair p( pList, it ) ;
+            rc = heap.push( p ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to make heap, rc: %d", rc ) ;
+
+            result._mcvSampleRecords += vec[ i ]._mcvSampleRecords ;
+         }
+
+         while ( heap.more() )
+         {
+            _coordListItPair p ;
+            _coordMCVList::reverse_iterator last ;
+
+            rc = heap.pop( p ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to pop from heap, rc: %d", rc ) ;
+
+            it = p.second ;
+            last = result._mcvList.rbegin() ;
+            if ( last != result._mcvList.rend() &&
+                 0 == last->first.woCompare( it->first, BSONObj(), FALSE ) )
+            {
+               last->second += it->second ;
+            }
+            else
+            {
+               result._mcvList.push_back( *it ) ;
+               ++result._mcvListSize ;
+            }
+
+            it = p.first->erase( it ) ;
+            if ( it != p.first->end() )
+            {
+               p.second = it ;
+               heap.push( p ) ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      1. Refine DistinctValNum by MCV info;
+      2. Compress MCV info, to avoid the large result;
+      3. Fix the name as main-CL name if it's main-sub-CL
+   */
+   INT32 _coordIndexStat::refine( const CoordCataInfoPtr &cataPtr )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 *distinctValNum = NULL ;
+      try
+      {
+         INT32 keyFieldNum = 0 ;
+         INT32 i = 0 ;
+         ossPoolList< _coordValRecPair >::iterator mcvIt ;
+         BSONObj *pLastValue = NULL ;
+
+         _coordFrac2DupsMap topFracMap ;
+         UINT32 finalMCVSize = OSS_MIN( _mcvListSize, MCV_SIZE_LIMIT ) ;
+         UINT32 minFracRec = 0 ;
+
+         if ( cataPtr->isMainCL() )
+         {
+            ossStrncpy( _collection, cataPtr->getName(), sizeof( _collection ) ) ;
+         }
+
+         if ( _mcvList.empty() )
+         {
+            goto done ;
+         }
+
+         keyFieldNum = _keyPattern.nFields() ;
+
+         distinctValNum =
+               (INT64 *) SDB_POOL_ALLOC( keyFieldNum * sizeof( INT64 ) ) ;
+         if ( !distinctValNum )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "No memory to allocate the array" ) ;
+            goto error ;
+         }
+
+         for ( i = 0 ; i < keyFieldNum ; ++i )
+         {
+            distinctValNum[i] = 1 ;
+         }
+
+         mcvIt = _mcvList.begin() ;
+         pLastValue = &mcvIt->first ;
+         for ( ; mcvIt != _mcvList.end(); ++mcvIt )
+         {
+            i = 0 ;
+            BSONObj *pCurrValue = &mcvIt->first ;
+            BSONObjIterator currIter( *pCurrValue ) ;
+            BSONObjIterator lastIter( *pLastValue ) ;
+
+            while ( currIter.more() )
+            {
+               BSONElement currEle = currIter.next() ;
+               BSONElement lastEle = lastIter.next() ;
+               if ( currEle.woCompare( lastEle, FALSE ) != 0 )
+               {
+                  break ;
+               }
+               ++i ;
+            }
+
+            while ( i < keyFieldNum )
+            {
+               ++distinctValNum[i] ;
+               ++i ;
+            }
+
+            pLastValue = pCurrValue ;
+
+            rc = _updateTopFrac( finalMCVSize, mcvIt->second, minFracRec,
+                                 topFracMap ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update top fraction, rc: %d",
+                         rc ) ;
+         }
+
+         {
+            BSONArrayBuilder ab( 32 );
+            for (i = 0; i < keyFieldNum; ++i) {
+               ab.append( distinctValNum[i] );
+            }
+            _distinctValNum = ab.arr();
+         }
+
+         rc = _compressMCV( finalMCVSize, topFracMap ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to compress MCV, rc: %d", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      if ( distinctValNum )
+      {
+         SDB_POOL_FREE( distinctValNum ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      If MCV is too big, find out the elements with top fraction to
+      cut away the low fraction elements later. We only maintain the top N
+      fraction (N = finalMCVSize) to save the memory.
+   */
+   INT32 _coordIndexStat::_updateTopFrac( const UINT32 finalMCVSize,
+                                          const UINT32 fracRec,
+                                          UINT32 &minFracRec,
+                                          _coordFrac2DupsMap &topFracMap )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         if ( _mcvListSize <= finalMCVSize )
+         {
+            goto done ;
+         }
+         if ( fracRec < minFracRec )
+         {
+            goto done ;
+         }
+         {
+            _coordFrac2Dups value( fracRec, 1 ) ;
+            std::pair< _coordFrac2DupsMap::iterator, bool > ret ;
+            ret = topFracMap.insert( value ) ;
+            if ( !ret.second )
+            {
+               ret.first->second += 1 ;
+            }
+            if ( topFracMap.size() > finalMCVSize )
+            {
+               topFracMap.erase( topFracMap.begin() ) ;
+               minFracRec = topFracMap.begin()->first ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+      If MCV is too big, we would cut it away until the size less than
+      finalMCVSize. There are 2 principle:
+      1. More frequent, more important. The biggest fraction go first.
+      2. If fraction is the same, select them averagely.
+   */
+   INT32 _coordIndexStat::_compressMCV( const UINT32 finalMCVSize,
+                                        _coordFrac2DupsMap &topFracMap )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         _coordFrac2DupsMap::reverse_iterator mapRit ;
+         UINT32 currSize = 0 ;
+         ossPoolList< _coordValRecPair >::iterator mcvIt ;
+
+         if ( _mcvListSize  <= finalMCVSize )
+         {
+            goto done ;
+         }
+
+         for ( mapRit = topFracMap.rbegin();
+               mapRit != topFracMap.rend();
+               ++mapRit )
+         {
+            currSize += mapRit->second ;
+            if ( currSize >= finalMCVSize )
+            {
+               break ;
+            }
+         }
+
+         if ( currSize >= finalMCVSize )
+         {
+            UINT32 cutSize = currSize - finalMCVSize ;
+            UINT32 boundFracRec = mapRit->second ;
+            FLOAT64 stepLength =
+                ((FLOAT64) boundFracRec / ( boundFracRec - cutSize )) ;
+            FLOAT64 stepIter = 0 ;
+            UINT32 cutBound = mapRit->first ;
+
+            mcvIt = _mcvList.begin() ;
+            INT32 i = 0 ;
+            while ( mcvIt != _mcvList.end() &&
+                    _mcvListSize > finalMCVSize )
+            {
+               UINT32 fracRec = mcvIt->second ;
+               BOOLEAN shouldCut = FALSE ;
+               if ( fracRec < cutBound )
+               {
+                  shouldCut = TRUE ;
+               }
+               else if ( fracRec == cutBound )
+               {
+                  if ( i != ( floor( stepIter + 0.5 ) ) )
+                  {
+                     shouldCut = TRUE ;
+                  }
+                  else
+                  {
+                     shouldCut = FALSE ;
+                     stepIter += stepLength ;
+                  }
+                  ++i ;
+               }
+
+               if ( shouldCut )
+               {
+                  mcvIt = _mcvList.erase( mcvIt ) ;
+                  --_mcvListSize ;
+               }
+               else
+               {
+                  ++mcvIt ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
    done:
       return rc ;
    error:
@@ -975,6 +1447,35 @@ namespace engine
    {
    }
 
+   INT32 _coordCMDGetIndexStat::_getResultCount( UINT32 &resCount, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      if ( _cataPtr->isMainCL() )
+      {
+         CoordSubCLlist subCLList ;
+         CoordSubCLlist::iterator it ;
+         rc = _cataPtr->getSubCLList( subCLList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sub cl list, rc: %d", rc ) ;
+
+         for ( it = subCLList.begin(); it != subCLList.end(); ++it )
+         {
+            _coordCataSel subSel ;
+            rc = subSel.bind( _pResource, it->c_str(), cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get sub cl[%s] catalog, "
+                         "rc: %d", it->c_str(), rc ) ;
+            resCount += subSel.getCataPtr()->getGroupNum() ;
+         }
+      }
+      else
+      {
+         resCount = _cataPtr->getGroupNum() ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_INDEX_STAT_GENRESULT, "_coordCMDGetIndexStat::generateResult" )
    INT32 _coordCMDGetIndexStat::generateResult( rtnContext *pContext,
                                                 pmdEDUCB *cb )
@@ -985,55 +1486,63 @@ namespace engine
       rtnContextBuf buffObj ;
       _coordIndexStat resStat ;
       BSONObj obj ;
+      UINT32 resCount = 0 ;
+      UINT32 currCount = 0 ;
+      ossPoolVector< _coordIndexStat > vec ;
 
-      // Aggregate all statistics into one.
-      while ( TRUE )
+      try
       {
-         _coordIndexStat newStat ;
-         rc = pContext->getMore( 1, buffObj, cb ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = SDB_OK ;
-            break ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get more detail, rc: %d", rc ) ;
+         // calculate the expect sharding count to allocate vector
+         rc = _getResultCount( resCount, cb ) ;
+         vec.reserve( resCount ) ;
 
+         // Aggregate all statistics into one.
+         while ( TRUE )
          {
+            rc = pContext->getMore( 1, buffObj, cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get more detail, rc: %d", rc ) ;
+
+            vec.push_back( _coordIndexStat() ) ;
+            _coordIndexStat &stat = vec[ currCount ] ;
             BSONObj boTmp( buffObj.data() ) ;
-            rc = newStat.fromBSON( boTmp ) ;
+            rc = stat.fromBSON( boTmp ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to initialize statistics "
                          "from BSON, rc: %d", rc ) ;
-         }
-
-         if ( resStat.inited() )
-         {
-            rc = _coordIndexStat::merge( newStat, resStat ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to merge index statistics, "
-                         "rc: %d", rc ) ;
-         }
-         else
-         {
-            resStat = newStat ;
+            ++currCount ;
          }
       }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occured: %e", e.what() ) ;
+         goto error ;
+      }
 
-      if ( !resStat.inited() ) // Nothing was returned.
+      if ( 0 == currCount ) // Nothing was returned.
       {
          goto done ;
       }
 
-      if ( _cataPtr->isMainCL() )
-      {
-         resStat.setCollectionFullName( _cataPtr->getName() ) ;
-      }
+      rc = _coordIndexStat::merge( vec, resStat ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to merge index statistics, rc: %d", rc ) ;
+
+      rc = resStat.refine( _cataPtr ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to refine index statistics, rc: %d", rc ) ;
 
       rc = resStat.toBSON( obj ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to convert index statistics to BSON, rc: %d", rc ) ;
+
       rc = pContext->append( obj ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to append cl detail to context, rc: %d", rc ) ;
-
    done:
       PD_TRACE_EXITRC ( COORD_GET_INDEX_STAT_GENRESULT, rc ) ;
       return rc ;

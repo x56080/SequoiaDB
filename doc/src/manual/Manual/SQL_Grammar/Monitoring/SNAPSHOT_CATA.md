@@ -40,6 +40,8 @@ $SNAPSHOT_CATA
 | AutoIncrement.SequenceID | int64  | 自增字段对应序列ID      |
 | DataSourceID      | int32  | 数据源 ID                      |
 | Mapping           | string | 在[数据源][datasource]中所映射的集合名称    |
+| CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
+| UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
 ##示例##
 
@@ -68,7 +70,9 @@ $SNAPSHOT_CATA
          "GroupID": 1000,
          "GroupName": "group1"
        }
-     ]
+     ],
+     "CreateTime": "2022-10-06-18.04.31.090000",
+     "UpdateTime": "2022-10-06-18.04.31.164000"
    }
    
    ```
@@ -127,6 +131,8 @@ $SNAPSHOT_CATA
        }
      ]
      "AutoSplit": ture,
+     "CreateTime": "2022-10-06-18.04.31.008000",
+     "UpdateTime": "2022-10-06-18.05.49.384000"
    }
    ```
 
@@ -169,6 +175,8 @@ $SNAPSHOT_CATA
      },
      "ShardingType": "range",
      "Version": 2,
+     "CreateTime": "2022-10-06-18.04.31.008000",
+     "UpdateTime": "2022-10-06-18.05.49.384000"
    }
    ```
 

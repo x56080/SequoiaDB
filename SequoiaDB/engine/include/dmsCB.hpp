@@ -59,6 +59,7 @@
 #include "dmsIxmKeySorter.hpp"
 #include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
+#include "dmsScanner.hpp"
 
 using namespace std ;
 
@@ -117,13 +118,16 @@ namespace engine
       UINT32 _suLID ;
       UINT16 _clID ;
       UINT32 _clLID ;
-      UINT64 _createTime ;
+      UINT64 _recordNum ;
+      UINT64 _lastWriteTick ;
 
       _dmsDictJob()
       : _suID( DMS_INVALID_SUID ),
         _suLID( DMS_INVALID_SUID ),
         _clID( DMS_INVALID_CLID ),
-        _clLID( DMS_INVALID_CLID )
+        _clLID( DMS_INVALID_CLID ),
+        _recordNum( 0 ),
+        _lastWriteTick( 0 )
       {
       }
 
@@ -133,7 +137,8 @@ namespace engine
         _suLID( suLID ),
         _clID( clID ),
         _clLID( clLID ),
-        _createTime( 0 )
+        _recordNum( 0 ),
+        _lastWriteTick( 0 )
       {
       }
    } ;
@@ -213,7 +218,7 @@ namespace engine
       dmsLocalSUMgr           _localSUMgr ;
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
-
+      IDmsScannerCheckerCreator *_scannerCheckerCreator ;
       dmsPageMappingDispatcher   _pageMapDispatcher ;
 
       DMS_HANDLER_LIST           _handlers ;
@@ -474,11 +479,20 @@ namespace engine
       void pushDictJob( dmsDictJob job ) ;
 
       void setIxmKeySorterCreator( dmsIxmKeySorterCreator* creator ) ;
-      dmsIxmKeySorterCreator* getIxmKeySorterCreator() ;
       INT32 createIxmKeySorter( INT64 bufSize,
                                 const _dmsIxmKeyComparer& comparer,
                                 dmsIxmKeySorter** ppSorter ) ;
       void releaseIxmKeySorter( dmsIxmKeySorter* pSorter ) ;
+
+      void setScannerCheckerCreator( IDmsScannerCheckerCreator *pCreator ) ;
+      INT32 createScannerChecker( UINT32 suLID,
+                                  UINT32 mbLID,
+                                  const CHAR *csName,
+                                  const CHAR *clShortName,
+                                  const CHAR *optrDesc,
+                                  _pmdEDUCB *cb,
+                                  IDmsScannerChecker **ppChecker ) ;
+      void releaseScannerChecker( IDmsScannerChecker *pChecker ) ;
 
       INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
 

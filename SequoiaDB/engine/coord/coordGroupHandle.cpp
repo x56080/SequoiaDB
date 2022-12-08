@@ -55,6 +55,10 @@ namespace engine
                                             _coordGroupSel *pSel,
                                             _coordGroupSessionCtrl *pCtrl )
    {
+      SDB_ASSERT( pSub, "sub session can't be NULL" ) ;
+      SDB_ASSERT( pSel, "group sel can't be NULL" ) ;
+      SDB_ASSERT( pCtrl, "group session ctrl can't be NULL" ) ;
+
       MsgHeader *pMsg = pSub->getReqMsg() ;
       BOOLEAN isResend = pCtrl->getRetryTimes() > 0 ? TRUE : FALSE ;
       SINT32 *pFlags = NULL ;
@@ -82,6 +86,9 @@ namespace engine
          goto done ;
       }
 
+      OSS_BIT_CLEAR( *pFlags, primaryFlag ) ;
+      OSS_BIT_CLEAR( *pFlags, secondaryFlag ) ;
+
       if ( !pSel->isPrimary() )
       {
          // NOTE: we need to set query flags for below cases
@@ -103,7 +110,6 @@ namespace engine
          {
             // if primary is required or preferred, set primary query flag
             OSS_BIT_SET( *pFlags, primaryFlag ) ;
-            OSS_BIT_CLEAR( *pFlags, secondaryFlag ) ;
          }
          else if ( pSel->isRequiredSecondary() ||
                    ( pSel->isPreferredSecondary() &&
@@ -113,15 +119,9 @@ namespace engine
          {
             // if secondary is required or preferred, set secondary query flag
             OSS_BIT_SET( *pFlags, secondaryFlag ) ;
-            OSS_BIT_CLEAR( *pFlags, primaryFlag ) ;
          }
       }
-      else
-      {
-         // now it is required primary
-         // make sure to clear secondary flag
-         OSS_BIT_CLEAR( *pFlags, secondaryFlag ) ;
-      }
+
    done:
       return ;
    }

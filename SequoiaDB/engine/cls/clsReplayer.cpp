@@ -1483,7 +1483,7 @@ namespace engine
 
             rc = rtnRemoveLobPiece( fullName, *oid,
                                     sequence, eduCB,
-                                    1, _dpsCB ) ;
+                                    1, _dpsCB, NULL, NULL, FALSE, data ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to remove lob:%d", rc ) ;
@@ -2058,7 +2058,7 @@ namespace engine
             }
 
             rc = rtnRemoveLobPiece( fullName, *oid, sequence,
-                                    eduCB, 1, NULL ) ;
+                                    eduCB, 1, NULL, NULL, NULL, FALSE, data ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to remove lob:%d", rc ) ;

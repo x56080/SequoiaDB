@@ -41,7 +41,7 @@ intel_decimal_lib_dir = join(intel_decimal_dir, 'lib')
 pcre_dir = join(engine_dir,'pcre')
 ssh2_dir = join(engine_dir,'ssh2')
 crypto_dir = join(thirdparty_dir, 'crypto')
-ssl_dir = join(crypto_dir, 'openssl-1.1.1k')
+ssl_dir = join(crypto_dir, 'openssl-1.1.1o')
 ssl_lib_dir = join(ssl_dir, 'lib')
 mdocml_dir = join(thirdparty_dir, 'mdocml' )
 mdocml_lib_dir = join(mdocml_dir, 'lib')
@@ -290,6 +290,8 @@ add_option( "fap", "foreign access protocol", 0, False )
 #enterprise options
 add_option( "enterprise", "build enterprise sequoiadb ( with SSL )", 0, False )
 
+add_option( "hybrid", "build hybrid version( for both X86 and ARM )", 0, False )
+
 #gprof option
 add_option("gprof", "enable gprofile for sequoiadb", 0, False)
 
@@ -416,6 +418,7 @@ if guess_os == "win32":
 else:
     hasFap = has_option("fap")
 hasEnterprise = has_option("enterprise")
+hasHybrid = has_option("hybrid")
 hasGProf = has_option("gprof")
 hasSSL = False
 
@@ -423,6 +426,9 @@ hasSSL = False
 if hasEnterprise:
    hasSSL = True
    env.Append( CPPDEFINES=[ "SDB_ENTERPRISE" ] )
+
+if hasHybrid:
+   env.Append( CPPDEFINES=[ "SDB_HYBRID" ] )
 
 # if everything are set, let's set everything to true
 if hasAll:

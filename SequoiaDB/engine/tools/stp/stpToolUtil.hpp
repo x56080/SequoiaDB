@@ -55,6 +55,12 @@ namespace engine
    // remove STP related files
    INT32 stpRemoveFiles( const CHAR *stpPath ) ;
 
+   // get local ip address
+   INT32 stpGetLocalIP( UINT32 &ipAddress ) ;
+
+   // get ip address from hostname
+   INT32 stpGetIP( UINT32 &ipAddress, const CHAR *hostname ) ;
+
 }
 
 #endif // STP_TOOL_UTIL_HPP__

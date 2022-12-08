@@ -220,7 +220,11 @@ namespace sdbclient
             _toStopWorkers = FALSE ;
             // prepare some connections
             INT32 retNum = 0 ;
-            _createConnByNum( _conf.getInitConnCount(), retNum ) ;
+            rc = _createConnByNum( _conf.getInitConnCount(), retNum ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
             // start create connection thread
             _createConnWorker = SDB_OSS_NEW sdbConnPoolWorker(
                createConnFunc, this ) ;

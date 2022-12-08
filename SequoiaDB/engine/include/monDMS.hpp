@@ -137,6 +137,12 @@ namespace engine
       UINT32 _totalDataPages ;
       UINT32 _totalIndexPages ;
       UINT32 _totalLobPages ;
+      UINT64 _totalUsedLobSpace ;
+      FLOAT64 _usedLobSpaceRatio ;
+      UINT64 _totalLobSize ;
+      UINT64 _totalValidLobSize ;
+      FLOAT64 _lobUsageRate ;
+      UINT64 _avgLobSize ;
       UINT64 _totalDataFreeSpace ;
       UINT64 _totalIndexFreeSpace ;
       UINT32 _currCompressRatio ;
@@ -150,6 +156,9 @@ namespace engine
       BOOLEAN _dataIsValid ;
       BOOLEAN _idxIsValid ;
       BOOLEAN _lobIsValid ;
+
+      UINT64  _createTime ;
+      UINT64  _updateTime ;
 
       monCRUDCB _crudCB ;
 
@@ -175,6 +184,12 @@ namespace engine
          _totalDataPages      = 0 ;
          _totalIndexPages     = 0 ;
          _totalLobPages       = 0 ;
+         _totalUsedLobSpace   = 0 ;
+         _usedLobSpaceRatio   = 0 ;
+         _totalLobSize        = 0 ;
+         _totalValidLobSize   = 0 ;
+         _lobUsageRate        = 0 ;
+         _avgLobSize          = 0 ;
          _totalDataFreeSpace  = 0 ;
          _totalIndexFreeSpace = 0 ;
          _currCompressRatio   = 0 ;
@@ -187,6 +202,9 @@ namespace engine
          _dataIsValid         = FALSE ;
          _idxIsValid          = FALSE ;
          _lobIsValid          = FALSE ;
+
+         _createTime          = 0 ;
+         _updateTime          = 0 ;
       }
    } ;
    typedef class _detailedInfo detailedInfo ;
@@ -401,10 +419,25 @@ namespace engine
       INT32 _lobPageSize ;
       INT64 _totalDataSize ;
       INT64 _totalIndexSize ;
+      INT64 _totalLobPages ;
+      INT64 _totalLobs ;
+      INT64 _totalValidLobSize ;
+      INT64 _lobCapacity ;
+      INT64 _lobMetaCapacity ;
       INT64 _totalLobSize ;
       INT64 _freeDataSize ;
       INT64 _freeIndexSize ;
-      INT64 _freeLobSize ;
+      INT64 _freeLobSpace ;
+      INT64 _totalLobGet ;
+      INT64 _totalLobPut ;
+      INT64 _totalLobDelete ;
+      INT64 _totalLobReadSize ;
+      INT64 _totalLobWriteSize ;
+      INT64 _totalLobRead ;
+      INT64 _totalLobWrite ;
+      INT64 _totalLobTruncate ;
+      INT64 _totalLobAddressing ;
+      INT64 _totalLobList ;
 
       /// commit info
       UINT64 _dataCommitLsn ;
@@ -417,6 +450,9 @@ namespace engine
       /// cache info
       UINT32 _dirtyPage ;
       DMS_STORAGE_TYPE _type ;
+
+      UINT64 _createTime ;
+      UINT64 _updateTime ;
 
       _monCollectionSpace ()
       {
@@ -432,10 +468,25 @@ namespace engine
          _lobPageSize = 0 ;
          _totalDataSize = 0 ;
          _totalIndexSize = 0 ;
+         _totalLobPages = 0 ;
+         _totalLobs = 0 ;
+         _totalValidLobSize = 0 ;
+         _lobCapacity = 0 ;
+         _lobMetaCapacity = 0 ;
          _totalLobSize = 0 ;
          _freeDataSize = 0 ;
          _freeIndexSize = 0 ;
-         _freeLobSize = 0 ;
+         _freeLobSpace = 0 ;
+         _totalLobGet = 0 ;
+         _totalLobPut = 0 ;
+         _totalLobDelete = 0 ;
+         _totalLobReadSize = 0 ;
+         _totalLobWriteSize = 0 ;
+         _totalLobRead = 0 ;
+         _totalLobWrite = 0 ;
+         _totalLobTruncate = 0 ;
+         _totalLobAddressing = 0 ;
+         _totalLobList = 0 ;
 
          _dataCommitLsn = -1 ;
          _idxCommitLsn = -1 ;
@@ -446,6 +497,9 @@ namespace engine
 
          _dirtyPage = 0 ;
          _type = DMS_STORAGE_NORMAL ;
+
+         _createTime = 0 ;
+         _updateTime = 0 ;
       }
       _monCollectionSpace ( const _monCollectionSpace &right )
       {
@@ -462,10 +516,25 @@ namespace engine
          _lobPageSize = right._lobPageSize ;
          _totalDataSize = right._totalDataSize ;
          _totalIndexSize = right._totalIndexSize ;
+         _totalLobPages = right._totalLobPages ;
+         _totalLobs = right._totalLobs ;
+         _totalValidLobSize = right._totalValidLobSize ;
+         _lobCapacity = right._lobCapacity ;
+         _lobMetaCapacity = right._lobMetaCapacity ;
          _totalLobSize = right._totalLobSize ;
          _freeDataSize = right._freeDataSize ;
          _freeIndexSize = right._freeIndexSize ;
-         _freeLobSize = right._freeLobSize ;
+         _freeLobSpace = right._freeLobSpace ;
+         _totalLobGet = right._totalLobGet ;
+         _totalLobPut = right._totalLobPut ;
+         _totalLobDelete = right._totalLobDelete ;
+         _totalLobReadSize = right._totalLobReadSize ;
+         _totalLobWriteSize = right._totalLobWriteSize ;
+         _totalLobRead = right._totalLobRead ;
+         _totalLobWrite = right._totalLobWrite ;
+         _totalLobTruncate = right._totalLobTruncate ;
+         _totalLobAddressing = right._totalLobAddressing ;
+         _totalLobList = right._totalLobList ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;
@@ -476,6 +545,9 @@ namespace engine
 
          _dirtyPage = right._dirtyPage ;
          _type = right._type ;
+
+         _createTime = right._createTime ;
+         _updateTime = right._updateTime ;
       }
       ~_monCollectionSpace()
       {
@@ -501,10 +573,25 @@ namespace engine
          _lobPageSize    = right._lobPageSize ;
          _totalDataSize = right._totalDataSize ;
          _totalIndexSize = right._totalIndexSize ;
+         _totalLobPages = right._totalLobPages ;
+         _totalLobs = right._totalLobs ;
+         _totalValidLobSize = right._totalValidLobSize ;
+         _lobCapacity = right._lobCapacity ;
+         _lobMetaCapacity = right._lobMetaCapacity ;
          _totalLobSize = right._totalLobSize ;
          _freeDataSize = right._freeDataSize ;
          _freeIndexSize = right._freeIndexSize ;
-         _freeLobSize = right._freeLobSize ;
+         _freeLobSpace = right._freeLobSpace ;
+         _totalLobGet = right._totalLobGet ;
+         _totalLobPut = right._totalLobPut ;
+         _totalLobDelete = right._totalLobDelete ;
+         _totalLobReadSize = right._totalLobReadSize ;
+         _totalLobWriteSize = right._totalLobWriteSize ;
+         _totalLobRead = right._totalLobRead ;
+         _totalLobWrite = right._totalLobWrite ;
+         _totalLobTruncate = right._totalLobTruncate ;
+         _totalLobAddressing = right._totalLobAddressing ;
+         _totalLobList = right._totalLobList ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;
@@ -515,6 +602,10 @@ namespace engine
 
          _dirtyPage = right._dirtyPage ;
          _type = right._type ;
+
+         _createTime = right._createTime ;
+         _updateTime = right._updateTime ;
+
          return *this ;
       }
    } ;
@@ -537,6 +628,8 @@ namespace engine
       SINT32 _numCollections ;
       SINT32 _collectionHWM ;
       SINT64 _size ;
+      UINT64 _createTime ;
+      UINT64 _updateTime ;
 
       OSS_INLINE BOOLEAN operator<(const _monStorageUnit &r) const
       {
@@ -565,6 +658,8 @@ namespace engine
          _numCollections = 0 ;
          _collectionHWM = 0 ;
          _size = 0 ;
+         _createTime = 0 ;
+         _updateTime = 0 ;
       }
    } ;
    typedef class _monStorageUnit       monStorageUnit ;

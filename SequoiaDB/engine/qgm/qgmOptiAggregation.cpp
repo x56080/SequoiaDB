@@ -514,6 +514,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION_PARSE ) ;
       INT32 rc = SDB_OK ;
+      CHAR *pFuncName = NULL;
       _qgmAggrSelector selector ;
       if ( SQL_GRAMMAR::FUNC == field.type )
       {
@@ -529,8 +530,15 @@ namespace engine
          }
 
          isFunc = TRUE ;
-         CHAR *pFuncName = NULL;
-         rc = utilStrToUpper( field.value.attr().begin(), pFuncName ) ;
+         INT32 size = field.value.attr().size() + 1 ;
+         pFuncName = (CHAR *)SDB_OSS_MALLOC( size ) ;
+         if ( NULL == pFuncName )
+         {
+            rc = SDB_OOM;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto  error ;
+         }
+         rc = utilStrToUpper( field.value.attr().begin(), pFuncName, size ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -555,13 +563,18 @@ namespace engine
 
       _selector.push_back( selector ) ;
    done:
+      if ( NULL != pFuncName )
+      {
+         SDB_OSS_FREE( pFuncName ) ;
+         pFuncName = NULL ;
+      }
       PD_TRACE_EXITRC( SDB__QGMOPTIAGGREGATION_PARSE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMOPTIAGGREGATION_HASEXPR, "_qgmOptiAggregation::hasExpr" 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMOPTIAGGREGATION_HASEXPR, "_qgmOptiAggregation::hasExpr"
    BOOLEAN _qgmOptiAggregation::hasExpr() const
    {
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION_HASEXPR ) ;

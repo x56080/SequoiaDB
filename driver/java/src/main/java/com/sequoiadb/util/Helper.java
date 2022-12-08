@@ -20,13 +20,14 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 
+import com.sequoiadb.base.UserConfig;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.types.BSONDecimal;
-
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 
 public final class Helper {
     private Helper() {
@@ -36,7 +37,7 @@ public final class Helper {
 
     public static final String ENCODING_TYPE =  "UTF-8";
 
-    public static final long INVALID_LONG = -1L;
+    public static final long INIT_LONG = -1L;
 
     public static Object getValue( BSONObject srcObj, String key, Object defaultValue ){
         if ( srcObj == null ){
@@ -84,7 +85,11 @@ public final class Helper {
     }
 
     public static byte[] encodeBSONObj(BSONObject obj) {
-        return BSON.encode(obj);
+        return encodeBSONObj(obj, null);
+    }
+
+    public static byte[] encodeBSONObj(BSONObject obj, BSONObject extendObj) {
+        return BSON.encode(obj, extendObj);
     }
 
     public static BSONObject decodeBSONBytes(byte[] bytes) {
@@ -407,5 +412,23 @@ public final class Helper {
             arr[i] = data.get();
         }
         return Arrays.copyOf( md5.digest( arr ), length );
+    }
+
+    public static String getPasswd( UserConfig userConfig ) {
+        if ( userConfig.getPassword() == null && userConfig.getCipherFile() != null ) {
+            SdbDecrypt decrypt = new SdbDecrypt();
+            SdbDecryptUserInfo userInfo = decrypt.parseCipherFile( userConfig.getUserName(), userConfig.getToken(), userConfig.getCipherFile() );
+            return userInfo.getPasswd();
+        } else {
+            return userConfig.getPassword();
+        }
+    }
+
+    public static String Base64Encode(byte[] data) {
+        return Base64.getEncoder().encodeToString(data);
+    }
+
+    public static byte[] Base64Decode(String data) {
+        return Base64.getDecoder().decode(data);
     }
 }

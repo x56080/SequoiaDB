@@ -31,11 +31,11 @@ public class UpdateResult extends BaseResult {
 
     public UpdateResult( BSONObject obj ) {
         this.updatedNum = ( long ) Helper.getValue( obj, "UpdatedNum",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
         this.insertNum = ( long ) Helper.getValue( obj, "InsertedNum",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
         this.modifiedNum = ( long ) Helper.getValue( obj, "ModifiedNum",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
     }
 
     /**

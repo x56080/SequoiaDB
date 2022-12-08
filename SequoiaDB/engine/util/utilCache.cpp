@@ -33,6 +33,8 @@
 *******************************************************************************/
 
 #include "utilCache.hpp"
+#include "pmdEDU.hpp"
+#include "monCB.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
@@ -40,6 +42,16 @@
 
 namespace engine
 {
+
+#define _UTIL_MON_LOB_OP_COUNT_INC( _pIExecutor_, op, delta )                 \
+   {                                                                          \
+      if ( NULL != _pIExecutor_ )                                             \
+      {                                                                       \
+         ((_pmdEDUCB *)_pIExecutor_)->getMonAppCB()->monOperationCountInc(    \
+                                                        op, delta,            \
+                                                        MON_UPDATE_SESSION ) ;\
+      }                                                                       \
+   }
 
    #define UTIL_MAX_EXCEED_SLOT_SIZE            ( 3 )
    #define UTIL_MIN_EXCEED_SLOT_SIZE            ( 5 )
@@ -248,6 +260,11 @@ namespace engine
       }
 
       SDB_ASSERT( lastLen == 0, "Last len must be 0" ) ;
+      // if the page is dirty, the data should be loaded as one piece
+      SDB_ASSERT( ( 0 == _dirtyLength ) ||
+                  ( ( offset <= _length ) &&
+                    ( offset + len >= _start ) ),
+                  "should be loaded as one piece" ) ;
 
       /// update meta
       ossGetCurrentTime( t ) ;
@@ -1837,12 +1854,6 @@ namespace engine
          {
             readPage = TRUE ;
          }
-         else if ( offset + len <= _pPage->start() ||
-                   _pPage->length() <= offset )
-         {
-            /// read from file
-            readPage = FALSE ;
-         }
          else if ( _pPage->isDirty() )
          {
             /// load the data
@@ -1870,6 +1881,11 @@ namespace engine
                }
             }
             readPage = TRUE ;
+         }
+         else
+         {
+            /// read from file
+            readPage = FALSE ;
          }
       }
 
@@ -1969,6 +1985,8 @@ namespace engine
                           pFile->getFileName(), rc ) ;
                }
             }
+            // monitor page write
+            _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_WRITE, 1 ) ;
          }
          else
          {
@@ -1994,6 +2012,8 @@ namespace engine
                   _pPage->load( _pData, _offset, len ) ;
                }
             }
+            // monitor page read
+            _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_READ, 1 ) ;
          }
 
          if ( rc )
@@ -2075,6 +2095,8 @@ namespace engine
                     pFile->getFileName(), rc ) ;
             goto error ;
          }
+         /// monitor page read
+         _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_READ, 1 ) ;
          /// load with no data
          rc = _pPage->loadWithoutData( offset, len ) ;
          if ( rc )
@@ -2101,6 +2123,8 @@ namespace engine
                     pFile->getFileName(), rc ) ;
             goto error ;
          }
+         /// monitor page read
+         _UTIL_MON_LOB_OP_COUNT_INC( cb, MON_LOB_READ, 1 ) ;
          /// write to page
          rc = _pPage->load( pBuff, offset, readLen ) ;
          if ( rc )
@@ -2945,6 +2969,7 @@ namespace engine
       UINT32 len = 0 ;
       CHAR *pBuff = NULL ;
       UINT32 offset = 0 ;
+      UINT32 dirtyStart = 0 ;
       UINT32 lastLen = 0 ;
       BOOLEAN hasSync = FALSE ;
       BOOLEAN myBlkLock = FALSE ;
@@ -2956,7 +2981,6 @@ namespace engine
          myBlkLock = TRUE ;
       }
 
-      lastLen = pPage->dirtyLength() ;
       if ( !pPage->isDirty() )
       {
          goto done ;
@@ -2983,7 +3007,12 @@ namespace engine
          }
       }
 
-      /// clear the dirty
+      /// save dirty info first
+      dirtyStart = pPage->dirtyStart() ;
+      lastLen = pPage->dirtyLength() ;
+
+      /// clear the dirty, so writes on the same page won't
+      /// lost during sync
       hasSync = TRUE ;
       pPage->clearDirty() ;
       decDirtyPages( pBucket ) ;
@@ -3012,15 +3041,15 @@ namespace engine
          pos = pPage->beginBlock() ;
          while( NULL != ( pBuff = pPage->nextBlock( len, pos ) ) )
          {
-            if ( pPage->dirtyStart() > offset + len )
+            if ( dirtyStart > offset + len )
             {
                offset += len ;
                lastLen -= len ;
                continue ;
             }
-            else if ( pPage->dirtyStart() > offset )
+            else if ( dirtyStart > offset )
             {
-               UINT32 pageOffset = pPage->dirtyStart() - offset ;
+               UINT32 pageOffset = dirtyStart - offset ;
                pBuff += pageOffset ;
                lastLen -= pageOffset ;
                offset += pageOffset ;

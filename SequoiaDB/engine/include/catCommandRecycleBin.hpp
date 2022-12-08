@@ -229,9 +229,9 @@ namespace engine
                               INT16 w,
                               rtnContextBuf &ctxBuf ) ;
 
-      INT32 _checkRecycledCLInCS( const utilRecycleItem &item,
+      INT32 _checkRecycledCLInCS( utilRecycleItem &item,
                                   _pmdEDUCB *cb ) ;
-      INT32 _checkCLInRecycledCS( const utilRecycleItem &item,
+      INT32 _checkCLInRecycledCS( utilRecycleItem &item,
                                   _pmdEDUCB *cb ) ;
       INT32 _checkSubCLInRecycledCS( utilRecycleItem &item,
                                      _pmdEDUCB *cb ) ;

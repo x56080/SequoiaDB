@@ -100,6 +100,16 @@ namespace engine
          _reserved = 0;
       }
 
+      void setFlag( UINT16 flag )
+      {
+         OSS_BIT_SET( _flags, flag ) ;
+      }
+
+      void clearFlag( UINT16 flag )
+      {
+         OSS_BIT_CLEAR( _flags, flag ) ;
+      }
+
    public:
       // 0x00 - 0x07
       DPS_LSN_OFFSET _lsn;
@@ -286,10 +296,13 @@ namespace engine
    } ;
    typedef class _dpsLogRecord dpsLogRecord ;
 
+// for maximum length of record
+// - for update record, 16MB * 2 for both full old and new values, plus
+//   4096 for match keys and sharding keys...
 const UINT32 DPS_RECORD_MAX_LEN = DMS_COLLECTION_SPACE_NAME_SZ +
                                   DMS_COLLECTION_NAME_SZ + 2 +
                                   sizeof( _dpsLogRecordHeader ) +
-                                  DMS_RECORD_USER_MAX_SZ * 2 ;
+                                  DMS_RECORD_USER_MAX_SZ * 2 + 4096 ;
 }
 
 

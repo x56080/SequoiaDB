@@ -194,11 +194,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH, "_rtnDictCreatorJob::_conditionMatch" )
    BOOLEAN _rtnDictCreatorJob::_conditionMatch( dmsStorageUnit *su,
                                                 dmsMBContext *context,
-                                                UINT16 mbID )
+                                                dmsDictJob &job )
    {
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
       const dmsMBStatInfo *mbStatInfo = NULL ;
-      BOOLEAN rc = FALSE ;
+      BOOLEAN result = FALSE ;
 
       if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID ||
            DMS_INVALID_EXTENT == context->mb()->_lastExtentID )
@@ -207,15 +207,16 @@ namespace engine
       }
       else
       {
-         mbStatInfo = su->data()->getMBStatInfo( mbID ) ;
+         mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
          SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
-         rc = (mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
-               mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE) ;
+         result = ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
+                    mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE &&
+                    mbStatInfo->_totalRecords != job._recordNum ) ;
       }
 
    done:
       PD_TRACE_EXIT( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
-      return rc ;
+      return result ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CREATEDICT, "_rtnDictCreatorJob::_createDict" )
@@ -227,15 +228,30 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CREATEDICT ) ;
       _mthRecordGenerator generator ;
       dmsRecordID recordID ;
+      dmsExtentID lastExtentID = DMS_INVALID_EXTENT ;
       ossValuePtr recordDataPtr = 0 ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       UINT64 fetchNum = 0 ;
       UINT64 fetchSize = 0 ;
       BOOLEAN dictFull = FALSE ;
+      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
+      IDmsScannerChecker *checker = NULL ;
 
       SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
       dmsTBScanner tbScanner( sd, context, NULL ) ;
+      const CHAR *csName = sd->getSuName() ;
+      const CHAR *clShortName = context->mb()->_collectionName ;
+      rc = dmsCB->createScannerChecker( sd->logicalID(),
+                                        context->clLID(),
+                                        csName,
+                                        clShortName,
+                                        "create dictionary",
+                                        cb,
+                                        &checker ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to open storage unit checker for "
+                   "collection [%s.%s], rc: %d", csName, clShortName, rc ) ;
+
       /*
        * The loop will end either all records have been fetched, or the
        * dictionary is full.
@@ -260,6 +276,19 @@ namespace engine
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             rc = SDB_SYS ;
             goto error ;
+         }
+         if ( ( DMS_INVALID_EXTENT == lastExtentID ) ||
+              ( lastExtentID != recordID._extent ) )
+         {
+            if ( NULL != checker && checker->needInterrupt() )
+            {
+               PD_LOG( PDWARNING, "Scanner for collection [%s.%s] need "
+                       "interrupt", sd->getSuName(),
+                       context->mb()->_collectionName ) ;
+               rc = SDB_DMS_SCANNER_INTERRUPT ;
+               goto error ;
+            }
+            lastExtentID = recordID._extent ;
          }
       }
 
@@ -286,6 +315,10 @@ namespace engine
       }
 
    done:
+      if ( NULL != checker )
+      {
+         dmsCB->releaseScannerChecker( checker ) ;
+      }
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CREATEDICT, rc ) ;
       return rc ;
    error:
@@ -293,7 +326,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, "_rtnDictCreatorJob::_checkAndCreateDictForCL" )
-   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( const dmsDictJob &job,
+   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( dmsDictJob &job,
                                                        BOOLEAN &retry )
    {
       INT32 rc = SDB_OK ;
@@ -305,7 +338,7 @@ namespace engine
       UINT32 dictBufLen = UTIL_MAX_DICT_TOTAL_SIZE ;
       CHAR *dictBuf = NULL ;
       BOOLEAN writable = FALSE ;
-      pmdEDUCB *cb = pmdGetKRCB()->getEDUMgr()->getEDU() ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       ossTimestamp begin ;
       ossTimestamp end ;
       utilLZWDictCreator creator ;
@@ -328,6 +361,15 @@ namespace engine
          goto done ;
       }
 
+      // Check before taking the cl lock, to avoid IO when accessing dmsMB. As the cs is locked
+      // above, we can get the mbStat.
+      if ( job._lastWriteTick != 0 &&
+           job._lastWriteTick == su->data()->getMBStatInfo( job._clID )->_lastWriteTick )
+      {
+         retry = TRUE ;
+         goto done ;
+      }
+
       // Lock the collection, and check if its data match the condition. If yes,
       // start to create the dictionary.
       rc = su->data()->getMBContext( &mbContext, job._clID,
@@ -344,13 +386,15 @@ namespace engine
          goto error ;
       }
 
+      job._lastWriteTick = mbContext->mbStat()->_lastWriteTick ;
+
       if ( DMS_INVALID_EXTENT != mbContext->mb()->_dictExtentID ||
            UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
       {
          goto done ;
       }
 
-      if ( !_conditionMatch( su, mbContext, job._clID ) )
+      if ( !_conditionMatch( su, mbContext, job ) )
       {
          mbContext->mbUnlock() ;
          retry = TRUE ;
@@ -376,7 +420,7 @@ namespace engine
       }
 
       // Double check of the condition after resuming the mb latch.
-      if ( !_conditionMatch( su, mbContext, job._clID ) )
+      if ( !_conditionMatch( su, mbContext, job ) )
       {
          mbContext->mbUnlock() ;
          retry = TRUE ;
@@ -397,6 +441,11 @@ namespace engine
          {
             // Data in the collection is not enough. Should not print any error.
             PD_LOG( PDERROR, "Failed to create dictionary, rc: %d", rc ) ;
+         }
+         else if ( SDB_DMS_EOC == rc )
+         {
+            const dmsMBStatInfo *mbStatInfo = su->data()->getMBStatInfo( job._clID ) ;
+            job._recordNum = mbStatInfo->_totalRecords ;
          }
          goto error ;
       }
@@ -455,6 +504,9 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Create compression dictionary failed[%d]. "
                             "Will try again later", rc ) ;
+         // For other failures, need to retry again, event the mbstat info of the collection does
+         // not change.
+         job._lastWriteTick = 0 ;
          rc = SDB_OK ;
          retry = TRUE ;
       }

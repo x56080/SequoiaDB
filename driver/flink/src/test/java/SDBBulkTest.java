@@ -1,6 +1,6 @@
 import java.util.ArrayList;
 
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.sink.state.SDBBulk;
 
 import org.bson.BSONObject;

@@ -385,11 +385,6 @@ namespace engine
       // index key pattern
       BSONObj              _keyPattern ;
 
-      // if key fields support array
-      BOOLEAN              _notArray ;
-
-      BOOLEAN              _isIDIndex ;
-
       // number of fields
       UINT32               _nFields ;
       // list of parsed key fields
@@ -449,7 +444,8 @@ namespace engine
                       BSONElement *pArrEle = NULL,
                       BOOLEAN keepKeyName = FALSE,
                       BOOLEAN ignoreUndefined = FALSE,
-                      BOOLEAN *pAllUndefined = NULL ) ;
+                      BOOLEAN *pAllUndefined = NULL,
+                      ixmKeyBuilder *pBuilder = NULL ) ;
       // get key set from object
       // for array key, generate all possible values from array
       INT32 getKeys ( const BSONObj &obj,
@@ -457,19 +453,10 @@ namespace engine
                       BSONElement *pArrEle = NULL,
                       BOOLEAN keepKeyName = FALSE,
                       BOOLEAN ignoreUndefined = FALSE,
-                      BOOLEAN *pAllUndefined = NULL ) ;
+                      BOOLEAN *pAllUndefined = NULL,
+                      ixmKeyBuilder *pBuilder = NULL ) ;
 
       static BOOLEAN validateKeyDef ( const BSONObj &keyDef ) ;
-
-      void  setNotArray ( const BOOLEAN notArray )
-      {
-         _notArray = notArray ;
-      }
-
-      void  setIsIDIndex ( const BOOLEAN isIDIndex )
-      {
-         _isIDIndex = isIDIndex ;
-      }
 
    protected:
       // disable copy

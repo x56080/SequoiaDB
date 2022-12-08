@@ -1,10 +1,10 @@
-[^_^]: 
+[^_^]:
     当前会话快照
 
 
 当前会话快照可以列出当前用户的会话。
 
-> **Note:**  
+> **Note:**
 >
 > 如果连接协调节点查询快照，返回的是当前会话通过协调节点所连接的编目节点和数据节点的会话。
 
@@ -30,6 +30,10 @@ SDB_SNAP_SESSIONS_CURRENT
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                   |
 | RelatedID         | string     | 会话的内部标识                                     |
 | Contexts          | bson array | 该会话所有上下文的 ID                              |
+| TotalQuery        | int64      | 总查询数量（广义查询，泛指在数据库上执行的所有操作）  |
+| TotalSlowQuery    | int64      | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）|
+| TotalTransCommit  | int64      | 总事务提交数量                                     |
+| TotalTransRollback| int64      | 总事务回滚数量                                     |
 | TotalDataRead     | int64      | 数据记录读                                         |
 | TotalIndexRead    | int64      | 索引读                                             |
 | TotalDataWrite    | int64      | 数据记录写                                         |
@@ -39,6 +43,16 @@ SDB_SNAP_SESSIONS_CURRENT
 | TotalInsert       | int64      | 总插入记录数量                                     |
 | TotalSelect       | int64      | 总选取记录数量                                     |
 | TotalRead         | int64      | 总数据读                                           |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
 | TotalReadTime     | int64      | 总数据读时间，单位为毫秒                           |
 | TotalWriteTime    | int64      | 总数据写时间，单位为毫秒                           |
 | ReadTimeSpent     | int64      | 读取记录的时间，单位为毫秒                         |
@@ -57,29 +71,33 @@ SDB_SNAP_SESSIONS_CURRENT
 查看当前会话快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_SESSIONS_CURRENT )
+> db.snapshot(SDB_SNAP_SESSIONS_CURRENT)
 ```
 
 输出结果如下：
 
 ```lang-json
 {
-  "NodeName": "hostname1:11820",
-  "SessionID": 28,
-  "TID": 9430,
+  "NodeName": "hostname:11810",
+  "SessionID": 2,
+  "TID": 14593,
   "Status": "Running",
   "IsBlocked": false,
-  "Type": "Agent",
-  "Name": "127.0.0.1:60309",
+  "Type": "CoordMgr",
+  "Name": "",
   "Doing": "",
   "Source": "",
   "QueueSize": 0,
-  "ProcessEventCount": 12,
-  "MemPoolSize": 0,
-  "RelatedID": "c0a81e442e7200008c8a",
+  "ProcessEventCount": 11,
+  "MemPoolSize": 4192,
+  "RelatedID": "c0a81e442e72000000000000001c",
   "Contexts": [
-    15
+    38
   ],
+  "TotalQuery": 1,
+  "TotalSlowQuery": 0,
+  "TotalTransCommit": 0,
+  "TotalTransRollback": 0,
   "TotalDataRead": 0,
   "TotalIndexRead": 0,
   "TotalDataWrite": 0,
@@ -89,18 +107,28 @@ SDB_SNAP_SESSIONS_CURRENT
   "TotalInsert": 0,
   "TotalSelect": 0,
   "TotalRead": 0,
+  "TotalLobGet": 0,
+  "TotalLobPut": 0,
+  "TotalLobDelete": 0,
+  "TotalLobList": 0,
+  "TotalLobReadSize": 0,
+  "TotalLobWriteSize": 0,
+  "TotalLobRead": 0,
+  "TotalLobWrite": 0,
+  "TotalLobTruncate": 0,
+  "TotalLobAddressing": 0,
   "TotalReadTime": 0,
   "TotalWriteTime": 0,
-  "ReadTimeSpent": 10,
+  "ReadTimeSpent": 0,
   "WriteTimeSpent": 0,
-  "ConnectTimestamp": "2013-09-27-18.06.25.961090",
-  "ResetTimestamp": "2013-09-27-18.06.25.961090",
-  "LastOpType": "UNKNOWN",
-  "LastOpBegin": "2014-08-07-14.25.23.550216",
+  "ConnectTimestamp": "2022-10-06-18.00.06.717121",
+  "ResetTimestamp": "2022-10-06-18.00.06.717121",
+  "LastOpType": "COMMAND",
+  "LastOpBegin": "2022-10-06-18.32.58.692587",
   "LastOpEnd": "--",
   "LastOpInfo": "",
-  "UserCPU": "0.910000",
-  "SysCPU": "2.060000"
+  "UserCPU": 0.02,
+  "SysCPU": 0.01
 }
 ```
 

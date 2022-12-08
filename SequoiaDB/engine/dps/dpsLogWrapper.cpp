@@ -558,6 +558,17 @@ namespace engine
          info.setIrreversible() ;
       }
 
+      if( NULL != sdbGetThreadExecutor() )
+      {
+         ISession* session = sdbGetThreadExecutor()->getSession() ;
+
+         if( NULL == session || !session->isBusinessSession() )
+         {
+            dpsLogRecordHeader& head = info.getMergeBlock().record().head() ;
+            head.setFlag( DPS_FLG_NON_BS_OP ) ;
+         }
+      }
+
       rc = _buf.preparePages( info ) ;
       if ( rc )
       {
@@ -632,17 +643,6 @@ namespace engine
 
    void _dpsLogWrapper::unlock()
    {
-   }
-
-   void _dpsLogWrapper::beforeFS()
-   {
-      _buf.beforeFS() ;
-   }
-
-   void _dpsLogWrapper::afterFS()
-   {
-      DPS_LSN lsn = expectLsn() ;
-      _buf.afterFS( lsn.offset, lsn.version ) ;
    }
 
    INT32 _dpsLogWrapper::search( const DPS_LSN &lsn,

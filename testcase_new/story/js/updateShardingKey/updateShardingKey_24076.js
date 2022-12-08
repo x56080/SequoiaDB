@@ -2,7 +2,7 @@
  * @Description   : seqDB-24076:分区键更新 update 时，set 规则和 where 条件中主键一致允许更新
  * @Author        : chensiqin
  * @CreateTime    : 2021.04.8
- * @LastEditTime  : 2021.04.28
+ * @LastEditTime  : 2022.06.30
  * @LastEditors   : Yi Pan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -110,7 +110,7 @@ function updateAndCheckResult ( cl, updateCondition, findCondition, ShardingKeyF
    var hint = {};
 
    updateData( cl, updateCondition, findCondition, hint, ShardingKeyFlag );
-   var cursor = cl.find();
+   var cursor = cl.find().sort( { "a": 1 } );
    commCompareResults( cursor, expRecs );
 }
 

@@ -3695,7 +3695,7 @@ namespace import
          /* create integer time representation */
          if ( isLocalTime )
          {
-            timep = mktime(&t);
+            timep = ossMkTime(&t);
          }
          else
          {
@@ -3848,7 +3848,7 @@ namespace import
          /* create integer time representation */
          if ( isLocalTime )
          {
-            timep = mktime(&t);
+            timep = ossMkTime(&t);
          }
          else
          {

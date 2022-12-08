@@ -112,13 +112,14 @@ namespace engine
       _pmdEDUMgr implement
    */
    _pmdEDUMgr::_pmdEDUMgr() :
-   _EDUID(1),
    _isDestroyed(FALSE),
    _isQuiesced(FALSE)
    {
       _pResource = NULL ;
       _pMonitorThd = NULL ;
       _pDeadCheckThd = NULL ;
+
+      _EDUIDBase = 1 ;
    }
 
    _pmdEDUMgr::~_pmdEDUMgr()
@@ -288,18 +289,6 @@ namespace engine
                info.insert(simple) ;
             }
          }
-
-         for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
-         {
-            cb = it->second ;
-            // If tid hasn't been set, maybe the thread hasn't started yet,
-            // just igore it
-            if ( cb->_hasSetTid )
-            {
-               cb->dumpInfo ( simple ) ;
-               info.insert( simple ) ;
-            }
-         }
       }
       catch( std::exception &e )
       {
@@ -338,18 +327,6 @@ namespace engine
             {
                cb->dumpInfo( full ) ;
                info.insert(full) ;
-            }
-         }
-
-         for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
-         {
-            cb = it->second ;
-            // If tid hasn't been set, maybe the thread hasn't started yet,
-            // just igore it
-            if ( cb->_hasSetTid )
-            {
-               cb->dumpInfo( full ) ;
-               info.insert( full ) ;
             }
          }
       }
@@ -1416,17 +1393,6 @@ namespace engine
 
    void _pmdEDUMgr::_postDestoryEDU( pmdEDUCB *cb )
    {
-      /// remove tid map
-      MAP_TID2EDU_IT itTid = _mapTid2Edu.begin() ;
-      while( itTid != _mapTid2Edu.end() )
-      {
-         if ( itTid->second == cb->getID() )
-         {
-            _mapTid2Edu.erase( itTid ) ;
-            break ;
-         }
-         ++itTid ;
-      }
       /// remove from system map
       _mapSystemEdu.erase( cb->getType() ) ;
    }
@@ -1495,7 +1461,18 @@ namespace engine
             {
                try
                {
-                  _mapIdles[ cb->getID() ] = cb ;
+                  while ( TRUE )
+                  {
+                     EDUID newID = _allocEDUID() ;
+
+                     // check if has duplicated EDUID
+                     if ( _mapIdles.insert( make_pair( newID, cb ) ).second )
+                     {
+                        cb->setID( newID ) ;
+                        break ;
+                     }
+                  }
+
                   SDB_ASSERT( PMD_EDU_IDLE != cb->getStatus(),
                               "Status can't be idle" ) ;
                   cb->setStatus( PMD_EDU_IDLE ) ;
@@ -1547,11 +1524,13 @@ namespace engine
       PD_TRACE_EXIT( SDB__PMDEDUMGR_RTNEDU );
    }
 
-   pmdEDUCB* _pmdEDUMgr::findAndRemove( EDUID eduID )
+   void _pmdEDUMgr::findAndRemove( pmdEDUCB *cb )
    {
-      pmdEDUCB *cb = NULL ;
+      pmdEDUCB *removedCB = NULL ;
       BOOLEAN isNeedWaitDump = FALSE ;
       MAP_EDUCB_IT it ;
+
+      SDB_ASSERT( NULL != cb, "eduCB should be valid" ) ;
 
    Retry:
       if ( isNeedWaitDump )
@@ -1561,18 +1540,18 @@ namespace engine
       }
 
       _latch.get() ;
-
+      EDUID eduID = cb->getID() ;
       if ( _mapIdles.end() != ( it = _mapIdles.find( eduID ) ) )
       {
-         cb = it->second ;
+         removedCB = it->second ;
          _mapIdles.erase( it ) ;
       }
       else if ( _mapRuns.end() != ( it = _mapRuns.find( eduID ) ) )
       {
-         cb = it->second ;
+         removedCB = it->second ;
 
-         cb->setStatus( PMD_EDU_DESTROY ) ;
-         if ( cb->getDumpTransCount() > 0 )
+         removedCB->setStatus( PMD_EDU_DESTROY ) ;
+         if ( removedCB->getDumpTransCount() > 0 )
          {
             _latch.release() ;
             isNeedWaitDump = TRUE ;
@@ -1582,14 +1561,13 @@ namespace engine
          _mapRuns.erase( it ) ;
       }
 
-      if ( cb )
+      if ( removedCB )
       {
-         _postDestoryEDU( cb ) ;
+         SDB_ASSERT( removedCB == cb, "should be the same EDU" ) ;
+         _postDestoryEDU( removedCB ) ;
       }
 
       _latch.release() ;
-
-      return cb ;
    }
 
    pmdEDUCB* _pmdEDUMgr::getFromPool( INT32 type )
@@ -1604,14 +1582,55 @@ namespace engine
       if ( it != _mapIdles.end() )
       {
          cb = it->second ;
-         _mapRuns[ cb->getID() ] = cb ;
-         _mapIdles.erase( it ) ;
+         // Make sure the cb is available
+         if ( cb->getTID() )
+         {
+            try
+            {
+               EDUID runEDUID = cb->getID() ;
+               while ( TRUE )
+               {
+                  // the ID is generated when
+                  // - create and add into idle map
+                  // - return to idle map
+                  // so we can reuse the ID here
 
-         cb->setType( type ) ;
-         SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
-         cb->setStatus( PMD_EDU_CREATING ) ;
+                  // but the ID checking of idle map and run map are individual,
+                  // so still need to check if has duplicated EDUID in run map
+                  if ( _mapRuns.insert( make_pair( runEDUID, cb ) ).second )
+                  {
+                     // moved to run map, erase from idle map
+                     _mapIdles.erase( it ) ;
+                     // new allocated EDUID
+                     if ( runEDUID != cb->getID() )
+                     {
+                        cb->setID( runEDUID ) ;
+                     }
+                     break ;
+                  }
+
+                  // found duplicated one, allocate new EDUID and retry
+                  runEDUID = _allocEDUID() ;
+               }
+            }
+            catch ( std::exception &e )
+            {
+               cb = NULL ;
+               PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+
+            cb->setType( type ) ;
+            SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
+            cb->setStatus( PMD_EDU_CREATING ) ;
+         }
+         else
+         {
+            cb = NULL ;
+         }
       }
 
+   done :
       if ( _mapIdles.size() < _calIdleLowSize( _mapRuns.size(),
                                                _mapIdles.size(),
                                                _mapSystemEdu.size(),
@@ -1620,8 +1639,9 @@ namespace engine
          /// Notify monitor thread
          _monitorEvent.signal() ;
       }
-
       return cb ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_STARTEDU, "_pmdEDUMgr::startEDU" )
@@ -1728,10 +1748,30 @@ namespace engine
       /// need to use ossScopedLock to prevent lock leak when exception
       {
          ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-         newID = _EDUID++ ;
-         cb->setID( newID ) ;
          /// add to map
-         _mapIdles[ newID ] = cb ;
+         try
+         {
+            while ( TRUE )
+            {
+               // allocate new EDUID
+               newID = _allocEDUID() ;
+               cb->setID( newID ) ;
+
+               // check if has duplicated EDUID
+               if ( _mapIdles.insert( make_pair( newID, cb ) ).second )
+               {
+                  break ;
+               }
+            }
+         }
+         catch ( std::exception &e )
+         {
+            SDB_OSS_DEL cb ;
+            cb = NULL ;
+
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
 
       // create a new thread here
@@ -1834,20 +1874,45 @@ namespace engine
       /// need to use ossScopedLock to prevent lock leak when exception
       {
          ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-         newID = _EDUID++ ;
-         cb->setID( newID ) ;
-         /// add to map
-         _mapRuns[ newID ] = cb ;
-         /// add to system map
-         if ( isSystem )
+         try
          {
-            _mapSystemEdu[ type ] = newID ;
-         }
+            /// add to map
+            while ( TRUE )
+            {
+               // allocate new EDUID
+               newID = _allocEDUID() ;
+               cb->setID( newID ) ;
 
-         /// post resume event before thread start
-         cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
-                                      PMD_EDU_MEM_NONE,
-                                      arg ) ) ;
+               // check if has duplicated EDUID
+               if ( _mapRuns.insert( make_pair( newID, cb ) ).second )
+               {
+                  break ;
+               }
+            }
+
+            /// add to system map
+            if ( isSystem )
+            {
+               _mapSystemEdu[ type ] = newID ;
+            }
+            /// post resume event before thread start
+            cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
+                                         PMD_EDU_MEM_NONE,
+                                         arg ) ) ;
+         }
+         catch ( std::exception &e )
+         {
+            _mapRuns.erase( newID ) ;
+            if ( isSystem )
+            {
+               _mapSystemEdu.erase( type ) ;
+            }
+            SDB_OSS_DEL cb ;
+            cb = NULL ;
+
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
 
       // create a new thread here
@@ -2036,33 +2101,6 @@ namespace engine
       {
          cb->setLock( FALSE ) ;
       }
-   }
-
-   pmdEDUCB *_pmdEDUMgr::getEDU( UINT32 tid )
-   {
-      MAP_TID2EDU_IT itTid ;
-      pmdEDUCB *cb = NULL ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      itTid = _mapTid2Edu.find( tid ) ;
-      if ( itTid != _mapTid2Edu.end() )
-      {
-         cb = _getEDUByID( itTid->second ) ;
-      }
-
-      return cb ;
-   }
-
-   void _pmdEDUMgr::setEDU( UINT32 tid, EDUID eduid )
-   {
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-      _mapTid2Edu[ tid ] = eduid ;
-   }
-
-   pmdEDUCB* _pmdEDUMgr::getEDU()
-   {
-      return getEDU( ossGetCurrentThreadID() ) ;
    }
 
    pmdEDUCB* _pmdEDUMgr::getEDUByID( EDUID eduID )
@@ -2364,7 +2402,6 @@ namespace engine
    INT32 _pmdEDUMgr::pmdEDUEntryPointWrapper( pmdEDUCB *cb, pmdEventPtr ePtr )
    {
       INT32 rc = SDB_OK ;
-      EDUID eduID = cb->getID() ;
       UINT32 tid = ossGetCurrentThreadID() ;
       BOOLEAN quitWithException = FALSE ;
 
@@ -2404,11 +2441,9 @@ namespace engine
          // notify
          ePtr->signal( rc ) ;
 
-         cb = findAndRemove( eduID ) ;
-         if ( cb )
-         {
-            SDB_OSS_DEL cb ;
-         }
+         findAndRemove( cb ) ;
+         EDUID eduID = cb->getID() ;
+         SDB_OSS_DEL cb ;
 
          if ( quitWithException )
          {
@@ -2462,10 +2497,8 @@ namespace engine
       BOOLEAN     eduDestroyed   = FALSE ;
       CHAR        eduName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      eduMgr->setEDU( ossGetCurrentThreadID(), myEDUID ) ;
-
       PD_LOG ( PDEVENT, "Start thread[%u] for EDU[ID:%lld, type:%s, Name:%s]",
-               cb->getTID(), myEDUID, getEDUName( eduType ), cb->getName() ) ;
+               cb->getTID(), cb->getID(), getEDUName( eduType ), cb->getName() ) ;
 
       // copy name
       ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
@@ -2497,8 +2530,14 @@ namespace engine
             cb->_pMemPool->setName( getEDUName( eduType ) ) ;
          }
 
+         // update edu ID
+         myEDUID = cb->getID() ;
+
          if ( PMD_EDU_EVENT_RESUME == event._eventType )
          {
+            PD_LOG( PDINFO, "Resume thread[%d] for EDU[ID:%lld, Type:%s]",
+                    ossGetCurrentThreadID(), myEDUID, getEDUName( eduType ) ) ;
+
             pItem = factory.getItem( eduType ) ;
             if ( !pItem || !pItem->_pFunc )
             {
@@ -2540,6 +2579,7 @@ namespace engine
             eduMgr->waitEDU( cb ) ;
             //reset and clear
             cb->resetMon() ;
+            cb->setMonQueryCB( NULL ) ;
             //delete all leak context
             if( pCtxMgr )
             {
@@ -2574,9 +2614,9 @@ namespace engine
          eduMgr->returnEDU( cb, eduDestroyed ) ;
          if ( !eduDestroyed )
          {
-            PD_LOG( PDINFO, "Push thread[%d] for EDU[ID:%lld, Type:%s, "
+            PD_LOG( PDINFO, "Push thread[%d] for EDU[ID:%lld, NewID:%lld, Type:%s, "
                     "Name: %s] to thread pool", ossGetCurrentThreadID(),
-                    myEDUID, getEDUName( eduType ), eduName ) ;
+                    myEDUID, cb->getID(), getEDUName( eduType ), eduName ) ;
          }
 
          utilClearThreadMemPool() ;
@@ -2595,6 +2635,16 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB_PMDEDUENTPNT, rc );
       return rc ;
+   }
+
+   EDUID pmdEDUMgr::_allocEDUID()
+   {
+      // check if invalid ( PMD_INVALID_EDUID is for main thread )
+      if ( PMD_INVALID_EDUID == _EDUIDBase )
+      {
+         _EDUIDBase = 1 ;
+      }
+      return _EDUIDBase ++ ;
    }
 
 }

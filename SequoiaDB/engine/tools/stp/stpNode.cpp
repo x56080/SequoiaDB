@@ -220,13 +220,13 @@ namespace engine
                    "node ID [%u] is invalid", nodeID ) ;
 
          // check if host name is valid
-         PD_CHECK( NULL != hostName && '\0' != hostName,
+         PD_CHECK( NULL != hostName && '\0' != hostName[0],
                    SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse node object, "
                    "host name is invalid" ) ;
 
          // check if service name is valid
-         PD_CHECK( NULL != serviceName && '\0' != serviceName,
+         PD_CHECK( NULL != serviceName && '\0' != serviceName[0],
                    SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse node object, "
                    "service name is invalid" ) ;

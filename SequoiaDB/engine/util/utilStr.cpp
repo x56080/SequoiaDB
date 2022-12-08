@@ -155,41 +155,58 @@ namespace engine
       return utilStrLtrim ( utilStrRtrim ( s ) ) ;
    }
 
-   INT32 utilStrToUpper( const CHAR *src, CHAR *&upper )
+   INT32 utilStrToUpper( const CHAR *src, CHAR *dst, UINT32 dstSize )
    {
       INT32 rc = SDB_OK ;
-      CHAR *tmp = NULL ;
-      UINT32 size = 0 ;
-      if ( NULL == src )
+      UINT32 len = 0 ;
+      if ( NULL == src || NULL == dst )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-
-      size = ossStrlen( src) + 1 ;
-      tmp = (CHAR *)SDB_OSS_MALLOC(size) ;
-      if ( NULL == tmp )
+      len = ossStrlen( src ) + 1 ;
+      if ( len > dstSize )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
-
       /// '\0' is contained.
-      for ( UINT32 i = 0; i < size ; i++ )
+      for ( UINT32 i = 0 ; i < len ; i++ )
       {
-         tmp[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ?
-                    src[i] - 32 : src[i] ;
+         dst[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ? src[i] - 32 : src[i] ;
       }
 
-      upper = tmp ;
    done:
       return rc ;
    error:
-      if ( NULL != tmp )
+      goto done ;
+   }
+
+   INT32 utilStrToLower( const CHAR *src, CHAR *dst, UINT32 dstSize )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 len = 0 ;
+      if ( NULL == src || NULL == dst )
       {
-         SDB_OSS_FREE( tmp ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
+      len = ossStrlen( src ) + 1 ;
+      if ( len > dstSize )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      /// '\0' is contained.
+      for ( UINT32 i = 0; i < len ; i++ )
+      {
+         dst[i] = ( src[i] >= 'A' && src[i] <= 'Z' ) ?
+                    src[i] + 32 : src[i] ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -483,7 +500,7 @@ namespace engine
          t.tm_min   = minute ;
          t.tm_sec   = second ;
 
-         tm = mktime( &t ) ;
+         tm = ossMkTime( &t ) ;
       }
       if ( NULL != usec )
       {
@@ -553,7 +570,7 @@ namespace engine
          t.tm_mon   = month - 1 ;
          t.tm_mday  = day    ;
 
-         timep = mktime( &t ) ;
+         timep = ossMkTime( &t ) ;
          millis = timep * 1000 ;
       }
 
@@ -648,11 +665,11 @@ namespace engine
 
    BOOLEAN utilIsValidOID( const CHAR * pStr )
    {
-      if ( NULL == pStr || 24 > ossStrlen( pStr ) )
+      if ( NULL == pStr || UTIL_OID_LEN != ossStrlen( pStr ) )
       {
          return FALSE ;
       }
-      for ( UINT32 i = 0; i < 24; ++i )
+      for ( UINT32 i = 0; i < UTIL_OID_LEN; ++i )
       {
          if ( ! ( ( pStr[i] >= '0' && pStr[i] <= '9' ) ||
                   ( pStr[i] >= 'a' && pStr[i] <= 'f' ) ||

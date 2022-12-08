@@ -49,6 +49,7 @@
 #include "dmsExtDataHandler.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
+#include "dmsOprHandler.hpp"
 
 using namespace bson ;
 
@@ -88,12 +89,25 @@ namespace engine
       INT32          _totalLobPages ;
       INT64          _totalDataFreeSpace ;
       INT64          _totalIndexFreeSpace ;
+      INT64          _totalValidLobSize ;
+      INT64          _totalLobSize ;
+      INT64          _totalLobGet ;
+      INT64          _totalLobPut ;
+      INT64          _totalLobDelete ;
+      INT64          _totalLobList ;
+      INT64          _totalLobReadSize ;
+      INT64          _totalLobWriteSize ;
+      INT64          _totalLobRead ;
+      INT64          _totalLobWrite ;
+      INT64          _totalLobTruncate ;
+      INT64          _totalLobAddressing ;
    } ;
    typedef _dmsStorageUnitStat dmsStorageUnitStat ;
 
    #define DMS_SU_DATA           ( 0x0001 )
    #define DMS_SU_INDEX          ( 0x0002 )
    #define DMS_SU_LOB            ( 0x0004 )
+   #define DMS_SU_LOB_META       ( 0x0008 )
    #define DMS_SU_ALL            ( 0xFFFF )
 
    /*
@@ -400,6 +414,16 @@ namespace engine
                                    BOOLEAN &idxFlag,
                                    BOOLEAN &lobFlag ) const ;
 
+         UINT64      getCreateTime() const
+         {
+            return _storageInfo._createTime ;
+         }
+
+         UINT64      getUpdateTime() const
+         {
+            return _storageInfo._updateTime ;
+         }
+
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
                              BOOLEAN sys = FALSE ) ;
@@ -506,6 +530,7 @@ namespace engine
                                   _mthModifier &modifier,
                                   SINT64 maxUpdate = -1,
                                   dmsMBContext *context = NULL,
+                                  IDmsOprHandler *pHandler = NULL,
                                   utilUpdateResult *pResult = NULL ) ;
 
          INT32    deleteRecords ( const CHAR *pName,

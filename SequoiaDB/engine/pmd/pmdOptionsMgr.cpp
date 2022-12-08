@@ -114,39 +114,10 @@ namespace engine
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
    #define PMD_DFT_MVCCRBSNUM          ( 16 )
    #define PMD_MAX_MVCCRBSNUM          ( 128 )
-
-   #define PMD_RDX_WITH_ALIAS( formalName, aliasName, rdxFunc, pEX, ... ) \
-      if ( pEX->isLoad() ) \
-      { \
-         if ( pEX->isWhole() && (!pEX->hasField( formalName ) || \
-                                 !pEX->hasField( aliasName ) ) ) \
-         { \
-            if ( !pEX->hasField( formalName ) ) \
-            { \
-               rdxFunc( pEX, formalName, __VA_ARGS__ ) ; \
-            } \
-            if ( !pEX->hasField( aliasName ) ) \
-            { \
-               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ; \
-            } \
-         } \
-         else \
-         { \
-            if ( pEX->hasField( aliasName ) ) \
-            { \
-               rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
-            } \
-            if ( pEX->hasField( formalName ) ) \
-            { \
-               rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
-            } \
-         } \
-      } \
-      else \
-      { \
-         rdxFunc( pEX, formalName, __VA_ARGS__ ) ;\
-         rdxFunc( pEX, aliasName, __VA_ARGS__ ) ;\
-      }
+   #define PMD_DFT_METACACHE_EXPIRED   (30) // half an hour
+   #define PMD_MAX_METACACHE_EXPIRED   (43200) // 30 days
+   #define PMD_DFT_METACACHE_LWM       (512)
+   #define PMD_MAX_METACACHE_LWM       (10240)
 
    /*
       _pmdCfgExchange implement
@@ -174,17 +145,17 @@ namespace engine
                                       BOOLEAN load,
                                       PMD_CFG_STEP step,
                                       UINT32 mask )
-      :_pMapKeyField( pMapField ), _pMapColdKeyField(pMapColdField),
-      _cfgStep( step ),  _isLoad( load ), _dataObj( dataObj ), _mask( mask )
-      {
-         _dataType   = PMD_CFG_DATA_BSON ;
-         _pVMFile    = NULL ;
-         _pVMCmd     = NULL ;
-         _isWhole    = FALSE ;
+   :_pMapKeyField( pMapField ), _pMapColdKeyField( pMapColdField ),
+   _cfgStep( step ),  _isLoad( load ), _dataObj( dataObj ), _mask( mask )
+   {
+      _dataType   = PMD_CFG_DATA_BSON ;
+      _pVMFile    = NULL ;
+      _pVMCmd     = NULL ;
+      _isWhole    = FALSE ;
 
-         SDB_ASSERT( _pMapKeyField, "Map key field can't be NULL" ) ;
-         SDB_ASSERT( _pMapColdKeyField, "Map cold key field can't be NULL" ) ;
-      }
+      SDB_ASSERT( _pMapKeyField, "Map key field can't be NULL" ) ;
+      SDB_ASSERT( _pMapColdKeyField, "Map cold key field can't be NULL" ) ;
+   }
 
    _pmdCfgExchange::_pmdCfgExchange( MAP_K2V *pMapField,
                                      po::variables_map *pVMCmd,
@@ -793,6 +764,7 @@ namespace engine
 
    INT32 _pmdCfgRecord::update( const BSONObj &userConfig,
                                 BOOLEAN setForRestore,
+                                const controlParams &cp,
                                 BSONObj &errorObj )
    {
       INT32 rc = SDB_OK ;
@@ -829,6 +801,12 @@ namespace engine
 
       /// make kv map
       ex.getKVMap() ;
+
+      if ( !_shouldUpdateMKV( mapKeyField, cp.isForce ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
       rc = _saveUpdateChange( mapKeyField, mapColdKeyField,
                               setForRestore, errorObj ) ;
@@ -1121,6 +1099,36 @@ done:
             ++itSelf ;
          }
       }
+   }
+
+   BOOLEAN _pmdCfgRecord::_shouldUpdateMKV( MAP_K2V &mapKeyField,
+                                            BOOLEAN isForce ) const
+   {
+      if ( !isForce )
+      {
+         MAP_K2V::iterator iter ;
+         for ( iter = mapKeyField.begin(); iter != mapKeyField.end(); ++iter )
+         {
+            if ( !iter->second._hasMapped )
+            {
+               #ifdef SDB_ENGINE
+               PD_LOG_MSG(
+                   PDERROR,
+                   "Error: config[%s] is not an official configuration, "
+                   "check its spelling or add Force:true to options.",
+                   iter->first.c_str() ) ;
+               #else
+               PD_LOG(
+                   PDERROR,
+                   "Error: config[%s] is not an official configuration, "
+                   "check its spelling or add Force:true to options.",
+                   iter->first.c_str() ) ;
+               #endif
+               return FALSE ;
+            }
+         }
+      }
+      return TRUE ;
    }
 
    INT32 _pmdCfgRecord::_saveUpdateChange( MAP_K2V &mapKeyField,
@@ -2025,6 +2033,8 @@ done:
 
       _detectDisk = TRUE ;
       _diagSecureOn = TRUE ;
+      _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
+      _metacachelwm = PMD_DFT_METACACHE_LWM ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2207,23 +2217,27 @@ done:
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
                  sizeof( _syncStrategyStr ), FALSE, PMD_CFG_CHANGE_RUN, "", FALSE ) ;
       // --preferedinstance / --preferredinstance
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST, PMD_OPTION_PREFINST,
-                          rdxString, pEX, _prefInstStr, sizeof( _prefInstStr ),
-                          FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
+      rdxString( pEX, PMD_OPTION_PREFINST, _prefInstStr,
+                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
+      rdxString( pEX, PMD_OPTION_PREFERREDINST, _prefInstStr,
+                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, _prefInstStr ) ;
       // --preferedinstancemode / --preferredinstancemode
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_MODE,
-                          PMD_OPTION_PREFINST_MODE, rdxString, pEX,
-                          _prefInstModeStr, sizeof( _prefInstModeStr ), FALSE,
-                          PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_MODE ) ;
+      rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
+                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DFT_PREFINST_MODE ) ;
+      rdxString( pEX, PMD_OPTION_PREFERREDINST_MODE, _prefInstModeStr,
+                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
+                 _prefInstModeStr ) ;
       // --preferedstrict / --preferredstrict
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_STRICT,
-                          PMD_OPTION_PREFINST_STRICT, rdxBooleanS, pEX,
-                          _preferredStrict, FALSE, PMD_CFG_CHANGE_RUN, FALSE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferredStrict, FALSE,
+                   PMD_CFG_CHANGE_RUN, FALSE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_PREFERREDINST_STRICT, _preferredStrict, FALSE,
+                   PMD_CFG_CHANGE_RUN, _preferredStrict ) ;
       // --preferedperiod / --preferredperiod
-      PMD_RDX_WITH_ALIAS( PMD_OPTION_PREFERREDINST_PERIOD,
-                          PMD_OPTION_PREFINST_PERIOD, rdxInt, pEX,
-                          _preferredPeriod, FALSE, PMD_CFG_CHANGE_RUN,
-                          PMD_DFT_PREFINST_PERIOD, FALSE ) ;
+      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferredPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD ) ;
+      rdxInt( pEX, PMD_OPTION_PREFERREDINST_PERIOD, _preferredPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, _preferredPeriod ) ;
       rdvMinMax( pEX, _preferredPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
       // --preferredconstraint
       rdxString( pEX, PMD_OPTION_PREFERRED_CONSTRAINT, _prefConstraint,
@@ -2598,6 +2612,16 @@ done:
       // --diagsecureon
       rdxBooleanS( pEX, PMD_OPTION_DIAG_SECURE_ON, _diagSecureOn,
                    FALSE, PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
+
+      // --metacacheexpired
+      rdxUInt( pEX, PMD_OPTION_METACACHE_EXPIRED, _metacacheexpired, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_METACACHE_EXPIRED, FALSE ) ;
+      rdvMinMax( pEX, _metacacheexpired, 0, PMD_MAX_METACACHE_EXPIRED, TRUE ) ;
+
+      // --metacachelwm
+      rdxUInt( pEX, PMD_OPTION_METACACHE_LWM, _metacachelwm, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_METACACHE_LWM, FALSE ) ;
+      rdvMinMax( pEX, _metacachelwm, 0, PMD_MAX_METACACHE_LWM, TRUE ) ;
 
       // end map
 

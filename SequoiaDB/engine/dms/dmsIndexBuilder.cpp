@@ -33,6 +33,7 @@
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageData.hpp"
 #include "dmsIndexBuilderImpl.hpp"
+#include "dmsCB.hpp"
 #include "ixm.hpp"
 #include "pdSecure.hpp"
 
@@ -67,6 +68,7 @@ namespace engine
       _pOprHandler = NULL ;
       _pResult = NULL ;
       _remoteOperator = NULL ;
+      _checker = NULL ;
    }
 
    _dmsIndexBuilder::~_dmsIndexBuilder()
@@ -75,6 +77,7 @@ namespace engine
       _suData = NULL ;
       _mbContext = NULL ;
       SAFE_OSS_DELETE( _indexCB ) ;
+      _releaseScannerChecker() ;
    }
 
    void _dmsIndexBuilder::setOprHandler( IDmsOprHandler *pOprHander )
@@ -251,8 +254,9 @@ namespace engine
       rc = _keyGen.setKeyPattern( _indexCB->keyPattern() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set key pattern, rc: %d", rc ) ;
 
-      _keyGen.setNotArray( _indexCB->notArray() ) ;
-      _keyGen.setIsIDIndex( _indexCB->isIDIndex() ) ;
+      rc = _createScannerChecker() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create scanner checker, "
+                   "rc: %d", rc ) ;
 
       // WARNING: should not rewrite return code from _onInit()
       // if SDB_DMS_EOC is returned, it will be processed with caller
@@ -268,6 +272,7 @@ namespace engine
       return rc ;
    error:
       SAFE_OSS_DELETE( _indexCB ) ;
+      _releaseScannerChecker() ;
       goto done ;
    }
 
@@ -348,6 +353,8 @@ namespace engine
             ossSleep( STP_MICROSEC_TO_MILLISEC( STP_MAX_TIME_ERROR_US ) ) ;
          }
       }
+
+      _releaseScannerChecker() ;
 
       return rc ;
    }
@@ -459,6 +466,8 @@ namespace engine
 
    INT32 _dmsIndexBuilder::_afterExtent()
    {
+      INT32 rc = SDB_OK ;
+
       if ( DMS_INVALID_EXTENT == _extent->_nextExtent )
       {
          // done scan, set scanned extent to maximum value
@@ -475,7 +484,18 @@ namespace engine
          _pIdxStatus->incPcsedRecNum( _extent->_recCount ) ;
       }
 
-      return SDB_OK ;
+      // check if scanner is interrupted
+      rc = _checkInterrupt() ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _dmsIndexBuilder::_getKeySet( ossValuePtr recordDataPtr,
@@ -486,10 +506,15 @@ namespace engine
       try
       {
          BSONObj obj ( (CHAR*)recordDataPtr ) ;
+         BSONElement arrEle ;
 
-         rc = _keyGen.getKeys( obj, keySet ) ;
+         rc = _keyGen.getKeys( obj, keySet, &arrEle ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                        PD_SECURE_OBJ( obj ) ) ;
+
+         rc = _indexCB->checkKeys( keySet, arrEle ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object %s, "
+                      "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
       catch ( std::exception &e )
       {
@@ -711,6 +736,73 @@ namespace engine
       _mbContext->mbUnlock() ;
       goto done ;
    }
+
+   INT32 _dmsIndexBuilder::_checkInterrupt()
+   {
+      INT32 rc = SDB_OK ;
+
+      // check scanner
+      if ( ( NULL != _checker ) &&
+           ( _checker->needInterrupt() ) )
+      {
+         PD_LOG( PDWARNING, "Scanner for building index [%s] on "
+                 "collection [%s.%s] is interrupted", _indexCB->getName(),
+                 _suData->getSuName(), _mbContext->mb()->_collectionName ) ;
+         rc = SDB_DMS_SCANNER_INTERRUPT ;
+         goto error ;
+      }
+
+      // check task
+      if ( ( NULL != _pIdxStatus ) &&
+           ( DMS_TASK_STATUS_CANCELED == _pIdxStatus->status() ) )
+      {
+         PD_LOG( PDWARNING, "Task for building index [%s] on "
+                 "collection [%s.%s] has been canceled", _indexCB->getName(),
+                 _suData->getSuName(), _mbContext->mb()->_collectionName ) ;
+         rc = SDB_TASK_HAS_CANCELED ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsIndexBuilder::_createScannerChecker()
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL == _checker, "checker should not be valid" ) ;
+      const CHAR *csName = _suData->getSuName() ;
+      const CHAR *clShortName = _mbContext->mb()->_collectionName ;
+      rc = sdbGetDMSCB()->createScannerChecker( _suData->logicalID(),
+                                                _mbContext->clLID(),
+                                                csName,
+                                                clShortName,
+                                                "build index",
+                                                _eduCB,
+                                                &_checker ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create scanner checker for "
+                   "collection [%s.%s], rc: %d", csName, clShortName, rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   void _dmsIndexBuilder::_releaseScannerChecker()
+   {
+      if ( NULL != _checker )
+      {
+         sdbGetDMSCB()->releaseScannerChecker( _checker ) ;
+         _checker = NULL ;
+      }
+   }
+
 
    _dmsIndexBuilder* _dmsIndexBuilder::createInstance( _dmsStorageIndex* indexSU,
                                                        _dmsStorageData* dataSU,

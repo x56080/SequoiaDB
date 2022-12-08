@@ -53,6 +53,18 @@ namespace import
 
    Routine::~Routine()
    {
+      PageInfo pageInfo ;
+
+      // If an error occurs during import, there may be residual data
+      // in the _importQueue.
+      if ( _importQueue )
+      {
+         while ( _importQueue->try_pop( pageInfo ) )
+         {
+            SAFE_OSS_DELETE( pageInfo.pages ) ;
+         }
+      }
+
       SAFE_OSS_DELETE( _dataQueue ) ;
       SAFE_OSS_DELETE( _freeQueue ) ;
       SAFE_OSS_DELETE( _importQueue ) ;

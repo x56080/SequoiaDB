@@ -1118,15 +1118,8 @@ namespace engine
          }
          else if ( CLS_TASK_STATUS_CANCELED == _status )
          {
+            // do not update, let the finial finish request to udpate
             rc = SDB_TASK_HAS_CANCELED ;
-
-            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
-            updator = BSON( "$set" <<
-                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
-                                  FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
-                                  FIELD_NAME_RESULTCODE << rc <<
-                                  FIELD_NAME_RESULTCODEDESC << getErrDesp(rc) ) ) ;
-
             goto error ;
          }
          else if ( CLS_TASK_STATUS_FINISH == _status )
@@ -1161,9 +1154,17 @@ namespace engine
       {
          // can't cancel finish status
          if ( CLS_TASK_STATUS_META == _status ||
-              CLS_TASK_STATUS_CLEANUP == _status ||
-              CLS_TASK_STATUS_FINISH == _status )
+              CLS_TASK_STATUS_CLEANUP == _status )
          {
+            PD_LOG_MSG( PDERROR, "The task[%llu] status is %s, "
+                        "cannot be canceled", _taskID, clsTaskStatusStr( _status ) ) ;
+            rc = SDB_TASK_CANNOT_CANCEL ;
+            goto error ;
+         }
+         else if ( CLS_TASK_STATUS_FINISH == _status )
+         {
+            PD_LOG_MSG( PDERROR, "The task[%llu] is already finished"
+                        , _taskID ) ;
             rc = SDB_TASK_ALREADY_FINISHED ;
             goto error ;
          }
@@ -1902,7 +1903,7 @@ namespace engine
             PD_CHECK ( ele.type() == Object, SDB_INVALIDARG, error, PDERROR,
                        "Field[%s] invalid in task[%s]",
                        FIELD_NAME_RESULTINFO, obj.toString().c_str() ) ;
-            _resultInfo = ele.embeddedObject() ;
+            _resultInfo = ele.embeddedObject().copy() ;
          }
          // main task
          else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MAIN_TASKID ) )
@@ -3069,6 +3070,7 @@ namespace engine
             INT32 resultCode = SDB_OK ;
             const CHAR* groupName = NULL ;
             const CHAR* detail = NULL ;
+            MAP_GROUP_INFO_IT it ;
 
             BSONElement ele = iter.next() ;
             PD_CHECK( ele.type() == Object, SDB_SYS, error,
@@ -3081,6 +3083,13 @@ namespace engine
                          "Failed to get field[%s] from obj[%s], rc: %d",
                          FIELD_NAME_GROUPNAME, obj.toString().c_str(), rc ) ;
 
+            // find the group from map
+            it = _mapGroupInfo.find( groupName ) ;
+            if ( it == _mapGroupInfo.end() )
+            {
+               continue ;
+            }
+
             rc = rtnGetIntElement( obj, FIELD_NAME_RESULTCODE, resultCode ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field[%s] from obj[%s], rc: %d",
@@ -3090,12 +3099,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get field[%s] from obj[%s], rc: %d",
                          FIELD_NAME_DETAIL, obj.toString().c_str(), rc ) ;
-
-            // find the group from map
-            MAP_GROUP_INFO_IT it = _mapGroupInfo.find( groupName ) ;
-            PD_CHECK( it != _mapGroupInfo.end(), SDB_SYS, error, PDERROR,
-                      "Failed to find out group[%s] from task[%llu]",
-                      groupName, _taskID ) ;
 
             pGroup = &(it->second) ;
 

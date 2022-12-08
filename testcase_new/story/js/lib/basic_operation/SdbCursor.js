@@ -1,4 +1,5 @@
 var tmpSdbCursor = {
+   advance: SdbCursor.prototype.advance,
    arrayAccess: SdbCursor.prototype.arrayAccess,
    close: SdbCursor.prototype.close,
    current: SdbCursor.prototype.current,
@@ -12,6 +13,7 @@ var funcSdbCursor = SdbCursor;
 var funcSdbCursorhelp = SdbCursor.help;
 SdbCursor=function(){try{return funcSdbCursor.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCursor.help = function(){try{ return funcSdbCursorhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
+SdbCursor.prototype.advance=function(){try{return tmpSdbCursor.advance.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCursor.prototype.arrayAccess=function(){try{return tmpSdbCursor.arrayAccess.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCursor.prototype.close=function(){try{return tmpSdbCursor.close.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCursor.prototype.current=function(){try{return tmpSdbCursor.current.apply(this,arguments);}catch(e){throw new Error(e);}};

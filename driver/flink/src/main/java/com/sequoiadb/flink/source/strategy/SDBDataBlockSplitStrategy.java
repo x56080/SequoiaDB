@@ -16,11 +16,6 @@
 
 package com.sequoiadb.flink.source.strategy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -29,17 +24,22 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
-import com.sequoiadb.flink.constant.SDBConstant;
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.constant.SDBConstant;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
-import com.sequoiadb.flink.util.RetryUtil;
-import com.sequoiadb.flink.util.SDBInfoUtil;
+import com.sequoiadb.flink.common.util.RetryUtil;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 
 import org.apache.flink.calcite.shaded.com.google.common.collect.Lists;
 import org.bson.BSONObject;
 import org.bson.types.BasicBSONList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SDBDataBlockSplitStrategy implements SDBSplitStrategy {
 
@@ -71,7 +71,7 @@ public class SDBDataBlockSplitStrategy implements SDBSplitStrategy {
                 throw new SDBException(String.format("SequoiaDB has no normal nodes, coord nodes: [%s].",
                         sourceOptions.getHosts()));
             }
-            shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions);
+            shardingInfos = SDBInfoUtil.getShardingInfos(sdb, sourceOptions, null, null);
         }
 
         List<QueryMeta> queryMetas = getQueryMetas(dataGroups, shardingInfos);

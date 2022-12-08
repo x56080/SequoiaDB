@@ -30,6 +30,7 @@ public class InsertResult extends BaseResult {
     private final long insertNum;
     private final long duplicatedNum;
     private final long lastGenerateID;
+    private final long modifiedNum;
     private boolean isBulkInsert = false;
 
     public InsertResult( BSONObject obj ) {
@@ -38,11 +39,13 @@ public class InsertResult extends BaseResult {
             isBulkInsert = true;
         }
         this.insertNum = ( long ) Helper.getValue( obj, "InsertedNum",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
         this.duplicatedNum = ( long ) Helper.getValue( obj, "DuplicatedNum",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
         this.lastGenerateID = ( long ) Helper.getValue( obj, "LastGenerateID",
-                Helper.INVALID_LONG );
+                Helper.INIT_LONG );
+        this.modifiedNum = ( long ) Helper.getValue( obj, "ModifiedNum",
+                Helper.INIT_LONG );
     }
 
     /**
@@ -103,6 +106,15 @@ public class InsertResult extends BaseResult {
         return lastGenerateID;
     }
 
+    /**
+     * Get the number of records successfully updated with data changes.
+     *
+     * @return The number of records updated
+     */
+    public long getModifiedNum() {
+        return modifiedNum;
+    }
+
     @Override
     public boolean equals( Object o ) {
         if ( this == o )
@@ -112,17 +124,24 @@ public class InsertResult extends BaseResult {
         InsertResult result = ( InsertResult ) o;
         return insertNum == result.insertNum
                 && duplicatedNum == result.duplicatedNum
-                && Objects.equals( oid, result.oid );
+                && lastGenerateID == result.getLastGenerateID()
+                && Objects.equals( oid, result.oid )
+                && modifiedNum == result.getModifiedNum();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash( oid, insertNum, duplicatedNum );
+        return Objects.hash( oid, insertNum, duplicatedNum, lastGenerateID, modifiedNum );
     }
 
     @Override
     public String toString() {
-        return "InsertResult{" + "oid=" + oid + ", insertNum=" + insertNum
-                + ", duplicatedNum=" + duplicatedNum + '}';
+        return "InsertResult{" +
+                "oid=" + oid +
+                ", insertNum=" + insertNum +
+                ", duplicatedNum=" + duplicatedNum +
+                ", lastGenerateID=" + lastGenerateID +
+                ", modifiedNum=" + modifiedNum +
+                '}';
     }
 }

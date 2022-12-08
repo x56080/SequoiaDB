@@ -6852,7 +6852,7 @@ INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* pClientName,
    }
 
    pCurStr = ossStrtok( clientVerStrCpy, ".", &pLastParsed ) ;
-   while ( '\0' != pCurStr )
+   while ( NULL != pCurStr && '\0' != pCurStr[0] )
    {
       if( 0 == i )
       {
@@ -7215,8 +7215,11 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                goto error ;
             }
             isRemove = ele.Bool() ;
-            subHintBob.append( FIELD_NAME_OP, FIELD_OP_VALUE_REMOVE ) ;
-            subHintBob.appendBool( FIELD_NAME_OP_REMOVE, isRemove ) ;
+            if ( isRemove )
+            {   
+               subHintBob.append( FIELD_NAME_OP, FIELD_OP_VALUE_REMOVE ) ;
+               subHintBob.appendBool( FIELD_NAME_OP_REMOVE, isRemove ) ;
+            }
          }
          else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_OP_VALUE_UPDATE  ) )
          {

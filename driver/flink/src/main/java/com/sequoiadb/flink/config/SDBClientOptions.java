@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
-import com.sequoiadb.flink.exception.SDBException;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.util.SdbDecrypt;
 import com.sequoiadb.util.SdbDecryptUserInfo;
 
@@ -36,22 +36,22 @@ public class SDBClientOptions implements Serializable {
     private final String password;
 
     public SDBClientOptions(ReadableConfig options) {
-        this.hosts = Arrays.asList(options.get(SDBOptions.HOSTS)
+        this.hosts = Arrays.asList(options.get(SDBConfigOptions.HOSTS)
                 .split(","));
-        this.collectionSpace = options.get(SDBOptions.COLLECTION_SPACE);
-        this.collection = options.get(SDBOptions.COLLECTION);
-        this.username = options.get(SDBOptions.USERNAME);
+        this.collectionSpace = options.get(SDBConfigOptions.COLLECTION_SPACE);
+        this.collection = options.get(SDBConfigOptions.COLLECTION);
+        this.username = options.get(SDBConfigOptions.USERNAME);
 
-        String token = options.get(SDBOptions.TOKEN);
-        String passwordType = options.get(SDBOptions.PASSWORD_TYPE);
-        String password = options.get(SDBOptions.PASSWORD);
+        String token = options.get(SDBConfigOptions.TOKEN);
+        String passwordType = options.get(SDBConfigOptions.PASSWORD_TYPE);
+        String password = options.get(SDBConfigOptions.PASSWORD);
 
         if ("file".equals(passwordType)) {
             SdbDecrypt sdbDecrypt = new SdbDecrypt();
             SdbDecryptUserInfo userInfo = sdbDecrypt.parseCipherFile(username, token, new File(password));
             this.password = userInfo.getPasswd();
         } else if ("cleartext".equals(passwordType)) {
-            this.password = options.get(SDBOptions.PASSWORD);
+            this.password = options.get(SDBConfigOptions.PASSWORD);
         } else {
             throw new SDBException(String.format("password type %s is not in ['cleartext', 'file'].", passwordType));
         }

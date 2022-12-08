@@ -156,14 +156,15 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPCLIENT_GETCONF ) ;
 
       BSONObj argument, result, errorResult ;
+      pmdCfgRecord::controlParams cp( TRUE ) ;
 
       // run command
       rc = runCommand( CMD_NAME_STP_GET_CONFIG, argument, result ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], rc: %d",
                    CMD_NAME_STP_GET_CONFIG, rc ) ;
-
+                   
       // parse config from BSON
-      rc = options.update( result, FALSE, errorResult ) ;
+      rc = options.update( result, FALSE,  cp, errorResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update STP options, rc: %d",
                    rc ) ;
 

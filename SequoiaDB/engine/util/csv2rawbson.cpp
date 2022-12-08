@@ -1306,7 +1306,7 @@ INT32 csvParser::_string2timestamp( _csvTimestamp &value, CHAR *pBuffer, INT32 s
    t.tm_sec   = second ;
 
    /* create integer time representation */
-   timep = mktime( &t ) ;
+   timep = ossMkTime( &t ) ;
    if( !timep )
    {
       rc = SDB_INVALIDARG ;
@@ -1432,7 +1432,7 @@ INT32 csvParser::_string2date( INT64 &value, CHAR *pBuffer, INT32 size )
    t.tm_sec   = 0 ;
 
    /* create integer time representation */
-   timep = mktime( &t ) ;
+   timep = ossMkTime( &t ) ;
    if( !timep )
    {
       rc = SDB_INVALIDARG ;

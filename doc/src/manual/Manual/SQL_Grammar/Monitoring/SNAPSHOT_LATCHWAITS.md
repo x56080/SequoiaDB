@@ -36,10 +36,10 @@ $SNAPSHOT_LATCHWAITS
 
 ```lang-json
 {
-  "NodeName": "yang-VirtualBox:11870",
+  "NodeName": "sdbserver:11870",
   "WaiterTID": 24118,
   "RequiredMode": "S",
-  "LatchName": "catGTSMsgHandler jobLatch",
+  "LatchName": "dmsStorageDataCommon mblock",
   "Address": "0x7fd3740ae410",
   "StartTimestamp": "2020-06-13-02.52.50.336383",
   "LatchWaitTime": 34.806,
@@ -48,5 +48,5 @@ $SNAPSHOT_LATCHWAITS
   "NumOwner": 1
 }
 ```
-以上述输出为例现在系统中正在发生一个闩锁等待事件，线程 24118 正在等待获取"catGTSMsgHandler jobLatch"闩锁的 S 共享模式。到目前为止已经等待了 34.806 毫秒。线程 24109 是最近一个拿到这个闩锁的线程，拿到了 X 排他模式，此时闩锁只有 24109 一个拥有者。
+以上述输出为例现在系统中正在发生一个闩锁等待事件，线程 24118 正在等待获取"dmsStorageDataCommon mblock"闩锁的 S 共享模式。到目前为止已经等待了 34.806 毫秒。线程 24109 是最近一个拿到这个闩锁的线程，拿到了 X 排他模式，此时闩锁只有 24109 一个拥有者。
 

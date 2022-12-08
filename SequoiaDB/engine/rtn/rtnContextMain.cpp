@@ -44,6 +44,9 @@
 
 namespace engine
 {
+
+   #define RTN_INTERRUPT_CHECK_STEPS ( 5000 )
+
    _rtnContextMain::_rtnContextMain( INT64 contextID, UINT64 eduID )
       : _rtnContextBase( contextID, eduID ),
         _rtnCtxDataDispatcher(),
@@ -55,20 +58,9 @@ namespace engine
 
    _rtnContextMain::~_rtnContextMain()
    {
-      pmdKRCB* pKrcb = pmdGetKRCB() ;
-      SDB_RTNCB* rtnCB = pKrcb->getRTNCB() ;
-      pmdEDUCB* eduCB = pKrcb->getEDUMgr()->getEDUByID( eduID() ) ;
-
-      // clean ordered context
-      SUB_ORDERED_CTX_MAP::iterator orderIter = _orderedContextMap.begin() ;
-      while ( orderIter != _orderedContextMap.end() )
-      {
-         rtnCB->contextDelete( orderIter->second->contextID(), eduCB ) ;
-         SDB_OSS_DEL orderIter->second ;
-         ++orderIter ;
-      }
-      _orderedContextMap.clear() ;
-
+      unregisterAllProcessors() ;
+      SDB_ASSERT( _orderedContexts.empty(),
+                  "ordered contexts should be empty" ) ;
       SAFE_OSS_DELETE( _keyGen ) ;
    }
 
@@ -119,8 +111,7 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx should be not null" ) ;
       SDB_ASSERT( subCtx->recordNum() > 0, "subCtx is empty" ) ;
 
-      rtnOrderKey orderKey ;
-      rc = subCtx->getOrderKey( orderKey ) ;
+      rc = subCtx->genOrderKey() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get orderKey, rc = %d", rc ) ;
@@ -129,8 +120,7 @@ namespace engine
 
       try
       {
-         _orderedContextMap.insert(
-            SUB_ORDERED_CTX_MAP::value_type( orderKey, subCtx ) ) ;
+         _orderedContexts.insert( subCtx ) ;
       }
       catch( std::exception& e )
       {
@@ -142,6 +132,7 @@ namespace engine
    done:
       return rc;
    error:
+      _releaseSubContext( subCtx ) ;
       goto done;
    }
 
@@ -149,12 +140,22 @@ namespace engine
    {
       INT32 rc = SDB_OK;
 
+      UINT32 interruptStep = 0 ;
+
       while ( 0 != _numToReturn )
       {
-         if ( cb->isInterrupted() )
+         if ( interruptStep > RTN_INTERRUPT_CHECK_STEPS )
          {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
+            if ( cb->isInterrupted() )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               goto error ;
+            }
+            interruptStep = 0 ;
+         }
+         else
+         {
+            ++ interruptStep ;
          }
 
          rc = _prepareAllSubCtxDataByOrder( cb ) ;
@@ -164,7 +165,7 @@ namespace engine
             goto error ;
          }
 
-         if ( _orderedContextMap.size() == 0 )
+         if ( _orderedContexts.size() == 0 )
          {
             _hitEnd = TRUE ;
             rc = SDB_DMS_EOC ;
@@ -182,8 +183,8 @@ namespace engine
             break ;
          }
 
-         SUB_ORDERED_CTX_MAP::iterator iter = _orderedContextMap.begin();
-         if ( _orderedContextMap.end() == iter )
+         SUB_ORDERED_CTX_SET_IT iter = _orderedContexts.begin();
+         if ( _orderedContexts.end() == iter )
          {
             _hitEnd = TRUE ;
             if ( isEmpty() )
@@ -193,7 +194,7 @@ namespace engine
             break;
          }
 
-         rtnSubContext* ctx = iter->second ;
+         rtnSubContext* ctx = *iter ;
 
          if ( _numToSkip <= 0 )
          {
@@ -258,12 +259,11 @@ namespace engine
 
          if ( ctx->recordNum() <= 0 )
          {
-            _orderedContextMap.erase ( iter ) ;
+            _orderedContexts.erase ( iter ) ;
 
             rc = _saveEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
             {
-               SDB_OSS_DEL ctx ;
                goto error ;
             }
 
@@ -276,12 +276,11 @@ namespace engine
          }
          else
          {
-            _orderedContextMap.erase ( iter ) ;
+            _orderedContexts.erase ( iter ) ;
 
             rc = _saveNonEmptyOrderedSubCtx( ctx ) ;
             if ( SDB_OK != rc )
             {
-               SDB_OSS_DEL ctx ;
                goto error ;
             }
          }
@@ -443,7 +442,6 @@ namespace engine
 
          if ( SDB_OK != rc )
          {
-            SDB_OSS_DEL ctx ;
             goto error ;
          }
 
@@ -526,7 +524,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextMain::_getAdvanceOrderby( BSONObj &orderby, 
+   INT32 _rtnContextMain::_getAdvanceOrderby( BSONObj &orderby,
                                               BOOLEAN isRange ) const
    {
       orderby = _options.getOrderBy() ;
@@ -619,16 +617,19 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      ossPoolList< rtnSubContext* > tmpList ;
+
       try
       {
-         SUB_ORDERED_CTX_MAP::iterator itOrder ;
+         SUB_ORDERED_CTX_SET_IT itOrder ;
          BOOLEAN processed = FALSE ;
          ixmIndexKeyGen keyGen( orderby ) ;
 
-         itOrder = _orderedContextMap.begin() ;
-         while( itOrder != _orderedContextMap.end() )
+         itOrder = _orderedContexts.begin() ;
+         while( itOrder != _orderedContexts.end() )
          {
-            rc = _checkSubContextAdvance( itOrder->second, keyGen, type,
+            rtnSubContext *pSubCtx = *itOrder ;
+            rc = _checkSubContextAdvance( pSubCtx, keyGen, type,
                                           prefixNum, keyVal, orderby,
                                           processed ) ;
             if ( rc )
@@ -637,24 +638,48 @@ namespace engine
                        rc ) ;
                goto error ;
             }
-            else if ( !processed )
+
+            _orderedContexts.erase( itOrder ++ ) ;
+            if ( !processed )
             {
                ///  save empty
-               SDB_ASSERT( 0 == itOrder->second->recordNum(),
+               SDB_ASSERT( 0 == pSubCtx->recordNum(),
                            "Sub-context must be empty" ) ;
-               rc = _saveEmptyOrderedSubCtx( itOrder->second ) ;
+               rc = _saveEmptyOrderedSubCtx( pSubCtx ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Save empty ordered sub-context failed, "
                           "rc: %d", rc ) ;
                   goto error ;
                }
-               _orderedContextMap.erase( itOrder++ ) ;
             }
             else
             {
-               ++itOrder ;
+               try
+               {
+                  tmpList.push_back( pSubCtx ) ;
+               }
+               catch ( exception &e )
+               {
+                  _releaseSubContext( pSubCtx ) ;
+                  PD_LOG( PDERROR, "Failed to save sub context, "
+                          "occur exception %s", e.what() ) ;
+                  rc = ossException2RC( &e ) ;
+                  goto error ;
+               }
             }
+         }
+
+         // data had been pop, so need generate new keys, and save back
+         // ordered contexts
+         while ( !( tmpList.empty() ) )
+         {
+            rtnSubContext *subCtx = tmpList.front() ;
+            tmpList.pop_front() ;
+
+            rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to save ordered context, "
+                         "rc: %d", rc ) ;
          }
       }
       catch( std::exception &e )
@@ -667,6 +692,14 @@ namespace engine
    done:
       return rc ;
    error:
+      for ( ossPoolList< rtnSubContext* >::iterator iter = tmpList.begin() ;
+            iter != tmpList.end() ;
+            ++ iter )
+      {
+         rtnSubContext *ctx = *iter ;
+         _releaseSubContext( ctx ) ;
+      }
+      tmpList.clear() ;
       goto done ;
    }
 

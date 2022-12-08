@@ -12,13 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.sequoiadb.flink.source.iterator;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Iterator;
 
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCollection;
@@ -26,14 +22,19 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
-import com.sequoiadb.flink.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
 
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * SDBIterator is for reading bson raw bytes from SequoiaDB.
@@ -46,17 +47,19 @@ public class SDBIterator implements Iterator<byte[]>, Closeable {
     private DBCursor cursor;
     private Sequoiadb sdb;
 
-    public SDBIterator(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject selector, long limit) {
-        init(split, sourceOptions, selector, limit);
+    public SDBIterator(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject matcher, BSONObject selector,
+                       long limit) {
+        init(split, sourceOptions, matcher, selector, limit);
     }
 
-    private void init(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject selector, long limit) {
+    private void init(SDBSplit split, SDBSourceOptions sourceOptions, BSONObject matcher, BSONObject selector,
+                      long limit) {
         sdb = new Sequoiadb(
                 split.getUrls(),
                 sourceOptions.getUsername(),
                 sourceOptions.getPassword(),
                 new ConfigOptions()
-                );
+        );
 
         DBCollection cl = null;
         try {
@@ -89,7 +92,7 @@ public class SDBIterator implements Iterator<byte[]>, Closeable {
             hint.put("$Meta", metaObj);
         }
 
-        cursor = cl.query(null, selector, null, hint, 0, limit, 0);
+        cursor = cl.query(matcher, selector, null, hint, 0, limit, 0);
     }
 
     @Override
