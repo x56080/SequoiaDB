@@ -54,7 +54,7 @@ public class IndexConsistent23941C extends SdbTestBase {
 
         DBCollection dbcl = createAndAttachCL( cs, mainclName, subclName,
                 subclNum );
-        IndexUtils.insertData( dbcl, recsNum );
+        IndexUtils.insertDataWithOutReturn( dbcl, recsNum );
     }
 
     @Test

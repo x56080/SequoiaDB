@@ -50,7 +50,7 @@ public class IndexConsistent23935 extends SdbTestBase {
         option.put( "AutoSplit", true );
         DBCollection cl = cs.createCollection( clName, option );
         int recordNum = 10000;
-        IndexUtils.insertData( cl, recordNum );
+        IndexUtils.insertDataWithOutReturn( cl, recordNum );
     }
 
     @Test

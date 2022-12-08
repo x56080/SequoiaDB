@@ -40,7 +40,7 @@ Sdb
 .IP
 .nf
 \f[C]
-> rg.getDetail()
+> rg.getDetailObj()
 {
   "Group": [
     {

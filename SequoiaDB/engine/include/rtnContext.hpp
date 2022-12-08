@@ -322,7 +322,8 @@ namespace engine
 
          INT32    getMore( INT32 maxNumToReturn,
                            rtnContextBuf &buffObj,
-                           _pmdEDUCB *cb ) ;
+                           _pmdEDUCB *cb,
+                           const BSONObj &hint = BSONObj() ) ;
 
          INT32    advance( const BSONObj &arg,
                            const CHAR *pBackData ,
@@ -536,6 +537,11 @@ namespace engine
          virtual INT32 _prepareDoAdvance ( _pmdEDUCB *cb )
          {
             return SDB_OPTION_NOT_SUPPORT ;
+         }
+
+         virtual INT32 _processGetMoreHint( const BSONObj &hint )
+         {
+            return SDB_OK ;
          }
 
       protected:

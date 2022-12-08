@@ -932,7 +932,8 @@ error :
 INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                            SINT32 numToReturn,
                            SINT64 contextID, UINT64 reqID,
-                           IExecutor *cb )
+                           IExecutor *cb,
+                           const BSONObj *pHint )
 {
    SDB_ASSERT ( ppBuffer && bufferSize, "Invalid input" ) ;
    INT32 rc               = SDB_OK ;
@@ -940,8 +941,15 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_TRACE2 ( SDB_MSGBLDGETMOREMSG, PD_PACK_INT(numToReturn),
                                      PD_PACK_LONG(contextID) );
    MsgOpGetMore *pGetMore = NULL ;
-   INT32 packetLength = sizeof(MsgOpGetMore);
+   INT32 packetLength = ossAlign4( sizeof(MsgOpGetMore) ) ;
+   INT32 offset = 0 ;
    PD_TRACE1 ( SDB_MSGBLDGETMOREMSG, PD_PACK_INT(packetLength) );
+
+   if ( pHint )
+   {
+      packetLength += ossAlign4( pHint->objsize() ) ;
+   }
+
    if ( packetLength < 0 )
    {
       PD_LOG ( PDERROR, "Packet size overflow" ) ;
@@ -954,6 +962,7 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       PD_LOG ( PDERROR, "Failed to check buffer" ) ;
       goto error ;
    }
+
    // now the buffer is large enough
    pGetMore                       = (MsgOpGetMore*)(*ppBuffer) ;
    // nameLength does NOT include '\0'
@@ -968,6 +977,25 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pGetMore->header.routeID.value = 0 ;
    pGetMore->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( pGetMore->header.reserve, 0, sizeof(pGetMore->header.reserve) ) ;
+
+   if ( pHint )
+   {
+      // get the offset of the first bson obj
+      offset = ossAlign4( sizeof(MsgOpGetMore) ) ;
+      // write optimizer hint
+      ossMemcpy ( &((*ppBuffer)[offset]), pHint->objdata(),
+                  pHint->objsize() ) ;
+      offset += ossAlign4( pHint->objsize() ) ;
+
+      // sanity test
+      if ( offset != packetLength )
+      {
+         PD_LOG ( PDERROR, "Invalid packet length" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+   }
+
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDGETMOREMSG, rc );
    return rc ;
@@ -978,17 +1006,45 @@ error :
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTGETMORE, "msgExtractGetMore" )
 INT32 msgExtractGetMore  ( const CHAR *pBuffer,
                            SINT32 *numToReturn,
-                           SINT64 *contextID )
+                           SINT64 *contextID,
+                           const CHAR **ppHint )
 {
    SDB_ASSERT ( pBuffer &&
                 numToReturn && contextID ,
                 "Invalid input" ) ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTGETMORE );
+   INT32 rc = SDB_OK ;
    MsgOpGetMore *pGetMore = (MsgOpGetMore*)pBuffer ;
+   const static INT32 _minSize = ossAlign4( sizeof(MsgOpGetMore) ) ;
+   INT32 offset = 0 ;
+   INT32 length = 0 ;
+
    *numToReturn = pGetMore->numToReturn ;
    *contextID = pGetMore->contextID ;
+
+   if ( pGetMore->header.messageLength > _minSize && ppHint )
+   {
+      // get the offset for the first BSONObj
+      offset = _minSize ;
+
+      *ppHint = &pBuffer[offset] ;
+
+      length = *((SINT32*)(&pBuffer[offset])) ;
+      MSG_CHECK_BSON_LENGTH( length ) ;
+
+      // the result should exactly match messageLength
+      if ( pGetMore->header.messageLength < offset + length )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+   }
+
+done :
    PD_TRACE_EXIT ( SDB_MSGEXTRACTGETMORE );
-   return SDB_OK ;
+   return rc ;
+error :
+   goto done ;
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGFILLGETMOREMSG, "msgFillGetMoreMsg" )

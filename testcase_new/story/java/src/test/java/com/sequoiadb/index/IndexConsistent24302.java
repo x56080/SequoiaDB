@@ -164,8 +164,7 @@ public class IndexConsistent24302 extends SdbTestBase {
         }
     }
 
-    private static ArrayList< BSONObject > insertData( DBCollection dbcl,
-            int recordNum ) {
+    private static void insertData( DBCollection dbcl, int recordNum ) {
         ArrayList< BSONObject > insertRecord = new ArrayList< BSONObject >();
         int batchNum = 5000;
         int batchs = recordNum / batchNum;
@@ -185,7 +184,5 @@ public class IndexConsistent24302 extends SdbTestBase {
             insertRecord.addAll( batchRecords );
             batchRecords.clear();
         }
-        return insertRecord;
-
     }
 }

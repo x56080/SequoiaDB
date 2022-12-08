@@ -4,7 +4,7 @@
     时间：20190817
     评审意见
 
-SequoiaDB 巨杉数据库中的[事务日志][transaction_log]记录了事务对数据库的所有更改，是备份和恢复的重要组件，也在事务操作中被用于回滚数据。因此事务日志中通常包含 REDO 和 UNDO 两部分，其中 REDO 部分用于数据恢复和复制组节点间数据进行增量同步，UNDO 部分用于事务回滚操作恢复数据到事务操作前的状态。
+SequoiaDB 巨杉数据库中的事务日志记录了事务对数据库的所有更改，是备份和恢复的重要组件，也在事务操作中被用于回滚数据。因此事务日志中通常包含 REDO 和 UNDO 两部分，其中 REDO 部分用于数据恢复和复制组节点间数据进行增量同步，UNDO 部分用于事务回滚操作恢复数据到事务操作前的状态。
 
 如执行更新操作的事务日志中，将分别记录新值（New）和旧值（Orig）：
 
@@ -123,6 +123,5 @@ SequoiaDB 巨杉数据库中的[事务日志][transaction_log]记录了事务对
 [^_^]:
     本文使用到的所有链接
 
-[transaction_log]:manual/Distributed_Engine/Architecture/Replication/architecture.md#事务日志replicalog
 [2pc]:manual/Distributed_Engine/Architecture/Transactions/2pc.md
 [stp]:manual/Distributed_Engine/Architecture/Stp/logicaltime.md

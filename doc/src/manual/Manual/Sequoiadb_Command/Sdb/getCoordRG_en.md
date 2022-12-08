@@ -43,7 +43,7 @@ Get a reference of coordination replication group.
 Get the details of the replication group through the reference.
 
 ```lang-javascript
-> rg.getDetail()
+> rg.getDetailObj()
 {
   "Group": [
     {

@@ -89,7 +89,7 @@ public class IndexConsistent24347 extends SdbTestBase {
         option3.put( "UpBound", new BasicBSONObject( "no", 30000 ) );
         maincl.attachCollection( csName + "." + subCLName3, option3 );
 
-        IndexUtils.insertData( maincl, 30000, 5 );
+        IndexUtils.insertDataWithOutReturn( maincl, 30000, 5 );
         maincl.createIndex( indexName1, new BasicBSONObject( "testa", 1 ),
                 null );
         maincl.createIndex( indexName2, new BasicBSONObject( "testb", 1 ),

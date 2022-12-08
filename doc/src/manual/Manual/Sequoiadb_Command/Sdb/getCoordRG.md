@@ -43,7 +43,7 @@ v2.0 及以上版本
 通过该引用获取复制组的详细信息
 
 ```lang-javascript
-> rg.getDetail()
+> rg.getDetailObj()
 {
   "Group": [
     {

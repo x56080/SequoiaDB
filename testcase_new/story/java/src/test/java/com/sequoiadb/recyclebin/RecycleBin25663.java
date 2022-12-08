@@ -80,8 +80,7 @@ public class RecycleBin25663 extends SdbTestBase {
         }
     }
 
-    // SEQUOIADBMAINSTREAM-8710
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         List< ReturnItemToName > returnItemToNames = new ArrayList<>();
         ThreadExecutor es = new ThreadExecutor();

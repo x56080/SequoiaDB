@@ -60,7 +60,7 @@ public class IndexConsistent23929 extends SdbTestBase {
         }
         createIndex( maincl );
         createAndAttachCL( cs, maincl, subclName1, subclName2 );
-        IndexUtils.insertData( maincl, recsNum );
+        IndexUtils.insertDataWithOutReturn( maincl, recsNum );
 
     }
 

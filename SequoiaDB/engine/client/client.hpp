@@ -6955,7 +6955,7 @@ namespace sdbclient
       }
 
       /** \fn INT32 transactionBegin()
-          \brief Transaction commit.
+          \brief Transaction begin.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */

@@ -58,7 +58,7 @@ public class IndexConsistent23963 extends SdbTestBase {
         cl = cs.createCollection( clName, options );
         cl.createIndex( indexName1, "{no:1,testa:1}", true, false );
         cl.createIndex( indexName2, "{no:-1,testa:1}", true, false );
-        IndexUtils.insertData( cl, recsNum );
+        IndexUtils.insertDataWithOutReturn( cl, recsNum );
     }
 
     @Test

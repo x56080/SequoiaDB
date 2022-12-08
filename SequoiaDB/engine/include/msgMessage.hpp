@@ -282,11 +282,13 @@ INT32 msgExtractQuery  ( const CHAR *pBuffer, INT32 *pflag,
 INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                            SINT32 numToReturn,
                            SINT64 contextID, UINT64 reqID,
-                           engine::IExecutor *cb = NULL ) ;
+                           engine::IExecutor *cb = NULL,
+                           const BSONObj *pHint = NULL ) ;
 
 INT32 msgExtractGetMore  ( const CHAR *pBuffer,
                            SINT32 *numToReturn,
-                           SINT64 *contextID ) ;
+                           SINT64 *contextID,
+                           const CHAR **ppHint = NULL ) ;
 
 void  msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
                           const SINT64 contextID, const SINT32 numToReturn,
