@@ -49,7 +49,7 @@ namespace engine
    class _coordCacheCleaner : public _utilLightJob
    {
    public:
-      _coordCacheCleaner( coordResource* pRes ) ;
+      _coordCacheCleaner( clsRemoteResource* pRes ) ;
       virtual ~_coordCacheCleaner() ;
       virtual INT32 init() ;
       virtual const CHAR* name() const ;
@@ -58,12 +58,12 @@ namespace engine
                           UINT64 &sleepTime ) ;
 
    private:
-      coordResource       *_pResource ;
+      clsRemoteResource       *_pResource ;
 
    } ;
    typedef _coordCacheCleaner coordCacheCleaner ;
 
-   INT32 coordStartCacheCleanJob( coordResource* pRes ) ;
+   INT32 coordStartCacheCleanJob( clsRemoteResource* pRes ) ;
 
 }
 

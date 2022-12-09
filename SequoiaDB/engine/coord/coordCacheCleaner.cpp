@@ -44,7 +44,7 @@ namespace engine
 
    #define COORD_METADATACACHE_SCAN_INTERVAL ( 600 * 1000000 )
 
-   _coordCacheCleaner::_coordCacheCleaner( coordResource* pRes )
+   _coordCacheCleaner::_coordCacheCleaner( clsRemoteResource* pRes )
    {
       _pResource = pRes ;
    }
@@ -94,7 +94,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 coordStartCacheCleanJob( coordResource* pRes )
+   INT32 coordStartCacheCleanJob( clsRemoteResource* pRes )
    {
       INT32 rc = SDB_OK ;
       coordCacheCleaner *pJob = NULL ;

@@ -231,7 +231,7 @@ retry:
             shield.addRC( SDB_IXM_NOTEXIST );
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_UPDATE ) ;
+                                  DMS_ACCESS_TYPE_UPDATE, opHandler ) ;
             shield.clearRC();
             if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
             { 
