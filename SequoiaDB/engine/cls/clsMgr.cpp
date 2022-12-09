@@ -986,6 +986,14 @@ namespace engine
                       "recycle bin manager, rc: %d", rc ) ;
       }
 
+      // 3. start clsResource MetaCache clean job
+      rc = _resource.active() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to active coordResource's job, rc=%d", rc ) ;
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__CLSMGR_ACTIVE, rc );
       return rc ;

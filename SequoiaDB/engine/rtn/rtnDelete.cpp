@@ -441,12 +441,12 @@ retry:
          rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
-                     pCollectionName, rc ) ;
+                       pCollectionName, rc ) ;
 
          // get mb context
          rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
-                     "rc: %d", pCollectionName, rc ) ;
+                      "rc: %d", pCollectionName, rc ) ;
 
          // we do NOT need to create callback for this code path now because
          // of the complexity of split
