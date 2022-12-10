@@ -14,13 +14,11 @@
 - 连接协调节点，返回协调节点所连接的编目节点和数据节点的会话
 - 连接编目节点或者数据节点，返回当前会话
 
-标识
-----
+##标识##
 
 SDB_LIST_SESSIONS_CURRENT
 
-字段信息
-----
+##字段信息##
 
 | 字段名    | 类型         | 描述                                   |
 | --------- | ------------ | -------------------------------------- |
@@ -30,6 +28,7 @@ SDB_LIST_SESSIONS_CURRENT
 | Status    | string       | 会话状态，取值如下<br>Creating：创建状态<br>Running：运行状态<br>Waiting：等待状态<br>Idle：线程池待机状态<br>Destroying：销毁状态 |
 | Type      | string       | [EDU 类型][edu]                    |
 | Name      | string       | EDU 名一般系统 EDU 名为空                                 |
+| Source    | string       | 会话来源信息 |
 | RelatedID | string       | 会话的内部标识                         |
 
 ##示例##
@@ -37,7 +36,7 @@ SDB_LIST_SESSIONS_CURRENT
 查看当前会话列表
 
 ```lang-javascript
-> db.list( SDB_LIST_SESSIONS_CURRENT )  
+> db.list(SDB_LIST_SESSIONS_CURRENT)  
 ```
 
 输出结果如下：
