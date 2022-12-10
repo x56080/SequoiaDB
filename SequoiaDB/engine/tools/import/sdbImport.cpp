@@ -33,6 +33,7 @@
 #include "impRoutine.hpp"
 #include "impUtil.hpp"
 #include "ossVer.h"
+#include "ossTimeZone.hpp"
 #include "pd.hpp"
 
 using namespace import;
@@ -72,7 +73,13 @@ int main(int argc, char* argv[])
       goto done;
    }
 
-   initTimezoneEnv() ;
+   // Initialize TZ, ignore error
+   rc = ossInitTZEnv() ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG( PDWARNING, "Failed to init the TZ environment variable, rc: %d", rc ) ;
+      rc = SDB_OK ;
+   }
 
    try
    {
