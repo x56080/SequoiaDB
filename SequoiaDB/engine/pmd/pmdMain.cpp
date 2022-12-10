@@ -40,6 +40,7 @@
 #include "pmd.hpp"
 #include "rtn.hpp"
 #include "ossProc.hpp"
+#include "ossTimeZone.hpp"
 #include "utilCommon.hpp"
 #include "pmdStartup.hpp"
 #include "optQgmStrategy.hpp"
@@ -265,28 +266,36 @@ namespace engine
          }
       }
 
-      // 5. handlers and init global mem
+      // 5. Initialize TZ, ignore error
+      rc = ossInitTZEnv() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to init the TZ environment variable, rc: %d", rc ) ;
+         rc = SDB_OK ;
+      }
+
+      // 6. handlers and init global mem
       rc = pmdEnableSignalEvent( pmdGetOptionCB()->getDiagLogPath(),
                                  (PMD_ON_QUIT_FUNC)pmdOnQuit ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
 
-      // 6. register cbs
+      // 7. register cbs
       sdbGetPMDController()->registerCB( pmdGetDBRole() ) ;
 
-      // 7. system init
+      // 8. system init
       rc = _pmdSystemInit() ;
       if ( rc )
       {
          goto error ;
       }
 
-      // 8. initialize pipe manager
+      // 9. initialize pipe manager
       rc = sdbGetSystemPipeManager()->init( pmdGetOptionCB()->getServiceAddr(),
                                             TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize pipe manager, "
                    "rc: %d", rc ) ;
 
-      // 9. init krcb
+      // 10. init krcb
       rc = krcb->init() ;
       if ( rc )
       {
@@ -294,7 +303,7 @@ namespace engine
          goto error ;
       }
 
-      // 10. post init
+      // 11. post init
       rc = _pmdPostInit() ;
       if ( rc )
       {

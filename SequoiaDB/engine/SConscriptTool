@@ -119,7 +119,8 @@ ossFiles = [
       "oss/ossEvent.cpp",
       "oss/ossDynamicLoad.cpp",
       "oss/ossHdfs.cpp",
-      "oss/ossShMem.cpp"
+      "oss/ossShMem.cpp",
+      "oss/ossTimeZone.cpp"
       ]
 
 netFiles = [

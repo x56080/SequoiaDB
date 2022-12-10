@@ -99,7 +99,8 @@ ossFiles = [
       "oss/ossMem.cpp",
       "oss/ossSocket.cpp",
       "oss/ossEvent.cpp",
-      "oss/ossRWMutex.cpp"
+      "oss/ossRWMutex.cpp",
+      "oss/ossTimeZone.cpp"
       ]
 
 shellMain = [

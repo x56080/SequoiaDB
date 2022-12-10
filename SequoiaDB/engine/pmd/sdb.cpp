@@ -40,6 +40,7 @@
 #include "pd.hpp"
 #include "ossPrimitiveFileOp.hpp"
 #include "ossVer.hpp"
+#include "ossTimeZone.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "../spt/sptHelp.hpp"
@@ -1124,7 +1125,15 @@ int main ( int argc , CHAR **argv )
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
-   //
+
+   // Initialize TZ, ignore error
+   rc = ossInitTZEnv() ;
+   if ( rc )
+   {
+      ossPrintf( "Failed to init the TZ environment variable, rc: %d"OSS_NEWLINE, rc ) ;
+      rc = SDB_OK ;
+   }
+
    linenoiseSetCompletionCallback( (linenoiseCompletionCallback*)lineComplete ) ;
 
    rc = container.init() ;
