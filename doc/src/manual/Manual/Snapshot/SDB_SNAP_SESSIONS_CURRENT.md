@@ -24,7 +24,7 @@ SDB_SNAP_SESSIONS_CURRENT
 | IsBlocked         | boolean    | 会话当前是否处理阻塞状态                           |
 | Name              | string     | EDU 名，一般系统 EDU 名为空                                             |
 | Doing             | string     | 会话当前阻塞状态的详细描述信息                     |
-| Source            | string     | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值
+| Source            | string     | 会话来源信息                                       |
 | QueueSize         | int32      | 等待处理请求的队列长度                             |
 | ProcessEventCount | int64      | 已经处理请求的数量                                 |
 | MemPoolSize       | 长整型        | Pool Memory 的大小，单位为字节                   |
