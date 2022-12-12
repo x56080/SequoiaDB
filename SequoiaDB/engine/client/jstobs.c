@@ -18,6 +18,7 @@
 #include "cJSON_ext.h"
 #include "base64c.h"
 #include "timestamp.h"
+#include "ossUtil.h"
 
 #define INT_NUM_SIZE 32
 
@@ -579,7 +580,7 @@ static BOOLEAN date2Time( const CHAR *pDate,
       t.tm_min   = minute ;
       t.tm_sec   = second ;
       /* create integer time representation */
-      timep = mktime( &t ) ;
+      timep = ossMkTime( &t ) ;
    }
 
    if( valType == CJSON_TIMESTAMP )
@@ -2235,4 +2236,3 @@ static void local_time( time_t *Time, struct tm *TM )
 #error "unimplemented local_time()"
 #endif
 }
-
