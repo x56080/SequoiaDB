@@ -12,8 +12,7 @@
 SequoiaDB 巨杉数据库提供收集统计信息的能力。外部收集而来的统计信息用于分析处理，分析后的最优结果将会被用于生成最优的访问计划，以此提高查询效率。因此统计信息对查询访问计划的构成以及查询性能起关键性作用。
 SequoiaDB 包含两种统计信息，分别是集合的统计信息和索引的统计信息。
 
-集合的统计信息
-----
+##集合的统计信息##
 
 集合的统计信息存放在数据节点 SYSSTAT.SYSCOLLECTIONSTAT 集合中，具体字段如下：
 
@@ -22,10 +21,10 @@ SequoiaDB 包含两种统计信息，分别是集合的统计信息和索引的�
 | CollectionSpace | string     | 统计收集的集合空间名                 | 是   |
 | Collection      | string     | 统计收集的集合名                     | 是   |
 | CreateTime      | number     | 统计收集的时间戳，默认值为 0         | 是   |
-| SampleRecords   | number     | 统计收集时抽样的文档个数，默认值为 0 | 是   |
+| SampleRecords   | number     | 统计收集时抽样的文档个数，默认值为 200 | 是   |
 | TotalDataPages  | number     | 统计收集时的数据页个数，默认值为 1   | 是   |
-| TotalDataSize   | number     | 统计收集时的数据总大小（字节数）     | 是   |
-| TotalRecords    | number     | 统计收集时的文档个数，默认值为 10    | 是   |
+| TotalDataSize   | number     | 统计收集时的数据总大小，默认值为 80000，单位为字节 | 是   |
+| TotalRecords    | number     | 统计收集时的文档个数，默认值为 200    | 是   |
 | AvgNumFields    | number     | 文档的平均字段数，默认值为 10        | 否   |
 
 **示例**
@@ -45,8 +44,7 @@ SYSSTAT.SYSCOLLECTIONSTAT 统计信息
 }
 ```
 
-索引的统计信息
-----
+##索引的统计信息##
 
 索引的统计信息存放在数据节点 SYSSTAT.SYSINDEXSTAT 集合中，具体字段如下：
 
@@ -107,24 +105,23 @@ SYSSTAT.SYSINDEXSTAT 统计信息
 }
 ```
 
-评估策略
-----
+##评估策略##
 
 查询优化器会根据统计信息对候选访问计划进行评估，以此选取合适的访问计划来执行查询，详情见[基于代价的访问计划评估][cost_estimation]。
 
-### 相等比较的选择率估算
+###相等比较的选择率估算###
 - 如果字段建立了唯一索引，则选择率为：selectivity=1/TotalRecords
 - 如果相等比较的值落入频繁数值集合中，假设命中下标为 i，则选择率为：selectivity=MCV.Frac[i]
 - 如果相等比较的值没有落入频繁数值集合中，则选择率为：selectivity=(1-sum(MCV.Frac))*0.005
 
-### 范围比较的选择率估算
+###范围比较的选择率估算###
 
 - 如果相等比较的范围落入频繁数值集合中，假设命中下标为 m 至 n，则选择率为：selectivity=MCV.Frac[m]+...+MCV.Frac[n]
 - 如果相等比较的范围没有落入频繁数值集合中，则选择率为：selectivity=(1-sum(MCV.Frac))*0.05
 
-### 示例
+###示例###
 
-如表中字段 val 建立了索引，生成该表的统计信息，字段  val 的频繁数值集合为：
+如表中字段 val 建立了索引，生成该表的统计信息，字段 val 的频繁数值集合为：
 
 ```lang-json
 MCV : {
