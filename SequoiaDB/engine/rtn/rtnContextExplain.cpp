@@ -465,6 +465,7 @@ namespace engine
       // We doesn't need "Location" option
       // but it need to make sure "Detail" option is enabled
       if ( explainOptions.hasField( FIELD_NAME_SUB_COLLECTIONS ) ||
+           explainOptions.hasField( FIELD_NAME_CMD_LOCATION ) ||
            explainOptions.hasField( FIELD_NAME_LOCATION ) )
       {
          hasOption = TRUE ;

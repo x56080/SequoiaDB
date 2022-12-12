@@ -430,6 +430,7 @@
 #define FIELD_NAME_EVALUATE                  "Evaluate"
 #define FIELD_NAME_EXPAND                    "Expand"
 #define FIELD_NAME_LOCATION                  "Location"
+#define FIELD_NAME_CMD_LOCATION              "CMDLocation"
 #define FIELD_NAME_FLATTEN                   "Flatten"
 #define FIELD_NAME_ISSUBDIR                  "IsSubDir"
 #define FIELD_NAME_ENABLE_DATEDIR            "EnableDateDir"
