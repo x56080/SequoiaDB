@@ -58,7 +58,7 @@ Windows32:
         scons [--dd|--release]
         By default it will compile in release mode.
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons [--dd|--release]
         By default it will compile in release mode.
@@ -126,7 +126,7 @@ Windows64:
         scons [--dd|--release]
         By default it will compile in release mode.
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons [--dd|--release]
         By default it will compile in release mode.
@@ -193,7 +193,7 @@ Linux32:
         cd snappy
         scons
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons
 
@@ -298,7 +298,7 @@ Linux64:
         scons --dd
         cp stage/lib/libsnappy.a ./lib/linux64/debug
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         # for release build:
         cd thirdparty/lz4
         scons --clean
@@ -439,7 +439,7 @@ ARM64:
         mkdir -p ./lib/armlinux64/debug
         cp stage/lib/libsnappy.a ./lib/armlinux64/debug
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         # for release build:
         cd thirdparty/lz4
         scons --clean
@@ -529,7 +529,7 @@ PowerLinux64:
         cd snappy
         scons
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons
 
@@ -613,7 +613,7 @@ PowerleLinux64:
         cd snappy
         scons
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons
 
@@ -649,7 +649,7 @@ Aix64:
         cd snappy
         scons
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons
 
@@ -716,7 +716,7 @@ Alpha64:
         cd snappy
         scons
 
-    lz4 1.7.1:
+    lz4 1.9.4:
         cd lz4
         scons
 
