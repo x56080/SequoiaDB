@@ -89,6 +89,16 @@ namespace engine
          return _hitEnd ;
       }
 
+      virtual BOOLEAN hasNextData() const
+      {
+         return FALSE ;
+      }
+
+      virtual BOOLEAN prepareNextData()
+      {
+         return FALSE ;
+      }
+
    private:
       rtnContextBuf        _buffer ;
 

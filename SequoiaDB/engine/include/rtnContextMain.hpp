@@ -136,6 +136,8 @@ namespace engine
       INT32 _prepareDataNormal( _pmdEDUCB *cb ) ;
       INT32 _saveNonEmptyOrderedSubCtx( rtnSubContext* subCtx ) ;
 
+      INT32 _prepareSubCtxNextData( rtnSubContext *subContext,
+                                    BOOLEAN &isPrepared ) ;
       INT32 _processSubContext ( rtnSubContext * subContext,
                                  BOOLEAN & skipData ) ;
 

@@ -296,6 +296,19 @@ namespace engine
       return FALSE ;
    }
 
+   BOOLEAN _coordSessionPropSite::isWrittenTransNode( const MsgRouteID &routeID )
+   {
+      BOOLEAN result = FALSE ;
+
+      MAP_TRANS_NODES_IT it = _mapTransNodes.find( routeID.columns.groupID ) ;
+      if ( it != _mapTransNodes.end() )
+      {
+         result = it->second._hasWritten ;
+      }
+
+      return result ;
+   }
+
    BOOLEAN _coordSessionPropSite::isTransNodeEmpty() const
    {
       return _mapTransNodes.empty() ;

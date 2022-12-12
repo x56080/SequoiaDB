@@ -259,19 +259,36 @@ namespace engine
 
          if ( ctx->recordNum() <= 0 )
          {
-            _orderedContexts.erase ( iter ) ;
-
-            rc = _saveEmptyOrderedSubCtx( ctx ) ;
-            if ( SDB_OK != rc )
+            BOOLEAN isPrepared = FALSE ;
+            rc = _prepareSubCtxNextData( ctx, isPrepared ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to prepare next data from sub-context, rc: %d",
+                         rc ) ;
+            if ( isPrepared )
             {
-               goto error ;
+               _orderedContexts.erase ( iter ) ;
+
+               rc = _saveNonEmptyOrderedSubCtx( ctx ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
-
-            // if main buffer is not empty, break to return objs,
-            // so this sub context can prefetch simultaneously
-            if ( !isEmpty() )
+            else
             {
-               break ;
+               _orderedContexts.erase ( iter ) ;
+
+               rc = _saveEmptyOrderedSubCtx( ctx ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+
+               // if main buffer is not empty, break to return objs,
+               // so this sub context can prefetch simultaneously
+               if ( !isEmpty() )
+               {
+                  break ;
+               }
             }
          }
          else
@@ -350,12 +367,25 @@ namespace engine
          {
             if ( _numToSkip >= ctx->recordNum() )
             {
+               BOOLEAN isPrepared = FALSE ;
+
                _numToSkip -= ctx->recordNum() ;
                rc = ctx->popAll() ;
                PD_RC_CHECK( rc, PDERROR, "Failed to pop all objs of sub ctx, rc: %d", rc ) ;
 
-               rc = _saveEmptyNormalSubCtx( ctx ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to save empty sub ctx, rc: %d", rc ) ;
+               rc = _prepareSubCtxNextData( ctx, isPrepared ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to prepare next data from sub-context, rc: %d",
+                            rc ) ;
+               if ( isPrepared )
+               {
+                  rc = _saveNonEmptyNormalSubCtx( ctx ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to save non-empty sub ctx, rc: %d", rc ) ;
+               }
+               else
+               {
+                  rc = _saveEmptyNormalSubCtx( ctx ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to save empty sub ctx, rc: %d", rc ) ;
+               }
 
                continue ;
             }
@@ -433,16 +463,25 @@ namespace engine
 
          if ( ctx->recordNum() <= 0 )
          {
-            rc = _saveEmptyNormalSubCtx( ctx ) ;
+            BOOLEAN isPrepared = FALSE ;
+            rc = _prepareSubCtxNextData( ctx, isPrepared ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to prepare next data from sub-context, rc: %d",
+                         rc ) ;
+            if ( isPrepared )
+            {
+               rc = _saveNonEmptyNormalSubCtx( ctx ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to save non-empty sub ctx, rc: %d", rc ) ;
+            }
+            else
+            {
+               rc = _saveEmptyNormalSubCtx( ctx ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to save empty sub ctx, rc: %d", rc ) ;
+            }
          }
          else
          {
             rc = _saveNonEmptyNormalSubCtx( ctx ) ;
-         }
-
-         if ( SDB_OK != rc )
-         {
-            goto error ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to save non-empty sub ctx, rc: %d", rc ) ;
          }
 
          break ;
@@ -457,6 +496,39 @@ namespace engine
       return rc;
    error:
       goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAIN__PREPARESUBCTXNEXTDATA, "_rtnContextMain::_prepareSubCtxNextData" )
+   INT32 _rtnContextMain::_prepareSubCtxNextData( rtnSubContext *subContext,
+                                                  BOOLEAN &isPrepared )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNCTXMAIN__PREPARESUBCTXNEXTDATA ) ;
+
+      isPrepared = FALSE ;
+
+      if ( subContext->hasNextData() &&
+           subContext->prepareNextData() &&
+           subContext->recordNum() > 0 )
+      {
+         BOOLEAN skipData = FALSE ;
+         rc = _processSubContext( subContext, skipData ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to process sub-context, rc: %d",
+                      rc ) ;
+
+         if ( !skipData )
+         {
+            isPrepared = TRUE ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNCTXMAIN__PREPARESUBCTXNEXTDATA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _rtnContextMain::_processSubContext ( rtnSubContext * subContext,
@@ -720,28 +792,50 @@ namespace engine
 
       processed = FALSE ;
 
-      // check sub context's data
-      while( pSubCtx->recordNum() > 0 )
+      while ( TRUE )
       {
-         BSONObj obj( pSubCtx->front() ) ;
+         BOOLEAN isPrepared = FALSE ;
 
-         rc = _checkAdvance( type, keyGen, prefixNum, keyVal,
-                             obj, orderby, matched, isEqual ) ;
-         if ( rc )
+         // check sub context's data
+         while( pSubCtx->recordNum() > 0 )
          {
-            goto error ;
+            BSONObj obj( pSubCtx->front() ) ;
+
+            rc = _checkAdvance( type, keyGen, prefixNum, keyVal,
+                                obj, orderby, matched, isEqual ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            else if ( matched )
+            {
+               processed = TRUE ;
+               break ;
+            }
+
+            rc = pSubCtx->pop() ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
-         else if ( matched )
+
+         // processed, break loop
+         if ( processed )
          {
-            processed = TRUE ;
             break ;
          }
 
-         rc = pSubCtx->pop() ;
-         if ( rc )
+         // check if next data is available
+         rc = _prepareSubCtxNextData( pSubCtx, isPrepared ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to prepare next data from sub-context, rc: %d",
+                      rc ) ;
+         if ( isPrepared )
          {
-            goto error ;
+            continue ;
          }
+
+         break ;
       }
 
    done:

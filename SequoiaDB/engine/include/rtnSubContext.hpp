@@ -96,6 +96,8 @@ namespace engine
       virtual INT32        remainLength() = 0 ;
       virtual INT32        truncate ( INT32 num ) = 0 ;
       virtual INT32        genOrderKey() = 0 ;
+      virtual BOOLEAN      hasNextData() const = 0 ;
+      virtual BOOLEAN      prepareNextData() = 0 ;
 
       // For context data processor
       virtual INT64        getDataID () const = 0 ;
