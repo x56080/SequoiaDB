@@ -1676,8 +1676,7 @@ namespace engine
       }
 
       // If the AutoSplit field is not specified, we will use the value of
-      // AutoSplit in domain. In that case, AutoSplit field will not stored
-      // in record of SYSCAT.SYSCOLLECTIONS
+      // AutoSplit in domain.
       if ( !( UTIL_CL_AUTOSPLIT_FIELD & fieldMask ) )
       {
          if ( clInfo._isSharding && clInfo._isHash )
@@ -1686,8 +1685,7 @@ namespace engine
             if ( Bool == split.type() )
             {
                clInfo._autoSplit = split.Bool() ;
-               // NOTE: no need to store the AutoSplit filed
-               // fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
+               fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
             }
          }
       }
