@@ -12,21 +12,23 @@ SdbCollection
 
 ##描述##
 
-该函数用于当集合的属性不符合预期时，用户可以使用该函数修改集合的属性。
+该函数用于修改集合的属性。
 
 ##参数##
 
 options ( *object，必填* )
 
-通过 options 参数可以修改集合属性：
+通过参数 options 可以修改集合属性：
 
-- ReplSize ( *number* )：写操作需同步的副本数，其可选取值如下：
+- ReplSize ( *number* )：写操作需同步的副本数，默认值为 1，表示写操作只需写入主节点
 
-    - -1：表示写请求需同步到该复制组若干活跃的节点之后，数据库写操作才返回应答给客户端。
-    - 0：表示写请求需同步到该复制组的所有节点之后，数据库写操作才返回应答给客户端。
-    - 1 ~ 7：表示写请求需同步到该复制组指定数量个节点之后，数据库写操作才返回应答给客户端。
+    取值如下：
 
-    格式：`ReplSize: <number>`
+    - -1：写请求需同步到该复制组若干活跃的节点之后，数据库写操作才返回应答给客户端
+    - 0：写请求需同步到该复制组的所有节点之后，数据库写操作才返回应答给客户端
+    - 1~7：写请求需同步到该复制组指定数量个节点之后，数据库写操作才返回应答给客户端
+
+    格式：`ReplSize: 0`
 
 - ShardingKey ( *object* )：分区键，取值为 1 或 -1，表示正向或逆向排序
 
@@ -34,68 +36,81 @@ options ( *object，必填* )
 
     格式：`ShardingKey: {<字段1>: <1|-1>, [<字段2>: <1|-1>, ...]}`
 
-- ShardingType ( *string* )：分区方式，默认为 hash 分区，其可选取值如下：
+- ShardingType ( *string* )：分区方式，默认值为"hash"
 
-    - "hash"：hash 分区
+    取值如下：
+
+    - "hash"：散列分区
     - "range"：范围分区
 
-    集合只能存在于一个数据组中。
+    当集合仅存在于一个数据组时，ShardingType 可以被修改。
 
-    格式：`ShardingType: "hash" | "range"`
+    格式：`ShardingType: "range"`
 
-- Partition ( *number* )：分区数，仅当选择 hash 分区时填写，代表了 hash 分区的个数，其值必须是2的幂，范围在[2\^3，2\^20]
+- Partition ( *number* )：分区数，默认值为 4096
 
-    集合只能存在于一个数据组中。
+    - 该参数的取值必须是 2 的幂，取值范围为[2\^3，2\^20]。
+    - 参数 ShardingType 的取值为"hash"时，该参数才能生效。
+    - 当集合仅存在于一个数据组时，Partition 可以被修改。
 
-    格式：`Partition: <分区数>`
+    格式：`Partition: 512`
 
-- AutoSplit ( *boolean* )：标识新集合是否开启自动切分功能，默认值为 false
+- AutoSplit ( *boolean* )：是否开启自动切分功能，默认值为 false，表示不开启自动切分
 
-    - 集合设置新的 hash 分区键后，可以使用该选项进行自动切分。
-    - 不显式指定 AutoSplit 时，如果该集合修改前无指定 AutoSplit 且从属于某个非系统域，该域的 AutoSplit 参数将作用于此次设置。
-    - 集合之前有指定 AutoSplit 为 false，需要显式设置 AutoSplit 为 true 进行自动切分。
-    - AutoSplit 只能作用于 hash 分区键上。
+    - 参数 ShardingType 的取值为"hash"时，该参数才能生效。
+    - 当集合仅存在于一个数据组时，AutoSplit 可以被修改。
 
-    格式：`AutoSplit: true | false`
+    格式：`AutoSplit: true`
 
-- EnsureShardingIndex ( *boolean* )：标识是否创建分区索引，默认值为 true
+    >**Note:**
+    >
+    > 创建域和集合时均可指定参数 AutoSplit。如果显式指定集合的 AutoSplit，系统将优先按集合指定的值决定是否开启自动切分。
 
-- Compressed ( *boolean* )：标识集合是否开启数据压缩功能
+- EnsureShardingIndex ( *boolean* )：是否根据参数 ShardingKey 指定的字段自动创建名为"$shard"的索引，默认值为 true，表示自动创建
 
-    如果设置 Compressed 为 true，而没有指定 CompressionType，则 CompressionType 为 "lzw"。
+    当集合仅存在于一个数据组时，EnsureShardingIndex 可以被修改。
+ 
+    格式：`EnsureShardingIndex: false`
 
-    格式：`Compressed: true | false`
+- Compressed ( *boolean* )：是否开启数据压缩功能，默认值为 true，表示开启数据压缩功能
 
-- CompressionType ( *string* )：集合的压缩算法，"snappy" 或者 "lzw"
+    格式：`Compressed: false`
 
-    - "snappy"：使用 snappy 算法压缩
-    - "lzw"：使用 lzw 算法压缩
+- CompressionType ( *string* )：压缩算法类型，默认值为"lzw"
 
-    格式：`CompressionType: "snappy" | "lzw"`
+    取值如下：
 
-- StrictDataMode ( *boolean* )：标识对该集合的操作是否开启严格数据类型模式
+    - "snappy"：snappy 算法压缩
+    - "lzw"：lzw 算法压缩
 
-    格式：`StrictDataMode: true | false`
+    格式：`CompressionType: "snappy"`
 
-- AutoIncrement ( *object* )：自增字段
+    >**Note:**
+    >
+    > snappy 压缩和 lzw 压缩的使用场景可参考[数据压缩][date_compression]。
 
-    - option 中须加上 Field 属性，以标记要修改的字段。
-    - 自增字段可以修改的属性有 CurrentValue, Increment, StartValue, MinValue, MaxValue, CacheSize, AcquireSize, Cycled, Generated。<br>属性具体功能请参考[自增字段介绍][sequence]。
+- StrictDataMode ( *boolean* )：是否开启严格数据类型模式，默认值为 false，表示不开启
+
+    开启严格模式后，如果数据类型为数值，在运算过程中出现溢出则会报错；如果数据类型非数值，则不进行任何操作。
+
+    格式：`StrictDataMode: true`
+
+- AutoIncrement ( *object* )：自增字段的属性
+
+    - 允许修改的属性可参考[自增字段][sequence]。
     - 修改属性后，字段值将可能不唯一。如需保证修改后值唯一，建议使用唯一索引。
 
-    格式：`AutoIncrement: <option>`
+    格式：`AutoIncrement: {Field: <字段名>, ...}` 或 `AutoIncrement: [{Field: <字段名1>, ...}, {Field: <字段名2>, ...}, ...]`
 
-    > **Note:**
-    >
-    > - 各个选项的具体使用方式见 [createCL()][createCL]。
-    > - 分区集合不能修改与分区相关的属性，如 ShardingKey、Partition 等。
-    > - EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如 ShardingKey 等时有效。
+- AutoIndexId ( *boolean* )：是否根据字段 _id 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
+
+    格式：`AutoIndexId: false`
 
 ##返回值##
 
 函数执行成功时，无返回值。
 
-函数执行失败时，将抛出异常并输出错误信息。
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -113,39 +128,40 @@ v2.10 及以上版本
 
 ##示例##
 
-- 创建一个普通集合后将该集合修改为分区集合
+- 创建一个普通集合，然后将该集合修改为分区集合
 
     ```lang-javascript
-    > db.sample.createCL('employee')
+    > db.sample.createCL("employee")
     > db.sample.employee.setAttributes({ShardingKey: {a: 1}, ShardingType: "hash"})
     ```
 
-- 创建一个普通集合后将该集合修改为分区集合，并且自动切分
+- 创建一个普通集合，然后将该集合修改为分区集合，并且自动切分
 
     ```lang-javascript
-    > db.sample.createCL('employee')
+    > db.sample.createCL("employee")
     > db.sample.employee.setAttributes({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
     ```
 
-- 创建一个普通集合后将该集合修改为 snappy 压缩
+- 创建一个普通集合，然后将该集合的压缩算法修改为 snappy
 
     ```lang-javascript
-    > db.sample.createCL('employee')
-    > db.sample.employee.setAttributes({CompressionType: 'snappy'})
+    > db.sample.createCL("employee")
+    > db.sample.employee.setAttributes({CompressionType: "snappy"})
     ```
 
-- 创建一个有自增字段的集合后修改其自增起始值
+- 创建一个有自增字段的集合，修改其自增起始值
 
     ```lang-javascript
-    > db.sample.createCL('employee', {AutoIncrement: {Field: "studentID"}})
+    > db.sample.createCL("employee", {AutoIncrement: {Field: "studentID"}})
     > db.sample.employee.setAttributes({AutoIncrement: {Field: "studentID", StartValue: 2017140000}})
     ```
 
 
 [^_^]:
-    本文使用的所有引用及链接
+    本文使用的所有引用和链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
-[createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
+[date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md

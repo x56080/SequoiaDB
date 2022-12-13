@@ -22,7 +22,7 @@ Any document record must belong to one and only one collection.
 name ( \f[I]string, required\f[] )
 .RS 2
 .PP
-Collection name
+Collection name.
 .IP \[bu] 2
 In the same collection space, the collection name must be unique.
 .IP \[bu] 2
@@ -32,7 +32,7 @@ Refer to Restrictions for restrictions on collections and collection naming.
 options ( \f[I]object, optional\f[] )
 .RS 2
 .PP
-Modify the collection space properties through the parameter "options":
+Set the collection properties through the parameter "options":
 .IP \[bu] 2
 ShardingKey ( \f[I]object\f[] ): Sharding key, and the value is 1 or \-1,
 indicating forward or reverse sorting.
@@ -47,9 +47,9 @@ ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
 .PP
 The values are as follows:
 .IP \[bu] 2
-"hash": Hash sharding
+"hash": Hash sharding.
 .IP \[bu] 2
-"range": Range sharding
+"range": Range sharding.
 .PP
 Format: \f[C]ShardingType: "range"\f[]
 .RE
@@ -63,7 +63,7 @@ The value of this parameter must be a power of 2, and the range is [2^3, 2^20].
 This parameter can only take effect when the value of the parameter
 "ShardingType" is "hash".
 .PP
-Format: \f[C]Partition: 4096\f[]
+Format: \f[C]Partition: 512\f[]
 .RE
 .IP \[bu] 2
 ReplSize ( \f[I]number\f[] ): The number of replicas that need to be
@@ -88,7 +88,8 @@ Format: \f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
 Compressed ( \f[I]boolean\f[] ): Whether to enable the data compression
-function, and the default value is "true", enable the data compression function.
+function, and the default value is "true", which means that the data compression
+function is enable.
 .RS 2
 .PP
 Format: \f[C]Compressed: false\f[]
@@ -100,9 +101,9 @@ value is "lzw".
 .PP
 The values are as follows:
 .IP \[bu] 2
-"snappy": snappy algorithm compression
+"snappy": Snappy algorithm compression.
 .IP \[bu] 2
-"lzw": lzw algorithm compression
+"lzw": Lzw algorithm compression.
 .PP
 Format: \f[C]CompressionType: "snappy"\f[]
 .RS
@@ -115,8 +116,8 @@ refer to data compression.
 .RE
 .IP \[bu] 2
 AutoSplit ( \f[I]boolean\f[] ): Whether to enable the automatic segmentation
-function, and the default value is "false", and the automatic segmentation is
-not enabled.
+function, and the default value is "false", which means that automatic
+segmentation is not enabled.
 .RS 2
 .IP \[bu] 2
 This parameter cannot be used simultaneously with the parameter "Group".
@@ -129,7 +130,8 @@ Format: \f[C]AutoSplit: true\f[]
 .PP
 \f[B]Note:\f[]
 .PP
-User can specify the parameter AutoSplit when creating domains and collections.
+User can specify the parameter "AutoSplit" when creating domains and
+collections.
 If user explicitly specify AutoSplit for a collection, the system will give
 priority to determining whether to enable automatic splitting according to the
 value specified by the collection.
@@ -149,8 +151,8 @@ Format: \f[C]Group: "group1"\f[]
 .RE
 .IP \[bu] 2
 AutoIndexId ( \f[I]boolean\f[] ): Whether to automatically create a unique index
-named "$id" based on the field "_id", and the default value is "true",
-automatically created.
+named "$id" based on the field "_id", and the default value is "true", which
+means automatically created.
 .RS 2
 .PP
 Format: \f[C]AutoIndexId: false\f[]
@@ -158,33 +160,33 @@ Format: \f[C]AutoIndexId: false\f[]
 .IP \[bu] 2
 EnsureShardingIndex ( \f[I]boolean\f[] ): Whether to automatically create an
 index named "$shard" according to the field specified by the parameter
-"ShardingKey", and the default value is "true", automatically created.
+"ShardingKey", and the default value is "true", which means automatically
+created.
 .RS 2
 .PP
 Format: \f[C]EnsureShardingIndex: false\f[]
 .RE
 .IP \[bu] 2
 StrictDataMode ( \f[I]boolean\f[] ): Whether to enable strict data type mode,
-and the default is false, not enable.
+and the default value is "false", which means it is not enable.
 .RS 2
 .PP
 After enabling strict mode, if the data type is numeric, an error will be
 reported if an overflow occurs during the operation.
-if the data type is not numeric, no operation will be performed.
+If the data type is not numeric, no operation will be performed.
 .PP
 Format: \f[C]StrictDataMode: true\f[]
 .RE
 .IP \[bu] 2
-AutoIncrement ( \f[I]object\f[] ): Self\-increment field, function introduction
-can refer to Auto\-increment field.
+AutoIncrement ( \f[I]object\f[] ): Specify auto\-increment field.
 .RS 2
 .PP
-Format: \f[C]AutoIncrement: {Field: <Field name>, ...}\f[] 或
+Format: \f[C]AutoIncrement: {Field: <Field name>, ...}\f[] or
 \f[C]AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]\f[]
 .RE
 .IP \[bu] 2
 LobShardingKeyFormat ( \f[I]string\f[] ): Specify the conversion format of the
-LOB ID converted to the partition key key value.
+LOB ID converted to the partition key value.
 .RS 2
 .PP
 Currently, only the conversion of the time attribute in the LOB ID is supported,
@@ -201,11 +203,11 @@ This parameter is only used in the main collection.
 When specifying this parameter, user must ensure that there is only one
 segmentation field specified by the parameter "ShardingKey".
 .PP
-Format: \f[C]LobShardingKeyFormat: "2021"\f[]
+Format: \f[C]LobShardingKeyFormat: "YYYYMM"\f[]
 .RE
 .IP \[bu] 2
 IsMainCL ( \f[I]boolean\f[] ): Whether it is the main collection, and the
-default value is "false", and it is not set as the main collection.
+default value is "false", which means it is not set as the main collection.
 .RS 2
 .PP
 When the designated collection is the main collection, the parameters "ReplSize"
@@ -421,7 +423,7 @@ specify the strict data type mode to be turned on.
 .fi
 .RE
 .IP \[bu] 2
-Use LOB under the main collection
+Use LOB under the main collection.
 .RS 2
 .PP
 Create the main collection "sample.maincl" that supports large objects, mount
