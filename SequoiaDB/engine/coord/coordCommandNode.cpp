@@ -679,7 +679,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_CMDCONFIGNODE_GETNODECFG, "_coordCMDConfigNode::getNodeConf" )
-   INT32 _coordCMDConfigNode::getNodeConf( clsRemoteResource *pResource,
+   INT32 _coordCMDConfigNode::getNodeConf( coordResource *pResource,
                                            const CHAR *pQuery,
                                            BSONObj &nodeConf )
    {
@@ -839,7 +839,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _coordCMDConfigNode::_onPostBuildConfig( clsRemoteResource *pResource,
+   INT32 _coordCMDConfigNode::_onPostBuildConfig( coordResource *pResource,
                                                   BSONObjBuilder &builder,
                                                   const CHAR *roleStr,
                                                   BOOLEAN hasCataAddr )
@@ -1154,7 +1154,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordCMDCreateCataGroup::_onPostBuildConfig( clsRemoteResource *pResource,
+   INT32 _coordCMDCreateCataGroup::_onPostBuildConfig( coordResource *pResource,
                                                        BSONObjBuilder &builder,
                                                        const CHAR *roleStr,
                                                        BOOLEAN hasCataAddr )
@@ -2520,7 +2520,6 @@ namespace engine
    {
       CoordGroupInfoPtr groupPtr ;
       _netRouteAgent *pAgent = _pResource->getRouteAgent() ;
-      SDB_ASSERT( NULL != pAgent, "should have net agent" ) ;
 
       if ( SDB_OK == _pResource->updateGroupInfo( pArgs->_targetName.c_str(),
                                                   groupPtr,

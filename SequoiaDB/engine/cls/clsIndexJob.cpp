@@ -139,7 +139,6 @@ namespace engine
    {
       // attach cb for dummy session
       _session.attachCB( eduCB() ) ;
-      _remoteOperator.attach( _pEDUCB ) ;
 
       // switch status if it is a rollback thread
       if ( _taskStatusPtr.get() )
@@ -183,9 +182,6 @@ namespace engine
 
       // update task status to FINISH in catalog
       clsCB->getTaskEvent()->signal() ;
-
-      // clear remote operator
-      _remoteOperator.detach() ;
 
       // detach cb for dummy session
       _session.detachCB() ;
@@ -561,7 +557,7 @@ namespace engine
    retry:
       // send message
       rc = pShardCB->syncSend( (MsgHeader*)pBuff, CATALOG_GROUPID, TRUE,
-                               _pEDUCB, &pRcvMsg ) ;
+                               &pRcvMsg ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to send message, rc: %d",
                    rc ) ;
@@ -620,22 +616,25 @@ namespace engine
       if ( _taskStatusPtr->mainTaskID() != CLS_INVALID_TASKID &&
            SDB_OK == resultCode )
       {
-         clsResource *pResource = sdbGetShardCB()->getResource() ;
-         CoordCataInfoPtr cataPtr ;
+         CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         shardCB* pShard = sdbGetShardCB() ;
+         clsCatalogSet* pCatSet = NULL ;
 
-         rc = pResource->getOrUpdateCataInfo( _clFullName, cataPtr, _pEDUCB ) ;
-         if ( SDB_OK == rc )
+         rc = pShard->getAndLockCataSet( _clFullName, &pCatSet ) ;
+         if ( SDB_OK == rc && pCatSet )
          {
-            clsCatalogSet *pCatSet = cataPtr->getCatalogSet() ;
-            if ( pCatSet && pCatSet->isSubCL() )
-            {
-               const CHAR *mainCLName = pCatSet->getMainCLName().c_str() ;
-               // Clear cached main-collection plans. Cached sub-collection plans
-               // are cleared inside create/drop index of sub-collections
-               sdbGetRTNCB()->getAPM()->invalidateCLPlans( mainCLName ) ;
-               // Tell secondary nodes to clear cached main-collection plans
-               sdbGetClsCB()->invalidatePlan( mainCLName ) ;
-            }
+            ossStrncpy( mainCLName, pCatSet->getMainCLName().c_str(),
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
+         }
+         pShard->unlockCataSet( pCatSet ) ;
+
+         if ( mainCLName[0] != 0 )
+         {
+            // Clear cached main-collection plans. Cached sub-collection plans
+            // are cleared inside create/drop index of sub-collections
+            sdbGetRTNCB()->getAPM()->invalidateCLPlans( mainCLName ) ;
+            // Tell secondary nodes to clear cached main-collection plans
+            sdbGetClsCB()->invalidatePlan( mainCLName ) ;
          }
       }
 
@@ -650,6 +649,12 @@ namespace engine
                       "Failed to get global index collection info, rc: %d",
                       rc ) ;
 
+         IRemoteOperator *pRemoteOpr = NULL ;
+         rc = eduCB()->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get remote operator, rc: %d",
+                      rc ) ;
+
          if ( DMS_TASK_CREATE_IDX == _taskStatusPtr->taskType() )
          {
             if ( resultCode != SDB_OK )
@@ -661,7 +666,7 @@ namespace engine
          {
             /// wait all data nodes's index to be dropped
             const CHAR* indexName = _taskStatusPtr->indexName() ;
-            rc = _waitIndexAllInvalid( _clFullName, indexName ) ;
+            rc = _waitIndexAllInvalid( pRemoteOpr, _clFullName, indexName ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check index[%s:%s] "
                          "invalid or not exist on all data nodes, rc: %d",
                          _clFullName, indexName, rc ) ;
@@ -676,7 +681,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsIndexJob::_waitIndexAllInvalid( const CHAR* collectionName,
+   INT32 _clsIndexJob::_waitIndexAllInvalid( IRemoteOperator* pRemoteOpr,
+                                             const CHAR* collectionName,
                                              const CHAR* indexName )
    {
       /*
@@ -690,8 +696,8 @@ namespace engine
 
       while ( TRUE )
       {
-         rc = _remoteOperator.snapshotIndexes( contextID, collectionName,
-                                               indexName, TRUE ) ;
+         rc = pRemoteOpr->snapshotIndexes( contextID, collectionName, indexName,
+                                           TRUE ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to snapshot index by remote operator, rc: %d",
                       rc ) ;
@@ -1001,7 +1007,7 @@ namespace engine
 
       /// update task progress to catalog
       rc = _pShardCB->syncSend( (MsgHeader*)buff, CATALOG_GROUPID,
-                                TRUE, _pEDUCB, &msg ) ;
+                                TRUE, &msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send message, rc: %d", rc ) ;
 
       PD_LOG ( PDDEBUG, "Report task[%llu] progress to catalog", cataTaskID ) ;

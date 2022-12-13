@@ -37,7 +37,6 @@
 #define CLS_REMOTE_OPERATOR_HPP_
 
 #include "sdbRemoteOperator.hpp"
-#include "pmdProcessor.hpp"
 #include "rtnContextBuff.hpp"
 #include "msgMessage.hpp"
 
@@ -48,6 +47,7 @@ namespace engine
 
    class _pmdEDUCB ;
    class _pmdSessionBase ;
+   class _pmdProcessorBase ;
 
    class _clsRemoteOperator : public _IRemoteOperator
    {
@@ -116,10 +116,10 @@ namespace engine
       virtual _sdbRemoteOpCtrl*  getController() ;
 
    public:
-      INT32                   attach( _pmdEDUCB *cb ) ;
-      void                    detach() ;
+      INT32                   init( _pmdEDUCB *cb ) ;
 
    private:
+      void                    _clear() ;
       void                    _generateErrorInfo( INT32 rc,
                                                   rtnContextBuf &contextBuff,
                                                   BSONObjBuilder &retBuilder ) ;
@@ -136,7 +136,7 @@ namespace engine
       void                    _increaseCount( INT32 rc ) ;
 
    private:
-      pmdCoordProcessor _processor ;
+      _pmdProcessorBase *_processor ;
 
       _pmdSessionBase *_session ;
       _pmdEDUCB *_cb ;

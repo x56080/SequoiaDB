@@ -49,7 +49,7 @@
 namespace engine
 {
 
-   class _clsRemoteResource ;
+   class _coordResource ;
 
    /*
       _coordGTSAgent define
@@ -65,7 +65,7 @@ namespace engine
 
    public:
       // initialize GTS agent with COORD resource
-      INT32 init( _clsRemoteResource *resource ) ;
+      INT32 init( _coordResource *resource ) ;
       // finalize GTS agent to release COORD resource
       void  fini() ;
 
@@ -75,7 +75,7 @@ namespace engine
       //    - SDB_OK: update succeed
       //    - SDB_GLOB_LOWTRAN_UNKNOWN: global lowTran is not ready
       // NOTE: will send local lowTran to catalog and get back global lowTran
-      virtual INT32 updateGlobLowTran( pmdEDUCB *cb ) ;
+      virtual INT32 updateGlobLowTran() ;
 
       // arbitrate global transaction
       // input:
@@ -148,8 +148,8 @@ namespace engine
       virtual void   onDetach( pmdEDUCB *eduCB ) ;
 
    protected:
-      // remote resource
-      _clsRemoteResource * _resource ;
+      // COORD resource
+      _coordResource * _resource ;
    } ;
 
    typedef class _coordGTSAgent coordGTSAgent ;

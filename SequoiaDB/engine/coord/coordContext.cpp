@@ -143,7 +143,7 @@ namespace engine
    {
       if ( rc && _nokRC.size() > 0 )
       {
-         clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+         coordResource *pResource = sdbGetResourceContainer()->getResource() ;
          buffObj = coordBuildErrorObj( pResource, rc, cb, &_nokRC ) ;
       }
    }
@@ -1880,7 +1880,7 @@ namespace engine
       coordCtrlParam ctrlParam ;
       CoordGroupList groupList ;
 
-      clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+      coordResource *pResource = sdbGetResourceContainer()->getResource() ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
 
       ctrlParam._isGlobal = TRUE ;

@@ -41,7 +41,7 @@
 #include "schedDef.hpp"
 #include "coordCB.hpp"
 #include "clsResourceContainer.hpp"
-#include "clsRemoteResource.hpp"
+#include "coordResource.hpp"
 #include "msgMessage.hpp"
 #include "coordRemoteSession.hpp"
 #include "coordTrace.hpp"
@@ -793,7 +793,7 @@ namespace engine
                                                           UINT32 &nodeSiteVer )
    {
       INT32 rc = SDB_OK ;
-      clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+      coordResource *pResource = sdbGetResourceContainer()->getResource() ;
       schedItem *pItem = NULL ;
       schedInfo *pInfo = NULL ;
 

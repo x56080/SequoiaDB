@@ -44,6 +44,7 @@
 #include "pmdModuleLoader.hpp"
 #include "ossProc.hpp"
 #include "utilMemListPool.hpp"
+#include "coordResource.hpp"
 
 namespace engine
 {

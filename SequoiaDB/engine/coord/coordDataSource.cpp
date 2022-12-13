@@ -623,7 +623,7 @@ namespace engine
       INT64 contextID = -1 ;
       rtnContextBuf buf ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
 
       rc = cmdFactory->create( CMD_NAME_LIST_DATASOURCES, opr ) ;
       PD_RC_CHECK( rc, PDERROR, "Create operator[%s] failed[%d]",

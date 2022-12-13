@@ -32,9 +32,6 @@
 *******************************************************************************/
 
 #include "pmdProcessor.hpp"
-#include "rtnCB.hpp"
-#include "dmsCB.hpp"
-#include "dpsLogWrapper.hpp"
 #include "rtn.hpp"
 #include "../bson/bson.h"
 #include "pmdSession.hpp"
@@ -1865,7 +1862,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
-      clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+      coordResource *pResource = sdbGetResourceContainer()->getResource() ;
       //pmdRestorePendingChecker restorePendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
@@ -2171,7 +2168,7 @@ namespace engine
                                              BOOLEAN &needRollback )
    {
       INT32 rc = SDB_OK ;
-      clsRemoteResource *pResource = NULL ;
+      coordResource *pResource = NULL ;
       coordCommandFactory *pFactory = NULL ;
       coordOperator *pOpr = NULL ;
       pResource = sdbGetResourceContainer()->getResource() ;
@@ -2412,7 +2409,7 @@ namespace engine
    INT32 _pmdCoordProcessor::doRollback()
    {
       INT32 rc = SDB_OK ;
-      clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+      coordResource *pResource = sdbGetResourceContainer()->getResource() ;
       DPS_TRANS_ID transID = eduCB()->getTransID() ;
 
       coordTransRollback rollbackOpr ;
@@ -2443,7 +2440,7 @@ namespace engine
    INT32 _pmdCoordProcessor::doCommit()
    {
       INT32 rc = SDB_OK ;
-      clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+      coordResource *pResource = sdbGetResourceContainer()->getResource() ;
 
       INT64 contextID = -1 ;
       DPS_TRANS_ID transID = eduCB()->getTransID() ;
@@ -2483,7 +2480,7 @@ namespace engine
    INT32 _pmdCoordProcessor::_beginTrans( BOOLEAN isAutoCommit )
    {
       INT32 rc = SDB_OK ;
-      clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+      coordResource *pResource = sdbGetResourceContainer()->getResource() ;
 
       coordTransBegin oprBegin ;
       rc = oprBegin.init( pResource, eduCB() ) ;

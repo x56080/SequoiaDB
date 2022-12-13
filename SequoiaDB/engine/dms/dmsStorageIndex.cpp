@@ -2473,9 +2473,9 @@ namespace engine
          DMS_RECORD_VEC::iterator iterVec ;
          IRemoteOperator *remoteOperator = NULL ;
 
-         remoteOperator = cb->getRemoteOperator() ;
-         PD_CHECK( NULL != remoteOperator, SDB_SYS, error, PDERROR,
-                   "Failed to get remote operator" ) ;
+         rc = cb->getOrCreateRemoteOperator( &remoteOperator ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d",
+                      rc ) ;
 
          // imply that index creating should be blocked.
          context->mbStat()->_blockIndexCreatingCount++ ;

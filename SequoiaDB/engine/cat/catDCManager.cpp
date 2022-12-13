@@ -754,7 +754,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
-      clsRemoteResource *pResource = NULL ;
+      nodeMgrAgent *pNodeAgent = NULL ;
 
       vector< string > vecSourceGrp ;
       BOOLEAN added = FALSE ;
@@ -771,7 +771,7 @@ namespace engine
       rc = pDCMgr->updateImageAllGroups( _pEduCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Update image dc groups failed, rc: %d", rc ) ;
 
-      pResource = pDCMgr->getImageResource() ;
+      pNodeAgent = pDCMgr->getImageNodeMgrAgent() ;
 
       // analysis groups
       eleGroups = objQuery.getFieldDotted(
@@ -803,7 +803,8 @@ namespace engine
             if ( added )
             {
                // check image group whether exist
-               if ( SDB_OK != pResource->groupName2ID( allGroups[ i ].c_str(), tmpID ) )
+               if ( SDB_OK != pNodeAgent->groupName2ID( allGroups[i].c_str(),
+                                                        tmpID ) )
                {
                   PD_LOG( PDERROR, "Image group[%s] is not exist",
                           allGroups[i].c_str() ) ;
@@ -821,7 +822,7 @@ namespace engine
          rc = pBaseInfo->addGroups( objGroups, &mapAddGrps ) ;
          PD_RC_CHECK( rc, PDERROR, "Add groups[%s] failed when attach "
                       "image, rc: %d", objGroups.toString().c_str(), rc ) ;
-         rc = _checkGroupsValid( mapAddGrps, pResource ) ;
+         rc = _checkGroupsValid( mapAddGrps, pNodeAgent ) ;
          PD_RC_CHECK( rc, PDERROR, "Groups[%s] is not all valid, rc: %d",
                       objGroups.toString().c_str(), rc ) ;
          it = mapAddGrps.begin() ;
@@ -998,7 +999,7 @@ namespace engine
       rc = pDCMgr->updateImageAllGroups( _pEduCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Update image all groups failed, rc: %d",
                    rc ) ;
-      pDCMgr->getImageResource()->getGroupNames( allGroups, TRUE, TRUE ) ;
+      pDCMgr->getImageNodeMgrAgent()->getGroupsName( allGroups ) ;
       for ( UINT32 i = 0 ; i < allGroups.size() ; ++i )
       {
          if ( pBaseInfo->getRImageGroups()->find( allGroups[i] ) ==
@@ -1352,7 +1353,7 @@ namespace engine
       BOOLEAN exist = FALSE ;
       BSONObj infoObj ;
 
-      rc = pDCMgr->initialize( NULL ) ;
+      rc = pDCMgr->initialize() ;
       PD_RC_CHECK( rc, PDERROR, "Init dc manager failed, rc: %d", rc ) ;
 
       // get data
@@ -1417,7 +1418,7 @@ namespace engine
    }
 
    INT32 _catDCManager::_checkGroupsValid( map< string, string > &mapGroups,
-                                           clsRemoteResource *pResource )
+                                           nodeMgrAgent *pNodeAgent )
    {
       INT32 rc = SDB_OK ;
       UINT32 groupID = CAT_INVALID_GROUPID ;
@@ -1438,8 +1439,8 @@ namespace engine
             rc = SDB_CAT_IS_NOT_DATAGROUP ;
             break ;
          }
-         else if ( SDB_OK != pResource->groupName2ID(
-                                 it->second.c_str(), groupID ) )
+         else if ( SDB_OK != pNodeAgent->groupName2ID( it->second.c_str(),
+                                                       groupID ) )
          {
             PD_LOG( PDERROR, "Image group[%s] is not exist",
                     it->second.c_str() ) ;

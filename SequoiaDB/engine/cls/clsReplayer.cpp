@@ -64,8 +64,8 @@ namespace engine
 
    INT32 startIndexJob ( RTN_JOB_TYPE type, const CHAR *collection,
                          const BSONObj &index, const BSONObj &option,
-                         DPS_LSN_OFFSET lsn, pmdEDUCB *cb,
-                         _dpsLogWrapper *dpsCB, BOOLEAN isRollBack ) ;
+                         DPS_LSN_OFFSET lsn, _dpsLogWrapper *dpsCB,
+                         BOOLEAN isRollBack ) ;
 
    // default pending count for duplicated key issue
    #define CLS_PARALLA_DEF_PENDING_COUNT     ( 1024 )
@@ -1193,7 +1193,7 @@ namespace engine
             /// rebuild the index can be very time-consuming.
             /// we create a sub thread to handle it.
             startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
-                           recordHeader->_lsn, eduCB, _dpsCB, FALSE ) ;
+                           recordHeader->_lsn, _dpsCB, FALSE ) ;
             break ;
          }
          case LOG_TYPE_IX_DELETE :
@@ -1206,7 +1206,7 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
-                           recordHeader->_lsn, eduCB, _dpsCB, FALSE ) ;
+                           recordHeader->_lsn, _dpsCB, FALSE ) ;
             break ;
          }
          case LOG_TYPE_CL_RENAME :
@@ -1381,27 +1381,29 @@ namespace engine
 
             if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_CATA ) )
             {
-               /// when sdbrestore, the shardCB is NULL
-               clsResource *resource =
-                     NULL != sdbGetShardCB() ?
-                           sdbGetShardCB()->getResource() : NULL ;
+               catAgent *pCatAgent = NULL ;
 
-               if ( NULL != resource )
+               /// when sdbrestore, the shardCB is NULL
+               if ( sdbGetShardCB() &&
+                    NULL != ( pCatAgent = sdbGetShardCB()->getCataAgent() ) )
                {
+                  pCatAgent->lock_w() ;
                   if ( NULL != clFullName )
                   {
-                     resource->invalidateCataInfo( clFullName ) ;
+                     pCatAgent->clear( clFullName ) ;
                   }
                   else if ( NULL != csName )
                   {
-                     resource->removeCataInfoByCS( csName ) ;
+                     pCatAgent->clearBySpaceName( csName, NULL, NULL ) ;
                   }
                   else
                   {
                      PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
+                     pCatAgent->release_w() ;
                      rc = SDB_SYS ;
                      goto error ;
                   }
+                  pCatAgent->release_w() ;
                }
             }
 
@@ -1929,7 +1931,7 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
-                           recordHeader->_lsn, eduCB, _dpsCB, TRUE ) ;
+                           recordHeader->_lsn, _dpsCB, TRUE ) ;
             break ;
          }
          case LOG_TYPE_IX_DELETE :
@@ -1942,7 +1944,7 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
-                           recordHeader->_lsn, eduCB, _dpsCB, TRUE ) ;
+                           recordHeader->_lsn, _dpsCB, TRUE ) ;
             break ;
          }
          case LOG_TYPE_CL_RENAME :
@@ -3137,8 +3139,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_STARTINXJOB, "startIndexJob" )
    INT32 startIndexJob ( RTN_JOB_TYPE type, const CHAR *collection,
                          const BSONObj &index, const BSONObj &option,
-                         DPS_LSN_OFFSET lsn, pmdEDUCB *cb,
-                         _dpsLogWrapper *dpsCB, BOOLEAN isRollBack )
+                         DPS_LSN_OFFSET lsn, _dpsLogWrapper *dpsCB,
+                         BOOLEAN isRollBack )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_STARTINXJOB ) ;
@@ -3179,17 +3181,13 @@ namespace engine
       }
       else
       {
-         clsResource *pResource = sdbGetShardCB()->getResource() ;
-         CoordCataInfoPtr cataPtr ;
-         if ( SDB_OK == pResource->getOrUpdateCataInfo( collection,
-                                                        cataPtr,
-                                                        cb ) )
+         clsCatalogSet *pCatSet = NULL ;
+         sdbGetShardCB()->getAndLockCataSet( collection, &pCatSet, TRUE ) ;
+         if ( pCatSet && CLS_REPLSET_MAX_NODE_SIZE == pCatSet->getW() )
          {
-            if ( CLS_REPLSET_MAX_NODE_SIZE == cataPtr->getCatalogSet()->getW() )
-            {
-               useSync = TRUE ;
-            }
+            useSync = TRUE ;
          }
+         sdbGetShardCB()->unlockCataSet( pCatSet ) ;
       }
 
       // init job

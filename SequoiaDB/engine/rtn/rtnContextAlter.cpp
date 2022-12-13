@@ -499,8 +499,6 @@ namespace engine
       const rtnAlterOptions * options = _alterJob->getOptions() ;
       const _rtnAlterInfo * alterInfo = _alterJob->getAlterInfo() ;
       const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
-      CoordCataInfoPtr cataPtr ;
-      clsResource *pResource = sdbGetShardCB()->getResource() ;
 
       PD_CHECK( NULL != _su, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get su" ) ;
@@ -508,7 +506,7 @@ namespace engine
                 "Failed to get mbContext" ) ;
 
       // Update catalog cache
-      rc = pResource->updateCataInfo( collection, cataPtr, cb ) ;
+      rc = sdbGetShardCB()->syncUpdateCatalog( collection ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update collection catalog, "
                    "rc: %d", rc ) ;
 

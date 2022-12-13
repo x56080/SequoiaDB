@@ -41,7 +41,7 @@
 #include "msgMessage.hpp"
 #include "pmdEDU.hpp"
 #include "coordCB.hpp"
-#include "clsRemoteResource.hpp"
+#include "coordResource.hpp"
 #include "rtn.hpp"
 #include "rtnContextDataDispatcher.hpp"
 
@@ -747,7 +747,7 @@ namespace engine
       MsgHeader *msg = pSub->getReqMsg() ;
       netIOVec *dataVec = pSub->getIODatas() ;
       CHAR *buff = NULL ;
-      clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr catInfo ;
 
       if ( MSG_BS_TRANS_INSERT_REQ == msg->opCode )
@@ -924,7 +924,7 @@ namespace engine
       netIOVec *dataVec = pSub->getIODatas() ;
       netIOVec::const_iterator itr = dataVec->begin() ;
 
-      clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr cataInfo ;
 
       if ( MSG_BS_TRANS_UPDATE_REQ == msg->opCode )
@@ -1051,7 +1051,7 @@ namespace engine
       netIOVec *dataVec = pSub->getIODatas() ;
       netIOVec::const_iterator itr = dataVec->begin() ;
 
-      clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr cataInfo ;
 
       if ( MSG_BS_TRANS_DELETE_REQ == msg->opCode )
@@ -1178,7 +1178,7 @@ namespace engine
       netIOVec *dataVec = pSub->getIODatas() ;
       netIOVec::const_iterator itr = dataVec->begin() ;
 
-      clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr cataInfo ;
 
       MsgOpQuery *origQuery = (MsgOpQuery *)msg ;
@@ -1448,7 +1448,7 @@ namespace engine
       CoordCataInfoPtr cataInfo ;
       CoordDataSourcePtr dsPtr ;
 
-      clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
       MsgHeader *msg = pSub->getReqMsg() ;
 
       rc = _parseQueryMsg( pSub, &flag, &cmdName, &query, &selector,
@@ -1676,7 +1676,7 @@ namespace engine
          BSONElement reqOIDEle, reqSubCLEle ;
 
          CoordDataSourcePtr dsPtr ;
-         clsRemoteResource *pResource = sdbGetCoordCB()->getResource() ;
+         coordResource *pResource = sdbGetCoordCB()->getResource() ;
          UTIL_DS_UID dsID = UTIL_INVALID_DS_UID ;
          dsID = SDB_GROUPID_2_DSID( pSub->getNodeID().columns.groupID ) ;
 

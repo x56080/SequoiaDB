@@ -314,7 +314,7 @@ namespace engine
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       _pReplSet  = sdbGetReplCB () ;
       _pShdMgr   = sdbGetShardCB () ;
-      _pResource = pKRCB->getClsCB()->getResource() ;
+      _pCatAgent = pKRCB->getClsCB ()->getCatAgent () ;
       _pFreezingWindow = _pShdMgr->getFreezingWindow() ;
       _pDmsCB    = pKRCB->getDMSCB () ;
       _pDpsCB    = pKRCB->getDPSCB () ;
@@ -340,7 +340,7 @@ namespace engine
    {
       _pReplSet  = NULL ;
       _pShdMgr   = NULL ;
-      _pResource = NULL ;
+      _pCatAgent = NULL ;
       _pFreezingWindow = NULL ;
       _pDmsCB    = NULL ;
       _pRtnCB    = NULL ;
@@ -519,25 +519,10 @@ namespace engine
       }
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONATTACH, "_clsShdSession::_onAttach" )
-   void _clsShdSession::_onAttach ()
-   {
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__ONATTACH ) ;
-
-      SDB_ASSERT( NULL != _pEDUCB, "edu CB should be valid" ) ;
-
-      _remoteOperator.attach( _pEDUCB ) ;
-
-      PD_TRACE_EXIT( SDB__CLSSHDSESS__ONATTACH ) ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONDETACH, "_clsShdSession::_onDetach" )
    void _clsShdSession::_onDetach ()
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONDETACH ) ;
-
-      _remoteOperator.detach() ;
-
       if ( _pEDUCB )
       {
          _pEDUCB->setMonQueryCB( NULL ) ;
@@ -1442,9 +1427,7 @@ namespace engine
                      "session[%s]", rc, sessionName() ) ;
             const CHAR *collectionName = _pCollectionName ;
             SDB_ASSERT( NULL != collectionName, "collection name is invalid" ) ;
-            CoordCataInfoPtr cataPtr ;
-            rc = _pResource->updateCataInfo( _pCollectionName, cataPtr,
-                                             _pEDUCB ) ;
+            rc = _pShdMgr->syncUpdateCatalog( _pCollectionName ) ;
             if ( SDB_OK == rc )
             {
                _hasUpdateCataInfo = TRUE ;
@@ -1463,9 +1446,7 @@ namespace engine
                   /// if main collection, need update catalog info first
                   if ( !_hasUpdateCataInfo )
                   {
-                     CoordCataInfoPtr cataPtr ;
-                     rc = _pResource->updateCataInfo( _pCollectionName, cataPtr,
-                                                      _pEDUCB ) ;
+                     rc = _pShdMgr->syncUpdateCatalog( collectionName ) ;
                      if ( SDB_OK == rc )
                      {
                         ++loopTime ;
@@ -1491,9 +1472,7 @@ namespace engine
             {
                // if slave data node doesn't have the cs/cl, but catalog has the
                // cs/cl, it may be that rename operation hasn't been replayed.
-               CoordCataInfoPtr cataPtr ;
-               rc = _pResource->updateCataInfo( _pCollectionName, cataPtr,
-                                                _pEDUCB ) ;
+               rc = _pShdMgr->syncUpdateCatalog( collectionName ) ;
                if ( SDB_OK == rc )
                {
                   rc = SDB_CLS_DATA_NOT_SYNC ;
@@ -1788,8 +1767,6 @@ namespace engine
                                              BOOLEAN mustOnSelf )
    {
       INT32 rc                      = SDB_OK ;
-      CoordCataInfoPtr cataPtr ;
-      clsCatalogSet *set            = NULL ;
       UINT32 attribute              = 0 ;
       BOOLEAN isMainCL              = FALSE ;
       BOOLEAN hasFoundIdx           = FALSE ;
@@ -1805,11 +1782,26 @@ namespace engine
       ossPoolVector<BSONObj>::iterator itIdx ;
 
       /// update collection's catalog info
-      rc = _pResource->getOrUpdateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Session[%s] Update collection[%s]'s "
-                   "catalog info failed, rc: %d", sessionName(),
-                   clFullName, rc ) ;
-      set = cataPtr->getCatalogSet() ;
+   retry:
+      _pCatAgent->lock_r() ;
+      clsCatalogSet *set = _pCatAgent->collectionSet( clFullName ) ;
+      if ( NULL == set )
+      {
+         _pCatAgent->release_r() ;
+
+         rc = _pShdMgr->syncUpdateCatalog( clFullName ) ;
+         if ( SDB_OK == rc )
+         {
+            goto retry ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Session[%s] Update collection[%s]'s "
+                    "catalog info failed, rc: %d", sessionName(),
+                    clFullName, rc ) ;
+            goto error ;
+         }
+      }
 
       attribute = set->getAttribute() ;
       isMainCL = set->isMainCL() ;
@@ -1833,6 +1825,8 @@ namespace engine
       {
          _pEDUCB->setCurMainCLName( set->getMainCLName().c_str() ) ;
       }
+
+      _pCatAgent->release_r() ;
 
       /// update collection's index info
       if ( !isMainCL )
@@ -1877,7 +1871,9 @@ namespace engine
          if( 0 == groupCount )
          {
             /// first clear
-            _pResource->removeCataInfo( clFullName ) ;
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clear( clFullName ) ;
+            _pCatAgent->release_w() ;
 
             if ( pParent && FALSE == mustOnSelf )
             {
@@ -1999,8 +1995,15 @@ namespace engine
                                                    ossPoolVector<BSONObj> &indexInfo )
    {
       INT32 rc = SDB_OK ;
+      IRemoteOperator *pRemoteOpr = NULL ;
       INT64 contextID = -1 ;
       BSONObj matcher, dummyObj ;
+
+      // get & set index's unique id
+      rc = _pEDUCB->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get remote operator, rc: %d",
+                   rc ) ;
 
       try
       {
@@ -2012,9 +2015,9 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
-      rc = _remoteOperator.list( contextID,
-                                 CMD_ADMIN_PREFIX CMD_NAME_LIST_INDEXES,
-                                 matcher, dummyObj, dummyObj, dummyObj ) ;
+      rc = pRemoteOpr->list( contextID,
+                             CMD_ADMIN_PREFIX CMD_NAME_LIST_INDEXES,
+                             matcher, dummyObj, dummyObj, dummyObj ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to snapshot index by remote operator, rc: %d",
                    rc ) ;
@@ -2183,7 +2186,7 @@ namespace engine
       INT64 contextID            = 0 ;
       rtnContextRenameCL::sharePtr pCtx ;
       dmsMBContext *pMBContext   = NULL ;
-      CoordCataInfoPtr cataPtr ;
+      clsCatalogSet *pCatSet     = NULL ;
       CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ]       = { 0 } ;
       CHAR csNameInData[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
       CHAR clName[ DMS_COLLECTION_NAME_SZ + 1 ]             = { 0 } ;
@@ -2249,11 +2252,17 @@ namespace engine
                    csName, clNameInData, csName, clName, rc ) ;
 
       /// 4) check catalog again, in case that someone rename back
-      rc = _pResource->updateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
-      if ( SDB_OK == rc )
+      _pCatAgent->lock_w() ;
+      _pCatAgent->clear( clFullName ) ;
+      _pCatAgent->release_w() ;
+
+      rc = _pShdMgr->getAndLockCataSet( clFullName, &pCatSet, TRUE ) ;
+      if ( SDB_OK == rc && pCatSet )
       {
-         tmpUniqueID = cataPtr->clUniqueID() ;
+         tmpUniqueID = pCatSet->clUniqueID() ;
       }
+      _pShdMgr->unlockCataSet( pCatSet ) ;
+
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to update collection[%s]'s catalog info, rc: %d",
                    clFullName, rc ) ;
@@ -3170,7 +3179,9 @@ namespace engine
             if ( rc && CMD_CREATE_COLLECTION == pCommand->type() )
             {
                /// create collection failed, so we need to clear cache
-               _pResource->removeCataInfo( pCommand->collectionFullName() ) ;
+               _pCatAgent->lock_w () ;
+               _pCatAgent->clear ( pCommand->collectionFullName() ) ;
+               _pCatAgent->release_w () ;
             }
          }
          if ( SDB_OK != rc )
@@ -3199,6 +3210,7 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
+      IRemoteOperator *pRemoteOpr = NULL ;
       INT64 contextID = -1 ;
       BSONObj clInfoObj ;
       ossPoolVector<BSONObj>& indexVec = pCommand->getIndexVector() ;
@@ -3215,7 +3227,13 @@ namespace engine
                    "Failed to set uniqueid for loadCS command, rc: %d",
                    pCommand->spaceName(), rc ) ;
 
-      rc = _remoteOperator.listCSIndexes( contextID, csUniqueID ) ;
+      // get & set index's unique id
+      rc = _pEDUCB->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get remote operator, rc: %d",
+                   rc ) ;
+
+      rc = pRemoteOpr->listCSIndexes( contextID, csUniqueID ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to snapshot index by remote operator, rc: %d",
                    rc ) ;
@@ -4233,20 +4251,43 @@ namespace engine
                                           BSONObj &shardingKey )
    {
       INT32 rc = SDB_OK ;
+      _clsCatalogSet* set = NULL ;
 
-      CoordCataInfoPtr cataPtr ;
-      clsCatalogSet* set = NULL ;
+      for( ;; )
+      {
+         _pCatAgent->lock_r() ;
 
-      rc = _pResource->getOrUpdateCataInfo( clName, cataPtr, _pEDUCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update catalog of collection[%s], "
-                   "rc: %d", clName, rc ) ;
-      set = cataPtr->getCatalogSet() ;
+         set = _pCatAgent->collectionSet( clName ) ;
+         if ( NULL == set )
+         {
+            _pCatAgent->release_r() ;
+
+            rc = _pShdMgr->syncUpdateCatalog( clName ) ;
+            if ( SDB_OK == rc )
+            {
+               continue ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to update catalog of collection[%s], rc=%d",
+                       clName, rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            break ;
+         }
+      }
+
       SDB_ASSERT( NULL != set, "_clsCatalogSet should not be NULL" ) ;
 
       if ( set->isSharding() )
       {
          shardingKey = set->getShardingKey() ;
       }
+
+      _pCatAgent->release_r() ;
 
    done:
       return rc ;
@@ -4260,8 +4301,8 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       BSONObj shardingKey;
-      CoordCataInfoPtr cataPtr ;
       _clsCatalogSet *pCataSet = NULL;
+      BOOLEAN catLocked = FALSE;
       result = 0 ;
       BOOLEAN isRange = FALSE;
       try
@@ -4271,16 +4312,22 @@ namespace engine
             goto done;
          }
 
-         rc = _pResource->getCataInfo( pCollectionName, cataPtr ) ;
-         if ( SDB_CAT_NO_MATCH_CATALOG == rc )
+         _pCatAgent->lock_r () ;
+         catLocked = TRUE;
+         pCataSet = _pCatAgent->collectionSet( pCollectionName );
+         if ( NULL == pCataSet )
          {
+            _pCatAgent->release_r () ;
+            catLocked = FALSE;
+
             rc = SDB_CLS_NO_CATALOG_INFO ;
             PD_LOG( PDERROR, "can not find collection:%s", pCollectionName ) ;
             goto error ;
          }
-         pCataSet = cataPtr->getCatalogSet() ;
          isRange = pCataSet->isRangeSharding();
          shardingKey = pCataSet->getShardingKey().getOwned() ;
+         _pCatAgent->release_r () ;
+         catLocked = FALSE;
          if ( !isRange )
          {
             goto done;
@@ -4346,6 +4393,10 @@ namespace engine
                       e.what() );
       }
    done:
+      if ( catLocked )
+      {
+         _pCatAgent->release_r () ;
+      }
       return rc;
    error:
       goto done;
@@ -4616,23 +4667,12 @@ namespace engine
 
       SDB_ASSERT( 0 != includeShardingOrder, "invalid sharding order" ) ;
 
-      CoordCataInfoPtr cataPtr ;
       clsCatalogSet *pCataSet = NULL ;
       CLS_ORDER2SUBCLIDX_MAP sortedSubCLIdxMap ;
       CLS_SUBCL_LIST sortedSubCLList ;
 
-      rc = _pResource->getCataInfo( pCollectionName, cataPtr ) ;
-      if ( SDB_CAT_NO_MATCH_CATALOG == rc )
-      {
-         rc = SDB_OK ;
-      }
-      else if ( SDB_OK == rc )
-      {
-         pCataSet = cataPtr->getCatalogSet() ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get main-collection [%s] "
-                 "from catalog, rc: %d", pCollectionName, rc ) ;
-
+      _pCatAgent->lock_r () ;
+      pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
       if ( NULL == pCataSet )
       {
          PD_LOG( PDWARNING, "Failed to get main-collection [%s] "
@@ -4675,6 +4715,7 @@ namespace engine
             includeShardingOrder = 0 ;
          }
       }
+      _pCatAgent->release_r() ;
 
       if ( 0 != includeShardingOrder )
       {
@@ -4842,38 +4883,56 @@ namespace engine
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
       CLS_SUBCL_LIST strSubCLListTmp ;
-      CoordCataInfoPtr cataPtr ;
       clsCatalogSet *pCataSet = NULL ;
       CLS_SUBCL_LIST_IT iter ;
 
-      rc = _pResource->getCataInfo( pCollectionName, cataPtr ) ;
-      if ( SDB_CAT_NO_MATCH_CATALOG == rc )
+      _pCatAgent->lock_r () ;
+      pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
+      if ( NULL == pCataSet )
       {
+         _pCatAgent->release_r () ;
          rc = SDB_CLS_NO_CATALOG_INFO ;
          PD_LOG( PDERROR, "can not find collection:%s", pCollectionName ) ;
          goto error ;
       }
-      pCataSet = cataPtr->getCatalogSet() ;
       pCataSet->getSubCLList( strSubCLListTmp, sortType ) ;
+      _pCatAgent->release_r() ;
 
       /// check all sub collection is valid
       iter = strSubCLListTmp.begin() ;
       while( iter != strSubCLListTmp.end() )
       {
-         CoordCataInfoPtr subCataPtr ;
          pSubCLName = (*iter).c_str() ;
 
-         rc = _pResource->getOrUpdateCataInfo( pSubCLName, subCataPtr, _pEDUCB ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get catalog info for "
-                      "sub-collection [%s], rc: %d", pSubCLName, rc ) ;
-         /// not on the node, ignore
-         if ( 0 == subCataPtr->getCatalogSet()->groupCount() )
+         _pCatAgent->lock_r() ;
+         pCataSet = _pCatAgent->collectionSet( pSubCLName ) ;
+         if ( NULL == pCataSet )
          {
-            _pResource->removeCataInfo( pSubCLName ) ;
+            _pCatAgent->release_r() ;
+
+            rc = _pShdMgr->syncUpdateCatalog( pSubCLName ) ;
+            if ( SDB_OK == rc )
+            {
+               continue ;
+            }
+            else
+            {
+               goto error ;
+            }
+         }
+         /// not on the node, ignore
+         else if ( 0 == pCataSet->groupCount() )
+         {
+            _pCatAgent->release_r() ;
+
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clear( pSubCLName ) ;
+            _pCatAgent->release_w() ;
 
             ++iter ;
             continue ;
          }
+         _pCatAgent->release_r() ;
 
          /// push to list
          subCLList.push_back( *iter ) ;
@@ -4884,7 +4943,9 @@ namespace engine
       if ( subCLList.empty() )
       {
          /// is empty main collection
-         _pResource->removeCataInfo( pCollectionName ) ;
+         _pCatAgent->lock_w() ;
+         _pCatAgent->clear( pCollectionName ) ;
+         _pCatAgent->release_w() ;
       }
 
    done:
@@ -7663,9 +7724,9 @@ namespace engine
       INT32 curVer = -1 ;
       INT16 replSize = 0 ;
       UINT32 groupCount = 0 ;
-      CoordCataInfoPtr cataPtr ;
-      clsCatalogSet *set = NULL ;
+      _clsCatalogSet *set = NULL ;
       BOOLEAN mainCL = FALSE ;
+      BOOLEAN agentLocked = FALSE ;
       const CHAR *clShortName = NULL ;
 
       // For SYS collections, do not check the version. This limit is added when
@@ -7695,13 +7756,15 @@ namespace engine
          goto done ;
       }
 
-      rc = _pResource->getCataInfo( name, cataPtr ) ;
-      if ( SDB_CAT_NO_MATCH_CATALOG == rc )
+      _pCatAgent->lock_r () ;
+      agentLocked = TRUE ;
+      set = _pCatAgent->collectionSet( name ) ;
+      if ( NULL == set )
       {
          rc = SDB_CLS_NO_CATALOG_INFO ;
          goto error ;
       }
-      set = cataPtr->getCatalogSet() ;
+
       replSize = set->getW() ;
       curVer = set->getVersion() ;
       groupCount = set->groupCount() ;
@@ -7727,6 +7790,8 @@ namespace engine
       {
          *repairCheck = set->isRepairCheck() ;
       }
+      _pCatAgent->release_r () ;
+      agentLocked = FALSE ;
 
       if ( curVer < 0 )
       {
@@ -7743,7 +7808,9 @@ namespace engine
       {
          if ( 0 == groupCount )
          {
-            _pResource->removeCataInfo( name ) ;
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clear( name ) ;
+            _pCatAgent->release_w() ;
          }
          PD_LOG ( PDINFO, "Collecton[%s]: self verions:%d, coord version:%d, "
                   "groupCount:%d", name, curVer, version, groupCount ) ;
@@ -7767,6 +7834,11 @@ namespace engine
       _clVersion = curVer ;
 
    done:
+      if ( agentLocked )
+      {
+         _pCatAgent->release_r () ;
+      }
+
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKCLVER, rc ) ;
 
       return rc ;
@@ -7861,7 +7933,9 @@ namespace engine
                                                 _pDmsCB, _pDpsCB ) ;
          if ( SDB_OK == rcTmp )
          {
-            _pResource->removeCataInfoByCS( csName, TRUE ) ;
+            _pCatAgent->lock_w () ;
+            _pCatAgent->clearBySpaceName( csName ) ;
+            _pCatAgent->release_w () ;
 
             PD_LOG( PDEVENT, "Drop remain collection space[%s]", csName ) ;
             rcTmp = SDB_DMS_CS_NOTEXIST ;
@@ -7883,7 +7957,9 @@ namespace engine
                                            curClUniqueID ) ;
          if ( SDB_OK == rcTmp )
          {
-            _pResource->removeCataInfo( clName ) ;
+            _pCatAgent->lock_w () ;
+            _pCatAgent->clear( clName ) ;
+            _pCatAgent->release_w () ;
 
             PD_LOG( PDEVENT, "Drop remain collection[%s]", clName ) ;
             rcTmp = SDB_DMS_NOTEXIST ;
@@ -7917,7 +7993,9 @@ namespace engine
          rcTmp = _pDmsCB->dropEmptyCollectionSpace( csName, _pEDUCB, _pDpsCB ) ;
          if ( SDB_OK == rcTmp )
          {
-            _pResource->removeCataInfoByCS( csName, TRUE ) ;
+            _pCatAgent->lock_w () ;
+            _pCatAgent->clearBySpaceName( csName ) ;
+            _pCatAgent->release_w () ;
 
             PD_LOG( PDEVENT, "Drop emtpy collection space[%s]", csName ) ;
             rc = SDB_DMS_CS_NOTEXIST ;

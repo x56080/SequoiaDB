@@ -110,7 +110,6 @@ namespace engine
          _clsReplicateSet              *_repl ;
          _clsBucket                    *_pReplBucket ;
          _clsReplayer                  _replayer ;
-         _clsRemoteOperator            _remoteOperator ;
          MsgRouteID                    _syncSrc ;
          MsgRouteID                    _lastSyncNode ;
          CLS_SESSION_STATUS            _status ;

@@ -225,10 +225,9 @@ namespace engine
          return _catlogSet.getVersion() ;
       }
 
-      INT32 fromBSONObj ( const BSONObj &boRecord,
-                          UINT32 parseGroupID = INVALID_GROUPID )
+      INT32 fromBSONObj ( const BSONObj &boRecord )
       {
-         INT32 rc = _catlogSet.updateCatSet ( boRecord, parseGroupID ) ;
+         INT32 rc = _catlogSet.updateCatSet ( boRecord, 0 ) ;
          if ( SDB_OK == rc )
          {
             try
@@ -397,7 +396,7 @@ namespace engine
    };
    typedef _CoordCataInfo CoordCataInfo ;
 
-   typedef std::shared_ptr< CoordCataInfo >              CoordCataInfoPtr ;
+   typedef boost::shared_ptr< CoordCataInfo >            CoordCataInfoPtr ;
    typedef ossPoolMap< std::string, CoordCataInfoPtr >   CoordCataMap ;
 }
 

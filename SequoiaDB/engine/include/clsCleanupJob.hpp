@@ -37,8 +37,6 @@
 #define CLS_CLEANUP_JOB_HPP_
 
 #include "rtnBackgroundJob.hpp"
-#include "clsRemoteOperator.hpp"
-#include "pmdDummySession.hpp"
 #include "dmsLobDef.hpp"
 
 using namespace bson ;
@@ -85,7 +83,6 @@ namespace engine
 
       protected:
          virtual void _onAttach() ;
-         virtual void _onDetach() ;
 
       private:
          INT32 _filterDel( const _dmsLobInfoOnPage &page,
@@ -103,8 +100,6 @@ namespace engine
 
          SDB_DPSCB            *_dpsCB ;
          SDB_DMSCB            *_dmsCB ;
-         pmdDummySession      _session ;
-         clsRemoteOperator    _remoteOperator ;
    };
    typedef class _clsCleanupJob clsCleanupJob ;
 

@@ -244,9 +244,9 @@ namespace engine
          if ( _eduCB->isAffectGIndex() )
          {
             // only primary need to insert remote index
-            _remoteOperator = _eduCB->getRemoteOperator() ;
-            PD_CHECK( NULL != _remoteOperator, SDB_SYS, error, PDERROR,
-                      "Failed to get remote operator" ) ;
+            rc = _eduCB->getOrCreateRemoteOperator( &_remoteOperator ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d",
+                         rc ) ;
          }
       }
 

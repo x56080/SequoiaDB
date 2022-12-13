@@ -49,7 +49,7 @@ namespace engine
    class _coordLobStream : public _rtnLobStream
    {
       public:
-         _coordLobStream( _clsRemoteResource *pResource, INT64 timeout ) ;
+         _coordLobStream( coordResource *pResource, INT64 timeout ) ;
          virtual ~_coordLobStream() ;
 
       public:
@@ -336,7 +336,7 @@ namespace engine
          /// error info
          ROUTE_RC_MAP      _nokRC ;
 
-         _clsRemoteResource  *_pResource ;
+         coordResource        *_pResource ;
          INT64                _timeout ;
          coordGroupSession    _groupSession ;
          coordGroupHandler    _groupHandler ;

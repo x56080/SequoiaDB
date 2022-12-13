@@ -1277,10 +1277,10 @@ namespace engine
       try
       {
          BSONObj dummyObj ;
-         BSONObj query = BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE <<
+         BSONObj query = BSON( FIELD_NAME_OPTIONS "." FIELD_NAME_ROLE <<
                                BSON( "$exists" << 0 ) ) ;
          BSONObj updator = BSON( "$set" <<
-            BSON( FIELD_NAME_OPTIONS"."FIELD_NAME_ROLE << VALUE_NAME_ADMIN ) ) ;
+            BSON( FIELD_NAME_OPTIONS "." FIELD_NAME_ROLE << VALUE_NAME_ADMIN ) ) ;
          rc = rtnUpdate( AUTH_USR_COLLECTION, query, updator,
                          dummyObj, 0, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",

@@ -40,7 +40,6 @@
 #include "pmdEDU.hpp"
 #include "coordGroupHandle.hpp"
 #include "coordRemoteHandle.hpp"
-#include "clsRemoteResource.hpp"
 #include "rtnContextBuff.hpp"
 #include "utilResult.hpp"
 
@@ -264,7 +263,7 @@ namespace engine
          _coordOperator() ;
          virtual ~_coordOperator() ;
 
-         INT32                init( clsRemoteResource *pResource,
+         INT32                init( coordResource *pResource,
                                     _pmdEDUCB *cb,
                                     INT64 timeout = 0 ) ;
 
@@ -369,7 +368,7 @@ namespace engine
          BOOLEAN              _isReadOnly ;
 
       protected:
-         clsRemoteResource         *_pResource ;
+         coordResource              *_pResource ;
          coordGroupSession          _groupSession ;
          coordGroupHandler          _groupHandler ;
          coordRemoteHandler         _remoteHandler ;

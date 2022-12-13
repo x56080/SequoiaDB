@@ -238,7 +238,7 @@ namespace engine
       clear() ;
    }
 
-   INT32 _coordSequenceAgent::init( _clsRemoteResource* resource )
+   INT32 _coordSequenceAgent::init( _coordResource* resource )
    {
       _resource = resource ;
       return SDB_OK ;

@@ -41,7 +41,7 @@
 
 namespace engine
 {
-   class _clsRemoteResource ;
+   class _coordResource ;
 
    class _clsResourceContainer : public SDBObject
    {
@@ -56,18 +56,18 @@ namespace engine
       }
 
    public:
-      void setResource( _clsRemoteResource *pResource )
+      void setResource( _coordResource *pResource )
       {
          _pResource = pResource ;
       }
 
-      _clsRemoteResource* getResource()
+      _coordResource* getResource()
       {
          return _pResource ;
       }
 
    private:
-      _clsRemoteResource *_pResource ;
+      _coordResource *_pResource ;
    };
 
    typedef _clsResourceContainer clsResourceContainer ;

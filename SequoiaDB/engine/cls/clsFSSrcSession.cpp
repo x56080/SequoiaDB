@@ -2654,7 +2654,7 @@ namespace engine
    :_clsDataSrcBaseSession( sessionID, agent ), _filterMB ( 1024 ),
     _lsnSearchMB( 1024 )
    {
-      _pResource = sdbGetShardCB()->getResource() ;
+      _pCatAgent = sdbGetShardCB()->getCataAgent() ;
       _pFreezingWindow = sdbGetShardCB()->getFreezingWindow() ;
       _cleanupJobID = PMD_INVALID_EDUID ;
 
@@ -2673,7 +2673,7 @@ namespace engine
 
    _clsSplitSrcSession::~_clsSplitSrcSession()
    {
-      _pResource = NULL ;
+      _pCatAgent = NULL ;
       _pFreezingWindow = NULL ;
    }
 
@@ -2911,6 +2911,7 @@ namespace engine
       //get sharding key
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSPLSS__ONFSMETA );
+      _clsCatalogSet *catSet = NULL ;
       UINT32 count = 0 ;
       UINT32 groupID = sdbGetShardCB()->nodeID().columns.groupID ;
       BSONObj upBound ;
@@ -2930,19 +2931,27 @@ namespace engine
       //update the newest catalog,and get sharding key
       while ( count < CLS_SPLIT_UPCATELOG_RETRY_TIME )
       {
-         CoordCataInfoPtr cataPtr ;
-
          ++count ;
 
-         rc = _pResource->updateCataInfo( clFullName, cataPtr, _pEDUCB ) ;
+         rc = sdbGetShardCB()->syncUpdateCatalog( clFullName, OSS_ONE_SEC ) ;
          if ( SDB_OK == rc )
          {
-            clsCatalogSet *catSet = cataPtr->getCatalogSet() ;
-            _shardingKey = catSet->OwnedShardingKey() ;
-            _hashShard   = catSet->isHashSharding() ;
-            _partitionBit = catSet->getPartitionBit() ;
-            _internalV = catSet->getInternalV() ;
-            catSet->getGroupUpBound( groupID , upBound ) ;
+            _pCatAgent->lock_r() ;
+            catSet = _pCatAgent->collectionSet( clFullName ) ;
+            if ( catSet )
+            {
+               _shardingKey = catSet->OwnedShardingKey() ;
+               _hashShard   = catSet->isHashSharding() ;
+               _partitionBit = catSet->getPartitionBit() ;
+               _internalV = catSet->getInternalV() ;
+               catSet->getGroupUpBound( groupID , upBound ) ;
+            }
+            else
+            {
+               rc = SDB_CLS_NO_CATALOG_INFO ;
+            }
+            _pCatAgent->release_r() ;
+            break ;
          }
       }
 
@@ -3033,23 +3042,28 @@ namespace engine
 
          CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
          BOOLEAN isSubCL = FALSE ;
-         CoordCataInfoPtr cataPtr ;
+         clsCatalogSet* pCatSet = NULL ;
 
-         rc = _pResource->getOrUpdateCataInfo( _curCollecitonName.c_str(),
-                                               cataPtr, _pEDUCB ) ;
-         if ( SDB_OK == rc )
+         rc = sdbGetShardCB()->getAndLockCataSet( _curCollecitonName.c_str(),
+                                                  &pCatSet ) ;
+         if ( SDB_OK == rc && pCatSet )
          {
-            clsCatalogSet *pCatSet = cataPtr->getCatalogSet() ;
-            if ( pCatSet->isSubCL() )
+            if ( !pCatSet->getMainCLName().empty() )
             {
                ossStrncpy( mainCLName, pCatSet->getMainCLName().c_str(),
                            DMS_COLLECTION_FULL_NAME_SZ ) ;
                isSubCL = TRUE ;
             }
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
          }
-         else if ( SDB_DMS_NOTEXIST != rc &&
-                   SDB_DMS_CS_NOTEXIST != rc )
+         else if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
          {
+            // the collection has been dropped
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
+         }
+         else
+         {
+            sdbGetShardCB()->unlockCataSet( pCatSet ) ;
             PD_LOG( PDWARNING, "Session[%s]: Failed to get collection[%s]'s "
                     "catalog information, rc: %d", sessionName(),
                     _curCollecitonName.c_str(), rc ) ;
@@ -3334,7 +3348,6 @@ namespace engine
    {
       //need to update catalog, and check the rangKeyObj is not in my self
       PD_TRACE_ENTRY ( SDB__CLSSPLSS_HNDEND2 );
-      CoordCataInfoPtr cataPtr ;
       _clsCatalogSet *pSet = NULL ;
       shardCB *pShard = sdbGetShardCB() ;
       UINT32 groupID = pShard->nodeID().columns.groupID ;
@@ -3358,24 +3371,29 @@ namespace engine
          goto done ;
       }
 
-      rc = _pResource->updateCataInfo( _curCollecitonName.c_str(), cataPtr,
-                                       _pEDUCB ) ;
+      rc = pShard->syncUpdateCatalog( _curCollecitonName.c_str(),
+                                      OSS_ONE_SEC ) ;
       if ( SDB_OK != rc && SDB_DMS_NOTEXIST != rc )
       {
          goto done ;
       }
-      pSet = cataPtr->getCatalogSet() ;
-      mainCLName = pSet->getMainCLName() ;
-      _collectionW = pSet->getW() ;
-      if ( !pSet->isKeyInGroup( _rangeKeyObj, groupID ) )
+
+      _pCatAgent->lock_r() ;        //lock
+      pSet = _pCatAgent->collectionSet( _curCollecitonName.c_str() ) ;
+      if ( pSet )
+      {
+         mainCLName = pSet->getMainCLName() ;
+         _collectionW = pSet->getW() ;
+      }
+      if ( !pSet || !pSet->isKeyInGroup( _rangeKeyObj, groupID ) )
       {
          hasSplit = TRUE ;
       }
+      _pCatAgent->release_r() ;     //unlock
       if ( !mainCLName.empty() )
       {
-         CoordCataInfoPtr mainCataPtr ;
-         INT32 rcTmp = _pResource->updateCataInfo( mainCLName.c_str(),
-                                                   mainCataPtr, _pEDUCB ) ;
+         INT32 rcTmp = pShard->syncUpdateCatalog( mainCLName.c_str(),
+                                                  OSS_ONE_SEC ) ;
          if ( rcTmp )
          {
             PD_LOG( PDWARNING, "Session[%s]: update main-collection(%s) "
@@ -3698,9 +3716,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSPLSS__ONATH );
       _clsDataSrcBaseSession::_onAttach() ;
 
-      SDB_ASSERT( NULL != _pEDUCB, "edu CB should be valid" ) ;
-      _remoteOperator.attach( _pEDUCB ) ;
-
       // add empty split task to start timmer
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       UINT32 locationID = taskMgr->getLocationID() ;
@@ -3753,8 +3768,6 @@ namespace engine
          ossSleep( OSS_ONE_SEC ) ;
       }
       _cleanupJobID = PMD_INVALID_EDUID ;
-
-      _remoteOperator.detach() ;
 
       PD_TRACE_EXIT ( SDB__CLSSPLSS__ONDTH );
    }

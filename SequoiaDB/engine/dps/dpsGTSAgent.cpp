@@ -329,7 +329,7 @@ namespace engine
          if ( 0 == timeout % DPS_LOWTRAN_WAIT_SEC )
          {
             PD_LOG( PDDEBUG, "%s: start to update global lowTran", name() ) ;
-            rc = _gtsAgent->updateGlobLowTran( cb ) ;
+            rc = _gtsAgent->updateGlobLowTran() ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "%s: Failed to update global lowTran, rc: %d",

@@ -233,9 +233,6 @@ namespace engine
 
    void _clsReplDstSession::_onAttach()
    {
-      SDB_ASSERT( NULL != _pEDUCB, "edu CB should be valid" ) ;
-      _remoteOperator.attach( _pEDUCB ) ;
-
       // if start form crash, should full sync
       if ( !pmdGetStartup().isOK() )
       {
@@ -287,8 +284,6 @@ namespace engine
          pmdGetKRCB()->getClsCB()->startInnerSession( CLS_REPL,
                                                       CLS_TID_REPL_SYC ) ;
       }
-
-      _remoteOperator.detach() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSTREPSN_HNDSYNCRES, "_clsReplDstSession::handleSyncRes" )

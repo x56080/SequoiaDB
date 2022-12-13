@@ -175,12 +175,12 @@ namespace engine
 
          ossMillisecondsToString( header->_createTime, strTime ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Create Timestamp : %s (%llu)"OSS_NEWLINE,
+                              " Create Timestamp : %s (%llu)" OSS_NEWLINE,
                               strTime, header->_createTime ) ;
 
          ossMillisecondsToString( header->_updateTime, strTime ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Update Timestamp : %s (%llu)"OSS_NEWLINE,
+                              " Update Timestamp : %s (%llu)" OSS_NEWLINE,
                               strTime, header->_updateTime ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -530,7 +530,7 @@ namespace engine
          ossMillisecondsToString( mb->_createTime, strCreateTime ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Create Timestamp  : %s (%llu)"OSS_NEWLINE,
+                              " Create Timestamp  : %s (%llu)" OSS_NEWLINE,
                               strCreateTime, mb->_createTime ) ;
 
          // update timestamp
@@ -538,7 +538,7 @@ namespace engine
          ossMillisecondsToString( mb->_updateTime, strUpdateTime ) ;
 
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " Update Timestamp  : %s (%llu)"OSS_NEWLINE,
+                              " Update Timestamp  : %s (%llu)" OSS_NEWLINE,
                               strUpdateTime, mb->_updateTime ) ;
 
          // Delete list

@@ -37,7 +37,6 @@
 *******************************************************************************/
 
 #include "clsSrcSelector.hpp"
-#include "clsResource.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
@@ -51,7 +50,7 @@ namespace engine
     _noRes( 0 )
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL__CLSSRCSL ) ;
-      _pResource = sdbGetShardCB()->getResource() ;
+      _nodeMgrAgent = sdbGetShardCB()->getNodeMgrAgent() ;
       _syncmgr = sdbGetReplCB()->getSyncManager() ;
       _src.value = MSG_INVALID_ROUTEID ;
       PD_TRACE_EXIT ( SDB__CLSSRCSL__CLSSRCSL ) ;
@@ -61,7 +60,7 @@ namespace engine
    {
       _src.value = MSG_INVALID_ROUTEID ;
       _syncmgr = NULL ;
-      _pResource = NULL ;
+      _nodeMgrAgent = NULL ;
       _blacklist.clear() ;
    }
 
@@ -131,7 +130,6 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSRCSL_SLPMY, "_clsSrcSelector::selectPrimary" )
    const MsgRouteID &_clsSrcSelector::selectPrimary ( UINT32 groupID,
-                                                      _pmdEDUCB *cb,
                                          MSG_ROUTE_SERVICE_TYPE type )
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL_SLPMY ) ;
@@ -145,14 +143,20 @@ namespace engine
          goto done ;
       }
       {
-         CoordGroupInfoPtr groupPtr ;
          _noRes  = 0 ;
+
+         INT32 rc = SDB_OK ;
+
          //update group info
-         if ( SDB_OK == _pResource->updateGroupInfo( groupID, groupPtr, cb ) &&
-              NULL != groupPtr.get() )
+         rc = sdbGetShardCB()->syncUpdateGroupInfo( groupID ) ;
+         if ( SDB_OK != rc )
          {
-            _src = groupPtr->primary( type ) ;
+            goto done ;
          }
+
+         _nodeMgrAgent->lock_r () ;
+         _nodeMgrAgent->groupPrimaryNode( groupID, _src, type ) ;
+         _nodeMgrAgent->release_r () ;
       }
 
    done:

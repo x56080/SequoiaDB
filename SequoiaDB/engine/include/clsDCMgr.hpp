@@ -40,7 +40,6 @@
 #include "pmdOptionsMgr.hpp"
 #include "netRouteAgent.hpp"
 #include "ossLatch.hpp"
-#include "clsResource.hpp"
 #include "clsCatalogAgent.hpp"
 #include "utilRecycleBinConf.hpp"
 #include "sdbInterface.hpp"
@@ -189,14 +188,15 @@ namespace engine
          _clsDCMgr() ;
          ~_clsDCMgr() ;
 
-         INT32          initialize( clsResource *pResource ) ;
+         INT32          initialize() ;
 
          INT32          setImageCatAddr( const string &catAddr ) ;
          string         getImageCatAddr() ;
 
          vector< pmdAddrPair > getImageCatVec() ;
 
-         clsResource*   getImageResource() ;
+         catAgent*      getImageCataAgent () ;
+         nodeMgrAgent*  getImageNodeMgrAgent () ;
          clsDCBaseInfo* getDCBaseInfo() { return &_baseInfo ; }
          clsDCBaseInfo* getImageDCBaseInfo( pmdEDUCB *cb,
                                             BOOLEAN update = FALSE ) ;
@@ -237,6 +237,22 @@ namespace engine
          */
          INT32 updateImageDCBaseInfo( pmdEDUCB *cb,
                                       INT64 millsec = DC_UPDATE_TIMEOUT ) ;
+
+         INT32 getAndLockImageCataSet( const CHAR *name,
+                                       pmdEDUCB *cb,
+                                       clsCatalogSet **ppSet,
+                                       BOOLEAN noWithUpdate = TRUE,
+                                       INT64 waitMillSec = DC_UPDATE_TIMEOUT,
+                                       BOOLEAN *pUpdated = NULL ) ;
+         INT32 unlockImageCataSet( clsCatalogSet *catSet ) ;
+
+         INT32 getAndLockImageGroupItem( UINT32 id,
+                                         pmdEDUCB *cb,
+                                         clsGroupItem **ppItem,
+                                         BOOLEAN noWithUpdate = TRUE,
+                                         INT64 waitMillSec = DC_UPDATE_TIMEOUT,
+                                         BOOLEAN *pUpdated = NULL ) ;
+         INT32 unlockImageGroupItem( clsGroupItem *item ) ;
 
       public:
 
@@ -325,7 +341,8 @@ namespace engine
                                      INT64 millsec = DC_UPDATE_TIMEOUT ) ;
 
       private:
-         clsResource                   _imageResource ;
+         _clsCatalogAgent              *_pCatAgent ;
+         _clsNodeMgrAgent              *_pNodeMgrAgent ;
          BOOLEAN                       _init ;
 
          clsDCBaseInfo                 _baseInfo ;       // this dc base info

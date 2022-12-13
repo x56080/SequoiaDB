@@ -90,7 +90,7 @@ namespace engine
       return type ;
    }
 
-   _coordCacheInvalidator::_coordCacheInvalidator( clsRemoteResource *resource )
+   _coordCacheInvalidator::_coordCacheInvalidator( coordResource *resource )
    : _resource( resource )
    {
    }
@@ -327,7 +327,16 @@ namespace engine
       else if ( NULL == ossStrchr( name, '.' ) )
       {
          // Invalidate cache of collections related to the dropped cs.
-         _resource->removeCataInfoByCS( name, TRUE ) ;
+         vector< string > subCLSet ;
+         _resource->removeCataInfoByCS( name, &subCLSet ) ;
+
+         /// clear relate sub collection's catalog info
+         vector< string >::iterator it = subCLSet.begin() ;
+         while( it != subCLSet.end() )
+         {
+            _resource->removeCataInfo( (*it).c_str() ) ;
+            ++it ;
+         }
       }
       else
       {

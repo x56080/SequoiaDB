@@ -100,15 +100,6 @@ namespace engine
 
    void _clsCleanupJob::_onAttach()
    {
-      SDB_ASSERT( NULL != _pEDUCB, "edu CB should be valid" ) ;
-      _session.attachCB( _pEDUCB ) ;
-      _remoteOperator.attach( _pEDUCB ) ;
-   }
-
-   void _clsCleanupJob::_onDetach()
-   {
-      _remoteOperator.detach() ;
-      _session.detachCB() ;
    }
 
    CLS_CLEANUP_TYPE _clsCleanupJob::_cleanupType () const
@@ -169,7 +160,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCLNJOB_DOIT );
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      clsResource *pResource = sdbGetShardCB()->getResource() ;
+      shardCB *pShardCB = sdbGetShardCB() ;
+      catAgent *catAgent = pShardCB->getCataAgent() ;
+      _clsCatalogSet* catSet = NULL ;
       INT32 w = 1 ;
       BOOLEAN dropCollection = FALSE ;
       BOOLEAN needClean = TRUE ;
@@ -182,17 +175,14 @@ namespace engine
 
       while ( TRUE )
       {
-         CoordCataInfoPtr cataPtr ;
-         clsCatalogSet *catSet = NULL ;
-
          if ( eduCB()->isInterrupted() )
          {
             rc = SDB_APP_INTERRUPT ;
             goto error ;
          }
 
-         rc = pResource->updateCataInfo( _clFullName.c_str(), cataPtr, _pEDUCB ) ;
-         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+         rc = pShardCB->syncUpdateCatalog( _clFullName.c_str(), OSS_ONE_SEC ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
          {
             dropCollection = TRUE ;
             PD_LOG( PDDEBUG, "%s: Could not find collection [%s] in catalog, "
@@ -206,7 +196,8 @@ namespace engine
             continue ;
          }
 
-         catSet = cataPtr->getCatalogSet() ;
+         catAgent->lock_r() ;
+         catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
          if ( catSet )
          {
             if ( UTIL_UNIQUEID_NULL == _clUniqueID ||
@@ -242,11 +233,13 @@ namespace engine
          }
          else
          {
+            catAgent->release_r() ;
             PD_LOG( PDDEBUG, "%s: no catalog cache for collection [%s] found, "
                     "retry", name(), _clFullName.c_str() ) ;
             continue ;
          }
 
+         catAgent->release_r() ;
          break ;
       }
 
@@ -320,37 +313,36 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSCLNJOB__FILTERDEL ) ;
-      clsResource *pResource = sdbGetShardCB()->getResource() ;
-      CoordCataInfoPtr cataPtr ;
+      catAgent *catAgent = sdbGetShardCB()->getCataAgent() ;
       _clsCatalogSet *catSet = NULL ;
-      UINT32 groupID = pResource->getNodeID().columns.groupID ;
+      UINT32 groupID = sdbGetShardCB()->nodeID().columns.groupID ;
       UINT32 belongTo = 0 ;
+      BOOLEAN need2ReleaseR = FALSE ;
 
-      while ( TRUE )
+   retry:
+      catAgent->lock_r() ;
+      need2ReleaseR = TRUE ;
+      catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
+      if ( NULL == catSet )
       {
-         if ( eduCB()->isInterrupted() )
+         catAgent->release_r() ;
+         need2ReleaseR = FALSE ;
+         rc = sdbGetShardCB()->syncUpdateCatalog( _clFullName.c_str(),
+                                                  OSS_ONE_SEC ) ;
+         if ( SDB_OK == rc )
          {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
+            goto retry ;
          }
-
-         rc = pResource->getOrUpdateCataInfo( _clFullName.c_str(),
-                                              cataPtr, eduCB() ) ;
-         if ( SDB_OK != rc )
+         else
          {
             if ( SDB_DMS_NOTEXIST != rc )
             {
-               PD_LOG( PDERROR, "Failed to update catalog info of %s, rc: %d",
-                       _clFullName.c_str(), rc ) ;
-               continue ;
+               PD_LOG( PDERROR, "Failed to update catalog info of %s",
+                       _clFullName.c_str() ) ;
             }
             goto error ;
          }
-         break ;
       }
-
-      catSet = cataPtr->getCatalogSet() ;
-      SDB_ASSERT( NULL != catSet, "catalog set should be valid" ) ;
 
       /// collection's unique id changed
       if ( UTIL_UNIQUEID_NULL != _clUniqueID &&
@@ -393,6 +385,10 @@ namespace engine
          need2Remove = FALSE ;
       }
    done:
+      if ( need2ReleaseR )
+      {
+         catAgent->release_r() ;
+      }
       PD_TRACE_EXITRC( SDB__CLSCLNJOB__FILTERDEL, rc ) ;
       return rc ;
    error:
@@ -632,47 +628,24 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCLNJOB__FLTDEL );
-      clsResource *pResource = sdbGetShardCB()->getResource() ;
+      catAgent *catAgent = sdbGetShardCB()->getCataAgent() ;
       INT32 indexPos = 0 ;
       const CHAR *pBuffIndex = buff + indexPos ;
       BOOLEAN needDel = FALSE ;
+      _clsCatalogSet *catSet = NULL ;
       INT32 w = 1 ;
 
       try
       {
          while ( indexPos < buffSize )
          {
-            CoordCataInfoPtr cataPtr ;
-            clsCatalogSet *catSet = NULL ;
-
             BSONObj recordObj ( pBuffIndex ) ;
             needDel = FALSE ;
 
-            while ( TRUE )
-            {
-               if ( eduCB()->isInterrupted() )
-               {
-                  rc = SDB_APP_INTERRUPT ;
-                  goto error ;
-               }
+         retry:
+            catAgent->lock_r() ;
+            catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
 
-               rc = pResource->getOrUpdateCataInfo( _clFullName.c_str(),
-                                                    cataPtr, eduCB() ) ;
-               if ( SDB_OK != rc )
-               {
-                  if ( SDB_DMS_NOTEXIST != rc )
-                  {
-                     PD_LOG( PDERROR, "Failed to update catalog info of %s, "
-                             "rc: %d", _clFullName.c_str(), rc ) ;
-                     continue ;
-                  }
-                  goto error ;
-               }
-               break ;
-            }
-
-            catSet = cataPtr->getCatalogSet() ;
-            SDB_ASSERT( NULL != catSet, "catalog set should be valid" ) ;
             if ( catSet )
             {
                /// collection's unique id changed
@@ -736,6 +709,37 @@ namespace engine
                      }
                   }
                }
+            }
+
+            catAgent->release_r() ;
+
+            // not found collection catalog
+            if ( !catSet )
+            {
+               while ( TRUE )
+               {
+                  if ( eduCB()->isInterrupted() )
+                  {
+                     rc = SDB_APP_INTERRUPT ;
+                     goto error ;
+                  }
+
+                  rc = sdbGetShardCB()->syncUpdateCatalog( _clFullName.c_str(),
+                                                           OSS_ONE_SEC ) ;
+                  if ( SDB_OK == rc )
+                  {
+                     goto retry ;
+                  }
+                  else if ( SDB_DMS_NOTEXIST == rc )
+                  {
+                     break ;
+                  }
+               }
+
+               PD_LOG ( PDWARNING, "Job[%s] filter del not found collection[%s]"
+                        " catalog info", name(), _clFullName.c_str() ) ;
+               rc = SDB_DMS_NOTEXIST ;
+               break ;
             }
 
             // delete record

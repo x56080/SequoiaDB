@@ -40,7 +40,6 @@
 #include "netRouteAgent.hpp"
 #include "ossEvent.hpp"
 #include "ossLatch.hpp"
-#include "clsResource.hpp"
 #include "clsCatalogAgent.hpp"
 #include "clsGTSAgent.hpp"
 #include "sdbInterface.hpp"
@@ -130,7 +129,7 @@ namespace engine
       DECLARE_OBJ_MSG_MAP()
 
       public:
-         _clsShardMgr( _netRouteAgent *rtAgent, clsResource *pResource );
+         _clsShardMgr( _netRouteAgent *rtAgent );
          virtual ~_clsShardMgr();
 
          INT32    initialize() ;
@@ -150,16 +149,31 @@ namespace engine
                               const std::string& service ) ;
          void setNodeID ( const MsgRouteID& nodeID ) ;
 
-         clsResource *getResource() ;
+         catAgent* getCataAgent () ;
+         nodeMgrAgent* getNodeMgrAgent () ;
          clsFreezingWindow *getFreezingWindow() ;
          clsDCMgr* getDCMgr() ;
          clsGTSAgent* getGTSAgent() ;
 
+         INT32 getAndLockCataSet( const CHAR *name,
+                                  clsCatalogSet **ppSet,
+                                  BOOLEAN noWithUpdate = TRUE,
+                                  INT64 waitMillSec = CLS_SHARD_TIMEOUT,
+                                  BOOLEAN *pUpdated = NULL ) ;
+         INT32 unlockCataSet( clsCatalogSet *catSet ) ;
+
+         INT32 getAndLockGroupItem( UINT32 id, clsGroupItem **ppItem,
+                                    BOOLEAN noWithUpdate = TRUE,
+                                    INT64 waitMillSec = CLS_SHARD_TIMEOUT,
+                                    BOOLEAN *pUpdated = NULL ) ;
+         INT32 unlockGroupItem( clsGroupItem *item ) ;
+
          INT32 getNodeInfo( const MsgRouteID &routeID,
-                            pmdEDUCB *cb,
                             std::string &hostName,
                             std::string &serviceName,
-                            INT64 waitMillSec = CLS_SHARD_TIMEOUT ) ;
+                            BOOLEAN noWithUpdate = TRUE,
+                            INT64 waitMillSec = CLS_SHARD_TIMEOUT,
+                            BOOLEAN *updated = NULL ) ;
 
          INT32 rGetCSInfo( const CHAR *csName,
                            utilCSUniqueID &csUniqueID,
@@ -173,7 +187,7 @@ namespace engine
                                 utilRecycleID recycleID,
                                 utilRecycleItem &recycleItem ) ;
 
-         INT32 updateDCBaseInfo( pmdEDUCB *cb ) ;
+         INT32 updateDCBaseInfo() ;
 
       public:
          INT32  sendToCatlog ( MsgHeader * msg,
@@ -181,14 +195,12 @@ namespace engine
                                INT64 upCataMillsec = 0,
                                BOOLEAN canUpCataGrp = TRUE ) ;
          INT32  syncSend( MsgHeader * msg, UINT32 groupID, BOOLEAN primary,
-                          pmdEDUCB *cb,
                           MsgHeader **ppRecvMsg,
                           INT64 millisec = CLS_SHARD_TIMEOUT,
                           const CHAR *buffer = NULL,
                           UINT32 bufferSize = 0 ) ;
          INT32  syncSend( MsgHeader *message,
                           const MsgRouteID &routeID,
-                          pmdEDUCB *cb,
                           MsgHeader **recvMessage,
                           INT64 millisec = CLS_SHARD_TIMEOUT,
                           const CHAR *buffer = NULL,
@@ -198,6 +210,14 @@ namespace engine
          INT32  updatePrimaryByReply( MsgHeader *pMsg,
                                       UINT32 groupID = CATALOG_GROUPID ) ;
 
+         INT32 syncUpdateCatalog ( const CHAR *pCollectionName,
+                                   INT64 millsec = CLS_SHARD_TIMEOUT ) ;
+         INT32 syncUpdateCatalog ( utilCLUniqueID clUniqueID,
+                                   const CHAR *pCollectionName,
+                                   INT64 millsec = CLS_SHARD_TIMEOUT ) ;
+
+         INT32 syncUpdateGroupInfo ( UINT32 groupID,
+                                     INT64 millsec = CLS_SHARD_TIMEOUT ) ;
          NodeID nodeID () const ;
          INT32 clearAllData () ;
 
@@ -214,6 +234,13 @@ namespace engine
                                   UINT64 requestID,
                                   NET_HANDLE *pHandle = NULL,
                                   INT64 millsec = 0 ) ;
+
+         INT32 _sendCatalogReq ( const CHAR *pCollectionName,
+                                 utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
+                                 UINT64 requestID = 0,
+                                 NET_HANDLE *pHandle = NULL,
+                                 INT64 millsec = 0
+                               ) ;
 
          INT32 _sendGroupReq ( UINT32 groupID, UINT64 requestID = 0,
                                NET_HANDLE *pHandle = NULL,
@@ -262,11 +289,12 @@ namespace engine
          INT32 _updateRemoteEndpointInfo( NET_HANDLE handle,
                                           const BSONObj &regInfo ) ;
          INT32 _genAuthReplyInfo( BSONObj &replyInfo ) ;
-         BSONObj _buildCataGroupInfo( const CoordGroupInfoPtr &cataGroupPtr ) ;
+         BSONObj _buildCataGroupInfo() ;
 
       private:
          _netRouteAgent                *_pNetRtAgent ;
-         _clsResource                  *_pResource ;
+         _clsCatalogAgent              *_pCatAgent ;
+         _clsNodeMgrAgent              *_pNodeMgrAgent ;
          clsFreezingWindow             *_pFreezingWindow ;
          clsDCMgr                      *_pDCMgr ;
          clsGTSAgent                   *_pGTSAgent ;
@@ -277,6 +305,7 @@ namespace engine
          MAP_CS_EVENT                  _mapSyncCSEvent ;
          UINT64                        _requestID ;
 
+         clsGroupItem                  _cataGrpItem ;
          NET_ROUTE_MAP                 _mapNodes ;
 
          UINT32                        _catVerion ;

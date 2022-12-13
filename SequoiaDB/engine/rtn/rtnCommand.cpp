@@ -5527,7 +5527,7 @@ error:
          recyBinMgr->setConfInvalid() ;
 
          // update DC from remote
-         rc = shardCB->updateDCBaseInfo( cb ) ;
+         rc = shardCB->updateDCBaseInfo() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update DC info from CATALOG, "
                       "rc: %d", rc ) ;
 

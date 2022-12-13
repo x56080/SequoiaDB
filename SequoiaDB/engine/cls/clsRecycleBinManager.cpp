@@ -34,7 +34,6 @@
 #include "clsRecycleBinManager.hpp"
 #include "rtnLocalTask.hpp"
 #include "clsUniqueIDCheckJob.hpp"
-#include "pmdDummySession.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "../bson/bson.hpp"
@@ -1798,10 +1797,9 @@ namespace engine
       if ( !_recycleBinMgr->isConfValid() )
       {
          shardCB *shardCB = sdbGetShardCB() ;
-         pmdEDUCB *cb = static_cast< pmdEDUCB * >( pExe ) ;
 
          // update DC from remote
-         rc = shardCB->updateDCBaseInfo( cb ) ;
+         rc = shardCB->updateDCBaseInfo() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update DC info from CATALOG, "
                       "rc: %d", rc ) ;
 

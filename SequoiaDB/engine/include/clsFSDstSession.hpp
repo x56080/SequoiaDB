@@ -55,8 +55,6 @@ using namespace bson ;
 
 namespace engine
 {
-
-   class _clsResource ;
    class _clsSyncManager ;
    class _clsShardMgr ;
 
@@ -364,8 +362,6 @@ namespace engine
          _clsSplitTask           *_pTask ;
          BSONObj                 _taskObj ;
          _clsShardMgr            *_pShardMgr ;
-         _clsResource            *_pResource ;
-         _clsRemoteOperator      _remoteOperator ;
          INT32                   _step ;
          INT32                   _needSyncData ;
          BOOLEAN                 _regTask ;

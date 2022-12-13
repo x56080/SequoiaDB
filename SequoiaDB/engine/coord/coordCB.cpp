@@ -157,12 +157,6 @@ namespace engine
       rc = _resource.init( _pAgent, optCB, &_dsMgr ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
-      rc = _gtsAgent.init( &_resource ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize GTS agent, rc: %d", rc ) ;
-
-      // register to transCB
-      sdbGetTransCB()->registerGTSAgent( &_gtsAgent ) ;
-
       ossStrncpy( _shdServiceName, optCB->shardService(),
                   OSS_MAX_SERVICENAME ) ;
 
@@ -313,7 +307,6 @@ namespace engine
    {
       _remoteSessionMgr.fini() ;
       _resource.fini() ;
-      _gtsAgent.fini() ;
       _dsMgr.fini() ;
 
       if ( _pAgent )
@@ -667,8 +660,6 @@ retry :
       routeID.columns.serviceID = _shardServiceID ;
       _pAgent->setLocalID ( routeID ) ;
 
-      _resource.setNodeID( _selfNodeID ) ;
-
       // set global id
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
@@ -697,15 +688,8 @@ retry :
       }
       }
 
-      {
-         EDUID eduID = 0 ;
-
-         // start GTS lowTran job
-         rc = dpsStartGTSLowTranJob( static_cast< dpsGTSAgent * >( &_gtsAgent ),
-                                     &eduID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to start GTS lowTran job, rc: %d",
-                      rc ) ;
-      }
+      rc = _resource.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active resource, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__COORDCB__ONCATREGRES, rc );

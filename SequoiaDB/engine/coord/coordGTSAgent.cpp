@@ -64,7 +64,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_INIT, "_coordGTSAgent::init" )
-   INT32 _coordGTSAgent::init( clsRemoteResource *resource )
+   INT32 _coordGTSAgent::init( _coordResource *resource )
    {
       INT32 rc = SDB_OK ;
 
@@ -88,7 +88,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_UPDATEGLOBLOWTRAN, "_coordGTSAgent::updateGlobLowTran" )
-   INT32 _coordGTSAgent::updateGlobLowTran( pmdEDUCB *cb )
+   INT32 _coordGTSAgent::updateGlobLowTran()
    {
       INT32 rc = SDB_OK ;
 

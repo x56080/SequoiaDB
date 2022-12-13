@@ -687,6 +687,8 @@ namespace engine
    _clsDCMgr::_clsDCMgr ()
    {
       _requestID = 0 ;
+      _pCatAgent = NULL ;
+      _pNodeMgrAgent = NULL ;
       _init = FALSE ;
 
       _peerCatPrimary = -1 ;
@@ -694,9 +696,11 @@ namespace engine
 
    _clsDCMgr::~_clsDCMgr()
    {
+      SAFE_DELETE ( _pCatAgent ) ;
+      SAFE_DELETE ( _pNodeMgrAgent ) ;
    }
 
-   INT32 _clsDCMgr::initialize( clsResource *pResource )
+   INT32 _clsDCMgr::initialize()
    {
       INT32 rc = SDB_OK ;
 
@@ -706,14 +710,13 @@ namespace engine
          goto done ;
       }
 
-      rc = _imageResource.init() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize resource, rc: %d",
-                   rc ) ;
+      SAFE_NEW_GOTO_ERROR( _pCatAgent, _clsCatalogAgent ) ;
+      SAFE_NEW_GOTO_ERROR( _pNodeMgrAgent, _clsNodeMgrAgent ) ;
+
       _init = TRUE ;
 
    done:
       return rc ;
-
    error:
       goto done ;
    }
@@ -966,11 +969,13 @@ namespace engine
          goto error ;
       }
 
-      pCatItem = _imageResource.getCataGroupInfo().get() ;
+      _pNodeMgrAgent->lock_r() ;
+      pCatItem = _pNodeMgrAgent->groupItem( CATALOG_GROUPID ) ;
       if ( !pCatItem )
       {
          PD_LOG( PDERROR, "Not found image catalog group" ) ;
          rc = SDB_CLS_GRP_NOT_EXIST ;
+         _pNodeMgrAgent->release_r() ;
          goto error ;
       }
 
@@ -985,6 +990,8 @@ namespace engine
          vecCatalog.push_back( pmdAddrPair( hostname, svcname ) ) ;
       }
       tmpPrimary = (INT32)pCatItem->getPrimaryPos() ;
+      // release lock
+      _pNodeMgrAgent->release_r() ;
 
       _peerCatLatch.get() ;
       _vecCatlog.clear() ;
@@ -1060,7 +1067,9 @@ namespace engine
               SDB_DMS_EOC == flags )
          {
             // in that case, let's clear local group cache information
-            _imageResource.invalidateGroupInfo( groupID ) ;
+            _pNodeMgrAgent->lock_w() ;
+            _pNodeMgrAgent->clearGroup( groupID ) ;
+            _pNodeMgrAgent->release_w() ;
          }
          else
          {
@@ -1072,22 +1081,18 @@ namespace engine
       }
       else
       {
-         try
-         {
-            const CHAR* objdata = MSG_GET_INNER_REPLY_DATA( pRes ) ;
-            BSONObj cataGroupObj( objdata ) ;
-            rc = _imageResource.addGroupInfo( cataGroupObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to update group[groupID:%u], "
-                         "rc: %d", groupID, rc ) ;
-            PD_LOG( PDEVENT, "Update group[groupID:%u]", groupID ) ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to parse group object, "
-                    "occurred exception %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
-            goto error ;
-         }
+         _pNodeMgrAgent->lock_w() ;
+
+         const CHAR* objdata = MSG_GET_INNER_REPLY_DATA(pRes) ;
+         UINT32 length = pRes->messageLength -
+                         MSG_GET_INNER_REPLY_HEADER_LEN(pRes) ;
+         UINT32 tmpGroupID = 0 ;
+
+         rc = _pNodeMgrAgent->updateGroupInfo( objdata, length, &tmpGroupID ) ;
+         PD_LOG ( ( (SDB_OK == rc) ? PDEVENT : PDERROR ),
+                  "Update group[groupID:%u, rc: %d]", groupID, rc ) ;
+
+         _pNodeMgrAgent->release_w() ;
       }
 
    done:
@@ -1104,6 +1109,7 @@ namespace engine
       INT32 startFrom = 0 ;
       INT32 numReturned = 0 ;
       vector< BSONObj > objList ;
+      UINT32 groupID = 0 ;
 
       rc = msgExtractReply( (CHAR *)pRes, &flag, &contextID, &startFrom,
                             &numReturned, objList ) ;
@@ -1124,19 +1130,16 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < objList.size() ; ++i )
       {
-         try
+         _pNodeMgrAgent->lock_w() ;
+         rc = _pNodeMgrAgent->updateGroupInfo( objList[i].objdata(),
+                                               objList[i].objsize(),
+                                               &groupID ) ;
+         _pNodeMgrAgent->release_w() ;
+
+         if ( rc )
          {
-            const CHAR* objdata = MSG_GET_INNER_REPLY_DATA( pRes ) ;
-            BSONObj cataGroupObj( objdata ) ;
-            rc = _imageResource.addGroupInfo( cataGroupObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to update group[%s], "
-                         "rc: %d", objList[i].toString().c_str(), rc ) ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to parse group object, "
-                    "occurred exception %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Update group[%s] failed, rc: %d",
+                    objList[i].toString().c_str(), rc ) ;
             goto error ;
          }
       }
@@ -1168,16 +1171,24 @@ namespace engine
       }
       else if ( rc )
       {
-         PD_LOG( PDWARNING, "Receive failed catalog query reply, flag: %d",
+         PD_LOG( PDWARNING, "Recieve failed catalog query reply, flag: %d",
                  rc ) ;
          goto error ;
       }
 
       for ( UINT32 i = 0 ; i < objList.size() ; ++i )
       {
-         rc = _imageResource.addCataInfo( objList[ i ] ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update catalog [%s], rc: %d",
-                      objList[ i ].toPoolString().c_str(), rc ) ;
+         _pCatAgent->lock_w() ;
+         rc = _pCatAgent->updateCatalog( 0, 0, objList[i].objdata(),
+                                         objList[i].objsize(), NULL ) ;
+         _pCatAgent->release_w() ;
+
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Update catalog[%s] failed, rc: %d",
+                    objList[i].toString().c_str(), rc ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -1280,7 +1291,9 @@ namespace engine
       }
 
       // try go get group id
-      _imageResource.groupName2ID( groupName, groupID ) ;
+      _pNodeMgrAgent->lock_r() ;
+      _pNodeMgrAgent->groupName2ID( groupName, groupID ) ;
+      _pNodeMgrAgent->release_r() ;
 
       msgSize = ossStrlen( groupName ) + 1 ;
       msgSize += sizeof( MsgCatGroupReq ) ;
@@ -1336,7 +1349,9 @@ namespace engine
       }
 
       // clear all groups
-      _imageResource.invalidateGroupInfo() ;
+      _pNodeMgrAgent->lock_w() ;
+      _pNodeMgrAgent->clearAll() ;
+      _pNodeMgrAgent->release_w() ;
 
       // process query result
       rc = _processGrpQueryRes( cb, (MsgHeader*)recvEvent._Data ) ;
@@ -1379,7 +1394,9 @@ namespace engine
       }
 
       // clear all groups
-      _imageResource.invalidateCataInfo() ;
+      _pCatAgent->lock_r() ;
+      _pCatAgent->clearAll() ;
+      _pCatAgent->release_r() ;
 
       // process query result
       rc = _processCatQueryRes( cb, (MsgHeader*)recvEvent._Data ) ;
@@ -1499,9 +1516,135 @@ namespace engine
       goto done ;
    }
 
-   clsResource *_clsDCMgr::getImageResource()
+   catAgent* _clsDCMgr::getImageCataAgent ()
    {
-      return &_imageResource ;
+      return _pCatAgent ;
+   }
+
+   nodeMgrAgent* _clsDCMgr::getImageNodeMgrAgent ()
+   {
+      return _pNodeMgrAgent ;
+   }
+
+   INT32 _clsDCMgr::getAndLockImageCataSet( const CHAR * name,
+                                            pmdEDUCB *cb,
+                                            clsCatalogSet **ppSet,
+                                            BOOLEAN noWithUpdate,
+                                            INT64 waitMillSec,
+                                            BOOLEAN * pUpdated )
+   {
+      INT32 rc = SDB_OK ;
+      // sanity check
+      SDB_ASSERT ( ppSet && name,
+                   "ppSet and name can't be NULL" ) ;
+
+      while ( SDB_OK == rc )
+      {
+         _pCatAgent->lock_r() ;
+         *ppSet = _pCatAgent->collectionSet( name ) ;
+         // if we can't find the name and request to update catalog
+         // we'll call syncUpdateCatalog and refind again
+         if ( !(*ppSet) && noWithUpdate )
+         {
+            _pCatAgent->release_r() ;
+            // request to update catalog
+            rc = updateImageAllCatalog( cb, waitMillSec ) ;
+            if ( rc )
+            {
+               // if we can't find the collection and not able to update
+               // catalog, we'll return the error of synUpdateCatalog
+               // call
+               PD_LOG ( PDERROR, "Failed to sync update catalog, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
+            if ( pUpdated )
+            {
+               *pUpdated = TRUE ;
+            }
+            // we don't want to update again
+            noWithUpdate = FALSE ;
+            continue ;
+         }
+         // if still not able to find it
+         if ( !(*ppSet) )
+         {
+            _pCatAgent->release_r() ;
+            rc = SDB_CLS_NO_CATALOG_INFO ;
+         }
+         break ;
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _clsDCMgr::unlockImageCataSet( clsCatalogSet * catSet )
+   {
+      if ( catSet )
+      {
+         _pCatAgent->release_r() ;
+      }
+      return SDB_OK ;
+   }
+
+   INT32 _clsDCMgr::getAndLockImageGroupItem( UINT32 id,
+                                              pmdEDUCB *cb,
+                                              clsGroupItem **ppItem,
+                                              BOOLEAN noWithUpdate,
+                                              INT64 waitMillSec,
+                                              BOOLEAN * pUpdated )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT ( ppItem, "ppItem can't be NULL" ) ;
+
+      while ( SDB_OK == rc )
+      {
+         _pNodeMgrAgent->lock_r() ;
+         *ppItem = _pNodeMgrAgent->groupItem( id ) ;
+         // can we find the group from local cache?
+         if ( !(*ppItem) && noWithUpdate )
+         {
+            _pNodeMgrAgent->release_r() ;
+            // if we can't find such group and is okay to update cache
+            // we'll update cache from catalog
+            rc = updateImageGroup( id, cb, waitMillSec ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to sync update group info, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
+            if ( pUpdated )
+            {
+               *pUpdated = TRUE ;
+            }
+            // only update it once
+            noWithUpdate = FALSE ;
+            continue ;
+         }
+         // if we are not able to find one, let's return group not found
+         if ( !(*ppItem) )
+         {
+            _pNodeMgrAgent->release_r() ;
+            rc = SDB_CLS_NO_GROUP_INFO ;
+         }
+         break ;
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 _clsDCMgr::unlockImageGroupItem( clsGroupItem * item )
+   {
+      if ( item )
+      {
+         _pNodeMgrAgent->release_r() ;
+      }
+      return SDB_OK ;
    }
 
    INT32 _clsDCMgr::syncSend2ImageNode( MsgHeader *msg,
@@ -1517,7 +1660,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       MsgRouteID nodeID ;
-      CoordGroupInfoPtr groupPtr ;
+      BOOLEAN hasLock = FALSE ;
       clsGroupItem *groupItem = NULL ;
       vector< pmdAddrPair > nodes ;
       string hostname ;
@@ -1525,8 +1668,9 @@ namespace engine
       pmdEDUEvent event ;
 
       // 1. get the nodes
-      _imageResource.getGroupInfo( groupID, groupPtr ) ;
-      groupItem = groupPtr.get() ;
+      _pNodeMgrAgent->lock_r() ;
+      hasLock = TRUE ;
+      groupItem = _pNodeMgrAgent->groupItem( groupID ) ;
       if ( NULL == groupItem )
       {
          rc = SDB_CLS_GRP_NOT_EXIST ;
@@ -1558,6 +1702,8 @@ namespace engine
             nodes.push_back( pmdAddrPair( hostname, svcname ) ) ;
          }
       }
+      _pNodeMgrAgent->release_r() ;
+      hasLock = FALSE ;
 
       if ( 0 == nodes.size() )
       {
@@ -1585,6 +1731,10 @@ namespace engine
       }
 
    done:
+      if ( hasLock )
+      {
+         _pNodeMgrAgent->release_r() ;
+      }
       return rc ;
    error:
       goto done ;
@@ -1608,8 +1758,9 @@ namespace engine
       }
 
       // get all groups
-      rc = _imageResource.getGroupIDs( groups, TRUE, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get group IDs, rc: %d", rc ) ;
+      _pNodeMgrAgent->lock_r() ;
+      _pNodeMgrAgent->getGroupsID( groups ) ;
+      _pNodeMgrAgent->release_r() ;
 
       for ( UINT32 i = 0 ; i < groups.size() ; ++i )
       {

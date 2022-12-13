@@ -46,7 +46,7 @@ using bson::BSONObj ;
 namespace engine
 {
    class _pmdEDUCB ;
-   class _clsRemoteResource ;
+   class _coordResource ;
    class _clsCatalogSet ;
 
    enum _coordCacheType
@@ -65,7 +65,7 @@ namespace engine
    class _coordCacheInvalidator : public SDBObject
    {
    public:
-      _coordCacheInvalidator( _clsRemoteResource *resource ) ;
+      _coordCacheInvalidator( _coordResource *resource ) ;
       ~_coordCacheInvalidator() ;
 
       /**
@@ -105,7 +105,7 @@ namespace engine
       INT32 _notify( const BSONObj &arguments, _pmdEDUCB *cb ) ;
 
    private:
-      _clsRemoteResource *_resource ;
+      _coordResource *_resource ;
    } ;
    typedef _coordCacheInvalidator coordCacheInvalidator ;
 

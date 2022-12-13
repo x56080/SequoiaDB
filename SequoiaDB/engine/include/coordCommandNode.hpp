@@ -200,7 +200,7 @@ namespace engine
          INT32 getNodeInfo( const CHAR *pQuery,
                             BSONObj &nodeInfo ) ;
 
-         INT32 getNodeConf( clsRemoteResource *pResource,
+         INT32 getNodeConf( coordResource *pResource,
                             const CHAR *pQuery,
                             BSONObj &nodeConf ) ;
 
@@ -209,7 +209,7 @@ namespace engine
                                         const CHAR *pFieldName,
                                         BOOLEAN &ignored ) ;
 
-         virtual INT32  _onPostBuildConfig( clsRemoteResource *pResource,
+         virtual INT32  _onPostBuildConfig( coordResource *pResource,
                                             BSONObjBuilder &builder,
                                             const CHAR *roleStr,
                                             BOOLEAN hasCataAddr ) ;
@@ -258,7 +258,7 @@ namespace engine
                                         const CHAR *pFieldName,
                                         BOOLEAN &ignored ) ;
 
-         virtual INT32  _onPostBuildConfig( clsRemoteResource *pResource,
+         virtual INT32  _onPostBuildConfig( coordResource *pResource,
                                             BSONObjBuilder &builder,
                                             const CHAR *roleStr,
                                             BOOLEAN hasCataAddr ) ;

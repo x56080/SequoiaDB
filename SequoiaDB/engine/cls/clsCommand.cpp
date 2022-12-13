@@ -922,17 +922,15 @@ namespace engine
                                     _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                     INT16 w, INT64 *pContextID )
    {
-      CoordCataInfoPtr cataPtr ;
-      clsResource *resource = sdbGetShardCB()->getResource() ;
-
       /// need to update sub collection catalog info
-      if ( SDB_OK != resource->updateCataInfo( _subCLName, cataPtr, cb ) )
+      INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
+      if ( rc )
       {
-         resource->invalidateCataInfo( _subCLName ) ;
+         catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+         pCatAgent->lock_w() ;
+         pCatAgent->clear( _subCLName ) ;
+         pCatAgent->release_w() ;
       }
-
-      /// clear main catalog info
-      resource->invalidateCataInfo( _collectionName ) ;
 
       // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
@@ -968,17 +966,20 @@ namespace engine
                                       _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                       INT16 w, INT64 *pContextID )
    {
-      CoordCataInfoPtr cataPtr ;
-      clsResource *resource = sdbGetShardCB()->getResource() ;
-
       /// need to update sub collection catalog info
-      if ( SDB_OK != resource->updateCataInfo( _subCLName, cataPtr, cb ) )
+      catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+      INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
+      if ( rc )
       {
-         resource->invalidateCataInfo( _subCLName ) ;
+         pCatAgent->lock_w() ;
+         pCatAgent->clear( _subCLName ) ;
+         pCatAgent->release_w() ;
       }
 
       /// clear main catalog info
-      resource->invalidateCataInfo( _collectionName ) ;
+      pCatAgent->lock_w() ;
+      pCatAgent->clear( _collectionName ) ;
+      pCatAgent->release_w() ;
 
       // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
@@ -1025,9 +1026,13 @@ namespace engine
                                      INT16 w,
                                      INT64 *pContextID )
    {
-      clsResource *pResource = sdbGetShardCB()->getResource() ;
-      pResource->invalidateCataInfo() ;
-      pResource->invalidateGroupInfo() ;
+      sdbGetShardCB()->getCataAgent()->lock_w() ;
+      sdbGetShardCB()->getCataAgent()->clearAll() ;
+      sdbGetShardCB()->getCataAgent()->release_w() ;
+
+      sdbGetShardCB()->getNodeMgrAgent()->lock_w() ;
+      sdbGetShardCB()->getNodeMgrAgent()->clearAll() ;
+      sdbGetShardCB()->getNodeMgrAgent()->release_w() ;
 
       return  SDB_OK ;
    }
@@ -1387,7 +1392,7 @@ namespace engine
       }
       else
       {
-         rc = pClsCB->getShardCB()->updateDCBaseInfo( cb ) ;
+         rc = pClsCB->getShardCB()->updateDCBaseInfo() ;
          if ( rc )
          {
             goto error ;
@@ -1561,8 +1566,11 @@ namespace engine
 
          if ( CMD_ALTER_COLLECTION == type() )
          {
-            sdbGetShardCB()->getResource()->
-                  invalidateCataInfo( collectionFullName() ) ;
+            catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+            pCatAgent->lock_w () ;
+            pCatAgent->clear ( collectionFullName() ) ;
+            pCatAgent->release_w () ;
+
             sdbGetClsCB()->invalidateCata( collectionFullName() ) ;
          }
       }

@@ -44,7 +44,7 @@
 
 namespace engine
 {
-   class _clsRemoteResource ;
+   class _coordResource ;
    class _coordSequence ;
    class _pmdEDUCB ;
 
@@ -57,7 +57,7 @@ namespace engine
       _coordSequenceAgent() ;
       ~_coordSequenceAgent() ;
 
-      INT32 init( _clsRemoteResource* resource ) ;
+      INT32 init( _coordResource* resource ) ;
       void fini() ;
 
    public:
@@ -112,7 +112,7 @@ namespace engine
       BOOLEAN _isInnerRC( INT32 rc ) ;
 
    private:
-      _clsRemoteResource* _resource ;
+      _coordResource*   _resource ;
       COORD_SEQ_MAP     _sequenceCache ;
    } ;
    typedef _coordSequenceAgent coordSequenceAgent ;

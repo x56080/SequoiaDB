@@ -370,7 +370,7 @@ namespace engine
          INT64 contextID = -1 ;
          rtnContextBuf buf ;
 
-         clsRemoteResource *pResource = sdbGetResourceContainer()->getResource() ;
+         coordResource *pResource = sdbGetResourceContainer()->getResource() ;
 
          coordAuthOperator opr ;
          rc = opr.init( pResource, _pEDUCB ) ;
@@ -439,10 +439,10 @@ namespace engine
          while ( TRUE )
          {
             ++retryTimes ;
-            rc = pShard->syncSend( pMsg, CATALOG_GROUPID, TRUE, _pEDUCB, &pAuthRes ) ;
+            rc = pShard->syncSend( pMsg, CATALOG_GROUPID, TRUE, &pAuthRes ) ;
             if ( SDB_OK != rc )
             {
-               rc = pShard->syncSend( pMsg, CATALOG_GROUPID, FALSE, _pEDUCB,
+               rc = pShard->syncSend( pMsg, CATALOG_GROUPID, FALSE,
                                       &pAuthRes ) ;
                PD_RC_CHECK( rc, PDERROR, "Client[%s] failed to send auth "
                             "req to catalog, rc: %d", clientName(), rc ) ;

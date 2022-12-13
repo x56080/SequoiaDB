@@ -569,6 +569,7 @@ namespace engine
       _shdObj              = NULL ;
       _replObj             = NULL ;
       _pSitePropMgr        = NULL ;
+      _pResource           = NULL ;
    }
 
    _clsMgr::~_clsMgr ()
@@ -590,7 +591,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
 
-      rc = _resource.init( netRouteAgent, optCB ) ;
+      _pResource = SDB_OSS_NEW _coordResource() ;
+      PD_CHECK( NULL != _pResource, SDB_OOM, error, PDERROR,
+                "Failed to malloc _coordResource, rc: %d", rc ) ;
+
+      rc = _pResource->init( netRouteAgent, optCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
       // set userOwnQueue = TRUE to avoid messages posted to EDU directly
@@ -610,7 +615,7 @@ namespace engine
       // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
-      sdbGetResourceContainer()->setResource( &_resource ) ;
+      sdbGetResourceContainer()->setResource( _pResource ) ;
 
    done:
       return rc ;
@@ -729,7 +734,7 @@ namespace engine
       rc = _initRemoteSession( _shardNetRtAgent ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init remote session, rc: %d", rc ) ;
 
-      _shdObj = SDB_OSS_NEW _clsShardMgr( _shardNetRtAgent, &_resource ) ;
+      _shdObj = SDB_OSS_NEW _clsShardMgr( _shardNetRtAgent ) ;
       if ( !_shdObj )
       {
          PD_LOG( PDERROR, "Allocate shard manager failed" ) ;
@@ -986,14 +991,6 @@ namespace engine
                       "recycle bin manager, rc: %d", rc ) ;
       }
 
-      // 3. start clsResource MetaCache clean job
-      rc = _resource.active() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to active coordResource's job, rc=%d", rc ) ;
-         goto error ;
-      }
-
    done:
       PD_TRACE_EXITRC ( SDB__CLSMGR_ACTIVE, rc );
       return rc ;
@@ -1062,7 +1059,11 @@ namespace engine
       }
 
       _remoteSessionMgr.fini() ;
-      _resource.fini() ;
+
+      if ( NULL != _pResource )
+      {
+         _pResource->fini() ;
+      }
 
       if ( _pShardAdapter )
       {
@@ -1078,6 +1079,7 @@ namespace engine
       SAFE_OSS_DELETE( _shdObj ) ;
       SAFE_OSS_DELETE( _shardNetRtAgent ) ;
       SAFE_OSS_DELETE( _pSitePropMgr ) ;
+      SAFE_OSS_DELETE( _pResource ) ;
       SAFE_OSS_DELETE( _replNetRtAgent ) ;
       SAFE_OSS_DELETE( _replTimerHandler ) ;
       SAFE_OSS_DELETE( _shdTimerHandler ) ;
@@ -1312,12 +1314,14 @@ namespace engine
    {
       return _replObj ;
    }
-
-   clsResource *_clsMgr::getResource()
+   catAgent *_clsMgr::getCatAgent ()
    {
-      return &( _resource ) ;
+      return _shdObj->getCataAgent() ;
    }
-
+   nodeMgrAgent* _clsMgr::getNodeMgrAgent ()
+   {
+      return _shdObj->getNodeMgrAgent() ;
+   }
    shdMsgHandler* _clsMgr::getShardMsgHandle()
    {
       return _shdMsgHandlerObj ;
@@ -2682,8 +2686,6 @@ namespace engine
       _replNetRtAgent->setLocalID ( routeID ) ;
       routeID.columns.serviceID = _shardServiceID ;
       _shardNetRtAgent->setLocalID ( routeID ) ;
-
-      _resource.setNodeID( _selfNodeID ) ;
 
       // set global id
       pmdSetNodeID( _selfNodeID ) ;

@@ -356,7 +356,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT__CHKTRANSSTATUS_NODE ) ;
 
-      pmdEDUCB *eduCB = static_cast< pmdEDUCB * >( cb ) ;
       MsgClsTransCheckReq checkMsg ;
       MsgHeader *pRecvMsg = NULL ;
       MsgOpReply *pReply = NULL ;
@@ -370,12 +369,12 @@ namespace engine
       while( retryTimes++ < CLS_GTS_MAX_RETRY )
       {
          /// send message
-         rc = _pShardMgr->syncSend( ( MsgHeader* )&checkMsg, group, TRUE, eduCB,
+         rc = _pShardMgr->syncSend( ( MsgHeader* )&checkMsg, group, TRUE,
                                     &pRecvMsg ) ;
          if ( rc )
          {
             rc = _pShardMgr->syncSend( ( MsgHeader* )&checkMsg, group, FALSE,
-                                       eduCB, &pRecvMsg ) ;
+                                       &pRecvMsg ) ;
             if ( rc )
             {
                goto error ;
@@ -403,8 +402,7 @@ namespace engine
 
             if ( rcTmp )
             {
-               CoordGroupInfoPtr groupPtr ;
-               _pShardMgr->getResource()->updateGroupInfo( group, groupPtr, eduCB ) ;
+               _pShardMgr->syncUpdateGroupInfo( group, CLS_SHARD_TIMEOUT ) ;
             }
 
             SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;
@@ -659,7 +657,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_UPDATEGLOBLOWTRAN, "_clsGTSAgent::updateGlobLowTran" )
-   INT32 _clsGTSAgent::updateGlobLowTran( pmdEDUCB *eduCB )
+   INT32 _clsGTSAgent::updateGlobLowTran()
    {
       INT32 rc = SDB_OK ;
 
@@ -699,7 +697,6 @@ namespace engine
          rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
                                     CATALOG_GROUPID,
                                     TRUE,
-                                    eduCB,
                                     &receiveMessage,
                                     CLS_SHARD_TIMEOUT,
                                     requestObject.objdata(),
@@ -713,7 +710,6 @@ namespace engine
             rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
                                        CATALOG_GROUPID,
                                        FALSE,
-                                       eduCB,
                                        &receiveMessage,
                                        CLS_SHARD_TIMEOUT,
                                        requestObject.objdata(),
@@ -1215,7 +1211,6 @@ namespace engine
       // set request
       rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
                                  routeID,
-                                 eduCB,
                                  &replyMessage,
                                  CLS_SHARD_TIMEOUT,
                                  NULL,
