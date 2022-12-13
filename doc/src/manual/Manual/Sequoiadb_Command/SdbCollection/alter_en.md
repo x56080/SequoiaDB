@@ -12,84 +12,99 @@ SdbCollection
 
 ##DESCRIPTION##
 
-This function is used to modify the properties of the collection. For more details, refer to [setAttributes\(\)][setAttributes].
+This function is used to modify the properties of the collection. 
 
 ##PARAMETERS##
 
 options ( *object, required* )
 
-Modify the collection properties through the options parameter:
+Modify the collection properties through the parameter "options":
 
-- ReplSize ( *number* )：The number of replicas that need to be synchronized for write operations. The values are as follows:
+- ReplSize ( *number* ): The number of replicas that need to be synchronized for write operations, and the default value is 1, which means that write operations only need to be written to the master node.
 
-    - -1: Write request needs to be synchronized after the active node of the replication group, and then the database write operation returns the response to the client.
-    - 0: Write request needs to be synchronized after all nodes in the replication group, and then the database write operation returns the response to the client.
-    - 1 ~ 7: Write request needs to be synchronized after the specified number of nodes in the replication group, and then the database write operation returns the response to the client.
+    The values are as follows:
 
-    Format: `ReplSize: <number>`
+    - -1: The write request needs to be synchronized to a number of active nodes in the replication group before the database write operation returns a response to the client.
+    - 0: The write request needs to be synchronized to all nodes in the replication group before the database write operation returns a response to the client.
+    - 1~7: The write request needs to be synchronized to the specified number of nodes in the replication group before the database write operation returns a response to the client.
 
-- ShardingKey ( *object* ): Sharding key, the value is 1 or -1, indicating forward or backward sorting.
+    Format: `ReplSize: 0`
 
-    ShardingKey can be modified when the collection  only exists in one data group, or the collection does not have subcollections mounted.
+- ShardingKey ( *object* ): Sharding key, and the value is 1 or -1, indicating f orward or reverse sorting.
+
+    "ShardingKey" can be modified when the collection only exists in one data group, or the collection does not have subcollections mounted.
 
     Format: `ShardingKey: {<field1>: <1|-1>, [<field2>: <1|-1>, ...]}`
 
-- ShardingType ( *string* ): Partition method, the default value is "hash", and the values are as follows:
-    - "hash": Hash partition
-    - "range": Range partition
+- ShardingType ( *string* ): Sharding type, and the default value is "hash".
 
-    The collection can only exist in one data group.
+    The values are as follows:
 
-    Format: `ShardingType: "hash" | "range"`
+    - "hash": Hash sharding.
+    - "range": Range sharding.
 
-- Partition ( *number* ): Number of partitions. It represents the number of hash partitions and is only filled in when selecting "hash" , The value must be a power of 2, and the range is [2\^3, 2\^20].
+    "ShardingType" can be modified when the collection only exists in one data group.
 
-    The collection can only exist in one data group.
+    Format: `ShardingType: "range"`
 
-    Format: `Partition: <num>`
+- Partition ( *number* ): The number of sharding, and the default value is 4096.
 
-- AutoSplit ( *boolean* ): Identify whether the automatic segmentation function is enabled for the new collection.
+    - The value of this parameter must be a power of 2, and the range is [2\^3, 2\^20].
+    - This parameter can only take effect when the value of the parameter "ShardingType" is "hash".
+    - "Partition" can be modified when the collection only exists in one data group.
 
-    - The default value is false.
-    - After setting a new hash partition key for the collection, users can use this option for automatic segmentation.
-    - When AutoSplit is not specified explicitly, If "AutoSplit" is not specified before the collection is modified and the collection belongs to a non-system domain, the "AutoSplit" parameter of this domain will affect this setting.
-    - Before the collection, "AutoSplit" is specified as false, user need to explicitly set AutoSplit to true for automatic segmentation.
-    - "AutoSplit" can only work on "hash" partition keys.
+    Format: `Partition: 512`
 
-    Format: `AutoSplit: true | false`
+- AutoSplit ( *boolean* ): Whether to enable the automatic segmentation function, and the default value is "false", which means that automatic segmentation is not enabled.
 
-- EnsureShardingIndex ( *boolean* ): Identifies whether to create a partition index. The default value is true.
+    - This parameter can only take effect when the value of the parameter "ShardingType" is "hash".
+    - "AutoSplit" can be modified when the collection only exists in one data group.
 
-- Compressed ( *boolean* ): Identifies whether the collection is enabled for data compression.
+    Format: `AutoSplit: true`
 
-    If "Compressed" is set to "true" and "CompressionType" is not specified, then "CompressionType" is "lzw".
+    >**Note:**
+    >
+    > User can specify the parameter "AutoSplit" when creating domains and collections. If user explicitly specify "AutoSplit" for a collection, the system will give priority to determining whether to enable automatic splitting according to the value specified by the collection.
 
-    Format: `Compressed: true | false`
+- EnsureShardingIndex ( *boolean* ): Whether to automatically create an index named "$shard" according to the field specified by the parameter "ShardingKey", and the default value is "true", which means automatically created.
 
-- CompressionType ( *string* ): The compression algorithm of the collection, "snappy" or "lzw".
+    "EnsureShardingIndex" can be modified when the collection only exists in one data group.
 
-    - "snappy": Using "snappy" algorithm to compress.
-    - "lzw": Using "lzw" algorithm to compress.
+    Format: `EnsureShardingIndex: false`
 
-    Format: `CompressionType: "snappy" | "lzw"`
+- Compressed ( *boolean* ): Whether to enable the data compression function, and the default value is "true", which means that the data compression function is enable.
 
-- StrictDataMode ( *boolean* ): Identifies whether the operation of the collection enables strict data type mode.
+    Format: `Compressed: false`
 
-    Format: `StrictDataMode: true | false`
+- CompressionType ( *string* ): Compression algorithm type, and the default value is "lzw".
 
-- AutoIncrement ( *object* )：Auto-increment field.
+    The values are as follows:
 
-    - "Field" attribute must be added to "option" to mark the field to be modified.
-    - The properties that can be modified by the self-increment field are CurrentValue, Increment, StartValue, MinValue, MaxValue, CacheSize, AcquireSize, Cycled, Generated. <br>Specific attribute function can refet to [Auto-increment][sequence].
+    - "snappy": Snappy algorithm compression.
+    - "lzw": Lzw algorithm compression.
+
+    Format: `CompressionType: "snappy"`
+
+    >**Note:**
+    >
+    > For the usage scenarios of "snappy" compression and "lzw" compression, please refer to [data compression][date_compression].
+
+- StrictDataMode ( *boolean* ): Whether to enable strict data type mode, and the default value is "false", which means it is not enable.
+
+    After enabling strict mode, if the data type is numeric, an error will be reported if an overflow occurs during the operation. If the data type is not numeric, no operation will be performed.
+
+    Format: `StrictDataMode: true`
+
+- AutoIncrement ( *object* ): Properties of auto-incrementing field.
+
+    - The properties that are allowed to be modified can refer to the [auto-increment field][sequence].
     - After modifying the attribute, the field value may not be unique. If users need to ensure that the modified value is unique, it is recommended to use a unique index.
 
-    Format: `AutoIncrement: <option>`
+    Format: `AutoIncrement: {Field: <Field name>, ...}` or `AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]`
 
-    > **Note:**
-    >
-    > - The specific way of using each option can refers to [createCL()][createCL].
-    > - The partition collection cannot modify the attributes related to the partition, such as "ShardingKey", "Partition".
-    > - "EnsureShardingIndex" and "AutoSplit" are only effective for the current operation, and only effective when modifying partition properties, such as "ShardingKey".
+- AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", which me ans automatically created.
+
+    Format: `AutoIndexId: false`
 
 ##RETURN VALUE##
 
@@ -116,38 +131,37 @@ v1.12 and above
 - Create a normal collection, and then modify the collection to a partitioned collection.
 
     ```lang-javascript
-    > db.sample.createCL('employee')
+    > db.sample.createCL("employee")
     > db.sample.employee.alter({ShardingKey: {a: 1}, ShardingType: "hash"})
     ```
 
 - Create a normal collection, then modify the collection to a partitioned collection, and split it automatically.
 
     ```lang-javascript
-    > db.sample.createCL('employee')
-    > db.sample.employee.alter({ ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
+    > db.sample.createCL("employee")
+    > db.sample.employee.alter({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
     ```
 
 - Create a normal collection, and then modify the collection to "snappy" compression.
 
     ```lang-javascript
-    > db.sample.createCL('employee')
-    > db.sample.employee.alter({CompressionType: 'snappy'})
+    > db.sample.createCL("employee")
+    > db.sample.employee.alter({CompressionType: "snappy"})
     ```
 
 - Create a collection with auto-increment fields and modify its auto-increment starting value.
 
     ```lang-javascript
-    > db.sample.createCL('employee', {AutoIncrement: {Field: "studentID"}})
+    > db.sample.createCL("employee", {AutoIncrement: {Field: "studentID"}})
     > db.sample.employee.alter({AutoIncrement: {Field: "studentID", StartValue: 2017140000}})
     ```
 
 
 [^_^]:
     Links
-[setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
-[createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
+[date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md

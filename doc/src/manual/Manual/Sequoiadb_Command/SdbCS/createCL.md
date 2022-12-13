@@ -31,8 +31,8 @@ SdbCS
 
         格式：`ShardingKey: {<字段1>: <1|-1>, [<字段2>: <1|-1>, ...]}`
 
-    - ShardingType（ *string* ）：分区方式，默认值为 "hash"
- 
+    - ShardingType（ *string* ）：分区方式，默认值为"hash"
+
         取值如下：
 
         - "hash"：散列分区
@@ -42,10 +42,10 @@ SdbCS
 
     - Partition（ *number* ）：分区数，默认值为 4096
 
-        - 该参数取值必须是 2 的幂，范围在[2\^3，2\^20]。
+        - 该参数取值必须是 2 的幂，取值范围为[2\^3，2\^20]。
         - 参数 ShardingType 的取值为"hash"时，该参数才能生效。
 
-        格式：`Partition: 4096`
+        格式：`Partition: 512`
 
     - ReplSize（ *number* ）：写操作需同步的副本数，默认值为 1，表示写操作只需写入主节点
 
@@ -57,11 +57,11 @@ SdbCS
 
         格式：`ReplSize: 0`
 
-    - Compressed（ *boolean* ）：是否开启数据压缩功能，默认值为 true，开启数据压缩功能
+    - Compressed（ *boolean* ）：是否开启数据压缩功能，默认值为 true，表示开启数据压缩功能
 
         格式：`Compressed: false`
 
-    - CompressionType（ *string* ）：压缩算法类型，默认值为 "lzw"
+    - CompressionType（ *string* ）：压缩算法类型，默认值为"lzw"
 
         取值如下：
 
@@ -74,7 +74,7 @@ SdbCS
         >
         > snappy 压缩和 lzw 压缩的使用场景可参考[数据压缩][date_compression]。
 
-    - AutoSplit（ *boolean* ）：是否开启自动切分功能，默认值为 false，不开启自动切分
+    - AutoSplit（ *boolean* ）：是否开启自动切分功能，默认值为 false，表示不开启自动切分
 
         - 该参数不能与参数 Group 同时使用。
         - 参数 ShardingType 的取值为"hash"时，该参数才能生效。
@@ -92,47 +92,47 @@ SdbCS
 
         格式：`Group: "group1"`
 
-    - AutoIndexId（ *boolean* ）：是否根据字段 _id 自动创建名为 "$id" 的唯一索引，默认值为 true，自动创建
+    - AutoIndexId（ *boolean* ）：是否根据字段 _id 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
  
         格式：`AutoIndexId: false`
 
-    - EnsureShardingIndex（ *boolean* ）：是否根据参数 ShardingKey 指定的字段自动创建名为 "$shard" 的索引，默认值为 true，自动创建
+    - EnsureShardingIndex（ *boolean* ）：是否根据参数 ShardingKey 指定的字段自动创建名为"$shard"的索引，默认值为 true，表示自动创建
 
         格式：`EnsureShardingIndex: false`
 
-    - StrictDataMode（ *boolean* ）：是否开启严格数据类型模式，默认为 false，不开启
+    - StrictDataMode（ *boolean* ）：是否开启严格数据类型模式，默认值为 false，表示不开启
 
         开启严格模式后，如果数据类型为数值，在运算过程中出现溢出则会报错；如果数据类型非数值，则不进行任何操作。
 
       	格式：`StrictDataMode: true`
 
-    - AutoIncrement（ *object* ）：自增字段，功能介绍可参考[自增字段][sequence]
+    - AutoIncrement（ *object* ）：指定[自增字段][sequence]
 
         格式：`AutoIncrement: {Field: <字段名>, ...}` 或 `AutoIncrement: [{Field: <字段名1>, ...}, {Field: <字段名2>, ...}, ...]`
-        
+
     - LobShardingKeyFormat（ *string* ）：指定大对象 ID 转换为分区键键值的转换格式
 
         目前仅支持对大对象 ID 中的时间属性进行转换，格式如下：
-    
+
         - "YYYYMMDD"：转换为年月日的字符串形式，如 "20190701"
         - "YYYYMM"：转换为年月的字符串形式，如 "201907"
         - "YYYY"：转换为年的字符串形式，如 "2019"
 
         该参数仅在主集合中使用。当指定该参数时，必须保证参数 ShardingKey 指定的切分字段只有一个。
-    
-        格式：`LobShardingKeyFormat: "2021"`
 
-    - IsMainCL（ *boolean* ）：是否为主集合，默认值为 false，不设置为主集合
+        格式：`LobShardingKeyFormat: "YYYYMM"`
+
+    - IsMainCL（ *boolean* ）：是否为主集合，默认值为 false，表示不设置为主集合
 
         当指定集合为主集合时，子集合中的参数 ReplSize 和 AutoIncrement 会沿用主集合中对应参数的值，其他参数沿用自身参数的值。
 
         格式：`IsMainCL: true`
 
-    - DataSource（ *string* ）：所使用的数据源名称
+    - DataSource（ *string* ）：所使用的数据源名
 
         格式：`DataSource: "ds1"`
 
-    - Mapping（ *string* ）：所映射的集合名称
+    - Mapping（ *string* ）：所映射的集合名
 
         格式：`Mapping: "employee"`
 
@@ -183,7 +183,7 @@ v1.0 及以上版本
     ```lang-javascript
     > db.sample.createCL("employee", {StrictDataMode: true})
     ```
-    
+
 - 在主集合下使用大对象
 
     创建支持大对象的主集合 sample.maincl，将子集合 sample.subcl 挂载到该主集合上，并指定分区范围为 [20190701, 20190801)
@@ -219,10 +219,7 @@ v1.0 及以上版本
      本文使用的所有引用及链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [sequoiadb_limitation]:manual/Manual/sequoiadb_limitation.md#集合
-[createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
-[domain]:manual/Distributed_Engine/Architecture/domain.md
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
-[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
