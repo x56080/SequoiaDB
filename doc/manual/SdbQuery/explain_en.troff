@@ -60,13 +60,13 @@ l l l l l.
 T{
 0
 T}@T{
-Attributes
+Name
 T}@T{
 Type
 T}@T{
-Default
-T}@T{
 Description
+T}@T{
+Default
 T}
 _
 T{
@@ -76,73 +76,73 @@ Run
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Whether to execute the
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan.Execute
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 an access plan to get
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 data and time
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 informaitom if Run is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 true.
 Otherwise it
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 only gets information
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 about the access and
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the access plan isn\[aq]t
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 executed
+T}@T{
 T}
 T{
 2
@@ -151,172 +151,172 @@ Detail
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Whether to display more
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 detailed information
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 about access plan, like
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 coord nodes, data
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 nodes and context
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 information that
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 related to the access
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 plans.
 Display more
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 detailed information
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 about access plan if
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Detail is true.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Otherwise it doesn\[aq]t
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 display them.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 However, if Detail is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 true, it displays one
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 level more detailed
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 information about
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan.
 You
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 can use parameter
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Expand to control
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 whether to display all
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 more detailed
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 information about
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 access plan.
+T}@T{
 T}
 T{
 3
@@ -325,94 +325,94 @@ Estimate
 T}@T{
 bool
 T}@T{
-( same as Detail )
-T}@T{
 Whether to display the
+T}@T{
+same as Detail
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 estimate part of the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 detailed access plan.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Display the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 estimate part of the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 detailed access plan if
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Estimate is true.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Otherwise it doesn\[aq]t
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 display them.
 If
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the Estimate option is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 explicitly set, Detail
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 is automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 4
@@ -421,114 +421,114 @@ Expand
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Whether to display all
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 level more detailed
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 information about the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Display all level more
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 detailed information
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 about the access plan
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 if Expand is true.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Otherwise it display
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 one level more detailed
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 information about the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan.If
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Expand is explicitly
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 set, Detail is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 5
@@ -537,96 +537,96 @@ Flatten
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Indicates whether to
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 expand the output of
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the access plan for
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 each node and each
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 child tables as a
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 record.
 Expand the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 output if Flatten is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 true.
 Otherwise, it
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 will not.
 If
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Flatten is explicitly
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 set, Detail and Expand
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 are automatically set
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 to true.
+T}@T{
 T}
 T{
 6
@@ -635,192 +635,192 @@ Filter
 T}@T{
 string / string array
 T}@T{
-"All"
-T}@T{
 Fileter the details of
+T}@T{
+"All"
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the estimation results.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 The filter option
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 allows you to select "
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 None", "Output", "Input
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 ", "Filter", "All", or
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 a combination of them.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 None: No detail of
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the estimated results
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 are output.Input:
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Output details of the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 intput of the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 estimation result.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Filter: Output
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 filtering details of
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the estimation results.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Output: Output
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 details of the output
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 of the estimation
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 result.
 All: output
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 full details of the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 estimation results.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 If Filter is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 explicitly set, Detail
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 and Estimate are
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 7
@@ -829,101 +829,101 @@ CMDLocation
 T}@T{
 JSON
 T}@T{
-\-\-\-
-T}@T{
 The results of the
+T}@T{
+\-
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan are
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 filtered according to
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the data set, using the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 command location
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 parameter item.
 The
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 CMDLocation option only
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 supports the "GroupID"
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 and "GroupName"
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 options.If
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 CMDLocation is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 explicitly set, Detail
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 is automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 8
@@ -932,174 +932,174 @@ SubCollections
 T}@T{
 string / string array
 T}@T{
-\-\-\-
-T}@T{
 The results of the
+T}@T{
+\-
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan are
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 filtered according to
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the sub\-table.
 The
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 SubCollections option
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 only takes effect when
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 an access plan with
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 primary child tables is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 used.
 The
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 SubCollections option
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 can select a sub\-table
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 name, or an array of
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 sub\-table names, to
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 indicate that only the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan for the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 specified sub\-table is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 displayed.
 The
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 SubCollections option
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 is [] or null for no
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 filtering.
 If
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 SubCollections is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 explicitly set, Detail
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 is automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 9
@@ -1108,115 +1108,115 @@ Search
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Whether to view the
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 access plan that the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 query optimizer has
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 searched for and to
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 view the results of the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 query optimizer
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 selection.
 Show the
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 selection process of
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the query optimizer if
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Search is true.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Otherwise, it won\[aq]t
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 show them.If Search
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 is explicitly set,
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Detail and Expand are
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 10
@@ -1225,108 +1225,108 @@ Evaluate
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Whether to view the
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 calculation process of
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the access plan that
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 the query optimizer has
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 searched for.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Shows the calculation
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 process of the query
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 optimizer if Evaluate
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 is true.
 Otherwise
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 it won\[aq]t show them.
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 If Evaluate is
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 explicitly set, Detail,
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 Search and Expand are
+T}@T{
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 automatically set to
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 true.
+T}@T{
 T}
 T{
 11
@@ -1335,23 +1335,23 @@ Abbrev
 T}@T{
 bool
 T}@T{
-false
-T}@T{
 Whether to output
+T}@T{
+false
 T}
 T{
-T}@T{
 T}@T{
 T}@T{
 T}@T{
 strings in abbreviation
+T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-T}@T{
 mode.
+T}@T{
 T}
 .TE
 .SH Normal access plan
