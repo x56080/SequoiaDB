@@ -1894,10 +1894,18 @@ namespace engine
          hasOption = FALSE ;
 
          // Get location option
-         ele = explainOptions.getField( FIELD_NAME_LOCATION ) ;
+         ele = explainOptions.getField( FIELD_NAME_CMD_LOCATION ) ;
          if ( Object == ele.type() )
          {
             locationOption = ele.embeddedObject() ;
+         }
+         else
+         {
+            ele = explainOptions.getField( FIELD_NAME_LOCATION ) ;
+            if ( Object == ele.type() )
+            {
+               locationOption = ele.embeddedObject() ;
+            }
          }
 
          if ( locationOption.isEmpty() )

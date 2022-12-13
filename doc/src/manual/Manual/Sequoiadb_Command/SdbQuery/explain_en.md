@@ -31,7 +31,7 @@ The detail description of 'options' parameter is as follow:
 | Expand         | bool | false | Whether to display all level more detailed information about the access plan. <br>Display all level more detailed information about the access plan if Expand is true. <br>Otherwise it display one level more detailed information about the access plan.<br>If Expand is explicitly set, Detail is automatically set to true. |
 | Flatten        | bool | false | Indicates whether to expand the output of the access plan for each node and each child tables as a record. Expand the output if Flatten is true. <br>Otherwise, it will not. <br>If Flatten is explicitly set, Detail and Expand are automatically set to true. |
 | Filter         | string / string array | "All" | Fileter the details of the estimation results. The filter option allows you to select "None", "Output", "Input", "Filter", "All", or a combination of them. <br>None: No detail of the estimated results are output.<br>Input: Output details of the intput of the estimation result. <br>Filter: Output filtering details of the estimation results. <br>Output: Output details of the output of the estimation result. <br>All: output full details of the estimation results.  <br>If Filter is explicitly set, Detail and Estimate are automatically set to true. |
-| Location       | JSON | --- | The results of the access plan are filtered according to the data set, using the command location parameter item. The Location option only supports the "GroupID" and "GroupName" options.<br>If Location is explicitly set, Detail is automatically set to true. |
+| CMDLocation    | JSON | --- | The results of the access plan are filtered according to the data set, using the command location parameter item. The CMDLocation option only supports the "GroupID" and "GroupName" options.<br>If CMDLocation is explicitly set, Detail is automatically set to true. |
 | SubCollections | string / string array | --- | The results of the access plan are filtered according to the sub-table. <br>The SubCollections option only takes effect when an access plan with primary child tables is used. <br>The SubCollections option can select a sub-table name, or an array of sub-table names, to indicate that only the access plan for the specified sub-table is displayed. <br>The SubCollections option is [] or null for no filtering. <br>If SubCollections is explicitly set, Detail is automatically set to true. |
 | Search         | bool | false | Whether to view the access plan that the query optimizer has searched for and to view the results of the query optimizer selection. <br>Show the selection process of the query optimizer if Search is true. <br>Otherwise, it won't show them.<br>If Search  is explicitly set, Detail and Expand are automatically set to true. |
 | Evaluate       | bool | false | Whether to view the calculation process of the access plan that the query optimizer has searched for. <br>Shows the calculation process of the query optimizer if Evaluate is true. <br>Otherwise it won't show them.<br>If Evaluate is explicitly set, Detail, Search and Expand are automatically set to true. |
@@ -860,10 +860,10 @@ When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Glo
 }
 ```
 
-* Use the Detail option to view the detailed access plan for the query and use Location option to view the query's access plan on group1.
+* Use the Detail option to view the detailed access plan for the query and use CMDLocation option to view the query's access plan on group1.
 
 ```lang-javascript
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Location : { GroupName : 'group1' } } )
+> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, CMDLocation : { GroupName : 'group1' } } )
 {
   "NodeName": "hostname:11800",
   "GroupName": "SYSCoord",

@@ -179,14 +179,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-的上下文信息。<
+的上下文信息。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>Detail 选项为
+Detail 选项为
 T}@T{
 T}
 T{
@@ -344,14 +344,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-中的估算部分。<
+中的估算部分。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>如果 Estimate 选
+如果 Estimate 选
 T}@T{
 T}
 T{
@@ -534,14 +534,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-展开输出结果。<
+展开输出结果。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>Flatten 选项为
+Flatten 选项为
 T}@T{
 T}
 T{
@@ -664,28 +664,28 @@ T{
 T}@T{
 T}@T{
 T}@T{
-者其组合数组。<
+者其组合数组。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>Filter 选项为 []
+Filter 选项为 []
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-或者 null 表示为 "
+或者 null 表示为
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-None"。1.
+"None"。1.
 "None"
 T}@T{
 T}
@@ -759,14 +759,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-果的输出细节。<
+果的输出细节。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>5.
+5.
 "All" 表示输
 T}@T{
 T}
@@ -815,7 +815,7 @@ T}
 T{
 7
 T}@T{
-Location
+CMDLocation
 T}@T{
 BSON 对象
 T}@T{
@@ -848,63 +848,63 @@ T{
 T}@T{
 T}@T{
 T}@T{
-项。Location 选
+项。CMDLocation
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-项仅支持 "GroupID"
+选项仅支持 "
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-和 "GroupName" 选项。
+GroupID" 和 "GroupName
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-详细见 **命令
+" 选项。详细
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-位置参数**。
+见 **命令位置参
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-如果 Location 选项
+数**。如果
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-显式设置，Detail
+CMDLocation 选项显
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-选项自动设置为
+式设置，Detail 选
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-true。
+项自动设置为 true。
 T}@T{
 T}
 T{
@@ -1570,13 +1570,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-false 的情况有：<
+false 的情况有：
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>1.
+1.
 没有查询条
 T}
 T{
@@ -1617,13 +1617,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-否被索引覆盖。<
+否被索引覆盖。
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>被索引覆盖可
+被索引覆盖可
 T}
 T{
 T}@T{
@@ -2050,13 +2050,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-false 的情况有：<
+false 的情况有：
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>1.
+1.
 没有查询条
 T}
 T{
@@ -2097,13 +2097,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-否被索引覆盖。<
+否被索引覆盖。
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br>被索引覆盖可
+被索引覆盖可
 T}
 T{
 T}@T{
@@ -3035,13 +3035,13 @@ v2.0 及以上版本。
 .fi
 .RE
 .IP \[bu] 2
-使用 Detail 选项查看查询的详细访问计划，并且使用 Location 选项查看查询在 group1
-上的访问计划
+使用 Detail 选项查看查询的详细访问计划，并且使用 CMDLocation 选项查看查询在
+group1 上的访问计划
 .RS 2
 .IP
 .nf
 \f[C]
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Location : { GroupName : \[aq]group1\[aq] } } )
+> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, CMDLocation : { GroupName : \[aq]group1\[aq] } } )
 {
   "NodeName": "hostname:11800",
   "GroupName": "SYSCoord",
@@ -3465,4 +3465,107 @@ v2.0 及以上版本。
                   "$and": [
                     {
                       "a": {
-    
+                        "$gt": 100
+                      }
+                    }
+                  ]
+                },
+                "Selector": {},
+                "Skip": 0,
+                "Return": \-1,
+                "Estimate": {
+                  "StartCost": 0,
+                  "RunCost": 0.475,
+                  "TotalCost": 0.475,
+                  "CLEstFromStat": false,
+                  "Input": {
+                    "Pages": 25,
+                    "Records": 25000,
+                    "RecordSize": 43
+                  },
+                  "Filter": {
+                    "MthSelectivity": 0.4999994999999995
+                  },
+                  "Output": {
+                    "Records": 12500,
+                    "RecordSize": 43,
+                    "Sorted": false
+                  }
+                }
+              }
+            },
+            {
+              "Collection": "subcs.subcl1",
+              "Query": {
+                "a": {
+                  "$gt": 100
+                }
+              },
+              "Sort": {},
+              "Selector": {},
+              "Hint": {},
+              "Skip": 0,
+              "Return": \-1,
+              "Flag": 2048,
+              "ReturnNum": 0,
+              "ElapsedTime": 0.000048,
+              "IndexRead": 0,
+              "DataRead": 0,
+              "UserCPU": 0,
+              "SysCPU": 0,
+              "CacheStatus": "HitCache",
+              "MainCLPlan": true,
+              "CacheLevel": "OPT_PLAN_PARAMETERIZED",
+              "Parameters": [
+                100
+              ],
+              "MatchConfig": {
+                "EnableMixCmp": false,
+                "Parameterized": true,
+                "FuzzyOptr": false
+              },
+              "PlanPath": {
+                "Operator": "TBSCAN",
+                "Collection": "subcs.subcl1",
+                "Query": {
+                  "$and": [
+                    {
+                      "a": {
+                        "$gt": 100
+                      }
+                    }
+                  ]
+                },
+                "Selector": {},
+                "Skip": 0,
+                "Return": \-1,
+                "Estimate": {
+                  "StartCost": 0,
+                  "RunCost": 0.475,
+                  "TotalCost": 0.475,
+                  "CLEstFromStat": false,
+                  "Input": {
+                    "Pages": 25,
+                    "Records": 25000,
+                    "RecordSize": 43
+                  },
+                  "Filter": {
+                    "MthSelectivity": 0.4999994999999995
+                  },
+                  "Output": {
+                    "Records": 12500,
+                    "RecordSize": 43,
+                    "Sorted": false
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+\f[]
+.fi
+.RE
