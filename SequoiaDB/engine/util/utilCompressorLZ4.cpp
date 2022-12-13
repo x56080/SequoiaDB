@@ -152,7 +152,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCOMPRESSORLZ4_DECOMPRESS ) ;
       UINT32 uncompressLen = *(UINT32*)source ;
-      UINT32 actualLen = 0 ;
+      UINT32 compressLen = sourceLen - sizeof(UINT32) ;
+      UINT32 decompressLen = 0 ;
 
       (void)dictionary ;
 
@@ -161,12 +162,12 @@ namespace engine
                 "Decompression buffer too small, expected: %u, actual: %u",
                 uncompressLen, destLen ) ;
 
-      actualLen = LZ4_decompress_fast( source + sizeof(UINT32),
-                                       dest, uncompressLen ) ;
-      if ( actualLen != sourceLen - sizeof(UINT32) )
+      decompressLen = LZ4_decompress_safe( source + sizeof(UINT32),
+                                           dest, compressLen, uncompressLen ) ;
+      if ( decompressLen != uncompressLen )
       {
-         PD_LOG( PDERROR, "Actual length[%d] is not the same with source[%d]",
-                 actualLen, sourceLen - sizeof(UINT32) ) ;
+         PD_LOG( PDERROR, "Decompress Data length[%u] is not the same with source data length[%u]",
+                 decompressLen, uncompressLen ) ;
          rc = SDB_SYS ;
          goto error ;
       }
