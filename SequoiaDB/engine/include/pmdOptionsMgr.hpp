@@ -706,6 +706,7 @@ namespace engine
          OSS_INLINE BOOLEAN diagSecureOn() const { return _diagSecureOn ; }
          OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
          OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
+         OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -851,6 +852,8 @@ namespace engine
          BOOLEAN     _diagSecureOn ;
          UINT32      _metacacheexpired ;
          UINT32      _metacachelwm ;
+
+         UINT32      _statMCVLimit ;
 
 #ifdef SDB_ENTERPRISE
 

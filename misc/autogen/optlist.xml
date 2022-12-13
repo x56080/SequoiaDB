@@ -2934,4 +2934,25 @@
       <typeofweb>num</typeofweb>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_STAT_MCV_LIMIT</name>
+      <long>statmcvlimit</long>
+      <description>
+         <en>Limits on the number of MCV sample records, returned by data nodes for coord node aggregation.Default:200000, value range[0, 2000000].</en>
+         <cn>协调节点聚合数据节点返回的 MCV 记录的数量限制，默认值:200000，取值范围[0, 20000000]。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Limits on the number of MCV sample records, returned by data nodes for coord node aggregation.Default:200000, value range[0, 2000000].</en>
+         <cn>>协调节点聚合数据节点返回的 MCV 记录的数量限制，默认值:200000，取值范围[0, 20000000]。</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>int</typeofweb>
+      <default>200000</default>
+      <hidden>true</hidden>
+  </opt>
+
 </optlist>

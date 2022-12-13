@@ -655,8 +655,6 @@ namespace engine
          }
 
       private:
-         // Merging 200000 MCV samples may take about 1 second
-         static const UINT32 MCV_SAMPLE_RECORDS_LIMIT = 200000 ;
          // 10000 is a reference to the maximum of MCV size of data node
          static const UINT32 MCV_SIZE_LIMIT = 10000 ;
 
@@ -1120,6 +1118,8 @@ namespace engine
          _coordListItCmp cmp ;
          _utilMinHeap< _coordListItPair, _coordListItCmp > heap( cmp ) ;
          _coordMCVList::iterator it ;
+         // Limits on the number of MCV sample can be set by node configuration "statmcvlimit"
+         UINT32 statMCVLimit = pmdGetKRCB()->getOptionCB()->getStatMCVLimit() ;
 
          for ( UINT32 i = 0; i < vec.size(); ++i )
          {
@@ -1129,7 +1129,7 @@ namespace engine
                continue ;
             }
             // Here set a limit to prevent the cost from becoming too expensive.
-            if ( result._mcvSampleRecords > MCV_SAMPLE_RECORDS_LIMIT )
+            if ( result._mcvSampleRecords > statMCVLimit )
             {
                pList->clear() ;
                vec[ i ]._mcvSampleRecords = 0 ;

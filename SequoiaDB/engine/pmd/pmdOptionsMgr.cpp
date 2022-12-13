@@ -116,6 +116,8 @@ namespace engine
    #define PMD_MAX_METACACHE_EXPIRED   (43200) // 30 days
    #define PMD_DFT_METACACHE_LWM       (512)
    #define PMD_MAX_METACACHE_LWM       (10240)
+   #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
+   #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
 
    /*
       _pmdCfgExchange implement
@@ -2031,6 +2033,8 @@ done:
       _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
       _metacachelwm = PMD_DFT_METACACHE_LWM ;
 
+      _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2595,6 +2599,11 @@ done:
       rdxUInt( pEX, PMD_OPTION_METACACHE_LWM, _metacachelwm, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_METACACHE_LWM, FALSE ) ;
       rdvMinMax( pEX, _metacachelwm, 0, PMD_MAX_METACACHE_LWM, TRUE ) ;
+
+      // --statmvclimit
+      rdxUInt( pEX, PMD_OPTION_STAT_MCV_LIMIT, _statMCVLimit, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_STAT_MCV_LIMIT, TRUE ) ;
+      rdvMinMax( pEX, _statMCVLimit, 0, PMD_MAX_STAT_MCV_LIMIT, TRUE ) ;
 
       // end map
 
