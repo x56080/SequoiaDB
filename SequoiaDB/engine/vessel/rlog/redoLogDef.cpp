@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsWriteContext.cpp
+   Source File Name = redoLogDef.cpp
 
    Descriptive Name =
 
@@ -33,41 +33,47 @@
 
 ******************************************************************************/
 
-#include "dpsWriteContext.hpp"
-#include "pdTrace.hpp"
-#include "pmdEDU.hpp"
+#include "vessel/redoLogDef.h"
+#include "dpsDef.hpp"
+#include "ossUtil.h"
 
 namespace engine
 {
-   dpsWriteContext::dpsWriteContext(IExecutor *executor,
-                                    const dpsWriteRequest *req,
-                                    const dpsWriteOptions *o):
-   _executor(executor),
-   _req(req),
-   _o(o)
+namespace vessel
+{
+   void redoLogFileHeader::init(UINT32 fileSize, UINT32 logicalId, UINT64 startLSN)
    {
-      _init();
+      ossMemset(this, 0x0, RLOG_FILE_HEAD_SIZE);
+      ossMemcpy(eyeCatcher, EYE_CATCHER_STR, sizeof(eyeCatcher));
+      this->version = CURRENT_VERSION;
+      this->fileSize = fileSize;
+      this->logicalId = logicalId;
+      this->startLSN = startLSN;
    }
 
-   UINT32 dpsWriteContext::getRecordBodySizeAuto() const
+   BOOLEAN redoLogFileHeader::validate() const
    {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSize() : _req->getElementDataSize() ;
+      if (0 != ossMemcmp(this->eyeCatcher, EYE_CATCHER_STR, sizeof(eyeCatcher)))
+      {
+         return FALSE;
+      }
+      else if (CURRENT_VERSION != this->version)
+      {
+         return FALSE;
+      }
+      else if (this->fileSize != RLOG_FILE_SIZE)
+      {
+         return FALSE;
+      }
+      else if (DPS_INVALID_LSN_OFFSET == this->startLSN)
+      {
+         return FALSE;
+      }
+      else
+      {
+         return TRUE;
+      }
    }
+} // namespace vessel
 
-   utilSlice dpsWriteContext::getRecordBodyData() const
-   {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSlice() : _req->getElements().getSlice() ;
-   }
-
-   void dpsWriteContext::_init()
-   {
-      SDB_ASSERT(nullptr != _req && nullptr != _o, "can not be invalid");
-      _irreversible = (nullptr == _executor ||
-                       !_executor->getTransID().isGlobTrans() ||
-                       !_o->transEnabled);
-      
-
-   }
 } // namespace engine

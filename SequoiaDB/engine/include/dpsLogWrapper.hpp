@@ -133,7 +133,7 @@ namespace engine
          return recordRow(rawdata, size);
       }
 
-      virtual INT32 commit( DPS_LSN_OFFSET offset ) override ;
+      virtual INT32 flush( DPS_LSN_OFFSET offset, BOOLEAN async ) override ;
 
       virtual INT32 move( const DPS_LSN_OFFSET &lsn,
                           const DPS_LSN_VER &version ) override ;

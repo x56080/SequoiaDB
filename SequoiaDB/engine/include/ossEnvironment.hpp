@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsWriteContext.cpp
+   Source File Name = ossEnvironment.hpp
 
    Descriptive Name =
 
@@ -33,41 +33,32 @@
 
 ******************************************************************************/
 
-#include "dpsWriteContext.hpp"
-#include "pdTrace.hpp"
-#include "pmdEDU.hpp"
+#ifndef OSS_ENVIRONMENT_HPP__
+#define OSS_ENVIRONMENT_HPP__
+
+#include "ossIO.hpp"
+#include "ossUtil.h"
 
 namespace engine
 {
-   dpsWriteContext::dpsWriteContext(IExecutor *executor,
-                                    const dpsWriteRequest *req,
-                                    const dpsWriteOptions *o):
-   _executor(executor),
-   _req(req),
-   _o(o)
+   class _ossEnvironment : public SDBObject
    {
-      _init();
-   }
+      public:
+         INT32 extendFile(OSSFILE &file, UINT64 incrementSize);
 
-   UINT32 dpsWriteContext::getRecordBodySizeAuto() const
-   {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSize() : _req->getElementDataSize() ;
-   }
-
-   utilSlice dpsWriteContext::getRecordBodyData() const
-   {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSlice() : _req->getElements().getSlice() ;
-   }
-
-   void dpsWriteContext::_init()
-   {
-      SDB_ASSERT(nullptr != _req && nullptr != _o, "can not be invalid");
-      _irreversible = (nullptr == _executor ||
-                       !_executor->getTransID().isGlobTrans() ||
-                       !_o->transEnabled);
       
+      public:
+         static BOOLEAN isFAllocBanned()
+         {
+            return OSS_BIT_TEST(_FILE_FLAGS, _FILE_FLAG_FALLOC_BANNED);
+         }
 
-   }
+      private:
+         static constexpr UINT32 _FILE_FLAG_FALLOC_BANNED = 0x01;
+         static UINT32 _FILE_FLAGS;
+   };
+   using ossEnv = class _ossEnvironment;
 } // namespace engine
+
+
+#endif//OSS_ENVIRONMENT_HPP__

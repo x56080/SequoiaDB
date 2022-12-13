@@ -367,7 +367,7 @@ namespace engine
       UINT32 _generateDummySize( BOOLEAN isRow, 
                                  UINT32 recordSize ) const ;
 
-      OSS_INLINE UINT32 _getAliengedRecordSize(UINT32 bodySize) const
+      OSS_INLINE UINT32 _getAlignedRecordSize(UINT32 bodySize) const
       {
          return ossAlign4(DPS_LOG_HEAD_SIZE + bodySize);
       }

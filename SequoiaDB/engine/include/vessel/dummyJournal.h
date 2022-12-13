@@ -120,7 +120,7 @@ namespace vessel
             return SDB_OK;
          }
 
-         virtual INT32 commit(DPS_LSN_OFFSET offset) {return SDB_OK;}
+         virtual INT32 flush(DPS_LSN_OFFSET offset, BOOLEAN async) {return SDB_OK;}
          virtual INT32 move(const DPS_LSN_OFFSET &lsn,
                             const DPS_LSN_VER &version) {return SDB_OK;}
       private:

@@ -157,7 +157,7 @@ namespace engine
             return SDB_NOT_SUPPORTED;
          }
 
-         virtual INT32 commit( DPS_LSN_OFFSET offset) override
+         virtual INT32 flush( DPS_LSN_OFFSET offset, BOOLEAN async ) override
          {
             std::unique_lock<std::mutex> guard(_mutex);
             if (DPS_INVALID_LSN_OFFSET == offset)

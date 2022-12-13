@@ -253,6 +253,11 @@ namespace engine
       return rc ;
    }
 
+   UINT32 _ossRWMutex::get_r()
+   {
+      return _r.fetch();
+   }
+
    _ossScopedRWLock::_ossScopedRWLock ( ossRWMutexBase * pMutex,
                                         OSS_LATCH_MODE mode )
    {

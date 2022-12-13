@@ -1743,7 +1743,7 @@ namespace engine
       PD_TRACE_ENTRY(SDB__DPSRPCMGR_WRITE) ;
       BOOLEAN locked = FALSE ;
       dpsWriteContext ctx(executor, &request, &o);
-      UINT32 originalRecordSize = _getAliengedRecordSize( ctx.getOriginalEleSize() ) ;
+      UINT32 originalRecordSize = _getAlignedRecordSize( ctx.getOriginalEleSize() ) ;
       UINT32 dummyRecordSize = 0 ;
       UINT32 alignedRecordSize = 0 ;
 
@@ -1767,7 +1767,7 @@ namespace engine
          goto error ;
       }
       
-      alignedRecordSize = _getAliengedRecordSize( ctx.getRecordBodySize() ) ;
+      alignedRecordSize = _getAlignedRecordSize( ctx.getRecordBodySizeAuto() ) ;
       /// first to lock writeMutex, then make sure idle space is enough,
       /// at last lock mtx. So, this don't block read operations
       _writeMutex.get() ;
@@ -1844,7 +1844,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD ) ;
       dpsLogRecordHeader &header = ctx.getDummmyRecord() ;
-      UINT32 alignedRecordSize = _getAliengedRecordSize( ctx.getRecordBodySize() ) ;
+      UINT32 alignedRecordSize = _getAlignedRecordSize( ctx.getRecordBodySizeAuto() ) ;
       UINT32 dummyRecordSize = _generateDummySize( FALSE, alignedRecordSize ) ;
       UINT32 logFileSz = _logger.getLogFileSz() ;
       UINT32 fileFreeSize = logFileSz - ( _lsn.offset % logFileSz ) ;
@@ -1886,7 +1886,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD ) ;
       dpsLogRecordHeader &header = ctx.getRecord() ;
       const dpsWriteRequest *req = ctx.getReq() ;
-      UINT32 recordSize = _getAliengedRecordSize( ctx.getRecordBodySize() ) ;
+      UINT32 recordSize = _getAlignedRecordSize( ctx.getRecordBodySizeAuto() ) ;
       UINT32 freeSize = _getCurrentFileFreeSize() ;
       SDB_ASSERT( recordSize <= freeSize, "invalid free size" ) ;
       if ( freeSize < ( sizeof(dpsLogRecordHeader) + recordSize ) )

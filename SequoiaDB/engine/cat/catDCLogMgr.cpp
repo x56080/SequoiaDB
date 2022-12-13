@@ -1169,7 +1169,7 @@ END
                     o.maxTime, o.maxSize);
    }
 
-   INT32 _catDCLogMgr::commit( DPS_LSN_OFFSET offset )
+   INT32 _catDCLogMgr::flush( DPS_LSN_OFFSET offset, BOOLEAN async )
    {
       SDB_ASSERT(FALSE, "not supported");
       return SDB_NOT_SUPPORTED ;

@@ -719,7 +719,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dpsLogWrapper::commit( DPS_LSN_OFFSET offset )
+   INT32 _dpsLogWrapper::flush( DPS_LSN_OFFSET offset, BOOLEAN async )
    {
       INT32 rc = SDB_OK ;
       if ( DPS_INVALID_LSN_OFFSET != offset )

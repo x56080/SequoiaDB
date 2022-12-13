@@ -63,23 +63,23 @@ namespace engine
                                    DPS_LSN *expectedLSN,
                                    DPS_LSN *committedLSN) = 0;
 
-         OSS_INLINE DPS_LSN_OFFSET getMinFileLsnOffset()
+         virtual DPS_LSN_OFFSET getMinFileLsnOffset()
          {
             return getMinFileLSN().offset;
          }
-         OSS_INLINE DPS_LSN_OFFSET getMinBufLsnOffset()
+         virtual DPS_LSN_OFFSET getMinBufLsnOffset()
          {
             return getMinBufLSN().offset;
          }
-         OSS_INLINE DPS_LSN_OFFSET getCurrentLsnOffset()
+         virtual DPS_LSN_OFFSET getCurrentLsnOffset()
          {
             return getCurrentLSN().offset;
          }
-         OSS_INLINE DPS_LSN_OFFSET getExpectedLsnOffset()
+         virtual DPS_LSN_OFFSET getExpectedLsnOffset()
          {
             return getExpectedLSN().offset;
          }
-         OSS_INLINE DPS_LSN_OFFSET getCommittedLsnOffset()
+         virtual DPS_LSN_OFFSET getCommittedLsnOffset()
          {
             return getCommittedLSN().offset;
          }
@@ -96,10 +96,9 @@ namespace engine
 
          virtual INT32 replicate(const CHAR *rawdata, UINT32 size) = 0;
 
-         /// commit all if lsn is invalid
-         virtual INT32 commit(DPS_LSN_OFFSET offset) = 0;
+         virtual INT32 flush(DPS_LSN_OFFSET offset, BOOLEAN async) = 0;
 
-         INT32 flush(DPS_LSN_OFFSET offset) {return commit(offset);}
+         virtual INT32 flush(DPS_LSN_OFFSET offset) { return flush(offset, FALSE);}
 
          virtual INT32 move(const DPS_LSN_OFFSET &lsn,
                             const DPS_LSN_VER &version) = 0;

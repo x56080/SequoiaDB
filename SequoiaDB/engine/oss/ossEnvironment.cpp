@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsWriteContext.cpp
+   Source File Name = ossEnvironment.cpp
 
    Descriptive Name =
 
@@ -33,41 +33,43 @@
 
 ******************************************************************************/
 
-#include "dpsWriteContext.hpp"
-#include "pdTrace.hpp"
-#include "pmdEDU.hpp"
+#include "ossEnvironment.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
-   dpsWriteContext::dpsWriteContext(IExecutor *executor,
-                                    const dpsWriteRequest *req,
-                                    const dpsWriteOptions *o):
-   _executor(executor),
-   _req(req),
-   _o(o)
-   {
-      _init();
-   }
+   UINT32 _ossEnvironment::_FILE_FLAGS = 0;
 
-   UINT32 dpsWriteContext::getRecordBodySizeAuto() const
+   INT32 _ossEnvironment::extendFile(OSSFILE &file, UINT64 incrementSize)
    {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSize() : _req->getElementDataSize() ;
-   }
+      INT32 rc = SDB_OK;
+      INT64 originalSize = 0;
+      if (OSS_UNLIKELY(!file.isOpened()))
+      {
+         PD_LOG(PDERROR, "file has been closed");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
-   utilSlice dpsWriteContext::getRecordBodyData() const
-   {
-      return _compressedRecord.isValid() ?
-             _compressedRecord.getSlice() : _req->getElements().getSlice() ;
-   }
+      rc = ossGetFileSize(&file, &originalSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get file size:%d", rc);
+         goto error;
+      }
 
-   void dpsWriteContext::_init()
-   {
-      SDB_ASSERT(nullptr != _req && nullptr != _o, "can not be invalid");
-      _irreversible = (nullptr == _executor ||
-                       !_executor->getTransID().isGlobTrans() ||
-                       !_o->transEnabled);
+      ///TODO: switch to normal extending if falloc not supported
       
-
+      rc = ossFallocate(&file, 0, originalSize, incrementSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend file[%d] space[%lld], rc:%d",
+                file.fd, incrementSize, rc);
+         goto error;
+      } 
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace engine

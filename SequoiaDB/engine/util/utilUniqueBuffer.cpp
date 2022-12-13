@@ -156,4 +156,13 @@ namespace engine
       SDB_ASSERT( offset < _size, "out of bound" ) ;
       return offset < _size ? _buffer + offset : nullptr ;
    }
+
+   void _utilUniqueBuffer::setBuffer(CHAR v)
+   {
+      if (0 < _size)
+      {
+         ossMemset(_buffer, v, _size);
+      }
+      return;
+   }
 } // namespace engine

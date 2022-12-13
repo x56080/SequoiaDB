@@ -74,6 +74,8 @@ namespace engine
 
          CHAR *getByOffset( UINT32 offset ) ;
 
+         void setBuffer(CHAR v=0x0);
+
          OSS_INLINE CHAR *get() { return _buffer ; }
          OSS_INLINE const CHAR *get() const { return _buffer ; }
          OSS_INLINE UINT32 getSize() const { return _size ; }

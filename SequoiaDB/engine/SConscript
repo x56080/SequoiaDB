@@ -70,7 +70,8 @@ ossFiles = [
       "oss/ossDynamicLoad.cpp",
       "oss/ossHdfs.cpp",
       "oss/ossShMem.cpp",
-      "oss/ossThread.cpp"
+      "oss/ossThread.cpp",
+      "oss/ossEnvironment.cpp"
       ]
 
 pmdFiles = [

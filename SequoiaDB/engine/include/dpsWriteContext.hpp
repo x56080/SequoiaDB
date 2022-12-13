@@ -61,14 +61,14 @@ namespace engine
          OSS_INLINE dpsLogRecordHeader &getRecord() {return _record;}
          OSS_INLINE const dpsLogRecordHeader &getRecord()const {return _record;}
          OSS_INLINE dpsPageMeta &getPageMeta() {return _pageMeta;}
-
+         OSS_INLINE const dpsPageMeta &getPageMeta() const {return _pageMeta;}
          OSS_INLINE void setCompressedRecord( utilUniqueBuffer &&b )
          {
             _compressedRecord = std::move( b ) ;
          }
 
       public:
-         UINT32 getRecordBodySize() const ;
+         UINT32 getRecordBodySizeAuto() const ;
          utilSlice getRecordBodyData() const ;
          
       private:

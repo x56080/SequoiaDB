@@ -129,7 +129,7 @@ namespace vessel
       
       _sus.fini();
       _isOpen = FALSE;
-   done:
+
       return;
    }
 
