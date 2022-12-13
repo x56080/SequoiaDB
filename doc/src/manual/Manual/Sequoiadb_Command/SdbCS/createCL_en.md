@@ -25,7 +25,7 @@ This function is used to create a collection in the specified collection space. 
 
 - options ( *object, optional* )
 
-    Modify the collection space properties through the parameter "options":
+    Set the collection properties through the parameter "options":
 
     - ShardingKey ( *object* ): Sharding key, and the value is 1 or -1, indicating forward or reverse sorting.
 
@@ -45,7 +45,7 @@ This function is used to create a collection in the specified collection space. 
         - The value of this parameter must be a power of 2, and the range is [2\^3, 2\^20].
         - This parameter can only take effect when the value of the parameter "ShardingType" is "hash".
 
-        Format: `Partition: 4096`
+        Format: `Partition: 512`
 
     - ReplSize ( *number* ): The number of replicas that need to be synchronized for write operations, and the default value is 1, which means that write operations only need to be written to the master node.
 
@@ -57,7 +57,7 @@ This function is used to create a collection in the specified collection space. 
 
         Format: `ReplSize: 0`
 
-    - Compressed ( *boolean* ): Whether to enable the data compression function, and the default value is "true", enable the data compression function.
+    - Compressed ( *boolean* ): Whether to enable the data compression function, and the default value is "true", which means that the data compression function is enable.
 
         Format: `Compressed: false`
 
@@ -74,7 +74,7 @@ This function is used to create a collection in the specified collection space. 
         >
         > For the usage scenarios of "snappy" compression and "lzw" compression, please refer to [data compression][date_compression].
 
-    - AutoSplit ( *boolean* ): Whether to enable the automatic segmentation function, and the default value is "false", and the automatic segmentation is not enabled.
+    - AutoSplit ( *boolean* ): Whether to enable the automatic segmentation function, and the default value is "false", which means that automatic segmentation is not enabled.
 
         - This parameter cannot be used simultaneously with the parameter "Group".
         - This parameter can only take effect when the value of the parameter "ShardingType" is "hash".
@@ -83,7 +83,7 @@ This function is used to create a collection in the specified collection space. 
 
         >**Note:**
         >
-        > User can specify the parameter AutoSplit when creating domains and collections. If user explicitly specify AutoSplit for a collection, the system will give priority to determining whether to enable automatic splitting according to the value specified by the collection.
+        > User can specify the parameter "AutoSplit" when creating domains and collections. If user explicitly specify AutoSplit for a collection, the system will give priority to determining whether to enable automatic splitting according to the value specified by the collection.
 
     - Group ( *string* ): Collection replication group.
 
@@ -92,25 +92,25 @@ This function is used to create a collection in the specified collection space. 
 
         Format: `Group: "group1"`
 
-    - AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", automatically created.
+    - AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", which means automatically created.
  
         Format: `AutoIndexId: false`
 
-    - EnsureShardingIndex ( *boolean* ): Whether to automatically create an index named "$shard" according to the field specified by the parameter "ShardingKey", and the default value is "true", automatically created.
+    - EnsureShardingIndex ( *boolean* ): Whether to automatically create an index named "$shard" according to the field specified by the parameter "ShardingKey", and the default value is "true", which means automatically created.
 
         Format: `EnsureShardingIndex: false`
 
-    - StrictDataMode ( *boolean* ): Whether to enable strict data type mode, and the default is false, not enable.
+    - StrictDataMode ( *boolean* ): Whether to enable strict data type mode, and the default value is "false", which means it is not enable.
 
-        After enabling strict mode, if the data type is numeric, an error will be reported if an overflow occurs during the operation. if the data type is not numeric, no operation will be performed.
+        After enabling strict mode, if the data type is numeric, an error will be reported if an overflow occurs during the operation. If the data type is not numeric, no operation will be performed.
 
       	Format: `StrictDataMode: true`
 
-    - AutoIncrement ( *object* ): Self-increment field, function introduction can refer to [Auto-increment field][sequence].
+    - AutoIncrement ( *object* ): Specify [auto-increment field][sequence].
 
-        Format: `AutoIncrement: {Field: <Field name>, ...}` 或 `AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]`
+        Format: `AutoIncrement: {Field: <Field name>, ...}` or `AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]`
         
-    - LobShardingKeyFormat ( *string* ): Specify the conversion format of the LOB ID converted to the partition key key value.
+    - LobShardingKeyFormat ( *string* ): Specify the conversion format of the LOB ID converted to the partition key value.
 
         Currently, only the conversion of the time attribute in the LOB ID is supported, and the format is as follows:
     
@@ -120,9 +120,9 @@ This function is used to create a collection in the specified collection space. 
 
         This parameter is only used in the main collection. When specifying this parameter, user must ensure that there is only one segmentation field specified by the parameter "ShardingKey".
     
-        Format: `LobShardingKeyFormat: "2021"`
+        Format: `LobShardingKeyFormat: "YYYYMM"`
 
-    - IsMainCL ( *boolean* ): Whether it is the main collection, and the default value is "false", and it is not set as the main collection.
+    - IsMainCL ( *boolean* ): Whether it is the main collection, and the default value is "false",  which means it is not set as the main collection.
 
         When the designated collection is the main collection, the parameters "ReplSize" and "AutoIncrement" in the sub-collection will follow the values of the corresponding parameters in the main collection, and other parameters will follow the values of their own parameters.
 
@@ -219,10 +219,7 @@ v1.0 and above
      Links
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [sequoiadb_limitation]:manual/Manual/sequoiadb_limitation.md#集合
-[createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
-[domain]:manual/Distributed_Engine/Architecture/domain.md
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
-[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md

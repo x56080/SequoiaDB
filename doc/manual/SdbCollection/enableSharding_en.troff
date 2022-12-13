@@ -21,76 +21,81 @@ sharding properties.
 .PP
 options ( \f[I]object, required\f[] )
 .PP
-Modify the collection properties through the options parameters:
+Modify the collection properties through the parameter "options":
 .IP \[bu] 2
-ShardingKey ( \f[I]object, required\f[] ): Sharding key, the value is 1 or \-1,
-indicating forward or backward sorting.
+ShardingKey ( \f[I]object, required\f[] ): Sharding key, and the value is 1 or
+\-1, indicating forward or reverse sorting.
 .RS 2
 .PP
-ShardingKey can be modified when the collection only exists in one data group,
+"ShardingKey" can be modified when the collection only exists in one data group,
 or the collection does not have subcollections mounted.
 .PP
 Format: \f[C]ShardingKey: {<field1>: <1|\-1>, [<field2>: <1|\-1>, ...]}\f[]
 .RE
 .IP \[bu] 2
-ShardingType ( \f[I]string\f[] ): Sharding mode, the default is "hash" sharding.
+ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
+"hash".
+.RS 2
+.PP
 The values are as follows:
-.RS 2
 .IP \[bu] 2
-"hash"：Hash sharding
+"hash": Hash sharding
 .IP \[bu] 2
-"range"：Range sharding
+"range": Range sharding
 .PP
-The collection can only exist in one data group.
+"ShardingType" can be modified when the collection only exists in one data
+group.
 .PP
-Format: \f[C]ShardingType: "hash" | "range"\f[]
+Format: \f[C]ShardingType: "range"\f[]
 .RE
 .IP \[bu] 2
-\f[C]Partition\f[] ( \f[I]number\f[] ): It represents the number of hash
-partitions, which only be filled when selecting "hash".
-The default value is 4096.
+Partition ( \f[I]number\f[] ): The number of sharding, and the default value is
+4096.
 .RS 2
 .IP \[bu] 2
-The value must be a power of 2, and the range is [2^3, 2^20].
+The value of this parameter must be a power of 2, and the range is [2^3, 2^20].
 .IP \[bu] 2
-The collection can only exist in one data group.
+This parameter can only take effect when the value of the parameter
+"ShardingType" is "hash".
+.IP \[bu] 2
+"Partition" can be modified when the collection only exists in one data group.
 .PP
-Format: \f[C]Partition: <number>\f[]
+Format: \f[C]Partition: 512\f[]
 .RE
 .IP \[bu] 2
-\f[C]AutoSplit\f[] ( \f[I]boolean\f[] ): Identifies whether the automatic
-segmentation function is turned on.
-The default value is false.
+AutoSplit ( \f[I]boolean\f[] ): Whether to enable the automatic segmentation
+function, and the default value is "false", which means that automatic
+segmentation is not enabled.
 .RS 2
 .IP \[bu] 2
-After setting a new "hash" partition key for the collection, users can use this
-option for automatic segmentation.
+This parameter can only take effect when the value of the parameter
+"ShardingType" is "hash".
 .IP \[bu] 2
-When AutoSplit is not specified explicitly, If "AutoSplit" is not specified
-before the collection is modified and the collection belongs to a non\-system
-domain, the "AutoSplit" parameter of this domain will affect this setting.
-.IP \[bu] 2
-The "AutoSplit" is specified as false before the collection.
-User need to explicitly set AutoSplit to true for automatic segmentation.
-.IP \[bu] 2
-"AutoSplit" can only work on "hash" partition keys.
+"AutoSplit" can be modified when the collection only exists in one data group.
 .PP
-Format: \f[C]AutoSplit: true | false\f[]
-.RE
-.IP \[bu] 2
-\f[C]EnsureShardingIndex\f[] ( \f[I]boolean\f[] )：Identifies whether to create
-a partition index and the default value is true.
+Format: \f[C]AutoSplit: true\f[]
 .RS
 .PP
 \f[B]Note:\f[]
+.PP
+User can specify the parameter "AutoSplit" when creating domains and
+collections.
+If user explicitly specify "AutoSplit" for a collection, the system will give
+priority to determining whether to enable automatic splitting according to the
+value specified by the collection.
+.RE
+.RE
 .IP \[bu] 2
-The specific way of using each option refers to createCL().
-.IP \[bu] 2
-The partition collection cannot modify the attributes related to the partition.
-.IP \[bu] 2
-"EnsureShardingIndex" and "AutoSplit" are only effective for the current
-operation, and only effective when modifying partition properties, such as
-"ShardingKey".
+EnsureShardingIndex ( \f[I]boolean\f[] )：Whether to automatically create an
+index named "$shard" according to the field specified by the parameter
+"ShardingKey", and the default value is "true", which means automatically
+created.
+.RS 2
+.PP
+"EnsureShardingIndex" can be modified when the collection only exists in one
+data group.
+.PP
+Format: \f[C]EnsureShardingIndex: false\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -187,7 +192,7 @@ collection.
 .IP
 .nf
 \f[C]
-> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.createCL("employee")
 > db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash"})
 \f[]
 .fi
@@ -199,7 +204,7 @@ and split it automatically.
 .IP
 .nf
 \f[C]
-> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.createCL("employee")
 > db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
 \f[]
 .fi

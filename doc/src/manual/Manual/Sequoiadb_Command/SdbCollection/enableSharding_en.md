@@ -18,48 +18,49 @@ This function is used to modify the properties of the collection to turn on the 
 
 options ( *object, required* )
 
-Modify the collection properties through the options parameters:
+Modify the collection properties through the parameter "options":
 
-- ShardingKey ( *object, required* ): Sharding key, the value is 1 or -1, indicating forward or backward sorting.
+- ShardingKey ( *object, required* ): Sharding key, and the value is 1 or -1, indicating forward or reverse sorting.
 
-    ShardingKey can be modified when the collection  only exists in one data group, or the collection does not have subcollections mounted.
+    "ShardingKey" can be modified when the collection only exists in one data group, or the collection does not have subcollections mounted.
 
     Format: `ShardingKey: {<field1>: <1|-1>, [<field2>: <1|-1>, ...]}`
 
-- ShardingType ( *string* ): Sharding mode, the default is "hash" sharding. The values are as follows:
+- ShardingType ( *string* ): Sharding type, and the default value is "hash".
 
-    - "hash"：Hash sharding
-    - "range"：Range sharding
-    
-    The collection can only exist in one data group.
+    The values are as follows:
 
-    Format: `ShardingType: "hash" | "range"`
+    - "hash": Hash sharding
+    - "range": Range sharding
 
-- `Partition` ( *number* ): It represents the number of hash partitions, which only be filled when selecting "hash". The default value is 4096.
+    "ShardingType" can be modified when the collection only exists in one data group.
 
-    - The value must be a power of 2, and the range is [2\^3, 2\^20].
-    - The collection can only exist in one data group.
+    Format: `ShardingType: "range"`
 
-    Format: `Partition: <number>`
+- Partition ( *number* ): The number of sharding, and the default value is 4096.
 
-        
-    
-- `AutoSplit` ( *boolean* ): Identifies whether the automatic segmentation function is turned on. The default value is false.
+    - The value of this parameter must be a power of 2, and the range is [2\^3, 2\^20].
+    - This parameter can only take effect when the value of the parameter "ShardingType" is "hash".
+    - "Partition" can be modified when the collection only exists in one data group.
 
-    - After setting a new "hash" partition key for the collection, users can use this option for automatic segmentation.
-    - When AutoSplit is not specified explicitly, If "AutoSplit" is not specified before the collection is modified and the collection belongs to a non-system domain, the "AutoSplit" parameter of this domain will affect this setting.
-    - The "AutoSplit" is specified as false before the collection. User need to explicitly set AutoSplit to true for automatic segmentation.
-    - "AutoSplit" can only work on "hash" partition keys.
+    Format: `Partition: 512`
+   
+- AutoSplit ( *boolean* ): Whether to enable the automatic segmentation function, and the default value is "false", which means that automatic segmentation is not enabled.
 
-    Format: `AutoSplit: true | false`
+    - This parameter can only take effect when the value of the parameter "ShardingType" is "hash".
+    - "AutoSplit" can be modified when the collection only exists in one data group.
 
-- `EnsureShardingIndex` ( *boolean* )：Identifies whether to create a partition index and the default value is true.
+    Format: `AutoSplit: true`
 
-> **Note:**
->
-> - The specific way of using each option refers to [createCL()][createCL].
-> - The partition collection cannot modify the attributes related to the partition.
-> - "EnsureShardingIndex" and "AutoSplit" are only effective for the current operation, and only effective when modifying partition properties, such as "ShardingKey".
+    >**Note:**
+    >
+    > User can specify the parameter "AutoSplit" when creating domains and collections. If user explicitly specify "AutoSplit" for a collection, the system will give priority to determining whether to enable automatic splitting according to the value specified by the collection.
+
+- EnsureShardingIndex ( *boolean* )：Whether to automatically create an index named "$shard" according to the field specified by the parameter "ShardingKey", and the default value is "true", which means automatically created.
+
+    "EnsureShardingIndex" can be modified when the collection only exists in one data group.
+
+    Format: `EnsureShardingIndex: false`
 
 ##RETURN VALUE##
 
@@ -86,21 +87,20 @@ v2.10 and above
 - Create a normal collection, and then modify the collection to a sharding collection.
 
     ```lang-javascript
-    > db.sample.createCL('employee')
+    > db.sample.createCL("employee")
     > db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash"})
     ```
 
 - Create a normal collection, then modify the collection to a sharding collection, and split it automatically. 
 
     ```lang-javascript
-    > db.sample.createCL('employee')
+    > db.sample.createCL("employee")
     > db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
     ```
 
 
 [^_^]:
      Links
-[createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md

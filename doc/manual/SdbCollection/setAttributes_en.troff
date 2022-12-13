@@ -20,141 +20,163 @@ collection does not meet expectations.
 .PP
 options ( \f[I]object, required\f[] )
 .PP
-Modify the collection properties through the options parameter:
+Modify the collection properties through the parameter "options":
 .IP \[bu] 2
 ReplSize ( \f[I]number\f[] )：The number of replicas that need to be
-synchronized for write operations.
-The values are as follows:
+synchronized for write operations, and the default value is 1, which means that
+write operations only need to be written to the master node.
 .RS 2
+.PP
+The values are as follows:
 .IP \[bu] 2
-\-1: Write request needs to be synchronized after the active node of the
-replication group, and then the database write operation returns the response to
+\-1: The write request needs to be synchronized to a number of active nodes in
+the replication group before the database write operation returns a response to
 the client.
 .IP \[bu] 2
-0: Write request needs to be synchronized after all nodes in the replication
-group, and then the database write operation returns the response to the client.
+0: The write request needs to be synchronized to all nodes in the replication
+group before the database write operation returns a response to the client.
 .IP \[bu] 2
-1 ~ 7: Write request needs to be synchronized after the specified number of
-nodes in the replication group, and then the database write operation returns
-the response to the client.
+1~7: The write request needs to be synchronized to the specified number of nodes
+in the replication group before the database write operation returns a response
+to the client.
 .PP
-Format: \f[C]ReplSize: <number>\f[]
+Format: \f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
-ShardingKey ( \f[I]object\f[] ): Sharding key, the value is 1 or \-1, indicating
-forward or backward sorting.
+ShardingKey ( \f[I]object\f[] ): Sharding key, and the value is 1 or \-1,
+indicating forward or reverse sorting.
 .RS 2
 .PP
-ShardingKey can be modified when the collection only exists in one data group,
+"ShardingKey" can be modified when the collection only exists in one data group,
 or the collection does not have subcollections mounted.
 .PP
 Format: \f[C]ShardingKey: {<field1>: <1|\-1>, [<field2>: <1|\-1>, ...]}\f[]
 .RE
 .IP \[bu] 2
-ShardingType ( \f[I]string\f[] ): Partition method, the default value is "hash",
-and the values are as follows:
+ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
+"hash".
 .RS 2
-.IP \[bu] 2
-"hash": Hash partition
-.IP \[bu] 2
-"range": Range partition
 .PP
-The collection can only exist in one data group.
+The values are as follows:
+.IP \[bu] 2
+"hash": Hash sharding
+.IP \[bu] 2
+"range": Range sharding
 .PP
-Format: \f[C]ShardingType: "hash" | "range"\f[]
+"ShardingType" can be modified when the collection only exists in one data
+group.
+.PP
+Format: \f[C]ShardingType: "range"\f[]
 .RE
 .IP \[bu] 2
-Partition ( \f[I]number\f[] ): Number of partitions.
-It represents the number of hash partitions and is only filled in when selecting
-"hash" , The value must be a power of 2, and the range is [2^3, 2^20].
+Partition ( \f[I]number\f[] ): The number of sharding, and the default value is
+4096.
 .RS 2
+.IP \[bu] 2
+The value of this parameter must be a power of 2, and the range is [2^3, 2^20].
+.IP \[bu] 2
+This parameter can only take effect when the value of the parameter
+"ShardingType" is "hash".
+.IP \[bu] 2
+"Partition" can be modified when the collection only exists in one data group.
 .PP
-The collection can only exist in one data group.
-.PP
-Format: \f[C]Partition: <num>\f[]
+Format: \f[C]Partition: 512\f[]
 .RE
 .IP \[bu] 2
-AutoSplit ( \f[I]boolean\f[] ): Identify whether the automatic segmentation
-function is enabled for the new collection.
+AutoSplit ( \f[I]boolean\f[] ): Whether to enable the automatic segmentation
+function, and the default value is "false", which means that automatic
+segmentation is not enabled.
 .RS 2
 .IP \[bu] 2
-The default value is false.
+This parameter can only take effect when the value of the parameter
+"ShardingType" is "hash".
 .IP \[bu] 2
-After setting a new hash partition key for the collection, users can use this
-option for automatic segmentation.
-.IP \[bu] 2
-When AutoSplit is not specified explicitly, If "AutoSplit" is not specified
-before the collection is modified and the collection belongs to a non\-system
-domain, the "AutoSplit" parameter of this domain will affect this setting.
-.IP \[bu] 2
-Before the collection, "AutoSplit" is specified as false, user need to
-explicitly set AutoSplit to true for automatic segmentation.
-.IP \[bu] 2
-"AutoSplit" can only work on "hash" partition keys.
+"AutoSplit" can be modified when the collection only exists in one data group.
 .PP
-Format: \f[C]AutoSplit: true | false\f[]
+Format: \f[C]AutoSplit: true\f[]
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+User can specify the parameter "AutoSplit" when creating domains and
+collections.
+If user explicitly specify "AutoSplit" for a collection, the system will give
+priority to determining whether to enable automatic splitting according to the
+value specified by the collection.
+.RE
 .RE
 .IP \[bu] 2
-EnsureShardingIndex ( \f[I]boolean\f[] ): Identifies whether to create a
-partition index.
-The default value is true.
-.IP \[bu] 2
-Compressed ( \f[I]boolean\f[] ): Identifies whether the collection is enabled
-for data compression.
+EnsureShardingIndex ( \f[I]boolean\f[] ): Whether to automatically create an
+index named "$shard" according to the field specified by the parameter
+"ShardingKey", and the default value is "true", which means automatically
+created.
 .RS 2
 .PP
-If "Compressed" is set to "true" and "CompressionType" is not specified, then
-"CompressionType" is "lzw".
+"EnsureShardingIndex" can be modified when the collection only exists in one
+data group.
 .PP
-Format: \f[C]Compressed: true | false\f[]
+Format: \f[C]EnsureShardingIndex: false\f[]
 .RE
 .IP \[bu] 2
-CompressionType ( \f[I]string\f[] ): The compression algorithm of the
-collection, "snappy" or "lzw".
-.RS 2
-.IP \[bu] 2
-"snappy": Using "snappy" algorithm to compress.
-.IP \[bu] 2
-"lzw": Using "lzw" algorithm to compress.
-.PP
-Format: \f[C]CompressionType: "snappy" | "lzw"\f[]
-.RE
-.IP \[bu] 2
-StrictDataMode ( \f[I]boolean\f[] ): Identifies whether the operation of the
-collection enables strict data type mode.
+Compressed ( \f[I]boolean\f[] ): Whether to enable the data compression
+function, and the default value is "true", which means that the data compression
+function is enable.
 .RS 2
 .PP
-Format: \f[C]StrictDataMode: true | false\f[]
+Format: \f[C]Compressed: false\f[]
 .RE
 .IP \[bu] 2
-AutoIncrement ( \f[I]object\f[] )：Auto\-increment field.
+CompressionType ( \f[I]string\f[] ): Compression algorithm type, and the default
+value is "lzw".
+.RS 2
+.PP
+The values are as follows:
+.IP \[bu] 2
+"snappy": snappy algorithm compression
+.IP \[bu] 2
+"lzw": lzw algorithm compression
+.PP
+Format: \f[C]CompressionType: "snappy"\f[]
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+For the usage scenarios of "snappy" compression and "lzw" compression, please
+refer to data compression.
+.RE
+.RE
+.IP \[bu] 2
+StrictDataMode ( \f[I]boolean\f[] ): Whether to enable strict data type mode,
+and the default value is "false", which means it is not enable.
+.RS 2
+.PP
+After enabling strict mode, if the data type is numeric, an error will be
+reported if an overflow occurs during the operation.
+If the data type is not numeric, no operation will be performed.
+.PP
+Format: \f[C]StrictDataMode: true\f[]
+.RE
+.IP \[bu] 2
+AutoIncrement ( \f[I]object\f[] )：Properties of auto\-incrementing field.
 .RS 2
 .IP \[bu] 2
-"Field" attribute must be added to "option" to mark the field to be modified.
-.IP \[bu] 2
-The properties that can be modified by the self\-increment field are
-CurrentValue, Increment, StartValue, MinValue, MaxValue, CacheSize, AcquireSize,
-Cycled, Generated.
-Specific attribute function can refet to Auto\-increment.
+The properties that are allowed to be modified can refer to the auto\-increment
+field.
 .IP \[bu] 2
 After modifying the attribute, the field value may not be unique.
 If users need to ensure that the modified value is unique, it is recommended to
 use a unique index.
 .PP
-Format: \f[C]AutoIncrement: <option>\f[]
-.RS
-.PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-The specific way of using each option can refers to createCL().
-.IP \[bu] 2
-The partition collection cannot modify the attributes related to the partition,
-such as "ShardingKey", "Partition".
-.IP \[bu] 2
-"EnsureShardingIndex" and "AutoSplit" are only effective for the current
-operation, and only effective when modifying partition properties, such as
-"ShardingKey".
+Format: \f[C]AutoIncrement: {Field: <Field name>, ...}\f[] or
+\f[C]AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]\f[]
 .RE
+.IP \[bu] 2
+AutoIndexId ( \f[I]boolean\f[] ): Whether to automatically create a unique index
+named "$id" based on the field "_id", and the default value is "true", which
+means automatically created.
+.RS 2
+.PP
+Format: \f[C]AutoIndexId: false\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -252,8 +274,8 @@ collection.
 .IP
 .nf
 \f[C]
-> db.sample.createCL(\[aq]employee\[aq])
-> db.sample.employee.alter({ShardingKey: {a: 1}, ShardingType: "hash"})
+> db.sample.createCL("employee")
+> db.sample.employee.setAttributes({ShardingKey: {a: 1}, ShardingType: "hash"})
 \f[]
 .fi
 .RE
@@ -264,8 +286,8 @@ collection, and split it automatically.
 .IP
 .nf
 \f[C]
-> db.sample.createCL(\[aq]employee\[aq])
-> db.sample.employee.alter({ ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
+> db.sample.createCL("employee")
+> db.sample.employee.setAttributes({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
 \f[]
 .fi
 .RE
@@ -276,8 +298,8 @@ compression.
 .IP
 .nf
 \f[C]
-> db.sample.createCL(\[aq]employee\[aq])
-> db.sample.employee.alter({CompressionType: \[aq]snappy\[aq]})
+> db.sample.createCL("employee")
+> db.sample.employee.setAttributes({CompressionType: "snappy"})
 \f[]
 .fi
 .RE
@@ -288,8 +310,8 @@ starting value.
 .IP
 .nf
 \f[C]
-> db.sample.createCL(\[aq]employee\[aq], {AutoIncrement: {Field: "studentID"}})
-> db.sample.employee.alter({AutoIncrement: {Field: "studentID", StartValue: 2017140000}})
+> db.sample.createCL("employee", {AutoIncrement: {Field: "studentID"}})
+> db.sample.employee.setAttributes({AutoIncrement: {Field: "studentID", StartValue: 2017140000}})
 \f[]
 .fi
 .RE
