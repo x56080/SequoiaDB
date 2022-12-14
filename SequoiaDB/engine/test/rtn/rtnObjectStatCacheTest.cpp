@@ -605,7 +605,7 @@ namespace engine
    {
       return SDB_OK;
    }
-   // 测试使用集合名更新元数据缓存
+   // 测试使用集合名获取统计信息缓存
    TEST_F( rtn_object_stat_cache_test, base_get_stat )
    {
       INT32 rc = SDB_OK;
@@ -626,6 +626,15 @@ namespace engine
          ASSERT_EQ( SDB_OK, rc );
          std::shared_ptr< collectionTest > expCL = dms.getCL( clFullName );
          EXPECT_EQ( TRUE, checkCollectionStat( clStatPtr, *expCL ) );
+      }
+
+      // 测试使用获取不存在的统计信息
+      {
+         const CHAR *clFullName = "cs.cl_not_exist";
+         CONST_RTN_CL_STAT_PTR clStatPtr = nullptr;
+         rc = statCache.getOrUpdateCLStat( &executor, clFullName, clStatPtr );
+         ASSERT_EQ( SDB_OK, rc );
+         EXPECT_EQ( TRUE, clStatPtr == nullptr );
       }
    }
 
@@ -708,10 +717,17 @@ namespace engine
          std::shared_ptr< collectionTest > expCL = dms.getCL( clFullName );
          EXPECT_EQ( TRUE, checkCollectionStat( clStatPtr, *expCL ) );
       }
+
+      {
+         const CHAR *clFullName = "cs.cl_not_exist";
+         rc = statCache.reloadCLStats( &executor, clFullName );
+         CONST_RTN_CL_STAT_PTR clStatPtr = statCache.getCLStat( clFullName );
+         EXPECT_EQ( TRUE, clStatPtr == nullptr );
+      }
    }
 
    // 加载CS的所有集合统计信息到缓存中
-   TEST_F( rtn_object_stat_cache_test, base_reload_cs_stats )
+   TEST_F( rtn_object_stat_cache_test, base_reload_cs_stats_1 )
    {
       INT32 rc = SDB_OK;
       testExecutor executor;
@@ -730,6 +746,28 @@ namespace engine
          CONST_RTN_CL_STAT_PTR clStatPtr = statCache.getCLStat( clFullName );
          std::shared_ptr< collectionTest > expCL = dms.getCL( clFullName );
          EXPECT_EQ( TRUE, checkCollectionStat( clStatPtr, *expCL ) );
+      }
+   }
+
+   // 加载不存在的CS的所有集合统计信息到缓存中
+   TEST_F( rtn_object_stat_cache_test, base_reload_cs_stats_2 )
+   {
+      INT32 rc = SDB_OK;
+      testExecutor executor;
+
+      rc = statCache.reloadCSStats( &executor, "cs_not_exist" );
+      ASSERT_EQ( SDB_OK, rc );
+      {
+         const CHAR *clFullName = SAMPLE_CL_NAME_1;
+         CONST_RTN_CL_STAT_PTR clStatPtr = statCache.getCLStat( clFullName );
+         EXPECT_EQ( TRUE, clStatPtr == nullptr );
+      }
+
+      {
+         const CHAR *clFullName = SAMPLE_CL_NAME_2;
+         CONST_RTN_CL_STAT_PTR clStatPtr = statCache.getCLStat( clFullName );
+         std::shared_ptr< collectionTest > expCL = dms.getCL( clFullName );
+         EXPECT_EQ( TRUE, clStatPtr == nullptr );
       }
    }
 

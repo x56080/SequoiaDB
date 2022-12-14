@@ -274,6 +274,7 @@ namespace engine
          clContextID = -1;
          clStatPtr.reset();
          rc = SDB_OK;
+         goto done;
       }
       else if ( SDB_OK != rc )
       {
@@ -288,33 +289,42 @@ namespace engine
                       clFullName, rc );
          contextBuf.release();
          clStatPtr = std::move( tempPtr );
-      }
 
-      rc = _queryIndexStat( executor, matcher, indexContextID );
-      PD_RC_CHECK( rc, PDERROR, "failed to fetch an index statistics on collection[%s], rc: %d",
-                   clFullName, rc );
-      while ( true )
-      {
-         rc = _getMoreFunc( indexContextID, 1, contextBuf );
-         if ( SDB_DMS_EOC == rc )
+         rc = _queryIndexStat( executor, matcher, indexContextID );
+         PD_RC_CHECK( rc, PDERROR, "failed to fetch an index statistics on collection[%s], rc: %d",
+                     clFullName, rc );
+         while ( true )
          {
-            // no need to delete context because it has been deleted
-            indexContextID = -1;
-            rc = SDB_OK;
-            break;
-         }
-         else if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to get query result, contextID[%d], rc: %d", clContextID, rc );
-            goto error;
-         }
-         else
-         {
-            RTN_INDEX_STAT_PTR tempPtr = nullptr;
-            rc = rtnIndexStatInfo::buildFromBson( BSONObj( contextBuf.data() ), tempPtr );
-            PD_RC_CHECK( rc, PDERROR, "failed to build index statistics cache, rc: %d", rc );
-            contextBuf.release();
-            clStatPtr->getIndexStatVec().push_back( tempPtr );
+            rc = _getMoreFunc( indexContextID, 1, contextBuf );
+            if ( SDB_DMS_EOC == rc )
+            {
+               // no need to delete context because it has been deleted
+               indexContextID = -1;
+               rc = SDB_OK;
+               break;
+            }
+            else if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to get query result, contextID[%d], rc: %d", clContextID, rc );
+               goto error;
+            }
+            else
+            {
+               RTN_INDEX_STAT_PTR tempPtr = nullptr;
+               rc = rtnIndexStatInfo::buildFromBson( BSONObj( contextBuf.data() ), tempPtr );
+               PD_RC_CHECK( rc, PDERROR, "failed to build index statistics cache, rc: %d", rc );
+               contextBuf.release();
+               try
+               {
+                  clStatPtr->getIndexStatVec().push_back( tempPtr );
+               }
+               catch ( std::exception &e )
+               {
+                  rc = ossException2RC( &e );
+                  PD_LOG( PDWARNING, "occur exception: %s", e.what() );
+                  goto error;
+               }
+            }
          }
       }
 
