@@ -640,15 +640,9 @@ namespace bson {
           return _decimal ;
        }
 
-    protected:
-       BSONDecimalElement( const BSONDecimalElement & )
-       {
-       }
-
-       BSONDecimalElement &operator =( const BSONDecimalElement & )
-       {
-          return *this ;
-       }
+    private:
+       BSONDecimalElement( const BSONDecimalElement & ) ;
+       BSONDecimalElement &operator =( const BSONDecimalElement & ) ;
 
     protected:
         inline void _numberDecimalView( bsonDecimal &decimal ) const ;
