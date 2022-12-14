@@ -96,9 +96,11 @@ namespace engine
          {
             if ( SDB_OK != cb->getTransRC() )
             {
+               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG_MSG( PDERROR, "Transaction(%s) must rollback due to "
                            "error(%d)",
-                           dpsTransIDToString( cb->getTransID() ).c_str(),
+                           dpsTransIDToString( cb->getTransID(),
+                                               strTransID, DPS_TRANS_STR_LEN ),
                            cb->getTransRC() ) ;
                rc = cb->getTransRC() ;
                goto error ;
@@ -251,10 +253,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       SET_NODEID nodes ;
       DPS_TRANS_ID transID = cb->getTransID() ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_LOG ( PDEVENT, "Begin to rollback transaction(ID:%s, IDAttr:%s)...",
-               dpsTransIDToString( transID ).c_str(),
-               dpsTransIDAttrToString( transID ).c_str() ) ;
+               dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+               dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
 
       _groupSession.getPropSite()->dumpTransNode( nodes ) ;
 
@@ -405,6 +409,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needCancel = FALSE ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       contextID                        = -1 ;
 
@@ -416,7 +421,8 @@ namespace engine
       PD_LOG_MSG_CHECK( SDB_OK == cb->getTransRC(),
                         cb->getTransRC(), error, PDERROR,
                         "Transaction(%s) must rollback due to error(%d)",
-                        dpsTransIDToString( cb->getTransID() ).c_str(),
+                        dpsTransIDToString( cb->getTransID(),
+                                            strTransID, DPS_TRANS_STR_LEN ),
                         cb->getTransRC() ) ;
 
       needCancel = TRUE ;
@@ -784,6 +790,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       DPS_TRANS_ID curTransID = cb->getTransID() ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       const CHAR *pHint = NULL ;
       rc = msgExtractTransCommit( (CHAR*)pMsg, &pHint ) ;
@@ -836,8 +844,8 @@ namespace engine
       _groupSession.getPropSite()->endTrans( cb ) ;
 
       PD_LOG( PDINFO, "Execute commit(ID:%s, IDAttr:%s)",
-              dpsTransIDToString( curTransID ).c_str(),
-              dpsTransIDAttrToString( curTransID ).c_str() ) ;
+              dpsTransIDToString( curTransID, strTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDAttrToString( curTransID, strAttr, DPS_TRANS_STR_LEN ) ) ;
 
    done:
       return rc ;

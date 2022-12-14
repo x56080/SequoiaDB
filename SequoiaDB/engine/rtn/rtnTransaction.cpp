@@ -69,10 +69,11 @@ namespace engine
                                              cb->getTransStatus() ) ;
          if ( SDB_OK != rc )
          {
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             // report error
             sdbGetTransCB()->incErrCount() ;
-            PD_LOG( PDERROR, "Failed to add transaction information [%s], "
-                    "rc: %d", dpsTransIDToString( transID ).c_str(), rc ) ;
+            PD_LOG( PDERROR, "Failed to add transaction information [%s], rc: %d",
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
             ossSleep( RTN_TRANS_ROLLBACK_RETRY_INTERVAL ) ;
             continue ;
          }
@@ -130,6 +131,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNTRANSBEGIN ) ;
       SDB_ASSERT( cb, "cb can't be null" ) ;
       INT32 rc = SDB_OK ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       if ( !sdbGetTransCB()->isTransOn() )
       {
@@ -151,15 +154,16 @@ namespace engine
          if ( !sdbGetTransCB()->addTransCB( cb->getTransID(), cb ) )
          {
             PD_LOG( PDERROR, "Transaction(%s) is alredy exist",
-                    dpsTransIDToString( cb->getTransID() ).c_str() ) ;
+                    dpsTransIDToString( cb->getTransID(),
+                                        strTransID, DPS_TRANS_STR_LEN ) ) ;
             rc = SDB_SYS ;
             goto error ;
          }
       }
 
       PD_LOG( PDINFO, "Begin transaction operations(ID:%s, IDAttr:%s)",
-              dpsTransIDToString( cb->getTransID() ).c_str(),
-              dpsTransIDAttrToString( cb->getTransID() ).c_str() ) ;
+              dpsTransIDToString( cb->getTransID(), strTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDAttrToString( cb->getTransID(), strAttr, DPS_TRANS_STR_LEN ) ) ;
 
    done:
       PD_TRACE_EXIT ( SDB_RTNTRANSBEGIN ) ;
@@ -178,6 +182,7 @@ namespace engine
       DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       UINT8 attr = DPS_TS_COMMIT_ATTR_PRE ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
@@ -201,7 +206,7 @@ namespace engine
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDINFO, "Execute pre-commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( curTransID ).c_str(),
+              dpsTransIDToString( curTransID, strTransID, DPS_TRANS_STR_LEN ),
               preTransLsn ) ;
 
       rc = dpsTransCommit2Record( curTransID, preTransLsn, firstTransLsn,
@@ -241,6 +246,7 @@ namespace engine
       SDB_ASSERT( cb, "cb can't be null" ) ;
       INT32 rc = SDB_OK ;
       UINT8 attr = 0 ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       IRemoteOperator *pRemoteOperator = NULL ;
 
@@ -302,7 +308,7 @@ namespace engine
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDINFO, "Execute commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( curTransID ).c_str(),
+              dpsTransIDToString( curTransID, strTransID, DPS_TRANS_STR_LEN ),
               preTransLsn ) ;
 
       rc = dpsTransCommit2Record( curTransID, preTransLsn, firstTransLsn,
@@ -364,6 +370,8 @@ namespace engine
       BOOLEAN doRollback = FALSE ;
       _clsReplayer replayer( TRUE ) ;
       MAP_TRANS_PENDING_OBJ mapPendingObj ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       cb->startTransRollback() ;
       curLsnOffset = cb->getCurTransLsn() ;
@@ -397,8 +405,8 @@ namespace engine
          goto done ;
       }
 
-      PD_LOG ( PDEVENT, "Begin to rollback transaction[ID:%s, "
-               "lastLsn:%llu]...", dpsTransIDToString( transID ).c_str(),
+      PD_LOG ( PDEVENT, "Begin to rollback transaction[ID:%s, lastLsn:%llu]...",
+               dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                curLsnOffset ) ;
       doRollback = TRUE ;
 
@@ -440,7 +448,8 @@ namespace engine
          SDB_ASSERT( SDB_OK == rc, "DPS record is invalid for rollback" ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check record [LSN: %llu] for "
                       "transaction [%s], rc: %d", curLsnOffset,
-                      dpsTransIDToString( transID ).c_str(), rc ) ;
+                      dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                      rc ) ;
 
          {
             cb->setRelatedTransLSN( curLsnOffset ) ;
@@ -466,7 +475,7 @@ namespace engine
                ++retryTimes ;
                PD_LOG( PDERROR, "Rollback transaction[ID:%s, lsn=%llu, "
                        "time=%u] failed, rc: %d",
-                       dpsTransIDToString( transID ).c_str(),
+                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                        dpsLsn.offset,
                        retryTimes, rc ) ;
                if ( retryTimes >= RTN_TRANS_ROLLBACK_RETRY_TIMES )
@@ -515,15 +524,15 @@ namespace engine
                      "not empty" ) ;
          PD_LOG( PDERROR, "Transaction(%s)'s pending object map"
                  " is not empty(size:%d)",
-                 dpsTransIDToString( transID ).c_str(),
+                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                  mapPendingObj.size() ) ;
       }
 
       if ( doRollback )
       {
-         PD_LOG ( PDEVENT, "Rollback transaction(ID:%s, IDAttr:%s) finished "
-                  "with rc[%d]", dpsTransIDToString( transID ).c_str(),
-                  dpsTransIDAttrToString( transID ).c_str(),
+         PD_LOG ( PDEVENT, "Rollback transaction(ID:%s, IDAttr:%s) finished with rc[%d]",
+                  dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                  dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ),
                   rc ) ;
       }
 
@@ -558,6 +567,8 @@ namespace engine
       UINT32 retryTimes = 0 ;
       _clsReplayer replayer( TRUE );
       _dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN ) ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       pTransCB->cloneTransMap( tmpTransMap ) ;
       cb->startTransRollback( TRUE ) ;
@@ -576,8 +587,8 @@ namespace engine
          curLsnOffset = transInfo._lsn ;
          cb->setTransID( rollbackID ) ;
 
-         PD_LOG( PDEVENT, "Begin to rollback transaction[ID:%s, "
-                 "LastLSN: %llu]...", dpsTransIDToString( transID ).c_str(),
+         PD_LOG( PDEVENT, "Begin to rollback transaction[ID:%s, LastLSN: %llu]...",
+                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                  curLsnOffset ) ;
 
          if ( DPS_INVALID_LSN_OFFSET != transInfo._curLSNWithRBPending )
@@ -585,7 +596,7 @@ namespace engine
             PD_LOG( PDEVENT, "Transaction[ID:%s] is rollback pending, "
                     "restart from previous non pending LSN: %llu, "
                     "current pending LSN: %llu",
-                    dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                     curLsnOffset, transInfo._curLSNWithRBPending ) ;
          }
 
@@ -619,7 +630,7 @@ namespace engine
             SDB_ASSERT( SDB_OK == rc, "DPS record is invalid for rollback" ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check record [LSN: %llu] for "
                          "transaction [%s], rc: %d", curLsnOffset,
-                         dpsTransIDToString( transID ).c_str(), rc ) ;
+                         dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
 
             recordHeader = &( record.head() ) ;
 
@@ -653,7 +664,7 @@ namespace engine
                           "older rollbacked record LSN [%llu], "
                           "created pending object: %s, "
                           "current pending LSN: [%llu]",
-                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                           recordHeader->_lsn,
                           removeOnly ? "FALSE" : "TRUE",
                           transInfo._curLSNWithRBPending ) ;
@@ -674,7 +685,7 @@ namespace engine
                   ++retryTimes ;
                   PD_LOG( PDERROR, "Rollback transaction[ID:%s, "
                           "lsn=%llu, time=%u] failed,  rc: %d",
-                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                           dpsLsn.offset, retryTimes, rc ) ;
                   if ( retryTimes >= RTN_TRANS_ROLLBACK_RETRY_TIMES )
                   {
@@ -704,22 +715,22 @@ namespace engine
                         "not empty" ) ;
             PD_LOG( PDERROR, "Transaction(%s)'s pending object map"
                     " is not empty(size:%d)",
-                    dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                     mapPendingObj.size() ) ;
          }
          else if ( cb->isTransRBPending() )
          {
             SDB_ASSERT( FALSE, "Transaction's rollback pending" ) ;
             PD_LOG( PDERROR, "Transaction(%s)'s rollback pending",
-                    dpsTransIDToString( transID ).c_str() ) ;
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ) ) ;
          }
 
          /// remove the transaction
          pTransMap->erase( iterMap->first ) ;
          tmpTransMap.erase( iterMap ) ;
-         PD_LOG( PDEVENT, "Rollback transaction(ID:%s, IDAttr:%s) finished "
-                 "with rc[%d]", dpsTransIDToString( transID ).c_str(),
-                 dpsTransIDAttrToString( transID ).c_str(),
+         PD_LOG( PDEVENT, "Rollback transaction(ID:%s, IDAttr:%s) finished with rc[%d]",
+                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                 dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ),
                  rc ) ;
 
          // report succeed
@@ -752,6 +763,8 @@ namespace engine
 
       DPS_LSN_OFFSET curLsnOffset = cb->getCurTransLsn() ;
       DPS_TRANS_ID transID = cb->getTransID() ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       savedAsWaitCommit = FALSE ;
 
@@ -773,9 +786,9 @@ namespace engine
 
       savedAsWaitCommit = TRUE ;
 
-      PD_LOG ( PDEVENT, "Save transaction(ID:%s, IDAttr:%s) as wait-commit "
-               "finished", dpsTransIDToString( transID ).c_str(),
-               dpsTransIDAttrToString( transID ).c_str() ) ;
+      PD_LOG ( PDEVENT, "Save transaction(ID:%s, IDAttr:%s) as wait-commit finished",
+               dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+               dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
 
       // report succeed
       sdbGetTransCB()->incSucCount() ;

@@ -251,9 +251,11 @@ namespace engine
 
          if ( _transWaitTimeout >= SHD_TRANS_WAITCOMMIT_TIMEOUT )
          {
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             PD_LOG( PDWARNING, "Transaction(%s) is timeout in "
                     "status(WaitCommit), begin to consult with other nodes",
-                    dpsTransIDToString( _pEDUCB->getTransID() ).c_str() ) ;
+                    dpsTransIDToString( _pEDUCB->getTransID(),
+                                        strTransID, DPS_TRANS_STR_LEN ) ) ;
 
             // only test wait-sync for pre-commit log
             _rollbackTrans( NULL, OSS_ONE_SEC, 0 ) ;
@@ -487,18 +489,19 @@ namespace engine
          rc = _waitSync( lsn.offset, replSize, waitSyncTimeout ) ;
          if ( SDB_OK != rc )
          {
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             if ( ignoreWaitSyncError )
             {
                PD_LOG( PDWARNING, "Failed to wait pre-commit log for "
                        "transaction [%s], lsn [%llu], rc: %d, ignore now",
-                       dpsTransIDToString( transID ).c_str(),
+                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                        lsn.offset, rc ) ;
             }
             else
             {
                PD_LOG( PDERROR, "Failed to wait pre-commit log for "
                        "transaction [%s], lsn [%llu], rc: %d",
-                       dpsTransIDToString( transID ).c_str(),
+                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                        lsn.offset, rc ) ;
                goto error ;
             }

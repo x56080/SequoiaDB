@@ -3099,11 +3099,13 @@ namespace engine
             {
                if ( CLS_FREEZING_CHECKER_TRANS == result._step )
                {
+                  CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                   PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
                           "Waiting for other [%u] transactions to finish, "
                           "e.g. [%s]", sessionName(), _ntyOverTime,
                           result._blockTransNum,
-                          dpsTransIDToString( result._blockTransID ).c_str() ) ;
+                          dpsTransIDToString( result._blockTransID,
+                                              strTransID, DPS_TRANS_STR_LEN ) ) ;
                }
                else if ( CLS_FREEZING_CHECKER_CTX == result._step )
                {

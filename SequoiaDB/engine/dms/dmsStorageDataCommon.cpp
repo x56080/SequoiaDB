@@ -4083,12 +4083,13 @@ namespace engine
             context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
 
 #if defined (_DEBUG)
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
                     "in collection [%s.%s] to rollback transaction [%s]",
                     foundRID._extent, foundRID._offset,
                     getSuName(), context->mb()->_collectionName,
-                    dpsTransIDToString(
-                          DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str() ) ;
+                    dpsTransIDToString( DPS_TRANS_GET_ID( cb->getTransID() ),
+                                        strTransID, DPS_TRANS_STR_LEN ) ) ;
 #endif
          }
          else

@@ -610,7 +610,7 @@ namespace engine
          {
             try
             {
-               txWaiterLRBSet.insert( waitInfo );      
+               txWaiterLRBSet.insert( waitInfo );
             }
             catch ( std::exception & e )
             {
@@ -1590,11 +1590,12 @@ namespace engine
       if ( !canSelfIncomp && NULL != cb && cb->isTransaction() )
       {
          DPS_TRANS_ID selfTransID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_CHECK( 0 == incompTrans.count( selfTransID ),
                    SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST, error, PDERROR,
                    "Failed to get incompatible transactions, "
                    "self [%s] is incompatible with lock mode [%s]",
-                   dpsTransIDToString( selfTransID ).c_str(),
+                   dpsTransIDToString( selfTransID, strTransID, DPS_TRANS_STR_LEN ),
                    lockModeToString( lockMode ) ) ;
       }
 
@@ -1664,12 +1665,14 @@ namespace engine
          rc = cb->checkLogSpace( length, rblength ) ;
          if ( SDB_OK != rc )
          {
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             _reservedRBSpace.sub( rblength ) ;
             _reservedSpace.sub( length ) ;
 
             PD_LOG( PDERROR, "Failed to check log space for "
                     "transaction [%s], rc: %d",
-                    dpsTransIDToString( cb->getTransID() ).c_str(), rc ) ;
+                    dpsTransIDToString( cb->getTransID(),
+                                        strTransID, DPS_TRANS_STR_LEN ), rc ) ;
 
             goto error ;
          }
@@ -1700,11 +1703,12 @@ namespace engine
             if ( _reservedRBSpace.fetch() < (UINT64)length ||
                  cb->getReservedSpace() < (UINT64)length )
             {
+               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG( PDWARNING, "Reserved log space is not enough "
                        "for rollback transaction [%s], total reserved [%llu], "
                        "cb reserved [%llu], need [%u]",
-                       dpsTransIDToString(
-                             DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str(),
+                       dpsTransIDToString( DPS_TRANS_GET_ID( cb->getTransID() ),
+                                           strTransID, DPS_TRANS_STR_LEN ),
                        _reservedRBSpace.fetch(), cb->getReservedSpace(),
                        length ) ;
             }

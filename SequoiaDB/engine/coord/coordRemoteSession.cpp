@@ -413,6 +413,8 @@ namespace engine
          }
          else
          {
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+            CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             /// alloc trans id
             transID = pTransCB->allocTransID( isAutoCommit ) ;
             /// clear first op
@@ -425,8 +427,8 @@ namespace engine
             _writeTransNodeNum = 0 ;
 
             PD_LOG( PDINFO, "Begin transaction(ID:%s, IDAttr:%s)",
-                    dpsTransIDToString( transID ).c_str(),
-                    dpsTransIDAttrToString( transID ).c_str() ) ;
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
          }
       }
 

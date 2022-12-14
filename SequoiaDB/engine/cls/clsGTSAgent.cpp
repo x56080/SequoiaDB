@@ -79,6 +79,8 @@ namespace engine
       TRANS_MAP tmpTransMap ;
       TRANS_MAP::iterator it ;
       BOOLEAN isStoped = FALSE ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       while ( TRUE )
       {
@@ -109,8 +111,9 @@ namespace engine
          if ( DPS_TRANS_DOING == transInfo._status )
          {
             PD_LOG( PDDEBUG, "Transaction(ID:%s, IDAttr:%s) is doing, "
-                    "need interrupt", dpsTransIDToString( transID ).c_str(),
-                    dpsTransIDAttrToString( transID ).c_str() ) ;
+                    "need interrupt",
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
             pTransCB->updateTransStatus( transID, DPS_TRANS_DOING_INTERRUPT ) ;
          }
          ++ it ;
@@ -128,8 +131,8 @@ namespace engine
               DPS_INVALID_LSN_OFFSET != transInfo._lsn )
          {
             PD_LOG( PDWARNING, "Transaction(ID:%s, IDAttr:%s) is in-doubt",
-                    dpsTransIDToString( transID ).c_str(),
-                    dpsTransIDAttrToString( transID ).c_str() ) ;
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
 
             rc = _syncCheckTransStatus( transID, transInfo._lsn, status ) ;
             if ( SDB_OK == rc && DPS_TRANS_COMMIT == status )
@@ -238,6 +241,7 @@ namespace engine
       MsgOpReply *pReply = NULL ;
       const UINT32 maxRetryTimes = 3 ;
       UINT32 retryTimes = 0 ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       checkMsg.transID = transID ;
 
@@ -295,8 +299,8 @@ namespace engine
          }
          else if ( rc )
          {
-            PD_LOG( PDERROR, "Check trans(%s) by node(%u,%u) failed, "
-                    "rc: %d", dpsTransIDToString( transID ).c_str(),
+            PD_LOG( PDERROR, "Check trans(%s) by node(%u,%u) failed, rc: %d",
+                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                     group, pReply->header.routeID.columns.nodeID, rc ) ;
             goto error ;
          }
@@ -311,7 +315,8 @@ namespace engine
                status = ( DPS_TRANS_STATUS )e.numberInt() ;
 
                PD_LOG( PDEVENT, "Check trans(%s) by node(%u,%u) succeed["
-                       "Status:%s(%d)]", dpsTransIDToString( transID ).c_str(),
+                       "Status:%s(%d)]",
+                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                        group, pReply->header.routeID.columns.nodeID,
                        dpsTransStatusToString( status ), status ) ;
             }
@@ -413,6 +418,7 @@ namespace engine
       UINT8 attr = DPS_TS_COMMIT_ATTR_SND ;
 
       DPS_LSN_OFFSET firstLsn = DPS_INVALID_LSN_OFFSET ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
@@ -425,7 +431,7 @@ namespace engine
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDEVENT, "Execute commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( transID ).c_str(),
+              dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
               lastLsn ) ;
 
       rc = dpsTransCommit2Record( transID, lastLsn, firstLsn,
