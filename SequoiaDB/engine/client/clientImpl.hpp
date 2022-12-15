@@ -655,6 +655,8 @@ namespace sdbclient
          return getDetail ( &cursor.pCursor ) ;
       }
 
+      INT32 getCollectionStat ( bson::BSONObj &result ) ;
+
       INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result,
                            BOOLEAN detail = FALSE ) ;
 

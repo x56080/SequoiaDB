@@ -3516,6 +3516,17 @@ SDB_EXPORT INT32 sdbCLSetAttributes ( sdbCollectionHandle cHandle,
 SDB_EXPORT INT32 sdbCLGetDetail ( sdbCollectionHandle cHandle,
                                   sdbCursorHandle *handle ) ;
 
+/** \fn INT32 sdbCLGetCollectionStat ( sdbCollectionHandle cHandle,
+                                       bson *result ) ;
+    \brief Get the statistics of the collection.
+    \param [in] cHandle The collection handle
+    \param [out] result The statistics of collection
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCLGetCollectionStat ( sdbCollectionHandle cHandle,
+                                          bson *result ) ;
+
 /** \fn INT32 sdbCLGetIndexStat ( sdbCollectionHandle cHandle,
                                   const CHAR *pIndexName,
                                   bson *result )

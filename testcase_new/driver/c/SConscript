@@ -37,7 +37,7 @@ testFiles = [
    [ "./concurrent/concurrentCs.cpp" ],
    [ "./concurrent/concurrentCursor.cpp" ],
    [ "./concurrent/concurrentDomain.cpp" ],  # sync
-   [ "./concurrent/concurrentLob.cpp" ], 
+   [ "./concurrent/concurrentLob.cpp" ],
    [ "./concurrent/concurrentNode.cpp" ], # sync
    [ "./concurrent/concurrentRg.cpp" ], # sync
    [ "./concurrent/concurrentOidGen.cpp" ],
@@ -143,6 +143,7 @@ testFiles = [
    [ "./list/list26398.cpp" ],
    [ "./crud/query10404.cpp" ],
    [ "./cls/getCLDetail22183.cpp" ],
+   [ "./cls/getCollectionStat1.cpp" ],
    [ "./misc/snapshotIndexStat22498.cpp" ],
    [ "./list/listTest.cpp" ],
    [ "./meta/getDomainName25084.cpp" ],

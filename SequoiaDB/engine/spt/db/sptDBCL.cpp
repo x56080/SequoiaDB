@@ -94,6 +94,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, setAttributes )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getDetail )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getIndexStat )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, getCollectionStat )
 
    JS_BEGIN_MAPPING( _sptDBCL, SPT_CL_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -142,6 +143,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "truncateLob", truncateLob )
       JS_ADD_MEMBER_FUNC( "getDetail", getDetail )
       JS_ADD_MEMBER_FUNC( "getIndexStat", getIndexStat )
+      JS_ADD_MEMBER_FUNC( "getCollectionStat", getCollectionStat )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBCL::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBCL::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBCL::bsonToJSObj )
@@ -2918,6 +2920,27 @@ namespace engine
          goto error ;
       }
       rval.getReturnVal().setValue( result ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::getCollectionStat( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail)
+   {
+      INT32 rc = SDB_OK ;
+      bson::BSONObj result ;
+
+      rc = _cl.getCollectionStat( result ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get collection stat" ) ;
+         goto error ;
+      }
+      rval.getReturnVal().setValue( result ) ;
+
    done:
       return rc ;
    error:

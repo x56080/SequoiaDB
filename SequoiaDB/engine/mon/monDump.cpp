@@ -86,6 +86,10 @@ namespace engine
    #define MON_CL_DETAIL_VERSION_V2 ( 2 )
    #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V2
 
+   #define MON_CL_STAT_VERSION_NULL ( 0 )
+   #define MON_CL_STAT_VERSION_V1 ( 1 )
+   #define MON_CL_STAT_CURRENT_V MON_CL_STAT_VERSION_V1
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONGETNODENAME, "monGetNodeName" )
    static CHAR *monGetNodeName ( CHAR *nodeName,
                                  UINT32 size,
@@ -2442,7 +2446,329 @@ namespace engine
       goto done ;
    }
 
-   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
+   INT32 monCollectionStatInfo2Obj( dmsCollectionStat *collectionStat,
+                                    const CHAR *clFullName,
+                                    BOOLEAN isDefault,
+                                    BOOLEAN isExpired, 
+                                    BSONObj &infoObj )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      CHAR timeStampStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = {};
+
+      infoObj = BSONObj() ;
+      if ( NULL == collectionStat ||
+           NULL == clFullName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         UINT64 timestamp = collectionStat->getCreateTime() ;
+         ossTimestamp tm( timestamp ) ;
+         ossTimestampToString( tm, timeStampStr ) ;
+         builder.append( FIELD_NAME_COLLECTION, clFullName ) ;
+         builder.append( FIELD_NAME_INTERNAL_VERSION, MON_CL_STAT_CURRENT_V ) ;
+         builder.append( FIELD_NAME_STAT_TIMESTAMP, timeStampStr )  ;
+         builder.appendBool( FIELD_NAME_IS_DEFAULT, isDefault ) ;
+         builder.appendBool( FIELD_NAME_IS_EXPIRED, isExpired ) ;
+         builder.append( FIELD_NAME_AVGNUM_FIELDS, collectionStat->getAvgNumFields()  ) ;
+         builder.append( FIELD_NAME_SAMPLE_RECORDS, (INT64)collectionStat->getSampleRecords() ) ;
+         builder.append( FIELD_NAME_TOTAL_RECORDS,  (INT64)collectionStat->getTotalRecords() ) ;
+         builder.append( FIELD_NAME_TOTAL_DATA_PAGES, (INT64)collectionStat->getTotalDataPages() ) ;
+         builder.append( FIELD_NAME_TOTAL_DATA_SIZE, (INT64)collectionStat->getTotalDataSize() ) ;
+
+         infoObj = builder.obj() ;
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "append bson object failed, rc:%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 monCollectionStatInfo2Obj( const collectionStatInfo &collectionStat,
+                                    BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         builder.reset() ;
+         if ( !collectionStat.inited() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         builder.append( FIELD_NAME_COLLECTION, collectionStat._collection ) ;
+         builder.append ( FIELD_NAME_INTERNAL_VERSION, MON_CL_STAT_CURRENT_V ) ;
+         builder.append( FIELD_NAME_STAT_TIMESTAMP, collectionStat._statTimestamp )  ;
+         builder.appendBool( FIELD_NAME_IS_DEFAULT, collectionStat._isDefault ) ;
+         builder.appendBool( FIELD_NAME_IS_EXPIRED, collectionStat._isExpired ) ;
+         builder.append( FIELD_NAME_AVGNUM_FIELDS, (INT64)collectionStat._avgNumFields  ) ;
+         builder.append( FIELD_NAME_SAMPLE_RECORDS, (INT64)collectionStat._sampleRecords ) ;
+         builder.append( FIELD_NAME_TOTAL_RECORDS, (INT64)collectionStat._totalRecords ) ;
+         builder.append( FIELD_NAME_TOTAL_DATA_PAGES, (INT64)collectionStat._totalDataPages ) ;
+         builder.append( FIELD_NAME_TOTAL_DATA_SIZE, (INT64)collectionStat._totalDataSize ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build a collectionStat BSON object" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _monCheckCollectionStatObj( const BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( !obj.isEmpty(), "can not be empty" ) ;
+      try
+      {
+         BSONObjIterator iter( obj ) ;
+
+         // collection
+         BSONElement ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_COLLECTION) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // internal version
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // statTimestamp
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_STAT_TIMESTAMP ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // isDefault
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_IS_DEFAULT ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // isExpired
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_IS_EXPIRED ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // avgNumFields
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_AVGNUM_FIELDS ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // sampleRecords
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_SAMPLE_RECORDS ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // totalRecords
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_RECORDS ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // totalDataPages
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_PAGES ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+         // totalDataSize
+         ele = iter.next() ;
+         if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_SIZE ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid field name[%s]", ele.fieldName() ) ;
+            goto error ;
+         }
+
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to parse stat obj, exception: %s", e.what() ) ;
+         goto error ;
+      } 
+   
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _monCollectionStatObj2InfoV1( const BSONObj &obj, collectionStatInfo &statInfo )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( !obj.isEmpty(), "can not be empty" ) ;
+      statInfo.reset() ;
+
+      #if defined( _DEBUG )
+         rc = _monCheckCollectionStatObj( obj ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Invalid collection stat bson object, rc:%d", rc ) ;
+            goto error ;
+         }
+      #endif
+
+      try
+      {
+         BSONObjIterator iter( obj ) ;
+         // collection
+         BSONElement ele = iter.next() ;
+         ossStrncpy( statInfo._collection, ele.valuestr(), sizeof( statInfo._collection ) - 1 ) ;
+
+         // internal version
+         ele = iter.next() ;
+         SDB_ASSERT( MON_CL_STAT_VERSION_V1 == ele.numberInt(), "invalid internal version" ) ;
+
+         // statTimestamp
+         ele = iter.next() ;
+         ossStrncpy( statInfo._statTimestamp, ele.valuestr(),
+                     sizeof( statInfo._statTimestamp ) - 1 ) ;
+
+         // isDefault
+         ele = iter.next() ;
+         statInfo._isDefault = ele.boolean() ;
+
+         // isExpired
+         ele = iter.next() ;
+         statInfo._isExpired = ele.boolean() ;
+
+         // avgNumFields
+         ele = iter.next() ;
+         statInfo._avgNumFields = ele.numberLong() ;
+
+         // sampleRecords
+         ele = iter.next() ;
+         statInfo._sampleRecords = ele.numberLong() ;
+
+         // totalRecords
+         ele = iter.next() ;
+         statInfo._totalRecords = ele.numberLong() ;
+
+         // totalDataPages
+         ele = iter.next() ;
+         statInfo._totalDataPages = ele.numberLong() ;
+
+         // totalDataSize
+         ele = iter.next() ;
+         statInfo._totalDataSize = ele.numberLong() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to parse stat obj, exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      statInfo.reset() ;
+      goto done ;
+   }
+     
+   INT32 monCollectionStatObj2Info( const BSONObj &obj, collectionStatInfo &statInfo )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 internalVersion = MON_CL_STAT_VERSION_NULL ;
+
+      statInfo.reset() ;
+      if ( obj.isEmpty() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONElement ele = obj.getField( FIELD_NAME_INTERNAL_VERSION ) ;
+         if ( ele.isNumber() )
+         {
+            internalVersion = ele.numberInt() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Get cl stat internal version failed, exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      if ( MON_CL_STAT_VERSION_NULL == internalVersion )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid collection stat internal version" ) ;
+         goto error ;
+      }
+      else if ( MON_CL_STAT_VERSION_V1 == internalVersion )
+      {
+         rc = _monCollectionStatObj2InfoV1( obj, statInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Parse cl stat bson obj to info failed, rc:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      statInfo.reset() ;
+      goto done ;
+   }
+
+   INT32 monBuildIndexStatResult( BSONObj &stat, UINT32 addInfoMask,
                              BSONObjBuilder &ob, BOOLEAN detail )
    {
       // Modify the following places to the original record:
@@ -2614,7 +2940,7 @@ namespace engine
 
             // Count the distinct values.
             SDB_ASSERT( keyFieldNum > 0, "Field num must exist here" ) ;
-            distinctValNum = (INT64 *) SDB_POOL_ALLOC( keyFieldNum * sizeof( INT64 ) ) ;
+            distinctValNum = ( INT64 *) SDB_POOL_ALLOC( keyFieldNum * sizeof( INT64 ) ) ;
             if ( !distinctValNum )
             {
                rc = SDB_OOM ;
@@ -6014,7 +6340,7 @@ namespace engine
             _builder.reset();
             BSONObjBuilder ob( _builder ) ;
 
-            rc = monBuildStatResult( stat, _addInfoMask, ob ) ;
+            rc = monBuildIndexStatResult( stat, _addInfoMask, ob ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to build statistics result, rc: %d", rc ) ;
             obj = ob.done() ;

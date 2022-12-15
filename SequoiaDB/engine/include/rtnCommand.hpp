@@ -780,6 +780,17 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () ;
    };
 
+   class _rtnGetCollectionStat : public _rtnGet
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnGetCollectionStat () ;
+         virtual ~_rtnGetCollectionStat () ;
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+   };
+
    class _rtnGetIndexStat : public _rtnGet
    {
       DECLARE_CMD_AUTO_REGISTER()

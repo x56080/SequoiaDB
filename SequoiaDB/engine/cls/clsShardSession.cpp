@@ -4437,6 +4437,7 @@ namespace engine
       case CMD_GET_COUNT:
       case CMD_LIST_LOB:
       case CMD_GET_CL_DETAIL:
+      case CMD_GET_CL_STAT:
       case CMD_GET_INDEX_STAT:
       case CMD_SNAPSHOT_INDEXES :
          rc = _getOnMainCL( pCommandName, pCommand->collectionFullName(),

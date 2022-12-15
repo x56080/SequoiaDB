@@ -132,8 +132,20 @@ namespace engine
    INT32 monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
                              BSONObjBuilder &ob ) ;
 
-   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
-                             BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
+   INT32 monCollectionStatInfo2Obj( const collectionStatInfo &collectionStat,
+                                    BSONObjBuilder &builder ) ;
+   
+   INT32 monCollectionStatInfo2Obj( dmsCollectionStat *collectionStat,
+                                    const CHAR *clFullName,
+                                    BOOLEAN isDefault,
+                                    BOOLEAN isExpired, 
+                                    BSONObj &infoObj ) ;
+
+   INT32 monCollectionStatObj2Info( const BSONObj &obj,
+                                    collectionStatInfo &info ) ;
+
+   INT32 monBuildIndexStatResult( BSONObj &stat, UINT32 addInfoMask,
+                                  BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
 
    /*
       _monTransFetcher define
