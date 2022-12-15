@@ -3,6 +3,7 @@
 # define test root path
 storyTestRoot="testcase_new/story/js"
 sdvTestRoot="testcase_new/sdv/js"
+storyATTestRoot="testcase_new/story_at/js"
 testRoots=($storyTestRoot)
 
 libRoot="testcase_new/story/js/lib"
@@ -49,7 +50,7 @@ failedNum=0
 useTime=0
 beginTime=0
 endTime=0
-beginTimeSec=0  
+beginTimeSec=0
 endTimeSec=0
 testcaseBTimeSec=0
 testcaseETimeSec=0
@@ -72,7 +73,10 @@ function showHelpInfo()
    echo ""
    echo " -p path        : 运行指定路径下的JS用例。为相对目录，默认根目录为用例目录"
    echo " -f file        : 运行指定的JS用例。为相对目录，默认根目录为用例目录"
-   echo " -t type        : 运行指定类型的用例，可取story|sdv|all。当不指定-t-p-f时，默认跑基本用例；当不指定-t指定了-f|-p默认跑story"
+   echo -e " -t type        : 运行指定类型的用例，可取story|story_at|sdv|dev|all\n"\
+           "                  - story：功能测试用例；story_at：功能验收用例；sdv：系统设计验证用例\n"\
+           "                  - 指定 dev 会运行 story 及 story_at 用例，指定 all 会运行 story、story_at 及 sdv 用例\n"\
+           "                  - 当不指定-t-p-f时，默认跑基本用例；当不指定-t指定了-f|-p默认跑story"
    echo " -s stopFlag    : 发生用例错误是否停止，0表示继续，1表示停止，默认为1"
    echo " -n svcname     : 指定测试的COORD节点服务名，默认为50000"
    echo " -h hostname    : 指定测试的COORD节点HostName或IP"
@@ -94,7 +98,7 @@ function showHelpInfo()
 
 # print content to result.txt
 # $1：the content
-function printToResultFile() 
+function printToResultFile()
 {
    echo "$1" >> ${reportDirRoot}/result.txt
 }
@@ -102,28 +106,28 @@ function printToResultFile()
 function showResult()
 {
    local flag=$1
-   
+
    echo "***********************************************************"
    echo "                    ***test result*** "
    echo " begin time: $beginTime"
    echo " end time  : $endTime"
    echo " use time  : `expr $endTimeSec - $beginTimeSec`(secs)"
    echo " total     : `expr $sucNum + $failedNum`"
-   
+
    echo -n " succeed   :"
    if [ $flag -ne 0 ] ; then
       echo -e "\033[32;49;1m $sucNum \033[39;49;0m"
    else
       echo " $sucNum"
    fi
-   
+
    echo -n " failed    :"
    if [ $failedNum -ne 0 -a $1 -ne 0 ] ; then
       echo -e "\033[31;49;1m $failedNum \033[39;49;0m"
    else
       echo " $failedNum"
    fi
-   
+
    echo "***********************************************************"
 }
 
@@ -132,7 +136,7 @@ function showResult()
 function runJSFile()
 {
    local file=$1
-   
+
    result=0
    lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var REMOTEUSER='${remoteuser}';var REMOTEPASSWD='${remotepasswd}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var DSSVCNAME='${dssvcname}'; var DSHOSTNAME='${dshostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
 #   runresult=0
@@ -142,10 +146,10 @@ function runJSFile()
       result=$?
    else
       if [ ! -d $shortDir ] ; then
-         mkdir -p $shortDir   
+         mkdir -p $shortDir
       fi
       echo "CMD: $lastCmdStr" >> ${printOutFile}
-      eval $lastCmdStr >> ${printOutFile}  
+      eval $lastCmdStr >> ${printOutFile}
       result=$?
    fi
    return $result ;
@@ -154,24 +158,24 @@ function runJSFile()
 # process a js testcase
 function procJSFile()
 {
-   local file=$1    
+   local file=$1
    local testRoot=$2
 
-   
-   shortFile="${file#$testRoot/}"   
-   shortDir="${shortFile%/*}"       
-   
-   if [ "${shortDir:0:1}" == "/" ] ; then  
+
+   shortFile="${file#$testRoot/}"
+   shortDir="${shortFile%/*}"
+
+   if [ "${shortDir:0:1}" == "/" ] ; then
       shortDir=""
    fi
-   
-   shortDir=${reportDir}"/"${shortDir} 
-   printOutFile=${reportDir}"/"${shortFile}"_out.txt" 
 
-   
+   shortDir=${reportDir}"/"${shortDir}
+   printOutFile=${reportDir}"/"${shortFile}"_out.txt"
+
+
    postfix="${file##*.}"
    if [ "$postfix" != "js" ] ; then
-      return 1  
+      return 1
    fi
 
    libJSStr="${file%/*}"
@@ -182,7 +186,7 @@ function procJSFile()
          testFile=${file}
    fi
 
-   if [ $printOut -eq 1 ] ; then 
+   if [ $printOut -eq 1 ] ; then
       echo "===>[$shortFile]"
    else
       #echo -n "$shortFile   "
@@ -197,13 +201,13 @@ function procJSFile()
    runJSFile "$testFile"
    ret=$?
    # ret == 0 ? runresult : ret
-   runresult=$([ $ret == 0 ] && echo "${runresult}" || echo "${ret}" ) 
+   runresult=$([ $ret == 0 ] && echo "${runresult}" || echo "${ret}" )
    $sdbRoot/sdb -s "try{ db.msg('End testcase[$file]') ; } catch( e ) {} "
    testcaseETimeSec=`date +%s`
    if [ $printOut -eq 1 ] ; then
       echo -n "<===[$shortFile]"
    fi
-   
+
    if [ $ret -ne 0 ]
    then
       failedNum=`expr $failedNum + 1`
@@ -217,20 +221,20 @@ function procJSFile()
       echo -e "\033[32;49;1m [ Done:$sucNum ] `expr $testcaseETimeSec - $testcaseBTimeSec`(s) \033[39;49;0m"
    fi
 
-   # run clear for testcase  
+   # run clear for testcase
    if [ $ret -ne 0 -a $stopWhenFailed -ne 0 ] ; then
    #  runresult=$ret
       #runJSFile "${libRoot}/after_usecase.js"
       return 2
    fi
-   
+
    #  runresult=0
    #runJSFile "${libRoot}/after_usecase.js"
 
    if [ $printOut -eq 1 ] ; then
       echo ""
    fi
-   
+
    return 0
 }
 
@@ -238,7 +242,7 @@ function procJSFile()
 function procBasicTestCase()
 {
    local testRoot=$2
-   
+
    if [ $needExit -eq 1 ]
    then
       return
@@ -251,7 +255,7 @@ function procBasicTestCase()
             return;
          fi
       done
-      
+
       if [  -f "$1/basic_testcases.list" ]
       then
          IFS=,
@@ -266,13 +270,13 @@ function procBasicTestCase()
                if [ $retCode -eq 2 ]
                then
                  needExit=1
-                 break; 
+                 break;
                fi
             fi
          done
          return;
       fi
-   
+
       #if [ -f "$1/basic.txt" ];then
       #   while read line
       #   do
@@ -282,7 +286,7 @@ function procBasicTestCase()
       #   done < "$1/basic.txt"
       #   return
       #fi
-      
+
       for cur in `ls -l $1 |awk '{print $9}'`
       do
          procBasicTestCase "$1/$cur" $testRoot
@@ -322,7 +326,7 @@ function analyPara()
                          ;;
          -c )            shift
                          catasvcname="$1"
-                         ;;                
+                         ;;
          -s1)            shift
                          rsrvportbegin="$1"
                          ;;
@@ -338,8 +342,8 @@ function analyPara()
          -sp )           shift
                          rsrvnodedir="$1"
                          ;;
-         -t )            shift   
-                         testType="$1"              
+         -t )            shift
+                         testType="$1"
                          ;;
          -eh )           shift
                          eshostname="$1"
@@ -363,7 +367,7 @@ function analyPara()
                          ;;
       esac
    shift
-   done     
+   done
 }
 
 function analyTestType()
@@ -375,24 +379,32 @@ function analyTestType()
       sdv )    testRoots[0]=$sdvTestRoot
                runAllTest=1
                ;;
-      all )    testRoots[0]=$storyTestRoot
-               testRoots[1]=$sdvTestRoot
+      story_at )testRoots[0]=$storyATTestRoot
                runAllTest=1
                ;;
-      basic )  
+      dev )    testRoots[0]=$storyTestRoot
+               testRoots[1]=$storyATTestRoot
+               runAllTest=1
+               ;;
+      all )    testRoots[0]=$storyTestRoot
+               testRoots[1]=$sdvTestRoot
+               testRoots[2]=$storyATTestRoot
+               runAllTest=1
+               ;;
+      basic )
                runAllTest=0
                ;;
       * )      echo "invalid testType: $testType"
                showHelpInfo 1
                ;;
-   esac                                    
+   esac
 }
 
 function filterTestcase()
-{  
+{
    local testRoot=$1
    pathLists=(`sed -n '2,7p' $testRoot/testcase.conf |awk -F '=' '{print $2}'`)
-   for pathList in ${pathLists[@]} 
+   for pathList in ${pathLists[@]}
    do
       path2Space=${pathList//,/ }
       for path in $path2Space
@@ -401,44 +413,44 @@ function filterTestcase()
       done
    done
 }
-   
+
 function generateFindCmd()
-{  
+{
    local testRoot=$1
-   testDir=$testRoot 
-   
-   if [ "$passDir" != "" ]; then   
+   testDir=$testRoot
+
+   if [ "$passDir" != "" ]; then
       if [ ${passDir:0:1} = "/" ] ; then
          testDir="$passDir"
       else
-         testDir="$testRoot/$passDir"        
+         testDir="$testRoot/$passDir"
       fi
-   fi 
-   
-   if [ "$passFile" != "" ]; then   
+   fi
+
+   if [ "$passFile" != "" ]; then
       if [ ${passFile:0:1} = "/" ] ; then
          testFile="$passFile"
       else
          testFile="$testRoot/$passFile"
       fi
    fi
-   
+
    if [ "$testFile" != "" ] ; then
       testDir="$testFile"
       unset ignoredFiles
    fi
-   
+
    if [ "$testDir" != "$testRoot" ] ; then
       unset ignoredPaths
-   fi 
-   
+   fi
+
    # construct exclude dirs and exclude files
    pathString=""
    fileString=""
    findCmdStr="find $testDir "
    beginPrefix=""
    endPrefix=""
-   
+
    if [ $runAllTest -eq 1 -o $specificDirorFile -eq 1 ]
    then
       for data in ${ignoredPaths[@]}
@@ -450,7 +462,7 @@ function generateFindCmd()
          beginPrefix=" "
          endPrefix=" -prune -o  "
       done
-   
+
       for data in ${ignoredFiles[@]}
       do
          if [ "$fileString" != "" -o "$pathString" != "" ] ; then
@@ -460,23 +472,23 @@ function generateFindCmd()
          beginPrefix=" "
          endPrefix=" -prune -o "
       done
-   
+
       # construct find command
       if [ "$pathString" != "" -o "$fileString" != "" ] ; then
          findCmdStr=${findCmdStr}${beginPrefix}"\( "${pathString}${fileString}" \)"${endPrefix}"-type f -print"
       else
          findCmdStr=${findCmdStr}${beginPrefix}${endPrefix}"-type f -print"
       fi
-      
-      echo "Find command  : $findCmdStr"      
-   else #basic   
-      echo "Exec command  : ls $testDir/*/basic_testcases.list" 
+
+      echo "Find command  : $findCmdStr"
+   else #basic
+      echo "Exec command  : ls $testDir/*/basic_testcases.list"
    fi
 }
 
 # remove all reports in "local_test_report"
 function removeReport()
-{       
+{
    if [ -d $reportDirRoot ] ; then
       rm -rf $reportDirRoot/
    fi
@@ -487,14 +499,17 @@ function mainRun()
 {
    local findCmdStr=$1
    local testRoot=$2
-   
+   local beforeModuleFileName="before_module.js"
+   local afterModuleFileName="after_module.js"
+   local moduleReportDir=""
+
    libJSStr=""
    postfix=""
    testFile=""
    shortFile=""
    printOutFile=""
    shortDir=""
-   
+
    # create msg db connection
    $sdbRoot/sdb -s "try { var db = new Sdb('${coordhostname}', '${coordsvcname}' ) } catch( e ) {} "
 
@@ -506,28 +521,78 @@ function mainRun()
    printToResultFile "-----------------------------------------------"
    printToResultFile ""
    fi
-   
-   # run all test-cases 
-   if [ $runAllTest -eq 1 -o $specificDirorFile -eq 1 ] 
+
+   local lastPath=""
+   local needModuleCleanup=false
+   # run all test-cases
+   if [ $runAllTest -eq 1 -o $specificDirorFile -eq 1 ]
    then
-   for file in `eval $findCmdStr`
-   do
-      procJSFile $file $testRoot
-      retCode=$?
-      if [ $retCode -eq 1 ]
+      for file in `eval $findCmdStr | sort`
+      do
+         # Skip the module prepare/cleanup files.
+         fileName=`basename $file`
+         if [ $fileName == $beforeModuleFileName ] || [ $fileName == $afterModuleFileName ]
+         then
+            continue
+         fi
+         testPath=`dirname $file`
+         # Do module prepare when entering a new test directory
+         if [ "$testPath" != "$lastPath" ]
+         then
+            # Do cleanup of last module
+            if [ -n "$lastPath" ] && [ -f "$afterModuleFile" ]
+            then
+               printOutFile=${moduleReportDir}"/after_module_out.txt"
+               runJSFile "${afterModuleFile}"
+               needModuleCleanup=false
+            fi
+
+            parentDir=`basename $testPath`
+            moduleReportDir=${reportDir}"/"${parentDir}
+            beforeModuleFile=${testPath}"/"${beforeModuleFileName}
+            afterModuleFile=${testPath}"/"${afterModuleFileName}
+            # Create the module report directory if it dose not exist
+            if [ ! -d "$moduleReportDir" ]
+            then
+               mkdir ${moduleReportDir}
+            fi
+
+            if [ -f $beforeModuleFile ]
+            then
+               printOutFile="${moduleReportDir}/before_module_out.txt"
+               runJSFile "${beforeModuleFile}"
+               needModuleCleanup=true
+            fi
+            lastPath=$testPath
+         fi
+
+         procJSFile $file $testRoot
+         retCode=$?
+         if [ $retCode -eq 1 ]
+         then
+            continue
+         elif [ $retCode -eq 2 ]
+         then
+            break
+         fi
+      done
+
+      if [ "$needModuleCleanup" = true ] && [ -n "$lastPath" ]
       then
-         continue
-      elif [ $retCode -eq 2 ]
-      then
-         break
-      fi      
-   done
+         # Do cleanup of last module
+         afterModuleFile=${lastPath}"/"${afterModuleFileName}
+         if [ -f "$afterModuleFile" ]
+         then
+            printOutFile=${moduleReportDir}"/after_module_out.txt"
+            runJSFile "${afterModuleFile}"
+            needModuleCleanup=false
+         fi
+      fi
    else
-   
-   procBasicTestCase $testDir $testRoot
+      procBasicTestCase $testDir $testRoot
    fi
 
-   
+
    # after all test-cases clear
    printStr="$(runJSFile "${libRoot}/all_clean.js" 0)"
    if [ "$printStr" != "" ] ; then
@@ -536,7 +601,7 @@ function mainRun()
    printToResultFile "$printStr"
    printToResultFile "--------------------------------------------------------"
    fi
-   
+
    # destory db connection
    $sdbRoot/sdb -s "try { db.close() ; } catch( e ) {} "
 }
@@ -567,14 +632,14 @@ echo "RSRVNODEDIR   : $rsrvnodedir"
 echo "REMOTEUSER    : $remoteuser"
 echo "SDBADMINPWD   : $remotepasswd"
 
-# generate command of find test files, and print 
+# generate command of find test files, and print
 declare -a findCmds                         #define findCmds as array
 for testRoot in ${testRoots[@]}
-do 
+do
    unset ignoredPaths
    filterTestcase $testRoot
    generateFindCmd $testRoot
-   findCmds[${#findCmds[@]}]="$findCmdStr"  #add element in tail of array    
+   findCmds[${#findCmds[@]}]="$findCmdStr"  #add element in tail of array
 done
 echo "**************************************************************************************"
 
@@ -594,16 +659,20 @@ do
                         tmpType="sdv"
                         mkdir ${reportDir}
                         ;;
-   esac  
+      $storyATTestRoot )reportDir="${reportDirRoot}/story_at"
+                        tmpType="story_at"
+                        mkdir ${reportDir}
+                        ;;
+   esac
    echo -e "\e[46;31m ======>Begin to test $tmpType   =====> \e[0m"      #print bule font
-                                                                
-   mainRun "${findCmds[i]}" ${testRoots[i]}  
+
+   mainRun "${findCmds[i]}" ${testRoots[i]}
 done
 
 endTime=`date`
 endTimeSec=`date +%s`
 echo -e "\e[46;31m <======Finish test all testcases<===== \e[0m"
-                   
+
 # show result to screen and file "result.txt"
 showResult 1
 printToResultFile ""
