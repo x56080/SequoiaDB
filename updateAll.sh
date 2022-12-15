@@ -267,7 +267,7 @@ function autoTest()
    if [ $runAll -eq 0 ]; then
       ./runtest.sh -s 0
    else
-      ./runtest.sh -s 0 -t story
+      ./runtest.sh -s 0 -t dev
    fi
    echo "=============================End test usecases================================="
 }
