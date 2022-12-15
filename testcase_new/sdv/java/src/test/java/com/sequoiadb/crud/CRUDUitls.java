@@ -120,7 +120,7 @@ public class CRUDUitls {
          * @param str
          *            排序字段
          */
-        OrderBy( String str ) {
+        public OrderBy( String str ) {
             this.str = str;
         }
 
