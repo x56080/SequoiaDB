@@ -4,9 +4,9 @@ traceOn - 开启数据库引擎跟踪功能
 
 ##语法##
 
-**db.traceOn( \<bufferSize\>, [strComp], [strBreakPoint], [tids] )**
+**db.traceOn(\<bufferSize\>, [strComp], [strBreakPoint], [tids])**
 
-**db.traceOn( \<bufferSize\>, [SdbTraceOption] )**
+**db.traceOn(\<bufferSize\>, [SdbTraceOption])**
 
 ##类别##
 
@@ -53,24 +53,25 @@ v1.0 及以上版本
 * 开启数据库引擎程序跟踪的功能
 
     ```lang-javascript
-    > db.traceOn( 256 )
+    > db.traceOn(1000)
     ```
 
-   > **Note:**
-   >
-   > db.traceOn() 只对 db 所连接的节点进行跟踪。
+    > **Note:**
+    >
+    > db.traceOn() 只对 db 所连接的节点进行跟踪。
 
-* 开启数据库引擎程序跟踪功能，并指定模块名称、断点和多个 tid 进行跟踪
+* 开启数据库引擎程序跟踪功能，并指定模块、断点和线程进行跟踪
 
-   ```lang-javascript
-   > db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )
-   ```
+    ```lang-javascript
+    > db.traceOn(1000, ["cls, dms, mth"], "_dmsTempSUMgr::init", [12712, 12713, 12714])
+    ```
 
-   也可以通过 SdbTraceOption 指定监控参数
-  
-   ```lang-javascript
-   > db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )
-   ```
+    也可以通过 SdbTraceOption 指定监控参数
+
+    ```lang-javascript
+    > var option = new SdbTraceOption().components(["cls", "dms", "mth"]).breakPoints("_dmsTempSUMgr::init").tids([12712, 12713, 12714])
+    > db.traceOn(1000, option)
+    ``` 
 
 * 查看当前程序跟踪的状态
 
@@ -78,9 +79,9 @@ v1.0 及以上版本
     > db.traceStatus()
     ```
 
-   > **Note:**
-   > 
-   > 可参考 [traceStatus()][traceStatus]
+    > **Note:**
+    > 
+    > 可参考 [traceStatus()][traceStatus]。
 
 * 当被跟踪的模块遇到断点被阻塞，可以执行如下语句唤醒被跟踪的模块：
 
@@ -88,9 +89,9 @@ v1.0 及以上版本
     > db.traceResume()
     ```
 
-   > **Note:**
-   >
-   > 可参考 [traceResume()][traceResume]
+    > **Note:**
+    >
+    > 可参考 [traceResume()][traceResume]。
 
 * 关闭数据库引擎跟踪，并将跟踪情况导出二进制文件 `/opt/sequoiadb/trace.dump`
 
@@ -98,9 +99,9 @@ v1.0 及以上版本
     > db.traceOff("/opt/sequoiadb/trace.dump")
     ```
 
-   > **Note:**
-   >
-   > 可参考 [traceOff()][traceOff]
+    > **Note:**
+    >
+    > 可参考 [traceOff()][traceOff]。
 
 * 解析二进制文件
 
@@ -108,9 +109,9 @@ v1.0 及以上版本
     > traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
     ```
 
-   > **Note:**
-   >
-   > 可参考 [traceFmt()][traceFmt] 
+    > **Note:**
+    >
+    > 可参考 [traceFmt()][traceFmt]。
 
 [^_^]:
     本文使用的所有引用和链接

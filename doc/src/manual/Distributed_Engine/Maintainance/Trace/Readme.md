@@ -15,9 +15,9 @@ trace 是 SequoiaDB 巨杉数据库提供的流程跟踪工具。
 
 通过学习本章，可以了解trace的基本概念和原理，熟悉trace的分析方法。本章内容如下：
 
-+ [trace 的原理][intro]
-+ [trace 的输出及格式化][dump_format]
-+ [trace 的分析方法][analyze]
++ [trace 原理][intro]
++ [trace 收集与格式化工具][dump_format]
++ [trace 分析方法][analyze]
 
 
 [^_^]:
