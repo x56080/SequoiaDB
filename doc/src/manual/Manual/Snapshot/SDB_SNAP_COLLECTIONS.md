@@ -10,18 +10,13 @@
     市场部：20190425
 
 
-集合快照： 
+集合快照可以列出当前集群中的集合信息。连接协调节点执行函数时，将列出所有非系统集合的信息；连接非协调节点执行函数时，将列出与当前节点关联的所有集合信息。
 
-- 连接非协调节点，列出所有集合（不含临时的集合）
-- 连接协调节点，列出所有集合（不含临时的集合和系统的集合）
-
-标识
-----
+##标识##
 
 SDB_SNAP_COLLECTIONS
 
-非协调节点字段信息
-----
+##非协调节点字段信息##
 
 | 字段名           | 类型      | 描述                              |
 | ---------------- | --------- | --------------------------------- |
@@ -88,8 +83,7 @@ SDB_SNAP_COLLECTIONS
 | Details.CreateTime | string | 创建集合的时间（仅在 v5.0.4 及以上版本生效） |
 | Details.UpdateTime | string | 更新集合元数据的时间（仅在 v5.0.4 及以上版本生效） |
 
-协调节点字段信息
-----
+##协调节点字段信息##
 
 | 字段名    | 类型      | 描述                               |
 | --------- | --------- | ---------------------------------- |
@@ -142,157 +136,156 @@ SDB_SNAP_COLLECTIONS
 | Details.UpdateTime | string | 更新集合元数据的时间（仅在 v5.0.4 及以上版本生效） |
 
 
-示例
-----
+##示例##
 
 - 通过非协调节点查看快照
 
-   ```lang-javascript
-   > db.snapshot( SDB_SNAP_COLLECTIONS )
-   ```
-   
-   输出结果如下：
-
-   ```lang-json
-   {
-     "Name": "sample.employee",
-     "UniqueID": 4294967297,
-     "CollectionSpace": "sample",
-     "Details": [
-       {
-         "NodeName": "hostname:11820",
-         "GroupName": "group1",
-         "InternalV": 2,
-         "ID": 0,
-         "LogicalID": 0,
-         "Sequence": 1,
-         "Indexes": 1,
-         "Status": "Normal",
-         "Attribute": "Compressed",
-         "CompressionType": "lzw",
-         "DictionaryCreated": false,
-         "DictionaryVersion": 0,
-         "PageSize": 65536,
-         "LobPageSize": 262144,
-         "TotalRecords": 0,
-         "TotalLobs": 1,
-         "TotalDataPages": 0,
-         "TotalIndexPages": 2,
-         "TotalLobPages": 1,
-         "TotalUsedLobSpace": 262144,
-         "UsedLobSpaceRatio": 0,
-         "TotalLobSize": 150,
-         "TotalValidLobSize": 150,
-         "LobUsageRate": 0,
-         "AvgLobSize": 150,
-         "TotalDataFreeSpace": 0,
-         "TotalIndexFreeSpace": 65515,
-         "CurrentCompressionRatio": 1,
-         "DataCommitLSN": 80,
-         "IndexCommitLSN": 80,
-         "LobCommitLSN": 164,
-         "DataCommitted": true,
-         "IndexCommitted": true,
-         "LobCommitted": true,
-         "TotalDataRead": 0,
-         "TotalIndexRead": 0,
-         "TotalDataWrite": 0,
-         "TotalIndexWrite": 0,
-         "TotalUpdate": 0,
-         "TotalDelete": 0,
-         "TotalInsert": 0,
-         "TotalSelect": 0,
-         "TotalRead": 0,
-         "TotalWrite": 0,
-         "TotalTbScan": 0,
-         "TotalIxScan": 0,
-         "TotalLobGet": 0,
-         "TotalLobPut": 1,
-         "TotalLobDelete": 0,
-         "TotalLobList": 0,
-         "TotalLobReadSize": 0,
-         "TotalLobWriteSize": 150,
-         "TotalLobRead": 0,
-         "TotalLobWrite": 1,
-         "TotalLobTruncate": 0,
-         "TotalLobAddressing": 1,
-         "ResetTimestamp": "2022-10-06-18.04.31.090482",
-         "CreateTime": "2022-10-06-18.04.31.090000",
-         "UpdateTime": "2022-10-06-18.04.31.164000"
-       }
-     ]
-   }
-   ...
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_COLLECTIONS)
+    ```
+    
+    输出结果如下：
+  
+    ```lang-json
+    {
+      "Name": "sample.employee",
+      "UniqueID": 4294967297,
+      "CollectionSpace": "sample",
+      "Details": [
+        {
+          "NodeName": "hostname:11820",
+          "GroupName": "group1",
+          "InternalV": 2,
+          "ID": 0,
+          "LogicalID": 0,
+          "Sequence": 1,
+          "Indexes": 1,
+          "Status": "Normal",
+          "Attribute": "Compressed",
+          "CompressionType": "lzw",
+          "DictionaryCreated": false,
+          "DictionaryVersion": 0,
+          "PageSize": 65536,
+          "LobPageSize": 262144,
+          "TotalRecords": 0,
+          "TotalLobs": 1,
+          "TotalDataPages": 0,
+          "TotalIndexPages": 2,
+          "TotalLobPages": 1,
+          "TotalUsedLobSpace": 262144,
+          "UsedLobSpaceRatio": 0,
+          "TotalLobSize": 150,
+          "TotalValidLobSize": 150,
+          "LobUsageRate": 0,
+          "AvgLobSize": 150,
+          "TotalDataFreeSpace": 0,
+          "TotalIndexFreeSpace": 65515,
+          "CurrentCompressionRatio": 1,
+          "DataCommitLSN": 80,
+          "IndexCommitLSN": 80,
+          "LobCommitLSN": 164,
+          "DataCommitted": true,
+          "IndexCommitted": true,
+          "LobCommitted": true,
+          "TotalDataRead": 0,
+          "TotalIndexRead": 0,
+          "TotalDataWrite": 0,
+          "TotalIndexWrite": 0,
+          "TotalUpdate": 0,
+          "TotalDelete": 0,
+          "TotalInsert": 0,
+          "TotalSelect": 0,
+          "TotalRead": 0,
+          "TotalWrite": 0,
+          "TotalTbScan": 0,
+          "TotalIxScan": 0,
+          "TotalLobGet": 0,
+          "TotalLobPut": 1,
+          "TotalLobDelete": 0,
+          "TotalLobList": 0,
+          "TotalLobReadSize": 0,
+          "TotalLobWriteSize": 150,
+          "TotalLobRead": 0,
+          "TotalLobWrite": 1,
+          "TotalLobTruncate": 0,
+          "TotalLobAddressing": 1,
+          "ResetTimestamp": "2022-10-06-18.04.31.090482",
+          "CreateTime": "2022-10-06-18.04.31.090000",
+          "UpdateTime": "2022-10-06-18.04.31.164000"
+        }
+      ]
+    }
+    ...
+    ```
 
 - 通过协调节点查看快照
 
-   ```lang-javascript
-   > db.snapshot( SDB_SNAP_COLLECTIONS )
-   ```
-
-   输出结果如下：
-
-   ```lang-json
-   {
-     "Name": "sample.employee",
-     "UniqueID": 4294967297,
-     "Details": [
-       {
-         "GroupName": "group1",
-         "Group": [
-           {
-             "ID": 0,
-             "LogicalID": 0,
-             "Sequence": 1,
-             "Indexes": 1,
-             "Status": "Normal",
-             "TotalRecords": 0,
-             "TotalLobs": 1,
-             "TotalDataPages": 0,
-             "TotalIndexPages": 2,
-             "TotalLobPages": 1,
-             "TotalUsedLobSpace": 262144,
-             "UsedLobSpaceRatio": 0,
-             "TotalLobSize": 150,
-             "TotalValidLobSize": 150,
-             "LobUsageRate": 0,
-             "AvgLobSize": 150,
-             "TotalDataFreeSpace": 0,
-             "TotalIndexFreeSpace": 65515,
-             "TotalDataRead": 0,
-             "TotalIndexRead": 0,
-             "TotalDataWrite": 0,
-             "TotalIndexWrite": 0,
-             "TotalUpdate": 0,
-             "TotalDelete": 0,
-             "TotalInsert": 0,
-             "TotalSelect": 0,
-             "TotalRead": 0,
-             "TotalWrite": 0,
-             "TotalTbScan": 0,
-             "TotalIxScan": 0,
-             "TotalLobGet": 0,
-             "TotalLobPut": 1,
-             "TotalLobDelete": 0,
-             "TotalLobList": 0,
-             "TotalLobReadSize": 0,
-             "TotalLobWriteSize": 150,
-             "TotalLobRead": 0,
-             "TotalLobWrite": 1,
-             "TotalLobTruncate": 0,
-             "TotalLobAddressing": 1,
-             "ResetTimestamp": "2022-10-06-18.04.31.090482",
-             "NodeName": "hostname:11820",
-             "CreateTime": "2022-10-06-18.04.31.090000",
-             "UpdateTime": "2022-10-06-18.04.31.164000"
-           }
-         ]
-       }
-     ]
-   }
-   ...
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_COLLECTIONS)
+    ```
+ 
+    输出结果如下：
+ 
+    ```lang-json
+    {
+      "Name": "sample.employee",
+      "UniqueID": 4294967297,
+      "Details": [
+        {
+          "GroupName": "group1",
+          "Group": [
+            {
+              "ID": 0,
+              "LogicalID": 0,
+              "Sequence": 1,
+              "Indexes": 1,
+              "Status": "Normal",
+              "TotalRecords": 0,
+              "TotalLobs": 1,
+              "TotalDataPages": 0,
+              "TotalIndexPages": 2,
+              "TotalLobPages": 1,
+              "TotalUsedLobSpace": 262144,
+              "UsedLobSpaceRatio": 0,
+              "TotalLobSize": 150,
+              "TotalValidLobSize": 150,
+              "LobUsageRate": 0,
+              "AvgLobSize": 150,
+              "TotalDataFreeSpace": 0,
+              "TotalIndexFreeSpace": 65515,
+              "TotalDataRead": 0,
+              "TotalIndexRead": 0,
+              "TotalDataWrite": 0,
+              "TotalIndexWrite": 0,
+              "TotalUpdate": 0,
+              "TotalDelete": 0,
+              "TotalInsert": 0,
+              "TotalSelect": 0,
+              "TotalRead": 0,
+              "TotalWrite": 0,
+              "TotalTbScan": 0,
+              "TotalIxScan": 0,
+              "TotalLobGet": 0,
+              "TotalLobPut": 1,
+              "TotalLobDelete": 0,
+              "TotalLobList": 0,
+              "TotalLobReadSize": 0,
+              "TotalLobWriteSize": 150,
+              "TotalLobRead": 0,
+              "TotalLobWrite": 1,
+              "TotalLobTruncate": 0,
+              "TotalLobAddressing": 1,
+              "ResetTimestamp": "2022-10-06-18.04.31.090482",
+              "NodeName": "hostname:11820",
+              "CreateTime": "2022-10-06-18.04.31.090000",
+              "UpdateTime": "2022-10-06-18.04.31.164000"
+            }
+          ]
+        }
+      ]
+    }
+    ...
+    ```
 
 
 [^_^]:
