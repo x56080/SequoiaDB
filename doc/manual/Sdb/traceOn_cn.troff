@@ -8,9 +8,9 @@
 traceOn \- 开启数据库引擎跟踪功能
 .SH 语法
 .PP
-\f[B]db.traceOn( <bufferSize>, [strComp], [strBreakPoint], [tids] )\f[]
+\f[B]db.traceOn(<bufferSize>, [strComp], [strBreakPoint], [tids])\f[]
 .PP
-\f[B]db.traceOn( <bufferSize>, [SdbTraceOption] )\f[]
+\f[B]db.traceOn(<bufferSize>, [SdbTraceOption])\f[]
 .SH 类别
 .PP
 Sdb
@@ -329,24 +329,35 @@ v1.0 及以上版本
 .IP
 .nf
 \f[C]
-> db.traceOn( 256 )
+> db.traceOn(1000)
 \f[]
 .fi
-.RE
 .RS
 .PP
 \f[B]Note:\f[]
 .PP
 db.traceOn() 只对 db 所连接的节点进行跟踪。
 .RE
+.RE
 .IP \[bu] 2
-开启数据库引擎程序跟踪功能，并指定模块名称、断点和多个 tid 进行跟踪
-.PP
-\f[C]lang\-javascript    > db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )\f[]
+开启数据库引擎程序跟踪功能，并指定模块、断点和线程进行跟踪
+.RS 2
+.IP
+.nf
+\f[C]
+> db.traceOn(1000, ["cls, dms, mth"], "_dmsTempSUMgr::init", [12712, 12713, 12714])
+\f[]
+.fi
 .PP
 也可以通过 SdbTraceOption 指定监控参数
-.PP
-\f[C]lang\-javascript    > db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )\f[]
+.IP
+.nf
+\f[C]
+> var option = new SdbTraceOption().components(["cls", "dms", "mth"]).breakPoints("_dmsTempSUMgr::init").tids([12712, 12713, 12714])
+> db.traceOn(1000, option)
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 查看当前程序跟踪的状态
 .RS 2
@@ -356,12 +367,12 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 > db.traceStatus()
 \f[]
 .fi
-.RE
 .RS
 .PP
 \f[B]Note:\f[]
 .PP
-可参考 traceStatus()
+可参考 traceStatus()。
+.RE
 .RE
 .IP \[bu] 2
 当被跟踪的模块遇到断点被阻塞，可以执行如下语句唤醒被跟踪的模块：
@@ -372,12 +383,12 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 > db.traceResume()
 \f[]
 .fi
-.RE
 .RS
 .PP
 \f[B]Note:\f[]
 .PP
-可参考 traceResume()
+可参考 traceResume()。
+.RE
 .RE
 .IP \[bu] 2
 关闭数据库引擎跟踪，并将跟踪情况导出二进制文件
@@ -389,12 +400,12 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 > db.traceOff("/opt/sequoiadb/trace.dump")
 \f[]
 .fi
-.RE
 .RS
 .PP
 \f[B]Note:\f[]
 .PP
-可参考 traceOff()
+可参考 traceOff()。
+.RE
 .RE
 .IP \[bu] 2
 解析二进制文件
@@ -405,10 +416,10 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 > traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
 \f[]
 .fi
-.RE
 .RS
 .PP
 \f[B]Note:\f[]
 .PP
-可参考 traceFmt()
+可参考 traceFmt()。
+.RE
 .RE

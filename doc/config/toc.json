@@ -1795,19 +1795,19 @@
                         {
                            "id": 1599726357,
                            "file": "intro",
-                           "cn": "trace原理",
+                           "cn": "trace 原理",
                            "en": "Trace principle"
                         },
                         {
                            "id": 1599726450,
                            "file": "dump_format",
-                           "cn": "trace收集与格式化工具",
+                           "cn": "trace 收集与格式化工具",
                            "en": "Collection and formatting tools"
                         },
                         {
                            "id": 1599726788,
                            "file": "analyze",
-                           "cn": "trace分析方法",
+                           "cn": "trace 分析方法",
                            "en": "trace analysis"
                         }
                      ]

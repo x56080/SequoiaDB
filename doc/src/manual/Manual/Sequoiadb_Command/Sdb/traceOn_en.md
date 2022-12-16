@@ -1,12 +1,12 @@
 ##NAME##
 
-traceOn -  turn on the trace program of database engine
+traceOn - turn on the trace program of database engine
 
 ##SYNOPSIS##
 
-**db.traceOn( \<bufferSize\>, [strComp], [strBreakPoint], [tids] )**
+**db.traceOn(\<bufferSize\>, [strComp], [strBreakPoint], [tids])**
 
-**db.traceOn( \<bufferSize\>, [SdbTraceOption] )**
+**db.traceOn(\<bufferSize\>, [SdbTraceOption])**
 
 ##CATEGORY##
 
@@ -20,11 +20,11 @@ This function is used to record each function call in the memory buffer during t
 
 | Name | Type | Default | Description | Required or not |
 | ---- | ---- | ------- | ----------- | --------------- |
-| bufferSize     | number | ---         | The size of the file with trace program started. The uint is MB and the range is [1,1024] | Required |
-| strComp        | string | All modules | The specify modules      | Not |
-| strBreakPoint  | string | ---         | Tracing at breakpoints of specified functions ( Up to 10 breakpoints can be specified ) | Not |
-| tids           | array  | All tids    | Specify one or multiple threads ( Up to 10 tids can be specified  ) | Not |
-| SdbTraceOption | SdbTraceOption | ---    | Use an object to specify the monitoring parameters. For more details, refer to [SdbTraceOption][TraceOption] | Not |
+| bufferSize     | number | ---         | The size of the file with trace program started. The uint is MB and the range is [1,1024]. | Required |
+| strComp        | string | All modules | Specify the module, please refer to [component][component] for optional modules.     | Not |
+| strBreakPoint  | string | ---         | Tracing at breakpoints of specified functions (Up to 10 breakpoints can be specified). | Not |
+| tids           | array  | All tids    | Specify one or multiple threads (Up to 10 tids can be specified ). | Not |
+| SdbTraceOption | SdbTraceOption | ---    | Use an object to specify the monitoring parameters. For more details, refer to [SdbTraceOption][TraceOption]. | Not |
 
 ##RETURN VALUE##
 
@@ -52,65 +52,66 @@ v1.0 and above
 
 * Turn on the trace program of database engine. 
 
-```lang-javascript
-> db.traceOn( 256 )
-```
+    ```lang-javascript
+    > db.traceOn(1000)
+    ```
 
-> **Note:** 
->
-> db.traceOn() only traces the nodes to which db is connected.
+    > **Note:** 
+    >
+    > db.traceOn() only traces the nodes to which db is connected.
 
 * Turn on the trace program of database engine, and specify the module name, breakpoints and multiple tids for tracing.
 
-```lang-javascript
-> db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )
-```
+    ```lang-javascript
+    > db.traceOn(1000, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714])
+    ```
 
-* Users can also specify monitoring parameters through SdbTraceOption.
+    Users can also specify monitoring parameters through SdbTraceOption.
 
-```lang-javascript
-> db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )
-```
+    ```lang-javascript
+    > var option = new SdbTraceOption().components(["cls", "dms", "mth"]).breakPoints("_dmsTempSUMgr::init").tids([12712, 12713, 12714])
+    > db.traceOn(1000, option)
+    ```
 
 * Check the trace status of the current program.
 
-```lang-javascript
-> db.traceStatus()
-```
+    ```lang-javascript
+    > db.traceStatus()
+    ```
 
-> **Note:**
-> 
-> Refer to [traceStatus()][traceStatus].
+    > **Note:**
+    > 
+    > Refer to [traceStatus()][traceStatus].
 
-* When the traced module was blocked because of the breakpoint, users can execute the statement of [traceResume()][traceResume] to wake up the traced module.
+* When the traced module encounters a breakpoint and is blocked, users can execute the following statement to wake up the traced module.
 
-```lang-javascript
-> db.traceResume()
-```
+    ```lang-javascript
+    > db.traceResume()
+    ```
 
-> **Note:**
->
-> Refer to[traceResume()][traceResume].
+    > **Note:**
+    >
+    > Refer to[traceResume()][traceResume].
 
 * Shut down the trace program of database engine, and export the trace status to the binary file `/opt/sequoiadb/trace.dump`.
 
-```lang-javascript
-> db.traceOff("/opt/sequoiadb/trace.dump")
-```
+    ```lang-javascript
+    > db.traceOff("/opt/sequoiadb/trace.dump")
+    ```
 
-> **Note:**
->
-> Refer to [traceOff()][traceOff].
+    > **Note:**
+    >
+    > Refer to [traceOff()][traceOff].
 
 * Parse binary files.
 
-```lang-javascript
-> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
-```
+    ```lang-javascript
+    > traceFmt(0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw")
+    ```
 
-> **Note:**
->
-> Refer to [traceFmt()][traceFmt].
+    > **Note:**
+    >
+    > Refer to [traceFmt()][traceFmt].
 
 [^_^]:
     links
@@ -122,3 +123,4 @@ v1.0 and above
 [traceResume]:manual/Manual/Sequoiadb_Command/Sdb/traceResume.md
 [traceOff]:manual/Manual/Sequoiadb_Command/Sdb/traceOff.md
 [traceFmt]:manual/Manual/Sequoiadb_Command/Global/traceFmt.md
+[component]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbTraceOption.md#方法
