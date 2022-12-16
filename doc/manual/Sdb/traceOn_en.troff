@@ -8,9 +8,9 @@
 traceOn \- turn on the trace program of database engine
 .SH SYNOPSIS
 .PP
-\f[B]db.traceOn( <bufferSize>, [strComp], [strBreakPoint], [tids] )\f[]
+\f[B]db.traceOn(<bufferSize>, [strComp], [strBreakPoint], [tids])\f[]
 .PP
-\f[B]db.traceOn( <bufferSize>, [SdbTraceOption] )\f[]
+\f[B]db.traceOn(<bufferSize>, [SdbTraceOption])\f[]
 .SH CATEGORY
 .PP
 Sdb
@@ -92,9 +92,33 @@ string
 T}@T{
 All modules
 T}@T{
-The specify modules
+Specify the module,
 T}@T{
 Not
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+please refer to
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+component for optional
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+modules
+T}@T{
 T}
 T{
 3
@@ -346,10 +370,11 @@ v1.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Turn on the trace program of database engine.
+.RS 2
 .IP
 .nf
 \f[C]
-> db.traceOn( 256 )
+> db.traceOn(1000)
 \f[]
 .fi
 .RS
@@ -358,25 +383,30 @@ Turn on the trace program of database engine.
 .PP
 db.traceOn() only traces the nodes to which db is connected.
 .RE
+.RE
 .IP \[bu] 2
 Turn on the trace program of database engine, and specify the module name,
 breakpoints and multiple tids for tracing.
+.RS 2
 .IP
 .nf
 \f[C]
-> db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )
+> db.traceOn(1000, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714])
 \f[]
 .fi
-.IP \[bu] 2
+.PP
 Users can also specify monitoring parameters through SdbTraceOption.
 .IP
 .nf
 \f[C]
-> db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )
+> var option = new SdbTraceOption().components(["cls", "dms", "mth"]).breakPoints("_dmsTempSUMgr::init").tids([12712, 12713, 12714])
+> db.traceOn(1000, option)
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Check the trace status of the current program.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -389,9 +419,11 @@ Check the trace status of the current program.
 .PP
 Refer to traceStatus().
 .RE
+.RE
 .IP \[bu] 2
-When the traced module was blocked because of the breakpoint, users can execute
-the statement of traceResume() to wake up the traced module.
+When the traced module encounters a breakpoint and is blocked, users can execute
+the following statement to wake up the traced module.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -404,9 +436,11 @@ the statement of traceResume() to wake up the traced module.
 .PP
 Refer totraceResume().
 .RE
+.RE
 .IP \[bu] 2
 Shut down the trace program of database engine, and export the trace status to
 the binary file \f[C]/opt/sequoiadb/trace.dump\f[].
+.RS 2
 .IP
 .nf
 \f[C]
@@ -419,12 +453,14 @@ the binary file \f[C]/opt/sequoiadb/trace.dump\f[].
 .PP
 Refer to traceOff().
 .RE
+.RE
 .IP \[bu] 2
 Parse binary files.
+.RS 2
 .IP
 .nf
 \f[C]
-> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
+> traceFmt(0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw")
 \f[]
 .fi
 .RS
@@ -432,4 +468,5 @@ Parse binary files.
 \f[B]Note:\f[]
 .PP
 Refer to traceFmt().
+.RE
 .RE
