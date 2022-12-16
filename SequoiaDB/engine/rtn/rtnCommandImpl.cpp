@@ -38,6 +38,7 @@
 *******************************************************************************/
 #include "core.hpp"
 #include <set>
+#include "dmsStatUnit.hpp"
 #include "rtn.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
@@ -431,6 +432,97 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOLLECTIONSTAT, "rtnGetCollectionStat" )
+   static INT32 rtnGetCollectionStat( const CHAR *pCLFullName,
+                                      _pmdEDUCB *cb,
+                                      SDB_DMSCB *dmsCB,
+                                      SDB_RTNCB *rtnCB,
+                                      rtnContextDump *context )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNGETCOLLECTIONSTAT ) ;
+      SDB_ASSERT( pCLFullName, "collection can't be NULL" ) ;
+      SDB_ASSERT( rtnCB, "rtn control block can't be NULL" ) ;
+      SDB_ASSERT( dmsCB, "dms control block can't be NULL" ) ;
+
+      dmsStorageUnit *pSU = NULL ;
+      dmsStatCache *statCache = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsMBContext *mbContext = NULL ;
+      const CHAR *pCLName = NULL ;
+      BOOLEAN isDefault = FALSE ;
+      BOOLEAN isExpired = FALSE ;
+      dmsCollectionStat *pCollectionStat = NULL ;
+      dmsCollectionStat dummyStat ;
+      pmdOptionsCB *optCB  = pmdGetOptionCB() ;
+      BSONObj infoObj ;
+
+      rc = rtnResolveCollectionNameAndLock( pCLFullName, dmsCB, &pSU, &pCLName, suID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to lock collection space for "
+                   "collection [%s], rc: %d", pCLFullName, rc ) ;
+
+      rc = pSU->data()->getMBContext( &mbContext, pCLName, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+
+      statCache = pSU->getStatCache() ;
+
+      // Check if statistics need to be loaded
+      if ( UTIL_SU_CACHE_UNIT_STATUS_EMPTY == statCache->getStatus( mbContext->mbID() ) )
+      {
+         rc = mbContext->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Lock collection failed, rc:%d ", rc) ;
+
+         rc = rtnReloadCLStats( pSU, mbContext, cb, dmsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Reload CL statistics failed, rc: %d", rc ) ;
+
+         rc = mbContext->mbLock( SHARED ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Lock collection failed, rc:%d ", rc) ;
+
+      }
+
+      pCollectionStat = ( dmsCollectionStat* )statCache->getCacheUnit( mbContext->mbID() ) ;
+      if ( NULL == pCollectionStat )
+      {
+         PD_LOG( PDDEBUG, "Failed to find collectionStat[%s] info", pCLFullName ) ;
+         isDefault = TRUE ;
+         pCollectionStat = &dummyStat ;
+      }
+      else if ( optCheckStatExpired( mbContext->mbStat()->_totalDataPages,
+                                     pCollectionStat->getTotalDataPages(),
+                                     optCB->getOptCostThreshold(),
+                                     pSU->getPageSizeLog2() ) )
+      {
+         // if the statistics is expired, ignore it
+         PD_LOG( PDDEBUG, "Statistics for collection [%s.%s] is expired, "
+                 "current pages [%d], statistics pages [%d], "
+                 "cost threshold [%d]", pCollectionStat->getCSName(),
+                 pCollectionStat->getCLName(), mbContext->mbStat()->_totalDataPages,
+                 pCollectionStat->getTotalDataPages(),
+                 optCB->getOptCostThreshold() ) ;
+         isExpired = TRUE ;
+      }
+
+      rc = monCollectionStatInfo2Obj( pCollectionStat, pCLFullName, isDefault, isExpired, infoObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Set collection stat info obj failed, rc: %d", rc ) ;
+
+      rc = context->monAppend( infoObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add object to context, rc: %d", rc ) ;
+
+   done:
+      if ( NULL != pSU && NULL != mbContext )
+      {
+         pSU->data()->releaseMBContext( mbContext ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNGETCOLLECTIONSTAT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETINDEXSTAT, "rtnGetIndexStat" )
    static INT32 rtnGetIndexStat( const rtnQueryOptions &options,
                                  SDB_DMSCB *dmsCB,
@@ -514,7 +606,7 @@ namespace engine
          BSONObj stat( buffObj.data() ) ;
          BSONObjBuilder ob ;
 
-         rc = monBuildStatResult( stat, 0, ob, detail ) ;
+         rc = monBuildIndexStatResult( stat, 0, ob, detail ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
 
          rc = context->monAppend( ob.obj() ) ;
@@ -1229,6 +1321,9 @@ retry:
             break ;
          case CMD_GET_CL_DETAIL :
             rc = rtnGetCollectionDetail( pCollectionName, dmsCB, context ) ;
+            break ;
+         case CMD_GET_CL_STAT :
+            rc = rtnGetCollectionStat( pCollectionName, cb, dmsCB, rtnCB, context ) ;
             break ;
          case CMD_GET_INDEX_STAT :
             rc = rtnGetIndexStat( options, dmsCB, cb, rtnCB, context ) ;

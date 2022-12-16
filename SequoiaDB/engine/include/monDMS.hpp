@@ -52,6 +52,7 @@
 #include "ossMemPool.hpp"
 #include "monCB.hpp"
 #include "utilRecycleItem.hpp"
+#include "dmsStatUnit.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -207,6 +208,54 @@ namespace engine
    } ;
    typedef class _detailedInfo detailedInfo ;
    typedef ossPoolMap<UINT32, detailedInfo>  MON_CL_DETAIL_MAP ;
+
+   /*
+      _collectionStatInfo define
+   */
+   class _collectionStatInfo : public SDBObject
+   {
+   public:
+      CHAR           _collection[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      BOOLEAN        _isDefault ;
+      UINT32         _isExpired ;
+      CHAR           _statTimestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] ;
+      UINT64         _avgNumFields ;
+      UINT64         _sampleRecords ;
+      UINT64         _totalRecords ;
+      UINT64         _totalDataSize ;
+      UINT64         _totalDataPages ;
+
+      _collectionStatInfo()
+      {
+         reset() ;
+      }
+
+      BOOLEAN inited() const
+      {
+         return ( _collection[0] != 0 ) ;
+      }
+
+      void reset()
+      {
+         ossMemset( _collection, 0, sizeof( _collection ) ) ;
+         ossMemset( _statTimestamp, 0, sizeof( _statTimestamp ) ) ;
+         _isDefault = TRUE ;
+         _isExpired = FALSE ;
+         _avgNumFields = DMS_STAT_DEF_AVG_NUM_FIELDS ;
+         _sampleRecords = DMS_STAT_DEF_TOTAL_RECORDS ;
+         _totalRecords = DMS_STAT_DEF_TOTAL_RECORDS ;
+         _totalDataPages = DMS_STAT_DEF_TOTAL_PAGES ;
+         _totalDataSize = DMS_STAT_DEF_TOTAL_RECORDS * DMS_STAT_DEF_DATA_SIZE ;
+      }
+
+      void setCollectionName( const CHAR *collectionName )
+      {
+         ossStrncpy( _collection, collectionName, sizeof( _collection ) - 1 ) ;
+      }
+
+   } ;
+
+   typedef class _collectionStatInfo collectionStatInfo ;
 
    /*
       _monCLSimple define

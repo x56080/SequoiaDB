@@ -74,7 +74,7 @@ namespace engine
                                            INT64 &contextID,
                                            rtnContextBuf *buf )
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CMDSTATBASE_EXE ) ;
 
       SDB_RTNCB *pRtncb                = pmdGetKRCB()->getRTNCB() ;
@@ -150,7 +150,7 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( COORD_CMDSTATBASE_EXE, rc ) ;
-      return rc;
+      return rc ;
    error:
       if ( pContext )
       {
@@ -618,6 +618,117 @@ namespace engine
          SDB_OSS_DEL iter->second ;
       }
       PD_TRACE_EXITRC ( COORD_GET_CL_DETAIL_GENRESULT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDGetCLStat implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDGetCLStat,
+                                      CMD_NAME_GET_CL_STAT,
+                                      TRUE ) ;
+   _coordCMDGetCLStat::_coordCMDGetCLStat()
+   {
+   }
+
+   _coordCMDGetCLStat::~_coordCMDGetCLStat()
+   {
+   }
+
+   // Here we merge two statistics info into one.
+   void _coordCMDGetCLStat::_merge ( const collectionStatInfo &from,
+                                     collectionStatInfo &to )
+   {
+      // For "Collection", always be the same. Ignore it.
+      // For "TotalDataPages", "TotalDataSize", "SampleRecords", "TotalRecords","AvgNumFields",
+      // we count the total.
+      if ( from._isDefault )
+      {
+         to._isDefault = TRUE ;
+      }
+      if ( from._isExpired )
+      {
+         to._isExpired =  TRUE ;
+      }
+      to._avgNumFields += from._avgNumFields ;
+      to._sampleRecords += from._sampleRecords ;
+      to._totalRecords += from._totalRecords ;
+      to._totalDataPages += from._totalDataPages ;
+      to._totalDataSize += from._totalDataSize ;
+
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_CL_STAT_GENRESULT, "_coordCMDGetCLStat::generateResult" )
+   INT32 _coordCMDGetCLStat::generateResult( rtnContext *pContext,
+                                             pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_GET_CL_STAT_GENRESULT ) ;
+
+      ossPoolString collectionName ;
+      rtnContextBuf buffObj ;
+      collectionStatInfo resStat ;
+      const BSONObj obj ;
+      BSONObjBuilder ob ;
+      UINT32 resCount = 0 ;
+
+      // Aggregate all statistics into one.
+      while ( TRUE )
+      {
+         collectionStatInfo newStat ;
+         rc = pContext->getMore( 1, buffObj, cb ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get more detail, rc: %d", rc ) ;
+
+         ++resCount ;
+         {
+            BSONObj boTmp( buffObj.data() ) ;
+            rc = monCollectionStatObj2Info( boTmp, newStat ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to initialize CL statistics from BSON, rc: %d", rc ) ;
+         }
+         if ( resStat.inited() )
+         {
+            _merge( newStat, resStat ) ;
+         }
+         else
+         {
+            resStat = newStat ;
+         }
+      }
+
+      if ( 0 == resCount )
+      {
+         SDB_ASSERT( _cataPtr->isMainCL(), "must be main collection" ) ;
+         rc = SDB_MAINCL_NOIDX_NOSUB ;
+         PD_LOG( PDERROR, "Sub collection is not exist" ) ;
+         goto done ;
+      }
+
+      // if CL is main_sub_CL
+      if ( _cataPtr->isMainCL() )
+      {
+         resStat.setCollectionName( _cataPtr->getName() ) ;
+      }
+
+      // set avgNumFields
+      resStat._avgNumFields /= resCount ;
+
+      rc = monCollectionStatInfo2Obj( resStat, ob ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert CL statistics to BSON, rc: %d", rc ) ;
+
+      rc = pContext->append( ob.obj() ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to append CL statistics to context, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( COORD_GET_CL_STAT_GENRESULT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1548,4 +1659,3 @@ namespace engine
       goto done ;
    }
 }
-

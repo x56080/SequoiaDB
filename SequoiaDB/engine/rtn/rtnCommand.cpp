@@ -1614,6 +1614,25 @@ namespace engine
       return CMD_GET_CL_DETAIL ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetCollectionStat)
+   _rtnGetCollectionStat::_rtnGetCollectionStat ()
+   {
+   }
+
+   _rtnGetCollectionStat::~_rtnGetCollectionStat ()
+   {
+   }
+
+   const CHAR *_rtnGetCollectionStat::name ()
+   {
+      return NAME_GET_CL_STAT ;
+   }
+
+   RTN_COMMAND_TYPE _rtnGetCollectionStat::type ()
+   {
+      return CMD_GET_CL_STAT ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetIndexStat)
    _rtnGetIndexStat::_rtnGetIndexStat ()
    {

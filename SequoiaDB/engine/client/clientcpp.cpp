@@ -4507,6 +4507,52 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbCollectionImpl::getCollectionStat ( bson::BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder ob ;
+      BSONObj obj ;
+      sdbCursor cursor ;
+
+      if ( '\0' == _collectionFullName[0] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      ob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+      obj = ob.obj() ;
+
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_CL_STAT,
+                                     NULL, NULL, NULL, &obj,
+                                     0, 0, 0, -1,
+                                     &cursor.pCursor ) ;
+
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                           _collectionFullName, _version ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = cursor.next( result, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      cursor.close() ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _sdbCollectionImpl::getIndexStat ( const CHAR *pIndexName,
                                             bson::BSONObj &result,
                                             BOOLEAN detail )

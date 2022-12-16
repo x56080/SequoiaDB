@@ -71,7 +71,7 @@ namespace engine
          virtual BOOLEAN openEmptyContext() const { return FALSE ; }
 
       private:
-         INT32   _executeOnVCL( const CHAR *pCLName,
+         INT32 _executeOnVCL( const CHAR *pCLName,
                                 pmdEDUCB *cb,
                                 INT64 &contextID ) ;
 
@@ -156,6 +156,24 @@ namespace engine
                                        pmdEDUCB *cb ) ;
    } ;
    typedef _coordCMDGetCollectionDetail coordCMDGetCollectionDetail ;
+
+   /*
+      _coordCMDGetCLStat define
+   */
+   class _coordCMDGetCLStat : public _coordCMDStatisticsBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDGetCLStat() ;
+         virtual ~_coordCMDGetCLStat() ;
+
+      private :
+         virtual INT32 generateResult( rtnContext *pContext, pmdEDUCB *cb ) ;
+      
+      private:
+         void _merge( const collectionStatInfo &from, collectionStatInfo &to ) ;
+   } ;
+   typedef _coordCMDGetCLStat coordCMDGetCLStat ;
 
    /*
       _coordCMDGetIndexStat define
