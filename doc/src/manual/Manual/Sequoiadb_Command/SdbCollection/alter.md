@@ -12,7 +12,7 @@ SdbCollection
 
 ##描述##
 
-该函数用于修改集合的属性。详情可参考 [setAttributes\(\)][setAttributes]。
+该函数用于修改集合的属性。
 
 ##参数##
 
@@ -32,7 +32,7 @@ options ( *object，必填* )
 
 - ShardingKey ( *object* )：分区键，取值为 1 或 -1，表示正向或逆向排序
 
-    当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。 
+    当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。
 
     格式：`ShardingKey: {<字段1>: <1|-1>, [<字段2>: <1|-1>, ...]}`
 
@@ -69,7 +69,7 @@ options ( *object，必填* )
 - EnsureShardingIndex ( *boolean* )：是否根据参数 ShardingKey 指定的字段自动创建名为"$shard"的索引，默认值为 true，表示自动创建
 
     当集合仅存在于一个数据组时，EnsureShardingIndex 可以被修改。
- 
+
     格式：`EnsureShardingIndex: false`
 
 - Compressed ( *boolean* )：是否开启数据压缩功能，默认值为 true，表示开启数据压缩功能
@@ -159,7 +159,6 @@ v1.12 及以上版本
 
 [^_^]:
     本文使用的所有引用和链接
-[setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md#修改自增字段属性
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

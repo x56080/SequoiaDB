@@ -30,8 +30,8 @@ Modify the collection properties through the parameter "options":
 
     The values are as follows:
 
-    - "hash": Hash sharding
-    - "range": Range sharding
+    - "hash": Hash sharding.
+    - "range": Range sharding.
 
     "ShardingType" can be modified when the collection only exists in one data group.
 

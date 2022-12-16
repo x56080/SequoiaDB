@@ -24,7 +24,7 @@ SdbCS
     - 有关集合与集合命名的限制可参考[限制][sequoiadb_limitation]。
 
 - options（ *object，选填* ）
-  
+
     通过参数 options 可以设置集合的属性：
 
     - ShardingKey（ *object* ）：分区键，取值为 1 或 -1，表示正向或逆向排序
@@ -32,7 +32,7 @@ SdbCS
         格式：`ShardingKey: {<字段1>: <1|-1>, [<字段2>: <1|-1>, ...]}`
 
     - ShardingType（ *string* ）：分区方式，默认值为"hash"
- 
+
         取值如下：
 
         - "hash"：散列分区
@@ -109,17 +109,17 @@ SdbCS
     - AutoIncrement（ *object* ）：指定[自增字段][sequence]
 
         格式：`AutoIncrement: {Field: <字段名>, ...}` 或 `AutoIncrement: [{Field: <字段名1>, ...}, {Field: <字段名2>, ...}, ...]`
-        
+
     - LobShardingKeyFormat（ *string* ）：指定大对象 ID 转换为分区键键值的转换格式
 
         目前仅支持对大对象 ID 中的时间属性进行转换，格式如下：
-    
+
         - "YYYYMMDD"：转换为年月日的字符串形式，如 "20190701"
         - "YYYYMM"：转换为年月的字符串形式，如 "201907"
         - "YYYY"：转换为年的字符串形式，如 "2019"
 
         该参数仅在主集合中使用。当指定该参数时，必须保证参数 ShardingKey 指定的切分字段只有一个。
-    
+
         格式：`LobShardingKeyFormat: "YYYYMM"`
 
     - IsMainCL（ *boolean* ）：是否为主集合，默认值为 false，表示不设置为主集合
@@ -183,7 +183,7 @@ v1.0 及以上版本
     ```lang-javascript
     > db.sample.createCL("employee", {StrictDataMode: true})
     ```
-    
+
 - 在主集合下使用大对象
 
     创建支持大对象的主集合 sample.maincl，将子集合 sample.subcl 挂载到该主集合上，并指定分区范围为 [20190701, 20190801)

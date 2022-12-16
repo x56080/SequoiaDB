@@ -12,7 +12,7 @@ SdbCollection
 
 ##DESCRIPTION##
 
-This function is used to modify the properties of the collection. For more details, refer to [setAttributes\(\)][setAttributes].
+This function is used to modify the properties of the collection. 
 
 ##PARAMETERS##
 
@@ -40,8 +40,8 @@ Modify the collection properties through the parameter "options":
 
     The values are as follows:
 
-    - "hash": Hash sharding
-    - "range": Range sharding
+    - "hash": Hash sharding.
+    - "range": Range sharding.
 
     "ShardingType" can be modified when the collection only exists in one data group.
 
@@ -80,8 +80,8 @@ Modify the collection properties through the parameter "options":
 
     The values are as follows:
 
-    - "snappy": snappy algorithm compression
-    - "lzw": lzw algorithm compression
+    - "snappy": Snappy algorithm compression.
+    - "lzw": Lzw algorithm compression.
 
     Format: `CompressionType: "snappy"`
 
@@ -159,7 +159,6 @@ v1.12 and above
 
 [^_^]:
     Links
-[setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

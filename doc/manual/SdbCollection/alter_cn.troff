@@ -14,7 +14,7 @@ alter \- 修改集合的属性
 SdbCollection
 .SH 描述
 .PP
-该函数用于修改集合的属性。详情可参考 setAttributes()。
+该函数用于修改集合的属性。
 .SH 参数
 .PP
 options ( \f[I]object，必填\f[] )
@@ -36,7 +36,7 @@ ReplSize ( \f[I]number\f[] )：写操作需同步的副本数，默认值为
 格式：\f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
-ShardingKey ( \f[I]object\f[] )：分区键，取值为 1 或 \-1，表示正向或逆向排序时
+ShardingKey ( \f[I]object\f[] )：分区键，取值为 1 或 \-1，表示正向或逆向排序
 .RS 2
 .PP
 当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。

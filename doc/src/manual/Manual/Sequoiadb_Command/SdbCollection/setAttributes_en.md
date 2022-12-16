@@ -12,7 +12,7 @@ SdbCollection
 
 ##DESCRIPTION##
 
-This function is used to modify the properties of the collection when the collection does not meet expectations.
+This function is used to modify the properties of the collection.
 
 ##PARAMETERS##
 
@@ -40,8 +40,8 @@ Modify the collection properties through the parameter "options":
 
     The values are as follows:
 
-    - "hash": Hash sharding
-    - "range": Range sharding
+    - "hash": Hash sharding.
+    - "range": Range sharding.
 
     "ShardingType" can be modified when the collection only exists in one data group.
 
@@ -80,8 +80,8 @@ Modify the collection properties through the parameter "options":
 
     The values are as follows:
 
-    - "snappy": snappy algorithm compression
-    - "lzw": lzw algorithm compression
+    - "snappy": Snappy algorithm compression.
+    - "lzw": Lzw algorithm compression.
 
     Format: `CompressionType: "snappy"`
 

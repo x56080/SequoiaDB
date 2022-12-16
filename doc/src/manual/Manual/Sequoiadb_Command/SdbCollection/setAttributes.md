@@ -32,7 +32,7 @@ options ( *object，必填* )
 
 - ShardingKey ( *object* )：分区键，取值为 1 或 -1，表示正向或逆向排序
 
-    当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。 
+    当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。
 
     格式：`ShardingKey: {<字段1>: <1|-1>, [<字段2>: <1|-1>, ...]}`
 
@@ -150,7 +150,7 @@ v2.10 及以上版本
     ```
 
 - 创建一个有自增字段的集合，修改其自增起始值
-s
+
     ```lang-javascript
     > db.sample.createCL("employee", {AutoIncrement: {Field: "studentID"}})
     > db.sample.employee.setAttributes({AutoIncrement: {Field: "studentID", StartValue: 2017140000}})

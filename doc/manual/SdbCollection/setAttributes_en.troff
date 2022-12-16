@@ -14,8 +14,7 @@ setAttributes \- modify the properties of the collection
 SdbCollection
 .SH DESCRIPTION
 .PP
-This function is used to modify the properties of the collection when the
-collection does not meet expectations.
+This function is used to modify the properties of the collection.
 .SH PARAMETERS
 .PP
 options ( \f[I]object, required\f[] )
@@ -59,9 +58,9 @@ ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
 .PP
 The values are as follows:
 .IP \[bu] 2
-"hash": Hash sharding
+"hash": Hash sharding.
 .IP \[bu] 2
-"range": Range sharding
+"range": Range sharding.
 .PP
 "ShardingType" can be modified when the collection only exists in one data
 group.
@@ -132,9 +131,9 @@ value is "lzw".
 .PP
 The values are as follows:
 .IP \[bu] 2
-"snappy": snappy algorithm compression
+"snappy": Snappy algorithm compression.
 .IP \[bu] 2
-"lzw": lzw algorithm compression
+"lzw": Lzw algorithm compression.
 .PP
 Format: \f[C]CompressionType: "snappy"\f[]
 .RS

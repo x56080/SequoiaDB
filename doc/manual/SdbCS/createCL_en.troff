@@ -22,7 +22,7 @@ Any document record must belong to one and only one collection.
 name ( \f[I]string, required\f[] )
 .RS 2
 .PP
-Collection name
+Collection name.
 .IP \[bu] 2
 In the same collection space, the collection name must be unique.
 .IP \[bu] 2
@@ -47,9 +47,9 @@ ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
 .PP
 The values are as follows:
 .IP \[bu] 2
-"hash": Hash sharding
+"hash": Hash sharding.
 .IP \[bu] 2
-"range": Range sharding
+"range": Range sharding.
 .PP
 Format: \f[C]ShardingType: "range"\f[]
 .RE
@@ -101,9 +101,9 @@ value is "lzw".
 .PP
 The values are as follows:
 .IP \[bu] 2
-"snappy": snappy algorithm compression
+"snappy": Snappy algorithm compression.
 .IP \[bu] 2
-"lzw": lzw algorithm compression
+"lzw": Lzw algorithm compression.
 .PP
 Format: \f[C]CompressionType: "snappy"\f[]
 .RS
@@ -423,7 +423,7 @@ specify the strict data type mode to be turned on.
 .fi
 .RE
 .IP \[bu] 2
-Use LOB under the main collection
+Use LOB under the main collection.
 .RS 2
 .PP
 Create the main collection "sample.maincl" that supports large objects, mount

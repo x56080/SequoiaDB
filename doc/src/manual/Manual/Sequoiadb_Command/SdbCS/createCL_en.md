@@ -18,7 +18,7 @@ This function is used to create a collection in the specified collection space. 
 
 - name ( *string, required* )
 
-    Collection name
+    Collection name.
 
     - In the same collection space, the collection name must be unique.
     - Refer to [Restrictions][sequoiadb_limitation] for restrictions on collections and collection naming.
@@ -32,11 +32,11 @@ This function is used to create a collection in the specified collection space. 
         Format: `ShardingKey: {<Field1>: <1|-1>, [<Field2>: <1|-1>, ...]}`
 
     - ShardingType ( *string* ): Sharding type, and the default value is "hash".
- 
+
         The values are as follows:
 
-        - "hash": Hash sharding
-        - "range": Range sharding
+        - "hash": Hash sharding.
+        - "range": Range sharding.
 
         Format: `ShardingType: "range"`
 
@@ -65,8 +65,8 @@ This function is used to create a collection in the specified collection space. 
 
         The values are as follows:
 
-        - "snappy": snappy algorithm compression
-        - "lzw": lzw algorithm compression
+        - "snappy": Snappy algorithm compression.
+        - "lzw": Lzw algorithm compression.
 
         Format: `CompressionType: "snappy"`
 
@@ -93,7 +93,7 @@ This function is used to create a collection in the specified collection space. 
         Format: `Group: "group1"`
 
     - AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", which means automatically created.
- 
+
         Format: `AutoIndexId: false`
 
     - EnsureShardingIndex ( *boolean* ): Whether to automatically create an index named "$shard" according to the field specified by the parameter "ShardingKey", and the default value is "true", which means automatically created.
@@ -109,17 +109,17 @@ This function is used to create a collection in the specified collection space. 
     - AutoIncrement ( *object* ): Specify [auto-increment field][sequence].
 
         Format: `AutoIncrement: {Field: <Field name>, ...}` or `AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]`
-        
+
     - LobShardingKeyFormat ( *string* ): Specify the conversion format of the LOB ID converted to the partition key value.
 
         Currently, only the conversion of the time attribute in the LOB ID is supported, and the format is as follows:
-    
+
         - "YYYYMMDD": Converted to the string form of year, month and day, such as "20190701".
         - "YYYYMM": Converted to the string form of year and month, such as "201907".
         - "YYYY": Converted to the string form of the year, such as "2019".
 
         This parameter is only used in the main collection. When specifying this parameter, user must ensure that there is only one segmentation field specified by the parameter "ShardingKey".
-    
+
         Format: `LobShardingKeyFormat: "YYYYMM"`
 
     - IsMainCL ( *boolean* ): Whether it is the main collection, and the default value is "false",  which means it is not set as the main collection.
@@ -141,7 +141,7 @@ This function is used to create a collection in the specified collection space. 
         > For the specific usage scenarios of the parameters "DataSource" and "Mapping", refer to [Data Source][datasource].
 
 ##RETURN VALUE##
- 
+
 When the function executes successfully, it will return an object of type SdbCollection.
 
 When the function fails, an exception will be thrown and an error message will be printed.
@@ -183,8 +183,8 @@ v1.0 and above
     ```lang-javascript
     > db.sample.createCL("employee", {StrictDataMode: true})
     ```
-    
-- Use LOB under the main collection
+
+- Use LOB under the main collection.
 
     Create the main collection "sample.maincl" that supports large objects, mount the sub-collection "sample.subcl" to the main collection, and specify the partition range as [20190701, 20190801).
 
@@ -209,7 +209,7 @@ v1.0 and above
     ```
 
     Without specifying the LOB ID, directly insert the file `/opt/data/test.dat` into the collection "sample.maincl" in the form of a large object. After the insertion is successful, the LOB ID is automatically generated, and its time attribute is the current time.
-    
+
     ```lang-javascript
     > db.sample.maincl.putLob('/opt/data/test.dat')
     00005d36dbee370002de8080

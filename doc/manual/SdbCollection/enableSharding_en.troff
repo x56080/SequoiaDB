@@ -39,9 +39,9 @@ ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
 .PP
 The values are as follows:
 .IP \[bu] 2
-"hash": Hash sharding
+"hash": Hash sharding.
 .IP \[bu] 2
-"range": Range sharding
+"range": Range sharding.
 .PP
 "ShardingType" can be modified when the collection only exists in one data
 group.
