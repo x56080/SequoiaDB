@@ -377,7 +377,8 @@ dmsFiles = [
       "dms/dmsLightJob.cpp",
       "dms/dmsRBSGCJob.cpp",
       "dms/dmsCollectionHandler.cpp",
-      "dms/dmsObjectMetaInfo.cpp"
+      "dms/dmsObjectMetaInfo.cpp",
+      "dms/dmsConstraintMap.cpp"
       ]
 
 ixmFiles = [
@@ -832,9 +833,9 @@ stpClientFiles = [
 #signalTestFiles = [
 #      "test/signalTest.cpp"
 #      ]
-#dmsTestFiles = [
-#      "test/dmsMmapTest.cpp"
-#      ]
+dmsTestFiles = [
+      "test/dms/dmsSuConstraintMapTest.cpp"
+      ]
 #mthTestMatcher = [
 #      "test/mthMatchTest.cpp"
 #      ]
@@ -1070,6 +1071,7 @@ sqltest2 = env.Object('sqltest2', gtestMainFile)
 selectortest = env.Object('selectortest', gtestMainFile)
 vesseltest = env.Object('vesseltest', gtestMainFile)
 opttest = env.Object('opttest', gtestMainFile)
+dmstest = env.Object('dmstest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
@@ -1106,9 +1108,9 @@ if hasTestcase:
 #   signaltest = env.Program("signaltest", signalTestFiles,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","pd","pmd","mig","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
-#   dmstest = env.Program("dmstest", dmsTestFiles,
-#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-#          _LIBDEPS='$_LIBDEPS_OBJS' )
+   dmsTest = env.Program("dmsTest", [ dmsTestFiles, dmstest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
 #   matchertest = env.Program("matchertest", mthTestMatcher,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1252,7 +1254,7 @@ if hasTestcase:
 #   env.Install( '#/tests', osslatchtest )
 #   env.Install( '#/tests', sockettest )
 #   env.Install( '#/tests', signaltest )
-#   env.Install( '#/tests', dmstest )
+   env.Install( '#/tests', dmsTest )
 #   env.Install( '#/tests', ossIOTest )
 #   env.Install( '#/tests', ossIOTest2 )
 #   env.Install( '#/tests', matchertest )

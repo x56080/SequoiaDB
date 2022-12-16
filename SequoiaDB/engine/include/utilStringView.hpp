@@ -49,188 +49,185 @@
 #include <string>
 namespace engine
 {
-class utilStringView
-{
-public:
-   using value_type = CHAR;
-   using traits_type = std::char_traits< CHAR >;
-   using pointer = CHAR *;
-   using const_pointer = const CHAR *;
-   using reference = CHAR &;
-   using const_reference = const CHAR &;
-   using const_iterator = const CHAR *;
-   using iterator = const_iterator;
-   using const_reverse_iterator = std::reverse_iterator< const_iterator >;
-   using reverse_iterator = const_reverse_iterator;
-   using size_type = size_t;
-   using difference_type = std::ptrdiff_t;
-   static constexpr size_type npos = static_cast< size_type >( -1 );
-   utilStringView() noexcept : _ptr( nullptr ), _length( 0 )
+   class utilStringView
    {
-   }
-   utilStringView( const CHAR *str )
-   : _ptr( str ), _length( str ? ossStrlen( str ) : 0 )
-   {
-   }
-   utilStringView( const CHAR *data, size_type len ) : _ptr( data ), _length( len )
-   {
-   }
-   utilStringView( const std::string &str )
-   : utilStringView( str.data(), str.size() )
-   {
-   }
-   utilStringView( const ossPoolString &str )
-   : utilStringView( str.data(), str.size() )
-   {
-   }
+   public:
+      using value_type = CHAR;
+      using traits_type = std::char_traits< CHAR >;
+      using pointer = CHAR *;
+      using const_pointer = const CHAR *;
+      using reference = CHAR &;
+      using const_reference = const CHAR &;
+      using const_iterator = const CHAR *;
+      using iterator = const_iterator;
+      using const_reverse_iterator = std::reverse_iterator< const_iterator >;
+      using reverse_iterator = const_reverse_iterator;
+      using size_type = size_t;
+      using difference_type = std::ptrdiff_t;
+      static constexpr size_type npos = static_cast< size_type >( -1 );
+      utilStringView() noexcept : _ptr( nullptr ), _length( 0 ) {}
+      utilStringView( const CHAR *str ) : _ptr( str ), _length( str ? ossStrlen( str ) : 0 ) {}
+      utilStringView( const CHAR *data, size_type len ) : _ptr( data ), _length( len ) {}
+      utilStringView( const std::string &str ) : utilStringView( str.data(), str.size() ) {}
+      utilStringView( const ossPoolString &str ) : utilStringView( str.data(), str.size() ) {}
 
-public:
-   const_iterator begin() const noexcept
-   {
-      return _ptr;
-   }
-   const_iterator end() const noexcept
-   {
-      return _ptr + _length;
-   }
-   const_iterator cbegin() const noexcept
-   {
-      return begin();
-   }
-   const_iterator cend() const noexcept
-   {
-      return end();
-   }
-   const_reverse_iterator rbegin() const noexcept
-   {
-      return const_reverse_iterator( end() );
-   }
-   const_reverse_iterator rend() const noexcept
-   {
-      return const_reverse_iterator( begin() );
-   }
-   const_reverse_iterator crbegin() const noexcept
-   {
-      return rbegin();
-   }
-   const_reverse_iterator crend() const noexcept
-   {
-      return rend();
-   }
-   size_type size() const noexcept
-   {
-      return _length;
-   }
-   size_type length() const noexcept
-   {
-      return size();
-   }
-   BOOLEAN empty() const noexcept
-   {
-      return _length == 0;
-   }
-   const_reference operator[]( size_type i ) const
-   {
-      return _ptr[ i ];
-   }
-   const_reference at( size_type i ) const
-   {
-      if ( i > size() )
+   public:
+      const_iterator begin() const noexcept
       {
-         throw std::out_of_range( "stringView::at" );
+         return _ptr;
       }
-      return _ptr[ i ];
-   }
-   const_pointer data() const noexcept
-   {
-      return _ptr;
-   }
-   utilStringView substr( size_type pos = 0, size_type n = npos ) const
-   {
-      if ( pos + n > size() )
+      const_iterator end() const noexcept
       {
-         throw std::out_of_range( "stringView::substr" );
-         return utilStringView();
+         return _ptr + _length;
       }
-      else
+      const_iterator cbegin() const noexcept
       {
-         return utilStringView( _ptr + pos, std::min( n, _length - pos ) );
+         return begin();
       }
-   }
-
-   size_type find( CHAR ch, size_type pos = 0 ) const noexcept
-   {
-      if ( empty() || pos >= _length )
+      const_iterator cend() const noexcept
       {
-         return npos;
+         return end();
       }
-      const CHAR *result = static_cast< const CHAR * >(
-          memchr( _ptr + pos, ch, _length - pos ) );
-      return result != nullptr ? static_cast< size_type >( result - _ptr )
-                               : npos;
-   }
-
-   INT32 compare( utilStringView x ) const noexcept
-   {
-      UINT32 n = std::min( _length, x._length );
-      INT32 res = ossMemcmp( _ptr, x._ptr, n );
-      if ( 0 == res )
+      const_reverse_iterator rbegin() const noexcept
       {
-         if ( _length < x._length )
+         return const_reverse_iterator( end() );
+      }
+      const_reverse_iterator rend() const noexcept
+      {
+         return const_reverse_iterator( begin() );
+      }
+      const_reverse_iterator crbegin() const noexcept
+      {
+         return rbegin();
+      }
+      const_reverse_iterator crend() const noexcept
+      {
+         return rend();
+      }
+      size_type size() const noexcept
+      {
+         return _length;
+      }
+      size_type length() const noexcept
+      {
+         return size();
+      }
+      BOOLEAN empty() const noexcept
+      {
+         return _length == 0;
+      }
+      const_reference operator[]( size_type i ) const
+      {
+         return _ptr[ i ];
+      }
+      const_reference at( size_type i ) const
+      {
+         if ( i > size() )
          {
-            res = -1;
+            throw std::out_of_range( "stringView::at" );
          }
-         else if ( _length > x._length )
+         return _ptr[ i ];
+      }
+      const_pointer data() const noexcept
+      {
+         return _ptr;
+      }
+      utilStringView substr( size_type pos = 0, size_type n = npos ) const
+      {
+         if ( pos + n > size() )
          {
-            res = 1;
+            throw std::out_of_range( "stringView::substr" );
+            return utilStringView();
+         }
+         else
+         {
+            return utilStringView( _ptr + pos, std::min( n, _length - pos ) );
          }
       }
-      return res;
-   }
 
-   INT32 compare( size_type pos1, size_type count1, utilStringView v ) const
+      size_type find( CHAR ch, size_type pos = 0 ) const noexcept
+      {
+         if ( empty() || pos >= _length )
+         {
+            return npos;
+         }
+         const CHAR *result =
+            static_cast< const CHAR * >( memchr( _ptr + pos, ch, _length - pos ) );
+         return result != nullptr ? static_cast< size_type >( result - _ptr ) : npos;
+      }
+
+      INT32 compare( utilStringView x ) const noexcept
+      {
+         UINT32 n = std::min( _length, x._length );
+         INT32 res = ossMemcmp( _ptr, x._ptr, n );
+         if ( 0 == res )
+         {
+            if ( _length < x._length )
+            {
+               res = -1;
+            }
+            else if ( _length > x._length )
+            {
+               res = 1;
+            }
+         }
+         return res;
+      }
+
+      INT32 compare( size_type pos1, size_type count1, utilStringView v ) const
+      {
+         return substr( pos1, count1 ).compare( v );
+      }
+
+      INT32 compare( const CHAR *s ) const
+      {
+         return compare( utilStringView( s ) );
+      }
+
+   private:
+      const_pointer _ptr = nullptr;
+      size_type _length = 0;
+   };
+   OSS_INLINE BOOLEAN operator==( utilStringView x, utilStringView y )
    {
-      return substr( pos1, count1 ).compare( v );
+      return x.compare( y ) == 0;
    }
 
-   INT32 compare( const CHAR *s ) const
+   OSS_INLINE BOOLEAN operator!=( utilStringView x, utilStringView y )
    {
-      return compare( utilStringView( s ) );
+      return !( x == y );
    }
 
-private:
-   const_pointer _ptr = nullptr;
-   size_type _length = 0;
-};
-OSS_INLINE BOOLEAN operator==( utilStringView x, utilStringView y )
-{
-   return x.compare( y ) == 0;
-}
+   OSS_INLINE BOOLEAN operator<( utilStringView x, utilStringView y )
+   {
+      return x.compare( y ) < 0;
+   }
 
-OSS_INLINE BOOLEAN operator!=( utilStringView x, utilStringView y )
-{
-   return !( x == y );
-}
+   OSS_INLINE BOOLEAN operator>( utilStringView x, utilStringView y )
+   {
+      return y < x;
+   }
 
-OSS_INLINE BOOLEAN operator<( utilStringView x, utilStringView y )
-{
-   return x.compare( y ) < 0;
-}
+   OSS_INLINE BOOLEAN operator<=( utilStringView x, utilStringView y )
+   {
+      return !( y < x );
+   }
 
-OSS_INLINE BOOLEAN operator>( utilStringView x, utilStringView y )
-{
-   return y < x;
-}
-
-OSS_INLINE BOOLEAN operator<=( utilStringView x, utilStringView y )
-{
-   return !( y < x );
-}
-
-OSS_INLINE BOOLEAN operator>=( utilStringView x, utilStringView y )
-{
-   return !( x < y );
-}
+   OSS_INLINE BOOLEAN operator>=( utilStringView x, utilStringView y )
+   {
+      return !( x < y );
+   }
 } // namespace engine
+
+namespace std
+{
+   template <> struct hash< engine::utilStringView >
+   {
+      size_t operator()( const engine::utilStringView s ) const noexcept
+      {
+         return std::_Hash_impl::hash( s.data(), s.length() );
+      }
+   };
+} // namespace std
 
 #endif

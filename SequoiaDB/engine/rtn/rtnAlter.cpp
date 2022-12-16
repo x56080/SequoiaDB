@@ -83,6 +83,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
 
+      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
+
    done :
       PD_TRACE_EXITRC( SDB__RTNCREATEIDINDEX, rc ) ;
       return rc ;
@@ -119,11 +122,11 @@ namespace engine
          rc = SDB_OK ;
       }
 
-      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
-      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
-
       PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
+
+      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
+      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
 
    done :
       PD_TRACE_EXITRC( SDB__RTNDROPIDINDEX, rc ) ;
