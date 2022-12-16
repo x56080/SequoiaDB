@@ -7,8 +7,8 @@
 | [SDB_LIST_CONTEXTS_CURRENT][SDB_LIST_CONTEXTS_CURRENT] | 当前会话上下文列表 | 列出当前数据库节点中当前会话所对应的上下文 |
 | [SDB_LIST_SESSIONS][SDB_LIST_SESSIONS] | 会话列表 | 列出当前数据库节点中所有的会话 |
 | [SDB_LIST_SESSIONS_CURRENT][SDB_LIST_SESSIONS_CURRENT] | 当前会话列表 | 列出当前数据库节点中当前的会话 |
-| [SDB_LIST_COLLECTIONS][SDB_LIST_COLLECTIONS] | 集合列表 | 列出当前数据库节点或集群中所有非临时集合 |
-| [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [SDB_LIST_COLLECTIONS][SDB_LIST_COLLECTIONS] | 集合列表 | 列出当前集群中的集合信息 |
+| [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 列出当前集群中的集合空间信息 |
 | [SDB_LIST_STORAGEUNITS][SDB_LIST_STORAGEUNITS] | 存储单元列表 | 列出当前数据库节点的全部存储单元信息 |
 | [SDB_LIST_GROUPS][SDB_LIST_GROUPS] | 分区组列表 | 列出当前集群中的所有分区信息 |
 | [SDB_LIST_TASKS][SDB_LIST_TASKS] | 后台任务列表 | 列出正在运行的后台任务信息 |

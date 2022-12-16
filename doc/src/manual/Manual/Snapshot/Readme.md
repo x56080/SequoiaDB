@@ -7,8 +7,8 @@
 | [SDB_SNAP_CONTEXTS_CURRENT][CONTEXTS_CURRENT]  | 当前会话上下文快照 | 列出当前数据库节点中当前会话所对应的上下文 |
 | [SDB_SNAP_SESSIONS][SESSIONS] | 会话快照 | 列出当前数据库节点中所有的会话 |
 | [SDB_SNAP_SESSIONS_CURRENT][SESSIONS_CURRENT] | 当前会话快照 | 列出当前数据库节点中当前的会话 |
-| [SDB_SNAP_COLLECTIONS][SDB_SNAP_COLLECTIONS]  | 集合快照 | 列出当前数据库节点或集群中所有非临时集合 |
-| [SDB_SNAP_COLLECTIONSPACES][COLLECTIONSPACES] | 集合空间快照 | 列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [SDB_SNAP_COLLECTIONS][SDB_SNAP_COLLECTIONS]  | 集合快照 | 列出当前集群中的集合信息 |
+| [SDB_SNAP_COLLECTIONSPACES][COLLECTIONSPACES] | 集合空间快照 | 列出当前集群中的集合空间信息 |
 | [SDB_SNAP_DATABASE][DATABASE] | 数据库快照 | 列出当前数据库节点的数据库监视信息 |
 | [SDB_SNAP_SYSTEM][SYSTEM] | 系统快照 | 列出当前数据库节点的系统监视信息 |
 | [SDB_SNAP_CATALOG][CATALOG] | 编目信息快照 | 列出所有集合的编目信息 |
