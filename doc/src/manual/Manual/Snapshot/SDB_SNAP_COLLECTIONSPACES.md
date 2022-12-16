@@ -10,7 +10,7 @@
     市场部：20190425
 
 
-集合空间快照可以列出所有集合空间。用户通过协调节点或非协调节点查看该快照时，返回的结果字段不完全相同。
+集合空间快照可以列出当前集群中的集合空间信息。连接协调节点执行函数时，将列出所有非系统集合空间的信息；连接非协调节点执行函数时，将列出与当前节点关联的所有集合空间信息。
 
 
 ##标识##
@@ -125,131 +125,131 @@ SDB_SNAP_COLLECTIONSPACES
 
 - 通过非协调节点查看快照
 
-   ```lang-javascript
-   > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
-   ```
-
-   输出结果如下：
-
-   ```lang-json
-   {
-     "NodeName": "sdbserver1:11820",
-     "GroupName": "group1",
-     "Name": "sample",
-     "UniqueID": 1,
-     "ID": 2,
-     "LogicalID": 2,
-     "Collection": [
-       {
-         "Name": "sample.employee",
-         "UniqueID": 4294967297
-       }
-     ],
-     "PageSize": 65536,
-     "LobPageSize": 262144,
-     "MaxCapacitySize": 26388279066624,
-     "MaxDataCapSize": 8796093022208,
-     "MaxIndexCapSize": 8796093022208,
-     "MaxLobCapSize": 8796093022208,
-     "NumCollections": 1,
-     "TotalRecords": 0,
-     "TotalSize": 524517376,
-     "FreeSize": 401735659,
-     "TotalDataSize": 155254784,
-     "FreeDataSize": 133627904,
-     "TotalIndexSize": 151060480,
-     "FreeIndexSize": 134152171,
-     "FreeLobSize": 133955584,
-     "MaxLobCapacity": 8796093022208,
-     "LobCapacity": 134217728,
-     "LobMetaCapacity": 83984384,
-     "TotalLobs": 1,
-     "TotalLobPages": 1,
-     "TotalUsedLobSpace": 262144,
-     "UsedLobSpaceRatio": 0,
-     "FreeLobSpace": 133955584,
-     "TotalLobSize": 150,
-     "TotalValidLobSize": 150,
-     "LobUsageRate": 0,
-     "AvgLobSize": 150,
-     "TotalLobGet": 0,
-     "TotalLobPut": 1,
-     "TotalLobDelete": 0,
-     "TotalLobReadSize": 0,
-     "TotalLobWriteSize": 150,
-     "TotalLobRead": 0,
-     "TotalLobWrite": 1,
-     "TotalLobTruncate": 0,
-     "TotalLobAddressing": 1,
-     "TotalLobList": 0,
-     "DataCommitLSN": 80,
-     "IndexCommitLSN": 80,
-     "LobCommitLSN": 164,
-     "DataCommitted": true,
-     "IndexCommitted": true,
-     "LobCommitted": true,
-     "DirtyPage": 0,
-     "Type": 0,
-     "CreateTime": "2022-10-06-18.04.31.008000",
-     "UpdateTime": "2022-10-06-18.05.49.384000"
-   }
-   ...
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
+    ```
+ 
+    输出结果如下：
+ 
+    ```lang-json
+    {
+      "NodeName": "sdbserver1:11820",
+      "GroupName": "group1",
+      "Name": "sample",
+      "UniqueID": 1,
+      "ID": 2,
+      "LogicalID": 2,
+      "Collection": [
+        {
+          "Name": "sample.employee",
+          "UniqueID": 4294967297
+        }
+      ],
+      "PageSize": 65536,
+      "LobPageSize": 262144,
+      "MaxCapacitySize": 26388279066624,
+      "MaxDataCapSize": 8796093022208,
+      "MaxIndexCapSize": 8796093022208,
+      "MaxLobCapSize": 8796093022208,
+      "NumCollections": 1,
+      "TotalRecords": 0,
+      "TotalSize": 524517376,
+      "FreeSize": 401735659,
+      "TotalDataSize": 155254784,
+      "FreeDataSize": 133627904,
+      "TotalIndexSize": 151060480,
+      "FreeIndexSize": 134152171,
+      "FreeLobSize": 133955584,
+      "MaxLobCapacity": 8796093022208,
+      "LobCapacity": 134217728,
+      "LobMetaCapacity": 83984384,
+      "TotalLobs": 1,
+      "TotalLobPages": 1,
+      "TotalUsedLobSpace": 262144,
+      "UsedLobSpaceRatio": 0,
+      "FreeLobSpace": 133955584,
+      "TotalLobSize": 150,
+      "TotalValidLobSize": 150,
+      "LobUsageRate": 0,
+      "AvgLobSize": 150,
+      "TotalLobGet": 0,
+      "TotalLobPut": 1,
+      "TotalLobDelete": 0,
+      "TotalLobReadSize": 0,
+      "TotalLobWriteSize": 150,
+      "TotalLobRead": 0,
+      "TotalLobWrite": 1,
+      "TotalLobTruncate": 0,
+      "TotalLobAddressing": 1,
+      "TotalLobList": 0,
+      "DataCommitLSN": 80,
+      "IndexCommitLSN": 80,
+      "LobCommitLSN": 164,
+      "DataCommitted": true,
+      "IndexCommitted": true,
+      "LobCommitted": true,
+      "DirtyPage": 0,
+      "Type": 0,
+      "CreateTime": "2022-10-06-18.04.31.008000",
+      "UpdateTime": "2022-10-06-18.05.49.384000"
+    }
+    ...
+    ```
 
 - 通过协调节点查看快照
 
-   ```lang-javascript
-   > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
-   ```
-   
-   输出结果如下：
-
-   ```lang-json
-   {
-     "Name": "sample",
-     "UniqueID": 1,
-     "PageSize": 65536,
-     "LobPageSize": 262144,
-     "TotalSize": 524517376,
-     "FreeSize": 401473515,
-     "TotalDataSize": 155254784,
-     "FreeDataSize": 133627904,
-     "TotalIndexSize": 151060480,
-     "FreeIndexSize": 134152171,
-     "LobCapacity": 134217728,
-     "LobMetaCapacity": 83984384,
-     "MaxLobCapacity": 8796093022208,
-     "TotalLobPages": 2,
-     "TotalLobs": 2,
-     "TotalUsedLobSpace": 524288,
-     "UsedLobSpaceRatio": 0,
-     "FreeLobSpace": 133693440,
-     "FreeLobSize": 133693440,
-     "TotalLobSize": 300,
-     "TotalValidLobSize": 300,
-     "LobUsageRate": 0,
-     "AvgLobSize": 150,
-     "TotalLobGet": 1,
-     "TotalLobPut": 2,
-     "TotalLobDelete": 0,
-     "TotalLobList": 0,
-     "TotalLobReadSize": 0,
-     "TotalLobWriteSize": 300,
-     "TotalLobRead": 1,
-     "TotalLobWrite": 2,
-     "TotalLobTruncate": 0,
-     "TotalLobAddressing": 3,
-     "Collection": [
-       {
-         "Name": "sample.employee",
-         "UniqueID": 4294967297
-       }
-     ],
-     "Group": [
-       "group1"
-     ],
-     "CreateTime": "2022-10-06-18.04.31.008000",
-     "UpdateTime": "2022-10-06-18.05.49.384000"
-   }
-   ...
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
+    ```
+    
+    输出结果如下：
+  
+    ```lang-json
+    {
+      "Name": "sample",
+      "UniqueID": 1,
+      "PageSize": 65536,
+      "LobPageSize": 262144,
+      "TotalSize": 524517376,
+      "FreeSize": 401473515,
+      "TotalDataSize": 155254784,
+      "FreeDataSize": 133627904,
+      "TotalIndexSize": 151060480,
+      "FreeIndexSize": 134152171,
+      "LobCapacity": 134217728,
+      "LobMetaCapacity": 83984384,
+      "MaxLobCapacity": 8796093022208,
+      "TotalLobPages": 2,
+      "TotalLobs": 2,
+      "TotalUsedLobSpace": 524288,
+      "UsedLobSpaceRatio": 0,
+      "FreeLobSpace": 133693440,
+      "FreeLobSize": 133693440,
+      "TotalLobSize": 300,
+      "TotalValidLobSize": 300,
+      "LobUsageRate": 0,
+      "AvgLobSize": 150,
+      "TotalLobGet": 1,
+      "TotalLobPut": 2,
+      "TotalLobDelete": 0,
+      "TotalLobList": 0,
+      "TotalLobReadSize": 0,
+      "TotalLobWriteSize": 300,
+      "TotalLobRead": 1,
+      "TotalLobWrite": 2,
+      "TotalLobTruncate": 0,
+      "TotalLobAddressing": 3,
+      "Collection": [
+        {
+          "Name": "sample.employee",
+          "UniqueID": 4294967297
+        }
+      ],
+      "Group": [
+        "group1"
+      ],
+      "CreateTime": "2022-10-06-18.04.31.008000",
+      "UpdateTime": "2022-10-06-18.05.49.384000"
+    }
+    ...
+    ```

@@ -11,8 +11,8 @@
 | [$SNAPSHOT_CONTEXT_CUR][SNAPSHOT_CONTEXT_CUR] | [SDB_SNAP_CONTEXTS_CURRENT][SDB_SNAP_CONTEXTS_CURRENT] | 当前会话上下文快照 | 当前上下文快照列出当前数据库节点中当前会话所对应的上下文 |
 | [$SNAPSHOT_SESSION][SNAPSHOT_SESSION] | [SDB_SNAP_SESSIONS][SDB_SNAP_SESSIONS] | 会话快照 | 会话快照列出当前数据库节点中所有的会话 |
 | [$SNAPSHOT_SESSION_CUR][SNAPSHOT_SESSION_CUR] | [SDB_SNAP_SESSIONS_CURRENT][SDB_SNAP_SESSIONS_CURRENT] | 当前会话快照 | 当前会话快照列出当前数据库节点中当前的会话 |
-| [$SNAPSHOT_CL][SNAPSHOT_CL] | [SDB_SNAP_COLLECTIONS][SDB_SNAP_COLLECTIONS] | 集合快照 | 集合快照列出当前数据库节点或集群中所有非临时集合 |
-| [$SNAPSHOT_CS][SNAPSHOT_CS] | [SDB_SNAP_COLLECTIONSPACES][SDB_SNAP_COLLECTIONSPACES] | 集合空间快照 | 集合空间快照列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [$SNAPSHOT_CL][SNAPSHOT_CL] | [SDB_SNAP_COLLECTIONS][SDB_SNAP_COLLECTIONS] | 集合快照 | 集合快照列出当前集群中的集合信息 |
+| [$SNAPSHOT_CS][SNAPSHOT_CS] | [SDB_SNAP_COLLECTIONSPACES][SDB_SNAP_COLLECTIONSPACES] | 集合空间快照 | 集合空间快照列出当前集群中的集合空间信息 |
 | [$SNAPSHOT_DB][SNAPSHOT_DB] | [SDB_SNAP_DATABASE][SDB_SNAP_DATABASE] | 数据库快照 | 数据库快照列出当前数据库节点的数据库监视信息 |
 | [$SNAPSHOT_SYSTEM][SNAPSHOT_SYSTEM] | [SDB_SNAP_SYSTEM][DB_SNAP_SYSTEM] | 系统快照 | 系统快照列出当前数据库节点的系统监视信息 |
 | [$SNAPSHOT_CATA][SNAPSHOT_CATA] | [SDB_SNAP_CATALOG][SDB_SNAP_CATALOG] | 编目信息快照 | 用于查看编目信息 |
@@ -40,8 +40,8 @@
 | [$LIST_CONTEXT_CUR][LIST_CONTEXT_CUR] | [SDB_LIST_CONTEXTS_CURRENT][SDB_LIST_CONTEXTS_CURRENT] | 当前会话上下文列表 | 当前上下文列表列出当前数据库节点中当前会话所对应的上下文 |
 | [$LIST_SESSION][LIST_SESSION] | [SDB_LIST_SESSIONS][SDB_LIST_SESSIONS] | 会话列表 | 会话列表列出当前数据库节点中所有的会话 |
 | [$LIST_SESSION_CUR][LIST_SESSION_CUR] | [SDB_LIST_SESSIONS_CURRENT][SDB_LIST_SESSIONS_CURRENT] | 当前会话列表 | 当前会话列表列出当前数据库节点中当前的会话 |
-| [$LIST_CL][LIST_CL] | [SDB_LIST_COLLECTIONS][SDB_LIST_COLLECTIONS] | 集合列表 | 集合列表列出当前数据库节点或集群中所有非临时集合 |
-| [$LIST_CS][LIST_CS] | [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 集合空间列表列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [$LIST_CL][LIST_CL] | [SDB_LIST_COLLECTIONS][SDB_LIST_COLLECTIONS] | 集合列表 | 集合列表列出当前集群中的集合信息 |
+| [$LIST_CS][LIST_CS] | [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 集合空间列表列出当前集群中的集合空间信息 |
 | [$LIST_SU][LIST_SU] | [SDB_LIST_STORAGEUNITS][SDB_LIST_STORAGEUNITS]  | 存储单元列表 | 存储单元列表列出当前数据库节点的全部存储单元信息 |
 | [$LIST_GROUP][LIST_GROUP]  | [SDB_LIST_GROUPS][SDB_LIST_GROUPS] | 复制组列表 | 复制组列表列出当前集群中的所有数据分区信息 |
 | [$LIST_TRANS][LIST_TRANS] | [SDB_LIST_TRANSACTIONS][SDB_LIST_TRANSACTIONS] | 事务列表 | 事务列表列出数据库中正在进行的事务信息 |
@@ -58,7 +58,7 @@
 
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
-|  select \<sel\> from $\<snapshot\> where \<cond\> order by \<sort\>  |   db.snapshot( <snapType>, [cond], [sel], [sort] ) |
+|  select \<sel\> from $\<snapshot\> where \<cond\> order by \<sort\>  |   db.snapshot( \<snapType\>, [cond], [sel], [sort] ) |
 | db.exec( "select * from $SNAPSHOT_CONTEXT where SessionID = 20" ) | 过滤指定条件的记录。db.snapshot(SDB_SNAP_CONTEXTS, { SessionID: 20 } ) |
 | db.exec( " select NodeName from $SNAPSHOT_CONTEXT " ) | 只显示记录的指定字段。db.snapshot(SDB_SNAP_CONTEXTS, {}, { NodeName:""} ) |
 | db.exec( " select * from $SNAPSHOT_CONTEXT order by SessionID" ) | 根据指定字段进行排序。db.snapshot(SDB_SNAP_CONTEXTS, {}, {}, { "SessionID": 1 } ) |
