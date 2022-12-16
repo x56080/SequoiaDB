@@ -274,10 +274,11 @@ INT32 rtnPITRollbackManager::_init()
       // driven by messages from the coord.
       if ((rc = rtnTransBegin(_cb, FALSE, TRUE, _transID, beginTime)))
       {
-         PD_LOG(PDERROR,
-                "Failed to begin global transaction for restoreToTime "
-                "[id=%s] [rc=%d]",
-                dpsTransIDToString(_transID).c_str(), rc);
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+         PD_LOG( PDERROR,
+                 "Failed to begin global transaction for restoreToTime "
+                 "[id=%s] [rc=%d]",
+                 dpsTransIDToString( _transID, strTransID, DPS_TRANS_STR_LEN ), rc );
          return rc;
       }
    }

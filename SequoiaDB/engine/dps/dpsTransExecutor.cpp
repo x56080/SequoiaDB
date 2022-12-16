@@ -1158,13 +1158,14 @@ namespace engine
                                    BOOLEAN &visible )
    {
       INT32 rc = SDB_OK ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_TRACE_ENTRY( SDB__DPSTRANSEXE_ARBIT ) ;
 
       rc = _transArbit.arbit( writeTransID, writeStatus, visible ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check arbitration for transaction "
                    "[%s], status [%s], rc: %d",
-                   dpsTransIDToString( writeTransID ).c_str(),
+                   dpsTransIDToString( writeTransID, strTransID, DPS_TRANS_STR_LEN ),
                    dpsTransStatusToString( writeStatus ), rc ) ;
 
    done:

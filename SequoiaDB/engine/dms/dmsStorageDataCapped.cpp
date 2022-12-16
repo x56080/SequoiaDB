@@ -105,8 +105,8 @@ namespace engine
             if ( DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._lastExtentID )
             {
                rc = _attachWorkExt( i, _dmsMME->_mbList[i]._lastExtentID ) ;
-               PD_RC_CHECK( rc, PDERROR, 
-                            "Failed to attach work extent: %d, rc: %d", 
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to attach work extent: %d, rc: %d",
                             _dmsMME->_mbList[i]._lastExtentID, rc ) ;
             }
          }
@@ -1223,6 +1223,7 @@ namespace engine
          *lidPtr = workExtInfo->getRecordLogicID() ;
          pRecord->setLogicalID( *lidPtr ) ;
 #if SDB_INTERNAL_DEBUG
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          // only enabled this for internal test when needed
          PD_LOG( PDDEBUG,
                  "insert record (recordsize=%d, Bson obj size=%d) to capped cl,"
@@ -1236,7 +1237,7 @@ namespace engine
                  pRecord->getSize(),
                  pRecord->getRecordNo(),
                  pRecord->getLogicalID(),
-                 dpsTransIDToString( pRecord->getGlobTransID() ).c_str() );
+                 dpsTransIDToString( pRecord->getGlobTransID(), strTransID, DPS_TRANS_STR_LEN ) );
 #endif
       }
 
@@ -2715,7 +2716,7 @@ namespace engine
       dmsRecordRW  &recordRW,
       _pmdEDUCB    *cb,
       BOOLEAN       bSetOvfRecrd
-   ) 
+   )
    {
       SDB_ASSERT( FALSE, "Should not be here" ) ;
       return SDB_OPERATION_INCOMPATIBLE ;

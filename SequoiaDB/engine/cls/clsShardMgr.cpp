@@ -3405,13 +3405,14 @@ namespace engine
             pmdEDUCB *cb = pmdGetThreadEDUCB() ;
             INT16 finalReplSize = 0 ;
             INT16 replSize = pmdGetOptionCB()->transReplSize() ;
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             replSize = ( 1 == replSize ) ? 2 : replSize ;
             checkRC = pReplCB->replSizeCheck( replSize, finalReplSize, cb ) ;
             if ( SDB_OK != checkRC )
             {
                PD_LOG( PDWARNING, "Failed to check repl size for transaction "
                        "[%s], given repl size [%d], rc: %d",
-                       dpsTransIDToString( transID ).c_str(), replSize,
+                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), replSize,
                        checkRC ) ;
                checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
             }
@@ -3424,7 +3425,7 @@ namespace engine
                {
                   PD_LOG( PDWARNING, "Failed to check sync for transaction "
                           "[%s] lsn [%llu], rc: %d",
-                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                           transInfo._lsn, checkRC ) ;
                   checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
                }

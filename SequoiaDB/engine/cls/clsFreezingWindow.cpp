@@ -1109,13 +1109,15 @@ namespace engine
             }
             else if ( CLS_FREEZING_CHECKER_TRANS == result._step )
             {
+               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                // timeout to wait for transaction
                rc = SDB_DPS_TRANS_LOCK_INCOMPATIBLE ;
                PD_LOG_MSG( PDERROR, "Failed to wait for other write "
                            "transactions to finish, [%s] blocked by "
                            "transaction [%s], total %u blocking transactions",
                            _objName,
-                           dpsTransIDToString( result._blockTransID ).c_str(),
+                           dpsTransIDToString( result._blockTransID,
+                                               strTransID, DPS_TRANS_STR_LEN ),
                            result._blockTransNum ) ;
             }
             else

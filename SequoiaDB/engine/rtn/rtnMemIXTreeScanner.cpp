@@ -506,17 +506,20 @@ namespace engine
                {
                   // FIXME: remove from set
 #ifdef _DEBUG
+                  CHAR strGlobLowTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+                  CHAR strGlobExpireTran[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+                  CHAR strNodeTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                   PD_LOG( PDDEBUG,
                           "Skipping rid(%d, %d) in memory tree due to "
                           "lowTran(%s) and expireTran(%s), node transid(%s)",
                           nodeKey.getRID()._extent,
                           nodeKey.getRID()._offset,
-                          dpsTransIDToString(
-                                _pTransCB->getGlobLowTran() ).c_str(),
-                          dpsTransIDToString(
-                                _pTransCB->getGlobExpireTran() ).c_str(),
-                          dpsTransIDToString(
-                                nodeKey.getNodeTransID() ).c_str() ) ;
+                          dpsTransIDToString( _pTransCB->getGlobLowTran(),
+                                              strGlobLowTransID, DPS_TRANS_STR_LEN ),
+                          dpsTransIDToString( _pTransCB->getGlobExpireTran(),
+                                              strGlobExpireTran, DPS_TRANS_STR_LEN ),
+                          dpsTransIDToString( nodeKey.getNodeTransID(),
+                                              strNodeTransID, DPS_TRANS_STR_LEN ) ) ;
 #endif
                   _savedRID.reset() ;
                   _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;

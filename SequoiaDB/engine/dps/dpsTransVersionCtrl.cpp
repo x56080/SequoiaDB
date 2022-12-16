@@ -91,10 +91,12 @@ namespace engine
    string preIdxTreeNodeKey::toString( BOOLEAN encryptKey ) const
    {
       std::stringstream ss ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       ss << "RID(" << _rid._extent << "," << _rid._offset
          << ", Key:"
          << ( encryptKey ? PD_SECURE_OBJ( _keyObj ) : _keyObj.toString() )
-         << ", TransID:" << dpsTransIDToString( _transID ).c_str() ;
+         << ", TransID:" << dpsTransIDToString( _transID, strTransID,
+                                                DPS_TRANS_STR_LEN ) ;
       return ss.str() ;
    }
 
@@ -376,10 +378,12 @@ namespace engine
                _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
                                                             ret.first) ) ;
 #if SDB_INTERNAL_DEBUG
+               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG( PDDEBUG,
                        "Inserted rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
-                       dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                       dpsTransIDToString( keyNode.getNodeTransID(),
+                                           strTransID, DPS_TRANS_STR_LEN ),
                        _idxLID ) ;
 #endif
             }
@@ -394,10 +398,12 @@ namespace engine
                _ridTree[keyNode.getRID()] = ret.first ;
 
 #if SDB_INTERNAL_DEBUG
+               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG( PDDEBUG,
                        "Added new rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
-                       dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                       dpsTransIDToString( keyNode.getNodeTransID(),
+                                           strTransID, DPS_TRANS_STR_LEN ),
                        _idxLID ) ;
 #endif
             }
@@ -2245,6 +2251,8 @@ namespace engine
       UINT32 recSize = 0 ;
       dmsRecord *pNewRecord = NULL ;
       DPS_TRANS_ID recordTransID ;
+      CHAR strOwnerTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       SDB_ASSERT( !_recordPtr.get(), "Old record is not NULL" ) ;
       SDB_ASSERT( pRecord, "Record is NULL" ) ;
@@ -2294,8 +2302,9 @@ namespace engine
                "Thread(%d) Saved old copy for rid(%d, %d) to oldVer(%x) "
                "through transaction(%s), recordTransID(%s)",
                ownerTID, _rid._extent, _rid._offset,
-               this, dpsTransIDToString( _ownerTransID ).c_str(),
-               dpsTransIDToString( _recordTransID ).c_str() ) ;
+               this, dpsTransIDToString( _ownerTransID, strOwnerTransID,
+                                         DPS_TRANS_STR_LEN ),
+               dpsTransIDToString( _recordTransID, strRecTransID, DPS_TRANS_STR_LEN ) ) ;
 #endif //_DEBUG
 
    done:
@@ -2320,11 +2329,13 @@ namespace engine
       if ( !pmdGetOptionCB()->mvccOn() || isRolledback() )
       {
 #if SDB_INTERNAL_DEBUG
+   CHAR strOwnerTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+   CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
    PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
            "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
             treeLatchHeld, _rid._extent, _rid._offset,
-            dpsTransIDToString( _ownerTransID ).c_str(),
-            dpsTransIDToString( _recordTransID ).c_str(),
+            dpsTransIDToString( _ownerTransID, strOwnerTransID, DPS_TRANS_STR_LEN ),
+            dpsTransIDToString( _recordTransID, strRecTransID, DPS_TRANS_STR_LEN ),
             this->getRecordObj().toString().c_str() ) ;
 #endif
          pTree->remove( keyNode, this, treeLatchHeld ) ;
@@ -2332,11 +2343,13 @@ namespace engine
       else
       {
 #if SDB_INTERNAL_DEBUG
+   CHAR strOwnerTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+   CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
    PD_LOG( PDDEBUG, "Resetting index in mem tree, latchHeld(%d): "
            "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
             treeLatchHeld, _rid._extent, _rid._offset,
-            dpsTransIDToString( _ownerTransID ).c_str(),
-            dpsTransIDToString( _recordTransID ).c_str(),
+            dpsTransIDToString( _ownerTransID, strOwnerTransID, DPS_TRANS_STR_LEN ),
+            dpsTransIDToString( _recordTransID, strRecTransID, DPS_TRANS_STR_LEN ),
             this->getRecordObj().toString().c_str() ) ;
 #endif
          // reset the tree node value if mvcc is on
@@ -2379,11 +2392,13 @@ namespace engine
             goto done ;
          }
 #ifdef _DEBUG
+         CHAR strOwnerTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+         CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_LOG( PDDEBUG, "Successfully saved record to RBS: "
                  "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
                   _rid._extent, _rid._offset,
-                  dpsTransIDToString( _ownerTransID ).c_str(),
-                  dpsTransIDToString( _recordTransID ).c_str(),
+                  dpsTransIDToString( _ownerTransID, strOwnerTransID, DPS_TRANS_STR_LEN ),
+                  dpsTransIDToString( _recordTransID, strRecTransID, DPS_TRANS_STR_LEN ),
                   this->getRecordObj().toString().c_str() ) ;
 #endif
 

@@ -938,6 +938,8 @@ namespace engine
             DPS_TRANS_ID writingTransID     = _oldVer->getOwnerTransID() ;
             DPS_TRANS_ID recTransID         = record->getGlobTransID() ;
             stpLogicalTimeUS transBeginTime = _eduCB->getTransBeginTime() ;
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+            CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
             // if both read transaction ( current transaction ) and owner
             // transaction (who did the original change) are global RR trans,
@@ -959,8 +961,9 @@ namespace engine
                          "Failed to check visibility for "
                          "read transaction [%s] against owner "
                          "transaction [%s], rc: %d",
-                         dpsTransIDToString( transID ).c_str(),
-                         dpsTransIDToString( recTransID ).c_str(), rc ) ;
+                         dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                         dpsTransIDToString( recTransID, strRecTransID,
+                                             DPS_TRANS_STR_LEN ), rc ) ;
             if ( ! isVisible )
             {
                rc = _transCB->isVersionVisible( _eduCB,
@@ -974,16 +977,18 @@ namespace engine
                             "Failed to check visibility for "
                             "read transaction [%s] against record "
                             "transaction [%s], rc: %d",
-                            dpsTransIDToString( transID ).c_str(),
-                            dpsTransIDToString( recTransID ).c_str(), rc ) ;
+                            dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                            dpsTransIDToString( recTransID, strRecTransID,
+                                                DPS_TRANS_STR_LEN ), rc ) ;
 #ifdef _DEBUG
                if ( ! found )
                {
                   PD_LOG( PDDEBUG,
                           "In memory record version not visiable, "
                           "transid(%s) vs recordTransid(%s), clLID(%d)",
-                          dpsTransIDToString( transID ).c_str(),
-                          dpsTransIDToString( recTransID ).c_str(), _clLID ) ;
+                          dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                          dpsTransIDToString( recTransID, strRecTransID,
+                                              DPS_TRANS_STR_LEN ), _clLID ) ;
                }
 #endif
             }
@@ -993,11 +998,13 @@ namespace engine
                // set _oldVer = NULL and found = FALSE, let the caller
                // to decide if skip the record or retry and wait on S lock
 #ifdef _DEBUG
+               CHAR strWritingTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG( PDDEBUG,
                        "skip this record after comparing curTransID(%s) against"
                        " owner transID(%s), clLID(%d)",
-                       dpsTransIDToString( transID ).c_str(),
-                       dpsTransIDToString( writingTransID ).c_str(), _clLID ) ;
+                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                       dpsTransIDToString( writingTransID, strWritingTransID,
+                                           DPS_TRANS_STR_LEN ), _clLID ) ;
 #endif
                _oldVer = NULL ;
                found   = FALSE ;
@@ -1244,15 +1251,18 @@ namespace engine
       }
 
 #if SDB_INTERNAL_DEBUG
-      PD_LOG( PDDEBUG,
-             "oldVer[%x] for rid[%s] in memory, lockmod=%s, visible=%d, "
-             "_useOldVersion=%d, _skipRecord=%d, _needPostAction=%d, "
-             "_rbsRecordData->isEmpty()=%d, rc=%d, transID(%s)",
-             _oldVer, lockId.toString().c_str(),
-             lockModeToString( requestLockMode ), visible,
-             _useOldVersion, _skipRecord, _needPostAction,
-             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc,
-             dpsTransIDToString( transID ).c_str() ) ;
+      {
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+         PD_LOG( PDDEBUG,
+                "oldVer[%x] for rid[%s] in memory, lockmod=%s, visible=%d, "
+                "_useOldVersion=%d, _skipRecord=%d, _needPostAction=%d, "
+                "_rbsRecordData->isEmpty()=%d, rc=%d, transID(%s)",
+                _oldVer, lockId.toString().c_str(),
+                lockModeToString( requestLockMode ), visible,
+                _useOldVersion, _skipRecord, _needPostAction,
+                (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc,
+                dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ) ) ;
+      }
 #endif
       _result = rc ;
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIRESLOCKRRREAD ) ;
@@ -1409,6 +1419,8 @@ namespace engine
          DPS_TRANS_ID recTransID = record->getGlobTransID() ;
          stpLogicalTimeUS visibleTime( DPS_MAX_TRANS_TIME,
                                        STP_MAX_TIME_ERROR ) ;
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+         CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          rc = _transCB->isVersionVisible( _eduCB,
                                           recTransID,
                                           transID,
@@ -1421,8 +1433,9 @@ namespace engine
                       "Failed to check visibility for "
                       "read transaction [%s] against record"
                       "transaction [%s], rc: %d",
-                      dpsTransIDToString( transID ).c_str(),
-                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
+                      dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                      dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
+                      rc ) ;
 
          if ( !visible )
          {
@@ -1461,9 +1474,9 @@ namespace engine
                       "will be visible on [%llu]",
                       context->mb()->_collectionName,
                       globTransAvailTime,
-                      dpsTransIDToString( transID ).c_str(),
+                      dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                       transID.getGlobSN(),
-                      dpsTransIDToString( recTransID ).c_str(),
+                      dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
                       visibleTime.getTime() ) ;
          }
 
@@ -1564,14 +1577,17 @@ namespace engine
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
+            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 #if SDB_INTERNAL_DEBUG
 
+         CHAR strGlobTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
                  "rid(%d, %d), ownertransid(%s), "
                  "recordTransID(%s)",
                  rid._extent, rid._offset,
-                 dpsTransIDToString( transID ).c_str(),
-                 dpsTransIDToString( pRecord->getGlobTransID() ).c_str() ) ;
+                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                 dpsTransIDToString( pRecord->getGlobTransID(), strGlobTransID,
+                                     DPS_TRANS_STR_LEN ) ) ;
 #endif
 
             // 1. get to overflow record if needed
@@ -1608,7 +1624,7 @@ namespace engine
                           "Failed to save to RBS  :rid(%d, %d), tid(%s), "
                           "obj(%s)",
                           rid._extent, rid._offset,
-                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                           _oldVer->getRecordObj().toString().c_str() ) ;
                   goto error ;
                }

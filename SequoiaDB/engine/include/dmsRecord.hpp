@@ -385,7 +385,7 @@ namespace engine
 #pragma pack()
 
    typedef _dmsRecord_v0 dmsRecord_v0 ;
-   
+
 #pragma pack(1)
    // dmsRecord after V3.4 will contain create lsnOffset and globTransID
    // to support MVCC.
@@ -486,10 +486,10 @@ namespace engine
                      moveData ) ;
 
          }
-#endif         
+#endif
          return ;
       }
-   
+
    };
 #pragma pack()
 
@@ -500,7 +500,7 @@ namespace engine
    typedef _dmsRecord dmsRecord ;
 
    // implementations has to put after _dmsRecord_v1 definition
-   OSS_INLINE dmsRecordID _dmsRecord_v0::getOvfRID() const 
+   OSS_INLINE dmsRecordID _dmsRecord_v0::getOvfRID() const
    {
       if ( isOvf() )
       {
@@ -558,12 +558,12 @@ namespace engine
       if ( data.isCompressed() )
       {
          setCompressed() ;
-         UINT32 * temp = (UINT32 *)( (CHAR *)this + 
+         UINT32 * temp = (UINT32 *)( (CHAR *)this +
                                        DMS_RECORD_VERSIONED_METADATA_SZ ) ;
          (*temp) = data.len() ;
          (*temp) |= ( ( (UINT32)data.getCompressType() << 24 ) &
                         0xFF000000 ) ;
-         ossMemcpy( (CHAR*)this + 
+         ossMemcpy( (CHAR*)this +
                        DMS_RECORD_VERSIONED_METADATA_SZ + sizeof(UINT32),
                     data.data(), data.len() ) ;
       }
@@ -602,7 +602,7 @@ namespace engine
       }
 
       ss << OSS_NEWLINE << "  Flags:" << OSS_NEWLINE;
-      ss << "    Compressed: " << 
+      ss << "    Compressed: " <<
             ( this->isCompressed() ? "True" : "False" )
          << OSS_NEWLINE ;
       ss << "    CompressType: "
@@ -615,11 +615,13 @@ namespace engine
       ss << "  My Offset : " << _myOffset << OSS_NEWLINE ;
       ss << "  Prev Offset : " << _previousOffset << OSS_NEWLINE ;
       ss << "  Nextv Offset : " << _nextOffset << OSS_NEWLINE ;
-      
+
       if ( this->hasGlobTransID() )
       {
-         ss << "  Trans ID: " 
-            << dpsTransIDToString(((_dmsRecord_v1*)this)->_globTransID).c_str() 
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+         ss << "  Trans ID: "
+            << dpsTransIDToString( ((_dmsRecord_v1*)this)->_globTransID,
+                                   strTransID, DPS_TRANS_STR_LEN )
             << OSS_NEWLINE ;
       }
 
@@ -673,7 +675,7 @@ namespace engine
       // an record within the capped CS
       INT64       _logicalID ;
       // cappedCL in internal and will be newly created in new release
-      DPS_TRANS_ID  _globTransID ; // global transaction ID updated the 
+      DPS_TRANS_ID  _globTransID ; // global transaction ID updated the
                                    // record it's the same trans created
                                    // cappedRecord
       CHAR          _pad[2]      ; // force 4B alignment with pragma pack
@@ -788,7 +790,7 @@ namespace engine
       }                 _head ;
       dmsOffset         _myOffset ;
       dmsRecordID       _next ;
-      // the position of the lsn/GTID is same as v1 record. So once a record 
+      // the position of the lsn/GTID is same as v1 record. So once a record
       // is deleted under new release, it's automatically converted to
       // v1 type
       DPS_TRANS_ID      _globTransID ;

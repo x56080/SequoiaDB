@@ -154,6 +154,7 @@ namespace engine
       DPS_TRANS_ID transID ;
       UINT64 transBeginTime = DPS_INVALID_TRANS_TIME ;
       UINT64 ixRebuildTime = DPS_INVALID_TRANS_TIME ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // no need to check index rebuild time for global transaction:
       // in below cases
@@ -166,7 +167,7 @@ namespace engine
       //       be available for write operators from global transactions
       if ( options.isWriteOp() ||
            !_eduCB->isGlobTrans() ||
-           ( _eduCB->getTransExecutor()->getTransIsolation() != 
+           ( _eduCB->getTransExecutor()->getTransIsolation() !=
              TRANS_ISOLATION_RR ) )
       {
          goto done ;
@@ -240,7 +241,7 @@ namespace engine
                 su->CSName(),
                 mbContext->mb()->_collectionName,
                 indexCB.getName(),
-                dpsTransIDToString( transID ).c_str(),
+                dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                 transBeginTime,
                 ixRebuildTime ) ;
 
@@ -270,6 +271,7 @@ namespace engine
       UINT64 transBeginTime = DPS_INVALID_TRANS_TIME ;
       UINT64 planIxRebuildTime = DPS_INVALID_TRANS_TIME ;
       BOOLEAN lockedHere = FALSE ;
+      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // no need to check index rebuild time for global transaction:
       // - write operators
@@ -281,7 +283,7 @@ namespace engine
       //       be available for write operators from global transactions
       if ( options.isWriteOp() ||
            !_eduCB->isGlobTrans() ||
-           ( _eduCB->getTransExecutor()->getTransIsolation() != 
+           ( _eduCB->getTransExecutor()->getTransIsolation() !=
              TRANS_ISOLATION_RR ) )
       {
          goto done ;
@@ -396,7 +398,7 @@ namespace engine
                 "global transaction %s, "
                 "transaction time [%llu], index rebuild time [%llu]",
                 plan->toString().c_str(),
-                dpsTransIDToString( transID ).c_str(),
+                dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
                 transBeginTime,
                 planIxRebuildTime ) ;
 
