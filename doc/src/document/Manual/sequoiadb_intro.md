@@ -1,4 +1,4 @@
-SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，主要面对高并发联机交易型场景提供高性能、可靠稳定以及无限水平扩展的数据库服务。
+SequoiaDB 巨杉数据库是一款金融级分布式数据库，主要面对高并发实时处理型场景提供高性能、可靠稳定以及无限水平扩展的数据库服务。
 
 用户可以在 SequoiaDB 巨杉数据库中创建多种类型的数据库实例，以满足上层不同应用程序各自的需求。
 
@@ -13,7 +13,6 @@ SequoiaDB 巨杉数据库可以为用户带来如下价值：
 *   分布式事务与 ACID 能力
 *   同时支持结构化、半结构化与非结构化数据
 *   金融级安全特性，多数据中心间容灾做到 RPO = 0
-*   HTAP 混合负载，同时运行联机交易与批处理任务且互不干扰
 *   多租户能力，云环境下支持多种级别的物理与逻辑隔离
 
 用户案例
@@ -24,6 +23,6 @@ SequoiaDB 巨杉数据库可以为用户带来如下价值：
 
 SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场景](http://solution.sequoiadb.com/cn/)页面获得更多信息。
 
-*   [联机交易](http://solution.sequoiadb.com/cn/oltp)
+*   [实时处理](http://solution.sequoiadb.com/cn/oltp)
 *   [数据中台](http://solution.sequoiadb.com/cn/datamidend)
 *   [内容管理](http://solution.sequoiadb.com/cn/ecm)

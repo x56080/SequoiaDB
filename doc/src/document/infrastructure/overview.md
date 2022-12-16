@@ -1,6 +1,6 @@
 ##系统架构##
 
-SequoiaDB 是一款金融级分布式关系型数据库。下图为 SequoiaDB 的逻辑架构图：
+SequoiaDB 是一款金融级分布式数据库。下图为 SequoiaDB 的逻辑架构图：
 
   ![系统逻辑架构](infrastructure/sequoiadb_infrastructure.jpg)
 
