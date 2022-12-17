@@ -47,6 +47,7 @@
 #include "../bson/lib/md5.hpp"
 #include "catCMDBase.hpp"
 #include "pdSecure.hpp"
+#include "mthModifier.hpp"
 
 using namespace bson ;
 
@@ -3985,6 +3986,8 @@ namespace engine
       BOOLEAN hasTask = FALSE ;
       ossPoolSet<UINT64> mainTaskSet ;
       ossPoolMap<UINT64,UINT64> subTaskMap ; // <taskID, mainTaskID>
+      BSONObjBuilder matcherBob ;
+      BSONObj updator ;
 
       try
       {
@@ -4004,15 +4007,43 @@ namespace engine
                          matcher.toString().c_str(), rc ) ;
          }
 
+         updator = BSON( MTH_MODIFIER_UNSET << BSON( FIELD_NAME_MAIN_TASKID << "" ) ) ;
+
          // if the task to be deleted is main task, remove their sub tasks
          for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
                it != mainTaskSet.end() ; it++ )
          {
-            BSONObj matcher1 = BSON( FIELD_NAME_MAIN_TASKID << (INT64)(*it) ) ;
-            rc = catRemoveTask( matcher1, FALSE, cb, w ) ;
+            {
+               matcherBob.reset() ;
+               BSONArrayBuilder andBab( matcherBob.subarrayStart( MTH_OPERATOR_STR_AND ) ) ;
+               BSONObjBuilder mainTaskIDBob( andBab.subobjStart() ) ;
+               mainTaskIDBob.append( FIELD_NAME_MAIN_TASKID, (INT64)(*it) ) ;
+               mainTaskIDBob.done() ;
+               BSONObjBuilder statusBob( andBab.subobjStart() ) ;
+               BSONObjBuilder neBob( statusBob.subobjStart( FIELD_NAME_STATUS ) ) ;
+               neBob.append( MTH_OPERATOR_STR_NE, CLS_TASK_STATUS_FINISH ) ;
+               neBob.done() ;
+               statusBob.done() ;
+               andBab.done() ;
+               matcher = matcherBob.done() ;
+            }
+
+            // matcher = { "$and": [ { "MainTaskID": xxx }, { "Status": { "$ne": 9 } } ] }
+            // updator = { "$unset": { "MainTaskID": "" } }
+            rc = catUpdateTask( matcher, updator, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update task by matcher[%s] and updator[%s], rc: %d",
+                         matcher.toString().c_str(), updator.toString().c_str(), rc ) ;
+
+            matcherBob.reset() ;
+            matcherBob.append( FIELD_NAME_MAIN_TASKID, (INT64)(*it) ) ;
+            matcher = matcherBob.done() ;
+
+            // matcher = { "MainTaskID": xxx }
+            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to remove task by matcher[%s], rc: %d",
-                         matcher1.toString().c_str(), rc ) ;
+                         matcher.toString().c_str(), rc ) ;
          }
 
          // if the task to be deleted is sub task, update their main task's info
