@@ -625,7 +625,7 @@ namespace engine
          {
             try
             {
-               txWaiterLRBSet.insert( waitInfo );      
+               txWaiterLRBSet.insert( waitInfo );
             }
             catch ( std::exception & e )
             {
@@ -1511,11 +1511,12 @@ namespace engine
       if ( !canSelfIncomp && NULL != cb && cb->isTransaction() )
       {
          DPS_TRANS_ID selfTransID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_CHECK( 0 == incompTrans.count( selfTransID ),
                    SDB_DPS_TRANS_LOCK_INCOMPATIBLE, error, PDERROR,
                    "Failed to get incompatible transactions, "
                    "self [%s] is incompatible with lock mode [%s]",
-                   dpsTransIDToString( selfTransID ).c_str(),
+                   dpsTransIDToString( selfTransID, strTransID, DPS_TRANS_STR_LEN ),
                    lockModeToString( lockMode ) ) ;
       }
 
