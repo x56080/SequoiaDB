@@ -149,7 +149,7 @@ class SdbBsonRDD(sc: SparkContext,
 class SdbBsonRDDFunctions(rdd: RDD[BSONObject]) {
 
     private def saveToSequoiadb(properties: Map[String, String]): Unit = {
-        val config = SdbConfig(properties)
+        val config = SdbConfig(rdd.sparkContext.getConf.getAll.toMap, properties)
 
         rdd.foreachPartition { it =>
             new SdbWriter(config).write(it)

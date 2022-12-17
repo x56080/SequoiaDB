@@ -17,6 +17,7 @@
 package com.sequoiadb.spark
 
 import com.sequoiadb.base.{DBCollection, Sequoiadb}
+import com.sequoiadb.spark.SdbConfig.mergeGlobalConfs
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -44,7 +45,7 @@ class DefaultSource extends DataSourceRegister
       */
     override def createRelation(sqlContext: SQLContext,
                                 parameters: Map[String, String]): BaseRelation = {
-        SdbRelation(sqlContext, SdbConfig(parameters))
+        SdbRelation(sqlContext, parameters)
     }
 
     /**
@@ -53,7 +54,7 @@ class DefaultSource extends DataSourceRegister
     override def createRelation(sqlContext: SQLContext,
                                 parameters: Map[String, String],
                                 schema: StructType): BaseRelation = {
-        SdbRelation(sqlContext, SdbConfig(parameters), Option(schema))
+        SdbRelation(sqlContext, parameters, Option(schema))
     }
 
     /**
@@ -63,7 +64,7 @@ class DefaultSource extends DataSourceRegister
                                 mode: SaveMode,
                                 parameters: Map[String, String],
                                 data: DataFrame): BaseRelation = {
-        val config = SdbConfig(parameters)
+        val config = SdbConfig(sqlContext.getAllConfs, parameters)
 
         // if it return true, that means we should write the data into collection
         if (isCollectionWritable(config, mode)) {
@@ -75,7 +76,7 @@ class DefaultSource extends DataSourceRegister
             })
         }
 
-        SdbRelation(sqlContext, config, Option(data.schema))
+        SdbRelation(sqlContext, parameters, Option(data.schema))
     }
 
     // Check whether a collection is writable for the given mode
