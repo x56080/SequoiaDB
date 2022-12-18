@@ -1295,51 +1295,40 @@ namespace engine
 
       try
       {
-         ossPoolSet< utilCSUniqueID > lockedCS ;
-
-         // check target item
-         if ( UTIL_RECYCLE_CS == item.getType() )
          {
-            rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, &lockedCS, FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
-                         "rc: %d", rc ) ;
-         }
-
-         for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
-               iter != droppingItems.end() ;
-               ++ iter )
-         {
-            const utilRecycleItem &droppingItem = *iter ;
-            if ( UTIL_RECYCLE_CS == droppingItem.getType() )
+            ossPoolSet< utilCSUniqueID > lockedCS ;
+            catCtxLockMgr dropItemLockMgr ;
+            for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
+                  iter != droppingItems.end() ;
+                  ++ iter )
             {
-               rc = tryLockItem( droppingItem, cb, EXCLUSIVE, lockMgr, &lockedCS ) ;
+               const utilRecycleItem &droppingItem = *iter ;
+               if ( UTIL_RECYCLE_CS == droppingItem.getType() )
+               {
+                  rc = tryLockItem( droppingItem, cb, EXCLUSIVE, dropItemLockMgr, &lockedCS ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
+                               "rc: %d", rc ) ;
+               }
+            }
+
+            for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
+                  iter != droppingItems.end() ;
+                  ++ iter )
+            {
+               const utilRecycleItem &droppingItem = *iter ;
+               if ( UTIL_RECYCLE_CS == droppingItem.getType() )
+               {
+                  continue ;
+               }
+               rc = tryLockItem( droppingItem, cb, EXCLUSIVE, dropItemLockMgr, &lockedCS ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
                             "rc: %d", rc ) ;
             }
          }
-         // check target item
-         if ( ( UTIL_RECYCLE_CL == item.getType() )  )
-         {
 
-            rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, &lockedCS, FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
-                         "rc: %d", rc ) ;
-         }
-
-         for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
-               iter != droppingItems.end() ;
-               ++ iter )
-         {
-            const utilRecycleItem &droppingItem = *iter ;
-            if ( UTIL_RECYCLE_CS == droppingItem.getType() )
-            {
-               continue ;
-            }
-            rc = tryLockItem( droppingItem, cb, EXCLUSIVE, lockMgr, &lockedCS ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
-                         "rc: %d", rc ) ;
-         }
-
+         rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, NULL, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
+                      "rc: %d", rc ) ;
       }
       catch ( exception &e )
       {

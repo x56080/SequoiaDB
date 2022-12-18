@@ -64,6 +64,7 @@ using namespace std ;
 #define RTN_MIN_TRACE_BUFFER_SIZE     1
 #define RTN_MAX_TRACE_BUFFER_SIZE     1024
 #define RTN_CONFIG_NAME_BUFFER_SIZE   32
+#define RTN_RECYCLE_MAX_RETRY         5
 
 namespace engine
 {
@@ -5403,6 +5404,7 @@ error:
 
       clsRecycleBinManager *recycleBinMgr = NULL ;
       UTIL_RECY_ITEM_LIST recycleItems ;
+      UINT32 retryCount = 0 ;
 
       *pContextID = -1 ;
 
@@ -5458,34 +5460,63 @@ error:
          if ( _isDropAll() )
          {
             rc = clsStartDropRecycleBinAllJob() ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to start drop all job", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to start drop all job, rc: %d", rc ) ;
          }
          else
          {
             rc = clsStartDropRecycleBinItemJob( recycleItems ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to start drop item job", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to start drop item job, rc: %d", rc ) ;
          }
       }
       else
       {
-         clsDropRecycleBinJob job ;
+         while ( TRUE )
+         {
+            clsDropRecycleBinJob job ;
 
-         if ( _isDropAll() )
-         {
-            // for job all, should always check existence from CATALOG,
-            // since may have new recycled items added after we drop all
-            // items from CATALOG
-            rc = job.dropAll( cb, TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to drop all recycle items, "
-                         "rc: %d", rc ) ;
-         }
-         else
-         {
-            // no need to check existence from CATALOG, since already dropped
-            // from CATALOG first
-            rc = job.dropItems( recycleItems, cb, FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item, rc: %d",
-                         rc ) ;
+            if ( _isDropAll() )
+            {
+               // for job all, should always check existence from CATALOG,
+               // since may have new recycled items added after we drop all
+               // items from CATALOG
+               rc = job.dropAll( cb, TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to drop all recycle items, rc: %d", rc ) ;
+            }
+            else
+            {
+               // no need to check existence from CATALOG, since already dropped
+               // from CATALOG first
+               rc = job.dropItems( recycleItems, cb, FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item, rc: %d",
+                            rc ) ;
+            }
+
+            // retry if there are recyle items are dropping in data
+            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ||
+                   SDB_LOCK_FAILED == rc ) )
+            {
+               rc = SDB_OK ;
+               if ( retryCount < RTN_RECYCLE_MAX_RETRY )
+               {
+                  ++ retryCount ;
+                  ossSleep ( OSS_ONE_SEC ) ;
+                  continue ;
+               }
+
+               if ( _isDropAll() )
+               {
+                  rc = clsStartDropRecycleBinAllJob() ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to start drop all job, rc: %d", rc ) ;
+               }
+               else
+               {
+                  rc = clsStartDropRecycleBinItemJob( recycleItems ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to start drop item job, rc: %d", rc ) ;
+               }
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle items, rc: %d", rc ) ;
+            break ;
          }
       }
 
