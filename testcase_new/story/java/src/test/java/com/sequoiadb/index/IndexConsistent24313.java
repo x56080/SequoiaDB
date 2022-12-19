@@ -111,7 +111,6 @@ public class IndexConsistent24313 extends SdbTestBase {
             Assert.assertTrue( cs2.isCollectionExist( subclName2 ) );
             IndexUtils.checkNoTask( sdb, "Create index", csName1, mainclName );
             IndexUtils.checkNoTask( sdb, "Create index", csName1, subclName1 );
-            IndexUtils.checkNoTask( sdb, "Create index", csName2, subclName2 );
         }
 
         runSuccess = true;

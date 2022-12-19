@@ -101,7 +101,6 @@ public class IndexConsistent24315 extends SdbTestBase {
             Assert.assertEquals( dropCS.getRetCode(), 0 );
             Assert.assertFalse( sdb.isCollectionSpaceExist( csName1 ) );
             Assert.assertTrue( cs2.isCollectionExist( subclName2 ) );
-            IndexUtils.checkNoTask( sdb, "Drop index", csName2, subclName2 );
             DBCollection cl2 = sdb.getCollectionSpace( csName2 )
                     .getCollection( subclName2 );
             if ( cl2.isIndexExist( indexName1 ) ) {

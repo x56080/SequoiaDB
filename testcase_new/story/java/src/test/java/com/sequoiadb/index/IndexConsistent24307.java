@@ -115,7 +115,6 @@ public class IndexConsistent24307 extends SdbTestBase {
             IndexUtils.checkNoTask( sdb, "Copy index", csName1, mainclName );
             IndexUtils.checkNoTask( sdb, "Create index", csName1, mainclName );
             IndexUtils.checkNoTask( sdb, "Create index", csName1, subclName1 );
-            IndexUtils.checkNoTask( sdb, "Create index", csName2, subclName2 );
         }
 
         runSuccess = true;
