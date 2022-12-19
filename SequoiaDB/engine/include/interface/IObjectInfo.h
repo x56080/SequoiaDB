@@ -71,6 +71,8 @@ namespace engine
 
       virtual UINT16 getIndexType() const = 0;
 
+      virtual UINT16 getIndexFlag() const = 0;
+
       virtual BOOLEAN isUnique() const = 0;
 
       virtual BOOLEAN isEnforced() const = 0;

@@ -119,13 +119,14 @@ namespace engine
             DMS_INDEX_META_PTR tempIndex = nullptr;
             BSONObjBuilder builder;
             UINT16 indexType = 0;
-            rc =  it->getIndexType(indexType);
+            rc = it->getIndexType( indexType );
             PD_RC_CHECK( rc, PDERROR, "failed to get index type, name: %s.%s.%s, rc: %d", _su->CSName(),
                          _mbContext->mb()->_collectionName, it->getIndexName(), rc );
             builder.appendElements( it->_indexDef );
             builder.append( IXM_FIELD_NAME_CB_EXTENT_ID, it->_indexCBExtentID );
             builder.append( FIELD_NAME_LOGICAL_ID, (INT64)it->_indexLID );
             builder.append( IXM_FIELD_NAME_TYPE, (INT32)indexType );
+            builder.append( IXM_FIELD_NAME_INDEX_FLAG, (INT32)it->_indexFlag );
             rc = _dmsIndexMetaInfo::buildFromBson( builder.obj(), tempIndex, clFullName );
             PD_RC_CHECK( rc, PDERROR, "failed to build index[name: %s] meta info from bson, rc: %d",
                          it->getIndexName(), rc );

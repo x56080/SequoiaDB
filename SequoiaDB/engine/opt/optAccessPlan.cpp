@@ -300,6 +300,10 @@ namespace engine
       PD_CHECK( pIndexMeta, SDB_IXM_NOTEXIST, error, PDERROR,
                 "Collection[%s] do not have index, OID[%s]", _key.getCLFullName(),
                 indexOID.toString().c_str() );
+
+      PD_CHECK( pIndexMeta->getIndexFlag() == IXM_INDEX_FLAG_NORMAL,
+                SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
+                "Index is not normal status, skip" ) ;
       pIndexStat = collectionStat->getIndexStat( pIndexMeta->getIndexName() );
       // check with global transaction
       // if global transaction started before creation of this index, should
@@ -357,6 +361,10 @@ namespace engine
       PD_CHECK( pIndexMeta, SDB_IXM_NOTEXIST, error, PDERROR,
                 "Collection[%s] do not have index, name[%s]", _key.getCLFullName(),
                 indexName );
+
+      PD_CHECK( pIndexMeta->getIndexFlag() == IXM_INDEX_FLAG_NORMAL,
+                SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
+                "Index is not normal status, skip" ) ;
 
       // Text index can not be used in query without text query condition.
       // So return an error to let this index to be skipped.

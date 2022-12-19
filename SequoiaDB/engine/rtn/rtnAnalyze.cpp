@@ -107,14 +107,13 @@ namespace engine
                                      _SDB_DMSCB *dmsCB,
                                      _SDB_RTNCB *rtnCB ) ;
 
-   static INT32 _rtnReloadCSStats ( const monCSSimple *pMonCS,
+   static INT32 _rtnReloadCSStats ( const CHAR *pCSName,
                                     BOOLEAN needCheck,
                                     pmdEDUCB *cb,
                                     _SDB_DMSCB *dmsCB,
                                     _SDB_RTNCB *rtnCB ) ;
 
-   static INT32 _rtnReloadCLStats ( const monCSSimple *pMonCS,
-                                    const monCLSimple *pMonCL,
+   static INT32 _rtnReloadCLStats ( const CHAR * pCLFullName,
                                     pmdEDUCB *cb,
                                     _SDB_DMSCB *dmsCB,
                                     _SDB_RTNCB *rtnCB ) ;
@@ -278,7 +277,7 @@ namespace engine
       pSU->dumpInfo( monCS, FALSE, FALSE, FALSE ) ;
       pSU->dumpInfo( monCL, mbContext, TRUE ) ;
 
-      rc = _rtnReloadCLStats( &monCS, &monCL, cb, dmsCB, NULL ) ;
+      rc = _rtnReloadCLStats( monCL._name, cb, dmsCB, NULL ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to load statistics for collection "
                      "[%s], rc: %d", monCL._name, rc ) ;
    
@@ -477,7 +476,7 @@ namespace engine
             // Make sure main-collection plans are removed
             rtnCB->getAPM()->invalidateSUPlans( pCSName );
          }
-         rc = _rtnReloadCSStats( &monCS, param._needCheck, cb, dmsCB, rtnCB );
+         rc = _rtnReloadCSStats( pCSName, param._needCheck, cb, dmsCB, rtnCB );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to reload statistics for "
                       "collection space [%s], rc: %d",
@@ -588,7 +587,7 @@ namespace engine
                          pCLFullName, rc );
          }
 
-         rc = _rtnReloadCLStats( &monCS, &monCL, cb, dmsCB, rtnCB );
+         rc = _rtnReloadCLStats( pCLFullName, cb, dmsCB, rtnCB );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to reload statistics for "
                       "collection [%s], rc: %d",
@@ -715,7 +714,7 @@ namespace engine
                         "index [%s %s], rc: %d", pCLFullName, pIndexName, rc ) ;
          }
 
-         rc = _rtnReloadCLStats( &monCS, &monCL, cb, dmsCB, rtnCB ) ;
+         rc = _rtnReloadCLStats( pCLFullName, cb, dmsCB, rtnCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "index [%s %s], rc: %d", pCLFullName, pIndexName, rc ) ;
 
@@ -765,7 +764,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRELOADCSSTAT, "_rtnReloadCSStats" )
-   INT32 _rtnReloadCSStats ( const monCSSimple *pMonCS,
+   INT32 _rtnReloadCSStats ( const CHAR *pCSName,
                              BOOLEAN needCheck,
                              pmdEDUCB *cb,
                              _SDB_DMSCB *dmsCB,
@@ -775,9 +774,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNRELOADCSSTAT ) ;
 
-      SDB_ASSERT( pMonCS, "pMonCS is invalid" ) ;
-
-      const CHAR *pCSName = pMonCS->_name ;
       dmsStatSUMgr *pStatSUMgr = dmsCB->getStatSUMgr() ;
       PD_CHECK( pStatSUMgr && pStatSUMgr->initialized(), SDB_SYS, error,
                 PDERROR, "Statistics SU is not initialized" ) ;
@@ -795,8 +791,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRELOADCLSTAT, "_rtnReloadCLStats" )
-   INT32 _rtnReloadCLStats ( const monCSSimple *pMonCS,
-                             const monCLSimple *pMonCL,
+   INT32 _rtnReloadCLStats ( const CHAR *pCLFullName,
                              pmdEDUCB *cb,
                              _SDB_DMSCB *dmsCB,
                              _SDB_RTNCB *rtnCB )
@@ -805,10 +800,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNRELOADCSSTAT ) ;
 
-      SDB_ASSERT( pMonCS, "pMonCS is invalid" ) ;
-      SDB_ASSERT( pMonCL, "pMonCL is invalid" ) ;
-
-      const CHAR *pCLFullName = pMonCL->_name ;
       dmsStatSUMgr *pStatSUMgr = dmsCB->getStatSUMgr() ;
 
       PD_CHECK( pStatSUMgr && pStatSUMgr->initialized(), SDB_SYS, error,
