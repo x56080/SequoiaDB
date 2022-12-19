@@ -23,6 +23,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.exception.SDBException;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
 import com.sequoiadb.flink.source.split.SDBSplit;
@@ -59,6 +60,10 @@ public class SDBIterator implements Iterator<byte[]>, Closeable {
                 sourceOptions.getPassword(),
                 new ConfigOptions()
         );
+
+        // set up source info in session attr, ignore failure and just
+        // print warning log when throws exception.
+        SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(sdb, sourceOptions.getSourceInfo());
 
         DBCollection cl = null;
         try {

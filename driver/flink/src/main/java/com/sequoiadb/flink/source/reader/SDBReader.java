@@ -16,6 +16,7 @@
 
 package com.sequoiadb.flink.source.reader;
 
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.split.SDBSplit;
@@ -39,8 +40,14 @@ public class SDBReader extends SingleThreadMultiplexSourceReaderBase<byte[], Row
                      BSONObject selector,
                      long limit) {
         super(
-                () -> new SDBSplitReader(sourceOptions, matcher, selector, limit), //supply a SDBSplitReader (for reading)
-                new SDBEmitter(dataConverter),                            // supply a SDBEmitter (for emitting)
+                // supply a SDBSplitReader (for reading split)
+                () -> {
+                    sourceOptions.setSourceInfo(
+                            SDBInfoUtil.generateSourceInfo(context.metricGroup()));
+                    return new SDBSplitReader(sourceOptions, matcher, selector, limit);
+                },
+                // supply a SDBEmitter (for emitting data to next Operator)
+                new SDBEmitter(dataConverter),
                 context.getConfiguration(),
                 context
                 );

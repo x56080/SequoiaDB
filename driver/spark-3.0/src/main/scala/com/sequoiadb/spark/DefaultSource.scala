@@ -70,9 +70,11 @@ class DefaultSource extends DataSourceRegister
         if (isCollectionWritable(config, mode)) {
             // get schema for execution
             val schema = data.schema
+            val sourceInfo = SdbConnUtil.generateSourceInfo(sqlContext.sparkContext)
+
             data.foreachPartition((it: Iterator[Row]) => {
                 // always write through coord node which specified in config
-                new SdbWriter(config).write(it, schema)
+                new SdbWriter(config, sourceInfo).write(it, schema)
             })
         }
 

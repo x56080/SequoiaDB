@@ -16,6 +16,7 @@
 
 package com.sequoiadb.flink.sink;
 
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.sink.state.EventState;
@@ -65,6 +66,8 @@ public class SDBPartitionedSink
     public SinkWriter<RowData, Void, Map<BSONObject, EventState>> createWriter(
             InitContext context,
             List<Map<BSONObject, EventState>> states) throws IOException {
+        sinkOptions.setSourceInfo(
+                SDBInfoUtil.generateSourceInfo(context.metricGroup()));
         return new SDBPartitionedSinkWriter(converter, sinkOptions, states);
     }
 

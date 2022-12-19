@@ -36,6 +36,7 @@ import scala.reflect.ClassTag
   * @param numReturned     query returned num
   */
 abstract class SdbRDDIterator[T: ClassTag](config: SdbConfig,
+                                           sourceInfo: String,
                                            partition: SdbPartition,
                                            requiredColumns: Array[String],
                                            numReturned: Long = -1)
@@ -63,11 +64,16 @@ abstract class SdbRDDIterator[T: ClassTag](config: SdbConfig,
         }
     }
 
-    private val sdb = new Sequoiadb(
-        url,
-        config.username,
-        config.password,
-        SdbConfig.SdbConnectionOptions)
+    private val sdb = {
+        val conn = new Sequoiadb(
+            url,
+            config.username,
+            config.password,
+            SdbConfig.SdbConnectionOptions)
+
+        SdbConnUtil.setupSourceSessionAttrIgnoreFailures(conn, sourceInfo)
+        conn
+    }
 
     // build query hint for datablock partition
     private val hint: BSONObject = {
@@ -159,10 +165,11 @@ object SdbRDDIterator {
   * @param requiredColumns query selector
   */
 class SdbRowRDDIterator(sdbConfig: SdbConfig,
+                        sourceInfo: String,
                         partition: SdbPartition,
                         schema: StructType,
                         requiredColumns: Array[String])
-    extends SdbRDDIterator[Row](sdbConfig, partition, requiredColumns) {
+    extends SdbRDDIterator[Row](sdbConfig, sourceInfo, partition, requiredColumns) {
 
     override def next(): Row = {
         val obj = sdbCursor.next()
@@ -179,10 +186,11 @@ class SdbRowRDDIterator(sdbConfig: SdbConfig,
   * @param numReturned     query returned num
   */
 class SdbBsonRDDIterator(sdbConfig: SdbConfig,
+                         sourceInfo: String,
                          partition: SdbPartition,
                          requiredColumns: Array[String],
                          numReturned: Long = -1)
-    extends SdbRDDIterator[BSONObject](sdbConfig, partition, requiredColumns, numReturned) {
+    extends SdbRDDIterator[BSONObject](sdbConfig, sourceInfo, partition, requiredColumns, numReturned) {
 
     override def next(): BSONObject = sdbCursor.next()
 }

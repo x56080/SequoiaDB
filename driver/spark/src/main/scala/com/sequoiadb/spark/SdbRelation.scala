@@ -158,9 +158,10 @@ class SdbRelation(@transient val sqlContext: SQLContext,
             }
         }
 
+        val sourceInfo = SdbConnUtil.generateSourceInfo(sqlContext.sparkContext)
         data.foreachPartition(it => {
             // always write through coordinator node which specified in config
-            new SdbWriter(newConf).write(it, schema)
+            new SdbWriter(newConf, sourceInfo).write(it, schema)
         })
 
         logInfo(s"finished inserting into ${newConf.collectionSpace}.${newConf.collection}")
