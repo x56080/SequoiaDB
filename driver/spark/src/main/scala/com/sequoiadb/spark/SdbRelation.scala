@@ -32,7 +32,7 @@ import scala.collection.JavaConversions._
   * @param providedSchema row schema
   */
 class SdbRelation(@transient val sqlContext: SQLContext,
-                  val config: SdbConfig,
+                  val parameters: Map[String, String],
                   val providedSchema: Option[StructType] = None)
     extends BaseRelation
         with TableScan
@@ -42,6 +42,8 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         with Logging
         with Serializable {
 
+    private val config = SdbConfig(sqlContext.getAllConfs, parameters)
+
     logInfo(s"SdbRelation{config: $config, providedSchema: $providedSchema, " +
         s"preferredInstance: ${config.preferredInstance}}")
 
@@ -49,7 +51,7 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         val conf: SdbConfig = if (config.samplingSingle) {
             val props = config.properties +
                 (SdbConfig.PartitionMode -> SdbConfig.PARTITION_MODE_SINGLE)
-            SdbConfig(props)
+            SdbConfig(sqlContext.getAllConfs, props)
         } else {
             config
         }
@@ -95,15 +97,21 @@ class SdbRelation(@transient val sqlContext: SQLContext,
 
     override def buildScan(): RDD[Row] = {
         logInfo(s"select * from ${config.collectionSpace}.${config.collection}")
-        SdbRowRDD(sqlContext.sparkContext, config, schema)
+        SdbRowRDD(
+            sqlContext.sparkContext,
+            SdbConfig(sqlContext.getAllConfs, parameters),
+            schema)
     }
 
     override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
         logInfo(s"select ${requiredColumns.mkString(", ")} " +
             s"from ${config.collectionSpace}.${config.collection}")
         val prunedSchema = SdbRelation.pruneSchema(schema, requiredColumns)
-        SdbRowRDD(sqlContext.sparkContext, config,
-            prunedSchema, realColumns(prunedSchema, requiredColumns))
+        SdbRowRDD(
+            sqlContext.sparkContext,
+            SdbConfig(sqlContext.getAllConfs, parameters),
+            prunedSchema,
+            realColumns(prunedSchema, requiredColumns))
     }
 
     override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
@@ -111,8 +119,12 @@ class SdbRelation(@transient val sqlContext: SQLContext,
             s"from ${config.collectionSpace}.${config.collection} " +
             s"where ${filters.mkString(", ")}")
         val prunedSchema = SdbRelation.pruneSchema(schema, requiredColumns)
-        SdbRowRDD(sqlContext.sparkContext, config,
-            prunedSchema, realColumns(prunedSchema, requiredColumns), filters)
+        SdbRowRDD(
+            sqlContext.sparkContext,
+            SdbConfig(sqlContext.getAllConfs, parameters),
+            prunedSchema,
+            realColumns(prunedSchema, requiredColumns),
+            filters)
     }
 
     override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -120,22 +132,24 @@ class SdbRelation(@transient val sqlContext: SQLContext,
     }
 
     override def insert(data: DataFrame, overwrite: Boolean): Unit = {
-        logInfo(s"insert into ${config.collectionSpace}.${config.collection}")
+        val newConf = SdbConfig(sqlContext.getAllConfs, parameters)
+
+        logInfo(s"insert into ${newConf.collectionSpace}.${newConf.collection}")
 
         if (overwrite) {
-            val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)
+            val sdb = new Sequoiadb(newConf.host, newConf.username, newConf.password, SdbConfig.SdbConnectionOptions)
             try {
-                val cs = if (sdb.isCollectionSpaceExist(config.collectionSpace)) {
-                    sdb.getCollectionSpace(config.collectionSpace)
+                val cs = if (sdb.isCollectionSpaceExist(newConf.collectionSpace)) {
+                    sdb.getCollectionSpace(newConf.collectionSpace)
                 } else {
-                    throw new SdbException(s"Collection space is not existing: ${config.collectionSpace}")
+                    throw new SdbException(s"Collection space is not existing: ${newConf.collectionSpace}")
                 }
 
-                val cl = if (cs.isCollectionExist(config.collection)) {
-                    cs.getCollection(config.collection)
+                val cl = if (cs.isCollectionExist(newConf.collection)) {
+                    cs.getCollection(newConf.collection)
                 } else {
                     throw new SdbException(s"Collection is not existing: " +
-                        s"${config.collectionSpace}.${config.collection}")
+                        s"${newConf.collectionSpace}.${newConf.collection}")
                 }
 
                 cl.truncate()
@@ -146,18 +160,18 @@ class SdbRelation(@transient val sqlContext: SQLContext,
 
         data.foreachPartition(it => {
             // always write through coordinator node which specified in config
-            new SdbWriter(config).write(it, schema)
+            new SdbWriter(newConf).write(it, schema)
         })
 
-        logInfo(s"finished inserting into ${config.collectionSpace}.${config.collection}")
+        logInfo(s"finished inserting into ${newConf.collectionSpace}.${newConf.collection}")
     }
 }
 
 object SdbRelation {
     def apply(sqlContext: SQLContext,
-              sdbConfig: SdbConfig,
+              parameters: Map[String, String],
               providedSchema: Option[StructType] = None): SdbRelation = {
-        new SdbRelation(sqlContext, sdbConfig, providedSchema)
+        new SdbRelation(sqlContext, parameters, providedSchema)
     }
 
     /**
