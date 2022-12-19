@@ -22,7 +22,6 @@ import org.bson.BSONObject
 import org.bson.util.JSON
 import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
 
-import java.util.Properties
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -389,8 +388,6 @@ object SdbConfig {
     val AutoIncrement = "autoincrement"
     val StrictDataMode = "strictdatamode"
 
-    val ConfigPath = "configpath"
-
     // sdb connection configurations
     val ConnectTimeout = "connecttimeout"
 
@@ -473,13 +470,48 @@ object SdbConfig {
         AutoIndexId,
         AutoIncrement,
         StrictDataMode,
-        ConfigPath,
         ConnectTimeout)
 
     val RequiredProperties = List(
         Host,
         CollectionSpace,
         Collection)
+
+    /**
+     * Configurations that supported by SQLConf now.
+     */
+    val PropertiesSupportedInSQLConf = Set(
+        // connect, auth configs
+        Host,
+        Username,
+        PasswordType,
+        Password,
+        ConnectTimeout,
+        // source strategies
+        PartitionMode,
+        PartitionBlockNum,
+        PartitionMaxNum,
+        PreferredLocation,
+        PreferredInstance,
+        PreferredInstanceMode,
+        PreferredInstanceStrict,
+        // flush flag
+        IgnoreDuplicateKey,
+        IgnoreNullField,
+        // create cs, cl configs
+        PageSize,
+        Domain,
+        ShardingKey,
+        ShardingType,
+        CLPartition,
+        ReplicaSize,
+        CompressionType,
+        AutoSplit,
+        Group,
+        EnsureShardingIndex,
+        AutoIndexId,
+        AutoIncrement,
+        StrictDataMode)
 
     //  Default values
     val DefaultUsername = ""
@@ -533,31 +565,18 @@ object SdbConfig {
 
     val DefaultConnectTimeout = 1000
 
-    def apply(parameters: Map[String, String]): SdbConfig = {
-        val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")
-        var newParameters: Map[String, String] = parameters
+    def apply(parameters: Map[String, String]): SdbConfig = apply(Map[String, String](), parameters)
 
-        // 1. CHECK IF USES config file
-        if (configPath != "") {
-            val properties = new Properties()
-            properties.load(new FileInputStream(configPath))
-
-            val options = properties.propertyNames()
-            while (options.hasMoreElements) {
-                val optionName = options.nextElement().asInstanceOf[String]
-                // 2. VALIDATE OPTIONS that config in file
-                if (!SdbConfig.AllProperties.contains(optionName)) {
-                    throw new SdbException(s"unsupported option: $optionName, please check!")
-                }
-                // 3. Do not overwrite, options
-                if (!parameters.contains(optionName)) {
-                    newParameters += (optionName -> properties.getProperty(optionName))
-                }
-            }
-        }
-
-        // 4. use new parameters to generate SdbConfig, it can be from file or CLI
-        val config = new SdbConfig(newParameters)
+    /**
+     * build sdbConfig by SQL configurations and Table configurations
+     *
+     * @param sqlConfs
+     * @param tableConfs
+     * @return
+     */
+    def apply(sqlConfs: Map[String, String], tableConfs: Map[String, String]): SdbConfig = {
+        val config = new SdbConfig(
+            mergeGlobalConfs(sqlConfs, tableConfs))
 
         // setup network configurations
         SdbConnectionOptions.setConnectTimeout(config.connectTimeout)
@@ -568,6 +587,61 @@ object SdbConfig {
     }
 
     private[spark] val SdbConnectionOptions: ConfigOptions = new ConfigOptions
+
+    /**
+     * A global default value set as a SQLConf will overwrite the default value of
+     * a {@link SdbConfig}.
+     *
+     * For example, user can set SQLConf in spark-defaults.conf or run:
+     *   `set spark.sequoiadb.config.defaults.host=sdbServer1:11810`
+     */
+    val SQLConfPrefix = "spark.sequoiadb.config.defaults."
+
+    /**
+     * Table config {@link SdbConfig} for new mapping tables can be specified
+     * through SQL Configurations using the `SQLConfPrefix`.
+     * This method checks to see if any of the configurations exists among
+     * the SQL configurations and merges them with the configurations specified
+     * in OPTIONS clause.
+     *
+     * And the scope of SQL Configurations only works in the current Spark Application.
+     *
+     * Notes:
+     *   configurations specified in OPTIONS clause take precedence.
+     *
+     * @param sqlConfs
+     * @param tableConfs
+     * @return
+     */
+    def mergeGlobalConfs(sqlConfs: Map[String, String], tableConfs: Map[String, String])
+    : Map[String, String] = {
+        var defaults: Map[String, String] = Map()
+
+        for ((sqlConfKey, conf) <- sqlConfs) {
+            // process iff SQLConf is started with `spark.sequoiadb.config.defaults`
+            if (sqlConfKey.startsWith(SQLConfPrefix)) {
+                // stripe prefix, get original config key
+                val sdbConfKey = sqlConfKey
+                  .stripPrefix(SQLConfPrefix)
+                // if the config is not supported by SQLConf, stop the job and tell
+                // user which configs are supported by SQLConf.
+                if (!PropertiesSupportedInSQLConf.contains(sdbConfKey)) {
+                    throw new SdbException(
+                        s"""
+                           |You are trying to use a SequoiaDB table config `${sqlConfKey}` not supported by SQLConf.
+                           |""".
+                          stripMargin)
+                }
+                // configuration specified in OPTIONS clause take precedence, we should
+                // not overwrite it.
+                if (!tableConfs.contains(sdbConfKey)) {
+                    defaults += (sdbConfKey -> conf)
+                }
+            }
+        }
+
+        tableConfs ++ defaults
+    }
 }
 
 class SdbPreferredInstance(val instances: Array[String], val mode: PreferredInstanceMode, val strict: Boolean) extends Serializable {
