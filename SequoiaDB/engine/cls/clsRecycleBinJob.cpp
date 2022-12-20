@@ -125,7 +125,23 @@ namespace engine
       {
          rc = dropItems( _recycleItems, cb, TRUE ) ;
       }
-      result = UTIL_LJOB_DO_FINISH ;
+
+      if ( SDB_OK == rc )
+      {
+         result = UTIL_LJOB_DO_FINISH ;
+      }
+      else if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ||
+                SDB_LOCK_FAILED == rc )
+      {
+         rc = SDB_OK ;
+         result = UTIL_LJOB_DO_CONT ;
+         sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
+      }
+      else
+      {
+         result = UTIL_LJOB_DO_FINISH ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle items, rc: %d", rc ) ;
+      }
 
    done:
       PD_LOG( PDDEBUG, "Stop job [%s], rc: %d", name(), rc ) ;
