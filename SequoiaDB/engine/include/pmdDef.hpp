@@ -172,6 +172,45 @@ namespace engine
 
    typedef class _pmdEDUEventQueue pmdEDUEventQueue ;
 
+   /*
+      _pmdDataExInfo define
+   */
+   struct _pmdDataExInfo
+   {
+      _pmdDataExInfo()
+      {
+         _csLID   = ~0 ;
+         _clLID   = ~0 ;
+         _extLID  = -1 ;
+         _isValid = FALSE ;
+      }
+
+      _pmdDataExInfo& operator= ( const _pmdDataExInfo &info )
+      {
+         _csLID   = info._csLID ;
+         _clLID   = info._clLID ;
+         _extLID  = info._extLID ;
+         _isValid = info._isValid ;
+         return *this ;
+      }
+
+      void clear()
+      {
+         _csLID  = ~0 ;
+         _clLID  = ~0 ;
+         _extLID = -1 ;
+         _isValid = FALSE ;
+      }
+
+      UINT32  _csLID ;
+      UINT32  _clLID ;
+      SINT32  _extLID ;
+      BOOLEAN _isValid ;
+   } ;
+
+   typedef struct _pmdDataExInfo pmdDataExInfo ;
+
+
    #define PMD_INVALID_EDUID              ( 0 )
 
    /*

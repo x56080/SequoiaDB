@@ -305,6 +305,7 @@ namespace engine
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
       _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
       _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _replayEventHandler = NULL ;
    }
 
    _clsBucket::~_clsBucket ()
@@ -392,7 +393,7 @@ namespace engine
       _maxReplSync = maxReplSync ;
    }
 
-   INT32 _clsBucket::init()
+   INT32 _clsBucket::init( clsReplayEventHandler *handler )
    {
       INT32 rc = SDB_OK ;
       UINT32 index = 0 ;
@@ -410,6 +411,8 @@ namespace engine
          PD_LOG( PDERROR, "Failed to alloc memory" ) ;
          goto error ;
       }
+
+      _replayEventHandler = handler ;
 
       if ( !ossIsPowerOf2( _bucketSize, &_bitSize ) )
       {
@@ -524,6 +527,8 @@ namespace engine
       _queueBuffer.finiBuffer() ;
 
       _memPool.final() ;
+
+      _replayEventHandler = NULL ;
    }
 
    void _clsBucket::reset ( BOOLEAN setExpect )
@@ -1234,13 +1239,14 @@ namespace engine
                   ( CLS_PARALLA_REC == info._parallaType ) ? FALSE : TRUE ;
 
    retry:
-      rc = _replayer->replay( header, cb, FALSE, ignoreDupKey ) ;
+      rc = _replayer->replay( header, cb, FALSE, ignoreDupKey, &info._dataExInfo ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Replay LSN [%llu] encountered error: %d",
                  header->_lsn, rc ) ;
          SDB_ASSERT( ( SDB_OOM == rc ||
                        SDB_NOSPC == rc ||
+                       SDB_CLS_FULL_SYNC == rc ||
                        ( SDB_IXM_DUP_KEY == rc && !ignoreDupKey ) ),
                      "Unexpected error occurred" ) ;
 
@@ -1334,8 +1340,9 @@ namespace engine
          // in few cases, we could retry later
          // OOM or No space
          if ( ( SDB_OOM == rc ||
-                SDB_NOSPC == rc ) &&
-              ++retryTimes < CLS_REPL_MAX_ROLLBACK_TIMES )
+                SDB_NOSPC == rc ||
+                SDB_DB_FULLSYNC == rc ) &&
+                ++retryTimes < CLS_REPL_MAX_ROLLBACK_TIMES )
          {
             ossSleep( CLS_REPL_RETRY_INTERVAL ) ;
             continue ;
@@ -1416,6 +1423,13 @@ namespace engine
          {
             _expectLSN.version = version ;
             _expectLSN.offset += lsnLen ;
+            if ( info._dataExInfo._isValid && NULL != _replayEventHandler )
+            {
+               _replayEventHandler->onReplayLog( info._dataExInfo._csLID,
+                                                 info._dataExInfo._clLID,
+                                                 info._dataExInfo._extLID,
+                                                 offset ) ;
+            }
          }
          result = CLS_SUBMIT_EQ_EXPECT ;
          releaseMem = TRUE ;
@@ -1432,6 +1446,14 @@ namespace engine
                      ((dpsLogRecordHeader*)tmpInfo._pData)->_version ;
                   _expectLSN.offset +=
                      ((dpsLogRecordHeader*)tmpInfo._pData)->_length ;
+               }
+               // notify to lsn full sync source session
+               if ( tmpInfo._dataExInfo._isValid && NULL != _replayEventHandler )
+               {
+                  _replayEventHandler->onReplayLog( tmpInfo._dataExInfo._csLID,
+                                                    tmpInfo._dataExInfo._clLID,
+                                                    tmpInfo._dataExInfo._extLID,
+                                                    it->first ) ;
                }
                _memPool.release( tmpInfo._pData, tmpInfo._len ) ;
                _completeMap.erase( it++ ) ;

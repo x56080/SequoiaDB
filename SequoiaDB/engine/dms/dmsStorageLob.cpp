@@ -671,6 +671,11 @@ namespace engine
          }
          dpscb->writeData( info ) ;
       }
+      else
+      {
+         cb->setDataExInfo( pFullName, _dmsData->logicalID(),
+                            mbContext->clLID(), pageID ) ;
+      }
 
       /// update last lsn
       if ( cb->getLsnCount() > 0 )
@@ -948,6 +953,11 @@ namespace engine
             goto error ;
          }
          dpscb->writeData( info ) ;
+      }
+      else
+      {
+         cb->setDataExInfo( pFullName, _dmsData->logicalID(),
+                            mbContext->clLID(), pageID ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -1688,6 +1698,11 @@ namespace engine
          pLatch = NULL ;
          /// write
          dpscb->writeData( info ) ;
+      }
+      else
+      {
+         cb->setDataExInfo( fullName, _dmsData->logicalID(),
+                            mbContext->clLID(), page ) ;
       }
 
       if ( cb->getLsnCount() > 0 )
@@ -3006,6 +3021,8 @@ namespace engine
       else if ( cb->getLsnCount() > 0 )
       {
          mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_LOB ) ;
+         cb->setDataExInfo( fullName, _dmsData->logicalID(),
+                            mbContext->clLID(), DMS_INVALID_EXTENT ) ;
       }
 
    done:

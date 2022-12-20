@@ -118,6 +118,7 @@ namespace engine
       UINT32            _clHash ;
       utilCLUniqueID    _clUniqueID ;
       DPS_LSN_OFFSET    _waitLSN ;
+      pmdDataExInfo     _dataExInfo ;
 
       _clsReplayInfo()
       {
@@ -172,7 +173,7 @@ namespace engine
 
          CLS_BUCKET_STATUS getStatus() const { return _status ; }
 
-         INT32       init () ;
+         INT32       init ( clsReplayEventHandler *handler = NULL ) ;
          void        reset( BOOLEAN setExpect = FALSE ) ;
          void        close() ;
          void        fini () ;
@@ -343,6 +344,9 @@ namespace engine
 
          // cache for last expect LSN
          DPS_LSN_OFFSET       _lastExpectLSN ;
+
+         // for notify full source session when parallel replay
+         clsReplayEventHandler   *_replayEventHandler ;
    } ;
    typedef _clsBucket clsBucket ;
 

@@ -747,6 +747,10 @@ namespace engine
 
          dpsCB->writeData( info ) ;
       }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( pNewName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+      }
 
       // Release the mutex first, since event handler needs the mutex
       if ( isLocked )
@@ -899,6 +903,10 @@ namespace engine
 
          dpsCB->writeData( info ) ;
       }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( pName, csLID, ~0, DMS_INVALID_EXTENT ) ;
+      }
 
    done :
       if ( isLocked )
@@ -1032,6 +1040,10 @@ namespace engine
          isLocked = FALSE ;
 
          dpsCB->writeData( info ) ;
+      }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( pName, ~0, DMS_INVALID_EXTENT, csLID ) ;
       }
 
    done :
@@ -1912,6 +1924,11 @@ namespace engine
 
          dpsCB->writeData( info ) ;
       }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( csname, cscb->_su->LogicalCSID(), ~0,
+                            DMS_INVALID_EXTENT ) ;
+      }
 
       if ( isMetaLocked )
       {
@@ -2067,6 +2084,11 @@ namespace engine
          _mutex.release() ;
          isLocked = FALSE ;
          dpsCB->writeData( info ) ;
+      }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( pName, su->LogicalCSID(), ~0,
+                            DMS_INVALID_EXTENT ) ;
       }
 
       su->setEventHandlers( &_handlers ) ;
@@ -3024,6 +3046,10 @@ namespace engine
          isSULocked = FALSE ;
 
          dpsCB->writeData( info ) ;
+      }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( originName, csLID, ~0, DMS_INVALID_EXTENT ) ;
       }
 
       PD_LOG( PDDEBUG, "Finish return collection space P2 [origin: %s, "

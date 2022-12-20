@@ -1924,21 +1924,21 @@ namespace engine
       dpsTransCB *transCB = sdbGetTransCB() ;
       UINT32 logRecSize = 0 ;
 
+      if ( NULL != pCSName && NULL == pCLFullName )
+      {
+         pCLFullName = pCSName ;
+      }
+      else if ( NULL == pCSName && NULL == pCLFullName )
+      {
+         // Reload all statistics
+         pCLFullName = "SYS" ;
+      }
+
       if ( NULL != dpsCB )
       {
          dpsMergeInfo info ;
          info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
          dpsLogRecord &record = info.getMergeBlock().record() ;
-
-         if ( NULL != pCSName && NULL == pCLFullName )
-         {
-            pCLFullName = pCSName ;
-         }
-         else if ( NULL == pCSName && NULL == pCLFullName )
-         {
-            // Reload all statistics
-            pCLFullName = "SYS" ;
-         }
 
          rc = dpsInvalidCata2Record( DPS_LOG_INVALIDCATA_TYPE_STAT,
                                      pCLFullName, pIndexName,
@@ -1959,6 +1959,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare analyze log, rc: %d", rc ) ;
 
          dpsCB->writeData( info ) ;
+      }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( pCLFullName, ~0, ~0, DMS_INVALID_EXTENT ) ;
       }
 
    done :

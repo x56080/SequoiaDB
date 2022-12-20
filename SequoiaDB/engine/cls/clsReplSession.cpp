@@ -75,6 +75,7 @@ namespace engine
       _sync = sdbGetReplCB()->syncMgr() ;
       _repl = sdbGetReplCB() ;
       _pReplBucket = _repl->getBucket() ;
+      _replayer.regEventHandler( _repl ) ;
 
       _requestID = 1 ;
       _syncFailedNum = 0 ;
@@ -92,6 +93,7 @@ namespace engine
 
    _clsReplDstSession::~_clsReplDstSession ()
    {
+      _replayer.unregEventHandler() ;
    }
 
    SDB_SESSION_TYPE _clsReplDstSession::sessionType() const
@@ -1170,7 +1172,8 @@ namespace engine
             SDB_ASSERT( SDB_OOM == rc ||
                         SDB_NOSPC == rc ||
                         SDB_IXM_DUP_KEY == rc ||
-                        SDB_APP_INTERRUPT == rc,
+                        SDB_APP_INTERRUPT == rc ||
+                        SDB_CLS_FULL_SYNC == rc,
                         "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;

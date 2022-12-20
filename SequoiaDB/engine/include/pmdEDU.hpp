@@ -255,9 +255,51 @@ namespace engine
             }
          }
 
+         void setCurProcessName( const CHAR *csName, const CHAR *clName )
+         {
+            if ( NULL != csName && 0 != csName[0] &&
+                 NULL != clName && 0 != clName[0] )
+            {
+               ossStrncat( _curProcessName, csName,
+                           DMS_COLLECTION_SPACE_NAME_SZ ) ;
+               ossStrncat( _curProcessName, ".", 1 ) ;
+               ossStrncat( _curProcessName, clName, DMS_COLLECTION_NAME_SZ ) ;
+               _curProcessName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
+            }
+            else if ( NULL != csName && 0 != csName[0] &&
+                      ( NULL == csName || 0 == clName[0] ) )
+            {
+               ossStrncat( _curProcessName, csName,
+                           DMS_COLLECTION_SPACE_NAME_SZ ) ;
+               _curProcessName[ DMS_COLLECTION_SPACE_NAME_SZ ] = 0 ;
+            }
+            else
+            {
+               _curProcessName[ 0 ] = 0 ;
+            }
+         }
+
          const CHAR *getCurProcessName() const
          {
             return _curProcessName ;
+         }
+
+         void setDataExInfo( const CHAR *fullName, UINT32 csLID,
+                             UINT32 clLID, SINT32 extLID )
+         {
+            if ( ( 0 == _curProcessName[0] && ( NULL == fullName || 0 == fullName[0] ) ) ||
+                 ( NULL != fullName && 0 == ossStrcmp( fullName, _curProcessName ) ) )
+            {
+               _dataExInfo._csLID  = csLID ;
+               _dataExInfo._clLID  = clLID ;
+               _dataExInfo._extLID = extLID ;
+               _dataExInfo._isValid = TRUE ;
+            }
+         }
+
+         const pmdDataExInfo &getDataExInfo() const
+         {
+            return _dataExInfo ;
          }
 
          void clearProcessInfo()
@@ -266,6 +308,7 @@ namespace engine
             _curMainCLName[ 0 ] = 0 ;
             _currentContextID = -1 ;
             pdClearShieldRC() ;
+            _dataExInfo.clear() ;
          }
 
          /*
@@ -843,6 +886,8 @@ namespace engine
 
       BOOLEAN                 _doReplay ;
       pmdOperator             _operator ;
+
+      pmdDataExInfo           _dataExInfo ;
    };
    typedef class _pmdEDUCB pmdEDUCB ;
 

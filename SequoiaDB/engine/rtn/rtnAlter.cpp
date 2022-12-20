@@ -684,10 +684,11 @@ namespace engine
       SDB_ASSERT( NULL != name, "name is invalid" ) ;
       SDB_ASSERT( NULL != task, "task is invalid" ) ;
 
+      UINT32 csLID = su->LogicalCSID() ;
+      UINT32 clLID = NULL != mbContext ? mbContext->clLID() : ~0 ;
+
       if ( NULL != dpsCB )
       {
-         UINT32 csLID = su->LogicalCSID() ;
-         UINT32 clLID = NULL != mbContext ? mbContext->clLID() : ~0 ;
 
          dpsMergeInfo info ;
          info.setInfoEx( csLID, clLID, DMS_INVALID_EXTENT, cb ) ;
@@ -722,6 +723,10 @@ namespace engine
             mbContext->mbStat()->updateLastLSNWithComp(
                         cb->getEndLsn(), dpsType, cb->isDoRollback() ) ;
          }
+      }
+      else if ( NULL != cb )
+      {
+         cb->setDataExInfo( name, csLID, clLID, DMS_INVALID_EXTENT ) ;
       }
 
    done :

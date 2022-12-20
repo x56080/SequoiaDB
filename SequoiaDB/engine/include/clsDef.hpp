@@ -524,6 +524,21 @@ namespace engine
    } ;
    typedef _clsLSNNtyInfo clsLSNNtyInfo ;
 
+   /*
+      _clsReplayEventHandler define
+   */
+   class _clsReplayEventHandler
+   {
+      public:
+         _clsReplayEventHandler () {}
+         virtual ~_clsReplayEventHandler () {}
+
+         virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
+                                   INT32 extLID, DPS_LSN_OFFSET offset ) = 0 ;
+   } ;
+
+   typedef _clsReplayEventHandler clsReplayEventHandler ;
+
    enum CLS_REELECTION_LEVEL
    {
       CLS_REELECTION_LEVEL_NONE = 0,

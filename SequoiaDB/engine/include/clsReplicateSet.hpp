@@ -68,12 +68,13 @@ namespace engine
    #define CLS_SYNC_DFT_TIMEOUT                 ( 600 * OSS_ONE_SEC )
 
    #define CLS_SYNCWAIT_FIX_TIME_SLICE          ( 10 * OSS_ONE_SEC )
+   #define CLS_DISABLE_SRC_INTERVAL_BASE        ( 30 * OSS_ONE_SEC )
 
    /*
       _clsReplicateSet define
    */
    class _clsReplicateSet : public _pmdObjBase, public _dpsEventHandler,
-                            public _ICluster
+                            public _ICluster, public _clsReplayEventHandler
    {
       DECLARE_OBJ_MSG_MAP()
 
@@ -246,6 +247,24 @@ namespace engine
             return _vote.isInStepUp() ;
          }
 
+         OSS_INLINE BOOLEAN isReadyForSrc( UINT64 curTick )
+         {
+            BOOLEAN ret = TRUE ;
+            UINT32 curMoveTimes = _lastLogMoveTimes.fetch() ;
+            UINT64 curTimeSpan = pmdDBTickSpan2Time( curTick - _lastLogMoveTick.fetch() ) ;
+            UINT64 disableInterval = ( curMoveTimes == 0 ) ? 0 :
+               CLS_DISABLE_SRC_INTERVAL_BASE * ( 1 << ( curMoveTimes - 1 ) ) ;
+            if ( curMoveTimes > 0 && curTimeSpan > 2 * disableInterval )
+            {
+               _lastLogMoveTimes.compareAndSwap( curMoveTimes,curMoveTimes - 1 ) ;
+            }
+            else if ( curTimeSpan <= disableInterval )
+            {
+               ret = FALSE ;
+            }
+            return ret ;
+         }
+
          ossQueue< clsLSNNtyInfo >* getNtyQue() { return &_ntyQue ; }
          DPS_LSN_OFFSET getNtyLastOffset() const { return _ntyLastOffset ; }
          DPS_LSN_OFFSET getNtyProcessedOffset() const { return _ntyProcessedOffset ; }
@@ -257,6 +276,16 @@ namespace engine
 
          virtual void onPrepareLog( UINT32 csLID, UINT32 clLID,
                                     INT32 extLID, DPS_LSN_OFFSET offset ) ;
+
+         virtual void onMoveLog( DPS_LSN_OFFSET moveToOffset,
+                                 DPS_LSN_VER moveToVersion,
+                                 DPS_LSN_OFFSET expectOffset,
+                                 DPS_LSN_VER expectVersion,
+                                 DPS_MOMENT moment,
+                                 INT32 errcode ) ;
+
+         virtual void onReplayLog( UINT32 csLID, UINT32 clLID,
+                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;
 
          virtual INT32 canAssignLogPage( UINT32 reqLen, pmdEDUCB *cb ) ;
 
@@ -324,16 +353,6 @@ namespace engine
                                         UINT32 preFileId,
                                         UINT32 curLogicalFileId,
                                         UINT32 curFileId )
-         {
-            return ;
-         }
-
-         virtual void  onMoveLog( DPS_LSN_OFFSET moveToOffset,
-                                  DPS_LSN_VER moveToVersion,
-                                  DPS_LSN_OFFSET expectOffset,
-                                  DPS_LSN_VER expectVersion,
-                                  DPS_MOMENT moment,
-                                  INT32 errcode )
          {
             return ;
          }
@@ -422,6 +441,11 @@ namespace engine
 
          INT32 _handleStepUp( UINT32 seconds ) ;
 
+         void _notifySrcSessions( UINT32 csLID, UINT32 clLID,
+                                  INT32 extLID, DPS_LSN_OFFSET offset ) ;
+
+         void _forceSrcSessions() ;
+
       private:
          _netRouteAgent          *_agent ;
          _clsGroupInfo           _info ;
@@ -464,6 +488,9 @@ namespace engine
 
          BOOLEAN                 _isAllNodeFatal ;
          ossEvent                _heartbeatEvent ;
+
+         ossAtomic64             _lastLogMoveTick ;
+         ossAtomic32             _lastLogMoveTimes ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;

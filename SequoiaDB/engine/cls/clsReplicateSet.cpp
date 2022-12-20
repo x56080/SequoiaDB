@@ -88,6 +88,7 @@ namespace engine
    #define CLS_REPL_WAIT_TIME                   (100)
    #define CLS_REPL_RETRY_TIMEOUT               (10000)
    #define CLS_FT_SW_TIMEOUT                    ( 10000 )
+   #define CLS_MOVE_TIMES_MAX                   (6)
 
    /*
       _clsReplicateSet define
@@ -102,7 +103,9 @@ namespace engine
      _clsCB( NULL ),
      _timerID( CLS_INVALID_TIMERID ),
      _beatTime( 0 ),
-     _active( FALSE )
+     _active( FALSE ),
+     _lastLogMoveTick( 0 ),
+     _lastLogMoveTimes( 0 )
    {
       _srcSessionNum = 0 ;
       _ntyLastOffset = DPS_INVALID_LSN_OFFSET ;
@@ -129,6 +132,19 @@ namespace engine
 
    }
 
+   void _clsReplicateSet::_forceSrcSessions()
+   {
+      pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
+      ossScopedRWLock lock( &_vecLatch, SHARED ) ;
+      std::vector<_clsDataSrcBaseSession*>::iterator iter =
+         _vecSrcSessions.begin() ;
+      while ( iter != _vecSrcSessions.end() )
+      {
+         pEDUMgr->forceUserEDU( ( *iter )->eduID() ) ;
+         ++ iter ;
+      }
+   }
+
    void _clsReplicateSet::onWriteLog( DPS_LSN_OFFSET offset )
    {
       _sync.notify( offset ) ;
@@ -137,6 +153,41 @@ namespace engine
    void _clsReplicateSet::onPrepareLog( UINT32 csLID, UINT32 clLID,
                                         INT32 extLID, DPS_LSN_OFFSET offset )
    {
+      _notifySrcSessions( csLID, clLID, extLID, offset ) ;
+   }
+
+   void _clsReplicateSet::onReplayLog( UINT32 csLID, UINT32 clLID,
+                                        INT32 extLID, DPS_LSN_OFFSET offset )
+   {
+      _notifySrcSessions( csLID, clLID, extLID, offset ) ;
+   }
+
+   void _clsReplicateSet::onMoveLog( DPS_LSN_OFFSET moveToOffset,
+                                     DPS_LSN_VER moveToVersion,
+                                     DPS_LSN_OFFSET expectOffset,
+                                     DPS_LSN_VER expectVersion,
+                                     DPS_MOMENT moment,
+                                     INT32 errcode )
+   {
+      // when the source node in the following cases, need to remember move time
+      // 1. fail to replay log
+      // 2. consult
+      if ( DPS_BEFORE == moment && moveToOffset != expectOffset )
+      {
+         _lastLogMoveTick.swap( pmdGetDBTick() ) ;
+         UINT32 curMoveTimes = _lastLogMoveTimes.fetch() ;
+         if ( curMoveTimes < CLS_MOVE_TIMES_MAX )
+         {
+            _lastLogMoveTimes.compareAndSwap( curMoveTimes, curMoveTimes + 1 ) ;
+         }
+      }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS, "_clsReplicateSet::_notifySrcSessions" )
+   void _clsReplicateSet::_notifySrcSessions( UINT32 csLID, UINT32 clLID,
+                                              INT32 extLID, DPS_LSN_OFFSET offset )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS ) ;
       UINT32 timeOut = 0 ;
    retry:
       if ( getNtySessionNum() > 0 )
@@ -150,15 +201,7 @@ namespace engine
             if ( timeOut > CLS_REPL_RETRY_TIMEOUT )
             {
                // if notify fail , we use eduMgr to close session
-               pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
-               ossScopedRWLock lock( &_vecLatch, SHARED ) ;
-               std::vector<_clsDataSrcBaseSession*>::iterator iter =
-                  _vecSrcSessions.begin() ;
-               while ( iter != _vecSrcSessions.end() )
-               {
-                  pEDUMgr->forceUserEDU( ( *iter )->eduID() ) ;
-                  ++ iter ;
-               }
+               _forceSrcSessions() ;
                PD_LOG( PDERROR, "Failed to push info into notifyQueue, "
                        "Exception occurred: %s", e.what() ) ;
                goto error ;
@@ -173,10 +216,12 @@ namespace engine
          _ntyLastOffset = offset ;
       }
    done:
+       PD_TRACE_EXIT ( SDB__CLSREPPSET_NOTIFYSRCSESSIONS ) ;
       return ;
    error:
       goto done ;
    }
+
 
    UINT64 _clsReplicateSet::completeLsn( BOOLEAN doFast, UINT32 *pVer )
    {
@@ -325,7 +370,7 @@ namespace engine
       // register dps log event handler
       _logger->regEventHandler( this ) ;
 
-      rc = _replBucket.init() ;
+      rc = _replBucket.init( this ) ;
       PD_RC_CHECK( rc, PDERROR, "Init repl bucket failed, rc: %d", rc ) ;
 
       pNetFrame = _agent->getFrame() ;

@@ -800,6 +800,9 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
+
+         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
+                            DMS_INVALID_EXTENT ) ;
       }
 
       PD_LOG( PDEVENT, "Change index[%s:%s] unique id from [%llu] to [%llu]",
@@ -1409,6 +1412,8 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
+         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
+                            DMS_INVALID_EXTENT ) ;
       }
 
       }
@@ -1576,11 +1581,12 @@ namespace engine
          indexDef = indexCB.getDef().getOwned() ;
          indexCB.getIndexID( indexOID ) ;
 
+         _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+                                sizeof(fullName) ) ;
+
          // calc the reserve size
          if ( dpscb )
          {
-            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
-                                   sizeof(fullName) ) ;
             buildOption( option, pIdxStatus, &sortBufferSize ) ;
 
             rc = dpsIXCrt2Record( fullName, indexDef, option, record ) ;
@@ -1679,6 +1685,9 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
+
+         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
+                            DMS_INVALID_EXTENT ) ;
       }
       dropDps = dpscb ;
 
@@ -1877,10 +1886,11 @@ namespace engine
          // For veriication later.
          indexCB.getIndexID( indexOID ) ;
 
+         _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+                                sizeof( fullName ) ) ;
+
          if ( dpscb )
          {
-            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
-                                   sizeof( fullName ) ) ;
             buildOption( option, pIdxStatus ) ;
 
             rc = dpsIXCrt2Record( fullName, indexDef, option, record ) ;
@@ -1958,6 +1968,9 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
+
+         cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
+                            DMS_INVALID_EXTENT ) ;
       }
       dropDps = dpscb ;
 

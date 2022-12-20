@@ -64,7 +64,7 @@ namespace engine
    INT32 startIndexJob ( RTN_JOB_TYPE type, const CHAR *collection,
                          const BSONObj &index, const BSONObj &option,
                          DPS_LSN_OFFSET lsn, _dpsLogWrapper *dpsCB,
-                         BOOLEAN isRollBack ) ;
+                         BOOLEAN isRollBack, pmdEDUCB *eduCB ) ;
 
    // default pending count for duplicated key issue
    #define CLS_PARALLA_DEF_PENDING_COUNT     ( 1024 )
@@ -214,11 +214,14 @@ namespace engine
       _monDBCB = pmdGetKRCB()->getMonDBCB () ;
 
       _isReplSync = isReplSync ;
+
+      _replayEventHandler = NULL ;
+
    }
 
    _clsReplayer::~_clsReplayer()
    {
-
+      _replayEventHandler = NULL ;
    }
 
    void _clsReplayer::enableDPS ()
@@ -229,6 +232,29 @@ namespace engine
    void _clsReplayer::disableDPS ()
    {
       _dpsCB = NULL ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPLAYER_REGEVENTHANDLER, "_clsReplayer::regEventHandler" )
+   void _clsReplayer::regEventHandler( clsReplayEventHandler *pHandler )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSREPLAYER_REGEVENTHANDLER ) ;
+
+      if ( NULL != pHandler )
+      {
+         _replayEventHandler = pHandler ;
+      }
+
+      PD_TRACE_EXIT( SDB__CLSREPLAYER_REGEVENTHANDLER ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPLAYER_UNREGEVENTHANDLER, "_clsReplayer::unregEventHandler" )
+   void _clsReplayer::unregEventHandler()
+   {
+      PD_TRACE_ENTRY ( SDB__CLSREPLAYER_UNREGEVENTHANDLER ) ;
+
+      _replayEventHandler = NULL ;
+
+      PD_TRACE_EXIT ( SDB__CLSREPLAYER_UNREGEVENTHANDLER ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__CALCBUCKETID, "_clsReplayer::_calcBucketID" )
@@ -799,7 +825,8 @@ namespace engine
    INT32 _clsReplayer::replay( dpsLogRecordHeader *recordHeader,
                                pmdEDUCB *eduCB,
                                BOOLEAN incMonCount,
-                               BOOLEAN ignoreDupKey )
+                               BOOLEAN ignoreDupKey,
+                               pmdDataExInfo *dataExInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREP_REPLAY );
@@ -855,6 +882,7 @@ namespace engine
                // interrupted async index tasks )
                OSS_BIT_SET( flag, FLG_INSERT_REPLACEONDUP ) ;
             }
+            eduCB->setCurProcessName( fullname ) ;
             rc = rtnReplayInsert( fullname, obj, flag, eduCB, _dmsCB, _dpsCB,
                                   1, &insertResult ) ;
             if ( SDB_OK == rc && incMonCount )
@@ -894,6 +922,7 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( fullname ) ;
             /// possibly get a empty modifier
             if ( !modifier.isEmpty() )
             {
@@ -949,6 +978,7 @@ namespace engine
             }
             else
             {
+               eduCB->setCurProcessName( fullname ) ;
                BSONElement idEle = obj.getField( DMS_ID_KEY_NAME ) ;
                if ( idEle.eoo() )
                {
@@ -999,7 +1029,7 @@ namespace engine
             {
                goto error ;
             }
-
+            eduCB->setCurProcessName( fullName ) ;
             rc = rtnPopCommand( fullName, logicalID, eduCB, _dmsCB,
                                 _dpsCB, direction ) ;
             if ( SDB_INVALIDARG == rc )
@@ -1043,6 +1073,7 @@ namespace engine
                goto error ;
             }
 
+            eduCB->setCurProcessName( cs ) ;
             rc = rtnCreateCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
                                                   csUniqueID,
                                                   pageSize, lobPageSize,
@@ -1073,6 +1104,7 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( cs ) ;
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
                          "space options, rc: %d", rc ) ;
@@ -1114,6 +1146,7 @@ namespace engine
                goto error ;
             }
 
+            eduCB->setCurProcessName( cl ) ;
             if ( !extOptions.isEmpty() )
             {
                pExtOpt = &extOptions ;
@@ -1170,6 +1203,7 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( cl ) ;
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
                          "options, rc: %d", rc ) ;
@@ -1191,10 +1225,11 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( cl ) ;
             /// rebuild the index can be very time-consuming.
             /// we create a sub thread to handle it.
             startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
-                           recordHeader->_lsn, _dpsCB, FALSE ) ;
+                           recordHeader->_lsn, _dpsCB, FALSE, eduCB ) ;
             break ;
          }
          case LOG_TYPE_IX_DELETE :
@@ -1206,8 +1241,9 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( cl ) ;
             startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
-                           recordHeader->_lsn, _dpsCB, FALSE ) ;
+                           recordHeader->_lsn, _dpsCB, FALSE, eduCB ) ;
             break ;
          }
          case LOG_TYPE_CL_RENAME :
@@ -1216,11 +1252,13 @@ namespace engine
             const CHAR *oldCl = NULL ;
             const CHAR *newCl = NULL ;
             rc = dpsRecord2CLRename( (CHAR *)recordHeader,
-                                      &cs, &oldCl, &newCl ) ;
+                                     &cs, &oldCl, &newCl ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
+
+            eduCB->setCurProcessName( cs, newCl ) ;
             rc = rtnRenameCollectionCommand( cs, oldCl, newCl,
                                              eduCB, _dmsCB, _dpsCB, FALSE ) ;
             if ( SDB_DMS_NOTEXIST == rc )
@@ -1265,6 +1303,7 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( newName ) ;
 #ifdef _WINDOWS
             while ( TRUE )
             {
@@ -1321,6 +1360,7 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( clname ) ;
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
                          "options, rc: %d", rc ) ;
@@ -1355,6 +1395,8 @@ namespace engine
             {
                goto error ;
             }
+
+            eduCB->setCurProcessName( clFullName ) ;
 
             // Check if only contains name of collection space
             if ( NULL != clFullName &&
@@ -1447,7 +1489,7 @@ namespace engine
             {
                goto error ;
             }
-
+            eduCB->setCurProcessName( fullName ) ;
             rc = rtnWriteLob( fullName, *oid, sequence,
                               offset, len, data, eduCB,
                               1, _dpsCB ) ;
@@ -1483,7 +1525,7 @@ namespace engine
             {
                goto error ;
             }
-
+            eduCB->setCurProcessName( fullName ) ;
             rc = rtnRemoveLobPiece( fullName, *oid,
                                     sequence, eduCB,
                                     1, _dpsCB, NULL, NULL, FALSE, data ) ;
@@ -1522,7 +1564,7 @@ namespace engine
             {
                goto error ;
             }
-
+            eduCB->setCurProcessName( fullName ) ;
             rc = rtnUpdateLob( fullName, *oid, sequence,
                                offset, len, data, eduCB,
                                1, _dpsCB ) ;
@@ -1546,7 +1588,7 @@ namespace engine
             {
                goto error ;
             }
-
+            eduCB->setCurProcessName( objectName ) ;
             while ( TRUE )
             {
                rc = rtnAlterCommand( objectName, objectType, alterObject,
@@ -1574,6 +1616,7 @@ namespace engine
             {
                goto error ;
             }
+            eduCB->setCurProcessName( csname ) ;
             rc = rtnChangeUniqueID( csname, csUniqueID, clInfoObj,
                                     eduCB, _dmsCB, _dpsCB ) ;
             if ( SDB_DMS_CS_NOTEXIST == rc )
@@ -1598,7 +1641,7 @@ namespace engine
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse return options, "
                          "rc: %d", rc ) ;
-
+            eduCB->setCurProcessName( options._recycleItem.getOriginName() ) ;
             while ( TRUE )
             {
                rc = rtnReturnCommand( options, eduCB, _dmsCB, _dpsCB, FALSE ) ;
@@ -1672,6 +1715,23 @@ namespace engine
       {
          eduCB->setDoReplay( FALSE ) ;
       }
+      if ( SDB_OK == rc )
+      {
+         const pmdDataExInfo &info = eduCB->getDataExInfo() ;
+         // notify lsn to full sync source session
+         if ( info._isValid && NULL != _replayEventHandler )
+         {
+            _replayEventHandler->onReplayLog( info._csLID, info._clLID,
+                                              info._extLID, recordHeader->_lsn ) ;
+         }
+         // pass info for notification when replay parallelly
+         if ( dataExInfo )
+         {
+            *dataExInfo = info ;
+         }
+      }
+      eduCB->clearProcessInfo() ;
+
       PD_TRACE_EXITRC ( SDB__CLSREP_REPLAY, rc );
       return rc ;
    error:
@@ -1933,7 +1993,7 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
-                           recordHeader->_lsn, _dpsCB, TRUE ) ;
+                           recordHeader->_lsn, _dpsCB, TRUE, eduCB ) ;
             break ;
          }
          case LOG_TYPE_IX_DELETE :
@@ -1946,7 +2006,7 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
-                           recordHeader->_lsn, _dpsCB, TRUE ) ;
+                           recordHeader->_lsn, _dpsCB, TRUE, eduCB ) ;
             break ;
          }
          case LOG_TYPE_CL_RENAME :
@@ -1955,7 +2015,7 @@ namespace engine
             const CHAR *oldCl = NULL ;
             const CHAR *newCl = NULL ;
             rc = dpsRecord2CLRename( (CHAR *)recordHeader,
-                                      &cs, &oldCl, &newCl ) ;
+                                     &cs, &oldCl, &newCl ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -3137,7 +3197,7 @@ namespace engine
    INT32 startIndexJob ( RTN_JOB_TYPE type, const CHAR *collection,
                          const BSONObj &index, const BSONObj &option,
                          DPS_LSN_OFFSET lsn, _dpsLogWrapper *dpsCB,
-                         BOOLEAN isRollBack )
+                         BOOLEAN isRollBack, pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_STARTINXJOB ) ;
@@ -3206,6 +3266,11 @@ namespace engine
          SDB_OSS_DEL indexJob ;
          indexJob = NULL ;
          goto error ;
+      }
+      else
+      {
+         cb->setDataExInfo( collection, indexJob->getCSLID(),
+                            indexJob->getCLLID(), DMS_INVALID_EXTENT ) ;
       }
 
       // do job

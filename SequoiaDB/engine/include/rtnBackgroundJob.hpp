@@ -75,6 +75,8 @@ namespace engine
          const CHAR* getIndexName () const ;
          const CHAR* getCollectionName() const ;
          utilCLUniqueID getCLUniqueID() const ;
+         UINT32 getCSLID() const ;
+         UINT32 getCLLID() const ;
 
          static INT32 checkIndexExist( const CHAR *pCLName,
                                        const CHAR *pIdxName,

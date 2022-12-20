@@ -1633,6 +1633,7 @@ namespace engine
     _lsnSearchMB( 1024 )
    {
       _lastRecvSlice = 1 ;
+      _beginTick = 0 ;
    }
 
    _clsFSSrcSession::~_clsFSSrcSession()
@@ -1659,6 +1660,7 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
 
       INT32 nomore = 1 ;
+      _beginTick = pmdGetDBTick() ;
 
       SDB_DPSCB *dpscb = pmdGetKRCB()->getDPSCB() ;
       MsgClsFSBeginRes msg ;
@@ -2110,41 +2112,49 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /// 1. not primary
-      if ( !pmdIsPrimary() )
-      {
-         /* MSG_INVALID_ROUTEID != sdbGetReplCB()->getPrimary().value */
-         rc = SDB_CLS_NOT_PRIMARY ;
-         PD_LOG( PDWARNING, "Session[%s] not ready: Self node is not "
-                 "primary", sessionName() ) ;
-      }
-      /// 2. in full sync
-      else if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
+      /// 1. in full sync
+      if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
       {
          rc = SDB_CLS_FULL_SYNC ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "already in full sync", sessionName() ) ;
       }
-      /// 3. in rebuild
+      /// 2. in rebuild
       else if ( SDB_DB_REBUILDING == PMD_DB_STATUS() )
       {
          rc = SDB_RTN_IN_REBUILD ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "already in rebuilding", sessionName() ) ;
       }
-      /// 4. business is not ok
+      /// 3. business is not ok
       else if ( !pmdGetStartup().isOK () )
       {
          rc = SDB_RTN_IN_REBUILD ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "not recoverd from crash", sessionName() ) ;
       }
-      /// 5. unique id upgrade is not finished
+      /// 4. unique id upgrade is not finished
       else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
       {
          rc = SDB_DMS_UNQIUEID_UPGRADE ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "
                  "is not finished", sessionName() ) ;
+      }
+      /// 5. Failed to replay log
+      else if ( !pmdIsPrimary() &&
+              ( CLS_BUCKET_WAIT_ROLLBACK == sdbGetReplCB()->getBucket()->getStatus() ||
+                CLS_BUCKET_ROLLBACKING == sdbGetReplCB()->getBucket()->getStatus() ) )
+      {
+         rc = SDB_CLS_REPLAY_LOG_FAILED ;
+         PD_LOG( PDWARNING, "Session[%s] not ready: The self node replBucket status is "
+                 "not normal ", sessionName() ) ;
+      }
+      /// 6. the node is not ready
+      else if ( !pmdIsPrimary() && !sdbGetReplCB()->isReadyForSrc( _beginTick ) )
+      {
+         rc = SDB_CLS_REPLAY_LOG_FAILED ;
+         PD_LOG( PDWARNING, "Session[%s] not ready: The self node is not ready for full "
+                 "synchronization ", sessionName() ) ;
       }
 
       return rc ;

@@ -509,9 +509,9 @@ namespace engine
       MsgRouteID id ;
       id.value = MSG_INVALID_ROUTEID ;
       _info->mtx.lock_r() ;
-      /*MsgRouteID ids[CLS_REPLSET_MAX_NODE_SIZE -1 ] ;
+      MsgRouteID ids[ CLS_REPLSET_MAX_NODE_SIZE - 1 ] ;
       map<UINT64, _clsSharingStatus *>::iterator itr =
-                           _info->alives.begin() ;
+         _info->alives.begin() ;
       UINT16 sub = 0 ;
       for ( ; itr != _info->alives.end(); itr++ )
       {
@@ -536,15 +536,12 @@ namespace engine
       else
       {
          /// possibly has no primary.
-         id = _info->primary ;
-      }*/
-
-      if ( _info->primary.columns.nodeID !=
-           _info->local.columns.nodeID )
-      {
-         id = _info->primary ;
+         if ( _info->primary.columns.nodeID !=
+              _info->local.columns.nodeID )
+         {
+            id = _info->primary ;
+         }
       }
-
       _info->mtx.release_r() ;
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG_GETFULLSRC ) ;
       return id ;

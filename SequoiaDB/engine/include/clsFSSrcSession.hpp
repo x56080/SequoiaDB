@@ -250,6 +250,7 @@ namespace engine
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;
       MAP_SU_STATUS              _validCLs ;
+      UINT64                     _beginTick ;
    } ;
    typedef class _clsFSSrcSession clsFSSrcSession ;
 

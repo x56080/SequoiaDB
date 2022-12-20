@@ -333,8 +333,6 @@ namespace engine
                   mbContext->mbStat()->_globIdxNum ++ ;
                   _hasAddGlobal = TRUE ;
                }
-               _csLID = su->LogicalCSID() ;
-               _clLID = mbContext->clLID() ;
             }
             else
             {
@@ -408,6 +406,10 @@ namespace engine
          }
       }
 
+      // get cs id and cl id ;
+      _csLID = su->LogicalCSID() ;
+      _clLID = mbContext->clLID() ;
+
       // get collection unique id
       _clUniqID = mbContext->mb()->_clUniqueID ;
 
@@ -478,6 +480,16 @@ namespace engine
    const CHAR* _rtnIndexJob::name () const
    {
       return _jobName.c_str() ;
+   }
+
+   UINT32 _rtnIndexJob::getCSLID() const
+   {
+      return _csLID ;
+   }
+
+    UINT32 _rtnIndexJob::getCLLID() const
+   {
+      return _clLID ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB_MUTEXON, "_rtnIndexJob::muteXOn" )
