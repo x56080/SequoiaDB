@@ -95,7 +95,7 @@
 #define OSS_STICKY     0
 
 // rwxr-x---
-#define OSS_DEFAULTFILE   (OSS_RWXU | OSS_RG | OSS_XG) 
+#define OSS_DEFAULTFILE   (OSS_RWXU | OSS_RG | OSS_XG)
 #else
  // user
 #define OSS_RU      S_IRUSR
@@ -538,6 +538,11 @@ INT32 ossGetFileSizeByName ( const CHAR  *pFileName, INT64 *pFileSize );
   */
 INT32 ossGetFileSize(OSSFILE *pFile, INT64 *pfsize);
 
+INT32 ossExtend( OSSFILE * pFile,
+                 const INT64 fileSize,
+                 const INT64 incrementSize,
+                 BOOLEAN enableSparse,
+                 BOOLEAN isDirectIO = FALSE ) ;
 
 /*
  * Extend file with specified size(bytes)
@@ -553,10 +558,12 @@ INT32 ossGetFileSize(OSSFILE *pFile, INT64 *pfsize);
  *      SDB_INVALID_FILE_TYPE (invalid input arguments)
  */
 INT32 ossExtendFile( OSSFILE *pFile,
-                     const INT64 incrementSize ) ;
+                     const INT64 incrementSize,
+                     BOOLEAN isDirectIO = FALSE ) ;
 
 INT32 ossExtentBySparse( OSSFILE *pFile,
                          UINT64 incrementSize,
+                         BOOLEAN isDirectIO = FALSE,
                          UINT32 onceWrite = 512 ) ;
 
 INT32 ossTruncateFile ( OSSFILE *pFile, const INT64 fileLen ) ;
@@ -629,7 +636,7 @@ INT32 ossReadN( OSSFILE *file,
 
 /*
 * Write specified length
-* 
+*
 * Input
 *   file descriptor (OSSFILE)
 *   buffer (const char*)
@@ -660,6 +667,11 @@ INT32 ossGetFileUserInfo( const CHAR *filename, OSSUID &uid, OSSGID &gid ) ;
 INT32 ossGetUserInfo( const CHAR *username, OSSUID &uid, OSSGID &gid ) ;
 
 INT32 ossGetUserInfo( OSSUID uid, CHAR *pUserName, UINT32 nameLen ) ;
+
+INT32 ossFallocate( OSSFILE *file,
+                    UINT32 mode,
+                    UINT64 offset,
+                    UINT64 size ) ;
 
 #endif // OSSIO_HPP_
 

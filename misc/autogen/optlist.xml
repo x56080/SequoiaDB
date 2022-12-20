@@ -1220,18 +1220,18 @@
       <name>PMD_OPTION_SPARSE_FILE</name>
       <long>sparsefile</long>
       <description>
-         <en>Extend the file as a sparse file, if it is not specified, the default value is 'false'</en>
-         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为'false'</cn>
+         <en>Extend the file as a sparse file, if it is not specified, the default value is 'true'</en>
+         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为'true'</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
       <detail>
-         <en>Extend the file as a sparse file, if it is not specified, the default value is "false"</en>
-         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为"false"</cn>
+         <en>Extend the file as a sparse file, if it is not specified, the default value is "true"</en>
+         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为"true"</cn>
       </detail>
-      <default>false</default>
+      <default>true</default>
       <typeofweb>boolean</typeofweb>
    </opt>
 
@@ -2719,7 +2719,7 @@
       <typeofweb>boolean</typeofweb>
       <hidden>true</hidden>
   </opt>
-  
+
   <opt>
       <name>PMD_OPTION_DIAG_SECURE_ON</name>
       <long>diagsecureon</long>
