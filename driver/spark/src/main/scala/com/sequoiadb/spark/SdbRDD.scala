@@ -45,6 +45,8 @@ abstract class SdbRDD[T: ClassTag](sc: SparkContext,
 
     logInfo(s"SdbRDD{config: $config, filter: $filter, selector: [${requiredColumns.mkString(", ")}]}")
 
+    protected val sourceInfo: String = SdbConnUtil.generateSourceInfo(sc)
+
     @DeveloperApi
     override def compute(split: Partition, context: TaskContext): Iterator[T] = {
         val iterator = createIterator(split.asInstanceOf[SdbPartition])
@@ -95,7 +97,7 @@ class SdbRowRDD(sc: SparkContext,
     extends SdbRDD[Row](sc, config, requiredColumns, filter) {
 
     override def createIterator(sdbPartition: SdbPartition): SdbRDDIterator[Row] = {
-        new SdbRowRDDIterator(config, sdbPartition, schema, requiredColumns)
+        new SdbRowRDDIterator(config, sourceInfo, sdbPartition, schema, requiredColumns)
     }
 }
 
@@ -137,7 +139,7 @@ class SdbBsonRDD(sc: SparkContext,
     extends SdbRDD[BSONObject](sc, sdbConfig, requiredColumns, filter) {
 
     override def createIterator(sdbPartition: SdbPartition): SdbRDDIterator[BSONObject] = {
-        new SdbBsonRDDIterator(sdbConfig, sdbPartition, requiredColumns, numReturned)
+        new SdbBsonRDDIterator(sdbConfig, sourceInfo, sdbPartition, requiredColumns, numReturned)
     }
 }
 
@@ -150,9 +152,10 @@ class SdbBsonRDDFunctions(rdd: RDD[BSONObject]) {
 
     private def saveToSequoiadb(properties: Map[String, String]): Unit = {
         val config = SdbConfig(rdd.sparkContext.getConf.getAll.toMap, properties)
+        val sourceInfo = SdbConnUtil.generateSourceInfo(rdd.sparkContext)
 
         rdd.foreachPartition { it =>
-            new SdbWriter(config).write(it)
+            new SdbWriter(config, sourceInfo).write(it)
         }
     }
 

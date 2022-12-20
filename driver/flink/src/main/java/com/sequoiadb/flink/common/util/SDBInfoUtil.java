@@ -25,7 +25,10 @@ import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.strategy.NodeInfo;
 import com.sequoiadb.flink.source.strategy.ShardingInfo;
+import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.runtime.metrics.scope.ScopeFormat;
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +42,9 @@ import java.util.Set;
 public class SDBInfoUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBInfoUtil.class);
+
+    private static final String SESSION_ATTR_SOURCE = "Source";
+    private static final String SESSION_ATTR_SOURCE_PREFIX = "flink";
 
     public static Map<String, List<NodeInfo>> getDataGroups(Sequoiadb sdb) {
         Map<String, List<NodeInfo>> dataGroups = new HashMap<>();
@@ -227,6 +233,69 @@ public class SDBInfoUtil {
         Set<String> keySet2 = bsonObject2.keySet();
 
         return keySet1.containsAll(keySet2);
+    }
+
+    /**
+     * Set SessionAttr in target Sequoiadb Connection.
+     *
+     * Notes:
+     *   Source SessionAttr may not be supported in some older versions
+     *   of SequoiaDB.
+     *   Here will just ignore the exception, when trying to set
+     *   Source SessionAttr, and print warning log. Mark sure that the
+     *   job can continue to be executed.
+     *
+     * @param sdb
+     * @param sourceInfo
+     */
+    public static void setupSourceSessionAttrIgnoreFailures(Sequoiadb sdb, String sourceInfo) {
+        BSONObject sessionAttr = new BasicBSONObject();
+        sessionAttr.put(
+                SESSION_ATTR_SOURCE,
+                String.join("-", new String[]{
+                        SESSION_ATTR_SOURCE_PREFIX, sourceInfo}));
+
+        try {
+            sdb.setSessionAttr(sessionAttr);
+        } catch (BaseException ex) {
+            LOG.warn("Failed to set {} session attribute, msg: {}",
+                    SESSION_ATTR_SOURCE, ex.getMessage());
+        }
+    }
+
+    /**
+     * generate source info which can help users locate which job
+     * on which flink task-manager is talking to SequoiaDB.
+     *
+     * Source Pattern: flink-${task_manager_id}-${job_id}
+     * Example:
+     *      flink-hostname:port-b80a46-12efdb12040a6baeb028b455b43bacd7
+     *
+     * Notes:
+     *  if we can not get task manager id, job id from {@link MetricGroup},
+     *  it will set noting in source info, and print a warning log.
+     *  Make sure that the job can continue to run when the above infos
+     *  can not be obtained.
+     *
+     * @param metricGroup which is holding environments of flink's job.
+     * @return
+     */
+    public static String generateSourceInfo(MetricGroup metricGroup) {
+        Map<String, String> allVars = metricGroup
+                .getAllVariables();
+
+        String tmId = "";
+        String jobId = "";
+        if (allVars != null) {
+            tmId = allVars.get(ScopeFormat.SCOPE_TASKMANAGER_ID);
+            jobId = allVars.get(ScopeFormat.SCOPE_JOB_ID);
+        }
+
+        if ("".equals(tmId) || "".equals(jobId)) {
+            LOG.warn("Can not obtain task manager id or job id for generating source info.");
+        }
+
+        return String.join("-", tmId, jobId);
     }
 
 }
