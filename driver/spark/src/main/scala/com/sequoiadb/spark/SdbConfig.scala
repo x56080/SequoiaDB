@@ -16,12 +16,16 @@
 
 package com.sequoiadb.spark
 
-import java.io.{File, FileInputStream}
+import com.sequoiadb.base.Sequoiadb
+import com.sequoiadb.exception.BaseException
 import com.sequoiadb.net.ConfigOptions
-import org.bson.BSONObject
-import org.bson.util.JSON
 import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
+import org.apache.spark.SparkContext
+import org.bson.util.JSON
+import org.bson.{BSONObject, BasicBSONObject}
+import org.slf4j.LoggerFactory
 
+import java.io.File
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -641,6 +645,70 @@ object SdbConfig {
         }
 
         tableConfs ++ defaults
+    }
+}
+
+/**
+ * SequoiaDB Connection Util, is used for some connection settings
+ */
+object SdbConnUtil {
+
+    val SESSION_ATTR_SOURCE = "Source"
+    val SESSION_ATTR_PREFIX = "spark"
+
+    val log_ = LoggerFactory.getLogger(SdbConnUtil.getClass)
+
+
+    /**
+     * Set SessionAttr in target Sequoiadb Connection.
+     *
+     * Source Pattern: spark-${appId}:${sparkUser}
+     * Examples:
+     *   spark-app-20221217155151-0002:root
+     *
+     * Notes:
+     *   Source SessionAttr may not be supported in some older versions
+     *   of SequoiaDB.
+     *   Here will just ignore the exception, when trying to set
+     *   Source SessionAttr, and print warning log. Mark sure that the
+     *   job can continue to be executed.
+     *
+     * @param sdb
+     * @param sourceInfo
+     */
+    def setupSourceSessionAttrIgnoreFailures(sdb: Sequoiadb, sourceInfo: String): Unit = {
+        val sessionAttr = new BasicBSONObject
+        sessionAttr.put(
+            SESSION_ATTR_SOURCE,
+            s"${SESSION_ATTR_PREFIX}-${sourceInfo}")
+
+        try {
+            sdb.setSessionAttr(sessionAttr)
+        } catch {
+            case e: BaseException =>
+                log_.warn(s"Failed to set ${SESSION_ATTR_SOURCE} session attribute, msg: {}", e.getMessage)
+        }
+    }
+
+    /**
+     * generate source info to identify which spark application
+     * is talking to SequoiaDB.
+     *
+     * @param sc SparkContext that can obtain appId, sparkUser
+     * @return sourceInfo
+     */
+    def generateSourceInfo(sc: SparkContext): String = {
+        val appId = sc.applicationId
+        val user = sc.sparkUser
+
+        var sourceInfo = appId
+        if (user != null && !"".equals(user)) {
+            sourceInfo = s"${appId}:${user}"
+        } else {
+            log_.warn("Can not obtain spark user info for generating source info")
+        }
+
+        sourceInfo
     }
 }
 

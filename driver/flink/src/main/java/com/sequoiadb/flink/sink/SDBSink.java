@@ -16,6 +16,7 @@
 
 package com.sequoiadb.flink.sink;
 
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.sink.committer.SDBCommitter;
@@ -60,6 +61,9 @@ public class SDBSink<IN> implements Sink<IN, SDBBulk, SDBBulk, Void> {
     public SinkWriter<IN, SDBBulk, SDBBulk> createWriter(InitContext context,
                                                          List<SDBBulk> states) throws IOException {
         LOG.debug("SDBSink creates sink writer");
+
+        sdbSinkOptions.setSourceInfo(
+                SDBInfoUtil.generateSourceInfo(context.metricGroup()));
         return new SDBSinkWriter<IN>(sdbSinkOptions, dataConverter, context, states);
     }
 
