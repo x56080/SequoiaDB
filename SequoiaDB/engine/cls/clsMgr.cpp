@@ -838,7 +838,7 @@ namespace engine
 
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
-         rc = pmdGetKRCB()->getDMSCB()->regHandler( &_recycleBinMgr ) ;
+         rc = pmdGetKRCB()->getDMSCB()->regHandler( DMS_ENGINE_MMAP, &_recycleBinMgr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
                       "recycle bin manager to DMS, rc: %d", rc ) ;
       }
@@ -1035,7 +1035,7 @@ namespace engine
 
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
-         pmdGetKRCB()->getDMSCB()->unregHandler( &_recycleBinMgr ) ;
+         pmdGetKRCB()->getDMSCB()->unregHandler( DMS_ENGINE_MMAP, &_recycleBinMgr ) ;
       }
 
       return SDB_OK ;
@@ -1251,7 +1251,7 @@ namespace engine
          {
             if ( SDB_ROLE_DATA == pmdGetDBRole() )
             {
-               if ( pDmsCB->nullCSUniqueIDCnt() > 0 )
+               if ( pDmsCB->getNullCSUniqueIDCnt() > 0 )
                {
                   startUniqueIDCheckJob() ;
                }

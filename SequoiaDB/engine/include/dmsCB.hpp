@@ -41,6 +41,7 @@
 #define DMSCB_HPP_
 
 #include "core.hpp"
+#include "dmsMmapEngine.hpp"
 #include "interface/IDataManagementService.h"
 #include "oss.hpp"
 #include "ossMem.hpp"
@@ -60,512 +61,312 @@
 #include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
 #include "dmsScanner.hpp"
+#include "dmsEngineSocket.hpp"
+#include "dmsSuConstraintMap.hpp"
 
-using namespace std ;
+using namespace std;
 
 namespace engine
 {
-   class _pmdEDUCB ;
-   class _dmsStorageUnit ;
+   class _pmdEDUCB;
+   class _dmsStorageUnit;
 
-   // 20 minutes
-   #define DMS_DFT_BLOCKWRITE_TIMEOUT       ( 20 * 60 * OSS_ONE_SEC )
+// 20 minutes
+#define DMS_DFT_BLOCKWRITE_TIMEOUT ( 20 * 60 * OSS_ONE_SEC )
 
-   // for each collection space, there is one CSCB associate with it
-   class _SDB_DMS_CSCB : public SDBObject
-   {
-   public:
-      //ossSpinSLatch _mutex ;
-      // maximum sequence id for the collection space
-      // currently 1 sequence per collection space
-      UINT32 _topSequence ;
-      CHAR   _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      _dmsStorageUnit *_su ;
+#define DMS_MAX_CS_NUM 16384
+#define DMS_INVALID_CS DMS_INVALID_SUID
 
-      _SDB_DMS_CSCB ( const CHAR *pName, UINT32 topSequence,
-                      _dmsStorageUnit *su )
-      {
-         ossStrncpy ( _name, pName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-         _name[DMS_COLLECTION_SPACE_NAME_SZ] = 0 ;
-         _topSequence = topSequence ;
-         _su = su ;
-      }
-      ~_SDB_DMS_CSCB () ;
-   } ;
-   typedef class _SDB_DMS_CSCB SDB_DMS_CSCB ;
+/*
+   DMS_STATE DEFINE
+*/
+#define DMS_STATE_NORMAL 0
+#define DMS_STATE_READONLY 1
+#define DMS_STATE_ONLINE_BACKUP 2
+#define DMS_STATE_FULLSYNC 3
+#define DMS_STATE_RESTORE 4
 
-
-   #define DMS_MAX_CS_NUM 16384
-   #define DMS_INVALID_CS DMS_INVALID_SUID
-
-   /*
-      DMS_STATE DEFINE
-   */
-   #define DMS_STATE_NORMAL            0
-   #define DMS_STATE_READONLY          1
-   #define DMS_STATE_ONLINE_BACKUP     2
-   #define DMS_STATE_FULLSYNC          3
-   #define DMS_STATE_RESTORE           4
-
-   /*
-      OTHER DEFINE
-   */
-   #define DMS_CHANGESTATE_WAIT_LOOP   100
-
-   struct _dmsDictJob
-   {
-      dmsStorageUnitID _suID ;
-      UINT32 _suLID ;
-      UINT16 _clID ;
-      UINT32 _clLID ;
-      UINT64 _recordNum ;
-      UINT64 _lastWriteTick ;
-
-      _dmsDictJob()
-      : _suID( DMS_INVALID_SUID ),
-        _suLID( DMS_INVALID_SUID ),
-        _clID( DMS_INVALID_CLID ),
-        _clLID( DMS_INVALID_CLID ),
-        _recordNum( 0 ),
-        _lastWriteTick( 0 )
-      {
-      }
-
-      _dmsDictJob( dmsStorageUnitID suID, UINT32 suLID, UINT16 clID,
-                   UINT32 clLID )
-      : _suID( suID ),
-        _suLID( suLID ),
-        _clID( clID ),
-        _clLID( clLID ),
-        _recordNum( 0 ),
-        _lastWriteTick( 0 )
-      {
-      }
-   } ;
-   typedef _dmsDictJob dmsDictJob ;
+/*
+   OTHER DEFINE
+*/
+#define DMS_CHANGESTATE_WAIT_LOOP 100
 
    /*
       _SDB_DMSCB define
    */
    class _SDB_DMSCB : public _IControlBlock, public IDataManagementService
    {
-   private :
-      monSpinSLatch _mutex ;
-
+   private:
       struct cmp_cscb
       {
-         bool operator() (const char *a, const char *b)
+         bool operator()( const char *a, const char *b )
          {
-            return std::strcmp(a,b)<0 ;
+            return std::strcmp( a, b ) < 0;
          }
-      } ;
-      ossPoolMap<const CHAR*, dmsStorageUnitID, cmp_cscb> _cscbNameMap ;
-      ossPoolMap<utilCSUniqueID, dmsStorageUnitID>  _cscbIDMap ;
-      std::vector<SDB_DMS_CSCB*>          _cscbVec ;
-      std::vector<SDB_DMS_CSCB*>          _tmpCscbVec ;
-      std::vector<BYTE>                   _tmpCscbStatusVec ;
-      std::vector<ossRWMutex*>            _latchVec ;
-      // use deque so we can operate on both ends
-      std::queue<dmsStorageUnitID>        _freeList ;
-      // collection spaces mutex in create and drop operations
-      std::vector< ossSpinRecursiveXLatch* >  _vecCSMutex ;
+      };
 
-#if defined (_WINDOWS)
-      typedef ossPoolMap<const CHAR*,
-                       dmsStorageUnitID,
-                       cmp_cscb>::const_iterator CSCB_MAP_CONST_ITER ;
-      typedef ossPoolMap<const CHAR*,
-                       dmsStorageUnitID,
-                       cmp_cscb>::iterator CSCB_MAP_ITER ;
-#elif defined (_LINUX)
-      typedef ossPoolMap<const CHAR*,
-                       dmsStorageUnitID>::const_iterator CSCB_MAP_CONST_ITER ;
-      typedef ossPoolMap<const CHAR*,
-                       dmsStorageUnitID>::iterator CSCB_MAP_ITER ;
-#endif
-      typedef ossPoolMap<utilCSUniqueID,
-                       dmsStorageUnitID>::const_iterator CSCB_ID_MAP_CONST_ITER ;
-      typedef ossPoolMap<utilCSUniqueID,
-                       dmsStorageUnitID>::iterator CSCB_ID_MAP_ITER ;
+      monSpinXLatch _stateMtx;
+      ossEvent _blockEvent;
+      SINT64 _writeCounter;
+      UINT8 _dmsCBState;
 
-      /*
-       * Queue of collections which are waitting for dictionaies creation.
-       * Here we store the storage unit id and mb ID of the collection.
-       * One concern here is the reuse of these two IDs, but that's ok. I'll
-       * just check with these IDs to see if dictionary creation is needed for
-       * the CURRENT corresponding collection. If they have been reused, then
-       * the original collection has been dropped. So we just ignore that.
-       * If the IDs have been reused, and added to the queue again, it's also
-       * ok.
-       * Everytime we are about to create a dictionary, we should check if a
-       * dictionary is there already. If yes, just remove the item from the
-       * queue.
-       */
-      ossQueue<dmsDictJob>    _dictWaitQue ;
+      dmsTempSUMgr _tempSUMgr;
+      dmsStatSUMgr _statSUMgr;
+      dmsRBSMgr _rbsSUMgr;
+      dmsLocalSUMgr _localSUMgr;
 
-      monSpinXLatch           _stateMtx;
-      ossEvent                _blockEvent ;
-      SINT64                  _writeCounter;
-      UINT8                   _dmsCBState;
-      UINT32                  _logicalSUID ;
-
-      // how many cs which unique id = 0, except system cs
-      UINT32                  _nullCSUniqueIDCnt ;
-
-      dmsTempSUMgr            _tempSUMgr ;
-      dmsStatSUMgr            _statSUMgr ;
-      dmsRBSMgr               _rbsSUMgr ;
-      dmsLocalSUMgr           _localSUMgr ;
-
-      dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
-      IDmsScannerCheckerCreator *_scannerCheckerCreator ;
-      dmsPageMappingDispatcher   _pageMapDispatcher ;
-
-      DMS_HANDLER_LIST           _handlers ;
+      dmsEngineSocket _engineSocket;
+      dmsSuConstraintMap _cm;
+      dmsMmapEngine *_mmapEngine = nullptr;
 
    private:
+      void _nullCSUniqueIDCntInc();
 
-      void  _logCSCBNameMap () ;
+      void _nullCSUniqueIDCntDec();
 
-      INT32 _CSCBNameInsert ( const CHAR *pName,
-                              UINT32 topSequence,
-                              _dmsStorageUnit *su,
-                              dmsStorageUnitID &suID ) ;
+      INT32 _changeIndexUniqueID( _dmsStorageUnit *su,
+                                  const ossPoolVector< ossPoolString > &changedClVec,
+                                  const ossPoolVector< BSONObj > &idxInfoObj,
+                                  pmdEDUCB *cb );
 
-      INT32 _CSCBNameLookup ( const CHAR *pName,
-                              SDB_DMS_CSCB **cscb,
-                              dmsStorageUnitID *pSuID = NULL,
-                              BOOLEAN exceptDeleting = TRUE ) ;
-      INT32 _CSCBIdLookup ( utilCSUniqueID csUniqueID,
-                            SDB_DMS_CSCB **cscb,
-                            dmsStorageUnitID *pSuID = NULL,
-                            BOOLEAN exceptDeleting = TRUE ) ;
-      INT32 _CSCBLookup ( const CHAR *pName,
-                          utilCSUniqueID csUniqueID,
-                          SDB_DMS_CSCB **cscb,
-                          dmsStorageUnitID *pSuID = NULL,
-                          BOOLEAN exceptDeleting = TRUE ) ;
-
-      INT32 _CSCBNameLookupAndLock ( const CHAR *pName,
-                                     dmsStorageUnitID &suID,
-                                     SDB_DMS_CSCB **cscb,
-                                     OSS_LATCH_MODE lockType = SHARED,
-                                     INT32 millisec = -1 ) ;
-      INT32 _CSCBIdLookupAndLock ( utilCSUniqueID csUniqueID,
-                                   dmsStorageUnitID &suID,
-                                   SDB_DMS_CSCB **cscb,
-                                   OSS_LATCH_MODE lockType = SHARED,
-                                   INT32 millisec = -1 ) ;
-
-      void _CSCBRelease ( dmsStorageUnitID suID,
-                          OSS_LATCH_MODE lockType = SHARED ) ;
-
-      INT32 _moveCSCB2TmpList( const CHAR *pName, BYTE status ) ;
-
-      INT32 _restoreCSCBFromTmpList( const CHAR *pName ) ;
-
-      INT32 _CSCBRename( const CHAR *pName,
-                         const CHAR *pNewName,
-                         _pmdEDUCB *cb,
-                         SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBRenameP1( const CHAR *pName,
-                           const CHAR *pNewName,
-                           _pmdEDUCB *cb,
-                           SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBRenameP1Cancel( const CHAR *pName,
-                                     const CHAR *pNewName,
-                                     _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBRenameP2( const CHAR *pName,
-                           const CHAR *pNewName,
-                           _pmdEDUCB *cb,
-                           SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBNameRemoveP1 ( const CHAR *pName,
-                                _pmdEDUCB *cb,
-                                SDB_DPSCB *dpsCB ) ;
-      INT32 _CSCBNameRemoveP1Cancel ( const CHAR *pName,
-                                      _pmdEDUCB *cb,
-                                      SDB_DPSCB *dpsCB ) ;
-      INT32 _CSCBNameRemoveP2 ( const CHAR *pName,
-                                dmsDropCSOptions *options,
-                                _pmdEDUCB *cb,
-                                SDB_DPSCB *dpsCB,
-                                SDB_DMS_CSCB *&pCSCB ) ;
-
-      void _CSCBNameMapCleanup () ;
-
-      INT32 _delCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB, BOOLEAN removeFile,
-                                  BOOLEAN onlyEmpty,
-                                  dmsDropCSOptions *options = NULL ) ;
-
-      INT32 _delCollectionSpaceP1 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB,
-                                    BOOLEAN removeFile = TRUE ) ;
-
-      INT32 _delCollectionSpaceP1Cancel ( const CHAR *pName, _pmdEDUCB *cb,
-                                          SDB_DPSCB *dpsCB );
-
-      INT32 _delCollectionSpaceP2 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB,
-                                    BOOLEAN removeFile = TRUE,
-                                    dmsDropCSOptions *options = NULL ) ;
-
-      INT32 _getCSList( ossPoolVector< ossPoolString > &csNameVec ) ;
-
-      void _nullCSUniqueIDCntInc() ;
-
-      void _nullCSUniqueIDCntDec() ;
-
-      INT32 _changeIndexUniqueID( _dmsStorageUnit* su,
-                                  const ossPoolVector<ossPoolString>& changedClVec,
-                                  const ossPoolVector<BSONObj>& idxInfoObj,
-                                  pmdEDUCB* cb ) ;
+      dmsMmapEngine *_getMmapEngine() const;
 
    public:
-      _SDB_DMSCB() ;
-      virtual ~_SDB_DMSCB() ;
+      _SDB_DMSCB();
+      virtual ~_SDB_DMSCB();
 
-      virtual SDB_CB_TYPE cbType() const override{ return SDB_CB_DMS ; }
-      virtual const CHAR* cbName() const override{ return "DMSCB" ; }
+      virtual SDB_CB_TYPE cbType() const override
+      {
+         return SDB_CB_DMS;
+      }
+      virtual const CHAR *cbName() const override
+      {
+         return "DMSCB";
+      }
 
-      virtual INT32  init () override ;
-      virtual INT32  active () override ;
-      virtual INT32  deactive () override ;
-      virtual INT32  fini () override ;
-      virtual void   onConfigChange() override ;
+      virtual INT32 init() override;
+      virtual INT32 active() override;
+      virtual INT32 deactive() override;
+      virtual INT32 fini() override;
+      virtual void onConfigChange() override;
+
+      virtual INT32 createCS( IExecutor *executor,
+                              const CHAR *name,
+                              utilCSUniqueID uniqueId,
+                              const dmsCreateCSOptions &o,
+                              const bson::BSONObj &adjunct ) override;
+
+      virtual INT32 dropCS( IExecutor *executor,
+                            const CHAR *name,
+                            const dmsRemoveCSOptions &options ) override;
+
+      virtual INT32 renameCS( IExecutor *executor,
+                              const CHAR *oldName,
+                              const CHAR *newName,
+                              BOOLEAN blockWrite ) override;
 
       virtual INT32 openCL( IExecutor *executor,
                             const CHAR *fullName,
                             const dmsOpenCLOptions &o,
-                            DATA_COLLECTION_PTR &ptr ) override ;
+                            DATA_COLLECTION_PTR &ptr ) override;
 
       virtual INT32 openCL( IExecutor *executor,
                             utilCLUniqueID uniqueId,
                             const dmsOpenCLOptions &o,
-                            DATA_COLLECTION_PTR &ptr ) override ;
+                            DATA_COLLECTION_PTR &ptr ) override;
 
-      INT32 findCollectionSpace(const CHAR *pName,
-                                dmsStorageUnitID &suId) ;
+      virtual INT32 createCL( IExecutor *executor,
+                              const CHAR *clFullName,
+                              utilCLUniqueID clUniqueID,
+                              const dmsCreateCLOptions &o,
+                              const bson::BSONObj &adjunct ) override;
 
-      INT32 nameToSUAndLock ( const CHAR *pName,
-                              dmsStorageUnitID &suID,
-                              _dmsStorageUnit **su,
-                              OSS_LATCH_MODE lockType = SHARED,
-                              INT32 millisec = -1 ) ;
-      INT32 idToSUAndLock ( utilCSUniqueID csUniqueID,
-                            dmsStorageUnitID &suID,
-                            _dmsStorageUnit **su,
-                            OSS_LATCH_MODE lockType = SHARED,
-                            INT32 millisec = -1 ) ;
+      virtual INT32 dropCL( IExecutor *executor,
+                            const CHAR *clFullName,
+                            const dmsRemoveCLOptions &o ) override;
 
-      INT32 verifySUAndLock ( const dmsEventSUItem *pSUItem,
-                              _dmsStorageUnit **ppSU,
-                              OSS_LATCH_MODE lockType = SHARED,
-                              INT32 millisec = -1 ) ;
+      virtual INT32 nameToSuDescriptor( const CHAR *pName, DMS_SU_DESCRIPTOR &desc ) override;
 
-      INT32 nameToSULID( const CHAR *pName,
-                         UINT32 &suLogicalID ) ;
+      virtual UINT32 getNullCSUniqueIDCnt() const override;
 
-      _dmsStorageUnit *suLock ( dmsStorageUnitID suID ) ;
-      void suUnlock ( dmsStorageUnitID suID,
-                      OSS_LATCH_MODE lockType = SHARED ) ;
+      INT32 nameToSUAndLock( const CHAR *pName,
+                             dmsStorageUnitID &suID,
+                             _dmsStorageUnit **su,
+                             OSS_LATCH_MODE lockType = SHARED,
+                             INT32 millisec = -1 );
+      INT32 idToSUAndLock( utilCSUniqueID csUniqueID,
+                           dmsStorageUnitID &suID,
+                           _dmsStorageUnit **su,
+                           OSS_LATCH_MODE lockType = SHARED,
+                           INT32 millisec = -1 );
 
-      INT32 changeCSUniqueID( _dmsStorageUnit* su,
-                              utilCSUniqueID csUniqueID ) ;
+      INT32 verifySUAndLock( const dmsEventSUItem *pSUItem,
+                             _dmsStorageUnit **ppSU,
+                             OSS_LATCH_MODE lockType = SHARED,
+                             INT32 millisec = -1 );
 
-      INT32 changeUniqueID( const CHAR* csname,
+      _dmsStorageUnit *suLock( dmsStorageUnitID suID );
+      void suUnlock( dmsStorageUnitID suID, OSS_LATCH_MODE lockType = SHARED );
+
+      INT32 changeUniqueID( const CHAR *csname,
                             utilCSUniqueID csUniqueID,
-                            const BSONObj& clInfoObj,
+                            const BSONObj &clInfoObj,
                             BOOLEAN changeOtherCL,
-                            const ossPoolVector<BSONObj>* pIdxInfoVec,
+                            const ossPoolVector< BSONObj > *pIdxInfoVec,
                             BOOLEAN changeIdx,
-                            pmdEDUCB* cb,
-                            SDB_DPSCB* dpsCB,
-                            BOOLEAN isLoadCS = FALSE ) ;
+                            pmdEDUCB *cb,
+                            SDB_DPSCB *dpsCB,
+                            BOOLEAN isLoadCS = FALSE );
 
-      INT32 addCollectionSpace ( const CHAR *pName, UINT32 topSequence,
-                                 _dmsStorageUnit *su, _pmdEDUCB *cb,
-                                 SDB_DPSCB *dpsCB, BOOLEAN isCreate ) ;
+      INT32 addCollectionSpace( const CHAR *pName,
+                                UINT32 topSequence,
+                                _dmsStorageUnit *su,
+                                _pmdEDUCB *cb,
+                                SDB_DPSCB *dpsCB,
+                                BOOLEAN isCreate );
 
-      INT32 dropCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB,
-                                  dmsDropCSOptions *options = NULL ) ;
-      INT32 dropEmptyCollectionSpace( const CHAR *pName, _pmdEDUCB *cb,
-                                      SDB_DPSCB *dpsCB ) ;
-      INT32 unloadCollectonSpace( const CHAR *pName, _pmdEDUCB *cb ) ;
+      INT32 dropCollectionSpace( const CHAR *pName,
+                                 _pmdEDUCB *cb,
+                                 SDB_DPSCB *dpsCB,
+                                 dmsDropCSOptions *options = NULL );
+      INT32 dropEmptyCollectionSpace( const CHAR *pName, _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
+
+      INT32 dropCollectionSpaceP1( const CHAR *pName, _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
+
+      INT32 dropCollectionSpaceP1Cancel( const CHAR *pName, _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
+
+      INT32 dropCollectionSpaceP2( const CHAR *pName,
+                                   _pmdEDUCB *cb,
+                                   SDB_DPSCB *dpsCB,
+                                   dmsDropCSOptions *options = NULL );
+
+      INT32 unloadCollectonSpace( const CHAR *pName, _pmdEDUCB *cb );
 
       INT32 renameCollectionSpace( const CHAR *pName,
                                    const CHAR *pNewName,
                                    _pmdEDUCB *cb,
-                                   SDB_DPSCB *dpsCB ) ;
+                                   SDB_DPSCB *dpsCB );
       INT32 renameCollectionSpaceP1( const CHAR *pName,
                                      const CHAR *pNewName,
                                      _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
+                                     SDB_DPSCB *dpsCB );
       INT32 renameCollectionSpaceP1Cancel( const CHAR *pName,
                                            const CHAR *pNewName,
                                            _pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB ) ;
+                                           SDB_DPSCB *dpsCB );
       INT32 renameCollectionSpaceP2( const CHAR *pName,
                                      const CHAR *pNewName,
                                      _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-      INT32 restoreCollectionSpace( const CHAR *pName ) ;
-      INT32 returnCollectionSpaceP1( dmsReturnOptions &options,
-                                     _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
+                                     SDB_DPSCB *dpsCB );
+      INT32 restoreCollectionSpace( const CHAR *pName );
+      INT32 returnCollectionSpaceP1( dmsReturnOptions &options, _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
       INT32 returnCollectionSpaceP1Cancel( dmsReturnOptions &options,
                                            _pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB ) ;
-      INT32 returnCollectionSpaceP2( dmsReturnOptions &options,
-                                     _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-      INT32 returnCollectionSpace( dmsReturnOptions &options,
-                                   _pmdEDUCB *cb,
-                                   SDB_DPSCB *dpsCB ) ;
+                                           SDB_DPSCB *dpsCB );
+      INT32 returnCollectionSpaceP2( dmsReturnOptions &options, _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
+      INT32 returnCollectionSpace( dmsReturnOptions &options, _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
 
-      INT32 dumpInfo ( MON_CL_SIM_LIST &collectionList,
-                       BOOLEAN sys = FALSE ) ;
-      INT32 dumpInfo ( MON_CS_SIM_LIST &csList,
-                       BOOLEAN sys = FALSE,
-                       BOOLEAN dumpCL = FALSE,
-                       BOOLEAN dumpIdx = FALSE ) ;
+      INT32 dumpInfo( MON_CL_SIM_LIST &collectionList, BOOLEAN sys = FALSE );
+      INT32 dumpInfo( MON_CS_SIM_LIST &csList,
+                      BOOLEAN sys = FALSE,
+                      BOOLEAN dumpCL = FALSE,
+                      BOOLEAN dumpIdx = FALSE );
 
-      INT32 dumpInfo ( MON_CL_LIST &collectionList,
-                       BOOLEAN sys = FALSE ) ;
-      INT32 dumpInfo ( MON_CS_LIST &csList,
-                       BOOLEAN sys = FALSE ) ;
-      INT32 dumpInfo ( MON_SU_LIST &storageUnitList,
-                       BOOLEAN sys = FALSE ) ;
+      INT32 dumpInfo( MON_CL_LIST &collectionList, BOOLEAN sys = FALSE );
+      INT32 dumpInfo( MON_CS_LIST &csList, BOOLEAN sys = FALSE );
+      INT32 dumpInfo( MON_SU_LIST &storageUnitList, BOOLEAN sys = FALSE );
 
-      void dumpInfo ( INT64 &totalFileSize );
+      void dumpInfo( INT64 &totalFileSize );
 
-      void dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS ) ;
+      void dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS );
 
-      UINT32 nullCSUniqueIDCnt() const ;
+      dmsTempSUMgr *getTempSUMgr();
 
-      dmsTempSUMgr *getTempSUMgr () ;
+      dmsStatSUMgr *getStatSUMgr();
 
-      dmsStatSUMgr *getStatSUMgr () ;
+      _dmsRBSMgr *getRBSSUMgr();
 
-      _dmsRBSMgr  *getRBSSUMgr () ;
+      dmsLocalSUMgr *getLocalSUMgr();
 
-      dmsLocalSUMgr *getLocalSUMgr() ;
+      void clearSUCaches( UINT32 mask );
 
-      void clearSUCaches ( UINT32 mask ) ;
+      void clearSUCaches( const MON_CS_SIM_LIST &monCSList, UINT32 mask );
 
-      void clearSUCaches ( const MON_CS_SIM_LIST &monCSList, UINT32 mask ) ;
+      void changeSUCaches( UINT32 mask );
 
-      void changeSUCaches ( UINT32 mask ) ;
+      void changeSUCaches( const MON_CS_SIM_LIST &monCSList, UINT32 mask );
 
-      void changeSUCaches ( const MON_CS_SIM_LIST &monCSList, UINT32 mask ) ;
+      BOOLEAN dispatchDictJob( dmsDictJob &job );
+      void pushDictJob( dmsDictJob job );
 
-      INT32 dropCollectionSpaceP1 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-      INT32 dropCollectionSpaceP1Cancel ( const CHAR *pName, _pmdEDUCB *cb,
-                                          SDB_DPSCB *dpsCB );
-
-      INT32 dropCollectionSpaceP2 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB,
-                                    dmsDropCSOptions *options = NULL ) ;
-
-      BOOLEAN dispatchDictJob( dmsDictJob &job ) ;
-      void pushDictJob( dmsDictJob job ) ;
-
-      void setIxmKeySorterCreator( dmsIxmKeySorterCreator* creator ) ;
+      void setIxmKeySorterCreator( dmsIxmKeySorterCreator *creator );
       INT32 createIxmKeySorter( INT64 bufSize,
-                                const _dmsIxmKeyComparer& comparer,
-                                dmsIxmKeySorter** ppSorter ) ;
-      void releaseIxmKeySorter( dmsIxmKeySorter* pSorter ) ;
+                                const _dmsIxmKeyComparer &comparer,
+                                dmsIxmKeySorter **ppSorter );
+      void releaseIxmKeySorter( dmsIxmKeySorter *pSorter );
 
-      void setScannerCheckerCreator( IDmsScannerCheckerCreator *pCreator ) ;
+      void setScannerCheckerCreator( IDmsScannerCheckerCreator *pCreator );
       INT32 createScannerChecker( UINT32 suLID,
                                   UINT32 mbLID,
                                   const CHAR *csName,
                                   const CHAR *clShortName,
                                   const CHAR *optrDesc,
                                   _pmdEDUCB *cb,
-                                  IDmsScannerChecker **ppChecker ) ;
-      void releaseScannerChecker( IDmsScannerChecker *pChecker ) ;
+                                  IDmsScannerChecker **ppChecker );
+      void releaseScannerChecker( IDmsScannerChecker *pChecker );
 
-      INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
+      INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn );
 
    public:
-      typedef std::vector<SDB_DMS_CSCB*>::iterator CSCB_ITERATOR;
-
+      typedef std::vector< SDB_DMS_CSCB * >::iterator CSCB_ITERATOR;
       OSS_INLINE CSCB_ITERATOR begin()
       {
-         return _cscbVec.begin();
+         return _getMmapEngine()->begin();
       }
 
       OSS_INLINE CSCB_ITERATOR end()
       {
-         return _cscbVec.end();
+         return _getMmapEngine()->end();
       }
 
-      INT32 writable( _pmdEDUCB * cb ) ;
-      void  writeDown( _pmdEDUCB * cb ) ;
+      INT32 writable( _pmdEDUCB *cb );
+      void writeDown( _pmdEDUCB *cb );
 
       INT32 blockWrite( _pmdEDUCB *cb,
                         SDB_DB_STATUS byStatus = SDB_DB_NORMAL,
-                        INT32 timeout = DMS_DFT_BLOCKWRITE_TIMEOUT ) ;
-      void  unblockWrite( _pmdEDUCB *cb ) ;
+                        INT32 timeout = DMS_DFT_BLOCKWRITE_TIMEOUT );
+      void unblockWrite( _pmdEDUCB *cb );
 
-      INT32 registerBackup( _pmdEDUCB *cb, BOOLEAN offline = TRUE ) ;
-      void  backupDown( _pmdEDUCB *cb ) ;
+      INT32 registerBackup( _pmdEDUCB *cb, BOOLEAN offline = TRUE );
+      void backupDown( _pmdEDUCB *cb );
 
-      INT32 registerRebuild( _pmdEDUCB *cb ) ;
-      void  rebuildDown( _pmdEDUCB *cb ) ;
+      INT32 registerRebuild( _pmdEDUCB *cb );
+      void rebuildDown( _pmdEDUCB *cb );
 
-      INT32 registerFullSync( _pmdEDUCB *cb ) ;
-      void  fullSyncDown( _pmdEDUCB *cb ) ;
+      INT32 registerFullSync( _pmdEDUCB *cb );
+      void fullSyncDown( _pmdEDUCB *cb );
 
-      INT32 registerRestore( _pmdEDUCB *cb ) ;
-      void  restoreDown( _pmdEDUCB *cb ) ;
+      INT32 registerRestore( _pmdEDUCB *cb );
+      void restoreDown( _pmdEDUCB *cb );
 
-      OSS_INLINE UINT8 getCBState () const
-      {
-         return _dmsCBState ;
-      }
+      UINT8 getCBState() const;
 
-      void  aquireCSMutex( const CHAR *pCSName ) ;
-      void  releaseCSMutex( const CHAR *pCSName ) ;
+      // void  aquireCSMutex( const CHAR *pCSName ) ;
+      // void  releaseCSMutex( const CHAR *pCSName ) ;
 
-      void clearAllCRUDCB () ;
-      INT32 clearSUCRUDCB ( const CHAR * collectionSpace ) ;
-      INT32 clearMBCRUDCB ( const CHAR * collection ) ;
+      void clearAllCRUDCB();
+      INT32 clearSUCRUDCB( const CHAR *collectionSpace );
+      INT32 clearMBCRUDCB( const CHAR *collection );
 
-      INT32 regHandler ( _IDmsEventHandler *pHandler ) ;
-      void unregHandler ( _IDmsEventHandler *pHandler ) ;
-   } ;
-   typedef class _SDB_DMSCB SDB_DMSCB ;
-
-   /*
-      _dmsCSMutexScope define
-   */
-   class _dmsCSMutexScope
-   {
-      public:
-         _dmsCSMutexScope( SDB_DMSCB *pDMSCB, const CHAR *pName ) ;
-         ~_dmsCSMutexScope() ;
-
-      private:
-         SDB_DMSCB            *_pDMSCB ;
-         const CHAR           *_pName ;
-   } ;
-   typedef _dmsCSMutexScope dmsCSMutexScope ;
+      INT32 regHandler( DMS_ENGINE_TYPE engineType, _IDmsEventHandler *pHandler );
+      void unregHandler( DMS_ENGINE_TYPE engineType, _IDmsEventHandler *pHandler );
+   };
+   typedef class _SDB_DMSCB SDB_DMSCB;
 
    /*
       get global SDB_DMSCB
    */
-   SDB_DMSCB* sdbGetDMSCB () ;
-}
+   SDB_DMSCB *sdbGetDMSCB();
+} // namespace engine
 
-#endif //DMSCB_HPP_
-
+#endif // DMSCB_HPP_

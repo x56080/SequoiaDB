@@ -49,7 +49,7 @@ namespace vessel
    class requestContext;
    class cursorKernal;
    
-   class vesselImpl : public IVessel 
+   class vesselImpl : public IVessel
    {
       public:
          vesselImpl(){}
@@ -59,71 +59,76 @@ namespace vessel
 
          virtual INT32 open(IExecutor *executor,
                             const outerResource *resource,
-                            const openDBOptions &options);
+                            const openDBOptions &options) override;
                             
          virtual INT32 close(IExecutor *executor,
-                             const closeDBOptions &options);
+                             const closeDBOptions &options) override;
 
       /// IDataStorageEngine begin
-      public: 
+      public:
+         virtual DMS_ENGINE_TYPE getEngineType() const override
+         {
+            return DMS_ENGINE_VESSEL;
+         }
+
          virtual INT32 createCS(IExecutor *executor,
                                 const CHAR *name,
                                 const utilCSUniqueID &uniqueId,
                                 const dmsCreateCSOptions &o,
-                                const bson::BSONObj &adjunct);
+                                const bson::BSONObj &adjunct) override;
 
          virtual INT32 testCS(IExecutor *executor,
                               const CHAR *name,
-                              utilCSUniqueID &uniqueId);
+                              utilCSUniqueID &uniqueId) override;
 
          virtual INT32 testCS(IExecutor *executor,
-                              const utilCSUniqueID &uniqueId);
+                              utilCSUniqueID uniqueId) override;
 
          virtual INT32 listCS(IExecutor *executor,
-                              DATA_CURSOR_PTR &cursor);
+                              DATA_CURSOR_PTR &cursor) override;
 
          virtual INT32 getCSCount(IExecutor *executor,
-                                  UINT32 &countt); 
+                                  UINT32 &countt) override; 
 
          virtual INT32 removeCS(IExecutor *executor,
-                                const CHAR *csName);
+                                const CHAR *csName) override;
 
       public:
 
          virtual INT32 createCL(IExecutor *executor,
                                 const CHAR *fullName,
-                                const utilCLUniqueID &uniqueId,
+                                utilCLUniqueID uniqueId,
                                 const dmsCreateCLOptions &o,
-                                const bson::BSONObj &adjunct);
+                                const bson::BSONObj &adjunct) override;
 
          virtual INT32 removeCL(IExecutor *executor,
                                 const CHAR *fullName,
-                                const dmsRemoveCLOptions &o);
+                                const dmsRemoveCLOptions &o) override;
 
          virtual INT32 testCL(IExecutor *executor,
                               const CHAR *fullName,
-                              utilCLUniqueID &uniqueId);
+                              utilCLUniqueID &uniqueId) override;
                         
          virtual INT32 testCL(IExecutor *executor,
-                              const utilCLUniqueID &uniqueId);
+                              utilCLUniqueID uniqueId) override;
 
          virtual INT32 listCL(IExecutor *executor,
                               const CHAR *csName,
-                              DATA_CURSOR_PTR &cursor);
+                              DATA_CURSOR_PTR &cursor) override;
 
          virtual INT32 openCL(IExecutor *executor,
                               const CHAR *fullName,
                               const dmsOpenCLOptions &o,
-                              DATA_COLLECTION_PTR &ptr);
+                              DATA_COLLECTION_PTR &ptr) override;
 
          virtual INT32 openCL(IExecutor *executor,
-                              const utilCLUniqueID &uniqueId,
+                              utilCLUniqueID uniqueId,
                               const dmsOpenCLOptions &o,
-                              DATA_COLLECTION_PTR &ptr);
+                              DATA_COLLECTION_PTR &ptr) override;
 
          virtual INT32 getCLCount(IExecutor *executor,
                                   const CHAR *csName,
-                                  UINT32 &count);
+                                  UINT32 &count) override;
 
       /// IDataStorageEngine end
 

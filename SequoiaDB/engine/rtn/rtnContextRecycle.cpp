@@ -489,13 +489,14 @@ namespace engine
       UINT32 retryTime = 0 ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+      DMS_SU_DESCRIPTOR desc = nullptr;
 
-      rc = _pDmsCB->nameToSULID( _oldName, suLogicalID ) ;
+      rc = _pDmsCB->nameToSuDescriptor( _oldName, desc ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
                    "collection space [%s], rc: %d", _oldName,
                    suLogicalID, rc ) ;
-      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
-                  "logical ID should be valid" ) ;
+      SDB_ASSERT( desc && desc->isValid(), "collection space descriptor should be valid" );
+      suLogicalID = desc->logicalID;
 
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts

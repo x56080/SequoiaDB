@@ -1247,6 +1247,7 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+      DMS_SU_DESCRIPTOR desc = nullptr;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
@@ -1263,11 +1264,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
-      rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
+      rc = dmsCB->nameToSuDescriptor( pCollectionSpace, desc);
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
                    "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
-      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
-                  "logical ID should be valid" ) ;
+      SDB_ASSERT( desc && desc->isValid(), "su descriptor should be valid" );
+      suLogicalID = desc->logicalID;
 
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
@@ -2272,7 +2273,7 @@ namespace engine
          }
          ++syncCSNum ;
 
-         dmsCSMutexScope csLock( dmsCB, csName ) ;
+         // dmsCSMutexScope csLock( dmsCB, csName ) ;
          /// get cs lock
          rc = dmsCB->nameToSUAndLock ( csName, suID, &su, SHARED ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc )

@@ -323,7 +323,7 @@ namespace vessel
    }
 
    INT32 vesselImpl::testCS(IExecutor *executor,
-                            const utilCSUniqueID &uniqueId)
+                            utilCSUniqueID uniqueId)
    {
       INT32 rc = SDB_OK;
       THREAD_CONTEXT_OWNER tco(executor, &_env);
@@ -396,7 +396,7 @@ namespace vessel
 
    INT32 vesselImpl::createCL(IExecutor *executor,
                               const CHAR *fullName,
-                              const utilCLUniqueID &uniqueId,
+                              utilCLUniqueID uniqueId,
                               const dmsCreateCLOptions &o,
                               const bson::BSONObj &adjunct)
 {
@@ -600,7 +600,7 @@ namespace vessel
    }
 
    INT32 vesselImpl::openCL(IExecutor *executor,
-                            const utilCLUniqueID &uniqueId,
+                            utilCLUniqueID uniqueId,
                             const dmsOpenCLOptions &o,
                             DATA_COLLECTION_PTR &ptr)
    {
@@ -684,7 +684,7 @@ namespace vessel
    }
 
    INT32 vesselImpl::testCL(IExecutor *executor,
-                            const utilCLUniqueID &uniqueId)
+                            utilCLUniqueID uniqueId)
    {
       SDB_ASSERT(FALSE, "TODO");
       return SDB_OK;

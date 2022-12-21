@@ -42,6 +42,7 @@
 #include "dms.hpp"
 #include "../bson/bson.hpp"
 #include "dmsStripingId.hpp"
+#include "dmsEventHandler.hpp"
 
 namespace engine
 {
@@ -51,18 +52,37 @@ namespace engine
       UINT32 idxPageSize = DMS_PAGE_SIZE64K;
       UINT32 lobdPageSize = DMS_PAGE_SIZE4K;
       DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
+      DMS_ENGINE_TYPE etype = DMS_ENGINE_INVALID;
+      BOOLEAN sysCall = FALSE;
+      SDB_DPSCB *dpsCB = nullptr;
    };//struct dmsCreateCSOptions
 
    struct dmsCreateCLOptions : public SDBObject
    {
-      utilCLInnerID innerID = UTIL_UNIQUEID_NULL;
+      UINT32 attributes = 0;
       UTIL_COMPRESSOR_TYPE compressor = UTIL_COMPRESSOR_INVALID;
       UINT8 pageMinFreePercent = 10;
+      BOOLEAN sysCall = FALSE;
+      const BSONObj *shardIdxDef = nullptr;
+      const BSONObj *extOptions = nullptr;
+      const BSONObj *idIdxDef = nullptr;
+      BOOLEAN addIdxIDIfNotExist = FALSE;
+      SDB_DPSCB *dpsCB = nullptr;
    };//struct dmsCreateCLOptions
+
+   struct dmsRemoveCSOptions : public SDBObject
+   {
+      BOOLEAN sysCall = FALSE;
+      BOOLEAN ensureEmpty = FALSE;
+      dmsDropCSOptions *recycleOptions = nullptr;
+      SDB_DPSCB *dpsCB = nullptr;
+   };
 
    struct dmsRemoveCLOptions : public SDBObject
    {
-
+      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL;
+      dmsDropCLOptions *recycleOptions = nullptr;
+      SDB_DPSCB *dpsCB = nullptr;
    };
 
    struct dmsTruncateCLOptions : public SDBObject
@@ -70,9 +90,14 @@ namespace engine
       
    };
 
-   struct dmsOpenCLOptions : public SDBObject
+   struct dmsOpenCSOptions : public SDBObject
    {
 
+   };
+
+   struct dmsOpenCLOptions : public SDBObject
+   {
+      OSS_LATCH_MODE mbLockType = SHARED;
    };////struct dmsOpenCLOptions
 
    struct dmsBuildIndexOptions : public SDBObject

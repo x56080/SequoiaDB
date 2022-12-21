@@ -425,7 +425,7 @@ namespace engine
 
       {
          // acquire CS lock to avoid drop CS
-         dmsCSMutexScope csLock( _pDmsCB, szCSName ) ;
+         // dmsCSMutexScope csLock( _pDmsCB, szCSName ) ;
 
          rc = _pDmsCB->nameToSUAndLock( szCSName, suID, &_su ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed lock collection space [%s], rc: %d",
@@ -1728,7 +1728,7 @@ namespace engine
 
       {
          // acquire CS lock to avoid drop CS
-         dmsCSMutexScope csLock( _pDmsCB, csName ) ;
+         // dmsCSMutexScope csLock( _pDmsCB, csName ) ;
 
          // get collection info
          rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );

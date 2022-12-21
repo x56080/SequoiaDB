@@ -49,9 +49,10 @@ namespace engine
 class dmsCollectionHandler : public IDataCollection
 {
 public:
-   dmsCollectionHandler( dmsStorageUnit *_su,
-                         dmsStorageUnitID _suID,
-                         dmsMBContext *_mbContext );
+   dmsCollectionHandler( dmsStorageUnit *su,
+                         dmsStorageUnitID suID,
+                         dmsMBContext *mbContext,
+                         dmsMmapEngine *mmap );
    virtual ~dmsCollectionHandler();
 
 public:
@@ -154,17 +155,14 @@ public: /// lob
                                dmsLobChunkProfile *profile ) override;
 
 private:
-   OSS_INLINE void _reset()
-   {
-      _su = nullptr;
-      _suID = DMS_INVALID_CS;
-      _mbContext = nullptr;
-   }
+   void _release();
+   INT32 _mbLockType();
 
 private:
    dmsStorageUnit *_su = nullptr;
    dmsStorageUnitID _suID = DMS_INVALID_CS;
    dmsMBContext *_mbContext = nullptr;
+   dmsMmapEngine *_engine = nullptr;
 };
 } // namespace engine
 

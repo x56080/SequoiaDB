@@ -784,12 +784,12 @@ namespace engine
          if ( _addFSSession.compareAndSwap( 0, 1 ) )
          {
             // check unique id has been upgrade before full sync
-            if ( sdbGetDMSCB()->nullCSUniqueIDCnt() > 0 )
+            if ( sdbGetDMSCB()->getNullCSUniqueIDCnt() > 0 )
             {
                clsUniqueIDCheckJob job( FALSE ) ;
                job.doit() ;
 
-               UINT32 csCnt = sdbGetDMSCB()->nullCSUniqueIDCnt() ;
+               UINT32 csCnt = sdbGetDMSCB()->getNullCSUniqueIDCnt() ;
                if ( csCnt > 0 )
                {
                   PD_LOG( PDWARNING, "There are still %u collection spaces "

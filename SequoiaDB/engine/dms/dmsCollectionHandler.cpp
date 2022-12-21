@@ -43,38 +43,101 @@
 
 namespace engine
 {
+   class mbLockGuard : public utilPooledObject
+   {
+   public:
+      mbLockGuard( dmsMBContext *mbContext, INT32 lockType )
+      : _mbContext( mbContext ), _lockType( lockType )
+      {
+         if ( _lockType == SHARED || _lockType == EXCLUSIVE )
+         {
+            _mbContext->mbLock( _lockType );
+         }
+      }
+      ~mbLockGuard()
+      {
+         if ( _lockType == SHARED || _lockType == EXCLUSIVE )
+         {
+            _mbContext->mbUnlock();
+         }
+      }
+
+   private:
+      dmsMBContext *_mbContext = nullptr;
+      INT32 _lockType = -1;
+   };
+
+   mbLockGuard getSharedMBLockGuard( dmsMBContext *mbContext )
+   {
+      if ( mbContext->isMBLock() )
+      {
+         return mbLockGuard( mbContext, -1 );
+      }
+      else
+      {
+         return mbLockGuard( mbContext, SHARED );
+      }
+   }
+
+   mbLockGuard getExclusiveMBLockGuard( dmsMBContext *mbContext )
+   {
+      if ( mbContext->mbLockType() == EXCLUSIVE )
+      {
+         return mbLockGuard( mbContext, -1 );
+      }
+      else if( mbContext->mbLockType() == SHARED )
+      {
+         // expect
+         SDB_ASSERT( FALSE, "invalid lock type" );
+         return mbLockGuard( mbContext, EXCLUSIVE );
+      }
+      else {
+         return mbLockGuard( mbContext, EXCLUSIVE );
+      }
+   }
+
    dmsCollectionHandler::dmsCollectionHandler( dmsStorageUnit *su,
                                                dmsStorageUnitID suID,
-                                               dmsMBContext *mbContext )
-   : _su( su ), _suID( suID ), _mbContext( mbContext )
+                                               dmsMBContext *mbContext,
+                                               dmsMmapEngine *mmapEngine )
+   : _su( su ), _suID( suID ), _mbContext( mbContext ), _engine( mmapEngine )
    {
    }
 
    dmsCollectionHandler::~dmsCollectionHandler()
    {
-      if ( _suID != DMS_INVALID_CS )
+      if ( !isClosed() )
       {
-         SDB_ASSERT( _su && _mbContext, "can not be nullptr" );
-         _su->data()->releaseMBContext( _mbContext );
-         pmdGetKRCB()->getDMSCB()->suUnlock( _suID );
+         _release();
       }
-      _reset();
    }
 
    BOOLEAN dmsCollectionHandler::isClosed() const
    {
-      return _mbContext == nullptr && _su == nullptr && _suID == DMS_INVALID_CS;
+      return _mbContext == nullptr || _su == nullptr || _suID == DMS_INVALID_CS ||
+             _engine == nullptr;
    }
 
    void dmsCollectionHandler::close()
    {
+      if ( !isClosed() )
+      {
+         _release();
+      }
+   }
+
+   void dmsCollectionHandler::_release()
+   {
       if ( _suID != DMS_INVALID_CS )
       {
-         SDB_ASSERT( _su && _mbContext, "can not be nullptr" );
+         SDB_ASSERT( _su && _mbContext && _engine, "can not be nullptr" );
          _su->data()->releaseMBContext( _mbContext );
-         pmdGetKRCB()->getDMSCB()->suUnlock( _suID );
+         _engine->suUnlock( _suID );
       }
-      _reset();
+      _su = nullptr;
+      _suID = DMS_INVALID_CS;
+      _mbContext = nullptr;
+      _engine = nullptr;
    }
 
    INT32 dmsCollectionHandler::createIndex( IExecutor *executor,
@@ -85,21 +148,21 @@ namespace engine
       return SDB_OK;
    }
 
-   INT32 dmsCollectionHandler::getMetaData( IExecutor *executor,
-                                            CONST_CL_META_INFO_PTR &meta )
+   INT32 dmsCollectionHandler::getMetaData( IExecutor *executor, CONST_CL_META_INFO_PTR &meta )
    {
       INT32 rc = SDB_OK;
       MON_IDX_LIST idxList;
       DMS_CL_META_PTR tempCl = nullptr;
       if ( isClosed() )
       {
-         rc = SDB_DMS_CONTEXT_IS_CLOSE;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG( PDERROR, "dms collection handler is closed" );
          goto error;
       }
 
       try
       {
+         mbLockGuard guard = getSharedMBLockGuard( _mbContext );
          std::shared_ptr< ossPoolString > clFullName =
             makeSharedPtrFromPool< ossPoolString >( _su->CSName() );
          PD_CHECK( clFullName, SDB_OOM, error, PDERROR, "out of memory, rc: %d", rc );
@@ -120,8 +183,8 @@ namespace engine
             BSONObjBuilder builder;
             UINT16 indexType = 0;
             rc = it->getIndexType( indexType );
-            PD_RC_CHECK( rc, PDERROR, "failed to get index type, name: %s.%s.%s, rc: %d", _su->CSName(),
-                         _mbContext->mb()->_collectionName, it->getIndexName(), rc );
+            PD_RC_CHECK( rc, PDERROR, "failed to get index type, name: %s.%s.%s, rc: %d",
+                         _su->CSName(), _mbContext->mb()->_collectionName, it->getIndexName(), rc );
             builder.appendElements( it->_indexDef );
             builder.append( IXM_FIELD_NAME_CB_EXTENT_ID, it->_indexCBExtentID );
             builder.append( FIELD_NAME_LOGICAL_ID, (INT64)it->_indexLID );
@@ -156,7 +219,7 @@ namespace engine
       MON_IDX_LIST idxList;
       if ( isClosed() )
       {
-         rc = SDB_DMS_CONTEXT_IS_CLOSE;
+         rc = SDB_INVALID_OPERATION;
          PD_LOG( PDERROR, "dms collection handler is closed" );
          goto error;
       }

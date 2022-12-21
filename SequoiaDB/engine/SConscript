@@ -378,7 +378,9 @@ dmsFiles = [
       "dms/dmsRBSGCJob.cpp",
       "dms/dmsCollectionHandler.cpp",
       "dms/dmsObjectMetaInfo.cpp",
-      "dms/dmsConstraintMap.cpp"
+      "dms/dmsSuConstraintMap.cpp",
+      "dms/dmsMmapEngine.cpp",
+      "dms/dmsEngineSocket.cpp"
       ]
 
 ixmFiles = [

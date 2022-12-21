@@ -332,6 +332,7 @@ namespace engine
       friend class _dmsTempSUMgr ;
       friend class _dmsRBSSUMgr ;
       friend class _SDB_DMSCB ;
+      friend class _dmsMmapEngine;
 
       public:
          _dmsStorageUnit ( const CHAR *pSUName,

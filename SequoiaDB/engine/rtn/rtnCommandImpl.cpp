@@ -1297,161 +1297,22 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCREATECSCOMMAND ) ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
-      SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
-      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su   = NULL ;
-      BOOLEAN writable     = FALSE ;
-      BOOLEAN hasAquired   = FALSE ;
-      pmdOptionsCB *optCB  = pmdGetOptionCB() ;
-
-      // make sure the collectionspace length is not out of range
-      UINT32 length = ossStrlen ( pCollectionSpace ) ;
-      if ( length <= 0 || length > DMS_SU_NAME_SZ )
-      {
-         PD_LOG ( PDERROR, "Invalid length for collectionspace: %s, rc: %d",
-                  pCollectionSpace, rc ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      // validate collection space name
-      rc = dmsCheckCSName ( pCollectionSpace, sysCall ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Invalid collection space name, rc = %d",
-                  rc ) ;
-         goto error ;
-      }
-
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
-      writable = TRUE ;
-
-      // let's see if the CS already exist or not
-      rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
-      if ( rc != SDB_DMS_CS_NOTEXIST )
-      {
-         // make sure assign su to NULL so that we won't delete it at exit
-         su = NULL ;
-         // collectionspace already exist
-         PD_LOG ( PDERROR, "Collection space %s is already exist",
-                  pCollectionSpace ) ;
-         rc = SDB_DMS_CS_EXIST ;
-         goto error ;
-      }
-
-      dmsCB->aquireCSMutex( pCollectionSpace ) ;
-      hasAquired = TRUE ;
-
-      rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
-      if ( rc != SDB_DMS_CS_NOTEXIST )
-      {
-         su = NULL ;
-         PD_LOG ( PDERROR, "Collection space %s is already exist",
-                  pCollectionSpace ) ;
-         rc = SDB_DMS_CS_EXIST ;
-         goto error ;
-      }
-
-      // only for standalone
-      if ( SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
-      {
-         rc = rtnLoadCollectionSpace ( pCollectionSpace,
-                                       pmdGetOptionCB()->getDbPath(),
-                                       pmdGetOptionCB()->getIndexPath(),
-                                       pmdGetOptionCB()->getLobPath(),
-                                       pmdGetOptionCB()->getLobMetaPath(),
-                                       cb, dmsCB, FALSE ) ;
-         if ( rc != SDB_DMS_CS_NOTEXIST )
-         {
-            PD_LOG ( PDERROR, "The container file for collect space %s exists "
-                     "or load failed, rc: %d", pCollectionSpace, rc ) ;
-            goto done ;
-         }
-      }
-
-      // new storage unit, will insert into dmsCB->addCollectionSpace
-      su = SDB_OSS_NEW dmsStorageUnit ( pCollectionSpace,
-                                        csUniqueID, 1,
-                                        pmdGetBuffPool(),
-                                        pageSize,
-                                        lobPageSize,
-                                        type,
-                                        rtnGetExtDataHandler() ) ;
-      if ( !su )
-      {
-         PD_LOG ( PDERROR, "Failed to allocate new storage unit" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      {
-         rc = su->open ( pmdGetOptionCB()->getDbPath(),
-                         pmdGetOptionCB()->getIndexPath(),
-                         pmdGetOptionCB()->getLobPath(),
-                         pmdGetOptionCB()->getLobMetaPath(),
-                         pmdGetSyncMgr(),
-                         TRUE ) ;
-      }
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to create collection space %s at %s, rc: %d",
-                  pCollectionSpace, pmdGetOptionCB()->getDbPath(),
-                  rc ) ;
-         goto error ;
-      }
-      /// set config
-      su->setSyncConfig( optCB->getSyncInterval(),
-                         optCB->getSyncRecordNum(),
-                         optCB->getSyncDirtyRatio() ) ;
-      su->setSyncDeep( optCB->isSyncDeep() ) ;
-      // set MVCC support
-      su->setMVCCSupport( optCB->mvccOn() ) ;
-
-      /// add collctionspace
-      rc = dmsCB->addCollectionSpace( pCollectionSpace, 1, su, cb, dpsCB, TRUE ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_CS_EXIST == rc )
-         {
-            PD_LOG ( PDWARNING, "Failed to add collectionspace because it's "
-                     "already exist: %s", pCollectionSpace ) ;
-         }
-         else
-         {
-            PD_LOG ( PDERROR, "Failed to add collection space, rc = %d", rc ) ;
-         }
-         /// need to remove the files
-         su->remove() ;
-         goto error ;
-      }
-
-      PD_LOG( PDEVENT, "Create collectionspace[name: %s, id: %u] succeed, "
-              "PageSize:%u, LobPageSize:%u", pCollectionSpace,
-              csUniqueID, pageSize, lobPageSize ) ;
-
+      dmsCreateCSOptions o;
+      o.dataPageSize = pageSize;
+      o.idxPageSize = pageSize;
+      o.lobdPageSize = lobPageSize;
+      o.stype = type;
+      o.etype = DMS_ENGINE_MMAP;
+      o.sysCall = sysCall;
+      o.dpsCB = dpsCB;
+      rc = dmsCB->createCS(cb, pCollectionSpace, csUniqueID, o, BSONObj());
+      PD_RC_CHECK( rc, PDERROR, "failed to create collection space[%s], rc: %d",
+                     pCollectionSpace, rc );
+      
    done :
-      // Unlock the existing storage unit
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
-      if ( hasAquired )
-      {
-         dmsCB->releaseCSMutex( pCollectionSpace ) ;
-      }
-      if ( writable )
-      {
-         dmsCB->writeDown( cb ) ;
-      }
       PD_TRACE_EXITRC ( SDB_RTNCREATECSCOMMAND, rc ) ;
       return rc ;
    error :
-      if ( su )
-      {
-         SDB_OSS_DEL (su) ;
-         su = NULL ;
-      }
       goto done ;
    }
 
@@ -1492,155 +1353,43 @@ namespace engine
                                       BOOLEAN addIdxIDIfNotExist )
    {
       INT32 rc              = SDB_OK ;
-      INT32 rcTmp           = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCREATECLCOMMAND ) ;
       SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su    = NULL ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
-      BOOLEAN writable      = FALSE ;
-      UINT16 collectionID   = DMS_INVALID_MBID ;
-      UINT32 logicalID      = DMS_INVALID_CLID ;
-      const CHAR *pCollectionShortName = NULL ;
       utilCSUniqueID csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
-      CHAR attrStr[ 64 + 1 ] = { 0 } ;
-
-      // Check writable before su lock
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
-      writable = TRUE ;
-
-      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-
-      if ( rc && pCollectionShortName && (flags&FLG_CREATE_WHEN_NOT_EXIST) )
+      dmsCreateCLOptions o;
+      o.attributes = attributes;
+      o.compressor = compType;
+      o.sysCall = sysCall;
+      o.shardIdxDef = &shardIdxDef;
+      o.idIdxDef = pIdIdxDef;
+      o.extOptions = extOptions;
+      o.addIdxIDIfNotExist = addIdxIDIfNotExist;
+      o.dpsCB = dpsCB;
+      rc = dmsCB->createCL( cb, pCollection, clUniqueID, o, BSONObj() ) ;
+      if ( rc && (flags&FLG_CREATE_WHEN_NOT_EXIST) )
       {
-         CHAR temp [ DMS_COLLECTION_SPACE_NAME_SZ +
-                     DMS_COLLECTION_NAME_SZ + 2 ] = {0} ;
-         ossStrncpy ( temp, pCollection, sizeof(temp) ) ;
+         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+         UINT32 dotPos = strchr( pCollection, '.' ) - pCollection;
+         ossMemcpy( csName, pCollection, dotPos );
          DMS_STORAGE_TYPE type =
             OSS_BIT_TEST( attributes, DMS_MB_ATTR_CAPPED ) ?
             DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
-         SDB_ASSERT ( pCollectionShortName > pCollection, "Collection pointer "
-                      "is not part of full collection name" ) ;
-         // set '.' to '\0'
-         temp [ pCollectionShortName - pCollection - 1 ] = '\0' ;
-         if ( SDB_OK == rtnCreateCollectionSpaceCommand ( temp, cb,
-                                                          dmsCB, dpsCB,
-                                                          csUniqueID,
-                                                          DMS_PAGE_SIZE_DFT,
-                                                          DMS_DEFAULT_LOB_PAGE_SZ,
-                                                          type,
-                                                          sysCall ) )
-         {
-            //restore '\0' to '.'
-            rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                                   &pCollectionShortName,
-                                                   suID ) ;
-         }
+                      
+         dmsCreateCSOptions csOptions;
+         csOptions.sysCall = sysCall;
+         csOptions.stype = type;
+         csOptions.etype = DMS_ENGINE_MMAP;
+         csOptions.dpsCB = dpsCB;
+         rc = dmsCB->createCS( cb, csName,csUniqueID, csOptions, BSONObj() );
+         PD_RC_CHECK( rc, PDERROR, "failed to create collection space[%s], rc: %d", csName, rc );
+         rc = dmsCB->createCL( cb, pCollection, clUniqueID, o, BSONObj() ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to create collection[%s], rc: %d", pCollection, rc );
       }
-
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-
-      if ( DMS_STORAGE_CAPPED != su->type() &&
-           OSS_BIT_TEST( attributes, DMS_MB_ATTR_CAPPED ) )
-      {
-         PD_LOG( PDERROR, "Capped collection[%s] can only be created on "
-                 "capped collection space[%s]",
-                 pCollectionShortName, su->CSName() ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
-      if ( UTIL_CLUNIQUEID_LOCAL == clUniqueID )
-      {
-         if ( UTIL_CSUNIQUEID_LOCAL != su->CSUniqueID() )
-         {
-            clUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
-                                              UTIL_CLINNERID_LOCAL ) ;
-         }
-      }
-
-      rc = su->data()->addCollection ( pCollectionShortName, &collectionID,
-                                       clUniqueID, attributes, cb,
-                                       dpsCB, 0, sysCall,
-                                       compType, &logicalID, extOptions,
-                                       pIdIdxDef, addIdxIDIfNotExist ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR,
-                  "Failed to create collection [name:%s, id:%llu], rc: %d",
-                  pCollection, clUniqueID, rc ) ;
-         goto error ;
-      }
-
-      if ( !shardIdxDef.isEmpty() )
-      {
-         rc = rtnCreateIndexCommand ( pCollection, shardIdxDef,
-                                      cb, dmsCB, dpsCB, TRUE,
-                                      SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
-                                      NULL, NULL, addIdxIDIfNotExist ) ;
-         if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
-         {
-            /// same defined index already exists.
-            rc = SDB_OK ;
-         }
-         else if ( SDB_OK != rc )
-         {
-               PD_LOG ( PDERROR, "Failed to create shard index for "
-                        "collection %s, rc = %d", pCollection, rc ) ;
-            goto error_rollback ;
-         }
-      }
-
-      if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_COMPRESSED ) &&
-           UTIL_COMPRESSOR_LZW == compType )
-      {
-         /*
-          * If the compression type is snappy, set it directly. If it's lzw, push
-          * it to the dictionary creating list.
-          */
-         dmsCB->pushDictJob( dmsDictJob( suID, su->LogicalCSID(),
-                                         collectionID, logicalID ) ) ;
-      }
-
-      mbAttr2String( attributes, attrStr, sizeof( attrStr ) - 1 ) ;
-      PD_LOG( PDEVENT, "Create collection[name: %s, id: %llu] succeed, "
-              "ShardingKey:%s, Attr:%s(0x%08x), CompressType:%s(%d)%s%s%s%s",
-              pCollection, clUniqueID,
-              shardIdxDef.getObjectField(IXM_FIELD_NAME_KEY).toString().c_str(),
-              attrStr, attributes,
-              utilCompressType2String( (UINT8)compType ), compType,
-              extOptions && !extOptions->isEmpty() ? ", External options:" : "",
-              extOptions && !extOptions->isEmpty() ? extOptions->toString().c_str() : "",
-              pIdIdxDef && !pIdIdxDef->isEmpty() ? ", Id Index:" : "",
-              pIdIdxDef && !pIdIdxDef->isEmpty() ? pIdIdxDef->toString().c_str() : "" ) ;
 
    done :
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
-      if ( writable )
-      {
-         dmsCB->writeDown( cb ) ;
-      }
       PD_TRACE_EXITRC ( SDB_RTNCREATECLCOMMAND, rc ) ;
       return rc ;
-   error_rollback :
-      rcTmp = rtnDropCollectionCommand ( pCollection, cb, dmsCB, dpsCB,
-                                         clUniqueID ) ;
-      if ( SDB_OK != rcTmp && SDB_DMS_NOTEXIST != rcTmp )
-      {
-         PD_LOG ( PDERROR, "Failed to rollback creating collection %s, rc = %d",
-                  pCollection, rcTmp ) ;
-      }
-      goto done ;
    error :
       goto done ;
    }
@@ -2113,13 +1862,13 @@ namespace engine
       const CHAR *recycleName = options._recycleItem.getRecycleName() ;
 
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
-
-      rc = dmsCB->nameToSULID( recycleName, suLogicalID ) ;
+      DMS_SU_DESCRIPTOR desc = nullptr;
+      rc = dmsCB->nameToSuDescriptor( recycleName, desc ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
                    "collection space [%s], rc: %d", recycleName,
                    suLogicalID, rc ) ;
-      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
-                  "logical ID should be valid" ) ;
+      SDB_ASSERT( desc && desc->isValid(), "collection space descriptor should be valid" );
+      suLogicalID = desc->logicalID;
 
       rc = dmsCB->returnCollectionSpace( options, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to return collection space "
@@ -2221,10 +1970,14 @@ namespace engine
                                          BOOLEAN   ensureEmpty,
                                          dmsDropCSOptions *options )
    {
+      INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNDROPCSCOMMAND ) ;
-      INT32 rc = rtnDelCollectionSpaceCommand( pCollectionSpace, cb,
-                                               dmsCB, dpsCB, sysCall,
-                                               TRUE, ensureEmpty, options ) ;
+      dmsRemoveCSOptions removeOptions;
+      removeOptions.sysCall = sysCall;
+      removeOptions.ensureEmpty = ensureEmpty;
+      removeOptions.recycleOptions = options;
+      removeOptions.dpsCB = dpsCB;
+      rc = dmsCB->dropCS(cb, pCollectionSpace, removeOptions);
       if ( SDB_OK == rc )
       {
          PD_LOG( PDEVENT, "Drop collectionspace[%s] succeed",
@@ -2233,8 +1986,13 @@ namespace engine
          dmsTaskStatusMgr* pTaskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
          pTaskStatMgr->dropCS( pCollectionSpace ) ;
       }
+      PD_RC_CHECK( rc, PDERROR, "failed to drop collection space[%s], rc: %d", pCollectionSpace,
+               rc );
       PD_TRACE_EXITRC ( SDB_RTNDROPCSCOMMAND, rc ) ;
+   done:
       return rc ;
+   error:
+      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPCSP1, "rtnDropCollectionSpaceP1" )
@@ -2251,6 +2009,7 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+      DMS_SU_DESCRIPTOR desc = nullptr;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
@@ -2264,11 +2023,11 @@ namespace engine
          goto error ;
       }
 
-      rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
+      rc = dmsCB->nameToSuDescriptor( pCollectionSpace, desc ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
                    "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
-      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
-                  "logical ID should be valid" ) ;
+      SDB_ASSERT( desc && desc->isValid(), "collection space descriptor should be valid" );
+      suLogicalID = desc->logicalID;
 
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
@@ -2300,9 +2059,7 @@ namespace engine
             ossSleep( 200 ) ;
          }
 
-         dmsCB->aquireCSMutex( pCollectionSpace ) ;
          rc = dmsCB->dropCollectionSpaceP1( pCollectionSpace, cb, dpsCB ) ;
-         dmsCB->releaseCSMutex( pCollectionSpace ) ;
          if ( SDB_LOCK_FAILED == rc && retryTime < 100 )
          {
             ++ retryTime ;
@@ -2340,9 +2097,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      dmsCB->aquireCSMutex( pCollectionSpace ) ;
       rc = dmsCB->dropCollectionSpaceP1Cancel( pCollectionSpace, cb, dpsCB ) ;
-      dmsCB->releaseCSMutex( pCollectionSpace ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to cancel remove cs(name:%s, rc=%d)",
                    pCollectionSpace, rc );
@@ -2374,9 +2129,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      dmsCB->aquireCSMutex( pCollectionSpace ) ;
       rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB, options ) ;
-      dmsCB->releaseCSMutex( pCollectionSpace ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to drop cs(name:%s, rc=%d)",
                    pCollectionSpace, rc ) ;
@@ -2400,58 +2153,16 @@ namespace engine
    {
       INT32 rc                            = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCLCOMMAND ) ;
-      dmsStorageUnitID suID               = DMS_INVALID_CS ;
       SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su                  = NULL ;
-      const CHAR *pCollectionShortName    = NULL ;
-      BOOLEAN writable                    = FALSE ;
-      dmsMBContext * mbContext            = NULL ;
       dmsTaskStatusMgr* pTaskStatMgr      = sdbGetRTNCB()->getTaskStatusMgr() ;
 
-      if ( dmsCheckFullCLName( pCollection, TRUE ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Collection name is invalid[%s], rc: %d",
-                 pCollection, rc ) ;
-         goto error ;
-      }
-
-      // Check writable before su lock
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-      writable = TRUE ;
-
-      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-
-      if ( UTIL_UNIQUEID_NULL != clUniqueID )
-      {
-         rc = su->data()->getMBContext( &mbContext, pCollectionShortName ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get mbContext for collection "
-                      "%s, rc: %d", pCollection, rc ) ;
-
-         PD_CHECK( mbContext->mb()->_clUniqueID == clUniqueID,
-                   SDB_DMS_NOTEXIST, error, PDWARNING,
-                   "Collection %s with unique ID %llu had been dropped, "
-                   "current unique ID is %llu", pCollection,
-                   clUniqueID, mbContext->mb()->_clUniqueID ) ;
-      }
-
-      rc = su->data()->dropCollection ( pCollectionShortName, cb, dpsCB,
-                                        TRUE, mbContext, options ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to drop collection %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
+      dmsRemoveCLOptions o;
+      o.clUniqueID = clUniqueID;
+      o.recycleOptions = options;
+      o.dpsCB = dpsCB;
+      rc = dmsCB->dropCL(cb, pCollection, o);
+      PD_RC_CHECK( rc, PDERROR, "failed to drop collection[%s], rc: %d", pCollection, rc );
 
       pTaskStatMgr->dropCL( pCollection ) ;
 
@@ -2460,18 +2171,6 @@ namespace engine
       PD_LOG( PDEVENT, "Drop collection[%s] succeed", pCollection ) ;
 
    done :
-      if ( NULL != mbContext )
-      {
-         su->data()->releaseMBContext( mbContext ) ;
-      }
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
-      if ( writable )
-      {
-         dmsCB->writeDown( cb ) ;
-      }
       PD_TRACE_EXITRC ( SDB_RTNDROPCLCOMMAND, rc ) ;
       return rc ;
    error :

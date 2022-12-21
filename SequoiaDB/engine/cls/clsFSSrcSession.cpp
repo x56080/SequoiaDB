@@ -2140,7 +2140,7 @@ namespace engine
                  "not recoverd from crash", sessionName() ) ;
       }
       /// 5. unique id upgrade is not finished
-      else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
+      else if ( pmdGetKRCB()->getDMSCB()->getNullCSUniqueIDCnt() > 0 )
       {
          rc = SDB_DMS_UNQIUEID_UPGRADE ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "
@@ -3469,7 +3469,7 @@ namespace engine
                  "not recovered from crash", sessionName() ) ;
       }
       /// 5. unique id upgrade is not finished
-      else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
+      else if ( pmdGetKRCB()->getDMSCB()->getNullCSUniqueIDCnt() > 0 )
       {
          rc = SDB_DMS_UNQIUEID_UPGRADE ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "

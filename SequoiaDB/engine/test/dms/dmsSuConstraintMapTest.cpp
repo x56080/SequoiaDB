@@ -68,24 +68,20 @@ namespace engine
       INT32 rc = SDB_OK;
       {
          DMS_SU_DESCRIPTOR desc = nullptr;
-         rc = cm.getSuDescriptor( SAMPLE_CS_1_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_1_NAME );
          EXPECT_EQ( nullptr, desc.get() );
          rc = cm.addSuDescriptor( SAMPLE_CS_1_DESC );
          ASSERT_EQ( SDB_OK, rc );
-         rc = cm.getSuDescriptor( SAMPLE_CS_1_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_1_NAME );
          EXPECT_EQ( SAMPLE_CS_1_DESC, desc );
       }
       {
          DMS_SU_DESCRIPTOR desc = nullptr;
-         rc = cm.getSuDescriptor( SAMPLE_CS_2_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_2_NAME );
          EXPECT_EQ( nullptr, desc.get() );
          rc = cm.addSuDescriptor( SAMPLE_CS_2_DESC );
          ASSERT_EQ( SDB_OK, rc );
-         rc = cm.getSuDescriptor( SAMPLE_CS_2_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_2_NAME );
          EXPECT_EQ( SAMPLE_CS_2_DESC, desc );
       }
    }
@@ -97,12 +93,10 @@ namespace engine
          DMS_SU_DESCRIPTOR desc = nullptr;
          rc = cm.addSuDescriptor( SAMPLE_CS_1_DESC );
          ASSERT_EQ( SDB_OK, rc );
-         rc = cm.getSuDescriptor( SAMPLE_CS_1_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_1_NAME );
          EXPECT_EQ( SAMPLE_CS_1_DESC, desc );
          cm.removeSuDescriptor( SAMPLE_CS_1_NAME );
-         rc = cm.getSuDescriptor( SAMPLE_CS_1_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_1_NAME );
          EXPECT_EQ( nullptr, desc.get() );
       }
 
@@ -110,12 +104,10 @@ namespace engine
          DMS_SU_DESCRIPTOR desc = nullptr;
          rc = cm.addSuDescriptor( SAMPLE_CS_2_DESC );
          ASSERT_EQ( SDB_OK, rc );
-         rc = cm.getSuDescriptor( SAMPLE_CS_2_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_2_NAME );
          EXPECT_EQ( SAMPLE_CS_2_DESC, desc );
          cm.removeSuDescriptor( SAMPLE_CS_2_NAME );
-         rc = cm.getSuDescriptor( SAMPLE_CS_2_NAME, desc );
-         ASSERT_EQ( SDB_OK, rc );
+         desc = cm.getSuDescriptor( SAMPLE_CS_2_NAME );
          EXPECT_EQ( nullptr, desc.get() );
       }
    }
@@ -126,11 +118,8 @@ namespace engine
       dmsSuConstraintMap::CONTEXT_CREATE ctx;
       rc = cm.prepareToCreate( SAMPLE_CS_1_NAME, SAMPLE_CS_1_UNIQUE_ID, ctx );
       ASSERT_EQ( SDB_OK, rc );
-      ctx->setDescriptorToAddWhenCommit( SAMPLE_CS_1_DESC );
-      ctx->commit();
-      DMS_SU_DESCRIPTOR desc = nullptr;
-      rc = cm.getSuDescriptor( SAMPLE_CS_1_NAME, desc );
-      ASSERT_EQ( SDB_OK, rc );
+      ctx->commit( SAMPLE_CS_1_DESC );
+      DMS_SU_DESCRIPTOR desc = cm.getSuDescriptor( SAMPLE_CS_1_NAME );
       EXPECT_EQ( SAMPLE_CS_1_DESC, desc );
    }
 
@@ -160,11 +149,8 @@ namespace engine
       dmsSuConstraintMap::CONTEXT_DROP ctx;
       rc = cm.prepareToDrop( SAMPLE_CS_1_NAME, ctx );
       ASSERT_EQ( SDB_OK, rc );
-      ctx->setDescriptorToRemoveWhenCommit( SAMPLE_CS_1_NAME );
       ctx->commit();
-      DMS_SU_DESCRIPTOR desc;
-      rc = cm.getSuDescriptor( SAMPLE_CS_1_NAME, desc );
-      ASSERT_EQ( SDB_OK, rc );
+      DMS_SU_DESCRIPTOR desc = cm.getSuDescriptor( SAMPLE_CS_1_NAME );
       EXPECT_EQ( nullptr, desc.get() );
    }
 
@@ -178,11 +164,8 @@ namespace engine
       ASSERT_EQ( SDB_OK, rc );
       DMS_SU_DESCRIPTOR newDesc = makeSharedPtrFromPool< dmsSuDescriptor >(
          SAMPLE_CS_1_TYPE, SAMPLE_CS_1_NEW_NAME, SAMPLE_CS_1_UNIQUE_ID, 1 );
-      ctx->setDescriptorToUpdateWhenCommit( SAMPLE_CS_1_NAME, newDesc );
-      ctx->commit();
-      DMS_SU_DESCRIPTOR desc = nullptr;
-      rc = cm.getSuDescriptor( SAMPLE_CS_1_NEW_NAME, desc );
-      ASSERT_EQ( SDB_OK, rc );
+      ctx->commit( newDesc );
+      DMS_SU_DESCRIPTOR desc = cm.getSuDescriptor( SAMPLE_CS_1_NEW_NAME);
       EXPECT_EQ( newDesc.get(), desc.get() );
    }
 } // namespace engine

@@ -9,16 +9,16 @@
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   but WITHOUT ANY WARRANTY{} without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsSuDescriptor.hpp
+   Source File Name = dmsEngineSocket.hpp
 
-   Descriptive Name = Data Management Service SU Descriptor
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -27,39 +27,28 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          12/14/2022  ZHY Initial Draft
+          12/29/2022  ZHY Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef DMS_SU_DESCRIPTOR_HPP__
-#define DMS_SU_DESCRIPTOR_HPP__
 
-#include "dms.hpp"
+#ifndef DMS_ENGINE_SOCKET_HPP_
+#define DMS_ENGINE_SOCKET_HPP_
+#include "interface/IDataStorageEngine.h"
 
 namespace engine
 {
-   struct dmsSuDescriptor
+   class _dmsEngineSocket : public SDBObject
    {
-      dmsSuDescriptor( DMS_ENGINE_TYPE engine,
-                       std::string name,
-                       utilCSUniqueID csUID,
-                       UINT32 logicalID )
-      : engine( engine ), name( name ), csUID( csUID ), logicalID( logicalID )
-      {
-      }
+   public:
+      IDataStorageEngine *getEngine( DMS_ENGINE_TYPE type ) const;
+      INT32 addEngine( std::unique_ptr<IDataStorageEngine> && );
 
-      OSS_INLINE BOOLEAN isValid() const
-      {
-         return engine < DMS_ENGINE_INVALID && !name.empty() && logicalID != DMS_INVALID_LOGICCSID;
-      }
-
-      DMS_ENGINE_TYPE engine = DMS_ENGINE_INVALID;
-      std::string name;
-      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
+   private:
+      ossPoolMap< DMS_ENGINE_TYPE, std::unique_ptr< IDataStorageEngine > > _engines;
    };
-   using DMS_SU_DESCRIPTOR = std::shared_ptr< const dmsSuDescriptor >;
+   typedef _dmsEngineSocket dmsEngineSocket;
 } // namespace engine
 
 #endif

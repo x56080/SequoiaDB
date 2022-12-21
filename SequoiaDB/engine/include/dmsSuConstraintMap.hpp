@@ -39,6 +39,7 @@
 #include "dmsSuDescriptor.hpp"
 #include "utilStringView.hpp"
 #include <mutex>
+#include <atomic>
 
 namespace engine
 {
@@ -51,7 +52,6 @@ namespace engine
          context( _dmsSuConstraintMap *cm ) : _cm( cm ) {}
          virtual ~context(){};
 
-         virtual void commit() = 0;
          virtual void abort() = 0;
 
       protected:
@@ -68,60 +68,47 @@ namespace engine
          : context( cm ), _lock( std::move( lock ) ), _csUID( csUID )
          {
          }
-         virtual ~contextCreate()
-         {
-            if ( UTIL_IS_VALID_CSUNIQUEID( _csUID ) )
-            {
-               _cm->removeTempUniqueID( _csUID );
-            }
-         }
+         virtual ~contextCreate();
 
-         virtual void commit() override
-         {
-            if ( _desc )
-            {
-               _cm->addSuDescriptor( _desc );
-            }
-         }
-         virtual void abort() override {}
+         virtual void abort() override;
 
       public:
-         void setDescriptorToAddWhenCommit( const DMS_SU_DESCRIPTOR &desc )
-         {
-            _desc = desc;
-         }
+         void commit( const DMS_SU_DESCRIPTOR &desc );
+
+      private:
+         void _release();
 
       private:
          std::unique_lock< std::mutex > _lock;
          utilCSUniqueID _csUID = UTIL_UNIQUEID_NULL;
-         DMS_SU_DESCRIPTOR _desc = nullptr;
       };
       using CONTEXT_CREATE = std::unique_ptr< contextCreate >;
 
       class contextDrop : public _dmsSuConstraintMap::context
       {
       public:
-         contextDrop( _dmsSuConstraintMap *cm, std::unique_lock< std::mutex > &&lock )
-         : context( cm ), _lock( std::move( lock ) )
+         contextDrop( _dmsSuConstraintMap *cm,
+                      std::unique_lock< std::mutex > &&lock,
+                      const DMS_SU_DESCRIPTOR &desc )
+         : context( cm ), _lock( std::move( lock ) ), _desc( desc )
          {
+            SDB_ASSERT( desc && desc->isValid(), "must be valid" );
          }
-         virtual ~contextDrop() = default;
+         virtual ~contextDrop();
 
-         virtual void commit() override
-         {
-            _cm->removeSuDescriptor( _name.c_str() );
-         }
-         virtual void abort() override {}
+         virtual void abort() override;
 
       public:
-         void setDescriptorToRemoveWhenCommit( const CHAR *name )
-         {
-            _name = name;
-         }
+         const DMS_SU_DESCRIPTOR &getDescriptor() const;
+
+         void commit();
+
+      private:
+         void _release();
 
       private:
          std::unique_lock< std::mutex > _lock;
-         ossPoolString _name;
+         DMS_SU_DESCRIPTOR _desc;
       };
       using CONTEXT_DROP = std::unique_ptr< contextDrop >;
 
@@ -131,47 +118,64 @@ namespace engine
          contextRename( _dmsSuConstraintMap *cm,
                         std::unique_lock< std::mutex > &&lock1,
                         std::unique_lock< std::mutex > &&lock2,
-                        utilCSUniqueID csUID )
+                        utilCSUniqueID csUID,
+                        const DMS_SU_DESCRIPTOR &oldDesc )
          : context( cm )
          , _lock1( std::move( lock1 ) )
          , _lock2( std::move( lock2 ) )
          , _csUID( csUID )
+         , _oldDesc( oldDesc )
          {
          }
-         virtual ~contextRename()
-         {
-            if ( UTIL_IS_VALID_CSUNIQUEID( _csUID ) )
-            {
-               _cm->removeTempUniqueID( _csUID );
-            }
-         }
+         virtual ~contextRename();
 
-         void setDescriptorToUpdateWhenCommit( const CHAR *oldName,
-                                               const DMS_SU_DESCRIPTOR &newDesc )
-         {
-            _oldName = oldName;
-            _newDesc = newDesc;
-         }
+         virtual void abort() override ;
 
-         virtual void commit() override
-         {
-            _cm->removeSuDescriptor( _oldName.c_str() );
-            _cm->addSuDescriptor( _newDesc );
-         }
-         virtual void abort() override {}
+      public:
+         const DMS_SU_DESCRIPTOR &getOldDescriptor() const;
 
+         void commit( const DMS_SU_DESCRIPTOR &newDesc );
+
+      private:
+         void _release();
+         
       private:
          std::unique_lock< std::mutex > _lock1;
          std::unique_lock< std::mutex > _lock2;
          utilCSUniqueID _csUID = UTIL_UNIQUEID_NULL;
-         ossPoolString _oldName;
-         DMS_SU_DESCRIPTOR _newDesc = nullptr;
+         DMS_SU_DESCRIPTOR _oldDesc = nullptr;
       };
       using CONTEXT_RENAME = std::unique_ptr< contextRename >;
 
+      class contextChangeUniqueID : public _dmsSuConstraintMap::context
+      {
+      public:
+         contextChangeUniqueID( _dmsSuConstraintMap *cm,
+                                std::unique_lock< std::mutex > &&lock,
+                                utilCSUniqueID csUID );
+
+         virtual ~contextChangeUniqueID();
+
+         virtual void abort() override ;
+      
+      public:
+         const DMS_SU_DESCRIPTOR &getOldDescriptor() const;
+
+         void commit( const DMS_SU_DESCRIPTOR &newDesc );
+      
+      private:
+         void _release();
+      private:
+         std::unique_lock< std::mutex > _lock;
+         utilCSUniqueID _csUID = UTIL_UNIQUEID_NULL;
+         DMS_SU_DESCRIPTOR _oldDesc = nullptr;
+      };
+      using CONTEXT_CHANGE_UNIQUE_ID = std::unique_ptr< contextChangeUniqueID >;
+
    public:
-      INT32 getSuDescriptor( const CHAR *name, DMS_SU_DESCRIPTOR & );
-      INT32 getSuDescriptor( utilCSUniqueID csUID, DMS_SU_DESCRIPTOR & );
+      DMS_SU_DESCRIPTOR getSuDescriptor( const utilStringView &name );
+      DMS_SU_DESCRIPTOR getSuDescriptor( const CHAR *name );
+      DMS_SU_DESCRIPTOR getSuDescriptor( utilCSUniqueID csUID );
 
       INT32 addSuDescriptor( const DMS_SU_DESCRIPTOR & );
 
@@ -181,21 +185,34 @@ namespace engine
       INT32 prepareToCreate( const CHAR *name, utilCSUniqueID csUID, CONTEXT_CREATE & );
       INT32 prepareToDrop( const CHAR *name, CONTEXT_DROP & );
       INT32 prepareToRename( const CHAR *oldName, const CHAR *newName, CONTEXT_RENAME & );
+      INT32 prepareToChangeUniqueID( const CHAR *name,
+                                     utilCSUniqueID newCSUID,
+                                     CONTEXT_CHANGE_UNIQUE_ID & );
 
       void removeTempUniqueID( utilCSUniqueID csUID );
 
       void clear();
 
+      UINT32 getNullCSUniqueID() const;
+
    private:
       INT32 _insertTempUniqueID( utilCSUniqueID csUID );
 
-      INT32 _testSuDescriptor( const CHAR *name, BOOLEAN &exist );
+      // If collection space name or unique id is used, exist is true
+      INT32 _testSuDescriptor( const CHAR *name, utilCSUniqueID csUID, BOOLEAN &exist );
 
       void _remove( const CHAR *name );
       void _remove( utilCSUniqueID csUID );
 
       std::mutex &_getHashLatch( const CHAR *name );
       UINT64 _getHashLatchPos( const CHAR *name );
+      void _getOrderedLatches( const CHAR *name1,
+                               const CHAR *name2,
+                               std::mutex **latchSmaller,
+                               std::mutex **latchLarger );
+
+      void _nullCSUniqueIDCntInc();
+      void _nullCSUniqueIDCntDec();
 
    private:
       ossPoolMap< utilStringView, DMS_SU_DESCRIPTOR > _nameToDesc;
@@ -208,6 +225,8 @@ namespace engine
       static constexpr UINT32 HASH_LATCH_NUMBER = 32;
       static constexpr UINT64 HASH_SEED = 5;
       std::mutex _hashLatches[ HASH_LATCH_NUMBER ];
+
+      std::atomic<UINT32> _nullCSUniqueIDCnt;
    };
    using dmsSuConstraintMap = _dmsSuConstraintMap;
 

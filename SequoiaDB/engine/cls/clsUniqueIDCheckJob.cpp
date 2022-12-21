@@ -85,7 +85,7 @@ namespace engine
 
       while ( !PMD_IS_DB_DOWN() &&
               !cb->isForced() &&
-              pDmsCB->nullCSUniqueIDCnt() > 0 )
+              pDmsCB->getNullCSUniqueIDCnt() > 0 )
       {
          if ( _needPrimary && !pmdIsPrimary() )
          {

@@ -121,8 +121,7 @@ namespace engine
          return SDB_OK;
       };
 
-      virtual INT32 getMetaData( IExecutor *executor,
-                                 CONST_CL_META_INFO_PTR &meta ) override
+      virtual INT32 getMetaData( IExecutor *executor, CONST_CL_META_INFO_PTR &meta ) override
       {
          DMS_CL_META_PTR clMetaInfo = makeSharedPtrFromPool< dmsCollectionMetaInfo >(
             makeSharedPtrFromPool< ossPoolString >( _clFullName ), _clUID, _attributes,
@@ -292,6 +291,30 @@ namespace engine
    class dmsTest : public IDataManagementService
    {
    public:
+      virtual INT32 createCS( IExecutor *executor,
+                              const CHAR *name,
+                              utilCSUniqueID uniqueId,
+                              const dmsCreateCSOptions &o,
+                              const bson::BSONObj &adjunct ) override
+      {
+         return SDB_OK;
+      }
+
+      virtual INT32 dropCS( IExecutor *executor,
+                            const CHAR *name,
+                            const dmsRemoveCSOptions &options ) override
+      {
+         return SDB_OK;
+      }
+
+      virtual INT32 renameCS( IExecutor *executor,
+                              const CHAR *oldName,
+                              const CHAR *newName,
+                              BOOLEAN blockWrite ) override
+      {
+         return SDB_OK;
+      }
+
       virtual INT32 openCL( IExecutor *executor,
                             const CHAR *fullName,
                             const dmsOpenCLOptions &o,
@@ -302,6 +325,31 @@ namespace engine
                             const dmsOpenCLOptions &o,
                             DATA_COLLECTION_PTR &ptr ) override;
 
+      virtual INT32 createCL( IExecutor *executor,
+                              const CHAR *clFullName,
+                              utilCLUniqueID clUniqueID,
+                              const dmsCreateCLOptions &o,
+                              const bson::BSONObj &adjunct ) override
+      {
+         return SDB_OK;
+      }
+
+      virtual INT32 dropCL( IExecutor *executor,
+                            const CHAR *clFullName,
+                            const dmsRemoveCLOptions &o ) override
+      {
+         return SDB_OK;
+      }
+
+      virtual INT32 nameToSuDescriptor( const CHAR *pName, DMS_SU_DESCRIPTOR &desc ) override
+      {
+         return SDB_OK;
+      }
+
+      virtual UINT32 getNullCSUniqueIDCnt() const override
+      {
+         return 0;
+      }
    public:
       std::shared_ptr< collectionTest > getCL( const CHAR *fullName )
       {
@@ -457,8 +505,7 @@ namespace engine
          statCache.fini();
       }
 
-      BOOLEAN checkCollectionStat( CONST_CL_STAT_INFO_PTR actStat,
-                                   const collectionTest &expCL )
+      BOOLEAN checkCollectionStat( CONST_CL_STAT_INFO_PTR actStat, const collectionTest &expCL )
       {
          if ( !actStat )
          {

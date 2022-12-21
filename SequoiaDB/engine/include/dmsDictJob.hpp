@@ -9,16 +9,16 @@
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   but WITHOUT ANY WARRANTY{} without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsSuDescriptor.hpp
+   Source File Name = dmsDictJob.hpp
 
-   Descriptive Name = Data Management Service SU Descriptor
+   Descriptive Name =
 
    Dependencies: N/A
 
@@ -27,39 +27,44 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          12/14/2022  ZHY Initial Draft
+          12/29/2022  ZHY Moved from dmsCB.hpp
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef DMS_SU_DESCRIPTOR_HPP__
-#define DMS_SU_DESCRIPTOR_HPP__
 
-#include "dms.hpp"
+#include "dmsStorageUnit.hpp"
 
 namespace engine
 {
-   struct dmsSuDescriptor
+   struct _dmsDictJob
    {
-      dmsSuDescriptor( DMS_ENGINE_TYPE engine,
-                       std::string name,
-                       utilCSUniqueID csUID,
-                       UINT32 logicalID )
-      : engine( engine ), name( name ), csUID( csUID ), logicalID( logicalID )
+      dmsStorageUnitID _suID;
+      UINT32 _suLID;
+      UINT16 _clID;
+      UINT32 _clLID;
+      UINT64 _recordNum;
+      UINT64 _lastWriteTick;
+
+      _dmsDictJob()
+      : _suID( DMS_INVALID_SUID )
+      , _suLID( DMS_INVALID_SUID )
+      , _clID( DMS_INVALID_CLID )
+      , _clLID( DMS_INVALID_CLID )
+      , _recordNum( 0 )
+      , _lastWriteTick( 0 )
       {
       }
 
-      OSS_INLINE BOOLEAN isValid() const
+      _dmsDictJob( dmsStorageUnitID suID, UINT32 suLID, UINT16 clID, UINT32 clLID )
+      : _suID( suID )
+      , _suLID( suLID )
+      , _clID( clID )
+      , _clLID( clLID )
+      , _recordNum( 0 )
+      , _lastWriteTick( 0 )
       {
-         return engine < DMS_ENGINE_INVALID && !name.empty() && logicalID != DMS_INVALID_LOGICCSID;
       }
-
-      DMS_ENGINE_TYPE engine = DMS_ENGINE_INVALID;
-      std::string name;
-      utilCSUniqueID csUID = UTIL_UNIQUEID_NULL;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
    };
-   using DMS_SU_DESCRIPTOR = std::shared_ptr< const dmsSuDescriptor >;
+   typedef _dmsDictJob dmsDictJob;
 } // namespace engine
-
-#endif

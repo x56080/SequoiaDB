@@ -784,7 +784,7 @@ namespace engine
       }
 
       // register recycle bin manager
-      rc = sdbGetDMSCB()->regHandler( &recycleBinMgr ) ;
+      rc = sdbGetDMSCB()->regHandler( DMS_ENGINE_MMAP, &recycleBinMgr ) ;
       if ( rc )
       {
          std::cerr << "register recycle bin manager failed, " << rc << std::endl ;
@@ -811,7 +811,7 @@ namespace engine
 
    done :
       // unregister recycle bin manager
-      sdbGetDMSCB()->unregHandler( &recycleBinMgr ) ;
+      sdbGetDMSCB()->unregHandler( DMS_ENGINE_MMAP, &recycleBinMgr ) ;
       recycleBinMgr.fini() ;
 
       PMD_SHUTDOWN_DB( rc ) ;
