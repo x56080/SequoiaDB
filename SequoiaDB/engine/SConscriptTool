@@ -18,6 +18,14 @@ inspectFiles = [
       "tools/inspect/sdbInspect.cpp"
       ]
 
+oidToolFiles = [
+      "tools/oidtool/src/sdbOidCatalog.cpp",
+      "tools/oidtool/src/sdbOidToolUtil.cpp",
+      "tools/oidtool/src/sdbDataChecker.cpp",
+      "tools/oidtool/src/sdbDataReloader.cpp",
+      "tools/oidtool/src/sdbOidToolMain.cpp"
+      ]
+
 importFiles = [
       "tools/import/sdbImport.cpp",
       "tools/import/impOptions.cpp",
@@ -773,6 +781,10 @@ if linux64:
    toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
 
 #Export Executable
+sdboidtool = toolEnv.Program("sdboidtool", oidToolFiles,
+         LIBDEPS=["bson", "oss", "pd", "util", "client", "clientcpp", "cls", "ixm", "rtn", "msg","mon"],
+         _LIBDEPS='$_LIBDEPS_OBJS' )
+
 sdbimprt = toolEnv.Program("sdbimprt", importFiles,
          LIBDEPS=["bson", "oss", "pd", "util", "client", "cls", "ixm", "rtn", "msg","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -901,3 +913,4 @@ if linux64:
 if linux64:
    toolEnv.Install('#/tools/sequoiafs/bin', sequoiamcs)
 toolEnv.Install( '#/bin', sdbseadapter )
+toolEnv.Install( '#/tools/oidtool/bin', sdboidtool )
