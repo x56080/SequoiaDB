@@ -73,6 +73,8 @@ namespace engine
 
       virtual INT32 getIndexStatus() const = 0;
 
+      virtual BOOLEAN isNormal() const = 0;
+
       virtual BOOLEAN isUnique() const = 0;
 
       virtual BOOLEAN isEnforced() const = 0;

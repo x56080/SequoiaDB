@@ -125,6 +125,11 @@ namespace engine
       return _indexStatus;
    }
 
+   BOOLEAN _dmsIndexMetaInfo::isNormal() const
+   {
+      return _indexStatus == IXM_INDEX_FLAG_NORMAL;
+   }
+
    BOOLEAN _dmsIndexMetaInfo::isUnique() const
    {
       return OSS_BIT_TEST( _flags, static_cast< UINT32 >( FLAGS_FIELD::UNIQUE ) );

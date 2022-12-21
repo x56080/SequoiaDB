@@ -107,6 +107,7 @@ namespace engine
       virtual INT64 getLogicalID() const override;
       virtual UINT16 getIndexType() const override;
       virtual INT32 getIndexStatus() const override;
+      virtual BOOLEAN isNormal() const override;
       virtual BOOLEAN isUnique() const override;
       virtual BOOLEAN isEnforced() const override;
       virtual BOOLEAN isNotNull() const override;
