@@ -68,7 +68,7 @@ namespace engine
                          INT32 indexExtentID,
                          INT64 indexLogicalID,
                          UINT16 indexType,
-                         UINT16 indexStatus,
+                         INT32 indexStatus,
                          BOOLEAN isUnique,
                          BOOLEAN isEnforced,
                          BOOLEAN isNotNull,
@@ -82,7 +82,7 @@ namespace engine
       , _indexExtentID( indexExtentID )
       , _indexLogicalID( indexLogicalID )
       , _indexType( indexType )
-      , _indexFlag( indexStatus )
+      , _indexStatus( indexStatus )
       {
          setUnique( isUnique );
          setEnforced( isEnforced );
@@ -106,7 +106,7 @@ namespace engine
       virtual INT32 getExtentID() const override;
       virtual INT64 getLogicalID() const override;
       virtual UINT16 getIndexType() const override;
-      virtual UINT16 getIndexFlag() const override;
+      virtual INT32 getIndexStatus() const override;
       virtual BOOLEAN isUnique() const override;
       virtual BOOLEAN isEnforced() const override;
       virtual BOOLEAN isNotNull() const override;
@@ -151,7 +151,7 @@ namespace engine
       INT64 _indexLogicalID = DMS_INVALID_EXTENT;
       // the definition refer to ixmIndexCB
       UINT16 _indexType = 0;
-      UINT16 _indexFlag = 0;
+      INT32 _indexStatus = 0;
       UINT32 _flags = 0;
    };
    using dmsIndexMetaInfo = _dmsIndexMetaInfo;

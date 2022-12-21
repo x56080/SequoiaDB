@@ -120,9 +120,9 @@ namespace engine
       return _indexType;
    }
 
-   UINT16 _dmsIndexMetaInfo::getIndexFlag() const
+   INT32 _dmsIndexMetaInfo::getIndexStatus() const
    {
-      return _indexFlag;
+      return _indexStatus;
    }
 
    BOOLEAN _dmsIndexMetaInfo::isUnique() const
@@ -191,7 +191,7 @@ namespace engine
          info._indexExtentID = obj.getField( IXM_FIELD_NAME_CB_EXTENT_ID ).numberInt();
          info._indexLogicalID = obj.getField( FIELD_NAME_LOGICAL_ID ).numberLong();
          info._indexType = obj.getField( IXM_FIELD_NAME_TYPE ).numberInt();
-         info._indexFlag = obj.getField( IXM_FIELD_NAME_INDEX_FLAG ).numberInt();
+         info._indexStatus = obj.getField( IXM_FIELD_NAME_INDEX_FLAG ).numberInt();
          info._keyPattern = obj.getObjectField( IXM_KEY_FIELD ).getOwned();
          info.setUnique( obj.getBoolField( IXM_UNIQUE_FIELD ) );
          info.setEnforced( obj.getBoolField( IXM_ENFORCED_FIELD ) );

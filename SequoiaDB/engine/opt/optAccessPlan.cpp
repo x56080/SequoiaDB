@@ -301,7 +301,7 @@ namespace engine
                 "Collection[%s] do not have index, OID[%s]", _key.getCLFullName(),
                 indexOID.toString().c_str() );
 
-      PD_CHECK( pIndexMeta->getIndexFlag() == IXM_INDEX_FLAG_NORMAL,
+      PD_CHECK( pIndexMeta->getIndexStatus() == IXM_INDEX_FLAG_NORMAL,
                 SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
                 "Index is not normal status, skip" ) ;
       pIndexStat = collectionStat->getIndexStat( pIndexMeta->getIndexName() );
@@ -362,7 +362,7 @@ namespace engine
                 "Collection[%s] do not have index, name[%s]", _key.getCLFullName(),
                 indexName );
 
-      PD_CHECK( pIndexMeta->getIndexFlag() == IXM_INDEX_FLAG_NORMAL,
+      PD_CHECK( pIndexMeta->getIndexStatus() == IXM_INDEX_FLAG_NORMAL,
                 SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
                 "Index is not normal status, skip" ) ;
 
