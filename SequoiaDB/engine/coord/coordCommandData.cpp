@@ -5479,6 +5479,9 @@ namespace engine
                    "Failed to build data message, rc: %d",
                    rc ) ;
 
+      // createIndex, dropIndex or copyIndex don't need to check replSize
+      ((MsgOpQuery*)pBuf)->w = 1 ;
+
       // notify to data
       rc = executeOnCL( (MsgHeader*)pBuf, cb, _collectionName(),
                         FALSE, NULL, NULL, NULL, NULL, buf ) ;
