@@ -108,6 +108,7 @@ namespace engine
       msg->header.TID           = ossGetCurrentThreadID() ;
       msg->header.version       = SDB_PROTOCOL_VER_2 ;
       msg->header.flags         = 0 ;
+      ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
       ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
 
       ossMemcpy( *ppBuffer + sizeof(MsgAuthentication),

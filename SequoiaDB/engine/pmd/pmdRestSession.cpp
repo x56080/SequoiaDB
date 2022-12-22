@@ -4153,6 +4153,8 @@ namespace engine
          sqlMsg->header.flags         = 0 ;
          sqlMsg->header.routeID.value = 0 ;
          sqlMsg->header.TID           = ossGetCurrentThreadID() ;
+         ossMemset( &(sqlMsg->header.globalID), 0,
+                    sizeof(sqlMsg->header.globalID) ) ;
          ossMemset( sqlMsg->header.reserve, 0,
                     sizeof(sqlMsg->header.reserve) ) ;
          ossMemcpy( *ppBuffer + sizeof( MsgOpSql ),

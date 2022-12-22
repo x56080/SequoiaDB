@@ -797,7 +797,7 @@ namespace engine
       newMsgHeader.TID = msgHeader->TID ;
       newMsgHeader.routeID = msgHeader->routeID ;
       newMsgHeader.requestID = msgHeader->requestID ;
-      // TODO: YSD Set the message globalID.
+      ossMemset( &(newMsgHeader.globalID), 0, sizeof( newMsgHeader.globalID) ) ;
       ossMemset( newMsgHeader.reserve, 0, sizeof( newMsgHeader.reserve) ) ;
    }
 
