@@ -172,7 +172,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to parse group list, rc: %d", rc ) ;
 
       rc = _executeOnGroups( pMsg, cb, groupLst, MSG_ROUTE_SHARD_SERVCIE,
-                             FALSE ) ;
+                             FALSE, NULL, NULL ,NULL, buf ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to do backup on groups, rc: %d", rc ) ;
 
    done:
