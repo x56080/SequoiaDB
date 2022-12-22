@@ -220,6 +220,7 @@ namespace engine
       reqMsg->header.flags         = 0 ;
       reqMsg->header.routeID.value = 0 ;
       reqMsg->header.TID           = ossGetCurrentThreadID() ;
+      ossMemset( &(reqMsg->header.globalID), 0, sizeof(reqMsg->header.globalID) ) ;
       ossMemset( reqMsg->header.reserve, 0, sizeof(reqMsg->header.reserve) ) ;
       ossMemcpy( buff + sizeof( MsgAuthentication ), auth.objdata(),
                  authSize ) ;
