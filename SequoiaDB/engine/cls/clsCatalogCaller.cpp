@@ -98,6 +98,17 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _clsCatalogCaller::isCallOver( const MsgHeader *header )
+   {
+      SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
+      callerMeta::iterator itr = _meta.find( header->opCode ) ;
+      if ( _meta.end() != itr && CLS_CALLER_NO_SEND != itr->second.timeout )
+      {
+         return FALSE ;
+      }
+      return TRUE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCATCLR_REMOVE, "_clsCatalogCaller::remove" )
    void _clsCatalogCaller::remove( const MsgHeader *header, INT32 result )
    {

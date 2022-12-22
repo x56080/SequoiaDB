@@ -1764,6 +1764,30 @@ namespace engine
       return rc ;
    }
 
+   INT32 _clsMgr::startAllIdxTaskCheck()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj match = BSON( FIELD_NAME_GROUPS "." FIELD_NAME_GROUPNAME <<
+                               pmdGetKRCB()->getGroupName() ) ;
+
+         rc = startTaskCheck( match ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsMgr::startAllTaskCheck()
    {
       // pull all tasks related to this node from catalog
@@ -2017,6 +2041,7 @@ namespace engine
       UINT32 locationID = CLS_INVALID_LOCATIONID ;
       BOOLEAN addTaskDone1 = FALSE ;
       BOOLEAN addTaskDone2 = FALSE ;
+      const CHAR* groupName = pmdGetKRCB()->getGroupName() ;
 
       // new clsTask
       rc = clsNewTask( taskObj, pTask ) ;
@@ -2030,6 +2055,14 @@ namespace engine
          PD_LOG( PDINFO,
                  "Task[%llu] has been finished, do not start thread",
                  taskID ) ;
+         // release memory in goto error
+         goto error ;
+      }
+      else if ( CLS_TASK_STATUS_FINISH ==
+                pTask->getTaskStatusByGroup( groupName ) )
+      {
+         PD_LOG( PDINFO, "Task[%llu] on group[%s] has been finished, "
+                 "do not start thread", taskID, groupName ) ;
          // release memory in goto error
          goto error ;
       }
