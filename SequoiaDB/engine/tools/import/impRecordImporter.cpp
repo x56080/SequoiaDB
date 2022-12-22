@@ -377,6 +377,8 @@ namespace import
       _insertMsg->header.flags         = 0 ;
       _insertMsg->header.routeID.value = 0 ;
       _insertMsg->header.TID           = ossGetCurrentThreadID() ;
+      ossMemset( &(_insertMsg->header.globalID), 0,
+                sizeof( _insertMsg->header.globalID ) ) ;
       ossMemset( _insertMsg->header.reserve, 0,
                 sizeof( _insertMsg->header.reserve ) ) ;
 

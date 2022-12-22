@@ -207,6 +207,7 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pUpdate->header.flags         = 0 ;
    pUpdate->header.routeID.value = 0 ;
    pUpdate->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pUpdate->header.globalID), 0, sizeof(pUpdate->header.globalID) ) ;
    ossMemset( pUpdate->header.reserve, 0, sizeof(pUpdate->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pUpdate->name, CollectionName, pUpdate->nameLength ) ;
@@ -419,6 +420,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.flags         = 0 ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
    ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
@@ -520,6 +522,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.flags         = 0 ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
    ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
@@ -773,7 +776,7 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.flags          = FLAG_RESULT_DETAIL | FLAG_PROCESS_DETAIL ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
-
+   ossMemset( &(pQuery->header.globalID), 0, sizeof(pQuery->header.globalID) ) ;
    ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pQuery->name, CollectionName, pQuery->nameLength ) ;
@@ -978,6 +981,7 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pGetMore->header.flags         = 0 ;
    pGetMore->header.routeID.value = 0 ;
    pGetMore->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pGetMore->header.globalID), 0, sizeof(pGetMore->header.globalID) ) ;
    ossMemset( pGetMore->header.reserve, 0, sizeof(pGetMore->header.reserve) ) ;
 
    if ( pHint )
@@ -1063,6 +1067,7 @@ void msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
    getMoreMsg.header.TID = tid;
    getMoreMsg.header.routeID.value = 0;
    getMoreMsg.header.requestID = reqID;
+   ossMemset( &(getMoreMsg.header.globalID), 0, sizeof(getMoreMsg.header.globalID) ) ;
    ossMemset( getMoreMsg.header.reserve, 0, sizeof(getMoreMsg.header.reserve) ) ;
    getMoreMsg.contextID = contextID;
    getMoreMsg.numToReturn = numToReturn;
@@ -1268,6 +1273,7 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDelete->header.flags         = 0 ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pDelete->header.globalID), 0, sizeof(pDelete->header.globalID) ) ;
    ossMemset( pDelete->header.reserve, 0, sizeof(pDelete->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pDelete->name, CollectionName, pDelete->nameLength ) ;
@@ -1407,6 +1413,7 @@ INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pKC->numContexts          = numContexts ;
    pKC->header.routeID.value = 0 ;
    pKC->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pKC->header.globalID), 0, sizeof(pKC->header.globalID) ) ;
    ossMemset( pKC->header.reserve, 0, sizeof(pKC->header.reserve) ) ;
    // copy collection name
    ossMemcpy ( (CHAR*)(&pKC->contextIDs[0]), (CHAR*)pContextIDs,
@@ -1490,6 +1497,7 @@ INT32 msgBuildMsgMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags         = 0 ;
    pMsg->header.routeID.value = 0 ;
    pMsg->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pMsg->msg, pMsgStr, msgLen ) ;
@@ -1582,6 +1590,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.flags         = 0 ;
    pReply->header.routeID.value = 0 ;
    pReply->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pReply->header.globalID), 0, sizeof(pReply->header.globalID) ) ;
    ossMemset( pReply->header.reserve, 0, sizeof(pReply->header.reserve) ) ;
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDREPLYMSG, rc );
@@ -1633,6 +1642,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.flags         = 0 ;
    pReply->header.routeID.value = 0 ;
    pReply->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pReply->header.globalID), 0, sizeof(pReply->header.globalID) ) ;
    ossMemset( pReply->header.reserve, 0, sizeof(pReply->header.reserve) ) ;
    if ( numReturned != 0 )
    {
@@ -1744,6 +1754,8 @@ INT32 msgBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDisconnect->header.flags         = 0 ;
    pDisconnect->header.routeID.value = 0 ;
    pDisconnect->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pDisconnect->header.globalID), 0,
+              sizeof(pDisconnect->header.globalID) ) ;
    ossMemset( pDisconnect->header.reserve, 0,
               sizeof(pDisconnect->header.reserve) ) ;
 done :
@@ -1773,6 +1785,8 @@ void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
    replyHeader.header.version       = SDB_PROTOCOL_VER_2 ;
    replyHeader.header.flags         = 0 ;
    replyHeader.header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(replyHeader.header.globalID), 0,
+              sizeof(replyHeader.header.globalID) ) ;
    ossMemset( replyHeader.header.reserve, 0,
               sizeof(replyHeader.header.reserve) ) ;
    PD_TRACE_EXIT ( SDB_MSGBLDREPLYMSGHD );
@@ -1791,6 +1805,8 @@ void msgBuildDisconnectMsg ( MsgOpDisconnect &disconnectHeader,
    disconnectHeader.header.version       = SDB_PROTOCOL_VER_2 ;
    disconnectHeader.header.flags         = 0 ;
    disconnectHeader.header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(disconnectHeader.header.globalID), 0,
+              sizeof(disconnectHeader.header.globalID) ) ;
    ossMemset( disconnectHeader.header.reserve, 0,
               sizeof(disconnectHeader.header.reserve) ) ;
    PD_TRACE_EXIT ( SDB_MSGBLDDISCONNMSG2 );
@@ -1929,6 +1945,8 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
    pCMRequest->header.opCode        = MSG_CM_REMOTE ;
    pCMRequest->header.routeID.value = 0 ;
    pCMRequest->header.TID           = ossGetCurrentThreadID() ;
+   ossMemset( &(pCMRequest->header.globalID), 0,
+              sizeof(pCMRequest->header.globalID) ) ;
    ossMemset( pCMRequest->header.reserve, 0,
               sizeof(pCMRequest->header.reserve) ) ;
    pCMRequest->remoCode             = remoCode ;
@@ -2095,6 +2113,7 @@ INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
    pQuery->header.flags          = 0 ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+   ossMemset( &(pQuery->header.globalID), 0, sizeof(pQuery->header.globalID) ) ;
    ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
 
    // copy collection name
@@ -2861,6 +2880,7 @@ INT32 msgBuildTransCommitPreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_COMMITPRE_REQ;
    pMsg->header.routeID.value = 0;
+   ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
 
 done:
@@ -2887,6 +2907,7 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_COMMIT_REQ;
    pMsg->header.routeID.value = 0;
+   ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
    pMsg->commitTime = 0LL ;
 
@@ -2914,6 +2935,7 @@ INT32 msgBuildTransRollbackMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_ROLLBACK_REQ;
    pMsg->header.routeID.value = 0;
+   ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
 
 done:

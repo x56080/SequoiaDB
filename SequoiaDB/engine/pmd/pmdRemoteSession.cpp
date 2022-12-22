@@ -1749,6 +1749,7 @@ namespace engine
             pMsg->header.requestID = eduCB()->getCurRequestID() ;
             pMsg->header.TID = eduCB()->getTID() ;
             pMsg->header.routeID.value = id.value ;
+            ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
             ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
             pMsg->contextID = -1 ;
             pMsg->flags = SDB_COORD_REMOTE_DISC ;
