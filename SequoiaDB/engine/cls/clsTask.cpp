@@ -2117,14 +2117,33 @@ namespace engine
    CLS_TASK_STATUS _clsIdxTask::getTaskStatusByGroup( const CHAR* groupName )
    {
       SDB_ASSERT( groupName, "group name can't be NULL" ) ;
+      CLS_TASK_STATUS status = CLS_TASK_STATUS_FINISH ;
+      MAP_GROUP_INFO::iterator itr ;
 
-      MAP_GROUP_INFO::iterator itr = _mapGroupInfo.find( groupName ) ;
-      if ( itr != _mapGroupInfo.end() )
+      try
       {
-         return itr->second.status ;
+         ossPoolString tmpGroupName( groupName ) ;
+         itr = _mapGroupInfo.find( tmpGroupName ) ;
+         if ( itr != _mapGroupInfo.end() )
+         {
+            status = itr->second.status ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         itr = _mapGroupInfo.begin() ;
+         while ( itr != _mapGroupInfo.end() )
+         {
+            if ( 0 == ossStrcmp( itr->first.c_str(), groupName ) )
+            {
+               status = itr->second.status ;
+               break ;
+            }
+            ++itr ;
+         }
       }
 
-      return CLS_TASK_STATUS_FINISH ;
+      return status ;
    }
 
    BSONObj _clsIdxTask::toBson( UINT32 mask )
