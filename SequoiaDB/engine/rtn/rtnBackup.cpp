@@ -148,7 +148,7 @@ namespace engine
       if ( UTIL_COMPRESSOR_INVALID == compType ||
            UTIL_COMPRESSOR_LZW == compType )
       {
-         PD_LOG( PDERROR, "Field[%s]'s value[%s] is invalid, only support: %s",
+         PD_LOG_MSG( PDERROR, "Field[%s]'s value[%s] is invalid, only support: %s",
                  FIELD_NAME_COMPRESSIONTYPE, pCompType,
                  "snappy/lz4/zlib" ) ;
          rc = SDB_INVALIDARG ;
