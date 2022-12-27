@@ -4,21 +4,76 @@
 
 本文档将介绍 Spark-SequoiaDB 的使用。
 
-##Spark-SequoiaDB 使用##
+##配置 SparkSQL 参数##
 
-下述以通过 SparkSQL 创建 SequoiaDB 表为例，创建语句如下：
+用户可通过配置文件、命令行及创建语句中的映射表参数配置 SparkSQL。当使用配置文件时，所填配置将对全局生效；当使用命令行时，所填配置仅对当前会话生效；当使用映射表参数时，所填配置仅对当前的表生效，且配置无法修改。因此在创建映射表之前，建议用户将无需与表强关联的配置项，通过配置文件或命令行的方式写入，便于后续修改。
+
+>**Note:**
+>
+> 配置优先级说明：映射表参数 > 命令行 > 配置文件，优先级高的参数配置将覆盖优先级低的参数配置。<br>
+> 为避免与 SparkSQL 中其他参数冲突，填入配置文件或命令行的参数需以 `spark.sequoiadb.config.defaults.` 为前缀。具体参数说明可参考[参数列表][option]。 
+
+###配置文件###
+
+用户通过配置文件更新配置时，新配置对已启动的 Spark Application（如 spark-sql、thrift-server）无效，需重启 Spark Application 以加载新配置。
+
+**示例**
+
+通过 Spark 安装目录下的配置文件 `conf/spark-defaults.conf` 更新配置
+
+```lang-text
+spark.sequoiadb.config.defaults.host       sdbServer1:11810,sdbServer2:11810,sdbServer3:11810
+spark.sequoiadb.config.defaults.username   sdbadmin
+spark.sequoiadb.config.defaults.password   sdbadmin
+```
+
+###命令行###
+
+用户通过命令行更新配置时，其优先级高于配置文件参数，即在当前 Spark Application 中覆盖配置文件提供的全局配置参数，新配置仅在对应的 Spark Application 中生效。
+
+**示例**
+
+通过 `spark-sql/beeline` 更新配置
 
 ```lang-sql
-create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequoiadb.spark options (<option>, <option>, ...)
+spark-sql> SET spark.sequoiadb.config.defaults.connecttime=4000;
+```
+
+##创建映射表##
+
+###语法###
+
+SparkSQL 创建 SequoiaDB 表语句的格式如下：
+
+```lang-sql
+CREATE <[temporary] TABLE| temporary VIEW> <tableName> [(schema)] USING com.sequoiadb.spark OPTIONS (<option>, <option>, ...)
 ```
 
 - temporary：临时表或视图，只在创建表或视图的会话中有效，会话退出后自动删除。
 
 - schema：可不填，连接器会自动生成。自动生成的 schema 字段顺序与集合中记录的顺序不一致，因此如果对 schema 的字段顺序有要求，应该显式定义 schema 。
 
-- option：参数列表，参数是键和值都为字符串类型的键值对，其中值的前后需要有单引号，多个参数之间用逗号分隔。
+- option：[参数列表][option]，参数是键和值都为字符串类型的键值对，其中值的前后需要有单引号，多个参数之间用逗号分隔。
 
-**option 参数说明**
+> **Note:**
+>
+> 通过 `OPTIONS` 子句可指定映射表参数，其优先级高于配置文件参数和会话参数，且无需指定前缀 `spark.sequoiadb.config.defaults`。
+
+###示例###
+
+1. 假设集合名为 test.data ，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
+
+   ```lang-sql
+   spark-sql> create table datatable(c1 string, c2 int, c3 int) using com.sequoiadb.spark options(host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'data');
+   ```
+
+2. 从 SequoiaDB 的表 t1 向表 t2 插入数据
+
+   ```lang-sql
+   spark-sql> insert into table t2 select * from t1;
+   ```
+
+##参数列表##
 
 | 名称     | 类型      | 默认值  | 描述 | 是否必填|
 | ---------| --------- | -------- |-------|--------|
@@ -42,7 +97,6 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |preferredinstancestrict|boolean|TRUE|在 preferredinstance 指定的实例 ID 都不符合时是否报错 |否|
 |ignoreduplicatekey|boolean|FALSE|向表中插入数据时忽略主键重复的错误 |否|
 |ignorenullfield|boolean|FALSE|向表中插入数据时忽略值为 null 的字段 |否|
-|configpath|string|-|配置文件路径<br>如果同时在 options 和配置文件中指定同一参数，将优先使用 options 参数进行配置| 否|
 |pagesize|int32|65536|create table as select 创建集合空间时指定数据页大小，如果集合空间已存在则忽略该参数 |否|
 |domain|string|-|create table as select 创建集合空间时指定所属域，如果集合空间已存在则忽略该参数 |否|
 |shardingkey|json|-|create table as select 创建集合时指定分区键 |否|
@@ -57,23 +111,8 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |autoincrement|json|-|create table as select 创建集合时指定集合使用的自增字段<br>自增字段相关说明可参考 [autoincrement][autoincrement] |否|
 
 
-##示例##
-
-1. 假设集合名为 test.data ，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
-
-   ```lang-sql
-   spark-sql> create table datatable(c1 string, c2 int, c3 int) using com.sequoiadb.spark options(host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'data');
-   ```
-
-2. 从 SequoiaDB 的表 t1 向表 t2 插入数据
-
-   ```lang-sql
-   spark-sql> insert into table t2 select * from t1;
-   ```
-
-
-
 [^_^]:
      本文使用的所有引用和链接
 [parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
 [autoincrement]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
+[option]:manual/Database_Instance/Json_Instance/Development/c_driver/usage.md#参数列表
