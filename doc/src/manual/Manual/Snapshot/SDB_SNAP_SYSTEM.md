@@ -5,14 +5,14 @@
 
 >**Note:**
 >
-> 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_SYSTEM,{RawData:true})` 获取聚合前的数据。
+> 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_SYSTEM, {RawData:true})` 获取聚合前的数据。
 
 
-## 标识
+##标识##
 
 SDB_SNAP_SYSTEM
 
-## 非协调节点字段信息
+##非协调节点字段信息##
 
 | 字段名               | 类型      |  描述                                                          |
 | -------------------- | --------- | -------------------------------------------------------------- |
@@ -54,7 +54,7 @@ SDB_SNAP_SYSTEM
 | Disk.FreeSpace       | int64  | 节点数据文件所在磁盘的空闲存储空间，单位为字节                               |
 
 
-## 协调节点字段信息
+##协调节点字段信息##
 
 | 字段名      | 类型   |  描述                            |
 | ----------- | ------ | -------------------------------- |
@@ -66,8 +66,8 @@ SDB_SNAP_SYSTEM
 | Memory.TotalRAM      | int64  | 操作系统的总内存空间，单位为字节        |
 | Memory.FreeRAM       | int64  | 操作系统的空闲内存空间，单位为字节                   |
 | Memory.AvailableRAM  | int64  | 操作系统的可用内存空间，单位为字节                    |
-| Memory.TotalSwap     | int64  | 交换分区的总空间，单位为字节    |
-| Memory.FreeSwap      | int64  | 操作系统的总交换空间，单位为字节  |
+| Memory.TotalSwap     | int64  | 操作系统的总交换空间，单位为字节                          |
+| Memory.FreeSwap      | int64  | 操作系统的空闲交换空间，单位为字节                        |
 | Memory.TotalVirtual  | int64  | 操作系统的总虚拟空间，单位为字节    |
 | Memory.FreeVirtual   | int64  | 操作系统的空闲虚拟空间，单位为字节  |
 | Disk.TotalSpace      | int64  | 节点数据文件所在磁盘的总存储空间，单位为字节<br>如果数据文件存储在多个磁盘，该字段值为所有磁盘的存储空间总和 |
@@ -77,114 +77,114 @@ SDB_SNAP_SYSTEM
 | ErrNodes.Flag     | int32     | 异常节点的[错误码][error_code_url]                     |
 | ErrNodes.ErrInfo  | bson      | 异常节点的错误信息                                     |
 
-## 示例
+##示例##
 
 - 通过非协调节点查看快照
 
-   ```lang-javascript
-   > db.snapshot( SDB_SNAP_SYSTEM )
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_SYSTEM)
+    ```
 
-   输出结果如下：
+    输出结果如下：
 
-   ```lang-json
-   {
-     "NodeName": "hostname1:11820",
-     "HostName": "hostname1",
-     "ServiceName": "11820",
-     "GroupName": "group1",
-     "IsPrimary": false,
-     "ServiceStatus": true,
-     "Status": "Normal",
-     "BeginLSN": {
-       "Offset": 0,
-       "Version": 1
-     },
-     "CurrentLSN": {
-       "Offset": 3764,
-       "Version": 1
-     },
-     "CommittedLSN": {
-       "Offset": 3764,
-       "Version": 1
-     },
-     "CompleteLSN": 3865,
-     "LSNQueSize": 0,
-     "TransInfo": {
-       "TotalCount": 0,
-       "BeginLSN": -1
-       },
-     "NodeID": [
-       1000,
-       1000
-     ],
-     "CPU": {
-       "User": 178552.74,
-       "Sys": 58392.44,
-       "Idle": 6400173.12,
-       "IOWait": 22336.26,
-       "Other": 7856.64
-     },
-     "Memory": {
-       "LoadPercent": 66,
-       "TotalRAM": 8370360320,
-       "FreeRAM": 162598912,
-       "AvailableRAM": 2795474944,
-       "TotalSwap": 16383401984,
-       "FreeSwap": 16046903296,
-       "TotalVirtual": 24753762304,
-       "FreeVirtual": 18842378240
-     },
-     "Disk": {
-       "Name":"/dev/sda1",
-       "DatabasePath": "/opt/sequoiadb/database/data/11820",
-       "LoadPercent": 78,
-       "TotalSpace": 40704466944,
-       "FreeSpace": 8615747584
-     }
-   }
-   ```
+    ```lang-json
+    {
+      "NodeName": "hostname1:11820",
+      "HostName": "hostname1",
+      "ServiceName": "11820",
+      "GroupName": "group1",
+      "IsPrimary": false,
+      "ServiceStatus": true,
+      "Status": "Normal",
+      "BeginLSN": {
+        "Offset": 0,
+        "Version": 1
+      },
+      "CurrentLSN": {
+        "Offset": 3764,
+        "Version": 1
+      },
+      "CommittedLSN": {
+        "Offset": 3764,
+        "Version": 1
+      },
+      "CompleteLSN": 3865,
+      "LSNQueSize": 0,
+      "TransInfo": {
+        "TotalCount": 0,
+        "BeginLSN": -1
+        },
+      "NodeID": [
+        1000,
+        1000
+      ],
+      "CPU": {
+        "User": 178552.74,
+        "Sys": 58392.44,
+        "Idle": 6400173.12,
+        "IOWait": 22336.26,
+        "Other": 7856.64
+      },
+      "Memory": {
+        "LoadPercent": 66,
+        "TotalRAM": 8370360320,
+        "FreeRAM": 162598912,
+        "AvailableRAM": 2795474944,
+        "TotalSwap": 16383401984,
+        "FreeSwap": 16046903296,
+        "TotalVirtual": 24753762304,
+        "FreeVirtual": 18842378240
+      },
+      "Disk": {
+        "Name":"/dev/sda1",
+        "DatabasePath": "/opt/sequoiadb/database/data/11820",
+        "LoadPercent": 78,
+        "TotalSpace": 40704466944,
+        "FreeSpace": 8615747584
+      }
+    }
+    ```
 
 - 通过协调节点查看快照
 
-   ```lang-javascript
-   > db.snapshot( SDB_SNAP_SYSTEM )
-   ```
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_SYSTEM)
+    ```
 
-   输出结果如下：
+    输出结果如下：
 
-   ```lang-json
-   {
-     "CPU": {
-       "User": 178552.74,
-       "Sys": 58392.44,
-       "Idle": 6400173.12,
-       "IOWait": 22336.26,
-       "Other": 7856.64
-     },
-     "Memory": {
-       "TotalRAM": 8370360320,
-       "FreeRAM": 162349056,
-       "AvailableRAM": 2795397120,
-       "TotalSwap": 16383401984,
-       "FreeSwap": 16046911488,
-       "TotalVirtual": 24753762304,
-       "FreeVirtual": 18842308608
-     },
-     "Disk": {
-       "TotalSpace": 338172772352,
-       "FreeSpace": 181331296256
-     },
-     "ErrNodes": [
-       {
-         "NodeName": "hostname1:11850",
-         "GroupName": "group2",
-         "Flag": -79,
-         "ErrInfo": {}
-       }
-     ]
-   }
-   ```
+    ```lang-json
+    {
+      "CPU": {
+        "User": 178552.74,
+        "Sys": 58392.44,
+        "Idle": 6400173.12,
+        "IOWait": 22336.26,
+        "Other": 7856.64
+      },
+      "Memory": {
+        "TotalRAM": 8370360320,
+        "FreeRAM": 162349056,
+        "AvailableRAM": 2795397120,
+        "TotalSwap": 16383401984,
+        "FreeSwap": 16046911488,
+        "TotalVirtual": 24753762304,
+        "FreeVirtual": 18842308608
+      },
+      "Disk": {
+        "TotalSpace": 338172772352,
+        "FreeSpace": 181331296256
+      },
+      "ErrNodes": [
+        {
+          "NodeName": "hostname1:11850",
+          "GroupName": "group2",
+          "Flag": -79,
+          "ErrInfo": {}
+        }
+      ]
+    }
+    ```
 
 [^_^]:
     本文使用到的所有链接及引用。
