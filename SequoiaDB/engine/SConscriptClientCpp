@@ -91,13 +91,13 @@ def merge(target, source = None, env = staticLibEnv):
     pureLib = dir + '/libstaticpuresdbcpp.a'
     mergeStaticLib = dir + '/libstaticsdbcpp.a'
     mergeStaticLibrary( mergeStaticLib, aix, ssllib_file, ssllib_file1, pureLib )
-    staticLibEnv.Install( '#/client/lib/', mergeStaticLib )
 
 if linux or aix:
     staticPureSdbCPPLib = staticLibEnv.StaticLibrary('staticpuresdbcpp', clientCPPLibFiles)
     dir = os.path.dirname(staticPureSdbCPPLib[0].get_abspath())
     staticLib = dir + '/libstaticsdbcpp.a'
-    staticLibEnv.AddPostAction(staticPureSdbCPPLib, Action(merge))
+    staticLibEnv.Command(target=staticLib, source=staticPureSdbCPPLib, action=Action(merge))
+    staticLibEnv.Install( '#/client/lib/', staticLib )
 elif windows:
     ""
     ## static library of cpp is unavailable. app may crash by using static library
