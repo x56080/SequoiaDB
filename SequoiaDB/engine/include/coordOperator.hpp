@@ -362,9 +362,6 @@ namespace engine
          void                 setReadOnly( BOOLEAN isReadOnly ) ;
 
       private:
-         void                 _finalize() ;
-
-      private:
          BOOLEAN              _isReadOnly ;
 
       protected:
