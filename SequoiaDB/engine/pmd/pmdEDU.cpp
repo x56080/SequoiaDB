@@ -258,15 +258,31 @@ namespace engine
    string _pmdEDUCB::toString() const
    {
       stringstream ss ;
-      ss << "ID: " << _eduID << ", Type: " << _eduType << "["
-         << getEDUName( _eduType ) << "], TID: " << _tid ;
 
-      if ( _pSession )
+      try
       {
-         ss << ", Session: " << _pSession->sessionName() ;
-      }
+         ss << "ID: " << _eduID << ", Type: " << _eduType << "["
+            << getEDUName( _eduType ) << "], TID: " << _tid ;
 
-      return ss.str() ;
+         if ( _pSession )
+         {
+            ss << ", Session: " << _pSession->sessionName() ;
+         }
+         return ss.str() ;
+      }
+      catch( std::exception &e )
+      {
+         try
+         {
+            ss.str( "" ) ;
+            ss << e.what() ;
+            return ss.str() ;
+         }
+         catch (...)
+         {
+            return "Out of memory" ;
+         }
+      }
    }
 
    const CHAR* _pmdEDUCB::getName () const
