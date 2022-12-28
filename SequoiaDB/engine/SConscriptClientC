@@ -85,12 +85,13 @@ def merge(target, source = None, env = staticLibEnv):
     pureLib = dir + '/libstaticpuresdbc.a'
     staticLib = dir + '/libstaticsdbc.a'
     mergeStaticLibrary(staticLib, aix, ssllib_file, ssllib_file1, pureLib)
-    staticLibEnv.Install( '#/client/lib/', staticLib )
 
 if linux or aix:
     staticPureSdbCLib = staticLibEnv.StaticLibrary('staticpuresdbc', clientCLibFiles)
     dir = os.path.dirname(staticPureSdbCLib[0].get_abspath())
-    staticLibEnv.AddPostAction(staticPureSdbCLib, Action(merge))
+    staticLib = dir + '/libstaticsdbc.a'
+    staticLibEnv.Command(target=staticLib, source=staticPureSdbCLib, action=Action(merge))
+    staticLibEnv.Install( '#/client/lib/', staticLib )
 elif windows:
     ""
     ## we are not going to issue static library, although there is no error.
