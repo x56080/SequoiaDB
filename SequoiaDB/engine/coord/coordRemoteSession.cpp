@@ -2113,23 +2113,7 @@ namespace engine
 
    _coordGroupSession::~_coordGroupSession()
    {
-      // Use finalize to avoid throwing exception in destructor.
-      finalize() ;
-   }
-
-   void _coordGroupSession::finalize()
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         release() ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s, rc: %d", e.what(), rc ) ;
-      }
+      release() ;
 
       _pSite      = NULL ;
       _pPropSite  = NULL ;

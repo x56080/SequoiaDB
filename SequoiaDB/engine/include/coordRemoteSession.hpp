@@ -420,8 +420,6 @@ namespace engine
                                  IRemoteSessionHandler *pHandle = NULL,
                                  IGroupSessionHandler *pGroupHandle = NULL ) ;
 
-         void              finalize() ;
-
          void              release() ;
 
          void              clear() ;

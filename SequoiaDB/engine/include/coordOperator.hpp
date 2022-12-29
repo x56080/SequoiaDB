@@ -363,9 +363,6 @@ namespace engine
          void                 setName( const string &name ) ;
 
       private:
-         void                 _finalize() ;
-
-      private:
          BOOLEAN              _isReadOnly ;
          string               _strName ;
 
