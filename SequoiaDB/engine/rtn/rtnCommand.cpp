@@ -5740,20 +5740,17 @@ error:
                // since may have new recycled items added after we drop all
                // items from CATALOG
                rc = job.dropAll( cb, TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to drop all recycle items, rc: %d", rc ) ;
             }
             else
             {
                // no need to check existence from CATALOG, since already dropped
                // from CATALOG first
                rc = job.dropItems( recycleItems, cb, FALSE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item, rc: %d",
-                            rc ) ;
             }
 
             // retry if there are recyle items are dropping in data
-            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ||
-                   SDB_LOCK_FAILED == rc ) )
+            if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ||
+                 SDB_LOCK_FAILED == rc )
             {
                rc = SDB_OK ;
                if ( retryCount < RTN_RECYCLE_MAX_RETRY )
