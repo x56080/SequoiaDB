@@ -7,31 +7,35 @@
 ******************************************************************************/
 testConf.clName = COMMCLNAME + "_csName_29396"
 testConf.skipStandAlone = true;
-
 main( test );
 
 function test( testPara )
 {
+   var coord = commGetGroups( db, true, "SYSCoord", true, false, true )[0][1];
+   var hostname = coord.HostName;
+   var svcname = coord.svcname;
+   var sdb = new Sdb( hostname, svcname );
+
    try
    {
       // updateconf
-      db.updateConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
+      sdb.updateConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
 
       //insert
       insertRecs( testPara.testCL );
 
       // get identifyID
       var source = "client_and_coord_session_29396";
-      db.setSessionAttr( { Source: source } );
-      var ret = db.list( SDB_LIST_SESSIONS, { $and: [{ Source: source }, { Type: "Agent" }] }, { TID: 1 } );
+      sdb.setSessionAttr( { Source: source } );
+      var ret = sdb.list( SDB_LIST_SESSIONS, { $and: [{ Source: source }, { Type: "Agent" }] }, { TID: 1 } );
       var tid = ret.current().toObj()["TID"];
-      var nodeID = commGetGroups( db, true, "SYSCoord", true, false, true )[0][1].NodeID;
+      var nodeID = coord.NodeID;
 
       var identifyIDHexStr = numToHexStr( tid, 8 ) + numToHexStr( nodeID, 4 );
       pattern = "0x" + identifyIDHexStr + ".*";
 
       // get queryID
-      var ret = db.snapshot(
+      var ret = sdb.snapshot(
       SDB_SNAP_QUERIES,
       new SdbSnapshotOption().cond( { QueryID: { $regex: pattern } } ).sort( { QueryID: -1 } )
       );
@@ -43,29 +47,30 @@ function test( testPara )
    }
    finally
    {
-      db.deleteConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
+      sdb.deleteConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
+      sdb.close();
    }
 }
 
 function numToHexStr( num, totalStrlen )
+{
+   var numHexStr = num.toString(16);
+   if ( totalStrlen < numHexStr.length )
    {
-      var numHexStr = num.toString(16);
-      if ( totalStrlen < numHexStr.length )
-      {
-         throw new Error( "Invalid total str len" );
-      }
-      else if ( totalStrlen == numHexStr.length )
-      {
-         return numHexStr;
-      }
-      else
-      {
-         var ret = "";
-         for ( var i = 0; i < totalStrlen - numHexStr.length; i++ )
-         {
-            ret += "0";
-         }
-         ret += numHexStr;
-         return ret;
-      }
+      throw new Error( "Invalid total str len" );
    }
+   else if ( totalStrlen == numHexStr.length )
+   {
+      return numHexStr;
+   }
+   else
+   {
+      var ret = "";
+      for ( var i = 0; i < totalStrlen - numHexStr.length; i++ )
+      {
+         ret += "0";
+      }
+      ret += numHexStr;
+      return ret;
+   }
+}
