@@ -280,7 +280,7 @@ namespace engine
          }
          catch (...)
          {
-            return "Out of memory" ;
+            return "Out-of-memory" ;
          }
       }
    }
