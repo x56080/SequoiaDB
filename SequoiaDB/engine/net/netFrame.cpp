@@ -2253,13 +2253,9 @@ namespace engine
       BOOLEAN isNotSysInfoMsg =
          ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength ) ;
 
-      if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) )
+      convertor = eh->getInMsgConvertor() ;
+      if ( isNotSysInfoMsg && ( NULL != convertor ) )
       {
-         // The convertor should have been enabled in the net event handler, if
-         // any non sysinfo message has been received.
-         convertor = eh->getInMsgConvertor() ;
-         SDB_ASSERT( convertor, "In message is invalid" ) ;
-
          convertor->reset( FALSE ) ;
          rc = convertor->push( (const CHAR *)pMsg, pMsg->messageLength ) ;
          if ( SDB_OK != rc )
