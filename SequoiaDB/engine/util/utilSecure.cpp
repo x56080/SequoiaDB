@@ -73,11 +73,11 @@ ossPoolString utilSecureStr( const CHAR* data, INT32 size )
       try
       {
          ss << e.what() ;
-         return ss.str();
+         return ss.str() ;
       }
       catch (...)
       {
-         return "Out of memory";
+         return "Out-of-memory" ;
       }
    }
 }
