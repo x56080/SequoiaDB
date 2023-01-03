@@ -415,33 +415,33 @@ namespace bson {
            }
            else
            {
-              return "{}";
+              return "{}" ;
            }
         }
-        StringBuilder s;
+        StringBuilder s ;
 
         if ( !noThrow )
         {
-           toString(s, isArray, full);
-           return s.str();
+           toString(s, isArray, full) ;
+           return s.str() ;
         }
         else
         {
            try
            {
-              toString(s, isArray, full);
-              return s.str();
+              toString(s, isArray, full) ;
+              return s.str() ;
            }
            catch ( std::exception &e )
            {
               try
               {
                  s << e.what() ;
-                 return s.str();
+                 return s.str() ;
               }
               catch (...)
               {
-                 return "Out of memory";
+                 return "Out-of-memory" ;
               }
            }
         }
@@ -458,33 +458,33 @@ namespace bson {
            }
            else
            {
-              return "{}";
+              return "{}" ;
            }
         }
-        StringBuilder s;
+        StringBuilder s ;
 
         if ( !noThrow )
         {
-           toString(s, isArray, full);
-           return s.poolStr();
+           toString(s, isArray, full) ;
+           return s.poolStr() ;
         }
         else
         {
            try
            {
-              toString(s, isArray, full);
-              return s.poolStr();
+              toString(s, isArray, full) ;
+              return s.poolStr() ;
            }
            catch ( std::exception &e )
            {
               try
               {
                  s << e.what() ;
-                 return s.poolStr();
+                 return s.poolStr() ;
               }
               catch (...)
               {
-                 return "Out of memory";
+                 return "Out-of-memory" ;
               }
            }
         }

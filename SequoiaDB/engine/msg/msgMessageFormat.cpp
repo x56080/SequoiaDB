@@ -86,7 +86,21 @@ const CHAR *routeID2String( const MsgRouteID &routeID,
 ossPoolString routeID2String( const MsgRouteID &routeID )
 {
    CHAR buffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
-   return routeID2String( routeID, buffer, MSG_ROUTEID_STRING_MAX_SIZE ) ;
+   try
+   {
+      return routeID2String( routeID, buffer, MSG_ROUTEID_STRING_MAX_SIZE ) ;
+   }
+   catch( std::exception &e )
+   {
+      try
+      {
+         return e.what() ;
+      }
+      catch (...)
+      {
+         return "Out-of-memory" ;
+      }
+   }
 }
 
 ossPoolString routeID2String( UINT64 nodeID )

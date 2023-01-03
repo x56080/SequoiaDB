@@ -67,7 +67,7 @@ namespace bson {
         {
             try
             {
-                return str();
+                return str() ;
             }
             catch ( std::exception &e )
             {
@@ -75,11 +75,11 @@ namespace bson {
                 {
                     StringBuilder s ;
                     s << e.what() ;
-                    return s.str();
+                    return s.str() ;
                 }
                 catch (...)
                 {
-                    return "Out of memory" ;
+                    return "Out-of-memory" ;
                 }
             }
         }
