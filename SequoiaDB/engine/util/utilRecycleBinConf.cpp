@@ -239,7 +239,7 @@ namespace engine
             else
             {
                rc = SDB_OPTION_NOT_SUPPORT ;
-               PD_LOG( PDERROR, "Invalid recycle bin option[%s]", fieldName ) ;
+               PD_LOG_MSG( PDERROR, "Invalid recycle bin option[%s]", fieldName ) ;
                goto error ;
             }
          }

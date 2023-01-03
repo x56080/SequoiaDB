@@ -112,7 +112,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to update all data group, "
                    "rc: %d", rc ) ;
 
-      rc = executeOnDataGroup( pMsg, cb, groupList, TRUE ) ;
+      rc = executeOnDataGroup( pMsg, cb, groupList, TRUE, NULL, NULL, NULL, buf ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to execute %s on data nodes, rc: %d",
                    getName(), rc ) ;
 
@@ -248,12 +248,12 @@ namespace engine
                               "rc: %d", _recycleItemName, rc ) ;
 
             BSONElement e1  = _options.getField(  FIELD_NAME_RECURSIVE ) ;
-            PD_CHECK( Bool == e1.type() || EOO == e1.type(), SDB_INVALIDARG, 
+            PD_CHECK( Bool == e1.type() || EOO == e1.type(), SDB_INVALIDARG,
                       error, PDERROR, "Failed to parse message, failed to "
                       "get field [%s] from options", FIELD_NAME_RECURSIVE ) ;
          }
          BSONElement e2 = _options.getField( FIELD_NAME_ASYNC ) ;
-         PD_CHECK( Bool == e2.type() || EOO == e2.type(), SDB_INVALIDARG, 
+         PD_CHECK( Bool == e2.type() || EOO == e2.type(), SDB_INVALIDARG,
                    error, PDERROR, "Failed to parse message, failed to "
                    "get field [%s] from options", FIELD_NAME_ASYNC ) ;
       }
