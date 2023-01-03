@@ -2,7 +2,7 @@
  * @Description   : seqDB-29719:修改statmcvlimit参数查看数据分布
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.12.19
- * @LastEditTime  : 2022.12.27
+ * @LastEditTime  : 2023.01.03
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -17,6 +17,7 @@ function test ()
    var subTableNum = 200;
    var totalRecords = 600000;
    var perSubRecords = totalRecords / subTableNum;
+   var groups = commGetGroupsNum( db );
 
    commDropCS( db, csName );
    // 创建主表
@@ -75,7 +76,7 @@ function test ()
       "SampleNum": 600
    } );
 
-   var SampleRecordsInfo = 600 * 3 * subTableNum;
+   var SampleRecordsInfo = 600 * groups * subTableNum;
    var values = [{ "b": 1 }, { "b": 2 }, { "b": 3 }, { "b": 4 }];
 
    var actResult1 = maincl.getIndexStat( indexName, true ).toObj();
