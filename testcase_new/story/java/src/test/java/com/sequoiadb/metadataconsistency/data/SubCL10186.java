@@ -22,7 +22,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
  * TestLink: seqDB-10186: concurrency[attachCL]
- * 
+ * seqDB-29793:同时自动清理回收站中CL项目和所属CS项目(用例测试点在此用例可以覆盖)
  * @author xiaoni huang init
  * @Date 2016.10.11
  */
