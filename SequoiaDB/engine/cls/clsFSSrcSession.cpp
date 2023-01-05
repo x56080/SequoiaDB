@@ -2156,6 +2156,13 @@ namespace engine
          PD_LOG( PDWARNING, "Session[%s] not ready: The self node is not ready for full "
                  "synchronization ", sessionName() ) ;
       }
+      /// 7. the node LSN is invalid
+      else if ( !pmdIsPrimary() && pmdGetKRCB()->getDPSCB()->getCurrentLsn().invalid() )
+      {
+         rc = SDB_DPS_INVALID_LSN ;
+         PD_LOG( PDWARNING, "Session[%s] not ready: The self node LSN is invalid ",
+                 sessionName() ) ;
+      }
 
       return rc ;
    }
