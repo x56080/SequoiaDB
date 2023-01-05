@@ -96,9 +96,7 @@ public class TestResidualData extends S3TestBase {
     private void residualMetaDataWriteToLocalFile( CollectionSpace cs,
             List< DBCollection > clList ) throws IOException {
         DBCursor cursor = null;
-        SimpleDateFormat sdf = new SimpleDateFormat( "yyyy" );
-        Date date = new Date();
-        String s3SysDataRegionSpaceName = "S3_SYS_Data_" + sdf.format( date );
+        String s3SysDataRegionSpaceName = "S3_SYS_Data_";
         FileOutputStream fileOutputStream = new FileOutputStream(
                 new File( residualdataFilePath ), true );
         try {
