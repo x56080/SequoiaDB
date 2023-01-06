@@ -20,8 +20,8 @@ split 和 merge 操作步骤和场景：
       CURSUB :   当前脚本所处的是在 SUB1 还是 SUB2（注意，该参数非常重要）
       ACTIVE :   当前子网是否为激活状态。如果取 false，则在 split 后，当前子网的集群为只读状态。
       NEEDREELECT：执行 init 动作时是否重新选主，在 split 和 merge 场景中 init 时可能需要让主节点在主数据中心的几个主机上，所以需要设置为 true。
-      NEEDBROADCASTINITINFO: 是否将 init 文件分发到集群的所有主机上。在 split 和 merge 场景中，需要分别去主备数据节点做 init 操作（除了保存集群信息，还有设置节点权值重新选举等动作），所以一般设置为 false 即可。
-   4、分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh init.sh '，进行初始化（该初始化主要是保存当前集群所有的组信息，用于 merge 时恢复集群）
+      NEEDBROADCASTINITINFO: 是否将 init 文件分发到集群的所有主机上。在 split 和 merge 场景中，需要分别在 SUB1 和 SUB2 中做 init 操作（除了保存集群信息，还有设置节点权值重新选举等动作），所以一般设置为 false 即可。
+   4、分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh init.sh '，进行初始化；
 
    5、当 SUB1 和 SUB2 出现了网络分离，相互无法访问时，此时可以分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh split.sh ' 进行集群分离， 让 SUB1 和 SUB2 分离成独立集群，此时 ACTIVE 配置
 为 true 的子网可以对外提供读写操作，ACTIVE 配置为 false 的子网只提供读操作；
@@ -43,8 +43,8 @@ detachGroupNode 和 attachGroupNode 操作步骤和场景：
       NEEDREELECT：执行 init 动作时是否重新选主，在 detachGroupNode 和 attachGroupNode 的场景中，在初始化中一般不需要重新选主，设置为 false 即可。
       NEEDBROADCASTINITINFO: 是否将 init 文件分发到集群的所有主机上，在 detachGroupNode 和 attachGroupNode 的场景中，使用默认值（true）即可,这样无需到每台机器上重复做 init 操作。
 
-   3、在准备做 detachGroupNode 和 attachGroupNode 的机器上的shell下执行 ' sh init.sh '，进行初始化。
+   3、选择一台已修改 cluster_opr.js 配置参数的机器执行 ' sh init.sh ' 进行初始化，保存集群信息；
    
-   4、当集群中的部分节点发生故障导致复制组不可用时，选一台存在 datacenter_init.info 的机器，执行 ' sh detachGroupNode '剔除不可用节点。
+   4、当集群中的部分节点发生故障导致复制组不可用时，选一台存在 datacenter_init.info 的机器，执行 ' sh detachGroupNode '剔除不可用节点；
    
    5、当故障节点恢复后，选一台存在 datacenter_init.info 的机器，执行 ' sh attachGroupNode '将节点重新加入对应复制组中。
