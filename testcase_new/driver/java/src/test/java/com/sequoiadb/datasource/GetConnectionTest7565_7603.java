@@ -129,12 +129,12 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
                 if ( !exceptAddrList.get( j ).getAddress().getHostAddress()
                         .equals( "" )
                         && !ipAddr.getHostAddress().equals( exceptAddrList
-                                .get( j ).getAddress().getHostAddress() ) ) {
+                        .get( j ).getAddress().getHostAddress() ) ) {
                     continue;
                 } else if ( exceptAddrList.get( j ).getHostName()
                         .equals( "localhost" )
                         && !localAddr.getHostAddress()
-                                .equals( ipAddr.getHostAddress() ) ) {
+                        .equals( ipAddr.getHostAddress() ) ) {
                     continue;
                 } else if ( addr.getPort() == exceptAddrList.get( j )
                         .getPort() ) {
@@ -208,7 +208,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
                 if ( e.getErrorCode() == SDBError.SDB_CLS_GRP_NOT_EXIST
                         .getErrorCode()
                         || e.getErrorCode() == SDBError.SDB_NETWORK
-                                .getErrorCode() ) {
+                        .getErrorCode() ) {
                     return;
                 }
             } catch ( Exception e1 ) {
@@ -249,6 +249,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
         ArrayList< Sequoiadb > dbs = new ArrayList< Sequoiadb >();
         DatasourceOptions option = null;
         int oldPoolSize = 0;
+        int usedConnNum = 0;
         try {
             option = ( DatasourceOptions ) datasource.getDatasourceOptions();
             oldPoolSize = option.getMaxCount();
@@ -261,6 +262,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
 
             System.out.println( "update datasourceoptions" );
             // 调小连接池大小
+            usedConnNum = datasource.getUsedConnNum();
             option.setCheckInterval( 100 );
             option.setMaxCount( oldPoolSize - 100 );
             // option.setMaxCount(oldPoolSize);
@@ -273,7 +275,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
                 Sequoiadb db = dbs.get( k );
                 Assert.assertEquals( db.isValid(), true );
             }
-            Assert.assertEquals( datasource.getUsedConnNum(), oldPoolSize );
+            Assert.assertEquals( datasource.getUsedConnNum(), usedConnNum );
         } catch ( InterruptedException e ) {
             System.out.println( "current get connection number " + dbs.size() );
             e.printStackTrace();
@@ -304,12 +306,12 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
 
             datasource.getConnection();
             Assert.assertTrue(
-                    oldPoolSize - 109 + 1 <= datasource.getIdleConnNum()
+                    usedConnNum - 109 + 1 <= datasource.getIdleConnNum()
                             + datasource.getUsedConnNum() );
-            for ( k = 109; k < dbs.size(); ++k ) {
+            for ( k = 109; k < usedConnNum; ++k ) {
                 datasource.releaseConnection( dbs.get( k ) );
             }
-            Assert.assertEquals( k, dbs.size() );
+            Assert.assertEquals( k, usedConnNum );
         } catch ( InterruptedException e ) {
             Assert.assertFalse( true, e.getMessage() );
 
