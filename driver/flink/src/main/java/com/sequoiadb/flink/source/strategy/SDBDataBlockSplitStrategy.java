@@ -238,7 +238,8 @@ public class SDBDataBlockSplitStrategy implements SDBSplitStrategy {
             queryMeta = RetryUtil.retryWhenRuntimeException(
                     () -> getQueryMeta(fUrl, shardingInfo.csName, shardingInfo.clName, sourceOptions),
                     MAX_RETRY_TIMES,
-                    INITIAL_RETRY_DURATION);
+                    INITIAL_RETRY_DURATION,
+                    false);
         }
 
         if (queryMeta != null) {

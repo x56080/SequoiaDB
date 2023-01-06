@@ -39,7 +39,28 @@ public class RetryUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(RetryUtil.class);
 
-    public static <T> T retryWhenRuntimeException(RetryContent<T> content, long maxRetryTimes, long duration) {
+    /**
+     * max retry times
+     */
+    public static final int DEFAULT_MAX_RETRY_TIMES = 3;
+
+    /**
+     * default retry duration (ms)
+     */
+    public static final int DEFAULT_RETRY_DURATION = 1000;
+
+    /**
+     * Retry the given task {@link RetryContent} by maxRetryTimes and duration
+     *
+     * @param content given task need to retry
+     * @param maxRetryTimes max retry times
+     * @param duration wait time after each retry
+     * @param throwsIfFailed whether throws exception when all retries are failed
+     * @return
+     * @param <T>
+     */
+    public static <T> T retryWhenRuntimeException(
+            RetryContent<T> content, long maxRetryTimes, long duration, boolean throwsIfFailed) {
         int times = 0;
         while (times < maxRetryTimes) {
             try {
@@ -50,7 +71,14 @@ public class RetryUtil {
                     TimeUnit.MILLISECONDS.sleep(duration);
                 } catch (InterruptedException ignored) {}
 
-                LOG.info("{}, retry {} time(s), duration {} ms.", ex.getMessage(), times, duration);
+                LOG.warn("{}, retry {} time(s), duration {} ms.",
+                        ex.getMessage(),
+                        times,
+                        duration);
+
+                if (times == maxRetryTimes && throwsIfFailed) {
+                    throw ex;
+                }
             }
         }
         return null;
