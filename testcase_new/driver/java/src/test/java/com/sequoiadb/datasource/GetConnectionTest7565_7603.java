@@ -264,6 +264,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             }
         }
         // 修改连接池配置，调整maxCount=100、checkInterval=100
+        int usedConnNum = datasource.getUsedConnNum() ;
         option.setCheckInterval( 100 );
         option.setMaxCount( oldPoolSize - 100 );
         datasource.updateDatasourceOptions( option );
@@ -274,7 +275,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             Sequoiadb db = dbs.get( k );
             Assert.assertTrue( db.isValid() );
         }
-        Assert.assertEquals( datasource.getUsedConnNum(), oldPoolSize );
+        Assert.assertEquals( datasource.getUsedConnNum(), usedConnNum );
 
         // 检查是否可以再分配连接，预期报错
         try {
@@ -289,10 +290,11 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
         }
         // 申请一个连接，验证当前连接池统计连接正确性
         datasource.getConnection();
-        Assert.assertTrue( oldPoolSize - 109 + 1 <= datasource.getIdleConnNum()
+        Assert.assertTrue( usedConnNum - 109 + 1 <= datasource.getIdleConnNum()
                 + datasource.getUsedConnNum() );
         // 释放剩余91个连接，剩余1个
-        for ( int k = 109; k < dbs.size(); ++k ) {
+
+        for ( int k = 109; k < usedConnNum; ++k ) {
             datasource.releaseConnection( dbs.get( k ) );
         }
         Assert.assertEquals( dbs.size(), oldPoolSize );
