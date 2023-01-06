@@ -105,7 +105,9 @@ public class SDBCollectionProvider implements SDBClientProvider {
 
             // set up source info in session attr, ignore failure and just
             // print warning log when throws exception.
-            SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(sdb, sinkOptions.getSourceInfo());
+            if (sinkOptions != null) {
+                SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(sdb, sinkOptions.getSourceInfo());
+            }
 
             try {
                 /* Because it is a new feature in 3.4.5
@@ -123,6 +125,13 @@ public class SDBCollectionProvider implements SDBClientProvider {
             }
         }
         return sdb;
+    }
+
+    /**
+     * setup source info by setter
+     */
+    public void setupSourceInfo(String sourceInfo) {
+        SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(getClient(), sourceInfo);
     }
 
     @Override

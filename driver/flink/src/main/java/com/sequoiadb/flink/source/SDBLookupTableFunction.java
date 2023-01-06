@@ -20,6 +20,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.flink.common.client.SDBClientProvider;
 import com.sequoiadb.flink.common.client.SDBCollectionProvider;
+import com.sequoiadb.flink.common.util.SDBInfoUtil;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import org.apache.flink.table.annotation.FunctionHint;
@@ -79,7 +80,6 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
                 .withCollectionSpace(sourceOptions.getCollectionSpace())
                 .withCollection(sourceOptions.getCollection())
                 .build();
-
     }
 
 
@@ -92,6 +92,8 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
      */
     @Override
     public void open(FunctionContext context) throws Exception {
+        sdbCollectionProvider.setupSourceInfo(
+                SDBInfoUtil.generateSourceInfo(context.getMetricGroup()));
 
         cl = sdbCollectionProvider.getCollection();
         // get sdb client to obtain indexes
