@@ -40,6 +40,7 @@
 	        <package name="com.sequoiadb.driveconnection.serial"/>
             <package name="com.sequoiadb.index.serial"/>
             <package name="com.sequoiadb.bsontypes.serial"/>
+            <package name="com.sequoiadb.recyclebin"/>
         </packages>
     </test>
 </suite>
