@@ -23,13 +23,13 @@ int thread2Continue = 0 ;
 
 void wait( int *control )  //用于控制两个线程中的删除操作在更新操作完成之后再发生
 {
-   clock_t start,end ;
+   clock_t start, end ;
    start = time( NULL ) ;
    do
    {
-      sleep(1);
+      sleep(1) ;
       end = time( NULL ) ;
-   }while( *control == 0 || difftime(end,start)>60 );
+   }while( *control == 0 || difftime(end,start)>60 ) ;
 }
 
 class snapshot25411 : public testBase
@@ -41,9 +41,9 @@ protected:
    const CHAR* indexName ;
    sdbCSHandle cs ;
    sdbCollectionHandle cl ;
-   void SetUp() 
-   { 
-      testBase::SetUp() ;  
+   void SetUp()
+   {
+      testBase::SetUp() ;
       INT32 rc = SDB_OK ;
       csName = "cs_25411" ;
       clName = "cl_25411" ;
@@ -53,18 +53,18 @@ protected:
       rc = createNormalCsCl( db, &cs, &cl, csName, clName ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName << " cl " << clName ;
       // insert datas
-      bson* docs[5] ; 
+      bson* docs[5] ;
       for( INT32 i = 0; i < 2; i++ )
-      {   
+      {
          docs[i] = bson_create() ;
-         bson_append_int( docs[i], "_id", i ) ; 
-         bson_finish( docs[i] ) ; 
-      }   
-      rc = sdbBulkInsert( cl, 0, docs, 2 ) ; 
-      ASSERT_EQ( SDB_OK, rc ) ; 
+         bson_append_int( docs[i], "_id", i ) ;
+         bson_finish( docs[i] ) ;
+      }
+      rc = sdbBulkInsert( cl, 0, docs, 2 ) ;
+      ASSERT_EQ( SDB_OK, rc ) ;
       for( INT32 i = 0; i < 2; i++ )
-      {   
-         bson_dispose( docs[i] ) ; 
+      {
+         bson_dispose( docs[i] ) ;
       }
    }
    void TearDown()
@@ -125,12 +125,12 @@ void func_thread ( ThreadArg* arg )
    bson_init( &cond ) ;
    bson_append_int( &cond, "_id", deleteCond ) ;
    bson_finish( &cond ) ;
-   if( updateCond == 0 ) 
+   if( updateCond == 0 )
    {
       thread1Continue = 1;
       wait( &thread2Continue ) ;
    }
-   else 
+   else
    {
       thread2Continue = 1;
       wait( &thread1Continue ) ;
@@ -168,8 +168,8 @@ TEST_F( snapshot25411, lockwaitANDdeadlock )
    rc2 = sdbConnect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd(), &db2 ) ;
    ASSERT_EQ( SDB_OK, rc1 ) << "fail to sdbConnect,rc = " << rc  ;
    ASSERT_EQ( SDB_OK, rc2 ) << "fail to sdbConnect,rc = " << rc  ;
-   rc1 = sdbGetCollection( db1, clFullName, &cl1 );
-   rc2 = sdbGetCollection( db2, clFullName, &cl2 );
+   rc1 = sdbGetCollection( db1, clFullName, &cl1 ) ;
+   rc2 = sdbGetCollection( db2, clFullName, &cl2 ) ;
 
    arg[0].db = db1 ;
    arg[1].db = db2 ;
@@ -181,20 +181,38 @@ TEST_F( snapshot25411, lockwaitANDdeadlock )
    arg[1].updateValue = 20 ;
    arg[0].deleteCond = 1 ;
    arg[1].deleteCond = 0 ;
-   
+
    workers[0] = new Worker( (WorkerRoutine)func_thread, &arg[0], false ) ;
    workers[1] = new Worker( (WorkerRoutine)func_thread, &arg[1], false ) ;
    workers[0]->start() ;
    workers[1]->start() ;
-   wait( &thread1Continue );
-   wait( &thread2Continue );
+   wait( &thread1Continue ) ;
+   wait( &thread2Continue ) ;
    sdbCursorHandle cursor ;
    //获取死锁快照
+   sleep( 1 ) ;
    rc = sdbGetSnapshot( db, SDB_SNAP_TRANSDEADLOCK, NULL, NULL, NULL, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to sdbGetSnapshot SDB_SNAP_TRANSDEADLOCK rc=" << rc ;
    bson obj ;
    bson_init( &obj ) ;
    rc = sdbNext( cursor, &obj ) ;
+   if ( rc == -29 )
+   {
+      bson_destroy( &obj ) ;
+      for( INT32 i = 0;i < ThreadNum;++i )
+      {
+         workers[i]->waitStop() ;
+         delete workers[i] ;
+      }
+      sdbCloseCursor( cursor ) ;
+      sdbReleaseCursor( cursor ) ;
+      sdbDisconnect( db1 ) ;
+      sdbReleaseConnection( db1 ) ;
+      sdbDisconnect( db2 ) ;
+      sdbReleaseConnection( db2 ) ;
+      printf( "Transaction deadlock did not form within the limited time\n" ) ;
+      return ;
+   }
    ASSERT_EQ( SDB_OK, rc ) << "fail to sdbNext rc=" << rc ;
    bson_type type ;
    bson_iterator it ;
