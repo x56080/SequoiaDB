@@ -441,7 +441,8 @@ namespace engine
                            INT32 rootLen,
                            BSONElement &e,
                            Builder &b,
-                           SINT32 *modifierIndex ) ;
+                           SINT32 *modifierIndex,
+                           BSONObj currentObj = BSONObj() ) ;
 
       // when requested update want to change something that not exist in
       // original
@@ -475,7 +476,8 @@ namespace engine
                            Builder &b,
                            BSONObjIteratorSorted &es,
                            SINT32 *modifierIndex,
-                           BOOLEAN hasCreateNewRoot ) ;
+                           BOOLEAN hasCreateNewRoot,
+                           BSONObj currentObj = BSONObj() ) ;
 
       template<class Builder>
       INT32 _buildNewObjReplace( Builder &b, BSONObjIteratorSorted &es ) ;
