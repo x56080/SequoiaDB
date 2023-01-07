@@ -3120,7 +3120,8 @@ namespace engine
                                       INT32 rootLen,
                                       BSONElement &e,
                                       Builder &b,
-                                      SINT32 *modifierIndex )
+                                      SINT32 *modifierIndex,
+                                      BSONObj currentObj )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF__ALYCHG ) ;
@@ -3187,6 +3188,14 @@ namespace engine
          newNameStr.append( *ppRoot, pos ) ;
          newNameStr.append( me->_toModify.valuestr(),
                             ossStrlen( me->_toModify.valuestr() ) ) ;
+
+         if ( currentObj.hasField( me->_toModify.valuestr() ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Cannot rename field name [%s] to [%s] as it already exists, "
+                        "rc: %d", *ppRoot, me->_toModify.valuestr(), rc ) ;
+            goto done ;
+         }
 
          ADD_CHG_ELEMENT_AS ( _srcChgBuilder, e, *ppRoot, "$set" ) ;
          ADD_CHG_UNSET_FIELD ( _srcChgBuilder, newNameStr.str() ) ;
@@ -3286,7 +3295,8 @@ namespace engine
                                       Builder &b,
                                       BSONObjIteratorSorted &es,
                                       SINT32 *modifierIndex,
-                                      BOOLEAN hasCreateNewRoot )
+                                      BOOLEAN hasCreateNewRoot,
+                                      BSONObj currentObj )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF__BLDNEWOBJ ) ;
@@ -3414,7 +3424,7 @@ namespace engine
                // modifierIndex is the current modifier we are working on
                rc = _buildNewObj ( ppRoot, rootBufLen, newRootLen,
                                    bb, bis, modifierIndex,
-                                   hasCreateNewRoot ) ;
+                                   hasCreateNewRoot, e.Obj() ) ;
                if ( rc )
                {
                   PD_LOG_MSG ( PDERROR, "Failed to build object: %s, rc: %d",
@@ -3492,7 +3502,7 @@ namespace engine
             try
             {
                rc = _applyChange ( ppRoot, rootBufLen, newRootLen, e, b,
-                                   modifierIndex ) ;
+                                   modifierIndex, currentObj ) ;
             }
             catch( std::exception &e )
             {
@@ -3734,7 +3744,7 @@ namespace engine
       // when this call returns SDB_OK, we should call builder.obj() to create
       // BSONObject from the builder.
       rc = _buildNewObj ( &pBuffer, bufferSize, 0, builder, es,
-                          &modifierIndex, FALSE ) ;
+                          &modifierIndex, FALSE, _sourceRecord ) ;
       if ( rc )
       {
          PD_LOG_MSG ( PDERROR, "Failed to modify target, rc: %d", rc ) ;
