@@ -3740,6 +3740,7 @@ namespace engine
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
       DPS_TRANS_ID transID = _pEDUCB->getTransID() ;
+      DPS_LSN_OFFSET preTransLsn = _pEDUCB->getCurTransLsn() ;
 
       stpLogicalTimeUS preCommitTime ;
 
@@ -3805,20 +3806,27 @@ namespace engine
          }
       }
 
-      dpsTransIDToString( eduCB()->getTransID(),
+      dpsTransIDToString( _pEDUCB->getTransID(),
                           tmpID, DPS_TRANS_STR_LEN ) ;
-      dpsTransIDAttrToString( eduCB()->getTransID(),
+      dpsTransIDAttrToString( _pEDUCB->getTransID(),
                               tmpAttr, DPS_TRANS_STR_LEN ) ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMITPRE_REQ,
+      MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), MSG_BS_TRANS_COMMITPRE_REQ,
                           "TransactionID: %s(%s)", tmpID, tmpAttr ) ;
 
-      rc = _calculateW( &replSize, NULL, w ) ;
-      if ( SDB_OK != rc )
+      if ( DPS_INVALID_LSN_OFFSET == preTransLsn )
       {
-         PD_LOG( PDERROR, "Failed to calculate w, rc: %d", rc ) ;
-         goto error ;
+         w = 1 ;
+      }
+      else
+      {
+         rc = _calculateW( &replSize, NULL, w ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to calculate w, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
       rc = rtnTransPreCommit( _pEDUCB,
