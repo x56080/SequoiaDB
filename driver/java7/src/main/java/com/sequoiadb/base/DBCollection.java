@@ -1060,9 +1060,9 @@ public class DBCollection {
      *                   then get the data and time information, default to be false. e.g. {Run: true}
      *                   <li>Detail: Whether return detail info, such as coord, data and context information,
      *                   default to be false. e.g. {Detail: true}
-     *                   <li>Location: Filter return info, need a BSONObject as value, only support "GroupID"
-     *                   and "GroupName" as the BSONObject key, if Location options is explicitly set, the Detail
-     *                   options will automatically set to be true, default to be null. e.g. {Location: {GroupName: "group1"}}
+     *                   <li>CMDLocation: Filter return info, need a BSONObject as value, only support "GroupID"
+     *                   and "GroupName" as the BSONObject key, if CMDLocation options is explicitly set, the Detail
+     *                   options will automatically set to be true, default to be null. e.g. {CMDLocation: {GroupName: "group1"}}
      *                   </ul>
      * @return a DBCursor instance of the result
      * @throws BaseException If error happens.
