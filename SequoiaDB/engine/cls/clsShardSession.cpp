@@ -2834,6 +2834,9 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
+      DPS_TRANS_ID curTransID = _pEDUCB->getTransID() ;
+      DPS_LSN_OFFSET preTransLsn = _pEDUCB->getCurTransLsn() ;
+
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;
 
@@ -2842,26 +2845,33 @@ namespace engine
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
-      if ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID )
+      if ( DPS_INVALID_TRANS_ID == curTransID )
       {
          rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error ;
       }
 
-      dpsTransIDToString( eduCB()->getTransID(),
+      dpsTransIDToString( curTransID,
                           tmpID, DPS_TRANS_STR_LEN ) ;
-      dpsTransIDAttrToString( eduCB()->getTransID(),
+      dpsTransIDAttrToString( curTransID,
                               tmpAttr, DPS_TRANS_STR_LEN ) ;
 
       // add last op info
-      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMITPRE_REQ,
+      MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), MSG_BS_TRANS_COMMITPRE_REQ,
                           "TransactionID: %s(%s)", tmpID, tmpAttr ) ;
 
-      rc = _calculateW( &replSize, NULL, w ) ;
-      if ( SDB_OK != rc )
+      if ( DPS_INVALID_LSN_OFFSET == preTransLsn )
       {
-         PD_LOG( PDERROR, "Failed to calculate w, rc: %d", rc ) ;
-         goto error ;
+         w = 1 ;
+      }
+      else
+      {
+         rc = _calculateW( &replSize, NULL, w ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to calculate w, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
       rc = rtnTransPreCommit( _pEDUCB, pCommitPreMsg->nodeNum,
