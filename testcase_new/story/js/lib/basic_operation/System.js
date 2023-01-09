@@ -1,99 +1,102 @@
-var tmpSystem = {
-   _getInfo: System.prototype._getInfo,
-   addAHostMap: System.prototype.addAHostMap,
-   addGroup: System.prototype.addGroup,
-   addUser: System.prototype.addUser,
-   buildTrusty: System.prototype.buildTrusty,
-   delAHostMap: System.prototype.delAHostMap,
-   delGroup: System.prototype.delGroup,
-   delUser: System.prototype.delUser,
-   getAHostMap: System.prototype.getAHostMap,
-   getCpuInfo: System.prototype.getCpuInfo,
-   getCurrentUser: System.prototype.getCurrentUser,
-   getDiskInfo: System.prototype.getDiskInfo,
-   getEWD: System.prototype.getEWD,
-   getHostName: System.prototype.getHostName,
-   getHostsMap: System.prototype.getHostsMap,
-   getInfo: System.prototype.getInfo,
-   getIpTablesInfo: System.prototype.getIpTablesInfo,
-   getMemInfo: System.prototype.getMemInfo,
-   getNetcardInfo: System.prototype.getNetcardInfo,
-   getPID: System.prototype.getPID,
-   getProcUlimitConfigs: System.prototype.getProcUlimitConfigs,
-   getReleaseInfo: System.prototype.getReleaseInfo,
-   getSystemConfigs: System.prototype.getSystemConfigs,
-   getTID: System.prototype.getTID,
-   getUserEnv: System.prototype.getUserEnv,
-   help: System.prototype.help,
-   isGroupExist: System.prototype.isGroupExist,
-   isProcExist: System.prototype.isProcExist,
-   isUserExist: System.prototype.isUserExist,
-   killProcess: System.prototype.killProcess,
-   listAllUsers: System.prototype.listAllUsers,
-   listGroups: System.prototype.listGroups,
-   listLoginUsers: System.prototype.listLoginUsers,
-   listProcess: System.prototype.listProcess,
-   ping: System.prototype.ping,
-   removeTrusty: System.prototype.removeTrusty,
-   runService: System.prototype.runService,
-   setProcUlimitConfigs: System.prototype.setProcUlimitConfigs,
-   setUserConfigs: System.prototype.setUserConfigs,
-   snapshotCpuInfo: System.prototype.snapshotCpuInfo,
-   snapshotDiskInfo: System.prototype.snapshotDiskInfo,
-   snapshotMemInfo: System.prototype.snapshotMemInfo,
-   snapshotNetcardInfo: System.prototype.snapshotNetcardInfo,
-   sniffPort: System.prototype.sniffPort,
-   type: System.prototype.type
-};
-var funcSystem = System;
-var funcSystem_createSshKey = System._createSshKey;
-var funcSystem_getHomePath = System._getHomePath;
-var funcSystem_listAllUsers = System._listAllUsers;
-var funcSystem_listGroups = System._listGroups;
-var funcSystem_listLoginUsers = System._listLoginUsers;
-var funcSystem_listProcess = System._listProcess;
-var funcSystemaddAHostMap = System.addAHostMap;
-var funcSystemaddGroup = System.addGroup;
-var funcSystemaddUser = System.addUser;
-var funcSystemdelAHostMap = System.delAHostMap;
-var funcSystemdelGroup = System.delGroup;
-var funcSystemdelUser = System.delUser;
-var funcSystemgetAHostMap = System.getAHostMap;
-var funcSystemgetCpuInfo = System.getCpuInfo;
-var funcSystemgetCurrentUser = System.getCurrentUser;
-var funcSystemgetDiskInfo = System.getDiskInfo;
-var funcSystemgetEWD = System.getEWD;
-var funcSystemgetHostName = System.getHostName;
-var funcSystemgetHostsMap = System.getHostsMap;
-var funcSystemgetIpTablesInfo = System.getIpTablesInfo;
-var funcSystemgetMemInfo = System.getMemInfo;
-var funcSystemgetNetcardInfo = System.getNetcardInfo;
-var funcSystemgetObj = System.getObj;
-var funcSystemgetPID = System.getPID;
-var funcSystemgetProcUlimitConfigs = System.getProcUlimitConfigs;
-var funcSystemgetReleaseInfo = System.getReleaseInfo;
-var funcSystemgetSystemConfigs = System.getSystemConfigs;
-var funcSystemgetTID = System.getTID;
-var funcSystemgetUserEnv = System.getUserEnv;
-var funcSystemhelp = System.help;
-var funcSystemisGroupExist = System.isGroupExist;
-var funcSystemisProcExist = System.isProcExist;
-var funcSystemisUserExist = System.isUserExist;
-var funcSystemkillProcess = System.killProcess;
-var funcSystemlistAllUsers = System.listAllUsers;
-var funcSystemlistGroups = System.listGroups;
-var funcSystemlistLoginUsers = System.listLoginUsers;
-var funcSystemlistProcess = System.listProcess;
-var funcSystemping = System.ping;
-var funcSystemrunService = System.runService;
-var funcSystemsetProcUlimitConfigs = System.setProcUlimitConfigs;
-var funcSystemsetUserConfigs = System.setUserConfigs;
-var funcSystemsnapshotCpuInfo = System.snapshotCpuInfo;
-var funcSystemsnapshotDiskInfo = System.snapshotDiskInfo;
-var funcSystemsnapshotMemInfo = System.snapshotMemInfo;
-var funcSystemsnapshotNetcardInfo = System.snapshotNetcardInfo;
-var funcSystemsniffPort = System.sniffPort;
-var funcSystemtype = System.type;
+if ( tmpSystem == undefined )
+{
+   var tmpSystem = {
+      _getInfo: System.prototype._getInfo,
+      addAHostMap: System.prototype.addAHostMap,
+      addGroup: System.prototype.addGroup,
+      addUser: System.prototype.addUser,
+      buildTrusty: System.prototype.buildTrusty,
+      delAHostMap: System.prototype.delAHostMap,
+      delGroup: System.prototype.delGroup,
+      delUser: System.prototype.delUser,
+      getAHostMap: System.prototype.getAHostMap,
+      getCpuInfo: System.prototype.getCpuInfo,
+      getCurrentUser: System.prototype.getCurrentUser,
+      getDiskInfo: System.prototype.getDiskInfo,
+      getEWD: System.prototype.getEWD,
+      getHostName: System.prototype.getHostName,
+      getHostsMap: System.prototype.getHostsMap,
+      getInfo: System.prototype.getInfo,
+      getIpTablesInfo: System.prototype.getIpTablesInfo,
+      getMemInfo: System.prototype.getMemInfo,
+      getNetcardInfo: System.prototype.getNetcardInfo,
+      getPID: System.prototype.getPID,
+      getProcUlimitConfigs: System.prototype.getProcUlimitConfigs,
+      getReleaseInfo: System.prototype.getReleaseInfo,
+      getSystemConfigs: System.prototype.getSystemConfigs,
+      getTID: System.prototype.getTID,
+      getUserEnv: System.prototype.getUserEnv,
+      help: System.prototype.help,
+      isGroupExist: System.prototype.isGroupExist,
+      isProcExist: System.prototype.isProcExist,
+      isUserExist: System.prototype.isUserExist,
+      killProcess: System.prototype.killProcess,
+      listAllUsers: System.prototype.listAllUsers,
+      listGroups: System.prototype.listGroups,
+      listLoginUsers: System.prototype.listLoginUsers,
+      listProcess: System.prototype.listProcess,
+      ping: System.prototype.ping,
+      removeTrusty: System.prototype.removeTrusty,
+      runService: System.prototype.runService,
+      setProcUlimitConfigs: System.prototype.setProcUlimitConfigs,
+      setUserConfigs: System.prototype.setUserConfigs,
+      snapshotCpuInfo: System.prototype.snapshotCpuInfo,
+      snapshotDiskInfo: System.prototype.snapshotDiskInfo,
+      snapshotMemInfo: System.prototype.snapshotMemInfo,
+      snapshotNetcardInfo: System.prototype.snapshotNetcardInfo,
+      sniffPort: System.prototype.sniffPort,
+      type: System.prototype.type
+   };
+}
+var funcSystem = ( funcSystem == undefined ) ? System : funcSystem;
+var funcSystem_createSshKey = funcSystem._createSshKey;
+var funcSystem_getHomePath = funcSystem._getHomePath;
+var funcSystem_listAllUsers = funcSystem._listAllUsers;
+var funcSystem_listGroups = funcSystem._listGroups;
+var funcSystem_listLoginUsers = funcSystem._listLoginUsers;
+var funcSystem_listProcess = funcSystem._listProcess;
+var funcSystemaddAHostMap = funcSystem.addAHostMap;
+var funcSystemaddGroup = funcSystem.addGroup;
+var funcSystemaddUser = funcSystem.addUser;
+var funcSystemdelAHostMap = funcSystem.delAHostMap;
+var funcSystemdelGroup = funcSystem.delGroup;
+var funcSystemdelUser = funcSystem.delUser;
+var funcSystemgetAHostMap = funcSystem.getAHostMap;
+var funcSystemgetCpuInfo = funcSystem.getCpuInfo;
+var funcSystemgetCurrentUser = funcSystem.getCurrentUser;
+var funcSystemgetDiskInfo = funcSystem.getDiskInfo;
+var funcSystemgetEWD = funcSystem.getEWD;
+var funcSystemgetHostName = funcSystem.getHostName;
+var funcSystemgetHostsMap = funcSystem.getHostsMap;
+var funcSystemgetIpTablesInfo = funcSystem.getIpTablesInfo;
+var funcSystemgetMemInfo = funcSystem.getMemInfo;
+var funcSystemgetNetcardInfo = funcSystem.getNetcardInfo;
+var funcSystemgetObj = funcSystem.getObj;
+var funcSystemgetPID = funcSystem.getPID;
+var funcSystemgetProcUlimitConfigs = funcSystem.getProcUlimitConfigs;
+var funcSystemgetReleaseInfo = funcSystem.getReleaseInfo;
+var funcSystemgetSystemConfigs = funcSystem.getSystemConfigs;
+var funcSystemgetTID = funcSystem.getTID;
+var funcSystemgetUserEnv = funcSystem.getUserEnv;
+var funcSystemhelp = funcSystem.help;
+var funcSystemisGroupExist = funcSystem.isGroupExist;
+var funcSystemisProcExist = funcSystem.isProcExist;
+var funcSystemisUserExist = funcSystem.isUserExist;
+var funcSystemkillProcess = funcSystem.killProcess;
+var funcSystemlistAllUsers = funcSystem.listAllUsers;
+var funcSystemlistGroups = funcSystem.listGroups;
+var funcSystemlistLoginUsers = funcSystem.listLoginUsers;
+var funcSystemlistProcess = funcSystem.listProcess;
+var funcSystemping = funcSystem.ping;
+var funcSystemrunService = funcSystem.runService;
+var funcSystemsetProcUlimitConfigs = funcSystem.setProcUlimitConfigs;
+var funcSystemsetUserConfigs = funcSystem.setUserConfigs;
+var funcSystemsnapshotCpuInfo = funcSystem.snapshotCpuInfo;
+var funcSystemsnapshotDiskInfo = funcSystem.snapshotDiskInfo;
+var funcSystemsnapshotMemInfo = funcSystem.snapshotMemInfo;
+var funcSystemsnapshotNetcardInfo = funcSystem.snapshotNetcardInfo;
+var funcSystemsniffPort = funcSystem.sniffPort;
+var funcSystemtype = funcSystem.type;
 System=function(){try{return funcSystem.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 System._createSshKey = function(){try{ return funcSystem_createSshKey.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 System._getHomePath = function(){try{ return funcSystem_getHomePath.apply( this, arguments ); } catch( e ) { throw new Error(e) } };

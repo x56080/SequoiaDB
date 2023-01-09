@@ -1,18 +1,21 @@
-var tmpSdbQueryOption = {
-   cond: SdbQueryOption.prototype.cond,
-   flags: SdbQueryOption.prototype.flags,
-   help: SdbQueryOption.prototype.help,
-   hint: SdbQueryOption.prototype.hint,
-   limit: SdbQueryOption.prototype.limit,
-   remove: SdbQueryOption.prototype.remove,
-   sel: SdbQueryOption.prototype.sel,
-   skip: SdbQueryOption.prototype.skip,
-   sort: SdbQueryOption.prototype.sort,
-   toString: SdbQueryOption.prototype.toString,
-   update: SdbQueryOption.prototype.update
-};
-var funcSdbQueryOption = SdbQueryOption;
-var funcSdbQueryOptionhelp = SdbQueryOption.help;
+if ( tmpSdbQueryOption == undefined )
+{
+   var tmpSdbQueryOption = {
+      cond: SdbQueryOption.prototype.cond,
+      flags: SdbQueryOption.prototype.flags,
+      help: SdbQueryOption.prototype.help,
+      hint: SdbQueryOption.prototype.hint,
+      limit: SdbQueryOption.prototype.limit,
+      remove: SdbQueryOption.prototype.remove,
+      sel: SdbQueryOption.prototype.sel,
+      skip: SdbQueryOption.prototype.skip,
+      sort: SdbQueryOption.prototype.sort,
+      toString: SdbQueryOption.prototype.toString,
+      update: SdbQueryOption.prototype.update
+   };
+}
+var funcSdbQueryOption = ( funcSdbQueryOption == undefined ) ? SdbQueryOption : funcSdbQueryOption;
+var funcSdbQueryOptionhelp = funcSdbQueryOption.help;
 SdbQueryOption=function(){try{return funcSdbQueryOption.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbQueryOption.help = function(){try{ return funcSdbQueryOptionhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbQueryOption.prototype.cond=function(){try{return tmpSdbQueryOption.cond.apply(this,arguments);}catch(e){throw new Error(e);}};

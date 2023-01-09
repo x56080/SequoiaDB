@@ -1,59 +1,63 @@
-var tmpSdbCollection = {
-   _bulkInsert: SdbCollection.prototype._bulkInsert,
-   _count: SdbCollection.prototype._count,
-   _getIndexes: SdbCollection.prototype._getIndexes,
-   _insert: SdbCollection.prototype._insert,
-   aggregate: SdbCollection.prototype.aggregate,
-   alter: SdbCollection.prototype.alter,
-   attachCL: SdbCollection.prototype.attachCL,
-   copyIndex: SdbCollection.prototype.copyIndex,
-   copyIndexAsync: SdbCollection.prototype.copyIndexAsync,
-   count: SdbCollection.prototype.count,
-   createAutoIncrement: SdbCollection.prototype.createAutoIncrement,
-   createIdIndex: SdbCollection.prototype.createIdIndex,
-   createIndex: SdbCollection.prototype.createIndex,
-   createIndexAsync: SdbCollection.prototype.createIndexAsync,
-   createLobID: SdbCollection.prototype.createLobID,
-   deleteLob: SdbCollection.prototype.deleteLob,
-   detachCL: SdbCollection.prototype.detachCL,
-   disableCompression: SdbCollection.prototype.disableCompression,
-   disableSharding: SdbCollection.prototype.disableSharding,
-   dropAutoIncrement: SdbCollection.prototype.dropAutoIncrement,
-   dropIdIndex: SdbCollection.prototype.dropIdIndex,
-   dropIndex: SdbCollection.prototype.dropIndex,
-   dropIndexAsync: SdbCollection.prototype.dropIndexAsync,
-   enableCompression: SdbCollection.prototype.enableCompression,
-   enableSharding: SdbCollection.prototype.enableSharding,
-   explain: SdbCollection.prototype.explain,
-   find: SdbCollection.prototype.find,
-   findOne: SdbCollection.prototype.findOne,
-   getDetail: SdbCollection.prototype.getDetail,
-   getIndex: SdbCollection.prototype.getIndex,
-   getIndexStat: SdbCollection.prototype.getIndexStat,
-   getLob: SdbCollection.prototype.getLob,
-   getLobDetail: SdbCollection.prototype.getLobDetail,
-   getQueryMeta: SdbCollection.prototype.getQueryMeta,
-   help: SdbCollection.prototype.help,
-   insert: SdbCollection.prototype.insert,
-   listIndexes: SdbCollection.prototype.listIndexes,
-   listLobPieces: SdbCollection.prototype.listLobPieces,
-   listLobs: SdbCollection.prototype.listLobs,
-   pop: SdbCollection.prototype.pop,
-   putLob: SdbCollection.prototype.putLob,
-   rawFind: SdbCollection.prototype.rawFind,
-   remove: SdbCollection.prototype.remove,
-   setAttributes: SdbCollection.prototype.setAttributes,
-   snapshotIndexes: SdbCollection.prototype.snapshotIndexes,
-   split: SdbCollection.prototype.split,
-   splitAsync: SdbCollection.prototype.splitAsync,
-   toString: SdbCollection.prototype.toString,
-   truncate: SdbCollection.prototype.truncate,
-   truncateLob: SdbCollection.prototype.truncateLob,
-   update: SdbCollection.prototype.update,
-   upsert: SdbCollection.prototype.upsert
-};
-var funcSdbCollection = SdbCollection;
-var funcSdbCollectionhelp = SdbCollection.help;
+if ( tmpSdbCollection == undefined )
+{
+   var tmpSdbCollection = {
+      _bulkInsert: SdbCollection.prototype._bulkInsert,
+      _count: SdbCollection.prototype._count,
+      _getIndexes: SdbCollection.prototype._getIndexes,
+      _insert: SdbCollection.prototype._insert,
+      aggregate: SdbCollection.prototype.aggregate,
+      alter: SdbCollection.prototype.alter,
+      attachCL: SdbCollection.prototype.attachCL,
+      copyIndex: SdbCollection.prototype.copyIndex,
+      copyIndexAsync: SdbCollection.prototype.copyIndexAsync,
+      count: SdbCollection.prototype.count,
+      createAutoIncrement: SdbCollection.prototype.createAutoIncrement,
+      createIdIndex: SdbCollection.prototype.createIdIndex,
+      createIndex: SdbCollection.prototype.createIndex,
+      createIndexAsync: SdbCollection.prototype.createIndexAsync,
+      createLobID: SdbCollection.prototype.createLobID,
+      deleteLob: SdbCollection.prototype.deleteLob,
+      detachCL: SdbCollection.prototype.detachCL,
+      disableCompression: SdbCollection.prototype.disableCompression,
+      disableSharding: SdbCollection.prototype.disableSharding,
+      dropAutoIncrement: SdbCollection.prototype.dropAutoIncrement,
+      dropIdIndex: SdbCollection.prototype.dropIdIndex,
+      dropIndex: SdbCollection.prototype.dropIndex,
+      dropIndexAsync: SdbCollection.prototype.dropIndexAsync,
+      enableCompression: SdbCollection.prototype.enableCompression,
+      enableSharding: SdbCollection.prototype.enableSharding,
+      explain: SdbCollection.prototype.explain,
+      find: SdbCollection.prototype.find,
+      findOne: SdbCollection.prototype.findOne,
+      getCollectionStat: SdbCollection.prototype.getCollectionStat,
+      getDetail: SdbCollection.prototype.getDetail,
+      getIndex: SdbCollection.prototype.getIndex,
+      getIndexStat: SdbCollection.prototype.getIndexStat,
+      getLob: SdbCollection.prototype.getLob,
+      getLobDetail: SdbCollection.prototype.getLobDetail,
+      getQueryMeta: SdbCollection.prototype.getQueryMeta,
+      help: SdbCollection.prototype.help,
+      insert: SdbCollection.prototype.insert,
+      listIndexes: SdbCollection.prototype.listIndexes,
+      listLobPieces: SdbCollection.prototype.listLobPieces,
+      listLobs: SdbCollection.prototype.listLobs,
+      pop: SdbCollection.prototype.pop,
+      putLob: SdbCollection.prototype.putLob,
+      rawFind: SdbCollection.prototype.rawFind,
+      remove: SdbCollection.prototype.remove,
+      setAttributes: SdbCollection.prototype.setAttributes,
+      snapshotIndexes: SdbCollection.prototype.snapshotIndexes,
+      split: SdbCollection.prototype.split,
+      splitAsync: SdbCollection.prototype.splitAsync,
+      toString: SdbCollection.prototype.toString,
+      truncate: SdbCollection.prototype.truncate,
+      truncateLob: SdbCollection.prototype.truncateLob,
+      update: SdbCollection.prototype.update,
+      upsert: SdbCollection.prototype.upsert
+   };
+}
+var funcSdbCollection = ( funcSdbCollection == undefined ) ? SdbCollection : funcSdbCollection;
+var funcSdbCollectionhelp = funcSdbCollection.help;
 SdbCollection=function(){try{return funcSdbCollection.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCollection.help = function(){try{ return funcSdbCollectionhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCollection.prototype._bulkInsert=function(){try{return tmpSdbCollection._bulkInsert.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -84,6 +88,7 @@ SdbCollection.prototype.enableSharding=function(){try{return tmpSdbCollection.en
 SdbCollection.prototype.explain=function(){try{return tmpSdbCollection.explain.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.find=function(){try{return tmpSdbCollection.find.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.findOne=function(){try{return tmpSdbCollection.findOne.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbCollection.prototype.getCollectionStat=function(){try{return tmpSdbCollection.getCollectionStat.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.getDetail=function(){try{return tmpSdbCollection.getDetail.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.getIndex=function(){try{return tmpSdbCollection.getIndex.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCollection.prototype.getIndexStat=function(){try{return tmpSdbCollection.getIndexStat.apply(this,arguments);}catch(e){throw new Error(e);}};

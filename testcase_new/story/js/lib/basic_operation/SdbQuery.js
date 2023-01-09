@@ -1,27 +1,30 @@
-var tmpSdbQuery = {
-   _checkExecuted: SdbQuery.prototype._checkExecuted,
-   _exec: SdbQuery.prototype._exec,
-   arrayAccess: SdbQuery.prototype.arrayAccess,
-   close: SdbQuery.prototype.close,
-   count: SdbQuery.prototype.count,
-   current: SdbQuery.prototype.current,
-   explain: SdbQuery.prototype.explain,
-   flags: SdbQuery.prototype.flags,
-   getQueryMeta: SdbQuery.prototype.getQueryMeta,
-   help: SdbQuery.prototype.help,
-   hint: SdbQuery.prototype.hint,
-   limit: SdbQuery.prototype.limit,
-   next: SdbQuery.prototype.next,
-   remove: SdbQuery.prototype.remove,
-   size: SdbQuery.prototype.size,
-   skip: SdbQuery.prototype.skip,
-   sort: SdbQuery.prototype.sort,
-   toArray: SdbQuery.prototype.toArray,
-   toString: SdbQuery.prototype.toString,
-   update: SdbQuery.prototype.update
-};
-var funcSdbQuery = SdbQuery;
-var funcSdbQueryhelp = SdbQuery.help;
+if ( tmpSdbQuery == undefined )
+{
+   var tmpSdbQuery = {
+      _checkExecuted: SdbQuery.prototype._checkExecuted,
+      _exec: SdbQuery.prototype._exec,
+      arrayAccess: SdbQuery.prototype.arrayAccess,
+      close: SdbQuery.prototype.close,
+      count: SdbQuery.prototype.count,
+      current: SdbQuery.prototype.current,
+      explain: SdbQuery.prototype.explain,
+      flags: SdbQuery.prototype.flags,
+      getQueryMeta: SdbQuery.prototype.getQueryMeta,
+      help: SdbQuery.prototype.help,
+      hint: SdbQuery.prototype.hint,
+      limit: SdbQuery.prototype.limit,
+      next: SdbQuery.prototype.next,
+      remove: SdbQuery.prototype.remove,
+      size: SdbQuery.prototype.size,
+      skip: SdbQuery.prototype.skip,
+      sort: SdbQuery.prototype.sort,
+      toArray: SdbQuery.prototype.toArray,
+      toString: SdbQuery.prototype.toString,
+      update: SdbQuery.prototype.update
+   };
+}
+var funcSdbQuery = ( funcSdbQuery == undefined ) ? SdbQuery : funcSdbQuery;
+var funcSdbQueryhelp = funcSdbQuery.help;
 SdbQuery=function(){try{return funcSdbQuery.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbQuery.help = function(){try{ return funcSdbQueryhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbQuery.prototype._checkExecuted=function(){try{return tmpSdbQuery._checkExecuted.apply(this,arguments);}catch(e){throw new Error(e);}};
