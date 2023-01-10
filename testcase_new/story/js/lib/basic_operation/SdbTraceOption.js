@@ -1,14 +1,17 @@
-var tmpSdbTraceOption = {
-   breakPoints: SdbTraceOption.prototype.breakPoints,
-   components: SdbTraceOption.prototype.components,
-   functionNames: SdbTraceOption.prototype.functionNames,
-   help: SdbTraceOption.prototype.help,
-   threadTypes: SdbTraceOption.prototype.threadTypes,
-   tids: SdbTraceOption.prototype.tids,
-   toString: SdbTraceOption.prototype.toString
-};
-var funcSdbTraceOption = SdbTraceOption;
-var funcSdbTraceOptionhelp = SdbTraceOption.help;
+if ( tmpSdbTraceOption == undefined )
+{
+   var tmpSdbTraceOption = {
+      breakPoints: SdbTraceOption.prototype.breakPoints,
+      components: SdbTraceOption.prototype.components,
+      functionNames: SdbTraceOption.prototype.functionNames,
+      help: SdbTraceOption.prototype.help,
+      threadTypes: SdbTraceOption.prototype.threadTypes,
+      tids: SdbTraceOption.prototype.tids,
+      toString: SdbTraceOption.prototype.toString
+   };
+}
+var funcSdbTraceOption = ( funcSdbTraceOption == undefined ) ? SdbTraceOption : funcSdbTraceOption;
+var funcSdbTraceOptionhelp = funcSdbTraceOption.help;
 SdbTraceOption=function(){try{return funcSdbTraceOption.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbTraceOption.help = function(){try{ return funcSdbTraceOptionhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbTraceOption.prototype.breakPoints=function(){try{return tmpSdbTraceOption.breakPoints.apply(this,arguments);}catch(e){throw new Error(e);}};

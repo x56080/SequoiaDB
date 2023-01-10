@@ -1,20 +1,23 @@
-var tmpSdbRecycleBin = {
-   alter: SdbRecycleBin.prototype.alter,
-   count: SdbRecycleBin.prototype.count,
-   disable: SdbRecycleBin.prototype.disable,
-   dropAll: SdbRecycleBin.prototype.dropAll,
-   dropItem: SdbRecycleBin.prototype.dropItem,
-   enable: SdbRecycleBin.prototype.enable,
-   getDetail: SdbRecycleBin.prototype.getDetail,
-   help: SdbRecycleBin.prototype.help,
-   list: SdbRecycleBin.prototype.list,
-   returnItem: SdbRecycleBin.prototype.returnItem,
-   returnItemToName: SdbRecycleBin.prototype.returnItemToName,
-   setAttributes: SdbRecycleBin.prototype.setAttributes,
-   snapshot: SdbRecycleBin.prototype.snapshot
-};
-var funcSdbRecycleBin = SdbRecycleBin;
-var funcSdbRecycleBinhelp = SdbRecycleBin.help;
+if ( tmpSdbRecycleBin == undefined )
+{
+   var tmpSdbRecycleBin = {
+      alter: SdbRecycleBin.prototype.alter,
+      count: SdbRecycleBin.prototype.count,
+      disable: SdbRecycleBin.prototype.disable,
+      dropAll: SdbRecycleBin.prototype.dropAll,
+      dropItem: SdbRecycleBin.prototype.dropItem,
+      enable: SdbRecycleBin.prototype.enable,
+      getDetail: SdbRecycleBin.prototype.getDetail,
+      help: SdbRecycleBin.prototype.help,
+      list: SdbRecycleBin.prototype.list,
+      returnItem: SdbRecycleBin.prototype.returnItem,
+      returnItemToName: SdbRecycleBin.prototype.returnItemToName,
+      setAttributes: SdbRecycleBin.prototype.setAttributes,
+      snapshot: SdbRecycleBin.prototype.snapshot
+   };
+}
+var funcSdbRecycleBin = ( funcSdbRecycleBin == undefined ) ? SdbRecycleBin : funcSdbRecycleBin;
+var funcSdbRecycleBinhelp = funcSdbRecycleBin.help;
 SdbRecycleBin=function(){try{return funcSdbRecycleBin.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbRecycleBin.help = function(){try{ return funcSdbRecycleBinhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbRecycleBin.prototype.alter=function(){try{return tmpSdbRecycleBin.alter.apply(this,arguments);}catch(e){throw new Error(e);}};

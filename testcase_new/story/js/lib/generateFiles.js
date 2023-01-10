@@ -28,36 +28,42 @@ function generateFiles ()
 
       var fileContent = "";
 
-      /* e.g: 
-          var tmpSdb = { 
+      /* e.g:
+         if ( tmpSdb == undefined )
+         {
+            var tmpSdb = {
              dropCS: Sdb.prototype.dropCS,
              createCS: Sdb.prototype.createCS
           };
+         }
       */
-      var varStr = "var tmp" + classes[i] + " = {";
+      var varStr = "if ( tmp" + classes[i] + " == undefined )\n";
+      varStr += "{\n";
+      varStr += "   var tmp" + classes[i] + " = {";
       for( var j = 0; j < memFunc.length; j++ )
       {
-         varStr += "\n   " + memFunc[j] + ": " + classes[i] + ".prototype." + memFunc[j];
-         if( j != memFunc.length - 1 ) { varStr += ","; } else { varStr += "\n};"; }
+         varStr += "\n      " + memFunc[j] + ": " + classes[i] + ".prototype." + memFunc[j];
+         if( j != memFunc.length - 1 ) { varStr += ","; } else { varStr += "\n   };"; }
       }
+      varStr += "\n}"
       fileContent += varStr + "\n";
 
-      /* e.g: 
-          var funcSdb = Sdb
+      /* e.g:
+         var funcSdb = (funcSdb == undefined) ? Sdb : funcSdb;
       */
-      var varStr = "var func" + classes[i] + " = " + classes[i] + ";";
+      var varStr = "var func" + classes[i] + " = ( func" + classes[i] + " == undefined ) ? " + classes[i] + " : func" + classes[i] + ";";
       fileContent += varStr + "\n";
 
-      /* e.g: 
-          var funcSdbhelp = Sdb.help;
+      /* e.g:
+            var funcSdbhelp = funcSdb.help;
       */
       for( var j = 0; j < staicFunc.length; j++ )
       {
-         var varStr = "var func" + classes[i] + staicFunc[j] + " = " + classes[i] + "." + staicFunc[j] + ";";
+         var varStr = "var func" + classes[i] + staicFunc[j] + " = func" + classes[i] + "." + staicFunc[j] + ";";
          fileContent += varStr + "\n";
       }
 
-      /* e.g:  
+      /* e.g:
           Sdb=function(){try{return funcSdb.apply( this, arguments ); } catch( e ) {  throw new Error(e) } };
       */
       var evalStr = classes[i] + "=function(){try{return func" + classes[i] + ".apply( this, arguments ); } catch( e ) { throw new Error(e) } };";
@@ -73,7 +79,7 @@ function generateFiles ()
          fileContent += evalStr + "\n";
       }
 
-      /* e.g: 
+      /* e.g:
         Sdb.prototype.close=function(){try{return tmpSdb.close.apply(this,arguments);}catch(e){ throw new Error(e);}};
       */
       for( var j = 0; j < memFunc.length; j++ )
@@ -94,7 +100,7 @@ function generateFiles ()
 
    var fileContent = "";
 
-   /* e.g: 
+   /* e.g:
        var tmpGlobal = {
           catPath: catPath,
           displayManual: displayManual,

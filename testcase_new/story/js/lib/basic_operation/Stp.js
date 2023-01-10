@@ -1,28 +1,31 @@
-var tmpStp = {
-   _runCommand: Stp.prototype._runCommand,
-   close: Stp.prototype.close,
-   convLogicalTimeToRealTime: Stp.prototype.convLogicalTimeToRealTime,
-   convRealTimeToLogicalTime: Stp.prototype.convRealTimeToLogicalTime,
-   getConf: Stp.prototype.getConf,
-   getMeta: Stp.prototype.getMeta,
-   getServers: Stp.prototype.getServers,
-   getSyncClients: Stp.prototype.getSyncClients,
-   getSyncHistory: Stp.prototype.getSyncHistory,
-   getSyncStatus: Stp.prototype.getSyncStatus,
-   getTime: Stp.prototype.getTime,
-   getTimeMap: Stp.prototype.getTimeMap,
-   getTimeUS: Stp.prototype.getTimeUS,
-   help: Stp.prototype.help,
-   msg: Stp.prototype.msg,
-   reelect: Stp.prototype.reelect,
-   setPDLevel: Stp.prototype.setPDLevel,
-   start: Stp.prototype.start,
-   stop: Stp.prototype.stop,
-   toString: Stp.prototype.toString,
-   updateConf: Stp.prototype.updateConf
-};
-var funcStp = Stp;
-var funcStphelp = Stp.help;
+if ( tmpStp == undefined )
+{
+   var tmpStp = {
+      _runCommand: Stp.prototype._runCommand,
+      close: Stp.prototype.close,
+      convLogicalTimeToRealTime: Stp.prototype.convLogicalTimeToRealTime,
+      convRealTimeToLogicalTime: Stp.prototype.convRealTimeToLogicalTime,
+      getConf: Stp.prototype.getConf,
+      getMeta: Stp.prototype.getMeta,
+      getServers: Stp.prototype.getServers,
+      getSyncClients: Stp.prototype.getSyncClients,
+      getSyncHistory: Stp.prototype.getSyncHistory,
+      getSyncStatus: Stp.prototype.getSyncStatus,
+      getTime: Stp.prototype.getTime,
+      getTimeMap: Stp.prototype.getTimeMap,
+      getTimeUS: Stp.prototype.getTimeUS,
+      help: Stp.prototype.help,
+      msg: Stp.prototype.msg,
+      reelect: Stp.prototype.reelect,
+      setPDLevel: Stp.prototype.setPDLevel,
+      start: Stp.prototype.start,
+      stop: Stp.prototype.stop,
+      toString: Stp.prototype.toString,
+      updateConf: Stp.prototype.updateConf
+   };
+}
+var funcStp = ( funcStp == undefined ) ? Stp : funcStp;
+var funcStphelp = funcStp.help;
 Stp=function(){try{return funcStp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Stp.help = function(){try{ return funcStphelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Stp.prototype._runCommand=function(){try{return tmpStp._runCommand.apply(this,arguments);}catch(e){throw new Error(e);}};

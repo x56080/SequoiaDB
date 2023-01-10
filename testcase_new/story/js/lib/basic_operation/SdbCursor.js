@@ -1,16 +1,19 @@
-var tmpSdbCursor = {
-   advance: SdbCursor.prototype.advance,
-   arrayAccess: SdbCursor.prototype.arrayAccess,
-   close: SdbCursor.prototype.close,
-   current: SdbCursor.prototype.current,
-   help: SdbCursor.prototype.help,
-   next: SdbCursor.prototype.next,
-   size: SdbCursor.prototype.size,
-   toArray: SdbCursor.prototype.toArray,
-   toString: SdbCursor.prototype.toString
-};
-var funcSdbCursor = SdbCursor;
-var funcSdbCursorhelp = SdbCursor.help;
+if ( tmpSdbCursor == undefined )
+{
+   var tmpSdbCursor = {
+      advance: SdbCursor.prototype.advance,
+      arrayAccess: SdbCursor.prototype.arrayAccess,
+      close: SdbCursor.prototype.close,
+      current: SdbCursor.prototype.current,
+      help: SdbCursor.prototype.help,
+      next: SdbCursor.prototype.next,
+      size: SdbCursor.prototype.size,
+      toArray: SdbCursor.prototype.toArray,
+      toString: SdbCursor.prototype.toString
+   };
+}
+var funcSdbCursor = ( funcSdbCursor == undefined ) ? SdbCursor : funcSdbCursor;
+var funcSdbCursorhelp = funcSdbCursor.help;
 SdbCursor=function(){try{return funcSdbCursor.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCursor.help = function(){try{ return funcSdbCursorhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCursor.prototype.advance=function(){try{return tmpSdbCursor.advance.apply(this,arguments);}catch(e){throw new Error(e);}};
