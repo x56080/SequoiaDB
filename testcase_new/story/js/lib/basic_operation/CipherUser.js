@@ -1,16 +1,19 @@
-var tmpCipherUser = {
-   _setToken: CipherUser.prototype._setToken,
-   cipherFile: CipherUser.prototype.cipherFile,
-   clusterName: CipherUser.prototype.clusterName,
-   getCipherFile: CipherUser.prototype.getCipherFile,
-   getClusterName: CipherUser.prototype.getClusterName,
-   getUsername: CipherUser.prototype.getUsername,
-   help: CipherUser.prototype.help,
-   toString: CipherUser.prototype.toString,
-   token: CipherUser.prototype.token
-};
-var funcCipherUser = CipherUser;
-var funcCipherUserhelp = CipherUser.help;
+if ( tmpCipherUser == undefined )
+{
+   var tmpCipherUser = {
+      _setToken: CipherUser.prototype._setToken,
+      cipherFile: CipherUser.prototype.cipherFile,
+      clusterName: CipherUser.prototype.clusterName,
+      getCipherFile: CipherUser.prototype.getCipherFile,
+      getClusterName: CipherUser.prototype.getClusterName,
+      getUsername: CipherUser.prototype.getUsername,
+      help: CipherUser.prototype.help,
+      toString: CipherUser.prototype.toString,
+      token: CipherUser.prototype.token
+   };
+}
+var funcCipherUser = ( funcCipherUser == undefined ) ? CipherUser : funcCipherUser;
+var funcCipherUserhelp = funcCipherUser.help;
 CipherUser=function(){try{return funcCipherUser.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 CipherUser.help = function(){try{ return funcCipherUserhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 CipherUser.prototype._setToken=function(){try{return tmpCipherUser._setToken.apply(this,arguments);}catch(e){throw new Error(e);}};

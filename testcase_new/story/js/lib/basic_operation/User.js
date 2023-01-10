@@ -1,12 +1,15 @@
-var tmpUser = {
-   _promptPassword: User.prototype._promptPassword,
-   getUsername: User.prototype.getUsername,
-   help: User.prototype.help,
-   promptPassword: User.prototype.promptPassword,
-   toString: User.prototype.toString
-};
-var funcUser = User;
-var funcUserhelp = User.help;
+if ( tmpUser == undefined )
+{
+   var tmpUser = {
+      _promptPassword: User.prototype._promptPassword,
+      getUsername: User.prototype.getUsername,
+      help: User.prototype.help,
+      promptPassword: User.prototype.promptPassword,
+      toString: User.prototype.toString
+   };
+}
+var funcUser = ( funcUser == undefined ) ? User : funcUser;
+var funcUserhelp = funcUser.help;
 User=function(){try{return funcUser.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 User.help = function(){try{ return funcUserhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 User.prototype._promptPassword=function(){try{return tmpUser._promptPassword.apply(this,arguments);}catch(e){throw new Error(e);}};

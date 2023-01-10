@@ -1,17 +1,20 @@
-var tmpSsh = {
-   close: Ssh.prototype.close,
-   exec: Ssh.prototype.exec,
-   getLastOut: Ssh.prototype.getLastOut,
-   getLastRet: Ssh.prototype.getLastRet,
-   getLocalIP: Ssh.prototype.getLocalIP,
-   getPeerIP: Ssh.prototype.getPeerIP,
-   help: Ssh.prototype.help,
-   pull: Ssh.prototype.pull,
-   push: Ssh.prototype.push,
-   toString: Ssh.prototype.toString
-};
-var funcSsh = Ssh;
-var funcSshhelp = Ssh.help;
+if ( tmpSsh == undefined )
+{
+   var tmpSsh = {
+      close: Ssh.prototype.close,
+      exec: Ssh.prototype.exec,
+      getLastOut: Ssh.prototype.getLastOut,
+      getLastRet: Ssh.prototype.getLastRet,
+      getLocalIP: Ssh.prototype.getLocalIP,
+      getPeerIP: Ssh.prototype.getPeerIP,
+      help: Ssh.prototype.help,
+      pull: Ssh.prototype.pull,
+      push: Ssh.prototype.push,
+      toString: Ssh.prototype.toString
+   };
+}
+var funcSsh = ( funcSsh == undefined ) ? Ssh : funcSsh;
+var funcSshhelp = funcSsh.help;
 Ssh=function(){try{return funcSsh.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Ssh.help = function(){try{ return funcSshhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Ssh.prototype.close=function(){try{return tmpSsh.close.apply(this,arguments);}catch(e){throw new Error(e);}};

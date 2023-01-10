@@ -1,15 +1,18 @@
-var tmpSdbSequence = {
-   fetch: SdbSequence.prototype.fetch,
-   getCurrentValue: SdbSequence.prototype.getCurrentValue,
-   getNextValue: SdbSequence.prototype.getNextValue,
-   help: SdbSequence.prototype.help,
-   restart: SdbSequence.prototype.restart,
-   setAttributes: SdbSequence.prototype.setAttributes,
-   setCurrentValue: SdbSequence.prototype.setCurrentValue,
-   toString: SdbSequence.prototype.toString
-};
-var funcSdbSequence = SdbSequence;
-var funcSdbSequencehelp = SdbSequence.help;
+if ( tmpSdbSequence == undefined )
+{
+   var tmpSdbSequence = {
+      fetch: SdbSequence.prototype.fetch,
+      getCurrentValue: SdbSequence.prototype.getCurrentValue,
+      getNextValue: SdbSequence.prototype.getNextValue,
+      help: SdbSequence.prototype.help,
+      restart: SdbSequence.prototype.restart,
+      setAttributes: SdbSequence.prototype.setAttributes,
+      setCurrentValue: SdbSequence.prototype.setCurrentValue,
+      toString: SdbSequence.prototype.toString
+   };
+}
+var funcSdbSequence = ( funcSdbSequence == undefined ) ? SdbSequence : funcSdbSequence;
+var funcSdbSequencehelp = funcSdbSequence.help;
 SdbSequence=function(){try{return funcSdbSequence.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbSequence.help = function(){try{ return funcSdbSequencehelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbSequence.prototype.fetch=function(){try{return tmpSdbSequence.fetch.apply(this,arguments);}catch(e){throw new Error(e);}};

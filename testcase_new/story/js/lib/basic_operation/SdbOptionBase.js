@@ -1,16 +1,19 @@
-var tmpSdbOptionBase = {
-   cond: SdbOptionBase.prototype.cond,
-   flags: SdbOptionBase.prototype.flags,
-   help: SdbOptionBase.prototype.help,
-   hint: SdbOptionBase.prototype.hint,
-   limit: SdbOptionBase.prototype.limit,
-   sel: SdbOptionBase.prototype.sel,
-   skip: SdbOptionBase.prototype.skip,
-   sort: SdbOptionBase.prototype.sort,
-   toString: SdbOptionBase.prototype.toString
-};
-var funcSdbOptionBase = SdbOptionBase;
-var funcSdbOptionBasehelp = SdbOptionBase.help;
+if ( tmpSdbOptionBase == undefined )
+{
+   var tmpSdbOptionBase = {
+      cond: SdbOptionBase.prototype.cond,
+      flags: SdbOptionBase.prototype.flags,
+      help: SdbOptionBase.prototype.help,
+      hint: SdbOptionBase.prototype.hint,
+      limit: SdbOptionBase.prototype.limit,
+      sel: SdbOptionBase.prototype.sel,
+      skip: SdbOptionBase.prototype.skip,
+      sort: SdbOptionBase.prototype.sort,
+      toString: SdbOptionBase.prototype.toString
+   };
+}
+var funcSdbOptionBase = ( funcSdbOptionBase == undefined ) ? SdbOptionBase : funcSdbOptionBase;
+var funcSdbOptionBasehelp = funcSdbOptionBase.help;
 SdbOptionBase=function(){try{return funcSdbOptionBase.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbOptionBase.help = function(){try{ return funcSdbOptionBasehelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbOptionBase.prototype.cond=function(){try{return tmpSdbOptionBase.cond.apply(this,arguments);}catch(e){throw new Error(e);}};

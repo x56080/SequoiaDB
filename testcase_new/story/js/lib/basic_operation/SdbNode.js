@@ -1,16 +1,19 @@
-var tmpSdbNode = {
-   connect: SdbNode.prototype.connect,
-   getDetailObj: SdbNode.prototype.getDetailObj,
-   getHostName: SdbNode.prototype.getHostName,
-   getNodeDetail: SdbNode.prototype.getNodeDetail,
-   getServiceName: SdbNode.prototype.getServiceName,
-   help: SdbNode.prototype.help,
-   start: SdbNode.prototype.start,
-   stop: SdbNode.prototype.stop,
-   toString: SdbNode.prototype.toString
-};
-var funcSdbNode = SdbNode;
-var funcSdbNodehelp = SdbNode.help;
+if ( tmpSdbNode == undefined )
+{
+   var tmpSdbNode = {
+      connect: SdbNode.prototype.connect,
+      getDetailObj: SdbNode.prototype.getDetailObj,
+      getHostName: SdbNode.prototype.getHostName,
+      getNodeDetail: SdbNode.prototype.getNodeDetail,
+      getServiceName: SdbNode.prototype.getServiceName,
+      help: SdbNode.prototype.help,
+      start: SdbNode.prototype.start,
+      stop: SdbNode.prototype.stop,
+      toString: SdbNode.prototype.toString
+   };
+}
+var funcSdbNode = ( funcSdbNode == undefined ) ? SdbNode : funcSdbNode;
+var funcSdbNodehelp = funcSdbNode.help;
 SdbNode=function(){try{return funcSdbNode.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbNode.help = function(){try{ return funcSdbNodehelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbNode.prototype.connect=function(){try{return tmpSdbNode.connect.apply(this,arguments);}catch(e){throw new Error(e);}};

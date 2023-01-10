@@ -1,20 +1,23 @@
-var tmpSdbDC = {
-   activate: SdbDC.prototype.activate,
-   attachGroups: SdbDC.prototype.attachGroups,
-   createImage: SdbDC.prototype.createImage,
-   deactivate: SdbDC.prototype.deactivate,
-   detachGroups: SdbDC.prototype.detachGroups,
-   disableImage: SdbDC.prototype.disableImage,
-   disableReadonly: SdbDC.prototype.disableReadonly,
-   enableImage: SdbDC.prototype.enableImage,
-   enableReadonly: SdbDC.prototype.enableReadonly,
-   getDetail: SdbDC.prototype.getDetail,
-   help: SdbDC.prototype.help,
-   removeImage: SdbDC.prototype.removeImage,
-   toString: SdbDC.prototype.toString
-};
-var funcSdbDC = SdbDC;
-var funcSdbDChelp = SdbDC.help;
+if ( tmpSdbDC == undefined )
+{
+   var tmpSdbDC = {
+      activate: SdbDC.prototype.activate,
+      attachGroups: SdbDC.prototype.attachGroups,
+      createImage: SdbDC.prototype.createImage,
+      deactivate: SdbDC.prototype.deactivate,
+      detachGroups: SdbDC.prototype.detachGroups,
+      disableImage: SdbDC.prototype.disableImage,
+      disableReadonly: SdbDC.prototype.disableReadonly,
+      enableImage: SdbDC.prototype.enableImage,
+      enableReadonly: SdbDC.prototype.enableReadonly,
+      getDetail: SdbDC.prototype.getDetail,
+      help: SdbDC.prototype.help,
+      removeImage: SdbDC.prototype.removeImage,
+      toString: SdbDC.prototype.toString
+   };
+}
+var funcSdbDC = ( funcSdbDC == undefined ) ? SdbDC : funcSdbDC;
+var funcSdbDChelp = funcSdbDC.help;
 SdbDC=function(){try{return funcSdbDC.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbDC.help = function(){try{ return funcSdbDChelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbDC.prototype.activate=function(){try{return tmpSdbDC.activate.apply(this,arguments);}catch(e){throw new Error(e);}};
