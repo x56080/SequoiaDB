@@ -322,7 +322,10 @@ class collection(object):
         for elem in records:
             if not isinstance(elem, dict):
                 raise SDBTypeError("record must be an instance of dict")
-            record = bson.BSON.encode(elem)
+            ext_obj = {}
+            if "_id" not in elem:
+                ext_obj["_id"] = ObjectId()
+            record = bson.BSON.encode(elem, extend_obj=ext_obj)
             container.append(record)
 
         rc, bson_string = sdb.cl_bulk_insert(self._cl, flag, container)
@@ -345,7 +348,11 @@ class collection(object):
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
 
-        bson_record = bson.BSON.encode(record)
+        ext_obj = {}
+        if "_id" not in record:
+            ext_obj["_id"] = ObjectId()
+
+        bson_record = bson.BSON.encode(record, extend_obj=ext_obj)
         rc, id_str = sdb.cl_insert(self._cl, bson_record)
         raise_if_error(rc, "Failed to insert record")
         oid = bson.ObjectId(id_str)
@@ -383,7 +390,11 @@ class collection(object):
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
 
-        bson_record = bson.BSON.encode(record)
+        ext_obj = {}
+        if "_id" not in record:
+            ext_obj["_id"] = ObjectId()
+
+        bson_record = bson.BSON.encode(record, extend_obj=ext_obj)
         rc, bson_string = sdb.cl_insert_with_flag(self._cl, bson_record, flag)
         raise_if_error(rc, "Failed to insert record")
         result, size = bson._bson_to_dict(bson_string, dict, False,
