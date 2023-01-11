@@ -2223,6 +2223,131 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DELCSWITHSINGLECL, "_SDB_DMSCB::_delCSWithSingleCL" )
+   INT32 _SDB_DMSCB::_delCSWithSingleCL( const CHAR * pName,
+                                         _pmdEDUCB * cb,
+                                         SDB_DPSCB * dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__SDB_DMSCB_DELCSWITHSINGLECL ) ;
+
+      UINT32 csLID = ~0 ;
+      UINT32 clCount = 0 ;
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+      BOOLEAN isTransLocked = FALSE ;
+      SDB_DMS_CSCB* pCSCB = NULL ;
+      CHAR *clName = NULL ;
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+      UINT16 collectionID = DMS_INVALID_MBID ;
+      CHAR *tmpName = (CHAR*)ossStrchr( pName, '.' ) ;
+
+      SDB_ASSERT( NULL != tmpName, "name is invalid" ) ;
+      PD_CHECK( NULL != tmpName, SDB_INVALIDARG, error, PDERROR,
+                "Failed to drop collection space wtih single collection, "
+                "name[%s] is invalid, rc:%d", pName, rc ) ;
+      clName = tmpName + 1 ;
+      ossStrncpy( csName, pName, ossStrlen( pName ) - ossStrlen( tmpName ) ) ;
+
+      // get cs cb
+      _mutex.get_shared() ;
+      rc = _CSCBNameLookup( csName, &pCSCB, NULL, TRUE ) ;
+      _mutex.release_shared() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      SDB_ASSERT ( pCSCB->_su, "su can't be null" ) ;
+
+      // check cs is only one that want to delete
+      clCount = pCSCB->_su->data()->getCollectionNum() ;
+      if ( 1 < clCount )
+      {
+         // it is more than one before phase 1, cancel deleting
+         rc = SDB_DMS_CS_NOT_EMPTY ;
+         goto error ;
+      }
+      else if ( 1 == clCount )
+      {
+         rc = pCSCB->_su->data()->findCollection( clName, collectionID ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            goto error ;
+         }
+      }
+
+      // lock transaction, standalone need lock trans here
+      csLID = pCSCB->_su->LogicalCSID() ;
+      if ( cb && cb->getTransExecutor()->useTransLock() )
+      {
+         dpsTransRetInfo lockConflict ;
+         rc = pTransCB->transLockTryZ( cb, csLID, DMS_INVALID_MBID,
+                                       NULL, &lockConflict ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR,
+                     "Failed to lock collection-space, rc:%d"OSS_NEWLINE
+                     "Conflict( representative ):"OSS_NEWLINE
+                     "   EDUID:  %llu"OSS_NEWLINE
+                     "   TID:    %u"OSS_NEWLINE
+                     "   LockId: %s"OSS_NEWLINE
+                     "   Mode:   %s"OSS_NEWLINE,
+                     rc,
+                     lockConflict._eduID,
+                     lockConflict._tid,
+                     lockConflict._lockID.toString().c_str(),
+                     lockModeToString( lockConflict._lockType ) ) ;
+            goto error ;
+         }
+         isTransLocked = TRUE ;
+      }
+
+      // drop phase 1
+      rc = _delCollectionSpaceP1( csName, cb, dpsCB ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // re-check cs is only one that want to delete
+      clCount = pCSCB->_su->data()->getCollectionNum() ;
+      if ( 1 < clCount )
+      {
+         // it is more than one after phase 1, cancel deleting
+         _delCollectionSpaceP1Cancel( csName, cb, dpsCB ) ;
+         rc = SDB_DMS_CS_NOT_EMPTY ;
+         goto error ;
+      }
+      else if ( 1 == clCount )
+      {
+         rc = pCSCB->_su->data()->findCollection( clName, collectionID ) ;
+         if ( SDB_OK != rc )
+         {
+            // something error, cancel deteting
+            _delCollectionSpaceP1Cancel( csName, cb, dpsCB ) ;
+            goto error ;
+         }
+      }
+
+      // drop phase 2
+      rc = _delCollectionSpaceP2( csName, cb, dpsCB ) ;
+      if ( rc )
+      {
+         _delCollectionSpaceP1Cancel( csName, cb, dpsCB ) ;
+         goto error ;
+      }
+   done:
+      if ( isTransLocked )
+      {
+         pTransCB->transLockRelease( cb, csLID ) ;
+         isTransLocked = FALSE ;
+      }
+      PD_TRACE_EXITRC( SDB__SDB_DMSCB_DELCSWITHSINGLECL, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _SDB_DMSCB::dropCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
                                            SDB_DPSCB *dpsCB,
                                            dmsDropCSOptions *options )
@@ -2237,6 +2362,17 @@ namespace engine
    INT32 _SDB_DMSCB::unloadCollectonSpace( const CHAR *pName, _pmdEDUCB *cb )
    {
       return _delCollectionSpace( pName, cb, NULL, FALSE, FALSE ) ;
+   }
+
+   INT32 _SDB_DMSCB::dropCSWithSingleCL( const CHAR * pName,
+                                         _pmdEDUCB * cb,
+                                         SDB_DPSCB * dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+      aquireCSMutex( pName ) ;
+      rc = _delCSWithSingleCL( pName, cb, dpsCB ) ;
+      releaseCSMutex( pName ) ;
+      return rc ;
    }
 
    INT32 _SDB_DMSCB::dropEmptyCollectionSpace( const CHAR *pName,

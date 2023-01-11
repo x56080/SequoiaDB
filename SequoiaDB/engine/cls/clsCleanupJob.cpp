@@ -249,22 +249,38 @@ namespace engine
          pTaskMgr->lockReg( SHARED ) ;
          if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
          {
-            // delete the collection
-            rc = rtnDropCollectionCommand( _clFullName.c_str(), eduCB(),
-                                           _dmsCB, _dpsCB ) ;
-            PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d", name(),
-                     _clFullName.c_str(), rc ) ;
-            if ( SDB_DMS_CS_NOTEXIST == rc )
+            // try drop collectionspace if the collection is only one
+            rc = _dmsCB->dropCSWithSingleCL( _clFullName.c_str(),
+                                             eduCB(), _dpsCB ) ;
+            PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s]", name(),
+                     _clFullName.c_str() ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc ||
+                 SDB_DMS_NOTEXIST == rc )
             {
                rc = SDB_OK ;
             }
-            else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+            else if ( SDB_OK != rc )
             {
-               // drop empty collectionspace, ignore errors
-               _dmsCB->dropEmptyCollectionSpace(
-                        dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                        eduCB(), _dpsCB ) ;
-               rc = SDB_OK ;
+               // delete the collection
+               rc = rtnDropCollectionCommand( _clFullName.c_str(), eduCB(),
+                                              _dmsCB, _dpsCB ) ;
+               if ( SDB_DMS_CS_NOTEXIST == rc )
+               {
+                  rc = SDB_OK ;
+               }
+               else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+               {
+                  // drop empty collectionspace, ignore errors
+                  _dmsCB->dropEmptyCollectionSpace(
+                           dmsGetCSNameFromFullName( _clFullName ).c_str(),
+                           eduCB(), _dpsCB ) ;
+                  rc = SDB_OK ;
+               }
+               else
+               {
+                  PD_LOG( PDWARNING, "Job[%s] failed to drop the collection[%s], "
+                          "rc:%d", name(), _clFullName.c_str() ,rc ) ;
+               }
             }
             pTaskMgr->releaseReg( SHARED ) ;
             goto done ;
@@ -436,22 +452,38 @@ namespace engine
                pTaskMgr->lockReg( SHARED ) ;
                if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
                {
-                  // delete the collection
-                  rc = rtnDropCollectionCommand( _clFullName.c_str(),
-                                                 eduCB(), _dmsCB, _dpsCB ) ;
-                  PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
-                           name(), _clFullName.c_str(), rc ) ;
-                  if ( SDB_DMS_CS_NOTEXIST == rc )
+                  // try drop collectionspace if the collection is only one
+                  rc = _dmsCB->dropCSWithSingleCL( _clFullName.c_str(),
+                                                   eduCB(), _dpsCB ) ;
+                  PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s]",
+                           name(), _clFullName.c_str() ) ;
+                  if ( SDB_DMS_CS_NOTEXIST == rc ||
+                       SDB_DMS_NOTEXIST == rc )
                   {
                      rc = SDB_OK ;
                   }
-                  else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+                  else if ( SDB_OK != rc )
                   {
-                     // drop empty collectionspace, ignore errors
-                     _dmsCB->dropEmptyCollectionSpace(
-                              dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                              eduCB(), _dpsCB ) ;
-                     rc = SDB_OK ;
+                     // delete the collection
+                     rc = rtnDropCollectionCommand( _clFullName.c_str(),
+                                                    eduCB(), _dmsCB, _dpsCB ) ;
+                     if ( SDB_DMS_CS_NOTEXIST == rc )
+                     {
+                        rc = SDB_OK ;
+                     }
+                     else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+                     {
+                        // drop empty collectionspace, ignore errors
+                        _dmsCB->dropEmptyCollectionSpace(
+                                 dmsGetCSNameFromFullName( _clFullName ).c_str(),
+                                 eduCB(), _dpsCB ) ;
+                        rc = SDB_OK ;
+                     }
+                     else
+                     {
+                        PD_LOG( PDWARNING, "Job[%s] failed to drop the collection[%s],"
+                                " rc:%d", name(), _clFullName.c_str() ,rc ) ;
+                     }
                   }
                   pTaskMgr->releaseReg( SHARED ) ;
                   goto done ;
@@ -571,22 +603,38 @@ namespace engine
             pTaskMgr->lockReg( SHARED ) ;
             if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
             {
-               // delete the collection
-               rc = rtnDropCollectionCommand( fullName, eduCB(), _dmsCB,
-                                              _dpsCB ) ;
-               PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
-                        name(), fullName, rc ) ;
-               if ( SDB_DMS_CS_NOTEXIST == rc )
+               // try drop collectionspace if the collection is only one
+               rc = _dmsCB->dropCSWithSingleCL( _clFullName.c_str(),
+                                                eduCB(), _dpsCB ) ;
+               PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s]",
+                        name(), fullName ) ;
+               if ( SDB_DMS_CS_NOTEXIST == rc ||
+                    SDB_DMS_NOTEXIST == rc )
                {
                   rc = SDB_OK ;
                }
-               else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+               else if ( SDB_OK != rc )
                {
-                  // drop empty collectionspace, ignore errors
-                  _dmsCB->dropEmptyCollectionSpace(
-                           dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                           eduCB(), _dpsCB ) ;
-                  rc = SDB_OK ;
+                  // delete the collection
+                  rc = rtnDropCollectionCommand( fullName, eduCB(), _dmsCB,
+                                                 _dpsCB ) ;
+                  if ( SDB_DMS_CS_NOTEXIST == rc )
+                  {
+                     rc = SDB_OK ;
+                  }
+                  else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
+                  {
+                     // drop empty collectionspace, ignore errors
+                     _dmsCB->dropEmptyCollectionSpace(
+                              dmsGetCSNameFromFullName( _clFullName ).c_str(),
+                              eduCB(), _dpsCB ) ;
+                     rc = SDB_OK ;
+                  }
+                  else
+                  {
+                     PD_LOG( PDWARNING, "Job[%s] failed to drop the collection[%s], "
+                             "rc:%d", name(), fullName ,rc ) ;
+                  }
                }
                pTaskMgr->releaseReg( SHARED ) ;
                goto done ;

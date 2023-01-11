@@ -298,6 +298,9 @@ namespace engine
                                   BOOLEAN onlyEmpty,
                                   dmsDropCSOptions *options = NULL ) ;
 
+      INT32 _delCSWithSingleCL ( const CHAR *pName, _pmdEDUCB *cb,
+                                 SDB_DPSCB *dpsCB ) ;
+
       INT32 _delCollectionSpaceP1 ( const CHAR *pName, _pmdEDUCB *cb,
                                     SDB_DPSCB *dpsCB,
                                     BOOLEAN removeFile = TRUE ) ;
@@ -376,6 +379,8 @@ namespace engine
       INT32 dropCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB,
                                   dmsDropCSOptions *options = NULL ) ;
+      INT32 dropCSWithSingleCL( const CHAR *pName, _pmdEDUCB *cb,
+                                SDB_DPSCB *dpsCB ) ;
       INT32 dropEmptyCollectionSpace( const CHAR *pName, _pmdEDUCB *cb,
                                       SDB_DPSCB *dpsCB ) ;
       INT32 unloadCollectonSpace( const CHAR *pName, _pmdEDUCB *cb ) ;
