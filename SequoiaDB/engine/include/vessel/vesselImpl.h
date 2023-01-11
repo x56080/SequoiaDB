@@ -129,6 +129,71 @@ namespace vessel
          virtual INT32 getCLCount(IExecutor *executor,
                                   const CHAR *csName,
                                   UINT32 &count) override;
+         
+      public:
+         /// temporary
+         virtual INT32 createCS( IExecutor *executor,
+                                 const CHAR *name,
+                                 const utilCSUniqueID &uniqueId,
+                                 const dmsCreateCSOptions &o,
+                                 const bson::BSONObj &adjunct,
+                                 DMS_SU_DESCRIPTOR &desc ) override
+         {
+            SDB_ASSERT( FALSE, "todo" );
+            return SDB_OK;
+         }
+
+         virtual INT32 removeCS( IExecutor *executor,
+                                 const CHAR *name,
+                                 const dmsRemoveCSOptions &options ) override
+         {
+            SDB_ASSERT( FALSE, "todo" );
+            return SDB_OK;
+         }
+
+         virtual INT32 removeEmptyCS( IExecutor *executor,
+                                      const CHAR *name,
+                                      const dmsRemoveCSOptions &options ) override
+         {
+            SDB_ASSERT( FALSE, "todo" );
+            return SDB_OK;
+         }
+
+         virtual INT32 renameCS( IExecutor *executor,
+                                 const CHAR *name,
+                                 const CHAR *newName,
+                                 BOOLEAN blockWrite,
+                                 DMS_SU_DESCRIPTOR &desc ) override
+         {
+            SDB_ASSERT( FALSE, "todo" );
+            return SDB_OK;
+         }
+
+         virtual INT32 unloadCS( IExecutor *executor,
+                                 const CHAR *name,
+                                 const dmsRemoveCSOptions &delOptions ) override
+         {
+            return SDB_NOT_SUPPORTED;
+         }
+
+         virtual INT32 restoreCS( IExecutor *executor, const CHAR *name ) override
+         {
+            return SDB_NOT_SUPPORTED;
+         }
+
+         virtual INT32 returnCS( IExecutor *executor,
+                                 dmsReturnOptions &options,
+                                 BOOLEAN blockWrite ) override
+         {
+            return SDB_NOT_SUPPORTED;
+         }
+
+         virtual INT32 nameToSuDescriptor( const CHAR *pName, DMS_SU_DESCRIPTOR &desc ) override
+         {
+            SDB_ASSERT( FALSE, "todo" );
+            return SDB_OK;
+         }
+
 
       /// IDataStorageEngine end
 

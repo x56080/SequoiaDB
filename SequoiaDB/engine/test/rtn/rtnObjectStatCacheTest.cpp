@@ -107,11 +107,11 @@ namespace engine
       virtual BOOLEAN isClosed() const override
       {
          return _closed;
-      };
+      }
       virtual void close() override
       {
          _closed = TRUE;
-      };
+      }
 
    public:
       virtual INT32 createIndex( IExecutor *executor,
@@ -119,7 +119,7 @@ namespace engine
                                  const bson::BSONObj &indexDef ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 getMetaData( IExecutor *executor, CONST_CL_META_INFO_PTR &meta ) override
       {
@@ -133,7 +133,7 @@ namespace engine
          }
          meta = clMetaInfo;
          return SDB_OK;
-      };
+      }
 
       virtual INT32 listIndex( IExecutor *executor,
                                ossPoolVector< bson::BSONObj > &indexes ) override
@@ -142,16 +142,31 @@ namespace engine
          return SDB_OK;
       }
 
-      virtual INT32 removeIndex( IExecutor *executor, const CHAR *indexName ) override
+      virtual INT32 removeIndex( IExecutor *executor,
+                                 const CHAR *indexName ) override
       {
          return SDB_OK;
-      };
+      }
+
+      virtual INT32 removeIndex( IExecutor *executor,
+                                 const CHAR *indexName,
+                                 const dmsRemoveIndexOptions & ) override
+      {
+         return SDB_OK;
+      }
+
+      virtual INT32 removeIndex( IExecutor *executor,
+                                 const OID &indexOID,
+                                 const dmsRemoveIndexOptions &o ) override
+      {
+         return SDB_OK;
+      }
 
    public:
       virtual INT32 truncate( IExecutor *executor, const dmsTruncateCLOptions &o ) override
       {
          return SDB_OK;
-      };
+      }
 
    public:
       virtual INT32 insertRecord( IExecutor *executor,
@@ -160,14 +175,14 @@ namespace engine
                                   utilInsertResult *result ) override
       {
          return SDB_OK;
-      };
+      }
       virtual INT32 insertBatch( IExecutor *executor,
                                  const ossPoolVector< bson::BSONObj > &batch,
                                  const dmsInsertRecordOptions &o,
                                  utilInsertResult *result ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 updateRecord( IExecutor *executor,
                                   const dmsRecordID &rid,
@@ -176,7 +191,7 @@ namespace engine
                                   utilUpdateResult *result ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 deleteRecord( IExecutor *executor,
                                   const dmsRecordID &rid,
@@ -184,7 +199,7 @@ namespace engine
                                   utilDeleteResult *result ) override
       {
          return SDB_OK;
-      };
+      }
 
    public:
       virtual INT32 scan( IExecutor *executor,
@@ -192,7 +207,7 @@ namespace engine
                           DATA_CURSOR_PTR &cursor ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 scanIndex( IExecutor *executor,
                                const CHAR *indexName,
@@ -201,12 +216,12 @@ namespace engine
                                DATA_CURSOR_PTR &cursor ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 getRecordCount( IExecutor *executor, UINT64 &count ) override
       {
          return SDB_OK;
-      };
+      }
 
    public: /// lob
       virtual INT32 insertLobChunk( IExecutor *executor,
@@ -217,7 +232,7 @@ namespace engine
                                     const CHAR *data ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 readLobChunk( IExecutor *executor,
                                   const bson::OID &oid,
@@ -228,14 +243,14 @@ namespace engine
                                   UINT32 &readSize ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 removeLobChunk( IExecutor *executor,
                                     const bson::OID &oid,
                                     UINT32 chunkId ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 updateLobChunk( IExecutor *executor,
                                     const bson::OID &oid,
@@ -246,7 +261,7 @@ namespace engine
                                     BOOLEAN createIfNotExists ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 truncateLobChunk( IExecutor *executor,
                                       const bson::OID &oid,
@@ -255,14 +270,14 @@ namespace engine
                                       UINT32 &tsize ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 listLobChunks( IExecutor *executor,
                                    const dmsListLobChunkOptions &o,
                                    DATA_CURSOR_PTR &cursor ) override
       {
          return SDB_OK;
-      };
+      }
 
       virtual INT32 testLobChunk( IExecutor *executor,
                                   const bson::OID &oid,
@@ -270,7 +285,7 @@ namespace engine
                                   dmsLobChunkProfile *profile ) override
       {
          return SDB_OK;
-      };
+      }
 
    public:
       INT32 calledTimes = 0;

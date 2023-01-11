@@ -39,41 +39,17 @@ namespace engine
 {
    IDataStorageEngine *dmsEngineSocket::getEngine( DMS_ENGINE_TYPE type ) const
    {
-      IDataStorageEngine *engine = nullptr;
-      try
-      {
-         decltype( _engines )::const_iterator found = _engines.find( type );
-         if ( found != _engines.cend() )
-         {
-            engine = found->second.get();
-         }
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDSEVERE, "occur exception: %s", e.what() );
-         ossPanic();
-      }
+      SDB_ASSERT( type <= DMS_ENGINE_MAX, "dms engine type must be valid" );
+      IDataStorageEngine *engine = _engines[ type ].get();
+      SDB_ASSERT( engine, "can not be nullptr" );
       return engine;
    }
 
-   INT32 dmsEngineSocket::addEngine( std::unique_ptr<IDataStorageEngine> && ptr )
+   void dmsEngineSocket::addEngine( std::unique_ptr< IDataStorageEngine > &&ptr )
    {
-      INT32 rc = SDB_OK;
-
-      try
-      {
-         _engines.emplace( ptr->getEngineType(), std::move(ptr) );
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e );
-         PD_LOG( PDERROR, "occur exception: %s, rc: %d", e.what(), rc );
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT( ptr, "can not be nullptr" );
+      DMS_ENGINE_TYPE type = ptr->getEngineType();
+      SDB_ASSERT( !_engines[ type ], "an instance of the engine already exists" );
+      _engines[ type ] = std::move( ptr );
    }
 } // namespace engine

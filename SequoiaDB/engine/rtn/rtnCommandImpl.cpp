@@ -1410,41 +1410,30 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCREATEINDEXCOMMAND ) ;
       SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su            = NULL ;
-      dmsStorageUnitID suID         = DMS_INVALID_CS ;
-      const CHAR *pCollectionShortName = NULL ;
-      BOOLEAN writable              = FALSE ;
+      BOOLEAN writable = FALSE;
 
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
-      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-
-      if ( DMS_STORAGE_CAPPED == su->type() )
-      {
-         PD_LOG( PDERROR, "Index is not support on capped collection" ) ;
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         goto error ;
-      }
-
-      rc = su->createIndex ( pCollectionShortName, indexObj,
-                             cb, dpsCB, isSys, NULL, sortBufferSize,
-                             pResult, pIdxStatus, FALSE, addUIDIfNotExist ) ;
-      if ( rc )
-      {
-         // SDB_IXM_EXIST may happen when user mistakenly type index name with
-         // same name, so we display INFO instead of ERROR
-         PD_LOG ( PDERROR, "Failed to create index %s: %s, rc: %d",
-                  pCollection, indexObj.toString().c_str(), rc ) ;
-         goto error ;
+         dmsOpenCLOptions openCLOptions;
+         openCLOptions.mbLockType = EXCLUSIVE;
+         DATA_COLLECTION_PTR cl = nullptr;
+         rc = dmsCB->openCL( cb, pCollection, openCLOptions, cl );
+         PD_RC_CHECK( rc, PDERROR, "failed to open collection[%s],rc: %d", pCollection, rc );
+         dmsBuildIndexOptions indexOptions;
+         indexOptions.sysCall = isSys;
+         indexOptions.sortBufferSize = sortBufferSize;
+         indexOptions.result = pResult;
+         indexOptions.idxStatus = pIdxStatus;
+         indexOptions.addUIDIfNotExist = addUIDIfNotExist;
+         indexOptions.dpsCB = dpsCB;
+         rc = cl->createIndex(cb, indexOptions, indexObj);
+         PD_RC_CHECK( rc, PDERROR,
+                      "failed to create index[%s] for collection[%s], "
+                      "rc: %d",
+                      indexObj.toString().c_str(), pCollection, rc );
       }
       
       sdbGetRTNCB()->getAPM()->invalidateCLPlans( pCollection );
@@ -1453,10 +1442,6 @@ namespace engine
               indexObj.toString().c_str(), pCollection ) ;
 
    done :
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
       if ( writable )
       {
          dmsCB->writeDown( cb ) ;
@@ -1483,35 +1468,30 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCREATEINDEXCOMMAND1 ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
 
-      dmsStorageUnit *su = NULL ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
       BOOLEAN writable = FALSE ;
-      utilCSUniqueID csUniqID = utilGetCSUniqueID( clUniqID ) ;
 
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
-      rc = dmsCB->idToSUAndLock( csUniqID, suID, &su, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to loop up su by cs unique id[%u], rc: %d",
-                   csUniqID, rc ) ;
-
-      if ( DMS_STORAGE_CAPPED == su->type() )
       {
-         PD_LOG( PDERROR, "Index is not support on capped collection" ) ;
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         goto error ;
-      }
-
-      rc = su->createIndex( clUniqID, indexObj, cb, dpsCB, isSys, NULL,
-                            sortBufferSize, pResult, pIdxStatus, FALSE,
-                            addUIDIfNotExist ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to create index[%s] for collection[%llu], "
-                  "rc: %d", indexObj.toString().c_str(), clUniqID, rc ) ;
-         goto error ;
+         dmsOpenCLOptions openCLOptions;
+         openCLOptions.mbLockType = EXCLUSIVE;
+         DATA_COLLECTION_PTR cl = nullptr;
+         rc = dmsCB->openCL( cb, clUniqID, openCLOptions, cl );
+         PD_RC_CHECK( rc, PDERROR, "failed to open collection[%llu],rc: %d", clUniqID, rc );
+         dmsBuildIndexOptions indexOptions;
+         indexOptions.sysCall = isSys;
+         indexOptions.sortBufferSize = sortBufferSize;
+         indexOptions.result = pResult;
+         indexOptions.idxStatus = pIdxStatus;
+         indexOptions.addUIDIfNotExist = addUIDIfNotExist;
+         indexOptions.dpsCB = dpsCB;
+         rc = cl->createIndex(cb, indexOptions, indexObj);
+         PD_RC_CHECK( rc, PDERROR,
+                      "failed to create index[%s] for collection[%llu], "
+                      "rc: %d",
+                      indexObj.toString().c_str(), clUniqID, rc );
       }
       
       sdbGetRTNCB()->getAPM()->invalidateCLPlans( clUniqID );
@@ -1520,10 +1500,6 @@ namespace engine
               indexObj.toString().c_str(), clUniqID ) ;
 
    done :
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
       if ( writable )
       {
          dmsCB->writeDown( cb ) ;
@@ -1535,171 +1511,160 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPINDEXCOMMAND, "rtnDropIndexCommand" )
-   INT32 rtnDropIndexCommand ( const CHAR *pCollection,
-                               const BSONElement &identifier,
-                               pmdEDUCB *cb,
-                               SDB_DMSCB *dmsCB,
-                               SDB_DPSCB *dpsCB,
-                               BOOLEAN sysCall,
-                               dmsIdxTaskStatus *pIdxStatus,
-                               BOOLEAN onlyStandalone )
+   INT32 rtnDropIndexCommand( const CHAR *pCollection,
+                              const BSONElement &identifier,
+                              pmdEDUCB *cb,
+                              SDB_DMSCB *dmsCB,
+                              SDB_DPSCB *dpsCB,
+                              BOOLEAN sysCall,
+                              dmsIdxTaskStatus *pIdxStatus,
+                              BOOLEAN onlyStandalone )
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNDROPINDEXCOMMAND ) ;
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_RTNDROPINDEXCOMMAND );
 
-      OID oid ;
-      SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
-      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su               = NULL ;
-      dmsStorageUnitID suID            = DMS_INVALID_CS ;
-      const CHAR *pCollectionShortName = NULL ;
-      BOOLEAN writable                 = FALSE ;
+      OID oid;
+      SDB_ASSERT( pCollection, "collection can't be NULL" );
+      SDB_ASSERT( dmsCB, "dms control block can't be NULL" );
+      BOOLEAN writable = FALSE;
 
       if ( identifier.type() != jstOID && identifier.type() != String )
       {
-         PD_LOG ( PDERROR, "Invalid index identifier type: %s",
-                 identifier.toString().c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         PD_LOG( PDERROR, "Invalid index identifier type: %s", identifier.toString().c_str() );
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-      writable = TRUE ;
+      rc = dmsCB->writable( cb );
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc );
+      writable = TRUE;
 
-      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
-                  pCollection, rc ) ;
-         goto error ;
-      }
-
-      if ( identifier.type() == jstOID )
-      {
-         identifier.Val(oid) ;
-         rc = su->dropIndex ( pCollectionShortName, oid, cb, dpsCB, sysCall,
-                              NULL, pIdxStatus, onlyStandalone ) ;
-      }
-      else if ( identifier.type() == String )
-      {
-         rc = su->dropIndex ( pCollectionShortName, identifier.valuestr(),
-                              cb, dpsCB, sysCall, NULL, pIdxStatus,
-                              onlyStandalone ) ;
-      }
-      else
-      {
-         PD_LOG ( PDERROR, "Invalid identifier type" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to drop index %s: %s, rc: %d",
-                  pCollection, identifier.toString().c_str(), rc ) ;
-         goto error ;
+         dmsOpenCLOptions openCLOptions;
+         openCLOptions.mbLockType = EXCLUSIVE;
+         DATA_COLLECTION_PTR cl = nullptr;
+         rc = dmsCB->openCL( cb, pCollection, openCLOptions, cl );
+         PD_RC_CHECK( rc, PDERROR, "failed to open collection[%s],rc: %d", pCollection, rc );
+         dmsRemoveIndexOptions removeIndexOptions;
+         removeIndexOptions.sysCall = sysCall;
+         removeIndexOptions.idxStatus = pIdxStatus;
+         removeIndexOptions.onlyStandalone = onlyStandalone;
+         removeIndexOptions.dpsCB = dpsCB;
+         if ( identifier.type() == jstOID )
+         {
+            identifier.Val( oid );
+            rc = cl->removeIndex( cb, oid, removeIndexOptions );
+         }
+         else if ( identifier.type() == String )
+         {
+            rc = cl->removeIndex( cb, identifier.valuestr(), removeIndexOptions );
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Invalid identifier type" );
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "failed to drop index %s: %s, rc: %d", pCollection,
+                    identifier.toString().c_str(), rc );
+            goto error;
+         }
       }
 
       sdbGetRTNCB()->getAPM()->invalidateCLPlans( pCollection );
 
-      PD_LOG( PDEVENT, "Drop index[%s] for collection[%s] succeed",
-              identifier.toString().c_str(), pCollection ) ;
+      PD_LOG( PDEVENT, "Drop index[%s] for collection[%s] succeed", identifier.toString().c_str(),
+              pCollection );
 
-   done :
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
+   done:
       if ( writable )
       {
-         dmsCB->writeDown( cb ) ;
+         dmsCB->writeDown( cb );
       }
-      PD_TRACE_EXITRC ( SDB_RTNDROPINDEXCOMMAND, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      PD_TRACE_EXITRC( SDB_RTNDROPINDEXCOMMAND, rc );
+      return rc;
+   error:
+      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPINDEXCOMMAND1, "rtnDropIndexCommand" )
-   INT32 rtnDropIndexCommand ( utilCLUniqueID clUniqID,
-                               const BSONElement &identifier,
-                               pmdEDUCB *cb,
-                               SDB_DMSCB *dmsCB,
-                               SDB_DPSCB *dpsCB,
-                               BOOLEAN sysCall,
-                               dmsIdxTaskStatus *pIdxStatus,
-                               BOOLEAN onlyStandalone )
+   INT32 rtnDropIndexCommand( utilCLUniqueID clUniqID,
+                              const BSONElement &identifier,
+                              pmdEDUCB *cb,
+                              SDB_DMSCB *dmsCB,
+                              SDB_DPSCB *dpsCB,
+                              BOOLEAN sysCall,
+                              dmsIdxTaskStatus *pIdxStatus,
+                              BOOLEAN onlyStandalone )
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNDROPINDEXCOMMAND1 ) ;
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( SDB_RTNDROPINDEXCOMMAND1 );
 
-      OID oid ;
-      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      dmsStorageUnit *su      = NULL ;
-      dmsStorageUnitID suID   = DMS_INVALID_CS ;
-      BOOLEAN writable        = FALSE ;
-      utilCSUniqueID csUniqID = utilGetCSUniqueID( clUniqID ) ;
+      OID oid;
+      SDB_ASSERT( dmsCB, "dms control block can't be NULL" );
+      BOOLEAN writable = FALSE;
 
       if ( identifier.type() != jstOID && identifier.type() != String )
       {
-         PD_LOG ( PDERROR, "Invalid index identifier type: %s",
-                 identifier.toString().c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         PD_LOG( PDERROR, "Invalid index identifier type: %s", identifier.toString().c_str() );
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-      writable = TRUE ;
+      rc = dmsCB->writable( cb );
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc );
+      writable = TRUE;
 
-      rc = dmsCB->idToSUAndLock( csUniqID, suID, &su, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to loop up su by cs unique id[%u], rc: %d",
-                   csUniqID, rc ) ;
-
-      if ( identifier.type() == jstOID )
       {
-         identifier.Val(oid) ;
-         rc = su->dropIndex( clUniqID, oid, cb, dpsCB, sysCall, NULL,
-                             pIdxStatus, onlyStandalone ) ;
-      }
-      else if ( identifier.type() == String )
-      {
-         rc = su->dropIndex( clUniqID, identifier.valuestr(), cb, dpsCB,
-                             sysCall, NULL, pIdxStatus, onlyStandalone ) ;
-      }
-      else
-      {
-         PD_LOG ( PDERROR, "Invalid identifier type" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to drop index[%s] for collection[%llu], rc: %d",
-                  identifier.toString().c_str(), clUniqID, rc ) ;
-         goto error ;
+         dmsOpenCLOptions openCLOptions;
+         openCLOptions.mbLockType = EXCLUSIVE;
+         DATA_COLLECTION_PTR cl = nullptr;
+         rc = dmsCB->openCL( cb, clUniqID, openCLOptions, cl );
+         PD_RC_CHECK( rc, PDERROR, "failed to open collection[%llu],rc: %d", clUniqID, rc );
+         dmsRemoveIndexOptions removeIndexOptions;
+         removeIndexOptions.sysCall = sysCall;
+         removeIndexOptions.idxStatus = pIdxStatus;
+         removeIndexOptions.onlyStandalone = onlyStandalone;
+         removeIndexOptions.dpsCB = dpsCB;
+         if ( identifier.type() == jstOID )
+         {
+            identifier.Val( oid );
+            rc = cl->removeIndex( cb, oid, removeIndexOptions );
+         }
+         else if ( identifier.type() == String )
+         {
+            rc = cl->removeIndex( cb, identifier.valuestr(), removeIndexOptions );
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Invalid identifier type" );
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "failed to drop index %llu: %s, rc: %d", clUniqID,
+                    identifier.toString().c_str(), rc );
+            goto error;
+         }
       }
 
       sdbGetRTNCB()->getAPM()->invalidateCLPlans( clUniqID );
-      
-      PD_LOG( PDEVENT, "Drop index[%s] for collection[%llu] succeed",
-              identifier.toString().c_str(), clUniqID ) ;
 
-   done :
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
+      PD_LOG( PDEVENT, "Drop index[%s] for collection[%llu] succeed", identifier.toString().c_str(),
+              clUniqID );
+
+   done:
       if ( writable )
       {
-         dmsCB->writeDown( cb ) ;
+         dmsCB->writeDown( cb );
       }
-      PD_TRACE_EXITRC ( SDB_RTNDROPINDEXCOMMAND1, rc ) ;
-      return rc ;
-   error :
-      goto done ;
+      PD_TRACE_EXITRC( SDB_RTNDROPINDEXCOMMAND1, rc );
+      return rc;
+   error:
+      goto done;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRENAMECSCOMMAND, "rtnRenameCollectionSpaceCommand" )

@@ -37,24 +37,34 @@
 #define SDB_DMS_ENGINE_OPTIONS_HPP_
 
 #include "dmsEngineDef.hpp"
+#include "interface/IDataProtectionService.h"
 #include "interface/IRecordFilter.h"
 #include "utilCompression.hpp"
 #include "dms.hpp"
 #include "../bson/bson.hpp"
+#include "utilResult.hpp"
 #include "dmsStripingId.hpp"
-#include "dmsEventHandler.hpp"
 
 namespace engine
 {
+   class _dmsDropCSOptions;
+   using dmsDropCSOptions = _dmsDropCSOptions;
+   class _dmsDropCLOptions;
+   using dmsDropCLOptions = _dmsDropCLOptions;
+   class _dmsReturnOptions;
+   using dmsReturnOptions = _dmsReturnOptions;
+   class _dmsIdxTaskStatus;
+   using dmsIdxTaskStatus = _dmsIdxTaskStatus;
+   
    struct dmsCreateCSOptions : public SDBObject
    {
-      UINT32 dataPageSize = DMS_PAGE_SIZE64K;
-      UINT32 idxPageSize = DMS_PAGE_SIZE64K;
-      UINT32 lobdPageSize = DMS_PAGE_SIZE4K;
+      UINT32 dataPageSize = DMS_PAGE_SIZE_DFT;
+      UINT32 idxPageSize = DMS_PAGE_SIZE_DFT;
+      UINT32 lobdPageSize = DMS_DEFAULT_LOB_PAGE_SZ;
       DMS_STORAGE_TYPE stype = DMS_STORAGE_NORMAL;
       DMS_ENGINE_TYPE etype = DMS_ENGINE_INVALID;
       BOOLEAN sysCall = FALSE;
-      SDB_DPSCB *dpsCB = nullptr;
+      IDataProtectionService *dpsCB = nullptr;
    };//struct dmsCreateCSOptions
 
    struct dmsCreateCLOptions : public SDBObject
@@ -67,7 +77,7 @@ namespace engine
       const BSONObj *extOptions = nullptr;
       const BSONObj *idIdxDef = nullptr;
       BOOLEAN addIdxIDIfNotExist = FALSE;
-      SDB_DPSCB *dpsCB = nullptr;
+      IDataProtectionService *dpsCB = nullptr;
    };//struct dmsCreateCLOptions
 
    struct dmsRemoveCSOptions : public SDBObject
@@ -75,14 +85,14 @@ namespace engine
       BOOLEAN sysCall = FALSE;
       BOOLEAN ensureEmpty = FALSE;
       dmsDropCSOptions *recycleOptions = nullptr;
-      SDB_DPSCB *dpsCB = nullptr;
+      IDataProtectionService *dpsCB = nullptr;
    };
 
    struct dmsRemoveCLOptions : public SDBObject
    {
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL;
       dmsDropCLOptions *recycleOptions = nullptr;
-      SDB_DPSCB *dpsCB = nullptr;
+      IDataProtectionService *dpsCB = nullptr;
    };
 
    struct dmsTruncateCLOptions : public SDBObject
@@ -97,7 +107,7 @@ namespace engine
 
    struct dmsOpenCLOptions : public SDBObject
    {
-      OSS_LATCH_MODE mbLockType = SHARED;
+      INT32 mbLockType = -1;
    };////struct dmsOpenCLOptions
 
    struct dmsBuildIndexOptions : public SDBObject
@@ -107,9 +117,23 @@ namespace engine
          return 0 == sortBufferSize;
       }
 
+      BOOLEAN sysCall = FALSE;
       UINT32 sortBufferSize = (UINT32)64 << 20; /// 64MB
       BOOLEAN blockDML = FALSE;
+      utilWriteResult *result = nullptr;
+      dmsIdxTaskStatus *idxStatus = nullptr;
+      BOOLEAN forceTransCallback = FALSE;
+      BOOLEAN addUIDIfNotExist = FALSE;
+      IDataProtectionService *dpsCB = nullptr;
    };//struct dmsBuildIndexOptions
+
+   struct dmsRemoveIndexOptions
+   {
+      BOOLEAN sysCall = FALSE;
+      dmsIdxTaskStatus *idxStatus = nullptr;
+      BOOLEAN onlyStandalone = FALSE;
+      IDataProtectionService *dpsCB = nullptr;
+   };//struct dmsRemoveIndexOptions
 
    struct dmsInsertRecordOptions : public SDBObject
    {

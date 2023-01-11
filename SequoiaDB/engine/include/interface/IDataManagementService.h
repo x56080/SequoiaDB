@@ -42,53 +42,53 @@
 #include "utilUniqueID.hpp"
 namespace engine
 {
-class IDataManagementService : public SDBObject
-{
-public:
-   IDataManagementService(){};
-   virtual ~IDataManagementService(){};
-   IDataManagementService( const IDataManagementService & ) = delete;
-   IDataManagementService &operator=( const IDataManagementService & ) = delete;
+   class IDataManagementService : public SDBObject
+   {
+      public:
+         IDataManagementService(){};
+         virtual ~IDataManagementService(){};
+         IDataManagementService( const IDataManagementService & ) = delete;
+         IDataManagementService &operator=( const IDataManagementService & ) = delete;
 
-public:
-   virtual INT32 createCS( IExecutor *executor,
-                           const CHAR *name,
-                           utilCSUniqueID uniqueId,
-                           const dmsCreateCSOptions &o,
-                           const bson::BSONObj &adjunct ) = 0;
+      public:
+         virtual INT32 createCS( IExecutor *executor,
+                                 const CHAR *name,
+                                 utilCSUniqueID uniqueId,
+                                 const dmsCreateCSOptions &o,
+                                 const bson::BSONObj &adjunct ) = 0;
 
-   virtual INT32 dropCS( IExecutor *executor,
-                         const CHAR *name,
-                         const dmsRemoveCSOptions &options ) = 0;
+         virtual INT32 dropCS( IExecutor *executor,
+                               const CHAR *name,
+                               const dmsRemoveCSOptions &options ) = 0;
 
-   virtual INT32 renameCS( IExecutor *executor,
-                           const CHAR *oldName,
-                           const CHAR *newName,
-                           BOOLEAN blockWrite ) = 0;
+         virtual INT32 renameCS( IExecutor *executor,
+                                 const CHAR *oldName,
+                                 const CHAR *newName,
+                                 BOOLEAN blockWrite ) = 0;
 
-   virtual INT32 openCL( IExecutor *executor,
-                         const CHAR *fullName,
-                         const dmsOpenCLOptions &o,
-                         DATA_COLLECTION_PTR &ptr ) = 0;
+         virtual INT32 openCL( IExecutor *executor,
+                               const CHAR *fullName,
+                               const dmsOpenCLOptions &o,
+                               DATA_COLLECTION_PTR &ptr ) = 0;
 
-   virtual INT32 openCL( IExecutor *executor,
-                         utilCLUniqueID uniqueId,
-                         const dmsOpenCLOptions &o,
-                         DATA_COLLECTION_PTR &ptr ) = 0;
-   
-   virtual INT32 createCL( IExecutor *executor,
-                              const CHAR *clFullName,
-                              utilCLUniqueID clUniqueID,
-                              const dmsCreateCLOptions &o,
-                              const bson::BSONObj &adjunct ) = 0;
+         virtual INT32 openCL( IExecutor *executor,
+                               utilCLUniqueID uniqueId,
+                               const dmsOpenCLOptions &o,
+                               DATA_COLLECTION_PTR &ptr ) = 0;
 
-   virtual INT32 dropCL( IExecutor *executor,
-                         const CHAR *clFullName,
-                         const dmsRemoveCLOptions &o ) = 0;
+         virtual INT32 createCL( IExecutor *executor,
+                                 const CHAR *clFullName,
+                                 utilCLUniqueID clUniqueID,
+                                 const dmsCreateCLOptions &o,
+                                 const bson::BSONObj &adjunct ) = 0;
 
-   virtual INT32 nameToSuDescriptor( const CHAR *pName, DMS_SU_DESCRIPTOR &desc ) = 0;
+         virtual INT32 dropCL( IExecutor *executor,
+                               const CHAR *clFullName,
+                               const dmsRemoveCLOptions &o ) = 0;
 
-   virtual UINT32 getNullCSUniqueIDCnt() const = 0;
-};
+         virtual INT32 nameToSuDescriptor( const CHAR *pName, DMS_SU_DESCRIPTOR &desc ) = 0;
+
+         virtual UINT32 getNullCSUniqueIDCnt() const = 0;
+   };
 } // namespace engine
 #endif

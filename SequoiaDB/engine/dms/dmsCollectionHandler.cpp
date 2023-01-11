@@ -43,28 +43,48 @@
 
 namespace engine
 {
+   pmdEDUCB *castToEDUCB( IExecutor *executor )
+   {
+      pmdEDUCB *cb = dynamic_cast< pmdEDUCB * >( executor );
+      if ( executor )
+      {
+         SDB_ASSERT( cb, "can not be nullptr" );
+      }
+      return cb;
+   }
+
+   SDB_DPSCB *castToDPSCB( IDataProtectionService *dps )
+   {
+      SDB_DPSCB *dpsCB = dynamic_cast< SDB_DPSCB * >( dps );
+      if ( dps )
+      {
+         SDB_ASSERT( dpsCB, "can not be nullptr" );
+      }
+      return dpsCB;
+   }
+
    class mbLockGuard : public utilPooledObject
    {
-   public:
-      mbLockGuard( dmsMBContext *mbContext, INT32 lockType )
-      : _mbContext( mbContext ), _lockType( lockType )
-      {
-         if ( _lockType == SHARED || _lockType == EXCLUSIVE )
+      public:
+         mbLockGuard( dmsMBContext *mbContext, INT32 lockType )
+         : _mbContext( mbContext ), _lockType( lockType )
          {
-            _mbContext->mbLock( _lockType );
+            if ( _lockType == SHARED || _lockType == EXCLUSIVE )
+            {
+               _mbContext->mbLock( _lockType );
+            }
          }
-      }
-      ~mbLockGuard()
-      {
-         if ( _lockType == SHARED || _lockType == EXCLUSIVE )
+         ~mbLockGuard()
          {
-            _mbContext->mbUnlock();
+            if ( _lockType == SHARED || _lockType == EXCLUSIVE )
+            {
+               _mbContext->mbUnlock();
+            }
          }
-      }
 
-   private:
-      dmsMBContext *_mbContext = nullptr;
-      INT32 _lockType = -1;
+      private:
+         dmsMBContext *_mbContext = nullptr;
+         INT32 _lockType = -1;
    };
 
    mbLockGuard getSharedMBLockGuard( dmsMBContext *mbContext )
@@ -85,13 +105,14 @@ namespace engine
       {
          return mbLockGuard( mbContext, -1 );
       }
-      else if( mbContext->mbLockType() == SHARED )
+      else if ( mbContext->mbLockType() == SHARED )
       {
-         // expect
+         // Expect not yet locked or already locked exclusively.
          SDB_ASSERT( FALSE, "invalid lock type" );
          return mbLockGuard( mbContext, EXCLUSIVE );
       }
-      else {
+      else
+      {
          return mbLockGuard( mbContext, EXCLUSIVE );
       }
    }
@@ -138,14 +159,6 @@ namespace engine
       _suID = DMS_INVALID_CS;
       _mbContext = nullptr;
       _engine = nullptr;
-   }
-
-   INT32 dmsCollectionHandler::createIndex( IExecutor *executor,
-                                            const dmsBuildIndexOptions &o,
-                                            const bson::BSONObj &indexDef )
-   {
-      SDB_ASSERT( FALSE, "todo" );
-      return SDB_OK;
    }
 
    INT32 dmsCollectionHandler::getMetaData( IExecutor *executor, CONST_CL_META_INFO_PTR &meta )
@@ -212,6 +225,51 @@ namespace engine
       goto done;
    }
 
+   INT32 dmsCollectionHandler::createIndex( IExecutor *executor,
+                                            const dmsBuildIndexOptions &o,
+                                            const bson::BSONObj &indexDef )
+   {
+      INT32 rc = SDB_OK;
+      if ( isClosed() )
+      {
+         rc = SDB_INVALID_OPERATION;
+         PD_LOG( PDERROR, "dms collection handler is closed" );
+         goto error;
+      }
+
+      if ( DMS_STORAGE_CAPPED == _su->type() )
+      {
+         PD_LOG( PDERROR, "Index is not support on capped collection" );
+         rc = SDB_OPTION_NOT_SUPPORT;
+         goto error;
+      }
+
+      {
+         pmdEDUCB *cb = castToEDUCB( executor );
+         SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
+         if ( o.dpsCB )
+         {
+            SDB_ASSERT( dpsCB, "can not be nullptr" );
+         }
+         mbLockGuard guard = getExclusiveMBLockGuard( _mbContext );
+         rc = _su->createIndex( _mbContext->mb()->_collectionName, indexDef, cb, dpsCB, o.sysCall,
+                                _mbContext, o.sortBufferSize, o.result, o.idxStatus,
+                                o.forceTransCallback, o.addUIDIfNotExist );
+
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to create index %s.%s: %s, rc: %d", _su->CSName(),
+                    _mbContext->mb()->_collectionName, indexDef.toString().c_str(), rc );
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 dmsCollectionHandler::listIndex( IExecutor *executor,
                                           ossPoolVector< bson::BSONObj > &indexes )
    {
@@ -241,10 +299,58 @@ namespace engine
       goto done;
    }
 
-   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor, const CHAR *indexName )
+   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor,
+                                            const CHAR *indexName )
    {
-      SDB_ASSERT( FALSE, "todo" );
-      return SDB_OK;
+      return SDB_NOT_SUPPORTED;
+   }
+
+   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor,
+                                            const CHAR *indexName,
+                                            const dmsRemoveIndexOptions &o )
+   {
+      INT32 rc = SDB_OK;
+      if ( isClosed() )
+      {
+         rc = SDB_INVALID_OPERATION;
+         PD_LOG( PDERROR, "dms collection handler is closed" );
+         goto error;
+      }
+      {
+         pmdEDUCB *cb = castToEDUCB( executor );
+         SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
+         rc = _su->dropIndex( _mbContext->mb()->_collectionName, indexName, cb, dpsCB, o.sysCall,
+                              _mbContext, o.idxStatus, o.onlyStandalone );
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor,
+                                            const OID &indexOID,
+                                            const dmsRemoveIndexOptions &o )
+   {
+      INT32 rc = SDB_OK;
+      if ( isClosed() )
+      {
+         rc = SDB_INVALID_OPERATION;
+         PD_LOG( PDERROR, "dms collection handler is closed" );
+         goto error;
+      }
+      {
+         pmdEDUCB *cb = castToEDUCB( executor );
+         SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
+         rc = _su->dropIndex( _mbContext->mb()->_collectionName, const_cast< OID & >( indexOID ),
+                              cb, dpsCB, o.sysCall, _mbContext, o.idxStatus, o.onlyStandalone );
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 dmsCollectionHandler::truncate( IExecutor *executor, const dmsTruncateCLOptions &o )

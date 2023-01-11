@@ -41,12 +41,12 @@ namespace engine
 {
    class _dmsEngineSocket : public SDBObject
    {
-   public:
-      IDataStorageEngine *getEngine( DMS_ENGINE_TYPE type ) const;
-      INT32 addEngine( std::unique_ptr<IDataStorageEngine> && );
+      public:
+         IDataStorageEngine *getEngine( DMS_ENGINE_TYPE type ) const;
+         void addEngine( std::unique_ptr< IDataStorageEngine > && );
 
-   private:
-      ossPoolMap< DMS_ENGINE_TYPE, std::unique_ptr< IDataStorageEngine > > _engines;
+      private:
+         std::unique_ptr< IDataStorageEngine > _engines[ DMS_ENGINE_MAX + 1 ] = { nullptr, nullptr };
    };
    typedef _dmsEngineSocket dmsEngineSocket;
 } // namespace engine

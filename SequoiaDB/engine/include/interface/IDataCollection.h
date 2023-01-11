@@ -67,7 +67,7 @@ namespace engine
          virtual void close() = 0;
 
       public:
-         virtual INT32 getMetaData( IExecutor *executor, CONST_CL_META_INFO_PTR &meta ) = 0;
+         virtual INT32 getMetaData(IExecutor *executor, CONST_CL_META_INFO_PTR &meta) = 0;
 
          virtual INT32 createIndex(IExecutor *executor,
                                    const dmsBuildIndexOptions &o,
@@ -78,6 +78,14 @@ namespace engine
 
          virtual INT32 removeIndex(IExecutor *executor,
                                    const CHAR *indexName) = 0;
+
+         virtual INT32 removeIndex(IExecutor *executor,
+                                   const CHAR *indexName,
+                                   const dmsRemoveIndexOptions &o) = 0;
+
+         virtual INT32 removeIndex(IExecutor *executor,
+                                   const OID &indexOID,
+                                   const dmsRemoveIndexOptions &o) = 0;
 
       public:
          virtual INT32 truncate(IExecutor *executor,

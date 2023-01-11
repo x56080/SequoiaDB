@@ -48,8 +48,7 @@ namespace engine
          rc = mmap->open( _cm );
          PD_RC_CHECK( rc, PDERROR, "failed to open mmap engine, rc: %d", rc );
 
-         rc = _engineSocket.addEngine( std::move( mmap ) );
-         PD_RC_CHECK( rc, PDERROR, "failed to add mmap engine to socket, rc: %d", rc );
+         _engineSocket.addEngine( std::move( mmap ) );
          PD_LOG( PDDEBUG, "add mmap engine succesfully" );
       }
 
@@ -407,7 +406,8 @@ namespace engine
                              DATA_COLLECTION_PTR &ptr )
    {
       INT32 rc = SDB_OK;
-      DMS_SU_DESCRIPTOR desc = _cm.getSuDescriptor( uniqueId );
+      utilCSUniqueID csUID = utilGetCSUniqueID( uniqueId );
+      DMS_SU_DESCRIPTOR desc = _cm.getSuDescriptor( csUID );
       if ( desc )
       {
          IDataStorageEngine *engine = nullptr;

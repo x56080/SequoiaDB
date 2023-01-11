@@ -92,8 +92,16 @@ namespace vessel
          virtual INT32 listIndex(IExecutor *executor,
                                  ossPoolVector<bson::BSONObj> &indexes) override;
 
+         virtual INT32 removeIndex( IExecutor *executor,
+                                    const CHAR *indexName ) override;
+
          virtual INT32 removeIndex(IExecutor *executor,
-                                   const CHAR *indexName) override;
+                                   const CHAR *indexName,
+                                   const dmsRemoveIndexOptions &o) override;
+
+         virtual INT32 removeIndex(IExecutor *executor,
+                                   const OID &indexOID,
+                                   const dmsRemoveIndexOptions &o) override;
 
       public:
          virtual INT32 truncate(IExecutor *executor,

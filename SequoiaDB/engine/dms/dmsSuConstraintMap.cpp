@@ -339,8 +339,7 @@ namespace engine
          if ( exist )
          {
             rc = SDB_DMS_CS_EXIST;
-            PD_LOG( PDERROR,
-                    "invalid collection space name[%s] or unique id[%d], rc: %d", name,
+            PD_LOG( PDERROR, "invalid collection space name[%s] or unique id[%d], rc: %d", name,
                     csUID, rc );
             goto error;
          }

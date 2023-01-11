@@ -123,6 +123,20 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionHandler::removeIndex(IExecutor *executor,
+                                        const CHAR *indexName,
+                                        const dmsRemoveIndexOptions &o)
+   {
+      return SDB_NOT_SUPPORTED;
+   }
+
+   INT32 collectionHandler::removeIndex(IExecutor *executor,
+                                        const OID &indexOID,
+                                        const dmsRemoveIndexOptions &o)
+   {
+      return SDB_NOT_SUPPORTED;
+   }
+
    INT32 collectionHandler::insertRecord(IExecutor *executor,
                                          const bson::BSONObj &record,
                                          const dmsInsertRecordOptions &o,

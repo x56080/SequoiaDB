@@ -61,68 +61,6 @@ namespace vessel
          virtual INT32 close(IExecutor *executor,
                              const closeDBOptions &options) = 0;
 
-         virtual INT32 createCS( IExecutor *executor,
-                                 const CHAR *name,
-                                 const utilCSUniqueID &uniqueId,
-                                 const dmsCreateCSOptions &o,
-                                 const bson::BSONObj &adjunct,
-                                 DMS_SU_DESCRIPTOR &desc ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 listCS( IExecutor *executor, DATA_CURSOR_PTR &cursor ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 removeCS( IExecutor *executor,
-                                 const CHAR *name,
-                                 const dmsRemoveCSOptions &options ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 removeEmptyCS( IExecutor *executor,
-                                      const CHAR *name,
-                                      const dmsRemoveCSOptions &options ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 renameCS( IExecutor *executor,
-                                 const CHAR *name,
-                                 const CHAR *newName,
-                                 BOOLEAN blockWrite,
-                                 DMS_SU_DESCRIPTOR &desc ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 unloadCS( IExecutor *executor,
-                                 const CHAR *name,
-                                 const dmsRemoveCSOptions &delOptions ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 restoreCS( IExecutor *executor, const CHAR *name ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 returnCS( IExecutor *executor,
-                                 dmsReturnOptions &options,
-                                 BOOLEAN blockWrite ) override
-         {
-            return SDB_OK;
-         };
-
-         virtual INT32 nameToSuDescriptor( const CHAR *pName, DMS_SU_DESCRIPTOR &desc ) override
-         {
-            return SDB_OK;
-         };
-
    }; /// end of class IVessel
 } /// end of namespace vessel
 } /// end of namespace engine
