@@ -493,7 +493,7 @@ def _element_to_bson(key, value, check_keys, uuid_subtype):
                           type(value))
 
 
-def _dict_to_bson(dict, check_keys, uuid_subtype, top_level=True):
+def _dict_to_bson(dict, check_keys, uuid_subtype, top_level=True, extend_obj=None):
     try:
         elements = []
         if top_level and "_id" in dict:
@@ -503,8 +503,12 @@ def _dict_to_bson(dict, check_keys, uuid_subtype, top_level=True):
             if not top_level or key != "_id":
                 elements.append(_element_to_bson(key, value,
                                                  check_keys, uuid_subtype))
+        if extend_obj is not None:
+            for (key, value) in extend_obj.items():
+                elements.append(_element_to_bson(key, value,
+                                                 check_keys, uuid_subtype))
     except AttributeError:
-        raise TypeError("encoder expected a mapping type but got: %r" % dict)
+        raise TypeError("encoder expected a mapping type but got: dict=%r, extend_obj=%r" % (dict, extend_obj))
 
     encoded = EMPTY.join(elements)
     length = len(encoded) + 5
@@ -589,7 +593,7 @@ class BSON(binary_type):
     """
 
     @classmethod
-    def encode(cls, document, check_keys=False, uuid_subtype=OLD_UUID_SUBTYPE):
+    def encode(cls, document, check_keys=False, uuid_subtype=OLD_UUID_SUBTYPE, extend_obj=None):
         """Encode a document to a new :class:`BSON` instance.
 
         A document can be any mapping type (like :class:`dict`).
@@ -618,7 +622,7 @@ class BSON(binary_type):
 
         .. versionadded:: 1.9
         """
-        return cls(_dict_to_bson(document, check_keys, uuid_subtype))
+        return cls(_dict_to_bson(document, check_keys, uuid_subtype, extend_obj=extend_obj))
 
     def decode(self, as_class=dict,
                tz_aware=False, uuid_subtype=OLD_UUID_SUBTYPE, compile_re=True):
