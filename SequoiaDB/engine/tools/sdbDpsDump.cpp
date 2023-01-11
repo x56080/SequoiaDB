@@ -1435,7 +1435,7 @@ INT32 _dpsDumper::_metaFilter( const CHAR *filename, INT32 index,
 
    if( DPS_LOG_INVALID_LSN != logHeader->_firstLSN.offset )
    {
-      while ( offset < fileSize )
+      while ( TRUE )
       {
          rc = _readRecordHead( in, offset, fileSize, pRecordHead ) ;
          if( rc && SDB_DPS_CORRUPTED_LOG != rc )
@@ -1462,9 +1462,8 @@ INT32 _dpsDumper::_metaFilter( const CHAR *filename, INT32 index,
             // reach end of file
             meta.expectLSN = header->_lsn + header->_length ;
             meta.lastLSN = header->_lsn ;
-            meta.validSize = header->_lsn % totalRecordSize ;
-            meta.restSize = totalRecordSize -
-                            ( meta.validSize + header->_length ) ;
+            meta.validSize = header->_lsn % totalRecordSize + header->_length ;
+            meta.restSize = totalRecordSize - meta.validSize ;
             break;
          }
 
@@ -1482,6 +1481,17 @@ INT32 _dpsDumper::_metaFilter( const CHAR *filename, INT32 index,
 
          preLsn = header->_lsn ;
          offset += header->_length ;
+
+         if ( offset >= fileSize )
+         {
+            SDB_ASSERT( offset == fileSize, "offset out of range" ) ;
+            // end of file
+            meta.expectLSN = header->_lsn + header->_length ;
+            meta.lastLSN = header->_lsn ;
+            meta.validSize = totalRecordSize ;
+            meta.restSize = 0 ;
+            break;
+         }
       }
    }
    else
