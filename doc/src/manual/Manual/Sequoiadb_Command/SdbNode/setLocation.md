@@ -35,6 +35,8 @@ location（ *string，必填* ）
 |-6|SDB_INVALIDARG|参数类型错误|检查参数类型是否正确|
 |-259|SDB_OUT_OF_BOUND|未指定必填参数|检查是否缺失必填参数|
 
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
+
 ##版本##
 
 v3.6.1 及以上版本
