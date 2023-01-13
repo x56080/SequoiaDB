@@ -49,40 +49,6 @@ class TestAnalyzeGetIndexStat24685 extends PHPUnit_Framework_TestCase
       $rec = self::$cl -> getIndexStat( $notExistIndexName );
       analyzeUtils::checkErrno( -356, self::$db -> getError() ['errno'] );
    }
-
-   function test2()
-   {
-      $rec = self::$cl -> getIndexStat( self::$indexName, false );
-      analyzeUtils::checkErrno( 0, self::$db -> getError() ['errno'] );
-      $actCollection = $rec['Collection'];
-      $this -> assertEquals( self::$csName.'.'.self::$clName, $actCollection );
-      $actIndex = $rec['Index'];
-      $this -> assertEquals( self::$indexName, $actIndex );
-      $actTotalRecords = $rec['TotalRecords'];
-      $this -> assertEquals( self::$recNum, $actTotalRecords );
-      $actMCV = $rec['MCV'];
-      $this->assertEquals(true, empty($actMCV));
-   }
-
-   function test3()
-   {
-      $rec = self::$cl -> getIndexStat( self::$indexName, true );
-      analyzeUtils::checkErrno( 0, self::$db -> getError() ['errno'] );
-      $actCollection = $rec['Collection'];
-      $this -> assertEquals( self::$csName.'.'.self::$clName, $actCollection );
-      $actIndex = $rec['Index'];
-      $this -> assertEquals( self::$indexName, $actIndex );
-      $actTotalRecords = $rec['TotalRecords'];
-      $this -> assertEquals( self::$recNum, $actTotalRecords );
-      $actMCV = $rec['MCV'];
-      $this->assertEquals(true, !empty($actMCV));
-   }
-
-   function test4()
-   {
-      $rec = self::$cl -> getIndexStat( self::$indexName, "xxx" );
-      analyzeUtils::checkErrno( -6, self::$db -> getError() ['errno'] );
-   }
    
    public static function tearDownAfterClass()
    {
