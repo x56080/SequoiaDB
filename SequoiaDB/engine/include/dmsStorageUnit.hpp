@@ -576,7 +576,7 @@ namespace engine
                              dmsIdxTaskStatus *pIdxStatus = NULL,
                              BOOLEAN onlyStandalone = FALSE ) ;
 
-         INT32    dropIndex( const CHAR *pName, OID &indexOID,
+         INT32    dropIndex( const CHAR *pName, const OID &indexOID,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,
                              BOOLEAN isSys = FALSE,
                              dmsMBContext *context = NULL,
@@ -590,7 +590,7 @@ namespace engine
                              dmsIdxTaskStatus *pIdxStatus = NULL,
                              BOOLEAN onlyStandalone = FALSE ) ;
 
-         INT32    dropIndex( utilCLUniqueID clUniqID, OID &indexOID,
+         INT32    dropIndex( utilCLUniqueID clUniqID, const OID &indexOID,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,
                              BOOLEAN isSys = FALSE,
                              dmsMBContext *context = NULL,

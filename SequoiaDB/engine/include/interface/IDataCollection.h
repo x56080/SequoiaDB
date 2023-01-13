@@ -69,6 +69,8 @@ namespace engine
       public:
          virtual INT32 getMetaData(IExecutor *executor, CONST_CL_META_INFO_PTR &meta) = 0;
 
+         virtual DMS_STORAGE_TYPE getCSStorageType() = 0;
+
          virtual INT32 createIndex(IExecutor *executor,
                                    const dmsBuildIndexOptions &o,
                                    const bson::BSONObj &indexDef) = 0;
@@ -172,7 +174,7 @@ namespace engine
                                     UINT32 chunkId,
                                     dmsLobChunkProfile *profile) = 0;
 
-         
+
 
 
    };//class IDataCollection

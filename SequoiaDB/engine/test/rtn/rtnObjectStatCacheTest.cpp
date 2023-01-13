@@ -135,6 +135,11 @@ namespace engine
          return SDB_OK;
       }
 
+      virtual DMS_STORAGE_TYPE getCSStorageType() override
+      {
+         return DMS_STORAGE_NORMAL;
+      }
+
       virtual INT32 listIndex( IExecutor *executor,
                                ossPoolVector< bson::BSONObj > &indexes ) override
       {

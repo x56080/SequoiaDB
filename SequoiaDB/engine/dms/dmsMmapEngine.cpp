@@ -441,6 +441,10 @@ namespace engine
    done:
       return rc;
    error:
+      if ( DMS_INVALID_CS != suID )
+      {
+         suUnlock(suID);
+      }
       ptr.reset();
       goto done;
    }
@@ -470,6 +474,10 @@ namespace engine
    done:
       return rc;
    error:
+      if ( DMS_INVALID_CS != suID )
+      {
+         suUnlock(suID);
+      }
       ptr.reset();
       goto done;
    }

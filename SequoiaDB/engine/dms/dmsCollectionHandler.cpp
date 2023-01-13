@@ -82,6 +82,23 @@ namespace engine
             }
          }
 
+         mbLockGuard( mbLockGuard &&o)
+         {
+            _mbContext = o._mbContext;
+            _lockType = o._lockType;
+            o._mbContext = nullptr;
+            o._lockType = -1;
+         }
+
+         mbLockGuard &operator=(mbLockGuard &&o)
+         {
+            _mbContext = o._mbContext;
+            _lockType = o._lockType;
+            o._mbContext = nullptr;
+            o._lockType = -1;
+            return *this;
+         }
+
       private:
          dmsMBContext *_mbContext = nullptr;
          INT32 _lockType = -1;
@@ -225,6 +242,12 @@ namespace engine
       goto done;
    }
 
+   DMS_STORAGE_TYPE dmsCollectionHandler::getCSStorageType()
+   {
+      SDB_ASSERT( _su, "can not be nullptr" );
+      return _su->type();
+   }
+
    INT32 dmsCollectionHandler::createIndex( IExecutor *executor,
                                             const dmsBuildIndexOptions &o,
                                             const bson::BSONObj &indexDef )
@@ -247,10 +270,6 @@ namespace engine
       {
          pmdEDUCB *cb = castToEDUCB( executor );
          SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
-         if ( o.dpsCB )
-         {
-            SDB_ASSERT( dpsCB, "can not be nullptr" );
-         }
          mbLockGuard guard = getExclusiveMBLockGuard( _mbContext );
          rc = _su->createIndex( _mbContext->mb()->_collectionName, indexDef, cb, dpsCB, o.sysCall,
                                 _mbContext, o.sortBufferSize, o.result, o.idxStatus,
@@ -281,16 +300,19 @@ namespace engine
          PD_LOG( PDERROR, "dms collection handler is closed" );
          goto error;
       }
-      rc = _su->getIndexes( _mbContext, idxList, FALSE );
-      PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc );
-
-      for ( MON_IDX_LIST::const_iterator it = idxList.cbegin(); it != idxList.cend(); ++it )
       {
-         BSONObjBuilder builder;
-         builder.appendElements( it->_indexDef );
-         builder.append( IXM_FIELD_NAME_CB_EXTENT_ID, it->_indexCBExtentID );
-         builder.append( FIELD_NAME_LOGICAL_ID, (INT64)it->_indexLID );
-         indexes.push_back( builder.obj() );
+         mbLockGuard guard = getSharedMBLockGuard( _mbContext );
+         rc = _su->getIndexes( _mbContext, idxList, FALSE );
+         PD_RC_CHECK( rc, PDERROR, "dump indexes failed, rc: %d", rc );
+
+         for ( MON_IDX_LIST::const_iterator it = idxList.cbegin(); it != idxList.cend(); ++it )
+         {
+            BSONObjBuilder builder;
+            builder.appendElements( it->_indexDef );
+            builder.append( IXM_FIELD_NAME_CB_EXTENT_ID, it->_indexCBExtentID );
+            builder.append( FIELD_NAME_LOGICAL_ID, (INT64)it->_indexLID );
+            indexes.push_back( builder.obj() );
+         }
       }
 
    done:
@@ -299,8 +321,7 @@ namespace engine
       goto done;
    }
 
-   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor,
-                                            const CHAR *indexName )
+   INT32 dmsCollectionHandler::removeIndex( IExecutor *executor, const CHAR *indexName )
    {
       return SDB_NOT_SUPPORTED;
    }
@@ -319,6 +340,7 @@ namespace engine
       {
          pmdEDUCB *cb = castToEDUCB( executor );
          SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
+         mbLockGuard guard = getExclusiveMBLockGuard( _mbContext );
          rc = _su->dropIndex( _mbContext->mb()->_collectionName, indexName, cb, dpsCB, o.sysCall,
                               _mbContext, o.idxStatus, o.onlyStandalone );
       }
@@ -343,8 +365,9 @@ namespace engine
       {
          pmdEDUCB *cb = castToEDUCB( executor );
          SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
-         rc = _su->dropIndex( _mbContext->mb()->_collectionName, const_cast< OID & >( indexOID ),
-                              cb, dpsCB, o.sysCall, _mbContext, o.idxStatus, o.onlyStandalone );
+         mbLockGuard guard = getExclusiveMBLockGuard( _mbContext );
+         rc = _su->dropIndex( _mbContext->mb()->_collectionName, indexOID, cb, dpsCB, o.sysCall,
+                              _mbContext, o.idxStatus, o.onlyStandalone );
       }
 
    done:
@@ -364,8 +387,35 @@ namespace engine
                                              const dmsInsertRecordOptions &o,
                                              utilInsertResult *result )
    {
-      SDB_ASSERT( FALSE, "todo" );
-      return SDB_OK;
+      SDB_ASSERT( NULL != result, "insert result is invalid" );
+      INT32 rc = SDB_OK;
+      pmdEDUCB *cb = castToEDUCB( executor );
+      SDB_DPSCB *dpsCB = castToDPSCB( o.dpsCB );
+      mbLockGuard guard = getExclusiveMBLockGuard( _mbContext );
+      rc = _su->insertRecord( _mbContext->mb()->_collectionName, record, cb, dpsCB, TRUE, FALSE,
+                              _mbContext, o.position, result );
+      if ( SDB_OK != rc )
+      {
+         if ( DMS_STORAGE_CAPPED == _su->type() )
+         {
+            PD_LOG( PDERROR,
+                     "Failed to insert record into collection [%s.%s] "
+                     "by position[%lld], rc: %d",
+                     _su->CSName(), _mbContext->mb()->_collectionName, o.position, rc );
+         }
+         else
+         {
+            PD_LOG( PDERROR,
+                     "Failed to insert record into collection [%s.%s], rc: %d",
+                     _su->CSName(), _mbContext->mb()->_collectionName, rc );
+         }
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 dmsCollectionHandler::insertBatch( IExecutor *executor,

@@ -68,11 +68,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::getMetaData( IExecutor *executor,
-                                         CONST_CL_META_INFO_PTR &meta )
+   INT32 collectionHandler::getMetaData(IExecutor *executor,
+                                        CONST_CL_META_INFO_PTR &meta)
    {
       SDB_ASSERT(FALSE, "todo");
       return SDB_OK;
+   }
+
+   DMS_STORAGE_TYPE collectionHandler::getCSStorageType()
+   {
+      return DMS_STORAGE_NORMAL;
    }
 
    INT32 collectionHandler::listIndex(IExecutor *executor,

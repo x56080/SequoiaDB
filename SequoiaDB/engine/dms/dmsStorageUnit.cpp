@@ -2313,7 +2313,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX1, "_dmsStorageUnit::dropIndex" )
-   INT32 _dmsStorageUnit::dropIndex( const CHAR *pName, OID &indexOID,
+   INT32 _dmsStorageUnit::dropIndex( const CHAR *pName, const OID &indexOID,
                                      pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                      BOOLEAN isSys, dmsMBContext *context,
                                      dmsIdxTaskStatus *pIdxStatus,
@@ -2392,7 +2392,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX3, "_dmsStorageUnit::dropIndex" )
-   INT32 _dmsStorageUnit::dropIndex( utilCLUniqueID clUniqID, OID &indexOID,
+   INT32 _dmsStorageUnit::dropIndex( utilCLUniqueID clUniqID, const OID &indexOID,
                                      pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                      BOOLEAN isSys, dmsMBContext *context,
                                      dmsIdxTaskStatus *pIdxStatus,

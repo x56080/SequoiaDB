@@ -82,8 +82,10 @@ namespace vessel
          }
 
       public:
-         virtual INT32 getMetaData( IExecutor *executor,
-                                    CONST_CL_META_INFO_PTR &meta ) override;
+         virtual INT32 getMetaData(IExecutor *executor,
+                                   CONST_CL_META_INFO_PTR &meta) override;
+
+         virtual DMS_STORAGE_TYPE getCSStorageType() override;
 
          virtual INT32 createIndex(IExecutor *executor,
                                    const dmsBuildIndexOptions &o,

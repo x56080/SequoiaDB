@@ -138,6 +138,8 @@ namespace engine
    struct dmsInsertRecordOptions : public SDBObject
    {
       dmsStripingId stripingId;
+      INT64 position = -1;
+      IDataProtectionService *dpsCB = nullptr;
    };//struct dmsInsertRecordOptions
 
    struct dmsUpdateRecordOptions : public SDBObject

@@ -1418,7 +1418,6 @@ namespace engine
 
       {
          dmsOpenCLOptions openCLOptions;
-         openCLOptions.mbLockType = EXCLUSIVE;
          DATA_COLLECTION_PTR cl = nullptr;
          rc = dmsCB->openCL( cb, pCollection, openCLOptions, cl );
          PD_RC_CHECK( rc, PDERROR, "failed to open collection[%s],rc: %d", pCollection, rc );
@@ -1541,7 +1540,6 @@ namespace engine
 
       {
          dmsOpenCLOptions openCLOptions;
-         openCLOptions.mbLockType = EXCLUSIVE;
          DATA_COLLECTION_PTR cl = nullptr;
          rc = dmsCB->openCL( cb, pCollection, openCLOptions, cl );
          PD_RC_CHECK( rc, PDERROR, "failed to open collection[%s],rc: %d", pCollection, rc );

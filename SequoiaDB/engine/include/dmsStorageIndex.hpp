@@ -169,7 +169,7 @@ namespace engine
                                 BOOLEAN forceTransCallback = FALSE,
                                 BOOLEAN addUIDIfNotExist = TRUE ) ;
 
-         INT32    dropIndex ( _dmsMBContext *context, OID &indexOID,
+         INT32    dropIndex ( _dmsMBContext *context, const OID &indexOID,
                               _pmdEDUCB *cb, SDB_DPSCB *dpscb,
                               BOOLEAN isSys = FALSE,
                               dmsIdxTaskStatus *pIdxStatus = NULL,

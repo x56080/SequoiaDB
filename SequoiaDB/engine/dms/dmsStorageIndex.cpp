@@ -1022,7 +1022,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_DROPIDX1, "_dmsStorageIndex::dropIndex" )
-   INT32 _dmsStorageIndex::dropIndex( dmsMBContext *context, OID &indexOID,
+   INT32 _dmsStorageIndex::dropIndex( dmsMBContext *context, const OID &indexOID,
                                       pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                       BOOLEAN isSys,
                                       dmsIdxTaskStatus *pIdxStatus,
