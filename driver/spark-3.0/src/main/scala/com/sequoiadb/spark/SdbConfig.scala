@@ -593,7 +593,7 @@ object SdbConfig {
         config
     }
 
-    private[spark] val SdbConnectionOptions: ConfigOptions = new ConfigOptions
+    val SdbConnectionOptions: ConfigOptions = new ConfigOptions
 
     /**
      * A global default value set as a SQLConf will overwrite the default value of
