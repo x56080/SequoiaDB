@@ -143,6 +143,7 @@ testFiles = [
    [ "./list/list26398.cpp" ],
    [ "./crud/query10404.cpp" ],
    [ "./cls/getCLDetail22183.cpp" ],
+   [ "./cls/getCollectionStat29800.cpp" ],
    [ "./misc/snapshotIndexStat22498.cpp" ],
    [ "./list/listTest.cpp" ],
    [ "./meta/getDomainName25084.cpp" ],
