@@ -1923,8 +1923,11 @@ error:
 PHP_METHOD( SequoiaCL, getIndexStat )
 {
    INT32 rc = SDB_OK ;
+   INT32 argsNum          = ZEND_NUM_ARGS() ;
    PHP_LONG indexNameLen  = 0 ;
    CHAR *pIndexName       = NULL ;
+   BOOLEAN detail         = FALSE ;
+   zval *pDetail          = NULL ;
    zval *pThisObj         = getThis() ;
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
    bson record ;
@@ -1932,19 +1935,48 @@ PHP_METHOD( SequoiaCL, getIndexStat )
 
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
 
-   if ( PHP_GET_PARAMETERS( "s", &pIndexName, &indexNameLen ) == FAILURE )
+   if ( PHP_GET_PARAMETERS( "s|z",
+                            &pIndexName,
+                            &indexNameLen,
+                            &pDetail ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
+   if( argsNum == 2 )
+   {
+      if( PHP_IS_BOOLEAN( Z_TYPE_P( pDetail ) ) == FALSE )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
-   rc = sdbCLGetIndexStat( cl, pIndexName, &record ) ;
+      rc = php_zval2Bool( pDetail, &detail TSRMLS_CC ) ;
+      if( rc )
+      {
+         goto error ;
+      }
+
+      PHP_READ_HANDLE( pThisObj,
+                       cl,
+                       sdbCollectionHandle,
+                       SDB_CL_HANDLE_NAME,
+                       clDesc ) ;
+
+      rc = sdbCLGetIndexStat1( cl, pIndexName, &record, detail ) ;
+   }
+   else
+   {
+      PHP_READ_HANDLE( pThisObj,
+                       cl,
+                       sdbCollectionHandle,
+                       SDB_CL_HANDLE_NAME,
+                       clDesc ) ;
+
+      rc = sdbCLGetIndexStat( cl, pIndexName, &record ) ;
+   }
+
    if( rc )
    {
       goto error ;
