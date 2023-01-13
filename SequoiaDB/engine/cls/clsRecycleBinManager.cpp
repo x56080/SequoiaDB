@@ -1503,28 +1503,65 @@ namespace engine
       if ( NULL != su )
       {
          INT32 tmpRC = SDB_OK ;
+         BOOLEAN csDeleted = FALSE ;
 
          CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ]  = { 0 } ;
+         CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
 
          ossStrncpy( szSpace, su->CSName(), DMS_COLLECTION_SPACE_NAME_SZ ) ;
          szSpace[ DMS_COLLECTION_SPACE_NAME_SZ ] = '\0' ;
-
-         rc = su->data()->dropCollection( recycleName, cb, _dpsCB ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            // ignore not exist error
-            rc = SDB_OK ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to drop collection [%s], rc: %d",
-                      recycleName, rc ) ;
+         ossSnprintf( clFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                      szSpace, recycleName ) ;
+         clFullName[ DMS_COLLECTION_FULL_NAME_SZ ] = '\0' ;
 
          _dmsCB->suUnlock( suID ) ;
          suID = DMS_INVALID_SUID ;
          su = NULL ;
+         rc = _dmsCB->dropCSWithSingleCL( clFullName, cb, _dpsCB ) ;
+         if ( SDB_OK == rc ||
+              SDB_DMS_CS_NOTEXIST == rc ||
+              SDB_DMS_NOTEXIST == rc  )
+         {
+            if ( SDB_OK == rc )
+            {
+               csDeleted = TRUE ;
+            }
+            else
+            {
+               rc = SDB_OK ;
+            }
+         }
+         else
+         {
+            rc = _dmsCB->idToSUAndLock( csUniqueID, suID, &su ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
+            {
+               rc = SDB_OK ;
+               goto done ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to lock collection space[%s], rc: %d",
+                         szSpace, rc ) ;
+            rc = su->data()->dropCollection( recycleName, cb, _dpsCB ) ;
+            if ( SDB_DMS_NOTEXIST == rc )
+            {
+               // ignore not exist error
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop collection [%s], rc: %d",
+                         clFullName, rc ) ;
 
-         // try drop empty collection space
-         tmpRC = _dmsCB->dropEmptyCollectionSpace( szSpace, cb, _dpsCB ) ;
-         if ( SDB_OK == tmpRC &&
+            _dmsCB->suUnlock( suID ) ;
+            suID = DMS_INVALID_SUID ;
+            su = NULL ;
+
+            // try drop empty collection space
+            tmpRC = _dmsCB->dropEmptyCollectionSpace( szSpace, cb, _dpsCB ) ;
+            if ( SDB_OK == tmpRC )
+            {
+               csDeleted = TRUE ;
+            }
+         }
+         if ( csDeleted &&
               0 == ossStrncmp( szSpace,
                                UTIL_RECYCLE_PREFIX,
                                UTIL_RECYCLE_PREFIX_SZ ) )
