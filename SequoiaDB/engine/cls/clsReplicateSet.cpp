@@ -88,7 +88,6 @@ namespace engine
    #define CLS_REPL_WAIT_TIME                   (100)
    #define CLS_REPL_RETRY_TIMEOUT               (10000)
    #define CLS_FT_SW_TIMEOUT                    ( 10000 )
-   #define CLS_MOVE_TIMES_MAX                   (6)
 
    /*
       _clsReplicateSet define
@@ -104,8 +103,7 @@ namespace engine
      _timerID( CLS_INVALID_TIMERID ),
      _beatTime( 0 ),
      _active( FALSE ),
-     _lastLogMoveTick( 0 ),
-     _lastLogMoveTimes( 0 )
+     _lastLogMoveTick( 0 )
    {
       _srcSessionNum = 0 ;
       _ntyLastOffset = DPS_INVALID_LSN_OFFSET ;
@@ -175,11 +173,6 @@ namespace engine
       if ( DPS_BEFORE == moment && moveToOffset != expectOffset )
       {
          _lastLogMoveTick.swap( pmdGetDBTick() ) ;
-         UINT32 curMoveTimes = _lastLogMoveTimes.fetch() ;
-         if ( curMoveTimes < CLS_MOVE_TIMES_MAX )
-         {
-            _lastLogMoveTimes.compareAndSwap( curMoveTimes, curMoveTimes + 1 ) ;
-         }
       }
    }
 

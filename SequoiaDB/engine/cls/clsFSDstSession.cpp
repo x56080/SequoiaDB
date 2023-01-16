@@ -1990,6 +1990,8 @@ namespace engine
                   msg->header.res ) ;
          _selector.addToBlackList ( _selector.src() ) ;
          _selector.clearSrc () ;
+         /// need reselect a source to full sync immediately
+         _repeatCount = CLS_FS_MAX_REPEAT_CNT ;
          goto done ;
       }
 

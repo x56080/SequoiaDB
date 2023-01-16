@@ -68,7 +68,7 @@ namespace engine
    #define CLS_SYNC_DFT_TIMEOUT                 ( 600 * OSS_ONE_SEC )
 
    #define CLS_SYNCWAIT_FIX_TIME_SLICE          ( 10 * OSS_ONE_SEC )
-   #define CLS_DISABLE_SRC_INTERVAL_BASE        ( 30 * OSS_ONE_SEC )
+   #define CLS_DISABLE_SRC_INTERVAL             ( 3600 * OSS_ONE_SEC )
 
    /*
       _clsReplicateSet define
@@ -249,20 +249,12 @@ namespace engine
 
          OSS_INLINE BOOLEAN isReadyForSrc( UINT64 curTick )
          {
-            BOOLEAN ret = TRUE ;
-            UINT32 curMoveTimes = _lastLogMoveTimes.fetch() ;
-            UINT64 curTimeSpan = pmdDBTickSpan2Time( curTick - _lastLogMoveTick.fetch() ) ;
-            UINT64 disableInterval = ( curMoveTimes == 0 ) ? 0 :
-               CLS_DISABLE_SRC_INTERVAL_BASE * ( 1 << ( curMoveTimes - 1 ) ) ;
-            if ( curMoveTimes > 0 && curTimeSpan > 2 * disableInterval )
-            {
-               _lastLogMoveTimes.compareAndSwap( curMoveTimes,curMoveTimes - 1 ) ;
-            }
-            else if ( curTimeSpan <= disableInterval )
-            {
-               ret = FALSE ;
-            }
-            return ret ;
+            UINT64 lastLogMoveTick = _lastLogMoveTick.fetch() ;
+            UINT64 curTimeSpan = pmdDBTickSpan2Time( curTick - lastLogMoveTick ) ;
+            /// source is ready in the following two cases
+            /// 1. During this full sync, the secondary replay log has not failed
+            /// 2. The downtime of the last full sync has passed(curTimeSpan > 1h)
+            return 0 == lastLogMoveTick || curTimeSpan > CLS_DISABLE_SRC_INTERVAL ;
          }
 
          ossQueue< clsLSNNtyInfo >* getNtyQue() { return &_ntyQue ; }
@@ -490,7 +482,6 @@ namespace engine
          ossEvent                _heartbeatEvent ;
 
          ossAtomic64             _lastLogMoveTick ;
-         ossAtomic32             _lastLogMoveTimes ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;
