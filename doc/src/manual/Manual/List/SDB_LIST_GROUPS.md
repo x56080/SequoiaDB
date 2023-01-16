@@ -13,13 +13,11 @@
 
 数据分区列表可以列出集群中所有复制组信息。
 
-标识
-----
+##标识##
 
 SDB_LIST_GROUPS
 
-字段信息
-----
+##字段信息##
 
 | 字段名             | 类型       | 描述                                                |
 | ------------------ | ---------  | --------------------------------------------------- |
@@ -28,22 +26,23 @@ SDB_LIST_GROUPS
 | Group.HostName     | string     | 复制组中节点的主机名                           |
 | Group.Service.Type | int32   | 复制组中节点的服务类型，取值如下：<br> 0：直连服务，对应数据库参数 svcname <br> 1：复制服务，对应数据库参数 replname <br> 2：分区服务，对应数据库参数 shardname<br> 3：编目服务，对应数据库参数 catalogname |
 | Group.Service.Name | string | 复制组中节点的服务名，服务名可以为端口号，或 services 文件中的服务名 |
+| Group.instanceid      | int32  | 复制组中节点的实例 ID（仅在已手动配置实例 ID 的节点显示） |
 | Group.NodeID       | int32  | 复制组中节点的 ID              |
 | GroupID            | int32      | 复制组 ID                                           |
 | GroupName          | string     | 复制组名称                                            |
 | PrimaryNode        | int32      | 主节点 ID                                           |
 | Role               | int32      | 复制组角色，取值如下：<br>0：数据节点<br>1：协调节点<br>2：编目节点 |
+| SecretID           | int32      | 复制组的校验 ID（内部使用） |
 | Status             | string     | 复制组状态，取值如下：<br>1：已激活<br>0：未激活<br>不存在：未激活分区组            |
-| Version            | int32      | 复制组版本号，创建删除节点时，版本号会改变          |
+| Version            | int32      | 复制组版本号（内部使用） |
 
 
-示例
-----
+##示例##
 
 查看数据分区列表
 
 ```lang-javascript
-> db.list( SDB_LIST_GROUPS )
+> db.list(SDB_LIST_GROUPS)
 ```
 
 输出结果如下：
@@ -52,7 +51,7 @@ SDB_LIST_GROUPS
 {
   "Group":[
     {
-      "HostName": "hostname1",
+      "HostName": "sdbserver",
       "Status": 1,
       "dbpath": "/data/disk1/sequoiadb/database/catalog/11860/",
       "Service": [
@@ -73,13 +72,15 @@ SDB_LIST_GROUPS
           "Name": "11803"
         }
       ],
-      "NodeID": 1
+      "instanceid": 100,
+      "NodeID": 1,
     }
   ],
   "GroupID": 1,
   "GroupName": "SYSCatalogGroup",
   "PrimaryNode": 1,
   "Role": 2,
+  "SecretID": 1831753872,
   "Status": 1,
   "Version": 1,
   "_id": {

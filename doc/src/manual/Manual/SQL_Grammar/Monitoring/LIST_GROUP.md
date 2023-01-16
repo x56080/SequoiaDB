@@ -14,20 +14,22 @@ $LIST_GROUP
 | Group.HostName     | string | 复制组中节点的主机名           |
 | Group.Service.Type | int32   | 复制组中节点的服务类型，取值如下：<br>0：直连服务，对应数据库参数 svcname <br> 1：复制服务，对应数据库参数 replname <br>2：分区服务，对应数据库参数 shardname<br>3：编目服务，对应数据库参数 catalogname |
 | Group.Service.Name | string | 复制组中节点的服务名，服务名可以为端口号，或 services 文件中的服务名 |
+| Group.instanceid      | int32  | 复制组中节点的实例 ID（仅在已手动配置实例 ID 的节点显示） |
 | Group.NodeID       | int32   | 复制组中节点的 ID              |
 | GroupID            | int32    | 复制组 ID                      |
 | GroupName          | string | 复制组名称                     |
 | PrimaryNode        | int32     | 主节点 ID                      |
 | Role               | int32     | 复制组角色，取值如下：<br> 0：数据节点<br>2：编目节点 |
+| SecretID           | int32     | 复制组的校验 ID（内部使用） |
 | Status             | string | 复制组状态，取值如下：<br> 1：已激活分区组<br> 0：未激活分区组<br> 不存在：未激活分区组 |
-| Version            | int32      |                                |
+| Version            | int32      | 复制组版本号（内部使用） |
 
 ##示例##
 
 查看复制组列表
 
 ```lang-javascript
-> db.exec( "select * from $LIST_GROUP" )
+> db.exec("select * from $LIST_GROUP")
 ```
 
 输出结果如下：
@@ -37,7 +39,7 @@ $LIST_GROUP
   "Group": [
     {
       "dbpath": "/opt/test/30000",
-      "HostName": "hostname",
+      "HostName": "sdbserver",
       "Service": [
         {
           "Type": 0,
@@ -56,11 +58,12 @@ $LIST_GROUP
           "Name": "30003"
         }
       ],
+      "instanceid": 100,
       "NodeID": 1,
       "Status": 1
     },
     {
-      "HostName": "hostname",
+      "HostName": "sdbserver",
       "dbpath": "/opt/test/30020",
       "Service": [
         {
@@ -84,7 +87,7 @@ $LIST_GROUP
       "Status": 1
     },
     {
-      "HostName": "hostname",
+      "HostName": "sdbserver",
       "Status": 1,
       "dbpath": "/opt/test/30010/",
       "Service": [

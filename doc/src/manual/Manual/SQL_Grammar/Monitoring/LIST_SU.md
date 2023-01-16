@@ -25,22 +25,22 @@ $LIST_SU
 | NumCollections | int32   | 集合空间下的集合个数        |
 | CollectionHWM  | int32   | 集合高水位，一般来说意味着该集合空间中总共创建过的集合数量（包括被删除的集合） |
 | Size           | int64 | 存储单元大小，单位为字节      |
-| CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
-| UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
+| CreateTime | string | 创建集合空间的时间（仅在 v5.0.4 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v5.0.4 及以上版本生效） |
 
 ##示例##
 
 查看存储单元列表
 
 ```lang-javascript
-> db.exec( "select * from $LIST_SU" )
+> db.exec("select * from $LIST_SU")
 ```
 
 输出结果如下：
 
 ```lang-json
 {
-  "NodeName": "hostname:30000",
+  "NodeName": "sdbserver:30000",
   "Name": "SYSAUTH",
   "UniqueID": 0,
   "ID": 5,
@@ -55,7 +55,7 @@ $LIST_SU
   "UpdateTime": "2022-10-06-18.05.49.384000"
 }
 {
-  "NodeName": "hostname:30000",
+  "NodeName": "sdbserver:30000",
   "Name": "SYSCAT",
   "UniqueID": 0,
   "ID": 1,

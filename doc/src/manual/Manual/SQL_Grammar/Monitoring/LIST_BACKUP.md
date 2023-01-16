@@ -12,9 +12,13 @@ $LIST_BACKUP
 | Version | int32   | 版本号      |
 | Name   | string | 备份名称   |
 | ID     |  int32 | 备份 ID             |
+| Description | string | 备份描述 |
+| Path | string | 备份路径（仅在备份参数 [IsSubDir][backup] 生效时显示） |
 | NodeName  | string | 节点主机名称       |
 | GroupName  | string   | 数据组名称             |
 | EnsureInc  | boolean | 是否开启增量备份                     |
+| GlobalTrans | boolean | 是否开启全局事务 |
+| GlobalTime | uint64 | 全局逻辑时间 |
 | BeginLSNOffset | int64 | 起始 LSN 的偏移              |
 | EndLSNOffset   | int64 | 结尾 LSN 的偏移              |
 | TransLSNOffset | int64 | 事务当前的日志 LSN 的偏移               |
@@ -40,7 +44,7 @@ $LIST_BACKUP
 查看备份列表
 
 ```lang-javascript
-> db.exec( "select * from $LIST_BACKUP" )
+> db.exec("select * from $LIST_BACKUP")
 ```
 
 输出结果如下：
@@ -50,9 +54,13 @@ $LIST_BACKUP
   "Version": 2,
   "Name": "2019-08-14-13:27:02",
   "ID": 0,
-  "NodeName": "u1604-ljh:42000",
-  "GroupName": "db2",
+  "Description": "backup group1",
+  "Path": "opt/test",
+  "NodeName": "sdbserver:42000",
+  "GroupName": "group1",
   "EnsureInc": false,
+  "GlobalTrans": false,
+  "GlobalTime": 0,
   "BeginLSNOffset": 6645140616,
   "EndLSNOffset": 6645140668,
   "TransLSNOffset": -1,
@@ -76,3 +84,6 @@ $LIST_BACKUP
 ...
 ```
 
+[^_^]:
+    本文使用的所有引用及链接
+[backup]:manual/Manual/Sequoiadb_Command/Sdb/backup.md
