@@ -680,7 +680,6 @@ INT32 _recordBuffer::writeBuffer( const CHAR *pFormat, ... )
 {
    INT32 rc = SDB_OK ;
    va_list ap ;
-   va_start(ap, pFormat) ;
    INT64 len = _rValidSize ;
 
    if( _rBuffer == NULL )
@@ -689,10 +688,11 @@ INT32 _recordBuffer::writeBuffer( const CHAR *pFormat, ... )
       goto error ;
    }
 
-   while (true)
+   while ( true )
    {
-      len += ossVsnprintf( _rBuffer + _rValidSize, _rBufferSize - _rValidSize,
-                           pFormat, ap ) ;
+      va_start( ap, pFormat ) ;
+      len += ossVsnprintf( _rBuffer + len, _rBufferSize - len, pFormat, ap ) ;
+      va_end( ap ) ;
       if( len >= _rBufferSize - 1 )
       {
          // Buffer space is full
@@ -710,7 +710,6 @@ INT32 _recordBuffer::writeBuffer( const CHAR *pFormat, ... )
    }
 
 done:
-   va_end( ap ) ;
    return rc ;
 error:
    OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
