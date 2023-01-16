@@ -33,14 +33,14 @@ $LIST_SU
 查看存储单元列表
 
 ```lang-javascript
-> db.exec( "select * from $LIST_SU" )
+> db.exec("select * from $LIST_SU")
 ```
 
 输出结果如下：
 
 ```lang-json
 {
-  "NodeName": "hostname:30000",
+  "NodeName": "sdbserver:30000",
   "Name": "SYSAUTH",
   "UniqueID": 0,
   "ID": 5,
@@ -55,7 +55,7 @@ $LIST_SU
   "UpdateTime": "2022-10-06-18.05.49.384000"
 }
 {
-  "NodeName": "hostname:30000",
+  "NodeName": "sdbserver:30000",
   "Name": "SYSCAT",
   "UniqueID": 0,
   "ID": 1,

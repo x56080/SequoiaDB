@@ -7,14 +7,12 @@
 >
 > 一般每个会话在每个数据节点上只有一个事务记录。
 
-标识
-----
+##标识##
 
 SDB_SNAP_TRANSACTIONS_CURRENT
 
 
-字段信息
-----
+##字段信息##
 
 | 字段名                 | 类型     | 描述                                     |
 | ---------------------- | -------- | ---------------------------------------- |
@@ -62,8 +60,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
 
-示例
-----
+##示例##
 
 查看当前事务快照
 
@@ -78,8 +75,10 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
   "NodeName": "sdbserver:11830",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
+  "TransactionIDSN": 1,
   "IsRollback": false,
   "CurrentTransLSN": -1,
+  "BeginTransLSN": -1,
   "WaitLock": {},
   "TransactionLocksNum": 3,
   "IsLockEscalated": false,
