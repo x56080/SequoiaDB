@@ -16,22 +16,22 @@
 >
 > 事务功能可以参考[事务][transaction]。
 
-标识
-----
+##标识##
 
 SDB_LIST_TRANSACTIONS
 
-字段信息
-----
+##字段信息##
 
 | 字段名                 | 类型      | 描述                                     |
 | ---------------------- | --------- | ---------------------------------------- |
-| NodeName               | string    | 节点名，格式为<主机名>:<服务名>          |
+| NodeName               | string    | 节点名，格式为`<主机名>:<服务名>`        |
 | GroupName              | string    | 复制组名                                 |
 | SessionID              | int64     | 会话 ID                                  |
 | TransactionID          | string    | 事务 ID                                  |
+| TransactionIDSN        | int64     | 事务序列号                               |
 | IsRollback             | boolean   | 表示这个事务是否处于回滚中               |
-| CurrentTransLSN        | int64     | 事务当前的日志 LSN                       |   
+| CurrentTransLSN        | int64     | 事务当前的日志 LSN                       |
+| BeginTransLSN          | int64     | 事务开始的日志 LSN                       |
 | WaitLock               | bson      | 正在等待的锁                             |
 | TransactionLocksNum    | int32     | 事务已经获得的锁                         |
 | RelatedID              | string    | 内部标识                                 |
@@ -59,13 +59,12 @@ WaitLock 字段中锁对象的信息如下：
 
 | 锁对象       | CSID | CLID  | ExtentID | Offset | 备注 |
 | ------------ | ---- | ----- | ---- | ---- | ------------ |
-| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在WaitLock为没有锁对象时，表示当前事务没有在等待锁 |
-| 集合空间锁   | >= 0 | 65535 | -1   | -1   | |
-| 集合锁       | >= 0 | >= 0  | -1   | -1   | |
-| 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
+| 没有锁对象   | -1   | 65535 | -1   | -1   | 一般在 WaitLock 为没有锁对象时，表示当前事务没有在等待锁 |
+| 集合空间锁   | >= 0 | 65535 | -1   | -1   | - |
+| 集合锁       | >= 0 | >= 0  | -1   | -1   | - |
+| 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | - |
 
-示例
-----
+##示例##
 
 查看事务列表
 
@@ -77,23 +76,27 @@ WaitLock 字段中锁对象的信息如下：
 
 ```lang-json
 {
-  "NodeName": "ubuntu1604-xjh:20000",
-  "GroupName": "db1",
+  "NodeName": "sdbserver:20000",
+  "GroupName": "group1",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
+  "TransactionIDSN": 2,
   "IsRollback": false,
   "CurrentTransLSN": -1,
+  "BeginTransLSN": -1,
   "WaitLock": {},
   "TransactionLocksNum": 3,
   "RelatedID": "c0a81457c3500000000000000059"
 }
 {
-  "NodeName": "ubuntu1604-xjh:20000",
-  "GroupName": "db1",
+  "NodeName": "sdbserver:20000",
+  "GroupName": "group1",
   "SessionID": 92,
   "TransactionID": "03e80000000002",
+  "TransactionIDSN": 2,
   "IsRollback": false,
   "CurrentTransLSN": -1,
+  "BeginTransLSN": -1,
   "WaitLock": {
     "CSID": 1,
     "CLID": 0,

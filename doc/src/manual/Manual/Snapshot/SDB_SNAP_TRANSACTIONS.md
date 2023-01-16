@@ -70,14 +70,14 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 查看事务快照
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_TRANSACTIONS )
+> db.snapshot(SDB_SNAP_TRANSACTIONS)
 ```
 
 输出结果如下：
 
 ```lang-json
 {
-  "NodeName": "ubuntu1604-xjh:20000",
+  "NodeName": "sdbserver:20000",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
   "TransactionIDSN": 1,
@@ -118,7 +118,7 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
   ]
 }
 {
-  "NodeName": "ubuntu1604-xjh:20000",
+  "NodeName": "sdbserver:20000",
   "SessionID": 92,
   "TransactionID": "03e80000000002",
   "TransactionIDSN": 2,
