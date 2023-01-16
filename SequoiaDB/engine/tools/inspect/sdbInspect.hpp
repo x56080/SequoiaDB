@@ -74,6 +74,7 @@
 #define CI_PASSWD_SIZE           SDB_MAX_PASSWORD_LENGTH
 
 #define CI_BUFFER_BLOCK          1024
+#define CI_RECORD_BUFFER_SIZE    20 * 1024 * 1024 // 20 MB
 #define CI_HEADER_SIZE           65536
 #define CI_TAIL_SIZE             65536
 #define CI_GROUPNAME_SIZE        OSS_MAX_GROUPNAME_SIZE
@@ -567,6 +568,21 @@ struct _ciState
    {}
 } ;
 typedef _ciState ciState ;
+
+struct _recordBuffer
+{
+   CHAR    *_rBuffer ;
+   INT64   _rBufferSize ;
+   INT64   _rValidSize ;
+   OSSFILE &_out ;
+
+   _recordBuffer( OSSFILE &out ) ;
+   ~_recordBuffer() ;
+
+   INT32 writeBuffer( const CHAR *pFormat, ... ) ;
+   INT32 commitBuffer() ;
+} ;
+typedef _recordBuffer recordBuffer ;
 
 //////////////////////////////////////////////////////////////////////////
 // sdbCi
