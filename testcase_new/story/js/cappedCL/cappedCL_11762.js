@@ -28,7 +28,7 @@ function test ()
       checkCappedCS( csName, nodeList );
    }
 
-   //begin to drop cappedCS 
+   //begin to drop cappedCS
    commDropCS( db, csName, false, "beginning to drop cappedCS" );
 
    //check drop result
@@ -73,42 +73,68 @@ function getNodeList ( groupName )
 
 function checkCappedCS ( csName, nodeList )
 {
-   var repeatTime = 10;
    var clSize = 0;
-   for( var i = 0; i < repeatTime; i++ )
+   for( var i in nodeList )
    {
-      var j = i % nodeList.length;
-      var catadb = new Sdb( nodeList[j] );
+      var catadb = new Sdb( nodeList[i] );
       clSize = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
-      //judge the current node exist CL or not 
+      //judge the current node exist CL or not
       if( clSize == 0 )
       {
          // wait for the slave node sync
-         sleep( 2 * 60 * 1000 );//2 mins		
-         clSize = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
+         var waitTime = 180 ; // 3min
+         while( waitTime > 0 )
+         {
+            sleep( 5 * 1000 );
+            clSize = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
+            if( clSize != 0 )
+            {
+               break;
+            }
+            waitTime -= 5;
+         }
+         if( clSize == 0 )
+         {
+            throw new Error( "wait for node " + catadb + " sync timeout!" );
+         }
       }
+      var cursor = catadb.SYSCAT.SYSCOLLECTIONSPACES.find( { 'Name': csName } );
+      var type = cursor.next().toObj().Type;
+      assert.equal( type, 1 );
+      cursor.close();
 
-      if( clSize != 0 )
-      {
-         var cursor = catadb.SYSCAT.SYSCOLLECTIONSPACES.find( { 'Name': csName } );
-         var type = cursor.next().toObj().Type;
-         assert.equal( type, 1 );
-         cursor.close();
-      } else
-      {
-         throw new Error( "check cappedCL failed , cursor is null" );
-      }
       catadb.close();
    }
 }
 
 function checkDropCS ( csName, nodeList )
 {
+   var clSize = 1 ;
    for( var i in nodeList )
    {
       var catadb = new Sdb( nodeList[i] );
-      var count = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
-      assert.equal( count, 0 );
+      clSize = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( {'Name': csName } );
+      //judge the current node exist CL or not
+      if( clSize != 0 )
+      {
+         // wait for the slave node sync
+         var waitTime = 180 ; // 3min
+         while( waitTime > 0 )
+         {
+            sleep( 5 * 1000 );
+            clSize = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
+            if( clSize == 0 )
+            {
+               break;
+            }
+            waitTime -= 5;
+         }
+         if( clSize != 0 )
+         {
+            throw new Error( "wait for node " + catadb + " sync timeout!" );
+         }
+      }
+
       catadb.close();
    }
 }
