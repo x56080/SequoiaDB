@@ -3073,6 +3073,10 @@ namespace sdbclient
 
       // reelect primary node
       virtual INT32 reelect( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+
+      // reelect location primary node
+      virtual INT32 reelectLocation( const CHAR* pLocation,
+                                     const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
    } ;
 
    /** \class sdbReplicaGroup
@@ -3480,6 +3484,23 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pReplicaGroup->reelect( options ) ;
+      }
+
+      /** \fn INT32 reelectLocation( const CHAR* pLocation, cosnt BSONObj &options )
+          \brief Force the replica group to reelect location primary node.
+          \param [in] pLocation The location of reelection operation.
+          \param [in] options The options of reelection operation.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+       */
+      INT32 reelectLocation( const CHAR* pLocation,
+                             const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if( !pReplicaGroup )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pReplicaGroup->reelectLocation( pLocation, options ) ;
       }
    } ;
 

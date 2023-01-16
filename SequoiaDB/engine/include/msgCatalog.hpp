@@ -162,12 +162,15 @@ namespace engine
    } ; */
    typedef MsgOpReply            MsgCatGroupRes ;
 
+   static CLS_LOC_INFO_MAP mapLocInfo ;
+
    INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg,
                               CLS_GROUP_VERSION &version,
                               string &groupName,
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary = NULL,
-                              UINT32 *pSecID = NULL ) ;
+                              UINT32 *pSecID = NULL,
+                              CLS_LOC_INFO_MAP &locationInfo = mapLocInfo ) ;
 
    INT32 msgParseCatGroupObj( const CHAR* objdata,
                               CLS_GROUP_VERSION &version,
@@ -175,7 +178,8 @@ namespace engine
                               string &groupName,
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary = NULL,
-                              UINT32 *pSecID = NULL ) ;
+                              UINT32 *pSecID = NULL,
+                              CLS_LOC_INFO_MAP &locationInfo = mapLocInfo ) ;
 
    const CHAR* getServiceName ( const bson::BSONElement &beService,
                                 INT32 serviceType ) ;
@@ -193,6 +197,10 @@ namespace engine
       MsgRouteID     newPrimary ;
 //      DPS_LSN        oldPrimaryLsn ;
       MsgRouteID     oldPrimary ;
+
+      MsgRouteID     newLocationPrimary ;
+      MsgRouteID     oldLocationPrimary ;
+      UINT32         locationID ;
       _MsgCatPrimaryChange()
       {
          header.messageLength = sizeof( _MsgCatPrimaryChange ) ;
@@ -202,6 +210,9 @@ namespace engine
          header.TID = 0 ;
          newPrimary.value = MSG_INVALID_ROUTEID ;
          oldPrimary.value = MSG_INVALID_ROUTEID ;
+         newLocationPrimary.value = MSG_INVALID_ROUTEID ;
+         oldLocationPrimary.value = MSG_INVALID_ROUTEID ;
+         locationID = MSG_INVALID_LOCATIONID ;
       }
    private :
       _MsgCatPrimaryChange ( _MsgCatPrimaryChange const & ) ;
@@ -209,6 +220,7 @@ namespace engine
    } ;
    typedef _MsgCatPrimaryChange        MsgCatPrimaryChange ;
 
+   #define MSG_CAT_PMR_CHG_SIZE        sizeof( _MsgCatPrimaryChange )
    /*class _MsgCatPrimaryChangeResV0 : public SDBObject
    {
    public :

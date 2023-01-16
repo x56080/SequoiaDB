@@ -198,6 +198,7 @@ namespace engine
       const CHAR *serviceName       = pmdGetOptionCB()->getServiceAddr() ;
       const CHAR *groupName         = krcb->getGroupName() ;
       const CHAR *hostName          = krcb->getHostName() ;
+      const CHAR *locationName      = pmdGetLocation() ;
       CHAR nodeName [ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = {0} ;
       UINT32 nodeNameSize = OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 ;
 
@@ -229,6 +230,14 @@ namespace engine
          if ( MON_MASK_IS_PRIMARY & mask )
          {
             ob.appendBool ( FIELD_NAME_IS_PRIMARY, pmdIsPrimary() ) ;
+         }
+         if ( MON_MASK_LOCATION & mask )
+         {
+            ob.append( FIELD_NAME_LOCATION, locationName ) ;
+         }
+         if ( MON_MASK_IS_LOC_PRIMARY & mask )
+         {
+            ob.appendBool( FIELD_NAME_IS_LOC_PRIMARY, pmdIsLocationPrimary() ) ;
          }
          if ( MON_MASK_SERVICE_STATUS & mask )
          {

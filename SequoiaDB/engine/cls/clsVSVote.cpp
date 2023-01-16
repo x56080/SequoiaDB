@@ -41,10 +41,8 @@
 
 namespace engine
 {
-   _clsVSVote::_clsVSVote( _clsGroupInfo *info,
-                             _netRouteAgent *agent ):
-                        _clsVoteStatus( info, agent,
-                                        CLS_ELECTION_STATUS_VOTE )
+   _clsVSVote::_clsVSVote( _clsGroupInfo *info, _netRouteAgent *agent ):
+   _clsVoteStatus( info, agent, CLS_ELECTION_STATUS_VOTE )
    {
 
    }
@@ -63,8 +61,7 @@ namespace engine
 
       if ( MSG_CLS_BALLOT == header->opCode )
       {
-         const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * )
-                                            header ;
+         const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
          {
             if ( SDB_OK == _promise( msg ) )
@@ -90,8 +87,7 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT_RES == header->opCode )
       {
-         const _MsgClsElectionRes *msg = ( const _MsgClsElectionRes * )
-                                         header ;
+         const _MsgClsElectionRes *msg = ( const _MsgClsElectionRes * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
          {
             if ( SDB_OK == msg->header.res )
@@ -99,7 +95,7 @@ namespace engine
                if ( _info()->groupSize() <= ( ++_accepted() + 1 ) )
                {
                   next = CLS_ELECTION_STATUS_ANNOUNCE ;
-                  PD_LOG( PDEVENT, "Change to announce by all accept" ) ;
+                  PD_LOG( PDEVENT, "%s: Change to announce by all accept", getScopeName() ) ;
                }
                else
                {
@@ -141,7 +137,7 @@ namespace engine
          else if ( _isAccepted() )
          {
             next = CLS_ELECTION_STATUS_ANNOUNCE ;
-            PD_LOG( PDEVENT, "Change to announce by timeout" ) ;
+            PD_LOG( PDEVENT, "%s: Change to announce by timeout", getScopeName() ) ;
          }
          else
          {

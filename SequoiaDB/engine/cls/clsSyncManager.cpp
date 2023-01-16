@@ -58,9 +58,11 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__CLSSYNCMAG, "_clsSyncManager::_clsSyncManager" )
    _clsSyncManager::_clsSyncManager( _netRouteAgent *agent,
-                                     _clsGroupInfo *info ):
+                                     _clsGroupInfo *info,
+                                     _clsGroupInfo *locationInfo ):
                                      _agent( agent ),
                                      _info( info ),
+                                     _locationInfo( locationInfo ),
                                      _validSync( 0 ),
                                      _timeout( 0 ),
                                      _aliveCount( 0 ),

@@ -53,6 +53,7 @@
 #include "utilUniqueID.hpp"
 #include "clsAutoIncItem.hpp"
 #include "utilLobID.hpp"
+#include "clsDef.hpp"
 
 using namespace bson ;
 
@@ -521,7 +522,7 @@ namespace engine
 
       protected:
          void   setGroupInfo ( const std::string& name, UINT32 version,
-                               UINT32 primary ) ;
+                               UINT32 primary, CLS_LOC_INFO_MAP& locInfo ) ;
          INT32  updateNodes ( std::map<UINT64, _netRouteNode>& nodes ) ;
       public:
          UINT32 nodeCount () ;
@@ -531,9 +532,11 @@ namespace engine
          std::string groupName() const { return _groupName ; }
 
          const VEC_NODE_INFO* getNodes () const ;
-         clsNodeItem*         nodeItem ( UINT32 nodeID ) ;
+         clsNodeItem*         nodeItem ( UINT16 nodeID ) ;
          clsNodeItem*         nodeItemByPos( UINT32 pos ) ;
-         INT32                nodePos  ( UINT32 nodeID ) ;
+         INT32                nodePos  ( UINT16 nodeID ) ;
+         UINT32               nodeLocationID( UINT32 pos ) ;
+         UINT32               nodeLocationID( const MsgRouteID& nodeID ) ;
 
          INT32 getNodeID ( UINT32 pos, MsgRouteID& id,
                            MSG_ROUTE_SERVICE_TYPE type=
@@ -564,8 +567,8 @@ namespace engine
          BOOLEAN isNodeInStatus( UINT32 pos, INT32 status,
                                  INT32 faultTimeout = NET_NODE_FAULT_TIMEOUT ) ;
 
-         MsgRouteID  primary ( MSG_ROUTE_SERVICE_TYPE type =
-                               MSG_ROUTE_SHARD_SERVCIE ) ;
+         MsgRouteID primary ( MSG_ROUTE_SERVICE_TYPE type = MSG_ROUTE_SHARD_SERVCIE,
+                              UINT32 locationID = MSG_INVALID_LOCATIONID ) ;
 
          UINT32 getPrimaryPos();
 
@@ -582,6 +585,11 @@ namespace engine
          void   inheritStat( const _clsGroupItem *pItem,
                              UINT32 falutTimeout = NET_NODE_FAULT_TIMEOUT ) ;
 
+         UINT32 getLocationID( const CHAR* pLocation ) ;
+
+         INT32  updateLocationPrimary( const MsgRouteID& primaryID,
+                                       const UINT32 locationID ) ;
+
       protected:
          void   _clear () ;
 
@@ -595,6 +603,7 @@ namespace engine
          UINT64                        _upIdentify ;
          ossRWMutex                    _rwMutex ;
 
+         CLS_LOC_INFO_MAP              _mapLocInfo ;
    };
    typedef _clsGroupItem clsGroupItem ;
 

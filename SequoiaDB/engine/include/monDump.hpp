@@ -66,6 +66,8 @@ namespace engine
    #define MON_MASK_LSN_INFO           0x00000040
    #define MON_MASK_NODEID             0x00000080
    #define MON_MASK_TRANSINFO          0x00000100
+   #define MON_MASK_LOCATION           0x00000200
+   #define MON_MASK_IS_LOC_PRIMARY     0x00000400
    #define MON_MASK_ALL                0xFFFFFFFF
 
    #define MON_MASK_FETCH_DEFAULT      ( MON_MASK_NODE_NAME |\

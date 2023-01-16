@@ -95,14 +95,17 @@ namespace engine
    _clsReplicateSet::_clsReplicateSet( _netRouteAgent *agent )
    : _agent( agent ),
      _vote( &_info, _agent),
+     _locationVote( &_locationInfo, _agent ),
      _logger( NULL ),
      _pFTMgr( NULL ),
-     _sync( _agent, &_info ),
-     _reelection( &_vote, &_sync ),
+     _sync( _agent, &_info, &_locationInfo ),
+     _reelection( &_vote, &_sync, &_info ),
+     _locationReelection( &_locationVote, &_sync, &_locationInfo ),
      _clsCB( NULL ),
      _timerID( CLS_INVALID_TIMERID ),
      _beatTime( 0 ),
      _active( FALSE ),
+     _locationActive( FALSE ),
      _lastLogMoveTick( 0 )
    {
       _srcSessionNum = 0 ;
@@ -484,6 +487,11 @@ namespace engine
 
          /// force secondary
          _vote.force( CLS_ELECTION_STATUS_SEC, OSS_SINT32_MAX ) ;
+
+         if ( _locationActive )
+         {
+            _locationVote.force( CLS_ELECTION_STATUS_SEC, OSS_SINT32_MAX ) ;
+         }
       }
 
       return SDB_OK ;
@@ -562,17 +570,10 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETGPSET, "_clsReplicateSet::_setGroupSet" )
-   INT32 _clsReplicateSet::_setGroupSet( const CLS_GROUP_VERSION &version,
-                                         map<UINT64, _netRouteNode> &nodes,
-                                         BOOLEAN &changeStatus )
+   INT32 _clsReplicateSet::_checkGroupInfo( const CLS_GROUP_VERSION &version,
+                                            const map<UINT64, _netRouteNode> &nodes )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREPSET__SETGPSET ) ;
-      BOOLEAN hasLocal = FALSE ;
-      std::map<UINT64, _netRouteNode>::iterator itr ;
-      std::map<UINT64, _clsSharingStatus>::iterator itr2 ;
-      changeStatus = FALSE ;
 
       if ( version <= _info.version )
       {
@@ -587,6 +588,24 @@ namespace engine
                  nodes.size() ) ;
          goto error ;
       }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETGPSET, "_clsReplicateSet::_setGroupSet" )
+   INT32 _clsReplicateSet::_setGroupSet( const CLS_GROUP_VERSION &version,
+                                         map<UINT64, _netRouteNode> &nodes,
+                                         BOOLEAN &changeStatus )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET__SETGPSET ) ;
+      BOOLEAN hasLocal = FALSE ;
+      std::map<UINT64, _netRouteNode>::iterator itr ;
+      std::map<UINT64, _clsSharingStatus>::iterator itr2 ;
+      changeStatus = FALSE ;
 
       _info.version = version ;
 
@@ -617,8 +636,8 @@ namespace engine
             itr->second._isActive = TRUE ;
             changeStatus = TRUE ;
          }
-         if ( SDB_OK == _agent->updateRoute( itr->second._id,
-                                             itr->second ) )
+
+         if ( SDB_OK == _agent->updateRoute( itr->second._id, itr->second ) )
          {
             try
             {
@@ -656,14 +675,15 @@ namespace engine
          itr = nodes.find( itr2->first ) ;
          if ( nodes.end() == itr || FALSE == itr->second._isActive )
          {
+            MsgRouteID tmp ;
+            tmp.value = itr2->first ;
+
             /// if primary is deleted, set primary invalid
             if ( itr2->first == _info.primary.value )
             {
                _info.primary.value = 0 ;
             }
-            MsgRouteID tmp ;
-            tmp.value = itr2->first ;
-            PD_LOG( PDEVENT, "erase node[%d,%d]",
+            PD_LOG( PDEVENT, "Replica Group: erase node[%d,%d]",
                     tmp.columns.groupID, tmp.columns.nodeID ) ;
             _info.mtx.lock_w() ;
             _info.alives.erase( itr2->first ) ;
@@ -688,9 +708,199 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsReplicateSet::_setLocationSet( const map<UINT64, _netRouteNode> &nodes )
+   {
+      INT32 rc = SDB_OK ;
+      std::map<UINT64, _netRouteNode>::const_iterator nodeItr ;
+      std::map<UINT64, _clsSharingStatus>::iterator infoItr ;
+      
+      // Add nodes to _locationInfo.info 
+      nodeItr = nodes.begin() ;
+      for ( ; nodeItr != nodes.end() ; ++nodeItr )
+      {
+         // Check if the node is in local location, and add node to _locationInfo
+         if ( MSG_INVALID_LOCATIONID != nodeItr->second._locationID &&
+              nodeItr->second._locationID == _locationInfo.localLocationID &&
+              nodeItr->first != _locationInfo.local.value &&
+              _locationInfo.info.end() == _locationInfo.info.find( nodeItr->first ) )
+         {
+            try
+            {
+               ossScopedRWLock lock( &_locationInfo.mtx, EXCLUSIVE ) ;
+               _clsGroupBeat &beat = ( _locationInfo.info[nodeItr->first] ).beat ;
+               beat.identity = nodeItr->second._id ;
+               beat.beatID = 0 ;
+            }
+            catch ( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+         }
+      }
+
+      // Remove deleted nodes in _locationInfo.info
+      infoItr = _locationInfo.info.begin() ;
+      for ( ; _locationInfo.info.end() != infoItr ; )
+      {
+         MsgRouteID tmp ;
+         tmp.value = infoItr->first ;
+
+         nodeItr = nodes.find( tmp.value ) ;
+         if ( nodes.end() == nodeItr ||
+              FALSE == nodeItr->second._isActive ||
+              nodeItr->second._locationID != _locationInfo.localLocationID )
+         {
+            ossScopedRWLock( &_locationInfo.mtx, EXCLUSIVE ) ;
+            if ( tmp.value == _locationInfo.primary.value )
+            {
+               _locationInfo.primary.value = 0 ;
+            }
+            PD_LOG( PDEVENT, "Location Set: erase node[%d,%d]",
+                    tmp.columns.groupID, tmp.columns.nodeID ) ;
+            _locationInfo.alives.erase( tmp.value ) ;
+            _locationInfo.info.erase( infoItr++ ) ; // Using tmp.value may cause iterator invalidation
+         }
+         else
+         {
+            ++infoItr ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETLOCINFO, "_clsReplicateSet::_setLocationInfo" )
+   INT32 _clsReplicateSet::_setLocationInfo( const map<UINT64, _netRouteNode> &nodes,
+                                             CLS_LOC_INFO_MAP &locationInfoMap )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET__SETLOCINFO ) ;
+
+      BOOLEAN changedLocation = FALSE ;
+      UINT32 locationID = MSG_INVALID_LOCATIONID ;
+      ossPoolString location ;
+
+      // Get locationID and location
+      map<UINT64, _netRouteNode>::const_iterator nodeItr = nodes.find( _info.local.value ) ;
+      CLS_LOC_INFO_MAP::const_iterator locItr ;
+      if ( nodes.end() != nodeItr )
+      {
+         locationID = nodeItr->second._locationID ;
+      }
+      if ( locationID != MSG_INVALID_LOCATIONID )
+      {
+         locItr = locationInfoMap.find( locationID ) ;
+         if ( locationInfoMap.end() != locItr )
+         {
+            location = locItr->second._location ;
+         }
+         else
+         {
+            // Reset locationID
+            locationID = MSG_INVALID_LOCATIONID ;
+         }
+      }
+
+      if ( ! _locationActive )
+      {
+         // Set local location from old("") to new(pLocation)
+         if ( ( MSG_INVALID_LOCATIONID != locationID ) && ( ! location.empty() ) )
+         {
+            {
+               ossScopedRWLock( &_locationInfo.mtx, EXCLUSIVE ) ;
+               _locationInfo.localLocationID = locationID ;
+               _locationInfo.localLocation = location ;
+            }
+
+            rc = _setLocationSet( nodes ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
+
+            if ( ! _locationVote.isInit() )
+            {
+               _locationVote.init() ;
+            }
+            _locationActive = TRUE ;
+            changedLocation = TRUE ;
+         }
+      }
+      else
+      {
+         // Change local location from old(_locationInfo.localLocation) to new(pLocation)
+         if ( ( MSG_INVALID_LOCATIONID != locationID ) && ( ! location.empty() ) )
+         {
+            if ( locationID != _locationInfo.localLocationID )
+            {
+               _locationVote.force( CLS_ELECTION_STATUS_SEC ) ;
+
+               {
+                  ossScopedRWLock( &_locationInfo.mtx, EXCLUSIVE ) ;
+                  _locationInfo.resetInfo() ;
+                  _locationInfo.localLocationID = locationID ;
+                  _locationInfo.localLocation = location ;
+               }
+
+               rc = _setLocationSet( nodes ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
+
+               changedLocation = TRUE ;
+            }
+         }
+         // Change local location from old(_locationInfo.localLocation) to new("")
+         else
+         {
+            _locationVote.force( CLS_ELECTION_STATUS_SEC ) ;
+
+            {
+               ossScopedRWLock( &_locationInfo.mtx, EXCLUSIVE ) ;
+               _locationInfo.resetInfo() ;
+            }
+
+            rc = _setLocationSet( nodes ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
+
+            _locationActive = FALSE ;
+            changedLocation = TRUE ;
+         }
+      }
+
+      if ( changedLocation )
+      {
+         // Set local location in pmdSysInfo
+         pmdSetLocation( location.c_str() ) ;
+         pmdSetLocationID( locationID ) ;
+      }
+      else
+      {
+         rc = _setLocationSet( nodes ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
+      }
+
+      // Update locationInfo map
+      {
+         ossScopedRWLock( &_info.mtx, EXCLUSIVE ) ;
+         _info.locationInfoMap.swap( locationInfoMap ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__CLSREPSET__SETLOCINFO, rc );
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsReplicateSet::callCatalog( MsgHeader *header, UINT32 times )
    {
       return _cata.call( header, times ) ;
+   }
+
+   const _clsCataCallerMeta* _clsReplicateSet::getCataCallerMeta( UINT32 key )
+   {
+      return _cata.getCallerMeta( key ) ;
    }
 
    ossEvent* _clsReplicateSet::getFaultEvent()
@@ -713,6 +923,19 @@ namespace engine
       _info.mtx.release_r () ;
 
       PD_TRACE_EXIT ( SDB__CLSREPSET_GETPRMY );
+      return primary ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETLOCPRMY, "_clsReplicateSet::getLocationPrimary" )
+   MsgRouteID _clsReplicateSet::getLocationPrimary ()
+   {
+      PD_TRACE_ENTRY ( SDB__CLSREPSET_GETLOCPRMY );
+      _MsgRouteID primary ;
+      _locationInfo.mtx.lock_r () ;
+      primary = _locationInfo.primary ;
+      _locationInfo.mtx.release_r () ;
+
+      PD_TRACE_EXIT ( SDB__CLSREPSET_GETLOCPRMY );
       return primary ;
    }
 
@@ -842,6 +1065,12 @@ namespace engine
          _checkBreak( interval ) ;
 
          _vote.handleTimeout( interval ) ;
+
+         if ( _locationActive )
+         {
+            _locationVote.handleTimeout( interval ) ;
+         }
+
          _sync.handleTimeout( interval ) ;
 
          /// When self is primary NOSPC or TRANSERR, should force to secondary
@@ -884,10 +1113,11 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREPSET_HNDEVENT ) ;
       if ( PMD_EDU_EVENT_STEP_DOWN == event->_eventType )
       {
-         rc = _handleStepDown() ;
+         rc = _handleStepDown( event->_userData ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
+            PD_LOG( PDERROR, "%s : failed to step down:%d",
+                    event->_userData ? "Location Set" : "Replica Group", rc ) ;
             goto error ;
          }
       }
@@ -957,20 +1187,19 @@ namespace engine
          case MSG_CLS_BEAT_RES :
          {
             CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _handleSharingBeatRes( handle,
-                                        ( const _MsgClsBeatRes *)msg ) ;
+            rc = _handleSharingBeatRes( handle, ( const _MsgClsBeatRes *)msg ) ;
             break ;
          }
          case MSG_CLS_BALLOT :
          {
             CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _vote.handleInput( msg ) ;
+            rc = _handleBallot( msg ) ;
             break ;
          }
          case MSG_CLS_BALLOT_RES :
          {
             CLS_REPL_ACTIVE_CHECK( rc ) ;
-            rc = _vote.handleInput( msg ) ;
+            rc = _handleBallotRes( msg ) ;
             break ;
          }
          case MSG_CLS_GINFO_UPDATED :
@@ -1018,6 +1247,9 @@ namespace engine
       BOOLEAN changeStatus = FALSE ;
       UINT32 grpHashCode = 0 ;
 
+      // Set for location attribute
+      CLS_LOC_INFO_MAP locationInfoMap ;
+
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(pHeader) )
       {
          if ( SDB_CLS_NOT_PRIMARY == MSG_GET_INNER_REPLY_RC(pHeader) )
@@ -1037,23 +1269,31 @@ namespace engine
       }
 
       rc = msgParseCatGroupRes( msg, version, groupName, group,
-                                NULL, &grpHashCode ) ;
+                                NULL, &grpHashCode, locationInfoMap ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "parse MsgCatGroupRes err, rc = %d", rc ) ;
          goto error ;
       }
 
-      rc = _setGroupSet( version, group, changeStatus ) ;
-      if ( SDB_OK != rc )
+      rc = _checkGroupInfo( version, group ) ;
+      if ( SDB_REPL_REMOTE_G_V_EXPIRED == rc )
       {
-         if ( SDB_REPL_REMOTE_G_V_EXPIRED != rc )
-         {
-            PD_LOG( PDWARNING, "set group info failed, rc = %d", rc ) ;
-            goto error ;
-         }
          rc = SDB_OK ;
       }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Checking group info found error, rc = %d", rc ) ;
+         goto error ;
+      }
+      else
+      {
+         rc = _setGroupSet( version, group, changeStatus ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Set replica group info failed, rc = %d", rc ) ;
+         rc = _setLocationInfo( group, locationInfoMap ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Set location info failed, rc = %d", rc ) ;
+      }
+
       /// set hash code
       _info.setHashCode( grpHashCode ) ;
 
@@ -1117,6 +1357,11 @@ namespace engine
          msg.beat.weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
          msg.beat.ftConfirmStat = _pFTMgr->getConfirmedStat() ;
          msg.beat.indoubtErr = _pFTMgr->getIndoubtErr() ;
+         msg.beat.locationID = _locationInfo.localLocationID ;
+         msg.beat.locationRole = _locationVote.primaryIsMe() ?
+                                 CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
+         shadowWeight = _locationVote.getShadowWeight() ;
+         msg.beat.locationWeight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
          if ( _pFTMgr->isStop() )
          {
             msg.beat.nodeRunStat = (UINT8)CLS_NODE_STOP ;
@@ -1246,7 +1491,7 @@ namespace engine
       _clsSharingStatus *pStatus = NULL ;
       BOOLEAN isAllNodeFatal = TRUE ;
 
-      for ( itr = _info.alives.begin() ; itr != _info.alives.end() ; itr++ )
+      for ( itr = _info.alives.begin() ; itr != _info.alives.end() ; ++itr )
       {
          pStatus = itr->second ;
          pStatus->timeout += millisec ;
@@ -1277,6 +1522,23 @@ namespace engine
          itrInfo->second.breakTime += millisec ;
       }
 
+      // Location info: add timeout and breaktime in node info
+      for ( itrInfo = _locationInfo.info.begin() ; itrInfo != _locationInfo.info.end() ;
+            ++itrInfo )
+      {
+         itr = _locationInfo.alives.find( itrInfo->first ) ;
+         if ( itr != _locationInfo.alives.end() )
+         {
+            // If node is alive, add timeout
+            itr->second->timeout += millisec ;
+         }
+         else
+         {
+            // If node is break, add breaktime
+            itrInfo->second.breakTime += millisec ;
+         }
+      }
+
       if ( !needErase )
       {
          goto done ;
@@ -1291,7 +1553,7 @@ namespace engine
          {
             if ( itr->first == _info.primary.value )
             {
-               PD_LOG( PDERROR, "vote: primary [node:%d] alive break(%s)",
+               PD_LOG( PDERROR, "Replica Group vote: primary [node:%d] alive break(%s)",
                        _info.primary.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
                          "shutdown" : "unknown" ) ) ;
@@ -1299,7 +1561,7 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDERROR, "vote: [node:%d] alive break(%s)",
+               PD_LOG( PDERROR, "Replica Group vote: [node:%d] alive break(%s)",
                        pStatus->beat.identity.columns.nodeID,
                        ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
                          "shutdown" : "unknown" ) ) ;
@@ -1322,6 +1584,33 @@ namespace engine
          }
       }
       _info.mtx.release_w() ;
+
+      // Location info: if alive node is timeout, remove it
+      _locationInfo.mtx.lock_w() ;
+      for ( itr = _locationInfo.alives.begin() ; itr != _locationInfo.alives.end() ; ++itr )
+      {
+         pStatus = itr->second ;
+         if ( pmdGetOptionCB()->sharingBreakTime() <= pStatus->timeout )
+         {
+            if ( itr->first == _locationInfo.primary.value )
+            {
+               PD_LOG( PDERROR, "Location Set Vote: primary [node:%d] break(%s) from alive status",
+                       _locationInfo.primary.columns.nodeID,
+                       ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
+               _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Location Set Vote: [node:%d] break(%s) from alive status",
+                       pStatus->beat.identity.columns.nodeID,
+                       ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ? "shutdown" : "unknown" ) ) ;
+            }
+            _locationInfo.alives.erase( itr ) ;
+         }
+      }
+      // Reset pStatus ?
+      _locationInfo.mtx.release_w() ;
+
       /// cutting when down to secandary is in _clsVSPrimary.
       if ( _vote.primaryIsMe() )
       {
@@ -1345,6 +1634,11 @@ namespace engine
       const _clsGroupBeat &beat = msg->beat ;
       map<UINT64, _clsSharingStatus>::iterator itr ;
 
+      BOOLEAN needUpdateGrp = beat.version > _info.version ;
+
+      // Set up location info
+      BOOLEAN isLocationBeat = FALSE ;
+
       itr = _info.info.find( beat.identity.value ) ;
       if ( *(UINT32*)beat.hashCode != _info.getHashCode() ||
           ( _info.info.end() == itr && beat.version <= _info.version ) )
@@ -1361,7 +1655,7 @@ namespace engine
          goto error ;
       }
 
-      if ( beat.version > _info.version )
+      if ( needUpdateGrp )
       {
          rc = SDB_REPL_LOCAL_G_V_EXPIRED ;
          //download ;
@@ -1369,101 +1663,194 @@ namespace engine
          msg.id = _info.local ;
          _cata.call( (MsgHeader *)(&msg) ) ;
       }
-      else if ( itr != _info.info.end() )
+      else 
       {
-         _clsSharingStatus &statusItem = itr->second ;
-
-         /// FT confirm stat changed
-         if ( statusItem.beat.ftConfirmStat != beat.getFTConfirmStat() )
+         // Handle Replica Group heartbeat
+         if ( itr != _info.info.end() )
          {
-            CHAR oldStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
-            CHAR newStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
+            _clsSharingStatus &statusItem = itr->second ;
 
-            utilFTMaskToStr( statusItem.beat.ftConfirmStat,
-                             oldStatStr, CLS_FORMART_STR_128 ) ;
-            utilFTMaskToStr( beat.getFTConfirmStat(),
-                             newStatStr, CLS_FORMART_STR_128 ) ;
-            PD_LOG( PDEVENT, "Node[%d]'s fault-tolerance confirm stat "
-                    "changed: 0x%08x(%s) => 0x%08x(%s), indoubt error: %d",
-                    beat.identity.columns.nodeID,
-                    statusItem.beat.ftConfirmStat,
-                    oldStatStr,
-                    beat.getFTConfirmStat(),
-                    newStatStr,
-                    beat.getIndoubtErr() ) ;
-         }
-         /// Node start/stop changed
-         if ( statusItem.beat.nodeRunStat != beat.nodeRunStat )
-         {
-            PD_LOG( PDEVENT, "Node[%d]'s run stat changed: %d(%s) => %d(%s)",
-                    beat.identity.columns.nodeID,
-                    statusItem.beat.nodeRunStat,
-                    clsNodeRunStat2String( statusItem.beat.nodeRunStat ),
-                    beat.nodeRunStat,
-                    clsNodeRunStat2String( beat.nodeRunStat ) ) ;
-         }
-
-         statusItem.beat = beat ;
-
-         if ( CLS_GROUP_ROLE_PRIMARY == beat.role )
-         {
-            g_startShiftTime = -1 ; // have primary node
-
-            if ( _vote.primaryIsMe() )
+            /// FT confirm stat changed
+            if ( statusItem.beat.ftConfirmStat != beat.getFTConfirmStat() )
             {
-               DPS_LSN lsn  = _logger->expectLsn() ;
-               if ( 0 >= lsn.compare( beat.endLsn ) )
+               CHAR oldStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
+               CHAR newStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
+
+               utilFTMaskToStr( statusItem.beat.ftConfirmStat,
+                                oldStatStr, CLS_FORMART_STR_128 ) ;
+               utilFTMaskToStr( beat.getFTConfirmStat(),
+                                newStatStr, CLS_FORMART_STR_128 ) ;
+               PD_LOG( PDEVENT, "Node[%d]'s fault-tolerance confirm stat "
+                       "changed: 0x%08x(%s) => 0x%08x(%s), indoubt error: %d",
+                       beat.identity.columns.nodeID,
+                       statusItem.beat.ftConfirmStat,
+                       oldStatStr,
+                       beat.getFTConfirmStat(),
+                       newStatStr,
+                       beat.getIndoubtErr() ) ;
+            }
+            /// Node start/stop changed
+            if ( statusItem.beat.nodeRunStat != beat.nodeRunStat )
+            {
+               PD_LOG( PDEVENT, "Node[%d]'s run stat changed: %d(%s) => %d(%s)",
+                       beat.identity.columns.nodeID,
+                       statusItem.beat.nodeRunStat,
+                       clsNodeRunStat2String( statusItem.beat.nodeRunStat ),
+                       beat.nodeRunStat,
+                       clsNodeRunStat2String( beat.nodeRunStat ) ) ;
+            }
+
+            statusItem.beat = beat ;
+
+            if ( CLS_GROUP_ROLE_PRIMARY == beat.role )
+            {
+               g_startShiftTime = -1 ; // have primary node
+
+               if ( _vote.primaryIsMe() )
                {
+                  DPS_LSN lsn  = _logger->expectLsn() ;
+                  if ( 0 >= lsn.compare( beat.endLsn ) )
+                  {
+                     _info.mtx.lock_w() ;
+                     _info.primary = beat.identity ;
+                     _info.mtx.release_w() ;
+                     _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                     PD_LOG( PDEVENT, "Replica Group vote:remote lsn[%d:%lld]"
+                             " higher(or equal) than local lsn[%d:%lld],"
+                             " we change to secondary.",
+                             beat.endLsn.version, beat.endLsn.offset,
+                             lsn.version, lsn.offset ) ;
+                  }
+               }
+               else if ( _info.primary.value != beat.identity.value )
+               {
+                  PD_LOG( PDEVENT, "Replica Group vote: the discovery of new primary[%d]",
+                          beat.identity.columns.nodeID ) ;
+                  _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
+                  _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                   _info.mtx.lock_w() ;
                   _info.primary = beat.identity ;
                   _info.mtx.release_w() ;
-                  _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                  PD_LOG( PDEVENT, "vote:remote lsn[%d:%lld]"
-                          " higher(or equal) than local lsn[%d:%lld],"
-                          " we change to secondary.",
-                          beat.endLsn.version, beat.endLsn.offset,
-                          lsn.version, lsn.offset ) ;
-               }
-            }
-            else if ( _info.primary.value != beat.identity.value )
-            {
-               PD_LOG( PDEVENT, "vote: the discovery of new primary[%d]",
-                       beat.identity.columns.nodeID ) ;
-               _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
-               _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-               _info.mtx.lock_w() ;
-               _info.primary = beat.identity ;
-               _info.mtx.release_w() ;
 
-               /// when self is in slice, force to secondary
-               if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+                  /// when self is in slice, force to secondary
+                  if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+                  {
+                     _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+                  }
+               }
+
+               // if find new primary node, should to wake up reelection
+               if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() &&
+                    _vote.isShadowTimeout() )
                {
-                  _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+                  reelectionDone() ;
                }
             }
-
-            // if find new primary node, should to wake up reelection
-            if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() &&
-                 _vote.isShadowTimeout() )
+            else
             {
-               reelectionDone() ;
+               if ( _info.primary.value == beat.identity.value )
+               {
+                  PD_LOG( PDEVENT, "Replica Group vote: primary node[%d] is down",
+                          beat.identity.columns.nodeID ) ;
+                  _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
+                  _info.mtx.lock_w() ;
+                  _info.primary.value = MSG_INVALID_ROUTEID ;
+                  _info.mtx.release_w() ;
+               }
             }
          }
-         else
+
+         // Handle Location heartbeat
+         map<UINT64, _clsSharingStatus>::iterator locItr ;
+         if ( MSG_INVALID_LOCATIONID != beat.getLocationID() &&
+              _locationInfo.localLocationID == beat.getLocationID() )
          {
-            if ( _info.primary.value == beat.identity.value )
+            isLocationBeat = TRUE ;
+            locItr = _locationInfo.info.find( beat.identity.value ) ;
+         }
+
+         if ( isLocationBeat && locItr != _locationInfo.info.end() )
+         {
+            locItr->second.beat = beat ;
+
+            // Beat is sent by primary node
+            if ( CLS_GROUP_ROLE_PRIMARY == beat.getLocationRole() )
             {
-               PD_LOG( PDEVENT, "vote: primary node[%d] is down",
-                       beat.identity.columns.nodeID ) ;
-               _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
-               _info.mtx.lock_w() ;
-               _info.primary.value = MSG_INVALID_ROUTEID ;
-               _info.mtx.release_w() ;
+               // Local node is primary, need to compare the lsn
+               if ( _locationVote.primaryIsMe() )
+               {
+                  DPS_LSN lsn = _logger->expectLsn() ;
+                  if ( 0 >= lsn.compare( beat.endLsn ) )
+                  {
+                     _locationInfo.mtx.lock_w() ;
+                     _locationInfo.primary = beat.identity ;
+                     _locationInfo.mtx.release_w() ;
+                     _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                     PD_LOG( PDEVENT, "Location Set Vote: remote primary node's lsn[%d:%lld] is "
+                             "higher(or equal) than local's lsn[%d:%lld], so we change local "
+                             "status to secondary.", beat.endLsn.version, beat.endLsn.offset,
+                             lsn.version, lsn.offset ) ;
+                  }
+               }
+               // Local node is not primary, need to update the primary
+               else if ( _locationInfo.primary.value != beat.identity.value )
+               {
+                  PD_LOG( PDEVENT, "Location Set Vote: discover a new primary[%d]",
+                          beat.identity.columns.nodeID ) ;
+                  _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
+                  _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                  _locationInfo.mtx.lock_w() ;
+                  _locationInfo.primary = beat.identity ;
+                  _locationInfo.mtx.release_w() ;
+
+                  // when self is in slice, force to secondary, to save the waisted timeout from silence to secondary
+                  if ( _locationVote.isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+                  {
+                     _locationVote.force( CLS_ELECTION_STATUS_SEC ) ;
+                  }
+               }
+
+               // New primary node is found, other node should step down
+               if ( CLS_ELECTION_WEIGHT_USR_MIN != _locationVote.getShadowWeight() &&
+                    _locationVote.isShadowTimeout() )
+               {
+                  locationReelectionDone() ;
+               }
+            }
+            else
+            {
+               // Local node is primary, need to compare the lsn
+               if ( _locationVote.primaryIsMe() )
+               {
+                  DPS_LSN lsn = _logger->expectLsn() ;
+                  if ( 0 > lsn.compare( beat.endLsn ) )
+                  {
+                     _locationInfo.mtx.lock_w() ;
+                     _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
+                     _locationInfo.mtx.release_w() ;
+                     _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                     PD_LOG( PDEVENT, "Location Set Vote: remote non-primary node's lsn[%d:%lld] is "
+                             "higher than local's lsn[%d:%lld], so we change local "
+                             "status to secondary.", beat.endLsn.version, beat.endLsn.offset,
+                             lsn.version, lsn.offset ) ;
+                  }
+               }
+               // Local node is not primary, need to update the primary
+               else if ( _locationInfo.primary.value == beat.identity.value )
+               {
+                  PD_LOG( PDEVENT, "Location Set Vote: primary node[%d] is down",
+                          beat.identity.columns.nodeID ) ;
+                  _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
+                  _locationInfo.mtx.lock_w() ;
+                  _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
+                  _locationInfo.mtx.release_w() ;
+               }
             }
          }
       }
+
       {
-         _alive( beat.identity, _isUDPHandle( handle ) ) ;
+         _alive( beat.identity, _isUDPHandle( handle ), isLocationBeat ) ;
          _MsgClsBeatRes res ;
 
          if ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() )
@@ -1486,7 +1873,73 @@ namespace engine
                                                   const _MsgClsBeatRes *msg )
    {
       SDB_ASSERT( NULL != msg, "msg should not be NULL" ) ;
-      return _alive( msg->identity, _isUDPHandle( handle ) ) ;
+      const MsgRouteID id = msg->identity ;
+
+      BOOLEAN isLocationBeat = FALSE ;
+      if ( _locationInfo.info.end() != _locationInfo.info.find( id.value ) )
+      {
+         isLocationBeat = TRUE ;
+      }
+
+      return _alive( id, _isUDPHandle( handle ), isLocationBeat ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__HANDLEBALLOT, "_clsReplicateSet::_handleBallot" )
+   INT32 _clsReplicateSet::_handleBallot( const MsgHeader *header )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSREPSET__HANDLEBALLOT );
+
+      const _MsgClsElectionBallot* msg = ( _MsgClsElectionBallot* ) header ;
+      // Distinguish new and old msg by length
+      if ( header->messageLength < ( SINT32 )MSG_CLS_BALLOT_SIZE )
+      {
+         // Handle old ballot msg
+         rc = _vote.handleInput( header ) ;
+      }
+      else
+      {
+         if ( MSG_INVALID_LOCATIONID == msg->locationID )
+         {
+            rc = _vote.handleInput( header ) ;
+         }
+         else if ( msg->locationID == _locationInfo.localLocationID )
+         {
+            rc = _locationVote.handleInput( header ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC ( SDB__CLSREPSET__HANDLEBALLOT, rc );
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__HANDLEBALLOTRES, "_clsReplicateSet::_handleBallotRes" )
+   INT32 _clsReplicateSet::_handleBallotRes( const MsgHeader *header )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSREPSET__HANDLEBALLOTRES );
+
+      const _MsgClsElectionRes* msg = ( _MsgClsElectionRes* ) header ;
+      // Distinguish new and old msg by length
+      if ( header->messageLength < ( SINT32 )MSG_CLS_BALLOT_RES_SIZE )
+      {
+         // Handle old ballot msg
+         rc = _vote.handleInput( header ) ;
+      }
+      else
+      {
+         if ( MSG_INVALID_LOCATIONID == msg->locationID )
+         {
+            rc = _vote.handleInput( header ) ;
+         }
+         else if ( msg->locationID == _locationInfo.localLocationID )
+         {
+            rc = _locationVote.handleInput( header ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC ( SDB__CLSREPSET__HANDLEBALLOTRES, rc );
+      return rc ;
    }
 
    void _clsReplicateSet::setLastConsultTick( UINT64 tick )
@@ -1508,14 +1961,10 @@ namespace engine
 
       if ( SDB_OK == rc )
       {
-         map<UINT64, _clsSharingStatus*>::iterator itr =
-            _info.alives.find( id.value ) ;
+         map<UINT64, _clsSharingStatus*>::iterator itr = _info.alives.find( id.value ) ;
          if ( itr != _info.alives.end() )
          {
-            itr->second->timeout = 0 ;
-            itr->second->breakTime = 0 ;
-            itr->second->deadtime = 0 ;
-            itr->second->sendFailedTimes = 0 ;
+            itr->second->resetStatus() ;
          }
          else
          {
@@ -1528,12 +1977,11 @@ namespace engine
 
    BOOLEAN _clsReplicateSet::_isUDPHandle( NET_HANDLE handle )
    {
-      return ( NET_EVENT_HANDLER_UDP ==
-                           _agent->getFrame()->getEventHandleType( handle ) ) ;
+      return ( NET_EVENT_HANDLER_UDP == _agent->getFrame()->getEventHandleType( handle ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__ALIVE, "_clsReplicateSet::_alive" )
-   INT32 _clsReplicateSet::_alive( const _MsgRouteID &id, BOOLEAN fromUDP )
+   INT32 _clsReplicateSet::_alive( const _MsgRouteID &id, BOOLEAN fromUDP, BOOLEAN isLocation )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREPSET__ALIVE );
@@ -1545,6 +1993,7 @@ namespace engine
          rc = SDB_REPL_INVALID_GROUP_MEMBER ;
          goto error ;
       }
+
       if ( _info.alives.end() == _info.alives.find( itr->first ) )
       {
          _clsSharingStatus &status = itr->second ;
@@ -1562,19 +2011,53 @@ namespace engine
          _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
          _info.mtx.release_w() ;
 
-         PD_LOG( PDEVENT, "vote: [node:%d] aliving from %s",
+         PD_LOG( PDEVENT, "Replica Group vote: [node:%d] aliving from %s",
                  status.beat.identity.columns.nodeID,
                  ( CLS_NODE_STOP == status.beat.nodeRunStat ?
                    "shutdown" : "break" ) ) ;
       }
-      itr->second.timeout = 0 ;
-      itr->second.breakTime = 0 ;
-      itr->second.deadtime = 0 ;
-      itr->second.sendFailedTimes = 0 ;
+      itr->second.resetStatus() ;
 
+      // Use UDP to send heartBeat
       if ( fromUDP )
       {
          itr->second.setUDPSupported() ;
+      }
+
+      if ( isLocation )
+      {
+         itr = _locationInfo.info.find( id.value ) ;
+
+         // Check location info map
+         if ( _locationInfo.info.end() == itr )
+         {
+            goto done ;
+         }
+
+         // Insert node info into alives map
+         if ( _locationInfo.alives.end() == _locationInfo.alives.find( itr->first ) )
+         {
+            _clsSharingStatus &status = itr->second ;
+            _locationInfo.mtx.lock_w() ;
+            try
+            {
+               _locationInfo.alives.insert( make_pair( itr->first, &status ) ) ;
+            }
+            catch( std::exception &e )
+            {
+               _locationInfo.mtx.release_w() ;
+               rc = ossException2RC( &e ) ;
+               PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+            }
+            _locationInfo.mtx.release_w() ;
+
+            PD_LOG( PDEVENT, "Location Set Vote: [node:%d] is alive, change from %s",
+                    id.columns.nodeID, ( CLS_NODE_STOP == status.beat.nodeRunStat ?
+                    "shutdown" : "break" ) ) ;
+         }
+
+         // Update node status
+         itr->second.resetStatus() ;
       }
 
    done:
@@ -1717,7 +2200,7 @@ namespace engine
       rc = _reelection.run( lvl, seconds, cb, destID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;
+         PD_LOG( PDERROR, "Replica Group: failed to reelect:%d", rc ) ;
          goto error ;
       }
    done:
@@ -1733,13 +2216,58 @@ namespace engine
       _reelection.signal() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_LOCATIONREELECT, "_clsReplicateSet::locationReelect" )
+   INT32 _clsReplicateSet::locationReelect( CLS_REELECTION_LEVEL lvl,
+                                            UINT32 seconds,
+                                            pmdEDUCB *cb,
+                                            UINT16 destID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET_LOCATIONREELECT ) ;
+
+      if ( 1 == locationSetSize() )
+      {
+         goto done ;
+      }
+
+      rc = _locationReelection.run( lvl, seconds, cb, destID ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Location Set: failed to reelect:%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREPSET_LOCATIONREELECT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _clsReplicateSet::locationReelectionDone()
+   {
+      _locationVote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+      _locationReelection.signal() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLESTEPDOWN, "_clsReplicateSet::_handleStepDown" )
-   INT32 _clsReplicateSet::_handleStepDown()
+   INT32 _clsReplicateSet::_handleStepDown( BOOLEAN isLocation )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLESTEPDOWN ) ;
-      _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
-      _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+
+      clsVoteMachine* vote = NULL ;
+      if ( isLocation )
+      {
+         vote = &_locationVote ;
+      }
+      else
+      {
+         vote = &_vote ;
+      }
+      vote->setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+      vote->force( CLS_ELECTION_STATUS_SEC ) ;
+
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPDOWN, rc ) ;
       return rc ;
    }

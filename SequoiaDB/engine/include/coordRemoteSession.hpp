@@ -358,6 +358,8 @@ namespace engine
    } ;
    typedef _coordCataSel coordCataSel ;
 
+   #define COORD_OPR_MAX_RETRY_TIMES_DFT        ( 3 )
+
    /*
       _coordGroupSessionCtrl define
    */

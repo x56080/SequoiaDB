@@ -3162,5 +3162,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_CLS_NOT_LOCATION_PRIMARY</name>
+         <description>
+            <en>Node is not primary of location set</en>
+            <cn>非位置集主节点</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

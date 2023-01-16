@@ -50,8 +50,6 @@ using namespace bson ;
 namespace engine
 {
 
-   #define COORD_OPR_MAX_RETRY_TIMES_DFT        ( 3 )
-
    /*
       _coordSessionPropSite implement
    */

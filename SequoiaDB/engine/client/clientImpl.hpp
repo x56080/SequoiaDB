@@ -931,6 +931,9 @@ namespace sdbclient
                         const bson::BSONObj &options = _sdbStaticObject ) ;
 
       INT32 reelect( const bson::BSONObj &options = _sdbStaticObject ) ;
+
+      INT32 reelectLocation( const CHAR *pLocation,
+                             const BSONObj &options = _sdbStaticObject ) ;
    } ;
 
    typedef class _sdbReplicaGroupImpl sdbReplicaGroupImpl ;

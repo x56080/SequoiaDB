@@ -56,8 +56,8 @@ namespace engine
    {
    public:
       _clsVoteStatus( _clsGroupInfo *info,
-                       _netRouteAgent *agent,
-                       INT32 id ) ;
+                      _netRouteAgent *agent,
+                      INT32 id ) ;
 
       virtual ~_clsVoteStatus() ;
 
@@ -84,6 +84,11 @@ namespace engine
          return _id ;
       }
 
+      OSS_INLINE const CHAR * getScopeName() const
+      {
+         return isLocation() ? "Location Set" : "Replica Group" ;
+      }
+
    protected:
       OSS_INLINE INT32 _vote()
       {
@@ -105,8 +110,8 @@ namespace engine
       OSS_INLINE INT32 _accept( const _MsgClsElectionBallot *msg )
       {
          return _launch( msg->weights,
-                        msg->identity,
-                        CLS_ELECTION_ROUND_STAGE_TWO ) ;
+                         msg->identity,
+                         CLS_ELECTION_ROUND_STAGE_TWO ) ;
       }
 
       OSS_INLINE BOOLEAN _isAccepted()
@@ -129,6 +134,11 @@ namespace engine
       OSS_INLINE _clsGroupInfo *_info()
       {
          return _groupInfo ;
+      }
+
+      OSS_INLINE BOOLEAN isLocation() const
+      {
+         return MSG_INVALID_LOCATIONID != _groupInfo->localLocationID ;
       }
 
    private:

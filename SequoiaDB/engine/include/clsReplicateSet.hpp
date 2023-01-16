@@ -102,6 +102,11 @@ namespace engine
             return _vote.primaryIsMe() ;
          }
 
+         OSS_INLINE BOOLEAN locationPrimaryIsMe()
+         {
+            return _locationVote.primaryIsMe() ;
+         }
+
          OSS_INLINE clsBucket* getBucket ()
          {
             return &_replBucket ;
@@ -110,6 +115,7 @@ namespace engine
          OSS_INLINE void setLocalID( const MsgRouteID &id )
          {
             _info.local = id ;
+            _locationInfo.local = id ;
             /// _agent was set by clsMgr.
          }
 
@@ -125,9 +131,18 @@ namespace engine
          OSS_INLINE UINT32 groupSize ()
          {
             UINT32 num = 0 ;
-            _info.mtx.lock_r () ;
+            _info.mtx.lock_r() ;
             num = _info.groupSize() ;
-            _info.mtx.release_r  () ;
+            _info.mtx.release_r() ;
+            return num ;
+         }
+
+         OSS_INLINE UINT32 locationSetSize ()
+         {
+            UINT32 num = 0 ;
+            _locationInfo.mtx.lock_r() ;
+            num = _locationInfo.groupSize() ;
+            _locationInfo.mtx.release_r() ;
             return num ;
          }
 
@@ -207,9 +222,9 @@ namespace engine
             return &_sync ;
          }
 
-         OSS_INLINE _clsVoteMachine* voteMachine()
+         OSS_INLINE _clsVoteMachine* voteMachine( BOOLEAN isLocation = FALSE )
          {
-            return &_vote ;
+            return isLocation ? &_locationVote : &_vote ;
          }
 
          OSS_INLINE INT32 sync( const DPS_LSN_OFFSET &offset,
@@ -370,12 +385,15 @@ namespace engine
 
          INT32 callCatalog( MsgHeader *header, UINT32 times = 1 ) ;
 
+         const _clsCataCallerMeta* getCataCallerMeta( UINT32 key ) ;
+
          BOOLEAN getPrimaryInfo( _clsSharingStatus &primaryInfo ) ;
 
          void getGroupInfo( _MsgRouteID &primary,
                             vector<_netRouteNode > &group ) ;
 
          MsgRouteID     getPrimary () ;
+         MsgRouteID     getLocationPrimary () ;
          BOOLEAN        isSendNormal( UINT64 nodeID ) ;
 
          ossEvent*      getFaultEvent() ;
@@ -391,6 +409,13 @@ namespace engine
 
          void reelectionDone() ;
 
+         INT32 locationReelect( CLS_REELECTION_LEVEL lvl,
+                                UINT32 seconds,
+                                pmdEDUCB *cb,
+                                UINT16 destID = 0 ) ;
+
+         void locationReelectionDone() ;
+
          /// this func is used to support command "forceStepUp".
          INT32 stepUp( UINT32 seconds,
                        pmdEDUCB *cb ) ;
@@ -405,13 +430,22 @@ namespace engine
          void     setLastConsultTick( UINT64 tick ) ;
 
       private:
+         INT32 _checkGroupInfo( const CLS_GROUP_VERSION &version,
+                                const map<UINT64, _netRouteNode> &nodes ) ;
+
          INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
                              map<UINT64, _netRouteNode> &nodes,
                              BOOLEAN &changeStatus ) ;
 
+         INT32 _setLocationSet( const map<UINT64, _netRouteNode> &nodes ) ;
+         INT32 _setLocationInfo( const map<UINT64, _netRouteNode> &nodes,
+                                 CLS_LOC_INFO_MAP &locationInfoMap ) ;
+
          BOOLEAN _isUDPHandle( NET_HANDLE handle ) ;
 
-         INT32 _alive( const _MsgRouteID &id, BOOLEAN fromUDP ) ;
+         INT32 _alive( const _MsgRouteID &id,
+                       BOOLEAN fromUDP,
+                       BOOLEAN isLocation = FALSE ) ;
 
          INT32 _handleSharingBeat( NET_HANDLE handle, const _MsgClsBeat *msg ) ;
 
@@ -429,7 +463,7 @@ namespace engine
 
          UINT32 _getThresholdTime( UINT64 diffSize ) ;
 
-         INT32 _handleStepDown() ;
+         INT32 _handleStepDown( BOOLEAN isLocation ) ;
 
          INT32 _handleStepUp( UINT32 seconds ) ;
 
@@ -438,20 +472,28 @@ namespace engine
 
          void _forceSrcSessions() ;
 
+         INT32 _handleBallot( const MsgHeader *header ) ;
+
+         INT32 _handleBallotRes( const MsgHeader *header ) ;
+
       private:
          _netRouteAgent          *_agent ;
          _clsGroupInfo           _info ;
+         _clsGroupInfo           _locationInfo ;
          _clsVoteMachine         _vote ;
+         _clsVoteMachine         _locationVote ;
          _dpsLogWrapper          *_logger ;
          _pmdFTMgr               *_pFTMgr ;
          _clsSyncManager         _sync ;
          _clsCatalogCaller       _cata ;
          _clsReelection          _reelection ;
+         _clsReelection          _locationReelection ;
          clsBucket               _replBucket ;
          _clsMgr                 *_clsCB ;
          UINT64                  _timerID ;
          UINT32                  _beatTime ;
          BOOLEAN                 _active ;
+         BOOLEAN                 _locationActive ;
          UINT64                  _lastTimerTick ;
 
          UINT64                  _lastConsultTick ;

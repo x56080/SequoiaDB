@@ -38,23 +38,32 @@
 #include "clsVoteMachine.hpp"
 #include "pmd.hpp"
 #include "dpsLogWrapper.hpp"
+#include "clsMgr.hpp"
 
 namespace engine
 {
    _clsReelection::_clsReelection( _clsVoteMachine *vote,
-                                   _clsSyncManager *syncMgr )
+                                   _clsSyncManager *syncMgr,
+                                   _clsGroupInfo *info )
    :_vote( vote ),
     _syncMgr( syncMgr ),
-    _level( CLS_REELECTION_LEVEL_NONE )
+    _info( info ),
+    _level( CLS_REELECTION_LEVEL_NONE ),
+    _blockSync( FALSE )
    {
       SDB_ASSERT( NULL != _vote &&
-                  NULL != _syncMgr, "can not be null" ) ;
+                  NULL != _syncMgr &&
+                  NULL != _info, "can not be null" ) ;
       _event.signalAll() ;
    }
 
    _clsReelection::~_clsReelection()
    {
-
+      if ( _blockSync )
+      {
+         _syncMgr->enableSync() ;
+         _blockSync = FALSE ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_WAIT, "_clsReelection::wait" )
@@ -114,11 +123,26 @@ namespace engine
 
       if ( !_vote->primaryIsMe() )
       {
-         rc = SDB_CLS_NOT_PRIMARY ;
+         if ( _isLocation() )
+         {
+            rc = SDB_CLS_NOT_LOCATION_PRIMARY ;
+         }
+         else
+         {
+            rc = SDB_CLS_NOT_PRIMARY ;
+         }
          PD_LOG( PDERROR, "only primary node can reelect" ) ;
          goto error ;
       }
-      /// is self
+      // If location primary is replica group primary, do nothing
+      else if ( _isLocation() && pmdIsPrimary() )
+      {
+         rc = SDB_OPERATION_CONFLICT ;
+         PD_LOG_MSG( PDERROR, "To reelect location primary, use reelect() "
+                     "to change replica group primary first" ) ;
+         goto error ;
+      }
+      // is self
       else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
       {
          // restore
@@ -137,7 +161,18 @@ namespace engine
       _event.reset() ;
       resetEvent = TRUE ;
 
-      rc = _wait4AllWriteDone( timePassed, seconds, cb ) ;
+      // Disable synchronize, this doesn't effect replica gruop's primary
+      _syncMgr->disableSync() ;
+      _blockSync = TRUE ;
+
+      if ( _isLocation() )
+      {
+         rc = wait4SyncDone( timePassed, seconds ) ;
+      }
+      else
+      {
+         rc = _wait4AllWriteDone( timePassed, seconds, cb ) ;
+      }
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "reelection is out of time" ) ;
@@ -150,7 +185,14 @@ namespace engine
       /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
-         rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
+         if ( _isLocation() )
+         {
+            rc = _wait4ReplicaByBeat( timePassed, seconds, destID ) ;
+         }
+         else
+         {
+            rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
+         }
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "reelection is out of time" ) ;
@@ -170,6 +212,11 @@ namespace engine
       if ( resetEvent )
       {
          signal() ;
+      }
+      if ( _blockSync )
+      {
+         _syncMgr->enableSync() ;
+         _blockSync = FALSE ;
       }
       PD_TRACE_EXITRC( SDB__CLSREELECTION_RUN, rc ) ;
       return rc ;
@@ -213,6 +260,29 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC, "_clsReelection::wait4SyncDone" )
+   INT32 _clsReelection::wait4SyncDone( UINT32 &timePassed,
+                                        UINT32 timeout )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC ) ;
+
+      while ( timePassed < timeout )
+      {
+         rc = sdbGetReplCB()->getSyncEmptyEvent()->wait( OSS_ONE_SEC ) ;
+         if ( SDB_OK == rc )
+         {
+            break ;
+         }
+
+         ++timePassed ;
+         rc = SDB_TIMEOUT ;
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4ALLWRITEDONE_LOC, rc ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4REPLICA, "_clsReelection::_wait4Replica" )
    INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
                                         UINT32 timeout,
@@ -244,8 +314,61 @@ namespace engine
          rc = SDB_TIMEOUT ;
          goto error ;
       } 
+
    done:
       PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4REPLICA, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4REPLICA_LOC, "_clsReelection::_wait4ReplicaByBeat" )
+   INT32 _clsReelection::_wait4ReplicaByBeat( UINT32 &timePassed,
+                                              UINT32 timeout,
+                                              UINT16 destID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA_LOC ) ;
+
+      map<UINT64, _clsSharingStatus>::const_iterator itr ;
+      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
+
+      while ( timePassed < timeout )
+      {
+         BOOLEAN found = FALSE ;
+
+         _info->mtx.lock_r() ;
+         itr = _info->info.begin() ;
+         while ( itr != _info->info.end() )
+         {
+            if ( 0 >= lsn.compare( itr->second.beat.endLsn ) )
+            {
+               if ( 0 == destID || destID == itr->second.beat.identity.columns.nodeID )
+               {
+                  found = TRUE ;
+                  break ;
+               }
+            }
+            ++itr ;
+         }
+         _info->mtx.release_r() ;
+
+         if ( found )
+         {
+            break ;
+         }
+         ossSleepsecs( 1 ) ;
+         ++timePassed ;
+      }
+
+      if ( timeout <= timePassed )
+      {
+         rc = SDB_TIMEOUT ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4REPLICA_LOC, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -260,7 +383,9 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREELECTION__STEPDOWN ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
-      rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN ) ;
+
+      rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN,
+                                PMD_EDU_MEM_NONE, NULL, _isLocation() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;
@@ -332,6 +457,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   OSS_INLINE BOOLEAN _clsReelection::_isLocation() const
+   {
+      return _vote->isLocation() ;
    }
 }
 

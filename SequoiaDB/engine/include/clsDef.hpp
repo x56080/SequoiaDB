@@ -76,6 +76,17 @@ namespace engine
 
    #define CLS_FS_MAX_BSON_SIZE                 ( 14 * 1024 * 1024 )
 
+   #define CLS_ELECTION_WEIGHT_MIN 0
+   #define CLS_ELECTION_WEIGHT_USR_MIN 1
+   #define CLS_ELECTION_WEIGHT_USR_MAX 100
+   #define CLS_ELECTION_WEIGHT_MAX 101
+
+   #define CLS_GET_WEIGHT( weight, shadowWeight )\
+           (( CLS_ELECTION_WEIGHT_MIN == (shadowWeight) ) ?\
+              (shadowWeight) :\
+            ( (weight) < (shadowWeight) ?\
+              (shadowWeight) : (weight) ))
+
    enum CLS_SYNC_STATUS
    {
       CLS_SYNC_STATUS_NONE = 0,
@@ -124,6 +135,7 @@ namespace engine
    #define CLS_UDP_UNAVAILABLE  ( 5 )
 
    #define CLS_BEAT_VERSION_1       ( 1 )
+   #define CLS_BEAT_VERSION_2       ( 2 )
 
    /*
       _clsGroupBeat define
@@ -150,6 +162,13 @@ namespace engine
       UINT32                  ftConfirmStat ;
       INT32                   indoubtErr ;
 
+      /*
+         >= CLS_BEAT_VERSION_2
+      */
+      UINT32                  locationID ;
+      CLS_GROUP_ROLE          locationRole ;
+      UINT8                   locationWeight ;
+
       _clsGroupBeat(): version( 0 ),
                        role( CLS_GROUP_ROLE_SECONDARY ),
                        syncStatus( CLS_SYNC_STATUS_NONE ),
@@ -157,12 +176,43 @@ namespace engine
                        serviceStatus( SERVICE_UNKNOWN )
       {
          weight = 0 ;
-         beatVersion = CLS_BEAT_VERSION_1 ;
+         beatVersion = CLS_BEAT_VERSION_2 ;
          nodeRunStat = (UINT8)CLS_NODE_RUNNING ;
          pad[0] = 0 ;
 
          ftConfirmStat = 0 ;
          indoubtErr = SDB_OK ;
+
+         locationID = MSG_INVALID_LOCATIONID ;
+         locationRole = CLS_GROUP_ROLE_SECONDARY ;
+         locationWeight = 0 ;
+      }
+
+      UINT32 getLocationID() const
+      {
+         if ( beatVersion >= CLS_BEAT_VERSION_2 )
+         {
+            return locationID ;
+         }
+         return MSG_INVALID_LOCATIONID ;
+      }
+
+      UINT32 getLocationRole() const
+      {
+         if ( beatVersion >= CLS_BEAT_VERSION_2 )
+         {
+            return locationRole ;
+         }
+         return CLS_GROUP_ROLE_SECONDARY ;
+      }
+
+      UINT32 getLocationWeight() const
+      {
+         if ( beatVersion >= CLS_BEAT_VERSION_2 )
+         {
+            return locationWeight ;
+         }
+         return CLS_ELECTION_WEIGHT_USR_MIN ;
       }
 
       UINT32 getFTConfirmStat() const
@@ -209,6 +259,20 @@ namespace engine
             beatVersion = CLS_BEAT_VERSION_1 ;
             ftConfirmStat = 0 ;
             indoubtErr = SDB_OK ;
+         }
+
+         if ( rhs.beatVersion >= CLS_BEAT_VERSION_2 )
+         {
+            locationID = rhs.locationID ;
+            locationRole = rhs.locationRole ;
+            locationWeight = rhs.locationWeight ;
+         }
+         else
+         {
+            beatVersion = CLS_BEAT_VERSION_2 ;
+            locationID = MSG_INVALID_LOCATIONID ;
+            locationRole = CLS_GROUP_ROLE_SECONDARY ;
+            locationWeight = 0 ;
          }
          return *this ;
       }
@@ -259,10 +323,7 @@ namespace engine
    public:
       _clsSharingStatus()
       {
-         timeout = 0 ;
-         breakTime = 0 ;
-         deadtime = 0 ;
-         sendFailedTimes = 0 ;
+         resetStatus() ;
          resetUDP() ;
       }
 
@@ -293,12 +354,40 @@ namespace engine
          _testUDPCount = CLS_UDP_UNAVAILABLE + 1 ;
       }
 
+      OSS_INLINE void resetStatus()
+      {
+         timeout = 0 ;
+         breakTime = 0 ;
+         deadtime = 0 ;
+         sendFailedTimes = 0 ;
+      }
+
       OSS_INLINE void resetUDP()
       {
          _supportUDP = FALSE ;
          _testUDPCount = 0 ;
       }
    } ;
+
+   /*
+      _clsLocationInfoItem define
+   */
+   struct _clsLocationInfoItem
+   {
+      _clsLocationInfoItem()
+      {
+         _locationID    = MSG_INVALID_LOCATIONID ;
+         _primary.value = 0 ;
+         _isAffinitiveLocation = FALSE ;
+      }
+
+      UINT32         _locationID ;
+      ossPoolString  _location ;
+      MsgRouteID     _primary ;
+      BOOLEAN        _isAffinitiveLocation ;
+   } ;
+   // locationID is key, location info is value
+   typedef ossPoolMap< UINT32, _clsLocationInfoItem > CLS_LOC_INFO_MAP ;
 
    #define CLS_NODE_KEEPALIVE_TIMEOUT              ( 6000 ) // ms
 
@@ -308,29 +397,49 @@ namespace engine
    class _clsGroupInfo : public SDBObject
    {
    public :
-      map<UINT64, _clsSharingStatus> info ;
-      map<UINT64, _clsSharingStatus *> alives ;
-      ossRWMutex mtx ;
-      _MsgRouteID primary ;
-      _MsgRouteID local ;
-      UINT32 localBeatID ;
-      CLS_GROUP_VERSION version ;
+      map<UINT64, _clsSharingStatus>     info ;
+      map<UINT64, _clsSharingStatus *>   alives ;
+      ossRWMutex                         mtx ;
+      _MsgRouteID                        primary ;
+      _MsgRouteID                        local ;
+      UINT32                             localBeatID ;
+      CLS_GROUP_VERSION                  version ;
+
+      UINT32                             localLocationID ;
+      ossPoolString                      localLocation ;
+      CLS_LOC_INFO_MAP                   locationInfoMap ;
 
    private:
       UINT32 _hashCode ;
 
    public:
-      _clsGroupInfo():localBeatID( CLS_BEATID_BEGIN ),
-                      version( 0 ), _hashCode( 0 )
+      _clsGroupInfo():
+      localBeatID( CLS_BEATID_BEGIN ), version( 0 ),
+      localLocationID( MSG_INVALID_LOCATIONID ), _hashCode( 0 )
       {
          local.value = 0 ;
          primary.value = 0 ;
       }
+
       ~_clsGroupInfo()
       {
          alives.clear() ;
          info.clear() ;
+         locationInfoMap.clear() ;
       }
+
+      void resetInfo()
+      {
+         alives.clear() ;
+         info.clear() ;
+         locationInfoMap.clear() ;
+         primary.value = 0 ;
+         localBeatID = CLS_BEATID_BEGIN ;
+         version = 0 ;
+         localLocationID = MSG_INVALID_LOCATIONID ;
+         localLocation.clear() ;
+      }
+
       UINT32 nextBeatID()
       {
          ++localBeatID ;
@@ -546,17 +655,6 @@ namespace engine
       CLS_REELECTION_LEVEL_3 = 3,  /// wait for at least one replication catch up
       CLS_REELECTION_LEVEL_MAX
    } ;
-
-#define CLS_ELECTION_WEIGHT_MIN 0
-#define CLS_ELECTION_WEIGHT_USR_MIN 1
-#define CLS_ELECTION_WEIGHT_USR_MAX 100
-#define CLS_ELECTION_WEIGHT_MAX 101
-
-#define CLS_GET_WEIGHT( weight, shadowWeight )\
-        (( CLS_ELECTION_WEIGHT_MIN == (shadowWeight) ) ?\
-          (shadowWeight) :\
-         ( (weight) < (shadowWeight) ?\
-           (shadowWeight) : (weight) ))
 }
 
 #endif // CLSDEF_HPP_

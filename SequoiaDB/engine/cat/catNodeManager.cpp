@@ -274,13 +274,13 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_PRIMARYCHANGE ) ;
-      UINT32 w = _majoritySize() ;
+
+      MsgRouteID srcNode ;
+      srcNode = pMsg->routeID ;
+
+      MsgRouteID oldPrimary ;
+      MsgRouteID newPrimary ;
       MsgCatPrimaryChange *pRequest = (MsgCatPrimaryChange *)pMsg ;
-      UINT32 groupID = pRequest->newPrimary.columns.groupID;
-      UINT16 nodeID = pRequest->newPrimary.columns.nodeID;
-      PD_TRACE2 ( SDB_CATNODEMGR_PRIMARYCHANGE,
-                  PD_PACK_UINT ( groupID ),
-                  PD_PACK_USHORT ( nodeID ) ) ;
       MsgCatPrimaryChangeRes replyHeader;
 
       /// fill reply header
@@ -305,64 +305,33 @@ namespace engine
          goto done ;
       }
 
-      try
+      if ( pMsg->messageLength < ( SINT32 )MSG_CAT_PMR_CHG_SIZE )
       {
-         BSONObj boUpdater;
-         BSONObj boMatcher;
-         if ( SPARE_GROUPID == groupID)
-         {
-             boMatcher = BSON( CAT_GROUPID_NAME << groupID) ;
-             boUpdater = BSON( "$unset" << BSON( CAT_PRIMARY_NAME<<"") ) ;
-         }
-         else if ( INVALID_GROUPID == groupID || INVALID_NODEID == nodeID )
-         {
-            boMatcher = BSON( CAT_GROUPID_NAME <<
-                              pRequest->oldPrimary.columns.groupID <<
-                              CAT_PRIMARY_NAME <<
-                              pRequest->oldPrimary.columns.nodeID ) ;
-            boUpdater = BSON( "$unset" << BSON( CAT_PRIMARY_NAME << nodeID ) ) ;
-         }
-         else
-         {
-            BSONObj objPrimary ;
-            /// check primary node is the same
-            rc = catGetOneObj( CAT_NODE_INFO_COLLECTION,
-                               BSON( CAT_PRIMARY_NAME << 0 ),
-                               BSON( CAT_GROUPID_NAME << groupID ),
-                               BSONObj(), _pEduCB, objPrimary ) ;
-            if ( SDB_OK == rc )
-            {
-               BSONElement ele = objPrimary.getField( CAT_PRIMARY_NAME ) ;
-               if ( ele.isNumber() && (UINT16)ele.numberInt() == nodeID )
-               {
-                  /// already the same, don't update
-                  goto done ;
-               }
-            }
-
-            if ( pRequest->header.routeID.columns.nodeID == nodeID )
-            {
-               boMatcher = BSON( CAT_GROUPID_NAME << groupID ) ;
-            }
-            else
-            {
-               boMatcher = BSON( CAT_GROUPID_NAME << groupID <<
-                                 CAT_PRIMARY_NAME <<
-                                 pRequest->header.routeID.columns.nodeID ) ;
-            }
-            boUpdater = BSON( "$set" << BSON( CAT_PRIMARY_NAME << nodeID ) ) ;
-         }
-
-         rc = rtnUpdate ( CAT_NODE_INFO_COLLECTION, boMatcher, boUpdater,
-                          BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to set primary-node(rc=%d)",
-                      rc ) ;
+         oldPrimary = pRequest->oldPrimary ;
+         newPrimary = pRequest->newPrimary ;
+         rc = _setReplicaPrimaryChange( srcNode, oldPrimary, newPrimary ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update replica group primary, rc: %d", rc ) ;
       }
-      catch ( std::exception &e )
+      else
       {
-         PD_CHECK( SDB_SYS, SDB_SYS, error, PDERROR,
-                   "Failed to set primary-node, received unexpected error:%s",
-                   e.what() ) ;
+         if ( MSG_INVALID_ROUTEID != pRequest->oldLocationPrimary.value ||
+              MSG_INVALID_ROUTEID != pRequest->newLocationPrimary.value )
+         {
+            UINT32 locationID = pRequest->locationID ;
+            oldPrimary = pRequest->oldLocationPrimary ;
+            newPrimary = pRequest->newLocationPrimary ;
+            rc = _setLocationPrimaryChange( srcNode, oldPrimary, newPrimary, locationID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update location set primary, rc: %d", rc ) ;
+         }
+
+         if ( MSG_INVALID_ROUTEID != pRequest->oldPrimary.value ||
+              MSG_INVALID_ROUTEID != pRequest->newPrimary.value )
+         {
+            oldPrimary = pRequest->oldPrimary ;
+            newPrimary = pRequest->newPrimary ;
+            rc = _setReplicaPrimaryChange( srcNode, oldPrimary, newPrimary ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update replica group primary, rc: %d", rc ) ;
+         }
       }
 
    done:
@@ -370,8 +339,7 @@ namespace engine
       rc = _pCatCB->sendReply( handle, &replyHeader, rc ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to send response(primary-change)(rc=%d)",
-                 rc ) ;
+         PD_LOG( PDERROR, "failed to send response(primary-change)(rc: %d)", rc ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATNODEMGR_PRIMARYCHANGE, rc ) ;
       return rc ;
@@ -2208,6 +2176,285 @@ namespace engine
                 srcGroupsObj.toString().c_str() ) ;
 
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_SETREPLPRMCHG, "catNodeManager::_setReplicaPrimaryChange" )
+   INT32 catNodeManager::_setReplicaPrimaryChange( MsgRouteID srcNode,
+                                                   MsgRouteID oldPrimary,
+                                                   MsgRouteID newPrimary )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMGR_SETREPLPRMCHG ) ;
+
+      UINT32 groupID = newPrimary.columns.groupID ;
+      UINT16 nodeID = newPrimary.columns.nodeID ;
+      PD_TRACE2 ( SDB_CATNODEMGR_SETREPLPRMCHG, PD_PACK_UINT ( groupID ), PD_PACK_USHORT ( nodeID ) ) ;
+
+      try
+      {
+         BSONObj boUpdater;
+         BSONObj boMatcher;
+         if ( SPARE_GROUPID == groupID )
+         {
+             boMatcher = BSON( CAT_GROUPID_NAME << groupID ) ;
+             boUpdater = BSON( "$unset" << BSON( CAT_PRIMARY_NAME<<"" ) ) ;
+         }
+         else if ( INVALID_GROUPID == groupID || INVALID_NODEID == nodeID )
+         {
+            // Primary deactive msg, srcNode == oldPrimary, but newPrimary is null
+            boMatcher = BSON( CAT_GROUPID_NAME << oldPrimary.columns.groupID <<
+                              CAT_PRIMARY_NAME << oldPrimary.columns.nodeID ) ;
+            boUpdater = BSON( "$unset" << BSON( CAT_PRIMARY_NAME << nodeID ) ) ;
+         }
+         else
+         {
+            BSONObj objPrimary ;
+            /// check primary node is the same
+            rc = catGetOneObj( CAT_NODE_INFO_COLLECTION,
+                               BSON( CAT_PRIMARY_NAME << 0 ),
+                               BSON( CAT_GROUPID_NAME << groupID ),
+                               BSONObj(), _pEduCB, objPrimary ) ;
+            if ( SDB_OK == rc )
+            {
+               BSONElement ele = objPrimary.getField( CAT_PRIMARY_NAME ) ;
+               if ( ele.isNumber() && (UINT16)ele.numberInt() == nodeID )
+               {
+                  /// already the same, don't update
+                  goto done ;
+               }
+            }
+
+            if ( srcNode.columns.nodeID == nodeID )
+            {
+               // Primary active msg, srcNode == newPrimary
+               boMatcher = BSON( CAT_GROUPID_NAME << groupID ) ;
+            }
+            else
+            {
+               // Primary deactive msg, srcNode == oldPrimary, but newPrimary is not null
+               boMatcher = BSON( CAT_GROUPID_NAME << groupID <<
+                                 CAT_PRIMARY_NAME << srcNode.columns.nodeID ) ;
+            }
+            boUpdater = BSON( "$set" << BSON( CAT_PRIMARY_NAME << nodeID ) ) ;
+         }
+
+         // Matcher should be accurate, so that only the first primary change msg
+         // will update the SYSCAT.SYSNODE
+         rc = rtnUpdate ( CAT_NODE_INFO_COLLECTION, boMatcher, boUpdater,
+                          BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set primary-node(rc=%d)", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to set primary-node, "
+                 "received unexpected error:%s", e.what() );
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMGR_SETREPLPRMCHG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_SETLOCPRMCHG, "catNodeManager::_setLocationPrimaryChange" )
+   INT32 catNodeManager::_setLocationPrimaryChange( MsgRouteID srcNode,
+                                                    MsgRouteID oldPrimary,
+                                                    MsgRouteID newPrimary,
+                                                    UINT32 locationID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATNODEMGR_SETLOCPRMCHG ) ;
+
+      UINT32 srcGroupID = srcNode.columns.groupID ;
+      UINT16 srcNodeID = srcNode.columns.nodeID ;
+
+      UINT32 newGroupID = newPrimary.columns.groupID ;
+      UINT16 newNodeID = newPrimary.columns.nodeID ;
+
+      UINT32 oldGroupID = oldPrimary.columns.groupID ;
+      UINT16 oldNodeID = oldPrimary.columns.nodeID ;
+
+      BSONObj groupObj ;
+      BSONObj nodeListObj ;
+      BSONObj locationsListObj ;
+      BSONObj updator ;
+      BSONObj matcher ;
+      BSONObjBuilder updatorBuilder ;
+      BSONObjBuilder matcherBuilder ;
+
+      try
+      {
+         if ( INVALID_GROUPID == newGroupID || INVALID_NODEID == newNodeID )
+         {
+            // Primary deactive msg, srcNode == oldPrimary, but newPrimary is null
+            BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
+            unsetBuilder.append( CAT_LOCATIONS_NAME ".$1." CAT_LOCATION_PRIMARY_NAME, newNodeID ) ;
+            unsetBuilder.doneFast() ;
+
+            matcherBuilder.append( CAT_GROUPID_NAME, oldGroupID ) ;
+            matcherBuilder.append( CAT_LOCATIONS_NAME ".$1." CAT_LOCATION_PRIMARY_NAME, oldNodeID ) ;
+         }
+         else
+         {
+            const CHAR* pTmpLocation = NULL ; // New primary node's location
+            const CHAR* pLocation = NULL ; // locationID's location
+            UINT16 tmpLocPrimary = CAT_INVALID_NODEID ;
+
+            // Get SYSCAT.SYSNODES
+            rc = catGetGroupObj( srcGroupID, groupObj, _pEduCB ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get group info, rc: %d", rc ) ;
+
+            // Get node array
+            rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                         CAT_GROUP_NAME, rc ) ;
+
+            // Get locations array
+            rc = rtnGetArrayElement( groupObj, CAT_LOCATIONS_NAME, locationsListObj ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                         CAT_LOCATIONS_NAME, rc ) ;
+
+            // Parse nodeList array and get location by new primary node
+            BSONObjIterator nodeItr( nodeListObj ) ;
+            while ( nodeItr.more() )
+            {
+               BSONElement nodeEle = nodeItr.next() ;
+               BSONObj nodeObj = nodeEle.embeddedObject() ;
+
+               BSONElement nodeIDEle = nodeObj.getField( CAT_NODEID_NAME ) ;
+               BSONElement locationEle = nodeObj.getField( CAT_LOCATION_NAME ) ;
+
+               if ( nodeIDEle.eoo() || ! nodeIDEle.isNumber() )
+               {
+                  rc = SDB_INVALIDARG;
+                  PD_LOG( PDWARNING, "Failed to get the field[%s]", CAT_NODEID_NAME ) ;
+                  goto error ;
+               }
+
+               if ( nodeIDEle.numberInt() == newNodeID )
+               {
+                  if ( locationEle.eoo() )
+                  {
+                     PD_LOG( PDWARNING, "Node[%u] in group[%u] has no location attribute",
+                             newNodeID, newGroupID ) ;
+                     goto done ;
+                  }
+                  else if ( String != locationEle.type() )
+                  {
+                     PD_LOG( PDWARNING, "Node[%u]'s location type is not String", newNodeID ) ;
+                     rc = SDB_INVALIDARG;
+                     goto error ;
+                  }
+                  else
+                  {
+                     pTmpLocation = locationEle.valuestrsafe() ; 
+                     break ;
+                  }
+               }
+            }
+
+            // Parse locations array and get location by locationID
+            BSONObjIterator locationsItr( locationsListObj ) ;
+            while ( locationsItr.more() )
+            {
+               BSONElement locationsEle = locationsItr.next() ;
+               BSONObj locationsObj = locationsEle.embeddedObject() ;
+
+               BSONElement locationIDEle = locationsObj.getField( CAT_LOCATIONID_NAME ) ;
+               BSONElement locationEle = locationsObj.getField( CAT_LOCATION_NAME ) ;
+               BSONElement locationPrimaryEle = locationsObj.getField( CAT_LOCATION_PRIMARY_NAME ) ;
+
+               if ( locationIDEle.eoo() || ! locationIDEle.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDWARNING, "Failed to get the field[%s]", CAT_LOCATIONID_NAME ) ;
+                  goto error ;
+               }
+
+               if ( locationID == ( UINT32 )locationIDEle.numberInt() )
+               {
+                  if ( locationEle.eoo() || String != locationEle.type() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG( PDWARNING, "Failed to get the field[%s]", CAT_LOCATION_NAME ) ;
+                     goto error ;
+                  }
+                  else if ( ! locationPrimaryEle.eoo() && ! locationPrimaryEle.isNumber() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG( PDWARNING, "Failed to get the field[%s]", CAT_LOCATION_PRIMARY_NAME ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     pLocation = locationEle.valuestrsafe() ;
+                     if ( ! locationPrimaryEle.eoo() )
+                     {
+                        tmpLocPrimary = locationPrimaryEle.numberInt() ;
+                     }
+                     break ;
+                  }
+               }
+            }
+
+            // If pLocation and pTmpLocation are different,
+            // that means the new primary node's location has changed before the primaryChange msg arrived
+            if ( NULL == pLocation || NULL == pTmpLocation ||
+                 0 != ossStrcmp( pLocation, pTmpLocation ) )
+            {
+               PD_LOG( PDWARNING, "New primary node[%u]'s location has changed, "
+                       "latest location[%s]", newNodeID, pTmpLocation ? pTmpLocation : "" ) ;
+               goto done ;
+            }
+
+            if ( tmpLocPrimary == newNodeID )
+            {
+               // The new and old location primary are the same, do nothing
+               goto done ;
+            }
+
+            if ( srcNodeID == newNodeID )
+            {
+               // Primary active msg, srcNode == newPrimary
+               matcherBuilder.append( CAT_GROUPID_NAME, newGroupID ) ;
+               matcherBuilder.append( CAT_LOCATIONS_NAME ".$1." CAT_LOCATIONID_NAME, locationID ) ;
+            }
+            else
+            {
+               // Primary deactive msg, srcNode == oldPrimary, but newPrimary is not null
+               matcherBuilder.append( CAT_GROUPID_NAME, newGroupID ) ;
+               matcherBuilder.append( CAT_LOCATIONS_NAME ".$1." CAT_LOCATION_PRIMARY_NAME, srcNodeID ) ;
+            }
+            BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
+            unsetBuilder.append( CAT_LOCATIONS_NAME ".$1." CAT_LOCATION_PRIMARY_NAME, newNodeID ) ;
+            unsetBuilder.doneFast() ;
+         }
+
+         // Matcher should be accurate, so that only the first primary change
+         // msg will update the SYSCAT.SYSNODE
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
+         rc = rtnUpdate ( CAT_NODE_INFO_COLLECTION, matcher, updator,
+                          BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set location[ID: %u] primary-node(rc=%d)",
+                      locationID, rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to set location primary-node, "
+                 "received unexpected error:%s", e.what() );
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATNODEMGR_SETLOCPRMCHG, rc ) ;
       return rc ;
    error:
       goto done ;

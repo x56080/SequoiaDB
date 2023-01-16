@@ -55,15 +55,18 @@ namespace engine
    struct coordErrorInfo
    {
       INT32       _rc ;
+      INT32       _startFrom ;
       BSONObj     _obj ;
 
       coordErrorInfo( INT32 rc = SDB_OK )
       {
          _rc = rc ;
+         _startFrom = 0 ;
       }
       coordErrorInfo( INT32 rc, const BSONObj &obj )
       {
          _rc = rc ;
+         _startFrom = 0 ;
          _obj = obj.getOwned() ;
       }
       coordErrorInfo( const MsgOpReply *reply )
@@ -71,6 +74,7 @@ namespace engine
          INT32 length = reply->header.messageLength -
                         (INT32)sizeof( MsgOpReply ) ;
          _rc = reply->flags ;
+         _startFrom = reply->startFrom ;
          if ( reply->flags && length > 0 )
          {
             try

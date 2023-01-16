@@ -70,8 +70,7 @@ namespace engine
       {
          g_startShiftTime = -1 ; // some node begin vote
 
-         const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * )
-                                              header ;
+         const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
          {
             _promise( msg ) ;
@@ -116,7 +115,7 @@ namespace engine
       {
          if ( _hasPrint )
          {
-            PD_LOG( PDEVENT, "Begin to vote..." ) ;
+            PD_LOG( PDEVENT, "%s: Begin to vote...", getScopeName() ) ;
          }
          g_startShiftTime = -1 ;
          next = CLS_ELECTION_STATUS_VOTE ;
@@ -126,8 +125,8 @@ namespace engine
          if ( !_hasPrint && CLS_VOTE_CS_TIME <= _timeout() )
          {
             _hasPrint = TRUE ;
-            PD_LOG( PDEVENT, "With waiting %u seconds or when all nodes beat "
-                    "here, then begin to vote",
+            PD_LOG( PDEVENT, "%s: With waiting %u seconds or when all nodes beat "
+                    "here, then begin to vote", getScopeName(),
                     ( g_startShiftTime - (INT32)_timeout() ) / 1000 ) ;
          }
          next = id() ;

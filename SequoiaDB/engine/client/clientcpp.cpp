@@ -5881,6 +5881,54 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbReplicaGroupImpl::reelectLocation( const CHAR* pLocation,
+                                                const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+
+      // check
+      if ( _replicaGroupName[0] == '\0' )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+      if ( NULL == pLocation )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder queryBuilder ;
+         queryBuilder.append( FIELD_NAME_GROUPNAME, _replicaGroupName ) ;
+         queryBuilder.append( FIELD_NAME_LOCATION, pLocation ) ;
+         queryBuilder.appendElementsUnique( options ) ;
+         query = queryBuilder.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_REELECT_LOCATION,
+                                     &query, NULL, NULL, NULL, 0, 0, 0, -1 ) ;
+      if( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _sdbCollectionSpaceImpl::_getRetVersion ()
    {
       INT32 version = CATALOG_INVALID_VERSION ;

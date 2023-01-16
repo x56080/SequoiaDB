@@ -1036,8 +1036,7 @@ namespace engine
       return  SDB_OK ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnReelect)
-   _rtnReelect::_rtnReelect()
+   _rtnReelectBase::_rtnReelectBase()
    :_timeout( 30 ),
     _level( CLS_REELECTION_LEVEL_3 )
    {
@@ -1045,93 +1044,73 @@ namespace engine
       _isDestNotify = FALSE ;
    }
 
-   _rtnReelect::~_rtnReelect()
+   _rtnReelectBase::~_rtnReelectBase()
    {
 
    }
 
-   INT32 _rtnReelect::spaceNode()
+   INT32 _rtnReelectBase::spaceNode()
    {
       return CMD_SPACE_NODE_DATA | CMD_SPACE_NODE_CATA  ;
    }
 
-   INT32 _rtnReelect::spaceService()
+   INT32 _rtnReelectBase::spaceService()
    {
       return CMD_SPACE_SERVICE_SHARD ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECT_INIT, "_rtnReelect::init" )
-   INT32 _rtnReelect::init ( INT32 flags, INT64 numToSkip,
-                             INT64 numToReturn,
-                             const CHAR *pMatcherBuff,
-                             const CHAR *pSelectBuff,
-                             const CHAR *pOrderByBuff,
-                             const CHAR *pHintBuff )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECT_PARSEARGS, "_rtnReelectBase::_parseReelectArgs" )
+   INT32 _rtnReelectBase::_parseReelectArgs( const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREELECT_INIT ) ;
-      BSONObj obj ;
-      try
+      PD_TRACE_ENTRY( SDB__CLSREELECT_PARSEARGS ) ;
+
+      BSONElement e ;
+      
+      e = obj.getField( FIELD_NAME_REELECTION_TIMEOUT ) ;
+      if ( !e.eoo() )
       {
-         BSONElement e ;
-         obj = BSONObj( pMatcherBuff ) ;
-
-         if ( obj.isEmpty() )
+         if ( !e.isNumber() )
          {
-            _isDestNotify = TRUE ;
-            goto done ;
+            PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
+                    FIELD_NAME_REELECTION_TIMEOUT,
+                    obj.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
-
-         e = obj.getField( FIELD_NAME_REELECTION_TIMEOUT ) ;
-         if ( !e.eoo() )
-         {
-            if ( !e.isNumber() )
-            {
-               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
-                       FIELD_NAME_REELECTION_TIMEOUT,
-                       obj.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            _timeout = e.numberInt() ;
-         }
-
-         e = obj.getField( FIELD_NAME_REELECTION_LEVEL ) ;
-         if ( !e.eoo() )
-         {
-            if ( !e.isNumber() )
-            {
-               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
-                       FIELD_NAME_REELECTION_LEVEL,
-                       obj.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            _level = ( CLS_REELECTION_LEVEL )((INT32)e.numberInt()) ;
-         }
-
-         e = obj.getField( FIELD_NAME_NODEID ) ;
-         if ( !e.eoo() )
-         {
-            if ( !e.isNumber() )
-            {
-               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
-                       FIELD_NAME_NODEID,
-                       obj.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            _nodeID = (UINT16)e.numberInt() ;
-         }
+         _timeout = e.numberInt() ;
       }
-      catch ( std::exception &e )
+
+      e = obj.getField( FIELD_NAME_REELECTION_LEVEL ) ;
+      if ( !e.eoo() )
       {
-         PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         if ( !e.isNumber() )
+         {
+            PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
+                    FIELD_NAME_REELECTION_LEVEL,
+                    obj.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _level = ( CLS_REELECTION_LEVEL )((INT32)e.numberInt()) ;
       }
+
+      e = obj.getField( FIELD_NAME_NODEID ) ;
+      if ( !e.eoo() )
+      {
+         if ( !e.isNumber() )
+         {
+            PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
+                    FIELD_NAME_NODEID,
+                    obj.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _nodeID = (UINT16)e.numberInt() ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__CLSREELECT_INIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSREELECT_PARSEARGS, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1141,34 +1120,84 @@ namespace engine
    #define CLS_REELECT_WAIT_INTERVAL      ( 100 )         /// 100 ms
    #define CLS_REELECT_SW_TIMEOUT         ( 10000 )       /// 10 secs
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECT_DOIT, "_rtnReelect::doit" )
-   INT32 _rtnReelect::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                            INT16 w, INT64 *pContextID )
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnReelectGroup )
+   _rtnReelectGroup::_rtnReelectGroup()
+   {
+
+   }
+
+   _rtnReelectGroup::~_rtnReelectGroup()
+   {
+
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECTGROUP_INIT, "_rtnReelectGroup::init" )
+   INT32 _rtnReelectGroup::init ( INT32 flags, INT64 numToSkip,
+                                  INT64 numToReturn,
+                                  const CHAR *pMatcherBuff,
+                                  const CHAR *pSelectBuff,
+                                  const CHAR *pOrderByBuff,
+                                  const CHAR *pHintBuff )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREELECT_DOIT ) ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTGROUP_INIT ) ;
+
+      try
+      {
+         BSONObj obj = BSONObj( pMatcherBuff ) ;
+
+         if ( obj.isEmpty() )
+         {
+            _isDestNotify = TRUE ;
+            // goto done ;
+         }
+         else
+         {
+            rc = _parseReelectArgs( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to pasrse reelect info,rc: %d", rc ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREELECTGROUP_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECTGROUP_DOIT, "_rtnReelectGroup::doit" )
+   INT32 _rtnReelectGroup::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                 _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                                 INT16 w, INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTGROUP_DOIT ) ;
       replCB *repl = sdbGetReplCB() ;
 
       if ( _isDestNotify )
       {
          UINT32 timeout = 0 ;
+         _clsVoteMachine* vote = repl->voteMachine( FALSE ) ;
 
          /// Wait repl down group info
-         while ( !repl->voteMachine()->isInit() &&
-                 timeout < CLS_REELECT_WAIT_TIME )
+         while ( !vote->isInit() && timeout < CLS_REELECT_WAIT_TIME )
          {
             ossSleep( CLS_REELECT_WAIT_INTERVAL ) ;
             timeout += CLS_REELECT_WAIT_INTERVAL ;
          }
 
-         repl->voteMachine()->setShadowWeight( CLS_ELECTION_WEIGHT_MAX,
-                                               CLS_REELECT_SW_TIMEOUT ) ;
+         vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, CLS_REELECT_SW_TIMEOUT ) ;
 
          /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
-         if ( repl->voteMachine()->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+         if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
          {
-            repl->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+            vote->force( CLS_ELECTION_STATUS_SEC ) ;
          }
       }
       else
@@ -1176,13 +1205,153 @@ namespace engine
          rc = repl->reelect( _level, _timeout, cb, _nodeID ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;
+            PD_LOG( PDERROR, "Replica Group: Failed to reelect:%d", rc ) ;
             goto error ;
          }
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__CLSREELECT_DOIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSREELECTGROUP_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnReelectLocation )
+   _rtnReelectLocation::_rtnReelectLocation()
+    :_pLocation( NULL )
+   {
+
+   }
+
+   _rtnReelectLocation::~_rtnReelectLocation()
+   {
+
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECTLOCATION_INIT, "_rtnReelectLocation::init" )
+   INT32 _rtnReelectLocation::init ( INT32 flags, INT64 numToSkip,
+                                     INT64 numToReturn,
+                                     const CHAR *pMatcherBuff,
+                                     const CHAR *pSelectBuff,
+                                     const CHAR *pOrderByBuff,
+                                     const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTLOCATION_INIT ) ;
+
+      try
+      {
+         BSONElement e ;
+
+         BSONObj queryObj = BSONObj( pMatcherBuff ) ;
+         BSONObj hintObj = BSONObj( pHintBuff ) ;
+
+         // Get location info
+         e = queryObj.getField( FIELD_NAME_LOCATION ) ;
+         if ( e.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Location is null" ) ;
+            goto error ;
+         }
+         if ( String != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Location type[%d] is not string", e.type() ) ;
+            goto error ;
+         }
+         _pLocation = e.valuestrsafe() ;
+
+         // Identify if it's destination node
+         e = hintObj.getField( FIELD_NAME_ISDESTINATION ) ;
+         if ( !e.eoo() )
+         {
+            if ( !e.isBoolean() )
+            {
+               PD_LOG( PDERROR, "Param[%s] is not boolean in object[%s]",
+                       FIELD_NAME_ISDESTINATION,
+                       hintObj.toString( FALSE, TRUE ).c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            _isDestNotify = e.boolean() ;
+         }
+
+         if ( ! _isDestNotify )
+         {
+            rc = _parseReelectArgs( queryObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to pasrse reelect info,rc: %d", rc ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREELECTLOCATION_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECTLOCATION_DOIT, "_rtnReelectLocation::doit" )
+   INT32 _rtnReelectLocation::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                    _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                                    INT16 w, INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTLOCATION_DOIT ) ;
+      replCB *repl = sdbGetReplCB() ;
+
+      // Check location info
+      const CHAR* localLocation = pmdGetLocation() ;
+      if ( '\0' == localLocation[0] || NULL == _pLocation ||
+           0 != ossStrcmp( _pLocation, localLocation ) )
+      {
+         rc = SDB_INVALID_ROUTEID ;
+         PD_LOG( PDERROR, "Location Set: The location[%s] of reelect "
+                 "doesn't match local location[%s]", _pLocation ? _pLocation : "null",
+                 localLocation ? localLocation : "null" ) ;
+         goto error ;
+      }
+
+      if ( _isDestNotify )
+      {
+         UINT32 timeout = 0 ;
+         _clsVoteMachine* vote = repl->voteMachine( TRUE ) ;
+
+         /// Wait repl down group info
+         while ( !vote->isInit() && timeout < CLS_REELECT_WAIT_TIME )
+         {
+            ossSleep( CLS_REELECT_WAIT_INTERVAL ) ;
+            timeout += CLS_REELECT_WAIT_INTERVAL ;
+         }
+
+         vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, CLS_REELECT_SW_TIMEOUT ) ;
+
+         /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
+         if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+         {
+            vote->force( CLS_ELECTION_STATUS_SEC ) ;
+         }
+      }
+      else
+      {
+         rc = repl->locationReelect( _level, _timeout, cb, _nodeID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Location Set: Failed to reelect:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREELECTLOCATION_DOIT, rc ) ;
       return rc ;
    error:
       goto done ;

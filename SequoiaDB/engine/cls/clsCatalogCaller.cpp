@@ -175,4 +175,21 @@ namespace engine
       return ;
    }
 
+   const _clsCataCallerMeta* _clsCatalogCaller::getCallerMeta( UINT32 key )
+   {
+      const _clsCataCallerMeta* pMeta = NULL ;
+      callerMeta::const_iterator itr = _meta.begin() ;
+
+      while ( _meta.end() != itr )
+      {
+         if ( key == itr->first )
+         {
+            pMeta = &itr->second ;
+            break ;
+         }
+         ++itr ;
+      }
+
+      return pMeta ;
+   }
 }

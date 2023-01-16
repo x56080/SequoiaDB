@@ -53,7 +53,8 @@ namespace engine
                               string &groupName,
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
-                              UINT32 *pSecID )
+                              UINT32 *pSecID,
+                              CLS_LOC_INFO_MAP &locationInfo )
    {
       SDB_ASSERT( NULL != msg, "data should not be NULL" ) ;
       INT32 rc = SDB_OK ;
@@ -69,7 +70,7 @@ namespace engine
          UINT32 groupID = 0 ;
          rc = msgParseCatGroupObj( MSG_GET_INNER_REPLY_DATA( pHeader ),
                                    version, groupID, groupName,
-                                   group, pPrimary, pSecID ) ;
+                                   group, pPrimary, pSecID, locationInfo ) ;
       }
    done :
       PD_TRACE_EXITRC ( SDB_MSGPASCATGRPRES, rc );
@@ -148,7 +149,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MSGPASCATNODEOBJ, "_msgParseCatNodeObj" )
    static INT32 _msgParseCatNodeObj ( const BSONObj & nodeObj,
-                                      _netRouteNode & route )
+                                      _netRouteNode & route,
+                                      const CHAR **ppLocation = NULL )
    {
       INT32 rc = SDB_OK ;
 
@@ -202,6 +204,21 @@ namespace engine
          }
       }
 
+      // Location
+      beField = nodeObj.getField( CAT_LOCATION_NAME ) ;
+      if ( ! beField.eoo() )
+      {
+         if ( String != beField.type() )
+         {
+            PD_LOG( PDWARNING, "Failed to parse [%s], type [%d] is not string",
+                    CAT_LOCATION_NAME, beField.type() ) ;
+         }
+         if ( NULL != ppLocation )
+         {
+            *ppLocation = beField.valuestrsafe() ;
+         }
+      }
+
       route._id.columns.nodeID = nodeID ;
       route._id.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
 
@@ -220,7 +237,8 @@ namespace engine
                               string &groupName,
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
-                              UINT32 *pSecID )
+                              UINT32 *pSecID,
+                              CLS_LOC_INFO_MAP &locationInfo )
    {
       INT32 rc = SDB_OK ;
 
@@ -289,29 +307,109 @@ namespace engine
             }
          }
 
+         // Get Locations array
+         ele = obj.getField( CAT_LOCATIONS_NAME ) ;
+         if ( ! ele.eoo() && Array != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDWARNING, "Failed to parse [%s], type[%d] is not array",
+                    CAT_LOCATIONS_NAME, ele.type() ) ;
+            goto error ;
+         }
+         locationInfo.clear() ;
+
+         // Parse Locations array
+         if ( Array == ele.type() )
+         {
+            BSONObjIterator i( ele.embeddedObject() ) ;
+            while ( i.more() )
+            {
+               BSONElement beLocations = i.next() ;
+               PD_CHECK( Object == beLocations.type(), SDB_INVALIDARG, error,
+                         PDWARNING, "Failed to parse [%s]", CAT_LOCATIONS_NAME ) ;
+
+               _clsLocationInfoItem item ;
+               BSONObj boLocation = beLocations.embeddedObject() ;
+
+               BSONElement beLocation = boLocation.getField( CAT_LOCATION_NAME ) ;
+               BSONElement beLocationID = boLocation.getField( CAT_LOCATIONID_NAME ) ;
+               BSONElement bePrimary = boLocation.getField( CAT_PRIMARY_NAME ) ;
+
+               if ( beLocation.eoo() || String != beLocation.type() )
+               {
+                  PD_LOG( PDWARNING, "Failed to parse [%s]", CAT_LOCATION_NAME ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               item._location = beLocation.valuestrsafe() ;
+
+               if ( beLocationID.eoo() || NumberInt != beLocationID.type() )
+               {
+                  PD_LOG( PDWARNING, "Failed to parse [%s]", CAT_LOCATIONID_NAME ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               item._locationID = beLocationID.numberInt() ;
+
+               if ( ! bePrimary.eoo() && NumberInt == bePrimary.type() )
+               {
+                  item._primary.columns.groupID = groupID ;
+                  item._primary.columns.nodeID = bePrimary.numberInt() ;
+               }
+
+               locationInfo.insert( CLS_LOC_INFO_MAP::value_type( item._locationID, item ) ) ;
+            }
+         }
+
+         // Get group obj
          ele = obj.getField( CAT_GROUP_NAME ) ;
          PD_CHECK( ele.eoo() || Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                    "Failed to parse [%s]", CAT_GROUP_NAME ) ;
 
+         // Parse group array
          if ( Array == ele.type() )
          {
             BSONObjIterator i( ele.embeddedObject() ) ;
             while ( i.more() )
             {
                _netRouteNode route ;
+               const CHAR *pTmpLocation = NULL ;
 
                BSONElement beNode = i.next() ;
                PD_CHECK( Object == beNode.type(), SDB_INVALIDARG, error,
                          PDWARNING, "Failed to parse [%s]", CAT_GROUP_NAME ) ;
 
-               rc = _msgParseCatNodeObj( beNode.embeddedObject(), route ) ;
-               PD_RC_CHECK( rc, PDWARNING, "Failed to parse node, rc: %d",
-                            rc ) ;
+               rc = _msgParseCatNodeObj( beNode.embeddedObject(), route, &pTmpLocation ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Failed to parse node, rc: %d", rc ) ;
+
+               // Set locationID in route.locationID
+               if ( NULL != pTmpLocation )
+               {
+                  CLS_LOC_INFO_MAP::const_iterator itr = locationInfo.begin() ;
+                  while ( locationInfo.end() != itr )
+                  {
+                     if ( 0 == ossStrcmp( pTmpLocation, itr->second._location.c_str() ) )
+                     {
+                        route._locationID = itr->first ;
+                        break ;
+                     }
+                     ++itr ;
+                  }
+
+                  if ( locationInfo.end() == itr )
+                  {
+                     rc = SDB_CAT_CORRUPTION ;
+                     PD_LOG( PDWARNING, "Node[%u]'s location is not in Locations array",
+                             route._id.columns.nodeID ) ;
+                     goto error ;
+                  }
+               }
 
                route._id.columns.groupID = groupID ;
                group.insert( make_pair( route._id.value,  route ) ) ;
             }
          }
+
       }
       catch ( std::exception &e )
       {
@@ -325,7 +423,6 @@ namespace engine
       return rc ;
 
    error :
-      rc = SDB_INVALIDARG ;
       goto done ;
    }
 

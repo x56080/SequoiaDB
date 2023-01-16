@@ -128,8 +128,12 @@ namespace engine
          msg.weights = lsn ;
          msg.identity = _groupInfo->local ;
          msg.round = round ;
-         map<UINT64, _clsSharingStatus *>::iterator itr=
-                                       _groupInfo->alives.begin() ;
+         if ( isLocation() )
+         {
+            // Add locationID to ballot msg
+            msg.locationID = _groupInfo->localLocationID ;
+         }
+         map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
             // if my bs is ok, but peer is not ok, skip
@@ -146,8 +150,8 @@ namespace engine
             }
          }
          _broadcastAlives( &msg ) ;
-         PD_LOG( PDEVENT, "Broadcast vote[round:%d] to all alive nodes",
-                 round ) ;
+         PD_LOG( PDEVENT, "%s: Broadcast vote[round:%d] to all alive nodes",
+                 getScopeName(), round ) ;
       }
 
    done:
@@ -171,6 +175,12 @@ namespace engine
       BOOLEAN peerAbnormal = FALSE ;
       BOOLEAN localAbnormal = FALSE ;
       DPS_LSN local ;
+
+      // Add locationID to ballot msg
+      if ( isLocation() )
+      {
+         msg.locationID = _groupInfo->localLocationID ;
+      }
 
       itrInfo = _groupInfo->info.find( id.value ) ;
       /// unknown member
@@ -212,8 +222,7 @@ namespace engine
       local = _logger->expectLsn() ;
 
       {
-         map<UINT64, _clsSharingStatus *>::iterator itr =
-                                    _groupInfo->alives.begin() ;
+         map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
             if ( !peerAbnormal &&
@@ -248,19 +257,30 @@ namespace engine
          /// the same, judge weight.
          else
          {
-            UINT8 weight = pmdGetOptionCB()->weight() ;
-            UINT8 shadowWeight = sdbGetReplCB()->voteMachine()->getShadowWeight() ;
-            weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
-            const UINT8 remoteWeight = itrInfo->second.beat.weight ;
-            if ( weight < remoteWeight )
+            UINT8 shadowWeight = 0 ;
+            UINT8 weight = 0 ;
+            UINT8 peerWeight = 0;
+
+            shadowWeight = sdbGetReplCB()->voteMachine( isLocation() )->getShadowWeight() ;
+            weight = CLS_GET_WEIGHT( pmdGetOptionCB()->weight(), shadowWeight ) ;
+            if ( isLocation() )
+            {
+               peerWeight = itrInfo->second.beat.getLocationWeight() ;
+            }
+            else
+            {
+               peerWeight = itrInfo->second.beat.weight ;
+            }
+
+            if ( weight < peerWeight )
             {
                goto accept ;
             }
-            else if ( remoteWeight < weight )
+            else if ( peerWeight < weight )
             {
                goto accepterr ;
             }
-            else if ( itrInfo->second.beat.weight < pmdGetOptionCB()->weight() )
+            else if ( peerWeight < pmdGetOptionCB()->weight() )
             {
                goto accepterr ;
             }
@@ -277,8 +297,8 @@ namespace engine
       }
 
    accept:
-      PD_LOG( PDEVENT, "vote: Accept node[id:%d, lsn:%u.%lld, round:%d, "
-              "abnormal: %s], local[lsn:%u.%lld, abnormal:%s]",
+      PD_LOG( PDEVENT, "%s Vote: Accept node[id:%d, lsn:%u.%lld, round:%d, "
+              "abnormal: %s], local[lsn:%u.%lld, abnormal:%s]", getScopeName(),
               id.columns.nodeID, lsn.version, lsn.offset, round,
               (peerAbnormal ? "TRUE":"FALSE"),
               local.version, local.offset,
@@ -293,8 +313,8 @@ namespace engine
       rc = SDB_CLS_VOTE_FAILED ;
       goto done ;
    accepterr:
-      PD_LOG( PDDEBUG, "vote: Refuse node[id:%d, lsn:%u.%lld, round:%d, "
-              "abnormal: %s], local[lsn:%u.%lld, abnormal:%s]",
+      PD_LOG( PDDEBUG, "%s Vote: Refuse node[id:%d, lsn:%u.%lld, round:%d, "
+              "abnormal: %s], local[lsn:%u.%lld, abnormal:%s]", getScopeName(),
               id.columns.nodeID, lsn.version, lsn.offset, round,
               (peerAbnormal ? "TRUE":"FALSE"),
               local.version, local.offset,
@@ -308,8 +328,7 @@ namespace engine
    void _clsVoteStatus::_broadcastAlives( void *msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSVTSTUS__BCALIVES ) ;
-      map<UINT64, _clsSharingStatus *>::iterator itr=
-                                    _groupInfo->alives.begin() ;
+      map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
       for ( ; itr != _groupInfo->alives.end(); itr++ )
       {
          _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) ;

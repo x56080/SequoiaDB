@@ -88,6 +88,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       DPS_LSN weights ;
       _MsgRouteID identity ;
       CLS_ELECTION_ROUND round ;
+      UINT32 locationID ;
       _MsgClsElectionBallot()
       {
          header.opCode = MSG_CLS_BALLOT ;
@@ -95,6 +96,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.routeID.value = MSG_INVALID_ROUTEID ;
          header.TID= 0 ;
          identity.value = MSG_INVALID_ROUTEID ;
+         locationID = MSG_INVALID_LOCATIONID ;
       }
    } ;
    typedef class _MsgClsElectionBallot MsgClsElectionBallot ;
@@ -105,6 +107,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       _MsgInternalReplyHeader header ;
       _MsgRouteID identity ;
       CLS_ELECTION_ROUND round ;
+      UINT32 locationID ;
       _MsgClsElectionRes()
       {
          header.header.messageLength = sizeof( _MsgClsElectionRes ) ;
@@ -112,9 +115,13 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.header.routeID.value = MSG_INVALID_ROUTEID ;
          header.header.TID= 0 ;
          identity.value = MSG_INVALID_ROUTEID ;
+         locationID = MSG_INVALID_LOCATIONID ;
       }
    } ;
    typedef class _MsgClsElectionRes MsgClsElectionRes ;
+
+   #define MSG_CLS_BALLOT_SIZE     sizeof( _MsgClsElectionBallot )
+   #define MSG_CLS_BALLOT_RES_SIZE sizeof( _MsgClsElectionRes )
 
    class _MsgSyncNotify : public SDBObject
    {

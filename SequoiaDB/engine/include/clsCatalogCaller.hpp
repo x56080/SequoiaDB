@@ -95,6 +95,8 @@ namespace engine
 
       BOOLEAN isCallOver( const MsgHeader *header ) ;
 
+      const _clsCataCallerMeta* getCallerMeta( UINT32 key ) ;
+
    private:
       callerMeta _meta ;
 

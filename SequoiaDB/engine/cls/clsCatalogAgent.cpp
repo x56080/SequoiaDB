@@ -32,7 +32,6 @@
 *******************************************************************************/
 
 #include "clsCatalogAgent.hpp"
-#include "msgCatalog.hpp"
 #include "ossUtil.hpp"
 #include "clsShardMgr.hpp"
 #include "pdTrace.hpp"
@@ -3927,13 +3926,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 primary = 0 ;
+      UINT32 groupVersion = 0 ;
       UINT32 groupID = 0 ;
+      string groupName ;
       map<UINT64, _netRouteNode> groups ;
+      CLS_LOC_INFO_MAP locInfo ;
 
       PD_LOG( PDDEBUG, "Update groupItem[%s]", obj.toString().c_str() ) ;
 
-      rc = msgParseCatGroupObj( obj.objdata(), _groupVersion, groupID,
-                                _groupName, groups, &primary ) ;
+      rc = msgParseCatGroupObj( obj.objdata(), groupVersion, groupID, groupName,
+                                groups, &primary, NULL, locInfo ) ;
       PD_RC_CHECK( rc, PDERROR, "parse catagroup obj failed, rc: %d", rc ) ;
 
       // check groupid is right
@@ -3942,12 +3944,7 @@ namespace engine
                 _groupID, groupID, obj.toString().c_str() ) ;
 
       // set primary node
-      if ( primary != 0 )
-      {
-         _primaryNode.columns.groupID = _groupID ;
-         _primaryNode.columns.nodeID = (UINT16)primary ;
-         _primaryNode.columns.serviceID = 0 ;
-      }
+      setGroupInfo( groupName, groupVersion, primary, locInfo ) ;
 
       // update groups
       rc = updateNodes( groups ) ;
@@ -4128,12 +4125,12 @@ namespace engine
                               faultTimeout ) ;
    }
 
-   INT32 _clsGroupItem::nodePos ( UINT32 nodeID )
+   INT32 _clsGroupItem::nodePos ( UINT16 nodeID )
    {
       UINT32 index = 0 ;
       while ( index < _vecNodes.size() )
       {
-         if ( (UINT32)_vecNodes[index]._id.columns.nodeID == nodeID )
+         if ( _vecNodes[index]._id.columns.nodeID == nodeID )
          {
             return (INT32)index ;
          }
@@ -4142,7 +4139,7 @@ namespace engine
       return SDB_CLS_NODE_NOT_EXIST ;
    }
 
-   clsNodeItem* _clsGroupItem::nodeItem ( UINT32 nodeID )
+   clsNodeItem* _clsGroupItem::nodeItem ( UINT16 nodeID )
    {
       INT32 pos = nodePos ( nodeID ) ;
       return pos < 0 ? NULL : &_vecNodes[pos] ;
@@ -4157,22 +4154,62 @@ namespace engine
       return &_vecNodes[ pos ] ;
    }
 
-   MsgRouteID _clsGroupItem::primary ( MSG_ROUTE_SERVICE_TYPE type )
+   UINT32 _clsGroupItem::nodeLocationID( UINT32 pos )
    {
-      ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+      UINT32 locationID = MSG_INVALID_LOCATIONID ;
 
-      if ( MSG_INVALID_ROUTEID == _primaryNode.value )
+      if ( pos >= 0 && pos < _vecNodes.size() )
       {
-         return _primaryNode ;
+         const clsNodeItem &node = _vecNodes[pos] ;
+         if ( MSG_INVALID_LOCATIONID != node._locationID )
+         {
+            locationID = node._locationID ;
+         }
       }
-      MsgRouteID tmp ;
-      tmp.value = _primaryNode.value ;
-      tmp.columns.serviceID = (UINT16)type ;
-      return tmp ;
+
+      return locationID ;
    }
 
-   void _clsGroupItem::setGroupInfo ( const std::string & name,
-                                      UINT32 version, UINT32 primary )
+   MsgRouteID _clsGroupItem::primary ( MSG_ROUTE_SERVICE_TYPE type,
+                                       UINT32 locationID )
+   {
+      MsgRouteID res ;
+      res.value = MSG_INVALID_ROUTEID ;
+
+      ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+
+      // If pLocation is null, return group primary
+      if ( MSG_INVALID_LOCATIONID == locationID )
+      {
+         if ( MSG_INVALID_ROUTEID != _primaryNode.value )
+         {
+            res.value = _primaryNode.value ;
+            res.columns.serviceID = (UINT16)type ;
+         }
+      }
+      // If pLocation is not null, return location primary
+      else
+      {
+         CLS_LOC_INFO_MAP::const_iterator itr ;
+         for ( itr = _mapLocInfo.begin() ; itr != _mapLocInfo.end() ; ++itr )
+         {
+            if ( locationID == itr->second._locationID )
+            {
+               if ( MSG_INVALID_ROUTEID != itr->second._primary.value )
+               {
+                  res = itr->second._primary ;
+                  res.columns.serviceID = (UINT16)type ;
+               }
+               break ;
+            }
+         }
+      }
+
+      return res ;
+   }
+
+   void _clsGroupItem::setGroupInfo ( const std::string & name, UINT32 version,
+                                      UINT32 primary, CLS_LOC_INFO_MAP& locInfo )
    {
       _groupName = name ;
       _groupVersion = version ;
@@ -4182,6 +4219,9 @@ namespace engine
          _primaryNode.columns.nodeID = (UINT16)primary ;
          _primaryNode.columns.serviceID = 0 ;
       }
+
+      // Set location primary item
+      _mapLocInfo.swap( locInfo ) ;
    }
 
    INT32 _clsGroupItem::updateNodes ( std::map <UINT64, _netRouteNode> & nodes )
@@ -4312,6 +4352,41 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_UPLOCPRRIMARY, "_clsGroupItem::updateLocationPrimary" )
+   INT32 _clsGroupItem::updateLocationPrimary( const MsgRouteID& primaryID,
+                                               const UINT32 locationID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSGPIM_UPLOCPRRIMARY ) ;
+      SDB_ASSERT ( primaryID.columns.groupID == _groupID, "The two group ID is not the same" ) ;
+
+      CLS_LOC_INFO_MAP::iterator itr ;
+      clsNodeItem* primaryNode = nodeItem( primaryID.columns.nodeID ) ;
+
+      // Check primaryID
+      if ( NULL == primaryNode )
+      {
+         rc = SDB_CLS_NODE_NOT_EXIST ;
+         PD_LOG( PDWARNING, "New location primary node[%u] doesn't not existed",
+                 primaryID.columns.nodeID ) ;
+         goto done ;
+      }
+
+      // Update location primary nodeID
+      for ( itr = _mapLocInfo.begin() ; itr != _mapLocInfo.end() ; ++itr )
+      {
+         if ( locationID == itr->second._locationID )
+         {
+            itr->second._primary.columns.nodeID = primaryID.columns.nodeID ;
+            break ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXIT ( SDB__CLSGPIM_UPLOCPRRIMARY ) ;
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_UPNODESTAT, "_clsGroupItem::updateNodeStat" )
    void _clsGroupItem::updateNodeStat( UINT16 nodeID,
                                        NET_NODE_STATUS status,
@@ -4388,6 +4463,26 @@ namespace engine
             }
          }
       }
+   }
+
+   UINT32 _clsGroupItem::getLocationID( const CHAR* pLocation )
+   {
+      UINT32 locationID = MSG_INVALID_LOCATIONID ;
+
+      if ( NULL != pLocation )
+      {
+         CLS_LOC_INFO_MAP::const_iterator itr ;
+         for ( itr = _mapLocInfo.begin() ; itr != _mapLocInfo.end() ; ++itr )
+         {
+            if ( 0 == ossStrcmp( pLocation, itr->second._location.c_str() ) )
+            {
+               locationID = itr->second._locationID ;
+               break ;
+            }
+         }
+      }
+
+      return locationID ;
    }
 
    /*
@@ -4646,6 +4741,7 @@ namespace engine
       string groupName ;
       map<UINT64, _netRouteNode> group ;
       UINT32 primary = 0 ;
+      CLS_LOC_INFO_MAP locInfo ;
 
       if ( !objdata || 0 == length )
       {
@@ -4653,8 +4749,8 @@ namespace engine
          goto error ;
       }
 
-      rc = msgParseCatGroupObj( objdata, groupVersion, groupID,
-                                groupName, group, &primary ) ;
+      rc = msgParseCatGroupObj( objdata, groupVersion, groupID, groupName,
+                                group, &primary, NULL, locInfo ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -4676,7 +4772,7 @@ namespace engine
       // clear group name map
       _clearGroupName( groupID ) ;
 
-      item->setGroupInfo ( groupName, groupVersion, primary ) ;
+      item->setGroupInfo ( groupName, groupVersion, primary, locInfo ) ;
       rc = item->updateNodes ( group ) ;
       if ( SDB_OK != rc )
       {

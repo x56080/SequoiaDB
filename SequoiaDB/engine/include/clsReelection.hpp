@@ -45,7 +45,8 @@ namespace engine
    {
    public:
       _clsReelection( _clsVoteMachine *vote,
-                      _clsSyncManager *syncMgr ) ;
+                      _clsSyncManager *syncMgr,
+                      _clsGroupInfo *info ) ;
       ~_clsReelection() ;
 
    public:
@@ -63,10 +64,17 @@ namespace engine
                                 UINT32 timeout,
                                 pmdEDUCB *cb ) ;
 
+      INT32 wait4SyncDone( UINT32 &timePassed,
+                           UINT32 timeout ) ;
+
       INT32 _wait4Replica( UINT32 &timePassed,
                            UINT32 timeout,
                            pmdEDUCB *cb,
                            UINT16 destID ) ;
+
+      INT32 _wait4ReplicaByBeat( UINT32 &timePassed,
+                                 UINT32 timeout,
+                                 UINT16 destID ) ;
 
       INT32 _stepDown( UINT32 &timePassed,
                        UINT32 timeout,
@@ -77,11 +85,16 @@ namespace engine
                    pmdEDUCB *cb,
                    BOOLEAN canSetBlock ) ;
 
+      OSS_INLINE BOOLEAN _isLocation() const ;
+
    private:
       _clsVoteMachine *_vote ;
       _clsSyncManager *_syncMgr ;
+      _clsGroupInfo   *_info ;
       volatile UINT32 _level ;
       ossEvent _event ;
+
+      BOOLEAN _blockSync ;
    } ;
    typedef class _clsReelection clsReelection ;
 }

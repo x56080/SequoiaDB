@@ -261,33 +261,66 @@ namespace engine
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
    } ;
 
-   class _rtnReelect : public _rtnCommand
+   class _rtnReelectBase : public _rtnCommand
+   {
+   public:
+      _rtnReelectBase() ;
+      virtual ~_rtnReelectBase() ;
+      virtual INT32 spaceNode () ;
+      virtual INT32 spaceService () ;
+
+   protected:
+      virtual INT32 _parseReelectArgs( const BSONObj &obj ) ;
+
+   protected:
+      BOOLEAN _isDestNotify ;
+      UINT32 _timeout ;
+      UINT16 _nodeID ;
+      CLS_REELECTION_LEVEL _level ;
+   } ;
+
+   class _rtnReelectGroup : public _rtnReelectBase
    {
       DECLARE_CMD_AUTO_REGISTER()
 
    public:
-      _rtnReelect() ;
-      virtual ~_rtnReelect() ;
-      virtual INT32 spaceNode () ;
-      virtual INT32 spaceService () ;
+      _rtnReelectGroup() ;
+      virtual ~_rtnReelectGroup() ;
 
    public:
       virtual const CHAR * name () { return NAME_REELECT ; }
       virtual RTN_COMMAND_TYPE type () { return CMD_REELECT ; }
       virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
+                           const CHAR *pMatcherBuff,
+                           const CHAR *pSelectBuff,
+                           const CHAR *pOrderByBuff,
+                           const CHAR *pHintBuff ) ;
+      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                           INT16 w = 1, INT64 *pContextID = NULL ) ;
+   } ;
+
+   class _rtnReelectLocation : public _rtnReelectBase
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnReelectLocation() ;
+      virtual ~_rtnReelectLocation() ;
+
+      virtual const CHAR * name () { return NAME_REELECT_LOCATION ; }
+      virtual RTN_COMMAND_TYPE type () { return CMD_REELECT_LOCATION ; }
+      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                           const CHAR *pMatcherBuff,
+                           const CHAR *pSelectBuff,
+                           const CHAR *pOrderByBuff,
+                           const CHAR *pHintBuff ) ;
       virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
    private:
-      BOOLEAN _isDestNotify ;
-      UINT32 _timeout ;
-      UINT16 _nodeID ;
-      CLS_REELECTION_LEVEL _level ;
+      const CHAR* _pLocation ;
    } ;
 
    class _rtnForceStepUp : public _rtnCommand

@@ -554,30 +554,122 @@ namespace engine
    typedef _coordCMDAlterNode coordCMDAlterNode ;
 
    /*
-      _coordCMDReelection define
+      _coordCMDReelectBase define
    */
-   class _coordCMDReelection : public _coordCommandBase
+   class _coordCMDReelectBase : public _coordCommandBase
+   {
+   public:
+      _coordCMDReelectBase() ;
+      virtual ~_coordCMDReelectBase() ;
+
+   public:
+      virtual INT32 execute( MsgHeader *pMsg,
+                             pmdEDUCB *cb,
+                             INT64 &contextID,
+                             rtnContextBuf *buf ) ;
+
+   protected:
+      INT32 _parseNodeInfo( const BSONObj &optionsObj,
+                            MsgRouteID &nodeID,
+                            pmdEDUCB *cb ) ;
+
+      virtual INT32 _parseExtraArgs( const BSONElement &e ) ;
+
+      virtual INT32 _checkExtraArgs( pmdEDUCB *cb ) ;
+
+      virtual INT32 _getNotifyNode( MsgRouteID& nodeID,
+                                    const UINT16 tmpNodeID,
+                                    const CHAR* hostName,
+                                    const CHAR* svcName ) = 0 ;
+
+      virtual INT32 _buildNotifyMsg( CHAR **ppBuffer,
+                                     INT32 *bufferSize,
+                                     const MsgRouteID &nodeID,
+                                     pmdEDUCB *cb ) = 0 ;
+
+      INT32 _buildReelectMsg( CHAR **ppBuffer,
+                              INT32 *bufferSize,
+                              const BSONObj &optionsObj,
+                              const MsgRouteID &nodeID,
+                              const CHAR* cmdName,
+                              pmdEDUCB *cb ) ;
+
+      void _notifyReelect2DestNode( MsgHeader *pMsg,
+                                    const MsgRouteID &nodeID,
+                                    pmdEDUCB *cb ) ;
+
+      virtual INT32 _reelect( MsgHeader *pMsg,
+                              pmdEDUCB *cb,
+                              rtnContextBuf *buf ) = 0 ;
+
+   protected:
+      CoordGroupInfoPtr _groupInfoPtr ;
+      BOOLEAN           _updatedGrpInfo ;
+      const CHAR*       _groupName ;
+   } ;
+   typedef _coordCMDReelectBase coordCMDReelect ;
+
+   /*
+      _coordCMDReelectGroup define
+   */
+   class _coordCMDReelectGroup : public _coordCMDReelectBase
    {
       COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDReelection() ;
-         virtual ~_coordCMDReelection() ;
+   public:
+      _coordCMDReelectGroup() ;
+      virtual ~_coordCMDReelectGroup() ;
 
-         virtual INT32 execute( MsgHeader *pMsg,
-                                pmdEDUCB *cb,
-                                INT64 &contextID,
-                                rtnContextBuf *buf ) ;
+   protected:
+      virtual INT32 _getNotifyNode( MsgRouteID& nodeID,
+                                    const UINT16 tmpNodeID,
+                                    const CHAR* hostName,
+                                    const CHAR* svcName ) ;
 
-      protected:
-         INT32          _parseNodeInfo( CoordGroupInfoPtr &ptr,
-                                        const BSONObj &obj,
-                                        pmdEDUCB *cb,
-                                        const CHAR *& pGroupName,
-                                        MsgRouteID &nodeID ) ;
+      virtual INT32 _buildNotifyMsg( CHAR **ppBuffer,
+                                     INT32 *bufferSize,
+                                     const MsgRouteID &nodeID,
+                                     pmdEDUCB *cb ) ;
 
-         void           _notifyReelect2Dest( UINT64 nodeID, pmdEDUCB *cb ) ;
+      virtual INT32 _reelect( MsgHeader *pMsg,
+                              pmdEDUCB *cb,
+                              rtnContextBuf *buf ) ;
    } ;
-   typedef _coordCMDReelection coordCMDReelection ;
+   typedef _coordCMDReelectGroup coordCMDReelectGroup ;
+
+   /*
+      _coordCMDReelectLocation define
+   */
+   class _coordCMDReelectLocation : public _coordCMDReelectBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+   public:
+      _coordCMDReelectLocation() ;
+      virtual ~_coordCMDReelectLocation() ;
+
+   protected:
+      virtual INT32 _parseExtraArgs( const BSONElement &e ) ;
+
+      virtual INT32 _checkExtraArgs( pmdEDUCB *cb ) ;
+
+      virtual INT32 _getNotifyNode( MsgRouteID& nodeID,
+                                    const UINT16 tmpNodeID,
+                                    const CHAR* hostName,
+                                    const CHAR* svcName ) ;
+
+      virtual INT32 _buildNotifyMsg( CHAR **ppBuffer,
+                                     INT32 *bufferSize,
+                                     const MsgRouteID &nodeID,
+                                     pmdEDUCB *cb ) ;
+
+      virtual INT32 _reelect( MsgHeader *pMsg,
+                              pmdEDUCB *cb,
+                              rtnContextBuf *buf ) ;
+
+   private:
+      const CHAR* _location ;
+      UINT32      _locationID ;
+   } ;
+   typedef _coordCMDReelectLocation coordCMDReelectLocation ;
 
 }
 

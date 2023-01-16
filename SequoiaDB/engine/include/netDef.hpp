@@ -111,6 +111,7 @@ namespace engine
       MsgRouteID  _id ;
       BOOLEAN     _isActive ;
       UINT8       _instanceID ;
+      UINT32      _locationID ;
 
    private:
       SINT32 _status;     // make sure the addr of _status is aligned 4 bytes,
@@ -126,6 +127,7 @@ namespace engine
          _id.value = MSG_INVALID_ROUTEID ;
          _isActive = TRUE ;
          _host[0] = 0 ;
+         _locationID = 0 ;
       }
       _netRouteNode( const _netRouteNode &node )
       : _instanceID( node._instanceID ),
@@ -141,6 +143,7 @@ namespace engine
          {
             _service[i] = node._service[i] ;
          }
+         _locationID = node._locationID ;
       }
 
       const _netRouteNode &operator=(const _netRouteNode &node )
@@ -154,6 +157,7 @@ namespace engine
             _service[i] = node._service[i] ;
          }
          _instanceID = node._instanceID ;
+         _locationID = node._locationID ;
          return *this ;
       }
 

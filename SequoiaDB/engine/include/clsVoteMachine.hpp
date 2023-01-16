@@ -92,6 +92,11 @@ namespace engine
          return 0 == _shadowTimeout ;
       }
 
+      OSS_INLINE BOOLEAN isLocation() const
+      {
+         return MSG_INVALID_LOCATIONID != _groupInfo->localLocationID ;
+      }
+
    public:
       INT32 init() ;
 

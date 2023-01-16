@@ -117,6 +117,7 @@ namespace engine
 #define NAME_FORCE_SESSION                   CMD_NAME_FORCE_SESSION
 #define NAME_LIST_LOBS                       CMD_NAME_LIST_LOBS
 #define NAME_REELECT                         CMD_NAME_REELECT
+#define NAME_REELECT_LOCATION                CMD_NAME_REELECT_LOCATION
 #define NAME_FORCE_STEP_UP                   CMD_NAME_FORCE_STEP_UP
 #define NAME_JSON_LOAD                       CMD_NAME_JSON_LOAD
 #define NAME_TRUNCATE                        CMD_NAME_TRUNCATE
@@ -314,6 +315,7 @@ namespace engine
       CMD_LIST_LOB                           = 222,
       CMD_REELECT                            = 223,
       CMD_FORCE_STEP_UP                      = 224,
+      CMD_REELECT_LOCATION                   = 225,
 
       CMD_SYNC_DB                            = 251,
       CMD_POP                                = 252,

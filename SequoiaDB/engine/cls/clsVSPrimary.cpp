@@ -44,10 +44,8 @@ namespace engine
 {
    #define CLS_PRIMARY_UP_NOTIFY_TIMES          ( 60 )
 
-   _clsVSPrimary::_clsVSPrimary( _clsGroupInfo *info,
-                                  _netRouteAgent *agent ):
-                                 _clsVoteStatus( info, agent,
-                                               CLS_ELECTION_STATUS_PRIMARY)
+   _clsVSPrimary::_clsVSPrimary( _clsGroupInfo *info, _netRouteAgent *agent )
+   : _clsVoteStatus( info, agent, CLS_ELECTION_STATUS_PRIMARY)
    {
 
    }
@@ -95,22 +93,50 @@ namespace engine
    void _clsVSPrimary::deactive ()
    {
       _MsgCatPrimaryChange msg ;
+      UINT32 opKey = MAKE_REPLY_TYPE( msg.header.opCode ) ;
+      const _clsCataCallerMeta* pMeta = sdbGetReplCB()->getCataCallerMeta( opKey ) ;
 
-      // primary change before
-      sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_BEFORE ) ;
-
-      _info()->mtx.lock_w() ;
-      if ( _info()->local.value == _info()->primary.value )
+      // Merge Replica Group and Location primary change info together in one msg
+      if ( NULL != pMeta && 0 != pMeta->sendTimes )
       {
-         _info()->primary.value = MSG_INVALID_ROUTEID ;
+         _MsgCatPrimaryChange* pMsg = ( _MsgCatPrimaryChange* ) pMeta->header ;
+         msg.newPrimary = pMsg->newPrimary ;
+         msg.oldPrimary = pMsg->oldPrimary ;
+         msg.newLocationPrimary = pMsg->newLocationPrimary ;
+         msg.oldLocationPrimary = pMsg->oldLocationPrimary ;
       }
-      pmdSetPrimary( FALSE ) ; // set global primary
-      msg.newPrimary = _info()->primary ;
-      msg.oldPrimary = _info()->local ;
-      _info()->mtx.release_w() ;
 
-      // primary change after
-      sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_AFTER ) ;
+      if ( ! isLocation() )
+      {
+         // primary change before
+         sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_BEFORE ) ;
+
+         _info()->mtx.lock_w() ;
+         if ( _info()->local.value == _info()->primary.value )
+         {
+            _info()->primary.value = MSG_INVALID_ROUTEID ;
+         }
+         pmdSetPrimary( FALSE ) ; // set global primary
+         msg.newPrimary = _info()->primary ;
+         msg.oldPrimary = _info()->local ;
+         _info()->mtx.release_w() ;
+
+         // primary change after
+         sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_AFTER ) ;
+      }
+      else
+      {
+          _info()->mtx.lock_w() ;
+         if ( _info()->local.value == _info()->primary.value )
+         {
+            _info()->primary.value = MSG_INVALID_ROUTEID ;
+         }
+         pmdSetLocationPrimary( FALSE ) ; // Set location primary in pmdSysInfo
+         msg.newLocationPrimary = _info()->primary ;
+         msg.oldLocationPrimary = _info()->local ;
+         msg.locationID = _info()->localLocationID ;
+         _info()->mtx.release_w() ;
+      }
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
    }
@@ -122,23 +148,52 @@ namespace engine
       _timeout() = 0 ;
       next = id() ;
       _MsgCatPrimaryChange msg ;
+      UINT32 opKey = MAKE_REPLY_TYPE(msg.header.opCode) ;
+      const _clsCataCallerMeta* pMeta = sdbGetReplCB()->getCataCallerMeta( opKey ) ;
 
-      // before primary
-      sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_BEFORE ) ;
+      // Merge Replica Group and Location primary change info together in one msg
+      if ( NULL != pMeta && 0 != pMeta->sendTimes )
+      {
+         _MsgCatPrimaryChange* pMsg = ( _MsgCatPrimaryChange* ) pMeta->header ;
+         msg.newPrimary = pMsg->newPrimary ;
+         msg.oldPrimary = pMsg->oldPrimary ;
+         msg.newLocationPrimary = pMsg->newLocationPrimary ;
+         msg.oldLocationPrimary = pMsg->oldLocationPrimary ;
+      }
 
-      _info()->mtx.lock_w() ;
-      msg.newPrimary = _info()->local ;
-      msg.oldPrimary = _info()->primary ;
-      _info()->primary = _info()->local ;
-      pmdSetPrimary( TRUE ) ; // set global primary
-      _info()->mtx.release_w() ;
+      if ( ! isLocation() )
+      {
+         // before primary
+         sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_BEFORE ) ;
 
-      sdbGetReplCB()->reelectionDone() ;
+         _info()->mtx.lock_w() ;
+         msg.newPrimary = _info()->local ;
+         msg.oldPrimary = _info()->primary ;
+         _info()->primary = _info()->local ;
+         pmdSetPrimary( TRUE ) ; // set global primary
+         _info()->mtx.release_w() ;
 
-      PD_LOG ( PDEVENT, "Change to Primary" ) ;
+         sdbGetReplCB()->reelectionDone() ;
 
-      // after primary
-      sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
+         PD_LOG ( PDEVENT, "Replica Group: Change to Primary" ) ;
+
+         // after primary
+         sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
+      }
+      else
+      {
+         _info()->mtx.lock_w() ;
+         msg.newLocationPrimary = _info()->local ;
+         msg.oldLocationPrimary = _info()->primary ;
+         msg.locationID = _info()->localLocationID ;
+         _info()->primary = _info()->local ;
+         pmdSetLocationPrimary( TRUE ) ; // Set location primary in pmdSysInfo
+         _info()->mtx.release_w() ;
+
+         sdbGetReplCB()->locationReelectionDone() ;
+
+         PD_LOG ( PDEVENT, "Location Set: Node change to Primary" ) ;
+      }
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,
                                    CLS_PRIMARY_UP_NOTIFY_TIMES ) ;

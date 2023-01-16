@@ -554,6 +554,7 @@
 #define FIELD_NAME_NODE_LOCATION             "Location"
 #define FIELD_NAME_NODE_LOCATIONS            "Locations"
 #define FIELD_NAME_NODE_LOCATIONID           "LocationID"
+#define FIELD_NAME_IS_LOC_PRIMARY            "IsLocationPrimary"
 
 #define FIELD_NAME_FREELOGSPACE              "freeLogSpace"
 #define FIELD_NAME_VSIZE                     "vsize"
@@ -702,6 +703,7 @@
 #define FIELD_NAME_WAITER_SESSIONID          "WaiterSessionID"
 #define FIELD_NAME_HOLDER_SESSIONID          "HolderSessionID"
 #define FIELD_NAME_FORCE                     "Force"
+#define FIELD_NAME_ISDESTINATION             "IsDestination"
 
 #define FIELD_NAME_CREATE_TIME               "CreateTime"
 #define FIELD_NAME_UPDATE_TIME               "UpdateTime"
@@ -911,6 +913,7 @@
 #define CMD_NAME_ALTER_DC                    "alter dc"
 #define CMD_NAME_ALTER_USR                   "alter user"
 #define CMD_NAME_REELECT                     "reelect"
+#define CMD_NAME_REELECT_LOCATION            "reelect location"
 #define CMD_NAME_FORCE_STEP_UP               "force step up"
 #define CMD_NAME_JSON_LOAD                   "json load"
 #define CMD_NAME_TRUNCATE                    "truncate"
@@ -1054,7 +1057,7 @@
 // Use for location attributes
 #define MSG_INVALID_LOCATIONID              0
 #define MSG_LOCATION_ID_BEGIN               1
-#define MSG_LOCATION_ID_END                 1000000
+#define MSG_LOCATION_ID_END                 100000
 #define MSG_LOCATION_NAMESZ                 256
 
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64

@@ -101,6 +101,41 @@ namespace engine
       pmdGetSysInfo()->_isPrimary.init( primary ) ;
    }
 
+   // Location Info
+   BOOLEAN pmdIsLocationPrimary()
+   {
+      return pmdGetSysInfo()->_isLocationPrimary ;
+   }
+   void pmdSetLocationPrimary( BOOLEAN primary )
+   {
+      pmdGetSysInfo()->_isLocationPrimary = primary ;
+   }
+
+   const CHAR* pmdGetLocation()
+   {
+      return pmdGetSysInfo()->_locationName ;
+   }
+   void pmdSetLocation( const CHAR* str )
+   {
+      if ( NULL == str )
+      {
+         pmdGetSysInfo()->_locationName[0] = '\0' ;
+      }
+      else
+      {
+         ossStrncpy( pmdGetSysInfo()->_locationName, str, PMD_LOCATION_STR_LEN ) ;
+      }
+   }
+
+   UINT32 pmdGetLocationID()
+   {
+      return pmdGetSysInfo()->_locationID ;
+   }
+   void pmdSetLocationID( UINT32 locationID )
+   {
+      pmdGetSysInfo()->_locationID = locationID ;
+   }
+
    UINT64 pmdGetStartTime()
    {
       return pmdGetSysInfo()->_startTime ;

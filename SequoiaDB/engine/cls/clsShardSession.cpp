@@ -1149,6 +1149,14 @@ namespace engine
                   startFrom = _primaryID.columns.nodeID ;
                }
             }
+            else if ( SDB_CLS_NOT_LOCATION_PRIMARY == rc )
+            {
+               MsgRouteID tmpPrimary = _pReplSet->getLocationPrimary() ;
+               if ( INVALID_NODEID != tmpPrimary.columns.nodeID )
+               {
+                  startFrom = tmpPrimary.columns.nodeID ;
+               }
+            }
          }
          /// succeed and has result info
          else if ( !_retBuilder.isEmpty() && 0 == buffObj.size() )

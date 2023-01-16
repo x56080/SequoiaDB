@@ -61,7 +61,8 @@ namespace engine
    {
    public:
       _clsSyncManager( _netRouteAgent *agent,
-                       _clsGroupInfo *info ) ;
+                       _clsGroupInfo *info,
+                       _clsGroupInfo *locationInfo = NULL ) ;
 
       ~_clsSyncManager() ;
 
@@ -146,6 +147,7 @@ namespace engine
 
       _netRouteAgent *_agent ;
       _clsGroupInfo *_info ;
+      _clsGroupInfo *_locationInfo ;
       MsgRouteID _syncSrc ;
 
       /// valid _notifyList size

@@ -40,10 +40,8 @@
 
 namespace engine
 {
-   _clsVSAnnounce::_clsVSAnnounce( _clsGroupInfo *info,
-                                   _netRouteAgent *agent ):
-                                _clsVoteStatus( info, agent,
-                                               CLS_ELECTION_STATUS_ANNOUNCE )
+   _clsVSAnnounce::_clsVSAnnounce( _clsGroupInfo *info, _netRouteAgent *agent )
+   :_clsVoteStatus( info, agent, CLS_ELECTION_STATUS_ANNOUNCE )
    {
 
    }
@@ -67,8 +65,7 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT_RES == header->opCode )
       {
-         const _MsgClsElectionRes *msg = ( const _MsgClsElectionRes * )
-                                          header ;
+         const _MsgClsElectionRes *msg = ( const _MsgClsElectionRes * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
          {
             next = id() ;
@@ -80,7 +77,7 @@ namespace engine
                if ( _info()->groupSize() <= ( ++_accepted() + 1 ) )
                {
                   next =  CLS_ELECTION_STATUS_PRIMARY;
-                  PD_LOG( PDEVENT, "Change to primary by all accept" ) ;
+                  PD_LOG( PDEVENT, "%s: change to primary by all accept", getScopeName() ) ;
                }
                else
                {
@@ -113,7 +110,7 @@ namespace engine
          if ( _isAccepted() )
          {
             next = CLS_ELECTION_STATUS_PRIMARY ;
-            PD_LOG( PDEVENT, "Change to primary by timeout" ) ;
+            PD_LOG( PDEVENT, "%s: change to primary by timeout", getScopeName() ) ;
          }
          else
          {

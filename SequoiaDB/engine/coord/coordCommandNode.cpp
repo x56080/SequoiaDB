@@ -49,6 +49,7 @@
 #include "coordTrace.hpp"
 #include "utilCommon.hpp"
 #include "coordCMDEventHandler.hpp"
+#include "coordRemoteSession.hpp"
 
 using namespace bson;
 
@@ -2553,24 +2554,21 @@ namespace engine
    }
 
    /*
-      _coordCMDReelection implement
+      _coordCMDReelectBase implement
    */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDReelection,
-                                      CMD_NAME_REELECT,
-                                      TRUE ) ;
-   _coordCMDReelection::_coordCMDReelection()
+   _coordCMDReelectBase::_coordCMDReelectBase():
+   _updatedGrpInfo( FALSE ),
+   _groupName( NULL )
    {
    }
 
-   _coordCMDReelection::~_coordCMDReelection()
+   _coordCMDReelectBase::~_coordCMDReelectBase()
    {
    }
 
-   INT32 _coordCMDReelection::_parseNodeInfo( CoordGroupInfoPtr &ptr,
-                                              const BSONObj &obj,
-                                              pmdEDUCB *cb,
-                                              const CHAR *& pGroupName,
-                                              MsgRouteID &nodeID )
+   INT32 _coordCMDReelectBase::_parseNodeInfo( const BSONObj &optionsObj,
+                                               MsgRouteID &nodeID,
+                                               pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
@@ -2581,7 +2579,7 @@ namespace engine
       nodeID.value = 0 ;
 
       BSONElement e ;
-      BSONObjIterator itr( obj ) ;
+      BSONObjIterator itr( optionsObj ) ;
       while( itr.more() )
       {
          e = itr.next() ;
@@ -2604,17 +2602,8 @@ namespace engine
             }
             pHostName = e.valuestr() ;
          }
-         else if ( 0 == ossStrcasecmp( FIELD_NAME_SERVICE_NAME,
-                                       e.fieldName() ) )
-         {
-            if ( String != e.type() || !*e.valuestr() )
-            {
-               rc = SDB_INVALIDARG ;
-               break ;
-            }
-            pSvcName = e.valuestr() ;
-         }
-         else if ( 0 == ossStrcasecmp( PMD_OPTION_SVCNAME, e.fieldName() ) )
+         else if ( 0 == ossStrcasecmp( FIELD_NAME_SERVICE_NAME, e.fieldName() ) ||
+                   0 == ossStrcasecmp( PMD_OPTION_SVCNAME, e.fieldName() ) )
          {
             if ( String != e.type() || !*e.valuestr() )
             {
@@ -2630,7 +2619,7 @@ namespace engine
                rc = SDB_INVALIDARG ;
                break ;
             }
-            pGroupName = e.valuestr() ;
+            _groupName = e.valuestr() ;
          }
          else if ( 0 == ossStrcmp( FIELD_NAME_REELECTION_TIMEOUT,
                                    e.fieldName() ) ||
@@ -2641,9 +2630,8 @@ namespace engine
          }
          else
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "Param[%s] is unknown", e.fieldName() ) ;
-            goto error ;
+            rc = _parseExtraArgs( e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse extra args" ) ;
          }
       }
 
@@ -2652,7 +2640,7 @@ namespace engine
          PD_LOG_MSG( PDERROR, "Param[%s] is invalid", e.fieldName() ) ;
          goto error ;
       }
-      else if ( !pGroupName || !*pGroupName )
+      else if ( !_groupName || !*_groupName )
       {
          PD_LOG_MSG( PDERROR, "Param[%s] is not configured",
                      FIELD_NAME_GROUPNAME ) ;
@@ -2660,61 +2648,27 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkExtraArgs( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check node info, rc: %d", rc ) ;
+
       if ( 0 != tmpNodeID || *pHostName || *pSvcName )
       {
-         clsNodeItem *pItem = NULL ;
-         UINT32 pos = 0 ;
-
          /// update group info
-         rc = _pResource->updateGroupInfo( pGroupName, ptr, cb ) ;
-         if ( rc )
+         if ( !_updatedGrpInfo )
          {
-            PD_LOG( PDERROR, "Update group[%s] info failed, rc: %d",
-                    pGroupName, rc ) ;
-            goto error ;
-         }
-
-         while ( NULL != ( pItem = ptr->nodeItemByPos( pos++ ) ) )
-         {
-            if ( 0 != tmpNodeID )
+            rc = _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+            if ( rc )
             {
-               if ( pItem->_id.columns.nodeID == tmpNodeID )
-               {
-                  nodeID.value = pItem->_id.value ;
-                  break ;
-               }
-            }
-            else if ( *pHostName )
-            {
-               if ( 0 == ossStrcmp( pHostName, pItem->_host ) &&
-                    ( !*pSvcName || 0 == ossStrcmp( pSvcName,
-                       pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
-               {
-                  nodeID.value = pItem->_id.value ;
-                  break ;
-               }
-            }
-            else if ( *pSvcName && 0 == ossStrcmp( pSvcName,
-                        pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) )
-            {
-               nodeID.value = pItem->_id.value ;
-               break ;
+               PD_LOG( PDERROR, "Update group[%s] info failed, rc: %d",
+                       _groupName, rc ) ;
+               goto error ;
             }
          }
 
-         if ( 0 == nodeID.value )
+         rc = _getNotifyNode( nodeID, tmpNodeID, pHostName, pSvcName ) ;
+         if ( SDB_OK != rc )
          {
-            rc = SDB_CLS_NODE_NOT_EXIST ;
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = _pResource->getOrUpdateGroupInfo( pGroupName, ptr, cb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Update group[%s] info failed, rc: %d",
-                    pGroupName, rc ) ;
+            PD_LOG( PDERROR, "Failed to get target primary nodeID" ) ;
             goto error ;
          }
       }
@@ -2725,30 +2679,67 @@ namespace engine
       goto done ;
    }
 
-   void _coordCMDReelection::_notifyReelect2Dest( UINT64 nodeID,
-                                                  pmdEDUCB *cb )
+   INT32 _coordCMDReelectBase::_parseExtraArgs( const BSONElement &e )
+   {
+      PD_LOG_MSG( PDERROR, "Param[%s] is unknown", e.fieldName() ) ;
+      return SDB_INVALIDARG ;
+   }
+
+   INT32 _coordCMDReelectBase::_checkExtraArgs( pmdEDUCB *cb )
+   {
+      return SDB_OK ;
+   }
+
+
+   INT32 _coordCMDReelectBase::_buildReelectMsg( CHAR **ppBuffer,
+                                                 INT32 *bufferSize,
+                                                 const BSONObj &optionsObj,
+                                                 const MsgRouteID &nodeID,
+                                                 const CHAR* cmdName,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj newOptionsObj ;
+      BSONObjBuilder optionBuilder ;
+      BSONObjIterator itr( optionsObj ) ;
+
+      BSONObjBuilder hintBuilder ;
+      BSONObj hintObj ;
+
+      // Build query obj
+      optionBuilder.append( FIELD_NAME_NODEID, (INT32)nodeID.columns.nodeID ) ;
+      while ( itr.more() )
+      {
+         BSONElement e = itr.next() ;
+         if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_NODEID ) )
+         {
+            continue ;
+         }
+         optionBuilder.append( e ) ;
+      }
+      newOptionsObj = optionBuilder.obj() ;
+
+      // Build hint obj
+      hintBuilder.appendBool( FIELD_NAME_ISDESTINATION, FALSE ) ;
+      hintObj = hintBuilder.obj() ;
+
+      rc = msgBuildQueryMsg( ppBuffer, bufferSize, cmdName, 0, 0, 0, -1,
+                             &newOptionsObj, NULL, NULL, &hintObj, cb ) ;
+      return rc ;
+   }
+
+   void _coordCMDReelectBase::_notifyReelect2DestNode( MsgHeader *pMsg,
+                                                       const MsgRouteID &nodeID,
+                                                       pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       pmdRemoteSession *pRemote = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
-      CHAR *pMsgBuff = NULL ;
-      INT32 buffSize = 0 ;
 
       _groupSession.clear() ;
-
-      rc = msgBuildQueryMsg( &pMsgBuff, &buffSize,
-                             CMD_ADMIN_PREFIX CMD_NAME_REELECT,
-                             0, 0, 0, -1,
-                             NULL, NULL, NULL, NULL,
-                             cb ) ;
-      if ( rc )
-      {
-         PD_LOG( PDWARNING, "Build message failed, rc: %d", rc ) ;
-         goto done ;
-      }
-
-      pSub = pRemote->addSubSession( nodeID ) ;
-      pSub->setReqMsg( ( MsgHeader* )pMsgBuff, PMD_EDU_MEM_NONE ) ;
+      pSub = pRemote->addSubSession( nodeID.value ) ;
+      pSub->setReqMsg( pMsg, PMD_EDU_MEM_NONE ) ;
 
       rc = pRemote->sendMsg( pSub ) ;
       if ( rc )
@@ -2766,112 +2757,513 @@ namespace engine
          goto done ;
       }
 
-      /// ignore reply
-
    done:
-      if ( pMsgBuff )
-      {
-         msgReleaseBuffer( pMsgBuff, cb ) ;
-      }
       return ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_REELECT_EXE, "_coordCMDReelection::execute" )
-   INT32 _coordCMDReelection::execute( MsgHeader *pMsg,
-                                       pmdEDUCB *cb,
-                                       INT64 &contextID,
-                                       rtnContextBuf *buf )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_REELECT_EXE, "_coordCMDReelectBase::execute" )
+   INT32 _coordCMDReelectBase::execute( MsgHeader *pMsg,
+                                        pmdEDUCB *cb,
+                                        INT64 &contextID,
+                                        rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_REELECT_EXE ) ;
-      const CHAR *pQuery = NULL ;
-      const CHAR *gpName = NULL ;
-      CoordGroupInfoPtr gpInfo ;
-      CoordGroupList gpLst ;
-      CHAR *pBuffer = NULL ;
-      INT32 buffSize = 0 ;
 
+      const CHAR *cmdName = NULL ;
+      const CHAR *pQuery = NULL ;
+
+      CHAR *pReelectBuffer = NULL ;
+      INT32 reelctBuffSize = 0 ;
+      CHAR *pNotifyBuffer = NULL ;
+      INT32 notifyBuffSize = 0 ;
+
+      MsgHeader *pNotifyMsg = NULL ;
       MsgHeader *pReelectMsg = pMsg ;
       MsgRouteID nodeID ;
 
       contextID = -1 ;
 
-      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, &cmdName,
                             NULL, NULL, &pQuery,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse the message, rc: %d", rc ) ;
 
+      // Parse option and build reelect msg
       try
       {
-         BSONObj options( pQuery ) ;
-
-         rc = _parseNodeInfo( gpInfo, options, cb, gpName, nodeID ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
+         BSONObj optionsObj( pQuery ) ;
+         rc = _parseNodeInfo( optionsObj, nodeID, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse node info, rc: %d", rc ) ;
 
          if ( MSG_INVALID_ROUTEID != nodeID.value )
          {
-            /// rebuild the message
-            BSONObjIterator itr( options ) ;
-            BSONObjBuilder builder ;
-            builder.append( FIELD_NAME_NODEID, (INT32)nodeID.columns.nodeID ) ;
-            while ( itr.more() )
-            {
-               BSONElement e = itr.next() ;
-               if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_NODEID ) )
-               {
-                  continue ;
-               }
-               builder.append( e ) ;
-            }
-            BSONObj newOption = builder.obj() ;
-
-            rc = msgBuildQueryMsg( &pBuffer, &buffSize,
-                                   CMD_ADMIN_PREFIX CMD_NAME_REELECT,
-                                   0, 0, 0, -1,
-                                   &newOption, NULL, NULL, NULL,
-                                   cb ) ;
+            rc = _buildNotifyMsg( &pNotifyBuffer, &notifyBuffSize, nodeID, cb ) ;
             if ( rc )
             {
                PD_LOG( PDWARNING, "Build message failed, rc: %d", rc ) ;
                goto done ;
             }
-            pReelectMsg = ( MsgHeader* )pBuffer ;
+            pNotifyMsg = ( MsgHeader* )pNotifyBuffer ;
+
+            rc = _buildReelectMsg( &pReelectBuffer, &reelctBuffSize, optionsObj, nodeID, cmdName, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "Build message failed, rc: %d", rc ) ;
+               goto done ;
+            }
+            pReelectMsg = ( MsgHeader* )pReelectBuffer ;
          }
       }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected error happened:%s", e.what() ) ;
          goto error ;
       }
 
-      if ( 0 != nodeID.value )
+      // Notify to destination node
+      if ( MSG_INVALID_ROUTEID != nodeID.value )
       {
          nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
-         _notifyReelect2Dest( nodeID.value, cb ) ;
+         _notifyReelect2DestNode( pNotifyMsg, nodeID, cb ) ;
       }
 
-      gpLst[gpInfo->groupID()] = gpInfo->groupID() ;
-      rc = executeOnDataGroup( pReelectMsg, cb, gpLst, TRUE, NULL, NULL,
-                               NULL, buf ) ;
-      if ( SDB_OK != rc )
+      // Reelect command
+      rc = _reelect( pReelectMsg, cb, buf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute %s command, rc: %d", &cmdName[1], rc ) ;
+
+   done:
+      if ( pNotifyBuffer )
       {
-         PD_LOG( PDERROR, "Failed to execute on group[%s], rc: %d",
-                 gpName, rc ) ;
+         msgReleaseBuffer( pNotifyBuffer, cb ) ;
+         pNotifyBuffer = NULL ;
+         notifyBuffSize = 0 ;
+      }
+      if ( pReelectBuffer )
+      {
+         msgReleaseBuffer( pReelectBuffer, cb ) ;
+         pReelectBuffer = NULL ;
+         reelctBuffSize = 0 ;
+      }
+      PD_TRACE_EXITRC( COORD_REELECT_EXE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDReelectGroup implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDReelectGroup,
+                                      CMD_NAME_REELECT,
+                                      TRUE ) ;
+   _coordCMDReelectGroup::_coordCMDReelectGroup()
+   {
+   }
+
+   _coordCMDReelectGroup::~_coordCMDReelectGroup()
+   {
+   }
+
+   INT32 _coordCMDReelectGroup::_getNotifyNode( MsgRouteID& nodeID,
+                                                const UINT16 tmpNodeID,
+                                                const CHAR* hostName,
+                                                const CHAR* svcName )
+   {
+      INT32 rc = SDB_OK ;
+
+      clsNodeItem *pItem = NULL ;
+      UINT32 pos = 0 ;
+
+      while ( NULL != ( pItem = _groupInfoPtr->nodeItemByPos( pos++ ) ) )
+      {
+         if ( 0 != tmpNodeID )
+         {
+            if ( pItem->_id.columns.nodeID == tmpNodeID )
+            {
+               nodeID.value = pItem->_id.value ;
+               break ;
+            }
+         }
+         else if ( *hostName )
+         {
+            if ( 0 == ossStrcmp( hostName, pItem->_host ) &&
+                  ( !*svcName || 0 == ossStrcmp( svcName,
+                     pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
+            {
+               nodeID.value = pItem->_id.value ;
+               break ;
+            }
+         }
+         else if ( *svcName && 0 == ossStrcmp( svcName,
+                     pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) )
+         {
+            nodeID.value = pItem->_id.value ;
+            break ;
+         }
+      }
+
+      if ( 0 == nodeID.value )
+      {
+         rc = SDB_CLS_NODE_NOT_EXIST ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _coordCMDReelectGroup::_buildNotifyMsg( CHAR **ppBuffer,
+                                                 INT32 *bufferSize,
+                                                 const MsgRouteID &nodeID,
+                                                 pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = msgBuildQueryMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_REELECT,
+                             0, 0, 0, -1,
+                             NULL, NULL, NULL, NULL,
+                             cb ) ;
+
+      return rc ;
+   }
+
+   INT32 _coordCMDReelectGroup::_reelect( MsgHeader *pMsg,
+                                          pmdEDUCB *cb,
+                                          rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      CoordGroupList groupLst ;
+
+       if ( !_updatedGrpInfo )
+      {
+         rc = _pResource->getOrUpdateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Update group[%s] info failed, rc: %d",
+                    _groupName, rc ) ;
+            goto error ;
+         }
+      }
+
+      groupLst[_groupInfoPtr->groupID()] = _groupInfoPtr->groupID() ;
+      rc = executeOnDataGroup( pMsg, cb, groupLst, TRUE, NULL, NULL, NULL, buf ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDReelectLocation implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDReelectLocation,
+                                      CMD_NAME_REELECT_LOCATION,
+                                      TRUE ) ;
+   _coordCMDReelectLocation::_coordCMDReelectLocation():
+   _location( NULL ),
+   _locationID( MSG_INVALID_LOCATIONID )
+   {
+   }
+
+   _coordCMDReelectLocation::~_coordCMDReelectLocation()
+   {
+   }
+
+   INT32 _coordCMDReelectLocation::_parseExtraArgs( const BSONElement &e )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 == ossStrcmp( FIELD_NAME_LOCATION, e.fieldName() ) )
+      {
+         if ( e.eoo() || !*e.valuestr() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location name can't be null string" ) ;
+            goto error ;
+         }
+         if ( String != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location type[%d] is not String", e.type() ) ;
+            goto error ;
+         }
+         if ( MSG_LOCATION_NAMESZ < e.valuestrsize() - 1 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+            goto error ;
+         }
+         _location = e.valuestr() ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Param[%s] is unknown", e.fieldName() ) ;
          goto error ;
       }
 
    done:
-      if ( pBuffer )
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDReelectLocation::_checkExtraArgs( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      // Check and make sure location is not null or ""
+      if ( NULL == _location || '\0' == _location[0] )
       {
-         msgReleaseBuffer( pBuffer, cb ) ;
-         pBuffer = NULL ;
-         buffSize = 0 ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Failed to get location of reelect" ) ;
+         goto error ;
       }
-      PD_TRACE_EXITRC( COORD_REELECT_EXE, rc ) ;
+
+      /// Update group info
+      if ( !_updatedGrpInfo )
+      {
+         _updatedGrpInfo = TRUE ;
+         rc = _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Update group[%s] info failed, rc: %d",
+                    _groupName, rc ) ;
+            goto error ;
+         }
+      }
+
+      // Check and make sure LocationID is valid
+      _locationID = _groupInfoPtr->getLocationID( _location ) ;
+      if ( MSG_INVALID_LOCATIONID == _locationID )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist", _location ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDReelectLocation::_getNotifyNode( MsgRouteID& nodeID,
+                                                   const UINT16 tmpNodeID,
+                                                   const CHAR* hostName,
+                                                   const CHAR* svcName )
+   {
+      INT32 rc = SDB_OK ;
+
+      clsNodeItem *pItem = NULL ;
+      UINT32 pos = 0 ;
+
+      // The selected node's location should also be matched
+      while ( NULL != ( pItem = _groupInfoPtr->nodeItemByPos( pos++ ) ) )
+      {
+         if ( 0 != tmpNodeID )
+         {
+            if ( pItem->_id.columns.nodeID == tmpNodeID )
+            {
+               if ( pItem->_locationID == _locationID )
+               {
+                  nodeID.value = pItem->_id.value ;
+                  break ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Node:[%u] is not in location[%s]",
+                              nodeID.columns.nodeID, _location ) ;
+                  goto error ;
+               }
+            }
+         }
+         else if ( *hostName )
+         {
+            if ( pItem->_locationID == _locationID &&
+                 0 == ossStrcmp( hostName, pItem->_host ) &&
+                 ( !*svcName || 0 == ossStrcmp( svcName,
+                   pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
+            {
+               nodeID.value = pItem->_id.value ;
+               break ;
+            }
+         }
+         else if ( pItem->_locationID == _locationID && *svcName &&
+                   0 == ossStrcmp( svcName, pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) )
+         {
+            nodeID.value = pItem->_id.value ;
+            break ;
+         }
+      }
+
+      if ( 0 == nodeID.value )
+      {
+         rc = SDB_CLS_NODE_NOT_EXIST ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDReelectLocation::_buildNotifyMsg( CHAR **ppBuffer,
+                                                    INT32 *bufferSize,
+                                                    const MsgRouteID &nodeID,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj locationObj ;
+      BSONObj hintObj ;
+      BSONObjBuilder hintBuilder ;
+
+      // Build query and hint obj
+      hintBuilder.appendBool( FIELD_NAME_ISDESTINATION, TRUE ) ;
+      hintObj = hintBuilder.obj() ;
+      locationObj = BSON( FIELD_NAME_LOCATION << _location ) ;
+
+      rc = msgBuildQueryMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_REELECT_LOCATION,
+                             0, 0, 0, -1,
+                             &locationObj, NULL, NULL, &hintObj,
+                             cb ) ;
+
+      return rc ;
+   }
+
+   INT32 _coordCMDReelectLocation::_reelect( MsgHeader *pMsg,
+                                             pmdEDUCB *cb,
+                                             rtnContextBuf *buf )
+   {
+      INT32          rc = SDB_OK ;
+      INT32          rcTmp = SDB_OK ;
+
+      SET_ROUTEID    sendNodes ;
+      ROUTE_RC_MAP   faileds ;
+      MsgRouteID     nodeID ;
+      UINT32         retryTimes = 0 ;
+      UINT32         pos = 0 ;
+      BOOLEAN        needRetry = FALSE ;
+
+   retry:
+      needRetry = FALSE ;
+
+      // Get primary nodeID
+      nodeID = _groupInfoPtr->primary( MSG_ROUTE_SHARD_SERVCIE, _locationID ) ;
+      if ( MSG_INVALID_ROUTEID == nodeID.value && !_updatedGrpInfo )
+      {
+         _updatedGrpInfo = TRUE ;
+         _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+         nodeID = _groupInfoPtr->primary( MSG_ROUTE_SHARD_SERVCIE, _locationID ) ;
+      }
+
+      // If location has no primary node, match other location slave node
+      if ( MSG_INVALID_ROUTEID == nodeID.value )
+      {
+         const VEC_NODE_INFO* pNodes = _groupInfoPtr->getNodes() ;
+         UINT32 nodeSize = pNodes->size() ;
+
+         for ( UINT32 i = 0 ; i < nodeSize ; ++i, ++pos )
+         {
+            pos %= nodeSize ;
+            if ( _locationID == _groupInfoPtr->nodeLocationID( pos ) &&
+                 _groupInfoPtr->isNodeInStatus( pos, NET_NODE_STAT_NORMAL ) )
+            {
+               nodeID = (*pNodes)[ pos ]._id ;
+               nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+               break ;
+            }
+         }
+      }
+
+      // LocationID is valid, but there is no node in the same location,
+      // which means the SYSCAT.SYSNODES has some error, or these node are not in normal status
+      if ( MSG_INVALID_ROUTEID == nodeID.value )
+      {
+         rc = SDB_CLS_NODE_NOT_EXIST ;
+         PD_LOG( PDWARNING, "There is no normal status node in location[%s]", _location ) ;
+         goto error ;
+      }
+      // Execute on node
+      else
+      {
+         sendNodes.clear() ;
+         faileds.clear() ;
+
+         sendNodes.insert( nodeID.value ) ;
+         rc = executeOnNodes( pMsg, cb, sendNodes, faileds, NULL, NULL, NULL ) ;
+
+         if ( faileds.size() > 0 )
+         {
+            rcTmp = faileds[nodeID.value]._rc ;
+         }
+      }
+
+      // Handle rc and rcTmp
+      if ( SDB_OK != rc )
+      {
+         // Only waitReply1() in executeOnNodes() can change rc in this case
+         PD_LOG( PDERROR, "Failed to recieve replys from node[%s], rc: %d",
+                 routeID2String( nodeID.value ).c_str(), rcTmp ) ;
+         needRetry = TRUE ;
+      }
+      else if ( SDB_CLS_NOT_LOCATION_PRIMARY == rcTmp )
+      {
+         UINT32 newPrimaryID = faileds[nodeID.value]._startFrom ;
+         if ( INVALID_NODEID != newPrimaryID )
+         {
+            MsgRouteID primaryNodeID ;
+            primaryNodeID.value = nodeID.value ;
+            primaryNodeID.columns.nodeID = newPrimaryID ;
+            rcTmp = _groupInfoPtr->updateLocationPrimary( primaryNodeID, _locationID ) ;
+            if ( SDB_OK != rcTmp )
+            {
+               PD_LOG( PDWARNING, "Failed to update location primary node, rc: %d",
+                       nodeID.columns.groupID, rcTmp ) ;
+            }
+            needRetry = TRUE ;
+         }
+      }
+      else if ( SDB_INVALID_ROUTEID == rcTmp )
+      {
+         rcTmp = _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            PD_LOG( PDWARNING, "Update group[%u] info from remote failed, "
+                    "rc: %d", nodeID.columns.groupID, rcTmp ) ;
+         }
+         else
+         {
+            needRetry = TRUE ;
+         }
+      }
+      else if ( SDB_NET_CANNOT_CONNECT == rcTmp )
+      {
+         needRetry = TRUE ;
+      }
+
+      // Check and increase retryTimes
+      if ( needRetry )
+      {
+         if ( COORD_OPR_MAX_RETRY_TIMES_DFT >= ++retryTimes )
+         {
+            goto retry ;
+         }
+      }
+      rc = rc ? rc : rcTmp ;
+
+   done:
+      if ( ( rc || faileds.size() > 0 ) && buf )
+      {
+         *buf = _rtnContextBuf( coordBuildErrorObj( _pResource, rc,
+                                                    cb, &faileds,
+                                                    sendNodes.size() ) ) ;
+      }
       return rc ;
    error:
       goto done ;

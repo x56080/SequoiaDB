@@ -49,6 +49,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, removeNode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, getNode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, reelect )
+   JS_MEMBER_FUNC_DEFINE( _sptDBRG, reelectLocation )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, detachNode )
    JS_MEMBER_FUNC_DEFINE( _sptDBRG, attachNode )
 
@@ -63,6 +64,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "removeNode", removeNode )
       JS_ADD_MEMBER_FUNC( "getNode", getNode )
       JS_ADD_MEMBER_FUNC( "reelect", reelect )
+      JS_ADD_MEMBER_FUNC( "reelectLocation", reelectLocation )
       JS_ADD_MEMBER_FUNC( "detachNode", detachNode )
       JS_ADD_MEMBER_FUNC( "attachNode", attachNode )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBRG::cvtToBSON )
@@ -469,6 +471,45 @@ namespace engine
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to reelect master" ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBRG::reelectLocation( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string location ;
+      BSONObj options ;
+
+      rc = arg.getString( 0, location ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Location name can't be null" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Location name must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 1, options ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _rg.reelectLocation( location.c_str(), options ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to reelect location master" ) ;
          goto error ;
       }
    done:

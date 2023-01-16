@@ -123,6 +123,15 @@ namespace engine
 
       INT32 _getNodeInfoByConf( BSONObj &boConf, BSONObjBuilder &bobNodeInfo ) ;
 
+      INT32 _setReplicaPrimaryChange( MsgRouteID srcNode,
+                                      MsgRouteID oldPrimary,
+                                      MsgRouteID newPrimary ) ;
+
+      INT32 _setLocationPrimaryChange( MsgRouteID srcNode,
+                                       MsgRouteID oldPrimary,
+                                       MsgRouteID newPrimary,
+                                       UINT32 locationID ) ;
+
    public:
       INT32 setLocation( UINT16 nodeID,
                          UINT32 groupID,

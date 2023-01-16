@@ -80,7 +80,9 @@ namespace engine
               {\
                  if ( prevVS ) { prevVS->deactive() ; } \
                  prevVS = _current ; \
-                 PD_LOG( PDINFO, "vote change to %s", _current->name() ) ;\
+                 PD_LOG( PDINFO, "%s: vote change to %s", \
+                         _current->getScopeName(), \
+                         _current->name() ) ;\
                  now = _current->id() ;\
                  if ( force )\
                  {\
@@ -142,8 +144,7 @@ namespace engine
    void _clsVoteMachine::clear()
    {
       PD_TRACE_ENTRY ( SDB__CLSVTMH_CLEAR ) ;
-      vector<_clsVoteStatus *>::iterator itr =
-                                     _status.begin() ;
+      vector<_clsVoteStatus *>::iterator itr = _status.begin() ;
       for ( ; itr != _status.end(); itr++ )
       {
          SDB_OSS_DEL *itr ;

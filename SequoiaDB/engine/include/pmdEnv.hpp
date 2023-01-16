@@ -61,6 +61,7 @@ namespace engine
    PMD_ON_EDU_EXIT_FUNC pmdGetEDUHook() ;
 
    #define  PMD_DOING_STR_LEN          ( 256 )
+   #define  PMD_LOCATION_STR_LEN       MSG_LOCATION_NAMESZ
 
    /*
       pmd system info define
@@ -115,6 +116,11 @@ namespace engine
       /// system page size
       INT64                         _sysPageSize ;
 
+      /// Location info
+      BOOLEAN                       _isLocationPrimary ;
+      UINT32                        _locationID ;
+      CHAR                          _locationName[ PMD_LOCATION_STR_LEN + 1 ] ;
+
       _pmdSysInfo()
       :_isPrimary( 0 ), _globalID( 1 )
       {
@@ -128,8 +134,11 @@ namespace engine
          _tick          = 0 ;
          _validationTick = 0 ;
          _sysPageSize   = ossGetPageSize() ;
+         _isLocationPrimary = FALSE ;
+         _locationID    = MSG_INVALID_LOCATIONID ;
 
          ossMemset( _doing, 0, sizeof( _doing ) ) ;
+         ossMemset( _locationName, 0, sizeof( _locationName ) ) ;
       }
    } pmdSysInfo ;
 
@@ -141,6 +150,14 @@ namespace engine
    void           pmdSetNodeID( MsgRouteID id ) ;
    BOOLEAN        pmdIsPrimary() ;
    void           pmdSetPrimary( BOOLEAN primary ) ;
+
+   // Location Info
+   BOOLEAN        pmdIsLocationPrimary() ;
+   void           pmdSetLocationPrimary( BOOLEAN primary ) ;
+   const CHAR*    pmdGetLocation() ;
+   void           pmdSetLocation( const CHAR* str ) ;
+   UINT32         pmdGetLocationID() ;
+   void           pmdSetLocationID( UINT32 locationID ) ;
 
    UINT64         pmdGetStartTime() ;
 
