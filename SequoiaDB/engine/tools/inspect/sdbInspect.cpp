@@ -387,16 +387,15 @@ error:
    goto done ;
 }
 
-INT32 dumpCiRecord( ciLinkList< ciNode > &nodes,
-                    ciLinkList< ciRecord > &link,
-                    CHAR *&buffer, INT64 &bufferSize, INT64 &validSize )
+INT32 archiveCiRecord( ciLinkList< ciNode > &nodes,
+                       ciLinkList< ciRecord > &link,
+                       recordBuffer *rBuffer )
 {
    INT32 rc        = SDB_OK ;
    INT32 nodeCount = nodes.count() ;
    ciRecord *rd    = NULL ;
    ciNode   *node  = NULL ;
    const CHAR *pst = NULL ;
-   INT64 len       = 0 ;
    const CHAR *nodeState[] =
    {
       " 1",
@@ -404,49 +403,34 @@ INT32 dumpCiRecord( ciLinkList< ciNode > &nodes,
       " x"
    } ;
 
-retry:
-   if ( bufferSize - 1 <= len )
-   {
-      rc = reallocBuff( &buffer, bufferSize, bufferSize + CI_BUFFER_BLOCK ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-   }
-
-   len = 0 ;
    if ( link.count() > 0 )
    {
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "  # Node state 1 means node has the record,"
-                          " or 0 means not, and x means node invalid"
-                          OSS_NEWLINE
-                          "  # The order is ascended by node index."
-                          OSS_NEWLINE
-                          "    There is [%d] piece of records that haven't been"
-                          " synchronized."
-                          OSS_NEWLINE""OSS_NEWLINE, link.count() ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      rc = rBuffer->writeBuffer( "  # Node state 1 means node has the record,"
+                                 " or 0 means not, and x means node invalid"
+                                 OSS_NEWLINE
+                                 "  # The order is ascended by node index."
+                                 OSS_NEWLINE
+                                 "    There is [%d] piece of records that haven't been"
+                                 " synchronized."
+                                 OSS_NEWLINE""OSS_NEWLINE, link.count() ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    }
    else
    {
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "   There is no record different"
-                          OSS_NEWLINE""OSS_NEWLINE ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      rc = rBuffer->writeBuffer( "   There is no record different"
+                                 OSS_NEWLINE""OSS_NEWLINE ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    }
 
    link.resetCurrentNode() ;
    rd = link.getHead() ;
    while ( NULL != rd )
    {
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "  -record     : %s"OSS_NEWLINE,
-                          rd->_bson.toString().c_str() ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "  -Node State : " ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      rc = rBuffer->writeBuffer( "  -record     : %s"OSS_NEWLINE,
+                                 rd->_bson.toString().c_str() ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+      rc = rBuffer->writeBuffer(  "  -Node State : " ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
       nodes.resetCurrentNode() ;
       node = nodes.getHead() ;
@@ -468,21 +452,21 @@ retry:
          {
             pst = nodeState[ 1 ] ;
          }
-         len += ossSnprintf( buffer + len, bufferSize - len, pst ) ;
-         CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+         rc = rBuffer->writeBuffer( pst ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
          node = nodes.next() ;
       }
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
-      len += ossSnprintf( buffer + len, bufferSize - len, OSS_NEWLINE ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      rc = rBuffer->writeBuffer( OSS_NEWLINE ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
       rd = link.next() ;
    }
-   len += ossSnprintf( buffer + len, bufferSize - len, OSS_NEWLINE ) ;
-   CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+   rc = rBuffer->writeBuffer( OSS_NEWLINE ) ;
+   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
-   validSize = len ;
+   rc = rBuffer->commitBuffer() ;
+   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
 done:
    return rc ;
@@ -668,6 +652,86 @@ INT32 writeToFileHeader( OSSFILE &out,
       writePos += writeSize ;
    }
 
+done:
+   return rc ;
+error:
+   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
+   goto done ;
+}
+
+_recordBuffer::_recordBuffer( OSSFILE &out )
+: _out( out )
+{
+   _rBufferSize   = CI_RECORD_BUFFER_SIZE ;
+   _rValidSize    = 0 ;
+   _rBuffer       = (CHAR*) SDB_OSS_MALLOC( _rBufferSize ) ;
+}
+
+_recordBuffer::~_recordBuffer()
+{
+   if( _rBuffer )
+   {
+      SDB_OSS_FREE(_rBuffer) ;
+      _rBuffer     = NULL ;
+   }
+}
+
+INT32 _recordBuffer::writeBuffer( const CHAR *pFormat, ... )
+{
+   INT32 rc = SDB_OK ;
+   va_list ap ;
+   INT64 len = _rValidSize ;
+
+   if( _rBuffer == NULL )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+
+   while ( true )
+   {
+      va_start( ap, pFormat ) ;
+      len += ossVsnprintf( _rBuffer + len, _rBufferSize - len, pFormat, ap ) ;
+      va_end( ap ) ;
+      if( len >= _rBufferSize - 1 )
+      {
+         // Buffer space is full
+         rc = writeToFile( _out, _rBuffer, _rValidSize ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+         _rValidSize = 0 ;
+         len = 0 ;
+      }
+      else
+      {
+         // Buffer space is enough
+         _rValidSize = len ;
+         break ;
+      }
+   }
+
+done:
+   return rc ;
+error:
+   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
+   goto done ;
+}
+
+INT32 _recordBuffer::commitBuffer()
+{
+   INT32 rc = SDB_OK ;
+
+   if( _rBuffer == NULL )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+
+   if( _rBuffer && _rValidSize > 0 )
+   {
+      rc = writeToFile( _out, _rBuffer, _rValidSize ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+      _rValidSize = 0 ;
+   }
 done:
    return rc ;
 error:
@@ -1807,7 +1871,8 @@ error:
 
 INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
                  ciLinkList< ciOffset > &clOffsets, const CHAR *clName,
-                 CHAR *&buffer, INT64 &bufferSize, INT64 &validSize )
+                 CHAR *&buffer, INT64 &bufferSize, INT64 &validSize,
+                 recordBuffer *rBuffer )
 {
    INT32 rc     = SDB_OK ;
    UINT32 idx   = 0 ;
@@ -1894,16 +1959,13 @@ INT32 dumpOneCl( OSSFILE &in, OSSFILE &out, ciOffset *groupOffset,
                rc = readCiRecord( in, offset, nodesForCL,
                                   clHeader, records, TRUE ) ;
                CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-               rc = dumpCiRecord( nodesForCL, records,
-                                  buffer, bufferSize, validSize ) ;
-               CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-               rc = writeToFile( out, buffer, validSize ) ;
+               rc = archiveCiRecord( nodesForCL, records, rBuffer) ;
                CHECK_VALUE( ( SDB_OK != rc ), error ) ;
             }
 
             rc = dumpOneCl( in, out, groupOffset->_next, clOffsets,
                             clHeader._fullname, buffer,
-                            bufferSize, validSize ) ;
+                            bufferSize, validSize, rBuffer ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
             // collection found and dumped, then exit
@@ -3475,15 +3537,16 @@ error:
 INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
                        CHAR *&tailBuffer, INT64 &tailBufferSize )
 {
-   INT32 rc           = SDB_OK ;
-   BOOLEAN inOpened   = FALSE ;
-   BOOLEAN outOpened  = FALSE ;
-   CHAR *buffer       = NULL ;
-   INT64 bufferSize   = 0 ;
-   INT64 validSize    = 0 ;
-   INT64 fileSize     = 0 ;
-   INT64 offset       = 0 ;
-   INT64 tailOffset   = 0 ;
+   INT32 rc              = SDB_OK ;
+   BOOLEAN inOpened      = FALSE ;
+   BOOLEAN outOpened     = FALSE ;
+   recordBuffer *rBuffer = NULL ;
+   CHAR *buffer          = NULL ;
+   INT64 bufferSize      = 0 ;
+   INT64 validSize       = 0 ;
+   INT64 fileSize        = 0 ;
+   INT64 offset          = 0 ;
+   INT64 tailOffset      = 0 ;
 
    ciHeader header ;
    ciLinkList< ciOffset > Offset ;
@@ -3525,6 +3588,7 @@ INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
       goto error ;
    }
    outOpened = TRUE ;
+   rBuffer = new recordBuffer( out ) ;
 
    // dump header
    rc = readCiHeader( in, &header ) ;
@@ -3596,10 +3660,7 @@ INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
             rc = readCiRecord( in, offset, ciNodes,
                                clHeader, records, TRUE ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-            rc = dumpCiRecord( ciNodes, records,
-                               buffer, bufferSize, validSize ) ;
-            CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-            rc = writeToFile( out, buffer, validSize ) ;
+            rc = archiveCiRecord( ciNodes, records, rBuffer ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
          }
 
@@ -3630,6 +3691,12 @@ done:
       buffer = NULL ;
    }
 
+   if( NULL != rBuffer )
+   {
+      delete rBuffer ;
+      rBuffer = NULL ;
+   }
+
    return rc ;
 error:
    OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
@@ -3641,15 +3708,16 @@ error:
 INT32 _sdbCi::report2( const CHAR *inFile, const CHAR *reportFile,
                        CHAR *&tailBuffer, INT64 &tailBufferSize )
 {
-   INT32 rc              = SDB_OK ;
-   BOOLEAN inOpened      = FALSE ;
-   BOOLEAN outOpened     = FALSE ;
-   ciOffset *groupOffset = NULL ;
-   CHAR *buffer          = NULL ;
-   INT64 bufferSize      = 0 ;
-   INT64 validSize       = 0 ;
-   INT64 fileSize        = 0 ;
-   INT64 tailOffset      = 0 ;
+   INT32 rc               = SDB_OK ;
+   BOOLEAN inOpened       = FALSE ;
+   BOOLEAN outOpened      = FALSE ;
+   ciOffset *groupOffset  = NULL ;
+   recordBuffer *rBuffer  = NULL ;
+   CHAR *buffer           = NULL ;
+   INT64 bufferSize       = 0 ;
+   INT64 validSize        = 0 ;
+   INT64 fileSize         = 0 ;
+   INT64 tailOffset       = 0 ;
 
    ciHeader header ;
    ciLinkList< ciNode > ciNodes ;
@@ -3691,6 +3759,7 @@ INT32 _sdbCi::report2( const CHAR *inFile, const CHAR *reportFile,
       goto error ;
    }
    outOpened = TRUE ;
+   rBuffer = new recordBuffer( out ) ;
 
    // dump header
    rc = readCiHeader( in, &header ) ;
@@ -3710,7 +3779,7 @@ INT32 _sdbCi::report2( const CHAR *inFile, const CHAR *reportFile,
    while ( NULL != groupOffset )
    {
       rc = dumpOneCl( in, out, groupOffset, clOffsets, NULL,
-                      buffer, bufferSize, validSize ) ;
+                      buffer, bufferSize, validSize, rBuffer ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
       groupOffset = tail._groupOffset.next() ;
    }
@@ -3736,6 +3805,12 @@ done:
    {
       SDB_OSS_FREE( buffer ) ;
       buffer = NULL ;
+   }
+
+   if( NULL != rBuffer )
+   {
+      delete rBuffer ;
+      rBuffer = NULL ;
    }
 
    return rc ;
