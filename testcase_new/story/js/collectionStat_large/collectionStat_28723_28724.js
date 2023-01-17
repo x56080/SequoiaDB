@@ -3,7 +3,7 @@
  *                  seqDB-28724:执行analyze后，分区表插入大量数据，使全部复制组过期，不执行analyze
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.12.21
- * @LastEditTime  : 2023.01.12
+ * @LastEditTime  : 2023.01.17
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_28723_28724";
@@ -11,6 +11,7 @@ testConf.csName = COMMCSNAME + "_28723_28724";
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
 testConf.useDstGroup = true;
+testConf.skipGroupLessThanThree = true;
 testConf.clOpt = { "ShardingKey": { "a": -1 }, "ShardingType": "range" }
 
 main( test );
