@@ -2,7 +2,7 @@
  * @Description   : seqDB-28725:执行analyze后，分区表插入大量数据，使部分复制组过期执行analyze/使全部复制组过期执行analyze
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.12.22
- * @LastEditTime  : 2023.01.12
+ * @LastEditTime  : 2023.01.18
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_28725";
@@ -10,6 +10,7 @@ testConf.csName = COMMCSNAME + "_28725";
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
 testConf.useDstGroup = true;
+testConf.skipGroupLessThanThree = true;
 testConf.clOpt = { "ShardingKey": { "a": -1 }, "ShardingType": "range" }
 
 main( test );
