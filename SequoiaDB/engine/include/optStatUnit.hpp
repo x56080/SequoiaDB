@@ -227,8 +227,6 @@ namespace engine
             return _pIndexStat ? _pIndexStat->getIndexLevels() 
                                : RTN_STAT_DEF_IDX_LEVELS ;
          }
-
-         OSS_INLINE BOOLEAN isGreaterThanCostThreshold() const;
          
          OSS_INLINE virtual BOOLEAN isValid () const
          {
@@ -330,11 +328,6 @@ namespace engine
                                     : RTN_STAT_DEF_AVG_NUM_FIELDS;
          }
 
-         OSS_INLINE BOOLEAN isGreaterThanCostThreshold() const
-         {
-            return _isBiggerThanCostThreshold ;
-         }
-
          OSS_INLINE virtual BOOLEAN isValid () const
          {
             return ( _pCollectionStat != NULL ) ;
@@ -424,8 +417,6 @@ namespace engine
          CONST_CL_META_INFO_PTR _pCollectionMeta ;
          CONST_CL_STAT_INFO_PTR _pCollectionStat ;
          CONST_INDEX_STAT_INFO_PTR _bestIndexStat ;
-
-         BOOLEAN _isBiggerThanCostThreshold = FALSE;
    } ;
 
    /*
@@ -434,11 +425,6 @@ namespace engine
    UINT32 _optIndexStat::getIndexPages () const
    {
       return ( _pIndexStat ) ? _pIndexStat->getIndexPages() : _collectionStat.getAvgIndexPages();
-   }
-
-   BOOLEAN _optIndexStat::isGreaterThanCostThreshold() const
-   {
-      return _collectionStat.isGreaterThanCostThreshold();
    }
 
    /*

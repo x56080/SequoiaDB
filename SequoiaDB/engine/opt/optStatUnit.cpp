@@ -599,8 +599,7 @@ namespace engine
      _avgIndexPages( 0 ),
      _pCollectionMeta( helper.getCLMeta()),
      _pCollectionStat( helper.getCLStat() ),
-     _bestIndexStat( NULL ),
-     _isBiggerThanCostThreshold( FALSE )
+     _bestIndexStat( NULL )
    {
       SDB_ASSERT( _pCollectionMeta, "can not be nullptr" );
       // temporarily use the field from metadata to accommodate older version tests

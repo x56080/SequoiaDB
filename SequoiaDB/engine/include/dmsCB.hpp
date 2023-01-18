@@ -355,9 +355,6 @@ namespace engine
 
          UINT8 getCBState() const;
 
-         // void  aquireCSMutex( const CHAR *pCSName ) ;
-         // void  releaseCSMutex( const CHAR *pCSName ) ;
-
          void clearAllCRUDCB();
          INT32 clearSUCRUDCB( const CHAR *collectionSpace );
          INT32 clearMBCRUDCB( const CHAR *collection );

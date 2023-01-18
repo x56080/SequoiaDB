@@ -1621,7 +1621,7 @@ namespace engine
          }
       }
 
-      if ( indexStat->isValid() && indexStat->isGreaterThanCostThreshold() )
+      if ( indexStat->isValid() )
       {
             _ixFromStat = TRUE ;
             _ixStatTime = indexStat->getCreateTime() ;

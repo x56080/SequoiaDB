@@ -126,7 +126,7 @@ namespace engine
    {
       SDB_ASSERT( _handlers.empty(), "all handlers should be unregistered" );
       // make sure dms control block is finalized
-      close();
+      SDB_ASSERT( _cscbNameMap.empty(), "all collection spaces should be released" );
    }
 
    INT32 _dmsMmapEngine::open( dmsSuConstraintMap &cm )
@@ -160,7 +160,7 @@ namespace engine
       goto done;
    }
 
-   INT32 _dmsMmapEngine::close()
+   INT32 _dmsMmapEngine::close( IExecutor *executor, const dmsCloseDBOptions &options )
    {
       _CSCBNameMapCleanup();
 

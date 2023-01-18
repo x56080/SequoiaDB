@@ -52,4 +52,23 @@ namespace engine
       SDB_ASSERT( !_engines[ type ], "an instance of the engine already exists" );
       _engines[ type ] = std::move( ptr );
    }
+
+   INT32 _dmsEngineSocket::closeEngines( IExecutor *executor, const dmsCloseDBOptions &options )
+   {
+      INT32 rc = SDB_OK;
+      for( INT32 type = DMS_ENGINE_MMAP; type <= DMS_ENGINE_MAX; ++type)
+      {
+         if ( _engines[type] )
+         {
+            rc = _engines[ type ]->close( executor, options );
+            PD_RC_CHECK( rc, PDERROR, "failed to close the engine[%s]",
+                         _engines[ type ]->getEngineType() );
+            _engines[type].reset();
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace engine

@@ -139,7 +139,7 @@ namespace vessel
 
       OSS_INLINE BOOLEAN operator!=(PAGE_ID pid)const
       {
-         return _pid != _pid;
+         return _pid != pid;
       }
 
       OSS_INLINE void reset(PAGE_ID pid = INVALID_PAGE_ID)

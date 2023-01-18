@@ -102,6 +102,7 @@ namespace engine
 
    INT32 _SDB_DMSCB::fini()
    {
+      INT32 rc = SDB_OK;
       // check if MVCC is supported
       // finish and flush Rollback Segment CS mgr. We must do it here
       // instead of fini because we need DPS to flush logs to disk.
@@ -116,10 +117,16 @@ namespace engine
          }
       }
 
+      dmsCloseDBOptions options;
+      rc = _engineSocket.closeEngines( pmdGetThreadEDUCB(), options );
+      PD_RC_CHECK(rc, PDERROR, "failed to close engines");
       _localSUMgr.fini();
       _tempSUMgr.fini();
 
-      return SDB_OK;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    void _SDB_DMSCB::onConfigChange()

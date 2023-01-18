@@ -197,6 +197,28 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::close(IExecutor *executor,
+                           const dmsCloseDBOptions &options)
+   {
+      if (isOpen() && dmsCloseDBOptions::DMS_CLOSE_MODE_NORMAL == options.closeMode)
+      {
+         THREAD_CONTEXT_OWNER tco(executor, &_env);
+
+         _env.hitMgr.fini();
+         _env.lobcBufferPool.flushAllDirtyBuffers();
+         _env.ioBufferPool.flushAll();
+
+         if (nullptr != _env.lsm)
+         {
+            _env.lsm->close();
+         }
+
+         _env.workers.fini();
+      }
+
+      return SDB_OK;
+   }
+
    INT32 vesselImpl::getCSCount(IExecutor *executor,
                                 UINT32 &count)
    {

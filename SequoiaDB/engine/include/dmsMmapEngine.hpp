@@ -265,6 +265,8 @@ namespace engine
          _dmsMmapEngine();
          virtual ~_dmsMmapEngine();
 
+         virtual INT32 close( IExecutor *executor, const dmsCloseDBOptions &options ) override;
+
          virtual DMS_ENGINE_TYPE getEngineType() const override
          {
             return DMS_ENGINE_MMAP;
@@ -359,8 +361,6 @@ namespace engine
 
       public:
          INT32 open( dmsSuConstraintMap &cm );
-
-         INT32 close();
 
          INT32 findCollectionSpace( const CHAR *pName, dmsStorageUnitID &suId );
 

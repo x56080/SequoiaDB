@@ -64,6 +64,9 @@ namespace vessel
          virtual INT32 close(IExecutor *executor,
                              const closeDBOptions &options) override;
 
+         virtual INT32 close(IExecutor *executor,
+                             const dmsCloseDBOptions &options) override;
+
       /// IDataStorageEngine begin
       public:
          virtual DMS_ENGINE_TYPE getEngineType() const override

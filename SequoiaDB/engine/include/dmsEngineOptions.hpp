@@ -127,7 +127,7 @@ namespace engine
       IDataProtectionService *dpsCB = nullptr;
    };//struct dmsBuildIndexOptions
 
-   struct dmsRemoveIndexOptions
+   struct dmsRemoveIndexOptions : public SDBObject
    {
       BOOLEAN sysCall = FALSE;
       dmsIdxTaskStatus *idxStatus = nullptr;
@@ -168,7 +168,7 @@ namespace engine
       UINT32 stepSize = 64;
    };//struct dmsIndexScanOptions
 
-   struct dmsCreateDataSnapshotOptions
+   struct dmsCreateDataSnapshotOptions : public SDBObject
    {
 
 
@@ -178,6 +178,18 @@ namespace engine
    {
       INT32 chunkId = -1;
    };//struct dmsListLobChunkOptions
+
+   struct dmsCloseDBOptions : public SDBObject
+   {
+      public:
+         enum DMS_CLOSE_MODE
+         {
+            DMS_CLOSE_MODE_NORMAL = 0,
+            DMS_CLOSE_MODE_IMMDIETE = 1,
+         };//
+      public:
+         DMS_CLOSE_MODE closeMode = DMS_CLOSE_MODE_NORMAL;
+   };//struct dmsCloseDBOptions
 } // namespace engine
 
 

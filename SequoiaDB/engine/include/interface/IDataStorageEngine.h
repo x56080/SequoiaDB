@@ -63,6 +63,8 @@ namespace engine
          IDataStorageEngine &operator=( const IDataStorageEngine & ) = delete;
 
       public:
+         virtual INT32 close( IExecutor *executor, const dmsCloseDBOptions &options ) = 0;
+
          virtual DMS_ENGINE_TYPE getEngineType() const = 0;
 
          // virtual INT32 openCS( IExecutor *executor,
