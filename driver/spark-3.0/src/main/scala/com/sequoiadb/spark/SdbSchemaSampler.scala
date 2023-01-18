@@ -27,9 +27,10 @@ import scala.collection.JavaConversions._
   * @param samplingRatio  sampling ratio
   * @param samplingWithId whether sampling with _id field
   */
-private[spark] class SdbSchemaSampler(sdbRDD: SdbBsonRDD,
-                                      samplingRatio: Double,
-                                      samplingWithId: Boolean)
+class SdbSchemaSampler(
+        sdbRDD: SdbBsonRDD,
+        samplingRatio: Double,
+        samplingWithId: Boolean)
     extends Serializable with Logging {
 
     def sample(): StructType = {
