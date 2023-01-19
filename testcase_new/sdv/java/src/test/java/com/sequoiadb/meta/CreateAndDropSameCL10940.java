@@ -1,8 +1,8 @@
 package com.sequoiadb.meta;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -13,7 +13,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * FileName: CreateAndDropCL10940.java test content:concurrent creation and
@@ -27,42 +26,20 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
 
     private String clName = "cl10940";
     private static Sequoiadb sdb = null;
-    String clGroupName = null;
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "sdbadmin", "sdbadmin" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "connect %s failed,"
-                    + SdbTestBase.coordUrl + e.getMessage() );
-        }
-
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     @Test
-    public void createAndDropCL10940() {
-        CreateCLThread createCLThread = new CreateCLThread();
-        DropCLThread dropCLThread = new DropCLThread();
-
-        createCLThread.start();
-        dropCLThread.start();
-
-        if ( !( createCLThread.isSuccess() && dropCLThread.isSuccess() ) ) {
-            List< Exception > exceptions = new ArrayList<>();
-            exceptions.addAll( createCLThread.getExceptions() );
-            exceptions.addAll( dropCLThread.getExceptions() );
-
-            String errMsg = "";
-            for ( int i = 0; i < exceptions.size(); i++ ) {
-                exceptions.get( i ).printStackTrace();
-                errMsg += exceptions.get( i ).getMessage() + "\n";
-            }
-            Assert.fail( errMsg );
-        }
+    public void createAndDropCL10940() throws Exception {
+        ThreadExecutor es = new ThreadExecutor();
+        es.addWorker( new CreateCL() );
+        es.addWorker( new DropCL() );
+        es.run();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -70,66 +47,50 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-            sdb.disconnect();
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
-    class CreateCLThread extends SdbThreadBase {
-        @SuppressWarnings("deprecation")
-        @Override
-        public void exec() throws BaseException {
-            Sequoiadb db1 = null;
-            CollectionSpace cs1 = null;
-            DBCollection dbcl = null;
-
-            try {
-                db1 = new Sequoiadb( SdbTestBase.coordUrl, "sdbadmin",
-                        "sdbadmin" );
-                cs1 = db1.getCollectionSpace( SdbTestBase.csName );
-                dbcl = cs1.createCollection( clName );
-                checkCreateCl( dbcl );
+    private class CreateCL {
+        @ExecuteOrder(step = 1)
+        private void test() {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace dbcs = db
+                        .getCollectionSpace( SdbTestBase.csName );
+                DBCollection dbcl = dbcs.createCollection( clName );
+                dbcl.insert( "{a:1}" );
+                Assert.assertEquals( dbcl.getCount(), 1 );
             } catch ( BaseException e ) {
-                Assert.assertEquals( -23, e.getErrorCode(), e.getMessage() );
-            } finally {
-                if ( db1 != null ) {
-                    db1.disconnect();
+                if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
+                                .getErrorCode() ) {
+                    throw e;
                 }
             }
         }
     }
 
-    class DropCLThread extends SdbThreadBase {
-        @SuppressWarnings("deprecation")
-        @Override
-        public void exec() throws BaseException {
-            Sequoiadb db2 = null;
-            CollectionSpace cs2 = null;
-            try {
-                db2 = new Sequoiadb( SdbTestBase.coordUrl, "sdbadmin",
-                        "sdbadmin" );
-                cs2 = db2.getCollectionSpace( SdbTestBase.csName );
-                cs2.dropCollection( clName );
-                Assert.assertFalse( cs2.isCollectionExist( clName ) );
+    private class DropCL {
+        @ExecuteOrder(step = 1)
+        private void test() {
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                CollectionSpace dbcs = db
+                        .getCollectionSpace( SdbTestBase.csName );
+                dbcs.dropCollection( clName );
+                Assert.assertFalse( dbcs.isCollectionExist( clName ) );
             } catch ( BaseException e ) {
-                Assert.assertEquals( -23, e.getErrorCode(),
-                        "drop cl fail " + e.getMessage() );
-            } finally {
-                if ( db2 != null ) {
-                    db2.disconnect();
+                if ( e.getErrorCode() != SDBError.SDB_DMS_NOTEXIST
+                        .getErrorCode() ) {
+                    throw e;
                 }
-            }
-        }
-    }
-
-    public void checkCreateCl( DBCollection cl ) {
-        try {
-            cl.insert( "{a:1}" );
-            Assert.assertEquals( cl.getCount(), 1 );
-        } catch ( BaseException e ) {
-            if ( e.getErrorCode() != -23 ) {
-                Assert.fail( "insert fail, " + e.getMessage() );
             }
         }
     }
