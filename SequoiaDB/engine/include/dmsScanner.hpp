@@ -130,6 +130,8 @@ namespace engine
 
          BOOLEAN needWaitForLock() const { return _waitLock ; }
 
+         void setGetRawData( BOOLEAN rawData ) { _getRawData = rawData ; }
+
       public:
          virtual INT32 advance ( dmsRecordID &recordID,
                                  _mthRecordGenerator &generator,
@@ -160,6 +162,7 @@ namespace engine
 
          dmsRecordID             _advancedRecordID ;
          IDmsOprHandler         *_opHandler ;
+         BOOLEAN                 _getRawData ;
    } ;
    typedef _dmsScanner dmsScanner ;
 
@@ -231,6 +234,7 @@ namespace engine
          BOOLEAN              _needUnLock ;
          BOOLEAN              _needEscalation ;
          BOOLEAN              _CSCLLockHeld ;
+         BOOLEAN              _getPrimalData ;
          _pmdEDUCB            *_cb ;
          _dmsScannerContext   _scannerContext ;
          dmsExtentID          _lastExtentID ;
@@ -461,6 +465,7 @@ namespace engine
          BOOLEAN              _includeEndKey ;
          BOOLEAN              _countOnly ;
          BOOLEAN              _CSCLLockHeld ;
+         BOOLEAN              _getPrimalData ;
          _dmsIXScannerContext _ixScannerContext ;
    } ;
    typedef _dmsIXSecScanner dmsIXSecScanner ;

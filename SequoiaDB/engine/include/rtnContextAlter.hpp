@@ -41,15 +41,21 @@
 
 #include "rtnContext.hpp"
 #include "rtnAlterJob.hpp"
+#include "clsCatalogAgent.hpp"
 
 namespace engine
 {
+
+   // pre-define
+   class _SDB_RTNCB ;
 
    typedef enum _RTN_ALTER_PHASE
    {
       RTN_ALTER_PHASE_0 = 0,
       RTN_ALTER_PHASE_1
    } RTN_ALTER_PHASE ;
+
+   typedef ossPoolMap< ossPoolString, INT64 >  RTN_SUBCL_CONTEXT_MAP ;
 
    /*
       _rtnContextAlterBase define
@@ -173,10 +179,8 @@ namespace engine
          virtual INT32 _lockTransaction ( _pmdEDUCB * cb ) ;
          virtual void _releaseTransaction ( _pmdEDUCB * cb ) ;
 
-         INT32 _checkCompress () ;
-         INT32 _checkExtOptions () ;
-
       protected :
+         _clsCatalogAgent *_cataAgent ;
          UINT32            _logicalCSID ;
          UINT16            _mbID ;
          _dmsStorageUnit * _su ;
@@ -184,6 +188,72 @@ namespace engine
    } ;
 
    typedef class _rtnContextAlterCL rtnContextAlterCL ;
+
+   /*
+      _rtnContextAlterMainCL define
+    */
+   class _rtnContextAlterMainCL : public _rtnContextBase,
+                                  public _rtnAlterJobHolder
+   {
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextAlterMainCL )
+
+   public:
+      _rtnContextAlterMainCL( SINT64 contextID, UINT64 eduID ) ;
+      ~_rtnContextAlterMainCL() ;
+
+      virtual const CHAR *     name() const
+      {
+         return "ALTERMAINCL" ;
+      }
+
+      virtual RTN_CONTEXT_TYPE getType() const
+      {
+         return RTN_CONTEXT_ALTERMAINCL ;
+      }
+
+      virtual _dmsStorageUnit *getSU()
+      {
+         return NULL ;
+      }
+
+      virtual BOOLEAN          isWrite() const
+      {
+         return TRUE ;
+      }
+
+      virtual const CHAR *     getProcessName() const
+      {
+         return NULL != _alterJob ? _alterJob->getObjectName() : "" ;
+      }
+
+      INT32 open( const CHAR *pCollectionName,
+                  CLS_SUBCL_LIST &subCLList,
+                  rtnAlterJobHolder & holder,
+                  _pmdEDUCB *cb,
+                  INT16 w ) ;
+
+      virtual void getErrorInfo( INT32 rc,
+                                 _pmdEDUCB *cb,
+                                 rtnContextBuf &buffObj ) ;
+
+   protected:
+      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual void  _toString( stringstream &ss ) ;
+
+   private:
+      void _clean( _pmdEDUCB *cb ) ;
+
+   private:
+      _clsCatalogAgent *      _cataAgent ;
+      _SDB_RTNCB *            _rtnCB ;
+      RTN_SUBCL_CONTEXT_MAP   _subContextList ;
+      BOOLEAN                 _lockDms ;
+      INT32                   _errRC ;
+      bson::BSONObj           _errObj ;
+   } ;
+
+   typedef class _rtnContextAlterMainCL rtnContextAlterMainCL ;
+
 }
 
 #endif /* RTN_CONTEXT_ALTER_HPP_ */

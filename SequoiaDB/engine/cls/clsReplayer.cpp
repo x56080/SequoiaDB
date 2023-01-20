@@ -1138,12 +1138,26 @@ namespace engine
             utilCSUniqueID csUniqID = UTIL_UNIQUEID_NULL ;
             BSONObj *pExtOpt = NULL ;
             BSONObj *pIdIdxDef = NULL ;
+            BSONObj schemaDef ;
+            utilSchema schema ;
+            utilSchema *pSchema = NULL ;
 
             rc = dpsRecord2CLCrt( (CHAR *)recordHeader, &cl, clUniqueID,
-                                  attribute, compType, extOptions, idIdxDef ) ;
+                                  attribute, compType, extOptions, idIdxDef,
+                                  schemaDef ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
+            }
+
+            if ( !schemaDef.isEmpty() )
+            {
+               rc = schema.parse( schemaDef, FALSE, FALSE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+               if ( schema.isValid() )
+               {
+                  pSchema = &schema ;
+               }
             }
 
             eduCB->setCurProcessName( cl ) ;
@@ -1163,7 +1177,7 @@ namespace engine
                                              _dpsCB, clUniqueID,
                                              (UTIL_COMPRESSOR_TYPE)compType,
                                              0, TRUE, pExtOpt,
-                                             pIdIdxDef, FALSE ) ;
+                                             pIdIdxDef, FALSE, pSchema ) ;
             if ( SDB_DMS_EXIST == rc )
             {
                PD_LOG( PDWARNING, "Collection [%s] already exist when "
@@ -1961,10 +1975,11 @@ namespace engine
             utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
             UINT32 attribute = 0 ;
             UINT8 compType = UTIL_COMPRESSOR_INVALID ;
-            BSONObj extOptions, idIdxDef ;
+            BSONObj extOptions, idIdxDef, schemaDef ;
             rc = dpsRecord2CLCrt( (const CHAR *)recordHeader,
                                   &fullname, clUniqueID,
-                                  attribute, compType, extOptions, idIdxDef ) ;
+                                  attribute, compType, extOptions, idIdxDef,
+                                  schemaDef ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -2318,7 +2333,8 @@ namespace engine
                                             _pmdEDUCB *eduCB,
                                             UTIL_COMPRESSOR_TYPE compType,
                                             const BSONObj *extOptions,
-                                            const BSONObj *idIdxDef )
+                                            const BSONObj *idIdxDef,
+                                            const utilSchema *schema )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
       INT32 rc = SDB_OK ;
@@ -2345,7 +2361,7 @@ namespace engine
          rc = rtnCreateCollectionCommand( collection, attributes, eduCB,
                                           _dmsCB, _dpsCB, clUniqueID, compType,
                                           0, TRUE, extOptions,
-                                          idIdxDef, FALSE ) ;
+                                          idIdxDef, FALSE, schema ) ;
       }
 
       if ( rc )

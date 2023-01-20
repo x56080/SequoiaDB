@@ -4751,6 +4751,250 @@ namespace engine
                 TRUE : ( _pLobSu->getCommitFlag() ? TRUE : FALSE ) ;
    }
 
+   BOOLEAN _dmsStorageUnit::isInfoSchemaEnabled( dmsMBContext *context )
+   {
+      BOOLEAN isEnabled = FALSE ;
+
+      if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+      {
+         dmsInternalSchema *internalSchema = _pDataSu->getSchema( context->mbID() ) ;
+         isEnabled = internalSchema->enabled() ;
+      }
+
+      return isEnabled ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_SETCLENABLEINFOSCHEMA, "_dmsStorageUnit::setCollectionEnableInfoSchema" )
+   INT32 _dmsStorageUnit::setCollectionEnableInfoSchema( const CHAR *pName,
+                                                         BOOLEAN enableInfoSchema,
+                                                         dmsMBContext *context,
+                                                         pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU_SETCLENABLEINFOSCHEMA ) ;
+
+      BOOLEAN hasCLLocked = FALSE ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
+      SDB_ASSERT( NULL != context, "context should be valid" ) ;
+
+      // NOTE: if the context is no-trans now, it can ignore transaction lock
+      if ( data()->isTransSupport( context ) &&
+           NULL != cb &&
+           cb->getTransExecutor()->useTransLock() )
+      {
+         dpsTransRetInfo lockConflict ;
+         // need to get S lock of collection to avoid transactions have
+         // inserted/updated/deleted records on the same collection,
+         // including this session itself if it is in transaction
+         rc = transCB->transLockTrySAgainstWrite( cb,
+                                                  LogicalCSID(),
+                                                  context->mbID(),
+                                                  NULL,
+                                                  &lockConflict ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                      "Conflict( representative ):"OSS_NEWLINE
+                      "   EDUID:  %llu"OSS_NEWLINE
+                      "   TID:    %u"OSS_NEWLINE
+                      "   LockId: %s"OSS_NEWLINE
+                      "   Mode:   %s"OSS_NEWLINE,
+                      rc,
+                      lockConflict._eduID,
+                      lockConflict._tid,
+                      lockConflict._lockID.toString().c_str(),
+                      lockModeToString( lockConflict._lockType ) ) ;
+
+         hasCLLocked = TRUE ;
+      }
+
+      if ( enableInfoSchema )
+      {
+         rc = data()->enableInfoSchema( context ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to enable info schema on collection [%s.%s], "
+                      "rc: %d", CSName(), pName, rc ) ;
+      }
+      else
+      {
+         rc = data()->disableInfoSchema( context ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to disable info schema on collection [%s.%s], "
+                      "rc: %d", CSName(), pName, rc ) ;
+      }
+
+   done:
+      if ( hasCLLocked )
+      {
+         transCB->transLockRelease( cb, _pDataSu->logicalID(),
+                                    context->mbID(), NULL, NULL ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSU_SETCLENABLEINFOSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__ADDSCHEMA, "_dmsStorageUnit::addSchema" )
+   INT32 _dmsStorageUnit::addSchema( dmsMBContext *context,
+                                     const utilSchema &schema,
+                                     pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU__ADDSCHEMA ) ;
+
+      const CHAR *spaceName = CSName() ;
+      const CHAR *collectionName = context->mb()->_collectionName ;
+
+      rc = _pDataSu->_addSchema( context, schema ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add schema [%s] to "
+                   "collection [%s.%s], rc: %d",
+                   schema.getName(), spaceName, collectionName, rc ) ;
+
+      PD_LOG( PDEVENT, "Add schema [%s] on collection [%s.%s]",
+              schema.getName(), spaceName, collectionName ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSU__ADDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__ALTERSCHEMA, "_dmsStorageUnit::alterSchema" )
+   INT32 _dmsStorageUnit::alterSchema( dmsMBContext *context,
+                                       const utilSchema &schema,
+                                       const utilSchemaAlterAction &action,
+                                       _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU__ALTERSCHEMA ) ;
+
+      // parse the schema define, find which has default.
+      // default conflict ?
+      dmsInternalSchema *internalSchema = NULL ;
+      const CHAR *schemaName = schema.getName() ;
+      const CHAR *spaceName = CSName() ;
+      const CHAR *collectionName = context->mb()->_collectionName ;
+
+      PD_CHECK( OSS_BIT_TEST( context->mb()->_attributes,
+                              DMS_MB_ATTR_ENABLE_INFOSCHEMA ),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to check alter schema of collection [%s.%s], "
+                "info schema is not enabled", spaceName, collectionName ) ;
+
+      internalSchema = _pDataSu->getSchema( context->mbID() ) ;
+      PD_CHECK( internalSchema->enabled(),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to alter schema to collection [%s.%s], "
+                "schema is not enabled", spaceName, collectionName ) ;
+
+      switch ( action.getAction() )
+      {
+         case UTIL_SCHEMA_ADD_COLUMN :
+         {
+            rc = internalSchema->addColumn( context, action.getColumnName(), &action.getColDefine(),
+                                            NULL, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s], "
+                         "rc: %d", action.getColumnName(), rc ) ;
+            break ;
+         }
+         case UTIL_SCHEMA_DROP_COLUMN :
+         {
+            rc = internalSchema->dropColumn( context, action.getColumnName() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop column [%s], "
+                         "rc: %d", action.getColumnName(), rc ) ;
+            break ;
+         }
+         case UTIL_SCHEMA_ALTER_COLUMN :
+         {
+            rc = internalSchema->alterColumn( context, action.getColumnName(),
+                                              action.getColDefine() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to alter column [%s], "
+                         "rc: %d", action.getColumnName(), rc ) ;
+            break ;
+         }
+         case UTIL_SCHEMA_RENAME_COLUMN :
+         {
+            rc = _pIndexSu->renameColumnOnIndexes( context, action, FALSE, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] on indexes, "
+                         "rc: %d", action.getColumnName(), rc ) ;
+
+            rc = internalSchema->renameColumn( context, action.getColumnName(),
+                                               action.getNewColAttr().getName() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] to [%s], "
+                         "rc: %d", action.getColumnName(),
+                         action.getNewColAttr().getName(), rc ) ;
+            break ;
+         }
+         case UTIL_SCHEMA_DROP_DEFAULT :
+         {
+            rc = internalSchema->dropColumnDefault( context, action.getColumnName() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop default value of column [%s], rc: %d",
+                         action.getColumnName(), rc ) ;
+            break ;
+         }
+         case UTIL_SCHEMA_SET_ATTRIBUTES :
+         {
+            break ;
+         }
+         default:
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Failed to alter action on schema [%s] on "
+                    "collection [%s.%s], unknown action",
+                    schemaName, spaceName, collectionName ) ;
+            SDB_ASSERT( FALSE, "should not be here" ) ;
+            goto error ;
+         }
+      }
+
+      PD_LOG( PDEVENT, "Alter schema [%s] on collection [%s.%s]",
+              schemaName, spaceName, collectionName ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSU__ALTERSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPINTERNALSCHEMA, "_dmsStorageUnit::dumpInternalSchema" )
+   INT32 _dmsStorageUnit::dumpInternalSchema( dmsMBContext *context,
+                                              BSONObj &boSchema )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSU__DUMPINTERNALSCHEMA ) ;
+
+      dmsInternalSchema *internalSchema = NULL ;
+      const CHAR *clShortName = context->mb()->_collectionName ;
+      CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+      _pDataSu->_clFullName( clShortName, fullName, sizeof( fullName ) ) ;
+
+      internalSchema = _pDataSu->getSchema( context->mbID() ) ;
+      if ( NULL == internalSchema || !internalSchema->enabled() )
+      {
+         goto done ;
+      }
+
+      rc = internalSchema->toSchemaObj( fullName, boSchema ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSU__DUMPINTERNALSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    _IDmsEventHolder *_dmsStorageUnit::getEventHolder ()
    {
       return &_eventHolder ;

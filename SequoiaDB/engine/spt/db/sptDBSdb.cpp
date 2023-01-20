@@ -46,6 +46,7 @@
 #include "sptDBDataSource.hpp"
 #include "sptDBRecycleBin.hpp"
 #include "sptBsonobj.hpp"
+#include "sptDBSchema.hpp"
 #include "ossSocket.hpp"
 #include "msgDef.hpp"
 #include "fmpDef.hpp"
@@ -65,6 +66,7 @@ using sdbclient::_sdbDataCenter ;
 using sdbclient::_sdbDomain ;
 using sdbclient::_sdbSequence ;
 using sdbclient::sdbDataSource ;
+using sdbclient::_sdbSchema ;
 
 namespace engine
 {
@@ -137,6 +139,9 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getDataSource )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listDataSources )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRecycleBin )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createSchema )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, dropSchema )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getSchema )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -207,6 +212,9 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getDataSource", getDataSource )
       JS_ADD_MEMBER_FUNC( "listDataSources", listDataSources )
       JS_ADD_MEMBER_FUNC( "getRecycleBin", getRecycleBin )
+      JS_ADD_MEMBER_FUNC( "createSchema", createSchema )
+      JS_ADD_MEMBER_FUNC( "dropSchema", dropSchema )
+      JS_ADD_MEMBER_FUNC( "getSchema", getSchema )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -3539,6 +3547,171 @@ namespace engine
       }
       SPT_SET_CURSOR_TO_RETURNVAL( cursor.pCursor ) ;
       cursor.pCursor = NULL ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::createSchema( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string name ;
+      bson::BSONObj columns ;
+      bson::BSONObj attrs ;
+      sptDBSchema *sptSchema = NULL ;
+      sdbSchema schema ;
+
+      if ( arg.argc() < 2 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = arg.getString( 0, name ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be config" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be a string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 1, columns ) ;
+      if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Column definition must be an object" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 2, attrs ) ;
+      if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON(
+            SPT_ERR << ( arg.hasErrMsg() ? arg.getErrMsg() : "Schema attributes must be obj" ) ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.createSchema( schema, name.c_str(), columns, attrs ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to create info schema") ;
+         goto error ;
+      }
+
+      sptSchema = SDB_OSS_NEW sptDBSchema( schema.pSchema ) ;
+      if ( !sptSchema )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to create sptDBInfoSchema obj" ) ;
+      }
+
+      schema.pSchema = NULL ;
+
+      rc = rval.setUsrObjectVal< sptDBSchema >( sptSchema ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set user obj" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      if ( sptSchema )
+      {
+         SDB_OSS_DEL sptSchema ;
+         sptSchema = NULL ;
+      }
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::dropSchema( const _sptArguments &arg,
+                                _sptReturnVal &rval,
+                                bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string name ;
+
+      if ( 1 != arg.argc() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = arg.getString( 0, name ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be config" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be a string" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.dropSchema( name.c_str() ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop info schema" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::getSchema( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string name ;
+      _sdbSchema *schema = NULL ;
+      sptDBSchema *sptSchema = NULL ;
+
+      rc = arg.getString( 0, name ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be config" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be a string" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.getSchema( name.c_str(), &schema ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get info schema" ) ;
+         goto error ;
+      }
+
+      sptSchema = SDB_OSS_NEW sptDBSchema( schema ) ;
+      if ( !sptSchema )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptInfoSchema object" ) ;
+         goto error ;
+      }
+
+      rc = rval.setUsrObjectVal< sptDBSchema >( sptSchema ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
 
    done:
       return rc ;

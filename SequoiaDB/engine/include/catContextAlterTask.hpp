@@ -41,6 +41,7 @@
 
 #include "catContextTask.hpp"
 #include "rtnAlterJob.hpp"
+#include "utilSchema.hpp"
 
 using namespace bson ;
 
@@ -94,6 +95,11 @@ namespace engine
          OSS_INLINE const ossPoolList<BSONObj>& getIndexes () const
          {
             return _createIdxList ;
+         }
+
+         OSS_INLINE const utilSchema &getSchema() const
+         {
+            return _schema ;
          }
 
       protected :
@@ -153,6 +159,16 @@ namespace engine
                                        _pmdEDUCB * cb,
                                        catCtxLockMgr & lockMgr ) ;
 
+         INT32 _checkAddSchema( const clsCatalogSet & cataSet,
+                                const CHAR *schemaName,
+                                _pmdEDUCB *cb,
+                                catCtxLockMgr &lockMgr ) ;
+
+         INT32 _checkAlterSchema( const clsCatalogSet & cataSet,
+                                  const utilSchemaAlterAction &action,
+                                  _pmdEDUCB *cb,
+                                  catCtxLockMgr &lockMgr ) ;
+
          INT32 _buildEnableShardFields ( clsCatalogSet & cataSet,
                                          const rtnCLShardingArgument & argument,
                                          BOOLEAN postAutoSplit,
@@ -201,6 +217,11 @@ namespace engine
                                          BSONObjBuilder & setBuilder,
                                          BSONObjBuilder & unsetBuilder,
                                          BOOLEAN addRbk ) ;
+         INT32 _buildRenameColumnForSeq( clsCatalogSet & cataSet,
+                                         const CHAR *oldColName,
+                                         const CHAR *newColName,
+                                         BSONObjBuilder & setBuilder,
+                                         BSONObjBuilder & unsetBuilder ) ;
 
          INT32 _fillShardingArgument ( clsCatalogSet & cataSet,
                                        rtnCLShardingArgument & argument ) ;
@@ -220,6 +241,24 @@ namespace engine
                                     autoIncFieldsList &fldList,
                                     _pmdEDUCB * cb,
                                     INT16 w ) ;
+
+         INT32 _buildAddSchemaFields( clsCatalogSet & cataSet,
+                                      const CHAR *schemaName,
+                                      BSONObjBuilder & setBuilder,
+                                      BSONObjBuilder & unsetBuilder ) ;
+
+         INT32 _buildRemoveSchemaFields( clsCatalogSet & cataSet,
+                                         BSONObjBuilder & setBuilder,
+                                         BSONObjBuilder & unsetBuilder ) ;
+
+         INT32 _renameColumnForIdx( const clsCatalogSet &cataSet,
+                                    const utilSchemaAlterAction &action,
+                                    BOOLEAN isRollback,
+                                    pmdEDUCB *cb,
+                                    INT16 w ) ;
+         INT32 _checkAlterSchemaForShardingKey( const clsCatalogSet &cataSet,
+                                                const utilSchemaAlterAction &action,
+                                                pmdEDUCB *cb ) ;
 
          // Helper functions
          INT32 _checkAutoSplit ( const clsCatalogSet & cataSet,
@@ -243,6 +282,13 @@ namespace engine
                                  _pmdEDUCB* cb,
                                  INT16 w ) ;
 
+         INT32 _executeSchema( const clsCatalogSet &cataSet,
+                               _pmdEDUCB* cb,
+                               INT16 w ) ;
+         INT32 _rollbackSchema( const clsCatalogSet &cataSet,
+                                _pmdEDUCB *cb,
+                                INT16 w ) ;
+
       protected :
          ossPoolList< UINT64 >   _postTasks ;
          BOOLEAN                 _postAutoSplit ;
@@ -255,6 +301,8 @@ namespace engine
 
          BOOLEAN                 _subCLOFMainCL ;
          autoIncFieldsList       _rollbackAutoIncFields ;
+
+         utilSchema              _schema ;
    } ;
 
    typedef class _catCtxAlterCLTask catCtxAlterCLTask ;

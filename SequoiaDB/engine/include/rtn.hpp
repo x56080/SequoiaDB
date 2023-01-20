@@ -52,6 +52,7 @@
 #include "utilInsertResult.hpp"
 #include "dmsTaskStatus.hpp"
 #include "rtnOprHandler.hpp"
+#include "utilSchema.hpp"
 
 #define RTN_SORT_INDEX_NAME "sort"
 using namespace bson;
@@ -263,7 +264,8 @@ namespace engine
                              SDB_RTNCB *rtnCB,
                              SINT64 &contextID,
                              rtnContextPtr *ppContext = NULL,
-                             BOOLEAN enablePrefetch = FALSE ) ;
+                             BOOLEAN enablePrefetch = FALSE,
+                             INT32 flag = 0 ) ;
 
    INT32 rtnCreateCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                            pmdEDUCB *cb,
@@ -286,7 +288,8 @@ namespace engine
                                       BOOLEAN sysCall = FALSE,
                                       const BSONObj *extOptions = NULL,
                                       const BSONObj *pIdIdxDef = NULL,
-                                      BOOLEAN addIdxIDIfNotExist = TRUE ) ;
+                                      BOOLEAN addIdxIDIfNotExist = TRUE,
+                                      const utilSchema *schema = NULL ) ;
 
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       const BSONObj &shardIdxDef,
@@ -301,7 +304,8 @@ namespace engine
                                       BOOLEAN sysCall = FALSE,
                                       const BSONObj *extOptions = NULL,
                                       const BSONObj *pIdIdxDef = NULL,
-                                      BOOLEAN addIdxIDIfNotExist = FALSE ) ;
+                                      BOOLEAN addIdxIDIfNotExist = FALSE,
+                                      const utilSchema *schema = NULL ) ;
 
    INT32 rtnGetMore ( SINT64 contextID,               // input, context id
                       SINT32 maxNumToReturn,          // input, max record to read

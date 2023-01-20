@@ -224,6 +224,7 @@ namespace engine
                           const UINT8 &compressorType,
                           const BSONObj *extOptions,
                           const BSONObj *idIdxDef,
+                          const BSONObj *schemaDef,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2CLCrt( const CHAR *logRecord,
@@ -232,7 +233,8 @@ namespace engine
                           UINT32 &attribute,
                           UINT8 &compressorType,
                           BSONObj &extOptions,
-                          BSONObj &idIdxDef ) ;
+                          BSONObj &idIdxDef,
+                          BSONObj &schemaDef ) ;
 
    INT32 dpsCLDel2Record( const CHAR *fullName,
                           bson::BSONObj *boOptions,

@@ -236,10 +236,12 @@ namespace engine
                                    dmsExtent * extAddr,
                                    SINT32 extentID ) ;
 
-      virtual INT32 _prepareInsertData( const BSONObj &record,
+      virtual INT32 _prepareInsertData( dmsMBContext *context,
+                                        const BSONObj &record,
                                         BOOLEAN mustOID,
                                         pmdEDUCB *cb,
                                         dmsRecordData &recordData,
+                                        dmsRecordData &encodeData,
                                         BOOLEAN &memReallocate,
                                         INT64 position ) ;
 
@@ -319,7 +321,9 @@ namespace engine
                                  const dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
                                  dmsRecordData &recordData,
-                                 BOOLEAN needIncDataRead = TRUE ) ;
+                                 BOOLEAN needIncDataRead = TRUE,
+                                 BOOLEAN decodeRecord = TRUE,
+                                 BOOLEAN getPrimalData = FALSE ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 

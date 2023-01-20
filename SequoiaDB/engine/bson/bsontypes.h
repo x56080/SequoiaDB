@@ -100,6 +100,9 @@ namespace bson {
         MD5Type=5,
         bdtCustom=128
     };
+    
+   BSONType bsonColumnTypeNameToBSONType( const char *typeName ) ;
 
+   const char *bsonTypeToColumnTypeName( BSONType type ) ;
 }
 

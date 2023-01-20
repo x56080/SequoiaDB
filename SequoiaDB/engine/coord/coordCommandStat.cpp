@@ -1658,4 +1658,24 @@ namespace engine
    error:
       goto done ;
    }
+
+   /*
+      _coordCMDGetCLInternalSchema implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDGetCLInternalSchema,
+                                      CMD_NAME_GET_CL_INTERNAL_SCHEMA,
+                                      TRUE );
+   _coordCMDGetCLInternalSchema::_coordCMDGetCLInternalSchema() {}
+
+   _coordCMDGetCLInternalSchema::~_coordCMDGetCLInternalSchema() {}
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_INTERNAL_SCHEMA_GENRESULT, "_coordCMDGetCLInternalSchema::generateResult" )
+   INT32 _coordCMDGetCLInternalSchema::generateResult( rtnContext *pContext, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY( COORD_GET_INTERNAL_SCHEMA_GENRESULT );
+
+      PD_TRACE_EXITRC( COORD_GET_INTERNAL_SCHEMA_GENRESULT, rc );
+      return rc;
+   }
 }

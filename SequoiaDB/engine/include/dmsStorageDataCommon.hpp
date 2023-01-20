@@ -53,6 +53,8 @@
 #include "dmsOprHandler.hpp"
 #include "monCB.hpp"
 #include "sdbRemoteOperator.hpp"
+#include "dmsInternalSchema.hpp"
+#include "utilSchema.hpp"
 
 using namespace bson ;
 
@@ -194,8 +196,10 @@ namespace engine
 
       UINT64         _createTime ;
       UINT64         _updateTime ;
+      dmsExtentID    _schemaExtentID ;
+      dmsExtentID    _schemaHashExtentID ;
 
-      CHAR           _pad [ 244 ] ;
+      CHAR           _pad [ 236 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -282,6 +286,8 @@ namespace engine
 
          _createTime             = 0 ;
          _updateTime             = 0 ;
+         _schemaExtentID         = DMS_INVALID_EXTENT ;
+         _schemaHashExtentID     = DMS_INVALID_EXTENT ;
 
          // pad
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
@@ -1153,7 +1159,8 @@ namespace engine
                                UINT32 *logicID = NULL,
                                const BSONObj *extOptions = NULL,
                                const BSONObj *pIdIdxDef = NULL,
-                               BOOLEAN addIdxIDIfNotExist = FALSE ) ;
+                               BOOLEAN addIdxIDIfNotExist = FALSE,
+                               const utilSchema *pSchema = NULL ) ;
 
          INT32 dropCollection ( const CHAR *pName,
                                 _pmdEDUCB *cb,
@@ -1269,7 +1276,9 @@ namespace engine
                                     const dmsRecordRW &recordRW,
                                     _pmdEDUCB *cb,
                                     dmsRecordData &recordData,
-                                    BOOLEAN needIncDataRead = TRUE ) = 0 ;
+                                    BOOLEAN needIncDataRead = TRUE,
+                                    BOOLEAN decodeRecord = TRUE,
+                                    BOOLEAN getPrimalData = FALSE ) = 0 ;
 
          virtual void postLoadExt( dmsMBContext *context,
                                    dmsExtent *extAddr,
@@ -1287,6 +1296,15 @@ namespace engine
 
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
+
+         // TODO: YSD
+         INT32 enableInfoSchema( dmsMBContext * context ) ;
+         INT32 disableInfoSchema( dmsMBContext * context ) ;
+
+         _dmsInternalSchema* getSchema( UINT16 mbID ) ;
+         INT32 getSchema( dmsMBContext * context,
+                          utilSchema &schema,
+                          BOOLEAN needGetOwned ) ;
 
       protected:
          virtual INT32 _prepareAddCollection( const BSONObj *extOption,
@@ -1307,10 +1325,12 @@ namespace engine
                                       dmsExtent *extAddr,
                                       SINT32 extentID ) = 0 ;
 
-         virtual INT32 _prepareInsertData( const BSONObj &record,
+         virtual INT32 _prepareInsertData( dmsMBContext *context,
+                                           const BSONObj &record,
                                            BOOLEAN mustOID,
                                            pmdEDUCB *cb,
                                            dmsRecordData &recordData,
+                                           dmsRecordData &encodeData,
                                            BOOLEAN &memReallocate,
                                            INT64 position ) = 0 ;
 
@@ -1443,6 +1463,8 @@ namespace engine
          void _setCompressor( dmsMBContext *context ) ;
          void _rmCompressor( _dmsMBContext *context ) ;
 
+         void _rmInternalSchema( _dmsMBContext *context ) ;
+
          // This function allocates a new extent. When the extent is allocated,
          // different storage types( sub classes of this base class ) may have
          // different further in-extent initialize operations. The parameter
@@ -1514,6 +1536,9 @@ namespace engine
                                         utilWriteResult *insertResult,
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 
+         INT32          _addSchema( dmsMBContext *context,
+                                    const utilSchema &schema ) ;
+
       //private:
       protected:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB
@@ -1542,6 +1567,7 @@ namespace engine
 
          _IDmsEventHolder                    *_pEventHolder ;
          _IDmsExtDataHandler                 *_pExtDataHandler ;
+         _dmsInternalSchema                  _schemas[ DMS_MME_SLOTS ] ;
 
    };
    typedef _dmsStorageDataCommon dmsStorageDataCommon ;

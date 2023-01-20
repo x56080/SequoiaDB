@@ -626,8 +626,7 @@ namespace engine
       BSONObj _query ;
    };
    typedef _catCMDReportTaskProgress catCMDReportTaskProgress ;
+
 }
 
 #endif /* CAT_COMMAND_HPP__ */
-
-

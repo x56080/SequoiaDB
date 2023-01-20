@@ -666,6 +666,28 @@ namespace engine
    } ;
    typedef class _coordCMDListRecycleBinIntr coordCMDListRecycleBinIntr ;
 
+   class _coordCMDListSchemas : public _coordCMDQueryBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _coordCMDListSchemas() ;
+      ~_coordCMDListSchemas() ;
+
+   protected:
+      virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
+                                 string &clName,
+                                 BSONObj &outSelector ) ;
+   } ;
+   typedef _coordCMDListSchemas coordCMDListSchemas ;
+
+   class _coordCMDListSchemasIntr : public _coordCMDListSchemas
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _coordCMDListSchemasIntr() ;
+      virtual ~_coordCMDListSchemasIntr() ;
+   } ;
+   typedef _coordCMDListSchemasIntr coordCMDListSchemasIntr ;
 }
 
 #endif // COORD_COMMAND_LIST_HPP__

@@ -114,6 +114,7 @@ namespace engine
       }
 
       _opHandler = opHandler ;
+      _getRawData = FALSE ;
    }
 
    _dmsScanner::~_dmsScanner()
@@ -168,6 +169,7 @@ namespace engine
       _needEscalation      = FALSE ;
       _CSCLLockHeld        = FALSE ;
       _cb                  = NULL ;
+      _getPrimalData      = FALSE ;
 
       // lock for update has higher priority
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
@@ -177,6 +179,11 @@ namespace engine
       else if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_SHARE ) )
       {
          _selectLockMode = DPS_TRANSLOCK_S ;
+      }
+
+      if ( OSS_BIT_TEST( flag, FLG_QUERY_PRIMAL_DATA ) )
+      {
+         _getPrimalData = TRUE ;
       }
    }
 
@@ -797,7 +804,13 @@ namespace engine
          {
 
             recordID = _curRID ;
-            rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
+
+
+
+
+            // TODO: YSD  when get raw data, it cannot be changed to object below.
+            rc = _pSu->extractData( _context, _recordRW, cb, recordData, TRUE,
+                                    !_getRawData, _getPrimalData ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
@@ -805,7 +818,10 @@ namespace engine
             }
             recordDataPtr = ( ossValuePtr )recordData.data() ;
             generator.setDataPtr( recordDataPtr ) ;
+            generator.setDataSize( recordData.len() ) ;
 
+            if ( !_getRawData )
+            {
             // math
             if ( _matchRuntime && _matchRuntime->getMatchTree() )
             {
@@ -886,6 +902,12 @@ namespace engine
                   }
                   goto done ; // find ok
                }
+            }
+
+            }
+            else
+            {
+               goto done ;
             }
          }
 
@@ -1061,7 +1083,8 @@ namespace engine
          else
          {
             recordID = _curRID ;
-            rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
+            rc = _pSu->extractData( _context, _recordRW, cb, recordData,
+                                    TRUE, TRUE, _getPrimalData ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;
@@ -1379,6 +1402,8 @@ namespace engine
          goto error ;
       }
 
+      _extScanner->setGetRawData( _getRawData ) ;
+
    done:
       return rc ;
    error:
@@ -1592,6 +1617,7 @@ namespace engine
       _blockScanDir        = 1 ;
       _countOnly           = FALSE ;
       _CSCLLockHeld        = FALSE ;
+      _getPrimalData      = FALSE ;
 
       // lock for update has higher priority
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
@@ -1601,6 +1627,11 @@ namespace engine
       else if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_SHARE ) )
       {
          _selectLockMode = DPS_TRANSLOCK_S ;
+      }
+
+      if ( OSS_BIT_TEST( flag, FLG_QUERY_PRIMAL_DATA ) )
+      {
+         _getPrimalData = TRUE ;
       }
    }
 
@@ -2483,7 +2514,8 @@ namespace engine
                      "record can't be deleted" ) ;
 
          recordID = _curRID ;
-         rc = _pSu->extractData( _context, _recordRW, cb, recordData, !pRecord ) ;
+         rc = _pSu->extractData( _context, _recordRW, cb, recordData, !pRecord,
+                                 TRUE, _getPrimalData ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;

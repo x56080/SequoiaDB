@@ -220,6 +220,25 @@ namespace engine
             rc = _checkDropAutoIncField( cataSet, cb, lockMgr ) ;
             break ;
          }
+         case RTN_ALTER_CL_ADD_SCHEMA :
+         {
+            const rtnCLAddSchemaTask * localTask =
+                     dynamic_cast< const rtnCLAddSchemaTask * >( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                      "Failed to get task" ) ;
+            rc = _checkAddSchema( cataSet, localTask->getSchemaName(), cb, lockMgr ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA :
+         {
+            const rtnCLAlterSchemaTask * localTask =
+                     dynamic_cast< const rtnCLAlterSchemaTask * >( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                      "Failed to get task" ) ;
+            rc = _checkAlterSchema( cataSet, localTask->getSchemaAlterAction(),
+                                    cb, lockMgr ) ;
+            break ;
+         }
          case RTN_ALTER_CL_INC_VERSION:
          {
             rc = SDB_OK ;
@@ -300,6 +319,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to execute collection [%s]'s system index, rc: %d",
                    _dataName.c_str(), rc ) ;
+
+      rc = _executeSchema( cataSet, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute schema for "
+                   "collection [%s], rc: %d", cataSet.name(), rc ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK_EXECUTE_INT, rc ) ;
@@ -658,6 +681,149 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__EXECSCHEMA, "_catCtxAlterCLTask::_executeSchema" )
+   INT32 _catCtxAlterCLTask::_executeSchema( const clsCatalogSet &cataSet,
+                                             _pmdEDUCB *cb,
+                                             INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__EXECSCHEMA ) ;
+
+      const CHAR *collectionName = cataSet.name() ;
+
+      switch ( _task->getActionType() )
+      {
+         case RTN_ALTER_CL_ADD_SCHEMA:
+         {
+            if ( !_subCLOFMainCL )
+            {
+               const rtnCLAddSchemaTask *localTask =
+                        dynamic_cast< const rtnCLAddSchemaTask * >( _task ) ;
+               PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                         "Failed to get task" ) ;
+
+               rc = catBindSchema( localTask->getSchemaName(), collectionName,
+                                   cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to bind schema, rc: %d",
+                            rc ) ;
+            }
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            const rtnCLAlterSchemaTask *localTask =
+                     dynamic_cast< const rtnCLAlterSchemaTask * >( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                      "Failed to get task" ) ;
+            const utilSchemaAlterAction &action =
+                                          localTask->getSchemaAlterAction() ;
+
+            if ( !_subCLOFMainCL )
+            {
+               utilSchema schema ;
+               const CHAR *schemaName = action.getSchemaName() ;
+
+               rc = action.applySchema( _schema ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to apply alter action on "
+                            "schema [%s], rc: %d", schemaName, rc ) ;
+
+               rc = catUpdateSchema( _schema, action.getAlterMask(), cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update schema [%s], rc: %d",
+                            schemaName, rc ) ;
+            }
+
+            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            {
+               rc = _renameColumnForIdx( cataSet, action, FALSE, cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update indexes for rename "
+                            "column, rc: %d", rc ) ;
+            }
+
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__EXECSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__ROLLBACKSCHEMA, "_catCtxAlterCLTask::_rollbackSchema" )
+   INT32 _catCtxAlterCLTask::_rollbackSchema( const clsCatalogSet &cataSet,
+                                              _pmdEDUCB *cb,
+                                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__ROLLBACKSCHEMA ) ;
+
+      switch ( _task->getActionType() )
+      {
+         case RTN_ALTER_CL_ADD_SCHEMA:
+         {
+            if ( !_subCLOFMainCL )
+            {
+               const rtnCLAddSchemaTask *localTask =
+                        dynamic_cast< const rtnCLAddSchemaTask * >( _task ) ;
+               PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                         "Failed to get task" ) ;
+
+               rc = catUnbindSchema( localTask->getSchemaName(), cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to unbind schema, rc: %d",
+                            rc ) ;
+            }
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            const rtnCLAlterSchemaTask *localTask =
+                     dynamic_cast< const rtnCLAlterSchemaTask * >( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                      "Failed to get task" ) ;
+            const utilSchemaAlterAction &action =
+                                          localTask->getSchemaAlterAction() ;
+
+            if ( !_subCLOFMainCL )
+            {
+               rc = catUpdateSchema( _schema.getName(), _schema.getDefine(), cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to rollback schema [%s], rc: %d",
+                            _schema.getName(), rc ) ;
+               PD_LOG( PDDEBUG, "Rollback schema [%s] to [%s]",
+                       _schema.getName(),
+                       _schema.getDefine().toPoolString().c_str() ) ;
+            }
+
+            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            {
+               rc = _renameColumnForIdx( cataSet, action, TRUE, cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update indexes for rename "
+                            "column, rc: %d", rc ) ;
+            }
+
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__ROLLBACKSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK_ROLLBACK_INT, "_catCtxAlterCLTask::_rollbackInternal" )
    INT32 _catCtxAlterCLTask::_rollbackInternal ( _pmdEDUCB * cb,
                                                  SDB_DMSCB * pDmsCB,
@@ -781,6 +947,28 @@ namespace engine
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                 "Failed to check [%s]: collection [%s] is capped",
                 _task->getActionName(), _dataName.c_str() ) ;
+
+      if ( argument.testArgumentMask( UTIL_CL_SHDKEY_FIELD ) &&
+           0 != argument.getShardingKey().woCompare( cataSet.getShardingKey() ) &&
+           cataSet.hasSchema() )
+      {
+         const CHAR *conflictColumn = NULL ;
+         const CHAR *schemaName = cataSet.getSchemaName() ;
+         utilSchema schema ;
+
+         rc = catGetSchema( schemaName, schema, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                      schemaName, rc ) ;
+
+         rc = schema.checkDefaultKeys( argument.getShardingKey(),
+                                       FALSE, TRUE, conflictColumn ) ;
+         PD_LOG_MSG_CHECK( NULL == conflictColumn,
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to pass default key check for "
+                           "sharding key [%s], column [%s] has default value",
+                           argument.getShardingKey().toPoolString().c_str(),
+                           conflictColumn ) ;
+      }
 
       if ( cataSet.isMainCL() &&
            _task->testFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) &&
@@ -1033,6 +1221,17 @@ namespace engine
                    CAT_NOTRANS, _dataName.c_str() ) ;
       }
 
+      if ( localTask->testArgumentMask( UTIL_CL_ENABLE_INFOSCHEMA ) )
+      {
+         if ( !localTask->isEnableInfoSchema() )
+         {
+            PD_LOG_MSG_CHECK( !cataSet.isAttrEnableInfoSchema(),
+                              SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                              "Failed to check attribute [%s], can not disable",
+                              FIELD_NAME_ENABLE_INFOSCHEMA ) ;
+         }
+      }
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKSETATTR, rc ) ;
       return rc ;
@@ -1115,6 +1314,137 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__CHKADDSCHEMA, "_catCtxAlterCLTask::_checkAddSchema" )
+   INT32 _catCtxAlterCLTask::_checkAddSchema( const clsCatalogSet &cataSet,
+                                              const CHAR *schemaName,
+                                              _pmdEDUCB *cb,
+                                              catCtxLockMgr &lockMgr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKADDSCHEMA ) ;
+
+      const CHAR *collectionName = cataSet.name() ;
+      ossPoolVector< BSONObj > indexList ;
+
+      if ( !_schema.isValid() )
+      {
+         rc = catGetSchema( schemaName, _schema, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                      schemaName, rc ) ;
+
+         PD_LOG_MSG_CHECK( !_schema.hasBind(),
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check add schema of %scollection [%s], "
+                           "schema [%s] has already bind",
+                           _subCLOFMainCL ? "sub-" : "", collectionName, schemaName ) ;
+      }
+
+      PD_LOG_MSG_CHECK( cataSet.isAttrEnableInfoSchema(),
+                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                        "Failed to check add schema of %scollection [%s], "
+                        "info schema is not enabled",
+                        _subCLOFMainCL ? "sub-" : "", collectionName ) ;
+
+      PD_LOG_MSG_CHECK( !cataSet.hasSchema(),
+                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                        "Failed to check add schema of %scollection [%s], "
+                        "already has schema", _subCLOFMainCL ? "sub-" : "",
+                              collectionName ) ;
+
+      if ( cataSet.isSubCL() && !_subCLOFMainCL )
+      {
+         PD_LOG_MSG_CHECK( FALSE, SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check add schema of collection [%s], "
+                           "add schema to sub-collection is not supported",
+                           cataSet.name() ) ;
+      }
+
+      if ( cataSet.isSharding() )
+      {
+         const CHAR *conflictColumn = NULL ;
+         rc = _schema.checkDefaultKeys( cataSet.getShardingKey(),
+                                        TRUE, TRUE, conflictColumn ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
+                      "schema [%s] for sharding keys of collection [%s], "
+                      "rc: %d", schemaName, collectionName, rc ) ;
+         PD_LOG_MSG_CHECK( NULL == conflictColumn,
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to pass default key check for "
+                           "sharding key [%s], column [%s] has default value",
+                           cataSet.getShardingKey().toPoolString().c_str(),
+                           conflictColumn ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKADDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMA, "_catCtxAlterCLTask::_checkAlterSchema" )
+   INT32 _catCtxAlterCLTask::_checkAlterSchema( const clsCatalogSet & cataSet,
+                                                const utilSchemaAlterAction &action,
+                                                _pmdEDUCB *cb,
+                                                catCtxLockMgr &lockMgr )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMA ) ;
+
+      const CHAR *schemaName = action.getSchemaName() ;
+      const CHAR *collectionName = cataSet.name() ;
+      const CHAR *bindSchemaName = cataSet.getSchemaName() ;
+
+      if ( !_subCLOFMainCL )
+      {
+         PD_CHECK( cataSet.hasSchema(),
+                   SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                   "Failed to check alter schema on collection [%s], "
+                   "it has no schema", cataSet.name() ) ;
+      }
+
+      if ( !_schema.isValid() )
+      {
+         rc = catGetSchema( schemaName, _schema, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                      schemaName, rc ) ;
+      }
+
+      if ( !_subCLOFMainCL )
+      {
+         const CHAR *bindCLName = _schema.getCollection() ;
+
+         rc = action.checkSchema( _schema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check alter action on "
+                      "schema [%s], rc: %d", schemaName, rc ) ;
+
+         PD_LOG_MSG_CHECK( 0 == ossStrcmp( schemaName, bindSchemaName ),
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check alter schema [%s] on collection [%s], "
+                           "collection has bind a different schema [%s]",
+                           schemaName, collectionName, bindSchemaName ) ;
+         PD_LOG_MSG_CHECK( 0 == ossStrcmp( bindCLName, collectionName ),
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check alter schema [%s] on collection [%s], "
+                           "schema has bind different collection [%s]",
+                           schemaName, collectionName, bindCLName ) ;
+      }
+
+      rc = _checkAlterSchemaForShardingKey( cataSet, action, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on sharding key, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMA, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -1221,6 +1551,30 @@ namespace engine
             rc = _buildDropAutoincFields( cataSet, fieldList, setBuilder,
                                           unsetBuilder, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build fields, rc: %d", rc ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ADD_SCHEMA:
+         {
+            const rtnCLAddSchemaTask * localTask =
+                  dynamic_cast< const rtnCLAddSchemaTask *>( _task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR, "Failed to get task" ) ;
+            rc = _buildAddSchemaFields( cataSet, localTask->getSchemaName(),
+                                        setBuilder, unsetBuilder ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            const rtnCLAlterSchemaTask * localTask =
+                  dynamic_cast< const rtnCLAlterSchemaTask *>( _task ) ;
+            const utilSchemaAlterAction &action = localTask->getSchemaAlterAction() ;
+            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            {
+               rc = _buildRenameColumnForSeq( cataSet,
+                                              action.getColumnName(),
+                                              action.getNewColAttr().getName(),
+                                              setBuilder,
+                                              unsetBuilder ) ;
+            }
             break ;
          }
          case RTN_ALTER_CL_INC_VERSION:
@@ -1344,6 +1698,27 @@ namespace engine
          {
             rc = SDB_OK ;
             break;
+         }
+         case RTN_ALTER_CL_ADD_SCHEMA:
+         {
+            rc = _buildRemoveSchemaFields( cataSet, setBuilder, unsetBuilder ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            const rtnCLAlterSchemaTask * localTask =
+                  dynamic_cast< const rtnCLAlterSchemaTask *>( _task ) ;
+            const utilSchemaAlterAction &action = localTask->getSchemaAlterAction() ;
+            if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+            {
+               // rollback auto-inc fields
+               rc = _buildRenameColumnForSeq( cataSet,
+                                              action.getNewColAttr().getName(),
+                                              action.getColumnName(),
+                                              setBuilder,
+                                              unsetBuilder ) ;
+            }
+            break ;
          }
          default :
          {
@@ -1760,6 +2135,18 @@ namespace engine
          }
       }
 
+      if ( localTask->testArgumentMask( UTIL_CL_ENABLE_INFOSCHEMA ) )
+      {
+         if ( localTask->isEnableInfoSchema() )
+         {
+            OSS_BIT_SET( attribute, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
+         }
+         else
+         {
+            OSS_BIT_CLEAR( attribute, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
+         }
+      }
+
       if ( localTask->testArgumentMask( UTIL_CL_AUTOREBALANCE_FIELD ) )
       {
          setBuilder.appendBool( CAT_DOMAIN_AUTO_REBALANCE,
@@ -1986,6 +2373,99 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__BLDRENAMECOLSEQ, "_catCtxAlterCLTask::_buildRenameColumnForSeq" )
+   INT32 _catCtxAlterCLTask::_buildRenameColumnForSeq( clsCatalogSet & cataSet,
+                                                       const CHAR *oldColName,
+                                                       const CHAR *newColName,
+                                                       BSONObjBuilder & setBuilder,
+                                                       BSONObjBuilder & unsetBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__BLDRENAMECOLSEQ ) ;
+
+      if ( 0 == cataSet.getAutoIncSet()->itemCount() )
+      {
+         goto done ;
+      }
+      else
+      {
+         BOOLEAN hasField = FALSE ;
+         const clsAutoIncItem *item = NULL ;
+         clsAutoIncIterator it( *( cataSet.getAutoIncSet() ),
+                                clsAutoIncIterator::NON_RECURS ) ;
+         while ( it.more() )
+         {
+            item = it.next() ;
+            const CHAR *fieldName = item->fieldName() ;
+            if ( 0 == ossStrcmp( oldColName, fieldName ) )
+            {
+               hasField = TRUE ;
+               break ;
+            }
+         }
+
+         if ( !hasField )
+         {
+            goto done ;
+         }
+      }
+
+      try
+      {
+         const clsAutoIncItem *item = NULL ;
+         BSONArrayBuilder arrBuilder(
+               setBuilder.subarrayStart( CAT_AUTOINCREMENT ) ) ;
+
+         UINT32 oldColNameLen = ossStrlen( oldColName ) ;
+
+         clsAutoIncIterator it(
+               *( cataSet.getAutoIncSet() ), clsAutoIncIterator::RECURS ) ;
+         while ( it.more() )
+         {
+            ossPoolString newFieldName ;
+
+            item = it.next() ;
+            const CHAR *fieldName = item->fieldFullName() ;
+            if ( 0 == ossStrncmp( oldColName, fieldName, oldColNameLen ) )
+            {
+               if ( '\0' == fieldName[ oldColNameLen ] )
+               {
+                  fieldName = newColName ;
+               }
+               else if ( '.' == fieldName[ oldColNameLen ] )
+               {
+                  ossPoolStringStream ss ;
+                  ss << newColName << "." << fieldName + oldColNameLen + 1 ;
+                  newFieldName = ss.str() ;
+                  fieldName = newFieldName.c_str() ;
+               }
+            }
+
+            BSONObjBuilder subBuilder( arrBuilder.subobjStart() ) ;
+            subBuilder.append( CAT_AUTOINC_SEQ, item->sequenceName() ) ;
+            subBuilder.append( CAT_AUTOINC_FIELD, fieldName ) ;
+            subBuilder.append( CAT_AUTOINC_GENERATED, item->generated() ) ;
+            subBuilder.append( CAT_AUTOINC_SEQ_ID, (INT64)( item->sequenceID() ) ) ;
+            subBuilder.done() ;
+         }
+         arrBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to rebuild sequence set, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__BLDRENAMECOLSEQ, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__FILLSHDARG, "_catCtxAlterCLTask::_fillShardingArgument" )
    INT32 _catCtxAlterCLTask::_fillShardingArgument ( clsCatalogSet & cataSet,
@@ -2062,6 +2542,8 @@ namespace engine
          case RTN_ALTER_CL_DISABLE_SHARDING :
          case RTN_ALTER_CL_CREATE_AUTOINC_FLD :
          case RTN_ALTER_CL_INC_VERSION:
+         case RTN_ALTER_CL_ADD_SCHEMA:
+         case RTN_ALTER_CL_ALTER_SCHEMA:
          {
             rc = SDB_OK ;
             break ;
@@ -2303,6 +2785,182 @@ namespace engine
 
       goto done ;
 
+   }
+
+   INT32 _catCtxAlterCLTask::_buildAddSchemaFields( clsCatalogSet & cataSet,
+                                                    const CHAR *schemaName,
+                                                    BSONObjBuilder & setBuilder,
+                                                    BSONObjBuilder & unsetBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      setBuilder.append( FIELD_NAME_SCHEMA, schemaName ) ;
+
+      return rc ;
+   }
+
+   INT32 _catCtxAlterCLTask::_buildRemoveSchemaFields( clsCatalogSet & cataSet,
+                                                       BSONObjBuilder & setBuilder,
+                                                       BSONObjBuilder & unsetBuilder )
+   {
+      unsetBuilder.append( FIELD_NAME_SCHEMA, 1 ) ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMASHARDKEY, "_catCtxAlterCLTask::_checkAlterSchemaForShardingKey" )
+   INT32 _catCtxAlterCLTask::_checkAlterSchemaForShardingKey( const clsCatalogSet &cataSet,
+                                                              const utilSchemaAlterAction &action,
+                                                              pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMASHARDKEY ) ;
+
+      if ( UTIL_SCHEMA_ADD_COLUMN != action.getAction() &&
+           UTIL_SCHEMA_RENAME_COLUMN != action.getAction() )
+      {
+         goto done ;
+      }
+
+      if ( cataSet.isSharding() )
+      {
+         BOOLEAN hasColumn = FALSE, hasNewColumn = FALSE ;
+         BSONObj shardingKey = cataSet.getShardingKey() ;
+         rc = action.checkKeyPattern( shardingKey,
+                                      hasColumn,
+                                      hasNewColumn );
+         PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key, rc: %d",
+                      rc ) ;
+
+         switch ( action.getAction() )
+         {
+            case UTIL_SCHEMA_ADD_COLUMN:
+            {
+               if ( hasColumn )
+               {
+                  PD_LOG_MSG_CHECK(
+                        !OSS_BIT_TEST( action.getAlterMask(),
+                                       UTIL_SCHEMA_ATTR_MASK_COL_RDEF ),
+                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                        "Failed to check alter schema [%s] on collection [%s], "
+                        "can not add column [%s] with read value "
+                        "against sharding keys [%s]",
+                        action.getSchemaName(),
+                        cataSet.name(),
+                        action.getColumnName(),
+                        shardingKey.toPoolString().c_str() ) ;
+               }
+               break ;
+            }
+            case UTIL_SCHEMA_RENAME_COLUMN:
+            {
+               PD_LOG_MSG_CHECK(
+                     ( !hasColumn ) && ( !hasNewColumn ),
+                     SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                     "Failed to check alter schema [%s] on collection [%s], "
+                     "can not rename column [%s] to [%s] against "
+                     "sharding keys [%s]",
+                     action.getSchemaName(),
+                     cataSet.name(),
+                     action.getColumnName(),
+                     action.getNewColAttr().getName(),
+                     shardingKey.toPoolString().c_str() ) ;
+               break ;
+            }
+            default:
+            {
+               break ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMASHARDKEY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__RENAMECOLIDX, "_catCtxAlterCLTask::_renameColumnForIdx" )
+   INT32 _catCtxAlterCLTask::_renameColumnForIdx( const clsCatalogSet &cataSet,
+                                                  const utilSchemaAlterAction &action,
+                                                  BOOLEAN isRollback,
+                                                  pmdEDUCB *cb,
+                                                  INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__RENAMECOLIDX ) ;
+
+      const CHAR *collectionName = cataSet.name() ;
+      ossPoolVector< BSONObj > indexList ;
+
+      rc = catGetCLIndexes( collectionName, FALSE, cb, indexList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get indexes of collection [%s], "
+                   "rc: %d", collectionName, rc ) ;
+
+      for ( ossPoolVector< BSONObj >::iterator iter = indexList.begin() ;
+            iter != indexList.end() ;
+            ++ iter )
+      {
+         try
+         {
+            const BSONObj &boIndex = *iter ;
+            BSONObj boIndexDef = boIndex.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
+            BSONObj keyPattern = boIndexDef.getObjectField( IXM_KEY_FIELD ) ;
+            const CHAR *indexName = boIndexDef.getStringField( IXM_FIELD_NAME_NAME ) ;
+            BSONObj newKeyPattern ;
+            BOOLEAN hasOldCol = FALSE, hasNewCol = FALSE ;
+            BOOLEAN needRebuild = FALSE ;
+
+            const CHAR *oldColName = isRollback ?
+                                     action.getNewColAttr().getName() :
+                                     action.getColumnName() ;
+            const CHAR *newColName = isRollback ?
+                                     action.getColumnName() :
+                                     action.getNewColAttr().getName() ;
+
+            rc = action.checkKeyPattern( keyPattern, hasOldCol, hasNewCol ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
+                         "rc: %d", rc ) ;
+            needRebuild = isRollback ? hasNewCol : hasOldCol ;
+
+            if ( needRebuild )
+            {
+               rc = action.rebuildKeyPattern( keyPattern,
+                                              newKeyPattern,
+                                              isRollback ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to rebuild key pattern, "
+                            "rc: %d", rc ) ;
+
+               rc = catUpdateIndex( collectionName, indexName, newKeyPattern, cb, w ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to update index [%s] with rename "
+                            "column, rc: %d", rc ) ;
+               PD_LOG( PDDEBUG, "Rename column from [%s] to [%s] for index [%s] "
+                       "key from [%s] to [%s] on collection [%s]",
+                       oldColName, newColName, indexName,
+                       keyPattern.toPoolString().c_str(),
+                       newKeyPattern.toPoolString().c_str(),
+                       collectionName ) ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse index, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__RENAMECOLIDX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__CHKAUTOSPLIT, "_catCtxAlterCLTask::_checkAutoSplit" )

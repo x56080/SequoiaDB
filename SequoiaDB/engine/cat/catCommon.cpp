@@ -3058,6 +3058,54 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPDATEINDEX, "catUpdateIndex" )
+   INT32 catUpdateIndex( const CHAR *clFullName,
+                         const CHAR *indexName,
+                         const bson::BSONObj &keyPattern,
+                         pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATUPDATEINDEX ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boUpdate, boDummy ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_COLLECTION <<
+                           clFullName <<
+                           IXM_FIELD_NAME_INDEX_DEF "." IXM_FIELD_NAME_NAME <<
+                           indexName ) ;
+         boUpdate =
+               BSON( "$set" <<
+                     BSON( IXM_FIELD_NAME_INDEX_DEF "." IXM_KEY_FIELD <<
+                           keyPattern ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_INDEX_INFO_COLLECTION, boMatcher, boUpdate, boDummy,
+                      0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update index [%s] of collection[%s], "
+                   "updator[%s], rc: %d", indexName, clFullName,
+                   boUpdate.toString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATUPDATEINDEX, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATADDTASK, "catAddTask" )
    INT32 catAddTask( const BSONObj & taskObj, pmdEDUCB * cb, INT16 w )
    {
@@ -6074,13 +6122,17 @@ namespace engine
       // 1) Remove tasks with the collection space
       rc = catRemoveCSTasks( csName.c_str(), cb, w ) ;
       PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to remove tasks with the collection [%s], rc: %d",
+                   "Failed to remove tasks with the collection space [%s], rc: %d",
                    csName.c_str(), rc ) ;
 
       // 2) Remove indexes with the collection space
       rc = catRemoveCSIndexes( csName.c_str(), cb, w ) ;
       PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to remove indexes with the collection [%s], rc: %d",
+                   "Failed to remove indexes with the collection space [%s], rc: %d",
+                   csName.c_str(), rc ) ;
+
+      rc = catRemoveSchemaByCS( csName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to unbind schemas with collection space [%s], rc: %d",
                    csName.c_str(), rc ) ;
 
       // 3) Remove collections with the collection space
@@ -6229,6 +6281,13 @@ namespace engine
                    "Failed to rename cl[%s] in indexes, rc: %d",
                    oldCLName.c_str(), rc ) ;
 
+      if ( cataSet.hasSchema() )
+      {
+         rc = catBindSchema( cataSet.getSchemaName(), newCLName.c_str(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to rename schema [%s], rc: %d",
+                      cataSet.getSchemaName(), rc ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_CATRENAMECLSTEP, rc ) ;
       return rc ;
@@ -6316,6 +6375,10 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING,
                       "Failed to remove indexes with the collection [%s], rc: %d",
                       clName.c_str(), rc ) ;
+
+         rc = catRemoveSchemaByCL( clName.c_str(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to remove schema from collection [%s], "
+                      "rc: %d", clName.c_str(), rc ) ;
       }
 
       rc = catGetCollection( clName, boCollection, cb ) ;
@@ -7072,6 +7135,13 @@ namespace engine
             PD_CHECK( ossStrlen(origMapping) > 0, SDB_INVALIDARG, error,
                       PDERROR, "Mapping value is invalid" ) ;
          }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_ENABLE_INFOSCHEMA ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(), SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error", CAT_ENABLE_INFOSCHEMA, eleTmp.type() ) ;
+            clInfo._enableInfoSchema = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_ENABLE_INFOSCHEMA ;
+         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDWARNING,
@@ -7431,6 +7501,10 @@ namespace engine
       if ( ( mask & UTIL_CL_NOTRANS_FIELD ) && clInfo._noTrans )
       {
          attribute |= DMS_MB_ATTR_NOTRANS ;
+      }
+      if ( ( mask & UTIL_CL_ENABLE_INFOSCHEMA ) && clInfo._enableInfoSchema )
+      {
+         attribute |= DMS_MB_ATTR_ENABLE_INFOSCHEMA ;
       }
       mbAttr2String( attribute, szAttr, sizeof( szAttr ) - 1 ) ;
 
@@ -9332,6 +9406,411 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATGETRTRNCLUID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETSCHEMA, "catGetSchema" )
+   INT32 catGetSchema( const CHAR *schemaName,
+                       utilSchema &schema,
+                       pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETSCHEMA ) ;
+
+      // get schema
+      BSONObj boMatcher, boDummy, boRecord ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_NAME << schemaName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed build matcher, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = catGetOneObj( CAT_SCHEMA_COLLECTION, boDummy, boMatcher, boDummy, cb, boRecord ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_SCHEMA_NOT_EXIST ;
+         PD_LOG( PDERROR, "Failed to get schema [%s], it does not exist", schemaName ) ;
+         goto error ;
+      }
+      else
+      {
+         PD_RC_CHECK( rc, PDERROR, "Get schema record failed, rc: %d", rc ) ;
+      }
+
+      rc = schema.parse( boRecord, FALSE, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse schema [%s], rc: %d", schemaName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATADDSCHEMA, "catAddSchema" )
+   INT32 catAddSchema( const utilSchema &schema,
+                       pmdEDUCB *cb,
+                       INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATADDSCHEMA ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj record ;
+
+      rc = schema.toBSON( record ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build schema record, rc: %d", rc ) ;
+
+      // Insert the record into SYSCAT.SYSINFOSCHEMAS.
+      rc = rtnInsert( CAT_SCHEMA_COLLECTION, record, 1, 0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to insert info schema record[%s] into collection[%s], "
+                   "rc: %d", schema.toString().c_str(), CAT_SCHEMA_COLLECTION, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATADDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRMSCHEMA, "catRemoveSchema" )
+   INT32 catRemoveSchema( const CHAR *schemaName,
+                          pmdEDUCB *cb,
+                          INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRMSCHEMA ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boDummy ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_NAME << schemaName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed build matcher, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnDelete( CAT_SCHEMA_COLLECTION, boMatcher, boDummy, 0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete record from collection: %s, "
+                   "match: %s, rc: %d", CAT_SCHEMA_COLLECTION,
+                   boMatcher.toPoolString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRMSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRMSCHEMABYCL, "catRemoveSchemaByCL" )
+   INT32 catRemoveSchemaByCL( const CHAR *collectionName,
+                              pmdEDUCB *cb,
+                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATRMSCHEMABYCL ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boDummy ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_COLLECTION << collectionName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed build matcher, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnDelete( CAT_SCHEMA_COLLECTION, boMatcher, boDummy, 0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete record from collection: %s, "
+                   "match: %s, rc: %d", CAT_SCHEMA_COLLECTION, boMatcher.toPoolString().c_str(),
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATRMSCHEMABYCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATREMOVESCHEMABYCS, "catRemoveSchemaByCS" )
+   INT32 catRemoveSchemaByCS( const CHAR *collectionSpaceName,
+                              pmdEDUCB *cb,
+                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATREMOVESCHEMABYCS ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boDummy ;
+
+      rc = _catBuildCLMatcher( FIELD_NAME_COLLECTION, collectionSpaceName, boMatcher ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build matcher for collection space [%s], rc: %d", rc ) ;
+
+      rc = rtnDelete( CAT_SCHEMA_COLLECTION, boMatcher, boDummy, 0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to delete record from collection: %s, "
+                   "match: %s, rc: %d", CAT_SCHEMA_COLLECTION, boMatcher.toPoolString().c_str(),
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATREMOVESCHEMABYCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBINDSCHEMA, "catBindSchema" )
+   INT32 catBindSchema( const CHAR *schemaName,
+                        const CHAR *collectionName,
+                        pmdEDUCB *cb,
+                        INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATBINDSCHEMA ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boUpdator, boDummy ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_NAME << schemaName ) ;
+         boUpdator = BSON( "$set" << BSON( FIELD_NAME_COLLECTION << collectionName ) <<
+                           "$inc" << BSON( FIELD_NAME_VERSION << 1 ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed build matcher, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_SCHEMA_COLLECTION, boMatcher, boUpdator, boDummy,
+                      0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update record from collection: %s, "
+                   "match: %s, updator: %s, rc: %d", CAT_SCHEMA_COLLECTION,
+                   boMatcher.toPoolString().c_str(), boUpdator.toPoolString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATBINDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUNBINDSCHEMA, "catUnbindSchema" )
+   INT32 catUnbindSchema( const CHAR *schemaName,
+                          pmdEDUCB *cb,
+                          INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATUNBINDSCHEMA ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boUpdator, boDummy ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_NAME << schemaName ) ;
+         boUpdator = BSON( "$unset" << BSON( FIELD_NAME_COLLECTION << 1 ) <<
+                           "$inc" << BSON( FIELD_NAME_VERSION << 1 ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed build matcher, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_SCHEMA_COLLECTION, boMatcher, boUpdator, boDummy,
+                      0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update record from collection: %s, "
+                   "match: %s, updator: %s, rc: %d", CAT_SCHEMA_COLLECTION,
+                   boMatcher.toPoolString().c_str(),
+                   boUpdator.toPoolString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATUNBINDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATUPDATESCHEMA, "_catUpdateSchema" )
+   INT32 _catUpdateSchema( const CHAR *schemaName,
+                           const bson::BSONObj &boSchema,
+                           pmdEDUCB *cb,
+                           INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      BSONObj boMatcher, boUpdator, boDummy ;
+
+      PD_TRACE_ENTRY( SDB__CATUPDATESCHEMA ) ;
+
+      try
+      {
+         boMatcher = BSON( FIELD_NAME_NAME << schemaName ) ;
+         boUpdator = BSON( "$set" << boSchema <<
+                           "$inc" << BSON( FIELD_NAME_VERSION << 1 ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed build matcher, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( CAT_SCHEMA_COLLECTION, boMatcher, boUpdator, boDummy,
+                      0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update record from collection: %s, "
+                   "match: %s, updator: %s, rc: %d", CAT_SCHEMA_COLLECTION,
+                   boMatcher.toPoolString().c_str(),
+                   boUpdator.toPoolString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CATUPDATESCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPDATESCHEMA, "catUpdateSchema" )
+   INT32 catUpdateSchema( const utilSchema &schema,
+                          UINT32 alterMask,
+                          pmdEDUCB *cb,
+                          INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATUPDATESCHEMA ) ;
+
+      BSONObj boSchema ;
+
+      OSS_BIT_CLEAR( alterMask, UTIL_SCHEMA_ATTR_MASK_NAME ) ;
+      OSS_BIT_CLEAR( alterMask, UTIL_SCHEMA_ATTR_MASK_VERSION ) ;
+      OSS_BIT_CLEAR( alterMask, UTIL_SCHEMA_ATTR_MASK_COLLECTION ) ;
+
+      if ( 0 == alterMask )
+      {
+         goto done ;
+      }
+
+      rc = schema.toBSON( boSchema, alterMask ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema [%s], rc: %d",
+                   schema.getName(), rc ) ;
+
+      rc = _catUpdateSchema( schema.getName(), boSchema, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update schema [%s], rc: %d",
+                   schema.getName(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATUPDATESCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPDATESCHEMA_BSON, "catUpdateSchema" )
+   INT32 catUpdateSchema( const CHAR *schemaName,
+                          const BSONObj &boSchema,
+                          pmdEDUCB *cb,
+                          INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATUPDATESCHEMA_BSON ) ;
+
+      BSONObj boSchemaAttr ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjIterator iter( boSchema ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            const CHAR *fieldName = ele.fieldName() ;
+            if ( 0 == ossStrcmp( fieldName, FIELD_NAME_NAME ) ||
+                 0 == ossStrcmp( fieldName, FIELD_NAME_VERSION ) ||
+                 0 == ossStrcmp( fieldName, FIELD_NAME_COLLECTION ) )
+            {
+               continue ;
+            }
+            builder.append( ele ) ;
+         }
+         boSchemaAttr = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build new schema attributes, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _catUpdateSchema( schemaName, boSchemaAttr, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update schema [%s], rc: %d",
+                   schemaName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATUPDATESCHEMA_BSON, rc ) ;
       return rc ;
 
    error:

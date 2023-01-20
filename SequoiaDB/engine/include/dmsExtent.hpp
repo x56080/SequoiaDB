@@ -309,6 +309,106 @@ namespace engine
    } ;
    typedef _dmsOptExtent dmsOptExtent ;
    #define DMS_OPTEXTENT_HEADER_SZ  sizeof(dmsOptExtent)
+
+   #define DMS_SCHEMA_EXTENT_EYECATCHER0     'S'
+   #define DMS_SCHEMA_EXTENT_EYECATCHER1     'E'
+   #define DMS_SCHEMA_EXTENT_CURRENT_V       1
+
+   struct _dmsSchemaExtent : public SDBObject
+   {
+      // Total: 20 bytes
+      CHAR        _eyeCatcher[2] ;
+      UINT16      _blockSize ;
+      UINT16      _mbID ;
+      CHAR        _flag ;
+      CHAR        _version ;
+      dmsExtentID _prevExtent ;
+      dmsExtentID _nextExtent ;
+      UINT16      _itemNum ;
+      UINT16      _valueOffset ;
+      UINT16      _readDefaultNum ;
+      UINT16      _writeDefaultNum ;
+
+      void init( UINT16 numPages, UINT16 mbID )
+      {
+         _eyeCatcher[0]       = DMS_SCHEMA_EXTENT_EYECATCHER0 ;
+         _eyeCatcher[1]       = DMS_SCHEMA_EXTENT_EYECATCHER1 ;
+         _blockSize           = numPages ;
+         _mbID                = mbID ;
+         _flag                = DMS_EXTENT_FLAG_INUSE ;
+         _version             = DMS_SCHEMA_EXTENT_CURRENT_V ;
+         _prevExtent          = DMS_INVALID_EXTENT ;
+         _nextExtent          = DMS_INVALID_EXTENT ;
+         _itemNum             = 0 ;
+         _valueOffset         = 0 ;
+         _readDefaultNum      = 0 ;
+         _writeDefaultNum     = 0 ;
+      }
+
+      BOOLEAN validate( UINT16 mbID = DMS_INVALID_MBID ) const
+      {
+         if ( DMS_SCHEMA_EXTENT_EYECATCHER0 != _eyeCatcher[0] ||
+              DMS_SCHEMA_EXTENT_EYECATCHER1 != _eyeCatcher[1] ||
+              DMS_EXTENT_FLAG_INUSE != _flag )
+         {
+            return FALSE ;
+         }
+         else if ( DMS_INVALID_MBID != mbID && _mbID != mbID )
+         {
+            return FALSE ;
+         }
+         return TRUE ;
+      }
+   } ;
+   typedef _dmsSchemaExtent dmsSchemaExtent ;
+   #define DMS_SCHEMAEXTENT_HEADER_SZ  sizeof(dmsSchemaExtent)
+   #define DMS_SCHEMAEXTENT_SLOT_SZ    (4)
+
+   #define DMS_SCHEMA_HASH_EXTENT_EYECATCHER0   'H'
+   #define DMS_SCHEMA_HASH_EXTENT_EYECATCHER1   'E'
+   #define DMS_SCHEMA_HASH_EXTENT_CURRENT_V     1
+
+   struct _dmsSchemaHashExtent : public SDBObject
+   {
+      // Total: 12 bytes
+      CHAR        _eyeCatcher[2] ;
+      UINT16      _blockSize ;
+      UINT16      _mbID ;
+      CHAR        _flag ;
+      CHAR        _version ;
+      UINT16      _bucketNum ;
+      UINT16      _conflictNum ;
+
+      void init( UINT16 numPages, UINT16 mbID )
+      {
+         _eyeCatcher[0]       = DMS_SCHEMA_HASH_EXTENT_EYECATCHER0 ;
+         _eyeCatcher[1]       = DMS_SCHEMA_HASH_EXTENT_EYECATCHER1 ;
+         _blockSize           = numPages ;
+         _mbID                = mbID ;
+         _flag                = DMS_EXTENT_FLAG_INUSE ;
+         _version             = DMS_SCHEMA_HASH_EXTENT_CURRENT_V ;
+         _bucketNum           = 0 ;
+         _conflictNum         = 0 ;
+      }
+
+      BOOLEAN validate( UINT16 mbID = DMS_INVALID_MBID ) const
+      {
+         if ( DMS_SCHEMA_HASH_EXTENT_EYECATCHER0 != _eyeCatcher[0] ||
+              DMS_SCHEMA_HASH_EXTENT_EYECATCHER1 != _eyeCatcher[1] ||
+              DMS_EXTENT_FLAG_INUSE != _flag )
+         {
+            return FALSE ;
+         }
+         else if ( DMS_INVALID_MBID != mbID && _mbID != mbID )
+         {
+            return FALSE ;
+         }
+         return TRUE ;
+      }
+   } ;
+   typedef _dmsSchemaHashExtent dmsSchemaHashExtent ;
+   #define DMS_SCHEMAHASHEXTENT_HEADER_SZ    sizeof(dmsSchemaHashExtent)
+   #define DMS_SCHEMAHASHEXTENT_ITEM_SZ      (4)
 }
 
 #endif //DMSEXTENT_HPP_

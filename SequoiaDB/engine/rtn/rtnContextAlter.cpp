@@ -40,6 +40,7 @@
 #include "rtn.hpp"
 #include "dpsOp2Record.hpp"
 #include "clsMgr.hpp"
+#include "rtnCB.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 
@@ -408,6 +409,7 @@ namespace engine
      _su( NULL ),
      _mbContext( NULL )
    {
+      _cataAgent = pmdGetKRCB()->getClsCB()->getCatAgent() ;
    }
 
    _rtnContextAlterCL::~_rtnContextAlterCL ()
@@ -424,6 +426,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNALTERCLCTX__OPENINT ) ;
 
+      const _rtnAlterInfo * alterInfo = _alterJob->getAlterInfo() ;
       const rtnAlterOptions * options = _alterJob->getOptions() ;
       const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
 
@@ -439,8 +442,8 @@ namespace engine
             ++ iter )
       {
          const rtnAlterTask * task = ( *iter ) ;
-         rc = rtnCheckAlterCollection( collection, task, cb, _mbContext, _su,
-                                       _dmsCB ) ;
+         rc = rtnCheckAlterCollection( collection, task, alterInfo, cb,
+                                       _mbContext, _su, _dmsCB ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to check alter task [%s] on "
@@ -499,6 +502,7 @@ namespace engine
       const rtnAlterOptions * options = _alterJob->getOptions() ;
       const _rtnAlterInfo * alterInfo = _alterJob->getAlterInfo() ;
       const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
+      BOOLEAN changedSchema = FALSE ;
 
       PD_CHECK( NULL != _su, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get su" ) ;
@@ -520,6 +524,28 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to run alter task [%s] on "
                       "collection [%s], rc: %d", task->getActionName(),
                       collection, rc ) ;
+
+         if (  RTN_ALTER_CL_ADD_SCHEMA == task->getActionType() ||
+               RTN_ALTER_CL_ALTER_SCHEMA == task->getActionType() )
+         {
+            changedSchema = TRUE ;
+         }
+      }
+
+      if ( changedSchema )
+      {
+         /// clear main collection's catalog info
+         _cataAgent->lock_w() ;
+         _cataAgent->clear( collection ) ;
+         _cataAgent->release_w() ;
+
+         // Clear cached main-collection plans
+         sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection ) ;
+
+         // Tell secondary nodes to clear catalog and plan caches
+         sdbGetClsCB()->invalidateCache( collection,
+                                         DPS_LOG_INVALIDCATA_TYPE_CATA |
+                                         DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
       }
 
       _close( cb ) ;
@@ -628,54 +654,254 @@ namespace engine
       PD_TRACE_EXIT( SDB__RTNALTERCLCTX__RELEASETRANS ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERCLCTX__CHKCOMPRESS, "_rtnContextAlterCL::_checkCompress" )
-   INT32 _rtnContextAlterCL::_checkCompress ()
+   /*
+      _rtnContextAlterMainCL implement
+    */
+   RTN_CTX_AUTO_REGISTER( _rtnContextAlterMainCL,
+                          RTN_CONTEXT_ALTERMAINCL,
+                          "ALTERMAINCL" )
+
+   _rtnContextAlterMainCL::_rtnContextAlterMainCL( SINT64 contextID,
+                                                   UINT64 eduID )
+   : _rtnContextBase( contextID, eduID )
+   {
+      _cataAgent     = pmdGetKRCB()->getClsCB()->getCatAgent() ;
+      _rtnCB         = pmdGetKRCB()->getRTNCB() ;
+      _lockDms       = FALSE ;
+      _hitEnd        = FALSE ;
+      _errRC         = SDB_OK ;
+   }
+
+   _rtnContextAlterMainCL::~_rtnContextAlterMainCL()
+   {
+      pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+      pmdEDUCB *cb = eduMgr->getEDUByID( eduID() ) ;
+      _clean( cb ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERMAINCLCTX__CLEAN, "_rtnContextAlterMainCL::_clean" )
+   void _rtnContextAlterMainCL::_clean( _pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY( SDB__RTNALTERMAINCLCTX__CLEAN ) ;
+
+      if ( _lockDms )
+      {
+         pmdGetKRCB()->getDMSCB()->writeDown( cb ) ;
+         _lockDms = FALSE ;
+      }
+
+      RTN_SUBCL_CONTEXT_MAP::iterator iter = _subContextList.begin() ;
+      while( iter != _subContextList.end() )
+      {
+         if ( iter->second != -1 )
+         {
+            _rtnCB->contextDelete( iter->second, cb ) ;
+         }
+         _subContextList.erase( iter++ ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNALTERMAINCLCTX__CLEAN ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERMAINCLCTX_OPEN, "_rtnContextAlterMainCL::open" )
+   INT32 _rtnContextAlterMainCL::open( const CHAR *pCollectionName,
+                                       CLS_SUBCL_LIST &subCLList,
+                                       rtnAlterJobHolder & holder,
+                                       _pmdEDUCB *cb,
+                                       INT16 w )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNALTERCLCTX__CHKCOMPRESS ) ;
+      PD_TRACE_ENTRY( SDB__RTNALTERMAINCLCTX_OPEN ) ;
 
-      PD_CHECK( NULL != _su, SDB_INVALIDARG, error, PDERROR,
-                "Failed to get su" ) ;
-      PD_CHECK( NULL != _mbContext, SDB_INVALIDARG, error, PDERROR,
-                "Failed to get mbContext" ) ;
+      rtnAlterJob *alterJob = NULL ;
 
-      rc = _su->canSetCollectionCompressor( _mbContext ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to check collection for setting compress, rc: %d",
-                   rc ) ;
+      CLS_SUBCL_LIST_IT iter ;
 
-   done :
-      PD_TRACE_EXITRC( SDB__RTNALTERCLCTX__CHKCOMPRESS, rc ) ;
+      SDB_ASSERT( pCollectionName, "pCollectionName can't be null!" ) ;
+      PD_CHECK( pCollectionName, SDB_INVALIDARG, error, PDERROR,
+                "pCollectionName is null!" ) ;
+
+      setAlterJob( holder, TRUE ) ;
+
+      alterJob = getAlterJob() ;
+
+      rc = dmsCheckFullCLName( pCollectionName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Invalid collection name[%s])",
+                   pCollectionName ) ;
+
+      rc = pmdGetKRCB()->getDMSCB()->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      _lockDms = TRUE ;
+
+      /// open sub collection context
+      iter = subCLList.begin() ;
+      while ( iter != subCLList.end() )
+      {
+         rtnContextAlterCL::sharePtr alterContext ;
+         INT64 contextID = -1 ;
+         const CHAR *subCLName = iter->c_str() ;
+
+         rtnAlterJobHolder holder ;
+         BSONObj boNewJob ;
+
+         rc = alterJob->copyJobByCL( subCLName, boNewJob ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to copy new alter job for "
+                      "sub-collection [%s], rc: %d", subCLName, rc ) ;
+
+         rc = holder.createAlterJob() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create alter job, rc: %d", rc ) ;
+
+         rc = holder.getAlterJob()->initialize( NULL,
+                                                RTN_ALTER_COLLECTION,
+                                                boNewJob ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize new alter job for "
+                      "sub-collection [%s], rc: %d", subCLName, rc ) ;
+
+         rc = _rtnCB->contextNew( RTN_CONTEXT_ALTERCL, alterContext,
+                                  contextID, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create sub-context of sub-"
+                      "collection[%s] in alter collection[%s], rc: %d",
+                      subCLName, pCollectionName, rc ) ;
+
+         cb->switchToSubCL( iter->c_str() ) ;
+         rc = alterContext->open( holder, cb, _w ) ;
+         cb->switchToMainCL() ;
+         if ( rc != SDB_OK )
+         {
+            _rtnCB->contextDelete( contextID, cb ) ;
+            if ( SDB_DMS_NOTEXIST == rc )
+            {
+               ++ iter ;
+               continue;
+            }
+            PD_LOG( PDERROR, "Failed to open sub-context of sub-"
+                    "collection[%s] in alter collection[%s], rc: %d",
+                    subCLName, pCollectionName, rc ) ;
+            goto error ;
+         }
+         try
+         {
+            _subContextList[ iter->c_str() ] = contextID ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add sub-context, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+         ++iter ;
+      }
+
+      _isOpened = TRUE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNALTERMAINCLCTX_OPEN, rc ) ;
+      return rc;
+
+   error:
+      goto done;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERMAINCLCTX__PREPAREDATA, "_rtnContextAlterMainCL::_prepareData" )
+   INT32 _rtnContextAlterMainCL::_prepareData( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNALTERMAINCLCTX__PREPAREDATA ) ;
+
+      const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
+      const CHAR *name = _alterJob->getObjectName() ;
+      BOOLEAN changedSchema = FALSE ;
+
+      RTN_SUBCL_CONTEXT_MAP::iterator iterCtx ;
+
+      /// drop sub collections
+      iterCtx = _subContextList.begin() ;
+      while ( iterCtx != _subContextList.end() )
+      {
+         rtnContextBuf buffObj;
+         rc = rtnGetMore( iterCtx->second, -1, buffObj, cb, _rtnCB ) ;
+         if ( SDB_OK == rc )
+         {
+            PD_LOG( PDWARNING, "Failed to alter main-collection, "
+                    "should have one step to alter sub-collection" ) ;
+            SDB_ASSERT( FALSE, "should have only one get-more" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         else if ( SDB_DMS_EOC == rc || SDB_DMS_NOTEXIST == rc )
+         {
+            // either dropped by current context or others
+            rc = SDB_OK ;
+         }
+         if ( SDB_OK != rc )
+         {
+            _errRC = rc ;
+            buffObj.nextObj( _errObj ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get more from sub-context, "
+                      "rc: %d", rc ) ;
+         rc = SDB_OK ;
+         _subContextList.erase( iterCtx++ ) ;
+      }
+
+      for ( RTN_ALTER_TASK_LIST::const_iterator iter = alterTasks.begin() ;
+            iter != alterTasks.end() ;
+            ++ iter )
+      {
+         const rtnAlterTask * task = ( *iter ) ;
+         if (  RTN_ALTER_CL_ADD_SCHEMA == task->getActionType() ||
+               RTN_ALTER_CL_ALTER_SCHEMA == task->getActionType() )
+         {
+            changedSchema = TRUE ;
+         }
+      }
+
+      if ( changedSchema )
+      {
+         /// clear main collection's catalog info
+         _cataAgent->lock_w() ;
+         _cataAgent->clear( name ) ;
+         _cataAgent->release_w() ;
+
+         // Clear cached main-collection plans
+         sdbGetRTNCB()->getAPM()->invalidateCLPlans( name ) ;
+
+         // Tell secondary nodes to clear catalog and plan caches
+         sdbGetClsCB()->invalidateCache( name,
+                                         DPS_LOG_INVALIDCATA_TYPE_CATA |
+                                         DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
+      }
+
+      _clean( cb ) ;
+      rc = SDB_DMS_EOC ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNALTERMAINCLCTX__PREPAREDATA, rc ) ;
       return rc ;
 
-   error :
+   error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERCLCTX__CHKEXTOPT, "_rtnContextAlterCL::_checkExtOptions" )
-   INT32 _rtnContextAlterCL::_checkExtOptions ()
+   void _rtnContextAlterMainCL::_toString( stringstream &ss )
    {
-      INT32 rc = SDB_OK ;
+      if ( NULL != _alterJob )
+      {
+         ss << ",Name:" << _alterJob->getObjectName() ;
+      }
+   }
 
-      PD_TRACE_ENTRY( SDB__RTNALTERCLCTX__CHKEXTOPT ) ;
-
-      PD_CHECK( NULL != _su, SDB_INVALIDARG, error, PDERROR,
-                "Failed to get su" ) ;
-      PD_CHECK( NULL != _mbContext, SDB_INVALIDARG, error, PDERROR,
-                "Failed to get mbContext" ) ;
-
-      PD_CHECK( DMS_STORAGE_CAPPED == _su->type(),
-                SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                "Failed to check collection for setting ext options: "
-                "should be capped" ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__RTNALTERCLCTX__CHKEXTOPT, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
+   void _rtnContextAlterMainCL::getErrorInfo( INT32 rc,
+                                              _pmdEDUCB *cb,
+                                              rtnContextBuf &buffObj )
+   {
+      if ( rc == _errRC && SDB_OK != rc && !( _errObj.isEmpty() ) )
+      {
+         buffObj = rtnContextBuf( _errObj ) ;
+      }
    }
 
 }

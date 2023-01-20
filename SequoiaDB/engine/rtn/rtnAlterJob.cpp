@@ -152,6 +152,22 @@ namespace engine
                      RTN_ALTER_COLLECTION,
                      RTN_ALTER_CL_SET_ATTRIBUTES ) ;
 
+      _registerTask( SDB_ALTER_CL_ADD_SCHEMA,
+                     RTN_ALTER_COLLECTION,
+                     RTN_ALTER_CL_ADD_SCHEMA,
+                     ( RTN_ALTER_TASK_FLAG_SHARDLOCK |
+                       RTN_ALTER_TASK_FLAG_3PHASE |
+                       RTN_ALTER_TASK_FLAG_MAINCLALLOW |
+                       RTN_ALTER_TASK_TRANS_LOCK ) ) ;
+
+      _registerTask( SDB_ALTER_CL_ALTER_SCHEMA,
+                     RTN_ALTER_COLLECTION,
+                     RTN_ALTER_CL_ALTER_SCHEMA,
+                     ( RTN_ALTER_TASK_FLAG_SHARDLOCK |
+                       RTN_ALTER_TASK_FLAG_3PHASE |
+                       RTN_ALTER_TASK_FLAG_MAINCLALLOW |
+                       RTN_ALTER_TASK_TRANS_LOCK ) ) ;
+
       /// Collection space
       _registerTask( SDB_ALTER_CS_SET_DOMAIN,
                      RTN_ALTER_COLLECTION_SPACE,
@@ -434,6 +450,71 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERJOB_COPYJOBCL, "_rtnAlterJob::copyJobByCL" )
+   INT32 _rtnAlterJob::copyJobByCL( const CHAR *collectionName, bson::BSONObj &boJob )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNALTERJOB_COPYJOBCL ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         if ( _jobObject.hasField( FIELD_NAME_VERSION ) )
+         {
+            BSONObj newInfo ;
+            BSONObjIterator iter( _jobObject ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               const CHAR *fieldName = ele.fieldName() ;
+               if ( 0 != ossStrcmp( fieldName, FIELD_NAME_NAME ) &&
+                    0 != ossStrcmp( fieldName, FIELD_NAME_ALTER_INFO ) )
+               {
+                  builder.append( ele ) ;
+               }
+            }
+            builder.append( FIELD_NAME_NAME, collectionName ) ;
+
+            rc = _alterInfo.bindInfoByCL( collectionName, newInfo ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to bind alter info for "
+                         "collection [%s], rc: %d", collectionName, rc ) ;
+            builder.append( FIELD_NAME_ALTER_INFO, newInfo ) ;
+         }
+         else
+         {
+            BSONObjIterator iter( _jobObject ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               const CHAR *fieldName = ele.fieldName() ;
+               if ( 0 != ossStrcmp( fieldName, FIELD_NAME_NAME ) )
+               {
+                  builder.append( ele ) ;
+               }
+            }
+            builder.append( FIELD_NAME_NAME, collectionName ) ;
+         }
+
+         boJob = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to bind collection, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNALTERJOB_COPYJOBCL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERJOB__CLEARJOB, "_rtnAlterJob::_clearJob" )
    void _rtnAlterJob::_clearJob ()
    {
@@ -569,6 +650,16 @@ namespace engine
          {
             task = SDB_OSS_NEW rtnCLDisableCompressTask( taskSchema,
                                                          arguments ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ADD_SCHEMA :
+         {
+            task = SDB_OSS_NEW rtnCLAddSchemaTask( taskSchema, arguments ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            task = SDB_OSS_NEW _rtnCLAlterSchemaTask( taskSchema, arguments ) ;
             break ;
          }
          case RTN_ALTER_CL_SET_ATTRIBUTES :

@@ -1326,4 +1326,29 @@ namespace engine
    {
    }
 
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListSchemas, CMD_NAME_LIST_SCHEMAS, TRUE )
+   _coordCMDListSchemas::_coordCMDListSchemas()
+   {
+   }
+
+   _coordCMDListSchemas::~_coordCMDListSchemas()
+   {
+   }
+
+   INT32 _coordCMDListSchemas::_preProcess( rtnQueryOptions &queryOpt,
+                                            string &clName,
+                                            BSONObj &outSelector )
+   {
+      clName = CAT_SCHEMA_COLLECTION ;
+      return SDB_OK ;
+   }
+
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListSchemasIntr, CMD_NAME_LIST_SCHEMA_INTR, TRUE )
+   _coordCMDListSchemasIntr::_coordCMDListSchemasIntr()
+   {
+   }
+
+   _coordCMDListSchemasIntr::~_coordCMDListSchemasIntr()
+   {
+   }
 }

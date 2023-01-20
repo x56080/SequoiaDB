@@ -65,6 +65,7 @@ namespace engine
 
    INT32 rtnCheckAlterCollection ( const CHAR * collection,
                                    const rtnAlterTask * task,
+                                   const rtnAlterInfo * alterInfo,
                                    _pmdEDUCB * cb,
                                    _dmsMBContext * mbContext,
                                    _dmsStorageUnit * su,

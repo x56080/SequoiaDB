@@ -396,6 +396,11 @@ namespace engine
       const CHAR* getUserName() const { return _userName.c_str() ; }
       const CHAR* getPassword() const { return _passWord.c_str() ; }
 
+      CHAR*       getEncodeBuff( UINT32 len ) ;
+      INT32       getEncodeBuffLen() const { return _encodeBuffLen ; }
+      CHAR*       getDecodeBuff( UINT32 len ) ;
+      INT32       getDecodeBuffLen() const { return _decodeBuffLen ; }
+
       void postEvent ( pmdEDUEvent const &data )
       {
          try
@@ -888,6 +893,11 @@ namespace engine
       pmdOperator             _operator ;
 
       pmdDataExInfo           _dataExInfo ;
+
+      CHAR                    *_pEncodeBuff ;
+      UINT32                  _encodeBuffLen ;
+      CHAR                    *_pDecodeBuff ;
+      UINT32                  _decodeBuffLen ;
    };
    typedef class _pmdEDUCB pmdEDUCB ;
 

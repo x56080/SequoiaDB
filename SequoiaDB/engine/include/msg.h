@@ -896,6 +896,8 @@ typedef struct _MsgOpInsert MsgOpInsert ;
 #define FLG_FORCE_INDEX_SELECTOR             0x00100000
 // Query with asynchronous read in COORD
 #define FLG_QUERY_ASYNC_READ                 0x00200000
+// Query with primal data
+#define FLG_QUERY_PRIMAL_DATA                0x00400000
 
 // For query takes 4 document
 // Query + returnFieldSelector + orderBy + hint

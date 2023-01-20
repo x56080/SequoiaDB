@@ -668,6 +668,10 @@ namespace sdbclient
 
       virtual void setVersion( INT32 clVersion ) = 0;
       virtual INT32 getVersion() = 0;
+
+      virtual INT32 addSchema( const CHAR *schemaName ) = 0 ;
+
+      virtual INT32 getInternalSchema( _sdbCursor **pCursor ) = 0;
    } ;
 
    /** \class sdbCollection
@@ -2730,6 +2734,24 @@ namespace sdbclient
       INT32 getVersion()
       {
           return pCollection->getVersion() ;
+      }
+
+      INT32 addSchema( const CHAR *schemaName )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->addSchema( schemaName ) ;
+      }
+
+      INT32 getInternalSchema( _sdbCursor **pCursor )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->getInternalSchema( pCursor );
       }
    } ;
 
@@ -5576,6 +5598,144 @@ namespace sdbclient
       }
    } ;
 
+   class DLLEXPORT _sdbSchema
+   {
+   private:
+      _sdbSchema( const _sdbSchema &other ) ;
+      _sdbSchema& operator=( const _sdbSchema & ) ;
+
+   public:
+      _sdbSchema() {}
+      virtual ~_sdbSchema() {}
+
+      virtual const CHAR *getName() const = 0 ;
+      virtual INT32 getDetail( bson::BSONObj &schemaDef, BOOLEAN useCache ) = 0 ;
+      virtual INT32 getColumn( const CHAR *name,
+                               bson::BSONObj &columnDef,
+                               BOOLEAN useCache ) = 0 ;
+      virtual INT32 addColumn( const CHAR *name, const bson::BSONObj &columnDef ) = 0 ;
+      virtual INT32 alterColumn( const CHAR *name, const bson::BSONObj &options ) = 0 ;
+      virtual INT32 renameColumn( const CHAR *name, const CHAR *newName ) = 0 ;
+      virtual INT32 dropColumn( const CHAR *name ) = 0 ;
+      virtual INT32 dropColumnDefault( const CHAR *name ) = 0 ;
+      virtual INT32 setAttributes( const bson::BSONObj &options ) = 0 ;
+      virtual INT32 alter( const bson::BSONObj &options ) = 0 ;
+   } ;
+
+   class DLLEXPORT sdbSchema
+   {
+   private:
+      sdbSchema( const sdbSchema& other ) ;
+      sdbSchema& operator=( const sdbSchema& ) ;
+
+   public:
+      _sdbSchema *pSchema ;
+
+      sdbSchema()
+      {
+         pSchema = NULL ;
+      }
+
+      ~sdbSchema()
+      {
+         if ( pSchema )
+         {
+            delete pSchema ;
+         }
+      }
+
+   public:
+      const CHAR *getName() const
+      {
+         if ( !pSchema )
+         {
+            return NULL ;
+         }
+         return pSchema->getName() ;
+      }
+
+      INT32 getDetail( bson::BSONObj &schemaDef, BOOLEAN useCache = TRUE )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->getDetail( schemaDef, useCache ) ;
+      }
+
+      INT32 getColumn( const CHAR *name, bson::BSONObj &columnDef, BOOLEAN useCache = TRUE )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->getColumn( name, columnDef, useCache ) ;
+      }
+
+      INT32 addColumn( const CHAR *name, const bson::BSONObj &columnDef )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->addColumn( name, columnDef ) ;
+      }
+
+      INT32 alterColumn( const CHAR *name, const bson::BSONObj &options )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->alterColumn( name, options ) ;
+      }
+
+      INT32 renameColumn( const CHAR *name, const CHAR *newName )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->renameColumn( name, newName ) ;
+      }
+
+      INT32 dropColumn( const CHAR *name )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->dropColumn( name ) ;
+      }
+
+      INT32 dropColumnDefault( const CHAR *name )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->dropColumnDefault( name ) ;
+      }
+
+      INT32 setAttributes( const bson::BSONObj &options )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->setAttributes( options ) ;
+      }
+
+      INT32 alter( const bson::BSONObj &options )
+      {
+         if ( !pSchema )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSchema->alter( options ) ;
+      }
+   } ;
+
    class DLLEXPORT _sdb
    {
    private :
@@ -5995,6 +6155,24 @@ namespace sdbclient
                                      const bson::BSONObj &selector = _sdbStaticObject,
                                      const bson::BSONObj &orderBy = _sdbStaticObject,
                                      const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
+
+      virtual INT32 createSchema( sdbSchema &schema,
+                                  const CHAR *pInfoSchemaName,
+                                  const bson::BSONObj &columns,
+                                  const bson::BSONObj &attr = _sdbStaticObject ) = 0 ;
+
+      virtual INT32 dropSchema( const CHAR *pSchemaName ) = 0 ;
+
+      virtual INT32 getSchema( const CHAR *pSchemaName,
+                               _sdbSchema **schema ) = 0 ;
+      virtual INT32 getSchema( const CHAR *pSchemaName,
+                               sdbSchema &schema ) = 0 ;
+
+      virtual INT32 listSchemas( _sdbCursor** cursor,
+                                 const bson::BSONObj &condition = _sdbStaticObject,
+                                 const bson::BSONObj &selector = _sdbStaticObject,
+                                 const bson::BSONObj &orderBy = _sdbStaticObject,
+                                 const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -8530,6 +8708,60 @@ namespace sdbclient
          }
          RELEASE_INNER_HANDLE( cursor.pCursor ) ;
          return pSDB->listDataSources( &cursor.pCursor, condition, selector, orderBy, hint ) ;
+      }
+
+      INT32 createSchema( sdbSchema &schema,
+                          const CHAR *name,
+                          const bson::BSONObj &columns,
+                          const bson::BSONObj &attr = _sdbStaticObject )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( schema.pSchema ) ;
+         return pSDB->createSchema( schema, name, columns, attr ) ;
+      }
+
+      INT32 dropSchema( const CHAR *pSchemaName )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->dropSchema( pSchemaName ) ;
+      }
+
+      INT32 getSchema( const CHAR *pSchemaName, _sdbSchema **schema )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getSchema( pSchemaName, schema ) ;
+      }
+
+      INT32 getSchema( const CHAR *pSchemaName, sdbSchema &schema )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getSchema( pSchemaName, schema ) ;
+      }
+
+      INT32 listSchemas( sdbCursor &cursor,
+                         const bson::BSONObj &condition = _sdbStaticObject,
+                         const bson::BSONObj &selector = _sdbStaticObject,
+                         const bson::BSONObj &orderBy = _sdbStaticObject,
+                         const bson::BSONObj &hint = _sdbStaticObject )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return pSDB->listSchemas( &cursor.pCursor, condition, selector, orderBy, hint ) ;
       }
    } ;
 

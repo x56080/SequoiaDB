@@ -1746,6 +1746,13 @@ namespace engine
          }
       }
 
+      // schema
+      ele = catSet.getField( FIELD_NAME_SCHEMA ) ;
+      if ( String == ele.type() )
+      {
+         _schemaName.assign( ele.valuestrsafe() ) ;
+      }
+
       // isMainCl
       ele = catSet.getField( CAT_IS_MAINCL );
       if ( ele.booleanSafe() )

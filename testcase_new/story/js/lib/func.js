@@ -12,19 +12,19 @@ func.js 中方法：
       判断两个对象是否相等   commCompareObject(expObj,actObj)
       比较错误码是否一致     commCompareErrorCode(e,code)
       判断执行机架构是否为arm  commIsArmArchitecture ()
-      
+
    2、创建
       创建并返回 cs          commCreateCS(db,csName,ignoreExisted,message,options)
-      创建并返回 cl          commCreateCL(db,csName,clName,optionObj,autoCreateCS,ignoreExisted,message) 
+      创建并返回 cl          commCreateCL(db,csName,clName,optionObj,autoCreateCS,ignoreExisted,message)
       创建索引               commCreateIndex(cl,indexName,indexDef,options,ignoreExist)
       创建并启动 group       commCreateRG(db,rgName,nodeNum,hostname,nodeOption)
       在指定主机创建目录     commMakeDir(hostName,dir)
       创建并返回 domain      commCreateDomain(db,domainName,groupNames,options)
-      
+
    3、删除
-      删除 cs                commDropCS(db,csName,ignoreNotExist,message,options)   
-      删除 cl                commDropCL(db,csName,clName,ignoreCSNotExist,ignoreCLNotExist,message)   
-      删除索引               commDropIndex(cl,indexName,ignoreNotExist)   
+      删除 cs                commDropCS(db,csName,ignoreNotExist,message,options)
+      删除 cl                commDropCL(db,csName,clName,ignoreCSNotExist,ignoreCLNotExist,message)
+      删除索引               commDropIndex(cl,indexName,ignoreNotExist)
       删除 domain            commDropDomain(db,domainName,ignoreNotExist)
 
    4、检查
@@ -33,9 +33,9 @@ func.js 中方法：
       检查索引一致性         commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
       检查集群状态(retry)    commCheckBusinessStatus(db,timeout,checkLSN)
       检测主备 LSN           commCheckLSN(db,groupNames,timeout)
-   
+
    5、获取
-      获取 cl 所属 group     commGetCLGroups(db,fullClName)   
+      获取 cl 所属 group     commGetCLGroups(db,fullClName)
       获取 cl 所在节点       commGetCLNodes(db,fullclName)
       获取 cs 所属 group     commGetCSGroups(db,csName)
       获取 group 详细信息    commGetGroups(db,print,filter,excludeCata,excludeCoord,excludeSpare)
@@ -46,7 +46,7 @@ func.js 中方法：
       获取 procedure         commGetProcedures(db,filter)
       获取 sdb 安装路径      commGetInstallPath()
       获取指定快照类型       commGetSnapshot(db,snapshotType,condObj,selObj,sortObj,skipNum,limitNum,optionsObj)
-      
+
    6、其他
       将游标结果存入数组     commCursor2Array(cursor,fieldName,filter)
       随机生成数据           commDataGenerator()
@@ -125,7 +125,7 @@ var funcCommDropCLTimes = 0;
        true   :  是独立模式
        false  :  不是独立模式
 ***************************************************************************** */
-function commIsStandalone ( db ) 
+function commIsStandalone ( db )
 {
    try
    {
@@ -238,7 +238,7 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
    commCheckType( ignoreExisted, "boolean" );
    commCheckType( message, "string" );
 
-   // try create or get cs 
+   // try create or get cs
    var csObj;
    if( autoCreateCS )
    {
@@ -480,10 +480,10 @@ function commCheckIndexConsistency ( cl, indexName, exist, timeout )
 /*******************************************************************************
 @description  获取 cl 所属的 groups
 @author  xiaojun Hu
-@parameter  
+@parameter
    fullClName    {string}  :  必填项，"csName.clName"
 @return  {array}  存放 groupName 的数组
-   e.g: 
+   e.g:
       ["grou1","group2","group3"]
 ***************************************************************************** */
 function commGetCLGroups ( db, fullClName )
@@ -561,7 +561,7 @@ function commGetCLNodes ( db, fullclName )
 @description 获取 cs 所属的 group
 @author Jianhui Xu
 @return  {array}  存放 groupName 的数组
-   e.g: 
+   e.g:
       ["grou1","group2"]
 ******************************************************************************/
 function commGetCSGroups ( db, csName )
@@ -592,7 +592,7 @@ function commGetCSGroups ( db, csName )
 /******************************************************************************
 @description   获取 group 的详细信息，默认只获取数据组
 @author  Jianhui Xu
-@parameter 
+@parameter
    print           {boolean}   :    已废弃
    filter          {string}    :    对 GroupName 模糊查询，不指定返回所有查询到的 group
    excludeCata     {boolean}   :    默认为 true，不获取 Catalog group 信息
@@ -1101,13 +1101,13 @@ function commCheckBusiness ( groups, checkLSN )
 @description  检测主备 LSN 是否一致
               假设主节点 LSN 为 A，备节点 LSN 为 B，多次更新 B，当 B 大于等于 A，检测通过
 @author  luweikang
-@parameter 
+@parameter
    groupNames      {array}   :   默认为所有 data group 和 catalog group 名，group 名
    timeout         {number}  :   默认为 60s，超时时间
 ***************************************************************************** */
 function commCheckLSN ( db, groupNames, timeout )
 {
-   if( groupNames == undefined ) 
+   if( groupNames == undefined )
    {
       groupNames = commGetDataGroupNames( db );
       groupNames.push( "SYSCatalogGroup" );
@@ -1229,7 +1229,7 @@ function commGetInstallPath ()
 /******************************************************************************
 @description  构建异常信息（逐步废弃，新用例请勿使用）
 @author  wenjing wang
-@parameter 
+@parameter
    funname    {string}  :   函数名称
    e          {Error}   :   错误信息
    operate    {string}  :   操作信息
@@ -1257,7 +1257,7 @@ function buildException ( funname, e, operate, expectval, realval )
 @author luweikang
 @parameter
    cursor      {object}   :   必填项，游标对象
-   expRecs     {array}    :   期望结果集  
+   expRecs     {array}    :   期望结果集
    exceptId    {boolean}  :   默认为 true，不考虑 _id
 ********************************************************************* */
 function commCompareResults ( cursor, expRecs, exceptId )
@@ -1598,13 +1598,13 @@ function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
 @description  随机生成指定类型的数据，包括 int、long、float、string、OID、bool、date、timestamp、binary、regex、object、array、null
 @author  Ting YU
 @function getRecords
-   @parameter 
+   @parameter
       recNum         {number}           :    必填项，指定随机生成的数据数
       dataTypes      {string | array}   :    必填项，指定随机生成数据的类型，如果传入类型为数组，每条数据随机选择数组中数据类型生成
       fieldNames     {array}            :    默认值为随机长度数组，该数组中每个值由'a'~'z'随机长度的字符串的组成，指定随机生成数据的属性名
    @returns    {array}   随机生成的数据
       e.g:
-         当执行： 
+         当执行：
             var rd = new commDataGenerator();
             rd.getRecords( 30, "int", ['a','b'] );
          返回值为：
@@ -1849,7 +1849,7 @@ function commDataGenerator ()
 
       for( var i in fieldNames )
       {
-         var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type 
+         var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type
 
          var filedName = fieldNames[i]
          obj[filedName] = getRandomValue( dataType );
@@ -1867,7 +1867,7 @@ function commDataGenerator ()
       var arrLen = getRandomInt( 1, 5 );
       for( var i = 0; i < arrLen; i++ )
       {
-         var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type 
+         var dataType = dataTypes[parseInt( Math.random() * dataTypes.length )];  //randomly get 1 data type
 
          var elem = getRandomValue( dataType );
          arr.push( elem );
@@ -1877,16 +1877,16 @@ function commDataGenerator ()
    }
 
    // 重写 Date 的 Format 方法
-   Date.prototype.Format = function( fmt )   
-   { //author: meizz   
+   Date.prototype.Format = function( fmt )
+   { //author: meizz
       var o = {
-         "M+": this.getMonth() + 1,                 //month   
-         "d+": this.getDate(),                    //date  
-         "h+": this.getHours(),                   //hour  
-         "m+": this.getMinutes(),                 //minute 
-         "s+": this.getSeconds(),                 //second   
-         "q+": Math.floor( ( this.getMonth() + 3 ) / 3 ), //quarter   
-         "S": this.getMilliseconds()             //millisecond   
+         "M+": this.getMonth() + 1,                 //month
+         "d+": this.getDate(),                    //date
+         "h+": this.getHours(),                   //hour
+         "m+": this.getMinutes(),                 //minute
+         "s+": this.getSeconds(),                 //second
+         "q+": Math.floor( ( this.getMonth() + 3 ) / 3 ), //quarter
+         "S": this.getMilliseconds()             //millisecond
       };
       if( /(y+)/.test( fmt ) )
          fmt = fmt.replace( RegExp.$1, ( this.getFullYear() + "" ).substr( 4 - RegExp.$1.length ) );

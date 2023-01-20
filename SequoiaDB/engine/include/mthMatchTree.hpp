@@ -277,6 +277,15 @@ namespace engine
 
       void setQueryModify( BOOLEAN isQueryModify ) ;
       void setDataPtr( ossValuePtr &dataPtr ) ;
+
+      // TODO: YSD only for quick fix of compression. Need to think more...
+      void setDataSize( INT32 len ) ;
+
+      INT32 getDataSize() const
+      {
+         return _dataSize ;
+      }
+
       void getDataPtr( ossValuePtr &dataPtr ) ;
 
       BOOLEAN isQueryModify() { return _isQueryModify ; }
@@ -316,6 +325,8 @@ namespace engine
       BSONObj _specifyObj ;
       BSONObjIterator _specifyIter ;
       //*******************************************
+
+      INT32 _dataSize ;
    } ;
 
 

@@ -1000,6 +1000,8 @@ namespace engine
          { CMD_NAME_LIST_TASKS,  &RestToMSGTransfer::_convertListTasks },
          { CMD_NAME_LIST_RECYCLEBIN,
                                  &RestToMSGTransfer::_convertListRecycleBin },
+         { CMD_NAME_LIST_SCHEMAS,
+                                 &RestToMSGTransfer::_convertListSchemas },
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
 //         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
@@ -3651,6 +3653,15 @@ namespace engine
                                                      MsgHeader **msg )
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
+
+      return _convertListBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertListSchemas( restAdaptor * pAdaptor,
+                                                 restRequest & request,
+                                                 MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_SCHEMAS ;
 
       return _convertListBase( pAdaptor, request, pCommand, msg ) ;
    }

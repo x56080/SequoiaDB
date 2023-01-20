@@ -771,6 +771,7 @@ namespace engine
          BSONElement idIdxEle ;
          BSONElement csEle ;
          BSONElement dictEle ;
+         BSONElement schemaEle ;
 
          csEle = obj.getField( CLS_FS_CS_NAME ) ;
          PD_LOG( PDDEBUG, "Session[%s]: get meta data: %s", sessionName(),
@@ -890,6 +891,20 @@ namespace engine
 
             meta.dictionary = dictEle.binData( dictSize ) ;
             meta.dictSize = dictSize ;
+         }
+
+         schemaEle = ele.embeddedObject().getField( FIELD_NAME_SCHEMA ) ;
+         if ( !schemaEle.eoo() )
+         {
+            if ( Object != schemaEle.type() )
+            {
+               goto error ;
+            }
+            rc = meta.schema.parse( schemaEle.embeddedObject(), FALSE, TRUE ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
          }
       }
       catch ( std::exception &e )
@@ -1036,6 +1051,7 @@ namespace engine
 
          BSONObj* pExtOpt = NULL ;
          BSONObj* pIdIdx = NULL ;
+         utilSchema *pSchema = NULL ;
          if ( !meta.extOptions.isEmpty() )
          {
             pExtOpt = &meta.extOptions ;
@@ -1044,9 +1060,13 @@ namespace engine
          {
             pIdIdx = &meta.idIdxDef ;
          }
+         if ( meta.schema.isValid() )
+         {
+            pSchema = &meta.schema ;
+         }
          rc = _replayer.replayCrtCollection( fullName, meta.clUniqueID,
                                              meta.attributes, eduCB(), meta.compType,
-                                             pExtOpt, pIdIdx ) ;
+                                             pExtOpt, pIdIdx, pSchema ) ;
          if ( SDB_OK != rc && SDB_DMS_EXIST != rc )
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to create collection"

@@ -53,6 +53,7 @@
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
 #include "dmsOprHandler.hpp"
+#include "utilSchema.hpp"
 
 using namespace bson ;
 
@@ -432,6 +433,17 @@ namespace engine
             return _storageInfo._updateTime ;
          }
 
+         BOOLEAN     isInfoSchemaEnabled( dmsMBContext *context ) ;
+         INT32       addSchema( dmsMBContext *context,
+                                const utilSchema &schema,
+                                _pmdEDUCB *cb ) ;
+         INT32       alterSchema( dmsMBContext *context,
+                                  const utilSchema &schema,
+                                  const utilSchemaAlterAction &action,
+                                  _pmdEDUCB *cb ) ;
+         INT32       dumpInternalSchema( dmsMBContext *context,
+                                         bson::BSONObj &obj ) ;
+
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
                              BOOLEAN sys = FALSE ) ;
@@ -648,6 +660,10 @@ namespace engine
                                          BOOLEAN noTrans,
                                          dmsMBContext * context,
                                          pmdEDUCB *cb ) ;
+         INT32    setCollectionEnableInfoSchema( const CHAR *pName,
+                                                 BOOLEAN enableInfoSchema,
+                                                 dmsMBContext *context,
+                                                 pmdEDUCB *cb ) ;
 
          INT32    canSetCollectionCompressor ( dmsMBContext * context ) ;
          INT32    setCollectionCompressor ( const CHAR * pName,

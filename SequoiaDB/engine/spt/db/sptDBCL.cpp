@@ -95,6 +95,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getDetail )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getIndexStat )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getCollectionStat )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, addSchema )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, getInternalSchema )
 
    JS_BEGIN_MAPPING( _sptDBCL, SPT_CL_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -144,6 +146,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getDetail", getDetail )
       JS_ADD_MEMBER_FUNC( "getIndexStat", getIndexStat )
       JS_ADD_MEMBER_FUNC( "getCollectionStat", getCollectionStat )
+      JS_ADD_MEMBER_FUNC( "addSchema", addSchema )
+      JS_ADD_MEMBER_FUNC( "getInternalSchema", getInternalSchema )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBCL::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBCL::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBCL::bsonToJSObj )
@@ -2957,6 +2961,57 @@ namespace engine
       }
       rval.getReturnVal().setValue( result ) ;
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::addSchema( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string infoSchemaName ;
+
+      rc = arg.getString( 0, infoSchemaName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be config" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "InfoSchema name must be string" ) ;
+         goto error ;
+      }
+
+      rc = _cl.addSchema( infoSchemaName.c_str() ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to add info schema for the collection" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::getInternalSchema( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      _sdbCursor *pCursor = NULL ;
+      rc = _cl.getInternalSchema( &pCursor ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get internal schema" ) ;
+         goto error ;
+      }
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
    done:
       return rc ;
    error:

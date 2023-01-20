@@ -673,7 +673,7 @@ namespace engine
       rtnDetectDeadlockPtr tmpPtr =
          rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
 
-      if ( NULL == tmpPtr.get() ) 
+      if ( NULL == tmpPtr.get() )
       {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
@@ -681,7 +681,7 @@ namespace engine
       else
       {
          ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
-      } 
+      }
       return rc ;
    }
 
@@ -703,7 +703,7 @@ namespace engine
          rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
 
       if ( NULL == tmpPtr.get() )
-      {  
+      {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
       }

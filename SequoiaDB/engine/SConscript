@@ -208,7 +208,10 @@ utilFiles = [
       "util/utilRecycleBinConf.cpp",
       "util/utilRecycleReturnInfo.cpp",
       "util/utilSecure.cpp",
-      "util/utilLocation.cpp"
+      "util/utilLocation.cpp",
+      "util/utilSchema.cpp",
+      "util/utilSchema.cpp",
+      "util/utilBSON.cpp"
       ]
 
 rtnFiles = [
@@ -360,7 +363,10 @@ dmsFiles = [
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
-      "dms/dmsHoleMapMgr.cpp"
+      "dms/dmsHoleMapMgr.cpp",
+      "dms/dmsInternalSchema.cpp",
+      "dms/dmsSchemaColRecord.cpp",
+      "dms/dmsInternalSchemaHandler.cpp"
       ]
 
 ixmFiles = [
@@ -593,7 +599,8 @@ catFiles = [
       "cat/catRecycleBinProcessor.cpp",
       "cat/catRecycleReturnInfo.cpp",
       "cat/catContextRecycleBin.cpp",
-      "cat/catCommandNode.cpp"
+      "cat/catCommandNode.cpp",
+      "cat/catCommandSchema.cpp"
       ]
 
 coordFiles = [
@@ -657,7 +664,8 @@ coordFiles = [
       "coord/coordRemoteConnection.cpp",
       "coord/coordDSChecker.cpp",
       "coord/coordCacheAssist.cpp",
-      "coord/coordCacheCleaner.cpp"
+      "coord/coordCacheCleaner.cpp",
+      "coord/coordCommandSchema.cpp"
       ]
 
 aggrFiles = [

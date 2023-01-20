@@ -190,6 +190,7 @@ namespace engine
    #define DMS_MB_ATTR_CAPPED_STR                            "Capped"
    #define DMS_MB_ATTR_STRICTDATAMODE_STR                    "StrictDataMode"
    #define DMS_MB_ATTR_NOTRANS_STR                           "NoTrans"
+   #define DMS_MB_ATTR_ENABLE_INFOSCHEMA_STR                 "EnableInfoSchema"
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MBATTR2STRING, "mbAttr2String" )
    void mbAttr2String( UINT32 attributes, CHAR * pBuffer, INT32 bufSize )
@@ -222,6 +223,11 @@ namespace engine
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_ATTR_NOTRANS_STR ) ;
          OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_NOTRANS ) ;
+      }
+      if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+      {
+         appendFlagString( pBuffer, bufSize, DMS_MB_ATTR_ENABLE_INFOSCHEMA_STR ) ;
+         OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
       }
 
       // Test other bits
@@ -1153,6 +1159,21 @@ namespace engine
                          "Failed to initialize compressor entry for "
                          "collection: %s, rc = %d",
                          _dmsMME->_mbList[i]._collectionName, rc ) ;
+
+            // If schema is enabled, need to load the schema extent.
+            if ( OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+            {
+               dmsMBContext *context = NULL ;
+               rc = getMBContext( &context, _dmsMME->_mbList[i]._collectionName, EXCLUSIVE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get mb context of collection[%s] failed, rc: %d",
+                            _dmsMME->_mbList[i]._collectionName, rc ) ;
+
+               rc = _schemas[i].init( this, context, _dmsMME->_mbList[i]._schemaExtentID,
+                                      _dmsMME->_mbList[i]._schemaHashExtentID ) ;
+               releaseMBContext( context ) ;
+               PD_RC_CHECK( rc, PDERROR, "Initialize internal schema of collection[%s] failed, "
+                            "rc: %d", _dmsMME->_mbList[i]._collectionName, rc ) ;
+            }
          }
       }
 
@@ -1289,6 +1310,206 @@ namespace engine
       {
          --_mbStatInfo[ collectionID ]._writePtrCount ;
       }
+   }
+
+   INT32 _dmsStorageDataCommon::enableInfoSchema( dmsMBContext *context )
+   {
+      INT32 rc = SDB_OK ;
+
+      UINT16 mbID = context->mbID() ;
+      UINT16 schemaExtSize = DMS_PAGE_SIZE64K >> pageSizeSquareRoot() ;
+      dmsExtentID schemaExtent = context->mb()->_schemaExtentID ;
+      dmsExtentID schemaHashExtent = context->mb()->_schemaHashExtentID ;
+
+      BOOLEAN isSchemaNew = FALSE, isSchemaHashNew = FALSE ;
+
+      if ( DMS_INVALID_EXTENT == schemaExtent )
+      {
+         SDB_ASSERT( DMS_INVALID_EXTENT == schemaHashExtent, "should have no schema hash extent" ) ;
+         rc = _findFreeSpace( schemaExtSize, schemaExtent, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema extent failed, pageNum: %d, "
+                      "rc: %d", schemaExtSize, rc ) ;
+         isSchemaNew = TRUE ;
+      }
+      if ( DMS_INVALID_EXTENT == schemaHashExtent )
+      {
+         SDB_ASSERT( isSchemaNew, "should have no schema extent" ) ;
+         rc = _findFreeSpace( schemaExtSize, schemaHashExtent, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema hash extent failed, "
+                      "pageNum: %d, rc: %d", schemaExtSize, rc ) ;
+         isSchemaHashNew = TRUE ;
+      }
+
+      if ( isSchemaNew || isSchemaHashNew )
+      {
+         dmsSchemaExtent *schemaExtPtr = NULL ;
+         dmsSchemaHashExtent *schemaHashExtPtr = NULL ;
+         dmsExtRW rw = extent2RW( schemaExtent, mbID ) ;
+         rw.setNothrow( TRUE ) ;
+         schemaExtPtr = rw.writePtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
+         PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
+                   schemaExtent ) ;
+         schemaExtPtr->init( schemaExtSize, mbID ) ;
+         ossMemset( (CHAR *)schemaExtPtr + DMS_SCHEMAEXTENT_HEADER_SZ, 0x00,
+                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
+
+         rw = extent2RW( schemaHashExtent, mbID ) ;
+         rw.setNothrow( TRUE ) ;
+         schemaHashExtPtr =
+            rw.writePtr<dmsSchemaHashExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
+         PD_CHECK( schemaHashExtPtr, SDB_SYS, error, PDERROR,
+                   "Invalid internal schema hash extent[%d]", schemaHashExtent ) ;
+         schemaHashExtPtr->init( schemaExtSize, mbID ) ;
+         ossMemset( (CHAR *)schemaHashExtPtr + DMS_SCHEMAHASHEXTENT_HEADER_SZ, 0xFF,
+                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAHASHEXTENT_HEADER_SZ ) ;
+      }
+
+      rc = _schemas[ mbID ].init( this, context, schemaExtent, schemaHashExtent ) ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize internal schema failed, rc: %d", rc ) ;
+
+      if ( isSchemaNew )
+      {
+         context->mb()->_schemaExtentID = schemaExtent ;
+         schemaExtent = DMS_INVALID_EXTENT ;
+      }
+      if ( isSchemaHashNew )
+      {
+         context->mb()->_schemaHashExtentID = schemaHashExtent ;
+         schemaHashExtent = DMS_INVALID_EXTENT ;
+      }
+
+      OSS_BIT_SET( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
+
+      // on metadata updated
+      _onMBUpdated( context->mbID() ) ;
+
+      // Flush MME
+      flushMME( isSyncDeep() ) ;
+
+   done:
+      return rc ;
+
+   error:
+      if ( DMS_INVALID_EXTENT != schemaExtent && isSchemaNew )
+      {
+         _releaseSpace( schemaExtent, schemaExtSize ) ;
+         schemaExtent = DMS_INVALID_EXTENT ;
+         isSchemaNew = FALSE ;
+      }
+      if ( DMS_INVALID_EXTENT != schemaHashExtent && isSchemaHashNew )
+      {
+         _releaseSpace( schemaHashExtent, schemaExtSize ) ;
+         schemaHashExtent = DMS_INVALID_EXTENT ;
+         isSchemaHashNew = FALSE ;
+      }
+      goto done ;
+   }
+
+   INT32 _dmsStorageDataCommon::disableInfoSchema( dmsMBContext *context )
+   {
+      if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+      {
+         return SDB_OPERATION_INCOMPATIBLE ;
+      }
+      return SDB_OK ;
+   }
+
+   _dmsInternalSchema* _dmsStorageDataCommon::getSchema( UINT16 mbID )
+   {
+      // TODO: YSD Need to check if the schema is enabled. But check mb is not a good idea.
+      dmsInternalSchema *schema = NULL ;
+      if ( mbID >= 0  && mbID < DMS_MME_SLOTS )
+      {
+         schema = &_schemas[ mbID ] ;
+      }
+
+      return schema ;
+   }
+
+   INT32 _dmsStorageDataCommon::getSchema( dmsMBContext *context,
+                                           utilSchema &schema,
+                                           BOOLEAN needGetOwned )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( OSS_BIT_TEST( context->mb()->_attributes,
+                         DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+      {
+         dmsInternalSchema *internalSchema = getSchema( context->mbID() ) ;
+         if ( internalSchema->enabled() )
+         {
+            BSONObj boSchema ;
+
+            const CHAR *clShortName = context->mb()->_collectionName ;
+            CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+            _clFullName( clShortName, fullName, sizeof( fullName ) ) ;
+
+            rc = internalSchema->toSchemaObj( fullName, boSchema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to dump schema from "
+                         "collection [%s], rc: %d", fullName, rc ) ;
+
+            rc = schema.parse( boSchema, FALSE, needGetOwned ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema [%s], rc: %d",
+                         boSchema.toPoolString().c_str(), rc ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsStorageDataCommon::_addSchema( dmsMBContext *context,
+                                            const utilSchema &schema )
+   {
+      INT32 rc = SDB_OK ;
+
+      // parse the schema define, find which has default.
+      // default conflict ?
+      dmsInternalSchema *internalSchema = NULL ;
+      const CHAR *spaceName = getSuName() ;
+      const CHAR *collectionName = context->mb()->_collectionName ;
+
+      PD_CHECK( OSS_BIT_TEST( context->mb()->_attributes,
+                              DMS_MB_ATTR_ENABLE_INFOSCHEMA ),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to check add schema of collection [%s.%s], "
+                "info schema is not enabled", spaceName, collectionName ) ;
+
+      internalSchema = getSchema( context->mbID() ) ;
+      PD_CHECK( internalSchema->enabled(),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to add schema to collection [%s.%s], "
+                "schema is not enabled", spaceName, collectionName ) ;
+
+      for ( UTIL_SCHEMA_COLUMN_LIST_CIT iter = schema.getColumns().begin() ;
+            iter != schema.getColumns().end() ;
+            ++ iter )
+      {
+         const utilSchemaColumn &column = *iter ;
+         const CHAR *columnName = column.getName() ;
+         if ( column.hasWriteDefault() || column.hasReadDefault() )
+         {
+            rc = internalSchema->addColumn( context,
+                                            columnName,
+                                            &column.getDefine(),
+                                            NULL, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s] to schema of "
+                         "collection [%s.%s], rc: %d",
+                         columnName, spaceName, collectionName, rc ) ;
+            PD_LOG( PDDEBUG, "Add column [%s] to collection [%s.%s]",
+                    columnName, spaceName, collectionName ) ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    UINT64 _dmsStorageDataCommon::_getOldestWriteTick() const
@@ -2190,7 +2411,8 @@ namespace engine
                                                UINT32 *logicID,
                                                const BSONObj *extOptions,
                                                const BSONObj *pIdIdxDef,
-                                               BOOLEAN addIdxIDIfNotExist )
+                                               BOOLEAN addIdxIDIfNotExist,
+                                               const utilSchema *pSchema )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_ADDCOLLECTION ) ;
@@ -2209,10 +2431,17 @@ namespace engine
       UINT32 segNum           = DMS_MAX_PG >> segmentPagesSquareRoot() ;
       UINT32 mbExSize         = (( segNum << 3 ) >> pageSizeSquareRoot()) + 1 ;
       UINT16 optExtSize       = 0 ;
+      // The size of both internal schema extent and schema hash extent is 64KB.
+      UINT16 schemaExtSize    = DMS_PAGE_SIZE64K >> pageSizeSquareRoot() ;
       dmsExtentID mbExExtent  = DMS_INVALID_EXTENT ;
       dmsExtentID mbOptExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID schemaExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID schemaHashExtent = DMS_INVALID_EXTENT ;
       dmsMetaExtent *mbExtent = NULL ;
       INT32 testTransLockRC   = SDB_OK ;
+      BOOLEAN enableInfoSchema = OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
+      BSONObj schemaDef ;
+      BSONObj *pSchemaDef = NULL ;
 
       SDB_ASSERT( pName, "Collection name cat't be NULL" ) ;
 
@@ -2223,11 +2452,20 @@ namespace engine
 
       _clFullName( pName, fullName, sizeof(fullName) ) ;
 
+      if ( enableInfoSchema && NULL != pSchema && pSchema->isValid() )
+      {
+         rc = pSchema->toBSON( schemaDef ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, rc: %d",
+                      rc ) ;
+         pSchemaDef = &schemaDef ;
+      }
+
       // calc the reserve dps size
       if ( dpscb )
       {
          rc = dpsCLCrt2Record( fullName, clUniqueID, attributes,
-                               compressionType, extOptions, pIdIdxDef, record ) ;
+                               compressionType, extOptions, pIdIdxDef,
+                               pSchemaDef, record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
          rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
@@ -2253,6 +2491,17 @@ namespace engine
          rc = _findFreeSpace( mbExSize, mbExExtent, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Allocate metablock expand extent failed, "
                       "pageNum: %d, rc: %d", mbExSize, rc ) ;
+      }
+
+      // Allocate schema extent and schema hash extent
+      if ( enableInfoSchema )
+      {
+         rc = _findFreeSpace( schemaExtSize, schemaExtent, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema extent failed, pageNum: %d, rc: %d",
+                      schemaExtSize, rc ) ;
+         rc = _findFreeSpace( schemaExtSize, schemaHashExtent, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema hash extent failed, "
+                      "pageNum: %d, rc: %d", schemaExtSize, rc ) ;
       }
 
       // first exclusive latch metadata, this shouldn't be replaced by SHARED to
@@ -2376,6 +2625,35 @@ namespace engine
          mbExExtent = DMS_INVALID_EXTENT ;
       }
 
+      if ( enableInfoSchema )
+      {
+         dmsSchemaExtent *schemaExtPtr = NULL ;
+         dmsSchemaHashExtent *schemaHashExtPtr = NULL ;
+         dmsExtRW rw = extent2RW( schemaExtent, newCollectionID ) ;
+         rw.setNothrow( TRUE ) ;
+         schemaExtPtr = rw.writePtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
+         PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
+                   schemaExtent ) ;
+         schemaExtPtr->init( schemaExtSize, newCollectionID ) ;
+         ossMemset( (CHAR *)schemaExtPtr + DMS_SCHEMAEXTENT_HEADER_SZ, 0x00,
+                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
+
+         mb->_schemaExtentID = schemaExtent ;
+         schemaExtent = DMS_INVALID_EXTENT ;
+
+         rw = extent2RW( schemaHashExtent, newCollectionID ) ;
+         rw.setNothrow( TRUE ) ;
+         schemaHashExtPtr =
+            rw.writePtr<dmsSchemaHashExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
+         PD_CHECK( schemaHashExtPtr, SDB_SYS, error, PDERROR,
+                   "Invalid internal schema hash extent[%d]", schemaHashExtent ) ;
+         schemaHashExtPtr->init( schemaExtSize, newCollectionID ) ;
+         ossMemset( (CHAR *)schemaHashExtPtr + DMS_SCHEMAHASHEXTENT_HEADER_SZ, 0xFF,
+                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAHASHEXTENT_HEADER_SZ ) ;
+         mb->_schemaHashExtentID = schemaHashExtent ;
+         schemaHashExtent = DMS_INVALID_EXTENT ;
+      }
+
       rc = _onAddCollection( extOptions, mbOptExtent,
                              optExtSize, newCollectionID ) ;
       PD_RC_CHECK( rc, PDERROR, "onAddCollection operation failed: %d", rc ) ;
@@ -2395,6 +2673,21 @@ namespace engine
             newCollectionID = DMS_INVALID_MBID ;
          }
          goto error ;
+      }
+
+      if ( enableInfoSchema )
+      {
+         rc = _schemas[ newCollectionID ].init( this, context, mb->_schemaExtentID,
+                                                mb->_schemaHashExtentID, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Initialize internal schema failed, rc: %d", rc ) ;
+
+         if ( NULL != pSchema && pSchema->isValid() )
+         {
+            rc = _addSchema( context, *pSchema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add schema [%s] to "
+                         "collection [%s], rc: %d",
+                         pSchema->getName(), fullName, rc ) ;
+         }
       }
 
       // write dps log
@@ -2494,6 +2787,14 @@ namespace engine
       if ( DMS_INVALID_EXTENT != mbOptExtent )
       {
          _releaseSpace( mbOptExtent, optExtSize ) ;
+      }
+      if ( DMS_INVALID_EXTENT != schemaExtent )
+      {
+         _releaseSpace( schemaExtent, schemaExtSize ) ;
+      }
+      if ( DMS_INVALID_EXTENT != schemaHashExtent )
+      {
+         _releaseSpace( schemaHashExtent, schemaExtSize ) ;
       }
       if ( DMS_INVALID_MBID != newCollectionID )
       {
@@ -2682,6 +2983,9 @@ namespace engine
             }
             context->mb()->_mbOptExtentID = DMS_INVALID_EXTENT ;
          }
+
+         // release schema extent
+         _rmInternalSchema( context ) ;
 
          // release mb lock
          context->mbUnlock() ;
@@ -3314,6 +3618,8 @@ namespace engine
       UINT32 attributes = oldMBContext->mb()->_attributes ;
       UINT8 compressorType = oldMBContext->mb()->_compressorType ;
       ossPoolVector< BSONObj > droppedIndexList ;
+      utilSchema oldSchema ;
+      utilSchema *pSchema = NULL ;
 
       PD_LOG( PDDEBUG, "Start copy collection [from: %s.%s, "
               "to %s.%s]", getSuName(), oldName, getSuName(), newName ) ;
@@ -3322,12 +3628,20 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get ext options for "
                    "collection [%s], rc: %d", oldName, rc ) ;
 
+      rc = getSchema( oldMBContext, oldSchema, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get schema for collection [%s.%s], "
+                   "rc: %d", getSuName(), oldName, rc ) ;
+      if ( oldSchema.isValid() )
+      {
+         pSchema = &oldSchema ;
+      }
+
       // not create id index, will copy index later
       OSS_BIT_SET( attributes, DMS_MB_ATTR_NOIDINDEX ) ;
 
       rc = addCollection( newName, &newMBID, newCLUniqueID, attributes, cb,
                           NULL, 0, FALSE, compressorType, &newCLLID,
-                          &extOptions ) ;
+                          &extOptions, NULL, FALSE, pSchema ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add collection [%s], rc: %d",
                    newName, rc ) ;
 
@@ -3880,6 +4194,8 @@ namespace engine
       // delete record related
       dmsRecordID foundRID ;
       dmsRecordData recordData ;
+      dmsRecordData encodeData ;
+      dmsRecordData storeData ;
       dmsExtRW extRW ;
       dmsRecordRW recordRW ;
       const dmsExtent *pExtent      = NULL ;
@@ -3912,21 +4228,28 @@ namespace engine
 
          if ( !markInsert )
          {
-            rc = _prepareInsertData( record, mustOID, cb, recordData,
+            // 这里没加锁，在有 schema 的情况下，有可能在后面的加锁之前，集合创建了索引，这时贴源数据不对。
+            // 需要在编码完成的时候获取模式的版本号，在拿到集合锁后比对
+retry:
+            // recordData holds the BSONObj record. It's used to generate dps log and index keys.
+            // encodeData holds the encoded record(encoded by internal schema) to be stored into
+            // data file.
+            rc = _prepareInsertData( context, record, mustOID, cb, recordData, encodeData,
                                      newMem, position ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
+            storeData = encodeData.isEmpty() ? recordData : encodeData ;
+
             if ( newMem )
             {
                pMergedData = (CHAR *)recordData.data() ;
             }
 
             insertObj = BSONObj( recordData.data() ) ;
-            dmsRecordSize = recordData.len() ;
+            dmsRecordSize = storeData.len() ;
 
             // check
-            if ( recordData.len() + DMS_RECORD_METADATA_SZ >
-                 DMS_RECORD_USER_MAX_SZ )
+            if ( recordData.len() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
             {
                rc = SDB_DMS_RECORD_TOO_BIG ;
                goto error ;
@@ -3941,13 +4264,13 @@ namespace engine
                   INT32 compressedDataSize      = 0 ;
                   UINT8 compressRatio           = 0 ;
                   rc = dmsCompress( cb, compressorEntry,
-                                    recordData.data(), recordData.len(),
+                                    storeData.data(), storeData.len(),
                                     &compressedData, &compressedDataSize,
                                     compressRatio ) ;
                   // Compression is valid and ratio is less the threshold
                   if ( SDB_OK == rc &&
                        compressedDataSize + sizeof(UINT32) <
-                       recordData.orgLen() &&
+                       storeData.orgLen() &&
                        compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
                   {
                      // 4 bytes len + compressed record
@@ -3957,9 +4280,18 @@ namespace engine
                                  PD_PACK_UINT ( dmsRecordSize ) ) ;
 
                      // set the compression data
-                     recordData.setData( compressedData, compressedDataSize,
-                                         compressorEntry->getCompressorType(),
-                                         FALSE ) ;
+                     storeData.setData( compressedData, compressedDataSize,
+                                        compressorEntry->getCompressorType(),
+                                        FALSE ) ;
+
+
+
+
+                     // TODO: YSD for testing now.
+                     storeData.setPrimalLen( record.objsize() ) ;
+
+
+
                   }
                   else if ( rc )
                   {
@@ -3990,7 +4322,7 @@ namespace engine
             // both for data record and replication log.
             // Get the final recordsize that we have to allocate:
             // reserved space, alignment, etc.
-            _finalRecordSize( dmsRecordSize, recordData ) ;
+            _finalRecordSize( dmsRecordSize, storeData ) ;
          }
 
          _clFullName( context->mb()->_collectionName, fullName,
@@ -4055,6 +4387,11 @@ namespace engine
          rc = context->mbLock( EXCLUSIVE ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
+         // after taken the latch, check if the schema has changed, if yes, retry.
+
+
+
+
          // then make sure the collection compatiblity
          if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                               DMS_ACCESS_TYPE_INSERT ) )
@@ -4111,8 +4448,8 @@ namespace engine
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
-            context->mbStat()->_totalDataLen += recordData.len() ;
-            context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
+            context->mbStat()->_totalDataLen += storeData.len() ;
+            context->mbStat()->_totalOrgDataLen += storeData.orgLen() ;
 
 #if defined (_DEBUG)
             PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
@@ -4194,7 +4531,7 @@ namespace engine
             }
 
             // insert to extent
-            rc = _extentInsertRecord( context, extRW, recordRW, recordData,
+            rc = _extentInsertRecord( context, extRW, recordRW, storeData,
                                       dmsRecordSize, cb, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
          }
@@ -4211,7 +4548,7 @@ namespace engine
 
          if ( !markInsert )
          {
-            _postInsertRecord( context, extRW, recordRW, recordData,
+            _postInsertRecord( context, extRW, recordRW, storeData,
                                dmsRecordSize, cb ) ;
          }
       }
@@ -5256,6 +5593,40 @@ namespace engine
       }
       _compressorEntry[context->mbID()].reset() ;
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_RMCOMPRESSOR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__RMINTERNALSCHEMA, "_dmsStorageDataCommon::_rmInternalSchema" )
+   void _dmsStorageDataCommon::_rmInternalSchema( _dmsMBContext *context )
+   {
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__RMINTERNALSCHEMA ) ;
+
+      _schemas[ context->mbID() ].reset() ;
+
+      if ( DMS_INVALID_EXTENT != context->mb()->_schemaExtentID )
+      {
+         const dmsSchemaExtent *schemaExtPtr = NULL ;
+         dmsExtRW rw = extent2RW( context->mb()->_schemaExtentID,
+                                  context->mbID() ) ;
+         rw.setNothrow( TRUE ) ;
+         schemaExtPtr = rw.readPtr<dmsSchemaExtent>() ;
+         _releaseSpace( context->mb()->_schemaExtentID,
+                        schemaExtPtr->_blockSize ) ;
+         context->mb()->_schemaExtentID = DMS_INVALID_EXTENT ;
+      }
+
+      if ( DMS_INVALID_EXTENT != context->mb()->_schemaHashExtentID )
+      {
+         const dmsSchemaHashExtent *schemaHashExtPtr = NULL ;
+         dmsExtRW rw = extent2RW( context->mb()->_schemaHashExtentID,
+                                  context->mbID() ) ;
+         rw.setNothrow( TRUE ) ;
+         schemaHashExtPtr = rw.readPtr<dmsSchemaHashExtent>() ;
+         _releaseSpace( context->mb()->_schemaHashExtentID,
+                        schemaHashExtPtr->_blockSize ) ;
+         context->mb()->_schemaHashExtentID = DMS_INVALID_EXTENT ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__RMINTERNALSCHEMA ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_LOADDICTIONARY, "_dmsStorageDataCommon::loadDictionary" )

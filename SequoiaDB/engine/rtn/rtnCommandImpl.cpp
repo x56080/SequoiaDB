@@ -628,6 +628,74 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCLINTERNALSCHEMA, "rtnGetCollectionInternalSchema" )
+   static INT32 rtnGetCollectionInternalSchema( const CHAR *pCollection,
+                                                SDB_DMSCB *dmsCB,
+                                                rtnContextDump *context )
+   {  
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNGETCLINTERNALSCHEMA ) ;
+      dmsStorageUnit *su = NULL;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      dmsMBContext *mbContext = NULL ;
+      const CHAR *pCollectionShortName = NULL ;
+      BSONObj schema ;
+      UINT32 infoMask = MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ;
+
+      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
+                                             &pCollectionShortName, suID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to resolve collection name %s, rc: %d",
+                   pCollection, rc ) ;
+      rc = su->data()->getMBContext(&mbContext, pCollectionShortName, SHARED);
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+
+      rc = su->dumpInternalSchema(mbContext, schema) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get internal schema of collection[%s], rc: %d",
+                   pCollection, rc ) ;
+
+      try
+      {
+         BSONObjBuilder builder;
+         builder.append( FIELD_NAME_NAME, pCollection );
+         builder.append( FIELD_NAME_UNIQUEID, (INT64)mbContext->mb()->_clUniqueID );
+         builder.append( FIELD_NAME_COLLECTIONSPACE, su->CSName() );
+         BSONArrayBuilder arrayBuilder( builder.subarrayStart( FIELD_NAME_INTERNAL_SCHEMAS ) );
+         BSONObjBuilder subObjBuilder( arrayBuilder.subobjStart() );
+         monAppendSystemInfo( subObjBuilder, infoMask );
+         
+         subObjBuilder.append( schema.getField( FIELD_NAME_COLUMNS ) );
+         subObjBuilder.done();
+         arrayBuilder.done();
+
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+
+         rc = context->append( builder.done() );
+         PD_RC_CHECK( rc, PDERROR, "Failed to add schema object to context, rc: %d", rc );
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      if ( NULL != su && NULL != mbContext )
+      {
+         su->data()->releaseMBContext( mbContext ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNGETCLINTERNALSCHEMA, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    static UINT32 _rtnIndexKeyNodeCount( dmsExtentID extentID,
                                         dmsStorageUnit *su,
                                         UINT32 deep )
@@ -1328,6 +1396,9 @@ retry:
          case CMD_GET_INDEX_STAT :
             rc = rtnGetIndexStat( options, dmsCB, cb, rtnCB, context ) ;
             break ;
+         case CMD_GET_CL_INTERNAL_SCHEMA :
+            rc = rtnGetCollectionInternalSchema( pCollectionName, dmsCB, context ) ;
+            break ;
          default :
             rc = SDB_INVALIDARG ;
             break ;
@@ -1531,7 +1602,8 @@ retry:
                                       BOOLEAN sysCall,
                                       const BSONObj *extOptions,
                                       const BSONObj *pIdIdxDef,
-                                      BOOLEAN addIdxIDIfNotExist )
+                                      BOOLEAN addIdxIDIfNotExist,
+                                      const utilSchema *schema )
    {
       BSONObj shardIdxDef ;
       return rtnCreateCollectionCommand ( pCollection,
@@ -1539,7 +1611,8 @@ retry:
                                           attributes, cb, dmsCB, dpsCB,
                                           clUniqueID, compressorType,
                                           flags, sysCall, extOptions,
-                                          pIdIdxDef, addIdxIDIfNotExist ) ;
+                                          pIdIdxDef, addIdxIDIfNotExist,
+                                          schema ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATECLCOMMAND, "rtnCreateCollectionCommand" )
@@ -1554,7 +1627,8 @@ retry:
                                       INT32 flags, BOOLEAN sysCall,
                                       const BSONObj *extOptions,
                                       const BSONObj *pIdIdxDef,
-                                      BOOLEAN addIdxIDIfNotExist )
+                                      BOOLEAN addIdxIDIfNotExist,
+                                      const utilSchema *schema )
    {
       INT32 rc              = SDB_OK ;
       INT32 rcTmp           = SDB_OK ;
@@ -1635,7 +1709,8 @@ retry:
                                        clUniqueID, attributes, cb,
                                        dpsCB, 0, sysCall,
                                        compType, &logicalID, extOptions,
-                                       pIdIdxDef, addIdxIDIfNotExist ) ;
+                                       pIdIdxDef, addIdxIDIfNotExist,
+                                       schema ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR,

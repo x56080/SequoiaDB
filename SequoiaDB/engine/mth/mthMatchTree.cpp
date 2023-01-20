@@ -2624,6 +2624,8 @@ namespace engine
       _srcType       = MTH_SRC_TYPE_ORIGINAL ;
 
       _specifyObj    = BSONObj() ;
+
+      _dataSize      = 0 ;
    }
 
    _mthRecordGenerator::~_mthRecordGenerator()
@@ -2684,6 +2686,11 @@ namespace engine
    void _mthRecordGenerator::setDataPtr( ossValuePtr &dataPtr )
    {
       _dataPtr = dataPtr ;
+   }
+
+   void _mthRecordGenerator::setDataSize( INT32 size )
+   {
+      _dataSize = size ;
    }
 
    void _mthRecordGenerator::getDataPtr( ossValuePtr &dataPtr )

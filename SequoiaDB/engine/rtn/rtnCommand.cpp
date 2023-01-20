@@ -564,6 +564,7 @@ namespace engine
       BOOLEAN noTrans = FALSE ;
       BOOLEAN autoIndexId = TRUE ;
       BOOLEAN capped = FALSE ;
+      BOOLEAN enableInfoSchema = FALSE ;
       const CHAR *compressionType = NULL ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
       BSONObj matcher( pMatcherBuff ) ;
@@ -708,6 +709,12 @@ namespace engine
       {
          autoIndexId = FALSE ;
          _attributes |= DMS_MB_ATTR_NOIDINDEX ;
+      }
+
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_ENABLE_INFOSCHEMA, enableInfoSchema ) ;
+      if ( SDB_OK == rc && enableInfoSchema )
+      {
+         _attributes |= DMS_MB_ATTR_ENABLE_INFOSCHEMA ;
       }
 
       if ( capped )
@@ -5830,6 +5837,26 @@ error:
    RTN_COMMAND_TYPE _rtnCMDReturnRecycleBinItemToName::type()
    {
       return CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME ;
+   }
+
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetCollectionInternalSchema)
+   _rtnGetCollectionInternalSchema::_rtnGetCollectionInternalSchema()
+   {
+   }
+
+   _rtnGetCollectionInternalSchema::~_rtnGetCollectionInternalSchema()
+   {
+   }
+
+   const CHAR *_rtnGetCollectionInternalSchema::name()
+   {
+      return CMD_NAME_GET_CL_INTERNAL_SCHEMA ;
+   }
+
+   RTN_COMMAND_TYPE _rtnGetCollectionInternalSchema::type()
+   {
+      return CMD_GET_CL_INTERNAL_SCHEMA ;
    }
 
 }

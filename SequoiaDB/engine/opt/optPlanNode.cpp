@@ -2093,6 +2093,12 @@ namespace engine
          // if index support array, then can't be indexCover
          goto done ;
       }
+      else if ( _returnOptions.testFlag( FLG_QUERY_PRIMAL_DATA ) )
+      {
+         // get raw data, should not use index cover
+         goto done ;
+      }
+
       // the reset of order
       while ( restOrder.more() )
       {

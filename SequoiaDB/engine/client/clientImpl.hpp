@@ -35,6 +35,7 @@ namespace sdbclient
 #define CLIENT_DC_NAMESZ                   127
 #define CLIENT_CL_FULLNAME_SZ              ( CLIENT_COLLECTION_NAMESZ + CLIENT_CS_NAMESZ + 1 )
 #define CLIENT_DATASOURCE_NAMESZ           127
+#define CLIENT_SCHEMA_NAMESZ               127
 
    class _sdbCollectionSpaceImpl ;
    class _sdbCollectionImpl ;
@@ -63,7 +64,8 @@ namespace sdbclient
       CLIENT_CLASS_DC          = 8,  // data center
       CLIENT_CLASS_SQ          = 9,  // sequeue
       CLIENT_CLASS_DS          = 10, // datasource
-      CLIENT_CLASS_RB          = 11  // recycle bin
+      CLIENT_CLASS_RB          = 11, // recycle bin
+      CLIENT_CLASS_SCHEMA      = 12  // schema
    } ;
 
    /*
@@ -662,6 +664,10 @@ namespace sdbclient
 
       void  setVersion ( INT32 clVersion ) ;
       INT32 getVersion () ;
+
+      INT32 addSchema( const CHAR *schemaName ) ;
+
+      INT32 getInternalSchema( _sdbCursor **pCursor ) ;
 
    private:
       INT32 _alterCollection1( const bson::BSONObj &options ) ;
@@ -1497,6 +1503,57 @@ namespace sdbclient
 
    typedef _sdbDataSourceImpl sdbDataSourceImpl ;
 
+   class _sdbSchemaImpl : public _sdbSchema, public _sdbBase
+   {
+      friend class _sdbImpl ;
+   private:
+      _sdbSchemaImpl( const _sdbSchemaImpl& other ) ;
+      _sdbSchemaImpl& operator=( const _sdbSchemaImpl& ) ;
+
+   private:
+      virtual INT32 _setConnection( _sdbImpl *connection )
+      {
+         return _regHandle( connection, (ossValuePtr)this ) ;
+      }
+      virtual void _dropConnection()
+      {
+         _unregHandle( (ossValuePtr)this ) ;
+      }
+
+      INT32 _setName( const CHAR *name ) ;
+
+   public:
+      _sdbSchemaImpl() ;
+      _sdbSchemaImpl( const BSONObj &schemaDef ) ;
+      ~_sdbSchemaImpl() ;
+
+      const CHAR *getName() const ;
+      INT32 getDetail( bson::BSONObj &schemaDef, BOOLEAN useCache ) ;
+      INT32 getColumn( const CHAR *name, bson::BSONObj &columnDef, BOOLEAN useCache ) ;
+      INT32 addColumn( const CHAR *name, const bson::BSONObj &columnDef ) ;
+      INT32 alterColumn( const CHAR *name, const bson::BSONObj &options ) ;
+      INT32 renameColumn( const CHAR *name, const CHAR *newName ) ;
+      INT32 dropColumn( const CHAR *name ) ;
+      INT32 dropColumnDefault( const CHAR *name ) ;
+      INT32 setAttributes( const bson::BSONObj &options ) ;
+      INT32 alter( const bson::BSONObj &options ) ;
+
+   protected:
+      INT32 _alter( const CHAR *actionName,
+                    const bson::BSONObj &options ) ;
+
+   private:
+      void _clearSchemaDef() ;
+      void _setSchemaDef( const bson::BSONObj &schemaDef ) ;
+      BOOLEAN _isSchemaDefEmpty() ;
+      BSONObj _getSchemaDef() ;
+
+   private:
+      CHAR _name[ CLIENT_SCHEMA_NAMESZ + 1 ] ;
+      BSONObj _schemaDef ;
+   } ;
+   typedef _sdbSchemaImpl sdbSchemaImpl ;
+
    /*
       _sdbImpl
    */
@@ -1532,6 +1589,7 @@ namespace sdbclient
       std::set<ossValuePtr>    _sequences ;
       std::set<ossValuePtr>    _dataSources ;
       std::set<ossValuePtr>    _recycleBinSet ;
+      std::set<ossValuePtr>    _schemas ;
       hashTable               *_tb ;
       // If the authVersion is 0, we use MD5 authentication.
       // And if the authVersion is 1, we use SCRAM-SHA256 authentication.
@@ -1641,6 +1699,7 @@ namespace sdbclient
       friend class _sdbSequenceImpl ;
       friend class _sdbDataSourceImpl ;
       friend class _sdbRecycleBinImpl ;
+      friend class _sdbSchemaImpl ;
    public :
       _sdbImpl ( BOOLEAN useSSL = FALSE ) ;
       ~_sdbImpl () ;
@@ -2175,6 +2234,28 @@ namespace sdbclient
                              const bson::BSONObj &selector = _sdbStaticObject,
                              const bson::BSONObj &orderBy = _sdbStaticObject,
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
+
+      INT32 createSchema( sdbSchema &schema,
+                          const CHAR *name,
+                          const bson::BSONObj &columns,
+                          const bson::BSONObj &attr ) ;
+
+      INT32 dropSchema( const CHAR *name ) ;
+
+      INT32 getSchema( const CHAR *name,
+                       _sdbSchema **schema ) ;
+      INT32 getSchema( const CHAR *name,
+                       sdbSchema &schema )
+      {
+         RELEASE_INNER_HANDLE( schema.pSchema ) ;
+         return getSchema( name, &( schema.pSchema ) ) ;
+      }
+
+      INT32 listSchemas( _sdbCursor** cursor,
+                         const bson::BSONObj &condition = _sdbStaticObject,
+                         const bson::BSONObj &selector = _sdbStaticObject,
+                         const bson::BSONObj &orderBy = _sdbStaticObject,
+                         const bson::BSONObj &hint = _sdbStaticObject ) ;
    } ;
    typedef class _sdbImpl sdbImpl ;
 

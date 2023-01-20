@@ -108,6 +108,7 @@ namespace engine
          BSONObj idIdxDef ;
          const CHAR *dictionary ;
          UINT32 dictSize ;
+         utilSchema schema ;
 
          _clMetaData()
          {

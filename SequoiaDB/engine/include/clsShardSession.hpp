@@ -162,7 +162,8 @@ namespace engine
          INT32   _createCSByCatalog( const CHAR *clFullName ) ;
          INT32   _createCLByCatalog( const CHAR *clFullName,
                                      const CHAR *pParent = NULL,
-                                     BOOLEAN mustOnSelf = TRUE ) ;
+                                     BOOLEAN mustOnSelf = TRUE,
+                                     const utilSchema *pSchema = NULL ) ;
          INT32   _renameCSByCatalog( const CHAR* csName,
                                      utilCSUniqueID csUniqueID ) ;
          INT32   _renameCLByCatalog( const CHAR* clFullName,
@@ -386,7 +387,9 @@ namespace engine
          INT32 _alterMainCL( _rtnCommand *command,
                              pmdEDUCB *cb,
                              SDB_DPSCB *dpsCB,
-                             BSONObjBuilder *pBuilder ) ;
+                             BSONObjBuilder *pBuilder,
+                             INT16 w,
+                             INT64 &contextID ) ;
 
          INT32 _analyzeMainCL( _rtnCommand *command ) ;
          INT32 _resetSnapshotMainCL ( _rtnCommand * command ) ;
@@ -458,6 +461,9 @@ namespace engine
 
          INT32 _getIndexInfoFromCatalog( utilCLUniqueID clUniqID,
                                          ossPoolVector<BSONObj> &indexInfo ) ;
+
+         INT32 _getSchemaFromCatalog( const CHAR *schemaName,
+                                      utilSchema &schema ) ;
 
       protected:
          _clsReplicateSet       *_pReplSet ;

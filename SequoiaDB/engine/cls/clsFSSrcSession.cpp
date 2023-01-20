@@ -353,6 +353,7 @@ namespace engine
       BSONObjBuilder builder ;
       builder.appendNull( "" ) ;
       BSONObj hint = builder.obj() ;
+      INT32 flag = FLG_QUERY_PRIMAL_DATA ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
       rtnContextLobFetcher::sharePtr pContextLob ;
@@ -382,7 +383,7 @@ namespace engine
       // TABSCAN
       if ( TBSCAN == _scanType() )
       {
-         rc = rtnQuery( fullName, selector, matcher, orderBy, hint, 0, eduCB(),
+         rc = rtnQuery( fullName, selector, matcher, orderBy, hint, flag, eduCB(),
                         0, -1,  pmdGetKRCB()->getDMSCB(), pRtnCB,
                         _contextID, &_context ) ;
       }
@@ -391,7 +392,7 @@ namespace engine
       {
          rc = rtnTraversalQuery( fullName, _rangeKeyObj, IXM_SHARD_KEY_NAME, 1,
                                  eduCB(), pmdGetKRCB()->getDMSCB(),
-                                 pRtnCB, _contextID, &_context ) ;
+                                 pRtnCB, _contextID, &_context, FALSE, flag ) ;
       }
 
       if ( SDB_DMS_EOC == rc )
@@ -508,19 +509,32 @@ namespace engine
       builder1.append( CLS_FS_ATTRIBUTES, attributes ) ;
       builder1.append( CLS_FS_COMP_TYPE, (INT32)compType ) ;
       // If compression type is LZW, get the dictionary, if any.
-      if ( UTIL_COMPRESSOR_LZW == compType )
+      if ( UTIL_COMPRESSOR_LZW == compType ||
+           OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
       {
          dmsMBContext *context = NULL ;
          dmsStorageDataCommon* data = su->data() ;
          if ( SDB_OK == data->getMBContext( &context, collection, SHARED ) )
          {
-            const CHAR *dictionary = NULL ;
-            UINT32 dictLen = 0 ;
-            if ( data->getDictionary( context, dictionary, dictLen ) )
+            if ( UTIL_COMPRESSOR_LZW == compType )
             {
-               // If the dictionary is not ready, nothing will be added.
-               builder1.appendBinData( CLS_FS_COMP_DICT, dictLen,
-                                       BinDataGeneral, dictionary ) ;
+               const CHAR *dictionary = NULL ;
+               UINT32 dictLen = 0 ;
+               if ( data->getDictionary( context, dictionary, dictLen ) )
+               {
+                  // If the dictionary is not ready, nothing will be added.
+                  builder1.appendBinData( CLS_FS_COMP_DICT, dictLen,
+                                          BinDataGeneral, dictionary ) ;
+               }
+            }
+            if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+            {
+               BSONObj boSchema ;
+               if ( SDB_OK == su->dumpInternalSchema( context, boSchema ) &&
+                    !boSchema.isEmpty() )
+               {
+                  builder1.append( FIELD_NAME_SCHEMA, boSchema ) ;
+               }
             }
             data->releaseMBContext( context ) ;
          }

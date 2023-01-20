@@ -3178,5 +3178,21 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_SCHEMA_NOT_EXIST</name>
+         <description>
+            <en>Schema does not exist</en>
+            <cn>模式不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SCHEMA_EXIST</name>
+         <description>
+            <en>Schema already exists</en>
+            <cn>模式已存在</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

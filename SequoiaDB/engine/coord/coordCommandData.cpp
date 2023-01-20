@@ -827,18 +827,47 @@ namespace engine
       BSONObj indexInfo, newMatcher ;
       BSONObjBuilder builder ;
 
-      if ( 0 == cataObjs.size() )
+      if ( cataObjs.size() > 0 )
       {
-         rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
-                                                     cataObjs, ppMsgBuf,
-                                                     pBufSize ) ;
-         goto done ;
-      }
+         try
+         {
+            rc = _getAlterInfo( cataObjs[0], builder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get alter info from catalogue reply failed, rc: %d", rc ) ;
+            if ( !builder.isEmpty() )
+            {
+               /* There is some alter information for the data node. Build new matcher.
+                * Example:
+                * { AlterType: "collection", Name: "foo.bar", Options: {},
+                *   Alter: { Name: "create id index", Args: {} } }
+                * =>
+                * { AlterType: "collection", Name: "foo.bar", Options: {},
+                *   Alter: { Name: "create id index", Args: {} },
+                *   AlterInfo: { Index:[ { Collection: "cs.cl",IndexDef:xxx } ] } }
+               */
+               hasInfo = TRUE ;
+               builder.appendElements( pArgs->_boQuery ) ;
+               newMatcher = builder.obj() ;
 
-      rc = _extractIndexInfo( cataObjs[0], indexInfo, hasInfo ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to extract index info from catalog reply, rc: %d",
-                   rc ) ;
+#ifdef _DEBUG
+               PD_LOG( PDDEBUG, "Alter information for data node: %s",
+                       newMatcher.toString().c_str() ) ;
+#endif /* _DEBUG */
+
+               rc = msgBuildQueryMsg( &pBuf, &bufSize, CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
+                                      0, 0, 0, -1, &newMatcher, NULL, NULL, NULL, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Build data message failed on command[%s], rc: %d",
+                            getName(), rc ) ;
+               *ppMsgBuf = (CHAR *)pBuf ;
+               *pBufSize = bufSize ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+      }
 
       if ( !hasInfo )
       {
@@ -847,31 +876,6 @@ namespace engine
                                                      pBufSize ) ;
          goto done ;
       }
-
-     /* build new matcher
-      *
-      * { AlterType: "collection", Name: "foo.bar", Options: {},
-      *   Alter: { Name: "create id index", Args: {} } }
-      * =>
-      * { AlterType: "collection", Name: "foo.bar", Options: {},
-      *   Alter: { Name: "create id index", Args: {} },
-      *   AlterInfo: { Index:[ { Collection: "cs.cl",IndexDef:xxx } ] } }
-      */
-      builder.appendElements( pArgs->_boQuery ) ;
-      builder.append( FIELD_NAME_ALTER_INFO, indexInfo ) ;
-      newMatcher = builder.obj() ;
-
-      rc = msgBuildQueryMsg( &pBuf, &bufSize,
-                             CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION,
-                             0, 0, 0, -1,
-                             &newMatcher, NULL, NULL, NULL,
-                             cb ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Build data message failed on command[%s], rc: %d",
-                   getName(), rc ) ;
-
-      *ppMsgBuf = (CHAR*)pBuf ;
-      *pBufSize = bufSize ;
 
    done :
       PD_TRACE_EXITRC( COORD_ALTER_GENDATAMSG, rc ) ;
@@ -929,6 +933,47 @@ namespace engine
    done :
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 _coordDataCMDAlter::_getAlterInfo( const BSONObj &reply, BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         // 1. index info
+         // 2. schema info
+         BSONElement idxEle = reply.getField( FIELD_NAME_INDEX ) ;
+         BSONElement schemaEle = reply.getField( FIELD_NAME_SCHEMA ) ;
+         if ( idxEle.eoo() && schemaEle.eoo() )
+         {
+            goto done ;
+         }
+
+         {
+            BSONObjBuilder subBuilder( builder.subobjStart( FIELD_NAME_ALTER_INFO ) ) ;
+            if ( !idxEle.eoo() )
+            {
+               subBuilder.append( idxEle ) ;
+            }
+            if ( !schemaEle.eoo() )
+            {
+               subBuilder.append( schemaEle ) ;
+            }
+            subBuilder.done() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -2452,6 +2497,7 @@ namespace engine
          BOOLEAN isMainCL = FALSE ;
          BOOLEAN isCapped = FALSE ;
          BOOLEAN isCompressed = FALSE ;
+         BOOLEAN enableInfoSchema = FALSE ;
          const CHAR *dataSourceName = NULL ;
          const CHAR *mappingName = NULL ;
          UINT8 dsArgNum = 0 ;
@@ -2579,6 +2625,21 @@ namespace engine
          {
             PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
                     FIELD_NAME_COMPRESSED, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ENABLE_INFOSCHEMA,
+                                    enableInfoSchema ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            enableInfoSchema = FALSE ;
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    FIELD_NAME_ENABLE_INFOSCHEMA, getName(), rc ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }

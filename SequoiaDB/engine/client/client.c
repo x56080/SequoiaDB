@@ -2025,6 +2025,9 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    case SDB_LIST_RECYCLEBIN:
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
       break ;
+   case SDB_LIST_SCHEMAS:
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_SCHEMAS ;
+      break ;
    default :
       rc = SDB_INVALIDARG ;
       goto error ;

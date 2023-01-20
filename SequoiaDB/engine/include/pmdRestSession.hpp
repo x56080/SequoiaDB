@@ -381,7 +381,11 @@ namespace engine
 
          INT32      _convertListRecycleBin( restAdaptor * pAdaptor,
                                             restRequest & request,
-                                            MsgHeader ** msg) ;
+                                            MsgHeader ** msg ) ;
+
+         INT32      _convertListSchemas( restAdaptor * pAdaptor,
+                                         restRequest & request,
+                                         MsgHeader ** msg ) ;
 
          //snapshot
          INT32       _convertSnapshotBase( restAdaptor *pAdaptor,

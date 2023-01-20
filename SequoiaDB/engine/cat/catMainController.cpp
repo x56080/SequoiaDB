@@ -699,6 +699,23 @@ namespace engine
          goto error ;
       }
 
+      // create SYSCAT.SYSINFOSCHEMAS
+      rc = _createSysCollection( CAT_SCHEMA_COLLECTION, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_SCHEMA_COLLECTION, CAT_SCHEMA_NAME_IDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_SCHEMA_COLLECTION, CAT_SCHEMA_COLLECTION_IDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       /// procedures
       rc = _createSysCollection ( CAT_PROCEDURES_COLLECTION, cb ) ;
       if ( rc )

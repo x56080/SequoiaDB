@@ -79,14 +79,28 @@ namespace engine
       /*{ Index: [ { Collection: "foo.bar", IndexDef: xxx },
       *            { Collection: "foo.bar", IndexDef: xxx },
       *            { Collection: "foo.ba1", IndexDef: xxx }
-      *          ]
+      *          ],
+      *   Schema : ...
       * }
       */
       try
       {
          _obj = obj.getOwned() ;
 
-         BSONElement ele = _obj.getField( FIELD_NAME_INDEX ) ;
+         BSONElement ele = _obj.getField( FIELD_NAME_SCHEMA ) ;
+         if ( Object == ele.type() )
+         {
+            rc = _schema.parse( ele.embeddedObject(), FALSE, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+         }
+         else
+         {
+            PD_CHECK( ele.eoo(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], it is an invalid type [%d]",
+                      FIELD_NAME_SCHEMA, ele.type() ) ;
+         }
+
+         ele = _obj.getField( FIELD_NAME_INDEX ) ;
          if ( ele.eoo() )
          {
             goto done ;
@@ -174,23 +188,23 @@ namespace engine
       return UTIL_UNIQUEID_NULL ;
    }
 
-   INT32 _rtnAlterInfo::getIndexInfoByCL( const CHAR* collection,
-                                          BSONObj& indexInfo ) const
+   INT32 _rtnAlterInfo::bindInfoByCL( const CHAR* collection,
+                                      BSONObj& newInfo ) const
    {
       INT32 rc = SDB_OK ;
 
       try
       {
+         BSONObjBuilder builder ;
          ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str>::const_iterator it =
                                                    _clMap.find( collection ) ;
+         /* { Index: [ { Collection: "foo.bar", IndexDef: xxx },
+          *            { Collection: "foo.bar", IndexDef: xxx }, ...
+          *          ]
+          * }
+          */
          if ( it != _clMap.end() )
          {
-           /* { Index: [ { Collection: "foo.bar", IndexDef: xxx },
-            *            { Collection: "foo.bar", IndexDef: xxx }, ...
-            *          ]
-            * }
-            */
-            BSONObjBuilder builder ;
             BSONArrayBuilder sub( builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
 
             const MAP_IDXNAME_ID& idxMap = it->second ;
@@ -205,8 +219,17 @@ namespace engine
             }
 
             sub.done() ;
-            indexInfo = builder.obj() ;
          }
+
+         if ( _schema.isValid() )
+         {
+            BSONObjBuilder subBuilder( builder.subobjStart( FIELD_NAME_SCHEMA ) ) ;
+            subBuilder.append( FIELD_NAME_COLLECTION, collection ) ;
+            subBuilder.appendElementsUnique( _schema.getDefine() ) ;
+            subBuilder.doneFast() ;
+         }
+
+         newInfo = builder.obj() ;
       }
       catch( std::exception &e )
       {
@@ -982,6 +1005,79 @@ namespace engine
    }
 
    /*
+      _rtnCLAddSchemaArgument implement
+    */
+   _rtnCLAddSchemaArgument::_rtnCLAddSchemaArgument( const bson::BSONObj & argument )
+   : _rtnAlterTaskArgument( argument ),
+     _schemaName( NULL )
+   {
+   }
+
+   _rtnCLAddSchemaArgument::~_rtnCLAddSchemaArgument()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLADDSCHEMAAGR_PARSEARG, "_rtnCLAddSchemaArgument::parseArgument" )
+   INT32 _rtnCLAddSchemaArgument::parseArgument()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLADDSCHEMAAGR_PARSEARG ) ;
+
+      BSONElement argElement ;
+
+      argElement = _argument.getField( FIELD_NAME_SCHEMA ) ;
+      if ( !argElement.eoo() )
+      {
+         PD_CHECK( String == argElement.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_SCHEMA ) ;
+         _schemaName = argElement.valuestr() ;
+      }
+      else
+      {
+         PD_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_SCHEMA ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCLADDSCHEMAAGR_PARSEARG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _rtnCLAlterSchemaArgument implement
+    */
+   _rtnCLAlterSchemaArgument::_rtnCLAlterSchemaArgument( const bson::BSONObj & argument )
+   : _rtnAlterTaskArgument( argument ),
+     _action()
+   {
+   }
+
+   _rtnCLAlterSchemaArgument::~_rtnCLAlterSchemaArgument()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLALTERSCHEMAAGR_PARSEARG, "_rtnCLAlterSchemaArgument::parseArgument" )
+   INT32 _rtnCLAlterSchemaArgument::parseArgument()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLALTERSCHEMAAGR_PARSEARG ) ;
+
+      rc = _action.parse( _argument ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse alter schema action, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCLALTERSCHEMAAGR_PARSEARG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
       _rtnAlterCLTask implement
     */
    _rtnAlterCLTask::_rtnAlterCLTask ( const rtnAlterTaskSchema & schema,
@@ -1560,6 +1656,127 @@ namespace engine
    }
 
    /*
+      _rtnCLAddSchemaTask define
+    */
+   _rtnCLAddSchemaTask::_rtnCLAddSchemaTask( const rtnAlterTaskSchema & schema,
+                                             const BSONObj & argument )
+   : _rtnAlterCLTask( schema, argument ),
+     _addSchemaArgument( argument )
+   {
+      SDB_ASSERT( RTN_ALTER_CL_ADD_SCHEMA == schema.getActionType(),
+                  "schema is invalid" ) ;
+   }
+
+   _rtnCLAddSchemaTask::~_rtnCLAddSchemaTask()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERCLADDSCHEMATASK_PARSEARG, "_rtnCLAddSchemaTask::parseArgument" )
+   INT32 _rtnCLAddSchemaTask::parseArgument()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNALTERCLADDSCHEMATASK_PARSEARG ) ;
+
+      rc = _addSchemaArgument.parseArgument() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse add info schema argument, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNALTERCLADDSCHEMATASK_PARSEARG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _rtnCLAlterSchemaTask define
+    */
+   _rtnCLAlterSchemaTask::_rtnCLAlterSchemaTask( const rtnAlterTaskSchema & schema,
+                                                 const BSONObj & argument )
+   : _rtnAlterCLTask( schema, argument ),
+     _argument( argument )
+   {
+      SDB_ASSERT( RTN_ALTER_CL_ALTER_SCHEMA == schema.getActionType(),
+                  "schema is invalid" ) ;
+   }
+
+   _rtnCLAlterSchemaTask::~_rtnCLAlterSchemaTask()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERCLALTERSCHEMATASK_PARSEARG, "_rtnCLAlterSchemaTask::parseArgument" )
+   INT32 _rtnCLAlterSchemaTask::parseArgument()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNALTERCLALTERSCHEMATASK_PARSEARG ) ;
+
+      rc = _argument.parseArgument() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse alter info schema argument, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNALTERCLALTERSCHEMATASK_PARSEARG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNALTERCLALTERSCHEMATASK_BLDALTERCMD, "_rtnCLAlterSchemaTask::buildAlterCommand" )
+   INT32 _rtnCLAlterSchemaTask::buildAlterCommand( const CHAR *collectionName,
+                                                   const BSONObj &actionObject,
+                                                   BSONObj &boAlterCommand )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNALTERCLALTERSCHEMATASK_BLDALTERCMD ) ;
+
+      // {
+      //    AlterType : "<alter_type>",      // "collection"
+      //    Version : 1,
+      //    Name : "<object_name>",          // e.g. foo.bar
+      //    Alter : {
+      //       Name : "<alter_action>",      // "alter schema"
+      //       Args : { <alter_options> }    // alter schema action
+      //    }
+      try
+      {
+         BSONObjBuilder builder ;
+
+         builder.append( FIELD_NAME_ALTER_TYPE, SDB_CATALOG_CL ) ;
+         builder.append( FIELD_NAME_VERSION, SDB_ALTER_VERSION ) ;
+         builder.append( FIELD_NAME_NAME, collectionName ) ;
+
+         BSONObjBuilder alterBuilder( builder.subobjStart( FIELD_NAME_ALTER ) ) ;
+
+         alterBuilder.append( FIELD_NAME_NAME, SDB_ALTER_CL_ALTER_SCHEMA ) ;
+         alterBuilder.append( FIELD_NAME_ARGS, actionObject ) ;
+
+         alterBuilder.done() ;
+
+         boAlterCommand = builder.obj() ;
+
+         PD_LOG( PDDEBUG, "build alter command [%s]",
+                 boAlterCommand.toPoolString().c_str() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build alter command for collection [%s], "
+                 "occur exception %s", collectionName, e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNALTERCLALTERSCHEMATASK_BLDALTERCMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
       _rtnCLSetAttributeTask implement
     */
    _rtnCLSetAttributeTask::_rtnCLSetAttributeTask ( const rtnAlterTaskSchema & schema,
@@ -1574,7 +1791,8 @@ namespace engine
      _idIdxUniqID( UTIL_UNIQUEID_NULL ),
      _replSize( 1 ),
      _strictDataMode( TRUE ),
-     _noTrans( FALSE )
+     _noTrans( FALSE ),
+     _enableInfoSchema( FALSE )
    {
       SDB_ASSERT( RTN_ALTER_CL_SET_ATTRIBUTES == schema.getActionType(),
                   "schema is invalid" ) ;
@@ -1776,6 +1994,17 @@ namespace engine
                    RTN_ALTER_TASK_TRANS_LOCK ) ;
       }
 
+      if ( _argument.hasField( FIELD_NAME_ENABLE_INFOSCHEMA ) )
+      {
+         argElement = _argument.getField( FIELD_NAME_ENABLE_INFOSCHEMA ) ;
+         PD_CHECK( Bool == argElement.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_ENABLE_INFOSCHEMA ) ;
+         _enableInfoSchema = argElement.boolean() ;
+         parsedArgumentMask( UTIL_CL_ENABLE_INFOSCHEMA ) ;
+         setFlags( RTN_ALTER_TASK_FLAG_3PHASE |
+                   RTN_ALTER_TASK_TRANS_LOCK ) ;
+      }
+
       // Special non supported cases
       PD_CHECK( !_argument.hasField( FIELD_NAME_CAPPED ),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
@@ -1816,7 +2045,8 @@ namespace engine
                                  UTIL_CL_COMPRESSED_FIELD |
                                  UTIL_CL_COMPRESSTYPE_FIELD |
                                  UTIL_CL_STRICTDATAMODE_FIELD |
-                                 UTIL_CL_NOTRANS_FIELD ) ) )
+                                 UTIL_CL_NOTRANS_FIELD |
+                                 UTIL_CL_ENABLE_INFOSCHEMA ) ) )
       {
          setFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ;
       }

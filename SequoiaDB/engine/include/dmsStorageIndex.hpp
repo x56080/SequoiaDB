@@ -47,6 +47,7 @@
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
 #include "dmsTaskStatus.hpp"
+#include "utilSchema.hpp"
 
 using namespace bson ;
 
@@ -241,6 +242,14 @@ namespace engine
          void     decStatFreeSpace ( UINT16 mbID, UINT16 size ) ;
 
          INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
+         INT32    checkAddSchemaOnIndexes( dmsMBContext *context,
+                                           const utilSchema &schema ) ;
+         INT32    checkAlterSchemaOnIndexes( dmsMBContext *context,
+                                              const utilSchemaAlterAction &action ) ;
+         INT32    renameColumnOnIndexes( dmsMBContext *context,
+                                         const utilSchemaAlterAction &action,
+                                         BOOLEAN isRollback,
+                                         pmdEDUCB *cb ) ;
 
       private:
          INT32    _releaseMetaExtent( dmsExtentID extentID ) ;

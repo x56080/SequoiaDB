@@ -1235,6 +1235,7 @@ namespace engine
                           const UINT8 &compressorType,
                           const BSONObj *extOptions,
                           const BSONObj *idIdxDef,
+                          const BSONObj *schemaDef,
                           dpsLogRecord &record )
    {
       PD_TRACE_ENTRY( SDB__DPS_CLCRT2RECORD ) ;
@@ -1310,6 +1311,22 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
+      if ( schemaDef )
+      {
+         if ( !schemaDef->valid() )
+         {
+            PD_LOG( PDERROR, "schema definition is invalid" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         rc = record.push( DPS_LOG_CLCRT_SCHEMA_DEF,
+                           schemaDef->objsize(),
+                           schemaDef->objdata() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push schema definition "
+                      "to record, rc: %d", rc ) ;
+      }
+
       rc = checkAndAddTimeInfo( record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc = %d", rc ) ;
 
@@ -1328,7 +1345,8 @@ namespace engine
                           UINT32 &attribute,
                           UINT8 &compressorType,
                           BSONObj &extOptions,
-                          BSONObj &idIdxDef )
+                          BSONObj &idIdxDef,
+                          BSONObj &schemaDef )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2CLCRT ) ;
       INT32 rc = SDB_OK ;
@@ -1399,6 +1417,21 @@ namespace engine
          {
             rc = ossException2RC( &e ) ;
             PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+      }
+
+      recordItr = record.find( DPS_LOG_CLCRT_SCHEMA_DEF ) ;
+      if ( recordItr.valid() )
+      {
+         try
+         {
+            schemaDef = BSONObj( recordItr.value() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to fetch schema definition, "
+                         "occur exception: %s", e.what() ) ;
          }
       }
 

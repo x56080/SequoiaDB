@@ -59,6 +59,7 @@
 #include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
 #include "dmsScanner.hpp"
+#include "dmsInternalSchemaHandler.hpp"
 
 using namespace std ;
 
@@ -242,6 +243,8 @@ namespace engine
       dmsPageMappingDispatcher   _pageMapDispatcher ;
 
       DMS_HANDLER_LIST           _handlers ;
+
+      dmsInternalSchemaHandler   _schemaHandler ;
 
    private:
       void  _logCSCBNameMap () ;

@@ -4630,6 +4630,92 @@ do                                                            \
       return _version;
    }
 
+   INT32 _sdbCollectionImpl::addSchema( const CHAR *schemaName )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !schemaName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObj obj ;
+         builder.append( FIELD_NAME_SCHEMA, schemaName ) ;
+         obj = builder.done() ;
+
+         rc = _alterInternal( SDB_ALTER_CL_ADD_SCHEMA, &obj, FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::getInternalSchema( _sdbCursor **cursor )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj newObj ;
+      
+      if ( '\0' == _collectionFullName[0] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder newObjBuilder ;
+         newObjBuilder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+         newObj = newObjBuilder.obj() ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_CL_INTERNAL_SCHEMA, NULL, NULL,
+                                     NULL, &newObj, 0, 0, 0, -1, cursor ) ;
+
+      /// ignore update result
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                           _collectionFullName, _version ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      if ( cursor && NULL != *cursor )
+      {
+         delete *cursor ;
+         *cursor = NULL ;
+      }
+      goto done ;
+   }
+
    /*
     * _sdbNodeImpl
     * Sdb Node Implementation
@@ -9085,6 +9171,409 @@ do                                                            \
    }
 
    /*
+      _sdbSchemaImpl implement
+    */
+   _sdbSchemaImpl::_sdbSchemaImpl()
+   : _sdbBase( CLIENT_CLASS_SCHEMA )
+   {
+   }
+
+   _sdbSchemaImpl::_sdbSchemaImpl( const BSONObj &schemaDef )
+   : _sdbBase( CLIENT_CLASS_SCHEMA )
+   {
+      _schemaDef = schemaDef.getOwned();
+   }
+
+   _sdbSchemaImpl::~_sdbSchemaImpl()
+   {
+      _dropConnection() ;
+   }
+
+   const CHAR *_sdbSchemaImpl::getName() const
+   {
+      return _name ;
+   }
+
+   INT32 _sdbSchemaImpl::getDetail( bson::BSONObj &schemaDef, BOOLEAN useCache )
+   {
+      INT32 rc = SDB_OK ;
+      schemaDef = _sdbStaticObject;
+      if ( 0 == ossStrlen( _name ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      if ( _isSchemaDefEmpty() || !useCache )
+      {
+         _clearSchemaDef() ;
+         _sdbCursor *cursor = NULL ;
+         BSONObjBuilder condBuilder ;
+         condBuilder.append( FIELD_NAME_NAME, _name ) ;
+
+         rc = _connection->listSchemas( &cursor, condBuilder.done() ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to list schemas with condition: %s,rc: %d",
+                  condBuilder.done().toString( 0, 1, 1 ).c_str(), rc ) ;
+            goto error ;
+         }
+
+         rc = cursor->current( schemaDef ) ;
+         if ( SDB_OK != rc )
+         {
+            _clearSchemaDef() ;
+            PD_LOG( PDERROR, "Failed to get schema detail[name: %s] from cursor, rc: %d", _name, rc ) ;
+            goto error ;
+         }  
+      }
+      _setSchemaDef( schemaDef ) ;
+
+   done:
+      return rc ;
+   error:
+      schemaDef = _sdbStaticObject;
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::getColumn( const CHAR *columnName,
+                                    bson::BSONObj &columnDef,
+                                    BOOLEAN useCache )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj schemaDef ;
+      rc = getDetail( schemaDef, useCache ) ;
+      if (SDB_OK != rc) 
+      {
+         PD_LOG( PDERROR, "Failed to get schema detail[name: %s], rc: %d", _name, rc ) ;
+         goto error ;
+      }
+
+      columnDef = schemaDef.getObjectField( FIELD_NAME_COLUMNS ).getObjectField( columnName ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::addColumn( const CHAR *name,
+                                    const BSONObj &columnDef )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj rebuildOptions ;
+
+      try
+      {
+         rebuildOptions = BSON( name << columnDef ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alter( CMD_VALUE_NAME_SCHEMA_ADD_COLUMN, rebuildOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::alterColumn( const CHAR *name,
+                                      const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj rebuildOptions ;
+
+      try
+      {
+         rebuildOptions = BSON( name << options ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alter( CMD_VALUE_NAME_SCHEMA_ALTER_COLUMN, rebuildOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::renameColumn( const CHAR *name,
+                                       const CHAR *newName )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj rebuildOptions ;
+
+      try
+      {
+         rebuildOptions = BSON( name << newName ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alter( CMD_VALUE_NAME_SCHEMA_RENAME_COLUMN, rebuildOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::dropColumn( const CHAR *name )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj rebuildOptions ;
+
+      try
+      {
+         rebuildOptions = BSON( name << 1 ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alter( CMD_VALUE_NAME_SCHEMA_DROP_COLUMN, rebuildOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::dropColumnDefault( const CHAR *name )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj rebuildOptions ;
+
+      try
+      {
+         rebuildOptions = BSON( name << 1 ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alter( CMD_VALUE_NAME_SCHEMA_DROP_DEFAULT, rebuildOptions ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::setAttributes( const bson::BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _alter( CMD_VALUE_NAME_SCHEMA_SET_ATTRIBUTES, options ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::alter( const bson::BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( options.hasField( FIELD_NAME_ACTION ) )
+      {
+         BSONObj rebuildOptions ;
+
+         if ( 0 == ossStrlen( _name ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         if ( !_connection )
+         {
+            rc = SDB_NOT_CONNECTED ;
+            goto error ;
+         }
+
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.append( FIELD_NAME_NAME, _name ) ;
+            builder.appendElementsUnique( options ) ;
+            rebuildOptions = builder.obj() ;
+         }
+         catch ( exception &e )
+         {
+            rc = SDB_DRIVER_BSON_ERROR ;
+            goto error ;
+         }
+
+         rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_ALTER_SCHEMA,
+                                        &rebuildOptions ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         _clearSchemaDef() ;
+      }
+      else
+      {
+         rc = _alter( CMD_VALUE_NAME_SCHEMA_SET_ATTRIBUTES, options ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::_alter( const CHAR *actionName,
+                                 const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj rebuildOptions ;
+
+      if ( 0 == ossStrlen( _name ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_NAME, _name ) ;
+         builder.append( FIELD_NAME_ACTION, actionName ) ;
+         builder.append( FIELD_NAME_OPTIONS, options ) ;
+         rebuildOptions = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_ALTER_SCHEMA,
+                                     &rebuildOptions ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      _clearSchemaDef() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSchemaImpl::_setName( const CHAR *name )
+   {
+      INT32 rc = SDB_OK ;
+      if ( ossStrlen ( name ) > CLIENT_SCHEMA_NAMESZ )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      ossMemset ( _name, 0, sizeof( _name ) ) ;
+      ossStrncpy( _name, name, CLIENT_SCHEMA_NAMESZ ) ;
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   void _sdbSchemaImpl::_clearSchemaDef()
+   {
+      SDB_ASSERT( _connection, "can not be null" ) ;
+      _connection->lock() ;
+      _schemaDef = _sdbStaticObject ;
+      _connection->unlock() ;
+   }
+
+   void _sdbSchemaImpl::_setSchemaDef( const bson::BSONObj &schemaDef )
+   {
+      SDB_ASSERT( _connection, "can not be null" ) ;
+      _connection->lock() ;
+      _schemaDef = schemaDef.getOwned() ;
+      _connection->unlock() ;
+   }
+
+   BOOLEAN _sdbSchemaImpl::_isSchemaDefEmpty()
+   {
+      SDB_ASSERT( _connection, "can not be null" ) ;
+      _connection->lock() ;
+      BOOLEAN res = _schemaDef.isEmpty() ;
+      _connection->unlock() ;
+      return res ;
+   }
+
+   BSONObj _sdbSchemaImpl::_getSchemaDef()
+   {
+      _connection->lock() ;
+      BSONObj res = _schemaDef;
+      _connection->unlock() ;
+      return res ;
+   }
+
+   /*
     * sdbImpl
     * SequoiaDB Connection Implementation
     */
@@ -9218,6 +9707,12 @@ do                                                            \
       {
          ((_sdbRecycleBinImpl *)(*it))->_dropConnection () ;
       }
+      // release informational schemas
+      copySet = _schemas ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbSchemaImpl *)(*it))->_dropConnection () ;
+      }
    }
 
    void _sdbImpl::_disconnect ()
@@ -9347,6 +9842,9 @@ do                                                            \
             break;
          case CLIENT_CLASS_RB :
             pSet = &_recycleBinSet ;
+            break;
+         case CLIENT_CLASS_SCHEMA :
+            pSet = &_schemas ;
             break;
          default:
             return SDB_INVALIDARG ;
@@ -10517,6 +11015,9 @@ do                                                            \
          break ;
       case SDB_LIST_RECYCLEBIN:
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
+         break ;
+      case SDB_LIST_SCHEMAS:
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_SCHEMAS ;
          break ;
       default :
          rc = SDB_INVALIDARG ;
@@ -13815,6 +14316,217 @@ do                                                            \
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _sdbImpl::createSchema( sdbSchema &schema,
+                                 const CHAR *name,
+                                 const BSONObj &columns,
+                                 const BSONObj &attr )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj newObj ;
+      BSONObjBuilder ob ;
+      _sdbSchema *pSchema = NULL ;
+
+      if ( !name || !*name )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         ob.append( FIELD_NAME_NAME, name ) ;
+         ob.append( FIELD_NAME_COLUMNS, columns ) ;
+         if ( !attr.isEmpty() )
+         {
+            ob.appendElements( attr ) ;
+         }
+         newObj = ob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_SCHEMA, &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( schema.pSchema )
+      {
+         delete schema.pSchema ;
+         schema.pSchema = NULL ;
+      }
+
+      pSchema = (_sdbSchema*)(new(std::nothrow) sdbSchemaImpl() ) ;
+      if ( !pSchema )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      rc = ((sdbSchemaImpl *)pSchema)->_setConnection( this ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      ((sdbSchemaImpl *)pSchema)->_setName( name ) ;
+
+      schema.pSchema = pSchema ;
+
+   done:
+      return rc ;
+   error:
+      if ( pSchema )
+      {
+         delete pSchema ;
+         pSchema = NULL ;
+      }
+      goto done ;
+   }
+
+   INT32 _sdbImpl::dropSchema( const CHAR *name )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONObj newObj ;
+      BSONObjBuilder ob ;
+
+      if ( !name || !*name )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         ob.append( FIELD_NAME_NAME, name ) ;
+         newObj = ob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_DROP_SCHEMA, &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getSchema( const CHAR *name, _sdbSchema **schema )
+   {
+      INT32 rc            = SDB_OK ;
+      _sdbSchema *pSchema = NULL ;
+
+      BSONObj condition ;
+      BSONObj result ;
+      sdbCursor cursor ;
+
+      // check
+      if ( NULL == _sock )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+      if ( NULL == name ||
+           '\0' == name[ 0 ] ||
+           ossStrlen( name ) > CLIENT_SCHEMA_NAMESZ )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( NULL == schema )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder ob ;
+         ob.append( FIELD_NAME_NAME, name ) ;
+         condition = ob.obj() ;
+      }
+      catch( const exception& )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = getList( &cursor.pCursor, SDB_LIST_SCHEMAS, condition ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = cursor.next( result ) ;
+      if ( SDB_OK == rc )
+      {
+         // build schema object
+         pSchema = (_sdbSchema *)( new( std::nothrow ) _sdbSchemaImpl( result ) ) ;
+         if ( NULL == pSchema )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         // register
+         rc = ( (_sdbSchemaImpl *)pSchema )->_setConnection( this ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         rc = ((sdbSchemaImpl *)pSchema)->_setName( name ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
+      else if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_SCHEMA_NOT_EXIST ;
+         goto error ;
+      }
+      else
+      {
+         goto error ;
+      }
+
+      // return the newly build schema object
+      *schema = pSchema ;
+
+   done:
+      return rc ;
+
+   error:
+      if ( NULL != pSchema )
+      {
+         delete pSchema ;
+      }
+      goto done ;
+   }
+
+   INT32 _sdbImpl::listSchemas( _sdbCursor** cursor,
+                                const bson::BSONObj &condition,
+                                const bson::BSONObj &selector,
+                                const bson::BSONObj &orderBy,
+                                const bson::BSONObj &hint )
+   {
+      return getList ( cursor, SDB_LIST_SCHEMAS, condition, selector, orderBy, hint ) ;
    }
 
    _sdbMsgConvertor::_sdbMsgConvertor()

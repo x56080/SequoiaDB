@@ -38,7 +38,7 @@
 
 #include "ordering.h"
 #include "util/embedded_builder.h"
-
+#include "ossUtil.h"
 
 // make sure our assumptions are valid
 /*BOOST_STATIC_ASSERT( sizeof(short) == 2 );
@@ -1736,6 +1736,65 @@ namespace bson {
             catch(unsigned) { }
         }
         return v;
+    }
+
+    typedef struct _bsonColumnTypeName2Type
+    {
+        char *   _typeName ;
+        BSONType _type ;
+    } bsonColumnTypeName2Type ;
+
+    static bsonColumnTypeName2Type bsonColumnTypeArray[] =
+    {
+        { "minkey",                     MinKey },
+        { "double",                     NumberDouble },
+        { "string",                     String },
+        { "object",                     Object },
+        { "array",                      Array },
+        { "bindata",                    BinData },
+        { "oid",                        jstOID },
+        { "bool",                       Bool },
+        { "date",                       Date },
+        { "null",                       jstNULL },
+        { "int32",                      NumberInt },
+        { "timestamp",                  Timestamp },
+        { "int64",                      NumberLong },
+        { "regex",                      RegEx },
+        { "decimal",                    NumberDecimal },
+        { "maxkey",                     MaxKey },
+    } ;
+
+    static unsigned int bsonColumnTypeNum =
+       sizeof( bsonColumnTypeArray ) / sizeof( bsonColumnTypeName2Type );
+
+    BSONType bsonColumnTypeNameToBSONType( const CHAR *typeName )
+    {
+        if ( NULL != typeName )
+        {
+            for ( unsigned int i = 0; i < bsonColumnTypeNum; ++i )
+            {
+                if ( 0 == ossStrcasecmp( bsonColumnTypeArray[ i ]._typeName, typeName ) )
+                {
+                    return bsonColumnTypeArray[ i ]._type;
+                }
+            }
+        }
+        return EOO;
+    }
+
+    const CHAR *bsonTypeToColumnTypeName( BSONType type )
+    {
+        if ( EOO != type )
+        {
+            for ( UINT32 i = 0; i < bsonColumnTypeNum; ++i )
+            {
+                if ( type == bsonColumnTypeArray[ i ]._type )
+                {
+                    return bsonColumnTypeArray[ i ]._typeName;
+                }
+            }
+        }
+        return "";
     }
 
 } // namespace bson

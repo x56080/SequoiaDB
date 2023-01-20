@@ -2562,6 +2562,27 @@ namespace engine
       _onCtxDelete () ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL_OPEN, "_catCtxAlterCL::open" )
+   INT32 _catCtxAlterCL::open( const BSONObj &queryObject,
+                               rtnContextBuf &buffObj,
+                               _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCL_OPEN ) ;
+
+      rc = _open( queryObject, MSG_CAT_ALTER_COLLECTION_REQ, buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to open alter collection context, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCL_OPEN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL_PARSEQUERY, "_catCtxAlterCL::_parseQuery" )
    INT32 _catCtxAlterCL::_parseQuery ( _pmdEDUCB *cb )
    {
@@ -3218,6 +3239,35 @@ namespace engine
       goto done ;
    }
 
+   INT32 _catCtxAlterCL::_buildAlterReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      /* message format:
+      *  {
+      *    TaskID: [ 1, 2, ... ],
+      *    Index: [ { Collection: "foo.bar", IndexDef: xxx },
+      *             { Collection: "foo.bar", IndexDef: xxx },
+      *             ...
+      *           ],
+      *    Schema: [ ... ]
+      *  }
+      */
+      rc = _buildTaskReply( builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build task reply, rc: %d", rc ) ;
+
+      rc = _buildIndexReply( builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build index reply, rc: %d", rc ) ;
+
+      rc = _buildSchemaReply( builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build schema reply, rc: %d", rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDTASKREPLY, "_catCtxAlterCL::_buildTaskReply" )
    INT32 _catCtxAlterCL::_buildTaskReply( BSONObjBuilder &builder )
@@ -3229,14 +3279,6 @@ namespace engine
       {
          try
          {
-            /* message format:
-            *  { TaskID: [ 1, 2, ... ],
-            *    Index: [ { Collection: "foo.bar", IndexDef: xxx },
-            *             { Collection: "foo.bar", IndexDef: xxx },
-            *             ...
-            *           ]
-            *  }
-            */
             // Generate task list
             BSONArrayBuilder taskBuilder(
                                     builder.subarrayStart( CAT_TASKID_NAME ) ) ;
@@ -3256,6 +3298,29 @@ namespace engine
                }
             }
             taskBuilder.done() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build task reply, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDTASKREPLY, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDINDEXREPLY, "_catCtxAlterCL::_buildIndexReply" )
+   INT32 _catCtxAlterCL::_buildIndexReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDINDEXREPLY ) ;
+
+      if ( _execTasks.size() > 0 )
+      {
+         try
+         {
             // Generate index list
             BSONArrayBuilder idxBuilder(
                                     builder.subarrayStart( FIELD_NAME_INDEX ) ) ;
@@ -3285,8 +3350,66 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDTASKREPLY, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDINDEXREPLY, rc ) ;
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL__BUILDSCHEMAREPLY, "_catCtxAlterCL::_buildSchemaReply" )
+   INT32 _catCtxAlterCL::_buildSchemaReply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCL__BUILDSCHEMAREPLY ) ;
+
+      if ( _execTasks.size() > 0 )
+      {
+         try
+         {
+            BOOLEAN schemaAdded = FALSE ;
+            BOOLEAN schemaActionAdded = FALSE ;
+
+            for ( UINT32 i = 0; i < _execTasks.size(); ++i )
+            {
+               catCtxAlterCLTask *task = dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
+               if ( task )
+               {
+                  const rtnAlterTask *alterTask = task->getTask() ;
+                  RTN_ALTER_ACTION_TYPE type = alterTask->getActionType() ;
+                  if ( ( !schemaAdded ) &&
+                       ( task->getSchema().isValid() ) )
+                  {
+                     builder.append( FIELD_NAME_SCHEMA,
+                                     task->getSchema().getDefine() ) ;
+                     schemaAdded = TRUE ;
+                  }
+                  if ( ( !schemaActionAdded ) &&
+                       ( RTN_ALTER_CL_ALTER_SCHEMA == type ) )
+                  {
+                     builder.append( FIELD_NAME_SCHEMA_ACTION, _boQuery ) ;
+                     schemaActionAdded = TRUE ;
+                  }
+               }
+               if ( schemaAdded && schemaActionAdded )
+               {
+                  break ;
+               }
+            }
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCL__BUILDSCHEMAREPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
@@ -3404,6 +3527,32 @@ namespace engine
                    "Duplicate attach collection partition [%s], "
                    "its partitioned-collection is %s",
                    _subCLName.c_str(), tmpMainCLName.c_str() ) ;
+
+      {
+         clsCatalogSet mainCLSet( _targetName.c_str() ) ;
+         clsCatalogSet subCLSet( _subCLName.c_str() ) ;
+
+         rc = mainCLSet.updateCatSet( _boTarget ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse main-collection [%s], "
+                      "rc: %d", _targetName.c_str(), rc ) ;
+
+         rc = subCLSet.updateCatSet( _boSubCL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse sub-collection [%s], "
+                      "rc: %d", _subCLName.c_str(), rc ) ;
+
+         PD_CHECK( !subCLSet.hasSchema(),
+                   SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                   "Failed to check attach sub-collection [%s] with schema",
+                   _subCLName.c_str() ) ;
+
+         if ( mainCLSet.isAttrEnableInfoSchema() )
+         {
+            PD_CHECK( subCLSet.isAttrEnableInfoSchema(),
+                      SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                      "Failed to check attach sub-collection [%s], it not "
+                      "info schema enabled", _subCLName.c_str() ) ;
+         }
+      }
 
       // Check if multiple collections on data source are being linked to the
       // main collection. Currently this is not supported.

@@ -76,7 +76,8 @@ sptFiles = [
       "spt/db/sptDBCipherUser.cpp",
       "spt/db/sptDBSequence.cpp",
       "spt/db/sptDBDataSource.cpp",
-      "spt/db/sptDBRecycleBin.cpp"
+      "spt/db/sptDBRecycleBin.cpp",
+      "spt/db/sptDBSchema.cpp"
       ]
 
 ossFiles = [

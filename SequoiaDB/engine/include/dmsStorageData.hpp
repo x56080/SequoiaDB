@@ -83,10 +83,12 @@ namespace engine
                                    dmsExtent *extAddr,
                                    SINT32 extentID ) ;
 
-      virtual INT32 _prepareInsertData( const BSONObj &record,
+      virtual INT32 _prepareInsertData( dmsMBContext *context,
+                                        const BSONObj &record,
                                         BOOLEAN mustOID,
                                         pmdEDUCB *cb,
                                         dmsRecordData &recordData,
+                                        dmsRecordData &encodeData,
                                         BOOLEAN &memReallocate,
                                         INT64 position ) ;
 
@@ -137,7 +139,9 @@ namespace engine
                                  const dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
                                  dmsRecordData &recordData,
-                                 BOOLEAN needIncDataRead = TRUE ) ;
+                                 BOOLEAN needIncDataRead = TRUE,
+                                 BOOLEAN decodeRecord = TRUE,
+                                 BOOLEAN getPrimalData = FALSE ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
@@ -201,6 +205,16 @@ namespace engine
                                    dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                    dpsUnqIdxHashArray *pOldUnqIdxHashArray,
                                    const ixmIdxHashBitmap &idxHashBitmap ) ;
+
+      INT32 _encodeRecordBySchema( dmsMBContext *context,
+                                   pmdEDUCB *cb,
+                                   dmsRecordData &recordData,
+                                   dmsRecordData &encodeData ) ;
+
+      INT32 _checkEncodedRecord( const dmsMBContext *context,
+                                 const dmsRecordData &origRecord,
+                                 const dmsRecordData &encodedRecord,
+                                 pmdEDUCB *cb ) ;
 
    } ;
    typedef _dmsStorageData dmsStorageData ;

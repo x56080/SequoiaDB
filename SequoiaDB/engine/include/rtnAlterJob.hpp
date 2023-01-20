@@ -143,6 +143,8 @@ namespace engine
             return _parseRC ;
          }
 
+         INT32 copyJobByCL( const CHAR *collectionName, bson::BSONObj &boJob ) ;
+
       protected :
          static RTN_ALTER_OBJECT_TYPE _getObjectType ( const CHAR * name ) ;
 

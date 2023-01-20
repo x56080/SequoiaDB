@@ -937,6 +937,25 @@ namespace engine
                }
             }
 
+            itrCL = this->find( DPS_LOG_CLCRT_SCHEMA_DEF ) ;
+            if ( itrCL.valid() )
+            {
+               try
+               {
+                  BSONObj obj( itrCL.value() ) ;
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       " Info Schema: %s"OSS_NEWLINE,
+                                       obj.toString().c_str() ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  len += ossSnprintf ( outBuf + len, outSize - len,
+                                       "*ERROR* : %s: %s"OSS_NEWLINE,
+                                       "Invalid create cl record", e.what() ) ;
+                  goto done ;
+               }
+            }
+
             break ;
          }
          case LOG_TYPE_CL_DELETE :

@@ -44,6 +44,7 @@
 #include "catContext.hpp"
 #include "catContextData.hpp"
 #include "catContextNode.hpp"
+#include "utilSchema.hpp"
 
 using namespace bson ;
 
@@ -281,6 +282,10 @@ namespace engine
 
    INT32 catRenameCLInIndexes( const CHAR *clFullName, const CHAR *newCLFullName,
                                pmdEDUCB *cb, INT16 w ) ;
+   INT32 catUpdateIndex( const CHAR *clFullName,
+                         const CHAR *indexName,
+                         const bson::BSONObj &keyPattern,
+                         pmdEDUCB *cb, INT16 w ) ;
 
    /* Collection[CAT_TASK_INFO_COLLECTION] functions: */
    INT32 catAddTask( const BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
@@ -679,6 +684,43 @@ namespace engine
                             utilCLUniqueID &returnCLUniqueID,
                             pmdEDUCB *cb,
                             INT16 w ) ;
+
+   /* schema */
+   INT32 catGetSchema( const CHAR *schemaName,
+                       utilSchema &schema,
+                       pmdEDUCB *cb ) ;
+   INT32 catAddSchema( const utilSchema &schema,
+                       pmdEDUCB *cb,
+                       INT16 w ) ;
+   INT32 catRemoveSchema( const CHAR *schemaName,
+                          pmdEDUCB *cb,
+                          INT16 w ) ;
+
+   INT32 catRemoveSchemaByCL( const CHAR *collectionName,
+                              pmdEDUCB *cb,
+                              INT16 w ) ;
+
+   INT32 catRemoveSchemaByCS( const CHAR *collectionSpaceName,
+                              pmdEDUCB *cb,
+                              INT16 w ) ;
+
+   INT32 catBindSchema( const CHAR *schemaName,
+                        const CHAR *collectionName,
+                        pmdEDUCB *cb,
+                        INT16 w ) ;
+
+   INT32 catUnbindSchema( const CHAR *schemaName,
+                          pmdEDUCB *cb,
+                          INT16 w ) ;
+
+   INT32 catUpdateSchema( const utilSchema &schema,
+                          UINT32 alterMask,
+                          pmdEDUCB *cb,
+                          INT16 w ) ;
+   INT32 catUpdateSchema( const CHAR *schemaName,
+                          const BSONObj &boSchema,
+                          pmdEDUCB *cb,
+                          INT16 w ) ;
 
 }
 

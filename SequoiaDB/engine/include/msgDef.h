@@ -327,6 +327,7 @@
 #define FIELD_NAME_SEQUENCE                  "Sequence"
 #define FIELD_NAME_INDEXES                   "Indexes"
 #define FIELD_NAME_DETAILS                   "Details"
+#define FIELD_NAME_INTERNAL_SCHEMAS          "InternalSchemas"
 #define FIELD_NAME_NUMCOLLECTIONS            "NumCollections"
 #define FIELD_NAME_COLLECTIONHWM             "CollectionHWM"
 #define FIELD_NAME_SIZE                      "Size"
@@ -776,6 +777,21 @@
 #define FIELD_NAME_RENAME_CL                 "RenameCL"
 #define FIELD_NAME_CHANGEUID_CL              "ChangeUIDCL"
 
+// for informational schema
+#define FIELD_NAME_SCHEMA                    "Schema"
+#define FIELD_NAME_ENABLE_INFOSCHEMA         "EnableInfoSchema"
+#define FIELD_NAME_READDEFAULT               "ReadDefault"
+#define FIELD_NAME_WRITEDEFAULT              "WriteDefault"
+#define FIELD_NAME_DELETED                   "Deleted"
+#define FIELD_NAME_INDEX_COL                 "IndexColumn"
+#define FIELD_NAME_COLUMNS                   "Columns"
+#define FIELD_NAME_STRICTMODE                "StrictMode"
+#define FIELD_NAME_RESTRICT                  "Restrict"
+#define FIELD_NAME_RESTRICT_DESC             "RestrictDesc"
+#define FIELD_NAME_NOT_NULL                  "NotNull"
+#define FIELD_NAME_NOT_ARRAY                 "NotArray"
+#define FIELD_NAME_SCHEMA_ACTION             "SchemaAction"
+
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
@@ -789,8 +805,8 @@
 #define IXM_FIELD_NAME_INDEX_FLAG            "IndexFlag"
 #define IXM_FIELD_NAME_SCAN_EXTLID           "ScanExtentLID"
 #define IXM_FIELD_NAME_SORT_BUFFER_SIZE      "SortBufferSize"
-#define IXM_FIELD_NAME_NOTNULL               "NotNull"
-#define IXM_FIELD_NAME_NOTARRAY              "NotArray"
+#define IXM_FIELD_NAME_NOTNULL               FIELD_NAME_NOT_NULL
+#define IXM_FIELD_NAME_NOTARRAY              FIELD_NAME_NOT_ARRAY
 #define IXM_FIELD_NAME_GLOBAL                "Global"
 #define IXM_FIELD_NAME_GLOBAL_OPTION         "GlobalOption"
 #define IXM_FIELD_NAME_STANDALONE            "Standalone"
@@ -842,6 +858,7 @@
 #define CMD_NAME_LIST_SEQUENCES              "list sequences"
 #define CMD_NAME_LIST_DATASOURCES            "list datasources"
 #define CMD_NAME_LIST_RECYCLEBIN             "list recyclebin"
+#define CMD_NAME_LIST_SCHEMAS                "list schemas"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -945,6 +962,18 @@
 #define CMD_VALUE_NAME_RECYCLEBIN_DISABLE    "disable"
 #define CMD_VALUE_NAME_RECYCLEBIN_SETATTR    "set attributes"
 
+#define CMD_NAME_GET_CL_INTERNAL_SCHEMA      "get collection internal schema"
+#define CMD_NAME_CREATE_SCHEMA               "create schema"
+#define CMD_NAME_ALTER_SCHEMA                "alter schema"
+#define CMD_NAME_DROP_SCHEMA                 "drop schema"
+
+#define CMD_VALUE_NAME_SCHEMA_ADD_COLUMN     "add column"
+#define CMD_VALUE_NAME_SCHEMA_DROP_COLUMN    "drop column"
+#define CMD_VALUE_NAME_SCHEMA_ALTER_COLUMN   "alter column"
+#define CMD_VALUE_NAME_SCHEMA_RENAME_COLUMN  "rename column"
+#define CMD_VALUE_NAME_SCHEMA_DROP_DEFAULT   "drop default"
+#define CMD_VALUE_NAME_SCHEMA_SET_ATTRIBUTES "set attributes"
+
 /**
  * NOTE:
  * As the following names are used as table names in build-in SQL, so they
@@ -995,6 +1024,7 @@
 #define CMD_NAME_LIST_SEQUENCES_INTR         "LIST_SEQUENCES"
 #define CMD_NAME_LIST_DATASOURCE_INTR        "LIST_DATASOURCE"
 #define CMD_NAME_LIST_RECYCLEBIN_INTR        "LIST_RECYCLEBIN"
+#define CMD_NAME_LIST_SCHEMA_INTR            "LIST_SCHEMA"
 
 #define SYS_VIRTUAL_CS                       "SYS_VCS"
 #define SYS_VIRTUAL_CS_LEN                   sizeof( SYS_VIRTUAL_CS )
@@ -1167,6 +1197,7 @@ enum SDB_LOB_MODE
 #define SDB_CATALOG_CL_SHARDING     "sharding"
 #define SDB_CATALOG_CL_COMPRESS     "compression"
 #define SDB_CATALOG_CL_AUTOINC_FLD  "autoincrement"
+#define SDB_CATALOG_CL_SCHEMA       "schema"
 
 #define SDB_CATALOG_CS_DOMAIN    SDB_CATALOG_DOMAIN
 #define SDB_CATALOG_CS_CAPPED    "capped"
@@ -1181,6 +1212,7 @@ enum SDB_LOB_MODE
 #define SDB_ALTER_ACTION_ADD        "add"
 #define SDB_ALTER_ACTION_SET        "set"
 #define SDB_ALTER_ACTION_REMOVE     "remove"
+#define SDB_ALTER_ACTION_ALTER      "alter"
 #define SDB_ALTER_ACTION_SET_ATTR   "set attributes"
 #define SDB_ALTER_ACTION_INC_VER    "increase version"
 
@@ -1228,6 +1260,16 @@ enum SDB_LOB_MODE
 #define SDB_ALTER_CL_DISABLE_COMPRESS  SDB_ALTER_ACTION_DISABLE \
                                        SDB_ALTER_DELIMITER \
                                        SDB_CATALOG_CL_COMPRESS
+
+/// add info schema
+#define SDB_ALTER_CL_ADD_SCHEMA        SDB_ALTER_ACTION_ADD \
+                                       SDB_ALTER_DELIMITER \
+                                       SDB_CATALOG_CL_SCHEMA
+
+/// alter info schema
+#define SDB_ALTER_CL_ALTER_SCHEMA      SDB_ALTER_ACTION_ALTER \
+                                       SDB_ALTER_DELIMITER \
+                                       SDB_CATALOG_CL_SCHEMA
 
 /// set attributes
 #define SDB_ALTER_CL_SET_ATTR          SDB_ALTER_ACTION_SET_ATTR

@@ -2824,7 +2824,8 @@ namespace engine
             BSONElement element = iter.next() ;
             const CHAR *fieldName = element.fieldName() ;
             if ( 0 == ossStrcmp( DMS_ID_KEY_NAME, fieldName ) ||
-                 0 == ossStrcmp( FIELD_NAME_RECYCLE_ID, fieldName ) )
+                 0 == ossStrcmp( FIELD_NAME_RECYCLE_ID, fieldName ) ||
+                 0 == ossStrcmp( FIELD_NAME_SCHEMA, fieldName ) )
             {
                // append nothing
             }

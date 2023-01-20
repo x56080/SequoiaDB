@@ -997,9 +997,9 @@ namespace engine
 
             if ( _pDataSu->_pEventHolder )
             {
-               dmsEventCLItem clItem( context->mb()->_collectionName,
-                                      context->mbID(),
-                                      context->clLID() ) ;
+               dmsEventCLItem clItem ;
+               clItem.init( context->mb()->_collectionName, _pDataSu->logicalID(),
+                            context->mbID(), context->clLID(), context ) ;
                dmsEventIdxItem idxItem( indexCB.getName(),
                                         indexCB.getLogicalID(),
                                         indexCB.getDef() ) ;
@@ -1126,9 +1126,9 @@ namespace engine
 
             if ( _pDataSu->_pEventHolder )
             {
-               dmsEventCLItem clItem( context->mb()->_collectionName,
-                                      context->mbID(),
-                                      context->clLID() ) ;
+               dmsEventCLItem clItem ;
+               clItem.init( context->mb()->_collectionName, _pDataSu->logicalID(),
+                            context->mbID(), context->clLID(), context ) ;
                dmsEventIdxItem idxItem( indexCB.getName(),
                                         indexCB.getLogicalID(),
                                         indexCB.getDef() ) ;
@@ -1661,10 +1661,10 @@ namespace engine
       // create index callback
       if ( _pDataSu->_pEventHolder )
       {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
-                                context->mbID(),
-                                context->clLID() ) ;
+         dmsEventCLItem clItem ;
          dmsEventIdxItem idxItem ( indexName, indexLID, newIndex ) ;
+         clItem.init( context->mb()->_collectionName, _pDataSu->logicalID(),
+                      context->mbID(), context->clLID(), context ) ;
          _pDataSu->_pEventHolder->onCreateIndex( DMS_EVENT_MASK_ALL,
                                                  clItem, idxItem,
                                                  cb, dpscb ) ;
@@ -3925,6 +3925,240 @@ namespace engine
          _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
       }
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS, "_dmsStorageIndex::checkAddSchemaOnIndexes" )
+   INT32 _dmsStorageIndex::checkAddSchemaOnIndexes( dmsMBContext *context,
+                                                    const utilSchema &schema )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS ) ;
+
+      utilSchema internalSchema ;
+
+      // need to lock mb
+      rc = context->mbLock( SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      rc = _pDataSu->getSchema( context, internalSchema, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get schema, rc: %d", rc ) ;
+
+
+      for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
+         {
+            break ;
+         }
+
+         ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
+                             context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
+                   "Failed to initialize index, index extent id: %d ",
+                   context->mb()->_indexExtent[indexID] ) ;
+
+         if ( !indexCB.notNull() )
+         {
+            const CHAR *conflictColumn = NULL ;
+            rc = schema.checkDefaultKeys( indexCB.keyPattern(), FALSE, TRUE,
+                                          conflictColumn, &internalSchema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
+                         "schema [%s] for index [%s] keys, rc: %d",
+                         schema.getName(), indexCB.getName(), rc ) ;
+            PD_LOG_MSG_CHECK( NULL == conflictColumn,
+                              SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                              "Failed to pass default key check for "
+                              "index keys [%s] of index [%s], "
+                              "column [%s] has read default value",
+                              indexCB.getName(),
+                              indexCB.keyPattern().toPoolString().c_str(),
+                              conflictColumn ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_CHKALTERSCHEMAONIDXS, "_dmsStorageIndex::checkAlterSchemaOnIndexes" )
+   INT32 _dmsStorageIndex::checkAlterSchemaOnIndexes( dmsMBContext *context,
+                                                      const utilSchemaAlterAction &action )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_CHKALTERSCHEMAONIDXS ) ;
+
+      utilSchema internalSchema ;
+
+      if ( UTIL_SCHEMA_ADD_COLUMN != action.getAction() &&
+           UTIL_SCHEMA_RENAME_COLUMN != action.getAction() )
+      {
+         goto done ;
+      }
+
+      // need to lock mb
+      rc = context->mbLock( SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      rc = _pDataSu->getSchema( context, internalSchema, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get schema, rc: %d", rc ) ;
+
+
+      for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      {
+         BOOLEAN hasColumn = FALSE, hasNewColumn = FALSE ;
+
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
+         {
+            break ;
+         }
+
+         ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
+                             context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
+                   "Failed to initialize index, index extent id: %d ",
+                   context->mb()->_indexExtent[ indexID ] ) ;
+
+         rc = action.checkKeyPattern( indexCB.keyPattern(), hasColumn, hasNewColumn ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
+                      "rc: %d", rc ) ;
+
+         switch ( action.getAction() )
+         {
+            case UTIL_SCHEMA_ADD_COLUMN:
+            {
+               if ( ( hasColumn ) &&
+                    ( !indexCB.notNull() )&&
+                    ( OSS_BIT_TEST( action.getAlterMask(),
+                                    UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ) )
+               {
+                  utilSchemaColumn *column =
+                        internalSchema.getColumn( action.getColumnName() ) ;
+                  PD_LOG_MSG_CHECK(
+                        ( ( NULL != column ) &&
+                          ( column->hasReadDefault() ) &&
+                          ( column->hasSameReadDefault( action.getNewColAttr() ) ) ),
+                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                        "Failed to check add column [%s], "
+                        "can not add column [%s] with read value "
+                        "against index [%s] with keys [%s]",
+                        action.getColumnName(),
+                        action.getColumnName(),
+                        indexCB.getName(),
+                        indexCB.keyPattern().toPoolString().c_str()) ;
+               }
+               break ;
+            }
+            case UTIL_SCHEMA_RENAME_COLUMN:
+            {
+               // text index not allow to rename column
+               if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                         IXM_EXTENT_TYPE_TEXT ) )
+               {
+                  PD_LOG_MSG_CHECK(
+                        !hasColumn,
+                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                        "Failed to check rename column [%s] to [%s], "
+                        "conflict with text index [%s] with keys [%s]",
+                        action.getColumnName(),
+                        action.getNewColAttr().getName(),
+                        indexCB.getName(),
+                        indexCB.keyPattern().toPoolString().c_str() ) ;
+               }
+               // new column name already exists in indexes
+               PD_LOG_MSG_CHECK(
+                     !hasNewColumn,
+                     SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                     "Failed to check rename column [%s] to [%s], "
+                     "conflict with index [%s] with keys",
+                     action.getColumnName(),
+                     action.getNewColAttr().getName(),
+                     indexCB.getName(),
+                     indexCB.keyPattern().toPoolString().c_str() ) ;
+               break ;
+            }
+            default:
+            {
+               break ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_CHKALTERSCHEMAONIDXS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_RENAMECOLONIDXS, "_dmsStorageIndex::renameColumnOnIndexes" )
+   INT32 _dmsStorageIndex::renameColumnOnIndexes( dmsMBContext *context,
+                                                  const utilSchemaAlterAction &action,
+                                                  BOOLEAN isRollback,
+                                                  pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_RENAMECOLONIDXS ) ;
+
+      rc = context->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      {
+         BOOLEAN hasOldCol = FALSE, hasNewCol = FALSE ;
+         BOOLEAN needRebuild = FALSE ;
+
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
+         {
+            break ;
+         }
+
+         ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
+                             context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
+                   "Failed to initialize index, index extent id: %d ",
+                   context->mb()->_indexExtent[indexID] ) ;
+         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                   IXM_EXTENT_TYPE_TEXT ) )
+         {
+            continue ;
+         }
+
+         rc = action.checkKeyPattern( indexCB.keyPattern(), hasOldCol, hasNewCol ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
+                      "rc: %d", rc ) ;
+
+         needRebuild = isRollback ? hasNewCol : hasOldCol ;
+
+         if ( needRebuild )
+         {
+            BSONObj newKeyPattern ;
+            rc = action.rebuildKeyPattern( indexCB.keyPattern(),
+                                           newKeyPattern ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rebuild key pattern, "
+                         "rc: %d", rc ) ;
+            rc = indexCB.updateKeyPattern( newKeyPattern ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update key pattern, "
+                         "rc: %d", rc ) ;
+            PD_LOG( PDDEBUG, "Rebuild key pattern of index [%s] to [%s]",
+                    indexCB.getName(), newKeyPattern.toPoolString().c_str() ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_RENAMECOLONIDXS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 
 

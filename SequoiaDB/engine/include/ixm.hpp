@@ -996,6 +996,8 @@ namespace engine
 
       INT32 changeUniqueID( utilIdxUniqueID uniqueID ) ;
 
+      INT32 updateKeyPattern( const bson::BSONObj &newKeyPattern ) ;
+
       // get enforcement
       BOOLEAN enforced() const
       {
@@ -1206,6 +1208,7 @@ namespace engine
                              const BSONObjSet &keys,
                              const BSONElement &arrEle,
                              utilWriteResult *pResult ) const ;
+      INT32 _updateDef( const bson::BSONObj &newDef ) ;
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;
 

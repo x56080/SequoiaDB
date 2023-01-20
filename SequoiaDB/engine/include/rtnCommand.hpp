@@ -1897,6 +1897,21 @@ namespace engine
 
    typedef class _rtnCMDReturnRecycleBinItemToName rtnCMDReturnRecycleBinItemToName ;
 
+
+   /*
+      _rtnGetCollectionInternalSchema define
+   */
+   class _rtnGetCollectionInternalSchema : public _rtnGet
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnGetCollectionInternalSchema() ;
+      virtual ~_rtnGetCollectionInternalSchema() ;
+
+      virtual const CHAR *name() ;
+      virtual RTN_COMMAND_TYPE type() ;
+
+   } ;
 }
 
 const UINT32 pdGetTraceFunctionListNum();

@@ -93,6 +93,7 @@ namespace engine
       BSONObj     _autoIncFields ;
       clsAutoIncSet _autoIncSet ;
       UTIL_DS_UID _dsUID ;
+      BOOLEAN     _enableInfoSchema ;
       CHAR        _fullMapping[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
       _catCollectionInfo()
@@ -127,6 +128,7 @@ namespace engine
          _overwrite           = FALSE ;
          _lobShardingKeyFormat = NULL ;
          _dsUID               = UTIL_INVALID_DS_UID ;
+         _enableInfoSchema    = FALSE ;
          _autoIncSet.clear() ;
          ossMemset( _fullMapping, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
       }

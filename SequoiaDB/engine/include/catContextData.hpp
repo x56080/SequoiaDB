@@ -441,6 +441,10 @@ namespace engine
          return RTN_CONTEXT_CAT_ALTER_CL ;
       }
 
+      INT32 open( const bson::BSONObj &queryObject,
+                  rtnContextBuf &buffObj,
+                  _pmdEDUCB *cb ) ;
+
    protected :
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
@@ -482,20 +486,24 @@ namespace engine
 
       virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder )
       {
-         return _buildTaskReply( builder ) ;
+         return _buildAlterReply( builder ) ;
       }
 
       virtual INT32 _buildP2Reply( bson::BSONObjBuilder &builder )
       {
-         return _buildTaskReply( builder ) ;
+         return _buildAlterReply( builder ) ;
       }
 
       virtual INT32 _buildPCReply( bson::BSONObjBuilder &builder )
       {
-         return _buildTaskReply( builder ) ;
+         return _buildAlterReply( builder ) ;
       }
 
+      INT32 _buildAlterReply( bson::BSONObjBuilder &builder ) ;
+
       INT32 _buildTaskReply( bson::BSONObjBuilder &builder ) ;
+      INT32 _buildIndexReply( bson::BSONObjBuilder &builder ) ;
+      INT32 _buildSchemaReply( bson::BSONObjBuilder &builder ) ;
 
    protected :
       rtnAlterJob _alterJob ;

@@ -267,6 +267,36 @@ namespace engine
          const clsCatalogItem*   getLastItem() const { return _lastItem ; }
          UINT32            getAttribute() const { return _attribute ; }
 
+         BOOLEAN           isAttrCompressed() const
+         {
+            return OSS_BIT_TEST( _attribute, DMS_MB_ATTR_COMPRESSED ) ? TRUE : FALSE ;
+         }
+
+         BOOLEAN           isAttrNoIdIdx() const
+         {
+            return OSS_BIT_TEST( _attribute, DMS_MB_ATTR_NOIDINDEX ) ? TRUE : FALSE ;
+         }
+
+         BOOLEAN           isAttrCapped() const
+         {
+            return OSS_BIT_TEST( _attribute, DMS_MB_ATTR_CAPPED ) ? TRUE : FALSE ;
+         }
+
+         BOOLEAN           isAttrStrictDataMode() const
+         {
+            return OSS_BIT_TEST( _attribute, DMS_MB_ATTR_STRICTDATAMODE ) ? TRUE : FALSE ;
+         }
+
+         BOOLEAN           isAttrNoTrans() const
+         {
+            return OSS_BIT_TEST( _attribute, DMS_MB_ATTR_NOTRANS ) ? TRUE : FALSE ;
+         }
+
+         BOOLEAN           isAttrEnableInfoSchema() const
+         {
+            return OSS_BIT_TEST( _attribute, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ? TRUE : FALSE ;
+         }
+
          BOOLEAN           isMainCL() const ;
          BOOLEAN           isSubCL() const ;
          INT32             getSubCLList(
@@ -286,6 +316,21 @@ namespace engine
                                       const BSONObj &lowBound,
                                       const BSONObj &upBound,
                                       clsCatalogItem **ppItem ) ;
+
+         const ossPoolString &getSchemaNameStr() const
+         {
+            return _schemaName ;
+         }
+
+         const CHAR *getSchemaName() const
+         {
+            return _schemaName.c_str() ;
+         }
+
+         BOOLEAN hasSchema() const
+         {
+            return _schemaName.empty() ? FALSE : TRUE ;
+         }
 
          INT32 delSubCL ( const CHAR *subCLName ) ;
 
@@ -418,6 +463,8 @@ namespace engine
 
          UINT64            _createTime ;
          UINT64            _updateTime ;
+
+         ossPoolString     _schemaName ;
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 

@@ -173,6 +173,11 @@ namespace engine
       _isAffectGIndex = FALSE ;
 
       _doReplay = FALSE ;
+
+      _pEncodeBuff = NULL ;
+      _encodeBuffLen = 0 ;
+      _pDecodeBuff = NULL ;
+      _decodeBuffLen = 0 ;
    }
 
    _pmdEDUCB::~_pmdEDUCB ()
@@ -1448,6 +1453,40 @@ namespace engine
       __executor = p ;
       __eduCB = p ;
       return __eduCB ;
+   }
+
+   CHAR* _pmdEDUCB::getEncodeBuff( UINT32 len )
+   {
+      if ( _encodeBuffLen < len )
+      {
+         if ( _pEncodeBuff )
+         {
+            releaseBuff( _pEncodeBuff ) ;
+            _pEncodeBuff = NULL ;
+         }
+         _encodeBuffLen = 0 ;
+
+         allocBuff( len, &_pEncodeBuff, &_encodeBuffLen ) ;
+      }
+
+      return _pEncodeBuff ;
+   }
+
+   CHAR* _pmdEDUCB::getDecodeBuff( UINT32 len )
+   {
+      if ( _decodeBuffLen < len )
+      {
+         if ( _pDecodeBuff )
+         {
+            releaseBuff( _pDecodeBuff ) ;
+            _pDecodeBuff = NULL ;
+         }
+         _decodeBuffLen = 0 ;
+
+         allocBuff( len, &_pDecodeBuff, &_decodeBuffLen ) ;
+      }
+
+      return _pDecodeBuff ;
    }
 
    void pmdUndeclareEDUCB ()

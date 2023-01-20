@@ -42,6 +42,7 @@
 #include "rtnContextExplain.hpp"
 #include "rtnContextMainCL.hpp"
 #include "rtnContextDel.hpp"
+#include "rtnContextAlter.hpp"
 #include "rtnContextRecycle.hpp"
 #include "rtnCommandSnapshot.hpp"
 #include "utilCompressor.hpp"
@@ -1280,7 +1281,8 @@ namespace engine
 
    INT32 _clsShdSession::_createCLByCatalog( const CHAR *clFullName,
                                              const CHAR *pParent,
-                                             BOOLEAN mustOnSelf )
+                                             BOOLEAN mustOnSelf,
+                                             const utilSchema *pSchema )
    {
       INT32 rc                      = SDB_OK ;
       UINT32 attribute              = 0 ;
@@ -1296,6 +1298,8 @@ namespace engine
       BSONObjBuilder builder ;
       ossPoolVector<BSONObj> indexList ;
       ossPoolVector<BSONObj>::iterator itIdx ;
+      ossPoolString schemaName ;
+      utilSchema tmpSchema ;
 
       /// update collection's catalog info
    retry:
@@ -1319,27 +1323,43 @@ namespace engine
          }
       }
 
-      attribute = set->getAttribute() ;
-      isMainCL = set->isMainCL() ;
-      groupCount = set->groupCount() ;
-      clUniqueID = set->clUniqueID() ;
-      compType = set->getCompressType() ;
-      if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_CAPPED ) )
+      try
       {
-         builder.append( FIELD_NAME_SIZE, set->getMaxSize() ) ;
-         builder.append( FIELD_NAME_MAX, set->getMaxRecNum() ) ;
-         builder.appendBool( FIELD_NAME_OVERWRITE, set->getOverWrite() ) ;
-         extOptions = builder.done() ;
-      }
+         attribute = set->getAttribute() ;
+         isMainCL = set->isMainCL() ;
+         groupCount = set->groupCount() ;
+         clUniqueID = set->clUniqueID() ;
+         compType = set->getCompressType() ;
+         if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_CAPPED ) )
+         {
+            builder.append( FIELD_NAME_SIZE, set->getMaxSize() ) ;
+            builder.append( FIELD_NAME_MAX, set->getMaxRecNum() ) ;
+            builder.appendBool( FIELD_NAME_OVERWRITE, set->getOverWrite() ) ;
+            extOptions = builder.done() ;
+         }
 
-      if ( isMainCL )
-      {
-         set->getSubCLList( subCLList ) ;
-      }
+         if ( isMainCL )
+         {
+            set->getSubCLList( subCLList ) ;
+         }
 
-      if ( !set->getMainCLName().empty() )
+         if ( !set->getMainCLName().empty() )
+         {
+            _pEDUCB->setCurMainCLName( set->getMainCLName().c_str() ) ;
+         }
+
+         if ( set->hasSchema() )
+         {
+            schemaName.assign( set->getSchemaName() ) ;
+         }
+      }
+      catch ( exception &e )
       {
-         _pEDUCB->setCurMainCLName( set->getMainCLName().c_str() ) ;
+         _pCatAgent->release_r() ;
+         PD_LOG( PDERROR, "Failed to get fields from catalog set, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
       _pCatAgent->release_r() ;
@@ -1365,6 +1385,14 @@ namespace engine
                hasFoundIdx = TRUE ;
                break ;
             }
+         }
+
+         if ( NULL == pSchema && !schemaName.empty() )
+         {
+            rc = _getSchemaFromCatalog( schemaName.c_str(), tmpSchema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                         schemaName.c_str(), rc ) ;
+            pSchema = &tmpSchema ;
          }
       }
 
@@ -1406,7 +1434,8 @@ namespace engine
          rc = rtnCreateCollectionCommand( clFullName, attribute,
                                           _pEDUCB, _pDmsCB, _pDpsCB, clUniqueID,
                                           compType, 0, FALSE, &extOptions,
-                                          hasFoundIdx ? &idIdxDef : NULL ) ;
+                                          hasFoundIdx ? &idIdxDef : NULL,
+                                          FALSE, pSchema ) ;
          if ( SDB_DMS_EXIST == rc )
          {
             rc = SDB_OK ;
@@ -1589,6 +1618,89 @@ namespace engine
          rtnKillContexts( 1, &contextID, _pEDUCB, _pRtnCB ) ;
       }
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__GETSCHEMAFROMCATA, "_clsShdSession::_getSchemaFromCatalog" )
+   INT32 _clsShdSession::_getSchemaFromCatalog( const CHAR *schemaName,
+                                                utilSchema &schema )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__GETSCHEMAFROMCATA ) ;
+
+      BOOLEAN foundSchema = FALSE ;
+      IRemoteOperator *pRemoteOpr = NULL ;
+      INT64 contextID = -1 ;
+      BSONObj matcher, dummyObj ;
+
+      rc = _pEDUCB->getOrCreateRemoteOperator( &pRemoteOpr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get remote operator, rc: %d",
+                   rc ) ;
+
+      try
+      {
+         matcher = BSON( FIELD_NAME_NAME << schemaName ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      rc = pRemoteOpr->list( contextID, CMD_ADMIN_PREFIX CMD_NAME_LIST_SCHEMAS,
+                             matcher, dummyObj, dummyObj, dummyObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get schema by remote operator, "
+                   "rc: %d", rc ) ;
+      if ( contextID == -1 )
+      {
+         goto done ;
+      }
+
+      while ( TRUE )
+      {
+         rtnContextBuf buf ;
+         rc = rtnGetMore( contextID, 1, buf, _pEDUCB, _pRtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get more, rc: %d", rc ) ;
+
+         if ( !buf.eof() )
+         {
+            BSONObj obj ;
+            rc = buf.nextObj( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get object from "
+                         "context buffer, rc: %d", rc ) ;
+            rc = schema.parse( obj, FALSE, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema [%s], rc: %d",
+                         schemaName, rc ) ;
+            foundSchema = TRUE ;
+            break ;
+         }
+      }
+
+      if ( !foundSchema )
+      {
+         PD_LOG( PDWARNING, "Failed to get schema [%s]", schemaName ) ;
+         rc = SDB_SCHEMA_NOT_EXIST ;
+         goto error ;
+      }
+
+   done:
+      if ( contextID != -1 )
+      {
+         rtnKillContexts( 1, &contextID, _pEDUCB, _pRtnCB ) ;
+      }
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__GETSCHEMAFROMCATA, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -4456,6 +4568,7 @@ namespace engine
       case CMD_GET_CL_STAT:
       case CMD_GET_INDEX_STAT:
       case CMD_SNAPSHOT_INDEXES :
+      case CMD_GET_CL_INTERNAL_SCHEMA :
          rc = _getOnMainCL( pCommandName, pCommand->collectionFullName(),
                             flags, numToSkip, numToReturn, pQuery, pField,
                             pOrderBy, pHint, w, contextID ) ;
@@ -4477,7 +4590,7 @@ namespace engine
 
       case CMD_ALTER_COLLECTION :
          writable = TRUE ;
-         rc = _alterMainCL( pCommand, _pEDUCB, _pDpsCB, pBuilder ) ;
+         rc = _alterMainCL( pCommand, _pEDUCB, _pDpsCB, pBuilder, w, contextID ) ;
          break ;
 
       case CMD_DROP_INDEX:
@@ -6344,12 +6457,14 @@ namespace engine
    INT32 _clsShdSession::_alterMainCL( _rtnCommand *command,
                                        pmdEDUCB *cb,
                                        SDB_DPSCB *dpsCB,
-                                       BSONObjBuilder *pBuilder )
+                                       BSONObjBuilder *pBuilder,
+                                       INT16 w,
+                                       INT64 &contextID )
    {
       INT32 rc = SDB_OK ;
       utilWriteResult wrResult ;
       CLS_SUBCL_LIST subCLs ;
-      const _rtnAlterCollection *alterCommand = ( const _rtnAlterCollection * )command ;
+      _rtnAlterCollection *alterCommand = ( _rtnAlterCollection * )command ;
 
       const rtnAlterJob * alterJob = alterCommand->getAlterJob() ;
       SDB_ASSERT( NULL != alterJob, "alterJob is invalid" ) ;
@@ -6364,6 +6479,11 @@ namespace engine
       CLS_SUBCL_LIST subCLList ;
 
       BOOLEAN lockDms = FALSE ;
+      BOOLEAN useContext = FALSE ;
+
+      rtnContextAlterMainCL::sharePtr mainCLContext ;
+
+      contextID = -1 ;
 
       // we need to check dms writable when invalidate cata/plan/statistics
       rc = _pDmsCB->writable ( _pEDUCB ) ;
@@ -6381,27 +6501,53 @@ namespace engine
             ++ iterTask )
       {
          const rtnAlterTask * task = ( *iterTask ) ;
-         CLS_SUBCL_LIST_IT iterCL ;
-
          if ( !task->testFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) )
          {
             PD_LOG( PDINFO, "Failed to execute alter task [%s]: not supported "
                     "in main-collection", task->getActionName() ) ;
          }
+         if ( task->testFlags( RTN_ALTER_TASK_FLAG_3PHASE ) && !useContext )
+         {
+            useContext = TRUE ;
+         }
+      }
+
+      if ( useContext )
+      {
+         rtnContextAlterMainCL::sharePtr mainCLContext ;
+
+         rc = _pRtnCB->contextNew( RTN_CONTEXT_ALTERMAINCL, mainCLContext,
+                                   contextID, _pEDUCB );
+         PD_RC_CHECK( rc, PDERROR, "Failed to create context, alter "
+                      "main collection[%s] failed, rc: %d", collectionName, rc ) ;
+         rc = mainCLContext->open( collectionName, subCLList, *alterCommand,
+                                   _pEDUCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
+                      "main collection[%s] failed, rc: %d", collectionName, rc ) ;
+
+         goto done ;
+      }
+
+      for ( RTN_ALTER_TASK_LIST::const_iterator iterTask = alterTasks.begin() ;
+            iterTask != alterTasks.end() ;
+            ++ iterTask )
+      {
+         const rtnAlterTask * task = ( *iterTask ) ;
+         CLS_SUBCL_LIST_IT iterCL ;
 
          iterCL = subCLList.begin() ;
          while ( iterCL != subCLList.end() )
          {
             INT32 rcTmp = SDB_OK ;
             const CHAR * subCLName = iterCL->c_str() ;
-            BSONObj indexInfo ;
+            BSONObj boNewInfo ;
             rtnAlterInfo newInfo ;
             wrResult.resetInfo() ;
 
-            rcTmp = alterInfo->getIndexInfoByCL( subCLName, indexInfo ) ;
+            rcTmp = alterInfo->bindInfoByCL( subCLName, boNewInfo ) ;
             if ( SDB_OK == rcTmp )
             {
-               rcTmp = newInfo.init( indexInfo ) ;
+               rcTmp = newInfo.init( boNewInfo ) ;
                if ( SDB_OK == rcTmp )
                {
                   rcTmp = rtnAlter( subCLName, task, &newInfo, options,

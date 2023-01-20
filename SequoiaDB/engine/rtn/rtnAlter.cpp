@@ -318,7 +318,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSETCOMPRESS, "_rtnCollectionSetCompress" )
-   INT32 _rtnCollectionSetCompress ( const CHAR * collection,
+   INT32  _rtnCollectionSetCompress ( const CHAR * collection,
                                      UTIL_COMPRESSOR_TYPE compressorType,
                                      _pmdEDUCB * cb,
                                      _dmsMBContext * mbContext,
@@ -447,6 +447,191 @@ namespace engine
       return rc ;
 
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLCHKADDSCHEMA, "_rtnCollectionCheckAddSchema" )
+   INT32 _rtnCollectionCheckAddSchema( const CHAR *collection,
+                                       const utilSchema &schema,
+                                       _dmsMBContext *mbContext,
+                                       _dmsStorageUnit *su )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLCHKADDSCHEMA ) ;
+
+      utilSchema oldSchema ;
+
+      PD_CHECK( su->isInfoSchemaEnabled( mbContext ),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to check alter schema [%s] of collection [%s], "
+                "info schema is not enabled", schema.getName(), collection ) ;
+
+      rc = su->data()->getSchema( mbContext, oldSchema, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get internal schema on "
+                   "collection [%s], rc: %d", collection, rc ) ;
+
+      for ( UTIL_SCHEMA_COLUMN_LIST_CIT iter = schema.getColumns().begin() ;
+            iter != schema.getColumns().end() ;
+            ++ iter )
+      {
+         const utilSchemaColumn &newColumn = *iter ;
+         const CHAR *newColName = newColumn.getName() ;
+         const utilSchemaColumn *oldColumn = oldSchema.getColumn( newColName ) ;
+         if ( ( NULL != oldColumn ) &&
+              ( newColumn.hasReadDefault() ) &&
+              ( oldColumn->hasReadDefault() ) &&
+              ( !( newColumn.hasSameReadDefault( *oldColumn ) ) ) )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG( PDERROR, "Failed to check add column [%s], "
+                    "[%s] already exists with a different read default value",
+                    newColName, newColName ) ;
+            goto error ;
+         }
+      }
+
+      rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check add schema on indexes of "
+                   "collection [%s], rc: %d", collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCLCHKADDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLADDSCHEMA, "_rtnCollectionAddSchema" )
+   INT32 _rtnCollectionAddSchema( const CHAR *collection,
+                                  const utilSchema &schema,
+                                  _pmdEDUCB *cb,
+                                  _dmsMBContext *mbContext,
+                                  _dmsStorageUnit *su )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLADDSCHEMA ) ;
+
+      rc = su->addSchema( mbContext, schema, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add schema to collection [%s], "
+                   "rc: %d", collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCLADDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLCHKALTERSCHEMA, "_rtnCollectionCheckAlterSchema" )
+   INT32 _rtnCollectionCheckAlterSchema( const CHAR *collection,
+                                         const utilSchema &schema,
+                                         const utilSchemaAlterAction &action,
+                                         _dmsMBContext *mbContext,
+                                         _dmsStorageUnit *su )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLCHKALTERSCHEMA ) ;
+
+      const CHAR *schemaName = schema.getName() ;
+      utilSchema oldSchema ;
+
+      PD_CHECK( su->isInfoSchemaEnabled( mbContext ),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to check alter schema [%s] of collection [%s], "
+                "info schema is not enabled", schema.getName(), collection ) ;
+
+      rc = su->data()->getSchema( mbContext, oldSchema, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get internal schema on "
+                   "collection [%s], rc: %d", collection, rc ) ;
+
+      switch ( action.getAction() )
+      {
+         case UTIL_SCHEMA_ADD_COLUMN :
+         {
+            const utilSchemaColumn *oldColumn =
+                              oldSchema.getColumn( action.getColumnName() ) ;
+            if ( ( NULL != oldColumn ) &&
+                 ( action.getNewColAttr().hasReadDefault() ) &&
+                 ( oldColumn->hasReadDefault() ) &&
+                 ( !( action.getNewColAttr().hasSameReadDefault( *oldColumn ) ) ) )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG( PDERROR, "Failed to check add column [%s], "
+                       "[%s] already exists with a different read default value",
+                       action.getColumnName(), action.getColumnName() ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case UTIL_SCHEMA_RENAME_COLUMN :
+         {
+            if ( oldSchema.hasColumn( action.getNewColAttr().getName() ) )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG( PDERROR, "Failed to check rename column from [%s] "
+                       "to [%s], [%s] already exists",
+                       action.getColumnName(), action.getNewColAttr().getName() ) ;
+               goto error ;
+            }
+            break ;
+         }
+         case UTIL_SCHEMA_ALTER_COLUMN :
+         case UTIL_SCHEMA_DROP_COLUMN :
+         case UTIL_SCHEMA_DROP_DEFAULT :
+         case UTIL_SCHEMA_SET_ATTRIBUTES :
+         {
+            break ;
+         }
+         default:
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Failed to check alter action on schema [%s] on "
+                    "collection [%s], unknown action",
+                    schemaName, collection ) ;
+            SDB_ASSERT( FALSE, "should not be here" ) ;
+            goto error ;
+         }
+      }
+
+      rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema [%s] of "
+                   "collection [%s] on indexes, rc: %d", schema.getName(),
+                   collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCLCHKALTERSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLALTERSCHEMA, "_rtnCollectionAlterSchema" )
+   INT32 _rtnCollectionAlterSchema( const CHAR *collection,
+                                    const utilSchema &schema,
+                                    const utilSchemaAlterAction &action,
+                                    _pmdEDUCB *cb,
+                                    _dmsMBContext *mbContext,
+                                    _dmsStorageUnit *su )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLALTERSCHEMA ) ;
+
+      rc = su->alterSchema( mbContext, schema, action, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to alter schema to collection [%s], rc: %d",
+                   collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCLALTERSCHEMA, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -614,6 +799,17 @@ namespace engine
                                         cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set no trans "
                       "on collection [%s], rc: %d", collection, rc ) ;
+      }
+
+      // enable info schema
+      if ( localTask->testArgumentMask( UTIL_CL_ENABLE_INFOSCHEMA ) )
+      {
+         rc = su->setCollectionEnableInfoSchema( collectionShortName,
+                                                 localTask->isEnableInfoSchema(),
+                                                 mbContext,
+                                                 cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set enable info schema on collection [%s], "
+                      "rc: %d", collection, rc ) ;
       }
 
    done :
@@ -822,6 +1018,8 @@ namespace engine
          case RTN_ALTER_CL_CREATE_AUTOINC_FLD :
          case RTN_ALTER_CL_DROP_AUTOINC_FLD :
          case RTN_ALTER_CL_INC_VERSION:
+         case RTN_ALTER_CL_ADD_SCHEMA:
+         case RTN_ALTER_CL_ALTER_SCHEMA:
          {
             rc = rtnAlterCollection( name, task, alterInfo, options,
                                      cb, dpsCB, pResult ) ;
@@ -859,6 +1057,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCHECKALTERCOLLECTION, "rtnCheckAlterCollection" )
    INT32 rtnCheckAlterCollection ( const CHAR * collection,
                                    const rtnAlterTask * task,
+                                   const rtnAlterInfo * alterInfo,
                                    _pmdEDUCB * cb,
                                    _dmsMBContext * mbContext,
                                    _dmsStorageUnit * su,
@@ -914,6 +1113,28 @@ namespace engine
             //TODO: data group should do nothing
             break ;
          }
+         case RTN_ALTER_CL_ADD_SCHEMA :
+         {
+            const utilSchema &schema = alterInfo->getSchame() ;
+            SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
+
+            rc = _rtnCollectionCheckAddSchema( collection, schema, mbContext, su ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            const rtnCLAlterSchemaTask * localTask =
+                  dynamic_cast<const rtnCLAlterSchemaTask *>( task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                      "Failed to get alter schema task" ) ;
+            const utilSchema &schema = alterInfo->getSchame() ;
+            SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
+            const utilSchemaAlterAction &action = localTask->getSchemaAlterAction() ;
+
+            rc = _rtnCollectionCheckAlterSchema( collection, schema, action,
+                                                 mbContext, su ) ;
+            break ;
+         }
          default :
          {
             rc = SDB_INVALIDARG ;
@@ -963,8 +1184,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to lock mb context [%s], rc: %d",
                    collection, rc ) ;
 
-      rc = rtnCheckAlterCollection( collection, task, cb, mbContext, su,
-                                    dmsCB ) ;
+      rc = rtnCheckAlterCollection( collection, task, alterInfo, cb,
+                                    mbContext, su, dmsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter collection [%s], rc: %d",
                    collection, rc ) ;
 
@@ -1009,7 +1230,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_RTNALTERCOLLECTION_MB ) ;
 
-      DMS_FILE_TYPE dpsType = DMS_FILE_EMPTY ;
+      DMS_FILE_TYPE dpsType = DMS_FILE_EMPTY ;     // TODO: YSD change to DMS_FILE_DATA ???
 
       switch ( task->getActionType() )
       {
@@ -1085,6 +1306,31 @@ namespace engine
          case RTN_ALTER_CL_INC_VERSION:
          {
             //TODO: data group should do nothing
+            break ;
+         }
+         case RTN_ALTER_CL_ADD_SCHEMA :
+         {
+            const utilSchema &schema = alterInfo->getSchame() ;
+            SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
+
+            OSS_BIT_SET( dpsType, DMS_FILE_DATA ) ;
+            rc = _rtnCollectionAddSchema( collection, schema, cb, mbContext, su ) ;
+            break ;
+         }
+         case RTN_ALTER_CL_ALTER_SCHEMA:
+         {
+            const rtnCLAlterSchemaTask * localTask =
+                  dynamic_cast<const rtnCLAlterSchemaTask *>( task ) ;
+            PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
+                      "Failed to get alter schema task" ) ;
+            const utilSchemaAlterAction &action =
+                                       localTask->getSchemaAlterAction() ;
+            const utilSchema &schema = alterInfo->getSchame() ;
+            SDB_ASSERT( schema.isValid(), "Schema should be valid" ) ;
+
+            OSS_BIT_SET( dpsType, DMS_FILE_DATA ) ;
+            rc = _rtnCollectionAlterSchema( collection, schema, action, cb,
+                                            mbContext, su ) ;
             break ;
          }
          default :

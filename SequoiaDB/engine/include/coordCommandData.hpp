@@ -291,6 +291,8 @@ namespace engine
                                   BSONObj& indexInfo,
                                   BOOLEAN& hasInfo ) ;
 
+         INT32 _getAlterInfo( const BSONObj &reply, BSONObjBuilder &builder ) ;
+
       protected :
          coordAlterCMDArguments  _arguments ;
          rtnAlterJob             _alterJob ;

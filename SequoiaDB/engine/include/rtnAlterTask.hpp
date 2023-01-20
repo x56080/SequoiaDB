@@ -42,6 +42,7 @@
 #include "../bson/bson.hpp"
 #include "utilGlobalID.hpp"
 #include "utilUniqueID.hpp"
+#include "utilSchema.hpp"
 
 namespace engine
 {
@@ -86,6 +87,8 @@ namespace engine
       RTN_ALTER_CL_ENABLE_COMPRESS,
       RTN_ALTER_CL_DISABLE_COMPRESS,
       RTN_ALTER_CL_SET_ATTRIBUTES,
+      RTN_ALTER_CL_ADD_SCHEMA,
+      RTN_ALTER_CL_ALTER_SCHEMA,
       RTN_ALTER_CS_SET_DOMAIN,
       RTN_ALTER_CS_REMOVE_DOMAIN,
       RTN_ALTER_CS_ENABLE_CAPPED,
@@ -163,11 +166,16 @@ namespace engine
          INT32 init( const BSONObj& obj ) ;
          BSONObj toBSON() const ;
 
-         INT32 getIndexInfoByCL( const CHAR* collection,
-                                 BSONObj& indexInfo ) const ;
+         INT32 bindInfoByCL( const CHAR* collection,
+                             BSONObj& newInfo ) const ;
 
          utilIdxUniqueID getIdxUniqueID( const CHAR* collection,
                                          const CHAR* indexName ) const ;
+
+         const utilSchema &getSchame() const
+         {
+            return _schema ;
+         }
 
       protected :
          INT32 _addIdxUniqueID( const CHAR* collection,
@@ -178,6 +186,8 @@ namespace engine
          BSONObj _obj ;
          // < collection name, <index name, index unique id> >
          ossPoolMap<const CHAR*, MAP_IDXNAME_ID, cmp_str> _clMap ;
+
+         utilSchema _schema ;
    } ;
 
    /*
@@ -598,6 +608,48 @@ namespace engine
    };
 
    /*
+      _rtnCLAddSchemaArgument define
+    */
+   class _rtnCLAddSchemaArgument : public _rtnAlterTaskArgument
+   {
+      public:
+         _rtnCLAddSchemaArgument( const bson::BSONObj & argument ) ;
+         virtual ~_rtnCLAddSchemaArgument() ;
+
+         virtual INT32 parseArgument() ;
+
+         OSS_INLINE const CHAR *getSchemaName() const
+         {
+            return _schemaName ;
+         }
+
+      protected:
+         const CHAR *         _schemaName ;
+   } ;
+   typedef class _rtnCLAddSchemaArgument rtnCLAddSchemaArgument ;
+
+   /*
+      _rtnCLAlterSchemaArgument define
+    */
+   class _rtnCLAlterSchemaArgument : public _rtnAlterTaskArgument
+   {
+      public:
+         _rtnCLAlterSchemaArgument( const bson::BSONObj & argument ) ;
+         virtual ~_rtnCLAlterSchemaArgument() ;
+
+         virtual INT32 parseArgument() ;
+
+         OSS_INLINE const utilSchemaAlterAction &getSchemaAlterAction() const
+         {
+            return _action ;
+         }
+
+      protected:
+         utilSchemaAlterAction _action ;
+   } ;
+   typedef class _rtnCLAlterSchemaArgument rtnCLAlterSchemaArgument ;
+
+   /*
       _rtnAlterCLTask define
     */
    class _rtnAlterCLTask : public _rtnAlterTask
@@ -782,6 +834,54 @@ namespace engine
    typedef class _rtnCLDisableCompressTask rtnCLDisableCompressTask ;
 
    /*
+      _rtnCLAddSchemaTask define
+    */
+   class _rtnCLAddSchemaTask : public _rtnAlterCLTask
+   {
+      public:
+         _rtnCLAddSchemaTask( const rtnAlterTaskSchema &schema,
+                              const bson::BSONObj &argument ) ;
+         virtual ~_rtnCLAddSchemaTask() ;
+
+         virtual INT32 parseArgument() ;
+
+         OSS_INLINE const CHAR *getSchemaName() const
+         {
+            return _addSchemaArgument.getSchemaName() ;
+         }
+
+      protected:
+         rtnCLAddSchemaArgument _addSchemaArgument ;
+   } ;
+   typedef class _rtnCLAddSchemaTask rtnCLAddSchemaTask ;
+
+   /*
+      _rtnCLAlterSchemaTask define
+    */
+   class _rtnCLAlterSchemaTask : public _rtnAlterCLTask
+   {
+      public:
+         _rtnCLAlterSchemaTask( const rtnAlterTaskSchema &schema,
+                                const bson::BSONObj &argument ) ;
+         virtual ~_rtnCLAlterSchemaTask() ;
+
+         virtual INT32 parseArgument() ;
+
+         OSS_INLINE const utilSchemaAlterAction &getSchemaAlterAction() const
+         {
+            return _argument.getSchemaAlterAction() ;
+         }
+
+         static INT32 buildAlterCommand( const CHAR *collectionName,
+                                         const bson::BSONObj &actionObject,
+                                         bson::BSONObj &boAlterCommand ) ;
+
+      protected:
+         rtnCLAlterSchemaArgument _argument ;
+   } ;
+   typedef class _rtnCLAlterSchemaTask rtnCLAlterSchemaTask ;
+
+   /*
       _rtnCLSetAttributeTask define
     */
    class _rtnCLSetAttributeTask : public _rtnAlterCLTask
@@ -871,6 +971,11 @@ namespace engine
             return _noTrans ;
          }
 
+         OSS_INLINE BOOLEAN isEnableInfoSchema() const
+         {
+            return _enableInfoSchema ;
+         }
+
          OSS_INLINE utilIdxUniqueID getIdIdxUniqueID () const
          {
             return _idIdxUniqID ;
@@ -892,6 +997,7 @@ namespace engine
          INT32           _replSize ;
          BOOLEAN         _strictDataMode ;
          BOOLEAN         _noTrans ;
+         BOOLEAN         _enableInfoSchema ;
    } ;
 
    typedef class _rtnCLSetAttributeTask rtnCLSetAttributeTask ;

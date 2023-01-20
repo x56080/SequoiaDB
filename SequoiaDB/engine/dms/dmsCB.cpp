@@ -201,6 +201,10 @@ namespace engine
                       "statistics manager to DMS, rc: %d", rc ) ;
       }
 
+      rc = regHandler( &_schemaHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of internal schema to DMS, "
+                   "rc: %d", rc ) ;
+
       rc = _pageMapDispatcher.active() ;
       if ( rc )
       {
@@ -221,6 +225,8 @@ namespace engine
       {
          unregHandler( &_statSUMgr ) ;
       }
+      unregHandler( &_schemaHandler ) ;
+
       return SDB_OK ;
    }
 

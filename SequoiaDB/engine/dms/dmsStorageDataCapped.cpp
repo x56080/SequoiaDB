@@ -325,10 +325,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERTDATA, "_dmsStorageDataCapped::_prepareInsertData" )
-   INT32 _dmsStorageDataCapped::_prepareInsertData( const BSONObj &record,
+   INT32 _dmsStorageDataCapped::_prepareInsertData( dmsMBContext *context,
+                                                    const BSONObj &record,
                                                     BOOLEAN mustOID,
                                                     pmdEDUCB *cb,
                                                     dmsRecordData &recordData,
+                                                    dmsRecordData &encodeData,
                                                     BOOLEAN &memReallocate,
                                                     INT64 position )
    {
@@ -734,7 +736,9 @@ namespace engine
                                              const dmsRecordRW &recordRW,
                                              pmdEDUCB *cb,
                                              dmsRecordData &recordData,
-                                             BOOLEAN needIncDataRead )
+                                             BOOLEAN needIncDataRead,
+                                             BOOLEAN decodeRecord,
+                                             BOOLEAN getPrimalData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED_EXTRACTDATA ) ;

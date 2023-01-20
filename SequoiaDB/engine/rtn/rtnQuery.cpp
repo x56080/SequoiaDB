@@ -988,7 +988,8 @@ retry:
                              SDB_RTNCB *rtnCB,
                              SINT64 &contextID,
                              rtnContextPtr *ppContext,
-                             BOOLEAN enablePrefetch )
+                             BOOLEAN enablePrefetch,
+                             INT32 flag )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNTRAVERSALQUERY ) ;
@@ -1044,7 +1045,7 @@ retry:
       {
          // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName,
-                                  0, -1, 0 ) ;
+                                  0, -1, flag ) ;
 
          rc = rtnCB->getAPM()->getTempAccessPlan( options, su, mbContext,
                                                   *planRuntime ) ;

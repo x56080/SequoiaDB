@@ -245,7 +245,7 @@ namespace engine
       fullName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
 
       rtnContextStoreBuf buf ;
-      dmsExtScanner scanner( sd, context, NULL, context->mb()->_firstExtentID ) ;
+      dmsExtScanner scanner( sd, context, NULL, context->mb()->_firstExtentID ) ;      // TODO: YSD need to set raw data
 
       rc = dmsCB->createScannerChecker( sd->logicalID(),
                                         context->clLID(),
@@ -256,6 +256,8 @@ namespace engine
                                         &checker ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to open storage unit checker for "
                    "collection [%s], rc: %d", fullName, rc ) ;
+
+      // tbScanner.setGetRawData( TRUE ) ;
 
       /*
        * The loop will end either all records have been fetched, or the

@@ -153,7 +153,8 @@ namespace engine
                                  _pmdEDUCB *eduCB,
                                  UTIL_COMPRESSOR_TYPE compType,
                                  const BSONObj *extOptions,
-                                 const BSONObj *idIdxDef ) ;
+                                 const BSONObj *idIdxDef,
+                                 const utilSchema *schema ) ;
 
       INT32 replayIXCrt( const CHAR *collection,
                          BSONObj &index,

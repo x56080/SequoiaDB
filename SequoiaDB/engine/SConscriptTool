@@ -362,7 +362,8 @@ sptFiles = [
       "spt/db/sptDBCipherUser.cpp",
       "spt/db/sptDBSequence.cpp",
       "spt/db/sptDBDataSource.cpp",
-      "spt/db/sptDBRecycleBin.cpp"
+      "spt/db/sptDBRecycleBin.cpp",
+      "spt/db/sptDBSchema.cpp"
       ]
 
 ssh2Files = [
@@ -836,11 +837,11 @@ sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
 sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-         
+
 sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
          LIBDEPS=["pd", "oss", "bson", "util"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-         
+
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,
             LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon"],

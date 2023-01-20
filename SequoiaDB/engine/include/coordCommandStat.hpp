@@ -191,6 +191,19 @@ namespace engine
    } ;
    typedef _coordCMDGetIndexStat coordCMDGetIndexStat ;
 
+   /*
+      _coordCMDGetCLInternalSchema define
+   */
+   class _coordCMDGetCLInternalSchema : public _coordCMDStatisticsBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDGetCLInternalSchema() ;
+         virtual ~_coordCMDGetCLInternalSchema() ;
+      private :
+         virtual INT32 generateResult( rtnContext *pContext, pmdEDUCB *cb );
+   } ;
+   typedef _coordCMDGetCLInternalSchema coordCMDGetCollectionInternalSchema ;
 }
 
 #endif // COORD_COMMAND_STAT_HPP__

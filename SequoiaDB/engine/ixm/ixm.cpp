@@ -736,13 +736,46 @@ namespace engine
    goto done ;
    }
 
+   INT32 _ixmIndexCB::_updateDef( const bson::BSONObj &newDef )
+   {
+      INT32 rc = SDB_OK ;
+
+      dmsExtRW extRW ;
+      ixmIndexCBExtent *pExtent = NULL ;
+
+      // check new index definition
+      if ( newDef.objsize() + IXM_INDEX_CB_EXTENT_METADATA_SIZE >=
+           (UINT32)_pageSize )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "index object is too big, size: %d, object: %s",
+                 newDef.objsize(), newDef.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // get extent
+      extRW = _pIndexSu->extent2RW( _extentID, _extent->_mbID ) ;
+      pExtent = extRW.writePtr<ixmIndexCBExtent>( 0, (UINT32)_pageSize ) ;
+
+      // write index definition
+      ossMemcpy( ((CHAR*)pExtent) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
+                 newDef.objdata(), (size_t)newDef.objsize() ) ;
+      _infoObj = BSONObj( ((const CHAR*)pExtent) +
+                          IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
+      _fieldInitedFlag = 0 ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _ixmIndexCB::changeUniqueID( utilIdxUniqueID uniqueID )
    {
       INT32 rc = SDB_OK ;
       BSONObjBuilder builder ;
       BSONObj newDef ;
-      dmsExtRW extRW ;
-      ixmIndexCBExtent *pExtent = NULL ;
 
       try
       {
@@ -759,26 +792,11 @@ namespace engine
          builder.append( IXM_FIELD_NAME_UNIQUEID, (INT64)uniqueID ) ;
          newDef = builder.done() ;
 
-         // check new index definition
-         if ( newDef.objsize() + IXM_INDEX_CB_EXTENT_METADATA_SIZE >=
-              (UINT32)_pageSize )
+         rc = _updateDef( newDef ) ;
+         if ( SDB_OK != rc )
          {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "index object is too big, size: %d, object: %s",
-                    newDef.objsize(), newDef.toString().c_str() ) ;
             goto error ;
          }
-
-         // get extent
-         extRW = _pIndexSu->extent2RW( _extentID, _extent->_mbID ) ;
-         pExtent = extRW.writePtr<ixmIndexCBExtent>( 0, (UINT32)_pageSize ) ;
-
-         // write index definition
-         ossMemcpy( ((CHAR*)pExtent) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
-                    newDef.objdata(), (size_t)newDef.objsize() ) ;
-         _infoObj = BSONObj( ((const CHAR*)pExtent) +
-                             IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
-         _fieldInitedFlag = 0 ;
 
          _idxUniqID = uniqueID ;
          SET_UNIQUEID_INITED() ;
@@ -792,6 +810,56 @@ namespace engine
 
    done:
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_UPDATEKEYPATTERN, "_ixmIndexCB::updateKeyPattern" )
+   INT32 _ixmIndexCB::updateKeyPattern( const bson::BSONObj &newKeyPattern )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__IXMINXCB_UPDATEKEYPATTERN ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObj newDef ;
+
+         // build new index definition
+         BSONObjIterator it( _infoObj ) ;
+         while ( it.more() )
+         {
+            BSONElement e = it.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), IXM_FIELD_NAME_KEY ) )
+            {
+               builder.append( IXM_FIELD_NAME_KEY, newKeyPattern ) ;
+            }
+            else
+            {
+               builder.append( e ) ;
+            }
+         }
+         newDef = builder.done() ;
+
+         rc = _updateDef( newDef ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to update key pattern, occur exception %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__IXMINXCB_UPDATEKEYPATTERN, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
