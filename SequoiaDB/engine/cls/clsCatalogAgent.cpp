@@ -3935,7 +3935,7 @@ namespace engine
       PD_LOG( PDDEBUG, "Update groupItem[%s]", obj.toString().c_str() ) ;
 
       rc = msgParseCatGroupObj( obj.objdata(), groupVersion, groupID, groupName,
-                                groups, &primary, NULL, locInfo ) ;
+                                groups, &primary, NULL, &locInfo ) ;
       PD_RC_CHECK( rc, PDERROR, "parse catagroup obj failed, rc: %d", rc ) ;
 
       // check groupid is right
@@ -4750,7 +4750,7 @@ namespace engine
       }
 
       rc = msgParseCatGroupObj( objdata, groupVersion, groupID, groupName,
-                                group, &primary, NULL, locInfo ) ;
+                                group, &primary, NULL, &locInfo ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

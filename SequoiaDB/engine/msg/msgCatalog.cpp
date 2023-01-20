@@ -54,7 +54,7 @@ namespace engine
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
                               UINT32 *pSecID,
-                              CLS_LOC_INFO_MAP &locationInfo )
+                              CLS_LOC_INFO_MAP *pLocationInfo )
    {
       SDB_ASSERT( NULL != msg, "data should not be NULL" ) ;
       INT32 rc = SDB_OK ;
@@ -70,7 +70,7 @@ namespace engine
          UINT32 groupID = 0 ;
          rc = msgParseCatGroupObj( MSG_GET_INNER_REPLY_DATA( pHeader ),
                                    version, groupID, groupName,
-                                   group, pPrimary, pSecID, locationInfo ) ;
+                                   group, pPrimary, pSecID, pLocationInfo ) ;
       }
    done :
       PD_TRACE_EXITRC ( SDB_MSGPASCATGRPRES, rc );
@@ -238,7 +238,7 @@ namespace engine
                               map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
                               UINT32 *pSecID,
-                              CLS_LOC_INFO_MAP &locationInfo )
+                              CLS_LOC_INFO_MAP *pLocationInfo )
    {
       INT32 rc = SDB_OK ;
 
@@ -316,10 +316,9 @@ namespace engine
                     CAT_LOCATIONS_NAME, ele.type() ) ;
             goto error ;
          }
-         locationInfo.clear() ;
 
          // Parse Locations array
-         if ( Array == ele.type() )
+         if ( NULL != pLocationInfo && Array == ele.type() )
          {
             BSONObjIterator i( ele.embeddedObject() ) ;
             while ( i.more() )
@@ -357,7 +356,7 @@ namespace engine
                   item._primary.columns.nodeID = bePrimary.numberInt() ;
                }
 
-               locationInfo.insert( CLS_LOC_INFO_MAP::value_type( item._locationID, item ) ) ;
+               pLocationInfo->insert( CLS_LOC_INFO_MAP::value_type( item._locationID, item ) ) ;
             }
          }
 
@@ -383,10 +382,10 @@ namespace engine
                PD_RC_CHECK( rc, PDWARNING, "Failed to parse node, rc: %d", rc ) ;
 
                // Set locationID in route.locationID
-               if ( NULL != pTmpLocation )
+               if ( NULL != pLocationInfo && NULL != pTmpLocation )
                {
-                  CLS_LOC_INFO_MAP::const_iterator itr = locationInfo.begin() ;
-                  while ( locationInfo.end() != itr )
+                  CLS_LOC_INFO_MAP::const_iterator itr = pLocationInfo->begin() ;
+                  while ( pLocationInfo->end() != itr )
                   {
                      if ( 0 == ossStrcmp( pTmpLocation, itr->second._location.c_str() ) )
                      {
@@ -396,7 +395,7 @@ namespace engine
                      ++itr ;
                   }
 
-                  if ( locationInfo.end() == itr )
+                  if ( pLocationInfo->end() == itr )
                   {
                      rc = SDB_CAT_CORRUPTION ;
                      PD_LOG( PDWARNING, "Node[%u]'s location is not in Locations array",

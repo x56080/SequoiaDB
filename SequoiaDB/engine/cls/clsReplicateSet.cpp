@@ -1269,7 +1269,7 @@ namespace engine
       }
 
       rc = msgParseCatGroupRes( msg, version, groupName, group,
-                                NULL, &grpHashCode, locationInfoMap ) ;
+                                NULL, &grpHashCode, &locationInfoMap ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "parse MsgCatGroupRes err, rc = %d", rc ) ;
