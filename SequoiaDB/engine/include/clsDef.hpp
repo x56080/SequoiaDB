@@ -306,10 +306,11 @@ namespace engine
    {
    public:
       _clsGroupBeat beat ;
-      UINT32 timeout ;
-      UINT32 breakTime ;
-      UINT32 deadtime ;
-      UINT32 sendFailedTimes ;
+      UINT32        timeout ;
+      UINT32        breakTime ;
+      UINT32        deadtime ;
+      UINT32        sendFailedTimes ;
+      BOOLEAN       isAffinitiveLocation ;
 
    protected:
       // need test remote status, which might not support UDP
@@ -325,6 +326,7 @@ namespace engine
       {
          resetStatus() ;
          resetUDP() ;
+         isAffinitiveLocation = FALSE ;
       }
 
       OSS_INLINE BOOLEAN isUDPSupported()

@@ -279,3 +279,15 @@ function killNodes(nodeList) {
     );
   }
 }
+
+/******************************************************************************
+ * @description: 获取复制组节点的详细信息进行校验
+ * @param {string} node  // 节点名
+ * @param {string} expLocation  // 需要校验的location
+ ******************************************************************************/
+function checkNodeLocation(node, expLocation) {
+  var nodeObj = node.getDetailObj().toObj();
+  actLocation = nodeObj.Location;
+  assert.equal(actLocation, expLocation);
+}
+

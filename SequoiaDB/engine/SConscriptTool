@@ -256,7 +256,8 @@ utilFiles = [
       "util/utilUniqueID.cpp",
       "util/base64.cpp",
       "util/utilSecure.cpp",
-      "util/utilTool.cpp"
+      "util/utilTool.cpp",
+      "util/utilLocation.cpp"
       ]
 
 dpsFiles = [

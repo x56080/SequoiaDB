@@ -277,7 +277,9 @@ namespace engine
                PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
                goto error ;
             }
-            const ossPoolString newLoc( newLocEle.valuestrsafe() ) ;
+            CHAR tmpStr [ MSG_LOCATION_NAMESZ + 1 ] = {0} ;
+            utilStrToLower( newLocEle.valuestrsafe(), tmpStr, sizeof( tmpStr ) ) ;
+            const ossPoolString newLoc( tmpStr ) ;
 
             BSONElement oldLocEle = _nodeObj.getField( CAT_LOCATION_NAME ) ;
             if ( ! oldLocEle.eoo() && String != oldLocEle.type() )
@@ -341,7 +343,9 @@ namespace engine
                      PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
                      goto error ;
                   }
-                  const ossPoolString newLoc( optionEle.valuestrsafe() ) ;
+                  CHAR tmpStr [ MSG_LOCATION_NAMESZ + 1 ] = {0} ;
+                  utilStrToLower( optionEle.valuestrsafe(), tmpStr, sizeof( tmpStr ) ) ;
+                  const ossPoolString newLoc( tmpStr ) ;
 
                   BSONElement oldLocEle = _nodeObj.getField( FIELD_NAME_LOCATION ) ;
                   if ( ! oldLocEle.eoo() && String != optionEle.type() )

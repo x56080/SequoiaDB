@@ -48,6 +48,7 @@
 #include "pmdController.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
+#include "utilLocation.hpp"
 
 namespace engine
 {
@@ -597,6 +598,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET__SETGPSET, "_clsReplicateSet::_setGroupSet" )
    INT32 _clsReplicateSet::_setGroupSet( const CLS_GROUP_VERSION &version,
+                                         const CLS_LOC_INFO_MAP &locationInfoMap,
                                          map<UINT64, _netRouteNode> &nodes,
                                          BOOLEAN &changeStatus )
    {
@@ -605,6 +607,7 @@ namespace engine
       BOOLEAN hasLocal = FALSE ;
       std::map<UINT64, _netRouteNode>::iterator itr ;
       std::map<UINT64, _clsSharingStatus>::iterator itr2 ;
+      CLS_LOC_INFO_MAP::const_iterator locItr ;
       changeStatus = FALSE ;
 
       _info.version = version ;
@@ -695,6 +698,17 @@ namespace engine
          }
          else
          {
+            // set node affinity information
+            UINT32 locationID = itr->second._locationID ;
+            if ( MSG_INVALID_LOCATIONID != locationID &&
+               ( locItr = locationInfoMap.find( locationID ) ) != locationInfoMap.end() )
+            {
+               itr2->second.isAffinitiveLocation = locItr->second._isAffinitiveLocation ;
+            }
+            else
+            {
+               itr2->second.isAffinitiveLocation = FALSE ;
+            }
             ++itr2 ;
          }
       } // for ( ; itr2 != _info.info.end(); itr2++ )
@@ -764,6 +778,7 @@ namespace engine
          }
          else
          {
+            infoItr->second.isAffinitiveLocation = TRUE ;
             ++infoItr ;
          }
       }
@@ -891,6 +906,53 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _clsReplicateSet::_calLocationAffinity( const map<UINT64, _netRouteNode> &nodes,
+                                                CLS_LOC_INFO_MAP &locationInfoMap )
+   {
+      UINT32 localLocationID = MSG_INVALID_LOCATIONID ;
+      const CHAR* localLocation = NULL ;
+      map<UINT64, _netRouteNode>::const_iterator nodeItr ;
+      CLS_LOC_INFO_MAP::iterator locItr ;
+
+      if ( locationInfoMap.empty() )
+      {
+         goto done ;
+      }
+
+      nodeItr = nodes.find( _info.local.value ) ;
+      if ( nodes.end() != nodeItr )
+      {
+         localLocationID = nodeItr->second._locationID ;
+      }
+      if ( localLocationID != MSG_INVALID_LOCATIONID )
+      {
+         locItr = locationInfoMap.find( localLocationID ) ;
+         if ( locationInfoMap.end() != locItr )
+         {
+            localLocation = locItr->second._location.c_str() ;
+         }
+         else
+         {
+            // Reset locationID
+            localLocationID = MSG_INVALID_LOCATIONID ;
+         }
+      }
+
+      if ( MSG_INVALID_LOCATIONID == localLocationID || NULL == localLocation )
+      {
+         goto done ;
+      }
+
+      for ( locItr = locationInfoMap.begin(); locItr != locationInfoMap.end(); ++locItr )
+      {
+         locItr->second._isAffinitiveLocation = utilCalAffinity( locItr->second._location.c_str(),
+                                                                 localLocation ) ;
+      }
+
+   done:
+      return ;
    }
 
    INT32 _clsReplicateSet::callCatalog( MsgHeader *header, UINT32 times )
@@ -1288,7 +1350,8 @@ namespace engine
       }
       else
       {
-         rc = _setGroupSet( version, group, changeStatus ) ;
+         _calLocationAffinity( group, locationInfoMap ) ;
+         rc = _setGroupSet( version, locationInfoMap, group, changeStatus ) ;
          PD_RC_CHECK( rc, PDWARNING, "Set replica group info failed, rc = %d", rc ) ;
          rc = _setLocationInfo( group, locationInfoMap ) ;
          PD_RC_CHECK( rc, PDWARNING, "Set location info failed, rc = %d", rc ) ;

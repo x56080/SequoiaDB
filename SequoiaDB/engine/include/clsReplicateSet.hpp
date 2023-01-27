@@ -434,6 +434,7 @@ namespace engine
                                 const map<UINT64, _netRouteNode> &nodes ) ;
 
          INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
+                             const CLS_LOC_INFO_MAP &locationInfoMap,
                              map<UINT64, _netRouteNode> &nodes,
                              BOOLEAN &changeStatus ) ;
 
@@ -471,6 +472,9 @@ namespace engine
                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;
 
          void _forceSrcSessions() ;
+
+         void _calLocationAffinity( const map<UINT64, _netRouteNode> &nodes,
+                                    CLS_LOC_INFO_MAP &locationInfoMap ) ;
 
          INT32 _handleBallot( const MsgHeader *header ) ;
 
