@@ -62,15 +62,15 @@ namespace engine
       // e.g. "A" and "A"
       if ( NULL == pos1 && NULL == pos2 &&
            locationLen1 == locationLen2 &&
-           0 == ossStrncmp( location1, location2, locationLen1 ) )
+           0 == ossStrncasecmp( location1, location2, locationLen1 ) )
       {
          ret = TRUE ;
       }
       // e.g. "A" and "A.a"
       else if ( ( NULL == pos1 && prefixLen2 == locationLen1 &&
-                  0 == ossStrncmp( location1, location2, prefixLen2 ) ) ||
+                  0 == ossStrncasecmp( location1, location2, prefixLen2 ) ) ||
                 ( NULL == pos2 && prefixLen1 == locationLen2 &&
-                  0 == ossStrncmp( location2, location1, prefixLen1 ) ) )
+                  0 == ossStrncasecmp( location2, location1, prefixLen1 ) ) )
       {
          ret = TRUE ;
       }
@@ -78,7 +78,7 @@ namespace engine
       else if ( NULL != pos1 && NULL != pos2 &&
                 prefixLen1 == prefixLen2 &&
                 0 != prefixLen1 &&
-                0 == ossStrncmp( location1, location2, prefixLen1 ) )
+                0 == ossStrncasecmp( location1, location2, prefixLen1 ) )
       {
          ret = TRUE ;
       }
