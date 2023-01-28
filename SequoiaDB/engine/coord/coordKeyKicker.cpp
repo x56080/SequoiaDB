@@ -266,6 +266,19 @@ namespace engine
                      shardingKeyChanged = TRUE ;
                   }
                }
+               else if ( 0 == ossStrcmp( beTmp.fieldName(),
+                                         CMD_ADMIN_PREFIX CMD_VALUE_NAME_RENAME ) )
+               {
+                  // If $rename target value is shardingKey, do nothing
+                  if ( _isKey( beField.valuestrsafe(), boShardingKey ) )
+                  {
+                     shardingKeyChanged = TRUE ;
+                  }
+                  else
+                  {
+                     subBuilder.append( beField ) ;
+                  }
+               }
                else
                {
                   subBuilder.append( beField ) ;
