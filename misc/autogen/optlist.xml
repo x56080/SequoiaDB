@@ -221,6 +221,10 @@
          <en>Backup path</en>
          <cn>备份路径</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
       <detail>
           <en>1. It specifies the catalog of backup file.<fig></fig>
               2. If it is not specified, the default path is "Data file path/bakfile".</en>
