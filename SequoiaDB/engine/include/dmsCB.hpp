@@ -120,10 +120,6 @@ namespace engine
          dmsMmapEngine *_mmapEngine = nullptr;
 
       private:
-         void _nullCSUniqueIDCntInc();
-
-         void _nullCSUniqueIDCntDec();
-
          INT32 _changeIndexUniqueID( _dmsStorageUnit *su,
                                      const ossPoolVector< ossPoolString > &changedClVec,
                                      const ossPoolVector< BSONObj > &idxInfoObj,
