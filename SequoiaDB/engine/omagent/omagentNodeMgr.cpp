@@ -1509,7 +1509,7 @@ namespace engine
       if ( roleStr && 0 != *roleStr &&
            0 != ossStrcmp( nodeOptions.dbroleStr(), roleStr ) )
       {
-         PD_LOG( PDERROR, "Role[%s] is not expect[%s]",
+         PD_LOG_MSG( PDERROR, "Role[%s] is not expect[%s]",
                  nodeOptions.dbroleStr(), roleStr ) ;
          rc = SDB_PERM ;
          goto error ;
