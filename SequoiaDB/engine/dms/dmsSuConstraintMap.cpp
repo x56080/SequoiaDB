@@ -267,30 +267,10 @@ namespace engine
    INT32 _dmsSuConstraintMap::addSuDescriptor( const DMS_SU_DESCRIPTOR &desc )
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT( desc && desc->isValid(), "descriptor to add must be valid" );
-      try
-      {
-         utilCSUniqueID csUID = desc->csUID;
-         ossScopedLock lock( &_mapLatch, EXCLUSIVE );
-         _nameToDesc[ desc->name ] = desc;
-         if ( UTIL_IS_VALID_CSUNIQUEID( csUID ) )
-         {
-            _UIDToDesc[ csUID ] = desc;
-         }
-         else
-         {
-            if ( csUID == UTIL_UNIQUEID_NULL && !dmsIsSysCSName( desc->name.c_str() ) )
-            {
-               _nullCSUniqueIDCntInc();
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e );
-         PD_LOG( PDERROR, "occur exception: %s, rc: %d", e.what(), rc );
-         goto error;
-      }
+      ossScopedLock lock( &_mapLatch, EXCLUSIVE );
+      rc = _upsert( desc );
+      PD_RC_CHECK( rc, PDERROR, "failed to upsert descriptor of cs[%s], rc: %d",
+                     desc->name.c_str(), rc );
    done:
       return rc;
    error:
@@ -620,6 +600,53 @@ namespace engine
       _nameToDesc.clear();
       _UIDToDesc.clear();
       _tempUniqueIDs.clear();
+   }
+
+   INT32 _dmsSuConstraintMap::_upsert( const DMS_SU_DESCRIPTOR &desc )
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT( desc && desc->isValid(), "descriptor to add must be valid" );
+      try
+      {
+         utilCSUniqueID csUID = desc->csUID;
+         decltype( _nameToDesc )::value_type val = make_pair( utilStringView( desc->name ), desc );
+
+         auto r = _nameToDesc.insert( val );
+         if ( !r.second )
+         {
+            _nameToDesc.erase( r.first );
+            r = _nameToDesc.insert( val );
+            if ( !r.second )
+            {
+               rc = SDB_SYS;
+               PD_RC_CHECK( rc, PDERROR, "failed to insert cs[%s] descriptor, rc: %d",
+                            desc->name.c_str(), rc );
+            }
+         }
+
+         if ( UTIL_IS_VALID_CSUNIQUEID( csUID ) )
+         {
+            _UIDToDesc[ csUID ] = desc;
+         }
+         else
+         {
+            if ( csUID == UTIL_UNIQUEID_NULL && !dmsIsSysCSName( desc->name.c_str() ) )
+            {
+               _nullCSUniqueIDCntInc();
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e );
+         PD_LOG( PDERROR, "occur exception: %s, rc: %d", e.what(), rc );
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    void _dmsSuConstraintMap::_remove( const CHAR *name )

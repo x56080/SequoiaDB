@@ -1264,7 +1264,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
-      rc = dmsCB->nameToSuDescriptor( pCollectionSpace, desc);
+      rc = dmsCB->nameToSuDescriptor( pCollectionSpace, desc );
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
                    "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
       SDB_ASSERT( desc && desc->isValid(), "su descriptor should be valid" );

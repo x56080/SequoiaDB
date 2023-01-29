@@ -559,7 +559,16 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       desc = _cm.getSuDescriptor( pName );
+      if ( !desc )
+      {
+         rc = SDB_DMS_CS_NOTEXIST;
+         PD_LOG( PDERROR, "the collection space[%s] does not exist,rc: %d", pName, rc );
+         goto error;
+      }
+   done:
       return rc;
+   error:
+      goto done;
    }
 
    UINT32 _SDB_DMSCB::getNullCSUniqueIDCnt() const
@@ -683,7 +692,14 @@ namespace engine
 
    INT32 _SDB_DMSCB::unloadCollectonSpace( const CHAR *pName, _pmdEDUCB *cb )
    {
-      return _getMmapEngine()->unloadCollectonSpace( pName, cb );
+      INT32 rc = SDB_OK;
+      rc =  _getMmapEngine()->unloadCollectonSpace( pName, cb );
+      PD_RC_CHECK( rc, PDERROR, "failed to unload collection space[%s], rc: %d", pName, rc );
+      _cm.removeSuDescriptor( pName );
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 _SDB_DMSCB::renameCollectionSpace( const CHAR *pName,

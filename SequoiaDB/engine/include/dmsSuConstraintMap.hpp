@@ -202,6 +202,7 @@ namespace engine
          // If collection space name or unique id is used, exist is true
          INT32 _testSuDescriptor( const CHAR *name, utilCSUniqueID csUID, BOOLEAN &exist );
 
+         INT32 _upsert( const DMS_SU_DESCRIPTOR &dms);
          void _remove( const CHAR *name );
          void _remove( utilCSUniqueID csUID );
 
