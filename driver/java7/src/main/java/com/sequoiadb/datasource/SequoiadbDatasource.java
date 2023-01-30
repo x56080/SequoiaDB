@@ -22,6 +22,8 @@ import com.sequoiadb.base.UserConfig;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.log.Log;
+import com.sequoiadb.log.LogFactory;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -76,6 +78,7 @@ public class SequoiadbDatasource {
     private static final int _deleteInterval = 180000; // 3min
     // for error report
     private static final ThreadLocal<BaseException> lastException = new ThreadLocal<>();
+    private static Log log = LogFactory.getLog(SequoiadbDatasource.class);
 
     // finalizer guardian
     @SuppressWarnings("unused")
@@ -158,6 +161,8 @@ public class SequoiadbDatasource {
         public void run() {
             Lock wlock = _rwLock.writeLock();
             wlock.lock();
+            int timeoutCount = 0;
+            int unnecessaryCount = 0;
             try {
                 if (Thread.interrupted()) {
                     return;
@@ -183,16 +188,23 @@ public class SequoiadbDatasource {
                                 _destroyConnQueue.add(sdb);
                             } finally {
                                 _connItemMgr.releaseItem(connItem);
+                                timeoutCount++;
                             }
                         } else {
                             break;
                         }
                     }
+                    if (timeoutCount != 0) {
+                        log.debug(String.format("Clean timeout idle connections, timeout idle connections: %d, " +
+                                "keepAliveTimeout: %d", timeoutCount, _dsOpt.getKeepAliveTimeout()));
+                    }
                 }
                 // try to reduce the amount of idle connections
                 if (_idleConnPool.count() > _dsOpt.getMaxIdleCount()) {
                     int destroyCount = _idleConnPool.count() - _dsOpt.getMaxIdleCount();
-                    _reduceIdleConnections(destroyCount);
+                    unnecessaryCount = _reduceIdleConnections(destroyCount);
+                    log.debug(String.format("Clean unnecessary idle connections, minIdleCount: %d, maxIdleCount: %d, " +
+                            "unnecessary connections: %d", _dsOpt.getMinIdleCount(), _dsOpt.getMaxIdleCount(), unnecessaryCount));
                 }
                 // when the number of idle connections in the pool is less than the minIdleCount,
                 // we are going to create some connections
@@ -200,6 +212,12 @@ public class SequoiadbDatasource {
                     synchronized (_createConnSignal) {
                         _createConnSignal.notify();
                     }
+                    log.debug(String.format("Short of idle connections, notify background task to create connections, " +
+                            "used connections: %d", _usedConnPool.count()));
+                }
+                if (timeoutCount > 0 || unnecessaryCount > 0) {
+                    log.info(String.format("Finish check connection task, clean timeout idle connections: %d, clean " +
+                            "unnecessary idle connections: %d, %s", timeoutCount, unnecessaryCount, connPoolSnapshot()));
                 }
             } finally {
                 wlock.unlock();
@@ -243,6 +261,7 @@ public class SequoiadbDatasource {
                             _normalAddrs.add(addr);
                         }
                     }
+                    log.debug(String.format("Change abnormal address %s to normal address", addr));
                     _strategy.addAddress(addr);
                 }
             } finally {
@@ -289,6 +308,7 @@ public class SequoiadbDatasource {
                     cachedAddrList = _synchronizeCoordAddr(sdb);
                 } catch (Exception e) {
                     // if we failed, let's return
+                    log.debug("Synchronize coord address fail", e);
                     return;
                 } finally {
                     try {
@@ -342,6 +362,10 @@ public class SequoiadbDatasource {
                         _abnormalAddrs.remove(addr);
                         _removeAddrInStrategy(addr);
                     }
+                }
+                if (incList.size() > 0 || decList.size() > 0) {
+                    log.info(String.format("Synchronize coord address success, increase address: %s, decrease address: %s",
+                            incList, decList));
                 }
             } finally {
                 wlock.unlock();
@@ -531,6 +555,7 @@ public class SequoiadbDatasource {
             // check whether the url exists in pool or not
             if (_normalAddrs.contains(addr) ||
                     _abnormalAddrs.contains(addr)) {
+                log.info(String.format("Already exist address: %s", url));
                 return;
             }
             // add to local
@@ -541,6 +566,7 @@ public class SequoiadbDatasource {
             }
             if (ConcreteLocalStrategy.isLocalAddress(addr, _localIPs))
                 _localAddrs.add(addr);
+            log.info(String.format("Add coord address: %s", url));
             // add to strategy
             if (_isDatasourceOn) {
                 _strategy.addAddress(addr);
@@ -570,6 +596,7 @@ public class SequoiadbDatasource {
             _normalAddrs.remove(addr);
             _abnormalAddrs.remove(addr);
             _localAddrs.remove(addr);
+            log.info(String.format("Remove coord address: %s", url));
             if (_isDatasourceOn) {
                 // remove from strategy
                 _removeAddrInStrategy(addr);
@@ -627,7 +654,8 @@ public class SequoiadbDatasource {
             if (!_isDatasourceOn) {
                 return;
             }
-
+            log.info(String.format("Sequoiadb datasource has been update datasource config, old %s, " +
+                    "new %s", _dsOpt.toString(), dsOpt.toString()));
             // update network block timeout
             _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
             _abnormalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
@@ -705,6 +733,7 @@ public class SequoiadbDatasource {
                 _dsOpt.setMaxCount(500);
             }
             _enableDatasource(_dsOpt.getConnectStrategy());
+            log.info("Sequoiadb datasource has been enable");
         } finally {
             wlock.unlock();
         }
@@ -735,11 +764,13 @@ public class SequoiadbDatasource {
             // stop threads
             _cancelThreads();
             // close the connections in idle pool
+            log.debug(String.format("Close all idle connections, number: %d", _idleConnPool.count()));
             _closePoolConnections(_idleConnPool);
             _isDatasourceOn = false;
         } finally {
             wlock.unlock();
         }
+        log.info("Sequoiadb datasource has been disable");
         return;
     }
 
@@ -888,19 +919,23 @@ public class SequoiadbDatasource {
             if (connItem == null) {
                 // make some debug info
                 String detail = _getDataSourceSnapshot();
+                String errMsg;
                 // when the last connItem is hold by background creating thread,
                 // and it failed to create the last connection, let's report network error
                 if (getNormalAddrNum() == 0 && getUsedConnNum() < _dsOpt.getMaxCount()) {
                     BaseException exception = _getLastException();
-                    String errMsg = "get connection failed, no available address for connection, " + detail;
+                    errMsg = "Get connection failed, no available address for connection, ";
+                    log.error(errMsg + addrsSnapshot());
                     if (exception != null) {
-                        throw new BaseException(SDBError.SDB_NETWORK, errMsg, exception);
+                        throw new BaseException(SDBError.SDB_NETWORK, errMsg + detail, exception);
                     } else {
-                        throw new BaseException(SDBError.SDB_NETWORK, errMsg);
+                        throw new BaseException(SDBError.SDB_NETWORK, errMsg + detail);
                     }
                 } else {
-                    throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT,
-                            "the pool has run out of connections, " + detail);
+                    errMsg = "The pool has run out of connections, ";
+                    log.error(String.format("%s %s, maxCount: %d, timeout: %d",
+                            errMsg, connPoolSnapshot(), _dsOpt.getMaxCount(), timeout));
+                    throw new BaseException(SDBError.SDB_DRIVER_DS_RUNOUT, errMsg + detail);
                 }
             } else {
                 // insert the itemInfo and connection to used pool
@@ -1032,12 +1067,17 @@ public class SequoiadbDatasource {
                 _cancelThreads();
             }
             // close connections
-            if (_idleConnPool != null)
+            if (_idleConnPool != null) {
+                log.debug(String.format("Close all idle connections, number: %d", _idleConnPool.count()));
                 _closePoolConnections(_idleConnPool);
-            if (_usedConnPool != null)
+            }
+            if (_usedConnPool != null) {
+                log.debug(String.format("Close all used connections, number: %d", _usedConnPool.count()));
                 _closePoolConnections(_usedConnPool);
+            }
             _isDatasourceOn = false;
             _hasClosed = true;
+            log.info("Sequoiadb datasource has benn closed");
         } finally {
             wlock.unlock();
         }
@@ -1108,6 +1148,8 @@ public class SequoiadbDatasource {
         } else {
             _enableDatasource(_dsOpt.getConnectStrategy());
         }
+        log.info(String.format("Sequoiadb datasource initialized successfully, status is %s, %s, %s",
+                _isDatasourceOn? "enable" : "disable", _dsOpt.toString(), _userNwOpt.toString()));
         // set a hook for closing all the connection, when object is destroyed
         Runtime.getRuntime().addShutdownHook(new ExitClearUpTask());
     }
@@ -1125,14 +1167,22 @@ public class SequoiadbDatasource {
         if (_dsOpt.getSyncCoordInterval() > 0) {
             _timerExec.scheduleAtFixedRate(new SynchronizeAddressTask(), 0, _dsOpt.getSyncCoordInterval(),
                     TimeUnit.MILLISECONDS);
+            log.debug("Synchronize address task has been started");
         }
         _timerExec.scheduleAtFixedRate(new CheckConnectionTask(), _dsOpt.getCheckInterval(),
                 _dsOpt.getCheckInterval(), TimeUnit.MILLISECONDS);
+        log.debug("Check connection task has been started");
         _timerExec.scheduleAtFixedRate(new RetrieveAddressTask(), 60, 60, TimeUnit.SECONDS);
+        log.debug("Retrieve address task has been started");
     }
 
     private void _cancelTimer() {
         _timerExec.shutdownNow();
+        if (_dsOpt.getSyncCoordInterval() > 0) {
+            log.debug("Synchronize address task has been closed");
+        }
+        log.debug("Check connection task has been closed");
+        log.debug("Retrieve address task has been closed");
     }
 
     private void _startThreads() {
@@ -1146,6 +1196,7 @@ public class SequoiadbDatasource {
                 }
         );
         _threadExec.execute(new CreateConnectionTask());
+        log.debug("Start create connection task");
         _threadExec.execute(new DestroyConnectionTask());
         // stop adding task
         _threadExec.shutdown();
@@ -1153,6 +1204,7 @@ public class SequoiadbDatasource {
 
     private void _cancelThreads() {
         _threadExec.shutdownNow();
+        log.debug("Create connection task has been closed");
     }
 
     private void _changeStrategy() {
@@ -1303,6 +1355,8 @@ public class SequoiadbDatasource {
                         _normalAddrs.add(addr);
                     }
                 }
+                log.debug(String.format("Create connections success with abnormal address: %s, " +
+                        "change it to normal address", addr));
                 if (_isDatasourceOn) {
                     _strategy.addAddress(addr);
                 }
@@ -1355,6 +1409,7 @@ public class SequoiadbDatasource {
     private void _handleErrorAddr(String addr) {
         _normalAddrs.remove(addr);
         _abnormalAddrs.add(addr);
+        log.debug(String.format("Create connections fail with normal address: %s, change it to abnormal address", addr));
         if (_isDatasourceOn) {
             _removeAddrInStrategy(addr);
         }
@@ -1373,7 +1428,9 @@ public class SequoiadbDatasource {
     }
 
     private void _createConnections() {
+        log.info("Begin create connections task");
         int createNum = _dsOpt.getDeltaIncCount() ;
+        int count = 0;
 
         while (createNum > 0 && _idleConnPool.count() < _dsOpt.getMinIdleCount()) {
             // never let "sdb" defined out of current scope
@@ -1437,7 +1494,9 @@ public class SequoiadbDatasource {
             _strategy.addConnItemAfterCreating(connItem);
             // let's continue
             createNum--;
+            count++;
         }
+        log.info(String.format("Finish create connection task, increase idle connections: %d", count));
     }
 
     private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
@@ -1528,8 +1587,9 @@ public class SequoiadbDatasource {
         _isDatasourceOn = true;
     }
 
-    private void _reduceIdleConnections(int count) {
+    private int _reduceIdleConnections(int count) {
         ConnItem connItem = null;
+        int reduceCount = 0;
         long lastTime = 0;
         long currentTime = System.currentTimeMillis();
         while (count-- > 0 && (connItem = _strategy.peekConnItemForDeleting()) != null) {
@@ -1542,11 +1602,13 @@ public class SequoiadbDatasource {
                     _destroyConnQueue.add(sdb);
                 } finally {
                     _connItemMgr.releaseItem(connItem);
+                    reduceCount++;
                 }
             } else {
                 break;
             }
         }
+        return reduceCount;
     }
 
     private void _reduceIdleConnections_bak(int count) {
@@ -1717,6 +1779,17 @@ public class SequoiadbDatasource {
             }
             return new SequoiadbDatasource( this );
         }
+    }
+
+    private String connPoolSnapshot() {
+        return String.format("use connections: %d, idle connections: %d",
+                _usedConnPool != null ? _usedConnPool.count() : null,
+                _idleConnPool != null ? _idleConnPool.count() : null);
+    }
+
+    private String addrsSnapshot() {
+        return String.format("normal address: %d, abnormal address: %d, local address: %d",
+                _normalAddrs.size(), _abnormalAddrs.size(), _localAddrs.size());
     }
 }
 

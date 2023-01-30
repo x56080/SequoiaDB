@@ -754,4 +754,23 @@ public class DatasourceOptions implements Cloneable {
         }
     }
 
+    @Override
+    public String toString() {
+        return "DatasourceOptions: { " +
+                "maxCount: " + _maxCount +
+                ", maxIdleCount: " + _maxIdleCount +
+                ", minIdleCount: " + _minIdleCount +
+                ", deltaIncCount: " + _deltaIncCount +
+                ", keepAliveTimeout: " + _keepAliveTimeout +
+                ", sessionTimeout: " + _sessionTimeout +
+                ", networkBlockTimeout: " + _networkBlockTimeout +
+                ", cacheLimit: " + _cacheLimit +
+                ", checkInterval: " + _checkInterval +
+                ", syncCoordInterval: " + _syncCoordInterval +
+                ", validateConnection: " + _validateConnection +
+                ", connectStrategy: " + _connectStrategy +
+                ", preferredInstance: " + _preferredInstance +
+                ", preferredInstanceMode: " + _preferredInstanceMode
+                + " }";
+    }
 }
