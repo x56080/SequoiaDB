@@ -165,4 +165,16 @@ public class ConfigOptions implements Cloneable {
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
     }
+
+    @Override
+    public String toString() {
+        return "ConfigOptions: { " +
+                "maxAutoConnectRetryTime: " + maxAutoConnectRetryTime +
+                ", connectTimeout: " + connectTimeout +
+                ", socketTimeout: " + socketTimeout +
+                ", socketKeepAlive: " + socketKeepAlive +
+                ", useNagle: " + useNagle +
+                ", useSSL: " + useSSL
+                + " }";
+    }
 }
