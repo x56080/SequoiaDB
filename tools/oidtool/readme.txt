@@ -24,7 +24,11 @@ sdboidtool 工具（后续简称为：工具）用于 检查 及 修复 SEQUOIAD
 
 1. 条件说明
 
-使用当前工具前，客户需要确保集群所有业务都已经将 java 驱动升级到 v3.4.9/v3.6.2/v5.0.4 及以上版本
+* 当前工具包含 init/check/repair 三个操作。当执行 init/check 操作时，对业务使用的 SequoiaDB 驱动及引擎版本
+  没有要求
+* 当需要执行 repair 操作时，需要满足以下两个条件：
+1) SequoiaDB 引擎版本不能低于 v3.0.1
+2) SequoiaDB java 驱动版本需要升级到 v3.4.8/v3.6.1/v5.0.4 及以上版本
 
 2. 执行步骤
 
@@ -61,7 +65,7 @@ sdboidtool 工具（后续简称为：工具）用于 检查 及 修复 SEQUOIAD
   工具会跳过已经完成检测的集合
 * 检测结果会写入报告文件（check.report）
 * 若 check.report 显示 "Has check all collections in init.result file: true",
-  说明该步骤已经完成所有可疑集合的检测。此时，如果 check.result 文件包含内容，需要进行 步骤五 进行
+  说明该步骤已经完成所有可疑集合的检测。此时，如果 check.result 文件包含内容，需要进行 步骤六 进行
   数据修复
 
 步骤六（可选）：使用工具，对 check.result 文件的集合进行修复，并生成 `完成修复集合列表` 文件（即：repair.result 文件）

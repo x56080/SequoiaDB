@@ -656,7 +656,7 @@ Checker.prototype._writeSummary = function() {
    summary = "Total check: " + this.totalOpNum + ", success: " + this.totalOpSucc
               + ", failed: " + this.totalOpFail + " collection(s)" ;
    this.reportFd.write( summary + NEW_LINE ) ;
-   summary = "Has check all collections in sdboidtool.init file: " + this.finishAll ;
+   summary = "Has check all collections in init.result file: " + this.finishAll ;
    this.reportFd.write( summary + NEW_LINE ) ;
 } ;
 
@@ -1818,7 +1818,7 @@ Repairer.prototype._writeSummary = function() {
    summary = "Total repair: " + this.totalOpNum + ", success: " + this.totalOpSucc
               + ", failed: " + this.totalOpFail + " collection(s)" ;
    this.reportFd.write( summary + NEW_LINE ) ;
-   summary = "Has repaired all collections in sdboidtool.check file: " + this.finishAll ;
+   summary = "Has repaired all collections in check.result file: " + this.finishAll ;
    this.reportFd.write( summary + NEW_LINE ) ;
 } ;
 
