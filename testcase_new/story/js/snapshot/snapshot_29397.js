@@ -25,19 +25,14 @@ function test( testPara )
       var queryID = ret.current().toObj()["QueryID"];
 
       queryID = getNewQueryID( queryID );
-      ret = db.snapshot( SDB_SNAP_QUERIES, { QueryID: queryID } );
-      if ( !ret.next() )
-      {
-         throw new Error( "Invalid QueryID in query snapshot. It must be " + queryID );
-      }
+      ret = db.snapshot( SDB_SNAP_QUERIES );
+      curQueryID = ret.current().toObj()["QueryID"];
+      assert.equal( queryID, curQueryID );
       // SDB_SNAP_CONTEXTS
       queryID = getNewQueryID( queryID );
-      ret = db.snapshot( SDB_SNAP_CONTEXTS, { "$and": [{ "Contexts.QueryID": queryID }, { "Contexts.Type": "COORD" }] } );
-      if ( !ret.next() )
-      {
-         throw new Error( "Invalid QueryID in contexts snapshot. It must be " + queryID );
-      }
-
+      ret = db.snapshot( SDB_SNAP_CONTEXTS, { "Contexts.Type": "COORD" } );
+      curQueryID = ret.current().toObj()["QueryID"];
+      assert.equal( queryID, curQueryID );
       // change to a new connection
       var oldQueryIDPrefixStr = queryID.substr( 0, 18 );
 
