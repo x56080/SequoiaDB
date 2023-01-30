@@ -16,10 +16,15 @@ Sdb
 
 ##参数##
 
-| 参数名 | 类型 | 描述 | 是否必填 |
-| ------ | ---- | ---- | -------- |
-| config | object | [节点配置参数][parameter] | 是 |
-| options| object | [命令位置参数][location]<br>如果不指定该参数，更新操作默认对所有节点生效 | 否 |
+- config（ *object，必填* ）
+
+    [节点配置参数][parameter]
+
+- options（ *object，选填* ）
+
+    [命令位置参数][location]
+
+    如果不指定该参数，更新操作默认对所有节点生效。
 
 ##返回值##
 

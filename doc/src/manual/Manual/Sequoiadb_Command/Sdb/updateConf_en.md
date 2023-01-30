@@ -16,10 +16,15 @@ This function is used to update the specified node configuration. The configurat
 
 ##PARAMETERS##
 
-| Name | Type| Description | Required or not |
-| ---- | --- | ----------- | --------------- |
-| config | object | [Node Configuration Parameters][parameter] | required |
-| options| object | [Command location parameter] [location]<br>If this parameter is not specified, the update operation takes effect on all nodes by default. | not |
+- config ( *config, required* )
+
+    [Node Configuration Parameters][parameter].
+
+- options ( *object, optional* )
+
+    [Command location parameter][location].
+
+    If this parameter is not specified, the update operation takes effect on all nodes by default.
 
 ##RETURN VALUE##
 
