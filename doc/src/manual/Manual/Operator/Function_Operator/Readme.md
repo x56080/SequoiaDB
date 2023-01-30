@@ -1,27 +1,26 @@
+函数操作可以对字段进行函数运算。当指定多个函数操作时，支持流水线式处理，多个函数流水线执行。该操作符可以作为选择符使用，也可以搭配[匹配符][overview]使用，以实现更复杂的查询操作。
 
-函数操作可以配合[匹配符][overview]和[选择符][Selector_Operator]使用，以实现更复杂的功能。
+- 作为选择符使用，对查询结果进行函数运算
 
-- 配合匹配符一起使用，可以对字段进行各种函数运算之后，再执行匹配操作。
+    查询集合 sample.employee 中的记录，并删除字段 a 取值两侧的空格，再将其转换为大写
 
-  以下示例，匹配字段 a 长度为 3 的记录：
+    ```lang-javascript
+    > db.sample.employee.find({},{a:{$trim:1, $upper:1}})
+    ```
 
-  ```lang-javascript
-  > db.sample.employee.find({a:{$strlen:1, $et:3}})
-  ```
+- 搭配匹配符使用，先对字段值进行函数运算，再将运算结果作为匹配条件进行查询
 
-  > **Note:** 
-  >
-  > 先获取字段 a 的长度，再用该长度与 3 比较，返回长度为 3 的记录。
+    查询集合 sample.employee 中字段 a 字节数为 3 的记录
 
-- 作为选择符使用，可以对选取的字段进行函数运算，返回运算后的结果。
+    ```lang-javascript
+    > db.sample.employee.find({a:{$strlen:1, $et:3}})
+    ```
 
-  以下示例，返回将字段 a 转大写的结果：
+>**Note**
+>
+> 当字段类型为数组时，函数将对数组中的每个元素进行函数运算。
 
-  ```lang-javascript
-  > db.sample.employee.find({}, {a:{$upper:1}})
-  ```
-
-所有支持的函数操作如下：
+所支持的函数操作如下：
 
 | 函数                                                           | 描述             | 示例                                     |
 | -------------------------------------------------------------- | ---------------- | ---------------------------------------- |
@@ -46,40 +45,6 @@
 | [$size][size]          | 获取数组元素个数 | db.sample.employee.find({}, {a:{$size:1}}) |
 | [$type][type]          | 获取字段类型     | db.sample.employee.find({}, {a:{$type:1}}) |
 | [$slice][slice]        | 截取数组元素     | db.sample.employee.find({}, {a:{$slice:[0,2]}}) |
-
-函数操作可以支持流水线式处理，多个函数流水线执行：
-
-```lang-javascript
-> db.sample.employee.find({a:{$trim:1, $upper:1, $et:"ABC"}})
-```
-
-> **Note:**
->
->先对字段 a 去除左右两侧空格，然后再转换成大写，最后匹配与"ABC"相等的记录
-
-当字段类型为数组类型时，函数会对该字段做一次展开，并对每个数组元素执行函数操作。
-
-以取绝对函值函数为例：
-
-```lang-javascript
-> db.sample.employee.find()
-{
-  "a": [
-    1,
-    -3,
-    -9
-  ]
-}
-
-> db.sample.employee.find({}, {a:{$abs:1}})
-{
-  "a": [
-    1,
-    3,
-    9
-  ]
-}
-```
 
 [^_^]:
     本文使用的所有引用及链接
