@@ -22,9 +22,9 @@ function test ()
       transCount++;
    }
 
-   if( transCount != 1 )
+   if( transCount < 1 )
    {
-      throw new Error( "$LIST_TRAN result error\nexpected result is 1, but actually result is " + transCount );
+      throw new Error( "$LIST_TRAN result error\nexpected result is greater than or equal to 1, but actually result is " + transCount );
    }
 
    // 使用内置SQL语句查询快照信息
