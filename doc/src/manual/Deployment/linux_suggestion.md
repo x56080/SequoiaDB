@@ -98,6 +98,30 @@ SequoiaDB 相关进程以数据库管理用户（安装 SequoiaDB 时指定，�
     # /sbin/sysctl -p  
     ```
 
+在使用了 cgroup 的环境中，用户需要执行如下操作，进一步禁用 SequoiaDB 进程使用 swap 空间：
+
+1. 关闭所有的 swap 空间
+
+    ```lang-bash
+    # swapoff -a
+    ```
+
+2. 修改文件 `/etc/fstab`
+
+    ```lang-bash
+    # vi /etc/fstab
+    ```
+
+    将 \<type\> 为 swap 的配置项标记为注释，使配置失效
+
+    ```lang-text
+    # <file system> <mount point>   <type>  <options>       <dump>  <pass>
+    ...
+    # swap was on /dev/sda5 during installation
+    # UUID=ca9f6091-6d62-4471-8fe6-2e39407c40a7 none            swap    sw              0       0
+    ...
+    ```
+
 ##调整文件系统挂载参数##
 
 SequoiaDB 推荐使用 ext4 格式的文件系统。同时，建议在 `/etc/fstab` 文件中添加 noatime 挂载参数，以提升文件系统性能。
