@@ -53,7 +53,7 @@
 #define CIPHER_STRING_MAX_LENGTH     TOKEN_MAX_LENGTH + RANDOM_ARRAY_MAX_LENGTH
 
 #ifdef _LINUX
-#define UTIL_USER_DIRECTORY            "HOME"
+#include <pwd.h>
 #else
 #define UTIL_USER_DIRECTORY            "USERPROFILE"
 #endif
@@ -798,7 +798,24 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
 
    if ( '~' == *path && '/' == *(path + 1) )
    {
-      ossStrncpy( filePath, getenv(UTIL_USER_DIRECTORY), OSS_MAX_PATHSIZE ) ;
+      CHAR *cipherFilePathTmp = NULL ;
+#ifdef _LINUX
+      struct passwd *pwd = getpwuid( getuid() ) ;
+      if ( NULL == pwd )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      cipherFilePathTmp = pwd->pw_dir ;
+#else
+      cipherFilePathTmp = getenv( UTIL_USER_DIRECTORY ) ;
+#endif
+      if ( NULL == cipherFilePathTmp )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      ossStrncpy( filePath, cipherFilePathTmp, OSS_MAX_PATHSIZE ) ;
       path++;
       ossStrncat( filePath, path, ossStrlen(path) );
    }
