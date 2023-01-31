@@ -119,6 +119,7 @@ namespace engine
                                  CHAR const *pInsertor,
                                  const INT32 count,
                                  INT32 orgMsgLen,
+                                 BOOLEAN needAppendID,
                                  pmdEDUCB *cb,
                                  CHAR **ppNewMsg,
                                  INT32 &newMsgSize,
@@ -130,7 +131,8 @@ namespace engine
                                  const T &set,
                                  pmdEDUCB *cb,
                                  _SimpleBSONBuilder &builder,
-                                 BOOLEAN &hasExplicitKey ) ;
+                                 BOOLEAN &hasExplicitKey,
+                                 BOOLEAN needAppendID = FALSE ) ;
 
          INT32 _processUserInput( const clsAutoIncItem *pItem,
                                   BSONElement &ele,
@@ -148,6 +150,19 @@ namespace engine
                             BOOLEAN hasExplicitKey ) ;
 
          void _removeLocalSeqCache( const clsAutoIncSet &set ) ;
+
+         INT32 _checkIDField( const CHAR *pInsertor,
+                              INT32 count,
+                              BOOLEAN &needAppendID ) ;
+
+         INT32 _addIDFieldToMsg( MsgOpInsert *pInsertMsg,
+                                 const CHAR *pInsertor,
+                                 INT32 count,
+                                 INT32 orgMsgLen,
+                                 pmdEDUCB *cb,
+                                 CHAR **pNewMsg,
+                                 INT32 &newMsgSize,
+                                 INT32 &newMsgLen ) ;
 
       protected:
 

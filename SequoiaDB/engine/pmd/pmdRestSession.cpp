@@ -1749,6 +1749,7 @@ namespace engine
          }
       }
       flag |= FLG_INSERT_RETURNNUM ;
+      flag |= FLG_INSERT_HAS_ID_FIELD;
       rc = msgBuildInsertMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &insertor );
       if ( SDB_OK != rc )

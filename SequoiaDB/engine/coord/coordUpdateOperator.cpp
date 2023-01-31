@@ -431,6 +431,7 @@ namespace engine
       mthModifier modifier ;
       CHAR *pBuff = NULL ;
       INT32 buffSize = 0 ;
+      SINT32 flag = 0 ;
 
       try
       {
@@ -482,6 +483,7 @@ namespace engine
                goto error ;
             }
          }
+         OSS_BIT_SET( flag, FLG_INSERT_HAS_ID_FIELD ) ;
 
          rc = insertOpr.init( _pResource, cb, getTimeout() ) ;
          if ( rc )
@@ -493,7 +495,7 @@ namespace engine
 
          /// build buff
          rc = msgBuildInsertMsg( &pBuff, &buffSize, pCollectionName,
-                                 0, 0, &target, cb ) ;
+                                 flag, 0, &target, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Build insert message failed, rc: %d", rc ) ;
