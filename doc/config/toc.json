@@ -5029,16 +5029,52 @@
                            "en": "$mod"
                         },
                         {
-                           "id": 1432190907,
-                           "file": "in",
-                           "cn": "$in",
-                           "en": "$in"
+                           "id": 1432190912,
+                           "file": "and",
+                           "cn": "$and",
+                           "en": "$and"
+                        },
+                        {
+                           "id": 1432190914,
+                           "file": "or",
+                           "cn": "$or",
+                           "en": "$or"
+                        },
+                        {
+                           "id": 1432190913,
+                           "file": "not",
+                           "cn": "$not",
+                           "en": "$not"
+                        },
+                        {
+                           "id": 1432190920,
+                           "file": "regex",
+                           "cn": "$regex",
+                           "en": "$regex"
+                        },
+                        {
+                           "id": 1432190917,
+                           "file": "elemMatch",
+                           "cn": "$elemMatch",
+                           "en": "$elemMatch"
+                        },
+                        {
+                           "id": 1432190916,
+                           "file": "exists",
+                           "cn": "$exists",
+                           "en": "$exists"
                         },
                         {
                            "id": 1432190909,
                            "file": "isnull",
                            "cn": "$isnull",
                            "en": "$isnull"
+                        },
+                        {
+                           "id": 1432190907,
+                           "file": "in",
+                           "cn": "$in",
+                           "en": "$in"
                         },
                         {
                            "id": 1432190910,
@@ -5053,46 +5089,10 @@
                            "en": "$all"
                         },
                         {
-                           "id": 1432190912,
-                           "file": "and",
-                           "cn": "$and",
-                           "en": "$and"
-                        },
-                        {
-                           "id": 1432190913,
-                           "file": "not",
-                           "cn": "$not",
-                           "en": "$not"
-                        },
-                        {
-                           "id": 1432190914,
-                           "file": "or",
-                           "cn": "$or",
-                           "en": "$or"
-                        },
-                        {
-                           "id": 1432190916,
-                           "file": "exists",
-                           "cn": "$exists",
-                           "en": "$exists"
-                        },
-                        {
-                           "id": 1432190917,
-                           "file": "elemMatch",
-                           "cn": "$elemMatch",
-                           "en": "$elemMatch"
-                        },
-                        {
                            "id": 1432190918,
                            "file": "identifier",
                            "cn": "$+标识符",
                            "en": "$+Identifier"
-                        },
-                        {
-                           "id": 1432190920,
-                           "file": "regex",
-                           "cn": "$regex",
-                           "en": "$regex"
                         },
                         {
                            "id": 1476088802,
