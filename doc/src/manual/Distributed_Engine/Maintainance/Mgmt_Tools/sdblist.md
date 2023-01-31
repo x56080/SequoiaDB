@@ -6,17 +6,18 @@ SequoiaDB 节点启动后，会将自身的状态信息写入管道文件，供 
 
 ## 参数说明
 
-| 参数名    | 缩写 | 描述|
-| ----      | ---- | ----|
-| --help    | -h   | 显示帮助信息。|
-| --type    | -t   | 指定节点类型，节点类型可以为 db、om、cm 或 all，默认为 db，|
-| --svcname | -p   | 指定节点端口号，用 “,” 分隔多个端口。|
-| --mode    | -m   | 指定节点模式类型，模式类型可以为 run 或 local，默认为 run。|
-| --role    | -r   | 指定节点角色类型，角色类型可以为 coord、data、catalog、om 或 cm。|
-| --long    | -l   | 显示详细信息。|
-| --version |      | 显示版本号。|
-| --detail  |      | 显示节点配置文件信息。|
-| --expand  |      | 显示节点所有项信息。|
+| 参数名          | 缩写 | 描述|
+| ----            | ---- | ----|
+| --help          | -h   | 显示帮助信息。|
+| --type          | -t   | 指定节点类型，节点类型可以为 db、om、cm 或 all，默认为 db。|
+| --svcname       | -p   | 指定节点端口号，用 “,” 分隔多个端口。|
+| --mode          | -m   | 指定节点模式类型，模式类型可以为 run 或 local，默认为 run。|
+| --role          | -r   | 指定节点角色类型，角色类型可以为 coord、data、catalog、om 或 cm。|
+| --long          | -l   | 显示详细信息。|
+| --version       |      | 显示版本号。|
+| --detail        |      | 显示节点配置文件信息。|
+| --expand        |      | 显示节点所有项信息。|
+| --long-location |      | 显示位置集详细信息。|
 
 ## 示例
 
@@ -34,6 +35,7 @@ SequoiaDB 节点启动后，会将自身的状态信息写入管道文件，供 
    --version             version
    --detail              show details
    --expand              show expanded details
+   --long-location       show long style with location
    ```
 
    - 显示所有类型的节点
@@ -127,4 +129,17 @@ SequoiaDB 节点启动后，会将自身的状态信息写入管道文件，供 
    logtimeon         : FALSE
    indexcoveron      : TRUE
    Total: 1
+   ```
+
+   - 显示节点位置集详细信息
+
+   ```lang-bash
+   $ sdblist --long-location
+   Name       SvcName       Role        PID       GID    NID    PRY  GroupName             location            LocPRY  StartTime            DBPath
+   sequoiadb  11820         data        9567      1000   1000   Y    group1                guangzhou           Y       2021-02-19-15.03.20  /opt/sequoiadb/database/data/11820/
+   sequoiadb  11800         catalog     21717     1      1      Y    SYSCatalogGroup       beijing             Y       2021-02-01-14.30.55  /opt/sequoiadb/database/catalog/11800/
+   sequoiadb  11810         coord       21760     2      2      Y    SYSCoord              -                   -       2021-02-01-14.30.59  /opt/sequoiadb/database/coord/11810/
+   sequoiadb  11830         data        21814     1001   1001   N    group1                guangzhou           N       2021-02-01-14.31.04  /opt/sequoiadb/database/data/11830/
+   sequoiadb  11840         data        21841     1002   1002   N    group1                -                   -       2021-02-01-14.31.08  /opt/sequoiadb/database/data/11840/
+   Total: 5
    ```
