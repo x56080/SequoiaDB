@@ -138,8 +138,8 @@ namespace engine
       else if ( _isLocation() && pmdIsPrimary() )
       {
          rc = SDB_OPERATION_CONFLICT ;
-         PD_LOG( PDERROR, "The location primary and replica group primary "
-                 "are the same, can't reelect location" ) ;
+         PD_LOG_MSG( PDERROR, "The reelectLocation operation is not "
+                     "supported in primary location set" ) ;
          goto error ;
       }
       // is self
