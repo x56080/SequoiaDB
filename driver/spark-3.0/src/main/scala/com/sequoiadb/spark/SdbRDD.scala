@@ -21,6 +21,7 @@ import java.net.InetAddress
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.{Partition, SparkContext, TaskContext}
@@ -46,6 +47,9 @@ abstract class SdbRDD[T: ClassTag](sc: SparkContext,
     logInfo(s"SdbRDD{config: $config, filter: $filter, selector: [${requiredColumns.mkString(", ")}]}")
 
     protected val sourceInfo = SdbConnUtil.generateSourceInfo(sc)
+
+    config.java8APIEnabled = sc.getConf.getBoolean(
+        SQLConf.DATETIME_JAVA8API_ENABLED.key, false)
 
     @DeveloperApi
     override def compute(split: Partition, context: TaskContext): Iterator[T] = {
