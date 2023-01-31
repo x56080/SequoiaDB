@@ -111,6 +111,8 @@ namespace engine
       string   _groupName ;
       string   _dbPath ;
       UINT64   _startTime ;
+      string   _location ;
+      INT32    _locPrimary ;
       // extra info end
 
       _utilNodeInfo()
@@ -123,6 +125,7 @@ namespace engine
          _primary    = -1 ;
          _isAlone    = 0 ;
          _startTime  = 0 ;
+         _locPrimary = -1 ;
       }
    } ;
    typedef _utilNodeInfo utilNodeInfo ;
@@ -137,7 +140,8 @@ namespace engine
                            const CHAR *svcnameFilter = NULL,
                            OSSPID pidFilter = OSS_INVALID_PID,
                            INT32 roleFilter = -1,
-                           BOOLEAN allowAloneCM = FALSE ) ;
+                           BOOLEAN allowAloneCM = FALSE,
+                           BOOLEAN needLocationInfo = FALSE ) ;
 
    /*
       send command to node pipe and read result from node pipe
@@ -150,7 +154,7 @@ namespace engine
    /*
       get node group id/name, node id, dbpath info
    */
-   INT32    utilGetNodeExtraInfo( utilNodeInfo &info ) ;
+   INT32    utilGetNodeExtraInfo( utilNodeInfo &info, BOOLEAN needLocationInfo = FALSE ) ;
 
    #define UTIL_WAIT_NODE_TIMEOUT         ( 15 * 60 ) // second
 

@@ -70,6 +70,11 @@ namespace engine
    */
    #define SDB_CONF_FILE_PATH_FORMAT   SDBCM_LOCAL_PATH OSS_FILE_SEP "%s" OSS_FILE_SEP PMD_DFT_CONF
 
+   /*
+      COMMANDS OPTION DEFINE
+   */
+   #define PMD_OPTION_LONG_LOCATION    "long-location"
+
    #define COMMANDS_OPTIONS \
        ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h" ), "help" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_TYPE, ",t" ), po::value<string>(), "node type: db/om/cm/all, default: db" ) \
@@ -79,13 +84,21 @@ namespace engine
        ( PMD_COMMANDS_STRING( PMD_OPTION_LONG, ",l" ), "show long style" ) \
        ( PMD_OPTION_VERSION, "version" ) \
        ( PMD_OPTION_DETAIL, "show details" ) \
-       ( PMD_OPTION_EXPAND, "show expanded details" )
+       ( PMD_OPTION_EXPAND, "show expanded details" ) \
+       ( PMD_OPTION_LONG_LOCATION, "show long style with location" )
+
 
    /*
       Long format define
    */
    #define PMD_LIST_LONG_FORMAT  "%-10.9s %-13.12s %-11.10s %-9.8s %-6.5s %-6.5s %-4.3s %-20.19s %-20.19s %s"
    #define PMD_LIST_TITLE        "Name       SvcName       Role        PID       GID    NID    PRY  GroupName            StartTime            DBPath"
+
+   /*
+      Long location format define
+   */
+   #define PMD_LIST_LONG_LOCATION  "%-10.9s %-13.12s %-11.10s %-9.8s %-6.5s %-6.5s %-4.3s %-20.19s %-20.19s %-7.6s %-20.19s %s"
+   #define PMD_LIST_LOCATION_TITLE "Name       SvcName       Role        PID       GID    NID    PRY  GroupName            Location             LocPRY  StartTime            DBPath"
 
    //print node's detail configuration by sdb conf file and svcname
    void _printfDetail( const CHAR *rootPath, const CHAR *svcname, INT32 type )
@@ -193,7 +206,7 @@ namespace engine
    //printf detail or expand
    void _printfAll( const CHAR *rooPath, utilNodeInfo &node,
                     BOOLEAN detail, BOOLEAN expand,
-                    BOOLEAN showLong )
+                    BOOLEAN showLong, BOOLEAN showLocation )
    {
       CHAR tmpPID[ 11 ] = { '-', 0 } ;
 
@@ -202,14 +215,7 @@ namespace engine
          ossSnprintf( tmpPID, sizeof( tmpPID ) - 1, "%d", node._pid ) ;
       }
 
-      if ( !showLong )
-      {
-         ossPrintf( "%s(%s) (%s) %s"OSS_NEWLINE,
-                    utilDBTypeStr( (SDB_TYPE)node._type ),
-                    node._svcname.c_str(), tmpPID,
-                    utilDBRoleShortStr( (SDB_ROLE)node._role ) ) ;
-      }
-      else
+      if ( showLong || showLocation )
       {
          struct tm otm ;
          time_t tt = node._startTime ;
@@ -219,9 +225,15 @@ namespace engine
          CHAR tmpPRY[ 11 ] = { '-', 0 } ;
          CHAR tmpTime[ 21 ] = { 0 } ;
          string roleStr = utilDBRoleStr( (SDB_ROLE)node._role ) ;
-         // name       svcname       role        pid    gid    nid    gname           StartTime            dbpath
-         // sequoaidb  11810         standalone  15896  1001   1001   db1             2014-02-02-11:01:01  /opt/sequoiadb/database/coord/11810
-         // sdbcm      11790         -           10076  -      -      -               2014-02-02-11:01:01  -
+         // Long style
+         // name       svcname       role        pid    gid    nid    PRY    GroupName           StartTime            dbpath
+         // sequoaidb  11810         standalone  15896  1001   1001   Y      db1                 2014-02-02-11:01:01  /opt/sequoiadb/database/coord/11810
+         // sdbcm      11790         -           10076  -      -             -                   2014-02-02-11:01:01  -
+
+         // Long location style
+         // name       svcname       role        pid    gid    nid    PRY    GroupName           Location           LocPRY    StartTime            dbpath
+         // sequoaidb  11810         standalone  15896  1001   1001   Y      db1                 A                  Y         2014-02-02-11:01:01  /opt/sequoiadb/database/coord/11810
+         // sdbcm      11790         -           10076  -      -      -      -                   -                  -         2014-02-02-11:01:01  -
 
 #if defined (_WINDOWS)
          localtime_s( &otm, &tt ) ;
@@ -251,17 +263,48 @@ namespace engine
             ossStrcpy( tmpPRY, ( 1 == node._primary ) ? "Y" : "N" ) ;
          }
 
-         ossPrintf( PMD_LIST_LONG_FORMAT OSS_NEWLINE,
+         if ( showLocation )
+         {
+            CHAR tmpLocPRY[ 11 ] = { '-', 0 } ;
+            if ( -1 != node._locPrimary && ! node._location.empty() )
+            {
+               ossStrcpy( tmpLocPRY, ( 1 == node._locPrimary ) ? "Y" : "N" ) ;
+            }
+            ossPrintf( PMD_LIST_LONG_LOCATION OSS_NEWLINE,
+                       utilDBTypeStr( (SDB_TYPE)node._type ),
+                       node._svcname.c_str(),
+                       roleStr.empty() ? "-" : roleStr.c_str(),
+                       tmpPID,
+                       tmpGID,
+                       tmpNID,
+                       tmpPRY,
+                       node._groupName.empty() ? "-" : node._groupName.c_str(),
+                       node._location.empty() ?  "-" : node._location.c_str(),
+                       tmpLocPRY,
+                       tmpTime,
+                       node._dbPath.empty() ? "-" : node._dbPath.c_str() ) ;
+         }
+         else
+         {
+            ossPrintf( PMD_LIST_LONG_FORMAT OSS_NEWLINE,
+                       utilDBTypeStr( (SDB_TYPE)node._type ),
+                       node._svcname.c_str(),
+                       roleStr.empty() ? "-" : roleStr.c_str(),
+                       tmpPID,
+                       tmpGID,
+                       tmpNID,
+                       tmpPRY,
+                       node._groupName.empty() ? "-" : node._groupName.c_str(),
+                       tmpTime,
+                       node._dbPath.empty() ? "-" : node._dbPath.c_str() ) ;
+         }
+      }
+      else
+      {
+         ossPrintf( "%s(%s) (%s) %s"OSS_NEWLINE,
                     utilDBTypeStr( (SDB_TYPE)node._type ),
-                    node._svcname.c_str(),
-                    roleStr.empty() ? "-" : roleStr.c_str(),
-                    tmpPID,
-                    tmpGID,
-                    tmpNID,
-                    tmpPRY,
-                    node._groupName.empty() ? "-" : node._groupName.c_str(),
-                    tmpTime,
-                    node._dbPath.empty() ? "-" : node._dbPath.c_str() ) ;
+                    node._svcname.c_str(), tmpPID,
+                    utilDBRoleShortStr( (SDB_ROLE)node._role ) ) ;
       }
 
       if( detail )
@@ -293,7 +336,8 @@ namespace engine
                            vector<string> &listServices,
                            INT32 &typeFilter, INT32 &modeFilter,
                            INT32 &roleFilter, BOOLEAN &detail,
-                           BOOLEAN &expand, BOOLEAN &showLong )
+                           BOOLEAN &expand, BOOLEAN &showLong,
+                           BOOLEAN &showLocation )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_SDBLIST_RESVARG ) ;
@@ -409,6 +453,11 @@ namespace engine
          showLong = TRUE ;
       }
 
+      if ( vm.count( PMD_OPTION_LONG_LOCATION ) )
+      {
+         showLocation = TRUE ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_SDBLIST_RESVARG, rc ) ;
       return rc ;
@@ -429,6 +478,7 @@ namespace engine
       BOOLEAN detail       = FALSE ;
       BOOLEAN expand       = FALSE ;
       BOOLEAN showLong     = FALSE ;
+      BOOLEAN showLocation = FALSE ;
       INT32 roleFilter     =  -1 ;
       INT32 modeFilter     = RUN_MODE_RUN ;
       CHAR rootPath[OSS_MAX_PATHSIZE + 1] = { 0 } ;
@@ -440,7 +490,7 @@ namespace engine
       // validate arguments
       rc = resolveArgument ( desc, argc, argv, listServices, typeFilter,
                              modeFilter, roleFilter, detail, expand,
-                             showLong ) ;
+                             showLong, showLocation ) ;
       if( rc )
       {
          if( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
@@ -475,7 +525,7 @@ namespace engine
       }
 
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
-                     roleFilter ) ;
+                     roleFilter, FALSE, showLocation ) ;
 
       if ( RUN_MODE_RUN == modeFilter )
       {
@@ -554,7 +604,12 @@ namespace engine
          }
       }
 
-      if ( showLong )
+      if ( showLocation )
+      {
+         // print Location title
+         ossPrintf( "%s"OSS_NEWLINE, PMD_LIST_LOCATION_TITLE ) ;
+      }
+      else if ( showLong )
       {
          // print title
          ossPrintf( "%s"OSS_NEWLINE, PMD_LIST_TITLE ) ;
@@ -563,7 +618,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < listNodes.size() ; ++i )
       {
          ++total ;
-         _printfAll( rootPath, listNodes[ i ], detail, expand, showLong ) ;
+         _printfAll( rootPath, listNodes[ i ], detail, expand, showLong, showLocation ) ;
       }
 
       // if no -p, and list all/list cm, need to show sdbcmd
@@ -577,12 +632,16 @@ namespace engine
          for ( UINT32 i = 0 ; i < procs.size() ; ++i )
          {
             ++total ;
-            if ( !showLong )
+            if ( showLocation )
             {
-               ossPrintf( "%s (%d)"OSS_NEWLINE, PMDDMN_SVCNAME_DEFAULT,
-                          procs[ i ]._pid ) ;
+               CHAR tmpPID[ 11 ] = { 0 } ;
+               ossSnprintf( tmpPID, sizeof( tmpPID ) - 1, "%d",
+                            procs[ i ]._pid ) ;
+               ossPrintf( PMD_LIST_LONG_LOCATION OSS_NEWLINE,
+                          PMDDMN_SVCNAME_DEFAULT,
+                          "-", "-", tmpPID, "-", "-", "-", "-", "-", "-", "-", "-" ) ;
             }
-            else
+            else if ( showLong )
             {
                CHAR tmpPID[ 11 ] = { 0 } ;
                ossSnprintf( tmpPID, sizeof( tmpPID ) - 1, "%d",
@@ -590,6 +649,11 @@ namespace engine
                ossPrintf( PMD_LIST_LONG_FORMAT OSS_NEWLINE,
                           PMDDMN_SVCNAME_DEFAULT,
                           "-", "-", tmpPID, "-", "-", "-", "-", "-", "-" ) ;
+            }
+            else
+            {
+               ossPrintf( "%s (%d)"OSS_NEWLINE, PMDDMN_SVCNAME_DEFAULT,
+                          procs[ i ]._pid ) ;
             }
          }
       }

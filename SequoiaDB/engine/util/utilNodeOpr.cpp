@@ -554,11 +554,12 @@ namespace engine
                                  pReadBuf, readLen, checkLen ) ;
    }
 
-   INT32 utilGetNodeExtraInfo( utilNodeInfo & info )
+   INT32 utilGetNodeExtraInfo( utilNodeInfo & info, BOOLEAN needLocationInfo )
    {
       INT32 rc = SDB_OK ;
       CHAR groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] = { 0 } ;
       CHAR dbPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR location[ PMD_LOCATION_STR_LEN + 1 ] = { 0 } ;
 
       info._groupID     = 0 ;
       info._nodeID      = 0 ;
@@ -567,6 +568,8 @@ namespace engine
       info._dbPath      = "" ;
       info._groupName   = "" ;
       info._startTime   = 0 ;
+      info._location    = "" ;
+      info._locPrimary  = -1 ;
 
       // group id
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
@@ -641,6 +644,37 @@ namespace engine
          goto error ;
       }
 
+      if ( needLocationInfo )
+      {
+         // location
+         rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                 ENGINE_NPIPE_MSG_LOCATION,
+                                 sizeof( ENGINE_NPIPE_MSG_LOCATION ),
+                                 (CHAR *)location,
+                                 PMD_LOCATION_STR_LEN,
+                                 FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         info._location = location ;
+
+         if ( !info._location.empty() )
+         {
+            // location primary
+            rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
+                                    ENGINE_NPIPE_MSG_LOCPRIMARY,
+                                    sizeof( ENGINE_NPIPE_MSG_LOCPRIMARY ),
+                                    (CHAR *)&info._locPrimary,
+                                    sizeof( info._locPrimary ),
+                                    TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+      }
+
    done:
       return rc ;
    error:
@@ -664,7 +698,8 @@ namespace engine
                         const CHAR * svcnameFilter,
                         OSSPID pidFilter,
                         INT32 roleFilter,
-                        BOOLEAN allowAloneCM )
+                        BOOLEAN allowAloneCM,
+                        BOOLEAN needLocationInfo )
    {
       INT32 rc                   = SDB_OK ;
       DIR *pDir                  = NULL ;
@@ -803,7 +838,7 @@ namespace engine
          findNode._orgname = commandLine ;
 
          // get extra info
-         utilGetNodeExtraInfo( findNode ) ;
+         utilGetNodeExtraInfo( findNode, needLocationInfo ) ;
 
          if ( SDB_TYPE_OMA == findNode._type )
          {
@@ -842,7 +877,7 @@ namespace engine
 
    INT32 utilListNodes( UTIL_VEC_NODES & nodes, INT32 typeFilter,
                         const CHAR * svcnameFilter, OSSPID pidFilter,
-                        INT32 roleFilter, BOOLEAN allowAloneCM )
+                        INT32 roleFilter, BOOLEAN allowAloneCM, BOOLEAN needLocationInfo )
    {
       INT32 rc = SDB_OK ;
       vector< string > names ;
@@ -917,7 +952,7 @@ namespace engine
          // find it
          findNode._orgname = names[ i ] ;
          // get extra info
-         utilGetNodeExtraInfo( findNode ) ;
+         utilGetNodeExtraInfo( findNode, needLocationInfo ) ;
 
          if ( SDB_TYPE_OMA == findNode._type )
          {

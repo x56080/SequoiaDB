@@ -183,6 +183,19 @@ namespace engine
          pmdGetDoing( doing, PMD_DOING_STR_LEN ) ;
          rc = nodePipe.writePipe( doing, ossStrlen( doing ) + 1 ) ;
       }
+      else if ( 0 == ossStrncmp( message, ENGINE_NPIPE_MSG_LOCATION,
+                sizeof( ENGINE_NPIPE_MSG_LOCATION ) ) )
+      {
+         const CHAR *location = pmdGetLocation() ;
+         rc = nodePipe.writePipe( location, ossStrlen( location ) + 1 ) ;
+      }
+      else if ( 0 == ossStrncmp( message, ENGINE_NPIPE_MSG_LOCPRIMARY,
+                                 sizeof( ENGINE_NPIPE_MSG_LOCPRIMARY ) ) )
+      {
+         INT32 locPrimary = pmdIsLocationPrimary() ? 1 : 0 ;
+         rc = nodePipe.writePipe( (const CHAR*) ( &locPrimary ),
+                                  sizeof( locPrimary ) ) ;
+      }
       else
       {
          rc = SDB_UNKNOWN_MESSAGE ;

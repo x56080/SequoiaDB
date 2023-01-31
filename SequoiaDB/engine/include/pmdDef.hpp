@@ -427,6 +427,8 @@ namespace engine
    #define ENGINE_NPIPE_MSG_ENDPIPE    "$endpipe"
    #define ENGINE_NPIPE_MSG_STARTTIME  "$starttime"
    #define ENGINE_NPIPE_MSG_DOING      "$doing"
+   #define ENGINE_NPIPE_MSG_LOCATION   "$location"
+   #define ENGINE_NPIPE_MSG_LOCPRIMARY "$locprimary"
 
    /*
       Config define
