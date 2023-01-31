@@ -18,6 +18,7 @@ package org.apache.spark.sql.sequoiadb
 
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.connector.catalog.Table
+import org.apache.spark.sql.connector.write.{SupportsTruncate, V1WriteBuilder, WriteBuilder}
 import org.apache.spark.sql.sequoiadb.catalog.SupportsUpdate
 
 object SdbDataSourceV2Implicits {
@@ -30,6 +31,32 @@ object SdbDataSourceV2Implicits {
                 case _ =>
                     throw new AnalysisException(s"Table does not support updates: ${table.name}")
             }
+        }
+
+        def asTruncatable: SupportsTruncate = {
+            table match {
+                case support: SupportsTruncate =>
+                    support
+                case _ =>
+                    throw new AnalysisException(s"Table does not supports truncate: ${table.name}")
+            }
+        }
+    }
+
+    implicit class BuilderHelper(builder: WriteBuilder) {
+        def asSupportsTruncate: SupportsTruncate = builder match {
+            case support: SupportsTruncate =>
+                support
+            case _ =>
+                throw new AnalysisException(s"table does not support truncate")
+        }
+    }
+
+    implicit class toV1WriteBuilder(builder: WriteBuilder) {
+        def asV1Builder: V1WriteBuilder = builder match {
+            case v1: V1WriteBuilder => v1
+            case other => throw new IllegalStateException(
+                s"The returned writer ${other} was no longer a V1WriteBuilder.")
         }
     }
 
