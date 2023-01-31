@@ -231,7 +231,7 @@ namespace exprt
             rc = cl.parseCLFields(*it) ;
             if ( SDB_OK != rc )
             {
-               cerr << "Invalid format of \"" << *it << "\"" << endl ;
+               cerr << "Invalid format of '" << *it << "'" << endl ;
                goto error ;
             }
             excludeCollection.insert(cl) ;
@@ -256,7 +256,7 @@ namespace exprt
             rc = cl.parseCLFields(*it) ;
             if ( SDB_OK != rc )
             {
-               cerr << "Invalid format of \"" << *it << "\"" << endl ;
+               cerr << "Invalid format of '" << *it << "'" << endl ;
                goto error ;
             }
 
@@ -422,7 +422,7 @@ namespace exprt
          rc = cl.parseCLFields(clFullName) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to parse the fullname \"%s\" for expCL",
+            PD_LOG( PDERROR, "Failed to parse the fullname '%s' for expCL",
                     clFullName ) ;
             goto error ;
          }
