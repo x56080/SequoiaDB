@@ -17,7 +17,7 @@
 package com.sequoiadb.sql
 
 import org.apache.spark.sql.SparkSessionExtensions
-import org.apache.spark.sql.sequoiadb.{PreprocessUpdateTable, SdbAnalysis}
+import org.apache.spark.sql.sequoiadb.{ExtendedDataSourceV2Strategy, PreprocessUpdateTable, RewriteCTAS, SdbAnalysis}
 
 /**
  * An extension for Spark SQL to activate SdbAnalysis for supporting update execution.
@@ -34,6 +34,9 @@ class SdbSparkSessionExtension extends (SparkSessionExtensions => Unit) {
         extensions.injectResolutionRule { session => new SdbAnalysis(session) }
         // Inject rule for pre-processing SdbUpdateTable plan
         extensions.injectPostHocResolutionRule(session => PreprocessUpdateTable(session.sessionState.conf))
-    }
+        extensions.injectPostHocResolutionRule(session => RewriteCTAS(session.sessionState.conf))
 
+        // Inject DSv2 extended strategy
+        extensions.injectPlannerStrategy(session => ExtendedDataSourceV2Strategy(session))
+    }
 }
