@@ -25,28 +25,21 @@
 | [$lt][lt]               | 小于           | db.sample.employee.find( { age: { $lt: 20 } } )                       |
 | [$lte][lte]             | 小于等于       | db.sample.employee.find( { age: { $lte: 20 } } )                      |
 | [$ne][ne]               | 不等于         | db.sample.employee.find( { age: { $ne: 20 } } )                       |
-| [$in][in]               | 集合内存在     | db.sample.employee.find( { age: { $in: [ 20, 21 ] } } )                  |
-| [$nin][nin]             | 集合内不存在   | db.sample.employee.find( { age: { $nin: [ 20, 21 ] } } )                 |
-| [$all][all]             | 全部           | db.sample.employee.find( { age: { $all: [ 20, 21 ] } } )                 |
-| [$and][and]             | 与             | db.sample.employee.find( { $and: [ { age: 20 }, { name: "Tom" } ] } )       |
-| [$not][not]             | 非             | db.sample.employee.find( { $not: [ { age: 20 }, { name: "Tom" } ] } )         |
-| [$or][or]               | 或             | db.sample.employee.find( { $or: [ { age: 20 }, { name: "Tom" } ] } )          |
-| [$exists][exists]       | 存在           | db.sample.employee.find( { age: { $exists: 1 } } )                    |
-| [$elemMatch][elemMatch] | 元素匹配       | db.sample.employee.find( { content: { $elemMatch: { age: 20 } } } )                |
-| [$+标识符][identifier]  | 数组元素匹配   | db.sample.employee.find( { "array.$2": 10 } )                      |
-| [$regex][regex]         | 正则表达式     | db.sample.employee.find( { str: { $regex:  'dh, * fj', $options:'i' } } ) |
-| [$mod][mod]             | 取模匹配       | db.sample.employee.find( { "age": { "$mod": [ 5, 3 ] } } ) |
 | [$et][et]               | 相等匹配       | db.sample.employee.find( { "id": { "$et": 1 } } )       |
-| [$isnull][isnull]       | 选择集合中指定字段是否为空或不存在 |  db.sample.employee.find( { age: { $isnull: 0 } } )  |
-
-
-数组属性操作
-
-|数组属性操作 | 描述 | 示例 |
-| ----------- | ---- | ---- |
+| [$mod][mod]             | 取模匹配       | db.sample.employee.find( { "age": { "$mod": [ 5, 3 ] } } ) |
+| [$and][and]             | 与             | db.sample.employee.find( { $and: [ { age: 20 }, { name: "Tom" } ] } )       |
+| [$or][or]               | 或             | db.sample.employee.find( { $or: [ { age: 20 }, { name: "Tom" } ] } )         |
+| [$not][not]             | 非             | db.sample.employee.find( { $not: [ { age: 20 }, { name: "Tom" } ] } )         |
+| [$regex][regex]         | 正则表达式     | db.sample.employee.find( { str: { $regex:  'dh.* fj', $options:'i' } } ) |
+| [$elemMatch][elemMatch] | 元素匹配       | db.sample.employee.find( { content: { $elemMatch: { age: 20 } } } )                |
+| [$exists][exists]       | 存在           | db.sample.employee.find( { age: { $exists: 1 } } )                    |
+| [$isnull][isnull]       | 字段是否不存在或取值为空 |  db.sample.employee.find( { age: { $isnull: 0 } } )|
+| [$in][in]               | 集合内存在     | db.sample.employee.find( { age: { $in: [ 20, 21 ] } } )               |
+| [$nin][nin]             | 集合内不存在   | db.sample.employee.find( { age: { $nin: [ 20, 21 ] } } )              |
+| [$all][all]             | 全部           | db.sample.employee.find( { age: { $all: [ 20, 21 ] } } )                 |
+| [$+标识符][identifier]  | 数组元素匹配   | db.sample.employee.find( { "array.$2": 10 } )                      |
 | [$expand][expand] | 数组展开成多条记录 | db.sample.employee.find( { a: { $expand: 1 } } ) |
 | [$returnMatch][returnMatch] | 返回匹配的数组元素 | db.sample.employee.find( { a: { $returnMatch: 0, $in: [ 1, 4, 7 ] } } ) |
-
 
 [^_^]:
     本文使用的所有引用及链接
