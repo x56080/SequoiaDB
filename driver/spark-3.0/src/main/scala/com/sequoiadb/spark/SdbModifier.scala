@@ -50,6 +50,11 @@ case class SdbModifier(
 object SdbModifier {
 
     /**
+     * microseconds per millisecond
+     */
+    val MICROSECONDS_PER_MILLISECOND = 1000000
+
+    /**
      * session timezone, get from spark conf `spark.sql.session.timeZone`
      */
     var SESSION_TIME_ZONE = ZoneId.systemDefault()
@@ -152,8 +157,9 @@ object SdbModifier {
                 // a time instant in microsecond precision.
                 // Epoch millisecond of 1970-01-01T00:00:00.00000Z (UTC +00:00).
                 case (v: Long, _: TimestampType) =>
-                    val time = (v / 1000).toInt
-                    val inc = (v % 1000000).toInt
+                    // transform microseconds to milliseconds
+                    val time = (v / MICROSECONDS_PER_MILLISECOND).toInt
+                    val inc = (v % MICROSECONDS_PER_MILLISECOND).toInt
 
                     new BSONTimestamp(time, inc)
 
