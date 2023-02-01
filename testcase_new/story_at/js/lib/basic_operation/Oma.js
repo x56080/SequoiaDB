@@ -1,51 +1,54 @@
-var tmpOma = {
-   _checkSvcname: Oma.prototype._checkSvcname,
-   _nodesOperation: Oma.prototype._nodesOperation,
-   _runCommand: Oma.prototype._runCommand,
-   addAOmaSvcName: Oma.prototype.addAOmaSvcName,
-   close: Oma.prototype.close,
-   createCoord: Oma.prototype.createCoord,
-   createData: Oma.prototype.createData,
-   createOM: Oma.prototype.createOM,
-   delAOmaSvcName: Oma.prototype.delAOmaSvcName,
-   getAOmaSvcName: Oma.prototype.getAOmaSvcName,
-   getIniConfigs: Oma.prototype.getIniConfigs,
-   getNodeConfigs: Oma.prototype.getNodeConfigs,
-   getOmaConfigFile: Oma.prototype.getOmaConfigFile,
-   getOmaConfigs: Oma.prototype.getOmaConfigs,
-   getOmaInstallFile: Oma.prototype.getOmaInstallFile,
-   getOmaInstallInfo: Oma.prototype.getOmaInstallInfo,
-   help: Oma.prototype.help,
-   listNodes: Oma.prototype.listNodes,
-   reloadConfigs: Oma.prototype.reloadConfigs,
-   removeCoord: Oma.prototype.removeCoord,
-   removeData: Oma.prototype.removeData,
-   removeOM: Oma.prototype.removeOM,
-   setIniConfigs: Oma.prototype.setIniConfigs,
-   setNodeConfigs: Oma.prototype.setNodeConfigs,
-   setOmaConfigs: Oma.prototype.setOmaConfigs,
-   startAllNodes: Oma.prototype.startAllNodes,
-   startNode: Oma.prototype.startNode,
-   startNodes: Oma.prototype.startNodes,
-   stopAllNodes: Oma.prototype.stopAllNodes,
-   stopNode: Oma.prototype.stopNode,
-   stopNodes: Oma.prototype.stopNodes,
-   toString: Oma.prototype.toString,
-   updateNodeConfigs: Oma.prototype.updateNodeConfigs
-};
-var funcOma = Oma;
-var funcOmaaddAOmaSvcName = Oma.addAOmaSvcName;
-var funcOmadelAOmaSvcName = Oma.delAOmaSvcName;
-var funcOmagetAOmaSvcName = Oma.getAOmaSvcName;
-var funcOmagetIniConfigs = Oma.getIniConfigs;
-var funcOmagetOmaConfigFile = Oma.getOmaConfigFile;
-var funcOmagetOmaConfigs = Oma.getOmaConfigs;
-var funcOmagetOmaInstallFile = Oma.getOmaInstallFile;
-var funcOmagetOmaInstallInfo = Oma.getOmaInstallInfo;
-var funcOmahelp = Oma.help;
-var funcOmasetIniConfigs = Oma.setIniConfigs;
-var funcOmasetOmaConfigs = Oma.setOmaConfigs;
-var funcOmastart = Oma.start;
+if ( tmpOma == undefined )
+{
+   var tmpOma = {
+      _checkSvcname: Oma.prototype._checkSvcname,
+      _nodesOperation: Oma.prototype._nodesOperation,
+      _runCommand: Oma.prototype._runCommand,
+      addAOmaSvcName: Oma.prototype.addAOmaSvcName,
+      close: Oma.prototype.close,
+      createCoord: Oma.prototype.createCoord,
+      createData: Oma.prototype.createData,
+      createOM: Oma.prototype.createOM,
+      delAOmaSvcName: Oma.prototype.delAOmaSvcName,
+      getAOmaSvcName: Oma.prototype.getAOmaSvcName,
+      getIniConfigs: Oma.prototype.getIniConfigs,
+      getNodeConfigs: Oma.prototype.getNodeConfigs,
+      getOmaConfigFile: Oma.prototype.getOmaConfigFile,
+      getOmaConfigs: Oma.prototype.getOmaConfigs,
+      getOmaInstallFile: Oma.prototype.getOmaInstallFile,
+      getOmaInstallInfo: Oma.prototype.getOmaInstallInfo,
+      help: Oma.prototype.help,
+      listNodes: Oma.prototype.listNodes,
+      reloadConfigs: Oma.prototype.reloadConfigs,
+      removeCoord: Oma.prototype.removeCoord,
+      removeData: Oma.prototype.removeData,
+      removeOM: Oma.prototype.removeOM,
+      setIniConfigs: Oma.prototype.setIniConfigs,
+      setNodeConfigs: Oma.prototype.setNodeConfigs,
+      setOmaConfigs: Oma.prototype.setOmaConfigs,
+      startAllNodes: Oma.prototype.startAllNodes,
+      startNode: Oma.prototype.startNode,
+      startNodes: Oma.prototype.startNodes,
+      stopAllNodes: Oma.prototype.stopAllNodes,
+      stopNode: Oma.prototype.stopNode,
+      stopNodes: Oma.prototype.stopNodes,
+      toString: Oma.prototype.toString,
+      updateNodeConfigs: Oma.prototype.updateNodeConfigs
+   };
+}
+var funcOma = ( funcOma == undefined ) ? Oma : funcOma;
+var funcOmaaddAOmaSvcName = funcOma.addAOmaSvcName;
+var funcOmadelAOmaSvcName = funcOma.delAOmaSvcName;
+var funcOmagetAOmaSvcName = funcOma.getAOmaSvcName;
+var funcOmagetIniConfigs = funcOma.getIniConfigs;
+var funcOmagetOmaConfigFile = funcOma.getOmaConfigFile;
+var funcOmagetOmaConfigs = funcOma.getOmaConfigs;
+var funcOmagetOmaInstallFile = funcOma.getOmaInstallFile;
+var funcOmagetOmaInstallInfo = funcOma.getOmaInstallInfo;
+var funcOmahelp = funcOma.help;
+var funcOmasetIniConfigs = funcOma.setIniConfigs;
+var funcOmasetOmaConfigs = funcOma.setOmaConfigs;
+var funcOmastart = funcOma.start;
 Oma=function(){try{return funcOma.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Oma.addAOmaSvcName = function(){try{ return funcOmaaddAOmaSvcName.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Oma.delAOmaSvcName = function(){try{ return funcOmadelAOmaSvcName.apply( this, arguments ); } catch( e ) { throw new Error(e) } };

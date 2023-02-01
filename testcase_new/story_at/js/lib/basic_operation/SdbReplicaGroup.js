@@ -1,21 +1,24 @@
-var tmpSdbReplicaGroup = {
-   attachNode: SdbReplicaGroup.prototype.attachNode,
-   createNode: SdbReplicaGroup.prototype.createNode,
-   detachNode: SdbReplicaGroup.prototype.detachNode,
-   getDetail: SdbReplicaGroup.prototype.getDetail,
-   getDetailObj: SdbReplicaGroup.prototype.getDetailObj,
-   getMaster: SdbReplicaGroup.prototype.getMaster,
-   getNode: SdbReplicaGroup.prototype.getNode,
-   getSlave: SdbReplicaGroup.prototype.getSlave,
-   help: SdbReplicaGroup.prototype.help,
-   reelect: SdbReplicaGroup.prototype.reelect,
-   removeNode: SdbReplicaGroup.prototype.removeNode,
-   start: SdbReplicaGroup.prototype.start,
-   stop: SdbReplicaGroup.prototype.stop,
-   toString: SdbReplicaGroup.prototype.toString
-};
-var funcSdbReplicaGroup = SdbReplicaGroup;
-var funcSdbReplicaGrouphelp = SdbReplicaGroup.help;
+if ( tmpSdbReplicaGroup == undefined )
+{
+   var tmpSdbReplicaGroup = {
+      attachNode: SdbReplicaGroup.prototype.attachNode,
+      createNode: SdbReplicaGroup.prototype.createNode,
+      detachNode: SdbReplicaGroup.prototype.detachNode,
+      getDetail: SdbReplicaGroup.prototype.getDetail,
+      getDetailObj: SdbReplicaGroup.prototype.getDetailObj,
+      getMaster: SdbReplicaGroup.prototype.getMaster,
+      getNode: SdbReplicaGroup.prototype.getNode,
+      getSlave: SdbReplicaGroup.prototype.getSlave,
+      help: SdbReplicaGroup.prototype.help,
+      reelect: SdbReplicaGroup.prototype.reelect,
+      removeNode: SdbReplicaGroup.prototype.removeNode,
+      start: SdbReplicaGroup.prototype.start,
+      stop: SdbReplicaGroup.prototype.stop,
+      toString: SdbReplicaGroup.prototype.toString
+   };
+}
+var funcSdbReplicaGroup = ( funcSdbReplicaGroup == undefined ) ? SdbReplicaGroup : funcSdbReplicaGroup;
+var funcSdbReplicaGrouphelp = funcSdbReplicaGroup.help;
 SdbReplicaGroup=function(){try{return funcSdbReplicaGroup.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbReplicaGroup.help = function(){try{ return funcSdbReplicaGrouphelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbReplicaGroup.prototype.attachNode=function(){try{return tmpSdbReplicaGroup.attachNode.apply(this,arguments);}catch(e){throw new Error(e);}};
