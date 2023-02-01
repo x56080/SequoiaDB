@@ -145,6 +145,7 @@ namespace engine
          BOOLEAN     getTransNodeRouteID( UINT32 groupID,
                                           MsgRouteID &routeID ) const ;
          BOOLEAN     hasTransNode( UINT32 groupID ) const ;
+         BOOLEAN     isWrittenTransNode( const MsgRouteID &routeID ) ;
          BOOLEAN     isTransNodeEmpty() const ;
 
          BOOLEAN     checkAndUpdateNode( const MsgRouteID &routeID,

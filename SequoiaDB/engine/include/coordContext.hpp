@@ -68,7 +68,8 @@ namespace engine
       virtual ~_coordSubContext () ;
 
    public:
-      void           appendData ( const pmdEDUEvent &event ) ;
+      void           appendData ( const pmdEDUEvent &event,
+                                  BOOLEAN &isAppendedToNext ) ;
       void           clearData () ;
       MsgRouteID     getRouteID() ;
       const CHAR*    front () ;
@@ -80,6 +81,43 @@ namespace engine
       INT32          remainLength() ;
       INT32          truncate ( INT32 num ) ;
       INT32          genOrderKey() ;
+
+      virtual BOOLEAN prepareNextData() ;
+
+      virtual BOOLEAN hasNextData() const
+      {
+         return NULL != _nextEvent._Data ;
+      }
+
+      BOOLEAN hasSendForData() const
+      {
+         return _hasSendForData ;
+      }
+
+      BOOLEAN hasNextPrepared() const
+      {
+         return hasSendForData() || hasNextData() ;
+      }
+
+      void onSendForData()
+      {
+         _hasSendForData = TRUE ;
+      }
+
+      void onRecvForData()
+      {
+         _hasSendForData = FALSE ;
+      }
+
+      void enableAsyncRead()
+      {
+         _asyncReadEnabled = TRUE ;
+      }
+
+      BOOLEAN isAsyncReadEnabled() const
+      {
+         return _asyncReadEnabled ;
+      }
 
       OSS_INLINE INT64 getDataID () const
       {
@@ -96,13 +134,19 @@ namespace engine
       MsgRouteID           _routeID ;
       INT32                _curOffset ;
       MsgOpReply*          _pData ;
+      // buffer to the current data
       pmdEDUEvent          _event ;
+      // buffer to the next data
+      pmdEDUEvent          _nextEvent ;
+      // has send get-more message to DATA node to prepare data
+      BOOLEAN              _hasSendForData ;
+      // has added to async read contexts
+      BOOLEAN              _asyncReadEnabled ;
       INT32                _recordNum ;
    } ;
    typedef _coordSubContext coordSubContext ;
 
-   typedef ossPoolMap< UINT64, coordSubContext*>         EMPTY_CONTEXT_MAP ;
-   typedef ossPoolMap< UINT64, MsgRouteID>               PREPARE_NODES_MAP ;
+   typedef ossPoolMap< UINT64, coordSubContext*>         COORD_SUB_CONTEXT_MAP ;
 
    /*
       _rtnContextCoord define
@@ -190,6 +234,7 @@ namespace engine
                                       BOOLEAN setInvalidContext = FALSE ) ;
 
          INT32    _send2EmptyNodes( _pmdEDUCB *cb ) ;
+         INT32    _sendAsyncRead2OrderedNodes( _pmdEDUCB *cb ) ;
          INT32    _getPrepareNodesData( _pmdEDUCB *cb, BOOLEAN waitAll ) ;
 
          INT32    _reOrderSubContext() ;
@@ -201,10 +246,14 @@ namespace engine
          void     _destroySubContexts() ;
 
       private:
-         EMPTY_CONTEXT_MAP          _emptyContextMap ;
-         EMPTY_CONTEXT_MAP          _prepareContextMap ;
+         COORD_SUB_CONTEXT_MAP      _emptyContextMap ;
+         COORD_SUB_CONTEXT_MAP      _prepareContextMap ;
+
+         // contexts have send async read messages
+         COORD_SUB_CONTEXT_MAP      _asyncReadContexts ;
 
          BOOLEAN                    _preRead ;
+         BOOLEAN                    _asyncRead ;
 
          BOOLEAN                    _needReOrder ;
          /// error info

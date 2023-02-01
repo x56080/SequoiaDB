@@ -66,6 +66,7 @@ namespace engine
    :_rtnContextMain( contextID, eduID )
    {
       _preRead          = preRead ;
+      _asyncRead        = FALSE ;
       _needReOrder      = FALSE ;
 
       _pSession         = NULL ;
@@ -195,7 +196,7 @@ namespace engine
 
          try
          {
-            _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
+            _prepareContextMap.insert( COORD_SUB_CONTEXT_MAP::value_type(
                                        pSubContext->getRouteID().value,
                                        pSubContext ) ) ;
          }
@@ -210,12 +211,12 @@ namespace engine
       }
       _orderedContexts.clear() ;
 
-      EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
+      COORD_SUB_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
       while ( it != _emptyContextMap.end() )
       {
          try
          {
-            _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
+            _prepareContextMap.insert( COORD_SUB_CONTEXT_MAP::value_type(
                                        it->first,
                                        it->second ) ) ;
          }
@@ -290,6 +291,9 @@ namespace engine
       }
       _prepareContextMap.clear() ;
 
+      SDB_ASSERT( _asyncReadContexts.empty(), "sub contexts should be all released" ) ;
+      _asyncReadContexts.clear() ;
+
       PD_TRACE_EXIT( SDB_CTXCOOR__KILLSUBCTXS ) ;
    }
 
@@ -309,7 +313,7 @@ namespace engine
       }
       _orderedContexts.clear() ;
 
-      for ( EMPTY_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
+      for ( COORD_SUB_CONTEXT_MAP::iterator it = _emptyContextMap.begin() ;
             it != _emptyContextMap.end() ;
             ++ it )
       {
@@ -321,7 +325,7 @@ namespace engine
       _emptyContextMap.clear() ;
 
       // release all context
-      for ( EMPTY_CONTEXT_MAP::iterator it = _prepareContextMap.begin() ;
+      for ( COORD_SUB_CONTEXT_MAP::iterator it = _prepareContextMap.begin() ;
             it != _prepareContextMap.end() ;
             ++ it )
       {
@@ -331,6 +335,9 @@ namespace engine
          _releaseSubContext( pSubContext ) ;
       }
       _prepareContextMap.clear() ;
+
+      SDB_ASSERT( _asyncReadContexts.empty(), "sub contexts should be all released" ) ;
+      _asyncReadContexts.clear() ;
 
       PD_TRACE_EXIT( SDB_CTXCOOR__DESSUBCTXS ) ;
    }
@@ -390,6 +397,7 @@ namespace engine
       _numToReturn = _options.getLimit() ;
       _numToSkip = _options.getSkip() ;
       _preRead = preRead ;
+      _asyncRead = preRead && _options.testFlag( FLG_QUERY_ASYNC_READ ) ;
 
       _keyGen = SDB_OSS_NEW _ixmIndexKeyGen( _options.getOrderBy() ) ;
       PD_CHECK( _keyGen != NULL, SDB_OOM, error, PDERROR,
@@ -475,7 +483,7 @@ namespace engine
       MsgOpGetMore *pMsgReq = NULL ;
       INT32 msgSize = 0 ;
       MsgRouteID routeID ;
-      EMPTY_CONTEXT_MAP::iterator emptyIter ;
+      COORD_SUB_CONTEXT_MAP::iterator emptyIter ;
       pmdSubSession *pSub = NULL ;
       pmdRemoteSessionSite *pSite = NULL ;
       coordSessionPropSite *pPropSite = NULL ;
@@ -505,44 +513,70 @@ namespace engine
       emptyIter = _emptyContextMap.begin() ;
       while( emptyIter != _emptyContextMap.end() )
       {
-         if ( -1 == emptyIter->second->contextID() )
+         coordSubContext * pSubCtx = emptyIter->second ;
+         if ( pSubCtx->hasSendForData() )
          {
-            _releaseSubContext( emptyIter->second ) ;
-            _emptyContextMap.erase( emptyIter++ ) ;
-            continue ;
-         }
-
-         routeID.value = emptyIter->first ;
-         pMsgReq->header.routeID.value = MSG_INVALID_ROUTEID ;
-         pMsgReq->contextID = emptyIter->second->contextID() ;
-
-         pSub = _pSession->addSubSession( routeID.value ) ;
-         pSub->setReqMsg( (MsgHeader*)pMsgReq, PMD_EDU_MEM_NONE ) ;
-
-         /// In transaction and context is write, should check and update
-         /// trans node's status
-         if ( cb->isTransaction() && isWrite() && pPropSite )
-         {
-            pPropSite->checkAndUpdateNode( routeID, TRUE ) ;
-         }
-         rc = _pSession->sendMsg( pSub ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Send get more message[ContextID:%lld] to "
-                    "node[%s] failed, rc: %d", pMsgReq->contextID,
-                    routeID2String( routeID ).c_str(), rc ) ;
-            goto error ;
+            // already send message
          }
          else
          {
-            PD_LOG( PDDEBUG, "Send get more message[ContextID:%lld] to "
-                    "node[%s] succeed", pMsgReq->contextID,
-                    routeID2String( routeID ).c_str() ) ;
+            if ( -1 == emptyIter->second->contextID() )
+            {
+               _releaseSubContext( emptyIter->second ) ;
+               _emptyContextMap.erase( emptyIter++ ) ;
+               continue ;
+            }
+
+            routeID.value = emptyIter->first ;
+            pMsgReq->header.routeID.value = MSG_INVALID_ROUTEID ;
+            pMsgReq->contextID = emptyIter->second->contextID() ;
+
+            pSub = _pSession->addSubSession( routeID.value ) ;
+            pSub->setReqMsg( (MsgHeader*)pMsgReq, PMD_EDU_MEM_NONE ) ;
+
+#if defined(_DEBUG)
+            /// In transaction and context is write, should check and update
+            /// trans node's status
+            if ( cb->isTransaction() && isWrite() && pPropSite )
+            {
+               SDB_ASSERT( pPropSite->isWrittenTransNode( routeID ),
+                           "should be a written transaction node" ) ;
+            }
+#endif
+            rc = _pSession->sendMsg( pSub ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Send get more message[ContextID:%lld] to "
+                       "node[%s] failed, rc: %d", pMsgReq->contextID,
+                       routeID2String( routeID ).c_str(), rc ) ;
+               goto error ;
+            }
+            else
+            {
+               PD_LOG( PDDEBUG, "Send get more message[ContextID:%lld] to "
+                       "node[%s] succeed", pMsgReq->contextID,
+                       routeID2String( routeID ).c_str() ) ;
+            }
+
+            pSubCtx->onSendForData() ;
          }
 
-         _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
-                                    emptyIter->first, emptyIter->second ) ) ;
          _emptyContextMap.erase( emptyIter++ ) ;
+
+         try
+         {
+            _prepareContextMap.insert(
+                  COORD_SUB_CONTEXT_MAP::value_type(
+                        pSubCtx->getRouteID().value, pSubCtx ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to save prepared context, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            _releaseSubContext( pSubCtx ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -551,6 +585,103 @@ namespace engine
          msgReleaseBuffer( (CHAR *)pMsgReq, cb ) ;
       }
       PD_TRACE_EXITRC( SDB_CTXCOOR__SEND2EMPTYNODES, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__SENDASYNCREAD2ORDERNODES, "_rtnContextCoord::_sendAsyncRead2OrderedNodes" )
+   INT32 _rtnContextCoord::_sendAsyncRead2OrderedNodes( pmdEDUCB * cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__SENDASYNCREAD2ORDERNODES ) ;
+
+      MsgOpGetMore msgReq ;
+      MsgOpGetMore *pMsgReq = NULL ;
+      INT32 msgSize = 0 ;
+      MsgRouteID routeID ;
+      pmdSubSession *pSub = NULL ;
+      BOOLEAN isHintEmpty = _getMoreHint.isEmpty() ;
+
+      SUB_ORDERED_CTX_SET::iterator iter ;
+
+      if ( _orderedContexts.size() == 0 )
+      {
+         goto done ;
+      }
+
+      if ( isHintEmpty )
+      {
+         msgFillGetMoreMsg( msgReq, cb->getTID(), -1, -1, 0 ) ;
+         pMsgReq = &msgReq ;
+      }
+      else
+      {
+         rc = msgBuildGetMoreMsg( (CHAR **)&pMsgReq, &msgSize, -1, -1, 0, cb,
+                                  &_getMoreHint ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to build get more message, rc: %d", rc ) ;
+      }
+
+      for ( SUB_ORDERED_CTX_SET_IT iter = _orderedContexts.begin() ;
+            iter != _orderedContexts.end() ;
+            ++ iter )
+      {
+         coordSubContext * pSubCtx = (coordSubContext *)( *iter ) ;
+         if ( !( pSubCtx->hasNextPrepared() ) && -1 != pSubCtx->contextID() )
+         {
+            routeID.value = pSubCtx->getRouteID().value ;
+
+            if ( !pSubCtx->isAsyncReadEnabled() )
+            {
+               try
+               {
+                  _asyncReadContexts.insert(
+                        COORD_SUB_CONTEXT_MAP::value_type( routeID.value,
+                                                           pSubCtx ) ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to save async read contexts, "
+                          "occurred exception %s", e.what() ) ;
+                  rc = ossException2RC( &e ) ;
+                  goto error ;
+               }
+               pSubCtx->enableAsyncRead() ;
+            }
+
+            pMsgReq->header.routeID.value = MSG_INVALID_ROUTEID ;
+            pMsgReq->contextID = pSubCtx->contextID() ;
+
+            pSub = _pSession->addSubSession( routeID.value ) ;
+            pSub->setReqMsg( (MsgHeader*)pMsgReq, PMD_EDU_MEM_NONE ) ;
+
+            rc = _pSession->sendMsg( pSub ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Send get more message[ContextID:%lld] to "
+                       "node[%s] failed, rc: %d", pMsgReq->contextID,
+                       routeID2String( routeID ).c_str(), rc ) ;
+               goto error ;
+            }
+            else
+            {
+               PD_LOG( PDDEBUG, "Send get more message[ContextID:%lld] to "
+                       "node[%s] succeed", pMsgReq->contextID,
+                       routeID2String( routeID ).c_str() ) ;
+            }
+
+            pSubCtx->onSendForData() ;
+         }
+      }
+
+   done:
+      if ( pMsgReq != &msgReq )
+      {
+         msgReleaseBuffer( (CHAR *)pMsgReq, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CTXCOOR__SENDASYNCREAD2ORDERNODES, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -586,8 +717,8 @@ namespace engine
 
          if ( pReply->header.messageLength < (INT32)sizeof( MsgOpReply ) )
          {
-            _delPrepareContext( pReply->header.routeID ) ;
             rc = SDB_INVALIDARG ;
+            _delPrepareContext( pReply->header.routeID ) ;
             PD_LOG ( PDERROR, "Get data failed, received invalid message "
                      "from node(groupID=%u, nodeID=%u, serviceID=%u, "
                      "messageLength=%d)",
@@ -699,9 +830,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       MsgOpReply *pReply = (MsgOpReply *)event._Data ;
-      EMPTY_CONTEXT_MAP::iterator iter ;
+      COORD_SUB_CONTEXT_MAP::iterator iter ;
       coordSubContext *pSubContext = NULL ;
       BOOLEAN skipData = FALSE ;
+      BOOLEAN isAppendedToNext = FALSE ;
+      BOOLEAN isInPrepared = FALSE, isInAsyncRead = FALSE ;
 
       isTakeOver = FALSE ;
 
@@ -718,6 +851,27 @@ namespace engine
       iter = _prepareContextMap.find( pReply->header.routeID.value ) ;
       if ( _prepareContextMap.end() == iter )
       {
+         iter = _asyncReadContexts.find( pReply->header.routeID.value ) ;
+         if ( iter != _asyncReadContexts.end() )
+         {
+            isInAsyncRead = TRUE ;
+            SDB_ASSERT( _asyncRead, "should be async read" ) ;
+            pSubContext = iter->second ;
+         }
+      }
+      else
+      {
+         isInPrepared = TRUE ;
+         pSubContext = iter->second ;
+         SDB_ASSERT( pSubContext != NULL, "subContext can't be NULL" ) ;
+      }
+
+      // avoid compile warning
+      (void)isInPrepared ;
+      (void)isInAsyncRead ;
+
+      if ( NULL == pSubContext )
+      {
          rc = SDB_INVALIDARG;
          PD_LOG ( PDERROR, "Failed to append the data, no match context"
                   "(groupID=%u, nodeID=%u, serviceID=%u)",
@@ -726,9 +880,6 @@ namespace engine
                   pReply->header.routeID.columns.serviceID ) ;
          goto error ;
       }
-
-      pSubContext = iter->second ;
-      SDB_ASSERT( pSubContext != NULL, "subContext can't be NULL" ) ;
 
       if ( pSubContext->contextID() != pReply->contextID )
       {
@@ -753,8 +904,16 @@ namespace engine
       }
 
       // after appendData success, the data-pointer is manage by subContext
-      pSubContext->appendData( event ) ;
+      pSubContext->appendData( event, isAppendedToNext ) ;
       isTakeOver = TRUE ;
+      if ( isInAsyncRead )
+      {
+         // if appended to next, it is a async read
+         SDB_ASSERT( _asyncRead, "should be async read" ) ;
+         SDB_ASSERT( isAppendedToNext, "should be appended to next" ) ;
+         goto done ;
+      }
+      SDB_ASSERT( isInPrepared, "should be prepared contexts" ) ;
 
       rc = _processSubContext( pSubContext, skipData ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process sub-context"
@@ -825,7 +984,7 @@ namespace engine
                                               SINT64 contextID )
    {
       INT32 rc = SDB_OK ;
-      EMPTY_CONTEXT_MAP::iterator iter ;
+      COORD_SUB_CONTEXT_MAP::iterator iter ;
       coordSubContext *pSubContext = NULL ;
 
       if ( !_isOpened || NULL == _pSession )
@@ -857,8 +1016,19 @@ namespace engine
          goto error ;
       }
 
-      _emptyContextMap.insert( EMPTY_CONTEXT_MAP::value_type( routeID.value,
-                               pSubContext ) ) ;
+      try
+      {
+         _emptyContextMap.insert(
+               COORD_SUB_CONTEXT_MAP::value_type( routeID.value,
+                                                  pSubContext ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save sub-context, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       rc = _checkSubContext( pSubContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check sub context, rc: %d", rc ) ;
@@ -900,18 +1070,31 @@ namespace engine
       // query with return data
       if ( pReply->numReturned > 0 )
       {
-         EMPTY_CONTEXT_MAP::iterator it ;
+         COORD_SUB_CONTEXT_MAP::iterator it ;
          it = _emptyContextMap.find( pReply->header.routeID.value ) ;
          SDB_ASSERT( it != _emptyContextMap.end(), "System error" ) ;
+         coordSubContext *pSubCtx = it->second ;
 
          if ( !_needReOrder && isEmpty )
          {
             _needReOrder = TRUE ;
          }
 
-         _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
-                                    it->first, it->second ) ) ;
          _emptyContextMap.erase( it ) ;
+
+         try
+         {
+            _prepareContextMap.insert( COORD_SUB_CONTEXT_MAP::value_type(
+                                       pSubCtx->getRouteID().value, pSubCtx ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to save prepared context, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            _releaseSubContext( pSubCtx ) ;
+            goto error ;
+         }
 
          pReply->header.opCode = MSG_BS_GETMORE_RES ;
          rc = _appendSubData( event, takeOver ) ;
@@ -939,7 +1122,7 @@ namespace engine
    void _rtnContextCoord::_delPrepareContext( const MsgRouteID & routeID,
                                               BOOLEAN setInvalidContext )
    {
-      EMPTY_CONTEXT_MAP::iterator iter =
+      COORD_SUB_CONTEXT_MAP::iterator iter =
          _prepareContextMap.find( routeID.value ) ;
 
       if ( iter != _prepareContextMap.end() )
@@ -948,6 +1131,7 @@ namespace engine
 
          if ( pSubContext != NULL )
          {
+            pSubContext->onRecvForData() ;
             if ( setInvalidContext )
             {
                pSubContext->setContextID( -1 ) ;
@@ -955,6 +1139,25 @@ namespace engine
             _releaseSubContext( pSubContext ) ;
          }
          _prepareContextMap.erase ( iter ) ;
+      }
+      else
+      {
+         iter = _asyncReadContexts.find( routeID.value ) ;
+         if ( iter != _asyncReadContexts.end() )
+         {
+            coordSubContext *pSubContext = iter->second ;
+            SDB_ASSERT( _asyncRead, "should be async read" ) ;
+            SDB_ASSERT( pSubContext != NULL, "subContext can't be NULL" ) ;
+            if ( pSubContext != NULL )
+            {
+               // set received data
+               pSubContext->onRecvForData() ;
+               if ( setInvalidContext )
+               {
+                  pSubContext->setContextID( -1 ) ;
+               }
+            }
+         }
       }
    }
 
@@ -972,15 +1175,25 @@ namespace engine
       rc = _send2EmptyNodes( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Send request to empty nodes failed, rc: %d",
                    rc ) ;
-
-      if ( _isModify || _requireExplicitSorting() )
+      if ( _prepareContextMap.size() > 0 )
       {
-         waitAll = TRUE ;
+         if ( _isModify || _requireExplicitSorting() )
+         {
+            waitAll = TRUE ;
+         }
+
+         rc = _getPrepareNodesData( cb, waitAll ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get data from prepare nodes failed, rc: %d",
+                      rc ) ;
       }
 
-      rc = _getPrepareNodesData( cb, waitAll ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get data from prepare nodes failed, rc: %d",
-                   rc ) ;
+      if ( _asyncRead )
+      {
+         rc = _sendAsyncRead2OrderedNodes( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Send async read request to ordered nodes failed, "
+                      "rc: %d", rc ) ;
+      }
+
    done:
       return rc ;
    error:
@@ -998,24 +1211,27 @@ namespace engine
 
       SDB_ASSERT( NULL != subCtx, "subCtx should be not null" ) ;
 
-      if ( -1 == subCtx->contextID() )
+      coordSubContext* coordSubCtx = dynamic_cast<coordSubContext*>( subCtx ) ;
+
+      if ( ( -1 != coordSubCtx->contextID() ) ||
+           ( coordSubCtx->hasNextPrepared() ) )
+      {
+         try
+         {
+            _emptyContextMap.insert(
+               COORD_SUB_CONTEXT_MAP::value_type(
+                  coordSubCtx->getRouteID().value, coordSubCtx ) ) ;
+         }
+         catch( std::exception& e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
+            goto error ;
+         }
+      }
+      else
       {
          _releaseSubContext( subCtx ) ;
-         goto done ;
-      }
-
-      try
-      {
-         coordSubContext* coordSubCtx = dynamic_cast<coordSubContext*>( subCtx ) ;
-         _emptyContextMap.insert(
-            EMPTY_CONTEXT_MAP::value_type(
-               coordSubCtx->getRouteID().value, coordSubCtx ) ) ;
-      }
-      catch( std::exception& e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
-         goto error ;
       }
 
    done:
@@ -1157,7 +1373,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CTXCOOR__PREPARESUBCTXSADVANCE ) ;
 
-      EMPTY_CONTEXT_MAP::iterator itEmpty ;
+      COORD_SUB_CONTEXT_MAP::iterator itEmpty ;
 
       try
       {
@@ -1339,6 +1555,11 @@ namespace engine
                pSite->removeSession( pSession ) ;
             }
          }
+
+         if ( ctx->isAsyncReadEnabled() )
+         {
+            _asyncReadContexts.erase( ctx->getRouteID().value ) ;
+         }
       }
 
       PD_TRACE_EXIT( SDB_CTXCOOR__PRERELEASESUBCTX ) ;
@@ -1352,7 +1573,9 @@ namespace engine
                                         INT64 contextID,
                                         MsgRouteID routeID )
    : _rtnSubContext( orderBy, keyGen, contextID ),
-     _routeID( routeID )
+     _routeID( routeID ),
+     _hasSendForData( FALSE ),
+     _asyncReadEnabled( FALSE )
    {
       _pData = NULL ;
       _curOffset = 0 ;
@@ -1362,6 +1585,7 @@ namespace engine
    _coordSubContext::~_coordSubContext ()
    {
       pmdEduEventRelease( _event, NULL ) ;
+      pmdEduEventRelease( _nextEvent, NULL ) ;
       _pData = NULL ;
    }
 
@@ -1420,22 +1644,79 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COSUBCON_APPENDDATA, "coordSubContext::appendData" )
-   void _coordSubContext::appendData( const pmdEDUEvent &event )
+   void _coordSubContext::appendData( const pmdEDUEvent &event,
+                                      BOOLEAN &isAppendedToNext )
    {
       PD_TRACE_ENTRY ( SDB_COSUBCON_APPENDDATA ) ;
       SDB_ASSERT( event._Data != NULL, "Event's data can't be NULL" ) ;
 
-      pmdEduEventRelease( _event, NULL ) ;
+      isAppendedToNext = FALSE ;
 
-      _event = event ;
-      _pData = ( MsgOpReply* )_event._Data ;
+      if ( _recordNum > 0 )
+      {
+         SDB_ASSERT( NULL == _nextEvent._Data, "should not have async event" ) ;
+         SDB_ASSERT( _asyncReadEnabled, "should be async read enabled" ) ;
+         _nextEvent = event ;
+         isAppendedToNext = TRUE ;
+      }
+      else
+      {
+         pmdEduEventRelease( _event, NULL ) ;
 
-      _routeID = _pData->header.routeID ;
-      _recordNum = _pData->numReturned ;
-      _curOffset = ossAlign4( (UINT32)sizeof( MsgOpReply ) ) ;
-      _isOrderKeyChange = TRUE ;
-      _startFrom = _pData->startFrom ;
+         if ( NULL != _nextEvent._Data )
+         {
+            SDB_ASSERT( _asyncReadEnabled, "should be async read enabled" ) ;
+            _event = _nextEvent ;
+            _nextEvent = event ;
+            isAppendedToNext = TRUE ;
+         }
+         else
+         {
+            _event = event ;
+         }
+         _pData = ( MsgOpReply* )_event._Data ;
+
+         _routeID = _pData->header.routeID ;
+         _recordNum = _pData->numReturned ;
+         _curOffset = ossAlign4( (UINT32)sizeof( MsgOpReply ) ) ;
+         _isOrderKeyChange = TRUE ;
+         _startFrom = _pData->startFrom ;
+      }
+
+      onRecvForData() ;
+
       PD_TRACE_EXIT ( SDB_COSUBCON_APPENDDATA ) ;
+   }
+
+   BOOLEAN _coordSubContext::prepareNextData()
+   {
+      BOOLEAN result = FALSE ;
+
+      if ( 0 == _recordNum )
+      {
+         pmdEduEventRelease( _event, NULL ) ;
+
+         if ( NULL != _nextEvent._Data )
+         {
+            _event = _nextEvent ;
+            _nextEvent.reset() ;
+
+            _pData = ( MsgOpReply* )_event._Data ;
+            _routeID = _pData->header.routeID ;
+            _recordNum = _pData->numReturned ;
+            _curOffset = ossAlign4( (UINT32)sizeof( MsgOpReply ) ) ;
+            _isOrderKeyChange = TRUE ;
+            _startFrom = _pData->startFrom ;
+
+            result = TRUE ;
+         }
+         else
+         {
+            clearData() ;
+         }
+      }
+
+      return result ;
    }
 
    void _coordSubContext::clearData()
