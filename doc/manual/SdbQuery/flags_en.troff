@@ -388,6 +388,89 @@ T}@T{
 T}@T{
 not work.
 T}
+T{
+7
+T}@T{
+SDB_FLG_QUERY_ASYNC_
+T}@T{
+During the query, the
+T}
+T{
+T}@T{
+READ
+T}@T{
+coordination node will
+T}
+T{
+T}@T{
+T}@T{
+perform multiple data
+T}
+T{
+T}@T{
+T}@T{
+interactions with the data
+T}
+T{
+T}@T{
+T}@T{
+nodes. After each batch of
+T}
+T{
+T}@T{
+T}@T{
+data is processed, the
+T}
+T{
+T}@T{
+T}@T{
+next batch of data is
+T}
+T{
+T}@T{
+T}@T{
+requested from the data
+T}
+T{
+T}@T{
+T}@T{
+node. When add this flag,
+T}
+T{
+T}@T{
+T}@T{
+the coordination node will
+T}
+T{
+T}@T{
+T}@T{
+asynchronously read the
+T}
+T{
+T}@T{
+T}@T{
+data of the data node in
+T}
+T{
+T}@T{
+T}@T{
+advance. Improve query
+T}
+T{
+T}@T{
+T}@T{
+performance by reducing the
+T}
+T{
+T}@T{
+T}@T{
+time spent waiting for a
+T}
+T{
+T}@T{
+T}@T{
+response to a request.
+T}
 .TE
 .RS
 .PP
