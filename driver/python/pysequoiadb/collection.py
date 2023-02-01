@@ -623,12 +623,13 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
-           QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_PREPARE_MORE        : Enable prepare more data when query
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
+           QUERY_FLG_PARALLED        : Enable parallel sub-query, each sub-query will finish scanning different part of data
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets the record from database, when adding this flag, return data in query response, it will be more high-performance
+           QUERY_PREPARE_MORE        : Enable prepare more data when querying
+           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be released after the record is read by default.
+                                       However, when setting this flag, the transaction lock will not be released until the transaction is committed or rollbacked. When the transaction is turned off or
+                                       the transaction isolation level is "RU", the flag does not work
         """
 
         bson_condition = None
@@ -718,16 +719,17 @@ class collection(object):
         Info:
            query flags:
            QUERY_FLG_FORCE_HINT                 : Force to use specified hint to query, if database have
-                                                        no index assigned by the hint, fail to query
-           QUERY_FLG_PARALLED                   : Enable parallel sub query, each sub query will finish scanning
-                                                        different part of the data
+                                                        no index assigned by the hint, failed to query
+           QUERY_FLG_PARALLED                   : Enable parallel sub-query, each sub-query will finish scanning
+                                                        different part of data
            QUERY_FLG_WITH_RETURNDATA            : In general, query won't return data until cursor gets from
-                                                        database, when add this flag, return data in query response,
+                                                        database, when adding this flag, return data in query response,
                                                         it will be more high-performance
            QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE : The sharding key in update rule is not filtered, when executing
                                                         queryAndUpdate.
-           QUERY_FLG_FOR_UPDATE                 : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                                  be released until the transaction commit or rollback.
+           QUERY_FLG_FOR_UPDATE                 : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be released after the record is read by default.
+                                                  However, when setting this flag, the transaction lock will not be released until the transaction is committed or rollbacked. When the transaction is turned off or
+                                                  the transaction isolation level is "RU", the flag does not work.
         """
 
         bson_condition = None
@@ -834,11 +836,12 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
-           QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
+           QUERY_FLG_PARALLED        : Enable parallel sub-query, each sub-query will finish scanning different part of data
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets the record from database, when adding this flag, return data in query response, it will be more high-performance
+           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be released after the record is read by default.
+                                       However, when setting this flag, the transaction lock will not be released until the transaction is committed or rollbacked. When the transaction is turned off or
+                                       the transaction isolation level is "RU", the flag does not work.
         """
 
         bson_condition = None
@@ -1522,12 +1525,13 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
-           QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_PREPARE_MORE        : Enable prepare more data when query
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
+           QUERY_FLG_PARALLED        : Enable parallel sub-query, each sub-query will finish scanning different part of data
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets the record from database, when adding this flag, return data in query response, it will be more high-performance
+           QUERY_PREPARE_MORE        : Enable prepare more data when querying
+           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be released after the record is read by default.
+                                       However, when setting this flag, the transaction lock will not be released until the transaction is committed or rollbacked. When the transaction is turned off or
+                                       the transaction isolation level is "RU", the flag does not work
         """
         bson_condition = None
         bson_selector = None
@@ -1617,9 +1621,9 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
-           QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
+           QUERY_FLG_PARALLED        : Enable parallel sub-query, each sub-query will finish scanning different part of data
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets the record from database, when adding this flag, return data in query response, it will be more high-performance
         """
 
         bson_condition = None
