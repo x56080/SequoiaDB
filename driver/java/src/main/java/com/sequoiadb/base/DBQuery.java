@@ -43,17 +43,17 @@ public class DBQuery {
 
     /**
      * Force to use specified hint to query,
-     * if database have no index assigned by the hint, fail to query.
+     * if database has no index assigned by the hint, fail to query.
      */
     public static final int FLG_QUERY_FORCE_HINT = 0x00000080;
 
     /**
-     * Enable parallel sub query, each sub query will finish scanning different part of the data.
+     * Enable parallel sub-query, each sub-query will finish scanning different part of data.
      */
     public static final int FLG_QUERY_PARALLED = 0x00000100;
 
     /**
-     * In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance.
+     * In general, query won't return data until cursor gets the record from database, when adding this flag, return data in query response, it will be more high-performance.
      */
     public static final int FLG_QUERY_WITH_RETURNDATA = 0x00000200;
 
@@ -68,7 +68,7 @@ public class DBQuery {
     static final int FLG_QUERY_MODIFY = 0x00001000;
 
     /**
-     * Enable prepare more data when query.
+     * Enable prepare more data when querying.
      */
     public static final int FLG_QUERY_PREPARE_MORE = 0x00004000;
 
@@ -79,15 +79,15 @@ public class DBQuery {
     public static final int FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000;
 
    /** Acquire U lock on the records that are read. When the session is in
-     * transaction and setting this flag, the transaction lock will not released
-     * until the transaction is committed or rollback. When the session is not
+     * transaction and setting this flag, the transaction lock will not be released
+     * until the transaction is committed or rollbacked. When the session is not
      * in transaction, the flag does not work.
      */
     public static final int FLG_QUERY_FOR_UPDATE = 0x00010000;
 
     /** Acquire S lock on the records that are read. When the session is in
-      * transaction and setting this flag, the transaction lock will not released
-      * until the transaction is committed or rollback. When the session is not
+      * transaction and setting this flag, the transaction lock will not be released
+      * until the transaction is committed or rollbacked. When the session is not
       * in transaction, the flag does not work.
       */
     public static final int FLG_QUERY_FOR_SHARE = 0x00040000;
