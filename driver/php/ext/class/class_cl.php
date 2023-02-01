@@ -33,7 +33,7 @@ class SequoiaCL
 
    /** Force to use specified hint to query, if database has no index assigned by the hint, fail to query. */
    define( "SDB_FLG_FIND_FORCE_HINT",                    0x00000080 ) ;
-   /** Enable paralled sub query. */
+   /** Enable parallel sub-query, each sub-query will finish scanning different part of data. */
    define( "SDB_FLG_FIND_PARALLED",                      0x00000100 ) ;
    /** In general, query will not return data until cursor get from database, when adding this flag, return data in query response, it will be more high-performance. */
    define( "SDB_FLG_FIND_WITH_RETURNDATA",               0x00000200 ) ;
@@ -41,7 +41,7 @@ class SequoiaCL
 
    /** Force to use specified hint to query, if database has no index assigned by the hint, fail to query */
    define( "SDB_FLG_QUERY_FORCE_HINT",                   0x00000080 ) ;
-   /** Enable paralled sub query */
+   /** Enable parallel sub-query, each sub-query will finish scanning different part of data */
    define( "SDB_FLG_QUERY_PARALLED",                     0x00000100 ) ;
    /** In general, query won't return data until cursor gets the record from database, when adding this flag, return data in query response, it will be more high-performance */
    define( "SDB_FLG_QUERY_WITH_RETURNDATA",              0x00000200 ) ;
@@ -899,7 +899,7 @@ class SequoiaCL
     * @param $flag         an integer argument. The query flag, default to be 0.
     *                                   @code
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)        : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
-    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)          : Enable paralled sub query
+    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)          : Enable parallel sub-query, each sub-query will finish scanning different part of data
     *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200)   : In general, query won't return data until cursor gets the record from database, when adding this flag,
     *                                                                                 return data in query response, it will be more high-performance
     *                                   SDB_FLG_QUERY_PREPARE_MORE(0x00004000)      : Enable prepare more data when querying
@@ -950,7 +950,7 @@ class SequoiaCL
     * @param $flag         an integer argument.   The query flag, default to be 0.
     *                                   @code
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)                 : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
-    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)                   : Enable paralled sub query
+    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)                   : Enable parallel sub-query, each sub-query will finish scanning different part of data
     *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200)            : In general, query won't return data until cursor gets the record from database, when adding this flag,
     *                                                                                          return data in query response, it will be more high-performance
     *                                   SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE(0x00008000) : The sharding key in update rule is not filtered.
@@ -1000,7 +1000,7 @@ class SequoiaCL
     * @param $flag   an integer argument.   The query flag, default to be 0.
     *                                   @code
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
-    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
+    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable parallel sub-query, each sub-query will finish scanning different part of data
     *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query won't return data until cursor gets the record from database, when adding this flag,
     *                                                                               return data in query response, it will be more high-performance
     *                                   SDB_FLG_QUERY_FOR_UPDATE(0x00010000 )     : Acquire U lock on the records that are read. When the session is in
@@ -1047,7 +1047,7 @@ class SequoiaCL
     * @param $flag   an integer argument.   The query flag, default to be 0.
     *                                   @code
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database has no index assigned by the hint, fail to query
-    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
+    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable parallel sub-query, each sub-query will finish scanning different part of data
     *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query won't return data until cursor gets the record from database, when adding this flag,
     *                                                                               return data in query response, it will be more high-performance
     *                                   @endcode
