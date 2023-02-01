@@ -440,7 +440,7 @@ namespace engine
          _hasGenerated = FALSE ;
       }
 
-      OSS_BIT_SET( inMsg._pMsg->flags, FLG_INSERT_HAS_ID_FIELD ) ;
+      OSS_BIT_SET( ((MsgOpInsert*)(inMsg._pMsg))->flags, FLG_INSERT_HAS_ID_FIELD ) ;
       pTmpInsertMsg = (MsgOpInsert*) inMsg._pMsg ;
       pTmpInsertMsg->version = cataPtr->getVersion() ;
       pTmpInsertMsg->w = 0 ;
