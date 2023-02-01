@@ -1,17 +1,20 @@
-var tmpSdbDomain = {
-   addGroups: SdbDomain.prototype.addGroups,
-   alter: SdbDomain.prototype.alter,
-   help: SdbDomain.prototype.help,
-   listCollectionSpaces: SdbDomain.prototype.listCollectionSpaces,
-   listCollections: SdbDomain.prototype.listCollections,
-   listGroups: SdbDomain.prototype.listGroups,
-   removeGroups: SdbDomain.prototype.removeGroups,
-   setAttributes: SdbDomain.prototype.setAttributes,
-   setGroups: SdbDomain.prototype.setGroups,
-   toString: SdbDomain.prototype.toString
-};
-var funcSdbDomain = SdbDomain;
-var funcSdbDomainhelp = SdbDomain.help;
+if ( tmpSdbDomain == undefined )
+{
+   var tmpSdbDomain = {
+      addGroups: SdbDomain.prototype.addGroups,
+      alter: SdbDomain.prototype.alter,
+      help: SdbDomain.prototype.help,
+      listCollectionSpaces: SdbDomain.prototype.listCollectionSpaces,
+      listCollections: SdbDomain.prototype.listCollections,
+      listGroups: SdbDomain.prototype.listGroups,
+      removeGroups: SdbDomain.prototype.removeGroups,
+      setAttributes: SdbDomain.prototype.setAttributes,
+      setGroups: SdbDomain.prototype.setGroups,
+      toString: SdbDomain.prototype.toString
+   };
+}
+var funcSdbDomain = ( funcSdbDomain == undefined ) ? SdbDomain : funcSdbDomain;
+var funcSdbDomainhelp = funcSdbDomain.help;
 SdbDomain=function(){try{return funcSdbDomain.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbDomain.help = function(){try{ return funcSdbDomainhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbDomain.prototype.addGroups=function(){try{return tmpSdbDomain.addGroups.apply(this,arguments);}catch(e){throw new Error(e);}};
