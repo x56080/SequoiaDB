@@ -12,37 +12,39 @@ testConf.useSrcGroup = true;
 main( test );
 function test( testPara )
 {
+   var coord = commGetGroups( db, true, "SYSCoord", true, false, true )[0][1];
+   var hostname = coord.HostName;
+   var svcname = coord.svcname;
+   var sdb = new Sdb( hostname, svcname );
    try
    {
       // updateconf
-      db.updateConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
+      sdb.updateConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
 
       //insert
       insertRecs( testPara.testCL );
 
       // SDB_SNAP_QUERY
-      var ret = db.snapshot( SDB_SNAP_QUERIES );
+      var ret = sdb.snapshot( SDB_SNAP_QUERIES );
       var queryID = ret.current().toObj()["QueryID"];
-
-      queryID = getNewQueryID( queryID );
-      ret = db.snapshot( SDB_SNAP_QUERIES, { QueryID: queryID } );
+      ret = sdb.snapshot( SDB_SNAP_QUERIES, { QueryID: queryID } );
       if ( !ret.next() )
       {
          throw new Error( "Invalid QueryID in query snapshot. It must be " + queryID );
       }
       // SDB_SNAP_CONTEXTS
       queryID = getNewQueryID( queryID );
-      ret = db.snapshot( SDB_SNAP_CONTEXTS, { "$and": [{ "Contexts.QueryID": queryID }, { "Contexts.Type": "COORD" }] } );
+      ret = sdb.snapshot( SDB_SNAP_CONTEXTS, { "$and": [{ "Contexts.QueryID": queryID }, { "Contexts.Type": "COORD" }] } );
+      //print( JSON.parse(ret.toString()) );
       if ( !ret.next() )
       {
          throw new Error( "Invalid QueryID in contexts snapshot. It must be " + queryID );
       }
-
       // change to a new connection
       var oldQueryIDPrefixStr = queryID.substr( 0, 18 );
 
       // catalog
-      var catalog = db.getCataRG().getMaster().connect();
+      var catalog = sdb.getCataRG().getMaster().connect();
       ret = catalog.snapshot( SDB_SNAP_QUERIES );
       queryID = ret.current().toObj()["QueryID"];
       newQueryIDPrefixStr = queryID.substr( 0, 18 );
@@ -50,7 +52,7 @@ function test( testPara )
       catalog.close();
 
       // data
-      var data = db.getRG( testPara.srcGroupName ).getMaster().connect();
+      var data = sdb.getRG( testPara.srcGroupName ).getMaster().connect();
       ret = data.snapshot( SDB_SNAP_QUERIES );
       queryID = ret.current().toObj()["QueryID"];
       var newQueryIDPrefixStr = queryID.substr( 0, 18 );
@@ -59,7 +61,8 @@ function test( testPara )
    }
    finally
    {
-      db.deleteConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
+      sdb.deleteConf( { mongroupmask: "all:basic", monslowquerythreshold: 0 } );
+      sdb.close();
    }
 }
 
