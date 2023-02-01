@@ -1,22 +1,25 @@
-var tmpSdbCS = {
-   _resolveCL: SdbCS.prototype._resolveCL,
-   alter: SdbCS.prototype.alter,
-   createCL: SdbCS.prototype.createCL,
-   disableCapped: SdbCS.prototype.disableCapped,
-   dropCL: SdbCS.prototype.dropCL,
-   enableCapped: SdbCS.prototype.enableCapped,
-   getCL: SdbCS.prototype.getCL,
-   getDomainName: SdbCS.prototype.getDomainName,
-   help: SdbCS.prototype.help,
-   listCollections: SdbCS.prototype.listCollections,
-   removeDomain: SdbCS.prototype.removeDomain,
-   renameCL: SdbCS.prototype.renameCL,
-   setAttributes: SdbCS.prototype.setAttributes,
-   setDomain: SdbCS.prototype.setDomain,
-   toString: SdbCS.prototype.toString
-};
-var funcSdbCS = SdbCS;
-var funcSdbCShelp = SdbCS.help;
+if ( tmpSdbCS == undefined )
+{
+   var tmpSdbCS = {
+      _resolveCL: SdbCS.prototype._resolveCL,
+      alter: SdbCS.prototype.alter,
+      createCL: SdbCS.prototype.createCL,
+      disableCapped: SdbCS.prototype.disableCapped,
+      dropCL: SdbCS.prototype.dropCL,
+      enableCapped: SdbCS.prototype.enableCapped,
+      getCL: SdbCS.prototype.getCL,
+      getDomainName: SdbCS.prototype.getDomainName,
+      help: SdbCS.prototype.help,
+      listCollections: SdbCS.prototype.listCollections,
+      removeDomain: SdbCS.prototype.removeDomain,
+      renameCL: SdbCS.prototype.renameCL,
+      setAttributes: SdbCS.prototype.setAttributes,
+      setDomain: SdbCS.prototype.setDomain,
+      toString: SdbCS.prototype.toString
+   };
+}
+var funcSdbCS = ( funcSdbCS == undefined ) ? SdbCS : funcSdbCS;
+var funcSdbCShelp = funcSdbCS.help;
 SdbCS=function(){try{return funcSdbCS.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCS.help = function(){try{ return funcSdbCShelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 SdbCS.prototype._resolveCL=function(){try{return tmpSdbCS._resolveCL.apply(this,arguments);}catch(e){throw new Error(e);}};

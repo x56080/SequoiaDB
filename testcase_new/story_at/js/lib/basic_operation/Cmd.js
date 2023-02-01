@@ -1,22 +1,25 @@
-var tmpCmd = {
-   _getCommand: Cmd.prototype._getCommand,
-   _getInfo: Cmd.prototype._getInfo,
-   _getLastOut: Cmd.prototype._getLastOut,
-   _getLastRet: Cmd.prototype._getLastRet,
-   _run: Cmd.prototype._run,
-   _start: Cmd.prototype._start,
-   getCommand: Cmd.prototype.getCommand,
-   getInfo: Cmd.prototype.getInfo,
-   getLastOut: Cmd.prototype.getLastOut,
-   getLastRet: Cmd.prototype.getLastRet,
-   help: Cmd.prototype.help,
-   run: Cmd.prototype.run,
-   runJS: Cmd.prototype.runJS,
-   start: Cmd.prototype.start,
-   toString: Cmd.prototype.toString
-};
-var funcCmd = Cmd;
-var funcCmdhelp = Cmd.help;
+if ( tmpCmd == undefined )
+{
+   var tmpCmd = {
+      _getCommand: Cmd.prototype._getCommand,
+      _getInfo: Cmd.prototype._getInfo,
+      _getLastOut: Cmd.prototype._getLastOut,
+      _getLastRet: Cmd.prototype._getLastRet,
+      _run: Cmd.prototype._run,
+      _start: Cmd.prototype._start,
+      getCommand: Cmd.prototype.getCommand,
+      getInfo: Cmd.prototype.getInfo,
+      getLastOut: Cmd.prototype.getLastOut,
+      getLastRet: Cmd.prototype.getLastRet,
+      help: Cmd.prototype.help,
+      run: Cmd.prototype.run,
+      runJS: Cmd.prototype.runJS,
+      start: Cmd.prototype.start,
+      toString: Cmd.prototype.toString
+   };
+}
+var funcCmd = ( funcCmd == undefined ) ? Cmd : funcCmd;
+var funcCmdhelp = funcCmd.help;
 Cmd=function(){try{return funcCmd.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Cmd.help = function(){try{ return funcCmdhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
 Cmd.prototype._getCommand=function(){try{return tmpCmd._getCommand.apply(this,arguments);}catch(e){throw new Error(e);}};
