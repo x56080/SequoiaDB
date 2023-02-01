@@ -1793,6 +1793,9 @@ retry :
       // inspect record
       offset = rid._offset ;
       localErr = 0 ;
+      isCompressed = FALSE ;
+      // we are not getting 'isDeleteing' value from current method,
+      // for all the overflow records we check here are not in 'Deleting' stat
       len = dmsInspect::inspectDataRecord ( cb, gExtentBuffer + offset,
               ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
               gBuffer, gBufferSize, count, offset, NULL, localErr,
@@ -2358,7 +2361,7 @@ error:
 
 void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
                             SINT32 hwm, CHAR *pExpBuffer, SINT32 &err,
-                            UINT64 &ovfNum, UINT64 &compressedNum )
+                            UINT64 &ovfNum, UINT64 &compressedNum, UINT64 &deletingNum )
 {
    INT32 rc        = SDB_OK ;
    INT32 len       = 0 ;
@@ -2483,6 +2486,7 @@ void inspectCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
 retry_data :
       UINT64 extTotalRecord = 0 ;
       UINT64 extCompressedNum = 0 ;
+      UINT64 extDeletingNum = 0 ;
 
       extentRIDList.clear() ;
       tempExtent = firstExtent ;
@@ -2496,6 +2500,7 @@ retry_data :
                                &compressorEntry,
                                extTotalRecord,
                                extCompressedNum,
+                               extDeletingNum,
                                capped ) ;
       if ( (UINT32)len >= gBufferSize-1 )
       {
@@ -2510,7 +2515,10 @@ retry_data :
       }
 
       totalRecord += extTotalRecord ;
+      // compressedNum is not include the compressed records which have overflow,
+      // they will be included later
       compressedNum += extCompressedNum ;
+      deletingNum += extDeletingNum ;
       ovfNum += extentRIDList.size() ;
 
       flushOutput ( gBuffer, len ) ;
@@ -2522,6 +2530,7 @@ retry_data :
          inspectOverflowedRecords( file, pageSize, id, firstExtent,
                                    extentRIDList, err, &compressorEntry,
                                    extCompressedNum ) ;
+         // add the number of overflow compressed records
          compressedNum += extCompressedNum ;
       }
 
@@ -2676,9 +2685,10 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
    {
       UINT64 ovfNum = 0 ;
       UINT64 compressedNum = 0 ;
+      UINT64 deletingNum = 0 ;
       inspectCollectionData( file, pageSize, id, hwm,
                              pExpBuffer, err, ovfNum,
-                             compressedNum ) ;
+                             compressedNum, deletingNum ) ;
       /// flush data info
       len = ossSnprintf( gBuffer, gBufferSize,
                          " ****The collection data info****"OSS_NEWLINE
@@ -2686,12 +2696,14 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                          "   Total Data Pages       : %u"OSS_NEWLINE
                          "   Total Data Free Space  : %llu"OSS_NEWLINE
                          "   Total OVF Record       : %llu"OSS_NEWLINE
-                         "   Total Compressed Record: %llu"OSS_NEWLINE,
+                         "   Total Compressed Record: %llu"OSS_NEWLINE
+                         "   Total Deleting Record  : %llu"OSS_NEWLINE,
                          gMBStat._totalRecords,
                          gMBStat._totalDataPages,
                          gMBStat._totalDataFreeSpace,
                          ovfNum,
-                         compressedNum ) ;
+                         compressedNum,
+                         deletingNum ) ;
       len += ossSnprintf(gBuffer + len, gBufferSize - len, OSS_NEWLINE);
       flushOutput( gBuffer, len ) ;
    }

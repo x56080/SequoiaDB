@@ -857,6 +857,7 @@ namespace engine
                                           dmsCompressorEntry *compressorEntry,
                                           UINT64 &recordNum,
                                           UINT64 &compressedNum,
+                                          UINT64 &deletingNum,
                                           BOOLEAN capped )
    {
       SDB_ASSERT( cb, "cb can't be null" ) ;
@@ -908,7 +909,7 @@ namespace engine
       {
          len += inspectNormalExtent( inBuf, inSize, outBuf + len, outSize - len,
                                      collectionID, compressorEntry, recordNum,
-                                     compressedNum, localErr, ridList, cb ) ;
+                                     compressedNum, deletingNum, localErr, ridList, cb ) ;
       }
 
    exit :
@@ -933,7 +934,9 @@ namespace engine
                                           set< dmsRecordID > *ridList,
                                           SINT32 &err,
                                           dmsCompressorEntry *compressorEntry,
-                                          BOOLEAN &isCompressed )
+                                          BOOLEAN &isCompressed,
+                                          BOOLEAN *pIsDeleting,
+                                          BOOLEAN *pIsOvf )
    {
       SDB_ASSERT( cb, "cb can't be null" ) ;
       SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
@@ -1001,6 +1004,22 @@ namespace engine
       else
       {
          nextRecord = record->_nextOffset ;
+      }
+
+      // set output values
+      if ( pIsDeleting )
+      {
+         *pIsDeleting = record->isDeleting() ? TRUE : FALSE ;
+      }
+      if ( pIsOvf )
+      {
+         *pIsOvf = isOvf ;
+      }
+
+      // when the record is mark deleting, let's skip inspecting it
+      if ( record->isDeleting() )
+      {
+         goto exit ;
       }
 
       if ( isDel )
@@ -1631,6 +1650,7 @@ namespace engine
                                            dmsCompressorEntry *compressorEntry,
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
+                                           UINT64 &deletingNum,
                                            INT32 &localErr,
                                            set< dmsRecordID > *ridList,
                                            pmdEDUCB *cb )
@@ -1643,6 +1663,9 @@ namespace engine
       INT32 recordCount = 0 ;
       dmsExtent *extent = (dmsExtent *)inBuf ;
       BOOLEAN isCompressed = FALSE ;
+      BOOLEAN isDeleting = FALSE ;
+      BOOLEAN isOvf = FALSE ;
+      INT32 err = 0 ;
 
       len += inspectExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len, collectionID, localErr ) ;
@@ -1664,20 +1687,44 @@ namespace engine
                                   "than inSize %d",
                                   nextRecord, inSize ) ;
             ++localErr ;
+            break ;
          }
 
+         isCompressed = FALSE ;
+         isDeleting = FALSE ;
+         isOvf = FALSE ;
+         err = localErr ;
          len += inspectDataRecord ( cb, ((CHAR*)inBuf)+nextRecord,
                                     inSize - nextRecord,
                                     outBuf + len, outSize - len,
                                     recordCount, nextRecord,
                                     ridList, localErr,
                                     compressorEntry,
-                                    isCompressed ) ;
+                                    isCompressed,
+                                    &isDeleting,
+                                    &isOvf ) ;
          ++recordCount ;
-         ++recordNum ;
-         if ( isCompressed )
+         // when error happen, not update the statistical variables
+         if ( localErr > err )
          {
-            ++compressedNum ;
+            continue ;
+         }
+
+         // update the statistical variables
+         if ( !isDeleting )
+         {
+            // the records deleted in transaction are marking deleting, they still in data file,
+            // but they can't be included in 'recordNum'
+            ++recordNum ;
+            // when it's a overflow record, we handle it later
+            if ( isCompressed && !isOvf )
+            {
+               ++compressedNum ;
+            }
+         }
+         else
+         {
+            ++deletingNum ;
          }
       }
       return len ;
