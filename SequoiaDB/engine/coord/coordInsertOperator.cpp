@@ -54,6 +54,9 @@ using namespace bson ;
 #define GET_INSERT_HINT_MARK_PTR( hintPtr ) \
    ( ( CHAR *)hintPtr - MSG_HINT_MARK_LEN )
 
+// | type:jstOID(1byte) | fieldname:"_id"(4bytes) | value:...(12bytes)
+#define BSON_ELEMENT_OID_SIZE 17
+
 namespace engine
 {
    /*
@@ -130,6 +133,22 @@ namespace engine
 
             *((INT64*)_pCur) = value ;
             _pCur += 8 ;
+            return this ;
+         }
+
+         _SimpleBSONBuilder* appendOID( const CHAR *fieldName )
+         {
+            *_pCur = (CHAR) jstOID ;
+            _pCur += 1 ;
+
+            const INT32 fieldLen = ossStrlen( fieldName ) + 1 ;
+            ossMemcpy( _pCur, fieldName, fieldLen ) ;
+            _pCur += fieldLen ;
+
+            OID tmp ;
+            tmp.init() ;
+            *((OID*)_pCur) = tmp ;
+            _pCur += sizeof( tmp ) ;
             return this ;
          }
 
@@ -250,6 +269,9 @@ namespace engine
       rtnQueryOptions options ;
       BSONObj updator ;
 
+      BOOLEAN needAppendID = FALSE ;
+      BOOLEAN needNewIDField = TRUE ;
+
       rc = msgExtractInsert( (const CHAR*)pMsg, &flag,
                              &pCollectionName, &pInsertor, count, &_pHint ) ;
       if( rc )
@@ -266,6 +288,17 @@ namespace engine
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Insert flag[%d] is invalid[%d]", flag, rc ) ;
          goto error ;
+      }
+
+      // skip the '_id' field check by flag.
+      if ( !OSS_BIT_TEST( flag, FLG_INSERT_HAS_ID_FIELD ) )
+      {
+         rc = _checkIDField( pInsertor, count, needAppendID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to check oid's existence, rc: %d", rc ) ;
+            goto error;
+         }
       }
 
       MONQUERY_SET_NAME( cb, pCollectionName ) ;
@@ -369,8 +402,8 @@ namespace engine
             // TODO: YSD The argument logic here is too obscure. Try to make
             //  it simple.
             rc = _addAutoIncToMsg( *pAutoIncSet, pInsertMsg, pInsertor,
-                                   count, orgMsgLen, cb,
-                                   &pNewMsg, newMsgSize, newMsgLen,
+                                   count, orgMsgLen, needAppendID, 
+                                   cb, &pNewMsg, newMsgSize, newMsgLen,
                                    hasExplicitKey ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to add autoIncrement fields to msg, rc: %d",
@@ -379,12 +412,35 @@ namespace engine
             lastAutoIncIDs = curAutoIncIDs ;
          }
       }
+      else if ( needAppendID )
+      {
+         // when retry, there's no need to add _id field again.
+         if ( needNewIDField )
+         {
+            _hasGenerated = FALSE ;
+            needNewIDField = FALSE ;
+            // in case of reshard, clear the last shard result.
+            _grpSubCLDatas.clear() ;
+            inMsg.data()->clear() ;
+
+            rc = _addIDFieldToMsg( pInsertMsg, pInsertor, count, 
+                                   orgMsgLen, cb, &pNewMsg,
+                                   newMsgSize, newMsgLen ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to add _id field to msg, rc: %d", rc) ;
+               goto error ;
+            }
+            inMsg._pMsg = (MsgHeader*)pNewMsg ;
+         }
+      }
       else
       {
          inMsg._pMsg = (MsgHeader*)pInsertMsg ;
          _hasGenerated = FALSE ;
       }
 
+      OSS_BIT_SET( inMsg._pMsg->flags, FLG_INSERT_HAS_ID_FIELD ) ;
       pTmpInsertMsg = (MsgOpInsert*) inMsg._pMsg ;
       pTmpInsertMsg->version = cataPtr->getVersion() ;
       pTmpInsertMsg->w = 0 ;
@@ -1202,12 +1258,142 @@ namespace engine
       goto done ;
    }
 
+   INT32 _coordInsertOperator::_checkIDField( const CHAR *pInsertor,
+                                              INT32 count,
+                                              BOOLEAN &needAppendID )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 offset = 0 ;
+      INT32 i = 0 ;
+      SDB_ASSERT( NULL != pInsertor, "can not be null" ) ;
+      SDB_ASSERT( 0 != count, "can not be zero" ) ;
+      needAppendID = FALSE ;
+
+      try
+      {
+         for ( i = 0; i < count; ++i )
+         {
+            BSONObj insertObj( pInsertor + offset ) ;
+            if ( !insertObj.hasField( DMS_ID_KEY_NAME ) )
+            {
+               needAppendID = TRUE ;
+               break ;
+            }
+            offset += ossRoundUpToMultipleX( insertObj.objsize(), 4 ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s. rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__ADD_ID_FIELD_TO_MSG, "_coordInsertOperator::_addIDFieldToMsg" )
+   INT32 _coordInsertOperator::_addIDFieldToMsg( MsgOpInsert *pInsertMsg,
+                                                 const CHAR *pInsertor,
+                                                 INT32 count,
+                                                 INT32 orgMsgLen,
+                                                 pmdEDUCB *cb,
+                                                 CHAR **ppNewMsg, 
+                                                 INT32 &newMsgSize,
+                                                 INT32 &newMsgLen )
+   {
+      PD_TRACE_ENTRY( COORD_INSERTOPR__ADD_ID_FIELD_TO_MSG ) ;
+
+      INT32 rc = SDB_OK ;
+      CHAR* pCurPos = NULL ;
+      UINT32 estimatedSize = 0 ;
+      UINT32 headerSize = 0 ;
+      SDB_ASSERT( NULL != pInsertMsg, "can not be null" ) ;
+      SDB_ASSERT( NULL != pInsertor, "can not be null" ) ;
+      SDB_ASSERT( 0 < count, "can not be lower than zero" ) ;
+      SDB_ASSERT( 0 < orgMsgLen, "can not be lower than zero" ) ;
+      newMsgLen = 0 ;
+
+      // 1.malloc insert msg buffer
+      estimatedSize = orgMsgLen + count * ossAlign4( BSON_ELEMENT_OID_SIZE ) ;
+      rc = msgCheckBuffer( ppNewMsg, &newMsgSize, estimatedSize, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to malloc buffer, rc: %d", rc ) ;
+
+      // 2.copy insert msg header
+      headerSize = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
+                                          pInsertMsg->nameLength + 1, 4 ) ;
+      ossMemcpy( *ppNewMsg, (CHAR*) pInsertMsg, headerSize ) ;
+      pCurPos = *ppNewMsg + headerSize ;
+
+      // 3.build new bson objs with '_id' field
+      try
+      {
+         UINT32 offset = 0 ;
+         for ( INT32 i = 0; i < count ; ++i )
+         {
+            BSONObj objIn( ( pInsertor + offset ) ) ;
+            _SimpleBSONBuilder builder( pCurPos ) ;
+            BSONObjIterator boIt( objIn ) ;
+            BSONElement ele ;
+
+            // We are not sure whether the '_id' field is included in the 
+            // current record, so check first.
+            if ( !objIn.hasField( DMS_ID_KEY_NAME ) )
+            {
+               PD_LOG( PDDEBUG, "The object[%s] needs to append the '_id' field.",
+                       PD_SECURE_OBJ( objIn ) ) ;
+               builder.appendOID( DMS_ID_KEY_NAME ) ;
+            }
+
+            // append other fields
+            while ( boIt.more() )
+            {
+               ele = boIt.next() ;
+               builder.appendElement( ele ) ;
+            }
+
+            builder.done() ;
+            pCurPos += ossRoundUpToMultipleX( builder.len(), 4 ) ;
+            offset += ossRoundUpToMultipleX( objIn.objsize(), 4 ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building new objs "
+                 "command: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+      // 4.Append the hint to the end of the message.
+      if ( _pHint )
+      {
+         ossMemcpy( pCurPos, GET_INSERT_HINT_MARK_PTR( _pHint ),
+                    *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ) ;
+         pCurPos += *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ;
+      }
+      newMsgLen = pCurPos - (*ppNewMsg) ;
+      SDB_ASSERT( newMsgLen <= newMsgSize, "message is over boundary" ) ;
+      ((MsgHeader*)(*ppNewMsg))->messageLength = newMsgLen ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_INSERTOPR__ADD_ID_FIELD_TO_MSG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__ADD_AUTOINC_TO_MSG, "_coordInsertOperator::_addAutoIncToMsg" )
    INT32 _coordInsertOperator::_addAutoIncToMsg( const clsAutoIncSet &autoIncSet,
                                                  MsgOpInsert *pInsertMsg,
                                                  CHAR const *pInsertor,
                                                  const INT32 count,
                                                  INT32 orgMsgLen,
+                                                 BOOLEAN needAppendID,
                                                  pmdEDUCB *cb,
                                                  CHAR **ppNewMsg,
                                                  INT32 &newMsgSize,
@@ -1223,7 +1409,16 @@ namespace engine
       UINT32 headerSize = 0 ;
 
       // 1.malloc a msg buffer which is big enough
-      estimatedSize = orgMsgLen + count * ( autoIncSet.getEleSize() + 4 ) ;
+      if ( needAppendID )
+      {
+         estimatedSize = orgMsgLen + 
+                         count * ossAlign4( autoIncSet.getEleSize() + BSON_ELEMENT_OID_SIZE ) ;
+      }
+      else
+      {
+         estimatedSize = orgMsgLen + count * ossAlign4( autoIncSet.getEleSize() ) ;
+      }
+
       newMsgLen = 0 ;
       rc = msgCheckBuffer( ppNewMsg, &newMsgSize, estimatedSize, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to malloc buffer, rc: %d", rc ) ;
@@ -1240,7 +1435,7 @@ namespace engine
       {
          const BSONObj objIn( (const CHAR*)pInsertor ) ;
          _SimpleBSONBuilder builder( pCurPos ) ;
-         rc = _addAutoIncToObj( objIn, autoIncSet, cb, builder, hasExplicitKey ) ;
+         rc = _addAutoIncToObj( objIn, autoIncSet, cb, builder, hasExplicitKey, needAppendID ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to add autoIncrement field to obj[%s], rc: %d",
                       PD_SECURE_OBJ( objIn ), rc ) ;
@@ -1276,7 +1471,8 @@ namespace engine
                                                  const T &set,
                                                  pmdEDUCB *cb,
                                                  _SimpleBSONBuilder &builder,
-                                                 BOOLEAN &hasExplicitKey )
+                                                 BOOLEAN &hasExplicitKey,
+                                                 BOOLEAN needAppendID )
    {
       PD_TRACE_ENTRY( COORD_INSERTOPR__ADD_AUTOINC_TO_OBJ ) ;
       typedef ossPoolSet<_utilMapStringKey>    StringKeySet ;
@@ -1285,6 +1481,19 @@ namespace engine
       BSONElement                ele ;
       const clsAutoIncItem       *pItem = NULL ;
       StringKeySet               doneSet ;
+
+      // Even if 'needAppendID' is true, we are still not sure 
+      // whether the '_id' field is included in the current record,
+      // so check first.
+      if ( needAppendID )
+      {
+         if ( !objIn.hasField( DMS_ID_KEY_NAME ) )
+         {
+            PD_LOG( PDDEBUG, "The object[%s] needs to append the '_id' field",
+                    PD_SECURE_OBJ( objIn ) ) ;
+            builder.appendOID( DMS_ID_KEY_NAME ) ;
+         }
+      }
 
       // 1. Handle autoIncrement fields inputted by user.
       BSONObjIterator boIt( objIn ) ;

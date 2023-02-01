@@ -550,6 +550,10 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 #define FLG_INSERT_REPLACEONDUP 0x00000004
 #define FLG_INSERT_UPDATEONDUP  0x00000008
 
+// This flag identifies whether the inserted record (or batch of records) contains
+// the '_id' field, which can be used to skip the '_id' field check.
+#define FLG_INSERT_HAS_ID_FIELD 0x00000010
+
 // This flag indicates that a hint is sent in the insert message.
 #define FLG_INSERT_HASHINT      0x80000000
 // For Insert, 1 BSON object will be followed

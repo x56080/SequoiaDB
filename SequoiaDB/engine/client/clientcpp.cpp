@@ -1126,6 +1126,9 @@ do                                                            \
          goto error ;
       }
 
+      // Inform other nodes that the '_id' field is included in the record.
+      OSS_BIT_SET( flags, FLG_INSERT_HAS_ID_FIELD ) ;
+
       // Check strictly that the hint is used with FLG_INSERT_HASHINT together.
       if ( hint.isEmpty() )
       {
@@ -1312,6 +1315,9 @@ do                                                            \
       }
 
       OSS_BIT_SET( flags, FLG_INSERT_RETURNNUM ) ;
+
+      // Inform other nodes that the '_id' field is included in records.
+      OSS_BIT_SET( flags, FLG_INSERT_HAS_ID_FIELD ) ;
 
       for ( SINT32 count = 0 ; count < num ; ++count )
       {
