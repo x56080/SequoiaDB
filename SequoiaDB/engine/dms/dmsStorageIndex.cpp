@@ -2265,7 +2265,7 @@ namespace engine
       BSONObjSet keySet ;
       BOOLEAN allUndefined = FALSE ;
 
-      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, TRUE ) ;
+      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, TRUE, pResult ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     PD_SECURE_OBJ( inputObj ) ) ;
       {
@@ -2512,7 +2512,7 @@ namespace engine
             BSONObjSet::iterator it ;
             BSONObjSet keySet ;
 
-            rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, TRUE ) ;
+            rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, TRUE, pResult ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                           PD_SECURE_OBJ( inputObj ) ) ;
 
@@ -2702,9 +2702,15 @@ namespace engine
       rc = indexCB->getKeysFromObject ( newObj,
                                         keySetNew,
                                         &newAllUndefined,
-                                        !isRollback ) ;
+                                        !isRollback,
+                                        pResult ) ;
       if ( rc )
       {
+         if ( NULL != pResult &&
+              pResult->getCurID().isEmpty() )
+         {
+            pResult->setCurrentID( originalObj ) ;
+         }
          PD_LOG ( PDERROR, "Failed to get keys from new object %s",
                   PD_SECURE_OBJ( newObj ) ) ;
          goto error ;
@@ -3052,7 +3058,13 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from org object %s",
                          PD_SECURE_OBJ( originalObj ) ) ;
 
-            rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, !isRollback ) ;
+            rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, !isRollback, pResult ) ;
+            if ( SDB_OK != rc &&
+                 NULL != pResult &&
+                 pResult->getCurID().isEmpty() )
+            {
+               pResult->setCurrentID( originalObj ) ;
+            }
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from new object %s",
                          PD_SECURE_OBJ( newObj ) ) ;
 

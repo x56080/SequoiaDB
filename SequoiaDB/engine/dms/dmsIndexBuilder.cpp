@@ -399,7 +399,13 @@ namespace engine
          PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                        PD_SECURE_OBJ( obj ) ) ;
 
-         rc = _indexCB->checkKeys( keySet, arrEle ) ;
+         rc = _indexCB->checkKeys( keySet, arrEle, _pResult ) ;
+         if ( SDB_OK != rc &&
+              NULL != _pResult &&
+              _pResult->getCurID().isEmpty() )
+         {
+            _pResult->setCurrentID( obj ) ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object %s, "
                       "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
