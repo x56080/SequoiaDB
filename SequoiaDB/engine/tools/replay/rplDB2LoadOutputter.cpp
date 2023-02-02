@@ -394,18 +394,18 @@ namespace replay
                                             const BSONObj &shardingKey,
                                             const BSONObj &oldModifier,
                                             const UINT64 &opTimeMicroSecond,
-                                            const UINT32 &logWriteMod )
+                                            const UINT32 &logWriteMode )
    {
       INT32 rc = SDB_OK ;
       string strOut ;
       const CHAR *dbName = NULL ;
       const CHAR *tableName = NULL ;
 
-      if ( DPS_LOG_WRITE_MOD_FULL != logWriteMod )
+      if ( DPS_LOG_WRITE_MODE_FULL != logWriteMode )
       {
          rc = SDB_INVALIDARG ;
-         PD_RC_CHECK( rc, PDERROR, "LogWriteMod(%d) is invalid, rc = %d",
-                      logWriteMod, rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "LogWriteMode(%d) is invalid, rc = %d",
+                      logWriteMode, rc ) ;
       }
 
       rc = _generateRecord( clFullName, RPL_DB2LOAD_OP_UPDATE_BEFORE,

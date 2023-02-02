@@ -336,7 +336,7 @@ TEST( idxHashTest, test_set )
    BSONObj updator = BSON( "$set" << BSON( "a" << 1 << "b" << 1 ) <<
                            "$unset" << BSON( "c" << 1 << "d" << 1 ) ) ;
    rc = modifier.loadPattern( updator, NULL, TRUE, NULL, TRUE,
-                              DPS_LOG_WRITE_MOD_INCREMENT, TRUE ) ;
+                              DPS_LOG_WRITE_MODE_INCREMENT, TRUE ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
    ASSERT_TRUE( modifier.getIdxHashBitmap().isEqual( bitmap ) ) ;
 }
@@ -352,7 +352,7 @@ TEST( idxHashTest, test_rename )
 
    BSONObj updator = BSON( "$rename" << BSON( "a" << "b" ) ) ;
    rc = modifier.loadPattern( updator, NULL, TRUE, NULL, TRUE,
-                              DPS_LOG_WRITE_MOD_INCREMENT, TRUE ) ;
+                              DPS_LOG_WRITE_MODE_INCREMENT, TRUE ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
    ASSERT_TRUE( modifier.getIdxHashBitmap().isEqual( bitmap ) ) ;
 }
@@ -364,7 +364,7 @@ TEST( idxHashTest, test_replace )
 
    BSONObj updator = BSON( "$replace" << BSON( "a" << 1 << "b" << 1 ) ) ;
    rc = modifier.loadPattern( updator, NULL, TRUE, NULL, TRUE,
-                              DPS_LOG_WRITE_MOD_INCREMENT, TRUE ) ;
+                              DPS_LOG_WRITE_MODE_INCREMENT, TRUE ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
    ASSERT_TRUE( modifier.getIdxHashBitmap().isFull() ) ;
 }

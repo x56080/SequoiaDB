@@ -2194,10 +2194,10 @@
    </opt>
 
    <opt>
-      <name>PMD_OPTION_LOGWRITEMOD</name>
+      <name>PMD_OPTION_LOGWRITEMODE</name>
       <long>logwritemod</long>
       <description>
-        <en>Replica log write mod, value enumeration:increment,full, default:increment.</en>
+        <en>Replica log write mode, value enumeration:increment,full, default:increment.</en>
         <cn>复制日志写模式，取值：increment,full,默认为increment。</cn>
       </description>
       <reloadable>
@@ -2209,7 +2209,7 @@
          <cn>下一次事务中生效</cn>
       </reloadstrategy>
       <detail>
-        <en>Replica log write mod, value enumeration:increment,full, default:increment.</en>
+        <en>Replica log write mode, value enumeration:increment,full, default:increment.</en>
         <cn>复制日志写模式，取值：increment,full,默认为increment。为increment时，复制日志只保存更新记录的增量信息；为full时，复制日志将保存更新记录的完整信息。</cn>
       </detail>
       <default>increment</default>

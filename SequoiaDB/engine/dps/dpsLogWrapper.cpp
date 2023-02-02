@@ -94,7 +94,7 @@ namespace engine
       _syncInterval = optCB->getSyncInterval() ;
       _syncRecordNum = optCB->getSyncRecordNum() ;
       dpsGetGlobalLogConfig().updateConf( optCB->logTimeOn(),
-                                          optCB->logWriteMod() ) ;
+                                          optCB->logWriteMode() ) ;
 
       pmdGetSyncMgr()->setLogAccess( this ) ;
       pmdGetSyncMgr()->setMainUnit( this ) ;
@@ -242,7 +242,7 @@ namespace engine
       _syncInterval = optCB->getSyncInterval() ;
       _syncRecordNum = optCB->getSyncRecordNum() ;
       dpsGetGlobalLogConfig().updateConf( optCB->logTimeOn(),
-                                          optCB->logWriteMod() ) ;
+                                          optCB->logWriteMode() ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_SEARCH, "_dpsLogWrapper::search" )

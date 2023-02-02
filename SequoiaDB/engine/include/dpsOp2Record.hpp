@@ -145,7 +145,7 @@ namespace engine
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-                           const UINT32 *writeMod,
+                           const UINT32 *writeMode,
                            dpsLogRecord &record ) ;
 
    INT32 dpsRecord2Update( const CHAR *logRecord,
@@ -157,7 +157,7 @@ namespace engine
                            BSONObj *oldShardingKey = NULL,
                            BSONObj *newShardingKey = NULL,
                            UINT64 *microSeconds = NULL,
-                           UINT32 *writeMod = NULL,
+                           UINT32 *writeMode = NULL,
                            dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
                            dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
 

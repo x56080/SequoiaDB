@@ -385,7 +385,7 @@ namespace engine
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-                           const UINT32 *writeMod,
+                           const UINT32 *writeMode,
                            dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -474,12 +474,12 @@ namespace engine
          }
       }
 
-      if ( NULL != writeMod )
+      if ( NULL != writeMode )
       {
-         rc = record.push( DPS_LOG_UPDATE_WRITEMOD, sizeof(*writeMod),
-                           (CHAR *)writeMod ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to push writeMod(%d) to record, "
-                      "rc = %d", *writeMod, rc ) ;
+         rc = record.push( DPS_LOG_UPDATE_WRITEMODE, sizeof(*writeMode),
+                           (CHAR *)writeMode ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push writeMode(%d) to record, "
+                      "rc = %d", *writeMode, rc ) ;
       }
 
       rc = checkAndAddTimeInfo( record ) ;
@@ -518,7 +518,7 @@ namespace engine
                            BSONObj *oldShardingKey,
                            BSONObj *newShardingKey,
                            UINT64 *microSeconds,
-                           UINT32 *writeMod,
+                           UINT32 *writeMode,
                            dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                            dpsUnqIdxHashArray *pOldUnqIdxHashArray )
    {
@@ -628,13 +628,13 @@ namespace engine
          }
       }
 
-      if ( NULL != writeMod )
+      if ( NULL != writeMode )
       {
          dpsLogRecord::iterator itrTime ;
-         itrTime = record.find( DPS_LOG_UPDATE_WRITEMOD ) ;
+         itrTime = record.find( DPS_LOG_UPDATE_WRITEMODE ) ;
          if ( itrTime.valid() )
          {
-            *writeMod = *( UINT32 *) itrTime.value() ;
+            *writeMode = *( UINT32 *) itrTime.value() ;
          }
       }
 

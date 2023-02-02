@@ -4736,8 +4736,8 @@ namespace engine
       UINT32 logRecSize             = 0 ;
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
-      UINT32 writeMod = DPS_LOG_WRITE_MOD_INCREMENT ;
-      UINT32 *pWriteMod = NULL ;
+      UINT32 writeMode = DPS_LOG_WRITE_MODE_INCREMENT ;
+      UINT32 *pWriteMode = NULL ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       DPS_TRANS_ID transID = cb->getTransID() ;
@@ -4824,25 +4824,25 @@ namespace engine
 
             if ( dpscb )
             {
-               if ( DPS_LOG_WRITE_MOD_INCREMENT == cb->getLogWriteMod() )
+               if ( DPS_LOG_WRITE_MODE_INCREMENT == cb->getLogWriteMode() )
                {
                   rc = modifier.modify ( obj, newobj, &oldMatch, &oldChg,
                                          &newMatch, &newChg,
                                          &oldShardingKey, &newShardingKey ) ;
-                  // set to NULL indicate do not write tag DPS_LOG_UPDATE_WRITEMOD
-                  pWriteMod = NULL ;
+                  // set to NULL indicate do not write tag DPS_LOG_UPDATE_WRITEMODE
+                  pWriteMode = NULL ;
                }
                else
                {
-                  writeMod = DPS_LOG_WRITE_MOD_FULL ;
+                  writeMode = DPS_LOG_WRITE_MODE_FULL ;
                   rc = modifier.modify ( obj, newobj, &oldMatch, NULL,
                                          &newMatch, NULL,
                                          &oldShardingKey, &newShardingKey ) ;
                   // obj and newobj's life cycle is too short to log dps.
                   oldChg = obj.getOwned() ;
                   newChg = newobj.getOwned() ;
-                  // others write tag DPS_LOG_UPDATE_WRITEMOD
-                  pWriteMod = &writeMod ;
+                  // others write tag DPS_LOG_UPDATE_WRITEMODE
+                  pWriteMode = &writeMode ;
                }
 
                if ( SDB_OK == rc && pHandler )
@@ -4938,7 +4938,7 @@ namespace engine
                                       oldShardingKey, newShardingKey,
                                       pNewUnqIdxHashArray, pOldUnqIdxHashArray,
                                       transID, preTransLsn,
-                                      relatedLSN, pWriteMod, record ) ;
+                                      relatedLSN, pWriteMode, record ) ;
 
                if ( SDB_OK != rc )
                {

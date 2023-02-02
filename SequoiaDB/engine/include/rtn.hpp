@@ -156,7 +156,7 @@ namespace engine
                      pmdEDUCB *cb,
                      utilUpdateResult *pResult = NULL,
                      const BSONObj *shardingKey = NULL,
-                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                     UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT,
                      IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
@@ -165,7 +165,7 @@ namespace engine
                      INT16 w = 1,
                      utilUpdateResult *pResult = NULL,
                      const BSONObj *shardingKey = NULL,
-                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                     UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT,
                      IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpdate ( rtnQueryOptions &options, const BSONObj &updator,
@@ -173,7 +173,7 @@ namespace engine
                      INT16 w = 1,
                      utilUpdateResult *pResult = NULL,
                      const BSONObj *shardingKey = NULL,
-                     UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                     UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT,
                      IRtnOprHandler *opHandler = NULL ) ;
 
    INT32 rtnUpsertSet( const BSONElement& setOnInsert, BSONObj& target ) ;
