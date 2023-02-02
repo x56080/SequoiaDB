@@ -1,10 +1,9 @@
 
-查询快照可以列出数据库中正在进行的查询信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，查询耗时超过 [monslowquerythreshold][configuration] 参数所规定阈值的历史查询信息会被缓存。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史查询信息。
+查询快照可以列出数据库中正在进行的查询信息。该快照仅在参数 [mongroupmask][configuration] 的监控级别为"detail"时返回查询信息。当查询耗时超过参数 [monslowquerythreshold][configuration] 所规定的阈值时，查询信息将被保存为历史查询信息，用户可通过指定 [viewHistory][SnapshotOption] 选项查看该历史信息。
 
 >**Note:**
 >
 > 每一个数据节点上正在进行的每一个查询操作为一条记录。
-
 
 ##标识##
 
