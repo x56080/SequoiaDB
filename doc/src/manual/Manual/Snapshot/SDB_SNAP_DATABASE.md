@@ -30,6 +30,8 @@ SDB_SNAP_DATABASE
 | ServiceName           | string    | svcname 所指定的服务名，与 HostName 共同作为一个逻辑节点的标识                                                 |
 | GroupName             | string    | 该逻辑节点所属的复制组名，standalone 模式下该字段为空字符串     |
 | IsPrimary             | boolean   | 是否为主节点，standalone 模式下该字段为 false                   |
+| Location              | string    | 节点的位置信息，该字段为空时表示未设置位置属性                  |
+| IsLocationPrimary     | boolean   | 是否为位置集主节点                                              |
 | ServiceStatus         | boolean   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status                | string    | 节点状态，取值如下：<br/>            "Normal"：正常工作状态 <br/>              "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据 <br/>           "FullSync"：全量同步状态 <br/>              "OfflineBackup"：[数据备份][regular_bar]状态   |
 | FTStatus              | string | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
@@ -185,6 +187,8 @@ SDB_SNAP_DATABASE
      "ServiceName": "11820",
      "GroupName": "group1",
      "IsPrimary": true,
+     "Location": "GuangZhou",
+     "IsLocationPrimary": true,
      "ServiceStatus": true,
      "Status": "Normal",
      "FTStatus": "",

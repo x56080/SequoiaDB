@@ -94,7 +94,8 @@ v2.0 及以上版本
     "Locations": [
       {
         "Location": "GuangZhou",
-        "LocationID": 1
+        "LocationID": 1,
+        "PrimaryNode": 1000
       }
     ],
     "PrimaryNode": 1001,

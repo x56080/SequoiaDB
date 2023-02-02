@@ -75,7 +75,8 @@ v3.4.2 及以上版本
   "Locations": [
     {
       "Location": "GuangZhou",
-      "LocationID": 1
+      "LocationID": 1,
+      "PrimaryNode": 1002
     }
   ],
   "PrimaryNode": 1004,

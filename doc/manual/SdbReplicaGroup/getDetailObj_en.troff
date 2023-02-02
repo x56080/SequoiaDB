@@ -79,7 +79,8 @@ The result is as follow:
   "Locations": [
     {
       "Location": "GuangZhou",
-      "LocationID": 1
+      "LocationID": 1,
+      "PrimaryNode": 1002
     }
   ],
   "PrimaryNode": 1004,

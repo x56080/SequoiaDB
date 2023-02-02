@@ -21,6 +21,8 @@ SDB_SNAP_SYSTEM
 | ServiceName          | string    | 数据库的服务名                                                 |
 | GroupName            | string    | 节点所属复制组的名称，standalone 模式下该字段为空字符串    |
 | IsPrimary            | boolean   | 是否为主节点，standalone 模式下该字段为 false                  |
+| Location              | string    | 节点的位置信息，该字段为空时表示未设置位置属性                  |
+| IsLocationPrimary     | boolean   | 是否为位置集主节点                                              |
 | ServiceStatus        | boolean   | 是否为可提供服务状态 <br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status               | string    | 数据库状态，如：Normal、Shutdown、Rebuilding、FullSync、OfflineBackup |
 | BeginLSN.Offset      | int64 | 起始 LSN 的偏移                                                |
@@ -87,63 +89,65 @@ SDB_SNAP_SYSTEM
 
     输出结果如下：
 
-    ```lang-json
-    {
-      "NodeName": "hostname1:11820",
-      "HostName": "hostname1",
-      "ServiceName": "11820",
-      "GroupName": "group1",
-      "IsPrimary": false,
-      "ServiceStatus": true,
-      "Status": "Normal",
-      "BeginLSN": {
-        "Offset": 0,
-        "Version": 1
-      },
-      "CurrentLSN": {
-        "Offset": 3764,
-        "Version": 1
-      },
-      "CommittedLSN": {
-        "Offset": 3764,
-        "Version": 1
-      },
-      "CompleteLSN": 3865,
-      "LSNQueSize": 0,
-      "TransInfo": {
-        "TotalCount": 0,
-        "BeginLSN": -1
-        },
-      "NodeID": [
-        1000,
-        1000
-      ],
-      "CPU": {
-        "User": 178552.74,
-        "Sys": 58392.44,
-        "Idle": 6400173.12,
-        "IOWait": 22336.26,
-        "Other": 7856.64
-      },
-      "Memory": {
-        "LoadPercent": 66,
-        "TotalRAM": 8370360320,
-        "FreeRAM": 162598912,
-        "AvailableRAM": 2795474944,
-        "TotalSwap": 16383401984,
-        "FreeSwap": 16046903296,
-        "TotalVirtual": 24753762304,
-        "FreeVirtual": 18842378240
-      },
-      "Disk": {
-        "Name":"/dev/sda1",
-        "DatabasePath": "/opt/sequoiadb/database/data/11820",
-        "LoadPercent": 78,
-        "TotalSpace": 40704466944,
-        "FreeSpace": 8615747584
-      }
-    }
-    ```
+   ```lang-json
+   {
+     "NodeName": "hostname1:11820",
+     "HostName": "hostname1",
+     "ServiceName": "11820",
+     "GroupName": "group1",
+     "IsPrimary": false,
+     "Location": "GuangZhou",
+     "IsLocationPrimary": false,
+     "ServiceStatus": true,
+     "Status": "Normal",
+     "BeginLSN": {
+       "Offset": 0,
+       "Version": 1
+     },
+     "CurrentLSN": {
+       "Offset": 3764,
+       "Version": 1
+     },
+     "CommittedLSN": {
+       "Offset": 3764,
+       "Version": 1
+     },
+     "CompleteLSN": 3865,
+     "LSNQueSize": 0,
+     "TransInfo": {
+       "TotalCount": 0,
+       "BeginLSN": -1
+       },
+     "NodeID": [
+       1000,
+       1000
+     ],
+     "CPU": {
+       "User": 178552.74,
+       "Sys": 58392.44,
+       "Idle": 6400173.12,
+       "IOWait": 22336.26,
+       "Other": 7856.64
+     },
+     "Memory": {
+       "LoadPercent": 66,
+       "TotalRAM": 8370360320,
+       "FreeRAM": 162598912,
+       "AvailableRAM": 2795474944,
+       "TotalSwap": 16383401984,
+       "FreeSwap": 16046903296,
+       "TotalVirtual": 24753762304,
+       "FreeVirtual": 18842378240
+     },
+     "Disk": {
+       "Name":"/dev/sda1",
+       "DatabasePath": "/opt/sequoiadb/database/data/11820",
+       "LoadPercent": 78,
+       "TotalSpace": 40704466944,
+       "FreeSpace": 8615747584
+     }
+   }
+   ```
 
 - 通过协调节点查看快照
 

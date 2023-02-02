@@ -3539,6 +3539,12 @@
                            "en": "reelect()"
                         },
                         {
+                           "id": 1671203906,
+                           "file": "reelectLocation",
+                           "cn": "reelectLocation()",
+                           "en": "reelectLocation()"
+                        },
+                        {
                            "id": 1432190874,
                            "file": "removeNode",
                            "cn": "removeNode()",
