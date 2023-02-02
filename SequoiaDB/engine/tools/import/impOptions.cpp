@@ -452,45 +452,51 @@ namespace import
    {
       if (stringDelimiter.find( fieldDelimiter ) != string::npos)
       {
-         std::cerr << IMP_OPTION_DELCHAR << " can't contain "
-                   << IMP_OPTION_DELFIELD << std::endl;
+         std::cerr << "'" << IMP_OPTION_DELCHAR << "'"
+                   << " can't contain "
+                   << "'" << IMP_OPTION_DELFIELD << "'" << std::endl;
          return FALSE;
       }
 
       if ( stringDelimiter.find( recordDelimiter ) != string::npos )
       {
-         std::cerr << IMP_OPTION_DELCHAR << " can't contain "
-                   << IMP_OPTION_DELRECORD << std::endl;
+         std::cerr << "'" << IMP_OPTION_DELCHAR << "'"
+                   << " can't contain "
+                   << "'" << IMP_OPTION_DELRECORD << "'" << std::endl;
          return FALSE;
       }
 
       if ( stringDelimiter.size() > 0 &&
            fieldDelimiter.find( stringDelimiter ) != string::npos )
       {
-         std::cerr << IMP_OPTION_DELFIELD << " can't contain "
-                   << IMP_OPTION_DELCHAR << std::endl;
+         std::cerr << "'" << IMP_OPTION_DELFIELD << "'"
+                   << " can't contain "
+                   << "'" << IMP_OPTION_DELCHAR << "'" << std::endl;
          return FALSE;
       }
 
       if ( fieldDelimiter.find( recordDelimiter ) != string::npos )
       {
-         std::cerr << IMP_OPTION_DELFIELD << " can't contain "
-                   << IMP_OPTION_DELRECORD << std::endl;
+         std::cerr << "'" << IMP_OPTION_DELFIELD << "'"
+                   << " can't contain "
+                   << "'" << IMP_OPTION_DELRECORD << "'" << std::endl;
          return FALSE;
       }
 
       if ( stringDelimiter.size() > 0 &&
            recordDelimiter.find( stringDelimiter ) != string::npos )
       {
-         std::cerr << IMP_OPTION_DELRECORD << " can't contain "
-                   << IMP_OPTION_DELCHAR << std::endl;
+         std::cerr << "'" << IMP_OPTION_DELRECORD << "'"
+                   << " can't contain "
+                   << "'" << IMP_OPTION_DELCHAR << "'" << std::endl;
          return FALSE;
       }
 
       if ( recordDelimiter.find( fieldDelimiter ) != string::npos )
       {
-         std::cerr << IMP_OPTION_DELRECORD << " can't contain "
-                   << IMP_OPTION_DELFIELD << std::endl;
+         std::cerr << "'" << IMP_OPTION_DELRECORD << "'"
+                   << " can't contain "
+                   << "'" << IMP_OPTION_DELFIELD << "'" << std::endl;
          return FALSE;
       }
 
@@ -626,7 +632,7 @@ namespace import
                if ( has(IMP_OPTION_TOKEN) || has(IMP_OPTION_CIPHERFILE) )
                {
                   std::cout << "If you want to use cipher text, you should use"
-                            << " \"--cipher true\"" << std::endl ;
+                            << " '--cipher true'" << std::endl ;
                }
             }
          }
@@ -639,7 +645,8 @@ namespace import
 
       if (_csName.empty())
       {
-         std::cerr << IMP_OPTION_COLLECTSPACE " must be specified"  << std::endl;
+         std::cerr << "'" << IMP_OPTION_COLLECTSPACE << "'"
+                   << " must be specified"  << std::endl;
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -651,15 +658,18 @@ namespace import
 
       if (_clName.empty())
       {
-         std::cerr << IMP_OPTION_COLLECTION " must be specified" << std::endl;
+         std::cerr << "'" << IMP_OPTION_COLLECTION << "'"
+                   << " must be specified" << std::endl;
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       if (has(IMP_OPTION_FILENAME) && has(IMP_OPTION_EXEC))
       {
-         std::cerr << IMP_OPTION_FILENAME " and "
-                   << IMP_OPTION_EXEC " cannot be used at same time"
+         std::cerr << "'" << IMP_OPTION_FILENAME << "'"
+                   << " and "
+                   << "'" << IMP_OPTION_EXEC << "'"
+                   << " cannot be used at same time"
                    << std::endl;
          rc = SDB_INVALIDARG;
          goto error;
@@ -673,7 +683,8 @@ namespace import
          rc = parseFileList( fileList, _files ) ;
          if ( rc )
          {
-            std::cerr << "Invalid " << IMP_OPTION_FILENAME
+            std::cerr << "Invalid " 
+                      << "'" << IMP_OPTION_FILENAME << "'"
                       << std::endl;
             goto error;
          }
@@ -697,7 +708,9 @@ namespace import
          }
          else
          {
-            std::cerr << "Invalid argument of [" IMP_OPTION_TYPE "]: " << type
+            std::cerr << "Invalid argument of "
+                      << "'" IMP_OPTION_TYPE << "'"
+                      << ": " << type
                       << std::endl ;
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -709,7 +722,8 @@ namespace import
          _batchSize = get<INT32>(IMP_OPTION_BATCHSIZE);
          if (_batchSize <= 0 || _batchSize > 100000)
          {
-            std::cerr << IMP_OPTION_BATCHSIZE " is out of range [1-100000]: "
+            std::cerr << "'" << IMP_OPTION_BATCHSIZE << "'" 
+                      << " is out of range [1-100000]: "
                       << _batchSize
                       << std::endl ;
             rc = SDB_INVALIDARG ;
@@ -737,8 +751,8 @@ namespace import
          else
          {
             rc = ossStrToBoolean( linePriority.c_str(), &_linePriority ) ;
-            SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                          IMP_OPTION_LINEPRIORITY ) ;
+            SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                          linePriority.c_str() ,IMP_OPTION_LINEPRIORITY ) ;
          }
       }
       else
@@ -757,16 +771,16 @@ namespace import
       {
          string errorStop = get<string>(IMP_OPTION_ERRORSTOP);
          rc = ossStrToBoolean( errorStop.c_str(), &_errorStop ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_ERRORSTOP ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       errorStop.c_str(), IMP_OPTION_ERRORSTOP ) ;
       }
 
       if (has(IMP_OPTION_FORCE))
       {
          string force = get<string>(IMP_OPTION_FORCE);
          rc = ossStrToBoolean( force.c_str(), &_force ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_FORCE ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       force.c_str(), IMP_OPTION_FORCE ) ;
       }
 
       if (has(IMP_OPTION_JOBS))
@@ -774,7 +788,8 @@ namespace import
          _jobs = get<INT32>(IMP_OPTION_JOBS);
          if (_jobs <= 0 || _jobs > 1000)
          {
-            std::cerr << IMP_OPTION_JOBS " is out of range [1, 1000]: " << _jobs
+            std::cerr << "'" << IMP_OPTION_JOBS << "'"
+                      << " is out of range [1, 1000]: " << _jobs
                       << std::endl ;
             rc = SDB_INVALIDARG;
             goto error;
@@ -787,7 +802,8 @@ namespace import
          if ( _parsers <= 0 || _parsers > 1000 )
          {
             rc = SDB_INVALIDARG ;
-            std::cerr << IMP_OPTION_PARSERS " is out of range [1, 1000]: "
+            std::cerr << "'" << IMP_OPTION_PARSERS << "'"
+                      << " is out of range [1, 1000]: "
                       << _parsers << std::endl ;
             goto error ;
          }
@@ -797,8 +813,8 @@ namespace import
       {
          string ssl = get<string>(IMP_OPTION_SSL);
          rc = ossStrToBoolean( ssl.c_str(), &_useSSL ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_SSL ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       ssl.c_str(), IMP_OPTION_SSL ) ;
       }
 
       if (has(IMP_OPTION_DELCHAR))
@@ -808,7 +824,8 @@ namespace import
          rc = _convertAsciiEscapeChar(_stringDelimiterIn, _stringDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid " << IMP_OPTION_DELCHAR
+            std::cerr << "Invalid "
+                      << "'" << IMP_OPTION_DELCHAR << "'"
                       << std::endl;
             goto error;
          }
@@ -824,7 +841,8 @@ namespace import
          _recordDelimiterIn = get<string>(IMP_OPTION_DELRECORD);
          if (_recordDelimiterIn.empty())
          {
-            std::cerr << IMP_OPTION_DELRECORD << " can't be empty"
+            std::cerr << "'" << IMP_OPTION_DELRECORD << "'"
+                      << " can't be empty"
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -833,7 +851,8 @@ namespace import
          rc = _convertAsciiEscapeChar(_recordDelimiterIn, _recordDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid " << IMP_OPTION_DELRECORD
+            std::cerr << "Invalid " 
+                      << "'" << IMP_OPTION_DELRECORD << "'"
                       << std::endl;
             goto error;
          }
@@ -844,7 +863,8 @@ namespace import
          _fieldDelimiterIn = get<string>(IMP_OPTION_DELFIELD);
          if (_fieldDelimiterIn.empty())
          {
-            std::cerr << IMP_OPTION_DELFIELD << " can't be empty"
+            std::cerr << "'" << IMP_OPTION_DELFIELD << "'"
+                      << " can't be empty"
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -853,7 +873,8 @@ namespace import
          rc = _convertAsciiEscapeChar(_fieldDelimiterIn, _fieldDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid " << IMP_OPTION_DELFIELD
+            std::cerr << "Invalid "
+                      << "'" << IMP_OPTION_DELFIELD << "'"
                       << std::endl;
             goto error;
          }
@@ -868,32 +889,36 @@ namespace import
       {
          if (_stringDelimiter == _recordDelimiter)
          {
-            std::cerr << IMP_OPTION_DELCHAR << " can't be same with "
-                      << IMP_OPTION_DELRECORD << std::endl;
+            std::cerr << "'" << IMP_OPTION_DELCHAR << "'"
+                      << " can't be same with "
+                      << "'" << IMP_OPTION_DELRECORD << "'" << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
          }
 
          if (_stringDelimiter == _fieldDelimiter)
          {
-            std::cerr << IMP_OPTION_DELCHAR << " can't be same with "
-                      << IMP_OPTION_DELFIELD << std::endl;
+            std::cerr << "'" << IMP_OPTION_DELCHAR << "'"
+                      << " can't be same with "
+                      << "'" << IMP_OPTION_DELFIELD << "'" << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
          }
 
          if (_recordDelimiter == _fieldDelimiter)
          {
-            std::cerr << IMP_OPTION_DELRECORD << " can't be same with "
-                      << IMP_OPTION_DELFIELD << std::endl;
+            std::cerr << "'" << IMP_OPTION_DELRECORD << "'"
+                      << " can't be same with "
+                      << "'" << IMP_OPTION_DELFIELD << "'" << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
          }
 
          if (_fieldDelimiter.find( _recordDelimiter ) != string::npos)
          {
-            std::cerr << IMP_OPTION_DELFIELD << " can't contain "
-                      << IMP_OPTION_DELRECORD << std::endl;
+            std::cerr << "'" << IMP_OPTION_DELFIELD << "'"
+                      << " can't contain "
+                      << "'" << IMP_OPTION_DELRECORD << "'" << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
          }
@@ -918,8 +943,8 @@ namespace import
       {
          string headerline = get<string>(IMP_OPTION_HEADERLINE);
          rc = ossStrToBoolean( headerline.c_str(), &_hasHeaderLine ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_HEADERLINE ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       headerline.c_str(), IMP_OPTION_HEADERLINE ) ;
       }
 
       if (has(IMP_OPTION_UNICODE))
@@ -945,8 +970,9 @@ namespace import
          }
          else
          {
-            std::cerr << "Invalid value for option " IMP_OPTION_DECIMALTO ": "
-                      << decimalto << std::endl ;
+            std::cerr << "Invalid value for option "
+                      << "'" << IMP_OPTION_DECIMALTO << "'"
+                      << ": " << decimalto << std::endl ;
             rc = SDB_INVALIDARG;
             goto error;
          }
@@ -956,7 +982,9 @@ namespace import
       {
          if (_fields.empty() && !_hasHeaderLine)
          {
-            std::cerr << IMP_OPTION_FIELDS " or " IMP_OPTION_HEADERLINE
+            std::cerr << "'" << IMP_OPTION_FIELDS << "'"
+                      << " or "
+                      << "'" IMP_OPTION_HEADERLINE << "'"
                       << " must be specified when type is csv"
                       << std::endl;
             rc = SDB_INVALIDARG;
@@ -968,32 +996,32 @@ namespace import
       {
          string sparse = get<string>(IMP_OPTION_SPARSE);
          rc = ossStrToBoolean( sparse.c_str(), &_autoAddField ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_SPARSE ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       sparse.c_str(), IMP_OPTION_SPARSE ) ;
       }
 
       if (has(IMP_OPTION_EXTRA))
       {
          string extra = get<string>(IMP_OPTION_EXTRA);
          rc = ossStrToBoolean( extra.c_str(), &_autoCompletion ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_EXTRA ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       extra.c_str(), IMP_OPTION_EXTRA ) ;
       }
 
       if (has(IMP_OPTION_CAST))
       {
          string cast = get<string>(IMP_OPTION_CAST);
          rc = ossStrToBoolean( cast.c_str(), &_cast ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_CAST ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       cast.c_str(), IMP_OPTION_CAST ) ;
       }
 
       if (has(IMP_OPTION_STRICTFIELDNUM))
       {
          string strict = get<string>(IMP_OPTION_STRICTFIELDNUM);
          rc = ossStrToBoolean( strict.c_str(), &_strictFieldNum ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_STRICTFIELDNUM ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       strict.c_str(), IMP_OPTION_STRICTFIELDNUM ) ;
       }
 
       if (has(IMP_OPTION_DATEFMT))
@@ -1002,7 +1030,8 @@ namespace import
          rc = checkDateTimeFormat(datefmt);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DATEFMT
+            std::cerr << "Invalid option "
+                      << "'" << IMP_OPTION_DATEFMT << "'"
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -1017,7 +1046,8 @@ namespace import
          rc = checkDateTimeFormat(tsfmt);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_TIMESTAMPFMT
+            std::cerr << "Invalid option "
+                      << "'" << IMP_OPTION_TIMESTAMPFMT << "'"
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -1047,7 +1077,8 @@ namespace import
          }
          else
          {
-            std::cerr << "Invalid option " << IMP_OPTION_TRIMSTRING
+            std::cerr << "Invalid option "
+                      << "'" << IMP_OPTION_TRIMSTRING << "'"
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -1059,7 +1090,8 @@ namespace import
          _bufferSize = get<INT32>(IMP_OPTION_BUFFERSIZE);
          if (_bufferSize < 32 || _bufferSize > 2048)
          {
-            std::cerr << IMP_OPTION_BUFFERSIZE " is out of range [32, 2048]: "
+            std::cerr << "'" << IMP_OPTION_BUFFERSIZE << "'"
+                      << " is out of range [32, 2048]: "
                       << _bufferSize << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -1082,32 +1114,32 @@ namespace import
       {
          string sharding = get<string>(IMP_OPTION_SHARDING);
          rc = ossStrToBoolean( sharding.c_str(), &_enableSharding ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_SHARDING ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       sharding.c_str(), IMP_OPTION_SHARDING ) ;
       }
 
       if (has(IMP_OPTION_COORD))
       {
          string coord = get<string>(IMP_OPTION_COORD);
          rc = ossStrToBoolean( coord.c_str(), &_enableCoord ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_COORD ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       coord.c_str(), IMP_OPTION_COORD ) ;
       }
 
       if (has(IMP_OPTION_TRANSACTION))
       {
          string tx = get<string>(IMP_OPTION_TRANSACTION);
          rc = ossStrToBoolean( tx.c_str(), &_enableTransaction ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_TRANSACTION ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       tx.c_str(), IMP_OPTION_TRANSACTION ) ;
       }
 
       if (has(IMP_OPTION_ALLOWKEYDUP))
       {
          string allowKeyDup = get<string>(IMP_OPTION_ALLOWKEYDUP);
          rc = ossStrToBoolean( allowKeyDup.c_str(), &_allowKeyDuplication ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_ALLOWKEYDUP ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       allowKeyDup.c_str(), IMP_OPTION_ALLOWKEYDUP ) ;
       }
 
       if( has( IMP_OPTION_REPLACEKEYDUP ) )
@@ -1115,15 +1147,17 @@ namespace import
          string replaceKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP ) ;
          rc = ossStrToBoolean( replaceKeyDup.c_str(),
                                &_replaceKeyDuplication ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_REPLACEKEYDUP ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       replaceKeyDup.c_str(), IMP_OPTION_REPLACEKEYDUP ) ;
 
          if( _replaceKeyDuplication && _allowKeyDuplication )
          {
             if ( has( IMP_OPTION_ALLOWKEYDUP ) )
             {
-               std::cerr << IMP_OPTION_REPLACEKEYDUP " and "
-                         << IMP_OPTION_ALLOWKEYDUP " can't both be true"
+               std::cerr << "'" << IMP_OPTION_REPLACEKEYDUP << "'"
+                         << " and "
+                         << "'" << IMP_OPTION_ALLOWKEYDUP << "'"
+                         << " can't both be true"
                          << std::endl ;
                rc = SDB_INVALIDARG ;
                goto error ;
@@ -1140,7 +1174,8 @@ namespace import
          INT64 recordsMem = get<INT32>(IMP_OPTION_RECORDSMEM);
          if (recordsMem < 128 || recordsMem > 81920)
          {
-            std::cerr << IMP_OPTION_RECORDSMEM " is out of range [128, 81920]: "
+            std::cerr << "'" << IMP_OPTION_RECORDSMEM << "'"
+                      << " is out of range [128, 81920]: "
                       << recordsMem
                       << std::endl;
             rc = SDB_INVALIDARG;
@@ -1154,8 +1189,8 @@ namespace import
       {
          string ignoreNull = get<string>(IMP_OPTION_IGNORENULL);
          rc = ossStrToBoolean( ignoreNull.c_str(), &_ignoreNull ) ;
-         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value for option: %s",
-                                       IMP_OPTION_IGNORENULL ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       ignoreNull.c_str(), IMP_OPTION_IGNORENULL ) ;
       }
 
    done:

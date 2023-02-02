@@ -4754,7 +4754,7 @@ namespace import
          else
          {
             rc = SDB_INVALIDARG;
-            PD_LOG( PDERROR, "Missing \"default\" keyword" ) ;
+            PD_LOG( PDERROR, "Missing 'default' keyword" ) ;
             goto error;
          }
       }
