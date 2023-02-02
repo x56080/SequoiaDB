@@ -123,6 +123,7 @@ namespace engine
                                            dmsCompressorEntry *compressorEntry,
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
+                                           UINT64 &deletingNum,
                                            BOOLEAN capped = FALSE ) ;
 
          static UINT32 inspectDataRecord ( _pmdEDUCB *cb,
@@ -135,7 +136,9 @@ namespace engine
                                            set<dmsRecordID> *ridList,
                                            SINT32 &err,
                                            dmsCompressorEntry *compressorEntry,
-                                           BOOLEAN &isCompressed ) ;
+                                           BOOLEAN &isCompressed,
+                                           BOOLEAN *pIsDeleting = NULL,
+                                           BOOLEAN *pIsOvf = NULL ) ;
 
          static UINT32 inspectCappedDataRecord( pmdEDUCB *cb,
                                                 dmsCappedRecord *record,
@@ -205,6 +208,7 @@ namespace engine
                                            dmsCompressorEntry *compressorEntry,
                                            UINT64 &recordNum,
                                            UINT64 &compressedNum,
+                                           UINT64 &deletingNum,
                                            INT32 &localErr,
                                            set< dmsRecordID > *ridList,
                                            pmdEDUCB *cb ) ;
