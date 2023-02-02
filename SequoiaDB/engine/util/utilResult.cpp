@@ -305,10 +305,10 @@ namespace engine
          _idxKeyPattern = idxKeyPattern.getOwned() ;
          _idxValue = idxValue.getOwned() ;
 
-         BSONObjBuilder curBuilder( 20 ) ;
          BSONElement e = curObj.getField( DMS_ID_KEY_NAME ) ;
          if ( !e.eoo() )
          {
+            BSONObjBuilder curBuilder( 20 ) ;
             curBuilder.append( e ) ;
             _curID = curBuilder.obj() ; 
          }

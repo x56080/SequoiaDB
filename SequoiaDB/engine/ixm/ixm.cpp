@@ -270,7 +270,8 @@ namespace engine
    INT32 _ixmIndexCB::getKeysFromObject ( const BSONObj &obj,
                                           BSONObjSet &keys,
                                           BOOLEAN *pAllUndefined,
-                                          BOOLEAN checkValid ) const
+                                          BOOLEAN checkValid,
+                                          utilWriteResult *pResult ) const
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT ( _isInitialized,
@@ -287,7 +288,7 @@ namespace engine
 
       if ( checkValid )
       {
-         rc = checkKeys( keys, arrEle ) ;
+         rc = checkKeys( keys, arrEle, pResult ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object [%s], "
                       "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
@@ -299,9 +300,58 @@ namespace engine
       goto done ;
    }
 
+   INT32 _ixmIndexCB::_checkNullKeys( const BSONObjSet &keys,
+                                      utilWriteResult *pResult ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      for ( BSONObjSet::const_iterator iter = keys.begin() ;
+            iter != keys.end() ;
+            ++ iter )
+      {
+         try
+         {
+            BSONObjIterator bIter( *iter ) ;
+            while ( bIter.more() )
+            {
+               BSONElement ele = bIter.next() ;
+               if ( Undefined == ele.type() ||
+                    jstNULL == ele.type() )
+               {
+                  rc = SDB_IXM_KEY_NOTNULL ;
+                  PD_LOG( PDERROR, "Failed to check keys, index not support NULL" ) ;
+                  if ( NULL != pResult )
+                  {
+                     INT32 tmpRC = pResult->setIndexErrInfo( getName(), keyPattern(), *iter ) ;
+                     if ( tmpRC )
+                     {
+                        rc = tmpRC ;
+                     }
+                  }
+                  goto error ;
+               }
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse object, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_CHECKKEYS, "_ixmIndexCB::checkKeys" )
    INT32 _ixmIndexCB::checkKeys( const BSONObjSet &keys,
-                                 const BSONElement &arrEle ) const
+                                 const BSONElement &arrEle,
+                                 utilWriteResult *pResult ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -315,30 +365,8 @@ namespace engine
 
       if ( notNull() )
       {
-         for ( BSONObjSet::const_iterator iter = keys.begin() ;
-               iter != keys.end() ;
-               ++ iter )
-         {
-            try
-            {
-               BSONObjIterator bIter( *iter ) ;
-               while ( bIter.more() )
-               {
-                  BSONElement ele = bIter.next() ;
-                  PD_CHECK( ( Undefined != ele.type() &&
-                              jstNULL != ele.type() ),
-                            SDB_IXM_KEY_NOTNULL, error, PDERROR,
-                            "Failed to check keys, index not support NULL" ) ;
-               }
-            }
-            catch ( exception &e )
-            {
-               PD_LOG( PDERROR, "Failed to parse object, occur exception %s",
-                       e.what() ) ;
-               rc = ossException2RC( &e ) ;
-               goto error ;
-            }
-         }
+         rc = _checkNullKeys( keys, pResult ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check NULL keys, rc: %d", rc ) ;
       }
 
    done:
