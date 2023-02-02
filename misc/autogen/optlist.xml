@@ -2440,19 +2440,21 @@
          <cn>在线生效</cn>
       </reloadable>
       <detail>
-        <en>This specifies the group of activities to monitor within sequoiaDB, along with the loglevel for each group.<fig></fig>
-            1. Values are specified in the format of 'groupname':'loglevel', delimited by '|' if multiple groups are specified.<fig></fig>
-            2. Valid groups are "slowQuery" and "all", corresponding to monitor slow query or monitor all.<fig></fig>
-            3. loglevel can be "off","basic" or "detail".<fig></fig>
-            4. Valid value list includes: "all:off", "all:basic", "all:detail", "slowQuery:off", "slowQuery:basic" and "slowQuery:detail".<fig></fig>
-            5. Default value is "all:off".
+        <en>Specify the monitoring level of the monitoring group. The format is "groupname:loglevel", default value is "all:off".<fig></fig>
+            1. The value of the groupname is as follows:<fig></fig>
+			● slowQuery: Monitoring slow query groups.<fig></fig>
+			● all: Monitoring all groups (Currently only monitoring slowQuery groups is supported).<fig></fig>
+            2. The value of the monitoring level are as follows:<fig></fig>
+			● off: Turn off monitoring.<fig></fig>
+			● detail: Return detailed monitoring information.
         </en>
-        <cn>用于设置监控组的详细监控级别的掩码。<fig></fig>
-            1. 格式为'groupname':'loglevel', 多组之间使用'|'作为分隔符。<fig></fig>
-            2. 有效的组值为“slowQuery”或者”all”，分别表示监控慢查询组和所有组。<fig></fig>
-            3. 有效的监控级别可以为“off”，“basic”或者“detail”。<fig></fig>
-            4. 有效取值列表包括："all:off", "all:basic", "all:detail", "slowQuery:off", "slowQuery:basic" 和 "slowQuery:detail"。<fig></fig>
-            5. 默认值为“all:off”。
+        <cn>指定监控组的监控级别。格式为"组名:监控级别"，默认值为 "all:off"。<fig></fig>
+            1. 组名的取值如下：<fig></fig>
+			● slowQuery: 监控慢查询组。<fig></fig>
+			● all: 监控所有组（目前只支持监控慢查询组）。<fig></fig>
+            2. 监控级别的取值如下： <fig></fig>
+			● off: 关闭监控。<fig></fig>
+			● detail: 返回详细的监控信息。
         </cn>
       </detail>
       <typeofweb>str</typeofweb>
