@@ -1,12 +1,15 @@
-SequoiaDB 巨杉数据库支持将备份的数据恢复至集群节点或离线库中。
+[^_^]:
+     数据恢复
 
-## 数据恢复工具
+SequoiaDB 巨杉数据库支持将备份的数据、日志和配置恢复至集群节点或离线库中。
+
+##数据恢复工具##
 
 用户可使用 sdbrestore 工具对目标节点进行数据恢复。使用该工具进行数据恢复时，需要确保备份文件的所属用户为数据库管理用户（安装 SequoiaDB 时创建，默认为 sdbadmin）。
 
 sdbrestore 工具的参数分为功能参数和配置参数。当用户需要恢复备份源节点的数据时，指定功能参数即可；当用户将一份数据恢复至不同的节点或构建离线库时，需要功能参数和配置参数同时指定。
 
-### 功能参数
+###功能参数###
 
 sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢复行为等。
 
@@ -16,11 +19,11 @@ sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢
 | --beginincreaseid | -b | 需要从第几次备份开始恢复，默认为 -1，表示由系统自动计算<br>为 0 时，表示从全量备份开始恢复；为 1 时，表示从第一次增量备份开始恢复，以此类推 <br> 可参考 [listBackup()][listBackup] 输出的字段值 ID，选定需要的备份；如选定 ID 为 2 的备份，则 -b 指定为 2 |
 | --increaseid  | -i   | 需要恢复到第几次增量备份，默认为 -1，表示恢复到最后一次 <br> 取值方式可参考参数 --beginincreaseid  |
 | --bkname      | -n   | 需要恢复的备份名称 |
-| --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息   |
+| --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息<br>"getconfig"：获取备份文件中，所备份的配置信息<br>"offlinebuild"：构建离线数据库   |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，默认为 3，表示 WARNING，具体取值可参考[配置项参数][configuration] |
 | --isSelf      |      | 是否将数据恢复至备份源节点，默认为 true，恢复至备份源节点 |
 
-### 配置参数
+###配置参数###
 
 sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径，用户可根据实际情况选择性配置。如果不指定配置参数，则所有恢复路径为节点配置文件中定义的路径；如果指定了配置参数，则相关恢复路径将使用指定的路径，且指定的配置参数会覆盖配置文件中对应的配置项。
 
@@ -47,11 +50,11 @@ sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径
 | --httpname    | 目标节点的 REST 服务名或端口 |
 
 
-## 数据恢复
+##数据恢复##
 
-用户通过 sdbrestore 工具恢复当前集群中的节点时，需要先停止运行目标节点；如果需要恢复目标节点所在复制组的数据，则需要先停止该复制组。恢复过程中，sdbrestore 工具会清空目标节点的所有数据和日志，再从备份的数据中恢复配置、数据和日志。
+用户通过 sdbrestore 工具恢复当前集群中的节点时，需要先停止运行目标节点；如果需要恢复目标节点所在复制组的数据，则需要先停止该复制组。恢复过程中，如果本地存在可用的配置文件，sdbrestore 工具仅恢复目标节点的数据和日志；如果本地的配置文件丢失或损坏，该工具将恢复目标节点的数据、日志及配置文件。
 
-### 恢复步骤
+###恢复步骤###
 
 1. 启动 SDB Shell，并连接至协调节点
 
@@ -122,11 +125,30 @@ sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径
     -rw-r----- 1 sdbadmin sdbadmin_group  50397184 1月  18 13:44 SYSSTAT.1.idx
     ```
 
-## 构建离线库
+###获取节点配置信息###
+
+当本地节点配置文件无法使用时，用户可使用 sdbrestore 工具获取指定备份文件中的配置信息，并生成新的配置文件。
+
+```lang-bash
+$ sdbrestore -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1  -a getconfig > /opt/sequoiadb/conf/local/11820/sdb.conf
+```
+
+恢复的配置文件内容如下：
+
+```lang-ini
+confpath=/opt/sequoiadb/conf/local/11820/
+dbpath=/opt/sequoiadb/database/data/11820
+indexpath=/opt/sequoiadb/database/data/11820
+diagpath=/opt/sequoiadb/database/data/11820/diaglog/
+auditpath=/opt/sequoiadb/database/data/11820/diaglog/
+···
+```
+
+##构建离线库##
 
 离线库用于存储离线数据。sdbrestore 工具可以将节点全量备份和增量备份的数据，不断合并成一份与节点内数据完全相同的离线数据。用户可以将离线数据存储于离线库中，便于节点故障后，通过离线数据实现快速恢复。
 
-### 构建步骤
+###构建步骤###
 
 1. 生成离线数据前需要先创建离线库所在目录，且该目录所属用户为数据库管理用户。
 
@@ -136,7 +158,7 @@ sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径
     $ sdbrestore -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1 --isSelf false --dbpath /opt/backup/11820 --confpath /opt/sequoiadb/conf/local/11820/ --svcname 11820 
     ```
 
-### 使用
+###使用###
 
 当节点 11820 或同组备节点发生故障时，用户可将离线数据直接拷贝至节点 11820 或同组节点的数据文件目录下，以实现数据的快速恢复。
 
