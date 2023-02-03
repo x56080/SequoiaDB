@@ -19,7 +19,6 @@ package com.sequoiadb.datasource;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 class ConnItem implements Comparable<ConnItem> {
@@ -137,4 +136,18 @@ class ConnectionItemMgr {
             _idleItem.add(item);
         }
     }
+
+    public synchronized ConnItemInfo getConnItemInfo(){
+        ConnItemInfo itemInfo = new ConnItemInfo();
+        itemInfo.capacity = getCapacity();
+        itemInfo.idleItemSize = getIdleItemNum();
+        itemInfo.usedItemSize = getUsedItemNum();
+        return itemInfo;
+    }
+}
+
+class ConnItemInfo {
+    public int capacity;
+    public int idleItemSize;
+    public int usedItemSize;
 }
