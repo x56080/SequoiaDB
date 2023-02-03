@@ -98,19 +98,26 @@ class SequoiaCL
     * Alter collection options.
     *
     * @param $options an array or the string argument. The options are as following:
-    *                                              @code
-    *                                              ReplSize             : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-    *                                              ShardingKey          : Assign the sharding key
-    *                                              ShardingType         : Assign the sharding type
-    *                                              Partition            : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-    *                                              CompressionType      : The compression type of data, could be "snappy" or "lzw"
-    *                                              EnsureShardingIndex  : Assign to true to build sharding index
-    *                                              StrictDataMode       : Using strict date mode in numeric operations or not
-    *                                                                     e.g. array( "RepliSize" => 0, "ShardingKey" => array( "a" => 1 ), "ShardingType" => "hash", "Partition" =>1024 )
-    *                                              AutoIncrement        : Assign attributes of an autoincrement field or batch autoincrement fields.
-    *                                                                     e.g. array( "AutoIncrement" => array( "Field" => "a", "MaxValue" => 2000 ) )
-    *                                                                     array( "AutoIncrement" => array( array( "Field" => "a", "MaxValue" => 2000 ), array( "Field" => "a", "MaxValue" => 4000 ) ) )
-    *                                              @endcode
+    *        @code
+    *        ReplSize            : Assign how many replica nodes need to be synchronized when a write
+    *                              request (insert, update, etc) is executed, default is 1
+    *        ShardingKey         : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} },
+    *                              1 indicates positive order, -1 indicates reverse order.
+    *                              e.g. array( "ShardingKey" => array( "a" => 1 ) )
+    *        ShardingType        : Assign the sharding type, default is "hash"
+    *        Partition           : The number of partition, it is valid when ShardingType is "hash",
+    *                              the range is [2^3, 2^20], default is 4096
+    *        AutoSplit           : Whether to enable the automatic partitioning, it is valid when
+    *                              ShardingType is "hash", defalut is false
+    *        EnsureShardingIndex : Whether to build sharding index, default is true
+    *        Compressed          : Whether to enable data compression, default is true
+    *        CompressionType     : The compression type of data, could be "snappy" or "lzw", default is "lzw"
+    *        StrictDataMode      : Whether to enable strict date mode in numeric operations, default is false
+    *        AutoIncrement       : Assign attributes of an autoincrement field or batch autoincrement fields
+    *                              e.g. array( "AutoIncrement" => array( "Field" => "a", "MaxValue" => 2000 ) ),
+    *                              array( "AutoIncrement" => array( array( "Field" => "a", "MaxValue" => 2000 ), array( "Field" => "a", "MaxValue" => 4000 ) ) )
+    *        AutoIndexId         : Whether to build "$id" index, default is true
+    *        @endcode
     *
     * @return Returns the result, default return array.
     *
@@ -216,19 +223,26 @@ class SequoiaCL
     * Alter collection options.
     *
     * @param $options an array or the string argument. The options are as following:
-    *                                              @code
-    *                                              ReplSize             : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-    *                                              ShardingKey          : Assign the sharding key
-    *                                              ShardingType         : Assign the sharding type
-    *                                              Partition            : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-    *                                              CompressionType      : The compression type of data, could be "snappy" or "lzw"
-    *                                              EnsureShardingIndex  : Assign to true to build sharding index
-    *                                              StrictDataMode       : Using strict date mode in numeric operations or not
-    *                                                                     e.g. array( "RepliSize" => 0, "ShardingKey" => array( "a" => 1 ), "ShardingType" => "hash", "Partition" =>1024 )
-    *                                              AutoIncrement        : Assign attributes of an autoincrement field or batch autoincrement fields.
-    *                                                                     e.g. array( "AutoIncrement" => array( "Field" => "a", "MaxValue" => 2000 ) )
-    *                                                                     array( "AutoIncrement" => array( array( "Field" => "a", "MaxValue" => 2000 ), array( "Field" => "a", "MaxValue" => 4000 ) ) )
-    *                                              @endcode
+    *        @code
+    *        ReplSize            : Assign how many replica nodes need to be synchronized when a write
+    *                              request (insert, update, etc) is executed, default is 1
+    *        ShardingKey         : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} },
+    *                              1 indicates positive order, -1 indicates reverse order.
+    *                              e.g. array( "ShardingKey" => array( "a" => 1 ) )
+    *        ShardingType        : Assign the sharding type, default is "hash"
+    *        Partition           : The number of partition, it is valid when ShardingType is "hash",
+    *                              the range is [2^3, 2^20], default is 4096
+    *        AutoSplit           : Whether to enable the automatic partitioning, it is valid when
+    *                              ShardingType is "hash", defalut is false
+    *        EnsureShardingIndex : Whether to build sharding index, default is true
+    *        Compressed          : Whether to enable data compression, default is true
+    *        CompressionType     : The compression type of data, could be "snappy" or "lzw", default is "lzw"
+    *        StrictDataMode      : Whether to enable strict date mode in numeric operations, default is false
+    *        AutoIncrement       : Assign attributes of an autoincrement field or batch autoincrement fields
+    *                              e.g. array( "AutoIncrement" => array( "Field" => "a", "MaxValue" => 2000 ) ),
+    *                              array( "AutoIncrement" => array( array( "Field" => "a", "MaxValue" => 2000 ), array( "Field" => "a", "MaxValue" => 4000 ) ) )
+    *        AutoIndexId         : Whether to build "$id" index, default is true
+    *        @endcode
     *
     * @return Returns the result, default return array.
     *
