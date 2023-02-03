@@ -5750,7 +5750,8 @@ error:
 
             // retry if there are recyle items are dropping in data
             if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ||
-                 SDB_LOCK_FAILED == rc )
+                 SDB_LOCK_FAILED == rc ||
+                 SDB_DMS_CS_DELETING == rc )
             {
                rc = SDB_OK ;
                if ( retryCount < RTN_RECYCLE_MAX_RETRY )

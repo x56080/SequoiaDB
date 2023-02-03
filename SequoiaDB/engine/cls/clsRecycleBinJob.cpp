@@ -131,7 +131,8 @@ namespace engine
          result = UTIL_LJOB_DO_FINISH ;
       }
       else if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ||
-                SDB_LOCK_FAILED == rc )
+                SDB_LOCK_FAILED == rc ||
+                SDB_DMS_CS_DELETING == rc )
       {
          rc = SDB_OK ;
          result = UTIL_LJOB_DO_CONT ;
