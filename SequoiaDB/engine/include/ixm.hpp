@@ -49,6 +49,7 @@
 #include "ixmIndexKey.hpp"
 #include "msgDef.h"
 #include "../bson/ordering.h"
+#include "utilResult.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -399,10 +400,12 @@ namespace engine
       INT32 getKeysFromObject ( const BSONObj &obj,
                                 BSONObjSet &keys,
                                 BOOLEAN *pAllUndefined = NULL,
-                                BOOLEAN checkValid = FALSE ) const ;
+                                BOOLEAN checkValid = FALSE,
+                                utilWriteResult *pResult = NULL ) const ;
 
       INT32 checkKeys( const BSONObjSet &keys,
-                       const BSONElement &arrEle ) const ;
+                       const BSONElement &arrEle,
+                       utilWriteResult *pResult = NULL ) const ;
 
       /* get the key pattern for this object.
          e.g., { lastname:1, firstname:1 }
@@ -1030,6 +1033,9 @@ namespace engine
 
    protected:
       INT32 _initGlobIndexInfo() const ;
+
+      INT32 _checkNullKeys( const BSONObjSet &keys,
+                            utilWriteResult *pResult ) const ;
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;
 
