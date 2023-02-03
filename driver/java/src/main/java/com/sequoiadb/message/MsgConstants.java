@@ -35,4 +35,11 @@ public final class MsgConstants {
     public final static String AUTH_JAVA_IDENTIFY = "Java_Session";
     public final static String CLIENT_KEY = "Client Key";
     public final static String SERVER_KEY = "Server Key";
+
+    /* 
+     * Internal flag, not exposed to users.
+     * This flag identifies whether the inserted record (or batch of records) contains
+     * the '_id' field, which can be used to skip the '_id' field check.
+    */
+    public final static int FLG_INSERT_HAS_ID_FIELD = 0x00000010;
 }

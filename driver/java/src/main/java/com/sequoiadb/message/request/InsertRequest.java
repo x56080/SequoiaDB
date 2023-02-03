@@ -21,6 +21,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
 import com.sequoiadb.util.Helper;
+import com.sequoiadb.message.MsgConstants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -84,6 +85,9 @@ public class InsertRequest extends SdbRequest {
         byte[] docBytes = Helper.encodeBSONObj(doc, extendObj);
         docsBytes.add(docBytes);
         length += Helper.alignedSize(docBytes.length);
+        
+        // Inform coord or data nodes that the '_id' field is included in the record.
+        this.flag |= MsgConstants.FLG_INSERT_HAS_ID_FIELD;
     }
 
     public InsertRequest(String collectionName, List<BSONObject> docs, int flag) {
@@ -119,6 +123,9 @@ public class InsertRequest extends SdbRequest {
             docsBytes.add(docBytes);
             length += Helper.alignedSize(docBytes.length);
         }
+
+        // Inform coord or data nodes that the '_id' field is included in records.
+        this.flag |= MsgConstants.FLG_INSERT_HAS_ID_FIELD;
     }
 
     public Object getOIDValue() {
