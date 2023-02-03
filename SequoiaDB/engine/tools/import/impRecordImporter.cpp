@@ -277,6 +277,10 @@ namespace import
          flag |= FLG_INSERT_REPLACEONDUP ;
       }
 
+      // Inform coord or data nodes that the '_id' field is included in records.
+      // The '_id' field was added by RecordParser.
+      flag |= FLG_INSERT_HAS_ID_FIELD ;
+
       rc = _bulkInsert( pageInfo, flag ) ;
       if ( rc )
       {
