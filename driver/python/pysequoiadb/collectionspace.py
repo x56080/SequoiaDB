@@ -155,9 +155,32 @@ class collectionspace(object):
         Parameters:
            Name      Type     Info:
            cl_name   str      The collection name.
-           options   dict     The options for creating collection or None for not specified any options.
-                                      Please visit this url: "http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION"
-                                      to get more details.
+           options   dict     The options are as following:
+                              ShardingKey          : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} },
+                                                     1 indicates positive order, -1 indicates reverse order.
+                                                     e.g. { ShardingKey: { age: 1 } }
+                              ShardingType         : Assign the sharding type, default is "hash"
+                              Partition            : The number of partition, it is valid when ShardingType is "hash",
+                                                     the range is [2^3, 2^20], default is 4096
+                              ReplSize             : Assign how many replica nodes need to be synchronized when a write
+                                                     request (insert, update, etc) is executed, default is 1
+                              Compressed           : Whether to enable data compression, default is true
+                              CompressionType      : The compression type of data, could be "snappy" or "lzw", default is "lzw"
+                              AutoSplit            : Whether to enable the automatic partitioning, it is valid when ShardingType
+                                                     is "hash", defalut is false
+                              Group                : Assign the data group to which it belongs, default: The collection will
+                                                     be created in any data group in the domain it belongs to
+                              AutoIndexId          : Whether to build "$id" index, default is true
+                              EnsureShardingIndex  : Whether to build sharding index, default is true
+                              StrictDataMode       : Whether to enable strict date mode in numeric operations, default is false
+                              AutoIncrement        : Assign attributes of an autoincrement field or batch autoincrement fields
+                                                     e.g. { AutoIncrement : { Field : "a", MaxValue : 2000 } },
+                                                     { AutoIncrement : [ { Field : "a", MaxValue : 2000}, { Field : "a", MaxValue : 4000 } ] }
+                              LobShardingKeyFormat : Assign the format of lob sharding key, could be "YYYYMMDD", "YYYYMM" or "YYYY".
+                                                     It is valid when the collection is main collection
+                              IsMainCL             : Main collection or not, default is false, which means it is not main collection
+                              DataSource           : The name of the date soure used
+                              Mapping              : The name of the collection to be mapped
         Return values:
            a collection object created
         Exceptions:

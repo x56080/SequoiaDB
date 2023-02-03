@@ -1215,9 +1215,34 @@ SDB_EXPORT INT32 sdbCreateCollection ( sdbCSHandle cHandle,
     \brief Create the specified collection in current collection space
     \param [in] cHandle The collection space handle
     \param [in] pCollectionName The collection name
-    \param [in] options The options for creating collection or NULL for not specified any options.
-                        Please reference <a href="http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION">here</a>
-                        for more detail.
+    \param [in] options The options are as following:
+
+        ShardingKey          : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} },
+                               1 indicates positive order, -1 indicates reverse order.
+                               e.g. { ShardingKey: { age: 1 } }
+        ShardingType         : Assign the sharding type, default is "hash"
+        Partition            : The number of partition, it is valid when ShardingType is "hash",
+                               the range is [2^3, 2^20], default is 4096
+        ReplSize             : Assign how many replica nodes need to be synchronized when a write
+                               request (insert, update, etc) is executed, default is 1
+        Compressed           : Whether to enable data compression, default is true
+        CompressionType      : The compression type of data, could be "snappy" or "lzw", default is "lzw"
+        AutoSplit            : Whether to enable the automatic partitioning, it is valid when ShardingType
+                               is "hash", defalut is false
+        Group                : Assign the data group to which it belongs, default: The collection will
+                               be created in any data group in the domain it belongs to
+        AutoIndexId          : Whether to build "$id" index, default is true
+        EnsureShardingIndex  : Whether to build sharding index, default is true
+        StrictDataMode       : Whether to enable strict date mode in numeric operations, default is false
+        AutoIncrement        : Assign attributes of an autoincrement field or batch autoincrement fields
+                               e.g. { AutoIncrement : { Field : "a", MaxValue : 2000 } },
+                               { AutoIncrement : [ { Field : "a", MaxValue : 2000}, { Field : "a", MaxValue : 4000 } ] }
+        LobShardingKeyFormat : Assign the format of lob sharding key, could be "YYYYMMDD", "YYYYMM" or "YYYY".
+                               It is valid when the collection is main collection
+        IsMainCL             : Main collection or not, default is false, which means it is not main collection
+        DataSource           : The name of the date soure used
+        Mapping              : The name of the collection to be mapped
+
     \param [out] handle The collection handle
                       when fail to create collection,
                       *handle == -1 and error code is return
@@ -1235,17 +1260,25 @@ SDB_EXPORT INT32 sdbCreateCollection1 ( sdbCSHandle cHandle,
     \param [in] cHandle The colleciton handle
     \param [in] options The options are as following:
 
-        ReplSize     : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-        ShardingKey  : Assign the sharding key
-        ShardingType : Assign the sharding type
-        Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-        CompressionType : The compression type of data, could be "snappy" or "lzw"
-        EnsureShardingIndex : Assign to true to build sharding index
-        StrictDataMode : Using strict date mode in numeric operations or not
-                         e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-        AutoIncrement: Assign attributes of an autoincrement field or batch autoincrement fields.
-                       e.g. {AutoIncrement:{Field:"a",MaxValue:2000}},
-                       {AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
+        ReplSize            : Assign how many replica nodes need to be synchronized when a write
+                              request (insert, update, etc) is executed, default is 1
+        ShardingKey         : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} },
+                              1 indicates positive order, -1 indicates reverse order.
+                              e.g. { ShardingKey: { age: 1 } }
+        ShardingType        : Assign the sharding type, default is "hash"
+        Partition           : The number of partition, it is valid when ShardingType is "hash",
+                              the range is [2^3, 2^20], default is 4096
+        AutoSplit           : Whether to enable the automatic partitioning, it is valid when
+                              ShardingType is "hash", defalut is false
+        EnsureShardingIndex : Whether to build sharding index, default is true
+        Compressed          : Whether to enable data compression, default is true
+        CompressionType     : The compression type of data, could be "snappy" or "lzw", default is "lzw"
+        StrictDataMode      : Whether to enable strict date mode in numeric operations, default is false
+        AutoIncrement       : Assign attributes of an autoincrement field or batch autoincrement fields
+                              e.g. { AutoIncrement : { Field : "a", MaxValue : 2000 } },
+                              { AutoIncrement : [ { Field : "a", MaxValue : 2000}, { Field : "a", MaxValue : 4000 } ] }
+        AutoIndexId         : Whether to build "$id" index, default is true
+
     \note Can't alter attributes about split in partition collection; After altering a collection to
           be a partition collection, need to split this collection manually
     \retval SDB_OK Operation Success

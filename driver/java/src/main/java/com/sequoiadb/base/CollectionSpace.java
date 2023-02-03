@@ -156,8 +156,32 @@ public class CollectionSpace {
      * Create collection by options.
      *
      * @param collectionName The collection name
-     * @param options        The {@see <a href=//doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION target=new>options</a>}
-     *                       for creating collection or null for not specified any options.
+     * @param options The options are as following:
+     *               <ul>
+     *               <li>ShardingKey : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} }, 
+     *               1 indicates positive order, -1 indicates reverse order. e.g. { ShardingKey: { age: 1 } }
+     *               <li>ShardingType : Assign the sharding type, default is "hash"
+     *               <li>Partition : The number of partition, it is valid when ShardingType is "hash",
+     *               the range is [2^3, 2^20], default is 4096
+     *               <li>ReplSize : Assign how many replica nodes need to be synchronized when a write
+     *               request (insert, update, etc) is executed, default is 1
+     *               <li>Compressed : Whether to enable data compression, default is true
+     *               <li>CompressionType : The compression type of data, could be "snappy" or "lzw", default is "lzw"
+     *               AutoSplit : Whether to enable the automatic partitioning, it is valid when ShardingType
+     *               is "hash", defalut is false
+     *               <li>Group: Assign the data group to which it belongs, default: The collection will
+     *               be created in any data group in the domain it belongs to
+     *               <li>AutoIndexId : Whether to build "$id" index, default is true
+     *               <li>EnsureShardingIndex : Whether to build sharding index, default is true
+     *               <li>StrictDataMode : Whether to enable strict date mode in numeric operations, default is false
+     *               <li>AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields
+     *               e.g. { AutoIncrement : { Field : "a", MaxValue : 2000 } },
+     *               { AutoIncrement : [ { Field : "a", MaxValue : 2000}, { Field : "a", MaxValue : 4000 } ] }
+     *               <li>LobShardingKeyFormat : Assign the format of lob sharding key, could be "YYYYMMDD", "YYYYMM" or "YYYY".
+     *               It is valid when the collection is main collection
+     *               <li>IsMainCL : Main collection or not, default is false, which means it is not main collection
+     *               <li>DataSource : The name of the date soure used
+     *               <li>Mapping : The name of the collection to be mapped
      * @return the newly created object of collection.
      * @throws BaseException If error happens.
      */
