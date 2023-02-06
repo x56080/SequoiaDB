@@ -1122,7 +1122,31 @@ namespace engine
    {
       if ( _mbContext && _mbContext->mbStat() )
       {
-         _mbContext->mbStat()->_crudCB.incMetrics( delta ) ;
+         BOOLEAN doLock = FALSE ;
+         BOOLEAN isOk = TRUE ;
+         // test and get mb lock before submitting
+         if ( !_mbContext->isMBLock() )
+         {
+            INT32 rc = _mbContext->mbLock( SHARED ) ;
+            if ( SDB_OK == rc )
+            {
+               doLock = TRUE ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Failed to lock mb context, rc: %d", rc ) ;
+               isOk = FALSE ;
+            }
+         }
+         // submit the change to cl snapshot
+         if ( isOk )
+         {
+            _mbContext->mbStat()->_crudCB.incMetrics( delta ) ;
+         }
+         if ( doLock )
+         {
+            _mbContext->mbUnlock() ;
+         }
       }
    }
 
