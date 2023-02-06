@@ -6013,8 +6013,11 @@ static INT32 _sdbCreateIndex( sdbCollectionHandle cHandle,
                 cs->_collectionFullName, string ) ;
 
    BSON_APPEND( newObj, FIELD_NAME_INDEX, &indexObj, bson ) ;
+   BSON_APPEND( newObj, IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize, int ) ;
    BSON_FINISH ( newObj ) ;
 
+   // For Compatibility with older engine( version <3.4 ), keep sort buffer
+   // size in hint. After several versions, we can delete it.
    BSON_APPEND( hintObj, IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize, int ) ;
    BSON_FINISH ( hintObj ) ;
    hint = &hintObj ;
@@ -6072,8 +6075,8 @@ static INT32 _sdbCreateIndexV1( sdbCollectionHandle cHandle,
    // for example, build below message:
    // macher: { Collection: "foo.bar",
    //           Index:{ key: {a:1}, name: 'aIdx', Unique: true,
-   //                   Enforced: true, NotNull: true } }
-   // hint:   { SortBufferSize: 1024 }
+   //                   Enforced: true, NotNull: true },
+   //           SortBufferSize: 1024 }
 
    if ( options )
    {
@@ -6084,6 +6087,9 @@ static INT32 _sdbCreateIndexV1( sdbCollectionHandle cHandle,
          const CHAR *key = bson_iterator_key ( &it ) ;
          if ( ossStrcmp ( key, IXM_FIELD_NAME_SORT_BUFFER_SIZE ) == 0 )
          {
+            BSON_APPEND( matcher, NULL, &it, element ) ;
+            // For Compatibility with older engine( version <3.4 ), keep sort buffer
+            // size in hint. After several versions, we can delete it.
             BSON_APPEND( hint, NULL, &it, element ) ;
          }
          else
