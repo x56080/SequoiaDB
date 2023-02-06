@@ -38,6 +38,7 @@
 #include "msgDef.h"
 #include "ossUtil.h"
 #include "omagentDef.hpp"
+#include "sptCommon.hpp"
 
 namespace engine
 {
@@ -47,6 +48,7 @@ namespace engine
    */
    _sptUsrOmaAssit::_sptUsrOmaAssit()
    {
+      sdbSetErrorOnReplyCallback( engine::sdbErrorCallback ) ;
       _groupHandle      = 0 ;
    }
 
