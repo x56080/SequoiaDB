@@ -224,6 +224,52 @@ TEST(collection,sdbCreateIndex)
    sdbReleaseConnection ( connection ) ;
 }
 
+TEST(collection, sdbCreateIndex2)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle collectionspace    = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   const CHAR *pIndexName         = INDEX_NAME ;
+   INT32 rc                       = SDB_OK ;
+   bson obj ;
+   bson options ;
+
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = getCollectionSpace ( connection, COLLECTION_SPACE_NAME, &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = getCollection ( connection, COLLECTION_FULL_NAME, &collection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   bson_init( &obj ) ;
+   bson_append_int( &obj, "name", 1 ) ;
+   bson_finish( &obj ) ;
+
+   bson_init( &options ) ;
+   bson_append_int( &options, "SortBufferSize", 1024 ) ;
+   bson_finish( &options ) ;
+
+   rc = sdbCreateIndex2 ( collection, &obj, pIndexName, &options ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbGetIndexes( collection, pIndexName, &cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   bson_destroy ( &obj ) ;
+   bson_destroy ( &options ) ;
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCursor ( cursor ) ;
+   sdbReleaseCollection ( collection ) ;
+   sdbReleaseCS ( collectionspace ) ;
+   sdbReleaseConnection ( connection ) ;
+}
+
 TEST(collection,sdbDropIndex)
 {
    sdbConnectionHandle connection = 0 ;
