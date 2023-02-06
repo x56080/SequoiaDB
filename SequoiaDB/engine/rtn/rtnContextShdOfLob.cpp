@@ -71,6 +71,7 @@ namespace engine
       _pData = NULL ;
       _dataLen = 0 ;
       _offset = 0 ;
+      _hasSubmitMetric = FALSE ;
       _totalDeltaMonApp.reset() ;
    }
 
@@ -1229,23 +1230,53 @@ error:
          _accessInfo = NULL ;
       }
 
-      if ( _mbContext && _su )
+      if ( !_hasSubmitMetric )
       {
          // no matter error happen or not, we will still
          // submit the change from session to others
          if ( pMonAppCB && pMonAppCB->mondbcb )
          {
+            // submit the change to database snapshot
             pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
          }
          if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
          {
+            // submit the change to task snapshot
             pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
          }
-         if (  _mbContext->mbStat() )
+         if ( _mbContext && _mbContext->mbStat() )
          {
-            _mbContext->mbStat()->_crudCB.incMetrics( _totalDeltaMonApp ) ;
+            BOOLEAN doLock = FALSE ;
+            BOOLEAN isOk = TRUE ;
+            // test and get mb lock before submitting
+            if ( !_mbContext->isMBLock() )
+            {
+               INT32 rc = _mbContext->mbLock( SHARED ) ;
+               if ( SDB_OK == rc )
+               {
+                  doLock = TRUE ;
+               }
+               else
+               {
+                  PD_LOG( PDWARNING, "Failed to lock mb context, rc: %d", rc ) ;
+                  isOk = FALSE ;
+               }
+            }
+            // submit the change to cl snapshot
+            if ( isOk )
+            {
+               _mbContext->mbStat()->_crudCB.incMetrics( _totalDeltaMonApp ) ;
+            }
+            if ( doLock )
+            {
+               _mbContext->mbUnlock() ;
+            }
          }
+         _hasSubmitMetric = TRUE ;
+      }
 
+      if ( _mbContext && _su )
+      {
          // release mbContext
          _su->data()->releaseMBContext( _mbContext ) ;
          _mbContext = NULL ;
