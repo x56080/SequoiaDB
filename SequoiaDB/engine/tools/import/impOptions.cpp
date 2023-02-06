@@ -335,6 +335,7 @@ namespace import
       _enableTransaction = FALSE;
       _allowKeyDuplication = TRUE;
       _replaceKeyDuplication = FALSE ;
+      _mustHasIDField = TRUE ;
 
       _isUnicode = TRUE ;
       _decimalto = DECIMALTO_DEFAULT ;

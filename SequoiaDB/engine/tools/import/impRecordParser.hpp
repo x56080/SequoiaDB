@@ -58,7 +58,8 @@ namespace import
                    const string& stringDelimiter,
                    BOOLEAN autoAddField = TRUE,
                    BOOLEAN autoAddValue = FALSE,
-                   BOOLEAN autoAddStrDel = FALSE);
+                   BOOLEAN autoAddStrDel = FALSE,
+                   BOOLEAN mustHasIDField = TRUE);
 
    public:
       virtual ~RecordParser() {}
@@ -71,6 +72,7 @@ namespace import
       BOOLEAN  _autoAddField;
       BOOLEAN  _autoAddValue;
       BOOLEAN  _autoAddStrDel;
+      BOOLEAN  _mustHasIDField;
 
    public:
       static INT32 createInstance(INPUT_FORMAT format, const Options& options,
@@ -81,7 +83,7 @@ namespace import
    class JSONRecordParser: public RecordParser
    {
    public:
-      JSONRecordParser( BOOLEAN isUnicode, DECIMAL_TO_TYPE decimalto );
+      JSONRecordParser( BOOLEAN isUnicode, DECIMAL_TO_TYPE decimalto, BOOLEAN mustHasIDField );
       ~JSONRecordParser();
       INT32 init() ;
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);

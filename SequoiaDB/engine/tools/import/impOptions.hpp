@@ -106,6 +106,7 @@ namespace import
       inline BOOLEAN enableTransaction() const { return _enableTransaction; }
       inline BOOLEAN allowKeyDuplication() const { return _allowKeyDuplication; }
       inline BOOLEAN replaceKeyDuplication() const { return _replaceKeyDuplication ; }
+      inline BOOLEAN mustHasIDField() const { return _mustHasIDField ; }
 
       /* input */
       inline const vector<string>& files() const { return _files; }
@@ -172,6 +173,8 @@ namespace import
       BOOLEAN        _enableTransaction;
       BOOLEAN        _allowKeyDuplication;
       BOOLEAN        _replaceKeyDuplication ;
+      // it must be TRUE to ensure that every record contains the '_id' field.
+      BOOLEAN        _mustHasIDField ; 
 
       /* input */
       vector<string> _files;

@@ -56,6 +56,7 @@ namespace import
                       BOOLEAN enableTransaction = FALSE,
                       BOOLEAN allowKeyDuplication = TRUE,
                       BOOLEAN replaceKeyDuplication = FALSE,
+                      BOOLEAN mustHasIDField = TRUE,
                       INT32 batchSize = 1000 ) ;
 
       ~RecordImporter() ;
@@ -91,6 +92,7 @@ namespace import
       BOOLEAN  _allowKeyDuplication ;
       BOOLEAN  _replaceKeyDuplication ;
       BOOLEAN  _endianConvert ;
+      BOOLEAN  _mustHasIDField ;
 
       // db handle
       sdbConnectionHandle  _connection ;

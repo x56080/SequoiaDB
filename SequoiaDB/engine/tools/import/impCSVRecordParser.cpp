@@ -4996,12 +4996,14 @@ namespace import
                                     BOOLEAN ignoreNull,
                                     BOOLEAN forceNotUTF8,
                                     BOOLEAN strictFieldNum,
-                                    BOOLEAN autoAddStrDel)
+                                    BOOLEAN autoAddStrDel,
+                                    BOOLEAN mustHasIDField)
    : RecordParser(fieldDelimiter,
                   stringDelimiter,
                   autoAddField,
                   autoAddValue,
-                  autoAddStrDel),
+                  autoAddStrDel,
+                  mustHasIDField),
      _hasHeaderLine(hasHeaderLine)
    {
       _hasId = FALSE;
@@ -5296,13 +5298,15 @@ namespace import
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
+      SDB_ASSERT(_mustHasIDField, "can not be false");
+
 
       fieldDel = _fieldDelimiter.c_str();
       fieldDelLen = _fieldDelimiter.length();
       strDel = _stringDelimiter.c_str();
       strDelLen = _stringDelimiter.length();
 
-      if (!_hasId)
+      if (!_hasId && _mustHasIDField)
       {
          bson_oid_t oid;
          bson_oid_gen(&oid);
