@@ -54,12 +54,14 @@ namespace import
                               const string& stringDelimiter,
                               BOOLEAN autoAddField,
                               BOOLEAN autoAddValue,
-                              BOOLEAN autoAddStrDel)
+                              BOOLEAN autoAddStrDel,
+                              BOOLEAN mustHasIDField)
    : _fieldDelimiter(fieldDelimiter),
      _stringDelimiter(stringDelimiter),
      _autoAddField(autoAddField),
      _autoAddValue(autoAddValue),
-     _autoAddStrDel(autoAddStrDel)
+     _autoAddStrDel(autoAddStrDel),
+     _mustHasIDField(mustHasIDField)
    {
    }
 
@@ -84,7 +86,8 @@ namespace import
                                         options.ignoreNull(),
                                         options.force(),
                                         options.strictFieldNum(),
-                                        options.autoAddStrDel());
+                                        options.autoAddStrDel(),
+                                        options.mustHasIDField());
          if (NULL == csvParser)
          {
             rc = SDB_OOM;
@@ -101,7 +104,8 @@ namespace import
          
          JSONRecordParser* jsonParser =
             SDB_OSS_NEW JSONRecordParser( options.isUnicode(),
-                                          options.decimalto() );
+                                          options.decimalto(),
+                                          options.mustHasIDField() );
 
          if (NULL == jsonParser)
          {
@@ -136,8 +140,9 @@ namespace import
    }
 
    JSONRecordParser::JSONRecordParser( BOOLEAN isUnicode,
-                                       DECIMAL_TO_TYPE decimalto )
-         : RecordParser("", "", FALSE, FALSE)
+                                       DECIMAL_TO_TYPE decimalto,
+                                       BOOLEAN mustHasIDField )
+         : RecordParser("", "", FALSE, FALSE, mustHasIDField)
    {
       _isUnicode = isUnicode ;
       _decimalto = (INT32)decimalto ;
@@ -169,11 +174,12 @@ namespace import
    INT32 JSONRecordParser::parseRecord(const CHAR* data, INT32 length, bson& obj)
    {
       INT32 rc = SDB_OK;
-      INT32 flags = JSON_FLAG_RIGOROUS_MODE|JSON_FLAG_APPEND_OID|
-                    JSON_FLAG_NOT_INIT_BSON ;
+      INT32 flags = JSON_FLAG_RIGOROUS_MODE|JSON_FLAG_NOT_INIT_BSON ;
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
+
+
 
       if ( _isUnicode )
       {
@@ -187,6 +193,12 @@ namespace import
       else if ( JSON_DECIMAL_TO_STRING == _decimalto )
       {
          flags |= JSON_FLAG_DECIMAL_TO_STRING ;
+      }
+
+      SDB_ASSERT( _mustHasIDField, "can not be false" ) ;
+      if ( _mustHasIDField )
+      {
+         flags |= JSON_FLAG_APPEND_OID ;
       }
 
       if ( !json2bson3( data, _pMachine, flags, &obj ) )

@@ -61,6 +61,7 @@ namespace import
                                    BOOLEAN enableTransaction,
                                    BOOLEAN allowKeyDuplication,
                                    BOOLEAN replaceKeyDuplication,
+                                   BOOLEAN mustHasIDField,
                                    INT32 batchSize )
          : _insertBufferSize( 0 ),
            _recvBufferSize( 0 ),
@@ -69,6 +70,7 @@ namespace import
            _enableTransaction( enableTransaction ),
            _allowKeyDuplication( allowKeyDuplication ),
            _replaceKeyDuplication( replaceKeyDuplication ),
+           _mustHasIDField( mustHasIDField ),
            _endianConvert( FALSE ),
            _connection( SDB_INVALID_HANDLE ),
            _collectionSpace( SDB_INVALID_HANDLE ),
@@ -278,8 +280,12 @@ namespace import
       }
 
       // Inform coord or data nodes that the '_id' field is included in records.
-      // The '_id' field was added by RecordParser.
-      flag |= FLG_INSERT_HAS_ID_FIELD ;
+      // The '_id' field was added by RecordParser when '_mustHasIDField' is true.
+      SDB_ASSERT( _mustHasIDField, "can not be false" ) ;
+      if ( _mustHasIDField )
+      {
+         flag |= FLG_INSERT_HAS_ID_FIELD ;
+      }
 
       rc = _bulkInsert( pageInfo, flag ) ;
       if ( rc )
