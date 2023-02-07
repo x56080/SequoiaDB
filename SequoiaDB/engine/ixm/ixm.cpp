@@ -288,7 +288,7 @@ namespace engine
 
       if ( checkValid )
       {
-         rc = checkKeys( keys, arrEle, pResult ) ;
+         rc = checkKeys( obj, keys, arrEle, pResult ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object [%s], "
                       "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
@@ -349,7 +349,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_CHECKKEYS, "_ixmIndexCB::checkKeys" )
-   INT32 _ixmIndexCB::checkKeys( const BSONObjSet &keys,
+   INT32 _ixmIndexCB::checkKeys( const BSONObj &obj,
+                                 const BSONObjSet &keys,
                                  const BSONElement &arrEle,
                                  utilWriteResult *pResult ) const
    {
@@ -359,8 +360,8 @@ namespace engine
 
       if ( notArray() )
       {
-         PD_CHECK( arrEle.eoo(), SDB_IXM_KEY_NOT_SUPPORT_ARRAY, error, PDERROR,
-                   "Failed to check keys, index not support array" ) ;
+         rc = _checkArrayKeys( obj, keys, arrEle, pResult ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check array keys, rc: %d", rc ) ;
       }
 
       if ( notNull() )
@@ -371,6 +372,197 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__IXMINXCB_CHECKKEYS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   static INT32 _ixmBuildArrayKeys( const BSONElement &arrEle,
+                                    const CHAR *arrEleName,
+                                    BSONArrayBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj arrObj = arrEle.embeddedObject() ;
+
+         /// the element must be an empty array key when it is a empty array
+         if ( arrObj.firstElement().eoo() )
+         {
+            // the matched field is empty array, save as empty array
+            builder.append( arrEle ) ;
+         }
+         else if ( '\0' == *arrEleName )
+         {
+            // hit the end of name, but still an array
+            // we need to unpack the array, each element will be a key
+            BSONObjIterator itr( arrObj ) ;
+            while ( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+
+               // on found the array key
+               builder.append( e ) ;
+            }
+         }
+         else
+         {
+            // unpack the array to find the field
+            BSONObjIterator itr( arrObj ) ;
+            while ( itr.more() )
+            {
+               const CHAR *curEleName = arrEleName ;
+               BSONElement next = itr.next() ;
+               BSONElement subEle ;
+               BOOLEAN found = FALSE ;
+               if ( Object == next.type() )
+               {
+                  // search deeper into the sub-object
+                  subEle =
+                        next.embeddedObject().getFieldDottedOrArray( curEleName ) ;
+                  if ( Array == subEle.type() )
+                  {
+                     // still got an array, should recursively extract
+                     // from sub-object with sub-fields
+                     rc = _ixmBuildArrayKeys( subEle, curEleName, builder ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to build key from array element, rc: %d",
+                                  rc ) ;
+                     continue ;
+                  }
+                  // else if not an array, means we finally found the element
+                  // inside the sub-object
+                  found = TRUE ;
+               }
+               // else if not an object, means not matched
+               // use the EOO element, which will build as undefined
+
+               if ( found )
+               {
+                  // on found the array key
+                  builder.append( subEle ) ;
+               }
+               else
+               {
+                  builder.appendUndefined() ;
+               }
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build array keys, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _ixmIndexCB::_checkArrayKeys( const BSONObj &obj,
+                                       const BSONObjSet &keys,
+                                       const BSONElement &arrEle,
+                                       utilWriteResult *pResult ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !arrEle.eoo() )
+      {
+         rc = SDB_IXM_KEY_NOT_SUPPORT_ARRAY ;
+         PD_LOG( PDERROR, "Failed to check keys, index not support array" ) ;
+         if ( NULL != pResult )
+         {
+            // build error result info
+            INT32 tmpRC = SDB_OK ;
+
+            try
+            {
+               // build keys, e.g. { a: 1, b: [1, 2, 3] }
+               BSONObjBuilder builder( arrEle.size() + keyPattern().objsize() + 64 ) ;
+               BSONObjIterator iter( keyPattern() ) ;
+
+               while ( iter.more() )
+               {
+                  BSONElement beIdxKey = iter.next() ;
+                  const CHAR *fieldName = beIdxKey.fieldName() ;
+                  const CHAR *curName = fieldName ;
+                  BSONObj curObj = obj ;
+                  while ( NULL != curName )
+                  {
+                     BSONElement subEle ;
+                     const CHAR *p = strchr( curName, '.' ) ;
+                     if ( NULL != p )
+                     {
+                        subEle = curObj.getField( StringData( curName, p - curName ) ) ;
+                        curName = p + 1 ;
+                     }
+                     else
+                     {
+                        subEle = curObj.getField( curName ) ;
+                        curName = NULL ;
+                     }
+
+                     if ( curName == NULL || '\0' == curName[ 0 ] )
+                     {
+                        builder.appendAs( subEle, "" ) ;
+                        break ;
+                     }
+                     else if ( Object == subEle.type() )
+                     {
+                        curObj = subEle.embeddedObject() ;
+                        continue ;
+                     }
+                     else if ( Array == subEle.type() )
+                     {
+                        // build from current array element
+                        BSONArrayBuilder arrBuilder( builder.subarrayStart( "" ) ) ;
+                        tmpRC = _ixmBuildArrayKeys( subEle, curName, arrBuilder ) ;
+                        if ( SDB_OK != tmpRC )
+                        {
+                           PD_LOG( PDERROR, "Failed to build key from array element, rc: %d",
+                                   tmpRC ) ;
+                           break ;
+                        }
+                        arrBuilder.doneFast() ;
+                        break ;
+                     }
+                     else
+                     {
+                        SDB_ASSERT( FALSE, "should not be here" ) ;
+                        tmpRC = SDB_SYS ;
+                        break ;
+                     }
+                  }
+                  if ( SDB_OK != tmpRC )
+                  {
+                     break ;
+                  }
+               }
+
+               if ( SDB_OK == tmpRC )
+               {
+                  tmpRC = pResult->setIndexErrInfo( getName(), keyPattern(), builder.obj() ) ;
+               }
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to build error info, occur exception %s", e.what() ) ;
+               tmpRC = ossException2RC( &e ) ;
+            }
+            if ( tmpRC )
+            {
+               rc = tmpRC ;
+            }
+         }
+         goto error ;
+      }
+
+   done:
       return rc ;
 
    error:

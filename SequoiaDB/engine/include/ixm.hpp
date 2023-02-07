@@ -426,7 +426,8 @@ namespace engine
                                 BOOLEAN checkValid = FALSE,
                                 utilWriteResult *pResult = NULL ) const ;
 
-      INT32 checkKeys( const BSONObjSet &keys,
+      INT32 checkKeys( const BSONObj &obj,
+                       const BSONObjSet &keys,
                        const BSONElement &arrEle,
                        utilWriteResult *pResult = NULL ) const ;
 
@@ -1231,6 +1232,10 @@ namespace engine
 
       INT32 _checkNullKeys( const BSONObjSet &keys,
                             utilWriteResult *pResult ) const ;
+      INT32 _checkArrayKeys( const BSONObj &obj,
+                             const BSONObjSet &keys,
+                             const BSONElement &arrEle,
+                             utilWriteResult *pResult ) const ;
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;
 
