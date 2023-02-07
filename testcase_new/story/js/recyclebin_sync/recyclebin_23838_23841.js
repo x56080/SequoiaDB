@@ -3,7 +3,7 @@
  *                : seqDB-23841:SdbRecycle.snapshot 不带条件匹配所有回收项目
  * @Author        : Yang Qincheng
  * @CreateTime    : 2021.04.25
- * @LastEditTime  : 2022.07.14
+ * @LastEditTime  : 2023.02.07
  * @LastEditors   : liuli
  ******************************************************************************/
 
@@ -49,6 +49,9 @@ function test ()
    }
    cursor.close();
    assert.equal( listItemInfo.sort(), expItemInfo.sort() );
+
+   // 等待LSN同步后进行校验
+   commCheckBusinessStatus( db );
 
    // snapshot查看回收站项目快照
    var expItemInfo = ["Truncate", "Drop", "Drop", "Collection", "Collection", "CollectionSpace", clFullName, clFullName, csName];
