@@ -40,7 +40,7 @@ SDB_SNAP_INDEXSTATS
 | KeyPattern                     | object   | 统计索引的字段定义，例如{a:1, b:-1} |
 | StatInfo.GroupName             | string   | 集合所属复制组名 |
 | StatInfo.Group.NodeName        | string   | 集合所属节点名，格式为<主机名>:<端口号> |
-| StatInfo.Group.StatTimestamp   | int64    | 统计收集的时间戳 |
+| StatInfo.Group.StatTimestamp   | string   | 统计收集的时间戳 |
 | StatInfo.Group.TotalIndexLevels| int32    | 统计收集时索引的层数 |
 | StatInfo.Group.TotalIndexPages | int32    | 统计收集时索引的页个数 |
 | StatInfo.Group.DistinctValNum  | array    | 不重复值的个数<br>抽样时，指样本中不重复值的个数 <br>数组第 1 个元素表示字段定义中第 1 个字段的不重复值个数；第 2 个元素表示字段定义中第 1 和第 2 个字段的不重复值个数，以此类推<br>例如，字段定义为{a:1, b:-1}，数组为 [50, 100]，则 a 字段的不重复值有 50 个，a 和 b 字段组合的不重复值有 100 个 |
