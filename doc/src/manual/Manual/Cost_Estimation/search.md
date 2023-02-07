@@ -26,7 +26,7 @@
 | Input.RecordSize               | int32     | 集合的数据平均长度                                                                   |
 | Input.NeedEvalIO               | boolean   | 根据 Input.Pages 和 Options.optcostthreshold 判断是否需要计算 IO 代价                |
 | Input.CLEstFromStat            | boolean   | 是否使用集合的统计信息进行估算                                                       |
-| Input.CLStatTime               | timestamp | 使用的集合的统计信息的生成时间                                                       |
+| Input.CLStatTime               | string | 使用的集合的统计信息的生成时间                                                       |
 | SearchPaths                    | array     | 每个搜索过的访问计划的估算过程                                                       |
 
 >   **Note:**
@@ -46,7 +46,7 @@ SearchPaths 数组的每项表示一个搜索过的访问计划，将展示以�
 | IXBound        | bson      | 访问计划使用索引的查找范围<br>全表扫描时，字段值为 null    |
 | NeedMatch      | boolean   | 访问计划获取记录时是否需要根据匹配符进行过滤<br>当没有查询条件或查询条件可以被索引覆盖时，NeedMatch 为 false   |
 | IXEstFromStat  | boolean   | 是否使用索引的统计信息进行估算（索引扫描时显示） |
-| IXStatTime     | timestamp | 使用的索引的统计信息的生成时间（索引扫描时显示） |
+| IXStatTime     | string | 使用的索引的统计信息的生成时间（索引扫描时显示） |
 | Score          | double    | 评分，索引扫描时为索引的选择率（< 0.1时为候选计划），全表扫描时为匹配符的选择率 |
 | IsCandidate    | boolean   | 是否为候选访问计划，不是候选计划则不进行估算<br>当访问计划满足以下条件之一时，都会被作为候选访问计划：<br>1. 索引扫描选择率 < 0.1 <br>2. 索引扫描完全匹配排序字段 <br>3. 为全表扫描 |
 | IsUsed         | boolean   | 是否为最终选择的访问计划                           |

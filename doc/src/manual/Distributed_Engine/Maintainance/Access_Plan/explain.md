@@ -619,9 +619,9 @@
 |Estimate.RunCost|double|估算的 IXSCAN 的运行时间（单位：秒）|
 |Estimate.TotalCost|double|估算的 IXSCAN 的结束时间（单位：秒）|
 |Estimate.CLEstFromStat|boolean|IXSCAN 是否使用集合的统计信息进行估算|
-|Estimate.CLStatTime|timestamp|IXSCAN 使用的集合的统计信息的生成时间|
+|Estimate.CLStatTime| string |IXSCAN 使用的集合的统计信息的生成时间|
 |Estimate.IXEstFromStat|boolean|IXSCAN 是否使用索引的统计信息进行估算|
-|Estimate.IXStatTime|timestamp|IXSCAN 使用的索引的统计信息的生成时间|
+|Estimate.IXStatTime| string |IXSCAN 使用的索引的统计信息的生成时间|
 |Estimate.Input|bson|估算的 IXSCAN 输入的统计信息，Filter 选项包含 "Input" 时显示|
 |Estimate.Input.Pages|int64|估算的 IXSCAN 输入的数据页数|
 |Estimate.Input.Records|int64|估算的 IXSCAN 输入的记录个数|

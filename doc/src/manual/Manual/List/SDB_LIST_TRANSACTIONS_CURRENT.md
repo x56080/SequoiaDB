@@ -52,7 +52,7 @@ WaitLock 字段中锁对象的信息如下：
 | ExtentID     | int32   | 锁对象所在记录的 ID      |
 | Offset       | int32   | 锁对象所在记录的偏移量   |
 | Mode         | string  | 锁的类型：<br>IS：意向共享锁<br>IX：意向排他锁<br>S：共享锁<br>U：升级锁<br>X：排他锁 |
-| Duration     | int32   | 锁的持有或等待时间，单位为毫秒 |
+| Duration     | int64   | 锁的持有或等待时间，单位为毫秒 |
 
 ###锁对象的描述###
 

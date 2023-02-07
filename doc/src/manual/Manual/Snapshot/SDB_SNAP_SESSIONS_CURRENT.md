@@ -57,8 +57,8 @@ SDB_SNAP_SESSIONS_CURRENT
 | TotalWriteTime    | int64      | 总数据写时间，单位为毫秒                           |
 | ReadTimeSpent     | int64      | 读取记录的时间，单位为毫秒                         |
 | WriteTimeSpent    | int64      | 写入记录的时间，单位为毫秒                         |
-| ConnectTimestamp  | timestamp  | 连接发起时间                                       |
-| ResetTimestamp    | timestamp  | 重置快照的时间                                     |
+| ConnectTimestamp  | string  | 连接发起时间                                       |
+| ResetTimestamp    | string  | 重置快照的时间                                     |
 | LastOpType        | string     | 最后一次操作的类型，如：INSERT、UPDATE、COMMAND、GETMORE |
 | LastOpBegin       | string     | 最后一次操作的起始时间                             |
 | LastOpEnd         | string     | 最后一次操作的结束时间                             |

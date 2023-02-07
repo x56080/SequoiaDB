@@ -27,7 +27,7 @@ $SNAPSHOT_CONTEXT_CUR
 | Contexts.LobTruncate    | int64  | 服务端中 LOB 分片的截断次数（仅在 v3.4.8 及以上版本生效） |
 | Contexts.LobAddressing  | int64  | 服务端中 LOB 分片的寻址总次数（仅在 v3.4.8 及以上版本生效） |
 | Contexts.QueryTimeSpent   | double   | 查询总时间，单位为秒                   |
-| Contexts.StartTimestamp   | timestamp   | 创建时间                                 |
+| Contexts.StartTimestamp   | string   | 创建时间                                 |
 
 ##示例##
 
