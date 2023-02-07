@@ -399,7 +399,7 @@ namespace engine
          PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                        PD_SECURE_OBJ( obj ) ) ;
 
-         rc = _indexCB->checkKeys( keySet, arrEle, _pResult ) ;
+         rc = _indexCB->checkKeys( obj, keySet, arrEle, _pResult ) ;
          if ( SDB_OK != rc &&
               NULL != _pResult &&
               _pResult->getCurID().isEmpty() )
