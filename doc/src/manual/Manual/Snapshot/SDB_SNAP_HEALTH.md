@@ -32,7 +32,7 @@ SDB_SNAP_HEALTH
 | Ulimit.NumProc       | int64  | 节点进程的线程数限制，-1 表示 unlimited          |
 | Ulimit.FileSize      | int64  | 节点进程的文件大小限制，单位为字节，-1 表示 unlimited      |
 | Ulimit.StackSize     | int64  | 节点进程的栈空间大小限制，单位为字节，-1 表示 unlimited |
-| ResetTimestamp       | timestamp | 重置快照的时间                                                  |
+| ResetTimestamp       | string | 重置快照的时间                                                  |
 | ErrNum.SDB_OOM              | int64  | 节点发生 SDB_OOM 错误的次数                   |
 | ErrNum.SDB_NOSPC            | int64  | 节点发生 SDB_NOSPC 错误的次数                 |
 | ErrNum.SDB_TOO_MANY_OPEN_FD | int64  | 节点发生 SDB_TOO_MANY_OPEN_FD 错误的次数      |

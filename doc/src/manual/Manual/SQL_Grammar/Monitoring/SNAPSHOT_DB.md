@@ -77,8 +77,8 @@ $SNAPSHOT_DB
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
 | TotalReadTime         | int64  | 总读取时间，单位为毫秒                                                        |
 | TotalWriteTime        | int64  | 总写入时间，单位为毫秒                                                        |
-| ActivateTimestamp     | timestamp | 数据库节点启动时间                                                         |
-| ResetTimestamp        | timestamp | 重置快照的时间                               |
+| ActivateTimestamp     | string | 数据库节点启动时间                                                         |
+| ResetTimestamp        | string | 重置快照的时间                               |
 | UserCPU               | double | 用户 CPU，单位为秒                                                            |
 | SysCPU                | double | 系统 CPU，单位为秒                                                            |
 | freeLogSpace          | int64  | 空闲日志空间，单位为字节                                                      |
