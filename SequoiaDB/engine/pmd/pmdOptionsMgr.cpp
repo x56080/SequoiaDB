@@ -63,8 +63,8 @@ using namespace bson ;
 namespace engine
 {
 
-   #define PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR "increment"
-   #define PMD_OPTION_LOG_WRITEMOD_FULL_STR      "full"
+   #define PMD_OPTION_LOG_WRITEMODE_INCREMENT_STR "increment"
+   #define PMD_OPTION_LOG_WRITEMODE_FULL_STR      "full"
 
    #define JUDGE_RC( rc ) if ( SDB_OK != rc ) { goto error ; }
    #define ISALLOWRUNCHANGE( level )   ( ( level == PMD_CFG_CHANGE_REBOOT || \
@@ -110,7 +110,7 @@ namespace engine
    #define PMD_DFT_INSTANCE_ID         ( NODE_INSTANCE_ID_UNKNOWN )
    #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
-   #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
+   #define PMD_DFT_LOGWRITEMODE         ( PMD_OPTION_LOG_WRITEMODE_INCREMENT_STR )
    #define PMD_DFT_METACACHE_EXPIRED   (30) // half an hour
    #define PMD_MAX_METACACHE_EXPIRED   (43200) // 30 days
    #define PMD_DFT_METACACHE_LWM       (512)
@@ -1964,8 +1964,8 @@ done:
       _preferedStrict = FALSE ;
       _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
 
-      ossMemset( _logWriteModStr, 0, sizeof(_logWriteModStr) ) ;
-      _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+      ossMemset( _logWriteModeStr, 0, sizeof(_logWriteModeStr) ) ;
+      _logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
 
       _logTimeOn = FALSE ;
 
@@ -2428,9 +2428,9 @@ done:
                PMD_CFG_CHANGE_RUN, 100, FALSE ) ;
 
       // --logwritemod
-      rdxString( pEX, PMD_OPTION_LOGWRITEMOD, _logWriteModStr,
-                 sizeof( _logWriteModStr ), FALSE, PMD_CFG_CHANGE_RUN,
-                 PMD_DFT_LOGWRITEMOD, FALSE ) ;
+      rdxString( pEX, PMD_OPTION_LOGWRITEMODE, _logWriteModeStr,
+                 sizeof( _logWriteModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DFT_LOGWRITEMODE, FALSE ) ;
 
       // --logtimeon
       rdxBooleanS( pEX, PMD_OPTION_LOG_TIME_ON, _logTimeOn,
@@ -2600,15 +2600,15 @@ done:
       }
       _syncStrategyStr[0] = 0 ;
 
-      // logwritemod check
-      if ( SDB_OK != optString2LogMod( _logWriteModStr, _logWriteMod ) )
+      // logwritemode check
+      if ( SDB_OK != optString2LogMod( _logWriteModeStr, _logWriteMode ) )
       {
-         std::cerr << PMD_OPTION_LOGWRITEMOD << " value error, use default"
+         std::cerr << PMD_OPTION_LOGWRITEMODE << " value error, use default"
                    << endl ;
-         _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+         _logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
          _invalidConfNum++ ;
       }
-      _logWriteModStr[0] = 0 ;
+      _logWriteModeStr[0] = 0 ;
 
       // audit mask check
       _auditMask = 0 ;
@@ -3067,8 +3067,8 @@ done:
       clsStrategy2String( _syncStrategy, _syncStrategyStr,
                           sizeof( _syncStrategyStr ) ) ;
 
-      optLogMod2String( _logWriteMod, _logWriteModStr,
-                        sizeof( _logWriteModStr ) ) ;
+      optLogMod2String( _logWriteMode, _logWriteModeStr,
+                        sizeof( _logWriteModeStr ) ) ;
 
       return SDB_OK ;
    }
@@ -3565,20 +3565,20 @@ done:
       INT32 rc = SDB_OK ;
       if ( !str || !*str )
       {
-         value = DPS_LOG_WRITE_MOD_INCREMENT ;
+         value = DPS_LOG_WRITE_MODE_INCREMENT ;
       }
       else
       {
          UINT32 len = ossStrlen( str ) ;
-         if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR, len ) &&
-              len == ossStrlen( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR ) )
+         if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMODE_INCREMENT_STR, len ) &&
+              len == ossStrlen( PMD_OPTION_LOG_WRITEMODE_INCREMENT_STR ) )
          {
-            value = DPS_LOG_WRITE_MOD_INCREMENT ;
+            value = DPS_LOG_WRITE_MODE_INCREMENT ;
          }
-         else if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len ) &&
-                   len == ossStrlen( PMD_OPTION_LOG_WRITEMOD_FULL_STR ) )
+         else if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMODE_FULL_STR, len ) &&
+                   len == ossStrlen( PMD_OPTION_LOG_WRITEMODE_FULL_STR ) )
          {
-            value = DPS_LOG_WRITE_MOD_FULL ;
+            value = DPS_LOG_WRITE_MODE_FULL ;
          }
          else
          {
@@ -3729,12 +3729,12 @@ done:
 
       switch ( value )
       {
-         case DPS_LOG_WRITE_MOD_INCREMENT :
-            ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR, len - 1 ) ;
+         case DPS_LOG_WRITE_MODE_INCREMENT :
+            ossStrncpy( str, PMD_OPTION_LOG_WRITEMODE_INCREMENT_STR, len - 1 ) ;
             break ;
 
-         case DPS_LOG_WRITE_MOD_FULL :
-            ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len -1 ) ;
+         case DPS_LOG_WRITE_MODE_FULL :
+            ossStrncpy( str, PMD_OPTION_LOG_WRITEMODE_FULL_STR, len -1 ) ;
             break ;
 
          default :

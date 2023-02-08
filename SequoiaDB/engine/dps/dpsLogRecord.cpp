@@ -504,7 +504,7 @@ namespace engine
             dpsLogRecord::iterator itrFullName, itrOldM, itrOldO,
                                    itrNewM, itrNewO,
                                    itrOldSK, itrNewSK,
-                                   itrWriteMod ;
+                                   itrWriteMode ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrFullName.valid() )
             {
@@ -519,12 +519,12 @@ namespace engine
                                  " FullName : %s"OSS_NEWLINE,
                                  itrFullName.value() ) ;
 
-            itrWriteMod = this->find( DPS_LOG_UPDATE_WRITEMOD ) ;
-            if ( itrWriteMod.valid() )
+            itrWriteMode = this->find( DPS_LOG_UPDATE_WRITEMODE ) ;
+            if ( itrWriteMode.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " WriteMod : %d"OSS_NEWLINE,
-                                    *(( UINT32 *)itrWriteMod.value()) ) ;
+                                    " WriteMode : %d"OSS_NEWLINE,
+                                    *(( UINT32 *)itrWriteMode.value()) ) ;
             }
 
             itrOldM = this->find( DPS_LOG_UPDATE_OLDMATCH ) ;

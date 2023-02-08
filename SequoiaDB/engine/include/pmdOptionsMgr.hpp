@@ -653,7 +653,7 @@ namespace engine
          OSS_INLINE UINT32 getMaxConn () const { return _maxconn ; }
          OSS_INLINE UINT32 getSvcSchedulerType() const { return _svcSchedulerType ; }
          OSS_INLINE UINT32 getSvcMaxConcurrency() const { return _svcMaxConcurrency ; }
-         OSS_INLINE UINT32 logWriteMod() const { return _logWriteMod ; }
+         OSS_INLINE UINT32 logWriteMode() const { return _logWriteMode ; }
          OSS_INLINE BOOLEAN logTimeOn() const { return _logTimeOn ; }
          OSS_INLINE BOOLEAN isSleepEnabled() const { return _enableSleep ; }
          OSS_INLINE BOOLEAN recycleRecord() const { return _recycleRecord ; }
@@ -792,8 +792,8 @@ namespace engine
          UINT32      _svcMaxConcurrency ;
          BOOLEAN     _preferedStrict ;
          INT32       _preferedPeriod ;
-         CHAR        _logWriteModStr[ PMD_MAX_LOGMOD_STR_LEN + 1 ] ;
-         UINT32      _logWriteMod ;
+         CHAR        _logWriteModeStr[ PMD_MAX_LOGMOD_STR_LEN + 1 ] ;
+         UINT32      _logWriteMode ;
          BOOLEAN     _logTimeOn ;
          BOOLEAN     _enableSleep ;
          BOOLEAN     _recycleRecord ;
