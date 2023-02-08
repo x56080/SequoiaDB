@@ -519,6 +519,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
+            _mbStatInfo[context->mbID()]._lastCompressRatio =
+                  (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
             context->mbStat()->_totalDataLen += newRecordData.len() ;
@@ -533,6 +535,8 @@ namespace engine
             //if the record has compresssed,the orgLen mean the record size
             //in DB,len mean the uncompress size. So when we substract the
             //size,we should swap them.
+            _mbStatInfo[context->mbID()]._lastCompressRatio =
+                  (UINT8)( newRecordData.getCompressRatio() * 100 ) ;
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
             context->mbStat()->_totalDataLen += newRecordData.len() ;
@@ -607,6 +611,7 @@ namespace engine
             //size,we should swap them.
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
+            // NOTE: last compress ratio is updated with insert of overflow-to record
          }
       }
       catch( std::exception &e )
