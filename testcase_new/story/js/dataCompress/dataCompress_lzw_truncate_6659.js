@@ -2,8 +2,8 @@
  * @Description   : seqDB-6657:remove带条件删除所有数据并再次插入数据
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.23
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.02.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -32,6 +32,8 @@ function test ( testPara )
 
    // insert again
    insertRecs2( cl, insertRecsNum );
+
+   waitDictionary( db, csName, clName );
 
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );

@@ -2,8 +2,8 @@
  * @Description   : seqDB-6658:findAndRemove删除记录
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.23
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.02.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -30,9 +30,17 @@ function test ( testPara )
    } ).remove();
    while( rc.next() );
 
+   // 等待字典构建
+   waitDictionary( db, csName, clName );
+
+   // 再次插入少量数据使数据压缩
+   var insertRecsNum2 = 200000;
+   insertRecs2( cl, insertRecsNum2 );
+
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
-   checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
+   var expRecsNum = 400000;
+   checkRecsByDataNode( rgName, csName, clName, expRecsNum, checkRecsNum );
 }
 
 function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
@@ -48,11 +56,11 @@ function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsN
          var nodeCL = nodeDB.getCS( csName ).getCL( clName );
          // 检查数据总数
          var recsCnt = nodeCL.count();
-         assert.equal( recsCnt, 200000 );
+         assert.equal( recsCnt, insertRecsNum );
          // 随机检查n条记录正确性
          for( j = 0; j < checkRecsNum; j++ )
          {
-            var i = parseInt( Math.random() * insertRecsNum );
+            var i = parseInt( Math.random() * 800000 );
             var recsCnt = nodeCL.find( {
                INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i,
                IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行"
@@ -60,7 +68,7 @@ function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsN
             if( i < 200000 )
             {
                // 检查未被删除的记录
-               var expctCnt = 1;
+               var expctCnt = 2;
             }
             else
             {

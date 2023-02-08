@@ -2,8 +2,8 @@
  * @Description   : seqDB-6656:批量更新已压缩和未压缩的记录
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.23
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.02.07
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -22,6 +22,8 @@ function test ( testPara )
 
    // insert   
    insertRecs2( cl, insertRecsNum );
+
+   waitDictionary( db, csName, clName );
 
    // findAndUpdateRecs
    var rc = cl.find( { $and: [{ INNER_NO: { $gte: 200000 } }, { INNER_NO: { $lt: 700000 } }] } )
