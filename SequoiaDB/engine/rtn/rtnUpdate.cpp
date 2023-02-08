@@ -57,7 +57,7 @@ namespace engine
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
                      pmdEDUCB *cb, utilUpdateResult *pResult,
-                     const BSONObj *shardingKey, UINT32 logWriteMod,
+                     const BSONObj *shardingKey, UINT32 logWriteMode,
                      IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
@@ -72,7 +72,7 @@ namespace engine
       }
 
       rc = rtnUpdate ( pCollectionName, matcher, updator, hint, flags, cb,
-                       dmsCB, dpsCB, 1, pResult, shardingKey, logWriteMod,
+                       dmsCB, dpsCB, 1, pResult, shardingKey, logWriteMode,
                        opHandler ) ;
 
       PD_TRACE_EXITRC ( SDB_RTNUPDATE1, rc ) ;
@@ -84,7 +84,7 @@ namespace engine
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
                      INT16 w, utilUpdateResult *pResult,
-                     const BSONObj *shardingKey, UINT32 logWriteMod,
+                     const BSONObj *shardingKey, UINT32 logWriteMode,
                      IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
@@ -95,7 +95,7 @@ namespace engine
                                0, -1, flags ) ;
       options.setWriteOp( TRUE ) ;
       rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pResult,
-                      shardingKey, logWriteMod, opHandler ) ;
+                      shardingKey, logWriteMode, opHandler ) ;
       PD_TRACE_EXITRC( SDB_RTNUPDATE2, rc ) ;
       return rc ;
    }
@@ -104,7 +104,7 @@ namespace engine
    INT32 rtnUpdate ( rtnQueryOptions &options, const BSONObj &updator,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
                      INT16 w, utilUpdateResult *pResult,
-                     const BSONObj *shardingKey, UINT32 logWriteMod,
+                     const BSONObj *shardingKey, UINT32 logWriteMode,
                      IRtnOprHandler *opHandler )
    {
       INT32 rc = SDB_OK ;
@@ -184,7 +184,7 @@ namespace engine
                                      TRUE,
                                      shardingKey,
                                      strictDataMode,
-                                     logWriteMod,
+                                     logWriteMode,
                                      TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
                       "%s", PD_SECURE_OBJ( updator ) ) ;

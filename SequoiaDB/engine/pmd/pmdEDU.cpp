@@ -942,10 +942,10 @@ namespace engine
 #endif
    }
 
-   UINT32 _pmdEDUCB::getLogWriteMod() const
+   UINT32 _pmdEDUCB::getLogWriteMode() const
    {
 #if defined ( SDB_ENGINE )
-      return _logConfig.getLogWriteMod() ;
+      return _logConfig.getLogWriteMode() ;
 #else
       return 0 ;
 #endif
@@ -1052,7 +1052,7 @@ namespace engine
          _transExecutor.setTransAutoCommit( FALSE, FALSE ) ;
       }
       _logConfig.updateConf( optCB->logTimeOn(),
-                             optCB->logWriteMod() ) ;
+                             optCB->logWriteMode() ) ;
 
       // make sure meta-block statistics are cleared
       if ( !_transExecutor.isMBStatsEmpty() )
@@ -1111,7 +1111,7 @@ namespace engine
 
          // update DPS log config
          if ( !_logConfig.updateConf( optCB->logTimeOn(),
-                                      optCB->logWriteMod(),
+                                      optCB->logWriteMode(),
                                       isTransaction() ) )
          {
             // failed to update, wait for next round

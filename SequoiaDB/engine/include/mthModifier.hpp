@@ -485,7 +485,7 @@ namespace engine
                           BOOLEAN ignoreTypeError = TRUE,
                           const BSONObj* shardingKey = NULL,
                           BOOLEAN strictDataMode = FALSE,
-                          UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
+                          UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT,
                           BOOLEAN calcIdxHash = FALSE ) ;
       void modifierSort() ;
       INT32 modify ( const BSONObj &source, BSONObj &target,

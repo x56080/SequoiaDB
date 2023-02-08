@@ -87,10 +87,10 @@ namespace engine
       DPS_LOG_UPDATE_NEWOBJ = 4,
       DPS_LOG_UPDATE_OLDSHARDINGKEY = 5,
       DPS_LOG_UPDATE_NEWSHARDINGKEY = 6,
-      DPS_LOG_UPDATE_WRITEMOD = 7
+      DPS_LOG_UPDATE_WRITEMODE = 7
    } ;
 
-   enum DPS_LOG_DELETE
+   enum DPS_LOG_DELETE 
    {
       DPS_LOG_DELETE_OLDOBJ = 1,
       // only used for mark deleting

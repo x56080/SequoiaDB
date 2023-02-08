@@ -508,7 +508,7 @@ namespace engine
             Log config
           */
          virtual BOOLEAN   isLogTimeOn() const = 0 ;
-         virtual UINT32    getLogWriteMod() const = 0 ;
+         virtual UINT32    getLogWriteMode() const = 0 ;
    } ;
    typedef _IExecutor IExecutor ;
 

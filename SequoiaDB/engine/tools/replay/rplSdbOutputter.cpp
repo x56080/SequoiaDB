@@ -187,7 +187,7 @@ namespace replay
                                         const BSONObj &shardingKey,
                                         const BSONObj &oldModifier,
                                         const UINT64 &opTimeMicroSecond,
-                                        const UINT32 &logWriteMod )
+                                        const UINT32 &logWriteMode )
    {
       INT32 rc = SDB_OK ;
       sdbCollection cl ;
@@ -195,7 +195,7 @@ namespace replay
       BSONObj modifier;
       BSONObj hint = BSON( "" << "$id" );
 
-      if ( DPS_LOG_WRITE_MOD_FULL == logWriteMod )
+      if ( DPS_LOG_WRITE_MODE_FULL == logWriteMode )
       {
          modifier = BSON( "$replace" << newModifier ) ;
       }

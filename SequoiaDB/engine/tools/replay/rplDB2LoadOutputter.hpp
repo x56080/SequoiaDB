@@ -71,7 +71,7 @@ namespace replay
                           const BSONObj &shardingKey,
                           const BSONObj &oldModifier,
                           const UINT64 &opTimeMicroSecond,
-                          const UINT32 &logWriteMod ) ;
+                          const UINT32 &logWriteMode ) ;
 
       INT32 truncateCL( const CHAR *clFullName, UINT64 lsn ) ;
 

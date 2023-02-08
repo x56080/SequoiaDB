@@ -882,13 +882,13 @@ namespace engine
             BSONObj modifier ;   //new change obj
             const CHAR *fullname = NULL ;
             utilUpdateResult upResult ;
-            UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+            UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
             rc = dpsRecord2Update( (CHAR *)recordHeader,
                                    &fullname,
                                    match,
                                    oldObj,
                                    newMatch,
-                                   modifier, NULL, NULL, NULL, &logWriteMod ) ;
+                                   modifier, NULL, NULL, NULL, &logWriteMode ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -898,7 +898,7 @@ namespace engine
             {
                rc = rtnUpdate( fullname, match, modifier,
                                s_replayHint, 0, eduCB, _dmsCB, _dpsCB, 1,
-                               &upResult, NULL, logWriteMod ) ;
+                               &upResult, NULL, logWriteMode ) ;
             }
             if ( SDB_OK == rc )
             {
@@ -925,7 +925,7 @@ namespace engine
             // 1. ignore duplicated key by caller
             // 2. conflict objects has the same OID
             else if ( SDB_IXM_DUP_KEY == rc &&
-                      DPS_LOG_WRITE_MOD_FULL == logWriteMod &&
+                      DPS_LOG_WRITE_MODE_FULL == logWriteMode &&
                       ( ignoreDupKey || upResult.isSameID() ) )
             {
                PD_LOG( PDINFO, "Record[%s] already exist when update",
@@ -1807,7 +1807,7 @@ namespace engine
             BSONObj modifier ;  //old modifier
             BSONObj newMatch ;     //new matcher
             BSONObj newObj ;
-            UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+            UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
             utilUpdateResult upResult ;
 
             rc = dpsRecord2Update( (const CHAR *)recordHeader,
@@ -1815,12 +1815,12 @@ namespace engine
                                     oldMatch,
                                     modifier,
                                     newMatch,
-                                    newObj, NULL, NULL, NULL, &logWriteMod ) ;
+                                    newObj, NULL, NULL, NULL, &logWriteMode ) ;
             if ( !modifier.isEmpty() )
             {
                rc = rtnUpdate( fullname, newMatch, modifier, s_replayHint,
                                0, eduCB, _dmsCB, _dpsCB, 1, &upResult,
-                               NULL, logWriteMod ) ;
+                               NULL, logWriteMode ) ;
                if ( SDB_OK == rc )
                {
                   if ( upResult.updateNum() == 0 )
@@ -2487,12 +2487,12 @@ namespace engine
       dpsTransPendingKey newPendingKey, oldPendingKey ;
       dpsTransPendingValue newPendingValue, oldPendingValue ;
       BOOLEAN isPendingKeyExist = FALSE ;
-      UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
 
       rc = dpsRecord2Update( (const CHAR *)recordHeader,
                               &clFullName, oldMatch, oldObject,
                               newMatch, newObject, NULL, NULL, NULL,
-                              &logWriteMod ) ;
+                              &logWriteMode ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get update record of LSN [%llu], "
                    "rc: %d", recordHeader->_lsn, rc ) ;
 
@@ -2521,7 +2521,7 @@ namespace engine
          // key issue, so we need to recover the old object from the removed
          // pending key
          rc = _replayUpdateModifier( oldObject, newObject, rollbackObject,
-                                     logWriteMod ) ;
+                                     logWriteMode ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
                       "old pending object, rc: %d", rc ) ;
 
@@ -2532,7 +2532,7 @@ namespace engine
             // need to replace whole object with the new one
             newMatch = oldPendingValue._obj ;
             oldObject = BSON( "$replace" << rollbackObject ) ;
-            logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+            logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
          }
 
          if ( mapPendingObj.empty() )
@@ -2561,7 +2561,7 @@ namespace engine
          utilUpdateResult upResult ;
          rc = rtnUpdate( clFullName, newMatch, oldObject,
                          s_replayHint, 0, eduCB, _dmsCB, _dpsCB, 1,
-                         &upResult, NULL, logWriteMod ) ;
+                         &upResult, NULL, logWriteMode ) ;
 
          if ( upResult.updateNum() == 0 )
          {
@@ -2591,7 +2591,7 @@ namespace engine
                          PD_SECURE_OBJ( newMatch ), clFullName, rc ) ;
 
             rc = _replayUpdateModifier( oldObject, currentObject,
-                                        rollbackObject, logWriteMod ) ;
+                                        rollbackObject, logWriteMode ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
                          "DMS object, rc: %d", rc ) ;
 
@@ -2872,12 +2872,12 @@ namespace engine
       dpsTransPendingKey newPendingKey, oldPendingKey ;
       dpsTransPendingValue newPendingValue, oldPendingValue ;
       BOOLEAN isPendingKeyExist = FALSE, added = FALSE ;
-      UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32 logWriteMode = DPS_LOG_WRITE_MODE_INCREMENT ;
 
       rc = dpsRecord2Update( (const CHAR *)recordHeader,
                               &clFullName, oldMatch, oldObject,
                               newMatch, newObject, NULL, NULL, NULL,
-                              &logWriteMod ) ;
+                              &logWriteMode ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get update record of LSN [%llu], "
                    "rc: %d", recordHeader->_lsn, rc ) ;
 
@@ -2914,7 +2914,7 @@ namespace engine
          // key issue, so we need to recover the old object from the removed
          // pending key
          rc = _replayUpdateModifier( oldObject, newObject, rollbackObject,
-                                     logWriteMod ) ;
+                                     logWriteMode ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
                       "old pending object, rc: %d", rc ) ;
 
@@ -2951,7 +2951,7 @@ namespace engine
                          PD_SECURE_OBJ( newMatch ), clFullName, rc ) ;
 
             rc = _replayUpdateModifier( oldObject, currentObject,
-                                        rollbackObject, logWriteMod ) ;
+                                        rollbackObject, logWriteMode ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
                          "DMS object, rc: %d", rc ) ;
          }

@@ -2532,7 +2532,7 @@ namespace engine
                                      BOOLEAN ignoreTypeError,
                                      const BSONObj* shardingKey,
                                      BOOLEAN strictDataMode,
-                                     UINT32 logWriteMod,
+                                     UINT32 logWriteMode,
                                      BOOLEAN calcIdxHash )
    {
       INT32 rc = SDB_OK ;
@@ -2543,7 +2543,7 @@ namespace engine
       _ignoreTypeError = ignoreTypeError ;
       _fieldCompare.setDollarList( _dollarList ) ;
 
-      if ( DPS_LOG_WRITE_MOD_FULL == logWriteMod )
+      if ( DPS_LOG_WRITE_MODE_FULL == logWriteMode )
       {
          rc = _parseFullRecord( _modifierPattern ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse full record[%s], rc = %d",
