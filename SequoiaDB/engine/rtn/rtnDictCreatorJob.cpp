@@ -227,9 +227,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CREATEDICT ) ;
       _mthRecordGenerator generator ;
-      dmsRecordID recordID ;
-      dmsExtentID lastExtentID = DMS_INVALID_EXTENT ;
-      ossValuePtr recordDataPtr = 0 ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       UINT64 fetchNum = 0 ;
       UINT64 fetchSize = 0 ;
@@ -239,9 +236,12 @@ namespace engine
 
       SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
-      dmsTBScanner tbScanner( sd, context, NULL ) ;
       const CHAR *csName = sd->getSuName() ;
       const CHAR *clShortName = context->mb()->_collectionName ;
+
+      rtnContextStoreBuf buf ;
+      dmsExtScanner scanner( sd, context, NULL, context->mb()->_firstExtentID ) ;
+
       rc = dmsCB->createScannerChecker( sd->logicalID(),
                                         context->clLID(),
                                         csName,
@@ -256,30 +256,44 @@ namespace engine
        * The loop will end either all records have been fetched, or the
        * dictionary is full.
        */
-      while ( SDB_OK == ( rc = tbScanner.advance( recordID, generator,
-                                                  cb ) ) )
+      while ( TRUE )
       {
-         try
+         dmsRecordID recordID ;
+
+         buf.empty() ;
+
+         // resume scan
+         rc = context->resume() ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to resume mb context for collection [%s.%s], "
+                      "rc: %d", csName, clShortName, rc ) ;
+
+         // fetch records from one extent
+         while ( SDB_OK == ( rc = scanner.advance( recordID, generator, cb ) ) )
          {
-            generator.getDataPtr( recordDataPtr ) ;
-            BSONObj bs( (const CHAR*)recordDataPtr ) ;
-            creator->build( bs.objdata(), bs.objsize(), dictFull ) ;
-            if ( dictFull )
+            try
             {
-               break ;
+               // save to buffer, will process later
+               ossValuePtr recordDataPtr = 0 ;
+               generator.getDataPtr( recordDataPtr ) ;
+               BSONObj bs( (const CHAR*)recordDataPtr ) ;
+               buf.append( bs ) ;
             }
-            ++fetchNum ;
-            fetchSize += bs.objsize() ;
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to get record, occur exception: %s", e.what() ) ;
+               ossException2RC( &e ) ;
+               goto error ;
+            }
          }
-         catch ( std::exception &e )
+
+         // pause scan to release mb lock
+         context->pause() ;
+
+         if ( SDB_DMS_EOC == rc )
          {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         if ( ( DMS_INVALID_EXTENT == lastExtentID ) ||
-              ( lastExtentID != recordID._extent ) )
-         {
+            rc = SDB_OK ;
+
+            // check if interrupt
             if ( NULL != checker && checker->needInterrupt() )
             {
                PD_LOG( PDWARNING, "Scanner for collection [%s.%s] need "
@@ -288,29 +302,74 @@ namespace engine
                rc = SDB_DMS_SCANNER_INTERRUPT ;
                goto error ;
             }
-            lastExtentID = recordID._extent ;
+
+            // process the records
+            if ( buf.numRecords() > 0 )
+            {
+               rtnContextBuf ctxBuf ;
+
+               // get records from buffer
+               rc = buf.get( -1, ctxBuf ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Failed to get results from buffer, "
+                            "rc: %d", rc ) ;
+
+               // process record one-by-one
+               while ( !ctxBuf.eof() )
+               {
+                  BSONObj obj ;
+                  rc = ctxBuf.nextObj( obj ) ;
+                  if ( SDB_DMS_EOC == rc )
+                  {
+                     rc = SDB_OK ;
+                     break ;
+                  }
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to get next result, "
+                               "rc: %d", rc ) ;
+
+                  // put record into dictionary creator
+                  creator->build( obj.objdata(), obj.objsize(), dictFull ) ;
+                  if ( dictFull )
+                  {
+                     break ;
+                  }
+
+                  ++ fetchNum ;
+                  fetchSize += obj.objsize() ;
+               }
+            }
+
+            // dictionary is ready
+            if ( dictFull )
+            {
+               break ;
+            }
+
+            // move to the next extent
+            if ( DMS_INVALID_EXTENT == scanner.nextExtentID() ||
+                 SDB_DMS_EOC == scanner.stepToNextExtent() )
+            {
+               // end of collection
+               break ;
+            }
+         }
+         else
+         {
+            PD_RC_CHECK( rc, PDWARNING, "Fetching data and creating the dictionary "
+                         "failed: %d", rc ) ;
          }
       }
 
       // The table scanner will release the mb latch when swithing to next
       // extent. During that time, the data or event the collection may change.
       // So after the scanner quit, we should check again.
-      if ( SDB_DMS_EOC == rc )
+      if ( ( !dictFull ) &&
+           ( fetchNum < RTN_DICT_CREATE_REC_NUM_THRESHOLD ||
+             fetchSize < RTN_DICT_CREATE_REC_DATA_SIZE ) )
       {
          // If break the loop because of data end hit, the dictionary is not
          // full. If not data is fetched, need to retry later. Otherwise, the
          // dictionary is OK.
-         if ( fetchNum < RTN_DICT_CREATE_REC_NUM_THRESHOLD ||
-              fetchSize < RTN_DICT_CREATE_REC_DATA_SIZE )
-         {
-            goto error ;
-         }
-         rc = SDB_OK ;
-      }
-      else if ( rc )
-      {
-         PD_LOG( PDERROR, "Fetching data and creating the dictionary "
-                          "failed: %d", rc ) ;
+         rc = SDB_DMS_EOC ;
          goto error ;
       }
 
@@ -321,6 +380,7 @@ namespace engine
       }
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CREATEDICT, rc ) ;
       return rc ;
+
    error:
       goto done ;
    }

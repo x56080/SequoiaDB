@@ -64,6 +64,7 @@ namespace engine
       _readOffset = 0 ;
       _writeOffset = 0 ;
       _countOnly = FALSE ;
+      _contextValidator = NULL ;
    }
 
    _rtnContextStoreBuf::~_rtnContextStoreBuf()
