@@ -1499,6 +1499,12 @@ static INT32 _runCommand2 ( sdbConnectionHandle cHandle,
    // check
    HANDLE_CHECK( cHandle, db, SDB_HANDLE_TYPE_CONNECTION ) ;
 
+   // when need return cursor, add these flags for optimization
+   if ( handle )
+   {
+      flag |= FLG_QUERY_WITH_RETURNDATA ;
+   }
+
    // build message
    rc = clientBuildQueryMsg ( ppSendBuffer,
                               sendBufferSize,
@@ -6837,7 +6843,6 @@ static INT32 _sdbQuery ( sdbCollectionHandle cHandle,
    }
 
    newFlags = regulateQueryFlags( flags ) ;
-   newFlags |= FLG_QUERY_WITH_RETURNDATA ;
    newFlags |= QUERY_PREPARE_MORE ;
 
    rc = _runCommand2( cs->_connection,
