@@ -57,7 +57,10 @@ public class DBCursor implements Closeable {
      * @throws BaseException If error happens.
      */
     public boolean hasNext() throws BaseException {
-        if (isClosed || isEOC) {
+        if (isClosed) {
+            throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
+        }
+        if (isEOC) {
             return false;
         }
 
@@ -93,13 +96,16 @@ public class DBCursor implements Closeable {
     /**
      * Get next document.
      * Calling this function after the cursor have been closed
-     * will throw BaseException with error SDB_RTN_CONTEXT_NOTEXIST
+     * will throw BaseException with error {@link SDBError#SDB_DMS_CONTEXT_IS_CLOSE}
      *
      * @return the next data or null if the cursor is empty
      * or the cursor is closed
      * @throws BaseException If error happens.
      */
     public BSONObject getNext() throws BaseException {
+        if (isClosed) {
+            throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
+        }
         if (hasNext()) {
             currentObj = resultSet.getNext();
             currentRaw = null;
@@ -112,13 +118,16 @@ public class DBCursor implements Closeable {
     /**
      * Get raw data of next record.
      * Calling this function after the cursor have been closed
-     * will throw BaseException with error SDB_RTN_CONTEXT_NOTEXIST
+     * will throw BaseException with error {@link SDBError#SDB_DMS_CONTEXT_IS_CLOSE}
      *
      * @return a byte array of raw data of next record or null
      * if the cursor is empty
      * @throws BaseException If error happens.
      */
     public byte[] getNextRaw() throws BaseException {
+        if (isClosed) {
+            throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
+        }
         if (hasNext()) {
             currentRaw = resultSet.getNextRaw();
             currentObj = null;
@@ -131,12 +140,15 @@ public class DBCursor implements Closeable {
     /**
      * Get current document.
      * Calling this function after the cursor have been closed
-     * will throw BaseException with error SDB_RTN_CONTEXT_NOTEXIST
+     * will throw BaseException with error {@link SDBError#SDB_DMS_CONTEXT_IS_CLOSE}
      *
      * @return the current data or null if the cursor is empty
      * @throws BaseException If error happens.
      */
     public BSONObject getCurrent() throws BaseException {
+        if (isClosed) {
+            throw new BaseException(SDBError.SDB_DMS_CONTEXT_IS_CLOSE, "The cursor has closed");
+        }
         if (!isStarted) {
             return getNext();
         }

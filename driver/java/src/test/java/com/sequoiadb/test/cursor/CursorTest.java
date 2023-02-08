@@ -5,6 +5,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.ConstantsInsert;
 import org.bson.BSONObject;
@@ -86,11 +87,24 @@ public class CursorTest {
     @Test
     public void testGetCurrent() {
         System.out.println("begin to test testGetCurrent ...");
-        cursor = cl.query();
         BSONObject obj = null;
+
+        // case 1: getCurrent() before close()
+        cursor = cl.query();
         obj = cursor.getCurrent();
         cursor.close();
-        assertTrue(null != obj);
+        assertNotNull(obj);
+
+        // case 2: getCurrent() after close()
+        cursor = cl.query();
+        obj = cursor.getNext();
+        cursor.close();
+        try {
+            obj = cursor.getCurrent();
+            Assert.fail("We can't get data from a closed cursor");
+        } catch (BaseException e) {
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
+        }
     }
 
 
@@ -175,18 +189,21 @@ public class CursorTest {
         // get record again
         try {
             obj = cursor.getCurrent();
+            Assert.fail("We can't get data from a closed cursor");
         } catch (BaseException e) {
-            assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
         try {
             obj = cursor.getNext();
+            Assert.fail("We can't get data from a closed cursor");
         } catch (BaseException e) {
-            assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
         try {
             arr = cursor.getNextRaw();
+            Assert.fail("We can't get data from a closed cursor");
         } catch (BaseException e) {
-            assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
     }
 
@@ -209,24 +226,24 @@ public class CursorTest {
         // get record again
         try {
             obj = cursor.getCurrent();
-            assertTrue(obj == null);
+            Assert.fail("We can't get data from a closed cursor");
         } catch (BaseException e) {
             System.out.println("1:" + e.getErrorCode());
-            assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
         try {
             obj = cursor1.getNext();
-//			assertTrue(obj == null);
+            assertNotNull(obj);
         } catch (BaseException e) {
             System.out.println("2:" + e.getErrorCode());
-            assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
         try {
             arr = cursor2.getNextRaw();
             assertNotNull(arr);
         } catch (BaseException e) {
             System.out.println("3:" + e.getErrorCode());
-            assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));
+            Assert.assertEquals(SDBError.SDB_DMS_CONTEXT_IS_CLOSE.getErrorCode(), e.getErrorCode());
         }
     }
 }
