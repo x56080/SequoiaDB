@@ -533,38 +533,33 @@ namespace exprt
       goto done ;
    }
 
-   void expRoutine::printStatistics()
+   void expRoutine::printStatistics( INT32 rc )
    {
       // TODO: may print the failed count of collections and records
       //       when option 'errorstop' is supported
       if ( !_options.hasGenConf() )
       {
-         if ( 0 == _failCLCount && 0 == _failRecordCount )
+         if( SDB_OK == rc )
          {
-            PD_LOG( PDINFO, "Exported successfully with"
-                            " %u successful collections, "
-                            " %llu successful records",
-                    _exportedCLCount, _exportedRecordCount ) ;
-            cout << "Exported successfully with " << _exportedCLCount 
-                 << " successful collections, " << _exportedRecordCount
-                 << " successful records" << endl ;
+            PD_LOG( PDINFO, "Exported successfully!" ) ;
+            cout << "Exported successfully!" << endl ;
          }
-         else if( _exportedRecordCount > 0 &&
-                  ( _failCLCount > 0 || _failRecordCount > 0 ) )
+         else
          {
-            PD_LOG( PDINFO, "Exported partial-successfully with"
-                            " %u successful collections, "
-                            " %llu successful records",
-                    _exportedCLCount, _exportedRecordCount ) ;
-            cout << "Exported partial-successfully with " << _exportedCLCount 
-                 << " successful collections, " << _exportedRecordCount
-                 << " successful records" << endl ;
-         }
-         else 
-         {
-            PD_LOG( PDINFO, "Failed to export!" ) ;
+            PD_LOG( PDERROR, "Failed to export!" ) ;
             cerr << "Failed to export!" << endl ;
+
+            if( _exportedRecordCount == 0 )
+            {
+               return ;
+            }
          }
+
+         PD_LOG( PDINFO, "Exported records: %u "
+                         "\nCompletely exported collections: %llu ",
+                 _exportedRecordCount, _exportedCLCount ) ;
+         cout << "Exported records: " << _exportedRecordCount << endl ;
+         cout << "Completely exported collections: " << _exportedCLCount << endl ;
       }
    }
 }
