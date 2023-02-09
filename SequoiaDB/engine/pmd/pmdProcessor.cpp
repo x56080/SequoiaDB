@@ -777,7 +777,7 @@ namespace engine
             // add last op info
             MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                                 "Collection:%s, Matcher:%s, Selector:%s, "
-                                "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
+                                "OrderBy:%s, Hint:%s, Skip:%lld, Limit:%lld, "
                                 "Flag:0x%08x(%u)",
                                 pCollectionName,
                                 matcher.toPoolString().c_str(),
@@ -884,7 +884,7 @@ namespace engine
 
          MON_SAVE_CMD_DETAIL( eduCB()->getMonAppCB(), pCommand->type(),
                               "Command:%s, Collection:%s, Match:%s, "
-                              "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
+                              "Selector:%s, OrderBy:%s, Hint:%s, Skip:%lld, "
                               "Limit:%lld, Flag:0x%08x(%u)",
                               pCollectionName,
                               pCommand->collectionFullName() ?
@@ -2211,7 +2211,7 @@ namespace engine
          // add last op info
          MON_SAVE_CMD_DETAIL( eduCB()->getMonAppCB(), CMD_UNKNOW - 1,
                               "Command:%s, Match:%s, "
-                              "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
+                              "Selector:%s, OrderBy:%s, Hint:%s, Skip:%lld, "
                               "Limit:%lld, Flag:0x%08x(%u)",
                               pCollectionName,
                               BSONObj(pQuery).toString().c_str(),
