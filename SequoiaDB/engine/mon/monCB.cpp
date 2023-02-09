@@ -628,7 +628,7 @@ namespace engine
             case MSG_BS_QUERY_REQ :
             {
                saveLastOpDetail( "Collection:%s, Matcher:%s, Selector:%s, "
-                                 "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
+                                 "OrderBy:%s, Hint:%s, Skip:%lld, Limit:%lld, "
                                  "Flag:0x%08x(%u)",
                                  options.getCLFullName(),
                                  options.getQuery().toPoolString().c_str(),

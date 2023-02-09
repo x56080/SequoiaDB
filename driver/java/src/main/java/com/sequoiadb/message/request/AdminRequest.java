@@ -31,11 +31,11 @@ public class AdminRequest extends QueryRequest {
     }
 
     public AdminRequest(String command, BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint) {
-        super(command, matcher, selector, orderBy, hint, -1, -1, 0);
+        super(command, matcher, selector, orderBy, hint, 0, -1, 0);
     }
 
     public AdminRequest(String command, BSONObject matcher, BSONObject hint) {
-        super(command, matcher, null, null, hint, -1, -1, 0);
+        super(command, matcher, null, null, hint, 0, -1, 0);
     }
 
     public AdminRequest(String command, BSONObject matcher) {
