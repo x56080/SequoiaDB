@@ -169,7 +169,7 @@ class collectionspace(object):
                               AutoSplit            : Whether to enable the automatic partitioning, it is valid when ShardingType
                                                      is "hash", defalut is false
                               Group                : Assign the data group to which it belongs, default: The collection will
-                                                     be created in any data group in the domain it belongs to
+                                                     be created in any data group of the domain that the collection belongs to
                               AutoIndexId          : Whether to build "$id" index, default is true
                               EnsureShardingIndex  : Whether to build sharding index, default is true
                               StrictDataMode       : Whether to enable strict date mode in numeric operations, default is false
