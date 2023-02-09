@@ -1078,7 +1078,7 @@ retry :
 
       MON_SAVE_CMD_DETAIL( _pEDUCB->getMonAppCB(), pCommand->type(),
                            "Command:%s, Collection:%s, Match:%s, "
-                           "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
+                           "Selector:%s, OrderBy:%s, Hint:%s, Skip:%lld, "
                            "Limit:%lld, Flag:0x%08x(%u)",
                            pCollectionName, _cmdCollectionName.c_str(),
                            BSONObj(pQueryBuff).toString().c_str(),
