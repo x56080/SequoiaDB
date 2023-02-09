@@ -2224,18 +2224,22 @@ public class DBCollection {
      * @param options The options for altering current collection are as below:
      *                <ul>
      *                <li>ReplSize : Assign how many replica nodes need to be synchronized when a write
-     *                request(insert, update, etc) is executed
-     *                <li>ShardingKey : Assign the sharding key
-     *                <li>ShardingType : Assign the sharding type
-     *                <li>Partition : When the ShardingType is "hash", need to assign Partition, it's
-     *                the bucket number for hash, the range is [2^3,2^20].
+     *                request (insert, update, etc) is executed, default is 1
+     *                <li>ShardingKey : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} },
+     *                1 indicates positive order, -1 indicates reverse order. e.g. { ShardingKey: { age: 1 } }
+     *                <li>ShardingType : Assign the sharding type, default is "hash"
+     *                <li>Partition : The number of partition, it is valid when ShardingType is "hash",
+     *                the range is [2^3, 2^20], default is 4096
+     *                <li>AutoSplit : Whether to enable the automatic partitioning, it is valid when
+     *                ShardingType is "hash", defalut is false
+     *                <li>EnsureShardingIndex : Whether to build sharding index, default is true
+     *                <li>Compressed : Whether to enable data compression, default is true
      *                <li>CompressionType : The compression type of data, could be "snappy" or "lzw"
-     *                <li>EnsureShardingIndex : Assign to true to build sharding index
-     *                <li>StrictDataMode : Using strict date mode in numeric operations or not e.g.
-     *                {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-     *                <li>AutoIncrement : Assign attributes of an autoincrement field or batch
-     *                autoincrement fields. e.g.
-     *                {AutoIncrement:{Field:"a",MaxValue:2000}},{AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
+     *                <li>StrictDataMode : Whether to enable strict date mode in numeric operations, default is false
+     *                <li>AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields
+     *                e.g. { AutoIncrement : { Field : "a", MaxValue : 2000 } },
+     *                { AutoIncrement : [ { Field : "a", MaxValue : 2000}, { Field : "a", MaxValue : 4000 } ] }
+     *                <li>AutoIndexId : Whether to build "$id" index, default is true
      *                </ul>
      * @throws BaseException If error happens.
      */
