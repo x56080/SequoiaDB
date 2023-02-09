@@ -285,6 +285,10 @@ namespace engine
       {
          rc = _cleanByTBSCan( w, _cleanupType() ) ;
       }
+      if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
 
       if ( SDB_OK != rc )
       {
@@ -293,10 +297,15 @@ namespace engine
       }
 
       rc = _cleanLobData( w ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to clean lob data:%d", rc ) ;
       }
+
 
    done:
       eduCB()->writingDB( FALSE ) ;
