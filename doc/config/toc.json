@@ -1039,7 +1039,7 @@
                         {
                            "id": 1432190647,
                            "file": "primary_secondary_consistency",
-                           "cn": "主备一致性",
+                           "cn": "节点一致性",
                            "en": "Primary Secondary Consistency"
                         },
                         {
