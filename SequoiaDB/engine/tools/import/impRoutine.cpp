@@ -76,8 +76,15 @@ namespace import
    {
       INT32 rc = SDB_OK ;
       INT32 pageSize  = IMP_QUEUE_PAGE_SIZE ;
-      INT32 pageNum   = _options.recordsMem() / pageSize ;
+      INT32 pageNum   = 0 ;
 
+      rc = _options.check();
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      pageNum = _options.recordsMem() / pageSize ;
       _dataQueueNum = _options.parsers() ;
 
       rc = _scanner.initParser( &_options ) ;

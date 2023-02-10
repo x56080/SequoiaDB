@@ -487,7 +487,7 @@ namespace exprt
       if ( SDB_OK != rc )
       {
          cerr << "Failed to connect to " << _options.hostName() << ":"
-              << _options.svcName() << endl ;
+              << _options.svcName() << ", rc = " << rc << endl;
          goto error ;
       }
       PD_LOG ( PDINFO, "Connect to %s:%s", 

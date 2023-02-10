@@ -31,6 +31,7 @@
 *******************************************************************************/
 #include "impOptions.hpp"
 #include "impUtil.hpp"
+#include "impUtilC.h"
 #include "ossUtil.h"
 #include "pd.hpp"
 #include "utilPasswdTool.hpp"
@@ -445,6 +446,40 @@ namespace import
    void Options::printHelpfullInfo()
    {
       print(TRUE);
+   }
+
+   INT32 Options::check()
+   {
+      INT32 rc = SDB_OK;
+
+      // check service address
+      for (vector<Host>::const_iterator it = _hosts.begin(); it != _hosts.end(); ++it)
+      {
+         const Host& host = *it;
+         rc = SDB_OK;
+         rc = checkConnInfo(host.hostname.c_str(), host.svcname.c_str(),
+                            _user.c_str(), _password.c_str(), _useSSL);
+         // when has usable address, stop checking
+         if (SDB_OK == rc)
+         {
+            break;
+         }
+         else
+         {
+            PD_LOG(PDWARNING, "Failed to connect to database %s:%s, rc = %d, usessl = %d",
+                   host.hostname.c_str(), host.svcname.c_str(), rc, _useSSL);
+         }
+      }
+      if (SDB_OK != rc)
+      {
+         ossPrintf("Failed to connect to database, rc = %d"OSS_NEWLINE, rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    BOOLEAN Options::_checkDelimeters(string &stringDelimiter,

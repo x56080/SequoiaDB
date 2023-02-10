@@ -39,6 +39,7 @@ importFiles = [
       "tools/import/impRoutine.cpp",
       "tools/import/impLogFile.cpp",
       "tools/import/impUtil.cpp",
+      "tools/import/impUtilC.c",
       "tools/import/impHosts.cpp",
       "tools/import/impCommon.cpp"
       ]

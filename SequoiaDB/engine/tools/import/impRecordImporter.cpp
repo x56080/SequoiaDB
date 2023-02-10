@@ -172,7 +172,7 @@ namespace import
       {
          if ( SDB_DMS_NOTEXIST == rc )
          {
-            ossPrintf( "Collection %s does not exist."OSS_NEWLINE,
+            ossPrintf( "Collection %s does not exist"OSS_NEWLINE,
                        _clname.c_str() ) ;
             PD_LOG( PDERROR, "Collection %s does not exist, rc = %d",
                     _clname.c_str(), rc ) ;

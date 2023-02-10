@@ -34,6 +34,7 @@
 #include "../client/bson/bson.h"
 #include "pd.hpp"
 #include "ossUtil.hpp"
+#include "impUtilC.h"
 #include <sstream>
 
 namespace import
@@ -418,13 +419,8 @@ namespace import
 
    INT32 Coords::_checkCoord(const string& hostname, const string& svcname)
    {
-      sdbConnectionHandle conn = SDB_INVALID_HANDLE;
-      INT32 rc = SDB_OK;
-
-      rc = _connect(hostname, svcname, conn);
-      _disconnect(conn);
-
-      return rc;
+      return checkConnInfo(hostname.c_str(), svcname.c_str(),
+                           _user.c_str(), _password.c_str(), _useSSL);
    }
 
    INT32 Coords::getRandomCoord(string& hostname, string& svcname)
