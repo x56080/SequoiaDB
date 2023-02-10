@@ -63,7 +63,6 @@ ossFiles = [
       "oss/ossVer.cpp",
       "oss/ossMem.cpp",
       "oss/ossDynamicLoad.cpp",
-      "oss/ossHdfs.cpp",
       "oss/ossTimeZone.cpp"
       ]
 
@@ -150,7 +149,6 @@ utilFiles = [
       "util/utilParseJSONs.cpp",
       "util/utilParseCSV.cpp",
       "util/utilAccessDataLocalIO.cpp",
-      "util/utilAccessDataHdfs.cpp",
       "util/utilParam.cpp",
       "util/utilNodeOpr.cpp",
       "client/bson/numbers.c",
