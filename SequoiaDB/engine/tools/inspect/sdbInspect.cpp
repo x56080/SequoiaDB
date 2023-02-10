@@ -1588,6 +1588,13 @@ INT32 readCiOffset( OSSFILE &in, INT64 &offset,
    }
 
 done:
+
+   if ( NULL != buffer )
+   {
+      SDB_OSS_FREE( buffer ) ;
+      buffer = NULL ;
+   }
+
    return rc ;
 error:
    OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
@@ -2175,8 +2182,8 @@ INT32 getCiGroup( sdbclient::sdb *coord, const CHAR *groupName,
                   goto error ;
                }
 
-               ossMemcpy( group->_groupName, name.String().c_str(),
-                          CI_GROUPNAME_SIZE ) ;
+               ossStrncpy( group->_groupName, name.String().c_str(),
+                           CI_GROUPNAME_SIZE ) ;
                group->_groupID = obj.getField( "GroupID" ).Int() ;
 
                groupList.add( group ) ;
@@ -2310,14 +2317,16 @@ INT32 getCiNode( sdbclient::sdb *coord, ciGroup *group,
             {
                masterNode->_nodeID = nodeID ;
                ++cit ;
+               delete node ;
+               node = NULL ;
                continue ;
             }
 
             // not master node
-            ossMemcpy( node->_hostname, hostname.c_str(),
-                       CI_HOSTNAME_SIZE ) ;
-            ossMemcpy( node->_serviceName, servicename.c_str(),
-                       CI_SERVICENAME_SIZE ) ;
+            ossStrncpy( node->_hostname, hostname.c_str(),
+                        CI_HOSTNAME_SIZE ) ;
+            ossStrncpy( node->_serviceName, servicename.c_str(),
+                        CI_SERVICENAME_SIZE ) ;
             {
                sdbclient::sdb db ;
                rc = db.connect( node->_hostname, node->_serviceName,
@@ -2494,7 +2503,7 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
                rc = SDB_OOM ;
                goto error ;
             }
-            ossMemcpy( cl->_clName, name.c_str(), CI_CL_FULLNAME_SIZE ) ;
+            ossStrncpy( cl->_clName, name.c_str(), CI_CL_FULLNAME_SIZE ) ;
             if ( inMainSubCl )
             {
                ossMemcpy( cl->_mainClName, fullName, CI_CL_FULLNAME_SIZE ) ;
@@ -3177,7 +3186,7 @@ const CHAR *_ciNode::stateDesc[ _ciNode::STATE_COUNT ] =
    "Failed to get cursor"
 } ;
 
-_sdbCi::_sdbCi()
+_sdbCi::_sdbCi(): _cipher( FALSE )
 {
    ossMemset( _coordAddr, 0, CI_ADDRESS_SIZE + 1 ) ;
    ossMemset( _auth, 0, CI_AUTH_SIZE + 1 ) ;
