@@ -1277,7 +1277,9 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
       string collectionSpace ;
+      string option ;
       BSONObj query ;
+      BSONObj optionObj ;
 
       collectionSpace = request.getQuery( FIELD_NAME_NAME ) ;
       if ( collectionSpace.empty() )
@@ -1292,7 +1294,37 @@ namespace engine
          }
       }
 
-      query = BSON( FIELD_NAME_NAME << collectionSpace ) ;
+      option = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if ( FALSE == option.empty() )
+      {
+         rc = fromjson( option.c_str(), optionObj, 0 ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                        FIELD_NAME_OPTIONS, option.c_str() ) ;
+            goto error ;
+         }
+      }
+
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_NAME, collectionSpace ) ;
+         {
+            BSONObjIterator it ( optionObj ) ;
+            while ( it.more() )
+            {
+               BSONElement ele = it.next() ;
+               // skip name field
+               if ( 0 != ossStrcmp( FIELD_NAME_NAME, ele.fieldName() ) )
+               {
+                  builder.append( ele ) ;
+               }
+            }
+         }
+
+         query = builder.obj() ;
+      }
+
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
