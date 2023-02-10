@@ -4545,7 +4545,7 @@ namespace sdbclient
                               const bson::BSONObj &condition = _sdbStaticObject ) = 0 ;
    } ;
 
-   /* \class  sdbRecycleBin
+   /** \class  sdbRecycleBin
        \brief Database operation interfaces of recycle bin.
    */
    class DLLEXPORT sdbRecycleBin
@@ -4749,7 +4749,7 @@ namespace sdbclient
          return pRecycleBin->dropAll( options ) ;
       }
 
-      /** \fn INT32 list( _sdbCursor **cursor,
+      /* \fn INT32 list( _sdbCursor **cursor,
                           const bson::BSONObj &condition,
                           const bson::BSONObj &selector,
                           const bson::BSONObj &orderBy,
@@ -4829,7 +4829,7 @@ namespace sdbclient
                                    numToReturn ) ;
       }
 
-      /** \fn INT32 snapshot( _sdbCursor **cursor,
+      /* \fn INT32 snapshot( _sdbCursor **cursor,
                               const bson::BSONObj &condition,
                               const bson::BSONObj &selector,
                               const bson::BSONObj &orderBy,
@@ -7703,7 +7703,7 @@ namespace sdbclient
          return pSDB->getDC ( dc ) ;
       }
 
-      /* \fn INT32 getRecycleBin( sdbRecycleBin &recycleBin )
+      /** \fn INT32 getRecycleBin( sdbRecycleBin &recycleBin )
           \brief Get current recycle bin.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
