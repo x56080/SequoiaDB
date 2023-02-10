@@ -234,8 +234,11 @@ namespace engine
 
       SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
-      const CHAR *csName = sd->getSuName() ;
-      const CHAR *clShortName = context->mb()->_collectionName ;
+      CHAR fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+      ossStrncat( fullName, sd->getSuName(), DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      ossStrncat( fullName, ".", 1 ) ;
+      ossStrncat( fullName, context->mb()->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
+      fullName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
 
       rtnContextStoreBuf buf ;
       dmsExtScanner scanner( sd, context, NULL, context->mb()->_firstExtentID ) ;
@@ -252,8 +255,8 @@ namespace engine
 
          // resume scan
          rc = context->resume() ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to resume mb context for collection [%s.%s], "
-                      "rc: %d", csName, clShortName, rc ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to resume mb context for collection [%s], "
+                      "rc: %d", fullName, rc ) ;
 
          // fetch records from one extent
          while ( SDB_OK == ( rc = scanner.advance( recordID, generator, cb ) ) )
@@ -332,8 +335,8 @@ namespace engine
          }
          else
          {
-            PD_RC_CHECK( rc, PDWARNING, "Fetching data and creating the dictionary "
-                         "failed: %d", rc ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Fetching data and creating the dictionary for "
+                         "collection [%s] failed: %d", fullName, rc ) ;
          }
       }
 
