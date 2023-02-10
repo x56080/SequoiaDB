@@ -14,7 +14,7 @@
 |          | 说明                                     | 示例                             |
 |----------|------------------------------------------|----------------------------------|
 | 请求头   | 同通用请求头                             |                                  |
-| 请求内容 | cmd：drop collectionspace<br>name：集合空间名字 | cmd=drop collectionspace&name=sample |
+| 请求内容 | cmd：drop collectionspace<br>name：集合空间名字 <br>options：选项（可选参数，可不填） | 1. cmd=drop collectionspace&name=sample <br>2. cmd=drop collectionspace&name=sample&options={EnsureEmpty:true} |
 | 响应头   | 同通用响应头                             |                                  |
 | 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述 <br>} | [{ "errno": 0 }] |
 
