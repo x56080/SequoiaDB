@@ -117,7 +117,21 @@ namespace engine
    ossPoolString dpsTransIDToString( const DPS_TRANS_ID &transID )
    {
       CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      return dpsTransIDToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      try
+      {
+         return dpsTransIDToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      }
+      catch( std::exception &e )
+      {
+         try
+         {
+            return e.what() ;
+         }
+         catch (...)
+         {
+            return "Out-of-memory" ;
+         }
+      }
    }
 
    static void _dpsAppendFlagString( CHAR *pBuffer,
@@ -161,10 +175,22 @@ namespace engine
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID )
    {
       CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      return dpsTransIDAttrToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      try
+      {
+         return dpsTransIDAttrToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      }
+      catch( std::exception &e )
+      {
+         try
+         {
+            return e.what() ;
+         }
+         catch (...)
+         {
+            return "Out-of-memory" ;
+         }
+      }
    }
-
-
 
    void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
                                  const CHAR *flagStr )

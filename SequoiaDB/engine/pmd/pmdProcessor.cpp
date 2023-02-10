@@ -317,11 +317,9 @@ namespace engine
          rc = rtnTransRollback( eduCB(), getDPSCB() ) ;
          if ( rc )
          {
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            PD_LOG( PDERROR, "Rollback transaction(ID:%s, IDAttr:%s) failed, rc: %d",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ),
+            PD_LOG( PDERROR, "Rollback transaction(ID:%s, IDAttr:%s) failed, "
+                    "rc: %d", dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDAttrToString( transID ).c_str(),
                     rc ) ;
             goto error ;
          }
@@ -343,11 +341,9 @@ namespace engine
          rc = rtnTransCommit( eduCB(), getDPSCB() ) ;
          if ( rc )
          {
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            PD_LOG( PDERROR, "Commit transaction(ID:%s, IDAttr:%s) failed, rc: %d",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ),
+            PD_LOG( PDERROR, "Commit transaction(ID:%s, IDAttr:%s) failed, "
+                    "rc: %d", dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDAttrToString( transID ).c_str(),
                     rc ) ;
             goto error ;
          }
@@ -1245,12 +1241,10 @@ namespace engine
 
       if ( eduCB()->isTransaction() )
       {
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_LOG_MSG_CHECK( SDB_OK == eduCB()->getTransRC(),
                            eduCB()->getTransRC(), error, PDERROR,
                            "Transaction(%s) must rollback due to error(%d)",
-                           dpsTransIDToString( eduCB()->getTransID(),
-                                               strTransID, DPS_TRANS_STR_LEN ),
+                           dpsTransIDToString( eduCB()->getTransID() ).c_str(),
                            eduCB()->getTransRC() ) ;
 
          // add last op info
@@ -2368,11 +2362,9 @@ namespace engine
       rc = rollbackOpr.rollback( eduCB() ) ;
       if ( rc )
       {
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         PD_LOG( PDERROR, "Rollback transaction(ID:%s, IDAttr:%s) failed, rc: %d",
-                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                 dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ),
+         PD_LOG( PDERROR, "Rollback transaction(ID:%s, IDAttr:%s) failed, "
+                 "rc: %d", dpsTransIDToString( transID ).c_str(),
+                 dpsTransIDAttrToString( transID ).c_str(),
                  rc ) ;
          goto error ;
       }
@@ -2410,11 +2402,9 @@ namespace engine
                               contextID, NULL ) ;
       if ( rc )
       {
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         PD_LOG( PDERROR, "Commit transaction(ID:%s, IDAttr:%s) failed, rc: %d",
-                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                 dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ),
+         PD_LOG( PDERROR, "Commit transaction(ID:%s, IDAttr:%s) failed, "
+                 "rc: %d", dpsTransIDToString( transID ).c_str(),
+                 dpsTransIDAttrToString( transID ).c_str(),
                  rc ) ;
          goto error ;
       }
