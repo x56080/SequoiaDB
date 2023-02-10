@@ -140,7 +140,21 @@ namespace engine
    ossPoolString dpsTransIDToString( const DPS_TRANS_ID &transID )
    {
       CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      return dpsTransIDToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      try
+      {
+         return dpsTransIDToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      }
+      catch( std::exception &e )
+      {
+         try
+         {
+            return e.what() ;
+         }
+         catch (...)
+         {
+            return "Out-of-memory" ;
+         }
+      }
    }
 
    const CHAR *dpsTransSNToString( const DPS_TRANSID_SN &transSN,
@@ -239,7 +253,21 @@ namespace engine
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID )
    {
       CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      return dpsTransIDAttrToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      try
+      {
+         return dpsTransIDAttrToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
+      }
+      catch( std::exception &e )
+      {
+         try
+         {
+            return e.what() ;
+         }
+         catch (...)
+         {
+            return "Out-of-memory" ;
+         }
+      }
    }
 
    INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,

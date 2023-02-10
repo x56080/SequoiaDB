@@ -101,8 +101,6 @@ namespace engine
       TRANS_DUMP_MAP tmpTransMap ;
       TRANS_DUMP_MAP::iterator it ;
       BOOLEAN isStoped = FALSE ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       while ( TRUE )
       {
@@ -137,9 +135,8 @@ namespace engine
               DPS_TRANS_PRE_WAIT_COMMIT == transInfo._status )
          {
             PD_LOG( PDDEBUG, "Transaction(ID:%s, IDAttr:%s) is doing, "
-                    "need interrupt",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
+                    "need interrupt", dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDAttrToString( transID ).c_str() ) ;
             _transCB->updateTransStatus( transID, DPS_TRANS_DOING_INTERRUPT ) ;
          }
          ++ it ;
@@ -159,8 +156,8 @@ namespace engine
             UINT64 preCommitTime = transInfo._preCommitTime.getTime() ;
             UINT64 commitTime = 0LL ;
             PD_LOG( PDWARNING, "Transaction(ID:%s, IDAttr:%s) is in-doubt",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                    dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDAttrToString( transID ).c_str() ) ;
 
             // check transaction status on other groups involved
             rc = _syncCheckTransStatus( transID, transInfo._lsn, status,
@@ -205,14 +202,13 @@ namespace engine
                                          UINT64 &commitTime )
    {
       INT32 rc = SDB_OK ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_CHKTRANSSTATUS ) ;
 
       rc = _checkTransStatus( transID, nodeNum, pNodes, cb, FALSE,
                               preCommitTime, status, commitTime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check status for transaction [%s], rc: %d",
-                   dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check status for transaction [%s], "
+                   "rc: %d", dpsTransIDToString( transID ).c_str(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSGTSAGENT_CHKTRANSSTATUS, rc ) ;
@@ -364,7 +360,6 @@ namespace engine
       MsgHeader *pRecvMsg = NULL ;
       MsgOpReply *pReply = NULL ;
       UINT32 retryTimes = 0 ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // for backward compatibility, transID field is global serial number
       checkMsg.transID = transID.getGlobSN() ;
@@ -425,8 +420,8 @@ namespace engine
          }
          else if ( rc )
          {
-            PD_LOG( PDERROR, "Check trans(%s) by node(%u,%u) failed, rc: %d",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+            PD_LOG( PDERROR, "Check trans(%s) by node(%u,%u) failed, "
+                    "rc: %d", dpsTransIDToString( transID ).c_str(),
                     group, pReply->header.routeID.columns.nodeID, rc ) ;
             goto error ;
          }
@@ -452,7 +447,7 @@ namespace engine
 
                PD_LOG( PDEVENT, "Check trans(%s) by node(%u,%u) succeed["
                        "Status:%s(%d), pre-commit [%s], commit [%s]]",
-                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                       dpsTransIDToString( transID ).c_str(),
                        group, pReply->header.routeID.columns.nodeID,
                        dpsTransStatusToString( status ), status,
                        dpsTransSNToString(
@@ -605,7 +600,6 @@ namespace engine
       UINT8 attr = DPS_TS_COMMIT_ATTR_SND ;
 
       DPS_LSN_OFFSET firstLsn = DPS_INVALID_LSN_OFFSET ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
@@ -623,7 +617,7 @@ namespace engine
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDEVENT, "Execute commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( transID ).c_str(),
               lastLsn ) ;
 
       rc = dpsTransCommit2Record( transInfo, firstLsn,
@@ -824,8 +818,6 @@ namespace engine
                                        BOOLEAN &visible )
    {
       INT32 rc = SDB_OK ;
-      CHAR strReadTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strWriteTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ARBITGLOBTRAN ) ;
 
@@ -841,22 +833,22 @@ namespace engine
 
       PD_LOG( PDDEBUG, "Start arbitration: read transaction [%s] against "
               "write transaction [%s] with status [%s]",
-              dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( writeTransID, strWriteTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
               dpsTransStatusToString( writeTransStatus ) ) ;
 
       // check if global transactions
       if ( !readTransID.isGlobTrans() )
       {
          PD_LOG( PDDEBUG, "Read transaction [%s] is not global transaction",
-                 dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ) ) ;
+                 dpsTransIDToString( readTransID ).c_str() ) ;
          visible = TRUE ;
          goto done ;
       }
       else if ( !writeTransID.isGlobTrans() )
       {
          PD_LOG( PDDEBUG, "Write transaction [%s] is not global transaction",
-                 dpsTransIDToString( writeTransID, strWriteTransID, DPS_TRANS_STR_LEN ) ) ;
+                 dpsTransIDToString( writeTransID ).c_str() ) ;
          visible = TRUE ;
          goto done ;
       }
@@ -883,13 +875,13 @@ namespace engine
          SDB_ASSERT( FALSE, "invalid node ID" ) ;
          PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to arbitrate "
                    "transaction with read transaction [%s], invalid node ID",
-                   dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ) ) ;
+                   dpsTransIDToString( readTransID ).c_str() ) ;
       }
 
       PD_LOG( PDDEBUG, "Finish arbitration: read transaction [%s] against "
               "write transaction [%s] with status [%s], visible [%s]",
-              dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( writeTransID, strWriteTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
               dpsTransStatusToString( writeTransStatus ),
               visible ? "TRUE" : "FALSE" ) ;
 
@@ -917,7 +909,6 @@ namespace engine
       INT32 waitTime = CLS_GTS_WAIT_INTERVAL ;
       BOOLEAN retried = FALSE ;
       dpsTransBackInfo info ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // assuming that the transaction is not committed and involved in
       // multiple groups
@@ -929,7 +920,7 @@ namespace engine
       PD_CHECK( !eduCB->isInterrupted(), SDB_APP_INTERRUPT, error, PDERROR,
                 "Failed to wait commit for transaction [%s], "
                 "EDUCB is interrupted",
-                dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ) ) ;
+                dpsTransIDToString( arbitTransID ).c_str() ) ;
 
       if ( !_transCB->getTransInfo( arbitTransID, info ) )
       {
@@ -990,7 +981,7 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to get commit info with "
                             "LSN [%llu] for transaction [%s], rc: %d",
                             commitLSN,
-                            dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ),
+                            dpsTransIDToString( arbitTransID ).c_str(),
                             rc ) ;
 
                // mark multiple groups or not
@@ -1012,7 +1003,7 @@ namespace engine
                   // failed, we could wait a while and retry
                   PD_LOG( PDWARNING, "Failed to check status for "
                           "transaction [%s], rc: %d",
-                          dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+                          dpsTransIDToString( arbitTransID ).c_str(), rc ) ;
                   rc = SDB_OK ;
                }
                else if ( DPS_TRANS_COMMIT == status )
@@ -1044,7 +1035,7 @@ namespace engine
          {
             // it is rollback
             PD_LOG( PDDEBUG, "Transaction [%s] is rollbacked",
-                    dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString( arbitTransID ).c_str() ) ;
             committed = FALSE ;
             goto done ;
          }
@@ -1070,7 +1061,7 @@ namespace engine
                 SDB_TIMEOUT, error, PDWARNING,
                 "Failed to wait transaction [%s] to commit, "
                 "timeout [%d], waited [%d]",
-                dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ), timeout,
+                dpsTransIDToString( arbitTransID ).c_str(), timeout,
                 waitedTime ) ;
 
       ossSleep( waitTime ) ;
@@ -1086,7 +1077,7 @@ namespace engine
       {
          PD_LOG( PDDEBUG, "Wait transaction [%s] commit done, committed [%s], "
                  "multi-groups [%s], commit time [%s]",
-                 dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ),
+                 dpsTransIDToString( arbitTransID ).c_str(),
                  committed ? "TRUE" : "FALSE",
                  multiGroups ? "TRUE" : "FALSE",
                  dpsTransTimeToString( commitTime ).c_str() ) ;
@@ -1112,14 +1103,13 @@ namespace engine
 
       INT32 waitedTime = 0 ;
       UINT32 retryCount = 0 ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
    retry:
       // check if EDUCB is interrupted
       PD_CHECK( !eduCB->isInterrupted(), SDB_APP_INTERRUPT, error, PDERROR,
                 "Failed to wait status change for transaction [%s], "
                 "EDUCB is interrupted",
-                dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ) ) ;
+                dpsTransIDToString( arbitTransID ).c_str() ) ;
 
       if ( !_transCB->getTransInfo( arbitTransID, newInfo ) )
       {
@@ -1141,7 +1131,7 @@ namespace engine
                    SDB_TIMEOUT, error, PDWARNING,
                    "Failed to wait transaction [%s] status change, "
                    "timeout [%d], waited [%d], status [%s]",
-                   dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ), timeout,
+                   dpsTransIDToString( arbitTransID ).c_str(), timeout,
                    waitedTime, dpsTransStatusToString( currentStatus ) ) ;
 
          // increase wait time if already waited for a while
@@ -1167,7 +1157,7 @@ namespace engine
       {
          PD_LOG( PDDEBUG, "Wait transaction [%s] status change done, "
                  "old status [%s], new status [%s]",
-                 dpsTransIDToString( arbitTransID, strTransID, DPS_TRANS_STR_LEN ),
+                 dpsTransIDToString( arbitTransID ).c_str(),
                  dpsTransStatusToString( currentStatus ),
                  dpsTransStatusToString( newInfo._status ) ) ;
       }

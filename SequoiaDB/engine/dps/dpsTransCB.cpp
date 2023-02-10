@@ -501,8 +501,6 @@ namespace engine
 
       stpAgent timeAgent ;
       stpLogicalTimeUS currentTime ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       visible = FALSE ;
 
@@ -535,7 +533,7 @@ namespace engine
 #if SDB_INTERNAL_DEBUG
             PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
                     "arbit limit, current time [%s]",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDToString( transID ).c_str(),
                     dpsTransTimeToString( currentTime ).c_str() ) ;
 #endif
             eduCB->setPassedDoingArbit( TRUE ) ;
@@ -558,8 +556,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to do arbitration for read "
                    "transaction [%s] against write transaction [%s] "
                    "with status [%s], rc: %d",
-                   dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                   dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
+                   dpsTransIDToString( transID ).c_str(),
+                   dpsTransIDToString( recTransID ).c_str(),
                    dpsTransStatusToString( recTransInfo._status ) ) ;
 
       // we use test lock for RR now, so if return visible, we need
@@ -579,9 +577,7 @@ namespace engine
                                           commitTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
                       "commit, rc: %d",
-                      dpsTransIDToString( recTransID, strRecTransID,
-                                          DPS_TRANS_STR_LEN ),
-                      rc ) ;
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
 
          if ( !committed )
          {
@@ -592,8 +588,7 @@ namespace engine
             // the record should not be seen now
             PD_LOG( PDWARNING, "Failed to wait transaction [%s] "
                     "to be committed, it is rollbacked",
-                    dpsTransIDToString( recTransID, strRecTransID,
-                                        DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString( recTransID ).c_str() ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -626,8 +621,6 @@ namespace engine
       BOOLEAN committed = FALSE ;
       BOOLEAN multiGroups = TRUE ;
       stpLogicalTimeUS commitTime ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       visible = FALSE ;
 
@@ -655,8 +648,7 @@ namespace engine
                                        commitTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
                    "commit, rc: %d",
-                   dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
-                   rc ) ;
+                   dpsTransIDToString( recTransID ).c_str(), rc ) ;
 
       if ( !committed )
       {
@@ -664,7 +656,7 @@ namespace engine
          // the record should not be seen now
          PD_LOG( PDWARNING, "Failed to wait transaction [%s] "
                  "to be committed, it is rollbacked",
-                 dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ) ) ;
+                 dpsTransIDToString( recTransID ).c_str() ) ;
          visible = FALSE ;
          goto done ;
       }
@@ -693,8 +685,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to do arbitration for read "
                    "transaction [%s] against write transaction [%s] "
                    "with status [%s] ( waiting commit earlier ), rc: %d",
-                   dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                   dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
+                   dpsTransIDToString( transID ).c_str(),
+                   dpsTransIDToString( recTransID ).c_str(),
                    dpsTransStatusToString( DPS_TRANS_COMMIT ) ) ;
 
    done:
@@ -721,8 +713,6 @@ namespace engine
 
       DPS_TRANSID_SN minCheckSN = recTransID.getGlobSN() ;
       dpsTransBackInfo recTransInfo ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // NOTE: this functions checks visibility between transactions with
       //       arbitration to remote node if needed
@@ -760,9 +750,9 @@ namespace engine
               "with begin time [%s] against record transaction [%s] with "
               "status [%s], begin time [%s], pre-commit time [%s], "
               "commit time [%s]",
-              dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( transID ).c_str(),
               dpsTransTimeToString( transBeginTime ).c_str(),
-              dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( recTransID ).c_str(),
               dpsTransStatusToString( recTransInfo._status ),
               dpsTransTimeToString( recTransInfo._beginTime ).c_str(),
               dpsTransTimeToString( recTransInfo._preCommitTime ).c_str(),
@@ -802,8 +792,7 @@ namespace engine
                                           recTransInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] "
                       "status change, rc: %d",
-                      dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
-                      rc ) ;
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
          SDB_ASSERT( DPS_TRANS_PRE_WAIT_COMMIT != recTransInfo._status,
                      "should not be PRE_WAIT_COMMIT for record transaction" ) ;
       }
@@ -819,10 +808,8 @@ namespace engine
                                       visibleTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check visible for "
                          "transaction [%s] against doing transaction [%s], "
-                         "rc: %d", dpsTransIDToString( transID, strTransID,
-                                                       DPS_TRANS_STR_LEN ),
-                         dpsTransIDToString( recTransID, strTransID,
-                                             DPS_TRANS_STR_LEN ), rc ) ;
+                         "rc: %d", dpsTransIDToString( transID ).c_str(),
+                         dpsTransIDToString( recTransID ).c_str(), rc ) ;
             break ;
          }
          case DPS_TRANS_WAIT_COMMIT :
@@ -833,9 +820,8 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to check visible for "
                          "transaction [%s] against wait-commit "
                          "transaction [%s], rc: %d",
-                         dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                         dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
-                         rc ) ;
+                         dpsTransIDToString( transID ).c_str(),
+                         dpsTransIDToString( recTransID ).c_str(), rc ) ;
             break ;
          }
          case DPS_TRANS_COMMIT :
@@ -887,7 +873,7 @@ namespace engine
                     "transaction [%s]",
                     dpsTransStatusToString( recTransInfo._status ),
                     recTransInfo._status,
-                    dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString( recTransID ).c_str() ) ;
             SDB_ASSERT( FALSE, "invalid status, should not go here" ) ;
             rc = SDB_SYS ;
             goto error ;
@@ -920,7 +906,6 @@ namespace engine
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
       dpsTransBackInfo recTransInfo ;
-      CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       visible = FALSE ;
 
@@ -942,20 +927,17 @@ namespace engine
       getTransInfo( recTransID, recTransInfo ) ;
 
 #if SDB_INTERNAL_DEBUG
-      {
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         PD_LOG( PDDEBUG, "Check local visibility for current transaction [%s] "
-                 "with begin time [%s] against record transaction [%s] with "
-                 "status [%s], begin time [%s], pre-commit time [%s], "
-                 "commit time [%s]",
-                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                 dpsTransTimeToString( transBeginTime ).c_str(),
-                 dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
-                 dpsTransStatusToString( recTransInfo._status ),
-                 dpsTransTimeToString( recTransInfo._beginTime ).c_str(),
-                 dpsTransTimeToString( recTransInfo._preCommitTime ).c_str(),
-                 dpsTransTimeToString( recTransInfo._commitTime ).c_str() ) ;
-      }
+      PD_LOG( PDDEBUG, "Check local visibility for current transaction [%s] "
+              "with begin time [%s] against record transaction [%s] with "
+              "status [%s], begin time [%s], pre-commit time [%s], "
+              "commit time [%s]",
+              dpsTransIDToString( transID ).c_str(),
+              dpsTransTimeToString( transBeginTime ).c_str(),
+              dpsTransIDToString( recTransID ).c_str(),
+              dpsTransStatusToString( recTransInfo._status ),
+              dpsTransTimeToString( recTransInfo._beginTime ).c_str(),
+              dpsTransTimeToString( recTransInfo._preCommitTime ).c_str(),
+              dpsTransTimeToString( recTransInfo._commitTime ).c_str() ) ;
 #endif
 
       if ( DPS_TRANS_PRE_WAIT_COMMIT == recTransInfo._status )
@@ -969,8 +951,7 @@ namespace engine
                                           recTransInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] "
                       "status change, rc: %d",
-                      dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
-                      rc ) ;
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
          SDB_ASSERT( DPS_TRANS_PRE_WAIT_COMMIT != recTransInfo._status,
                      "should not be PRE_WAIT_COMMIT for record transaction" ) ;
       }
@@ -1005,8 +986,7 @@ namespace engine
                                                 commitTime ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
                             "commit, rc: %d",
-                            dpsTransIDToString( recTransID, strRecTransID,
-                                                DPS_TRANS_STR_LEN ), rc ) ;
+                            dpsTransIDToString( recTransID ).c_str(), rc ) ;
 
                // if transaction is committed, and current transaction is
                // started after commit of record transaction, the record should
@@ -1100,8 +1080,6 @@ namespace engine
 
       DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
       stpLogicalTimeUS visibleTime( DPS_MAX_TRANS_TIME, STP_MAX_TIME_ERROR ) ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       if ( TRANS_ISOLATION_RR != isolation )
       {
@@ -1123,8 +1101,8 @@ namespace engine
             PD_LOG( PDWARNING, "Failed to check visibility for global read "
                     "transaction [%s] against non-global transaction [%s] in "
                     "strict isolation mode",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                    dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDToString( recTransID ).c_str() ) ;
             rc = SDB_OPERATION_INCOMPATIBLE ;
             goto error ;
          }
@@ -1159,10 +1137,8 @@ namespace engine
                               visible, visibleTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check global visible for "
                       "transaction [%s] against record transaction [%s], "
-                      "rc: %d", dpsTransIDToString( transID, strTransID,
-                                                    DPS_TRANS_STR_LEN ),
-                      dpsTransIDToString( recTransID, strRecTransID,
-                                          DPS_TRANS_STR_LEN ), rc ) ;
+                      "rc: %d", dpsTransIDToString( transID ).c_str(),
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
       }
       else
       {
@@ -1173,10 +1149,8 @@ namespace engine
                                visible, visibleTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check local visible for "
                       "transaction [%s] against record transaction [%s], "
-                      "rc: %d", dpsTransIDToString( transID, strTransID,
-                                                    DPS_TRANS_STR_LEN ),
-                      dpsTransIDToString( recTransID, strRecTransID,
-                                          DPS_TRANS_STR_LEN ), rc ) ;
+                      "rc: %d", dpsTransIDToString( transID ).c_str(),
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
       }
 
       if ( NULL != pVisibleTime )
@@ -1187,8 +1161,8 @@ namespace engine
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "Check visibility for current transaction [%s] against "
               "record transaction [%s], visible: %s",
-              dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( recTransID, strRecTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( transID ).c_str(),
+              dpsTransIDToString( recTransID ).c_str(),
               visible ? "TRUE" : "FALSE" ) ;
 #endif
 
@@ -1650,7 +1624,6 @@ namespace engine
       SDB_ASSERT( eduCB->isGlobTrans(), "should be in global transaction" ) ;
 
       UINT64 expectTimeUS = 0LL ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // we should commit transaction after an interval given by time error
       if ( !eduCB->isAutoCommitTrans() )
@@ -1662,8 +1635,7 @@ namespace engine
                              (INT32)( eduCB->getTransTimeout() ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
                    "pre-commit of transaction [%s], rc: %d",
-                   dpsTransIDToString( eduCB->getTransID(),
-                                       strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+                   dpsTransIDToString( eduCB->getTransID() ).c_str(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME, rc ) ;
@@ -1772,8 +1744,6 @@ namespace engine
 
       UINT64 activeTime = 0LL ;
       DPS_TRANS_ID globExpireTran = getGlobExpireTran() ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strGlobExpireTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // only check with global transaction
       if ( !transID.isGlobTrans() )
@@ -1799,8 +1769,7 @@ namespace engine
                 SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                 "Failed to check global transaction [%s], it is started "
                 "on [%llu] which is before global transaction is activated "
-                "in this node [%llu]",
-                dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                "in this node [%llu]", dpsTransIDToString( transID ).c_str(),
                 beginTime.getTime(), activeTime ) ;
 
       // check global expireTran, make sure it is after global expireTran
@@ -1812,9 +1781,8 @@ namespace engine
                 SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                 "Failed to check global transaction [%s], it had been passed "
                 "by global expireTran [%s]",
-                dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                dpsTransIDToString( globExpireTran, strGlobExpireTransID,
-                                    DPS_TRANS_STR_LEN ) ) ;
+                dpsTransIDToString( transID ).c_str(),
+                dpsTransIDToString( globExpireTran ).c_str() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_CHECKGLOBTRANS, rc ) ;
@@ -1838,8 +1806,6 @@ namespace engine
 
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
-      CHAR strReadTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strWriteTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       visible = FALSE ;
 
       SDB_ASSERT( NULL != _gtsAgent, "GTS agent is invalid" ) ;
@@ -1854,17 +1820,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to do arbitrate for read "
                    "transaction [%s] against write transaction [%s] with "
                    "status [%s], rc: %d",
-                   dpsTransIDToString( readTransID, strReadTransID,
-                                       DPS_TRANS_STR_LEN ),
-                   dpsTransIDToString( writeTransID, strWriteTransID,
-                                       DPS_TRANS_STR_LEN ),
+                   dpsTransIDToString( readTransID ).c_str(),
+                   dpsTransIDToString( writeTransID ).c_str(),
                    dpsTransStatusToString( writeTransStatus ),
                    rc ) ;
 
       PD_LOG( PDDEBUG, "Arbitrate done for read transaction [%s] against "
               "write transaction [%s] with status [%s], visible: %s",
-              dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( writeTransID, strWriteTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
               dpsTransStatusToString( writeTransStatus ),
               visible ? "TRUE" : "FALSE" ) ;
 
@@ -1883,15 +1847,13 @@ namespace engine
                                        BOOLEAN &visible )
    {
       INT32 rc = SDB_OK ;
-      CHAR strReadTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strWriteTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ONARBITGLOBTRANS ) ;
 
       PD_LOG( PDDEBUG, "Begin arbitration: read transaction [%s] with "
               "write transaction [%s] status [%s]",
-              dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( writeTransID, strWriteTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
               dpsTransStatusToString( writeTransStatus ) ) ;
 
       visible = FALSE ;
@@ -1901,22 +1863,18 @@ namespace engine
          // read transaction is not from this node
          SDB_ASSERT( FALSE, "read transaction is not from this node" ) ;
          PD_LOG( PDWARNING, "Arbitrate read transaction [%s] is not from "
-                 "this node [%u]",
-                 dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ),
+                 "this node [%u]", dpsTransIDToString( readTransID ).c_str(),
                  _TransIDH16 ) ;
       }
       else if ( !( readTransID.isGlobTrans() ) )
       {
          PD_LOG( PDWARNING, "Arbitrate read transaction [%s] is not global "
-                 "transaction",
-                 dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ) ) ;
+                 "transaction", dpsTransIDToString( readTransID ).c_str() ) ;
       }
       else if ( !( writeTransID.isGlobTrans() ) )
       {
          PD_LOG( PDWARNING, "Arbitrate write transaction [%s] is not global "
-                 "transaction",
-                 dpsTransIDToString( writeTransID, strWriteTransID,
-                                     DPS_TRANS_STR_LEN ) ) ;
+                 "transaction", dpsTransIDToString( writeTransID ).c_str() ) ;
       }
       else
       {
@@ -1931,8 +1889,7 @@ namespace engine
          PD_CHECK( bucket.end() != iter,
                    SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
                    "Failed to get EDUCB for transaction [%s], it is not found",
-                   dpsTransIDToString( readTransID, strReadTransID,
-                                       DPS_TRANS_STR_LEN ) ) ;
+                   dpsTransIDToString( readTransID ).c_str() ) ;
 
          // do arbitrate with EDU ( need protected by bucket lock to avoid
          // ending transaction during arbitration
@@ -1941,17 +1898,15 @@ namespace engine
                                                        visible ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to arbitrate read transaction [%s] "
                       "with write transaction [%s], rc: %d",
-                      dpsTransIDToString( readTransID, strReadTransID,
-                                          DPS_TRANS_STR_LEN ),
-                      dpsTransIDToString( writeTransID, strWriteTransID,
-                                          DPS_TRANS_STR_LEN ),
+                      dpsTransIDToString( readTransID ).c_str(),
+                      dpsTransIDToString( writeTransID ).c_str(),
                       rc ) ;
       }
 
       PD_LOG( PDDEBUG, "Finish arbitration: read transaction [%s] with "
               "write transaction [%s] status [%s], visible: %s",
-              dpsTransIDToString( readTransID, strReadTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( writeTransID, strWriteTransID, DPS_TRANS_STR_LEN ),
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
               dpsTransStatusToString( writeTransStatus ),
               visible ? "TRUE" : "FALSE" ) ;
 
@@ -2274,8 +2229,8 @@ namespace engine
       return rollbackID.getOrigTransID() ;
    }
 
-   BOOLEAN dpsTransCB::isHolding( _pmdEDUCB *eduCB,
-                                  INT8      &owningLockMode,
+   BOOLEAN dpsTransCB::isHolding( _pmdEDUCB *eduCB, 
+                                  INT8      &owningLockMode, 
                                   UINT32     logicCSID,
                                   UINT16     collectionID,
                                   const dmsRecordID *recordID )
@@ -2287,9 +2242,9 @@ namespace engine
          UINT32 refCount = 0 ;
          dpsTransLockId lockId( logicCSID, collectionID, recordID );
          found = _transLockMgr->isHolding( eduCB->getTransExecutor(),
-                                           lockId, owningLockMode,
+                                           lockId, owningLockMode, 
                                            refCount ) ;
-
+     
       }
       return found ;
    }
@@ -2454,11 +2409,10 @@ namespace engine
                // check if still rollback pending
                if ( rbPending )
                {
-                  CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                   // just check the tag, current pending LSN may not reset
                   // ( it should be reset by the tag )
-                  PD_LOG( PDWARNING, "Transaction [%s] is still rollback pending",
-                          dpsTransIDToString( origID, strTransID, DPS_TRANS_STR_LEN ) ) ;
+                  PD_LOG( PDWARNING, "Transaction [%s] is still rollback "
+                          "pending", dpsTransIDToString( origID ).c_str() ) ;
                   SDB_ASSERT( FALSE, "transaction is rollback pending" ) ;
                }
 
@@ -2625,7 +2579,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
 
       DPS_TRANS_ID origID = getTransID( transID ) ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // find and lock bucket
       TRANS_MAP::Bucket &bucket = _transMap.getBucket( origID ) ;
@@ -2638,7 +2591,7 @@ namespace engine
       PD_CHECK( bucket.end() != iterTrans,
                 SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
                 "Failed to get status for transaction [%s], rc: %d",
-                dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+                dpsTransIDToString( transID ).c_str(), rc ) ;
 
       // set status
       iterTrans->second._status = status ;
@@ -3336,12 +3289,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETX ) ;
 
-      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETX,
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETX, 
                  PD_PACK_UINT(logicCSID),
                  PD_PACK_UINT(collectionID) ) ;
       if ( recordID )
       {
-         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETX,
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETX, 
                     PD_PACK_UINT(recordID->_extent),
                     PD_PACK_UINT(recordID->_offset) ) ;
       }
@@ -3416,13 +3369,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETS ) ;
 
-      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS,
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS, 
                  PD_PACK_UINT(logicCSID),
                  PD_PACK_UINT(collectionID) ) ;
 
       if ( recordID )
       {
-         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS,
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS, 
                     PD_PACK_UINT(recordID->_extent),
                     PD_PACK_UINT(recordID->_offset) ) ;
       }
@@ -3775,12 +3728,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKTRYS ) ;
 
-      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKTRYS,
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKTRYS, 
                  PD_PACK_UINT(logicCSID),
                  PD_PACK_UINT(collectionID) ) ;
       if ( recordID )
       {
-         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS,
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS, 
                     PD_PACK_UINT(recordID->_extent),
                     PD_PACK_UINT(recordID->_offset) ) ;
       }
@@ -3917,13 +3870,12 @@ namespace engine
 
       if ( !canSelfIncomp && NULL != cb && cb->isTransaction() )
       {
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          DPS_TRANS_ID selfTransID = cb->getTransID().getOrigTransID() ;
          PD_CHECK( 0 == incompTrans.count( cb->getTransID().getOrigTransID() ),
                    SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST, error, PDERROR,
                    "Failed to get incompatible transactions, "
                    "self [%s] is incompatible with lock mode [%s]",
-                   dpsTransIDToString( selfTransID, strTransID, DPS_TRANS_STR_LEN ),
+                   dpsTransIDToString( selfTransID ).c_str(),
                    lockModeToString( lockMode ) ) ;
       }
 
@@ -3960,8 +3912,8 @@ namespace engine
                transID = oldVerPtr->getRecordTransID() ;
             }
          }
-      }
-      return found ;
+      }   
+      return found ; 
    }
 
 
@@ -4023,14 +3975,12 @@ namespace engine
          rc = cb->checkLogSpace( length, rblength ) ;
          if ( SDB_OK != rc )
          {
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             _reservedRBSpace.sub( rblength ) ;
             _reservedSpace.sub( length ) ;
 
             PD_LOG( PDERROR, "Failed to check log space for "
                     "transaction [%s], rc: %d",
-                    dpsTransIDToString( cb->getTransID(), strTransID,
-                                        DPS_TRANS_STR_LEN ), rc ) ;
+                    dpsTransIDToString( cb->getTransID() ).c_str(), rc ) ;
 
             goto error ;
          }
@@ -4061,12 +4011,10 @@ namespace engine
             if ( _reservedRBSpace.fetch() < (UINT64)length ||
                  cb->getReservedSpace() < (UINT64)length )
             {
-               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG( PDWARNING, "Reserved log space is not enough "
                        "for rollback transaction [%s], total reserved [%llu], "
                        "cb reserved [%llu], need [%u]",
-                       dpsTransIDToString( cb->getTransID(), strTransID,
-                                           DPS_TRANS_STR_LEN ),
+                       dpsTransIDToString( cb->getTransID() ).c_str(),
                        _reservedRBSpace.fetch(), cb->getReservedSpace(),
                        length ) ;
             }

@@ -2703,7 +2703,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREP__LOGTRANSROLLBACK ) ;
 
       dpsMergeInfo info ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       // no need for notify LSN
       info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, eduCB ) ;
@@ -2721,7 +2720,7 @@ namespace engine
                 SDB_SYS, error, PDERROR,
                 "Failed to log transaction rollback for transaction [%s], "
                 "preTransLSN is not empty [%llu]",
-                dpsTransIDToString( transInfo._transID, strTransID, DPS_TRANS_STR_LEN ),
+                dpsTransIDToString( transInfo._transID ).c_str(),
                 transInfo._preTransLSN ) ;
 
       rc = dpsTransRollback2Record( transInfo, record ) ;

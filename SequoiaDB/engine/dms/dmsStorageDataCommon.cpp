@@ -4258,13 +4258,12 @@ namespace engine
             context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
 
 #if defined (_DEBUG)
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
                     "in collection [%s.%s] to rollback transaction [%s]",
                     foundRID._extent, foundRID._offset,
                     getSuName(), context->mb()->_collectionName,
-                    dpsTransIDToString( cb->getTransID().getOrigTransID(),
-                                        strTransID, DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString(
+                                cb->getTransID().getOrigTransID() ).c_str() ) ;
 #endif
          }
          else
@@ -4802,9 +4801,6 @@ namespace engine
 #ifdef _DEBUG
             DPS_TRANS_ID lowTran ;
             DPS_TRANS_ID expireTran ;
-            CHAR strLowTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            CHAR strExpireTran[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            CHAR strGlobTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             if ( pTransCB )
             {
                lowTran = pTransCB->getGlobLowTran() ;
@@ -4817,10 +4813,9 @@ namespace engine
                     recordID._extent, recordID._offset, isDeleting,
                     pRecord->getFlag(),
                     pRecord->hasGlobTransID(),
-                    dpsTransIDToString( lowTran, strLowTransID, DPS_TRANS_STR_LEN ),
-                    dpsTransIDToString( expireTran, strExpireTran, DPS_TRANS_STR_LEN ),
-                    dpsTransIDToString( pRecord->getGlobTransID(),
-                                        strGlobTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDToString( lowTran ).c_str(),
+                    dpsTransIDToString( expireTran ).c_str(),
+                    dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
                     pTransCB ) ;
 #endif
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,

@@ -108,11 +108,9 @@ namespace engine
          {
             if ( SDB_OK != cb->getTransRC() )
             {
-               CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
                PD_LOG_MSG( PDERROR, "Transaction(%s) must rollback due to "
                            "error(%d)",
-                           dpsTransIDToString( cb->getTransID(),
-                                               strTransID, DPS_TRANS_STR_LEN ),
+                           dpsTransIDToString( cb->getTransID() ).c_str(),
                            cb->getTransRC() ) ;
                rc = cb->getTransRC() ;
                goto error ;
@@ -277,12 +275,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       SET_NODEID nodes ;
       DPS_TRANS_ID transID = cb->getTransID() ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_LOG ( PDEVENT, "Begin to rollback transaction(ID:%s, IDAttr:%s)...",
-               dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-               dpsTransIDAttrToString( transID, strAttr, DPS_TRANS_STR_LEN ) ) ;
+               dpsTransIDToString( transID ).c_str(),
+               dpsTransIDAttrToString( transID ).c_str() ) ;
 
       _groupSession.getPropSite()->dumpTransNode( nodes ) ;
 
@@ -485,7 +481,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN needCancel = FALSE ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       contextID                        = -1 ;
 
@@ -497,8 +492,7 @@ namespace engine
       PD_LOG_MSG_CHECK( SDB_OK == cb->getTransRC(),
                         cb->getTransRC(), error, PDERROR,
                         "Transaction(%s) must rollback due to error(%d)",
-                        dpsTransIDToString( cb->getTransID(),
-                                            strTransID, DPS_TRANS_STR_LEN ),
+                        dpsTransIDToString( cb->getTransID() ).c_str(),
                         cb->getTransRC() ) ;
 
       needCancel = TRUE ;
@@ -551,11 +545,9 @@ namespace engine
                                                   timeout ) ;
          if ( SDB_OK != tmpRC )
          {
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             PD_LOG( PDWARNING, "Failed to get global logical time for "
                     "delayed commit transaction [%s], rc: %d",
-                    dpsTransIDToString( cb->getTransID(), strTransID,
-                                        DPS_TRANS_STR_LEN ), tmpRC ) ;
+                    dpsTransIDToString( cb->getTransID() ).c_str(), tmpRC ) ;
          }
       }
 
@@ -1095,8 +1087,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       DPS_TRANS_ID curTransID = cb->getTransID() ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       const CHAR *pHint = NULL ;
       rc = msgExtractTransCommit( (CHAR*)pMsg, &pHint ) ;
@@ -1135,8 +1125,7 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: %s",
-                          dpsTransIDToString( curTransID, strTransID,
-                                              DPS_TRANS_STR_LEN ) ) ;
+                          dpsTransIDToString( curTransID ).c_str() ) ;
 
       rc = _coord2PhaseCommit::execute( pMsg, cb, contextID, buf ) ;
       if ( rc )
@@ -1153,8 +1142,8 @@ namespace engine
       _groupSession.getPropSite()->endTrans( cb ) ;
 
       PD_LOG( PDINFO, "Execute commit(ID:%s, IDAttr:%s)",
-              dpsTransIDToString( curTransID, strTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDAttrToString( curTransID, strAttr, DPS_TRANS_STR_LEN ) ) ;
+              dpsTransIDToString( curTransID ).c_str(),
+              dpsTransIDAttrToString( curTransID ).c_str() ) ;
 
    done:
       return rc ;
@@ -1243,7 +1232,6 @@ namespace engine
                                       MsgOpReply *reply )
    {
       INT32 rc = SDB_OK ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       SDB_ASSERT( NULL != cb, "edu cb is invalid" ) ;
       SDB_ASSERT( NULL != reply, "reply is invalid" ) ;
@@ -1265,7 +1253,7 @@ namespace engine
                    "Failed to parse reply message for pre-commit transaction "
                    "[%s], message length is mismatched, given %u, "
                    "expecting >= %u",
-                   dpsTransIDToString( cb->getTransID(), strTransID, DPS_TRANS_STR_LEN ),
+                   dpsTransIDToString( cb->getTransID() ).c_str(),
                    (UINT32)( reply->header.messageLength ),
                    sizeof( MsgOpReply ) + replyObject.objsize() ) ;
          try
@@ -1295,7 +1283,7 @@ namespace engine
          {
             PD_LOG( PDDEBUG, "Delay pre-commit of transaction [%s] "
                     "from [%llu] to [%llu]",
-                    dpsTransIDToString( cb->getTransID(), strTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDToString( cb->getTransID() ).c_str(),
                     preCommitTime.getTime(), nodePreCommitTime ) ;
 
             preCommitTime.setTime( nodePreCommitTime ) ;
@@ -1332,7 +1320,6 @@ namespace engine
                                        rtnContextBuf *buf )
    {
       INT32 rc                         = SDB_OK ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       contextID                        = -1 ;
 
@@ -1344,7 +1331,7 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                           "TransactionID: %s",
-                          dpsTransIDToString( cb->getTransID(), strTransID, DPS_TRANS_STR_LEN ) ) ;
+                          dpsTransIDToString( cb->getTransID() ).c_str() ) ;
 
       if ( _groupSession.getPropSite()->getTransNodeSize() )
       {

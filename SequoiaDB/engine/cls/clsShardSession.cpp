@@ -453,11 +453,9 @@ namespace engine
 
          if ( _transWaitTimeout >= SHD_TRANS_WAITCOMMIT_TIMEOUT )
          {
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             PD_LOG( PDWARNING, "Transaction(%s) is timeout in "
                     "status(WaitCommit), begin to consult with other nodes",
-                    dpsTransIDToString( _pEDUCB->getTransID(),
-                                        strTransID, DPS_TRANS_STR_LEN ) ) ;
+                    dpsTransIDToString( _pEDUCB->getTransID() ).c_str() ) ;
 
             // only test wait-sync for pre-commit log
             _rollbackTrans( NULL, OSS_ONE_SEC, 0 ) ;
@@ -693,19 +691,18 @@ namespace engine
          rc = _waitSync( lsn.offset, replSize, waitSyncTimeout ) ;
          if ( SDB_OK != rc )
          {
-            CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             if ( ignoreWaitSyncError )
             {
                PD_LOG( PDWARNING, "Failed to wait pre-commit log for "
                        "transaction [%s], lsn [%llu], rc: %d, ignore now",
-                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                       dpsTransIDToString( transID ).c_str(),
                        lsn.offset, rc ) ;
             }
             else
             {
                PD_LOG( PDERROR, "Failed to wait pre-commit log for "
                        "transaction [%s], lsn [%llu], rc: %d",
-                       dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                       dpsTransIDToString( transID ).c_str(),
                        lsn.offset, rc ) ;
                goto error ;
             }
@@ -861,16 +858,12 @@ namespace engine
       }
 
 #if SDB_INTERNAL_DEBUG
-      {
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
-                 "begin time [%s], send time [%s], "
-                 "receive time [%s]",
-                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
-                 dpsTransTimeToString( transBeginTime ).c_str(),
-                 dpsTransTimeToString( sendTime ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str() ) ;
-      }
+      PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
+              "begin time [%s], send time [%s], "
+              "receive time [%s]", dpsTransIDToString( transID ).c_str(),
+              dpsTransTimeToString( transBeginTime ).c_str(),
+              dpsTransTimeToString( sendTime ).c_str(),
+              dpsTransTimeToString( receivedTime ).c_str() ) ;
 #endif
 
       // check transaction with RR isolation
@@ -946,10 +939,9 @@ namespace engine
       if ( transBeginTime < receivedTime )
       {
 #if SDB_INTERNAL_DEBUG
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
                  "arbit limit, current time [%s]",
-                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                 dpsTransIDToString( transID ).c_str(),
                  dpsTransTimeToString( receivedTime ).c_str() ) ;
 #endif
          _pEDUCB->setPassedDoingArbit( TRUE ) ;
@@ -980,7 +972,6 @@ namespace engine
       clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
       stpAgent agent ;
       stpLogicalTimeUS receivedTime, localTime ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
 
@@ -991,7 +982,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
                    "transaction [%s], rc: %d",
                    dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
-                   dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+                   dpsTransIDToString( transID ).c_str(), rc ) ;
 
       // get global logical time for pre-commit in this DATA node
       rc = agent.getLogicalTimeUS( localTime,
@@ -1021,7 +1012,7 @@ namespace engine
 #if SDB_INTERNAL_DEBUG
          PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s] "
                  "sent at [%s], received at [%s], current time [%s]",
-                 dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                 dpsTransIDToString( transID ).c_str(),
                  dpsTransTimeToString( sendTime ).c_str(),
                  dpsTransTimeToString( receivedTime ).c_str(),
                  dpsTransTimeToString( localTime ).c_str() ) ;
@@ -1044,7 +1035,7 @@ namespace engine
                     "remote node %s sent at [%s], "
                     "local node %s received at [%s], current time [%s], "
                     "diff [%lld]/[%lld]",
-                    dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ),
+                    dpsTransIDToString( transID ).c_str(),
                     routeID2String( remoteRID ).c_str(),
                     dpsTransTimeToString( sendTime ).c_str(),
                     routeID2String( pmdGetNodeID() ).c_str(),
@@ -1086,7 +1077,7 @@ namespace engine
       rc = transCB->getLocalPreCommitTime( localTime, preCommitTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get pre-commit time for "
                    "transaction [%s], rc: %d",
-                   dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+                   dpsTransIDToString( transID ).c_str(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT, rc ) ;
@@ -3550,7 +3541,6 @@ namespace engine
       BOOLEAN isGlobTrans = FALSE ;
       DPS_TRANS_ID transID ;
       stpLogicalTimeUS beginTime ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       PD_CHECK( DPS_TRANS_WAIT_COMMIT != eduCB()->getTransStatus(),
                 SDB_RTN_EXIST_INDOUBT_TRANS, error, PDERROR,
@@ -3635,7 +3625,7 @@ namespace engine
 
       rc = rtnTransBegin( _pEDUCB, FALSE, isGlobTrans, transID, beginTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction [%s], rc: %d",
-                   dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ), rc ) ;
+                   dpsTransIDToString( transID ).c_str(), rc ) ;
 
       /// unset all trans context
       rtnUnsetTransContext( eduCB(), _pRtnCB ) ;
@@ -3695,8 +3685,7 @@ namespace engine
 
       rc = rtnTransCommit( _pEDUCB, _pDpsCB, specCommitTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction [%s], rc: %d",
-                   dpsTransIDToString( _pEDUCB->getTransID(), tmpID, DPS_TRANS_STR_LEN ),
-                   rc ) ;
+                   dpsTransIDToString( _pEDUCB->getTransID() ).c_str(), rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__ONTRANSCOMMITMSG, rc ) ;

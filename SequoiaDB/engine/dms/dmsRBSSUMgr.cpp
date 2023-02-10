@@ -91,14 +91,14 @@ namespace engine
       SINT32            rc    = SDB_OK ;
       dmsStorageUnitID  suID  = DMS_INVALID_CS ;
       pmdEDUCB         *eduCB = pmdGetThreadEDUCB() ;
-      // we explicitly set dpsCB to NULL during init phase because we are
-      // going to assume that the SYSRBS and SYSRBS0000 exist. Every nodes
+      // we explicitly set dpsCB to NULL during init phase because we are 
+      // going to assume that the SYSRBS and SYSRBS0000 exist. Every nodes 
       // with mvccon enabled must have both. So we will simply create them
       // during db start if they are not there. For newly started node, we
       // will also create SYSRBS0001 by default, which all done by this init
       // function. By using NULL dpsCB here, we will not generate LRs. During
-      // runtime, we will generate LRs for creating SYSRBSxxxx and update of
-      // the meta pages (see updateMeta for details).
+      // runtime, we will generate LRs for creating SYSRBSxxxx and update of 
+      // the meta pages (see updateMeta for details). 
       // If decision is changed, we can set to pmdGetKRCB()->getDPSCB()
       SDB_DPSCB        *dpsCB = NULL ;
 
@@ -132,7 +132,7 @@ namespace engine
                                             dpsCB, TRUE, TRUE ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR,
+            PD_LOG ( PDERROR, 
                      "Failed to cleanup previous RBS collectionspace, rc: %d",
                      rc ) ;
             goto error ;
@@ -212,7 +212,7 @@ namespace engine
    // Create meta CL and first CL for SYSRBS
    // Caller must hold collectionspace lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__INITRBSCS, "_dmsRBSSUMgr::_initRBSCS" )
-   SINT32 _dmsRBSSUMgr::_initRBSCS( pmdEDUCB *eduCB, SDB_DPSCB *dpsCB )
+   SINT32 _dmsRBSSUMgr::_initRBSCS( pmdEDUCB *eduCB, SDB_DPSCB *dpsCB ) 
    {
       SINT32              rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__INITRBSCS );
@@ -252,7 +252,7 @@ namespace engine
          _lastFreeCollection = DMS_MAX_RBS_CL ;
          _preparedCollection = DMS_FIRST_RBS_CL ;
          _numSyncAddCL.init(0) ;
-         PD_LOG ( PDDEBUG,
+         PD_LOG ( PDDEBUG, 
                   "Created RBS collection %s(%d) successfully, mbID(%d)",
                   clName, logicalID, collectionID );
       }
@@ -264,7 +264,7 @@ namespace engine
                  e.what() ) ;
          goto error ;
       }
-
+      
    done :
       _releaseX() ;
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__INITRBSCS, rc );
@@ -349,8 +349,8 @@ namespace engine
 
          // take latch in X so that no one read stale data
          _latchX() ;
-         // there is a prepared cl to use, move to it.
-         if ( _currentCollection != _preparedCollection )
+         // there is a prepared cl to use, move to it. 
+         if ( _currentCollection != _preparedCollection ) 
          {
             _currentCollection = _preparedCollection ;
             _releaseX() ;
@@ -363,7 +363,7 @@ namespace engine
          if ( ( _currentCollection != tempCurCL ) || _prepInProgress )
          {
 #ifdef _DEBUG
-            PD_LOG ( PDDEBUG,
+            PD_LOG ( PDDEBUG, 
                      "CurrentCollection(%d) changed from %d or "
                      "prepInProgress(%d). retry.",
                      _currentCollection, tempCurCL,
@@ -399,7 +399,7 @@ namespace engine
             if ( rc )
             {
                // log error message and reset to OK
-               PD_LOG ( PDWARNING, "Failed to trigger GC, rc=%d ", rc ) ;
+               PD_LOG ( PDWARNING, "Failed to trigger GC, rc=%d ", rc ) ; 
                rc = SDB_OK ;
             }
          }
@@ -422,7 +422,7 @@ namespace engine
       goto done ;
    }
 
-   // prepare or allocate the RBSCL.
+   // prepare or allocate the RBSCL. 
    // CALLER MUST HOLD _dmsRBSSUMgr::_latch in X
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__PREPARERBSCL, "_dmsRBSSUMgr::_prepareRBSCL" )
    SINT32 _dmsRBSSUMgr::_prepareRBSCL( pmdEDUCB   * eduCB,
@@ -435,7 +435,7 @@ namespace engine
       UINT16       prepCL       = _preparedCollection + 1 ;
       CHAR         clName[30]   = {0} ;
 
-      // setup prepare in progress
+      // setup prepare in progress 
       _prepInProgress = TRUE ;
 
       // if reached max, wrap to first one.
@@ -447,7 +447,7 @@ namespace engine
       // new curCL should not be overlap with last free.
       // A special case is lastFree never changed after system start, but the
       // prepare is trying to wrap around
-      if ( ( prepCL == _lastFreeCollection ) ||
+      if ( ( prepCL == _lastFreeCollection ) || 
            ( DMS_MAX_RBS_CL == _lastFreeCollection &&
                 DMS_FIRST_RBS_CL == prepCL ) )
       {
@@ -455,9 +455,9 @@ namespace engine
          PD_LOG ( PDWARNING,
                   "Run out of space in RBS collection lastFreeCL=%d,"
                   "curCL=%d, prepCL(full)=%d, rc=%d",
-                  _lastFreeCollection, _currentCollection,
+                  _lastFreeCollection, _currentCollection, 
                   _preparedCollection, rc ) ;
-         _releaseX() ;
+         _releaseX() ;   
          goto error ;
       }
       // now we can release the latch and do the real create. Releasing the
@@ -517,7 +517,7 @@ namespace engine
       {
          _currentCollection = prepCL ;
       }
-      _prepInProgress = FALSE ;
+      _prepInProgress = FALSE ;      
       _releaseX() ;
    done:
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__PREPARERBSCL, rc );
@@ -527,15 +527,15 @@ namespace engine
       // unset prepare in progress on error. We may not neccessarily need
       // the latch because everyone else is only checking at this moment.
       // But to make sure PD_LOG dump correct value in other places, we
-      // still take the latch. BTW, this is error code path.
+      // still take the latch. BTW, this is error code path. 
       _latchX() ;
-      _prepInProgress = FALSE ;
+      _prepInProgress = FALSE ;      
       _releaseX() ;
-
+      
       goto done ;
    }
 
-   BOOLEAN _dmsRBSSUMgr::_needPrepareRBSCL( BOOLEAN latched )
+   BOOLEAN _dmsRBSSUMgr::_needPrepareRBSCL( BOOLEAN latched ) 
    {
       BOOLEAN need = FALSE ;
       if ( !latched )
@@ -554,7 +554,7 @@ namespace engine
       {
          _releaseS() ;
       }
-      return need ;
+      return need ; 
    }
 
    // allocate space for RBS record and return the beginning offset
@@ -633,7 +633,7 @@ namespace engine
    // Output Parm:
    //    rc: return code, SDB_OK or error code
    // Note that we currently use RID for hashing because we will fail already
-   // started transaction thus each primary node use it's own method for
+   // started transaction thus each primary node use it's own method for 
    // hashing at run time. If we ever support newly voted primary to continue
    // servicing running transaction, we need something unique (liek lsn) across
    // node.
@@ -661,7 +661,7 @@ namespace engine
       CHAR          clName[30]   = {0} ;
       pmdEDUCB     *eduCB        = pmdGetThreadEDUCB() ;
       // Note: we may want to setup dpsCB so that the replica can replay the
-      // addCollection and insert log record. This is currently disabled as
+      // addCollection and insert log record. This is currently disabled as 
       // we decided to fail the transaction after failover to new primary node.
       // If we decide to life this restriction, we will setup the proper dpsCB
       //SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
@@ -804,8 +804,8 @@ namespace engine
 
    // Given a transactionID and beginning of a record chain, find a visiable record
    // This method uses fetch method from cappedCL.
-   // User can provide start and end position of the RBSRecord, index scan
-   // normally does this as it need make sure the index value matches the
+   // User can provide start and end position of the RBSRecord, index scan 
+   // normally does this as it need make sure the index value matches the 
    // old version of the record.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_RBSGETRECORD, "_dmsRBSSUMgr::rbsGetRecord" )
    SINT32 _dmsRBSSUMgr::rbsGetRecord ( dmsStorageUnitID  csid,
@@ -835,9 +835,6 @@ namespace engine
       // index scan does this type of search. Either of this can be valid.
       BOOLEAN       useRange   = ( startPos.isValid() || endPos.isValid() );
       DPS_TRANS_ID  ownerTransID, lastRecTransID ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strOwnerTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strLastRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       lastRecTransID = diskRecordTransID ;
 
@@ -846,12 +843,12 @@ namespace engine
                "Transaction (%s) tries to find a proper version from RBS, "
                "csid(%d), clid(%d), record rid(%d, %d), cllid(%d), "
                "disk transid (%s)",
-               dpsTransIDToString( transid, strTransID, DPS_TRANS_STR_LEN ),
+               dpsTransIDToString( transid ).c_str(),
                csid, clid, rid._extent, rid._offset, clLID,
-               dpsTransIDToString( lastRecTransID, strLastRecTransID, DPS_TRANS_STR_LEN ) ) ;
+               dpsTransIDToString( lastRecTransID ).c_str() ) ;
 #endif
-      SDB_ASSERT( pmdGetOptionCB()->globTransOn() &&
-                  pmdGetOptionCB()->mvccOn() ,
+      SDB_ASSERT( pmdGetOptionCB()->globTransOn() && 
+                  pmdGetOptionCB()->mvccOn() , 
                   "global transaction should be on" ) ;
 
       found = FALSE ;
@@ -912,7 +909,6 @@ namespace engine
             BSONElement   eleCLLID;
             BSONElement   eleLsnOffset;
             BSONElement   eleKey;
-            CHAR strRecTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
             DMS_BUILD_RBS_CL_NAME( clName, position._clID ) ;
 #ifdef _DEBUG
@@ -1081,18 +1077,15 @@ namespace engine
                                      "Failed to check version visibility for "
                                      "current transaction [%s] against owner "
                                      "transaction [%s], rc: %d",
-                                     dpsTransIDToString( transid, strTransID,
-                                                         DPS_TRANS_STR_LEN ),
-                                     dpsTransIDToString( ownerTransID, strOwnerTransID,
-                                                         DPS_TRANS_STR_LEN ), rc ) ;
+                                     dpsTransIDToString( transid ).c_str(),
+                                     dpsTransIDToString( ownerTransID ).c_str(), rc ) ;
 
                         if ( isVisible )
                         {
 #if defined (_DEBUG)
                            PD_LOG ( PDDEBUG,
                                     "Hit owner trans version(%s) at position(%d, %lld)",
-                                    dpsTransIDToString( ownerTransID, strOwnerTransID,
-                                                        DPS_TRANS_STR_LEN ),
+                                    dpsTransIDToString( ownerTransID ).c_str(),
                                     position._clID,
                                     position._logicalID ) ;
 #endif
@@ -1107,10 +1100,8 @@ namespace engine
 #if defined (_DEBUG)
                         PD_LOG( PDDEBUG, "Got rollback transaction [%s], "
                                 "record transaction [%s], move to next",
-                                dpsTransIDToString( ownerTransID, strOwnerTransID,
-                                                     DPS_TRANS_STR_LEN ),
-                                dpsTransIDToString( recordTransID, strRecTransID,
-                                                    DPS_TRANS_STR_LEN ) ) ;
+                                dpsTransIDToString( ownerTransID ).c_str(),
+                                dpsTransIDToString( recordTransID ).c_str() ) ;
 #endif
                         // setup next position, release mblatch and continue
                         position._clID =
@@ -1133,12 +1124,9 @@ namespace engine
                                 "owner transaction [%s], "
                                 "current record transaction [%s], "
                                 "could not access",
-                                dpsTransIDToString( lastRecTransID, strLastRecTransID,
-                                                    DPS_TRANS_STR_LEN ),
-                                dpsTransIDToString( ownerTransID, strOwnerTransID,
-                                                    DPS_TRANS_STR_LEN ),
-                                dpsTransIDToString( recordTransID, strRecTransID,
-                                                    DPS_TRANS_STR_LEN ) ) ;
+                                dpsTransIDToString( lastRecTransID ).c_str(),
+                                dpsTransIDToString( ownerTransID ).c_str(),
+                                dpsTransIDToString( recordTransID ).c_str() ) ;
 #endif
                         _su->data()->releaseMBContext( context ) ;
                         context = NULL ;
@@ -1161,10 +1149,8 @@ namespace engine
                                "Failed to check version visibility for "
                                "current transaction [%s] against record "
                                "transaction [%s], rc: %d",
-                               dpsTransIDToString( transid, strTransID,
-                                                   DPS_TRANS_STR_LEN ),
-                               dpsTransIDToString( recordTransID, strRecTransID,
-                                                   DPS_TRANS_STR_LEN ),
+                               dpsTransIDToString( transid ).c_str(),
+                               dpsTransIDToString( recordTransID ).c_str(),
                                rc ) ;
 
                   if ( isVisible )
@@ -1177,8 +1163,7 @@ namespace engine
 #ifdef _DEBUG
                      PD_LOG ( PDDEBUG,
                               "Found version(%s) at position(%d, %ld)",
-                              dpsTransIDToString( recordTransID, strRecTransID,
-                                                  DPS_TRANS_STR_LEN ),
+                              dpsTransIDToString( recordTransID ).c_str(),
                               position._clID,
                               position._logicalID ) ;
 #endif
@@ -1289,7 +1274,7 @@ namespace engine
          // GC can get to here, but there will be only one get in first with
          // mbLock held in X. Others will break out. There is no point to
          // work on next CL either as the one had mbLock will work on them
-         // anyway.
+         // anyway. 
          // Early break out if the CL no long exist or it's held by others.
          if ( SDB_OK != _su->data()->getMBContext( &pContext, clName, -1 ) ||
               SDB_OK != pContext->mbTryLock( EXCLUSIVE ) )
@@ -1303,18 +1288,14 @@ namespace engine
          maxGlobTransID.setSN( pContext->mbStat()->getMaxGlobTransID() ) ;
 
 #ifdef _DEBUG
-         CHAR strGlobTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         CHAR strGlobLowTran[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-         CHAR strGlobExpireTran[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          PD_LOG ( PDDEBUG,
                   "Got maxGlobTransID [%s], lowTran [%s], expireTran [%s], "
                   "curPos=%d",
-                  dpsTransIDToString( maxGlobTransID, strGlobTransID,
-                                      DPS_TRANS_STR_LEN ),
-                  dpsTransIDToString( sdbGetTransCB()->getGlobLowTran(),
-                                      strGlobLowTran, DPS_TRANS_STR_LEN ),
-                  dpsTransIDToString( sdbGetTransCB()->getGlobExpireTran(),
-                                      strGlobExpireTran, DPS_TRANS_STR_LEN ),
+                  dpsTransIDToString( maxGlobTransID ).c_str(),
+                  dpsTransIDToString(
+                        sdbGetTransCB()->getGlobLowTran() ).c_str(),
+                  dpsTransIDToString(
+                        sdbGetTransCB()->getGlobExpireTran() ).c_str(),
                   curPos ) ;
 #endif
          // Do GC when the cl max transID is expired
@@ -1331,7 +1312,7 @@ namespace engine
                goto error ;
             }
 
-            // if the lastFree was not changed, update it under protection.
+            // if the lastFree was not changed, update it under protection. 
             // modify position as it's a cached version of lastFreeCollection
             _latchX() ;
             if ( position == _lastFreeCollection )
@@ -1384,7 +1365,7 @@ namespace engine
 
    BOOLEAN _dmsRBSSUMgr::_rbsCLExpired( UINT16 cl )
    {
-      BOOLEAN rv = TRUE;
+      BOOLEAN rv = TRUE; 
       //   lastFreeCL           currentCL
       // 0-----|=====================|-----4096
       // OR
@@ -1394,10 +1375,10 @@ namespace engine
       // === inUse   (rv=FALSE)
       if ( _lastFreeCollection < _currentCollection )
       {
-         if ( ( cl > _lastFreeCollection ) &&
+         if ( ( cl > _lastFreeCollection ) && 
               ( cl <= _currentCollection ) )
          {
-            rv = FALSE;
+            rv = FALSE; 
          }
       }
       else
@@ -1405,13 +1386,13 @@ namespace engine
          if ( ( cl > _lastFreeCollection ) ||
               ( cl <= _currentCollection ) )
          {
-            rv = FALSE;
+            rv = FALSE; 
          }
       }
       return rv ;
    }
 
-   BOOLEAN _dmsRBSSUMgr::_rbsPositionExpired( dmsRBSOffset & pos )
+   BOOLEAN _dmsRBSSUMgr::_rbsPositionExpired( dmsRBSOffset & pos ) 
    {
       return _rbsCLExpired( pos._clID ) ;
    }

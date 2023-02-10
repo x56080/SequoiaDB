@@ -834,11 +834,9 @@ namespace engine
 #if defined ( SDB_ENGINE )
       // FIXME: to be removed
 #ifdef _DEBUG
-      CHAR strCurTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       PD_LOG( PDDEBUG, "setting edu transID from %s to %s",
-              dpsTransIDToString( _curTransID, strCurTransID, DPS_TRANS_STR_LEN ),
-              dpsTransIDToString( transID, strTransID, DPS_TRANS_STR_LEN ) ) ;
+              dpsTransIDToString( _curTransID ).c_str(),
+              dpsTransIDToString( transID ).c_str() ) ;
 #endif
 
       if ( _curTransID.isInvalid() && transID.isValid() )

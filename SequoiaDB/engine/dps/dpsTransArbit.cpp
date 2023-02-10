@@ -68,7 +68,6 @@ namespace engine
 
       DPS_TRANS_STATUS curStatus = DPS_TRANS_UNKNOWN ;
       BOOLEAN curVisible = FALSE ;
-      CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
       visible = FALSE ;
 
@@ -91,8 +90,7 @@ namespace engine
       rc = _saveRecord( writeTransID, writeTransStatus, curVisible ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to save arbitrate record for "
                    "transaction [%s], rc: %d",
-                   dpsTransIDToString( writeTransID, strTransID,
-                                       DPS_TRANS_STR_LEN ), rc ) ;
+                   dpsTransIDToString( writeTransID ).c_str(), rc ) ;
 
       visible = curVisible ;
 

@@ -1539,11 +1539,10 @@ namespace engine
                               "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_lsnOffset, record->_lsnOffset ) ;
 */
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Trans ID     : %s"OSS_NEWLINE,
-                              dpsTransIDToString( record->_globTransID, strTransID,
-                                                  DPS_TRANS_STR_LEN ) ) ;
+                              dpsTransIDToString(
+                                   record->_globTransID ).c_str() ) ;
       }
 
       nextRecord = record->_nextOffset ;
@@ -1575,7 +1574,7 @@ namespace engine
             ossValuePtr recordPtr = 0 ;
             DMS_RECORD_EXTRACTDATA ( record, recordPtr,
                                         compressorEntry ) ;
-
+           
             BSONObj obj ( (CHAR*)recordPtr ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "       Record: %s"OSS_NEWLINE,
@@ -1657,11 +1656,10 @@ namespace engine
                               "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_lsnOffset, record->_lsnOffset ) ;
 */
-         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Trans ID     : %s"OSS_NEWLINE,
-                              dpsTransIDToString( record->_globTransID, strTransID,
-                                                  DPS_TRANS_STR_LEN ) ) ;
+                              dpsTransIDToString(
+                                   record->_globTransID ).c_str() ) ;
       }
 
       try
