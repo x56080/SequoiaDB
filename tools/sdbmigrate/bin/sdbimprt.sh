@@ -592,6 +592,7 @@ function importData()
         password=$(getPassword $import_cmd)
         msg=$(eval "$import_cmd" 2>&1)
         rc=$?
+        echo "$msg"
         if [ $rc = 0 ]; then
             judgeResult "$msg"
             if [ $? = 0 ]; then

@@ -438,5 +438,4 @@ namespace import
                     ossGetCurrentThreadID() ) ;
       return SDB_OK ;
    }
-
 }
