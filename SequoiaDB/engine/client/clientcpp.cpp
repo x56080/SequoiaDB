@@ -1587,7 +1587,7 @@ do                                                            \
       }
       catch ( std::exception )
       {
-         rc = SDB_SYS ;
+         rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
 
@@ -1971,7 +1971,7 @@ do                                                            \
       }
       catch ( std::exception )
       {
-         rc = SDB_SYS ;
+         rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
       if ( 0 != flag )
@@ -11322,7 +11322,7 @@ do                                                            \
       }
       catch ( std::exception )
       {
-         rc = SDB_SYS ;
+         rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
 
@@ -12280,7 +12280,7 @@ do                                                            \
                   }
                   catch( std::exception )
                   {
-                     rc = SDB_SYS ;
+                     rc = SDB_DRIVER_BSON_ERROR ;
                      goto error ;
                   }
                   break ;
