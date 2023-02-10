@@ -762,13 +762,17 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 					} else if (p.getPropertyType().equals(java.util.Map.class)) { // TODO
 						// p is Map
 						Field mapField = cls.getDeclaredField(p.getName());
-						Type generictype = mapField.getGenericType();
+						Type genericType = mapField.getGenericType();
 						Type valueType = null;
-						if (generictype instanceof ParameterizedType) {
-							Type[] types = ((ParameterizedType) generictype)
+						if (genericType instanceof ParameterizedType) {
+							Type[] types = ((ParameterizedType) genericType)
 									.getActualTypeArguments();
 							valueType = types[1];
+						} else {
+							throw new IllegalArgumentException("Current version only support parameterized " +
+									"type field. unknown type=" + genericType.toString());
 						}
+
 						// change bson object to map
 						Map map = ((BSONObject) value).toMap();
 						Map realMap = new HashMap();
@@ -830,10 +834,9 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 									.getActualTypeArguments()[0];
 						} else {
 							throw new IllegalArgumentException(
-									"Current version only support parameterized type Collection(List/Set/Queue) field. unknow type="
+									"Current version only support parameterized type Collection(List/Set/Queue) field. unknown type="
 											+ _type.toString());
 						}
-
 						writeMethod.invoke(result, ((BSONObject) value).as(
 								p.getPropertyType(), fileType));
 					} else if (BasicTypeWrite(result, value, writeMethod)) {
@@ -921,7 +924,7 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 					"Current version is not support Array type field.");
 		} else if (object instanceof BSONObject) {
 			result = (BSONObject) object;
-		} else if (object.getClass().getName() == "java.lang.Class") {
+		} else if ( object.getClass().getName().equals( "java.lang.Class" ) ) {
 			throw new IllegalArgumentException(
 					"Current version is not support java.lang.Class type field.");
 		} else { // User define type.
@@ -943,7 +946,7 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 					if (!ignoreNullValue || null != propObj) {
 						result.put(p.getName(), propObj);
 					}
-				} else if (type.getName() == "java.lang.Class") {
+				} else if ( type.getName().equals( "java.lang.Class" ) ) {
 					continue;
 				} else {
 					BSONObject tmpObj = typeToBson(propObj, ignoreNullValue);

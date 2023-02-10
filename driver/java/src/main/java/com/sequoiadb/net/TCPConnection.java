@@ -143,6 +143,7 @@ public class TCPConnection implements IConnection {
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
             sleepTime *= 2;
         }
