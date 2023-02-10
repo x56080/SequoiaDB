@@ -1140,7 +1140,7 @@ static INT32 _extractEval ( MsgHeader *msg, INT32 size,
          tmpRc = bson_copy ( errmsg, &localObj ) ;
          if ( SDB_OK != tmpRc )
          {
-            rc = SDB_SYS ;
+            rc = SDB_DRIVER_BSON_ERROR ;
             goto error ;
          }
       }
