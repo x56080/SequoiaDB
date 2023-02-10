@@ -2508,7 +2508,7 @@ namespace sdbclient
          return pCollection->getDetail( cursor ) ;
       }
 
-      /* \fn INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result,
+      /** \fn INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result,
                                   BOOLEAN detail = FALSE )
           \brief Get the statistics of the index.
           \param [in] pIndexName The name of the index.
