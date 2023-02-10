@@ -355,6 +355,7 @@ namespace engine
                       const CHAR *pLobPath,
                       const CHAR *pLobMetaPath,
                       IDataSyncManager *pSyncMgr,
+                      IDataStatManager *pStatMgr,
                       BOOLEAN createNew = TRUE ) ;
          void  close () ;
          INT32 remove () ;

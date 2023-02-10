@@ -277,7 +277,7 @@ namespace engine
 
       EDU_TYPE_FS_MCS_NET_SERVICE,
       EDU_TYPE_FS_MCS_NET_AGENT,
-      
+
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN
    } ;
@@ -490,6 +490,7 @@ namespace engine
    {
       FT_ERR_NONE             = 0,
       FT_ERR_NOSPC,
+      FT_ERR_SYNC_FAILED,
 
       FT_ERR_MAX
    } ;

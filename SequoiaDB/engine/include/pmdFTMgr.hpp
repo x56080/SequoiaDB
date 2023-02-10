@@ -253,6 +253,7 @@ namespace engine
          BOOLEAN  isStop() const ;
 
          void     reportErr( INT32 err, BOOLEAN isWrite ) ;
+         void     reportErr( PMD_FT_ERR_TYPE errType ) ;
 
          void     holdStatus( UINT32 status ) ;
          void     unholdStatus( UINT32 status ) ;
@@ -268,6 +269,7 @@ namespace engine
          ftSampleWindow _sampleWnd ;
          UINT64         _lastSampleTick ;
          UINT64         _lastSucCount ;
+         UINT64         _lastSucPageCount ;
          UINT64         _lastTransSucCount ;
          UINT64         _lastTransErrCount ;
          UINT32         _confirmPeriod ;  /// Unit(s)
@@ -289,6 +291,7 @@ namespace engine
       Tool functions
    */
    void  ftReportErr( INT32 err, BOOLEAN isWrite = TRUE ) ;
+   void  ftReportErr( PMD_FT_ERR_TYPE errType ) ;
 
 }
 

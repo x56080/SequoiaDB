@@ -141,6 +141,29 @@ namespace engine
    } ;
    typedef _dmsDictJob dmsDictJob ;
 
+   class _dmsDataStatMgr : public _IDataStatManager
+   {
+   public :
+      _dmsDataStatMgr()
+      : _pageAllocate( 0 ),
+        _pageRelease( 0 )
+      {
+      }
+
+      ~_dmsDataStatMgr()
+      {
+      }
+   public :
+      virtual void incPageAllocate( UINT16 numPages ) { _pageAllocate += numPages ; }
+      virtual void incPageRelease( UINT16 numPages ) { _pageRelease += numPages ; }
+      virtual UINT64 getPageAllocate() const { return _pageAllocate ; }
+      virtual UINT64 getPageRelease() const { return _pageRelease ; }
+   private :
+      UINT64 _pageAllocate ;
+      UINT64 _pageRelease ;
+   } ;
+   typedef _dmsDataStatMgr dmsDataStatMgr ;
+
    /*
       _SDB_DMSCB define
    */
@@ -212,6 +235,7 @@ namespace engine
       dmsTempSUMgr            _tempSUMgr ;
       dmsStatSUMgr            _statSUMgr ;
       dmsLocalSUMgr           _localSUMgr ;
+      dmsDataStatMgr          _statMgr ;
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
       IDmsScannerCheckerCreator *_scannerCheckerCreator ;
@@ -440,6 +464,8 @@ namespace engine
       dmsStatSUMgr *getStatSUMgr () ;
 
       dmsLocalSUMgr *getLocalSUMgr() ;
+
+      dmsDataStatMgr *getStatMgr() ;
 
       void clearSUCaches ( UINT32 mask ) ;
 

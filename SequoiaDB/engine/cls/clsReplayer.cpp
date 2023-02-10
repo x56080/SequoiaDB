@@ -1699,6 +1699,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          ftReportErr( rc ) ;
+         ftReportErr( FT_ERR_SYNC_FAILED ) ;
 
          dpsLogRecord record ;
          CHAR tmpBuff[4096] = {0} ;
