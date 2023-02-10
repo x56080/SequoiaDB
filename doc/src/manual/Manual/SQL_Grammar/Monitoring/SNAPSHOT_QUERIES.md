@@ -1,7 +1,7 @@
 
 查询快照可以列出数据库中正在进行的查询信息。
 
->**Note:**
+> **Note:**
 >
 > 每一个数据节点上正在进行的每一个查询操作为一条记录。
 
@@ -13,8 +13,8 @@ $SNAPSHOT_QUERIES
 
 | 字段名                 | 类型     | 描述                                            |
 | ---------------------- | -------- | ----------------------------------------------- |
-| NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>      |
-| NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]      |
+| NodeName               | string   | 节点名，格式为 `<hostname>:<servicename>`       |
+| NodeID                 | bson array | 节点的 ID，格式为 `[<分区组 ID>,<节点 ID>]`   |
 | StartTimestamp         | string   | 查询开始时间                                    |
 | EndTimestamp           | string   | 查询结束时间                                    |
 | TID                    | int32    | 内部线程 ID                                     |
@@ -22,6 +22,7 @@ $SNAPSHOT_QUERIES
 | Name                   | string   | 操作对象名                                      |
 | QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                    |
 | ReturnNum              | int32    | 返回值                                          |
+| QueryID                | string   | 执行语句的唯一标识                              |
 | TotalMsgSent           | int32    | 发送到远程节点的消息总数                        |
 | LastOpInfo             | string   | 查询语句内容                                    |
 | MsgSentTime            | int32    | 消息发送花费时间，单位为毫秒                    |
@@ -33,8 +34,8 @@ $SNAPSHOT_QUERIES
 
 | 字段名                 | 类型     | 描述                                                                                     |
 | ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>                                               |
-| NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]                                               |
+| NodeName               | string   | 节点名，格式为 `<hostname>:<servicename>`                                                |
+| NodeID                 | bson array | 节点的 ID，格式为 `[<分区组 ID>,<节点 ID>]`                                            |
 | StartTimestamp         | string   | 查询开始时间                                                                             |
 | EndTimestamp           | string   | 查询结束时间                                                                             |
 | TID                    | int32    | 内部线程 ID                                                                              |
@@ -42,7 +43,8 @@ $SNAPSHOT_QUERIES
 | Name                   | string   | 操作对象名                                                                               |
 | QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                                                             |
 | ReturnNum              | int32    | 返回值                                                                                   |
-| RelatedNID             | int32    | 将该查询请求发送到该数据节点的的相关协调节点 ID                                           |
+| QueryID                | string   | 执行语句的唯一标识                                                                       |
+| RelatedNID             | int32    | 将该查询请求发送到该数据节点的的相关协调节点 ID                                          |
 | RelatedTID             | int32    | 发送查询的相关协调节点的线程 ID，结合 RelatedNID 可以将协调节点和数据节点的快照输出联系起来 |
 | SessionID              | int32    | 内部会话ID                                                                               |
 | AccessPlanID           | int32    | 访问计划 ID                                                                              |
@@ -90,6 +92,7 @@ $SNAPSHOT_QUERIES
       "Name": "sbtest1.sbtest2",
       "QueryTimeSpent": 0,
       "ReturnNum": 0,
+      "QueryID": "0x0000290b000290c600000003",
       "TotalMsgSent": 1,
       "LastOpInfo": "Collection:sbtest1.sbtest2, Matcher:{ \"id\": { \"$et\": 5015 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
       "MsgSentTime": 0.034,
@@ -126,6 +129,7 @@ $SNAPSHOT_QUERIES
       "Name": "$snapshot queries",
       "QueryTimeSpent": 0.118,
       "ReturnNum": 0,
+      "QueryID": "0x0000290b000290c600000003",
       "RelatedNID": 0,
       "RelatedTID": 0,
       "SessionID": 47,
