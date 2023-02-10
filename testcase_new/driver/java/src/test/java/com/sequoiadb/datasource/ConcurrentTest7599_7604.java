@@ -21,11 +21,11 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
     public void createDatasource() {
         try {
             super.init();
-            
+
             if (ds == null) {
                 ds = new DataSourceProxy(this.coordAddr, userName, password) ;
             }
- 
+
         } catch ( BaseException e ) {
             Assert.assertFalse( true, e.getMessage() );
         }
@@ -43,8 +43,8 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
 
     /**
      * 并发申请释放连接
-     * @throws InterruptedException 
-     * @throws BaseException 
+     * @throws InterruptedException
+     * @throws BaseException
      */
     @Test(invocationCount = 40, threadPoolSize = 4)
     void getConnection() throws InterruptedException  {
@@ -130,7 +130,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 
@@ -214,7 +214,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
         sdb = ds.getConnection();
         Thread.sleep( random.nextInt( 100 ) );
         Assert.assertEquals( sdb.isValid(), true );
-        
+
         ds.releaseConnection( sdb );
     }
 
@@ -234,9 +234,9 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             // Sequoiadb sdb = ds1.getConnection();
             ds.close();
             // Assert.assertEquals(sdb.isValid(), false);
-            
+
         } catch ( BaseException e ) {
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 
@@ -251,11 +251,11 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             for ( int i = 0; i < addrList.size(); ++i ) {
                 if ( ds != null ) {
                     ds.addCoord( addrList.get( i ).getHostName() + ":"
-                        + addrList.get( i ).getPort() );
+                            + addrList.get( i ).getPort() );
                 }
             }
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
             // Assert.assertFalse(true, e.getMessage());
         }
 
@@ -264,13 +264,13 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             for ( int i = 0; i < num; ++i ) {
                 if ( ds != null) {
                     ds.removeCoord( addrList.get( i ).getHostName() + ":"
-                        + addrList.get( i ).getPort() );
+                            + addrList.get( i ).getPort() );
                 }
             }
-            
+
             ds.close();
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 
