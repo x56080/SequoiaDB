@@ -824,10 +824,12 @@ function exportData()
             password=$(getPassword $export_cmd)
             msg=$(eval "$export_cmd" 2>&1)
             if [ $? -ne 0 -o "$opt_debug" = "true" ]; then
+                echo "$msg"
                 msg="$hosts\nCollection:$cl\n$msg"
                 export_cmd=${export_cmd/--password $password/}
                 addResultBody "$msg" "Export cmd:$export_cmd"
             else
+                echo "$msg"
                 msg="$hosts\nCollection:$cl\n$msg\n"
                 addResultBody "$msg"
             fi

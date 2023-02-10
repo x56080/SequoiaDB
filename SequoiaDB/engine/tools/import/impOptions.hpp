@@ -81,6 +81,7 @@ namespace import
       BOOLEAN hasHelp();
       BOOLEAN hasVersion();
       BOOLEAN hasHelpfull();
+      INT32 check();
 
       /* general */
       inline const string& cipherfile()   const { return _cipherfile; }
