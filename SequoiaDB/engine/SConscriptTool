@@ -119,7 +119,6 @@ ossFiles = [
       "oss/ossRWMutex.cpp",
       "oss/ossEvent.cpp",
       "oss/ossDynamicLoad.cpp",
-      "oss/ossHdfs.cpp",
       "oss/ossShMem.cpp",
       "oss/ossTimeZone.cpp"
       ]
@@ -213,7 +212,6 @@ utilFiles = [
       "util/utilParseCSV.cpp",
       "util/utilParseData.cpp",
       "util/utilAccessDataLocalIO.cpp",
-      "util/utilAccessDataHdfs.cpp",
       "util/utilPath.cpp",
       "util/text.cpp",
       "util/utilStr.cpp",

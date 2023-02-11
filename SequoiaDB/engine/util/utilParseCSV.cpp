@@ -104,28 +104,6 @@ INT32 _utilCSVParser::initialize ( _utilParserParamet *parserPara )
          goto error ;
       }
    }
-   else if ( UTIL_GET_HDFS == _accessModel )
-   {
-      utilAccessParametHdfs accessData ;
-      accessData.pFileName = parserPara->fileName ;
-      accessData.pPath     = parserPara->path ;
-      accessData.pHostName = parserPara->hostName ;
-      accessData.pUser     = parserPara->user ;
-      accessData.port      = parserPara->port ;
-      _pAccessData = SDB_OSS_NEW utilAccessDataHdfs() ;
-      if ( !_pAccessData )
-      {
-         rc = SDB_OOM ;
-         PD_LOG ( PDERROR, "malloc error" ) ;
-         goto error ;
-      }
-      rc = _pAccessData->initialize( (void*)&accessData ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to init IO,rc = %d", rc ) ;
-         goto error ;
-      }
-   }
    else
    {
       rc = SDB_INVALIDARG ;
