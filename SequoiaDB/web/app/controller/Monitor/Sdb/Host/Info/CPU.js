@@ -44,13 +44,15 @@
                if( hostInfo.length > 0 )
                {
                   $.each( hostInfo[0]['CPU'], function( index, cpuInfo ){
-                     if( typeof( cpuInfo['Freq'] ) == 'undefined' )
+                     if( typeof( cpuInfo['Freq'] ) != 'string' )
                      {
                         cpuInfo['Freq'] = '-' ;
                      }
                      else
                      {
-                        cpuInfo['Freq'] = parseFloat( cpuInfo['Freq'].substr(0,4) ) ;
+                        var freqNum = parseFloat( cpuInfo['Freq'].substr(0,4) ) ;
+                        cpuInfo['Freq'] =
+                           ( typeof( freqNum ) == 'number' && !isNaN( freqNum ) ) ? freqNum : '-' ;
                      }
 
                      //数据暂无，待补充

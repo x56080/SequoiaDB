@@ -3884,7 +3884,8 @@ namespace engine
       }
 
       arrBuilder << BSON( CMD_USR_SYSTEM_CORE << coreNum <<
-                          CMD_USR_SYSTEM_INFO << modelName ) ;
+                          CMD_USR_SYSTEM_INFO << modelName <<
+                          CMD_USR_SYSTEM_FREQ << "" ) ;
 
       builder.append( CMD_USR_SYSTEM_CPUS, arrBuilder.arr() ) ;
 
