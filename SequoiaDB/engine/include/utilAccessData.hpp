@@ -41,7 +41,6 @@
 #include "core.hpp"
 #include "ossIO.hpp"
 #include "ossDynamicLoad.hpp"
-#include "ossHdfs.hpp"
 
 class _utilAccessData : public SDBObject
 {
@@ -78,42 +77,5 @@ public:
    virtual INT32 readNextBuffer ( CHAR *pBuffer, UINT32 &size ) ;
 } ;
 typedef class _utilAccessDataLocalIO utilAccessDataLocalIO ;
-
-
-/*              hadoop                                      
-                hdfs
-*/
-
-struct utilAccessParametHdfs
-{
-   const CHAR *pFileName ;
-   const CHAR *pPath ;
-   const CHAR *pHostName ;
-   const CHAR *pUser ;
-   UINT16 port ;
-   utilAccessParametHdfs() : pFileName(NULL),
-                             pPath(NULL),
-                             pHostName(NULL),
-                             pUser(NULL),
-                             port(0)
-   {
-   }
-} ;
-
-class _utilAccessDataHdfs : public _utilAccessData
-{
-private:
-   ossModuleHandle *_loadModule ;
-   OSS_MODULE_PFUNCTION _function ;
-   ossHdfs _pHdfs ;
-private:
-   INT32 hdfsUnload() ;
-public:
-   _utilAccessDataHdfs() ;
-   virtual ~_utilAccessDataHdfs() ;
-   virtual INT32 initialize ( void *pParamet ) ;
-   virtual INT32 readNextBuffer ( CHAR *pBuffer, UINT32 &size ) ;
-} ;
-typedef class _utilAccessDataHdfs utilAccessDataHdfs ;
 
 #endif

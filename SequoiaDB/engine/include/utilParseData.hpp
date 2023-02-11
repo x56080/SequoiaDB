@@ -65,8 +65,7 @@ public:
 
 enum SDB_UTIL_ACCESS_MODEL
 {
-   UTIL_GET_IO = 0,
-   UTIL_GET_HDFS
+   UTIL_GET_IO = 0
 } ;
 
 struct _utilParserParamet : public SDBObject

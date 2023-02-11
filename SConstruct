@@ -522,42 +522,13 @@ def findVersion( root , choices ):
     raise RuntimeError("can't find a version of [" + repr(root) + "] choices: "
                        + repr(choices))
 
-# add database include, boost include here
-hdfsJniPath = ""
-hdfsJniMdPath = ""
-if guess_os == "linux":
-    if guess_arch == "ia32":
-        hdfsJniPath = join(java_dir,"jdk_linux32/include")
-        hdfsJniMdPath = join(java_dir,"jdk_linux32/include/linux")
-    elif guess_arch == "ia64":
-        hdfsJniPath = join(java_dir,"jdk_linux64/include")
-        hdfsJniMdPath = join(java_dir,"jdk_linux64/include/linux")
-    elif guess_arch == "arm64":
-        hdfsJniPath = join(java_dir,"jdk8_armlinux64/include")
-        hdfsJniMdPath = join(java_dir,"jdk8_armlinux64/include/linux")
-    elif guess_arch == "ppc64":
-        hdfsJniPath = join(java_dir,"jdk_ppclinux64/include")
-        hdfsJniMdPath = join(java_dir,"jdk_ppclinux64/include/linux")
-    elif guess_arch == "ppc64le":
-        hdfsJniPath = join(java_dir,"jdk_ppclelinux64/include")
-        hdfsJniMdPath = join(java_dir,"jdk_ppclelinux64/include/linux")
-    elif guess_arch == "alpha64":
-        hdfsJniPath = join(java_dir,"jdk8_alphalinux64/include")
-        hdfsJniMdPath = join(java_dir,"jdk8_alphalinux64/include/linux")
-elif guess_os == "win32":
-    if guess_arch == "ia32":
-        hdfsJniPath = join(java_dir,"jdk_win32/include")
-        hdfsJniMdPath = join(java_dir,"jdk_win32/include/win32")
-    elif guess_arch == "ia64":
-        hdfsJniPath = join(java_dir,"jdk_win64/include")
-        hdfsJniMdPath = join(java_dir,"jdk_win64/include/win32")
+
 
 env.Append(
 CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
          join(snappy_dir,'include'),join(gtest_dir,'include'),
-         pcre_dir, boost_dir, ssh2_dir, hdfsJniPath,
-         hdfsJniMdPath] )
+         pcre_dir, boost_dir, ssh2_dir] )
 
 env.Append( CPPDEFINES=["__STDC_LIMIT_MACROS", "HAVE_CONFIG_H", "BOOST_THREAD_HAS_CONDATTR_SET_CLOCK_MONOTONIC"] )
 env.Append( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
