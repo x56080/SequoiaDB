@@ -64,6 +64,16 @@ namespace engine
    #define UTIL_OPTION_LIMIT_FD         "open_files"
    #define UTIL_OPTION_LIMIT_STACKSIZE  "stack_size"
 
+   /*
+      The default value of limits.conf
+    */
+   #define UTIL_OPTION_LIMIT_CORE_DEFAULT       0
+   #define UTIL_OPTION_LIMIT_DATA_DEFAULT       -1
+   #define UTIL_OPTION_LIMIT_FILESIZE_DEFAULT   -1
+   #define UTIL_OPTION_LIMIT_VM_DEFAULT         -1
+   #define UTIL_OPTION_LIMIT_FD_DEFAULT         60000
+   #define UTIL_OPTION_LIMIT_STACKSIZE_DEFAULT  524288
+
    INT32 utilReadConfigureFile( const CHAR *file,
                                 po::options_description &desc,
                                 po::variables_map &vm )
@@ -606,6 +616,32 @@ namespace engine
       goto done ;
    }
 
+   INT32 _compareAndSetUlimit( const CHAR *limitStr, INT64 expVal,
+                               ossProcLimits &pProcLim )
+   {
+      INT32 rc       = SDB_OK ;
+      INT64 curSoft  = 0 ;
+      INT64 curHard  = 0 ;
+      BOOLEAN hasGot = FALSE ;
+
+      hasGot = pProcLim.getLimit( limitStr, curSoft, curHard ) ;
+      if ( !hasGot || curSoft != expVal )
+      {
+         if ( -1 == expVal || ( -1 != curHard && curHard < expVal ) )
+         {
+            curHard = expVal ;
+         }
+         rc = pProcLim.setLimit( limitStr, expVal, curHard ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to set ulimit[%s] to [%lld]",
+                    limitStr, expVal ) ;
+         }
+      }
+      return rc ;
+   }
+
+
    INT32 utilSetAndCheckUlimit()
    {
       INT32 rc = SDB_OK ;
@@ -615,8 +651,8 @@ namespace engine
       po::options_description limitDesc ;
       po::variables_map limitVarmap ;
       ossProcLimits procLim ;
-      vector<pair<string, string> > vec ;
-      vector<pair<string, string> >::iterator it ;
+      vector< pair< pair<string, INT64>, string > > vec ;
+      vector< pair< pair<string, INT64>, string > >::iterator it ;
 
       /// get full path of limits.conf
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
@@ -660,57 +696,75 @@ namespace engine
       }
 
       /// set ulimit and check
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_CORE,
-                                               OSS_LIMIT_CORE_SZ ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_DATA,
-                                               OSS_LIMIT_DATA_SEG_SZ ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_FILESIZE,
-                                               OSS_LIMIT_FILE_SZ ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_VM,
-                                               OSS_LIMIT_VIRTUAL_MEM ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_FD,
-                                               OSS_LIMIT_OPEN_FILE ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_STACKSIZE,
-                                               OSS_LIMIT_STACK_SIZE ) ) ;
+      // e.g < < "open_files", 60000 >, "open files" >
+      vec.push_back( make_pair<pair<string, INT64>, string>(
+                     make_pair<string, INT64>( UTIL_OPTION_LIMIT_CORE,
+                                               UTIL_OPTION_LIMIT_CORE_DEFAULT ),
+                     OSS_LIMIT_CORE_SZ ) ) ;
+      vec.push_back( make_pair<pair<string, INT64>, string>(
+                     make_pair<string, INT64>( UTIL_OPTION_LIMIT_DATA,
+                                               UTIL_OPTION_LIMIT_DATA_DEFAULT ),
+                     OSS_LIMIT_DATA_SEG_SZ ) ) ;
+      vec.push_back( make_pair<pair<string, INT64>, string>(
+                     make_pair<string, INT64>( UTIL_OPTION_LIMIT_FILESIZE,
+                                               UTIL_OPTION_LIMIT_FILESIZE_DEFAULT ),
+                     OSS_LIMIT_FILE_SZ ) ) ;
+      vec.push_back( make_pair<pair<string, INT64>, string>(
+                     make_pair<string, INT64>( UTIL_OPTION_LIMIT_VM,
+                                               UTIL_OPTION_LIMIT_VM_DEFAULT ),
+                     OSS_LIMIT_VIRTUAL_MEM ) ) ;
+      vec.push_back( make_pair<pair<string, INT64>, string>(
+                     make_pair<string, INT64>( UTIL_OPTION_LIMIT_FD,
+                                               UTIL_OPTION_LIMIT_FD_DEFAULT ),
+                     OSS_LIMIT_OPEN_FILE ) ) ;
+      vec.push_back( make_pair<pair<string, INT64>, string>(
+                     make_pair<string, INT64>( UTIL_OPTION_LIMIT_STACKSIZE,
+                                              UTIL_OPTION_LIMIT_STACKSIZE_DEFAULT ),
+                     OSS_LIMIT_STACK_SIZE ) ) ;
       for( it = vec.begin() ; it != vec.end() ; it++ )
       {
-         string option = it->first ;
-         string limStr = it->second ;
+         string option   = it->first.first ;
+         INT64 defVal    = it->first.second ;
+         string limitStr = it->second ;
+         INT64 expVal    = 0 ;
+         INT64 curSoft   = 0 ;
+         INT64 curHard   = 0 ;
+         BOOLEAN hasGot  = FALSE ;
+         INT32 tmpRC     = 0 ;
 
-         if ( !limitVarmap.count( option ) )
-         {
-            continue ;
-         }
-         INT64 limVal = limitVarmap[ option ].as<INT64>() ;
-
-         INT64 curSoft = 0, curHard = 0 ;
-         BOOLEAN hasGot = FALSE ;
 
          // set ulimit
-         hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
-         if ( !hasGot || curSoft != limVal )
+         if ( !limitVarmap.count( option ) )
          {
-            if ( -1 == limVal || ( -1 != curHard && curHard < limVal ) )
-            {
-               curHard = limVal ;
-            }
-            procLim.setLimit( limStr.c_str(), limVal, curHard ) ;
+            expVal = defVal ;
+         }
+         else
+         {
+            expVal = limitVarmap[ option ].as<INT64>() ;
+         }
+         tmpRC = _compareAndSetUlimit( limitStr.c_str(), expVal, procLim ) ;
+         if ( tmpRC && expVal != defVal )
+         {
+            PD_LOG( PDINFO, "Intend to reset ulimit[%s] by default value [%lld]",
+                    limitStr.c_str(), defVal ) ;
+            expVal = defVal ;
+            _compareAndSetUlimit( limitStr.c_str(), expVal, procLim ) ;
          }
 
          // check ulimit
-         hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
+         hasGot = procLim.getLimit( limitStr.c_str(), curSoft, curHard ) ;
          if ( !hasGot )
          {
             rc = SDB_SYS ;
             ossPrintf( "Error: Failed to get ulimit[%s]"OSS_NEWLINE,
-                       limStr.c_str() ) ;
+                       limitStr.c_str() ) ;
             goto error ;
          }
-         if ( curSoft < limVal && curSoft != -1 )
+         if ( curSoft != -1 && ( curSoft < expVal || expVal == -1 ) )
          {
             rc = SDB_SYS ;
             ossPrintf( "Error: Failed to set ulimit[%s] to [%lld]"
-                       OSS_NEWLINE, limStr.c_str(), limVal ) ;
+                       OSS_NEWLINE, limitStr.c_str(), expVal ) ;
             goto error ;
          }
       }
