@@ -772,7 +772,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 							throw new IllegalArgumentException("Current version only support parameterized " +
 									"type field. unknown type=" + genericType.toString());
 						}
-
 						// change bson object to map
 						Map map = ((BSONObject) value).toMap();
 						Map realMap = new HashMap();
@@ -835,7 +834,7 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 						} else {
 							throw new IllegalArgumentException(
 									"Current version only support parameterized type Collection(List/Set/Queue) field. unknown type="
-											+ _type.toString());
+											+ _type);
 						}
 						writeMethod.invoke(result, ((BSONObject) value).as(
 								p.getPropertyType(), fileType));
