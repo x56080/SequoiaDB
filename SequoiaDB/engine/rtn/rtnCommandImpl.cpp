@@ -1458,6 +1458,7 @@ retry:
                          pmdGetOptionCB()->getLobPath(),
                          pmdGetOptionCB()->getLobMetaPath(),
                          pmdGetSyncMgr(),
+                         dmsCB->getStatMgr(),
                          TRUE ) ;
       }
       if ( rc )

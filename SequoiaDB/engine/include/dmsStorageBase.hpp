@@ -418,6 +418,8 @@ namespace engine
 
          IDataSyncManager*    getSyncMgr() { return _pSyncMgr ; }
 
+         IDataStatManager*    getStatMgr() { return _pStatMgr ; }
+
       public:
          const CHAR*    getSuFileName() const ;
          const CHAR*    getSuName() const ;
@@ -488,6 +490,7 @@ namespace engine
       public:
          INT32 openStorage ( const CHAR *pPath,
                              IDataSyncManager *pSyncMgr,
+                             IDataStatManager *pStatMgr,
                              BOOLEAN createNew = TRUE ) ;
          void  closeStorage () ;
          INT32 removeStorage() ;
@@ -651,6 +654,7 @@ namespace engine
       private:
          dmsDirtyList                  _dirtyList ;
          IDataSyncManager              *_pSyncMgr ;
+         IDataStatManager              *_pStatMgr ;
          ossSpinXLatch                 _persistLatch ;
          ossSpinXLatch                 _commitLatch ;
          BOOLEAN                       _isClosed ;

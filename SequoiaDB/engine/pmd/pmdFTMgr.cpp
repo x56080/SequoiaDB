@@ -38,6 +38,7 @@
 #include "pmd.hpp"
 #include "dpsLogWrapper.hpp"
 #include "pd.hpp"
+#include "dmsCB.hpp"
 
 namespace engine
 {
@@ -160,7 +161,7 @@ namespace engine
       {
          return &_window[ 0 ] ;
       }
-      return &_window[ nextPos ] ;      
+      return &_window[ nextPos ] ;
    }
 
    ftSampleWndItem* _ftSampleWindow::next( UINT32 curPos, UINT32 step )
@@ -172,7 +173,7 @@ namespace engine
    ftSampleWndItem* _ftSampleWindow::prev( UINT32 curPos, UINT32 step )
    {
       step = step % PMD_FT_SAMPLE_WINDOW_SZ ;
-      UINT32 prevPos = ( curPos + PMD_FT_SAMPLE_WINDOW_SZ - step ) % 
+      UINT32 prevPos = ( curPos + PMD_FT_SAMPLE_WINDOW_SZ - step ) %
                        PMD_FT_SAMPLE_WINDOW_SZ ;
       return &_window[ prevPos ] ;
    }
@@ -210,6 +211,7 @@ namespace engine
    {
       _lastSampleTick = 0 ;
       _lastSucCount = 0 ;
+      _lastSucPageCount = 0 ;
       _lastTransSucCount = 0 ;
       _lastTransErrCount = 0 ;
       _confirmPeriod = PMD_FT_CACL_INTERVAL_DFT ;
@@ -340,6 +342,7 @@ namespace engine
       ICluster *pCluster = krcb->getCluster() ;
       SDB_DPSCB *pDpsCB = krcb->getDPSCB() ;
       dpsTransCB *pTransCB = krcb->getTransCB() ;
+      SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
 
       DPS_LSN expectLsn ;
 
@@ -348,8 +351,10 @@ namespace engine
       UINT64 primaryLsn = DPS_INVALID_LSN_OFFSET ;
       UINT64 lsnDiff = 0 ;
       UINT64 sucCount = 0 ;
+      UINT64 sucPageCount = 0 ;
 
       UINT32 countInc = 0 ;
+      UINT32 pageCountInc = 0 ;
       UINT32 transSucInc = 0 ;
       UINT32 transErrInc = 0 ;
       monDBCB *pMonDB = krcb->getMonDBCB() ;
@@ -373,6 +378,18 @@ namespace engine
          countInc = sucCount - _lastSucCount ;
       }
       _lastSucCount = sucCount ;
+
+      sucPageCount = pDmsCB->getStatMgr()->getPageAllocate() +
+                     pDmsCB->getStatMgr()->getPageRelease() ;
+      if ( sucPageCount < _lastSucPageCount )
+      {
+         pageCountInc = sucPageCount ;
+      }
+      else
+      {
+         pageCountInc = sucPageCount - _lastSucPageCount ;
+      }
+      _lastSucPageCount = sucPageCount ;
 
       // calculate succeed and error counts of transaction
       if ( NULL != pTransCB )
@@ -518,14 +535,21 @@ namespace engine
          if ( 0 != pPrevItem->_time )
          {
             if ( completeLsn == pPrevItem->_sys._completeLsn &&
-                 ( lsnDiff > 0 ||
+                 ( 0 < lsnDiff ||
                    completeLsn < expectLsn.offset ) )
             {
                /// When is FullSync and countInc is no-zero, and no error
                /// means is not deadsync
                if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() &&
-                    countInc > 0 &&
-                    pPrevItem->allErr() == 0 )
+                    0 < countInc &&
+                    0 == pPrevItem->allErr() )
+               {
+                  /// means is not deadsync
+               }
+               /// When pageCountInc is no-zero, and no error
+               /// means is not deadsync
+               else if ( 0 < pageCountInc &&
+                         0 == pPrevItem->allErr() )
                {
                   /// means is not deadsync
                }
@@ -830,6 +854,11 @@ namespace engine
       }
    }
 
+   void _pmdFTMgr::reportErr( PMD_FT_ERR_TYPE errType )
+   {
+      _sampleWnd.reportErr( errType ) ;
+   }
+
    void _pmdFTMgr::holdStatus( UINT32 status )
    {
       OSS_BIT_SET( _heldMask, status ) ;
@@ -854,6 +883,18 @@ namespace engine
          }
 
          pmdIncErrNum( err ) ;
+      }
+   }
+
+   void ftReportErr( PMD_FT_ERR_TYPE errType )
+   {
+      if ( FT_ERR_NONE < errType && FT_ERR_MAX > errType )
+      {
+         pmdFTMgr *pMgr = pmdGetKRCB()->getFTMgr() ;
+         if ( pMgr )
+         {
+            pMgr->reportErr( errType ) ;
+         }
       }
    }
 
