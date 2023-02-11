@@ -98,12 +98,12 @@ public class EnableTest7588_7590 extends DataSourceTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         }
-        
+
         try {
             datasource.enableDatasource();
             Assert.fail("must throw exception!");
         } catch ( BaseException e ) {
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 }

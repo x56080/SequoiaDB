@@ -225,7 +225,7 @@ public class ReleaseConnectionTest7576_7584 extends DataSourceTestBase {
             Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
             // TODO: handle exception
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 

@@ -130,7 +130,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 
@@ -236,7 +236,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             // Assert.assertEquals(sdb.isValid(), false);
             
         } catch ( BaseException e ) {
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 
@@ -255,7 +255,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
                 }
             }
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
             // Assert.assertFalse(true, e.getMessage());
         }
 
@@ -270,7 +270,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             
             ds.close();
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            super.judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 
