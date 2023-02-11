@@ -75,7 +75,7 @@ public class DisableTest7585_7587 extends DataSourceTestBase {
         try {
             datasource.disableDatasource();
         } catch ( BaseException e ) {
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
         }
     }
 }
