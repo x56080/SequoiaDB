@@ -2594,7 +2594,7 @@ public class DBCollection {
 
         ResultSet r = response.getResultSet();
         if (!r.hasNext()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "Response must have obj");
+            throw new BaseException(SDBError.SDB_SYS, "Response must have obj");
         }
 
         BSONObject o = r.getNext();

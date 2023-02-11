@@ -547,7 +547,7 @@ public class SequoiadbDatasource {
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
             }
             if (null == url || "" == url) {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "coord address can't be empty or null");
@@ -587,7 +587,7 @@ public class SequoiadbDatasource {
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
             }
             if (null == url) {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "coord address can't be null");
@@ -636,7 +636,7 @@ public class SequoiadbDatasource {
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
             }
             // check options
             _checkDatasourceOptions(dsOpt);
@@ -726,7 +726,7 @@ public class SequoiadbDatasource {
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
             }
             if (_isDatasourceOn) {
                 return;
@@ -756,7 +756,7 @@ public class SequoiadbDatasource {
         wlock.lock();
         try {
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
             }
             if (!_isDatasourceOn) {
                 return;
@@ -810,7 +810,7 @@ public class SequoiadbDatasource {
                 sdb = null;
                 connItem = null;
                 if (_hasClosed) {
-                    throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                    throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
                 }
                 // when the pool is disabled
                 if (!_isDatasourceOn) {
@@ -982,7 +982,7 @@ public class SequoiadbDatasource {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "connection can't be null");
             }
             if (_hasClosed) {
-                throw new BaseException(SDBError.SDB_SYS, "connection pool has closed");
+                throw new BaseException(SDBError.SDB_CLIENT_CONNPOOL_CLOSE, "connection pool has closed");
             }
             // in case the data source is disable
             if (!_isDatasourceOn) {
