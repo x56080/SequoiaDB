@@ -103,7 +103,9 @@ public class CRUD11427 extends SdbTestBase {
                 BSONObject matcher = new BasicBSONObject();
                 matcher.put( "_id", new BasicBSONObject( "$lte",
                         lastDataId.get( "_id" ) ) );
-                DBCursor queryCursor = cl.query( matcher, null, null, null );
+                BasicBSONObject order = new BasicBSONObject();
+                order.put( "a", 1 );
+                DBCursor queryCursor = cl.query( matcher, null, order, null );
                 CRUDUitls.checkRecords( expectData, queryCursor );
             }
         }
