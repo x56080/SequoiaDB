@@ -445,6 +445,7 @@ namespace engine
    {
       FT_ERR_NONE             = 0,
       FT_ERR_NOSPC,
+      FT_ERR_SYNC_FAILED,
 
       FT_ERR_MAX
    } ;

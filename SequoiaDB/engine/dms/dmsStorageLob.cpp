@@ -82,7 +82,8 @@ namespace engine
     _data( lobdFileName, info->_enableSparse, info->_directIO ),
     _delayOpenLatch( MON_LATCH_DMSSTORAGELOB_DELAYOPENLATCH ),
     _pCacheUnit( pCacheUnit ),
-    _pSyncMgrTmp( NULL )
+    _pSyncMgrTmp( NULL ),
+    _pStatMgrTmp( NULL )
    {
       ossMemset( _path, 0, sizeof( _path ) ) ;
       ossMemset( _metaPath, 0, sizeof( _metaPath ) ) ;
@@ -234,6 +235,7 @@ namespace engine
    INT32 _dmsStorageLob::open( const CHAR *path,
                                const CHAR *metaPath,
                                IDataSyncManager *pSyncMgr,
+                               IDataStatManager *pStatMgr,
                                BOOLEAN createNew )
    {
       INT32 rc              = SDB_OK ;
@@ -246,6 +248,7 @@ namespace engine
       ossStrncpy( _path, path, OSS_MAX_PATHSIZE ) ;
       ossStrncpy( _metaPath, metaPath, OSS_MAX_PATHSIZE ) ;
       _pSyncMgrTmp = pSyncMgr ;
+      _pStatMgrTmp = pStatMgr ;
 
       // if not create lobs
       if ( 0 == _dmsData->getHeader()->_createLobs )
@@ -433,7 +436,7 @@ namespace engine
          }
       }
 
-      rc = openStorage( metaPath, _pSyncMgrTmp, createNew ) ;
+      rc = openStorage( metaPath, _pSyncMgrTmp, _pStatMgrTmp, createNew ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open lobm file:%s, rc:%d",

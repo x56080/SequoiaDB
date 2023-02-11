@@ -437,6 +437,7 @@ namespace engine
       }
 
       _pSyncMgr           = NULL ;
+      _pStatMgr           = NULL ;
       _isClosed           = TRUE ;
       _commitFlag         = 0 ;
       _isCrash            = FALSE ;
@@ -743,6 +744,7 @@ namespace engine
 
    INT32 _dmsStorageBase::openStorage( const CHAR *pPath,
                                        IDataSyncManager *pSyncMgr,
+                                       IDataStatManager *pStatMgr,
                                        BOOLEAN createNew )
    {
       INT32 rc               = SDB_OK ;
@@ -760,6 +762,7 @@ namespace engine
          goto error ;
       }
       _pSyncMgr = pSyncMgr ;
+      _pStatMgr = pStatMgr ;
 
       /// init lock
       pExtendLatch = SDB_OSS_NEW ossSpinSLatch() ;
@@ -1076,6 +1079,8 @@ namespace engine
          _pSyncMgr = NULL ;
       }
 
+      _pStatMgr = NULL ;
+
       // be sure the sync jos has quit
       lock() ;
       unlock() ;
@@ -1164,6 +1169,7 @@ namespace engine
 
       {
          IDataSyncManager *pSyncMgr = _pSyncMgr ;
+         IDataStatManager *pStatMgr = _pStatMgr ;
          /// close
          closeStorage() ;
 
@@ -1182,7 +1188,7 @@ namespace engine
          _suFileName[ DMS_SU_FILENAME_SZ ] = '\0' ;
          ossStrncpy( _pStorageInfo->_suName, csName, DMS_SU_NAME_SZ ) ;
          _pStorageInfo->_suName[ DMS_SU_NAME_SZ ] = 0 ;
-         rc = openStorage( tmpPathFile, pSyncMgr, FALSE ) ;
+         rc = openStorage( tmpPathFile, pSyncMgr, pStatMgr, FALSE ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Open storage file failed, rc: %d", rc ) ;
@@ -1914,8 +1920,9 @@ namespace engine
                                           dmsContext *context )
    {
       UINT32 totalDataPageNum = 0 ;
-      INT32 rc = SDB_OK ;
-      INT32 rc1 = SDB_OK ;
+      INT32 rc                = SDB_OK ;
+      INT32 rc1               = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
 
       while ( TRUE )
@@ -1971,6 +1978,12 @@ namespace engine
 
             PD_LOG ( PDDEBUG, "Successfully extend storage unit for %d pages",
                      numPages ) ;
+            SDB_ASSERT( _pStatMgr, "should not be null" ) ;
+            if ( NULL != _pStatMgr )
+            {
+               // update totalPageAllocate counter
+               _pStatMgr->incPageAllocate( numPages ) ;
+            }
          }
          else
          {
@@ -2014,7 +2027,18 @@ namespace engine
 
    INT32 _dmsStorageBase::_releaseSpace( SINT32 pageStart, UINT16 numPages )
    {
-      return _smeMgr.releasePages( pageStart, numPages ) ;
+      INT32 rc = SDB_OK ;
+      rc = _smeMgr.releasePages( pageStart, numPages ) ;
+      if ( SDB_OK == rc )
+      {
+         SDB_ASSERT( _pStatMgr, "should not be null" ) ;
+         if ( NULL != _pStatMgr )
+         {
+            // update totalPageRelease counter
+            _pStatMgr->incPageRelease( numPages ) ;
+         }
+      }
+      return rc ;
    }
 
    UINT32 _dmsStorageBase::_totalFreeSpace ()

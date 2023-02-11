@@ -1193,6 +1193,7 @@ namespace engine
                                 const CHAR *pLobPath,
                                 const CHAR *pLobMetaPath,
                                 IDataSyncManager *pSyncMgr,
+                                IDataStatManager *pStatMgr,
                                 BOOLEAN createNew )
    {
       INT32 rc = SDB_OK ;
@@ -1211,7 +1212,7 @@ namespace engine
                    "failed[ %d ]", _storageInfo._suName, rc ) ;
 
       // open data
-      rc = _pDataSu->openStorage( pDataPath, pSyncMgr, createNew ) ;
+      rc = _pDataSu->openStorage( pDataPath, pSyncMgr, pStatMgr, createNew ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Open storage data su failed, rc: %d", rc ) ;
@@ -1223,7 +1224,7 @@ namespace engine
       }
 
       // open index
-      rc = _pIndexSu->openStorage( pIndexPath, pSyncMgr, createNew ) ;
+      rc = _pIndexSu->openStorage( pIndexPath, pSyncMgr, pStatMgr, createNew ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Open storage index su failed, rc: %d", rc ) ;
@@ -1246,7 +1247,7 @@ namespace engine
       }
 
       // open lob
-      rc = _pLobSu->open( pLobPath, pLobMetaPath, pSyncMgr, createNew ) ;
+      rc = _pLobSu->open( pLobPath, pLobMetaPath, pSyncMgr, pStatMgr, createNew ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open storage lob, rc:%d", rc ) ;

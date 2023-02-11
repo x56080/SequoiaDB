@@ -916,6 +916,7 @@ namespace engine
                                                  lobPath,
                                                  lobMetaPath,
                                                  pmdGetSyncMgr(),
+                                                 dmsCB->getStatMgr(),
                                                  FALSE ) ;
                         if ( rc )
                         {
@@ -1121,7 +1122,8 @@ namespace engine
                // open collection space file failed, need report error
                // and restart
                rc = storageUnit->open ( dataPath, indexPath, lobPath,
-                                        lobMetaPath, pmdGetSyncMgr(), FALSE ) ;
+                                        lobMetaPath, pmdGetSyncMgr(),
+                                        dmsCB->getStatMgr(), FALSE ) ;
                if ( rc )
                {
                   SDB_OSS_DEL storageUnit ;

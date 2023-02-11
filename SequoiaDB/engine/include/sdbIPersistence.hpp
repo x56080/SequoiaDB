@@ -82,6 +82,20 @@ namespace engine
    } ;
    typedef _IDataSyncManager IDataSyncManager ;
 
+   class _IDataStatManager
+   {
+      public:
+         _IDataStatManager() {}
+         virtual ~_IDataStatManager() {}
+
+      public:
+         virtual void         incPageAllocate( UINT16 numPages ) = 0 ;
+         virtual void         incPageRelease( UINT16 numPages ) = 0 ;
+         virtual UINT64       getPageAllocate() const = 0 ;
+         virtual UINT64       getPageRelease() const = 0 ;
+   } ;
+   typedef _IDataStatManager IDataStatManager ;
+
 }
 
 #endif // SDB_I_PERSISTENCE_HPP__
