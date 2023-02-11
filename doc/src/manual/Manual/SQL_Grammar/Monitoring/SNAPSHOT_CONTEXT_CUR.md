@@ -17,9 +17,9 @@ $SNAPSHOT_CONTEXT_CUR
 | ------------------------- | -------- | ---------------------------------------- |
 | NodeName                  | string   | 节点名，格式为 `<主机名>:<端口号>`       |
 | SessionID                 | int64    | 会话 ID                                  |
-| Contexts.QueryID      | string | 执行语句的唯一标识 |
+| Contexts.QueryID          | string   | 执行语句的唯一标识                       |
 | Contexts.ContextID        | int64    | 上下文 ID                                |
-| Contexts.Type             | string   | 上下文类型，如 DUMP                     |
+| Contexts.Type             | string   | 上下文类型，如 DUMP                      |
 | Contexts.Description      | string   | 上下文的描述信息，如：包含当前的查询条件 |
 | Contexts.DataRead         | int64    | 所读数据                                 |
 | Contexts.IndexRead        | int64    | 所读索引                                 |
@@ -27,7 +27,7 @@ $SNAPSHOT_CONTEXT_CUR
 | Contexts.LobWrite       | int64  | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.LobTruncate    | int64  | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.LobAddressing  | int64  | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
-| Contexts.QueryTimeSpent   | double   | 查询总时间，单位为秒                   |
+| Contexts.QueryTimeSpent   | double   | 查询总时间，单位为秒                     |
 | Contexts.StartTimestamp   | string   | 创建时间                                 |
 
 ##示例##

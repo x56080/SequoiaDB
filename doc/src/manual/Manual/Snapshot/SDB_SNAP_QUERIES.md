@@ -13,7 +13,7 @@ SDB_SNAP_QUERIES
 
 | 字段名                 | 类型     | 描述                                                |
 | ---------------------- | -------- | --------------------------------------------------- |
-| NodeName               | string   | 节点名，格式为 `<hostname>:<servicename> `  |
+| NodeName               | string   | 节点名，格式为 `<hostname>:<servicename>`           |
 | NodeID                 | bson array | 节点的 ID，格式为 `[<分区组 ID>,<节点 ID>]`       |
 | StartTimestamp         | string   | 查询开始时间                                        |
 | EndTimestamp           | string   | 查询结束时间                                        |
@@ -22,7 +22,7 @@ SDB_SNAP_QUERIES
 | Name                   | string   | 操作对象名                                          |
 | QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                        |
 | ReturnNum              | int32    | 返回值                                              |
-| QueryID                | string   | 执行语句的唯一标识 |
+| QueryID                | string   | 执行语句的唯一标识                                  |
 | TotalMsgSent           | int32    | 发送到远程节点的消息总数                            |
 | LastOpInfo             | string   | 查询语句内容                                        |
 | MsgSentTime            | int32    | 消息发送花费时间，单位为毫秒                        |
@@ -43,7 +43,7 @@ SDB_SNAP_QUERIES
 
 | 字段名                 | 类型     | 描述                                                                                     |
 | ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| NodeName               | string   | 节点名，格式为 `<hostname>:<servicename> `         |
+| NodeName               | string   | 节点名，格式为 `<hostname>:<servicename>`          |
 | NodeID                 | bson array | 节点的 ID，格式为 `[<分区组 ID>,<节点 ID>]`      |
 | StartTimestamp         | string   | 查询开始时间                                                                             |
 | EndTimestamp           | string   | 查询结束时间                                                                             |
@@ -52,7 +52,7 @@ SDB_SNAP_QUERIES
 | Name                   | string   | 操作对象名                                                                               |
 | QueryTimeSpent         | int32    | 查询总共花费时间，单位为毫秒                                                             |
 | ReturnNum              | int32    | 返回值                                                                                   |
-| QueryID                | string   | 执行语句的唯一标识 |
+| QueryID                | string   | 执行语句的唯一标识                                                                       |
 | RelatedNID             | int32    | 将该查询请求发送到该数据节点的的相关协调节点 ID                                          |
 | RelatedTID             | int32    | 发送查询的相关协调节点的线程 ID，结合 RelatedNID 可以将协调节点和数据节点的快照输出进行关联 |
 | SessionID              | int32    | 内部会话 ID                                                                              |
@@ -171,7 +171,7 @@ SDB_SNAP_QUERIES
       "Name": "sbtest1.sbtest6",
       "QueryTimeSpent": 0,
       "ReturnNum": 0,
-      "QueryID": "0x0000290b000290c600000003"
+      "QueryID": "0x0000290b000290c600000003",
       "TotalMsgSent": 1,
       "LastOpInfo": "Collection:sbtest1.sbtest6, Matcher:{ \"id\": { \"$et\": 5014 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
       "MsgSentTime": 0.046,
