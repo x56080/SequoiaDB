@@ -840,7 +840,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     
 	private void _init(String value, int precision, int scale) {
 		// check 
-		if (value == null || value == "") {
+		if (value == null || value.equals( "" ) ) {
 			throw new IllegalArgumentException("the string of decimal value is null or empty");
 		}
 		if ((precision < 0 && precision != -1) || (scale < 0 && scale != -1) || 

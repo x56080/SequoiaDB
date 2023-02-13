@@ -304,8 +304,8 @@ public class BasicBSONList extends ArrayList<Object> implements BSONObject {
 							.getActualTypeArguments()[0];
 				} else {
 					throw new IllegalArgumentException(
-							"Current version only support parameterized type field. unknow type="
-									+ eleType.toString());
+							"Current version only support parameterized type field. unknown type="
+									+ eleType);
 				}
 
 				BSONObject comlexObj = (BSONObject) eleObj;

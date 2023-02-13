@@ -34,6 +34,7 @@ public class ReplicaGroup {
     private int id;
     private Sequoiadb sequoiadb;
     private boolean isCataRG;
+    private Random rand = new Random();
 
 
     /**
@@ -69,7 +70,7 @@ public class ReplicaGroup {
         this.sequoiadb = sdb;
         this.name = name;
         BSONObject group = sdb.getDetailByName(name);
-        this.isCataRG = (name == Sequoiadb.CATALOG_GROUP_NAME);
+        this.isCataRG = ( name.equals( Sequoiadb.CATALOG_GROUP_NAME ) );
         this.id = Integer.parseInt(group.get(
                 SdbConstants.FIELD_NAME_GROUPID).toString());
     }
@@ -309,7 +310,6 @@ public class ReplicaGroup {
             nodeInfoObj = (BSONObject) nodesInfoList.get(nodeIndex);
         } else {
             int position = 0;
-            Random rand = new Random();
             int[] flags = new int[7];
             List<Integer> includePrimaryPositions = new ArrayList<Integer>();
             List<Integer> excludePrimaryPositions = new ArrayList<Integer>();

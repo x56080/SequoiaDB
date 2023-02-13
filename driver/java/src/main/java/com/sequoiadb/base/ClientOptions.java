@@ -34,7 +34,7 @@ package com.sequoiadb.base;
  * </pre>
  */
 public class ClientOptions {
-    private static final long CACHE_INTERVAL_DEFAULT = 300 * 1000; // 300s
+    private static final long CACHE_INTERVAL_DEFAULT = 300L * 1000; // 300s
 
     private boolean enableCache;
     private long cacheInterval;
