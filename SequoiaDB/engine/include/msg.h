@@ -796,6 +796,10 @@ typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 #define FLG_UPDATE_ONE              0x00000002
 #define FLG_UPDATE_RETURNNUM        0x00000004
 #define FLG_UPDATE_KEEP_SHARDINGKEY FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
+// Update flag '0x00000080' is reserved for FLG_QUERY_FORCE_HINT, it
+// needs to be skipped when adding new update flag.
+#define FLG_UPDATE_FORCE_HINT FLG_QUERY_FORCE_HINT
+
 // For Update, 3 BSON objects will be followed
 // Selector + Updator + Hint
 struct _MsgOpUpdate

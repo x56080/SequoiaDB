@@ -92,15 +92,20 @@ namespace engine
    {
    public:
       utilIdxDupErrAssit( const BSONObj &idxKeyPattern,
-                          const BSONObj &idxValue ) ;
+                          const BSONObj &idxValue,
+                          const CHAR *idxName = NULL ) ;
+      
       ~utilIdxDupErrAssit() ;
 
       INT32    getIdxMatcher( BSONObj &idxMatcher,
                               BOOLEAN cvtUndefined = TRUE ) ;
 
+      INT32    getIdxHint( BSONObj &hint) const;
+
    private:
       BSONObj        _idxKeyPattern ;
       BSONObj        _idxValue ;
+      const CHAR *   _idxName ;
 
    } ;
 

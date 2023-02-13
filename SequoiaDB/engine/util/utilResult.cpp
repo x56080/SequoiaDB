@@ -450,10 +450,12 @@ namespace engine
       utilIdxDupErrAssit implement
    */
    utilIdxDupErrAssit::utilIdxDupErrAssit( const BSONObj &idxKeyPattern,
-                                           const BSONObj &idxValue )
+                                           const BSONObj &idxValue,
+                                           const CHAR *idxName )
    {
       _idxKeyPattern = idxKeyPattern ;
       _idxValue = idxValue ;
+      _idxName = idxName ;
    }
 
    utilIdxDupErrAssit::~utilIdxDupErrAssit()
@@ -513,6 +515,33 @@ namespace engine
          PD_LOG( PDERROR, "Builder index matcher occur exception: %s",
                  e.what() ) ;
          rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 utilIdxDupErrAssit::getIdxHint( BSONObj &hint ) const
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         hint = BSONObj() ;
+         if ( NULL != _idxName )
+         {
+            BSONObjBuilder builder ;
+            builder.append( "", _idxName ) ;
+            hint = builder.obj() ;
+         }
+      }
+      catch( std::exception& e)
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build index hint, exception:%s",
+                 e.what() ) ;
          goto error ;
       }
 
