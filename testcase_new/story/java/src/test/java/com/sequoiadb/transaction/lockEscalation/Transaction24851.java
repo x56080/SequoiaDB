@@ -66,7 +66,7 @@ public class Transaction24851 extends SdbTestBase {
                     } catch ( BaseException e ) {
                         if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
                                 .getErrorCode()
-                                && e.getErrorCode() == SDBError.SDB_LOCK_FAILED
+                                || e.getErrorCode() == SDBError.SDB_LOCK_FAILED
                                         .getErrorCode() ) {
                             break;
                         } else if ( e
