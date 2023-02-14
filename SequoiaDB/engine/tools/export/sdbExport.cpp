@@ -74,7 +74,7 @@ int main( int argc, char* argv[] )
       }
       
       rc = routine.run() ;
-      routine.printStatistics() ;
+      routine.printStatistics( rc ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG(PDERROR, "Routine running failure, rc=%d", rc) ;
