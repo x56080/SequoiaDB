@@ -178,6 +178,7 @@ void pdcheck( const CHAR* string, const CHAR* func,
 #define LOG_MASK_IXM_DUP_KEY      0x0000000000000001
 #define LOG_MASK_DMS_CS_NOTEXIST  0x0000000000000002
 #define LOG_MASK_DMS_NOTEXIST     0x0000000000000004
+#define LOG_MASK_RTN_INVALID_HINT 0x0000000000000010
 
 void pdEnableDiaglogSecure() ;
 void pdDisableDiaglogSecure() ;

@@ -660,6 +660,7 @@ namespace engine
       {
          PD_LOG( PDINFO, "Failed to estimate hint plans" ) ;
          rc = SDB_RTN_INVALID_HINT ;
+         pdSetLastError( rc ) ;
          goto error ;
       }
 
