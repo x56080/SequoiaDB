@@ -152,7 +152,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.assertTrue( -6 == e.getErrorCode() || -10 == e.getErrorCode() );
+            Assert.assertTrue( "SDB_INVALIDARG" == e.getErrorType() || "SDB_CLIENT_CONNPOOL_CLOSE" == e.getErrorType() );
         }
     }
 
