@@ -117,18 +117,30 @@ retry:
             // update record when duplicate key error
             BSONObj updator ;
             BSONObj matcher ;
+            BSONObj hint ;
             BSONObj shardingKey ;
             utilUpdateResult upResult ;
             INT32 updateFlag = 0 ;
 
             utilIdxDupErrAssit dupErrAssit( insertResult->getIdxKeyPattern(),
-                                            insertResult->getIdxValue() ) ;
+                                            insertResult->getIdxValue(),
+                                            insertResult->getIdxName().c_str() ) ;
 
             rc = dupErrAssit.getIdxMatcher( matcher ) ;
             if ( rc )
             {
                goto error ;
             }
+
+            rc = dupErrAssit.getIdxHint( hint ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to get index hint, rc:%d", rc ) ;
+               goto error ;
+            }
+            updateFlag |= FLG_UPDATE_FORCE_HINT ;
+            shield.addRC( SDB_RTN_INVALID_HINT ) ;
+
             insertResult->resetInfo() ;
 
             if ( NULL != handler )
@@ -140,7 +152,7 @@ retry:
 
             {
                BSONObj dummyObj ;
-               rtnQueryOptions options( matcher, dummyObj, dummyObj, dummyObj,
+               rtnQueryOptions options( matcher, dummyObj, dummyObj, hint,
                                         clFullName, 0, -1, updateFlag ) ;
                if ( FLG_INSERT_REPLACEONDUP & flags )
                {
@@ -171,7 +183,16 @@ retry:
                rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, &upResult,
                                shardingKey.isEmpty() ? NULL : &shardingKey,
                                DPS_LOG_WRITE_MODE_INCREMENT, handler ) ;
-               if ( rc )
+               
+               if ( SDB_RTN_INVALID_HINT == rc )
+               {
+                  // Invalid hint means the conflict index has been dropped,
+                  // we can try to insert again.
+                  rc = SDB_OK ;
+                  hasRetry = TRUE ;
+                  goto retry ;
+               }
+               else if ( rc )
                {
                   insertResult->setErrInfo( &upResult ) ;
 
