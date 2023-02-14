@@ -86,7 +86,7 @@ namespace exprt
       {
       }
       INT32 run() ;
-      void  printStatistics() ;
+      void  printStatistics( INT32 rc ) ;
    private :
       INT32 _exportOne( sdbConnectionHandle hConn, const expCL &cl ) ;
       INT32 _export( sdbConnectionHandle hConn ) ;
