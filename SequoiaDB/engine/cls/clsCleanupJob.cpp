@@ -303,6 +303,7 @@ namespace engine
       {
          rc = _cleanByTBSCan( w, _cleanupType() ) ;
       }
+      // The cs and cl may be dropped by other jobs, so errors -23 and -34 are ignored
       if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
       {
          rc = SDB_OK ;
@@ -315,6 +316,7 @@ namespace engine
       }
 
       rc = _cleanLobData( w ) ;
+      // The cs and cl may be dropped by other jobs, so errors -23 and -34 are ignored
       if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
       {
          rc = SDB_OK ;
