@@ -188,6 +188,8 @@ namespace import
                                options->enableTransaction(),
                                options->allowKeyDuplication(),
                                options->replaceKeyDuplication(),
+                               options->allowIDKeyDuplication(),
+                               options->replaceIDKeyDuplication(),
                                options->mustHasIDField(),
                                options->batchSize() ) ;
 

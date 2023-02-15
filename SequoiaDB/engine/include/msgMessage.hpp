@@ -174,11 +174,15 @@ OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )
    // Only one action for index duplication can be specified.
    INT32 dupFlag = flags & ( FLG_INSERT_CONTONDUP |
                              FLG_INSERT_REPLACEONDUP |
-                             FLG_INSERT_UPDATEONDUP ) ;
+                             FLG_INSERT_UPDATEONDUP |
+                             FLG_INSERT_CONTONDUP_ID |
+                             FLG_INSERT_REPLACEONDUP_ID ) ;
    if ( ( 0 != dupFlag ) &&
         ( FLG_INSERT_CONTONDUP != dupFlag ) &&
         ( FLG_INSERT_REPLACEONDUP != dupFlag ) &&
-        ( FLG_INSERT_UPDATEONDUP != dupFlag ) )
+        ( FLG_INSERT_UPDATEONDUP != dupFlag ) &&
+        ( FLG_INSERT_CONTONDUP_ID != dupFlag ) &&
+        ( FLG_INSERT_REPLACEONDUP_ID != dupFlag ) )
    {
       result = FALSE ;
    }

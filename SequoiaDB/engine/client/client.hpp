@@ -72,6 +72,13 @@ do                                     \
 #define FLG_INSERT_REPLACEONDUP   0x00000004
 /** The flag represents updating the existing record by the specified updator and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_UPDATEONDUP    0x00000008
+/** The flag is for internal use only */
+// #define FLG_INSERT_HAS_ID_FIELD   0x00000010
+/** The flag represents only the error of the dup key of '$id' index will be ignored */
+#define FLG_INSERT_CONTONDUP_ID   0x00000020
+/** The flag represents only the error of the dup key of '$id' index
+    will cause the new record to overwirte the original one */
+#define FLG_INSERT_REPLACEONDUP_ID 0x00000040
 /** The flag represents whether insert return the "_id" field of the record for user */
 #define FLG_INSERT_RETURN_OID     0x10000000
 

@@ -156,6 +156,18 @@ namespace engine
             flag |= FLG_INSERT_REPLACEONDUP ;
             continue ;
          }
+         if ( 0 == ossStrcmp( strSubFlag,
+                              REST_VALUE_FLAG_INSERT_CONTONDUP_ID ) )
+         {
+            flag |= FLG_INSERT_CONTONDUP_ID ;
+            continue ;
+         }
+         if ( 0 == ossStrcmp( strSubFlag,
+                              REST_VALUE_FLAG_INSERT_REPLACEONDUP_ID ) )
+         {
+            flag |= FLG_INSERT_REPLACEONDUP_ID ;
+            continue ;
+         }
 
          // treat it as number
          rc = utilStr2Num( strSubFlag, subFlag );

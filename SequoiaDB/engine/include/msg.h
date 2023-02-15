@@ -826,6 +826,12 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 // the '_id' field, which can be used to skip the '_id' field check.
 #define FLG_INSERT_HAS_ID_FIELD 0x00000010
 
+// If set, the error of the dup key will be ignored when the dup key is '_id'.
+#define FLG_INSERT_CONTONDUP_ID 0x00000020
+// If set, the error of the dup key will be ignored when the dup key is '_id',
+// and the original record will be replaced by new record.
+#define FLG_INSERT_REPLACEONDUP_ID 0x00000040
+
 // This flag indicates that a hint is sent in the insert message.
 #define FLG_INSERT_HASHINT      0x80000000
 // For Insert, 1 BSON object will be followed
