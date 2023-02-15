@@ -476,7 +476,7 @@ namespace engine
    error:
       goto done ;
    }
-   
+
     // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETITEMOBJ_RECYID, "_rtnRecycleBinManager::_getItemObjectByRecyID" )
    INT32 _rtnRecycleBinManager::_getItemObjectByRecyID( utilGlobalID recycleID,
                                                         pmdEDUCB *cb,
@@ -816,10 +816,14 @@ namespace engine
          BSONObjBuilder matcherBuilder( 64 ) ;
          if ( expiredTime < OSS_UINT64_MAX )
          {
+            /* matcher = { "RecycleTime": { "$cast": "timestamp",
+             *                              "$lte": { $timestamp: XXXX } } }
+             */
             BSONObjBuilder timeBuilder(
                   matcherBuilder.subobjStart( FIELD_NAME_RECYCLE_TIME ) ) ;
-            timeBuilder.appendTimestamp( "$lt", (INT64)expiredTime, 0 ) ;
-            timeBuilder.done() ;
+            timeBuilder.append( "$cast", "timestamp" ) ;
+            timeBuilder.appendTimestamp( "$lte", (INT64)expiredTime, 0 ) ;
+            timeBuilder.doneFast() ;
          }
          matcher = matcherBuilder.obj() ;
 
