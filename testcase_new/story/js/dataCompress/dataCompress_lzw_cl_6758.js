@@ -2,8 +2,8 @@
  * @Description   : seqDB-6758:开启压缩，创建CL
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.03.03
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.02.08
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -31,12 +31,19 @@ function test ( testPara )
    // 插入数据
    insertRecs1( cl, insertRecsNum );
 
+   // 等待字典构建
+   waitDictionary( db, csName, clName );
+
+   // 再次插入少量数据使数据压缩
+   var insertRecsNum2 = 50000;
+   insertRecs1( cl, insertRecsNum2 );
+
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
-   checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
+   checkRecsByDataNode( rgName, csName, clName, insertRecsNum + insertRecsNum2, checkRecsNum, insertRecsNum );
 }
 
-function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum, insertRange )
 {
    var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
    while( rc.next() )
@@ -53,9 +60,13 @@ function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsN
          // 随机检查n条记录正确性
          for( j = 0; j < checkRecsNum; j++ )
          {
-            var i = parseInt( Math.random() * insertRecsNum );
-            var recsCnt = nodeCL.find( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } ).count();
-            assert.equal( recsCnt, 1 );
+            var i = parseInt( Math.random() * insertRange );
+            var cond = { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" };
+            var recsCnt = nodeCL.find( cond ).count();
+            if( recsCnt != 1 && recsCnt != 2 )
+            {
+               throw new Error( "expected result is 1 or 2, actual is " + recsCnt + " ,cond is :" + JSON.stringify( cond ) );
+            }
          }
       }
       finally 

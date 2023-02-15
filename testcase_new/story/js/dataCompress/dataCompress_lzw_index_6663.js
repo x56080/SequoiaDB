@@ -25,6 +25,8 @@ function test ( testPara )
    cl.createIndex( "idx", { INNER_NO: 1, SA_ACCT_NO: -1 }, true, true );
    insertRecs( cl, insertRecsNum );
 
+   waitDictionary( db, csName, clName );
+
    // 批量修改数据
    var rc = cl.find( { $and: [{ INNER_NO: { $gte: 300000 } }, { SA_ACCT_NO: { $lt: 700000 } }] } )
       .update( { $set: { QRCODE_STRING: "need update by index" } } );
