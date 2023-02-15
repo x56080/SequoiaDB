@@ -431,7 +431,7 @@ namespace engine
          rc = convertor->output( data, len ) ;
          PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
                       "failed[%d]", rc ) ;
-         if ( !data )
+         if ( !data || 0 == len )
          {
             break ;
          }
@@ -440,6 +440,9 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Send message to [%s:%u] failed[%d]",
                       eh->remoteAddr().c_str(), eh->remotePort(), rc ) ;
          _netOut.add( len ) ;
+
+         data = NULL ;
+         len = 0 ;
       }
 
    done:
