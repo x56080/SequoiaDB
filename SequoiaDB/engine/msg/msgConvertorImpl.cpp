@@ -89,7 +89,8 @@ namespace engine
          }
          else
          {
-            ossMemset( _convertBuff, 0, _buffSize ) ;
+            ossMemset( _convertBuff, 0,
+                       sizeof( MsgHeader ) <= _buffSize ? sizeof( MsgHeader ) : _buffSize ) ;
          }
       }
       PD_TRACE_EXIT( SDB__MSGCONVERTORIMPL_RESET ) ;

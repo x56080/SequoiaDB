@@ -284,7 +284,14 @@ namespace engine
       if ( MSG_INVALID_ROUTEID == tmpEH->id().value &&
            MSG_INVALID_ROUTEID != routeID.value )
       {
-         dynamic_cast<netUDPEventHandler *>(tmpEH.get())->setRouteID( routeID ) ;
+         netUDPEventHandler* udpHandle = dynamic_cast<netUDPEventHandler *>(tmpEH.get()) ;
+         if ( !udpHandle )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Failed to dynamic_cast, rc: %d", rc ) ;
+            goto error ;
+         }
+         udpHandle->setRouteID( routeID ) ;
       }
 
       eh = tmpEH ;

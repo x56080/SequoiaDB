@@ -122,17 +122,23 @@ namespace engine
       if ( !_inMsgConvertor )
       {
          _inMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
+         if ( !_inMsgConvertor )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to build a input msg convertor, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
       if ( !_outMsgConvertor )
       {
          _outMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
-      }
-
-      if ( !(_inMsgConvertor && _outMsgConvertor) )
-      {
-         rc = SDB_OOM ;
-         goto error ;
+         if ( !_outMsgConvertor )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to build a output msg convertor, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
    done:
