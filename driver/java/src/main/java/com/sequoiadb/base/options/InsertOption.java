@@ -38,6 +38,17 @@ public class InsertOption extends BaseOption {
      */
     public final static int FLG_INSERT_REPLACEONDUP = 0x00000004;
 
+    /** 
+     * The flag represent the error of the dup key will be ignored when the dup key is '_id'.
+     */
+    public final static int FLG_INSERT_CONTONDUP_ID = 0x00000020;
+    
+    /**
+     * The flag represents the error of the dup key will be ignored when the dup key is '_id',
+     * and the original record will be replaced by new record.
+     */
+    public final static int FLG_INSERT_REPLACEONDUP_ID = 0x00000040;
+
     private int flag = 0;
 
     /**
@@ -57,6 +68,8 @@ public class InsertOption extends BaseOption {
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP}
      *                 <li>{@link InsertOption#FLG_INSERT_RETURN_OID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP}
+     *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
+     *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
      *             </ul>
      * @return this
      */
@@ -73,6 +86,8 @@ public class InsertOption extends BaseOption {
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP}
      *                 <li>{@link InsertOption#FLG_INSERT_RETURN_OID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP}
+     *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
+     *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
      *             </ul>
      */
     public void appendFlag( int flag ){
@@ -87,6 +102,8 @@ public class InsertOption extends BaseOption {
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP}
      *                 <li>{@link InsertOption#FLG_INSERT_RETURN_OID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP}
+     *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
+     *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
      *             </ul>
      */
     public void eraseFlag( int flag ){

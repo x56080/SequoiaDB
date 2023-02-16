@@ -61,6 +61,8 @@ namespace import
                                    BOOLEAN enableTransaction,
                                    BOOLEAN allowKeyDuplication,
                                    BOOLEAN replaceKeyDuplication,
+                                   BOOLEAN allowIDKeyDuplication,
+                                   BOOLEAN replaceIDKeyDuplication,
                                    BOOLEAN mustHasIDField,
                                    INT32 batchSize )
          : _insertBufferSize( 0 ),
@@ -70,6 +72,8 @@ namespace import
            _enableTransaction( enableTransaction ),
            _allowKeyDuplication( allowKeyDuplication ),
            _replaceKeyDuplication( replaceKeyDuplication ),
+           _allowIDKeyDuplication( allowIDKeyDuplication),
+           _replaceIDKeyDuplication( replaceIDKeyDuplication ),
            _mustHasIDField( mustHasIDField ),
            _endianConvert( FALSE ),
            _connection( SDB_INVALID_HANDLE ),
@@ -277,6 +281,14 @@ namespace import
       else if ( _replaceKeyDuplication )
       {
          flag |= FLG_INSERT_REPLACEONDUP ;
+      }
+      else if ( _allowIDKeyDuplication )
+      {
+         flag |= FLG_INSERT_CONTONDUP_ID ;
+      }
+      else if ( _replaceIDKeyDuplication )
+      {
+         flag |= FLG_INSERT_REPLACEONDUP_ID ;
       }
 
       // Inform coord or data nodes that the '_id' field is included in records.

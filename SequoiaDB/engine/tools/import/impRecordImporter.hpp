@@ -56,6 +56,8 @@ namespace import
                       BOOLEAN enableTransaction = FALSE,
                       BOOLEAN allowKeyDuplication = TRUE,
                       BOOLEAN replaceKeyDuplication = FALSE,
+                      BOOLEAN allowIDKeyDuplication = FALSE,
+                      BOOLEAN replaceIDKeyDuplication = FALSE,
                       BOOLEAN mustHasIDField = TRUE,
                       INT32 batchSize = 1000 ) ;
 
@@ -91,6 +93,8 @@ namespace import
       BOOLEAN  _enableTransaction ;
       BOOLEAN  _allowKeyDuplication ;
       BOOLEAN  _replaceKeyDuplication ;
+      BOOLEAN  _allowIDKeyDuplication ;
+      BOOLEAN  _replaceIDKeyDuplication ;
       BOOLEAN  _endianConvert ;
       BOOLEAN  _mustHasIDField ;
 

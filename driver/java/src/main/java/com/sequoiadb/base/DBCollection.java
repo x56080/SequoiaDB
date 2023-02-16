@@ -200,6 +200,8 @@ public class DBCollection {
      *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
+     *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
+     *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -258,6 +260,8 @@ public class DBCollection {
      *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
+     *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
+     *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -283,6 +287,8 @@ public class DBCollection {
      *                 <ul>
      *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
+     *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
+     *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
      *                 </ul>
      * @throws BaseException If error happens.
      * @since 3.0.2

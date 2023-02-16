@@ -153,6 +153,15 @@ typedef sdbNodeHandle             sdbReplicaNodeHandle ;
 // #define FLG_INSERT_RETURNNUM              0x00000002
 /** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_REPLACEONDUP           0x00000004
+/** The flag is not currently supported */
+// #define FLG_INSERT_UPDATEONDUP            0x00000008
+/** The flag is for internal use only */
+// #define FLG_INSERT_HAS_ID_FIELD           0x00000010
+/** The flag represent the error of the dup key will be ignored when the dup key is '_id'. */
+#define FLG_INSERT_CONTONDUP_ID           0x00000020
+/** The flag represents the error of the dup key will be ignored when the dup key is '_id',
+    and the original record will be replaced by new record. */
+#define FLG_INSERT_REPLACEONDUP_ID        0x00000040
 /** The flag represent whether insert return the "_id" field of the record for user */
 #define FLG_INSERT_RETURN_OID             0x10000000
 

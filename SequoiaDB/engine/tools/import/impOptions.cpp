@@ -83,6 +83,8 @@ namespace import
    #define IMP_OPTION_TRANSACTION       "transaction"
    #define IMP_OPTION_ALLOWKEYDUP       "allowkeydup"
    #define IMP_OPTION_REPLACEKEYDUP     "replacekeydup"
+   #define IMP_OPTION_ALLOWKEYDUP_ID    "allowidkeydup"
+   #define IMP_OPTION_REPLACEKEYDUP_ID  "replaceidkeydup"
    #define IMP_OPTION_HELPFULL          "helpfull"
    #define IMP_OPTION_RECORDSMEM        "recordsmem"
    #define IMP_OPTION_CAST              "cast"
@@ -134,6 +136,8 @@ namespace import
    #define IMP_EXPLAIN_TRANSACTION      "enable transaction, default: false"
    #define IMP_EXPLAIN_ALLOWKEYDUP      "allow key duplication, default: true"
    #define IMP_EXPLAIN_REPLACEKEYDUP    "replace records of duplicate index keys, default: false"
+   #define IMP_EXPLAIN_ALLOWKEYDUP_ID   "allow id index key duplication, default: false"
+   #define IMP_EXPLAIN_REPLACEKEYDUP_ID "replace records of duplicate id index key, default: false"
    #define IMP_EXPLAIN_HELPFULL         "print all options"
    #define IMP_EXPLAIN_RECORDSMEM       "the maximum memory size used by records, the unit is MB, range is [128~81920], default: 512"
    #define IMP_EXPLAIN_CAST             "allow type cast when lost precision, default: false"
@@ -194,6 +198,8 @@ namespace import
       (IMP_OPTION_TRANSACTION,         _TYPE(string),    IMP_EXPLAIN_TRANSACTION) \
       (IMP_OPTION_ALLOWKEYDUP,         _TYPE(string),    IMP_EXPLAIN_ALLOWKEYDUP) \
       (IMP_OPTION_REPLACEKEYDUP,       _TYPE(string),    IMP_EXPLAIN_REPLACEKEYDUP) \
+      (IMP_OPTION_ALLOWKEYDUP_ID,      _TYPE(string),    IMP_EXPLAIN_ALLOWKEYDUP_ID) \
+      (IMP_OPTION_REPLACEKEYDUP_ID,    _TYPE(string),    IMP_EXPLAIN_REPLACEKEYDUP_ID) \
 
    #define IMP_INPUT_OPTIONS \
       (IMP_OPTION_FILENAME,            _TYPE(string),    IMP_EXPLAIN_FILENAME) \
@@ -336,6 +342,8 @@ namespace import
       _enableTransaction = FALSE;
       _allowKeyDuplication = TRUE;
       _replaceKeyDuplication = FALSE ;
+      _allowIDKeyDuplication = FALSE ;
+      _replaceIDKeyDuplication = FALSE ;
       _mustHasIDField = TRUE ;
 
       _isUnicode = TRUE ;
@@ -1203,6 +1211,93 @@ namespace import
                _allowKeyDuplication = FALSE ;
             }
          }
+      }
+
+      if ( has( IMP_OPTION_ALLOWKEYDUP_ID ) )
+      {
+         string allowIDKeyDup = get<string>( IMP_OPTION_ALLOWKEYDUP_ID ) ;
+         rc = ossStrToBoolean( allowIDKeyDup.c_str(),
+                               &_allowIDKeyDuplication ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       allowIDKeyDup.c_str(), IMP_OPTION_ALLOWKEYDUP_ID ) ;
+         if( _allowIDKeyDuplication && _allowKeyDuplication )
+         {
+            if ( has( IMP_OPTION_ALLOWKEYDUP ) )
+            {
+               std::cerr << "'" << IMP_OPTION_REPLACEKEYDUP_ID << "'"
+                         << " and "
+                         << "'" << IMP_OPTION_ALLOWKEYDUP << "'"
+                         << " can't both be true"
+                         << std::endl ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else
+            {
+               _allowKeyDuplication = FALSE ;
+            }
+         }
+         
+         if ( _allowIDKeyDuplication && _replaceKeyDuplication )
+         {
+            std::cerr << "'" << IMP_OPTION_ALLOWKEYDUP_ID << "'"
+                        << " and "
+                        << "'" << IMP_OPTION_REPLACEKEYDUP << "'"
+                        << " can't both be true"
+                        << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;  
+         }
+      }
+
+      if( has( IMP_OPTION_REPLACEKEYDUP_ID ) )
+      {
+         string replaceIDKeyDup = get<string>( IMP_OPTION_REPLACEKEYDUP_ID ) ;
+         rc = ossStrToBoolean( replaceIDKeyDup.c_str(),
+                               &_replaceIDKeyDuplication ) ;
+         SDB_RC_CHECK_PRINT_GOTOERROR( rc, "Invalid value %s for option: '%s'",
+                                       replaceIDKeyDup.c_str(), IMP_OPTION_REPLACEKEYDUP_ID ) ;
+
+         if( _replaceIDKeyDuplication && _allowKeyDuplication )
+         {
+            if ( has( IMP_OPTION_ALLOWKEYDUP ) )
+            {
+               std::cerr << "'" << IMP_OPTION_REPLACEKEYDUP_ID << "'"
+                         << " and "
+                         << "'" << IMP_OPTION_ALLOWKEYDUP << "'"
+                         << " can't both be true"
+                         << std::endl ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else
+            {
+               _allowKeyDuplication = FALSE ;
+            }
+         }
+
+         if ( _replaceIDKeyDuplication && _allowIDKeyDuplication )
+         {
+            std::cerr << "'" << IMP_OPTION_REPLACEKEYDUP_ID << "'"
+                        << " and "
+                        << "'" << IMP_OPTION_ALLOWKEYDUP_ID << "'"
+                        << " can't both be true"
+                        << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         
+         if ( _replaceIDKeyDuplication && _replaceKeyDuplication )
+         {
+            std::cerr << "'" << IMP_OPTION_REPLACEKEYDUP_ID << "'"
+                        << " and "
+                        << "'" << IMP_OPTION_REPLACEKEYDUP << "'"
+                        << " can't both be true"
+                        << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
       }
 
       if (has(IMP_OPTION_RECORDSMEM))
