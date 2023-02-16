@@ -47,9 +47,11 @@
 
 > **Note:**
 >
-> 用户设置多个 flag 时，可用 “|” 分隔。flag 取值如下：
+> flag 不支持同时指定多个取值，可选取值如下：
 > - SDB_INSERT_CONTONDUP：遇到索引键重复则跳过，并继续插入
 > - SDB_INSERT_REPLACEONDUP：遇到索引键重复则使用新纪录替换现有记录，并继续插入
+> - SDB_INSERT_CONTONDUP_ID：遇到 $id 索引键重复则跳过，并继续插入
+> - SDB_INSERT_REPLACEONDUP_ID：遇到 $id 索引键重复则使用新纪录替换现有记录，并继续插入
 >
 > 成功插入的记录数信息。字段说明如下：
 > - InsertedNum：成功插入的记录数，不包含替代和忽略的记录

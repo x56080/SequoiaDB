@@ -31,11 +31,13 @@ SdbCollection
     - SDB_INSERT_RETURN_ID：插入成功后返回记录中字段 _id 的内容。
     - SDB_INSERT_CONTONDUP：发生索引键冲突时，忽略该条新记录并继续插入其他记录。
     - SDB_INSERT_REPLACEONDUP：发生索引键冲突时，新记录将覆盖原有记录，并继续插入其他记录。
+    - SDB_INSERT_CONTONDUP_ID：发生 $id 索引键冲突时，忽略该条新记录并继续插入其他记录。
+    - SDB_INSERT_REPLACEONDUP_ID：发生 $id 索引键冲突时，新记录将覆盖原有记录，并继续插入其他记录。
 
     >**Note：**
     >
-    > - 如果需要指定多个取值，可用 "|" 分隔。
-    > - SDB_INSERT_CONTONDUP 和 SDB_INSERT_REPLACEONDUP 不能同时指定。
+    > - SDB_INSERT_RETURN_ID 支持与其他标志位同时指定，多个取值间用“|”分隔。
+    > - 对于 SDB_INSERT_CONTONDUP、SDB_INSERT_REPLACEONDUP、SDB_INSERT_CONTONDUP_ID 和 SDB_INSERT_REPLACEONDUP_ID，不支持同时指定多项。
 
 - options（ *object，选填* ）
 
@@ -53,10 +55,18 @@ SdbCollection
 
         格式：`ReplaceOnDup: true`
 
+    - ContOnDupID（ *boolean* ）：与参数 flag 中的 SDB_INSERT_CONTONDUP_ID 行为一致
+
+        格式：`ContOnDupID: true`
+
+    - ReplaceOnDupID（ *boolean* ）：与参数 flag 中的 SDB_INSERT_REPLACEONDUP_ID 行为一致
+
+        格式：`ReplaceOnDupID: true`
+
     >**Note:**
     >
     > - 如果不指定参数 options，插入操作默认不返回字段 _id 的内容，且发生索引键冲突时将报错。
-    > - 参数 ContOnDup 和 ReplaceOnDup 不能同时指定。
+    > - 对于参数 ContOnDup、ReplaceOnDup、ContOnDupID 和 ReplaceOnDupID，不支持同时指定多项。
 
 ##返回值##
 

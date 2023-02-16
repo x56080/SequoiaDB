@@ -157,11 +157,13 @@ CSV类型转换
 | --sharding    |      | 指定是否按分区信息重新打包记录，默认值为 true，按照分区信息重新打包信息 |
 | --transaction |      | 指定导入数据时是否开启事务，默认为 false，不开启事务<br>**注意：此功能需要服务端开启事务** |
 | --allowkeydup |      | 指定是否允许唯一索引的键出现重复时忽略错误继续导入，默认值为 true，忽略错误继续导入 |
-| --replacekeydup |      | 指定唯一索引键重复时替换记录，默认值为 false。|
+| --replacekeydup |      | 指定唯一索引键重复时替换记录，默认值为 false |
+| --allowidkeydup |      | 指定是否允许 $id 索引的键出现重复时忽略错误继续导入，默认值为 false |
+| --replaceidkeydup |      | 指定 $id 索引键重复时替换记录，默认值为 false |
 
 > **Note:**  
-> 不能同时设置 --allowkeydup 参数和 --replacekeydup 参数为 true。  
-> --replacekeydup 参数指定 true 时，--allowkeydup 参数默认为 false。
+>
+> 对于参数 --allowkeydup、--replacekeydup、--allowidkeydup 和 --replaceidkeydup，不支持同时设置为 true。当任意一个参数设置为 true 时，其余参数将默认为 false。
 
 ###JSON选项###
 
