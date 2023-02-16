@@ -52,6 +52,8 @@ INSERT_FLG_DEFAULT = 0x00000000
 INSERT_FLG_CONTONDUP = 0x00000001
 INSERT_FLG_RETURNNUM = 0x00000002
 INSERT_FLG_REPLACEONDUP = 0x00000004
+INSERT_FLG_CONTONDUP_ID = 0x00000020
+INSERT_FLG_REPLACEONDUP_ID = 0x00000040
 INSERT_FLG_RETURN_OID = 0x10000000
 
 class collection(object):
@@ -314,6 +316,9 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing
                                        record by the inserting new record and then go on inserting.
+             INSERT_FLG_CONTONDUP_ID :  The flag represent the error of the dup key will be ignored when the dup key is '_id'.
+             INSERT_FLG_REPLACEONDUP_ID : The flag represents the error of the dup key will be ignored when the dup key is '_id',
+                                          and the original record will be replaced by new record.
         """
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
@@ -384,6 +389,9 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing
                                        record by the inserting new record and then go on inserting.
+             INSERT_FLG_CONTONDUP_ID :  The flag represent the error of the dup key will be ignored when the dup key is '_id'.
+             INSERT_FLG_REPLACEONDUP_ID : The flag represents the error of the dup key will be ignored when the dup key is '_id',
+                                          and the original record will be replaced by new record.
          """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")

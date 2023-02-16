@@ -104,15 +104,19 @@ retry:
       // check return code
       if ( SDB_IXM_DUP_KEY == rc && !hasRetry )
       {
-         if ( FLG_INSERT_CONTONDUP & flags )
+         if ( ( FLG_INSERT_CONTONDUP & flags ) ||
+              ( ( FLG_INSERT_CONTONDUP_ID & flags ) &&
+                ( 0 == ossStrcmp( insertResult->getIdxName().c_str(), IXM_ID_KEY_NAME ) ) ) )
          {
             insertResult->incDuplicatedNum();
             insertResult->resetInfo() ;
             // skip duplicate key error
             rc = SDB_OK ;
          }
-         else if ( FLG_INSERT_REPLACEONDUP & flags ||
-                   FLG_INSERT_UPDATEONDUP & flags )
+         else if ( ( FLG_INSERT_REPLACEONDUP & flags ) ||
+                   ( FLG_INSERT_UPDATEONDUP & flags ) ||
+                   ( ( FLG_INSERT_REPLACEONDUP_ID & flags ) && 
+                     ( 0 == ossStrcmp( insertResult->getIdxName().c_str(), IXM_ID_KEY_NAME ) ) ) )
          {
             // update record when duplicate key error
             BSONObj updator ;
@@ -154,7 +158,8 @@ retry:
                BSONObj dummyObj ;
                rtnQueryOptions options( matcher, dummyObj, dummyObj, hint,
                                         clFullName, 0, -1, updateFlag ) ;
-               if ( FLG_INSERT_REPLACEONDUP & flags )
+               if ( FLG_INSERT_REPLACEONDUP & flags ||
+                    FLG_INSERT_REPLACEONDUP_ID & flags )
                {
                   rc = generateUpdator( record, TRUE, updator ) ;
                   PD_RC_CHECK( rc, PDERROR, "Generate updator from insertor %s "

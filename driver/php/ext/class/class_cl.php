@@ -28,6 +28,10 @@ class SequoiaCL
    define( "SDB_FLG_INSERT_CONTONDUP",                   0x00000001 ) ;
    /** The flag represent if the record hit index key duplicate error, database will replace the existing record by the inserting new record. */
    define( "SDB_FLG_INSERT_REPLACEONDUP",                0x00000004 ) ;
+   /** The flag represent the error of the dup key will be ignored when the dup key is '_id'. */
+   define( "SDB_FLG_INSERT_CONTONDUP_ID",                0x00000020 ) ;
+   /** The flag represents the error of the dup key will be ignored when the dup key is '_id', and the original record will be replaced by new record. */
+   define( "SDB_FLG_INSERT_REPLACEONDUP_ID"              0x00000040 ) ;
    /** The flag represent whether insert return the "_id" field of the record for user */
    define( "SDB_FLG_INSERT_RETURN_OID",                  0x10000000 ) ;
 
