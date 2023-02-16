@@ -2,8 +2,8 @@
  * @Description   : seqDB-6961:批量插入覆盖所有支持的数据类型
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.03.03
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.02.08
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -17,7 +17,7 @@ function test ( testPara )
    var csName = COMMCSNAME;
    var clName = testConf.clName;
    var cl = testPara.testCL;
-   var dtNumber = 100000;
+   var dtNumber = 200000;
    var checkRecsNum = 3;
 
    // insert  
@@ -27,6 +27,8 @@ function test ( testPara )
    var dataTypes = getRdmType( tmpTypes );
    var dataValues = getRdmValue( dataTypes );
    insertRecs( cl, dtNumber, dataTypes, dataValues );
+
+   waitDictionary( db, csName, clName );
 
    // 检查结果，检查组内每个节点数据正确性
    checkResult( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum );

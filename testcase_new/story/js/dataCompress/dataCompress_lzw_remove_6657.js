@@ -33,6 +33,8 @@ function test ( testPara )
    // insert again
    insertRecs2( cl, insertRecsNum2 );
 
+   waitDictionary( db, csName, clName );
+
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
    checkRecsByDataNode( rgName, csName, clName, insertRecsNum2, checkRecsNum );

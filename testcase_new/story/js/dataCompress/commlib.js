@@ -2,8 +2,8 @@
  * @Description   : 数据压缩公共方法
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.23
- * @LastEditors   : XiaoNi Huang
+ * @LastEditTime  : 2023.02.08
+ * @LastEditors   : liuli
  ******************************************************************************/
 import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
@@ -65,6 +65,31 @@ function checkLzwAttributeByDataNode ( rgName, csName, clName, isCheckCompRatio 
       finally 
       {
          if( nodeDB != null ) nodeDB.close();
+      }
+   }
+}
+
+function waitDictionary ( db, csName, clName )
+{
+   var timeOut = 120;
+   var doTime = 0;
+   var nodeNames = commGetCLNodes( db, csName + "." + clName );
+   for( var i in nodeNames )
+   {
+      nodeDB = new Sdb( nodeNames[i].HostName + ":" + nodeNames[i].svcname );
+      var dictionaryCreated = false;
+      while( ( doTime < timeOut ) && !dictionaryCreated )
+      {
+         var clInfo = nodeDB.snapshot( 4, { Name: csName + "." + clName } ).toArray();
+         var details = JSON.parse( clInfo[0] ).Details[0];
+         dictionaryCreated = details.DictionaryCreated;
+         sleep( 1000 );
+         doTime++;
+      }
+      nodeDB.close();
+      if( doTime >= timeOut )
+      {
+         throw new Error( "check timeout, dictionaryCreated is " + dictionaryCreated + ", detailed information:" + JSON.stringify( clInfo ) );
       }
    }
 }
