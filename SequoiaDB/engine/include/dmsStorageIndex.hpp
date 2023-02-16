@@ -363,6 +363,7 @@ namespace engine
       private:
          virtual UINT64 _dataOffset() ;
          virtual const CHAR* _getEyeCatcher() const ;
+         virtual const INT32 _getStorageFileType() const ;
          virtual UINT32 _curVersion() const ;
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) ;
          virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) ;

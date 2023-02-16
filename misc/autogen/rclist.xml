@@ -3170,5 +3170,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_SYSENV_NOT_SUPPORT</name>
+         <description>
+            <en>System enviroment is not support</en>
+            <cn>系统环境不支持</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

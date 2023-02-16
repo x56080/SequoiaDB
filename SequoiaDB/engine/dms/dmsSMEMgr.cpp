@@ -431,10 +431,165 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _dmsSegmentSpace::hasFreePage ( UINT32 pageNumThreshold ) const
+   {
+      if ( _maxNode >= pageNumThreshold )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_GETFREEPAGES, "_dmsSegmentSpace::getFreePages" )
+   INT32 _dmsSegmentSpace::getFreePages ( UINT32 pageNumThreshold,
+                                          ossPoolVector<_dmsSMESpaceNode> &freePages )
+   {
+      INT32 rc       = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMS_GETFREEPAGES ) ;
+      list<_dmsSegmentNode>::const_iterator it ;
+      UINT32 start   = 0 ;
+      UINT32 len     = 0 ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      if ( 0 == _totalFree )
+      {
+         goto done ;
+      }
+
+      // loop through all free space
+      for ( it = _freeSpaceList.begin() ; it != _freeSpaceList.end() ; ++it )
+      {
+         // get the node
+         start = DMS_SEGMENT_NODE_GETSTART( *it ) ;
+         len = DMS_SEGMENT_NODE_GETSIZE( *it ) ;
+         if ( len >= pageNumThreshold )
+         {
+            try
+            {
+               freePages.push_back( _dmsSMESpaceNode( ( _startExtent + start ), len ) ) ;
+            }
+            catch ( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSSMS_GETFREEPAGES, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_GETLASTVALIDPAGE, "_dmsSegmentSpace::getLastValidPage" )
+   INT32 _dmsSegmentSpace::getLastValidPage ( dmsExtentID &lastValidPage ) const
+   {
+      INT32 rc       = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMS_GETLASTVALIDPAGE ) ;
+      list<_dmsSegmentNode>::const_reverse_iterator it ;
+      UINT32 start   = 0 ;
+      UINT32 len     = 0 ;
+      INT32 tmpValid = _currentSize - 1 ;
+
+      // in this const function we also need to lock the segmentSpace
+      // so here use const_cast to get mutex
+      ossScopedLock lock( &( const_cast<_dmsSegmentSpace&>(*this)._mutex ) ) ;
+
+      it = _freeSpaceList.rbegin() ;
+      if ( it != _freeSpaceList.rend() )
+      {
+         // get the last node
+         start = DMS_SEGMENT_NODE_GETSTART( *it ) ;
+         len = DMS_SEGMENT_NODE_GETSIZE( *it ) ;
+
+         if ( ( start + len ) == _currentSize )
+         {
+            if ( 0 == start )
+            {
+               tmpValid = DMS_INVALID_EXTENT ;
+            }
+            else
+            {
+               tmpValid = (INT32)start - 1 ;
+            }
+         }
+      }
+
+      if ( tmpValid != DMS_INVALID_EXTENT )
+      {
+         lastValidPage = tmpValid + _startExtent ;
+      }
+      else
+      {
+         lastValidPage = DMS_INVALID_EXTENT ;
+      }
+
+      PD_TRACE_EXITRC ( SDB__DMSSMS_GETLASTVALIDPAGE, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_TRUNCATEPAGES, "_dmsSegmentSpace::truncatePages" )
+   INT32 _dmsSegmentSpace::truncatePages ( dmsExtentID pageEnd, UINT32 &rmNum )
+   {
+      INT32 rc       = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMS_TRUNCATEPAGES );
+      list<_dmsSegmentNode>::reverse_iterator it ;
+      UINT32 start   = 0 ;
+      UINT32 len     = 0 ;
+      rmNum          = 0 ;
+
+      ossScopedLock lock( &_mutex ) ;
+
+      // get the last node
+      it = _freeSpaceList.rbegin() ;
+      if ( it == _freeSpaceList.rend() )
+      {
+         goto done ;
+      }
+
+      // just check the last free node
+      {
+         _dmsSegmentNode &node = (*it) ;
+         start = DMS_SEGMENT_NODE_GETSTART( node ) ;
+         len = DMS_SEGMENT_NODE_GETSIZE( node ) ;
+
+         if ( ( _startExtent + start ) >= (UINT32)pageEnd )
+         {
+            rmNum += len ;
+            _currentSize -= len ;
+            _totalFree -= len ;
+            _freeSpaceList.erase ( ++it.base() ) ;
+         }
+         else if ( ( _startExtent + start + len ) > (UINT32)pageEnd )
+         {
+            UINT32 validLen = pageEnd - ( _startExtent + start ) ;
+            UINT32 rmLen = len - validLen ;
+            DMS_SEGMENT_NODE_SET ( node, start, validLen ) ;
+            _currentSize -= rmLen ;
+            _totalFree -= rmLen ;
+            rmNum += rmLen ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSSMS_TRUNCATEPAGES, rc ) ;
+      return rc ;
+   }
+
    UINT16 _dmsSegmentSpace::totalFree ()
    {
       ossScopedLock lock( &_mutex ) ;
       return _totalFree ;
+   }
+
+   UINT16 _dmsSegmentSpace::currentSize ()
+   {
+      ossScopedLock lock( &_mutex ) ;
+      return _currentSize ;
    }
 
    /*
@@ -786,6 +941,164 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   BOOLEAN _dmsSMEMgr::hasFreePage ( UINT32 pageNumThreshold ) const
+   {
+      BOOLEAN rt     = FALSE ;
+      INT32 pos      = 0 ;
+      INT32 size     = 0 ;
+
+      ossScopedRWLock lock( &( const_cast<_dmsSMEMgr&>(*this)._mutex ), SHARED ) ;
+
+      size = _segments.size() ;
+      while ( pos < size )
+      {
+         rt = _segments[pos]->hasFreePage( pageNumThreshold ) ;
+         if ( TRUE == rt )
+         {
+            break ;
+         }
+         ++pos ;
+      }
+
+      return rt ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_GETFREEPAGES, "_dmsSMEMgr::getFreePages" )
+   INT32 _dmsSMEMgr::getFreePages ( UINT32 pageNumThreshold,
+                                    ossPoolVector<_dmsSMESpaceNode> &freePages,
+                                    BOOLEAN needLock )
+   {
+      INT32 rc       = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR_GETFREEPAGES ) ;
+      INT32 pos      = 0 ;
+      INT32 size     = 0 ;
+      BOOLEAN hasLocked = FALSE ;
+
+      if ( needLock )
+      {
+         _mutex.lock_w() ;
+         hasLocked = TRUE ;
+      }
+
+      size = _segments.size() ;
+      while ( pos < size )
+      {
+         rc = _segments[pos]->getFreePages( pageNumThreshold, freePages ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get free pages, rc = %d", rc ) ;
+            goto error ;
+         }
+         ++pos ;
+      }
+
+   done :
+      if ( hasLocked )
+      {
+         _mutex.release_w() ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_GETFREEPAGES, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_GETLASTVALIDPAGE, "_dmsSMEMgr::getLastValidPage" )
+   INT32 _dmsSMEMgr::getLastValidPage ( dmsExtentID &lastValidPage,
+                                        BOOLEAN needLock ) const
+   {
+      INT32 rc       = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR_GETLASTVALIDPAGE ) ;
+      INT32 pos      = 0 ;
+      BOOLEAN hasLocked = FALSE ;
+
+      if ( needLock )
+      {
+         const_cast<_dmsSMEMgr&>(*this)._mutex.lock_w() ;
+         hasLocked = TRUE ;
+      }
+
+      pos = _segments.size() - 1 ;
+      while ( 0 <= pos )
+      {
+         rc = _segments[pos]->getLastValidPage( lastValidPage ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get free segments, rc = %d", rc ) ;
+            goto error ;
+         }
+
+         if ( DMS_INVALID_EXTENT != lastValidPage )
+         {
+            break ;
+         }
+         --pos ;
+      }
+
+   done :
+      if ( hasLocked )
+      {
+         const_cast<_dmsSMEMgr&>(*this)._mutex.release_w() ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_GETLASTVALIDPAGE, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_TRUNCATESEGMENTS "_dmsSMEMgr::truncateSegments" )
+   INT32 _dmsSMEMgr::truncateSegments ( dmsExtentID pageEnd,
+                                        BOOLEAN needLock )
+   {
+      INT32 rc       = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSSMEMGR_TRUNCATESEGMENTS ) ;
+      INT32 pos      = 0 ;
+      UINT16 size    = 0 ;
+      UINT32 rmNum   = 0 ;
+      BOOLEAN hasLocked = FALSE ;
+
+      if ( needLock )
+      {
+         _mutex.lock_w() ;
+         hasLocked = TRUE ;
+      }
+
+      pos = _segments.size() - 1 ;
+      while ( pos >= 0 )
+      {
+         rc = _segments[pos]->truncatePages( pageEnd, rmNum ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to remove segment's pages, rc = %d", rc ) ;
+            goto error ;
+         }
+         if ( 0 == rmNum )
+         {
+            break ;
+         }
+         _totalFree.sub( rmNum ) ;
+
+         size = _segments[pos]->currentSize() ;
+         if ( 0 == size )
+         {
+            SDB_OSS_DEL _segments[pos] ;
+            _segments.pop_back() ;
+         }
+         pos-- ;
+      }
+
+   done :
+      if ( hasLocked )
+      {
+         _mutex.release_w() ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSSMEMGR_TRUNCATESEGMENTS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+
    }
 
    UINT32 _dmsSMEMgr::segmentNum ()
