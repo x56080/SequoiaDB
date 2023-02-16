@@ -1837,8 +1837,14 @@ namespace engine
 
          // update DC from remote
          rc = shardCB->updateDCBaseInfo() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update DC info from CATALOG, "
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to update DC info from CATALOG, "
                       "rc: %d", rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
+            goto error ;
+         }
 
          _recycleBinMgr->setConf(
                shardCB->getDCMgr()->getDCBaseInfo()->getRecycleBinConf() ) ;

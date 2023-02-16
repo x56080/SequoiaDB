@@ -60,9 +60,7 @@ v5.0.3 及以上版本
       "OriginID": 21474836481,
       "Type": "Collection",
       "OpType": "Drop",
-      "RecycleTime": {
-        "$timestamp": "2022-01-24-12.04.12.000000"
-      }
+      "RecycleTime": "2022-01-24-12.04.12.000000"
     }
     ```
 
