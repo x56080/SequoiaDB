@@ -493,7 +493,7 @@ namespace engine
          }
 
          // ContOnDupID
-         elem = elem = options.getField( FIELD_NAME_CONTONDUP_ID ) ;
+         elem = options.getField( FIELD_NAME_CONTONDUP_ID ) ;
          value = ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
          if ( value )
          {
@@ -501,7 +501,7 @@ namespace engine
          }
 
          // ReplaceOnDupID
-         elem = elem = options.getField( FIELD_NAME_REPLACEONDUP_ID ) ;
+         elem = options.getField( FIELD_NAME_REPLACEONDUP_ID ) ;
          value = ( elem.eoo() || Bool != elem.type() ) ? FALSE : elem.Bool() ;
          if ( value )
          {
