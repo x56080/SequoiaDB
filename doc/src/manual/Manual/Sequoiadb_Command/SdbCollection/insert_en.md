@@ -31,11 +31,13 @@ This function is used to insert single or multiple records into the current coll
     - SDB_INSERT_RETURN_ID: After successful insertion, return the content of the field "_id" in the record.
     - SDB_INSERT_CONTONDUP: When an index key conflict occurs, skip this record and continue to insert other records.
     - SDB_INSERT_REPLACEONDUP: When an index key conflict occurs, the new record will overwrite the original record and continue to insert other records.
+    - SDB_INSERT_CONTONDUP_ID: When $id index key conflict occurs, skip this record and continue to insert other records.
+    - SDB_INSERT_REPLACEONDUP_ID: When $id index key conflict occurs, the new record will overwrite the original record and continue to insert other records.
 
     >**Note：**
     >
-    > - If users need to specify multiple values, users can use "|" to separate them.
-    > - "SDB_INSERT_CONTONDUP" and "SDB_INSERT_REPLACEONDUP" cannot be specified at the same time.
+    > - "SDB_INSERT_RETURN_ID" supports specifying with other flags at the same time, multiple values are separated by  "|".
+    > - For "SDB_INSERT_CONTONDUP", "SDB_INSERT_REPLACEONDUP", "SDB_INSERT_CONTONDUP_ID" and "SDB_INSERT_REPLACEONDUP_ID" do not support specifying multiple.
 
 - options ( *object* )
 
@@ -53,10 +55,18 @@ This function is used to insert single or multiple records into the current coll
 
         Format: `ReplaceOnDup: true`
 
+    - ContOnDupID ( *boolean* ): Consistent with the behavior of "SDB_INSERT_CONTONDUP_ID" in the parameter "flag".
+
+        Format: `ContOnDupID: true`
+
+    - ReplaceOnDupID ( *boolean* ): Consistent with the behavior of "SDB_INSERT_REPLACEONDUP_ID" in the parameter "flag".
+
+        Format: `ReplaceOnDupID: true`
+
     >**Note:**
     >
     > - If the parameter "options" is not specified, the insert operation will not return the content of the field "_id" by default, and an error will be reported when an index key conflict occurs.
-    > - The parameters "ContOnDup" and "ReplaceOnDup" cannot be specified at the same time.
+    > - For the parameters "ContOnDup", "ReplaceOnDup", "ContOnDupID" and "ReplaceOnDupID" do not support specifying multiple.
 
 ##RETURN VALUE##
 

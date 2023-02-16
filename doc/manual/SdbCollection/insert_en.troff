@@ -44,14 +44,21 @@ continue to insert other records.
 .IP \[bu] 2
 SDB_INSERT_REPLACEONDUP: When an index key conflict occurs, the new record will
 overwrite the original record and continue to insert other records.
+.IP \[bu] 2
+SDB_INSERT_CONTONDUP_ID: When $id index key conflict occurs, skip this record
+and continue to insert other records.
+.IP \[bu] 2
+SDB_INSERT_REPLACEONDUP_ID: When $id index key conflict occurs, the new record
+will overwrite the original record and continue to insert other records.
 .RS
 .PP
 \f[B]Note：\f[]
 .IP \[bu] 2
-If users need to specify multiple values, users can use "|" to separate them.
+"SDB_INSERT_RETURN_ID" supports specifying with other flags at the same time,
+multiple values are separated by "|".
 .IP \[bu] 2
-"SDB_INSERT_CONTONDUP" and "SDB_INSERT_REPLACEONDUP" cannot be specified at the
-same time.
+For "SDB_INSERT_CONTONDUP", "SDB_INSERT_REPLACEONDUP", "SDB_INSERT_CONTONDUP_ID"
+and "SDB_INSERT_REPLACEONDUP_ID" do not support specifying multiple.
 .RE
 .RE
 .IP \[bu] 2
@@ -81,6 +88,20 @@ ReplaceOnDup ( \f[I]boolean\f[] ): Consistent with the behavior of
 .PP
 Format: \f[C]ReplaceOnDup: true\f[]
 .RE
+.IP \[bu] 2
+ContOnDupID ( \f[I]boolean\f[] ): Consistent with the behavior of
+"SDB_INSERT_CONTONDUP_ID" in the parameter "flag".
+.RS 2
+.PP
+Format: \f[C]ContOnDupID: true\f[]
+.RE
+.IP \[bu] 2
+ReplaceOnDupID ( \f[I]boolean\f[] ): Consistent with the behavior of
+"SDB_INSERT_REPLACEONDUP_ID" in the parameter "flag".
+.RS 2
+.PP
+Format: \f[C]ReplaceOnDupID: true\f[]
+.RE
 .RS
 .PP
 \f[B]Note:\f[]
@@ -89,8 +110,8 @@ If the parameter "options" is not specified, the insert operation will not
 return the content of the field "_id" by default, and an error will be reported
 when an index key conflict occurs.
 .IP \[bu] 2
-The parameters "ContOnDup" and "ReplaceOnDup" cannot be specified at the same
-time.
+For the parameters "ContOnDup", "ReplaceOnDup", "ContOnDupID" and
+"ReplaceOnDupID" do not support specifying multiple.
 .RE
 .RE
 .SH RETURN VALUE
