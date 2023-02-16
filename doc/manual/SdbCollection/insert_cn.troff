@@ -38,13 +38,20 @@ SDB_INSERT_RETURN_ID：插入成功后返回记录中字段 _id 的内容。
 SDB_INSERT_CONTONDUP：发生索引键冲突时，忽略该条新记录并继续插入其他记录。
 .IP \[bu] 2
 SDB_INSERT_REPLACEONDUP：发生索引键冲突时，新记录将覆盖原有记录，并继续插入其他记录。
+.IP \[bu] 2
+SDB_INSERT_CONTONDUP_ID：发生 $id
+索引键冲突时，忽略该条新记录并继续插入其他记录。
+.IP \[bu] 2
+SDB_INSERT_REPLACEONDUP_ID：发生 $id
+索引键冲突时，新记录将覆盖原有记录，并继续插入其他记录。
 .RS
 .PP
 \f[B]Note：\f[]
 .IP \[bu] 2
-如果需要指定多个取值，可用 "|" 分隔。
+SDB_INSERT_RETURN_ID 支持与其他标志位同时指定，多个取值间用“|”分隔。
 .IP \[bu] 2
-SDB_INSERT_CONTONDUP 和 SDB_INSERT_REPLACEONDUP 不能同时指定。
+对于 SDB_INSERT_CONTONDUP、SDB_INSERT_REPLACEONDUP、SDB_INSERT_CONTONDUP_ID 和
+SDB_INSERT_REPLACEONDUP_ID，不支持同时指定多项。
 .RE
 .RE
 .IP \[bu] 2
@@ -71,6 +78,20 @@ ReplaceOnDup（ \f[I]boolean\f[] ）：与参数 flag 中的 SDB_INSERT_REPLACEO
 .PP
 格式：\f[C]ReplaceOnDup: true\f[]
 .RE
+.IP \[bu] 2
+ContOnDupID（ \f[I]boolean\f[] ）：与参数 flag 中的 SDB_INSERT_CONTONDUP_ID
+行为一致
+.RS 2
+.PP
+格式：\f[C]ContOnDupID: true\f[]
+.RE
+.IP \[bu] 2
+ReplaceOnDupID（ \f[I]boolean\f[] ）：与参数 flag 中的
+SDB_INSERT_REPLACEONDUP_ID 行为一致
+.RS 2
+.PP
+格式：\f[C]ReplaceOnDupID: true\f[]
+.RE
 .RS
 .PP
 \f[B]Note:\f[]
@@ -78,7 +99,8 @@ ReplaceOnDup（ \f[I]boolean\f[] ）：与参数 flag 中的 SDB_INSERT_REPLACEO
 如果不指定参数 options，插入操作默认不返回字段 _id
 的内容，且发生索引键冲突时将报错。
 .IP \[bu] 2
-参数 ContOnDup 和 ReplaceOnDup 不能同时指定。
+对于参数 ContOnDup、ReplaceOnDup、ContOnDupID 和
+ReplaceOnDupID，不支持同时指定多项。
 .RE
 .RE
 .SH 返回值
@@ -166,13 +188,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-返回情况如下：<
+返回情况如下：
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br> \- 当插入单条
+ \- 当插入单条
 T}
 T{
 T}@T{
@@ -238,13 +260,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-字段中的最大值 <
+字段中的最大值
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-br> \- 当存在多个
+ \- 当存在多个
 T}
 T{
 T}@T{
