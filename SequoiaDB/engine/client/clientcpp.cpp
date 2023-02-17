@@ -12664,6 +12664,11 @@ do                                                            \
       return _runCommand( CMD_ADMIN_PREFIX CMD_NAME_SYNC_DB, &options ) ;
    }
 
+   INT32 _sdbImpl::shrinkSpace( const bson::BSONObj &options )
+   {
+      return _runCommand( CMD_ADMIN_PREFIX CMD_NAME_SHRINK_SPACE, &options ) ;
+   }
+
    INT32 _sdbImpl::analyze ( const bson::BSONObj &options )
    {
       return _runCommand( CMD_ADMIN_PREFIX CMD_NAME_ANALYZE, &options ) ;

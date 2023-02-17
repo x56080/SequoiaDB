@@ -305,7 +305,18 @@ namespace engine
          goto error ;
       }
 
-      // 11. post init
+      // 11. init ossEnvInfo
+      rc = getOssEnvInfo()->init( pmdGetOptionCB()->getDbPath(),
+                                  pmdGetOptionCB()->getIndexPath(),
+                                  pmdGetOptionCB()->getLobMetaPath(),
+                                  pmdGetOptionCB()->getLobMetaPath() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init ossEnv, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      // 12. post init
       rc = _pmdPostInit() ;
       if ( rc )
       {

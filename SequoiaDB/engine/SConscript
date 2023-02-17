@@ -64,7 +64,8 @@ ossFiles = [
       "oss/ossMem.cpp",
       "oss/ossDynamicLoad.cpp",
       "oss/ossShMem.cpp",
-      "oss/ossTimeZone.cpp"
+      "oss/ossTimeZone.cpp",
+      "oss/ossEnv.cpp"
       ]
 
 pmdFiles = [
@@ -361,7 +362,8 @@ dmsFiles = [
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
-      "dms/dmsRBSGCJob.cpp"
+      "dms/dmsRBSGCJob.cpp",
+      "dms/dmsHoleMapMgr.cpp"
       ]
 
 ixmFiles = [

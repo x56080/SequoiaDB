@@ -3067,4 +3067,24 @@
       <hidden>true</hidden>
   </opt>
 
+  <opt>
+      <name>PMD_OPTION_SPACESHRINK_TIMEOUT</name>
+      <long>spaceshrinktimeout</long>
+      <description>
+         <en>If the collectionspace is not written for more than the setting time( in day ),it's free space would be recycle.Default 15, value range[0, 365].</en>
+         <cn>集合空间在设定的时间（单位：天）内都没有写数据，它的空闲磁盘空间将被回收。默认值:15，取值范围[0, 365]。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>If the collectionspace is not written for more than the setting time( in day ),it's free space would be recycle.Default 15, value range[0, 365].</en>
+         <cn>集合空间在设定的时间（单位：天）内都没有写数据，它的空闲磁盘空间将被回收。默认值:15，取值范围[0, 365]。</cn>
+      </detail>
+      <type>int</type>
+      <default>15</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
 </optlist>

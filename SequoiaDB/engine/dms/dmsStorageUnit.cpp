@@ -1623,6 +1623,7 @@ namespace engine
    :_pDataSu( NULL ),
     _pIndexSu( NULL ),
     _pLobSu( NULL ),
+    _pHMMgr( NULL ),
     _pMgr( pMgr ),
     _pCacheUnit( NULL ),
     _eventHolder ( this ),
@@ -1769,9 +1770,72 @@ namespace engine
          PD_LOG( PDERROR, "failed to open storage lob, rc:%d", rc ) ;
          if ( createNew )
          {
+            if ( SDB_FE != rc )
+            {
+               goto rmtriple ;
+            }
             goto rmboth ;
          }
          goto error ;
+      }
+
+      // open HMMgr
+      rc = _pHMMgr->open( pDataPath ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to open storage lob, rc:%d", rc ) ;
+         if ( createNew )
+         {
+            if ( SDB_FE != rc )
+            {
+               goto rmall ;
+            }
+            goto rmtriple ;
+         }
+         goto error ;
+      }
+
+      data()->setHMMgr( _pHMMgr ) ;
+      index()->setHMMgr( _pHMMgr ) ;
+      lob()->setHMMgr( _pHMMgr ) ;
+
+      if ( _pHMMgr->needRebuild() )
+      {
+         rc = data()->rebuildHoleMapMask() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "rebuild data hole map failed, rc:%d", rc ) ;
+            if ( createNew )
+            {
+               goto rmall ;
+            }
+            goto error ;
+         }
+
+         rc = index()->rebuildHoleMapMask() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "rebuild index hole map failed, rc:%d", rc ) ;
+            if ( createNew )
+            {
+               goto rmall ;
+            }
+            goto error ;
+         }
+
+         if ( _storageInfo._createLobs )
+         {
+            rc = lob()->rebuildHoleMapMask() ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "rebuild Lob hole map failed, rc:%d", rc ) ;
+               if ( createNew )
+               {
+                  goto rmall ;
+               }
+               goto error ;
+            }
+         }
       }
 
       _storageInfo._createTime = _pDataSu->getCreateTime() ;
@@ -1803,6 +1867,22 @@ namespace engine
          }
       }
       goto rmdata ;
+   rmtriple:
+      {
+         _pLobSu->removeStorageFiles() ;
+      }
+      goto rmboth ;
+   rmall:
+      {
+         INT32 rcTmp = _pHMMgr->removeStorage() ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDWARNING, "Failed to remove cs holeMap file[%s] in "
+                    "rollback, rc: %d", _pHMMgr->getSuFileName(), rcTmp ) ;
+         }
+      }
+      goto rmtriple ;
+
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CLOSE, "_dmsStorageUnit::close" )
@@ -1812,7 +1892,11 @@ namespace engine
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
 
       /// The order is:
-      /// cacheUnit -> lob -> index -> data( must be in last )
+      /// HMMgr -> cacheUnit -> lob -> index -> data( must be in last )
+      if ( _pHMMgr )
+      {
+         _pHMMgr->closeStorage() ;
+      }
       if ( _pCacheUnit )
       {
          _pCacheUnit->fini( cb ) ;
@@ -1840,6 +1924,13 @@ namespace engine
 
       /// The order is:
       /// cacheUnit -> lob -> index -> data( must be in last )
+
+      if ( _pHMMgr )
+      {
+         rc = _pHMMgr->removeStorage() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove collection space[%s] "
+                      "hole map file, rc: %d", CSName(), rc ) ;
+      }
 
       if ( _pCacheUnit )
       {
@@ -1886,7 +1977,7 @@ namespace engine
       CHAR dataFileName[DMS_SU_FILENAME_SZ + 1] = {0} ;
       CHAR idxFileName[DMS_SU_FILENAME_SZ + 1] = {0} ;
 
-      if ( !_pDataSu || !_pIndexSu || !_pLobSu || !_pCacheUnit )
+      if ( !_pDataSu || !_pIndexSu || !_pLobSu || !_pCacheUnit || !_pHMMgr )
       {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Alloc memory failed" ) ;
@@ -1925,6 +2016,19 @@ namespace engine
                    DMS_LOB_DATA_SU_EXT_NAME ) ;
 
       rc = _pLobSu->rename( pNewName, dataFileName, idxFileName ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Rename storage lob failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      /// hole map Mgr
+      ossMemset( dataFileName, 0, sizeof( dataFileName ) ) ;
+      ossSnprintf( dataFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
+                   pNewName,  _storageInfo._sequence,
+                   DMS_HOLEMAP_SU_EXT_NAME ) ;
+
+      rc = _pHMMgr->renameStorage( pNewName, dataFileName ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Rename storage lob failed, rc: %d", rc ) ;
@@ -2005,6 +2109,55 @@ namespace engine
       }
       PD_TRACE_EXITRC ( SDB__DMSSU__RESETCOLLECTION, rc ) ;
       return rc ;
+   }
+
+   INT32 _dmsStorageUnit::shrinkSpace()
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( NULL != _pLobSu && _pLobSu->isOpened() )
+      {
+         _pLobSu->lock() ;
+         rc = _pLobSu->shrinkSpace() ;
+         _pLobSu->unlock() ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Shrink file[%s] space failed, rc: %d",
+                    _pLobSu->getSuFileName(), rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( NULL != _pIndexSu )
+      {
+         _pIndexSu->lock() ;
+         rc = _pIndexSu->shrinkSpace() ;
+         _pIndexSu->unlock() ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Shrink file[%s] space failed, rc: %d",
+                    _pIndexSu->getSuFileName(), rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( NULL != _pDataSu )
+      {
+         _pDataSu->lock() ;
+         rc = _pDataSu->shrinkSpace() ;
+         _pDataSu->unlock() ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Shrink file[%s] space failed, rc: %d",
+                    _pDataSu->getSuFileName(), rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_LDEXTA, "_dmsStorageUnit::loadExtentA" )
@@ -4450,25 +4603,29 @@ namespace engine
 
    void _dmsStorageUnit::setSyncConfig( UINT32 syncInterval,
                                         UINT32 syncRecordNum,
-                                        UINT32 syncDirtyRatio )
+                                        UINT32 syncDirtyRatio,
+                                        UINT32 spaceShrinkTimeout )
    {
       if ( _pLobSu )
       {
          _pLobSu->setSyncConfig( syncInterval,
                                  syncRecordNum,
-                                 syncDirtyRatio ) ;
+                                 syncDirtyRatio,
+                                 spaceShrinkTimeout ) ;
       }
       if ( _pIndexSu )
       {
          _pIndexSu->setSyncConfig( syncInterval,
                                    syncRecordNum,
-                                   syncDirtyRatio ) ;
+                                   syncDirtyRatio,
+                                   spaceShrinkTimeout ) ;
       }
       if ( _pDataSu )
       {
          _pDataSu->setSyncConfig( syncInterval,
                                   syncRecordNum,
-                                  syncDirtyRatio ) ;
+                                  syncDirtyRatio,
+                                  spaceShrinkTimeout ) ;
       }
    }
 
@@ -4734,10 +4891,29 @@ namespace engine
          goto error ;
       }
 
+      ossSnprintf( dataFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
+                   _storageInfo._suName,  _storageInfo._sequence,
+                   DMS_HOLEMAP_SU_EXT_NAME ) ;
+
+      _pHMMgr = SDB_OSS_NEW dmsHoleMapMgr( dataFileName, &_storageInfo ) ;
+      if ( !_pHMMgr )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Create holeMapMgr structure with "
+                 "file[ %s ] failed[ %d ]",
+                 dataFileName, rc ) ;
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__DMSSU__CREATESTORAGEOBJS, rc ) ;
       return rc ;
    error:
+      if ( _pHMMgr )
+      {
+         SDB_OSS_DEL _pHMMgr ;
+         _pHMMgr = NULL ;
+      }
       if ( _pLobSu )
       {
          SDB_OSS_DEL _pLobSu ;

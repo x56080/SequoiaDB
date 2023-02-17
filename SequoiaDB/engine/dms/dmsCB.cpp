@@ -273,6 +273,7 @@ namespace engine
       UINT32       syncInterval = optCB->getSyncInterval() ;
       UINT32       syncRecordNum = optCB->getSyncRecordNum() ;
       UINT32       syncDirtyRatio = optCB->getSyncDirtyRatio() ;
+      UINT32       spaceShrinkTimeout = optCB->getSpaceShrinkTimeout() ;
       BOOLEAN      syncDeep = optCB->isSyncDeep() ;
 
       ossScopedLock _lock( &_mutex, SHARED ) ;
@@ -283,7 +284,7 @@ namespace engine
          if ( NULL != (*itr) )
          {
             _dmsStorageUnit *su = (*itr)->_su ;
-            su->setSyncConfig( syncInterval, syncRecordNum, syncDirtyRatio ) ;
+            su->setSyncConfig( syncInterval, syncRecordNum, syncDirtyRatio, spaceShrinkTimeout ) ;
             su->setSyncDeep( syncDeep ) ;
 
             /// update cache info
