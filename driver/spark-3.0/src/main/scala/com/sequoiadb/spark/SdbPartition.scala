@@ -16,7 +16,7 @@
 
 package com.sequoiadb.spark
 
-import org.apache.spark.Partition
+import org.apache.spark.sql.connector.read.InputPartition
 
 /**
   * A SequoiaDB Partition is a minimum unit of repeatable-read operation
@@ -37,7 +37,7 @@ class SdbPartition(val urls: List[String],
                    val filter: SdbFilter,
                    val mode: PartitionMode,
                    val blocks: List[Int] = List())
-    extends Partition {
+    extends InputPartition {
 
     var index: Int = 0
 

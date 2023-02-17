@@ -17,9 +17,11 @@
 package com.sequoiadb.spark
 
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.{DecimalPrecision, TypeCoercion}
 import org.apache.spark.sql.catalyst.expressions.GenericRow
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 import org.bson.types._
 import org.bson.{BSONObject, BasicBSONObject}
 
@@ -35,7 +37,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.math.min
 
-private[spark] object BSONConverter {
+object BSONConverter {
 
     val EPOCH_DATE: LocalDate = LocalDate.of(1970, 1, 1)
     val DATETIME_FORMAT_PATTERN: String = "yyyy-MM-dd.HH:mm:ss"
@@ -50,6 +52,15 @@ private[spark] object BSONConverter {
     def rowToBson(row: Row, schema: StructType): BSONObject = {
         val attMap: Map[String, Any] = schema.fields.zipWithIndex.map {
             case (att, idx) => (att.name, toBsonObj(row(idx), att.dataType))
+        }.toMap
+        val obj: BSONObject = new BasicBSONObject()
+        obj.putAll(attMap)
+        obj
+    }
+
+    def rowToBson(row: InternalRow, schema: StructType): BSONObject = {
+        val attMap: Map[String, Any] = schema.fields.zipWithIndex.map {
+            case (att, idx) => (att.name, toBsonObj(row.get(idx, att.dataType), att.dataType))
         }.toMap
         val obj: BSONObject = new BasicBSONObject()
         obj.putAll(attMap)
@@ -92,6 +103,7 @@ private[spark] object BSONConverter {
                 case (_: BinaryType, value: Array[Byte]) => new Binary(value)
                 case (_: CalendarIntervalType, _) => null
                 case (_: DateType, value: java.time.LocalDate) => BSONDate.valueOf(value)
+                case (_: StringType, value: UTF8String) => value.toString
                 case _ => v
             }
         }.orNull
@@ -104,12 +116,13 @@ private[spark] object BSONConverter {
       * @param schema the schema of Row
       * @return Row
       */
-    def bsonToRow(obj: BSONObject, schema: StructType, java8Enabled: Boolean): Row = {
+    def bsonToRow(obj: BSONObject, schema: StructType, java8Enabled: Boolean)
+    : InternalRow  = {
         val values: Seq[Any] = schema.fields.map {
             case StructField(name, dataType, _, _) =>
                 Option(obj.get(name)).map(toRowField(_, dataType, java8Enabled)).orNull
         }
-        Row.fromSeq(values)
+        InternalRow.fromSeq(values)
     }
 
     /* consider BSONObject element types
@@ -528,7 +541,7 @@ private[spark] object BSONConverter {
         }
     }
 
-    private def toString(value: Any): String = {
+    private def toString(value: Any): UTF8String = {
         value match {
             //case value: java.lang.Boolean => value.toString
             //case value: java.lang.Float => value.toString
@@ -539,14 +552,18 @@ private[spark] object BSONConverter {
             //case value: java.lang.Long => value.toString
             //case value: java.math.BigInteger => value.toString
             //case value: java.math.BigDecimal => value.toString
-            case value: BSONDecimal => value.getValue
+            case value: BSONDecimal => UTF8String.fromString(value.getValue)
             case value: BSONTimestamp =>
                 val ts = new Timestamp(value.getTime.toLong * 1000)
                 ts.setNanos(value.getInc * 1000)
-                ts.toString
-            case value: java.util.Date => new Date(value.getTime).toString
-            case value: String => value
-            case value: Binary => new String(value.getData, "UTF-8")
+                UTF8String.fromString(ts.toString)
+            case value: java.util.Date =>
+                UTF8String.fromString(
+                    new Date(value.getTime).toString)
+            case value: String => UTF8String.fromString(value)
+            case value: Binary =>
+                UTF8String.fromString(
+                    new String(value.getData, "UTF-8"))
             //case value: UUID => value.toString
             //case value: ObjectId => value.toString
             //case value: BasicBSONList => value.toString
@@ -557,7 +574,7 @@ private[spark] object BSONConverter {
             //case value: Code => value.toString
             //case value: CodeWScope => value.toString
             //case value: Symbol => value.toString
-            case _ => value.toString
+            case _ => UTF8String.fromString(value.toString)
         }
     }
 

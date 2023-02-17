@@ -173,7 +173,9 @@ class SdbRowRDDIterator(sdbConfig: SdbConfig,
 
     override def next(): Row = {
         val obj = sdbCursor.next()
-        BSONConverter.bsonToRow(obj, schema, sdbConfig.java8APIEnabled)
+//        BSONConverter.bsonToRow(obj, schema, sdbConfig.java8APIEnabled)
+        // fix-me: remove v1 read in the future
+        throw new UnsupportedOperationException("v1 code path, it's dead code, should be removed in the future.")
     }
 }
 
