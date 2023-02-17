@@ -869,6 +869,9 @@ mthUpdateTestFiles = [
 bsonBuilderTestFiles = [
       "test/bson/bsonBuilderTest.cpp"
       ]
+bsonIteratorSortedTestFiles = [
+      "test/bson/bsonIteratorSortedTest.cpp"
+]
 gtsTestFiles = [
       "test/dps/dpsGTSTest.cpp"
       ]
@@ -1009,6 +1012,7 @@ ixmgentest = env.Object('ixmgentest', gtestMainFile)
 rtncontexttest = env.Object('rtncontexttest', gtestMainFile)
 mthtest = env.Object('mthtest', gtestMainFile)
 bsonbuildertest = env.Object('bsonbuildertest', gtestMainFile)
+bsoniteratorsortedtest = env.Object('bsoniteratorsortedtest', gtestMainFile)
 gtstest = env.Object( 'gtstest', gtestMainFile )
 sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
@@ -1140,6 +1144,9 @@ if hasTestcase:
    bsonBuilderTest = env.Program( "bsonBuilderTest", [ bsonBuilderTestFiles, bsonbuildertest ],
           LIBDEPS=[ "qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient" ],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   bsonIteratorSortedTest = env.Program( "bsonIteratorSortedTest", [ bsonIteratorSortedTestFiles, bsoniteratorsortedtest ],
+          LIBDEPS=[ "qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1211,6 +1218,7 @@ if hasTestcase:
    env.Install( '#/tests', rtnContextTest )
    env.Install( '#/tests', mthUpdateTest )
    env.Install( '#/tests', bsonBuilderTest )
+   env.Install( '#/tests', bsonIteratorSortedTest )
    env.Install( '#/tests', gtsTest )
    env.Install( '#/tests', construct )
    env.Install( '#/tests', sqlTest2 )
