@@ -118,8 +118,6 @@ namespace engine
    #define PMD_MAX_METACACHE_LWM       (10240)
    #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
-   #define PMD_DFT_SPACESHRINK_TIMEOUT (15)    // 15 days
-   #define PMD_MAX_SPACESHRINK_TIMEOUT (365)
 
    /*
       _pmdCfgExchange implement
@@ -2034,7 +2032,6 @@ done:
       _diagSecureOn = TRUE ;
       _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
       _metacachelwm = PMD_DFT_METACACHE_LWM ;
-      _spaceShrinkTimeout = PMD_DFT_SPACESHRINK_TIMEOUT ;
 
       _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
 
@@ -2607,11 +2604,6 @@ done:
       rdxUInt( pEX, PMD_OPTION_STAT_MCV_LIMIT, _statMCVLimit, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_STAT_MCV_LIMIT, TRUE ) ;
       rdvMinMax( pEX, _statMCVLimit, 0, PMD_MAX_STAT_MCV_LIMIT, TRUE ) ;
-
-      // --space shrink timeout
-      rdxUInt( pEX, PMD_OPTION_SPACESHRINK_TIMEOUT, _spaceShrinkTimeout, FALSE,
-               PMD_CFG_CHANGE_RUN, PMD_DFT_SPACESHRINK_TIMEOUT, FALSE ) ;
-      rdvMinMax( pEX, _spaceShrinkTimeout, 0, PMD_MAX_SPACESHRINK_TIMEOUT, TRUE ) ;
 
       // end map
 

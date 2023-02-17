@@ -695,8 +695,6 @@ namespace engine
                     const CHAR *pSpecCSName = NULL,
                     BOOLEAN block = FALSE ) ;
 
-   INT32 rtnShrinkSpace( pmdEDUCB *cb,  const CHAR *pSpecCSName = NULL ) ;
-
    INT32 rtnTestAndCreateCL ( const CHAR *pCLFullName, pmdEDUCB *cb,
                               _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
                               BOOLEAN sys = TRUE ) ;

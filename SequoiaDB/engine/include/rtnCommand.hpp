@@ -1505,30 +1505,7 @@ namespace engine
       INT32          _syncType ;
       const CHAR     *_csName ;
       BOOLEAN        _block ;
-   } ;
 
-   class _rtnShrinkSpace : public _rtnCommand
-   {
-   DECLARE_CMD_AUTO_REGISTER()
-   public:
-      _rtnShrinkSpace() ;
-      virtual ~_rtnShrinkSpace() ;
-
-   public:
-      virtual const CHAR * name () { return NAME_SHRINK_SPACE ; }
-      virtual RTN_COMMAND_TYPE type() { return CMD_SHRINK_SPACE ; }
-      virtual BOOLEAN writable() { return FALSE ; }
-      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                           const CHAR *pMatcherBuff,
-                           const CHAR *pSelectBuff,
-                           const CHAR *pOrderByBuff,
-                           const CHAR *pHintBuff ) ;
-      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                           INT16 w = 1, INT64 *pContextID = NULL ) ;
-
-   private:
-      const CHAR     *_csName ;
    } ;
 
    class _rtnLoadCollectionSpace : public _rtnCommand

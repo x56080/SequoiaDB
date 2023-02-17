@@ -405,7 +405,6 @@ namespace engine
       _pStorageInfo       = pInfo ;
       _dmsHeader          = NULL ;
       _dmsSME             = NULL ;
-      _dmsHMMgr           = NULL ;
       _dataSegID          = 0 ;
 
       _pageNum            = 0 ;
@@ -444,12 +443,6 @@ namespace engine
       _writeReordNum      = 0 ;
       _lastSyncTime       = 0 ;
       _syncEnable         = TRUE ;
-
-      _spaceShrinkTimeout  = 0 ;
-      _lastShrinkSpaceTick = DMS_TICK_SHRINKSPACE_BASE ;
-      _lastAllocPageTick   = DMS_TICK_SHRINKSPACE_ALLOC ;
-      _lastReleasePageTick = DMS_TICK_SHRINKSPACE_RELEASE ;
-      _lastCommitTimeOffset = 0 ;
    }
 
    _dmsStorageBase::~_dmsStorageBase()
@@ -471,21 +464,13 @@ namespace engine
       _transSupport = supported ;
    }
 
-   void _dmsStorageBase::_setPageNum( UINT32 pageNum )
-   {
-      _pageNum = pageNum ;
-   }
-
    void _dmsStorageBase::setSyncConfig( UINT32 syncInterval,
                                         UINT32 syncRecordNum,
-                                        UINT32 syncDirtyRatio,
-                                        UINT32 spaceShrinkTimeout )
+                                        UINT32 syncDirtyRatio )
    {
       _syncInterval = syncInterval ;
       _syncRecordNum = syncRecordNum ;
       _syncDirtyRatio = syncDirtyRatio ;
-
-      _spaceShrinkTimeout = spaceShrinkTimeout ;
    }
 
    void _dmsStorageBase::setSyncDeep( BOOLEAN syncDeep )
@@ -921,28 +906,11 @@ namespace engine
                  ( _isCrash ? "Invalid" : "Valid" ), _commitFlag,
                  _dmsHeader->_commitLsn,
                  strTime, _dmsHeader->_commitTime ) ;
-
-         {
-            ossTimestamp tv ;
-            ossGetCurrentTime( tv ) ;
-            if ( (UINT64)tv.time > ( _dmsHeader->_commitTime / 1000 ) )
-            {
-               _lastCommitTimeOffset = ( (UINT64)tv.time * 1000 - _dmsHeader->_commitTime ) ;
-            }
-            else
-            {
-               _lastCommitTimeOffset = 0 ;
-            }
-         }
       }
       else
       {
          _dmsHeader->_createTime = ossGetCurrentMilliseconds() ;
          _dmsHeader->_updateTime = _dmsHeader->_createTime ;
-
-         // if SU is new create, do not need to shrinkSpace
-         _lastAllocPageTick = DMS_TICK_SHRINKSPACE_BASE ;
-         _lastCommitTimeOffset = 0 ;
       }
 
       // SME, 16MB
@@ -1068,13 +1036,6 @@ namespace engine
          goto error ;
       }
       _dirtyList.setSize( segmentSize() - _dataSegID ) ;
-
-      // if had hole map mark storageInfo
-      _pStorageInfo->_hadShrinkSpace |= _dmsHeader->_hasHoleMap ;
-      if ( _dmsHeader->_createLobs )
-      {
-         _pStorageInfo->_createLobs = _dmsHeader->_createLobs ;
-      }
 
       rc = _onOpened() ;
       if ( rc )
@@ -1298,399 +1259,6 @@ namespace engine
       return rc ;
    }
 
-   void _dmsStorageBase::setHMMgr ( IHoleMapMgr* pHMMgr )
-   {
-      _dmsHMMgr = pHMMgr ;
-   }
-
-   BOOLEAN _dmsStorageBase::canShrinkSpace() const
-   {
-      UINT64 curTick       = 0 ;
-      UINT64 spanTime      = 0 ;
-      UINT32 segPageNum    = 0 ;
-      UINT32 blockPageNum  = 0 ;
-      UINT32 pageNum       = 0 ;
-      dmsExtentID validPage = 0 ;
-
-      pageNum = this->pageNum() ;
-      _calcPageThreshold( segPageNum, blockPageNum ) ;
-
-      // do not open spaceShrink function
-      if ( 0 == _spaceShrinkTimeout )
-      {
-         return FALSE ;
-      }
-
-      // do not meet the conditions
-      // 1. This is a new CS
-      // 2. Last released page time is before last shrink time, do not need to shrink
-      // 3. The span time form now to lastAlloc time is smaller than the setting time
-      curTick = pmdGetDBTick() ;
-      spanTime = pmdDBTickSpan2Time( curTick - _lastAllocPageTick ) ;
-      if ( DMS_TICK_SHRINKSPACE_ALLOC == _lastAllocPageTick )
-      {
-         UINT64 tempTime = 0 ;
-         if ( ( _lastCommitTimeOffset + DMS_MICSEC_START_PROTECT ) >
-              ( (UINT64)_spaceShrinkTimeout * DMS_MICSEC_OF_DAY ) )
-         {
-            tempTime = ( (UINT64)_spaceShrinkTimeout * DMS_MICSEC_OF_DAY ) -
-                         DMS_MICSEC_START_PROTECT ;
-         }
-         else
-         {
-            tempTime = _lastCommitTimeOffset ;
-         }
-         spanTime += tempTime ;
-      }
-
-      if ( DMS_TICK_SHRINKSPACE_BASE == _lastAllocPageTick ||
-           _lastReleasePageTick < _lastShrinkSpaceTick ||
-           spanTime < ( (UINT64)_spaceShrinkTimeout * DMS_MICSEC_OF_DAY ) )
-      {
-         return FALSE ;
-      }
-
-      // whether can we truncate the file
-      _smeMgr.getLastValidPage( validPage ) ;
-      // change to the next free page
-      if ( DMS_INVALID_EXTENT == validPage )
-      {
-         validPage = 0 ;
-      }
-      else
-      {
-         validPage = validPage + 1 ;
-      }
-      if ( pageNum > (UINT32)validPage && ( pageNum - validPage ) > segPageNum )
-      {
-         return TRUE ;
-      }
-
-      // whether can we punch hole at the file
-      if ( !ossEnvCanPunchHole() )
-      {
-         return FALSE ;
-      }
-
-      if ( _smeMgr.hasFreePage( blockPageNum ) )
-      {
-         return TRUE ;
-      }
-
-      return FALSE ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_SHRINKSPACE, "_dmsStorageBase::shrinkSpace" )
-   INT32 _dmsStorageBase::shrinkSpace()
-   {
-      INT32 rc             = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_SHRINKSPACE ) ;
-      UINT64 beginTick     = pmdGetDBTick() ;
-      UINT32 segPageNum    = 0 ;
-      UINT32 blockPageNum  = 0 ;
-
-      _smeMgr.lock() ;
-      _calcPageThreshold( segPageNum, blockPageNum ) ;
-
-      rc = _shrinkSegment( segPageNum ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to shrinkSegment, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      // support punch hole mode to shrink space
-      if ( ossEnvCanPunchHole() )
-      {
-         rc = _shrinkHole( blockPageNum ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to shrinkHole, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-
-      if ( FALSE == _dmsHeader->_hasHoleMap )
-      {
-         _pStorageInfo->_hadShrinkSpace = TRUE ;
-         _dmsHeader->_hasHoleMap = TRUE ;
-         _onHeaderUpdated() ;
-         flushHeader( TRUE ) ;
-      }
-
-   done:
-      _smeMgr.unlock() ;
-      if ( SDB_OK == rc )
-      {
-         _lastShrinkSpaceTick = pmdGetDBTick() ;
-
-         PD_LOG( PDEVENT, "Shrink file[%s] space, "
-                 "cost(ms): %llu", _suFileName,
-                 pmdGetTickSpanTime( beginTick ) ) ;
-      }
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE_SHRINKSPACE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_SHRINKSEGMENT, "_dmsStorageBase::_shrinkSegment" )
-   INT32 _dmsStorageBase::_shrinkSegment( UINT32 segPageNum )
-   {
-      INT32 rc             = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_SHRINKSEGMENT ) ;
-      UINT64 fileSize      = 0 ;
-      UINT32 pageSz        = 0 ;
-      UINT32 pageNum       = 0 ;
-      dmsExtentID validPage = DMS_INVALID_EXTENT ;
-
-      pageSz = pageSize() ;
-      pageNum = this->pageNum() ;
-
-      rc = _smeMgr.getLastValidPage( validPage, FALSE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get lastValidPage, rc: %d", rc ) ;
-         goto error ;
-      }
-      // change to the next free page
-      if ( DMS_INVALID_EXTENT == validPage )
-      {
-         validPage = 0 ;
-      }
-      else
-      {
-         validPage = validPage + 1 ;
-      }
-
-      rc = ossMmapFile::size ( fileSize ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
-                  _fullPathName, rc ) ;
-         goto error ;
-      }
-
-      if ( ( fileSize - _dataOffset() - (UINT64)validPage * pageSz ) <
-           ( (UINT64)segPageNum * pageSz ) )
-      {
-         goto done ;
-      }
-
-      {
-         INT32 segmentID      = 0 ;
-         INT32 truncatePage   = 0 ;
-         INT32 truncateNum    = 0 ;
-         UINT64 truncateOffset = 0 ;
-         // get the ceil of segmentID
-         segmentID = validPage / segPageNum +
-                     ( ( validPage % segPageNum ) > 0 ? 1 : 0 ) ;
-
-         // 1 truncate SME free page
-         truncatePage = segmentID * segPageNum ;
-         truncateNum = (INT32)pageNum - truncatePage ;
-         if ( 0 >= truncateNum )
-         {
-            goto done ;
-         }
-         rc = _smeMgr.truncateSegments( truncatePage, FALSE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to truncate segment pages, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         // 2 truncate memory map free space
-         truncateOffset = (UINT64)truncatePage * pageSz ;
-         rc = truncateMap( truncateOffset + _dataOffset() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to truncate mmap, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         // 3 truncate file size
-         rc = _fileTruncate( truncateOffset ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to truncate file, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         // 4 modify the header info and clear holeMap mask
-         _dmsHeader->_storageUnitSize -= truncateNum ;
-         _dmsHeader->_pageNum -= truncateNum ;
-         _pageNum = _dmsHeader->_pageNum ;
-
-         rc = _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), truncatePage,
-                                           truncateNum ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to clear holeMap Mask file, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE_SHRINKSEGMENT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_SHRINKHOLE, "_dmsStorageBase::_shrinkHole" )
-   INT32 _dmsStorageBase::_shrinkHole( UINT32 blockPageNum )
-   {
-      INT32 rc             = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_SHRINKHOLE ) ;
-      ossPoolVector<_dmsSMESpaceNode> freePages ;
-      ossPoolVector<_dmsFileSpaceNode> vOffset ;
-      INT32 rcTmp          = SDB_OK ;
-
-      rc = _smeMgr.getFreePages( blockPageNum, freePages, FALSE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get free pages, rc: %d", rc ) ;
-         goto error ;
-      }
-      if ( 0 >= freePages.size() )
-      {
-         goto done ;
-      }
-
-      _dmsHMMgr->setHoleMapMask( _getStorageFileType(), freePages, vOffset ) ;
-
-      for ( UINT32 idx = 0 ; idx < vOffset.size() ; idx++ )
-      {
-         if ( 0 == vOffset[idx].length )
-         {
-            continue ;
-         }
-         rcTmp = _fileFallocate( OSS_FALLOC_FL_PUNCH_HOLE | OSS_FALLOC_FL_KEEP_SIZE,
-                                 vOffset[idx].start , vOffset[idx].length ) ;
-         if ( rcTmp )
-         {
-            PD_LOG( PDWARNING, "Failed to deallocate space, rc: %d", rcTmp ) ;
-            break ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE_SHRINKHOLE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_REBUILDHOLEMAPMASK, "_dmsStorageBase::rebuildHoleMapMask" )
-   INT32 _dmsStorageBase::rebuildHoleMapMask()
-   {
-      INT32 rc          = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE_REBUILDHOLEMAPMASK ) ;
-      ossPoolVector<_dmsSMESpaceNode> freePages ;
-      ossPoolVector<_dmsFileSpaceNode> vOffset ;
-      UINT32 segPageNum = 0 ;
-      UINT32 blockPageNum = 0 ;
-
-      _calcPageThreshold( segPageNum, blockPageNum ) ;
-      _smeMgr.lock() ;
-
-      rc = _dmsHMMgr->resetHoleMapMask( _getStorageFileType() ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to reset holeMap Mask, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      // rebuld file holeMap mask
-      rc = _smeMgr.getFreePages( blockPageNum, freePages, FALSE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get freePages, rc: %d", rc ) ;
-         goto error ;
-      }
-      if ( 0 >= freePages.size() )
-      {
-         goto done ;
-      }
-
-      rc = _dmsHMMgr->setHoleMapMask( _getStorageFileType(), freePages, vOffset ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to rebuild holeMap Mask, rc: %d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      _smeMgr.unlock() ;
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEBASE_REBUILDHOLEMAPMASK, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__ENSURESPACECANWRITE, "_dmsStorageBase::_ensureSpaceCanWrite" )
-   INT32 _dmsStorageBase::_ensureSpaceCanWrite( INT32 foundPageStart, INT32 foundPageNum )
-   {
-      INT32 rc       = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__ENSURESPACECANWRITE ) ;
-      INT64 offset   = 0 ;
-      INT64 length   = 0 ;
-
-      if ( !_dmsHeader->_hasHoleMap )
-      {
-         goto done ;
-      }
-
-      rc = _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), foundPageStart,
-                                        foundPageNum, &offset, &length ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to clear hole map mask, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      if ( 0 != length )
-      {
-         rc = _fileFallocate( OSS_FALLOC_FL_ALLOC_SPACE, offset, length ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to alloc space for write need to rollback mask,"
-                    " rc: %d", rc ) ;
-            goto resetmask ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEBASE__ENSURESPACECANWRITE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   resetmask:
-      _dmsHMMgr->setHoleMapMask( _getStorageFileType(), foundPageStart,
-                                 foundPageNum ) ;
-      goto error ;
-   }
-
-   void _dmsStorageBase::_calcPageThreshold( UINT32 &segPageNum, UINT32 &blockPageNum ) const
-   {
-      UINT32 pageSz = 0 ;
-
-      segPageNum  = segmentPages() ;
-      pageSz      = pageSize() ;
-      blockPageNum = DMS_FILEHOLE_BLOCK_SZ / pageSz ;
-   }
-
-   INT32 _dmsStorageBase::_fileTruncate( UINT64 truncateSize )
-   {
-      return ossTruncateFile( &_file, truncateSize + _dataOffset() ) ;
-   }
-
-   INT32 _dmsStorageBase::_fileFallocate( UINT32 mode, UINT64 offset, UINT64 size )
-   {
-      return ossFallocate( &_file, mode, offset + _dataOffset(), size ) ;
-   }
-
    INT32 _dmsStorageBase::_postOpen( INT32 cause )
    {
       INT32 rc = SDB_OK ;
@@ -1851,7 +1419,6 @@ namespace engine
       pHeader->_commitTime = 0 ;
       pHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
       pHeader->_idxInnerHWM = 0 ;
-      pHeader->_hasHoleMap = 0 ;
    }
 
    INT32 _dmsStorageBase::_checkPageSize( dmsStorageUnitHeader * pHeader )
@@ -2376,12 +1943,6 @@ namespace engine
 
          if ( DMS_INVALID_EXTENT != foundPage )
          {
-            rc = _ensureSpaceCanWrite( foundPage, numPages ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            _lastAllocPageTick = pmdGetDBTick() ;
             break ;
          }
 
@@ -2473,10 +2034,7 @@ namespace engine
 
    INT32 _dmsStorageBase::_releaseSpace( SINT32 pageStart, UINT16 numPages )
    {
-
       INT32 rc = SDB_OK ;
-      _lastReleasePageTick = pmdGetDBTick() ;
-
       rc = _smeMgr.releasePages( pageStart, numPages ) ;
       if ( SDB_OK == rc )
       {

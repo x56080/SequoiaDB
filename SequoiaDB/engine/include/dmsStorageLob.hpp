@@ -171,11 +171,6 @@ namespace engine
 
       virtual void decWritePtrCount( INT32 collectionID ) ;
 
-   protected:
-      virtual INT32 _shrinkSegment( UINT32 segPageNum ) ;
-      virtual void  _calcPageThreshold( UINT32 &segPageNum, UINT32 &blockPageNum ) const ;
-      virtual INT32 _fileFallocate( UINT32 mode, UINT64 offset, UINT64 size ) ;
-
    public:
       /// get the segment pages of lobd
      OSS_INLINE UINT32 dataSegmentPages() const ;
@@ -239,7 +234,6 @@ namespace engine
       virtual UINT64 _dataOffset() ;
       virtual INT32  _extendSegments( UINT32 numSeg ) ;
       virtual const CHAR* _getEyeCatcher() const ;
-      virtual const INT32 _getStorageFileType() const ;
       virtual UINT32 _curVersion() const ;
       virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) ;
       virtual void   _onClosed() ;

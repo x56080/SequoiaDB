@@ -2068,8 +2068,6 @@ namespace sdbclient
 
       INT32 syncDB( const bson::BSONObj &options = _sdbStaticObject ) ;
 
-      INT32 shrinkSpace( const bson::BSONObj &options = _sdbStaticObject ) ;
-
       INT32 analyze( const bson::BSONObj &options = _sdbStaticObject ) ;
 
       INT32 forceSession( SINT64 sessionID,

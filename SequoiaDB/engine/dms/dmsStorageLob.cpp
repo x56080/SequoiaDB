@@ -383,7 +383,6 @@ namespace engine
 
       // set data header
       _dmsData->updateCreateLobs( 1 ) ;
-      _pStorageInfo->_createLobs = TRUE ;
 
    done:
       _delayOpenLatch.release() ;
@@ -2056,11 +2055,6 @@ namespace engine
       return DMS_LOBM_EYECATCHER ;
    }
 
-   const INT32 _dmsStorageLob::_getStorageFileType() const
-   {
-      return DMS_FILE_LOB ;
-   }
-
    UINT32 _dmsStorageLob::_curVersion() const
    {
       return DMS_LOB_CUR_VERSION ;
@@ -2658,115 +2652,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_SHRINKSEGMENT, "_dmsStorageLob::_shrinkSegment" )
-   INT32 _dmsStorageLob::_shrinkSegment( UINT32 segPageNum )
-   {
-      INT32 rc             = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGELOB_SHRINKSEGMENT ) ;
-      UINT32 dataPageSz    = 0 ;
-      UINT32 pageNum       = 0 ;
-      dmsExtentID validPage = DMS_INVALID_EXTENT ;
-      dmsSMEMgr *_smeMgr    = getSMEMgr() ;
-      INT32 truncatePage    = 0 ;
-      INT32 truncateNum     = 0 ;
-
-      dataPageSz = _data.pageSize() ;
-      pageNum = this->pageNum() ;
-
-      // get the last validPageID which had data
-      rc = _smeMgr->getLastValidPage( validPage, FALSE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get lastValidPage, rc: %d", rc ) ;
-         goto error ;
-      }
-      // validpage change to the next free page
-      if ( DMS_INVALID_EXTENT == validPage )
-      {
-         validPage = 0 ;
-      }
-      else
-      {
-         validPage = validPage + 1 ;
-      }
-
-      if ( ( pageNum - validPage ) < segPageNum )
-      {
-         goto done ;
-      }
-
-      // shrink LOBD segment space
-      {
-         INT32 segmentID = 0 ;
-         UINT64 truncateOffset = 0 ;
-         // get the ceil of segmentID
-         segmentID = validPage / segPageNum +
-                     ( ( validPage % segPageNum ) > 0 ? 1 : 0 ) ;
-
-         // 1 truncate SME free page
-         truncatePage = segmentID * segPageNum ;
-         truncateNum = (INT32)pageNum - truncatePage ;
-         if ( 0 >= truncateNum )
-         {
-            goto done ;
-         }
-         rc = _smeMgr->truncateSegments( truncatePage, FALSE ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to truncate segment pages, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         // 2 truncate lobd file size
-         truncateOffset = (UINT64)truncatePage * dataPageSz ;
-         rc = _data._fileTruncate( truncateOffset ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to truncate file, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         rc = _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), truncatePage,
-                                           truncateNum ) ;
-      }
-
-      // shrink LOBM segment space
-      {
-         UINT32 metaSegPage = segmentPages() ;
-         rc = _dmsStorageBase::_shrinkSegment( metaSegPage ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "failed to shrink lobm segment, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-
-      truncateNum = this->pageNum() - truncatePage ;
-      _dmsHeader->_storageUnitSize -= truncateNum ;
-      _dmsHeader->_pageNum -= truncateNum ;
-      _setPageNum(_dmsHeader->_pageNum ) ;
-
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGELOB_SHRINKSEGMENT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void _dmsStorageLob::_calcPageThreshold( UINT32 &segPageNum, UINT32 &blockPageNum ) const
-   {
-      UINT32 dataPageSz = 0 ;
-
-      segPageNum  = _getDataSegmentPages() ;
-      dataPageSz  = _data.pageSize() ;
-      blockPageNum = DMS_FILEHOLE_BLOCK_SZ / dataPageSz ;
-   }
-
-   INT32 _dmsStorageLob::_fileFallocate( UINT32 mode, UINT64 offset, UINT64 size )
-   {
-      return _data._fileFallocate( mode, offset , size ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_READPAGE, "_dmsStorageLob::readPage" )
