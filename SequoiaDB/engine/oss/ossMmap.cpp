@@ -257,6 +257,39 @@ error :
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_TRUNCATEMAP, "_ossMmapFile::truncateMap" )
+INT32 _ossMmapFile::truncateMap ( UINT64 offset )
+{
+   INT32 rc    = SDB_OK ;
+   PD_TRACE_ENTRY ( SDB__OSSMMF_TRUNCATEMAP ) ;
+   SDB_ASSERT ( _opened, "file is not opened" ) ;
+
+   for ( INT32 pos = _size - 1 ; pos > 0 ; pos-- )
+   {
+      if ( _pSegArray[pos]._offset < offset )
+      {
+         break ;
+      }
+      else
+      {
+         _size-- ;
+
+#if defined (_LINUX)
+         munmap((void*)(_pSegArray[pos]._ptr), _pSegArray[pos]._length) ;
+#elif defined (_WINDOWS)
+         if ( _pSegArray[pos]._maphandle )
+         {
+            CloseHandle ( _pSegArray[pos]._maphandle ) ;
+         }
+         UnmapViewOfFile((LPCVOID)(_pSegArray[pos]._ptr)) ;
+#endif
+      }
+   }
+
+   PD_TRACE_EXITRC ( SDB__OSSMMF_TRUNCATEMAP, rc );
+   return rc ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_FLHALL, "_ossMmapFile::flushAll" )
 INT32 _ossMmapFile::flushAll ( BOOLEAN sync )
 {

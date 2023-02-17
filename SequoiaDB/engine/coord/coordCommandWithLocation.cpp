@@ -327,6 +327,99 @@ namespace engine
       goto done ;
    }
 
+
+   /*
+      _coordCMDShrinkSpace implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDShrinkSpace,
+                                      CMD_NAME_SHRINK_SPACE,
+                                      TRUE ) ;
+   _coordCMDShrinkSpace::_coordCMDShrinkSpace()
+   {
+   }
+
+   _coordCMDShrinkSpace::~_coordCMDShrinkSpace()
+   {
+   }
+
+   void _coordCMDShrinkSpace::_preSet( pmdEDUCB *cb,
+                                       coordCtrlParam &ctrlParam )
+   {
+      ctrlParam._isGlobal = TRUE ;
+      ctrlParam._filterID = FILTER_ID_MATCHER ;
+      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
+   }
+
+   UINT32 _coordCMDShrinkSpace::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_NODE_SELECT|COORD_CTRL_MASK_ROLE ;
+   }
+
+   INT32 _coordCMDShrinkSpace::_preExcute( MsgHeader *pMsg,
+                                           pmdEDUCB *cb,
+                                           coordCtrlParam &ctrlParam,
+                                           SET_RC &ignoreRCList )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pQuery = NULL ;
+      CHAR *pNewMsg = NULL ;
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                            &pQuery, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Extract message failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         const CHAR *csName = NULL ;
+         BSONObj obj( pQuery ) ;
+         BSONElement e = obj.getField( FIELD_NAME_COLLECTIONSPACE ) ;
+         if ( String == e.type() )
+         {
+            csName = e.valuestr() ;
+         }
+         else if ( !e.eoo() )
+         {
+            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
+                    FIELD_NAME_COLLECTIONSPACE, obj.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( csName )
+         {
+            rc = _getCSGrps( csName, cb, ctrlParam ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Get collectionspace[%s] group info "
+                       "failed, rc: %d", csName, rc ) ;
+               goto error ;
+            }
+
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      if ( pNewMsg )
+      {
+         msgReleaseBuffer( pNewMsg, cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _coordCmdLoadCS implement
    */

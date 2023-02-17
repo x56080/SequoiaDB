@@ -4760,6 +4760,77 @@ error:
       goto done ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnShrinkSpace )
+   _rtnShrinkSpace::_rtnShrinkSpace()
+   {
+      _csName = NULL ;
+   }
+
+   _rtnShrinkSpace::~_rtnShrinkSpace()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNSHRINKSPACE_INIT, "_rtnShrinkSpace::init" )
+   INT32 _rtnShrinkSpace::init ( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR *pMatcherBuff,
+                                 const CHAR *pSelectBuff,
+                                 const CHAR *pOrderByBuff,
+                                 const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj matcher( pMatcherBuff ) ;
+         BSONElement e = matcher.getField( FIELD_NAME_COLLECTIONSPACE ) ;
+         if ( String == e.type() )
+         {
+            _csName = e.valuestr() ;
+         }
+         else if ( !e.eoo() )
+         {
+            PD_LOG( PDERROR, "Param[%s] is invalid in obj[%s]",
+                    FIELD_NAME_COLLECTIONSPACE, matcher.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNSHRINKSPACE_DOIT, "_rtnShrinkSpace::doit" )
+   INT32 _rtnShrinkSpace::doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                 _SDB_RTNCB *rtnCB, _dpsLogWrapper *d,
+                                 INT16 w, INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNSHRINKSPACE_DOIT ) ;
+
+      rc = rtnShrinkSpace( cb, _csName ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to shrink space at collectionSpcae[%s],rc: %d", _csName, rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNSHRINKSPACE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnLoadCollectionSpace )
    _rtnLoadCollectionSpace::_rtnLoadCollectionSpace()
    : _csName( NULL ),
