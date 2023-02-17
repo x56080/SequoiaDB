@@ -1647,37 +1647,69 @@ namespace bson {
     }
 
     BSONObjIteratorSorted::BSONObjIteratorSorted( const BSONObj& o ) {
-        _fields = 0;
-        _nfields = o.nFields();
-        if ( _nfields <= BSONOBJITERSORTED_DFTFIELDS )
+        _fields = 0 ;
+        int cur = 0 ;
+        BSONElement e ;
+        BSONObjIterator i( o ) ;
+        for ( ; cur < BSONOBJITERSORTED_DFTFIELDS ; ++cur )
         {
-           _fields = &_staticFields[0] ;
+            e = i.next() ;
+            if ( e.eoo() )
+                break ;
+            _staticFields[cur] = e.rawdata() ;
+            assert( _staticFields[cur] ) ;
+        }
+
+        // Parse elements over 100
+        if ( ! e.eoo() )
+        {
+            BSONObjIterator ti = i ;
+            while ( ti.moreWithEOO() )
+            {
+                e = ti.next() ;
+                if ( e.eoo() )
+                    break ;
+                ++cur ;
+            }
+        }
+        _nfields = cur ;
+
+        // e's field is over 100
+        if ( _nfields > BSONOBJITERSORTED_DFTFIELDS )
+        {
+            _fields = new const char*[_nfields] ;
+            memcpy( _fields, &_staticFields[0], sizeof(_staticFields) ) ;
+
+            cur = BSONOBJITERSORTED_DFTFIELDS ;
+            while ( i.moreWithEOO() )
+            {
+                e = i.next() ;
+                if ( e.eoo() )
+                    break ;
+                _fields[cur++] = e.rawdata() ;
+                assert( _fields[cur-1] ) ;
+            }
         }
         else
         {
-           _fields = new const char*[_nfields];
+            _fields = &_staticFields[0] ;
         }
-        int x = 0;
-        BSONObjIterator i( o );
-        while ( i.more() && x < _nfields ) {
-            _fields[x++] = i.next().rawdata() ;
-            assert( _fields[x-1] );
-        }
+
         if ( i.more() )
         {
            // more elements after eoo, we need to throw exception
            // release fields first
            if ( _fields != &_staticFields[0] )
            {
-               delete[] _fields;
+               delete[] _fields ;
            }
-           _fields = 0;
+           _fields = 0 ;
            massert( 10337, "Invalid BSONObj with more data after EOO",
-                    false );
+                    false ) ;
         }
-        assert( x == _nfields );
-        qsort( _fields , _nfields , sizeof(char*) , BSONElementFieldSorter );
-        _cur = 0;
+        assert( cur == _nfields ) ;
+        qsort( _fields , _nfields , sizeof(char*) , BSONElementFieldSorter ) ;
+        _cur = 0 ;
     }
 
     /** transform a BSON array into a vector of BSONElements.
