@@ -119,6 +119,7 @@ namespace engine
 #define NAME_ALTER_COLLECTION_SPACE          CMD_NAME_ALTER_COLLECTION_SPACE
 #define NAME_ALTER_DC                        CMD_NAME_ALTER_DC
 #define NAME_SYNC_DB                         CMD_NAME_SYNC_DB
+#define NAME_SHRINK_SPACE                    CMD_NAME_SHRINK_SPACE
 #define NAME_POP                             CMD_NAME_POP
 #define NAME_RELOAD_CONFIG                   CMD_NAME_RELOAD_CONFIG
 #define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
@@ -305,6 +306,8 @@ namespace engine
       CMD_SNAPSHOT_INDEXSTATS                = 256,
 
       CMD_INVALIDATE_DATASOURCE_CACHE        = 257,
+
+      CMD_SHRINK_SPACE                       = 258,
 
       CMD_CREATE_SEQUENCE                    = 260,
       CMD_DROP_SEQUENCE                      = 261,

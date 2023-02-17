@@ -765,6 +765,17 @@ namespace engine
          return rc ;
       }
 
+      // init ossEnvInfo
+      rc = getOssEnvInfo()->init( pmdGetOptionCB()->getDbPath(),
+                                  pmdGetOptionCB()->getIndexPath(),
+                                  pmdGetOptionCB()->getLobMetaPath(),
+                                  pmdGetOptionCB()->getLobMetaPath() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init ossEnv, rc: %d", rc ) ;
+         goto error ;
+      }
+
       std::cout << "Begin to restore... " << std::endl ;
       // start restore task
       rc = startRestoreJob( &agentEDU, &restoreLogger ) ;

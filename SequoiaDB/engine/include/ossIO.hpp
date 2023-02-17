@@ -124,6 +124,22 @@
 // rwxr-xr-x
 #define OSS_DEFAULTDIR    (OSS_RWXU | OSS_RG | OSS_XG | OSS_RO | OSS_XO )
 
+/*
+ * fallocate function is a nonportable, Linux-specific system call.
+ * In Windows environment do not support this function
+*/
+   #define OSS_FALLOC_FL_ALLOC_SPACE   0x00
+#ifdef FALLOC_FL_KEEP_SIZE
+   #define OSS_FALLOC_FL_KEEP_SIZE     FALLOC_FL_KEEP_SIZE
+#else
+   #define OSS_FALLOC_FL_KEEP_SIZE     0x01
+#endif
+#ifdef FALLOC_FL_PUNCH_HOLE
+   #define OSS_FALLOC_FL_PUNCH_HOLE    FALLOC_FL_PUNCH_HOLE
+#else
+   #define OSS_FALLOC_FL_PUNCH_HOLE    0x02
+#endif
+
 class _OSS_FILE : public SDBObject
 {
 public :

@@ -53,6 +53,23 @@ using namespace std ;
 namespace engine
 {
 
+   struct _dmsSMESpaceNode
+   {
+      INT32 start ;
+      INT32 length ;
+
+      _dmsSMESpaceNode()
+      {
+         start = 0 ;
+         length = 0 ;
+      }
+      _dmsSMESpaceNode( INT32 st, INT32 len )
+      {
+         start = st ;
+         length = len ;
+      }
+   } ;
+
    typedef UINT32 _dmsSegmentNode ; // high: start, low: size
 
    #define DMS_SEGMENT_NODE_GETSTART(x)   ((UINT16)((x)>>16))
@@ -93,8 +110,14 @@ namespace engine
       INT32 releasePages ( dmsExtentID start, UINT16 numPages,
                            BOOLEAN bitSet = TRUE ) ;
       INT32 appendPages ( UINT16 numPages ) ;
+      BOOLEAN hasFreePage ( UINT32 pageNumThreshold ) const ;
+      INT32 getFreePages ( UINT32 pageNumThreshold,
+                           ossPoolVector<_dmsSMESpaceNode> &freePages ) ;
+      INT32 getLastValidPage ( dmsExtentID &lastValidPage ) const ;
+      INT32 truncatePages ( dmsExtentID pageEnd, UINT32 &rmNum ) ;
 
       UINT16 totalFree() ;
+      UINT16 currentSize() ;
 
    private :
       INT32 _releasePages ( dmsExtentID start, UINT16 numPages,
@@ -146,8 +169,33 @@ namespace engine
       // segment space.
       INT32 appendPages ( dmsExtentID start, UINT16 numPages ) ;
 
+      // whether SME has a free node is greater than giving threshold
+      BOOLEAN hasFreePage ( UINT32 pageNumThreshold ) const ;
+
+      // get all free pages. Find out all free node from all _dmsSegmentNode
+      // that free pages num is greater than giving threshold
+      INT32 getFreePages ( UINT32 pageNumThreshold,
+                           ossPoolVector<_dmsSMESpaceNode> &freePages,
+                           BOOLEAN needLock = TRUE ) ;
+
+      // get the last page'ID that had been used from tail.
+      INT32 getLastValidPage ( dmsExtentID &lastValidPage,
+                               BOOLEAN needLock = TRUE ) const ;
+
+      INT32 truncateSegments ( dmsExtentID pageEnd, BOOLEAN needLock = TRUE ) ;
+
       UINT32 segmentNum () ;
       UINT32 totalFree () const ;
+
+      OSS_INLINE void lock()
+      {
+         _mutex.lock_w() ;
+      }
+
+      OSS_INLINE void unlock()
+      {
+         _mutex.release_w() ;
+      }
 
    } ;
    typedef class _dmsSMEMgr dmsSMEMgr ;
