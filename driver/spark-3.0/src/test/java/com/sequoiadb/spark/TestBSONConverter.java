@@ -18,7 +18,10 @@ package com.sequoiadb.spark;
 
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.Row$;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.InternalRow$;
 import org.apache.spark.sql.types.*;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.*;
@@ -405,14 +408,14 @@ public class TestBSONConverter {
         Timestamp ts = new Timestamp(((long) bsonTimestampVal.getTime() * 1000));
         ts.setNanos(bsonTimestampVal.getInc() * 1000);
 
-        Row expectedRow = Row$.MODULE$.apply(JavaConversions.asScalaBuffer(Arrays.asList(
+        InternalRow expectedRow = InternalRow$.MODULE$.apply(JavaConversions.asScalaBuffer(Arrays.asList(
             new Object[]{
                 trueVal, byteVal, shortVal, intVal, longVal, floatVal, doubleVal,
                 Decimal.apply(bigIntVal),
                 Decimal.apply(bigDecimalVal),
                 Decimal.apply(bsonDecimalVal.toBigDecimal()),
                 null,
-                strVal,
+                UTF8String.fromString(strVal),
                 new java.sql.Date(dateVal.getTime()),
                 ts,
                 binaryVal.getData()
@@ -421,7 +424,7 @@ public class TestBSONConverter {
 
         StructType schema = (StructType) BSONConverter.typeOfData(obj);
 
-        Row row = BSONConverter.bsonToRow(obj, schema, false);
+        InternalRow row = BSONConverter.bsonToRow(obj, schema, false);
 
         assertEquals(expectedRow, row);
 
@@ -468,13 +471,13 @@ public class TestBSONConverter {
             ))
         );
 
-        Row expectedRow = Row$.MODULE$.apply(
+        InternalRow expectedRow = InternalRow$.MODULE$.apply(
             JavaConversions.asScalaBuffer(Arrays.asList(
                 new Object[]{arrayBuffer}
             ))
         );
 
-        Row row = BSONConverter.bsonToRow(obj, schema, false);
+        InternalRow row = BSONConverter.bsonToRow(obj, schema, false);
 
         assertEquals(expectedRow, row);
 
