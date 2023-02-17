@@ -2968,6 +2968,11 @@ namespace engine
       return _restoreCSCBFromTmpList( csName ) ;
    }
 
+   INT32 _SDB_DMSCB::moveCSToDeleting( const CHAR *csName )
+   {
+      return _moveCSCB2TmpList( csName, DMS_CSCB_STATUS_DELETING ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_RTRNCSP1, "_SDB_DMSCB::returnCollectionSpaceP1" )
    INT32 _SDB_DMSCB::returnCollectionSpaceP1( dmsReturnOptions &options,
                                               _pmdEDUCB *cb,
