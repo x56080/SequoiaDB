@@ -1,11 +1,11 @@
 
 ##NAME##
 
-read - Read file.
+read - read file
 
 ##SYNOPSIS##
 
-***File.read( \[size\] )***
+**File.read(\[size\])**
 
 ##CATEGORY##
 
@@ -13,34 +13,48 @@ File
 
 ##DESCRIPTION##
 
-Read file.
+This function is used to read the specified text file.
 
 ##PARAMETERS##
 
-| Name   | Type     | Default | Description | Required or not |
-| ------ | -------- | ------- | ----------  | --------------- |
-| size   | int      | default to read the entire contents of the current file cursor | the number of bytes requested to be read | not |
+size ( *number, optional* )
+
+Starting from the current file cursor position, the number of bytes to be read, and the default value is 1024.
+
 ##RETURN VALUE##
 
-On success, the number of bytes read is returned, and the file position is advanced by this number.
+When the function executes successfully, it will return the read file content.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v3.2 and above
 
 ##EXAMPLSES##
 
-* Open a file and get a file descriptor
+- Read 1024 bytes from file `file` starting at the cursor position.
 
-```lang-javascript
-> var file = new File( "/opt/sequoiadb/file.txt" )
-```
+    ```lang-javascript
+    > var file = new File("/opt/sequoiadb/file")
+    > file.read()
+    ```
 
-* Read the contents of the file
+- Used with [getSize][getSize] to read all content after the cursor position of file `file`.
 
-```lang-javascript
-> file.read()
-SquoiaDB
-```
+    ```lang-javascript
+    > var file = new File("/opt/sequoiadb/file")
+    > file.read(file.getSize("/opt/sequoiadb/file"))
+    ```
+
+[^_^]:
+     Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[getSize]:manual/Manual/Sequoiadb_Command/File/getSize.md
