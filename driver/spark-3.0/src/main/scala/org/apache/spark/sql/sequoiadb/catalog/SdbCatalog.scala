@@ -20,7 +20,7 @@ import com.sequoiadb.spark.SdbException
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogTable, CatalogTableType}
-import org.apache.spark.sql.catalyst.plans.command.{SdbCreateTableCommand}
+import org.apache.spark.sql.catalyst.plans.command.SdbCreateTableCommand
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.expressions.{BucketTransform, FieldReference, IdentityTransform, Transform}
@@ -30,7 +30,7 @@ import org.apache.spark.sql.sequoiadb.util.SdbSourceUtils
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, DataSourceVersion, SaveMode, SparkSession}
 
 import java.util
 import scala.collection.JavaConverters.mapAsScalaMapConverter
@@ -94,6 +94,9 @@ class SdbCatalog extends DelegatingCatalogExtension
         val tableId = TableIdentifier(ident.name(), ident.namespace().lastOption)
         val existingTableOpt = getExistingTableIfExists(tableId)
         val storage = DataSource.buildStorageFormatFromOptions(writeOptions)
+        val withVersion = Map(
+            DataSourceVersion.OPTION_NAME -> DataSourceVersion.CURRENT_VERSION) ++ allTableProperties.asScala.toMap
+
 
         val tableDesc = new CatalogTable(
             identifier = tableId,
@@ -103,7 +106,7 @@ class SdbCatalog extends DelegatingCatalogExtension
             provider = Some(SdbSourceUtils.NAME),
             partitionColumnNames = partitionColumns,
             bucketSpec = bucketSpecOpt,
-            properties = allTableProperties.asScala.toMap,
+            properties = withVersion,
             comment = None)
 
         val withDb = verifyTableAndSolidify(tableDesc, None)

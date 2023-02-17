@@ -16,6 +16,8 @@
 
 package org.apache.spark.sql.sequoiadb.util
 
+import org.apache.spark.sql.DataSourceVersion
+
 import java.util.Locale
 
 /**
@@ -39,6 +41,14 @@ object SdbSourceUtils {
     def isSdbDataSourceName(name: String): Boolean = {
         name.toLowerCase(Locale.ROOT) == NAME ||
         name.toLowerCase(Locale.ROOT) == ALT_NAME
+    }
+
+    /**
+     * Get data source api version from table properties.
+     * (v1 will be returned by default)
+     */
+    def getDataSourceVersion(properties: Map[String, String]): String = {
+        properties.getOrElse(DataSourceVersion.OPTION_NAME, DataSourceVersion.v1)
     }
 
 }
