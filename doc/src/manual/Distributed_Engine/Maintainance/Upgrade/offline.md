@@ -26,10 +26,10 @@
     # chmod u+x sequoiadb-5.0.4-linux_x86_64-installer.run
     ```
 
-2. 运行 `sequoiadb-3.6.1-linux_x86_64-installer.run` 包
+2. 运行 `sequoiadb-5.0.4-linux_x86_64-installer.run` 包
 
    ```lang-bash
-   $ ./sequoiadb-3.6.1-linux_x86_64-enterprise-installer.run --mode text
+   $ ./sequoiadb-5.0.4-linux_x86_64-enterprise-installer.run --mode text
    ```
 
 3. 提示选择向导语言，输入 2，选择中文
