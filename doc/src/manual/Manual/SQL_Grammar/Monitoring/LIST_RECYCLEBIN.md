@@ -15,7 +15,7 @@ $LIST_RECYCLEBIN
 | OriginName      | string     | 已回收的集合空间或集合的名称 |
 | Type            | string     | 回收站项目的类型，取值如下：<br>"CollectionSpace"：集合空间<br>"Collection" ：集合 |
 | OpType          | string     | 回收站项目的操作类型，取值如下：<br>"Drop"：删除集合空间或集合操作<br>"Truncate"：删除数据操作 |
-| RecycleTime     | timestamp  | 生成回收站项目的时间 |
+| RecycleTime     | string     | 生成回收站项目的时间 |
 
 ##示例##
 
