@@ -145,7 +145,6 @@
 [^_^]:
     本文中用到的所有链接
 [install]:http://download.sequoiadb.com/cn/
-[compatibility]:manual/Maintainance/Upgrade/compatibility.md
 [upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
 [report]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md#示例
 [compatibility]:manual/Distributed_Engine/Maintainance/Upgrade/compatibility.md
