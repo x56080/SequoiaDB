@@ -12,23 +12,23 @@ File
 
 ##描述##
 
-读取文本文件。
+该函数用于读取指定的文本文件。
 
 ##参数##
 
-| 参数名 | 参数类型 | 默认值                             | 描述         | 是否必填 |
-| ------ | -------- | ---------------------------------- | ------------ | -------- |
-| size   | int      | 默认读取当前文件游标之后的全部内容 | 读取的字节数 | 否       |
+size（ *number，选填*）
+
+从当前的文件游标位置开始，需要读取的字节数，默认值为 1024
 
 ##返回值##
 
-返回读取的文件内容。
+函数执行成功时，将返回读取的文件内容。
+     
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
-
-常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -36,15 +36,24 @@ v3.2 及以上版本
 
 ##示例##
 
-* 打开一个文件，获取文件描述符
+- 从文件 `file` 的游标位置开始，读取 1024 字节的内容
 
     ```lang-javascript
-    > var file = new File( "/opt/sequoiadb/file" )
-    ```
-
-* 读取文本文件内容
-
-    ```lang-javascript
+    > var file = new File("/opt/sequoiadb/file")
     > file.read()
-    SquoiaDB
     ```
+
+- 与 [getSize][getSize] 搭配使用，可读取文件 `file` 游标位置之后的全部内容
+
+    ```lang-javascript
+    > var file = new File("/opt/sequoiadb/file")
+    > file.read(file.getSize("/opt/sequoiadb/file"))
+    ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[getSize]:manual/Manual/Sequoiadb_Command/File/getSize.md
