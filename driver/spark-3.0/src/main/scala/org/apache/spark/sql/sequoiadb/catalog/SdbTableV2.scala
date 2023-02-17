@@ -18,7 +18,7 @@ package org.apache.spark.sql.sequoiadb.catalog
 
 import com.sequoiadb.base.Sequoiadb
 import com.sequoiadb.spark.SdbConfig.mergeGlobalConfs
-import com.sequoiadb.spark.{SdbBsonRDD, SdbConfig, SdbException, SdbFilter, SdbModifier, SdbRelation, SdbSchemaSampler}
+import com.sequoiadb.spark.{SdbBsonRDD, SdbConfig, SdbConnUtil, SdbException, SdbFilter, SdbModifier, SdbRelation, SdbSchemaSampler}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.catalog.CatalogTable
 import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, Expression, ExtractValue, GetStructField}
@@ -26,6 +26,7 @@ import org.apache.spark.sql.catalyst.plans.logical.Assignment
 import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, V1Scan}
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, SupportsTruncate, V1WriteBuilder, WriteBuilder}
+import org.apache.spark.sql.sequoiadb.catalog.read.{SdbScan, SdbScanBuilder}
 import org.apache.spark.sql.sequoiadb.util.SdbUtils
 import org.apache.spark.sql.sources.{BaseRelation, Filter, InsertableRelation, TableScan}
 import org.apache.spark.sql.types.StructType
@@ -108,8 +109,8 @@ case class SdbTableV2(
     ).asJava
 
     /**
-     * Returns DataSource V1 scan builder which can be used to build a
-     * {@link V1Scan}, it fall back batch read to V1 Implementation.
+     * Returns DataSource V2 scan builder which can be used to build a
+     * {@link SdbScan}.
      *
      * Spark will call this method to configure each data source scan.
      *
@@ -117,9 +118,15 @@ case class SdbTableV2(
      *                case-insensitive string-to-string map.
      * @return
      */
-    override def newScanBuilder(options: CaseInsensitiveStringMap)
-    : ScanBuilder = {
-        new SdbV1ScanBuilder(schema(), parameters)
+    override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
+        val config = SdbConfig(spark.sqlContext.getAllConfs, parameters)
+        SdbConnUtil.
+            setupJava8APIEnabled(spark, config)
+
+        SdbScanBuilder(
+            config,
+            SdbConnUtil.generateSourceInfo(spark.sparkContext),
+            schema())
     }
 
     /**

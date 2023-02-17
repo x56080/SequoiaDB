@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class SdbFastCursor implements SdbCursor {
+public class SdbFastCursor implements SdbCursor {
     private static final Logger logger = LoggerFactory.getLogger(SdbFastCursor.class);
     private final DBCursor cursor;
     private final int bufSize;

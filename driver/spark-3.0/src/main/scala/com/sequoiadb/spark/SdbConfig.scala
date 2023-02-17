@@ -21,6 +21,8 @@ import com.sequoiadb.exception.BaseException
 import com.sequoiadb.net.ConfigOptions
 import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
 import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.internal.SQLConf
 import org.bson.{BSONObject, BasicBSONObject}
 import org.bson.util.JSON
 import org.slf4j.LoggerFactory
@@ -713,6 +715,19 @@ object SdbConnUtil {
 
         sourceInfo
     }
+
+    /**
+     * Get config `spark.sql.datetime.java8API.enabled` and setup in SdbConfig
+     *
+     * @param spark sparkSession
+     * @param config config for table read or write
+     */
+    def setupJava8APIEnabled(spark: SparkSession, config: SdbConfig): Unit = {
+        config.java8APIEnabled = spark.sparkContext
+            .getConf
+            .getBoolean(SQLConf.DATETIME_JAVA8API_ENABLED.key, false)
+    }
+
 }
 
 class SdbPreferredInstance(val instances: Array[String], val mode: PreferredInstanceMode, val strict: Boolean) extends Serializable {

@@ -39,7 +39,7 @@ abstract class SdbPartitioner(config: SdbConfig, filter: SdbFilter)
     def computePartitions(): Array[SdbPartition]
 }
 
-private class NodeInfo(val host: String, val port: Int, val group: String,
+class NodeInfo(val host: String, val port: Int, val group: String,
                        val instanceId: Int, val isPrimary: Boolean) {
     val url: String = host + ":" + port
 
@@ -51,7 +51,7 @@ private class BlockStatics(val totalBlockNum: Long, val minBlockNumPerSharding: 
     override def toString: String = s"totalBlockNum: $totalBlockNum,maxBlockNumInMeta: $maxBlockNumPerSharding,minBlockNumInMeta: $minBlockNumPerSharding"
 }
 
-private object SdbPartitioner extends Logging {
+object SdbPartitioner extends Logging {
     def apply(config: SdbConfig, filter: SdbFilter): SdbPartitioner = {
         val mode = determinatePartitionMode(config, filter)
         logInfo(s"PartitionMode=$mode")
@@ -784,10 +784,10 @@ private class NodeSelector {
   * @param groupName the group that hold the sharding collection
   * @param scanType  the query scan type
   */
-private class ShardingInfo(val name: String,
-                           val nodeName: String,
-                           val groupName: String,
-                           val scanType: String) {
+class ShardingInfo(val name: String,
+                   val nodeName: String,
+                   val groupName: String,
+                   val scanType: String) {
     val csName: String = name.split('.')(0)
     val clName: String = name.split('.')(1)
 }
@@ -798,10 +798,10 @@ private class ShardingInfo(val name: String,
   * @param url        url of SequoiaDB node that hode the datablocks
   * @param datablocks datablocks of partition
   */
-private class QueryMeta(val url: String,
-                        val csName: String,
-                        val clName: String,
-                        val datablocks: List[Int]) {
+class QueryMeta(val url: String,
+                val csName: String,
+                val clName: String,
+                val datablocks: List[Int]) {
 }
 
 // Single partitioner generates only one partition using the host in SdbConfig
