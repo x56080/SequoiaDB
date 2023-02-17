@@ -24,7 +24,7 @@
 
 ### 升级步骤 
 
-下述升级过程以 v3.4.4 企业版升级至 v3.4.9 企业版为例进行说明，其他版本间的升级操作基本一致。
+下述升级过程以 SequoiaDB v3.4.4 升级至 v3.4.9 为例进行说明，其他版本间的升级操作基本一致。
 
 1. 以 root 用户登陆目标主机，解压 SequoiaDB 巨杉数据库产品包，并为解压得到的 `sequoiadb-3.4.9-linux_x86_64-installer.run` 安装包赋可执行权限
 
@@ -36,7 +36,7 @@
 2. 运行 `sequoiadb-3.4.9-linux_x86_64-installer.run` 包
 
    ```lang-bash
-   $ ./sequoiadb-3.4.9-linux_x86_64-enterprise-installer.run --mode text
+   $ ./sequoiadb-3.4.9-linux_x86_64-installer.run --mode text
    ```
 
 3. 提示选择向导语言，输入 2，选择中文
