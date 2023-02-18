@@ -428,6 +428,7 @@ namespace engine
                                      _pmdEDUCB *cb,
                                      SDB_DPSCB *dpsCB ) ;
       INT32 restoreCollectionSpace( const CHAR *pName ) ;
+      INT32 moveCSToDeleting( const CHAR *pName ) ;
       INT32 returnCollectionSpaceP1( dmsReturnOptions &options,
                                      _pmdEDUCB *cb,
                                      SDB_DPSCB *dpsCB ) ;
