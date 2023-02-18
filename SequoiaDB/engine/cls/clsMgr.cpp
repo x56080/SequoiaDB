@@ -957,7 +957,7 @@ namespace engine
          goto error ;
       }
 
-      _taskTimerID = setTimer( CLS_REPL, 0xFFFFFFFF ) ;
+      _taskTimerID = setTimer( CLS_REPL, 1, 0 ) ;
 
       if ( CLS_INVALID_TIMERID == _taskTimerID )
       {
@@ -1614,7 +1614,12 @@ namespace engine
 
             if ( quickPull )
             {
-               _postTimeoutEvent( _taskTimerID ) ;
+               INT32 tmpRC = SDB_OK ;
+               tmpRC = activeTimer( _taskTimerID, 1 ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING, "Active task timer failed, rc:%d", tmpRC ) ;
+               }
             }
          }
          catch( std::exception &e )
@@ -2009,27 +2014,6 @@ namespace engine
       return rc ;
    }
 
-   void _clsMgr::_postTimeoutEvent( UINT64 timerID )
-   {
-      UINT32 type = 0 ;
-      UINT32 netTimerID = 0 ;
-
-      ossUnpack32From64( timerID, type, netTimerID ) ;
-
-      if ( CLS_SHARD == type )
-      {
-         _shdTimerHandler->handleTimeout( 0, netTimerID ) ;
-      }
-      else if ( CLS_REPL == type )
-      {
-         _replTimerHandler->handleTimeout( 0, netTimerID ) ;
-      }
-      else
-      {
-         SDB_ASSERT( FALSE, "Invalid timerID" ) ;
-      }
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKTH, "_clsMgr::startTaskThread" )
    INT32 _clsMgr::startTaskThread ( const BSONObj &taskObj, UINT64 &taskID )
    {
@@ -2402,7 +2386,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_SETTMR, "_clsMgr::setTimer" )
-   UINT64 _clsMgr::setTimer ( CLS_MEMBER_TYPE type, UINT32 milliSec )
+   UINT64 _clsMgr::setTimer ( CLS_MEMBER_TYPE type, UINT32 milliSec, INT32 activeTimes )
    {
       UINT64 rc;
       PD_TRACE_ENTRY ( SDB__CLSMGR_SETTMR );
@@ -2416,7 +2400,7 @@ namespace engine
          pRtAgent = _replNetRtAgent ;
       }
 
-      if ( pRtAgent->addTimer( milliSec, pHandler, timeID ) == SDB_OK )
+      if ( pRtAgent->addTimer( milliSec, pHandler, timeID, activeTimes ) == SDB_OK )
       {
          rc = ossPack32To64( (UINT32)type, timeID ) ;
       }
@@ -2447,6 +2431,28 @@ namespace engine
 
       pRtAgent->removeTimer( netTimerID ) ;
       PD_TRACE_EXIT ( SDB__CLSMGR_KILLTMR );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_ACTIVETMR, "_clsMgr::activeTimer" )
+   INT32 _clsMgr::activeTimer( UINT64 timerID, INT32 activeTimes )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVETMR );
+      INT32 rc = SDB_OK ;
+      UINT32 type = 0 ;
+      UINT32 netTimerID = 0 ;
+
+      ossUnpack32From64 ( timerID, type, netTimerID ) ;
+
+      _netRouteAgent * pRtAgent = _shardNetRtAgent ;
+
+      if ( CLS_REPL == (INT32)type )
+      {
+         pRtAgent = _replNetRtAgent ;
+      }
+
+      rc = pRtAgent->activeTimer( netTimerID, activeTimes ) ;
+      PD_TRACE_EXITRC ( SDB__CLSMGR_ACTIVETMR, rc );
+      return rc ;
    }
 
    INT32 _clsMgr::sendToCatlog ( MsgHeader * msg )

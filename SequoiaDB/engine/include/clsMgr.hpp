@@ -246,8 +246,10 @@ namespace engine
          UINT16 getReplServiceID () const ;
 
       public:
-         UINT64 setTimer ( CLS_MEMBER_TYPE type, UINT32 milliSec ) ;
+         UINT64 setTimer ( CLS_MEMBER_TYPE type, UINT32 milliSec,
+                           INT32 activeTimes = -1 ) ;
          void   killTimer ( UINT64 timerID ) ;
+         INT32  activeTimer ( UINT64 timerID, INT32 activeTimes ) ;
          INT32  sendToCatlog ( MsgHeader * msg ) ;
          INT32  updateCatGroup ( INT64 millisec = 0 ) ;
 
@@ -316,8 +318,6 @@ namespace engine
          INT32       _startInnerSession ( INT32 type,
                                           pmdAsycSessionMgr *pSessionMgr ) ;
          INT32       _prepareTask () ;
-
-         void        _postTimeoutEvent( UINT64 timerID ) ;
 
          INT32       _initRemoteSession( _netRouteAgent *netRouteAgent ) ;
 

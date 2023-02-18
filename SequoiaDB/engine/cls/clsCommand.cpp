@@ -1066,7 +1066,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREELECT_PARSEARGS ) ;
 
       BSONElement e ;
-      
+
       e = obj.getField( FIELD_NAME_REELECTION_TIMEOUT ) ;
       if ( !e.eoo() )
       {

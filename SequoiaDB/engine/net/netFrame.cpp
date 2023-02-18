@@ -2182,7 +2182,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_ADDTIMER, "_netFrame::addTimer" )
    INT32 _netFrame::addTimer( UINT32 millsec,
                               _netTimeoutHandler *handler,
-                              UINT32 &timerid )
+                              UINT32 &timerid,
+                              INT32 activeTimes )
    {
       INT32 rc = SDB_OK ;
 
@@ -2193,7 +2194,8 @@ namespace engine
       NET_TH timer = netTimer::createShared( millsec,
                                               ++ _timerID,
                                               _mainSuitPtr->getIOService(),
-                                              handler ) ;
+                                              handler,
+                                              activeTimes ) ;
       PD_CHECK( NULL != timer.get(), SDB_OOM, error, PDERROR,
                 "Allocate netTimer failed" ) ;
 
@@ -2241,6 +2243,28 @@ namespace engine
       }
 
       PD_TRACE_EXITRC ( SDB__NETFRAME_REMTIMER, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_ACTIVETIMER, "_netFrame::activeTimer" )
+   INT32 _netFrame::activeTimer( UINT32 timerid, INT32 activeTimes )
+   {
+      INT32 rc = SDB_OK ;
+      MAP_TIMMER_IT it ;
+      PD_TRACE_ENTRY ( SDB__NETFRAME_ACTIVETIMER ) ;
+
+      ossScopedLock lock( &_mtx, EXCLUSIVE ) ;
+      it = _timers.find( timerid ) ;
+      if ( _timers.end() == it )
+      {
+         rc = SDB_NET_TIMER_ID_NOT_FOUND ;
+      }
+      else
+      {
+         rc = it->second->active( activeTimes ) ;
+      }
+
+      PD_TRACE_EXITRC ( SDB__NETFRAME_ACTIVETIMER, rc ) ;
       return rc ;
    }
 
