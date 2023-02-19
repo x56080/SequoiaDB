@@ -1173,7 +1173,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
          }
-         tmpRC = _dmsCB->moveCSToDeleting( pName ) ;
+         tmpRC = _dmsCB->moveCSToDeleting( csName ) ;
          if ( SDB_OK != tmpRC )
          {
             PD_LOG( PDERROR, "Failed to remove collection space [%s], rc: %d",
