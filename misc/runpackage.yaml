@@ -8,7 +8,7 @@
 
 installInformation:
   productname: sequoiadb
-  productfullname: SequoiaDB
+  productfullname: SequoiaDB Server
   # SYS parameters provided by package framwork
   installerfilename: ${productname}-${SYS_PRODUCT_VERSION}-${SYS_PLATFORM}${SYS_ENTERPRISE}-installer.${SYS_PLATFORM_EXEC_SUFFIX}
   supportmultversion: false
@@ -94,10 +94,10 @@ postInstallAction:
             type: BOOL
             default: false
             description:
-              - cn: 是否强制安装
+              - cn: 是否强制安装。
               - en: Force Installation.
             explanation:
-              - cn: 是否强制安装？强制安装时可能会强杀残留进程
+              - cn: 是否强制安装？强制安装时可能会强杀残留进程。
               - en: Do you want to force the install? It may kill residual processes.
         - name: path
           value: '${SYS_INSTALL_DIR}/bin'
@@ -122,8 +122,8 @@ postInstallAction:
             type: BOOL
             default: true
             description:
-              - cn: Sequoiadb相关进程开机自启动
-              - en: Process Auto Start
+              - cn: Sequoiadb相关进程开机自启动。
+              - en: Process Auto Start.
             explanation:
               - cn: 是否允许Sequoiadb相关进程开机自启动？
               - en: Do You Want To Start Sequoiadb Processes When Machine Restart?
@@ -133,11 +133,11 @@ postInstallAction:
             type: PORT
             default: 11790
             description:
-              - cn: 集群管理服务端口
-              - en: SequoiaDB Cluster Manager Port
+              - cn: 集群管理服务端口。
+              - en: SequoiaDB Cluster Manager Port.
             explanation:
-              - cn: 配置SequoiaDB集群管理服务端口，集群管理用于远程启动添加和启停数据库节点
-              - en: SequoiaDB Cluster Manager port
+              - cn: 配置SequoiaDB集群管理服务端口，集群管理用于远程启动添加和启停数据库节点。
+              - en: SequoiaDB Cluster Manager port.
 
 preUninstallAction:
   enable: true
