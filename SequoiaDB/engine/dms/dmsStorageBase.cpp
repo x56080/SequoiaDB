@@ -1306,6 +1306,11 @@ namespace engine
       UINT32 pageNum       = 0 ;
       dmsExtentID validPage = 0 ;
 
+      if ( !_canShrinkSpace() )
+      {
+         return FALSE ;
+      }
+
       pageNum = this->pageNum() ;
       _calcPageThreshold( segPageNum, blockPageNum ) ;
 
@@ -1530,6 +1535,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _dmsStorageBase::_canShrinkSpace() const
+   {
+      return TRUE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE_SHRINKHOLE, "_dmsStorageBase::_shrinkHole" )

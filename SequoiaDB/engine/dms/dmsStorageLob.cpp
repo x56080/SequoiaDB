@@ -2645,6 +2645,18 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN _dmsStorageLob::_canShrinkSpace() const
+   {
+      if ( 0 < _data.segmentPages() )
+      {
+         return TRUE ;
+      }
+      else
+      {
+         return FALSE ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB_SHRINKSEGMENT, "_dmsStorageLob::_shrinkSegment" )
    INT32 _dmsStorageLob::_shrinkSegment( UINT32 segPageNum )
    {
