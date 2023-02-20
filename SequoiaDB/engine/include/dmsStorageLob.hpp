@@ -172,6 +172,7 @@ namespace engine
       virtual void decWritePtrCount( INT32 collectionID ) ;
 
    protected:
+      virtual BOOLEAN _canShrinkSpace() const ;
       virtual INT32 _shrinkSegment( UINT32 segPageNum ) ;
       virtual void  _calcPageThreshold( UINT32 &segPageNum, UINT32 &blockPageNum ) const ;
       virtual INT32 _fileFallocate( UINT32 mode, UINT64 offset, UINT64 size ) ;
