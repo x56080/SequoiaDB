@@ -84,14 +84,20 @@ namespace engine
 
          OSS_INLINE INT32 addTimer( UINT32 millsec,
                                     _netTimeoutHandler *handler,
-                                    UINT32 &timerid )
+                                    UINT32 &timerid,
+                                    INT32 activeTimes = -1 )
          {
-            return _frame.addTimer( millsec, handler, timerid ) ;
+            return _frame.addTimer( millsec, handler, timerid, activeTimes ) ;
          }
 
          OSS_INLINE INT32 removeTimer( UINT32 timerid )
          {
             return _frame.removeTimer( timerid ) ;
+         }
+
+         OSS_INLINE INT32 activeTimer( UINT32 timerid, INT32 activeTimes )
+         {
+            return _frame.activeTimer( timerid, activeTimes ) ;
          }
 
          OSS_INLINE void close( const _MsgRouteID &id )

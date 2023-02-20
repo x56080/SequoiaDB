@@ -75,12 +75,14 @@ namespace engine
          _netTimer( UINT32 millisec,
                     UINT32 id,
                     boost::asio::io_service &io,
-                    _netTimeoutHandler *handler )
+                    _netTimeoutHandler *handler,
+                    INT32 activeTimes )
          :_timer( io ),
           _handler(handler),
           _id(id),
           _millisec(millisec),
-          _actived( TRUE )
+          _actived( 0 != activeTimes ),
+          _activeTimes( activeTimes )
          {
          }
 
@@ -91,7 +93,8 @@ namespace engine
          static OSS_INLINE NET_TH createShared( UINT32 millisec,
                                                 UINT32 id,
                                                 boost::asio::io_service &io,
-                                                _netTimeoutHandler *handler )
+                                                _netTimeoutHandler *handler,
+                                                INT32 activeTimes )
          {
             NET_TH th ;
 
@@ -100,7 +103,8 @@ namespace engine
                  NULL != new( tmpTH.get() ) netTimer( millisec,
                                                       id,
                                                       io,
-                                                      handler ) )
+                                                      handler,
+                                                      activeTimes ) )
             {
                th.swap( tmpTH ) ;
             }
@@ -113,6 +117,14 @@ namespace engine
          {
             if ( !error )
             {
+               if ( 0 < _activeTimes )
+               {
+                  _activeTimes-- ;
+               }
+               if ( 0 == _activeTimes )
+               {
+                  _actived = FALSE ;
+               }
                _handler->handleTimeout( _millisec, _id ) ;
             }
             asyncWait() ;
@@ -145,6 +157,22 @@ namespace engine
             _timer.cancel() ;
          }
 
+         OSS_INLINE INT32 active( INT32 activeTimes )
+         {
+            INT32 rc = SDB_OK ;
+            if ( !_actived )
+            {
+               _actived = TRUE ;
+               _activeTimes = activeTimes ;
+               asyncWait() ;
+            }
+            else
+            {
+               rc = SDB_SYS ;
+            }
+            return rc ;
+         }
+
       protected:
          OSS_INLINE NET_TH _getShared()
          {
@@ -157,6 +185,7 @@ namespace engine
          UINT32                     _id ;
          UINT32                     _millisec ;
          BOOLEAN                    _actived ;
+         INT32                      _activeTimes ;
    } ;
 
 }

@@ -413,9 +413,11 @@ namespace engine
 
          /// frame will not release handler for ever
          INT32 addTimer( UINT32 millsec, _netTimeoutHandler *handler,
-                         UINT32 &timerid );
+                         UINT32 &timerid, INT32 activeTimes = -1 );
 
          INT32 removeTimer( UINT32 timerid ) ;
+
+         INT32 activeTimer( UINT32 timerid, INT32 activeTimes ) ;
 
          void  close( const _MsgRouteID &id ) ;
 
