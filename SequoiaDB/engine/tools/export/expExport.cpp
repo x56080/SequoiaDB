@@ -53,6 +53,7 @@ namespace exprt
       bson_init ( &select ) ;
       bson_init ( &condition ) ;
       bson_init ( &sort ) ;
+      INT32 flags = _options.primal() ? FLG_QUERY_PRIMAL_DATA : 0 ;
 
       clFullName = _cl.fullName() ;
 
@@ -116,8 +117,8 @@ namespace exprt
                  clFullName.c_str(), rc ) ;
          goto error ;
       }
-      rc = sdbQuery ( hCL, &condition, &select, &sort, NULL,
-                      _cl.skip, _cl.limit, &hCusor ) ;
+      rc = sdbQuery1 ( hCL, &condition, &select, &sort, NULL,
+                       _cl.skip, _cl.limit, flags, &hCusor ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to query the first record of %s, rc = %d",

@@ -1,5 +1,5 @@
 /***************************************************************************************************
- * @Description: 外部模式使用：给分区集合绑定外部模式
+ * @Description: 外部模式使用：给分区集合绑定外部模式，并增加字段、修改字段、删除字段
  * @ATCaseID: schema_11
  * @Author: Zhou Hongye
  * @TestlinkCase: 无（由测试人员维护，在测试阶段如果有测试场景引用本和例，则在此处填写 Testlink 用例编号，
@@ -20,11 +20,13 @@
  *    1.创建外部模式
  *    2.创建分区集合
  *    3.给集合绑定外部模式
+ *    4.增加字段、修改字段、删除字段
  * 期望结果：
  *    1.集合未开启内部模式的情况下报错
  *    2.集合的全部分区上的内部模式与外部模式均不冲突的情况下，绑定成功，InfoSchema元数据中记录集合名，集合元数据中记录InfoSchema的名字
  *    3.ZHY TODO存在冲突的情况下报错，内部模式无任何变更，数据节点无复制日志生成
  *    4.校验数据正确
+ *    5.外部模式的字段变更正确
  *
  **************************************************************************************************/
 main(test);
@@ -62,7 +64,7 @@ function test() {
   var cl = db.getCS(COMMCSNAME).createCL(enabledCLName, { EnableInfoSchema: true });
   var schemaName = enabledCLName + "_2";
   commClearLegacySchema(db, schemaName);
-  db.createSchema(schemaName, {
+  var schema = db.createSchema(schemaName, {
     rid: { Type: "int32" },
     a: { Type: "int32", ReadDefault: 5 },
     b: { Type: "double", WriteDefault: 10.5 },
@@ -79,4 +81,30 @@ function test() {
   cl.enableSharding({ ShardingKey: { rid: 1 }, AutoSplit: true });
   var cursor = cl.find().sort({ rid: 1 });
   commCompareResults(cursor, expRecs);
+
+  // 增加字段
+  var columnName = "new_field";
+  schema.addColumn(columnName, {
+    Type: "int32",
+    ReadDefault: 5,
+    WriteDefault: 10,
+  });
+  checkColumnDef(db, schemaName, columnName, {
+    Type: "int32",
+    ReadDefault: 5,
+    WriteDefault: 10,
+  });
+
+  // 修改字段
+  schema.alterColumn(columnName, {
+    WriteDefault: 20,
+  });
+  checkColumnDef(db, schemaName, columnName, {
+    Type: "int32",
+    ReadDefault: 5,
+    WriteDefault: 20,
+  });
+
+  // 删除字段
+  schema.dropColumn(columnName);
 }

@@ -108,6 +108,7 @@ namespace exprt
       inline EXP_FILE_FORMAT type()       const { return _type ; }
       inline const string &floatFmt()     const { return _floatFmt ; }
       inline BOOLEAN replace()            const { return _replace ; }
+      inline BOOLEAN primal()             const { return _primal; }
 
       inline const vector<string> &fieldsList() const
       {
@@ -161,6 +162,7 @@ namespace exprt
       vector<string>       _fields ;
       string               _floatFmt ;
       BOOLEAN              _replace ;
+      BOOLEAN              _primal ;
 
       /* single collection */
       string         _csName ;

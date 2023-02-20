@@ -66,6 +66,7 @@ namespace exprt
    #define OPTION_CIPHERFILE        "cipherfile"
    #define OPTION_CIPHER            "cipher"
    #define OPTION_TOKEN             "token"
+   #define OPTION_PRIMAL            "primal"
 
    // single collection
    #define OPTION_COLLECTSPACE      "csname"
@@ -125,6 +126,8 @@ namespace exprt
    #define EXPLAIN_FLOATFMT         "float format, default: '%.16g', input 'db2' is '%+.14E', " \
                                     "format %[+][.precision](f|e|E|g|G) ( float only )"
    #define EXPLAIN_REPLACE          "whether to overwrite the output file"
+
+   #define EXPLAIN_PRIMAL           "used in query to read primal data"
 
    //json
    #define EXPLAIN_STRICT           "strict export of data types, default: false"
@@ -192,7 +195,8 @@ namespace exprt
       ( OPTION_FIELDS,         _TYPE(vector<string>),    EXPLAIN_FIELDS ) \
       ( OPTION_SSL,                    _TYPE(bool),      EXPLAIN_SSL) \
       ( OPTION_FLOATFMT,               _TYPE(string),    EXPLAIN_FLOATFMT ) \
-      ( OPTION_REPLACE,                /* no arg */      EXPLAIN_REPLACE )
+      ( OPTION_REPLACE,                /* no arg */      EXPLAIN_REPLACE ) \
+      ( OPTION_PRIMAL,                 _IMPLICIT_TYPE(bool, true), EXPLAIN_PRIMAL)
 
    #define EXP_SINGLE_COLLECTION_OPTIONS \
       ( OPTION_COLLECTSPACE",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
@@ -339,6 +343,7 @@ namespace exprt
                               _errorStop     (FALSE),
                               _useSSL        (FALSE),
                               _fileLimit     (DEFAULT_FILELIMIT),
+                              _primal        (FALSE),
                               _skip          (0),
                               _limit         (-1),
                               _strict        (FALSE),
@@ -436,6 +441,7 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_REPLACE, "", _has( OPTION_REPLACE ) ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, _has(OPTION_WITHID) ) ;
+      WRITE_BOOL_OPTION( writeBuf, OPTION_PRIMAL, _primal, _has(OPTION_PRIMAL) ) ;
 
       // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
@@ -1410,6 +1416,11 @@ namespace exprt
       }
 
       _replace = _has( OPTION_REPLACE ) ;
+
+      if ( _has( OPTION_PRIMAL ) )
+      {
+         _primal = _get< bool >( OPTION_PRIMAL ) ;
+      }
 
       rc = _setDelOptions() ;
       if ( SDB_OK != rc )

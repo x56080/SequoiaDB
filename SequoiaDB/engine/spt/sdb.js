@@ -99,6 +99,7 @@ const SDB_FLG_QUERY_PREPARE_MORE      = 0x00004000 ;
 const SDB_FLG_QUERY_FOR_UPDATE        = 0x00010000 ;
 const SDB_FLG_QUERY_FOR_SHARE         = 0x00040000 ;
 const SDB_FLG_QUERY_ASYNC_READ        = 0x00200000 ;
+const SDB_FLG_QUERY_PRIMAL_DATA       = 0x00400000 ;
 
 // end Global Constants
 

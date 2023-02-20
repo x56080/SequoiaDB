@@ -117,9 +117,13 @@ function commCheckInternalSchema(db, csName, clName, columnsDef) {
           actColumns[columnName].ReadDefault != columnsDef[columnName].ReadDefault
         ) {
           throw new Error(
-            "\nExpected:\n" +
+            "\nField " +
+              columnName +
+              " Expected ReadDefault:\n" +
               JSON.stringify(columnsDef[columnName].ReadDefault) +
-              "\nactual:\n" +
+              "\nField " +
+              columnName +
+              " Actual ReadDefault:\n" +
               JSON.stringify(actColumns[columnName].ReadDefault)
           );
         }
@@ -128,13 +132,67 @@ function commCheckInternalSchema(db, csName, clName, columnsDef) {
           actColumns[columnName].WriteDefault != columnsDef[columnName].WriteDefault
         ) {
           throw new Error(
-            "\nExpected:\n" +
+            "\nField " +
+              columnName +
+              " Expected WriteDefault:\n" +
               JSON.stringify(columnsDef[columnName].WriteDefault) +
-              "\nactual:\n" +
+              "\nField " +
+              columnName +
+              " Actual WriteDefault:\n" +
               JSON.stringify(actColumns[columnName].WriteDefault)
           );
         }
       }
     }
   }
+}
+
+function checkCsvFileContent(csvFile, expRecs, fieldNames) {
+  var expContent = fieldNames.join(",");
+  expContent += "\n";
+  for (var i in expRecs) {
+    var record = expRecs[i];
+    var values = [];
+    Object.keys(fieldNames).forEach(function (index) {
+      var ele = fieldNames[index];
+      if (record.hasOwnProperty(ele)) {
+        if (typeof record[ele] == "string") {
+          values.push('"' + record[ele] + '"');
+        } else {
+          values.push(record[ele]);
+        }
+      } else {
+        values.push("");
+      }
+    });
+    expContent += values.join(",");
+    expContent += "\n";
+  }
+
+  var size = parseInt(File.stat(csvFile).toObj().size);
+  var file = new File(csvFile);
+  var actContent = file.read(size);
+  file.close();
+  assert.equal(actContent, expContent);
+}
+
+function checkJsonFileContent(jsonFile, expRecs) {
+  var size = parseInt(File.stat(jsonFile).toObj().size);
+  var file = new File(jsonFile);
+  var actContent = file.read(size);
+  file.close();
+  var actObjs = [];
+  actContent.split('\n').forEach(function(text){
+    var obj;
+    try {
+      obj = JSON.parse(text);
+    } catch (error) {
+      
+    }
+    if ( obj != null)
+    {
+      actObjs.push(obj);
+    }
+  });
+  assert.equal(actObjs, expRecs);
 }

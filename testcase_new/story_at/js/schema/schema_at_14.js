@@ -99,18 +99,20 @@ function test() {
   schema.dropColumn("new_c");
   schema.addColumn("d", { Type: "decimal", WriteDefault: { $decimal: "0.3333" } });
   cl.truncate();
-  var records = [];
   var expRecs = [];
   var i = 0;
   for (; i < 5; i++) {
-    records.push({ rid: i });
+    cl.insert({ rid: i });
     expRecs.push({ rid: i, d: { $decimal: "0.3333" } });
   }
   schema.alterColumn("d", { Type: "decimal", WriteDefault: { $decimal: "1.6666" }})
   for (; i < 10; i++) {
-    records.push({ rid: i });
+    cl.insert({ rid: i });
     expRecs.push({ rid: i, d: { $decimal: "1.6666" } });
   }
+  
+  var cursor = cl.find();
+  commCompareResults(cursor, expRecs);
 
   commDropCL(db, COMMCSNAME, clName);
 }
