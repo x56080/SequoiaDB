@@ -596,6 +596,7 @@ namespace engine
          INT32 rebuildHoleMapMask() ;
 
       protected:
+         virtual BOOLEAN _canShrinkSpace() const ;
          INT32 _shrinkHole( UINT32 blockPageNum ) ;
          INT32 _ensureSpaceCanWrite ( INT32 foundPageStart, INT32 foundPageNum ) ;
          virtual INT32 _shrinkSegment( UINT32 segPageNum ) ;
