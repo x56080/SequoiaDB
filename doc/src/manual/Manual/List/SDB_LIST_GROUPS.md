@@ -28,12 +28,12 @@ SDB_LIST_GROUPS
 | Group.Service.Name | string | 复制组中节点的服务名，服务名可以为端口号，或 services 文件中的服务名 |
 | Group.instanceid      | int32  | 复制组中节点的实例 ID（仅在已手动配置实例 ID 的节点显示） |
 | Group.NodeID       | int32  | 复制组中节点的 ID              |
-| Group.Location     | string | 复制组中节点的位置信息        |
+| Group.Location     | string | 复制组中节点的位置信息（仅在已设置位置集的节点显示）        |
 | GroupID            | int32      | 复制组 ID                                           |
 | GroupName          | string     | 复制组名称                                            |
-| Locations.Location | string     | 复制组中节点的位置信息  |
-| Locations.LocationID | int32    | 复制组中节点的位置信息 ID |
-| Locations.PrimaryNode | int32    | 复制组中位置集的主节点 ID |
+| Locations.Location | string     | 复制组中节点的位置信息（仅在已设置位置集的节点显示）  |
+| Locations.LocationID | int32    | 复制组中节点的位置信息 ID（仅在已设置位置集的节点显示） |
+| Locations.PrimaryNode | int32    | 复制组中位置集的主节点 ID（仅在已设置位置集的节点显示） |
 | PrimaryNode        | int32      | 主节点 ID                                           |
 | Role               | int32      | 复制组角色，取值如下：<br>0：数据节点<br>1：协调节点<br>2：编目节点 |
 | SecretID           | int32      | 复制组的校验 ID（内部使用） |
