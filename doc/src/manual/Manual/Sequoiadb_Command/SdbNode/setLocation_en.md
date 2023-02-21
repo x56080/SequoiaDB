@@ -18,7 +18,10 @@ This function is used to modify the position information of the current node.
 
 location ( *string, required* )
 
-Node location information, When the value is an empty string, it means to delete the location information of the current node.
+Node location information.
+
+- The maximum length of location information is limited to 256 bytes.
+- When the value is an empty string, it means to delete the location information of the current node.
 
 ##RETURN VALUE##
 
