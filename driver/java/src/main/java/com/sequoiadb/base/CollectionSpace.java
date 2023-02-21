@@ -167,7 +167,7 @@ public class CollectionSpace {
      *               request (insert, update, etc) is executed, default is 1
      *               <li>Compressed : Whether to enable data compression, default is true
      *               <li>CompressionType : The compression type of data, could be "snappy" or "lzw", default is "lzw"
-     *               AutoSplit : Whether to enable the automatic partitioning, it is valid when ShardingType
+     *               <li>AutoSplit : Whether to enable the automatic partitioning, it is valid when ShardingType
      *               is "hash", defalut is false
      *               <li>Group: Assign the data group to which it belongs, default: The collection will
      *               be created in any data group of the domain that the collection belongs to
