@@ -1415,7 +1415,8 @@ namespace engine
          }
       }
 
-      if ( FALSE == _dmsHeader->_hasHoleMap )
+      if ( FALSE == _dmsHeader->_hasHoleMap &&
+           ossEnvCanPunchHole() )
       {
          _pStorageInfo->_hadShrinkSpace = TRUE ;
          _dmsHeader->_hasHoleMap = TRUE ;
@@ -1527,12 +1528,15 @@ namespace engine
          _dmsHeader->_pageNum -= truncateNum ;
          _pageNum = _dmsHeader->_pageNum ;
 
-         rc = _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), truncatePage,
-                                           truncateNum ) ;
-         if ( rc )
+         if ( ossEnvCanPunchHole() )
          {
-            PD_LOG( PDERROR, "Failed to clear holeMap Mask file, rc: %d", rc ) ;
-            goto error ;
+            rc = _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), truncatePage,
+                                              truncateNum ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to clear holeMap Mask file, rc: %d", rc ) ;
+               goto error ;
+            }
          }
       }
 
@@ -1665,9 +1669,16 @@ namespace engine
          rc = _fileFallocate( OSS_FALLOC_FL_ALLOC_SPACE, offset, length ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Failed to alloc space for write need to rollback mask,"
-                    " rc: %d", rc ) ;
-            goto resetmask ;
+            if ( SDB_INVALIDARG == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to alloc space for write need to rollback mask,"
+                       " rc: %d", rc ) ;
+               goto resetmask ;
+            }
          }
       }
 
