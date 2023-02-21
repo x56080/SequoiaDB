@@ -3194,5 +3194,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_INTERNAL_SCHEMA_NOT_ENABLED</name>
+         <description>
+            <en>Internal schema not enabled</en>
+            <cn>内部模式未启用</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

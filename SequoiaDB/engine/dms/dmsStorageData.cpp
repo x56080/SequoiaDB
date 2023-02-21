@@ -155,6 +155,7 @@ namespace engine
 
          // If internal schema is enabled, need to encode the record.
          {
+            // Code Review: No mb context here
             dmsInternalSchema *schema = getSchema( context->mbID() ) ;
             if ( schema->enabled() )
             {

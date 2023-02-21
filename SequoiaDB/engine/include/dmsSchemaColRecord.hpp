@@ -1,3 +1,38 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2023 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = dmsSchemaColRecord.hpp
+
+   Descriptive Name =
+
+   When/how to use:
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          01/11/2023  YSD Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 #ifndef DMS_SCHEMARECORD_HPP__
 #define DMS_SCHEMARECORD_HPP__
 
@@ -6,16 +41,19 @@
 
 namespace engine
 {
-   /* Column record format is as below. The offset of each item is not fixed.
+   /* Column record format is as below. It may contain the following four items:
+    *  Name -- Current column name
+    *  RD   -- Read Default
+    *  WD   -- Write Default
+    *  ON   -- Original Name(Generated when a column is renamed for the first time)
     *
-    *  RD -- Read Default
-    *  WD -- Write Default
-    *  ON -- Original Name
+    *  The header(first 10 bytes) structure is fixed. Column name will always be there, while other
+    *  items may not.
     *  ____________________________________________________________________________________________________________________________________________________
     *  |        |           |         |         |         |         |         |       |                  |       |                    |      |             |
     *  |totalLen|Name offset|RD Offset|WD Offset|ON Offset|nameLen  |   name  |RD type|read default value|WD type| Write default value|ON len|original name|
     *  |________|___________|_________|_________|_________|_________|_________|_______|__________________|_______|____________________|______|_____________|
-    *
+    *  |<--------Record Header(10 bytes)------->|
    */
 
    #define COL_NAME_ENTRY_OFFSET           (sizeof(UINT16))
@@ -118,9 +156,12 @@ namespace engine
          _dmsSchemaColRecBuilder() ;
          ~_dmsSchemaColRecBuilder() ;
 
+         // Build a column item from scratch.
          INT32 startBuild() ;
          void finishBuild() ;
 
+         // Build a new column record based on an existing record. We can keep, modify or delete
+         // the columns which exist in the original record.
          INT32 startRebuild( const dmsSchemaColRecord *origRecord ) ;
          INT32 finishRebuild() ;
 

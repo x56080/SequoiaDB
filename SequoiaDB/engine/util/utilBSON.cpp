@@ -1,8 +1,5 @@
 #include "utilBSON.hpp"
-
-#ifdef _DEBUG
 #include "../bson/bson.hpp"
-#endif /* _DEBUG*/
 
 namespace engine
 {

@@ -120,6 +120,7 @@ namespace engine
       BSONElement ele ;
       dmsSchemaColRecBuilder builder ;
       INT16 attr = _getColumnAttr( columnID ) ;
+      INT16 newAttr = attr ;
       const dmsSchemaColRecord *oldColRecord = _getColRecord( columnID ) ;
       const dmsSchemaColRecord *newColRecord = NULL ;
       const CHAR *name = oldColRecord->getName() ;
@@ -170,7 +171,7 @@ namespace engine
                rc = builder.updateReadDefault( ele.type(), ele.value(), ele.valuesize() ) ;
                PD_RC_CHECK( rc, PDERROR, "Add read default for column %s to new column info "
                             "failed, rc: %d", name, rc ) ;
-               _setColumnAttr( columnID, DMS_SCHEMA_COL_READ_DEFAULT ) ;
+               newAttr |= DMS_SCHEMA_COL_READ_DEFAULT ;
             }
          }
 
@@ -182,7 +183,7 @@ namespace engine
                          "failed, rc: %d", name, rc ) ;
             if ( !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_WRITE_DEFAULT ) )
             {
-               _setColumnAttr( columnID, DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
+               newAttr |= DMS_SCHEMA_COL_WRITE_DEFAULT ;
             }
          }
 
@@ -204,6 +205,11 @@ namespace engine
          rc = _updateColRecord( columnID, oldColRecord, newColRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Update info of column %s in internal schema failed, rc: %d",
                       newColRecord->getName(), rc ) ;
+
+         if ( newAttr != attr )
+         {
+            _setColumnAttr( columnID, newAttr ) ;
+         }
 
          flush() ;
       }
@@ -1017,13 +1023,7 @@ namespace engine
 
       if ( newRecord->getLength() <= oldRecord->getLength() )
       {
-         const CHAR *origName = oldRecord->getOrigName() ;
          ossMemcpy( (CHAR *)oldRecord, newRecord, newRecord->getLength() ) ;
-         if ( !origName )
-         {
-            // If the old record does not have an original name, it is set at this time.
-            _setColumnAttr( columnID, DMS_SCHEMA_COL_HAS_ORIGNAME ) ;
-         }
       }
       else
       {
@@ -1421,14 +1421,6 @@ namespace engine
       BOOLEAN hasReadDefault = FALSE ;
       BOOLEAN hasWriteDefault = FALSE ;
 
-
-      // Need to if this field is in index.
-
-      // Need to update schema when creating/dropping an index.
-
-
-
-
       // The column may exist in the internal schema already. In that case, just return succeed.
       id = _schemaHash.getColumnIDByName( columnName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID != id )
@@ -1510,9 +1502,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Drop column information in internal schema failed, rc: %d", rc ) ;
 
       _onSchemaColChanged() ;
-
-      // TODO: YSD Add the dropped field in a map, for rebuild records which are not encoded.
-
 
    done:
       return rc ;
@@ -2024,7 +2013,7 @@ retry:
                   if ( nameItr->second._isDeleted )
                   {
                      // If the column is deleted in the schema, do not add it to the result.
-                     watchNames.erase( ele.fieldName() ) ;
+                     watchNames.erase( ele.fieldName() ) ;  // Code Review: Remove by iterator. Use a counter instead of erase
                      continue ;
                   }
                   else if ( nameItr->second._isOrigName )

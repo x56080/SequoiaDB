@@ -156,7 +156,7 @@ namespace engine
          UINT16                           _mbID ;
          dmsExtentID                      _extentID ;
          const dmsSchemaExtent           *_extent ;     // Read pointer of the schema extent.
-         dmsExtRW                         _extRW ;
+         dmsExtRW                         _extRW ;       // Review: 不能作为成员变量存储，可能存在可靠性问题，使用 beginFixAddr ?
    } ;
    typedef _dmsSchemaContainer dmsSchemaContainer ;
 
@@ -259,7 +259,7 @@ namespace engine
 
          INT32    init( _dmsStorageDataCommon *su, _dmsMBContext *context,
                         dmsExtentID schemaExtentID, dmsExtentID schemaHashExtentID,
-                       BOOLEAN isLoad = TRUE ) ;
+                        BOOLEAN isLoad = TRUE ) ;
 
          void     reset() ;
 
@@ -269,7 +269,6 @@ namespace engine
                                 UINT32 pageSize ) ;
          */
 
-         // TODO: ysd 删除集合的时候需要 disable 掉
          BOOLEAN  enabled() const
          {
             return _enabled ;
@@ -363,6 +362,8 @@ namespace engine
          ossPoolSet<UINT16>     _encodeWatchIDs ;   // Columns with write default value or index
                                                    // column with read default value.
          ossPoolSet<UINT16>     _decodeWatchIDs ;    // Column with read default value.
+
+         // Code review: change to _utilSet
 
          NAME_INFO_MAP          _decodeWatchNames ;
 

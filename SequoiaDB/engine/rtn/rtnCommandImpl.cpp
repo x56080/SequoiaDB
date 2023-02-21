@@ -632,7 +632,7 @@ namespace engine
    static INT32 rtnGetCollectionInternalSchema( const CHAR *pCollection,
                                                 SDB_DMSCB *dmsCB,
                                                 rtnContextDump *context )
-   {  
+   {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETCLINTERNALSCHEMA ) ;
       dmsStorageUnit *su = NULL;
@@ -647,32 +647,32 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to resolve collection name %s, rc: %d",
                    pCollection, rc ) ;
-      rc = su->data()->getMBContext(&mbContext, pCollectionShortName, SHARED);
+      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
 
-      rc = su->dumpInternalSchema(mbContext, schema) ;
+      rc = su->dumpInternalSchema( mbContext, schema ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get internal schema of collection[%s], rc: %d",
                    pCollection, rc ) ;
 
       try
       {
-         BSONObjBuilder builder;
-         builder.append( FIELD_NAME_NAME, pCollection );
-         builder.append( FIELD_NAME_UNIQUEID, (INT64)mbContext->mb()->_clUniqueID );
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_NAME, pCollection ) ;
+         builder.append( FIELD_NAME_UNIQUEID, (INT64)mbContext->mb()->_clUniqueID ) ;
          builder.append( FIELD_NAME_COLLECTIONSPACE, su->CSName() );
-         BSONArrayBuilder arrayBuilder( builder.subarrayStart( FIELD_NAME_INTERNAL_SCHEMAS ) );
-         BSONObjBuilder subObjBuilder( arrayBuilder.subobjStart() );
-         monAppendSystemInfo( subObjBuilder, infoMask );
-         
-         subObjBuilder.append( schema.getField( FIELD_NAME_COLUMNS ) );
-         subObjBuilder.done();
-         arrayBuilder.done();
+         BSONArrayBuilder arrayBuilder( builder.subarrayStart( FIELD_NAME_INTERNAL_SCHEMAS ) ) ;
+         BSONObjBuilder subObjBuilder( arrayBuilder.subobjStart() ) ;
+         monAppendSystemInfo( subObjBuilder, infoMask ) ;
+
+         subObjBuilder.append( schema.getField( FIELD_NAME_COLUMNS ) ) ;
+         subObjBuilder.done() ;
+         arrayBuilder.done() ;
 
          dmsCB->suUnlock( suID ) ;
          suID = DMS_INVALID_SUID ;
 
-         rc = context->append( builder.done() );
-         PD_RC_CHECK( rc, PDERROR, "Failed to add schema object to context, rc: %d", rc );
+         rc = context->append( builder.done() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add schema object to context, rc: %d", rc ) ;
       }
       catch ( std::exception &e )
       {

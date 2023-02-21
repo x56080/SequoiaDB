@@ -4980,7 +4980,9 @@ namespace engine
       internalSchema = _pDataSu->getSchema( context->mbID() ) ;
       if ( NULL == internalSchema || !internalSchema->enabled() )
       {
-         goto done ;
+         rc = SDB_INTERNAL_SCHEMA_NOT_ENABLED ;
+         PD_LOG( PDERROR, "Internal schema of collection [%s] is enabled, rc: %d", fullName, rc ) ;
+         goto error ;
       }
 
       rc = internalSchema->toSchemaObj( fullName, boSchema ) ;
