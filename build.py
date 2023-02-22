@@ -323,11 +323,11 @@ def package_db(opt_mgr, ver):
 
    # copy license base on compile type
    if opt_mgr.get_enterprise():
-      copy_file(os.path.join(ROOT_DIR, 'license/license_en.txt'), os.path.join(install_dir, 'license'))
-      copy_file(os.path.join(ROOT_DIR, 'license/license_zh.txt'), os.path.join(install_dir, 'license'))
+      copy_file(os.path.join(ROOT_DIR, 'licenses/license_en.txt'), os.path.join(install_dir, 'license'))
+      copy_file(os.path.join(ROOT_DIR, 'licenses/license_zh.txt'), os.path.join(install_dir, 'license'))
    else:
-      copy_file(os.path.join(ROOT_DIR, 'license/license_free_en.txt'), os.path.join(install_dir, 'license'))
-      copy_file(os.path.join(ROOT_DIR, 'license/license_free_zh.txt'), os.path.join(install_dir, 'license'))
+      copy_file(os.path.join(ROOT_DIR, 'licenses/license_free_en.txt'), os.path.join(install_dir, 'license'))
+      copy_file(os.path.join(ROOT_DIR, 'licenses/license_free_zh.txt'), os.path.join(install_dir, 'license'))
       os.rename(os.path.join(install_dir, 'license/license_free_en.txt'), os.path.join(install_dir, 'license/license_en.txt'))
       os.rename(os.path.join(install_dir, 'license/license_free_zh.txt'), os.path.join(install_dir, 'license/license_zh.txt'))
    if OS_ARCH == 'x86_64':
