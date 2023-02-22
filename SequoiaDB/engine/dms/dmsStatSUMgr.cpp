@@ -1633,7 +1633,7 @@ namespace engine
                                     pCollectionStat, FALSE ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( couldContinue ? PDWARNING : PDERROR,
+            PD_LOG( ( couldContinue ? PDWARNING : PDERROR ),
                     "Failed to add collection statistics [%s.%s], rc: %d",
                     pCollectionStat->getCSName(), pCollectionStat->getCLName(),
                     rc ) ;
@@ -1757,7 +1757,7 @@ namespace engine
                                pIndexStat, FALSE ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( couldContinue ? PDWARNING : PDERROR,
+            PD_LOG( ( couldContinue ? PDWARNING : PDERROR ),
                     "Failed to add index statistics [%s.%s, %s], rc: %d",
                     pIndexStat->getCSName(), pIndexStat->getCLName(),
                     pIndexStat->getIndexName(), rc ) ;

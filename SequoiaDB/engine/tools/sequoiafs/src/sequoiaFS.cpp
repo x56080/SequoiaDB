@@ -887,7 +887,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    sdbEnablePD(diaglogPath, optionMgr->getDiagMaxNUm());
    setPDLevel((PDLEVEL(optionMgr->getDiaglogLevel())));
    ossSprintVersion("Version", verText, OSS_MAX_PATHSIZE, FALSE);
-   PD_LOG((getPDLevel()>PDEVENT)?PDEVENT:getPDLevel(),
+   PD_LOG(((getPDLevel()>PDEVENT)?PDEVENT:getPDLevel()),
            "Start sequoiafs[%s]...", verText);
 
    //print configuration in log file
