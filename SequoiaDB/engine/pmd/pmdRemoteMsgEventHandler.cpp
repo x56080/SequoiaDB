@@ -110,7 +110,7 @@ namespace engine
          rc = _pRSManager->pushMessage( handle, header ) ;
          if ( rc )
          {
-            PD_LOG( ( SDB_INVALIDARG == rc ) ? PDWARNING : PDERROR,
+            PD_LOG( ( ( SDB_INVALIDARG == rc ) ? PDWARNING : PDERROR ),
                     "Push message[%s] failed, rc: %d",
                     msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
             rc = rc == SDB_INVALIDARG ? SDB_INVALIDARG : SDB_NET_BROKEN_MSG ;
