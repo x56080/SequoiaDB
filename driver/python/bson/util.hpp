@@ -266,7 +266,7 @@
       Py_ssize_t list_size = PyList_Size( py_list ) ;                   \
       for ( int idx = 0 ; idx < list_size ; ++idx )                     \
       {                                                                 \
-         CHAR *str = NULL ;                                             \
+         const CHAR *str = NULL ;                                       \
          str = PyString_AsString( PyList_GetItem( py_list, idx) ) ;     \
          str_arr[idx] = str;                                            \
       }                                                                 \
