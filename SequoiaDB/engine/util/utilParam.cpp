@@ -64,9 +64,11 @@ namespace engine
    #define UTIL_OPTION_LIMIT_FD         "open_files"
    #define UTIL_OPTION_LIMIT_STACKSIZE  "stack_size"
 
+   #define UTIL_OPTION_LIMIT_BOUNDARY_VAL       -1
+
    /*
       The default value of limits.conf
-    */
+   */
    #define UTIL_OPTION_LIMIT_CORE_DEFAULT       0
    #define UTIL_OPTION_LIMIT_DATA_DEFAULT       -1
    #define UTIL_OPTION_LIMIT_FILESIZE_DEFAULT   -1
@@ -734,13 +736,15 @@ namespace engine
 
 
          // set ulimit
-         if ( !limitVarmap.count( option ) )
+         po::variables_map::const_iterator iter = limitVarmap.find( option ) ;
+         if ( iter == limitVarmap.end() ||
+              UTIL_OPTION_LIMIT_BOUNDARY_VAL > iter->second.as<INT64>() )
          {
             expVal = defVal ;
          }
          else
          {
-            expVal = limitVarmap[ option ].as<INT64>() ;
+            expVal = iter->second.as<INT64>() ;
          }
          tmpRC = _compareAndSetUlimit( limitStr.c_str(), expVal, procLim ) ;
          if ( tmpRC && expVal != defVal )
