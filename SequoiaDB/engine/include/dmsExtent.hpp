@@ -316,7 +316,7 @@ namespace engine
 
    struct _dmsSchemaExtent : public SDBObject
    {
-      // Total: 20 bytes
+      // Total: 28 bytes
       CHAR        _eyeCatcher[2] ;
       UINT16      _blockSize ;
       UINT16      _mbID ;
@@ -324,12 +324,12 @@ namespace engine
       CHAR        _version ;
       dmsExtentID _prevExtent ;
       dmsExtentID _nextExtent ;
-      UINT16      _itemNum ;
-      UINT16      _valueOffset ;
-      UINT16      _readDefaultNum ;
-      UINT16      _writeDefaultNum ;
+      UINT32      _itemNum ;
+      UINT32      _valueOffset ;
+      UINT32      _freeSpace ;      // Total free space in the extent, including bubbles in the
+                                    // middle of column information.
 
-      void init( UINT16 numPages, UINT16 mbID )
+      void init( UINT16 numPages, UINT16 mbID, UINT32 totalSize )
       {
          _eyeCatcher[0]       = DMS_SCHEMA_EXTENT_EYECATCHER0 ;
          _eyeCatcher[1]       = DMS_SCHEMA_EXTENT_EYECATCHER1 ;
@@ -341,8 +341,7 @@ namespace engine
          _nextExtent          = DMS_INVALID_EXTENT ;
          _itemNum             = 0 ;
          _valueOffset         = 0 ;
-         _readDefaultNum      = 0 ;
-         _writeDefaultNum     = 0 ;
+         _freeSpace           = totalSize - sizeof( _dmsSchemaExtent ) ;
       }
 
       BOOLEAN validate( UINT16 mbID = DMS_INVALID_MBID ) const

@@ -4919,15 +4919,27 @@ namespace engine
          }
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
+            BOOLEAN foundOldCol = TRUE ;
             rc = _pIndexSu->renameColumnOnIndexes( context, action, FALSE, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] on indexes, "
                          "rc: %d", action.getColumnName(), rc ) ;
 
             rc = internalSchema->renameColumn( context, action.getColumnName(),
-                                               action.getNewColAttr().getName() ) ;
+                                               action.getNewColAttr().getName(), &foundOldCol ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] to [%s], "
                          "rc: %d", action.getColumnName(),
                          action.getNewColAttr().getName(), rc ) ;
+            if ( !foundOldCol )
+            {
+               // If the old name does not exist, add the new column, and set the original name.
+               rc = internalSchema->addColumn( context, action.getNewColAttr().getName(),
+                                               NULL, NULL, FALSE, action.getColumnName() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to add column with original name failed, rc: %d",
+                            rc ) ;
+               PD_LOG( PDDEBUG, "Old column [%s] does not exist when renaming. Add the new "
+                       "column[%s] with original name[%s]", action.getColumnName(),
+                       action.getNewColAttr().getName(), action.getColumnName() ) ;
+            }
             break ;
          }
          case UTIL_SCHEMA_DROP_DEFAULT :

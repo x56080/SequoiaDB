@@ -1349,7 +1349,7 @@ namespace engine
          schemaExtPtr = rw.writePtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
          PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
                    schemaExtent ) ;
-         schemaExtPtr->init( schemaExtSize, mbID ) ;
+         schemaExtPtr->init( schemaExtSize, mbID, DMS_PAGE_SIZE64K ) ;
          ossMemset( (CHAR *)schemaExtPtr + DMS_SCHEMAEXTENT_HEADER_SZ, 0x00,
                     ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
 
@@ -2634,7 +2634,7 @@ namespace engine
          schemaExtPtr = rw.writePtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
          PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
                    schemaExtent ) ;
-         schemaExtPtr->init( schemaExtSize, newCollectionID ) ;
+         schemaExtPtr->init( schemaExtSize, newCollectionID, DMS_PAGE_SIZE64K ) ;
          ossMemset( (CHAR *)schemaExtPtr + DMS_SCHEMAEXTENT_HEADER_SZ, 0x00,
                     ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
 

@@ -952,7 +952,7 @@ namespace engine
            0 != argument.getShardingKey().woCompare( cataSet.getShardingKey() ) &&
            cataSet.hasSchema() )
       {
-         const CHAR *conflictColumn = NULL ;
+         // const CHAR *conflictColumn = NULL ;
          const CHAR *schemaName = cataSet.getSchemaName() ;
          utilSchema schema ;
 

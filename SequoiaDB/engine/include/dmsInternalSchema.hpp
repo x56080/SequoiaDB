@@ -63,7 +63,8 @@ namespace engine
                      dmsExtentID extentID, BOOLEAN isLoad = TRUE ) ;
          void  reset() ;
 
-         INT32 addColumn( const CHAR *name, const BSONObj *columnDef, UINT16 &columnID ) ;
+         INT32 addColumn( const CHAR *name, const BSONObj *columnDef, UINT16 &columnID,
+                          const CHAR *origName = NULL ) ;
          INT32 alterColumn( UINT16 columnID, const BSONObj &columnInfo ) ;
          INT32 dropColumn( UINT16 columnID ) ;
 
@@ -119,7 +120,8 @@ namespace engine
          INT32 flush() ;
 
       private:
-         INT32    _allocSpace4ColRecord( UINT16 slotSize, UINT16 vaueSize, UINT16 &offset ) ;
+         INT32    _allocSpace4ColRecord( UINT16 slotSize, UINT16 vaueSize, UINT16 &offset,
+                                         UINT16 *allocSize = NULL ) ;
 
          void     _setColumnAttr( UINT16 columnID, INT16 flags ) ;
          INT16    _getColumnAttr( UINT16 columnID ) const ;
@@ -177,17 +179,17 @@ namespace engine
 
       private:
          void   _setColumnIDInItem( INT32 *item, UINT16 columnID ) ;
-         UINT16 _getColumnIDByItem( INT32 item ) ;
+         UINT16 _getColumnIDByItem( INT32 *item ) ;
 
          INT32  _getItemByName( const CHAR *name, INT32 *&item, INT32 **prevItem ) ;
-         void   _setNextItemID( INT32 *item, UINT16 id ) ;
-         UINT16 _getNextItemID( INT32 item ) ;
+         void   _setNextItemOffset( INT32 *item, UINT16 id ) ;
+         UINT16 _getNextItemOffset( INT32 *item ) ;
          void   _resetItem( INT32 *item )
          {
             *item = 0xFFFFFFFF ;
          }
 
-         OSS_INLINE INT32 *_itemID2Ptr( UINT16 itemID ) ;
+         OSS_INLINE INT32 *_itemOffset2Ptr( UINT16 offset ) ;
 
       private:
          dmsSchemaContainer        *_schemaContainer ;
@@ -276,11 +278,12 @@ namespace engine
 
          INT32    addColumn( _dmsMBContext *context, const CHAR *columnName,
                              const BSONObj *columnDef = NULL, UINT16 *columnID = NULL,
-                             BOOLEAN mergeOnExist = FALSE ) ;
+                             BOOLEAN mergeOnExist = FALSE, const CHAR *origName = NULL ) ;
 
          INT32    dropColumn( _dmsMBContext *context,  const CHAR *columnName ) ;
 
-         INT32    renameColumn( _dmsMBContext *context, const CHAR *oldName, const CHAR *newName ) ;
+         INT32    renameColumn( _dmsMBContext *context, const CHAR *oldName, const CHAR *newName,
+                                BOOLEAN *oldColFound ) ;
 
          /**
           * Drop default value of a column. Only the write default can be dropped.
@@ -371,11 +374,9 @@ namespace engine
    } ;
    typedef _dmsInternalSchema dmsInternalSchema ;
 
-   OSS_INLINE INT32 *_dmsSchemaHash::_itemID2Ptr( UINT16 itemID )
+   OSS_INLINE INT32 *_dmsSchemaHash::_itemOffset2Ptr( UINT16 offset )
    {
-      return (INT32 *)_extRW.readPtr(
-         DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_SCHEMAHASHEXTENT_ITEM_SZ * itemID,
-         DMS_SCHEMAHASHEXTENT_ITEM_SZ ) ;
+      return (INT32 *)_extRW.readPtr( offset, DMS_SCHEMAHASHEXTENT_ITEM_SZ ) ;
    }
 }
 
