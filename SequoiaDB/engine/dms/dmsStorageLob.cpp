@@ -2725,8 +2725,11 @@ namespace engine
             goto error ;
          }
 
-         rc = _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), truncatePage,
-                                           truncateNum ) ;
+         if ( ossEnvCanPunchHole() )
+         {
+            _dmsHMMgr->clearHoleMapMask( _getStorageFileType(), truncatePage,
+                                         truncateNum ) ;
+         }
       }
 
       // shrink LOBM segment space
