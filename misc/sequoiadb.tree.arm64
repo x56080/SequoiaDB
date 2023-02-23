@@ -887,6 +887,7 @@ sequoiadb
 │   ├── SequoiaDB_usermanuals_v3.4.pdf
 │   └── SequoiaDB_usermanuals_v3.4.tar.gz
 ├── flink
+│   ├── sdb-flink-connector-${SYS_VERSION}.jar
 │   └── sdb-flink-connector-${SYS_VERSION}-jar-with-dependencies.jar
 ├── hadoop
 │   ├── hadoop-connector-1.2.jar
