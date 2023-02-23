@@ -1,2 +1,3 @@
 .
+├── sdb-flink-connector-${SYS_VERSION}.jar
 └── sdb-flink-connector-${SYS_VERSION}-jar-with-dependencies.jar

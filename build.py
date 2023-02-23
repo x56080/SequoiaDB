@@ -285,7 +285,7 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'driver/hadoop/hive/*.jar'), os.path.join(install_dir, 'hadoop'))
    copy_file(os.path.join(ROOT_DIR, 'driver/spark/target/*.jar'), os.path.join(install_dir, 'spark'))
    copy_file(os.path.join(ROOT_DIR, 'driver/spark-3.0/target/*.jar'), os.path.join(install_dir, 'spark'))
-   copy_file(os.path.join(ROOT_DIR, 'driver/flink/target/*with-dependencies.jar'), os.path.join(install_dir, 'flink'))
+   copy_file(os.path.join(ROOT_DIR, 'driver/flink/target/sdb-flink-connector-*.jar'), os.path.join(install_dir, 'flink'))
    copy_file(os.path.join(ROOT_DIR, 'tools/om_plugins/sequoiasql/source/target/*jar'), os.path.join(install_dir, 'plugins/SequoiaSQL/bin'))
    copy_file(os.path.join(ROOT_DIR, 'SequoiaDB/engine/tools/sequoias3/target/sequoia*.jar'), os.path.join(install_dir, 'tools/sequoias3'))
    copy_file(os.path.join(ROOT_DIR, 'SequoiaDB/engine/tools/sequoias3/sequoias3.sh'), os.path.join(install_dir, 'tools/sequoias3'))
@@ -436,7 +436,7 @@ def package_all_driver(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'driver/hadoop/hive/*.jar'), os.path.join(install_dir, 'Hadoop'))
    copy_file(os.path.join(ROOT_DIR, 'driver/spark/target/*.jar'), os.path.join(install_dir, 'Spark'))
    copy_file(os.path.join(ROOT_DIR, 'driver/spark-3.0/target/*.jar'), os.path.join(install_dir, 'Spark'))
-   copy_file(os.path.join(ROOT_DIR, 'driver/flink/target/*with-dependencies.jar'), os.path.join(install_dir, 'Flink'))
+   copy_file(os.path.join(ROOT_DIR, 'driver/flink/target/sdb-flink-connector-*.jar'), os.path.join(install_dir, 'Flink'))
    copy_file(os.path.join(ROOT_DIR, 'driver/java/target/sequoiadb*.jar'), os.path.join(install_dir, 'Java'))
    if opt_mgr.get_debug():
       copy_file(os.path.join(ROOT_DIR, 'driver/php/build/dd/*.so'), os.path.join(install_dir, 'PHP'))
