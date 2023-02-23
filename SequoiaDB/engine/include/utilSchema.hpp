@@ -93,33 +93,33 @@ namespace engine
 
       UINT32 getRestrict() const
       {
-         return _restrict ;
+         return _restrictFlags ;
       }
 
       void setRestrict( UINT32 value )
       {
-         _restrict = value ;
+         _restrictFlags = value ;
       }
 
       BOOLEAN isNotNull() const
       {
-         return OSS_BIT_TEST( _restrict, UTIL_SCHEMA_COLUMN_NOT_NULL ) ? TRUE : FALSE ;
+         return OSS_BIT_TEST( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_NULL ) ? TRUE : FALSE ;
       }
 
       BOOLEAN isNotArray() const
       {
-         return OSS_BIT_TEST( _restrict, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ? TRUE : FALSE ;
+         return OSS_BIT_TEST( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ? TRUE : FALSE ;
       }
 
       void setNotNull( BOOLEAN flag )
       {
          if ( flag )
          {
-            OSS_BIT_SET( _restrict, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
+            OSS_BIT_SET( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
          }
          else
          {
-            OSS_BIT_CLEAR( _restrict, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
+            OSS_BIT_CLEAR( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
          }
       }
 
@@ -127,11 +127,11 @@ namespace engine
       {
          if ( flag )
          {
-            OSS_BIT_SET( _restrict, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
+            OSS_BIT_SET( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
          }
          else
          {
-            OSS_BIT_CLEAR( _restrict, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
+            OSS_BIT_CLEAR( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
          }
       }
 
@@ -199,7 +199,7 @@ namespace engine
       {
          _name = NULL ;
          _type = bson::EOO ;
-         _restrict = 0 ;
+         _restrictFlags = 0 ;
          _writeDefault = bson::BSONElement() ;
          _readDefault = bson::BSONElement() ;
       }
@@ -207,7 +207,7 @@ namespace engine
    protected:
       const CHAR *      _name ;
       bson::BSONType    _type ;
-      UINT32            _restrict ;
+      UINT32            _restrictFlags ;
       bson::BSONElement _writeDefault ;
       bson::BSONElement _readDefault ;
    } ;
@@ -242,7 +242,7 @@ namespace engine
          _define = column._define ;
          _name = column._name ;
          _type = column._type ;
-         _restrict = column._restrict ;
+         _restrictFlags = column._restrictFlags ;
          _writeDefault = column._writeDefault ;
          _readDefault = column._readDefault ;
          return *this ;

@@ -73,7 +73,7 @@ namespace engine
    _utilSchemaColAttr::_utilSchemaColAttr()
    : _name( NULL ),
      _type( EOO ),
-     _restrict( 0 ),
+     _restrictFlags( 0 ),
      _writeDefault(),
      _readDefault()
    {
@@ -82,7 +82,7 @@ namespace engine
    _utilSchemaColAttr::_utilSchemaColAttr( const _utilSchemaColAttr &attr )
    : _name( attr._name ),
      _type( attr._type ),
-     _restrict( attr._restrict ),
+     _restrictFlags( attr._restrictFlags ),
      _writeDefault( attr._writeDefault ),
      _readDefault( attr._readDefault )
    {
@@ -133,7 +133,7 @@ namespace engine
                          FIELD_NAME_NOT_NULL ) ;
                if ( ele.boolean() )
                {
-                  OSS_BIT_SET( _restrict, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
+                  OSS_BIT_SET( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
                }
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NNULL ) ;
             }
@@ -145,7 +145,7 @@ namespace engine
                          FIELD_NAME_NOT_ARRAY ) ;
                if ( ele.boolean() )
                {
-                  OSS_BIT_SET( _restrict, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
+                  OSS_BIT_SET( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
                }
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ) ;
             }
@@ -155,7 +155,7 @@ namespace engine
                PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDERROR,
                          "Failed to parse field [%s], it is not a integer",
                          FIELD_NAME_RESTRICT ) ;
-               _restrict = (UINT32)( ele.numberInt() ) ;
+               _restrictFlags = (UINT32)( ele.numberInt() ) ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NNULL ) ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ) ;
             }
@@ -328,9 +328,9 @@ namespace engine
             subBuilder.appendAs( _writeDefault, FIELD_NAME_WRITEDEFAULT ) ;
          }
 
-         subBuilder.append( FIELD_NAME_RESTRICT, _restrict ) ;
+         subBuilder.append( FIELD_NAME_RESTRICT, _restrictFlags ) ;
          subBuilder.append( FIELD_NAME_RESTRICT_DESC,
-                            _utilRestrict2RestrictDesc( _restrict,
+                            _utilRestrict2RestrictDesc( _restrictFlags,
                                                         restrictDescString ) ) ;
 
          subBuilder.doneFast() ;

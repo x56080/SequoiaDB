@@ -748,18 +748,18 @@ namespace engine
 
 
 
-      // TODO: YSD 这部分需要调整
-      /*
-      value = record->getOrigName( &valueSize ) ;  // TODO: YSD Wrong!!!
-      if ( value )
-      {
-         rc = rawBuilder.appendElement( bson::String, FIELD_NAME_ORIGIN_NAME,
-                                        ossStrlen( FIELD_NAME_ORIGIN_NAME ),
-                                        value, valueSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Append original name to column info builder failed, rc: %d",
-                      rc ) ;
-      }
-      */
+      // // TODO: YSD 这部分需要调整
+      // /*
+      // value = record->getOrigName( &valueSize ) ;  // TODO: YSD Wrong!!!
+      // if ( value )
+      // {
+      //    rc = rawBuilder.appendElement( bson::String, FIELD_NAME_ORIGIN_NAME,
+      //                                   ossStrlen( FIELD_NAME_ORIGIN_NAME ),
+      //                                   value, valueSize ) ;
+      //    PD_RC_CHECK( rc, PDERROR, "Append original name to column info builder failed, rc: %d",
+      //                 rc ) ;
+      // }
+      // */
 
       foundDefault = record->getDefault( type, valueSize, value ) ;
       if ( foundDefault )
