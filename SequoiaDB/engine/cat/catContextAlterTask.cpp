@@ -960,14 +960,14 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
                       schemaName, rc ) ;
 
-         rc = schema.checkDefaultKeys( argument.getShardingKey(),
-                                       FALSE, TRUE, conflictColumn ) ;
-         PD_LOG_MSG_CHECK( NULL == conflictColumn,
-                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                           "Failed to pass default key check for "
-                           "sharding key [%s], column [%s] has default value",
-                           argument.getShardingKey().toPoolString().c_str(),
-                           conflictColumn ) ;
+         // rc = schema.checkDefaultKeys( argument.getShardingKey(),
+         //                               FALSE, TRUE, conflictColumn ) ;
+         // PD_LOG_MSG_CHECK( NULL == conflictColumn,
+         //                   SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+         //                   "Failed to pass default key check for "
+         //                   "sharding key [%s], column [%s] has default value",
+         //                   argument.getShardingKey().toPoolString().c_str(),
+         //                   conflictColumn ) ;
       }
 
       if ( cataSet.isMainCL() &&
@@ -1363,21 +1363,21 @@ namespace engine
                            cataSet.name() ) ;
       }
 
-      if ( cataSet.isSharding() )
-      {
-         const CHAR *conflictColumn = NULL ;
-         rc = _schema.checkDefaultKeys( cataSet.getShardingKey(),
-                                        TRUE, TRUE, conflictColumn ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
-                      "schema [%s] for sharding keys of collection [%s], "
-                      "rc: %d", schemaName, collectionName, rc ) ;
-         PD_LOG_MSG_CHECK( NULL == conflictColumn,
-                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                           "Failed to pass default key check for "
-                           "sharding key [%s], column [%s] has default value",
-                           cataSet.getShardingKey().toPoolString().c_str(),
-                           conflictColumn ) ;
-      }
+      // if ( cataSet.isSharding() )
+      // {
+      //    const CHAR *conflictColumn = NULL ;
+      //    rc = _schema.checkDefaultKeys( cataSet.getShardingKey(),
+      //                                   TRUE, TRUE, conflictColumn ) ;
+      //    PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
+      //                 "schema [%s] for sharding keys of collection [%s], "
+      //                 "rc: %d", schemaName, collectionName, rc ) ;
+      //    PD_LOG_MSG_CHECK( NULL == conflictColumn,
+      //                      SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+      //                      "Failed to pass default key check for "
+      //                      "sharding key [%s], column [%s] has default value",
+      //                      cataSet.getShardingKey().toPoolString().c_str(),
+      //                      conflictColumn ) ;
+      // }
 
    done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKADDSCHEMA, rc ) ;
@@ -2837,20 +2837,20 @@ namespace engine
          {
             case UTIL_SCHEMA_ADD_COLUMN:
             {
-               if ( hasColumn )
-               {
-                  PD_LOG_MSG_CHECK(
-                        !OSS_BIT_TEST( action.getAlterMask(),
-                                       UTIL_SCHEMA_ATTR_MASK_COL_RDEF ),
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to check alter schema [%s] on collection [%s], "
-                        "can not add column [%s] with read value "
-                        "against sharding keys [%s]",
-                        action.getSchemaName(),
-                        cataSet.name(),
-                        action.getColumnName(),
-                        shardingKey.toPoolString().c_str() ) ;
-               }
+               // if ( hasColumn )
+               // {
+               //    PD_LOG_MSG_CHECK(
+               //          !OSS_BIT_TEST( action.getAlterMask(),
+               //                         UTIL_SCHEMA_ATTR_MASK_COL_RDEF ),
+               //          SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+               //          "Failed to check alter schema [%s] on collection [%s], "
+               //          "can not add column [%s] with read value "
+               //          "against sharding keys [%s]",
+               //          action.getSchemaName(),
+               //          cataSet.name(),
+               //          action.getColumnName(),
+               //          shardingKey.toPoolString().c_str() ) ;
+               // }
                break ;
             }
             case UTIL_SCHEMA_RENAME_COLUMN:

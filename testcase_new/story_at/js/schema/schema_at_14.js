@@ -30,14 +30,69 @@
 main(test);
 
 function test() {
-  var clName = "schema_14";
+  var clName = "schema_14_1";
+  // 普通集合
+  var cl = commCreateCL(db, COMMCSNAME, clName, { EnableInfoSchema: true });
   var schemaName = clName + "_1";
   commClearLegacySchema(db, schemaName);
-  var schema = db.createSchema(schemaName, {
+  db.createSchema(schemaName, {
     a: { Type: "int32", ReadDefault: 5 },
     b: { Type: "double", WriteDefault: 10.5 },
   });
-  var cl = commCreateCL(db, COMMCSNAME, clName, { EnableInfoSchema: true });
+  testColumnChanges(cl, schemaName);
+  commDropCL(db, COMMCSNAME, clName);
+
+  // 数据库分区的集合
+  var clName = "schema_14_2";
+  var cl = db.getCS(COMMCSNAME).createCL(clName, {
+    EnableInfoSchema: true,
+    ShardingKey: { id: 1 },
+    ShardingType: "hash",
+    Group: "db1",
+  });
+  var schemaName = clName + "_1";
+  commClearLegacySchema(db, schemaName);
+  db.createSchema(schemaName, {
+    a: { Type: "int32", ReadDefault: 5 },
+    b: { Type: "double", WriteDefault: 10.5 },
+  });
+  cl.split("db1", "db2", { id: 2048 }, { id: 4096 });
+  testColumnChanges(cl, schemaName);
+  commDropCL(db, COMMCSNAME, clName);
+
+  // 表分区的集合
+  var mainCLName = "schema_14_3";
+  var maincl = commCreateCL(db, COMMCSNAME, mainCLName, {
+    IsMainCL: true,
+    ShardingKey: { rid: 1 },
+    ShardingType: "range",
+    EnableInfoSchema: true,
+  });
+  var subclName1 = mainCLName + "_sub1";
+  var subclName2 = mainCLName + "_sub2";
+  commCreateCL(db, COMMCSNAME, subclName1, { EnableInfoSchema: true });
+  commCreateCL(db, COMMCSNAME, subclName2, { EnableInfoSchema: true });
+
+  maincl.attachCL(COMMCSNAME + "." + subclName1, {
+    LowBound: { rid: 0 },
+    UpBound: { rid: 5 },
+  });
+  maincl.attachCL(COMMCSNAME + "." + subclName2, {
+    LowBound: { rid: 5 },
+    UpBound: { rid: 10 },
+  });
+
+  var schemaName = clName + "_1";
+  commClearLegacySchema(db, schemaName);
+  db.createSchema(schemaName, {
+    a: { Type: "int32", ReadDefault: 5 },
+    b: { Type: "double", WriteDefault: 10.5 },
+  });
+  testColumnChanges(maincl, schemaName);
+  commDropCL(db, COMMCSNAME, mainCLName);
+}
+
+function testColumnChanges(cl, schemaName) {
   // 1.集合中已有记录，为其绑定外部模式，所有记录中均可正常读出设置了ReadDefault的字段值
   var records = [];
   var expRecs = [];
@@ -52,7 +107,8 @@ function test() {
   }
   cl.insert(records);
   cl.addSchema(schemaName);
-  var cursor = cl.find();
+  var schema = db.getSchema(schemaName);
+  var cursor = cl.find().sort({rid:1});
   commCompareResults(cursor, expRecs);
 
   // 2.向绑定了外部模式的集合中写入记录，设定了WriteDefault的字段如果在记录中未被赋值，将会被赋予默认值
@@ -64,7 +120,7 @@ function test() {
     expRecs.push({ rid: i, a: 5, b: 10.5 });
   }
   cl.insert(records);
-  var cursor = cl.find();
+  var cursor = cl.find().sort({rid:1});
   commCompareResults(cursor, expRecs);
 
   // 3.变更绑定到集合上的外部模式，增加字段
@@ -73,7 +129,7 @@ function test() {
   for (var i = 0; i < 5; i++) {
     expRecs.push({ rid: i, a: 5, b: 10.5, c: "read default" });
   }
-  var cursor = cl.find();
+  var cursor = cl.find().sort({rid:1});
   commCompareResults(cursor, expRecs);
 
   // 4.变更绑定到集合上的外部模式，删除字段
@@ -83,7 +139,7 @@ function test() {
   for (var i = 0; i < 5; i++) {
     expRecs.push({ rid: i, c: "read default" });
   }
-  var cursor = cl.find();
+  var cursor = cl.find().sort({rid:1});
   commCompareResults(cursor, expRecs);
 
   // 5.修改绑定到集合上的外部模式的字段名
@@ -92,7 +148,7 @@ function test() {
   for (var i = 0; i < 5; i++) {
     expRecs.push({ rid: i, new_c: "read default" });
   }
-  var cursor = cl.find();
+  var cursor = cl.find().sort({rid:1});
   commCompareResults(cursor, expRecs);
 
   // 6.修改绑定到集合上的外部模式的默认值
@@ -105,14 +161,12 @@ function test() {
     cl.insert({ rid: i });
     expRecs.push({ rid: i, d: { $decimal: "0.3333" } });
   }
-  schema.alterColumn("d", { Type: "decimal", WriteDefault: { $decimal: "1.6666" }})
+  schema.alterColumn("d", { Type: "decimal", WriteDefault: { $decimal: "1.6666" } });
   for (; i < 10; i++) {
     cl.insert({ rid: i });
     expRecs.push({ rid: i, d: { $decimal: "1.6666" } });
   }
-  
-  var cursor = cl.find();
-  commCompareResults(cursor, expRecs);
 
-  commDropCL(db, COMMCSNAME, clName);
+  var cursor = cl.find().sort({rid:1});
+  commCompareResults(cursor, expRecs);
 }

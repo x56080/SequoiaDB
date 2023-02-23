@@ -32,13 +32,50 @@ function test() {
   var schemaName = clName + "_1";
   commClearLegacySchema(db, schemaName);
   db.createSchema(schemaName, {
-    int: { Type: "int32", WriteDefault: 10, ReadDefault: 5 },
+    a: { Type: "int32", ReadDefault: 5 },
+    b: { Type: "double", WriteDefault: 3.5 },
   });
   var cl = commCreateCL(db, COMMCSNAME, clName, { EnableInfoSchema: true });
   cl.addSchema(schemaName);
-  cl.createIndex("index1", { int: 1 });
-  insertData(cl);
+  cl.createIndex("index1", { a: 1 });
+  cl.createIndex("index2", { b: 1 });
+  var expRecs = [];
+  for (var i = 0; i < 10; ++i) {
+    cl.insert({ a: i });
+    expRecs.push({ a: i, b: 3.5 });
+    cl.insert({ b: i + 0.1 });
+    expRecs.push({ b: i + 0.1, a: 5 });
+  }
+  var originExpRecs = expRecs.concat();
+
+  var cursor = cl.find().hint({ "": "index1" });
+  expRecs.sort(function (left, right) {
+    return left.a - right.a;
+  });
+  commCompareResults(cursor, expRecs);
+
+  var cursor = cl.find().hint({ "": "index2" });
+  expRecs.sort(function (left, right) {
+    return left.b - right.b;
+  });
+  commCompareResults(cursor, expRecs);
+
+  cl.createIndex("index3", { a: 1, b: -1 });
+  var cursor = cl.find().hint({ "": "index3" });
+  expRecs.sort(function (left, right) {
+    return -(left.b - right.b);
+  });
+  expRecs.sort(function (left, right) {
+    return left.a - right.a;
+  });
+  commCompareResults(cursor, expRecs);
 
   cl.dropIndex("index1");
+  cl.dropIndex("index2");
+  cl.dropIndex("index3");
+
+  var cursor = cl.find();
+  commCompareResults(cursor, originExpRecs);
+
   commDropCL(db, COMMCSNAME, clName);
 }
