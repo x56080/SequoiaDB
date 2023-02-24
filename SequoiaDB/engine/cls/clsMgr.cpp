@@ -306,27 +306,35 @@ namespace engine
          _clsShdSession *pShdSession = ( _clsShdSession* )pSession ;
          if( !pShdSession->isSetLogout() )
          {
-            /// save identify info
-            clsIdentifyInfo info ;
-            info._id = pSession->identifyID() ;
-            info._nid = pSession->identifyNID() ;
-            info._eduid = pSession->identifyEDUID() ;
-            info._tid = pSession->identifyTID() ;
-            info._username = pSession->getClient()->getUsername() ;
-            pSession->getAuditConfig( info._auditMask,
-                                      info._auditConfigMask ) ;
-            if ( !info._username.empty() )
+            try
             {
-               info._passwd = pSession->getClient()->getPassword() ;
+               /// save identify info
+               clsIdentifyInfo info ;
+               info._id = pSession->identifyID() ;
+               info._nid = pSession->identifyNID() ;
+               info._eduid = pSession->identifyEDUID() ;
+               info._tid = pSession->identifyTID() ;
+               info._username = pSession->getClient()->getUsername() ;
+               pSession->getAuditConfig( info._auditMask,
+                                         info._auditConfigMask ) ;
+               if ( !info._username.empty() )
+               {
+                  info._passwd = pSession->getClient()->getPassword() ;
+               }
+               if ( !pSession->getSchedInfo()->isDefault() )
+               {
+                  info._objSchedInfo = pSession->getSchedInfo()->toBSON() ;
+               }
+               info._source = pShdSession->getSource() ;
+               /// save trans conf
+               info._transConf = pShdSession->getTransConf() ;
+               _mapIdentifys[ pSession->sessionID() ] = info ;
             }
-            if ( !pSession->getSchedInfo()->isDefault() )
+            catch( std::exception& e )
             {
-               info._objSchedInfo = pSession->getSchedInfo()->toBSON() ;
+               PD_LOG( PDWARNING, "Failed to save shardSession Info, "
+                       "exception: %s", e.what() ) ;
             }
-            info._source = pShdSession->getSource() ;
-            /// save trans conf
-            info._transConf = pShdSession->getTransConf() ;
-            _mapIdentifys[ pSession->sessionID() ] = info ;
          }
       }
    }
