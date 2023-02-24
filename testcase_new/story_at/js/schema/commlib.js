@@ -1,6 +1,8 @@
 import("../lib/basic_operation/commlib.js");
 import("../lib/main.js");
 
+testConf.skipStandAlone = true;
+
 var DEFAULT_SCHEMA_FIELDS_DEFINE = {
   field1: { Type: "string" },
   field2: { Type: "double", ReadDefault: 10.2, WriteDefault: 5.1 },
@@ -101,6 +103,14 @@ function commClearLegacySchema(db, schemaName) {
   }
 }
 
+function SchemaNoColumnError(message, columnName){
+  this.message = message;
+  this.columnName = columnName;
+}
+
+SchemaNoColumnError.prototype = new Error();
+SchemaNoColumnError.prototype.constructor = SchemaNoColumnError;
+
 function commCheckInternalSchema(db, csName, clName, columnsDef) {
   var cursor = db.getCS(csName).getCL(clName).getInternalSchema();
   while (cursor.next()) {
@@ -110,7 +120,7 @@ function commCheckInternalSchema(db, csName, clName, columnsDef) {
     for (var i in keys) {
       var columnName = keys[i];
       if (!actColumns.hasOwnProperty(columnName)) {
-        throw new Error("The internal schema has no field " + columnName);
+        throw new SchemaNoColumnError("The internal schema has no column " + columnName, columnName);
       } else {
         if (
           columnsDef[columnName].hasOwnProperty("ReadDefault") &&
@@ -195,4 +205,16 @@ function checkJsonFileContent(jsonFile, expRecs) {
     }
   });
   assert.equal(actObjs, expRecs);
+}
+
+function commCheckInternalSchemaHasNoColumn(db, csName, clName, columnsDef, columnNotExist)
+{
+  try {
+    commCheckInternalSchema(db, csName, clName, columnsDef);
+    throw Error("Expect to have no column " + columnNotExist + ", but it exists");
+  } catch (e) {
+    if (!(e instanceof SchemaNoColumnError && e.columnName == columnNotExist)) {
+      throw e;
+    }
+  }
 }

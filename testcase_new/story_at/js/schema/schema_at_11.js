@@ -37,25 +37,27 @@ function test() {
   var schemaName = enabledCLName + "_1";
   commClearLegacySchema(db, schemaName);
   db.createSchema(schemaName, { column1: { Type: "string" } });
+  var groupNames = commGetDataGroupNames(db);
+  assert.equal(groupNames.length > 1, true);
 
   // 1.分区集合未开启内部模式的情况下给其绑定外部模式
   var disabledCL = db
     .getCS(COMMCSNAME)
-    .createCL(disabledCLName, { ShardingKey: { id: 1 }, ShardingType: "hash", Group: "db1" });
-  disabledCL.split("db1", "db2", { id: 2048 }, { id: 4096 });
+    .createCL(disabledCLName, { ShardingKey: { id: 1 }, ShardingType: "hash", Group: groupNames[0] });
+  disabledCL.split(groupNames[0], groupNames[1], { id: 2048 }, { id: 4096 });
   assert.tryThrow(SDB_OPERATION_INCOMPATIBLE, function () {
     disabledCL.addSchema(schemaName);
   });
-  db.getCS(COMMCSNAME).dropCL(disabledCLName);
+  commDropCL(db, COMMCSNAME, disabledCLName);
 
   // 2.分区集合已开启内部模式的情况下给其绑定外部模式
   var cl = db.getCS(COMMCSNAME).createCL(enabledCLName, {
     EnableInfoSchema: true,
     ShardingKey: { id: 1 },
     ShardingType: "hash",
-    Group: "db1",
+    Group: groupNames[0],
   });
-  cl.split("db1", "db2", { id: 2048 }, { id: 4096 });
+  cl.split(groupNames[0], groupNames[1], { id: 2048 }, { id: 4096 });
   cl.addSchema(schemaName);
   checkIfCollectionBoundToSchema(db, COMMCSNAME, enabledCLName, schemaName);
   commDropCL(db, COMMCSNAME, enabledCLName);

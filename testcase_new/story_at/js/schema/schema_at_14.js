@@ -30,6 +30,8 @@
 main(test);
 
 function test() {
+  var groupNames = commGetDataGroupNames(db);
+  assert.equal(groupNames.length > 1, true);
   var clName = "schema_14_1";
   // 普通集合
   var cl = commCreateCL(db, COMMCSNAME, clName, { EnableInfoSchema: true });
@@ -48,7 +50,7 @@ function test() {
     EnableInfoSchema: true,
     ShardingKey: { id: 1 },
     ShardingType: "hash",
-    Group: "db1",
+    Group: groupNames[0],
   });
   var schemaName = clName + "_1";
   commClearLegacySchema(db, schemaName);
@@ -56,7 +58,7 @@ function test() {
     a: { Type: "int32", ReadDefault: 5 },
     b: { Type: "double", WriteDefault: 10.5 },
   });
-  cl.split("db1", "db2", { id: 2048 }, { id: 4096 });
+  cl.split(groupNames[0], groupNames[1], { id: 2048 }, { id: 4096 });
   testColumnChanges(cl, schemaName);
   commDropCL(db, COMMCSNAME, clName);
 

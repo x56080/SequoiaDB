@@ -24,10 +24,11 @@
  *
  **************************************************************************************************/
 testConf.clName = "schema_19";
-testConf.clOpt = { EnableInfoSchema: true, Group: "db1" };
+testConf.clOpt = { EnableInfoSchema: true };
 main(test);
 
 function test() {
+  
   var cl = testPara.testCL;
   var schemaName = testConf.clName + "_1";
   commClearLegacySchema(db, schemaName);
