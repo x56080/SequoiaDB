@@ -31,6 +31,9 @@ $SNAPSHOT_CS
 | FreeDataSize    | int64     | 集合空间数据文件空闲空间大小，单位为字节   |
 | TotalIndexSize  | int64     | 集合空间索引文件总大小，单位为字节         |
 | FreeIndexSize   | int64     | 集合空间索引文件空闲空间大小，单位为字节   |
+| RecycleDataSize | int64     | 集合空间下所有回收站项目的数据文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
+| RecycleIndexSize| int64     | 集合空间下所有回收站项目的索引文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
+| RecycleLobSize  | int64     | 集合空间下所有回收站项目的大对象文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
 | FreeLobSize    | int64      | 集合空间大对象文件空闲空间大小，单位为字节<br>v3.6.1 及以上版本中，该字段已更名为 FreeLobSpace  |
 | MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | LobCapacity     | int64      | 集合空间大对象文件的存储容量，单位为字节（仅在 v3.6.1 及以上版本生效） |
@@ -103,6 +106,9 @@ $SNAPSHOT_CS
   "FreeDataSize": 133627904,
   "TotalIndexSize": 151060480,
   "FreeIndexSize": 134152171,
+  "RecycleDataSize": 0,
+  "RecycleIndexSize": 0,
+  "RecycleLobSize": 0,
   "FreeLobSize": 133693440,
   "MaxLobCapacity": 8796093022208,
   "LobCapacity": 134217728,

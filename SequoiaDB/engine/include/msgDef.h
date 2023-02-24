@@ -95,6 +95,9 @@
 #define FIELD_NAME_TOTAL_LOB_SIZE            "TotalLobSize"
 #define FIELD_NAME_FREE_DATA_SIZE            "FreeDataSize"
 #define FIELD_NAME_FREE_IDX_SIZE             "FreeIndexSize"
+#define FIELD_NAME_RECYCLE_DATA_SIZE         "RecycleDataSize"
+#define FIELD_NAME_RECYCLE_IDX_SIZE          "RecycleIndexSize"
+#define FIELD_NAME_RECYCLE_LOB_SIZE          "RecycleLobSize"
 // Deprecated
 #define FIELD_NAME_FREE_LOB_SIZE             "FreeLobSize"
 // Use FreeLobSpace instead of FreeLobSize

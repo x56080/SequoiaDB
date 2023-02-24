@@ -104,6 +104,9 @@ namespace engine
       INT64          _totalLobWrite ;
       INT64          _totalLobTruncate ;
       INT64          _totalLobAddressing ;
+      INT64          _recycleDataSize ;
+      INT64          _recycleIndexSize ;
+      INT64          _recycleLobSize ;
    } ;
    typedef _dmsStorageUnitStat dmsStorageUnitStat ;
 

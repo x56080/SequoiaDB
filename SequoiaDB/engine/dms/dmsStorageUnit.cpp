@@ -3944,7 +3944,7 @@ namespace engine
                                    statInfo._totalDataFreeSpace ;
       INT64 totalIndexFreeSize   = totalFreeSize( DMS_SU_INDEX ) +
                                    statInfo._totalIndexFreeSpace ;
-      INT64 totalLobFreeSpace     = totalFreeSize( DMS_SU_LOB ) ;
+      INT64 totalLobFreeSpace    = totalFreeSize( DMS_SU_LOB ) ;
 
       ossMemset( collectionSpace._name, 0, sizeof(collectionSpace._name) ) ;
       ossStrncpy( collectionSpace._name, CSName(), DMS_COLLECTION_SPACE_NAME_SZ );
@@ -3962,6 +3962,9 @@ namespace engine
       collectionSpace._freeDataSize  = totalDataFreeSize ;
       collectionSpace._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
       collectionSpace._freeIndexSize = totalIndexFreeSize ;
+      collectionSpace._recycleDataSize = statInfo._recycleDataSize ;
+      collectionSpace._recycleIndexSize = statInfo._recycleIndexSize ;
+      collectionSpace._recycleLobSize = statInfo._recycleLobSize ;
 
       collectionSpace._lobCapacity = totalSize( DMS_SU_LOB ) ;
       collectionSpace._lobMetaCapacity = totalSize( DMS_SU_LOB_META ) ;
@@ -4214,28 +4217,40 @@ namespace engine
          {
             mbStat = &_pDataSu->_mbStatInfo[it->second] ;
 
-            ++statInfo._clNum ;
-            statInfo._totalCount += mbStat->_totalRecords ;
-            statInfo._totalDataPages += mbStat->_totalDataPages ;
-            statInfo._totalIndexPages += mbStat->_totalIndexPages ;
-            statInfo._totalLobPages += mbStat->_totalLobPages ;
-            statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
-            statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+            if ( dmsIsSysRecycleName( it->first ) )
+            {
+               statInfo._recycleDataSize += ( mbStat->_totalDataPages <<
+                                              _pDataSu->pageSizeSquareRoot() ) ;
+               statInfo._recycleIndexSize += ( mbStat->_totalIndexPages <<
+                                              _pDataSu->pageSizeSquareRoot() ) ;
+               statInfo._recycleLobSize += ( mbStat->_totalLobPages *
+                                              _pDataSu->getLobdPageSize() ) ;
+            }
+            else
+            {
+               ++statInfo._clNum ;
+               statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
+               statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
+               statInfo._totalCount += mbStat->_totalRecords ;
+               statInfo._totalDataPages += mbStat->_totalDataPages ;
+               statInfo._totalIndexPages += mbStat->_totalIndexPages ;
+               statInfo._totalLobPages += mbStat->_totalLobPages ;
 
-            statInfo._totalLobs += mbStat->_totalLobs ;
-            statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
-            statInfo._totalLobSize += mbStat->_totalLobSize ;
+               statInfo._totalLobs += mbStat->_totalLobs ;
+               statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
+               statInfo._totalLobSize += mbStat->_totalLobSize ;
 
-            statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
-            statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
-            statInfo._totalLobDelete += mbStat->_crudCB._totalLobDelete ;
-            statInfo._totalLobList += mbStat->_crudCB._totalLobList ;
-            statInfo._totalLobReadSize += mbStat->_crudCB._totalLobReadSize ;
-            statInfo._totalLobWriteSize += mbStat->_crudCB._totalLobWriteSize ;
-            statInfo._totalLobRead += mbStat->_crudCB._totalLobRead ;
-            statInfo._totalLobWrite += mbStat->_crudCB._totalLobWrite ;
-            statInfo._totalLobTruncate += mbStat->_crudCB._totalLobTruncate ;
-            statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
+               statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
+               statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
+               statInfo._totalLobDelete += mbStat->_crudCB._totalLobDelete ;
+               statInfo._totalLobList += mbStat->_crudCB._totalLobList ;
+               statInfo._totalLobReadSize += mbStat->_crudCB._totalLobReadSize ;
+               statInfo._totalLobWriteSize += mbStat->_crudCB._totalLobWriteSize ;
+               statInfo._totalLobRead += mbStat->_crudCB._totalLobRead ;
+               statInfo._totalLobWrite += mbStat->_crudCB._totalLobWrite ;
+               statInfo._totalLobTruncate += mbStat->_crudCB._totalLobTruncate ;
+               statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
+            }
 
             ++it ;
          }
@@ -4555,8 +4570,8 @@ namespace engine
                                         _pDataSu->pageSizeSquareRoot() ;
       item._totalIndexSize = mbStat->_totalIndexPages <<
                                         _pIndexSu->pageSizeSquareRoot() ;
-      item._totalLobSize = mbStat->_totalLobPages <<
-                                        _pLobSu->pageSizeSquareRoot() ;
+      item._totalLobSize = mbStat->_totalLobPages *
+                                        _pLobSu->getLobdPageSize() ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSU__DUMPRECYCLEINFO_CL, rc ) ;
