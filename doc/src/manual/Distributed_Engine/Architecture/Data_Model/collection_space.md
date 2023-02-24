@@ -8,10 +8,10 @@
     市场部：20190821
 
 
-概述
-----
+##概述##
+
 集合空间（Collection Space）是数据库中存放集合的物理对象。
- 
+
 - 任何一个集合必须属于且仅属于一个集合空间。
 
 - 集合空间名最大长度为 127 字节，且需为 UTF-8 编码。
@@ -34,8 +34,7 @@
 >
 > 集合空间的数据页大小由创建集合空间时指定的属性 PageSize 决定。默认情况下，PageSize 的值为 64K。
 
-属性
-----
+##属性##
 
 在集群环境下，每个集合空间拥有除名称外的以下属性：
 
@@ -49,12 +48,11 @@
 >
 > 关于集合空间的属性及属性取值可参考 [Sdb.createCS()][data_mode_createCS]。
 
-存储单元
-----
+##存储单元##
 
 数据文件和索引文件组成 SequoiaDB 巨杉数据库的存储单元（SU, Storage Unit）。每一个集合空间在其相关的数据节点中都对应一个数据文件（`<集合空间名>.1.data`）和一个索引文件(`<集合空间名>.1.idx`)。
 
-### 数据文件 ###
+###数据文件###
 
 
 数据文件结构如图 1 所示：
@@ -69,9 +67,9 @@ MME 段被切分成 4096 个 1KB 大小的元数据块（MB, Meta Block），每
 
 图 1 列举了两个集合使用存储空间的情况。集合由一个或者多个数据块通过双向链表连接而成，每个集合在 MME 段的元数据中都包含一个起始数据块和结束数据块的指针。集合在扩展大小过程会从空闲的数据页中使用若干连续的数据页构建新的数据块，然后把该数据块连接到双向链表的末端。在扩展数据块过程中，如果空闲的数据页不够且数据文件还没达到文件大小上限时，数据文件会扩展 128MB 字节的空闲数据页，以确保扩展数据块能够正常进行。
 
-当一个集合被 drop 或者被 truncate 后，该集合所占用的数据块将被释放为空闲数据页。此时，数据文件的大小并不会缩减，但该集合空间中所有集合都能够自由使用数据文件内部的可用的空闲数据页。
+当一个集合被 drop 或者被 truncate 后，该集合所占用的数据块将被释放为空闲空间，供集合空间内的其他集合使用。
 
-### 索引文件 ###
+###索引文件###
 
 索引文件结构如图 2 所示：
 
@@ -84,8 +82,27 @@ MME 段被切分成 4096 个 1KB 大小的元数据块（MB, Meta Block），每
 
 索引文件采用 B 树的结构来组织记录的索引，B 树节点中包含着排序后的索引键和每一个索引键对应的记录偏移。一旦获取记录偏移，在使用索引查找数据过程中能够快速在数据文件中定位数据。
 
+##空间回收##
+
+SequoiaDB 巨杉数据库提供空间回收功能，用于回收集合空间内长期未使用的空闲空间，以提升磁盘利用率。根据空闲空间在文件中的位置，空间回收的方式可分为文件截断和构造文件空洞，用户需确保本地文件系统支持构造文件空洞。
+
+###文件截断###
+
+当空闲空间位于文件尾部时，系统将通过文件截断的方式进行空间回收。回收后对应文件的大小和所占用的磁盘空间都将变小。示意图如下：
+
+![文件收缩][data_mod_shrinkspace1]
+
+###构造文件空洞###
+
+当空闲空间位于文件中部时，系统将通过构造文件空洞的方式进行空间回收。回收后对应文件的大小不变，但所占用的磁盘空间将变小。示意图如下：
+
+![文件空洞][data_mod_shrinkspace2]
+
+
 [^_^]:
     本文使用的所有链接及引用
 [data_mode_data_su_struct]:images/Distributed_Engine/Architecture/Data_Model/data_storage_unit_struct.png
 [data_mode_index_su_struct]:images/Distributed_Engine/Architecture/Data_Model/index_storage_unit_struct.png
 [data_mode_createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
+[data_mod_shrinkspace1]:images/Distributed_Engine/Architecture/Data_Model/shrinkspace1.png
+[data_mod_shrinkspace2]:images/Distributed_Engine/Architecture/Data_Model/shrinkspace2.png
