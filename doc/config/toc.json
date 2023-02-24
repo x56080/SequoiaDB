@@ -2953,6 +2953,12 @@
                            "en": "setPDLevel()"
                         },
                         {
+                           "id": 1677144820,
+                           "file": "shrinkSpace",
+                           "cn": "shrinkSpace()",
+                           "en": "shrinkSpace()"
+                        },
+                        {
                            "id": 1432190811,
                            "file": "traceOff",
                            "cn": "traceOff()",
