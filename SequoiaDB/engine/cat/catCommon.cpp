@@ -9589,7 +9589,8 @@ namespace engine
       BSONObj boMatcher, boDummy ;
 
       rc = _catBuildCLMatcher( FIELD_NAME_COLLECTION, collectionSpaceName, boMatcher ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build matcher for collection space [%s], rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build matcher for collection "
+                   "space [%s], rc: %d", collectionSpaceName, rc ) ;
 
       rc = rtnDelete( CAT_SCHEMA_COLLECTION, boMatcher, boDummy, 0, cb, dmsCB, dpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete record from collection: %s, "

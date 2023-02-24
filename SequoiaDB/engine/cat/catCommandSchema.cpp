@@ -306,7 +306,7 @@ namespace engine
                                                         _action.getActionObject(),
                                                         boAlterCommand ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build alter command for "
-                      "collection [%s], rc: %d", collectionName ) ;
+                      "collection [%s], rc: %d", collectionName, rc ) ;
 
          rc = rtnCB->contextNew( RTN_CONTEXT_CAT_ALTER_CL,
                                  context,

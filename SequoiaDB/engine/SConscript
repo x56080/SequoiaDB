@@ -210,7 +210,6 @@ utilFiles = [
       "util/utilSecure.cpp",
       "util/utilLocation.cpp",
       "util/utilSchema.cpp",
-      "util/utilSchema.cpp",
       "util/utilBSON.cpp"
       ]
 
