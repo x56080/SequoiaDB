@@ -260,6 +260,7 @@ namespace engine
 
          CHAR                 _name[SESSION_NAME_LEN+1] ;
          pmdSessionMeta       *_pMeta ;
+         BOOLEAN              _isRestore ;
 
          ossEvent             _detachEvent ;
          _pmdAsycSessionMgr   *_pSessionMgr ;
