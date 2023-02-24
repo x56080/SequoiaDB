@@ -121,6 +121,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSHOLEMAPMGR_OPENHOLEMAP ) ;
       UINT64 fileSize         = 0 ;
       UINT64 rightSize        = 0 ;
+      UINT64 rightSizeMin     = 0 ;
       UINT32 mode = OSS_READWRITE|OSS_EXCLUSIVE ;
       UINT32 dataHoleMapSize  = 0 ;
       UINT32 idxHoleMapSize   = 0 ;
@@ -202,8 +203,9 @@ namespace engine
             lobHoleMapSize = DMS_HOLEMAP_DEFAULT_SIZE ;
          }
 
-         rightSize = sizeof( _dmsStorageUnitHeader ) + dataHoleMapSize +
-                     idxHoleMapSize + ( hadCreateLob ? lobHoleMapSize : 0 ) ;
+         rightSizeMin = sizeof( _dmsStorageUnitHeader ) + dataHoleMapSize +
+                        idxHoleMapSize ;
+         rightSize = rightSizeMin + ( hadCreateLob ? lobHoleMapSize : 0 ) ;
 
          // we get the file size to make sure it's what we need
          rc = ossMmapFile::size ( fileSize ) ;
@@ -212,6 +214,22 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
                      _suFileName, rc ) ;
             goto error ;
+         }
+
+         if ( fileSize != 0 &&
+              fileSize != rightSizeMin &&
+              fileSize != rightSize )
+         {
+            PD_LOG( PDWARNING, "File[%s] size[%llu] is invalid, need rebuild.",
+                    _suFileName, fileSize ) ;
+            rc = ossTruncateFile( &_file, 0 ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
+                       _suFileName, 0, rc ) ;
+               goto error ;
+            }
+            fileSize = 0 ;
          }
 
          // is it a brand new file
@@ -238,36 +256,6 @@ namespace engine
                         _suFileName, rc ) ;
                goto error ;
             }
-         }
-         else if ( fileSize > rightSize )
-         {
-            _needRebuild = TRUE ;
-            PD_LOG( PDWARNING, "File[%s] size[%llu] is greater than hole map "
-                    "size[%u]", _suFileName, fileSize, rightSize ) ;
-            rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
-                       _suFileName, rightSize, rc ) ;
-               goto error ;
-            }
-            PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
-                    _suFileName, rightSize ) ;
-         }
-         else if ( fileSize < rightSize )
-         {
-            _needRebuild = TRUE ;
-            PD_LOG( PDWARNING, "File[%s] size[%llu] is less than hole map "
-                    "size[%u]", _suFileName, fileSize, rightSize ) ;
-            rc = ossExtend( &_file, fileSize, ( rightSize - fileSize ), FALSE ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Extend file[%s] to size[%llu] from size[%llu] "
-                       "failed, rc: %d", _suFileName, rightSize, fileSize, rc ) ;
-               goto error ;
-            }
-            PD_LOG( PDEVENT, "Extend file[%s] to size[%llu] from size[%llu] "
-                    "succeed", _suFileName, rightSize, fileSize ) ;
          }
       }
 
@@ -343,7 +331,7 @@ namespace engine
             goto error ;
          }
 
-         if ( hadCreateLob )
+         if ( hadCreateLob && ( curOffset < fileSize ) )
          {
             // map lobSu hole map
             rc = map( curOffset, lobHoleMapSize, (void**)&tmpPtr ) ;
