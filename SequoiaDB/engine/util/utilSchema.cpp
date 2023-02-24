@@ -218,28 +218,28 @@ namespace engine
             }
          }
 
-         if ( fromUser &&
-              OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_TYPE ) )
-         {
-            if ( OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) )
-            {
-               PD_CHECK( ( ( _type == _writeDefault.type() ) ||
-                           ( Undefined == _writeDefault.type() ) ||
-                           ( jstNULL == _writeDefault.type() ) ),
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Failed to parse field [%s], it is not a type [%s]",
-                         FIELD_NAME_WRITEDEFAULT, getWriteDefaultTypeName() ) ;
-            }
-            if ( OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) )
-            {
-               PD_CHECK( ( ( _type == _readDefault.type() ) ||
-                           ( Undefined == _readDefault.type() ) ||
-                           ( jstNULL == _readDefault.type() ) ),
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Failed to parse field [%s], it is not a type [%s]",
-                         FIELD_NAME_READDEFAULT, getReadDefaultTypeName() ) ;
-            }
-         }
+//         if ( fromUser &&
+//              OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_TYPE ) )
+//         {
+//            if ( OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) )
+//            {
+//               PD_CHECK( ( ( _type == _writeDefault.type() ) ||
+//                           ( Undefined == _writeDefault.type() ) ||
+//                           ( jstNULL == _writeDefault.type() ) ),
+//                         SDB_INVALIDARG, error, PDERROR,
+//                         "Failed to parse field [%s], it is not a type [%s]",
+//                         FIELD_NAME_WRITEDEFAULT, getWriteDefaultTypeName() ) ;
+//            }
+//            if ( OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) )
+//            {
+//               PD_CHECK( ( ( _type == _readDefault.type() ) ||
+//                           ( Undefined == _readDefault.type() ) ||
+//                           ( jstNULL == _readDefault.type() ) ),
+//                         SDB_INVALIDARG, error, PDERROR,
+//                         "Failed to parse field [%s], it is not a type [%s]",
+//                         FIELD_NAME_READDEFAULT, getReadDefaultTypeName() ) ;
+//            }
+//         }
 
          _name = name ;
       }
@@ -1564,81 +1564,81 @@ namespace engine
                          FIELD_NAME_READDEFAULT ) ;
             }
 
-            column = schema.getColumn( _colName ) ;
-
-            if ( ( OSS_BIT_TEST( _alterMask,
-                                 UTIL_SCHEMA_ATTR_MASK_COL_TYPE ) ) &&
-                 ( EOO != _newColAttr.getType() ) )
-            {
-               // going to change type of column, check if old write and
-               // read defaults match the new type
-               if ( ( !OSS_BIT_TEST( _alterMask,
-                                     UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) ) &&
-                    ( column->hasWriteDefault() ) )
-               {
-                  PD_LOG_MSG_CHECK(
-                        _newColAttr.getType() == column->getWriteDefaultType(),
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to alter column [%s] on schema [%s] with "
-                        "collection [%s], type of old write default value [%s] "
-                        "is not matched new type [%s]",
-                        _colName, _schemaName, schema.getCollection(),
-                        column->getWriteDefaultTypeName(),
-                        _newColAttr.getTypeName() ) ;
-               }
-               if ( ( !OSS_BIT_TEST( _alterMask,
-                                     UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ) &&
-                    ( column->hasReadDefault() ) &&
-                    ( NULL == schema.getCollection() ) )
-               {
-                  PD_LOG_MSG_CHECK(
-                        ( ( _newColAttr.getType() == column->getReadDefaultType() ) ||
-                          ( Undefined == column->getReadDefaultType() ) ||
-                          ( jstNULL == column->getReadDefaultType() ) ),
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to alter column [%s] on schema [%s] with "
-                        "collection [%s], type of old read default value [%s] "
-                        "is not matched new type [%s]",
-                        _colName, _schemaName, schema.getCollection(),
-                        column->getReadDefaultTypeName(),
-                        _newColAttr.getTypeName() ) ;
-               }
-            }
-            else if ( EOO != column->getType() )
-            {
-               // going to change write/read defaults, check if match the
-               // old type
-               if ( ( OSS_BIT_TEST( _alterMask,
-                                    UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) ) &&
-                    ( _newColAttr.hasWriteDefault() ) )
-               {
-                  PD_LOG_MSG_CHECK(
-                        ( ( _newColAttr.getWriteDefaultType() == column->getType() ) ||
-                          ( Undefined == _newColAttr.getWriteDefaultType() ) ||
-                          ( jstNULL == _newColAttr.getWriteDefaultType() ) ),
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to alter column [%s] on schema [%s] with "
-                        "collection [%s], type of new write default value [%s] "
-                        "is not matched old type [%s]",
-                        _colName, _schemaName, schema.getCollection(),
-                        _newColAttr.getWriteDefaultTypeName(),
-                        column->getTypeName() ) ;
-               }
-               if ( ( OSS_BIT_TEST( _alterMask,
-                                    UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ) &&
-                    ( _newColAttr.hasReadDefault() ) )
-               {
-                  PD_LOG_MSG_CHECK(
-                        _newColAttr.getReadDefaultType() == column->getType(),
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to alter column [%s] on schema [%s] with "
-                        "collection [%s], type of new read default value [%s] "
-                        "is not matched old type [%s]",
-                        _colName, _schemaName, schema.getCollection(),
-                        _newColAttr.getReadDefaultTypeName(),
-                        column->getTypeName() ) ;
-               }
-            }
+//            column = schema.getColumn( _colName ) ;
+//
+//            if ( ( OSS_BIT_TEST( _alterMask,
+//                                 UTIL_SCHEMA_ATTR_MASK_COL_TYPE ) ) &&
+//                 ( EOO != _newColAttr.getType() ) )
+//            {
+//               // going to change type of column, check if old write and
+//               // read defaults match the new type
+//               if ( ( !OSS_BIT_TEST( _alterMask,
+//                                     UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) ) &&
+//                    ( column->hasWriteDefault() ) )
+//               {
+//                  PD_LOG_MSG_CHECK(
+//                        _newColAttr.getType() == column->getWriteDefaultType(),
+//                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+//                        "Failed to alter column [%s] on schema [%s] with "
+//                        "collection [%s], type of old write default value [%s] "
+//                        "is not matched new type [%s]",
+//                        _colName, _schemaName, schema.getCollection(),
+//                        column->getWriteDefaultTypeName(),
+//                        _newColAttr.getTypeName() ) ;
+//               }
+//               if ( ( !OSS_BIT_TEST( _alterMask,
+//                                     UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ) &&
+//                    ( column->hasReadDefault() ) &&
+//                    ( NULL == schema.getCollection() ) )
+//               {
+//                  PD_LOG_MSG_CHECK(
+//                        ( ( _newColAttr.getType() == column->getReadDefaultType() ) ||
+//                          ( Undefined == column->getReadDefaultType() ) ||
+//                          ( jstNULL == column->getReadDefaultType() ) ),
+//                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+//                        "Failed to alter column [%s] on schema [%s] with "
+//                        "collection [%s], type of old read default value [%s] "
+//                        "is not matched new type [%s]",
+//                        _colName, _schemaName, schema.getCollection(),
+//                        column->getReadDefaultTypeName(),
+//                        _newColAttr.getTypeName() ) ;
+//               }
+//            }
+//            else if ( EOO != column->getType() )
+//            {
+//               // going to change write/read defaults, check if match the
+//               // old type
+//               if ( ( OSS_BIT_TEST( _alterMask,
+//                                    UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) ) &&
+//                    ( _newColAttr.hasWriteDefault() ) )
+//               {
+//                  PD_LOG_MSG_CHECK(
+//                        ( ( _newColAttr.getWriteDefaultType() == column->getType() ) ||
+//                          ( Undefined == _newColAttr.getWriteDefaultType() ) ||
+//                          ( jstNULL == _newColAttr.getWriteDefaultType() ) ),
+//                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+//                        "Failed to alter column [%s] on schema [%s] with "
+//                        "collection [%s], type of new write default value [%s] "
+//                        "is not matched old type [%s]",
+//                        _colName, _schemaName, schema.getCollection(),
+//                        _newColAttr.getWriteDefaultTypeName(),
+//                        column->getTypeName() ) ;
+//               }
+//               if ( ( OSS_BIT_TEST( _alterMask,
+//                                    UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ) &&
+//                    ( _newColAttr.hasReadDefault() ) )
+//               {
+//                  PD_LOG_MSG_CHECK(
+//                        _newColAttr.getReadDefaultType() == column->getType(),
+//                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+//                        "Failed to alter column [%s] on schema [%s] with "
+//                        "collection [%s], type of new read default value [%s] "
+//                        "is not matched old type [%s]",
+//                        _colName, _schemaName, schema.getCollection(),
+//                        _newColAttr.getReadDefaultTypeName(),
+//                        column->getTypeName() ) ;
+//               }
+//            }
             break ;
          }
          case UTIL_SCHEMA_RENAME_COLUMN :
