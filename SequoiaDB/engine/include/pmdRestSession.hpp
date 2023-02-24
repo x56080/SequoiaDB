@@ -498,6 +498,10 @@ namespace engine
                                                     restRequest &request,
                                                     MsgHeader **msg ) ;
 
+         INT32       _convertGetIndexStat( restAdaptor *pAdaptor,
+                                           restRequest &request,
+                                           MsgHeader **msg ) ;
+
       private:
          std::map< string, restTransFunc > _mapTransFunc ;
          typedef std::map< string, restTransFunc >::value_type _value_type ;
