@@ -351,6 +351,16 @@
 | 响应头   | 同通用响应头                              |                 |
 | 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
 
+##获取指定索引的统计信息##
+
+|          | 说明                                                                                     | 示例                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------- |----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 请求头   | 同通用请求头                                                                                 |                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 请求内容 | cmd：get index statistic<br>name：集合的全称（集合空间.集合）<br>index：被指定索引的名称 <br>detail：获取频繁集（可选参数，可不填） | cmd=get index statistic&name=sample.employee&index=indexName&detail=true                                                                                                                                                                                                                                                                                                                                      |
+| 响应头   | 同通用响应头                                                                                 |                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 响应内容 | {<br>errno：返回值，0表示成功，其他为失败<br>description：失败时的错误描述<br>}<br>{<br>返回索引的统计信息<br>}<br>     | [{ "errno": 0 }<br>{ "Collection": "sample.employee", "Index": "indexName",<br> "Unique": false, "KeyPattern": { "a": 1 }, "TotalIndexLevels": 1,<br> "TotalIndexPages": 1, "DistinctValNum": [ 0 ], "MinValue": null,<br> "MaxValue": null, "NullFrac": 0, "UndefFrac": 0, "MCV": { "Values": [], "Frac": [] },<br> "SampleRecords": 0, "TotalRecords": 0, "StatTimestamp": "2023-02-22-14.08.34.534000" }] |
+
+
 [^_^]:
      本文使用的所有引用及链接
 [analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md

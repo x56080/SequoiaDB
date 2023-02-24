@@ -1072,7 +1072,9 @@ namespace engine
          { REST_CMD_NAME_RESTART_SEQUENCE,
                                  &RestToMSGTransfer::_convertRestartSequence },
          { REST_CMD_NAME_SET_SEQ_ATTR,
-                                 &RestToMSGTransfer::_convertSetSequenceAttributes }
+                                 &RestToMSGTransfer::_convertSetSequenceAttributes },
+         { CMD_NAME_GET_INDEX_STAT,
+                                 &RestToMSGTransfer::_convertGetIndexStat }
       } ;
 
       len = sizeof( s_commandArray ) / sizeof( restCommand2Func ) ;
@@ -4947,6 +4949,98 @@ namespace engine
       if ( rc )
       {
          PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertGetIndexStat( restAdaptor *pAdaptor,
+                                                  restRequest &request,
+                                                  MsgHeader **msg )
+   {
+      INT32 rc             = SDB_OK ;
+      INT32 buffSize       = 0 ;
+      INT32 flag           = 0 ;
+      CHAR *pBuff          = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEX_STAT ;
+      bool isDetail        = false ;
+      string collectionName ;
+      string indexName ;
+      string detail ;
+      BSONObj hint ;
+
+      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( collectionName.empty() )
+      {
+         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
+         if ( collectionName.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Get collection's %s[or %s] failed",
+                        FIELD_NAME_NAME, REST_KEY_NAME_COLLECTION ) ;
+            goto error ;
+         }
+      }
+
+      indexName = request.getQuery( FIELD_NAME_INDEX ) ;
+      if ( indexName.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Get index name fail") ;
+         goto error ;
+      }
+
+      detail = request.getQuery( FIELD_NAME_DETAIL ) ;
+      if ( !detail.empty() )
+      {
+         if ( ossStrcasecmp( detail.c_str(), "true" ) == 0 )
+         {
+            isDetail = true ;
+         }
+         else if ( ossStrcasecmp( detail.c_str(), "false" ) == 0 )
+         {
+            isDetail = false ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Field format error: field=%s, value=%s",
+                        FIELD_NAME_DETAIL, detail.c_str() ) ;
+            goto error ;
+         }
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_COLLECTION, collectionName ) ;
+         builder.append( FIELD_NAME_INDEX, indexName ) ;
+         BSONObjBuilder subBuilder( builder.subobjStart( CMD_ADMIN_PREFIX FIELD_NAME_OPTIONS ) ) ;
+         subBuilder.appendBool( FIELD_NAME_DETAIL, isDetail ) ;
+         subBuilder.done() ;
+         hint = builder.obj();
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to create BSON object: %s", e.what() ) ;
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      flag |= FLG_QUERY_WITH_RETURNDATA ;
+      flag |= FLG_QUERY_CLOSE_EOF_CTX ;
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, flag, 0, 0, -1,
+                             NULL, NULL, NULL, &hint ) ;
+
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "Build command failed: command=%s, rc=%d",
                      pCommand, rc ) ;
          goto error ;
       }
