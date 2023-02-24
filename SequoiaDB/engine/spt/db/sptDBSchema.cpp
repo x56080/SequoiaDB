@@ -4,7 +4,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-#define SPT_schema_NAME         "SdbInfoSchema"
+#define SPT_schema_NAME         "SdbSchema"
 
 namespace engine
 {
@@ -43,8 +43,8 @@ namespace engine
                                   _sptReturnVal &val,
                                   BSONObj &detail )
    {
-      detail = BSON( SPT_ERR << "use of new SdbInfoSchema() is forbidden, you should use other "
-                                "functions to produce a SdbInfoSchema object") ;
+      detail = BSON( SPT_ERR << "use of new SdbSchema() is forbidden, you should use other "
+                                "functions to produce a SdbSchema object") ;
       return SDB_SYS ;
    }
 

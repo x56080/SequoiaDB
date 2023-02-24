@@ -7277,7 +7277,11 @@ namespace engine
          // no-trans is not supported yet
          PD_CHECK( !clInfo._noTrans,
                    SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                   "can not set no-trans on capped collection" ) ;
+                   "Can not set no-trans on capped collection" ) ;
+
+         PD_CHECK( !clInfo._enableInfoSchema,
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "InfoSchema is not allowed on capped collection" ) ;
       }
 
       if ( clInfo._lobShardingKeyFormat != NULL )

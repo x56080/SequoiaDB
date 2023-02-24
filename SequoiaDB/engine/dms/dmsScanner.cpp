@@ -805,10 +805,6 @@ namespace engine
 
             recordID = _curRID ;
 
-
-
-
-            // TODO: YSD  when get raw data, it cannot be changed to object below.
             rc = _pSu->extractData( _context, _recordRW, cb, recordData, TRUE,
                                     !_getRawData, _getPrimalData ) ;
             if ( rc )

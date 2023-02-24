@@ -1546,7 +1546,7 @@ namespace engine
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
          {
-            const utilSchemaColumn *column = NULL ;
+            // const utilSchemaColumn *column = NULL ;
 
             PD_LOG_MSG_CHECK( schema.hasColumn( _colName ),
                               SDB_INVALIDARG, error, PDERROR,

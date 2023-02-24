@@ -1332,7 +1332,8 @@ namespace engine
                                            dmsRecordData &recordData,
                                            dmsRecordData &encodeData,
                                            BOOLEAN &memReallocate,
-                                           INT64 position ) = 0 ;
+                                           INT64 position,
+                                           INT32 *schemaVer ) = 0 ;
 
          virtual INT32 _getRecordPosition( const dmsRecordID &rid,
                                            const dmsRecordData &recordData,

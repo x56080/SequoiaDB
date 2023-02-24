@@ -45,6 +45,7 @@
 #include "ossUtil.hpp"
 #include "utilCompressor.hpp"
 #include "dpsDef.hpp"
+#include <stddef.h>
 
 namespace engine
 {
@@ -170,14 +171,7 @@ namespace engine
          UINT8 getCompressType () const { return _compressType ; }
          FLOAT32 getCompressRatio() const
          {
-            // TODO: YSD for testing now
-            if ( isCompressed() && _len > 0 && _primalLen > 0 )
-            {
-               return ( (FLOAT32)_len ) / (FLOAT32)_primalLen ;
-
-            }
-
-            else if ( isCompressed() && _len > 0 && _orgLen > 0 )
+            if ( isCompressed() && _len > 0 && _orgLen > 0 )
             {
                return ( (FLOAT32)_len ) / (FLOAT32)_orgLen ;
             }
@@ -222,17 +216,11 @@ namespace engine
             _orgLen = 0 ;
 
             _encodedBySchema = FALSE ;
-            _primalLen = 0 ;
          }
          void resetOrgData()
          {
             _orgData = NULL ;
             _orgLen = 0 ;
-         }
-
-         void setPrimalLen( UINT32 len )
-         {
-            _primalLen = len ;
          }
 
       private:
@@ -245,9 +233,6 @@ namespace engine
          UINT32         _orgLen ;
 
          BOOLEAN        _encodedBySchema ;
-         UINT32         _primalLen ;   // TODO: for tesgint now, len of the record before encoding.
-                                       // Calcuate the compression ration
-
    } ;
    typedef _dmsRecordData dmsRecordData ;
 
@@ -265,7 +250,6 @@ namespace engine
    #define DMS_RECORD_FLAG_HASGLOBTRANSID    0x20
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
-
 
    #define DMS_RECORD_V0_METADATA_SZ   sizeof(_dmsRecord_v0)
    #define DMS_RECORD_V1_METADATA_SZ   sizeof(_dmsRecord_v1)
@@ -564,7 +548,7 @@ namespace engine
 
       if ( encodeBySchema )
       {
-         len = *(UINT32 *)( dataPtr + 4 ) ;
+         len = *(UINT32 *)( dataPtr + offsetof( _dmsEncodeHeader, _len ) ) ;
       }
       else
       {
@@ -633,6 +617,7 @@ namespace engine
          else                                                           \
          {                                                              \
             INT32 uncompLen = 0 ;                                       \
+            INT32 expectLen = 0 ;                                       \
             UINT8 compressType = pRecord->getCompressType() ;           \
             rc = dmsUncompress( cb, compressorEntry, compressType,      \
                                 pRecord->getData(),                     \
@@ -640,9 +625,16 @@ namespace engine
                                 (const CHAR**)&(retPtr), &uncompLen ) ; \
             PD_RC_CHECK ( rc, PDERROR,                                  \
                           "Failed to uncompress record, rc = %d", rc ); \
+            if ( ( (const _dmsEncodeHeader *)retPtr)->isEncoded() )     \
+            {                                                           \
+               expectLen = *(UINT32 *)((const CHAR *)retPtr + offsetof(_dmsEncodeHeader, _len)) ; \
+            }                                                           \
+            PD_CHECK ( uncompLen == expectLen,                          \
+                       SDB_CORRUPTED_RECORD, error, PDERROR,            \
+                       "uncompressed length %d does not match real "    \
+                       "len %d", uncompLen, *(INT32*)(retPtr) ) ;       \
          }                                                              \
       } while ( FALSE )
-
 
    // Capped collectionr record header.
    class _dmsCappedRecord : public SDBObject
@@ -727,7 +719,7 @@ namespace engine
          return ((const dmsRecord*)this)->getData() ;
       }
 
-      UINT32 getDataLength() const           // TODO: YSD need to change too ?
+      UINT32 getDataLength() const
       {
          return ((const dmsRecord*)this)->getDataLength() ;
       }

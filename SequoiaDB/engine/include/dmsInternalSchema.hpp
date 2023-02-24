@@ -42,7 +42,7 @@
 #include "utilBSON.hpp"
 #include "dmsSchemaColRecord.hpp"
 
-
+#define DMS_SCHEMA_INVALID_VERSION        (0)
 namespace engine
 {
    class _pmdEDUCB ;
@@ -253,7 +253,7 @@ namespace engine
       typedef ossPoolVector<dmsSchemaEncodeColumn>    ENCODE_COL_VEC ;
       typedef ENCODE_COL_VEC::const_iterator          ENCODE_COL_VEC_CITR ;
       typedef ossPoolMap< const CHAR *, columnInfo, name_cmp >  NAME_INFO_MAP ;
-      typedef NAME_INFO_MAP::iterator                NAME_DECODE_INFO_ITR ;
+      typedef NAME_INFO_MAP::iterator                 NAME_DECODE_INFO_ITR ;
 
       public:
          _dmsInternalSchema() ;
@@ -274,6 +274,11 @@ namespace engine
          BOOLEAN  enabled() const
          {
             return _enabled ;
+         }
+
+         INT32    getVersion() const
+         {
+            return _version ;
          }
 
          INT32    addColumn( _dmsMBContext *context, const CHAR *columnName,
@@ -303,7 +308,7 @@ namespace engine
          // Decode a record which is encoded by the internal schema.
          INT32    decodeRecord( _pmdEDUCB *cb, const CHAR *data, UINT32 dataSize,
                                 const CHAR **record, UINT32 &recordSize,
-                                BOOLEAN getPrimalData ) ;
+                                BOOLEAN getPrimalData = FALSE ) ;
 
          BOOLEAN  needRebiuldUncodedRecord() const
          {
@@ -317,7 +322,8 @@ namespace engine
          // 3. Add new fields with read default values which are not in the record according to the
          //    internal schema.
          INT32    rebuildRecord( _pmdEDUCB *cb, const BSONObj &record, const CHAR **newRecord,
-                                 UINT32 &newRecSize, BOOLEAN &changed ) ;
+                                 UINT32 &newRecSize, BOOLEAN &changed,
+                                 BOOLEAN getPrimalData = FALSE ) ;
 
          // Dump the internal schema information. All columns are included.
          INT32    dumpSchemaInfo( BSONObj &schema, BOOLEAN includeColumnID = TRUE ) ;
@@ -356,10 +362,9 @@ namespace engine
 
       private:
          BOOLEAN                _enabled ;
+         INT32                  _version ;
          dmsSchemaContainer     _schemaContainer ;
          dmsSchemaHash          _schemaHash ;
-         ossPoolSet<UINT16>     _readDefaultIDs ;
-         ossPoolSet<UINT16>     _writeDefaultIDs ;
          ossPoolSet<UINT16>     _readDefaultIDsOfIndexCol ;
 
          ossPoolSet<UINT16>     _encodeWatchIDs ;   // Columns with write default value or index

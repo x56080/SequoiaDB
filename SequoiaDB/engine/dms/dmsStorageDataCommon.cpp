@@ -1416,7 +1416,6 @@ namespace engine
 
    _dmsInternalSchema* _dmsStorageDataCommon::getSchema( UINT16 mbID )
    {
-      // TODO: YSD Need to check if the schema is enabled. But check mb is not a good idea.
       dmsInternalSchema *schema = NULL ;
       if ( mbID >= 0  && mbID < DMS_MME_SLOTS )
       {
@@ -4210,6 +4209,7 @@ namespace engine
 
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+      INT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
 
       if ( !isTransSupport( context ) )
       {
@@ -4220,6 +4220,18 @@ namespace engine
 
       try
       {
+         // Why retry:
+         // For the scenario that internal schema is enabled. The record is encoded in the funtion
+         // _prepareInsertData. The collection is not locked before and after the encoding. The
+         // schema may change before the record is inserted into extent. This may results in wrong
+         // primal data for the record. For example, a new index is created on a column, which has
+         // read default value, that does not exist in the original record, the index key generated
+         // below when inserting index is wrong. It should be the read default value, not
+         // $undefined. And that field will not exist in the replication log, which will result in
+         // wrong index key on secondary node.
+         // So Check the schema version after taking the collection latch. If it changed, retry the
+         // operation.
+retry:
          rc = _checkMarkInsert( context, transID, insertObj, cb, position,
                                 markInsert, foundRID, recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
@@ -4228,14 +4240,11 @@ namespace engine
 
          if ( !markInsert )
          {
-            // 这里没加锁，在有 schema 的情况下，有可能在后面的加锁之前，集合创建了索引，这时贴源数据不对。
-            // 需要在编码完成的时候获取模式的版本号，在拿到集合锁后比对
-retry:
             // recordData holds the BSONObj record. It's used to generate dps log and index keys.
             // encodeData holds the encoded record(encoded by internal schema) to be stored into
             // data file.
             rc = _prepareInsertData( context, record, mustOID, cb, recordData, encodeData,
-                                     newMem, position ) ;
+                                     newMem, position, &schemaVersion ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
             storeData = encodeData.isEmpty() ? recordData : encodeData ;
@@ -4283,15 +4292,6 @@ retry:
                      storeData.setData( compressedData, compressedDataSize,
                                         compressorEntry->getCompressorType(),
                                         FALSE ) ;
-
-
-
-
-                     // TODO: YSD for testing now.
-                     storeData.setPrimalLen( record.objsize() ) ;
-
-
-
                   }
                   else if ( rc )
                   {
@@ -4388,9 +4388,31 @@ retry:
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
          // after taken the latch, check if the schema has changed, if yes, retry.
+         if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+         {
+            /*
+            const dmsInternalSchema *schema = getSchema( context->mbID() ) ;
+            if ( schema->getVersion() != schemaVersion )
+            {
+               // Release resources aquired above.
+               context->mbUnlock() ;
+               if ( logRecSize > 0 )
+               {
+                  pTransCB->releaseLogSpace( logRecSize, cb ) ;
+               }
+               if ( pMergedData )
+               {
+                  cb->releaseBuff( pMergedData ) ;
+                  pMergedData = NULL ;
+               }
+               recordData.reset() ;
 
+               PD_LOG( PDEVENT, "Schema changed during inserting record, retry" ) ;
 
-
+               goto retry ;
+            }
+            */
+         }
 
          // then make sure the collection compatiblity
          if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,

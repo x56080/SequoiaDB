@@ -332,7 +332,8 @@ namespace engine
                                                     dmsRecordData &recordData,
                                                     dmsRecordData &encodeData,
                                                     BOOLEAN &memReallocate,
-                                                    INT64 position )
+                                                    INT64 position,
+                                                    INT32 *schemaVer )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__PREPAREINSERTDATA ) ;

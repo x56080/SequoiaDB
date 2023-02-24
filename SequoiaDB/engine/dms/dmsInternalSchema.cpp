@@ -1378,6 +1378,7 @@ namespace engine
 
    _dmsInternalSchema::_dmsInternalSchema()
    : _enabled( FALSE ),
+     _version( DMS_SCHEMA_INVALID_VERSION ),
      _schemaHash( &_schemaContainer ),
      _defaultMaxSize( 0 )
    {
@@ -1392,8 +1393,6 @@ namespace engine
                                    BOOLEAN isLoad )
    {
       INT32 rc = SDB_OK ;
-      ossPoolSet< UINT16 > rdDefaultIDs ;
-      ossPoolSet< UINT16 > wtDefaultIDs ;
 
       SDB_ASSERT( su, "su is NULL" ) ;
       SDB_ASSERT( context, "context is NULL" ) ;
@@ -1425,13 +1424,12 @@ namespace engine
    {
       _schemaContainer.reset() ;
       _schemaHash.reset() ;
-      _readDefaultIDs.clear() ;
-      _writeDefaultIDs.clear() ;
       _readDefaultIDsOfIndexCol.clear() ;
       _encodeWatchIDs.clear() ;
       _decodeWatchIDs.clear() ;
       _defaultMaxSize = 0 ;
       _enabled = FALSE ;
+      _version = DMS_SCHEMA_INVALID_VERSION ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_ADDCOLUMN, "_dmsInternalSchema::addColumn" )
@@ -1790,8 +1788,13 @@ retry:
 
          if ( !watchIDs.empty() )
          {
-            rc = _appendPrimalColumns( context, cb, encodeColumns, watchIDs, record, recordData ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append primal columns into record failed, rc: %d", rc ) ;
+            ISession *session = cb->getSession() ;
+            if ( session && session->isBusinessSession() )
+            {
+               rc = _appendPrimalColumns( context, cb, encodeColumns, watchIDs,
+                                          record, recordData ) ;
+               PD_RC_CHECK( rc, PDERROR, "Append primal columns into record failed, rc: %d", rc ) ;
+            }
          }
 
 #ifdef _DEBUG
@@ -1978,7 +1981,7 @@ retry:
 
    INT32 _dmsInternalSchema::rebuildRecord( _pmdEDUCB *cb, const BSONObj &record,
                                             const CHAR **newRecord, UINT32 &newRecSize,
-                                            BOOLEAN &changed )
+                                            BOOLEAN &changed, BOOLEAN getPrimalData )
    {
       // For records that are not encoded, we need to check:
 
@@ -1986,7 +1989,7 @@ retry:
 
       try
       {
-         NAME_INFO_MAP watchNames ;
+         NAME_INFO_MAP watchNames ;  // Including column names which have been deleted, or renamed.
          watchNames.insert( _decodeWatchNames.begin(), _decodeWatchNames.end() ) ;
 
          rc = _checkRebuildRecord( record, watchNames ) ;
@@ -2068,21 +2071,24 @@ retry:
                }
             }
 
-            for ( NAME_DECODE_INFO_ITR itr = watchNames.begin(); itr != watchNames.end(); )
+            if ( !getPrimalData )
             {
-               const CHAR *name = NULL ;
-               INT32 nameLen = 0 ;
-               BSONType type ;
-               const CHAR *value = NULL ;
-               INT32 valueLen = 0 ;
-               rc = _schemaContainer.getColReadDefault( itr->second._columnID, name, nameLen,
-                                                        type, value, valueLen ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get read default of column %s failed, rc: %d",
-                            itr->first, rc ) ;
-               rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
-               PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
-                            "rc: %d", rc ) ;
-               watchNames.erase( itr++ ) ;
+               for ( NAME_DECODE_INFO_ITR itr = watchNames.begin(); itr != watchNames.end(); )
+               {
+                  const CHAR *name = NULL ;
+                  INT32 nameLen = 0 ;
+                  BSONType type ;
+                  const CHAR *value = NULL ;
+                  INT32 valueLen = 0 ;
+                  rc = _schemaContainer.getColReadDefault( itr->second._columnID, name, nameLen,
+                                                           type, value, valueLen ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get read default of column %s failed, rc: %d",
+                               itr->first, rc ) ;
+                  rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
+                               "rc: %d", rc ) ;
+                  watchNames.erase( itr++ ) ;
+               }
             }
 
             rc = builder.done( isEmpty ) ;
@@ -2475,6 +2481,8 @@ retry:
    INT32 _dmsInternalSchema::_onSchemaColChanged()
    {
       INT32 rc = SDB_OK ;
+
+      ++_version ;
 
       try
       {

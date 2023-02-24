@@ -3609,7 +3609,7 @@ namespace engine
       if ( !sptSchema )
       {
          rc = SDB_OOM ;
-         detail = BSON( SPT_ERR << "Failed to create sptDBInfoSchema obj" ) ;
+         detail = BSON( SPT_ERR << "Failed to create sptDBSchema obj" ) ;
       }
 
       schema.pSchema = NULL ;

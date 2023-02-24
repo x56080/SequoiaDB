@@ -90,7 +90,8 @@ namespace engine
                                         dmsRecordData &recordData,
                                         dmsRecordData &encodeData,
                                         BOOLEAN &memReallocate,
-                                        INT64 position ) ;
+                                        INT64 position,
+                                        INT32 *schemaVer ) ;
 
       virtual INT32 _getRecordPosition( const dmsRecordID &rid,
                                         const dmsRecordData &recordData,
@@ -209,7 +210,8 @@ namespace engine
       INT32 _encodeRecordBySchema( dmsMBContext *context,
                                    pmdEDUCB *cb,
                                    dmsRecordData &recordData,
-                                   dmsRecordData &encodeData ) ;
+                                   dmsRecordData &encodeData,
+                                   INT32 *schemaVer ) ;
 
       INT32 _checkEncodedRecord( const dmsMBContext *context,
                                  const dmsRecordData &origRecord,

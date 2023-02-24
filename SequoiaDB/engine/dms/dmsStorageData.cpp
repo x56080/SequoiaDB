@@ -97,13 +97,15 @@ namespace engine
                                               dmsRecordData &recordData,
                                               dmsRecordData &encodeData,
                                               BOOLEAN &memReallocate,
-                                              INT64 position )
+                                              INT64 position,
+                                              INT32 *schemaVer )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA ) ;
       IDToInsert oid ;
       idToInsertEle oidEle((CHAR*)(&oid)) ;
       CHAR *pMergedData = NULL ;
+      BOOLEAN lockByMe = FALSE ;
 
       try
       {
@@ -153,27 +155,32 @@ namespace engine
             memReallocate = TRUE ;
          }
 
-         // If internal schema is enabled, need to encode the record.
+         // Code Review: No mb context here
+         // Fixed below: Take the mb latch in shared mode, and release at the end.
+         if ( !context->isMBLock( SHARED ) )
          {
-            // Code Review: No mb context here
-            dmsInternalSchema *schema = getSchema( context->mbID() ) ;
-            if ( schema->enabled() )
+            rc = context->mbLock( SHARED ) ;
+            PD_RC_CHECK( rc, PDERROR, "Take collection mb latch failed, rc: %d", rc ) ;
+            lockByMe = TRUE ;
+         }
+
+         // If internal schema is enabled, need to encode the record.
+         if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+         {
+            // Need to add the following kinds of columns which are not in the original record
+            // into the originan record:
+            // 1. Columns with write default values
+            // 2. Columns with no write default values, but are index columns and have read
+            //    default values.
+            rc = _encodeRecordBySchema( context, cb, recordData, encodeData, schemaVer ) ;
+            PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
+            if ( pMergedData && ( pMergedData != recordData.data() ) )
             {
-               // Need to add the following kinds of columns which are not in the original record
-               // into the originan record:
-               // 1. Columns with write default values
-               // 2. Columns with no write default values, but are index columns and have read
-               //    default values.
-               rc = _encodeRecordBySchema( context, cb, recordData, encodeData ) ;
-               PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
-               if ( pMergedData && ( pMergedData != recordData.data() ) )
-               {
-                  // The memory for the record has changed again. Release the memory allocated
-                  // above.
-                  cb->releaseBuff( pMergedData ) ;
-                  pMergedData = NULL ;
-                  // Keep memReallocate as TRUE.
-               }
+               // The memory for the record has changed again. Release the memory allocated
+               // above.
+               cb->releaseBuff( pMergedData ) ;
+               pMergedData = NULL ;
+               // Keep memReallocate as TRUE.
             }
          }
       }
@@ -185,6 +192,10 @@ namespace engine
       }
 
    done:
+      if ( lockByMe )
+      {
+         context->mbUnlock() ;
+      }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, rc ) ;
       return rc ;
    error:
@@ -454,7 +465,7 @@ namespace engine
             dmsRecordData encodeData ;
             const CHAR *origRecordAddr = newRecordData.data() ;
 
-            rc = _encodeRecordBySchema( context, cb, newRecordData, encodeData ) ;
+            rc = _encodeRecordBySchema( context, cb, newRecordData, encodeData, NULL ) ;
             PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
 
             if ( newRecordData.data() !=  origRecordAddr )
@@ -1428,23 +1439,14 @@ namespace engine
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
       }
 
-
-
-
-
-      // TODO: YSD Not correct for encoded record.
       recordData.setData( pRecord->getData(), pRecord->getDataLength(),
                           UTIL_COMPRESSOR_INVALID, TRUE ) ;
-
-
-
-
-
 
       if ( pRecord->isCompressed() )
       {
          const CHAR *pUncompressData = NULL ;
          INT32 unCompressDataLen = 0 ;
+         INT32 expectLen = 0 ;
          rc = dmsUncompress( cb, &_compressorEntry[ mbContext->mbID() ],
                              pRecord->getCompressType(), pRecord->getData(),
                              pRecord->getDataLength(),
@@ -1455,42 +1457,28 @@ namespace engine
             goto error ;
          }
 
-         /// check the length
-         /*
-         if ( unCompressDataLen != *(INT32*)pUncompressData )
+         /// check the length. For record which is encoded by internal schema, it's encoded length
+         /// is stored in the encode header. Otherwise, the decompressed result is a BSONObj, the
+         /// length is stored in its first 4 bytes.
+         if ( ((const dmsEncodeHeader *)pUncompressData)->isEncoded() )
          {
-            PD_LOG( PDERROR, "Uncompress data length[%d] does not match "
-                    "real length[%d]", unCompressDataLen,
-                    *(INT32*)pUncompressData ) ;
-            rc = SDB_CORRUPTED_RECORD ;
-            goto error ;
-         }
-         */
-         recordData.setData( pUncompressData, unCompressDataLen,
-                             UTIL_COMPRESSOR_INVALID, FALSE ) ;
-      }
-
-      /*
-      schema = getSchema( mbContext->mbID() ) ;
-      if ( schema->enabled() )
-      {
-         const CHAR *newRecord = NULL ;
-         UINT32 newRecordSize = 0 ;
-         if ( recordData.isEncodedBySchema() )
-         {
-            rc = schema->decodeRecord( cb, recordData.data(), recordData.len(),
-                                       &newRecord, newRecordSize ) ;
+            expectLen = ((const dmsEncodeHeader *)pUncompressData)->getLen() ;
          }
          else
          {
-            rc = schema->rebuildRecord( cb, BSONObj( recordData.data() ),
-                                        &newRecord, newRecordSize ) ;
+            expectLen = *(INT32 *)pUncompressData ;
          }
 
-         PD_RC_CHECK( rc, PDERROR, "Decode record by internal schema failed, rc: %d", rc ) ;
-         recordData.setData( newRecord, newRecordSize ) ;
+         if ( unCompressDataLen != expectLen )
+         {
+            PD_LOG( PDERROR, "Uncompress data length[%d] does not match real length[%d]",
+                    unCompressDataLen, expectLen ) ;
+            rc = SDB_CORRUPTED_RECORD ;
+            goto error ;
+         }
+         recordData.setData( pUncompressData, unCompressDataLen,
+                             UTIL_COMPRESSOR_INVALID, FALSE ) ;
       }
-      */
 
       // Check if the record is encoded. If yes, need to decode.
       schema = getSchema( mbContext->mbID() ) ;
@@ -1513,7 +1501,8 @@ namespace engine
             BOOLEAN changed = FALSE ;
             BSONObj record( recordData.data() ) ;
 
-            rc = schema->rebuildRecord( cb, record, &decodeRecord, decodeSize, changed ) ;
+            rc = schema->rebuildRecord( cb, record, &decodeRecord, decodeSize,
+                                        changed, getPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Rebuild record with internal schema failed, rc: %d", rc ) ;
             if ( changed )
             {
@@ -1521,24 +1510,6 @@ namespace engine
             }
          }
       }
-
-      // 对于没有编码的记录，如果内部模式中没有定义默认值，没有删除字段、字段重命名的，直接返回，
-      // 否则需要重新加工
-
-      // 模式发生过字段的变更才需要，否则不需要，包括：
-      // 增加了带读默认值的字段
-      // 删除了字段
-      // 重命名了字段
-
-      // 在绑定的时候就需要检查，是否定义了字段默认值
-
-      // 记录被编码，或模式字段发生过变化，就需要 decode
-
-
-      // TODO: YSD check if the record is corrupted
-
-
-
 
       if( needIncDataRead )
       {
@@ -1600,7 +1571,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA, "_dmsStorageData::_encodeRecordBySchema" )
    INT32 _dmsStorageData::_encodeRecordBySchema( dmsMBContext *context, pmdEDUCB *cb,
                                                  dmsRecordData &recordData,
-                                                 dmsRecordData &encodeData )
+                                                 dmsRecordData &encodeData,
+                                                 INT32 *schemaVer )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA ) ;
@@ -1623,11 +1595,10 @@ namespace engine
       rc = schema->encodeRecord( context, cb, recordData, encodeData ) ;
       PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
 
-#ifdef _DEBUG
-      // TODO: YSD During update, it may call decode and then incode, and the data in the decode
-      // buffer will be used again. We cannot decode here, as the data will be corrupted.
-      // _checkEncodedRecord( context, recordData, encodeData, cb ) ;
-#endif /* _DEBUG */
+      if ( schemaVer )
+      {
+         *schemaVer = schema->getVersion() ;
+      }
 
    done:
       if ( lockByMe )

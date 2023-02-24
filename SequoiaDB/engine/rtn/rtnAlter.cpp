@@ -575,7 +575,8 @@ namespace engine
                rc = SDB_OPERATION_INCOMPATIBLE ;
                PD_LOG( PDERROR, "Failed to check rename column from [%s] "
                        "to [%s], [%s] already exists",
-                       action.getColumnName(), action.getNewColAttr().getName() ) ;
+                       action.getColumnName(), action.getNewColAttr().getName(),
+                       action.getNewColAttr().getName() ) ;
                goto error ;
             }
             break ;

@@ -127,9 +127,10 @@ namespace engine
 
       if ( _buffSize - _writeOffset < len + 2 )    // 2 bytes for the length of the name.
       {
-         rc = _extendBuff( _buffSize * 2 ) ;
+         INT32 newSize = _writeOffset + len + SCHEMA_COLREC_BUILD_INIT_BUFFSZ ;
+         rc = _extendBuff( newSize ) ;
          PD_RC_CHECK( rc, PDERROR, "Extend buffer to size %d for building internal schema column "
-                      "info failed, rc: %d", _buffSize * 2, rc ) ;
+                      "info failed, rc: %d", newSize, rc ) ;
       }
 
       // Write the length of the name.
@@ -151,6 +152,8 @@ namespace engine
          _recordBuff->setNameOffset( offset ) ;
          OSS_BIT_CLEAR( _rebuildMask, SCHEMA_COLREC_MASK_NAME ) ;
       }
+
+      SDB_ASSERT( _writeOffset <= _buffSize, "Write out of bound" ) ;
 
    done:
       return rc ;
@@ -181,9 +184,10 @@ namespace engine
 
       if ( _buffSize - _writeOffset < valueSize + 1 )    // 1 byte for the BSONType
       {
-         rc = _extendBuff( _buffSize * 2 ) ;
+         INT32 newSize = _writeOffset + valueSize + SCHEMA_COLREC_BUILD_INIT_BUFFSZ ;
+         rc = _extendBuff( newSize ) ;
          PD_RC_CHECK( rc, PDERROR, "Extend buffer to size %d for building internal schema column "
-                      "info failed, rc: %d", _buffSize * 2, rc ) ;
+                      "info failed, rc: %d", newSize, rc ) ;
       }
 
       *(CHAR *)_offset2Ptr(_writeOffset) = (CHAR)type ;
@@ -204,6 +208,8 @@ namespace engine
          _recordBuff->setReadDefaultOffset( offset ) ;
          OSS_BIT_CLEAR( _rebuildMask, SCHEMA_COLREC_MASK_RD_DEFAULT ) ;
       }
+
+      SDB_ASSERT( _writeOffset <= _buffSize, "Write out of bound" ) ;
 
    done:
       return rc ;
