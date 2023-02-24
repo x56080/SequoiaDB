@@ -298,6 +298,7 @@ namespace engine
 
    void _clsShdSession::setDelayLogin( const clsIdentifyInfo &info )
    {
+      _isRestore  = TRUE ;
       _delayLogin = TRUE ;
 
       UINT32 ip = 0, port = 0 ;

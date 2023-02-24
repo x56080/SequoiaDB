@@ -200,9 +200,12 @@ namespace engine
       _pEDUCB->attachSession( this ) ;
       _client.attachCB( cb ) ;
 
-      /// set identify tid and eduid
-      _identifyTID = cb->getTID() ;
-      _identifyEDUID = cb->getID() ;
+      if ( !_isRestore )
+      {
+         /// set identify tid and eduid
+         _identifyTID = cb->getTID() ;
+         _identifyEDUID = cb->getID() ;
+      }
 
       // reset all events before signal session manager to
       // finish waiting attach
@@ -324,6 +327,7 @@ namespace engine
       _netHandle = NET_INVALID_HANDLE ;
       _name [0]  = 0 ;
       _pMeta     = NULL ;
+      _isRestore = FALSE ;
 
       _identifyID= ossPack32To64( _netFrame::getLocalAddress(),
                                   pmdGetLocalPort() ) ;
