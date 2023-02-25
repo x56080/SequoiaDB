@@ -232,6 +232,9 @@ namespace bson {
             (appends). */
         int getFieldNames(set<string>& fields) const;
 
+        /** If current obj has all fields in param obj, return true. */
+        bool hasAllFieldNames(const BSONObj &obj) const;
+
         /** @return the specified element.  element.eoo() will be true if not found.
             @param name field to find. supports dot (".") notation to reach into embedded objects.
              for example "x.y" means "in the nested object in field x, retrieve field y"

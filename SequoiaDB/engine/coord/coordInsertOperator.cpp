@@ -213,6 +213,11 @@ namespace engine
       return _inResult.duplicatedNum() ;
    }
 
+   BSONObj _coordInsertOperator::getResultObj() const
+   {
+      return _inResult.getResultObj() ;
+   }
+
    void _coordInsertOperator::clearStat()
    {
       _inResult.reset() ;

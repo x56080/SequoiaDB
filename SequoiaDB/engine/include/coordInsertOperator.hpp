@@ -72,6 +72,7 @@ namespace engine
 
          UINT64         getInsertedNum() const ;
          UINT64         getDuplicatedNum() const ;
+         BSONObj        getResultObj() const ;
          void           clearStat() ;
 
       private:

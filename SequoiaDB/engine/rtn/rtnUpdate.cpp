@@ -52,6 +52,7 @@ using namespace bson ;
 
 namespace engine
 {
+#define RTN_UPSERT_MAX_RETRY_TIME 1
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNUPDATE1, "rtnUpdate" )
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
@@ -133,6 +134,7 @@ namespace engine
       optAccessPlanRuntime planRuntime ;
       monContextCB monCtxCB ;
       rtnReturnOptions returnOptions ;
+      UINT32 upsertRetyTime = 0 ;
 
       // updator is modifier
       if ( updator.isEmpty() )
@@ -355,7 +357,40 @@ retry:
 
             rc = su->data()->insertRecord( mbContext, target, cb, dpsCB,
                                            TRUE, TRUE, -1, pResult ) ;
-            if ( rc )
+            if ( SDB_IXM_DUP_KEY == rc && upsertRetyTime < RTN_UPSERT_MAX_RETRY_TIME )
+            {
+               BSONObj dupIndexKey = dotted2nested( pResult->getIdxKeyPattern() ) ;
+               mthMatchTree *matcherTree = planRuntime.getMatchTree() ;
+               if ( !source.isEmpty() && !dupIndexKey.isEmpty() && NULL != matcherTree )
+               {
+                  BOOLEAN needRetry = FALSE ;
+                  if ( source.hasAllFieldNames( dupIndexKey ) )
+                  {
+                     rc = matcherTree->matches( target, needRetry ) ;
+                     if ( SDB_OK != rc )
+                     {
+                        PD_LOG( PDERROR, "Check if matcher matches the target record failed, rc:%d", rc ) ;
+                        goto error ;
+                     }
+                  }
+
+                  if ( needRetry )
+                  {
+                     pResult->reset() ;
+                     ++upsertRetyTime ;
+                     planRuntime.reset() ;
+                     if ( NULL != pScanner )
+                     {
+                        SDB_OSS_DEL pScanner ;
+                        pScanner = NULL ;
+                     }
+                     goto retry ;
+                  }
+                  rc = SDB_IXM_DUP_KEY ;
+               }
+               goto error ;
+            }
+            else if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to insert record %s\ninto "
                         "collection: %s", PD_SECURE_OBJ( target ),
