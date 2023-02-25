@@ -2534,7 +2534,7 @@ namespace engine
    INT32 monCollectionStatInfo2Obj( dmsCollectionStat *collectionStat,
                                     const CHAR *clFullName,
                                     BOOLEAN isDefault,
-                                    BOOLEAN isExpired, 
+                                    BOOLEAN isExpired,
                                     BSONObj &infoObj )
    {
       INT32 rc = SDB_OK ;
@@ -2722,8 +2722,8 @@ namespace engine
          rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse stat obj, exception: %s", e.what() ) ;
          goto error ;
-      } 
-   
+      }
+
    done:
       return rc ;
    error:
@@ -2802,7 +2802,7 @@ namespace engine
       statInfo.reset() ;
       goto done ;
    }
-     
+
    INT32 monCollectionStatObj2Info( const BSONObj &obj, collectionStatInfo &statInfo )
    {
       INT32 rc = SDB_OK ;
@@ -4289,6 +4289,9 @@ namespace engine
          ob.append ( FIELD_NAME_FREE_DATA_SIZE, full._freeDataSize ) ;
          ob.append ( FIELD_NAME_TOTAL_IDX_SIZE, full._totalIndexSize ) ;
          ob.append ( FIELD_NAME_FREE_IDX_SIZE, full._freeIndexSize ) ;
+         ob.append ( FIELD_NAME_RECYCLE_DATA_SIZE, full._recycleDataSize ) ;
+         ob.append ( FIELD_NAME_RECYCLE_IDX_SIZE, full._recycleIndexSize ) ;
+         ob.append ( FIELD_NAME_RECYCLE_LOB_SIZE, full._recycleLobSize ) ;
          ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSpace ) ; // deprecated
          ob.append ( FIELD_NAME_MAX_LOB_CAPACITY, lobCapSize ) ;
          ob.append ( FIELD_NAME_LOB_CAPACITY, full._lobCapacity ) ;

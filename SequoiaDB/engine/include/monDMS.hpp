@@ -485,6 +485,9 @@ namespace engine
       INT64 _totalLobTruncate ;
       INT64 _totalLobAddressing ;
       INT64 _totalLobList ;
+      INT64 _recycleDataSize ;
+      INT64 _recycleIndexSize ;
+      INT64 _recycleLobSize ;
 
       /// commit info
       UINT64 _dataCommitLsn ;
@@ -534,6 +537,9 @@ namespace engine
          _totalLobTruncate = 0 ;
          _totalLobAddressing = 0 ;
          _totalLobList = 0 ;
+         _recycleDataSize = 0 ;
+         _recycleIndexSize = 0 ;
+         _recycleLobSize = 0 ;
 
          _dataCommitLsn = -1 ;
          _idxCommitLsn = -1 ;
@@ -582,6 +588,9 @@ namespace engine
          _totalLobTruncate = right._totalLobTruncate ;
          _totalLobAddressing = right._totalLobAddressing ;
          _totalLobList = right._totalLobList ;
+         _recycleDataSize = right._recycleDataSize ;
+         _recycleIndexSize = right._recycleIndexSize ;
+         _recycleLobSize = right._recycleLobSize ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;
@@ -639,6 +648,9 @@ namespace engine
          _totalLobTruncate = right._totalLobTruncate ;
          _totalLobAddressing = right._totalLobAddressing ;
          _totalLobList = right._totalLobList ;
+         _recycleDataSize = right._recycleDataSize ;
+         _recycleIndexSize = right._recycleIndexSize ;
+         _recycleLobSize = right._recycleLobSize ;
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;

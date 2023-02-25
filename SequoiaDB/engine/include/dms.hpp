@@ -472,6 +472,8 @@ namespace engine
 
    INT32 dmsRenameInvalidFile( const CHAR* pSrcPath,
                                const CHAR* pDesPath = NULL ) ;
+
+   BOOLEAN  dmsIsSysRecycleName ( const CHAR *collectionName ) ;
 }
 
 #endif /* DMS_HPP_ */

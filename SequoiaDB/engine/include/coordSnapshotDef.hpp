@@ -271,6 +271,9 @@
                                                 FreeDataSize:{$sum:\"$FreeDataSize\"},\
                                                 TotalIndexSize:{$sum:\"$TotalIndexSize\"},\
                                                 FreeIndexSize:{$sum:\"$FreeIndexSize\"},\
+                                                RecycleDataSize:{$sum:\"$RecycleDataSize\"},\
+                                                RecycleIndexSize:{$sum:\"$RecycleIndexSize\"},\
+                                                RecycleLobSize:{$sum:\"$RecycleLobSize\"},\
                                                 LobCapacity:{$sum:\"$LobCapacity\"},\
                                                 LobMetaCapacity:{$sum:\"$LobMetaCapacity\"},\
                                                 MaxLobCapacity:{$sum:\"$MaxLobCapacity\"},\

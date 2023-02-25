@@ -419,5 +419,24 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN dmsIsSysRecycleName ( const CHAR *collectionName )
+   {
+      if ( collectionName && ossStrlen ( collectionName ) >= 10 &&
+           'S' == collectionName[0] &&
+           'Y' == collectionName[1] &&
+           'S' == collectionName[2] &&
+           'R' == collectionName[3] &&
+           'E' == collectionName[4] &&
+           'C' == collectionName[5] &&
+           'Y' == collectionName[6] &&
+           'C' == collectionName[7] &&
+           'L' == collectionName[8] &&
+           'E' == collectionName[9] )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
 }
 
