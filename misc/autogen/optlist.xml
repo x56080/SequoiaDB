@@ -3071,10 +3071,8 @@
       <name>PMD_OPTION_SPACESHRINK_TIMEOUT</name>
       <long>spaceshrinktimeout</long>
       <description>
-         <en>Time threshold for the system to reclaim free space, the default value is 15, the unit is day, and the value range is [0, 365].<fig></fig>
-             If the free space is still unused after exceeding the threshold, the system will reclaim the space.</en>
-         <cn>系统回收空闲空间的时间阈值，默认值为 15，单位为天，取值范围为 [0, 365]。<fig></fig>
-             如果超出该阈值后空闲空间仍未被使用，系统将进行空间回收。</cn>
+         <en>Time threshold for the system to reclaim free space, the default value is 15, the unit is day, and the value range is [0, 365]. If the free space is still unused after exceeding the threshold, the system will reclaim the space.</en>
+         <cn>系统回收空闲空间的时间阈值，默认值为 15，单位为天，取值范围为 [0, 365]。如果超出该阈值后空闲空间仍未被使用，系统将进行空间回收。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
