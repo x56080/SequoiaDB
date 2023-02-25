@@ -100,7 +100,7 @@ SDB_INSERT_REPLACEONDUP_ID 行为一致
 的内容，且发生索引键冲突时将报错。
 .IP \[bu] 2
 对于参数 ContOnDup、ReplaceOnDup、ContOnDupID 和
-ReplaceOnDupID，不支持同时指定多项。
+ReplaceOnDupID，不支持同时指定多项为 true。
 .RE
 .RE
 .SH 返回值

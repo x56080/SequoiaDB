@@ -66,7 +66,7 @@ This function is used to insert single or multiple records into the current coll
     >**Note:**
     >
     > - If the parameter "options" is not specified, the insert operation will not return the content of the field "_id" by default, and an error will be reported when an index key conflict occurs.
-    > - For the parameters "ContOnDup", "ReplaceOnDup", "ContOnDupID" and "ReplaceOnDupID" do not support specifying multiple.
+    > - For the parameters "ContOnDup", "ReplaceOnDup", "ContOnDupID" and "ReplaceOnDupID" do not support specifying multiple as true at the same time.
 
 ##RETURN VALUE##
 
