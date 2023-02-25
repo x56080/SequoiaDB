@@ -107,13 +107,20 @@ namespace engine
                            pmdEDUCB *cb,
                            INT64 &contextID,
                            rtnContextBuf *buf,
-                           INT32 clientVer ) ;
+                           INT32 clientVer,
+                           BOOLEAN &needRetry ) ;
 
          void     _clearBlock( pmdEDUCB *cb ) ;
 
          INT32    _checkUpdateOne( coordSendMsgIn &inMsg,
                                    coordSendOptions &options,
                                    CoordGroupSubCLMap *grpSubCl ) ;
+
+         INT32    _checkIfDupKeyExistsInMatcher( const BSONObj &matcherEqualObj,
+                                                 const BSONObj &insertResultObj,
+                                                 BOOLEAN &res ) const ;
+         
+
 
       private:
          utilUpdateResult     _upResult ;

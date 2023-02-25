@@ -1210,6 +1210,22 @@ namespace bson {
         return n;
     }
 
+    bool BSONObj::hasAllFieldNames(const BSONObj &obj) const {
+        if ( obj.isEmpty() )
+            return true;
+        else if ( isEmpty() )
+            return false;
+
+        BSONObjIterator i(obj);
+        while ( i.more() ) {
+            BSONElement e = i.next();
+            if ( !hasField( e.fieldName() ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /* note: addFields always adds _id even if not specified
        returns n added not counting _id unless requested.
     */
