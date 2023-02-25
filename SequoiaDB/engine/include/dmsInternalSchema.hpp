@@ -265,12 +265,6 @@ namespace engine
 
          void     reset() ;
 
-         // TODO: YSD sdbdmsdump/rebuild. Do not have dmsRW
-         /*
-         INT32    loadReadOnly( dmsExtentID schemaExtentID, dmsExtentID schemaHashExtentID,
-                                UINT32 pageSize ) ;
-         */
-
          BOOLEAN  enabled() const
          {
             return _enabled ;

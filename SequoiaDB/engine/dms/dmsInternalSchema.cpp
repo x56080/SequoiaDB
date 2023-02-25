@@ -735,7 +735,7 @@ namespace engine
       BOOLEAN foundDefault = FALSE ;
       utilBSONRawBuilder rawBuilder ;
       const dmsSchemaColRecord *record = _getColRecord( columnID ) ;
-      UINT32 buffSize = record->getLength() + 64 ;          // TODO: YSD change the length
+      UINT32 buffSize = record->getLength() + 64 ;  // Extra space for field names.
 
       CHAR *buffer = (CHAR *)SDB_OSS_MALLOC( buffSize ) ;
       if ( !buffer )
@@ -753,21 +753,6 @@ namespace engine
       }
 
       rawBuilder.start( buffer, buffSize ) ;
-
-
-
-      // // TODO: YSD 这部分需要调整
-      // /*
-      // value = record->getOrigName( &valueSize ) ;  // TODO: YSD Wrong!!!
-      // if ( value )
-      // {
-      //    rc = rawBuilder.appendElement( bson::String, FIELD_NAME_ORIGIN_NAME,
-      //                                   ossStrlen( FIELD_NAME_ORIGIN_NAME ),
-      //                                   value, valueSize ) ;
-      //    PD_RC_CHECK( rc, PDERROR, "Append original name to column info builder failed, rc: %d",
-      //                 rc ) ;
-      // }
-      // */
 
       foundDefault = record->getDefault( type, valueSize, value ) ;
       if ( foundDefault )
@@ -1491,7 +1476,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_ADDCOLUMN, rc ) ;
       return rc ;
    error:
-      // TODO: YSD rollback the action
       goto done ;
    }
 
@@ -1603,7 +1587,6 @@ namespace engine
    done:
       return rc ;
    error:
-      // TODO: YSD restore ? store in new extents ?
       goto done ;
    }
 

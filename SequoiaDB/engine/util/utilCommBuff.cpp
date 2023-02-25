@@ -62,7 +62,8 @@ namespace engine
      _monitor( NULL ),
      _workBlockIdx( -1 ),
      _totalSize( 0 ),
-     _activeBlocksSize( 0 )
+     _activeBlocksSize( 0 ),
+     _dataSize( 0 )
    {
    }
 
@@ -74,7 +75,8 @@ namespace engine
      _monitor( monitor ),
      _workBlockIdx( -1 ),
      _totalSize( 0 ),
-     _activeBlocksSize( 0 )
+     _activeBlocksSize( 0 ),
+     _dataSize( 0 )
    {
    }
 
@@ -189,6 +191,8 @@ namespace engine
       rc = _blocks[ _workBlockIdx ]->append( data, size ) ;
       PD_RC_CHECK( rc, PDERROR, "Append data to sort buffer failed[%d]", rc ) ;
 
+      _dataSize += size ;
+
       if ( offset )
       {
          *offset = ( UTIL_BUFF_MODE_SERIAL == _mode ) ?
@@ -275,6 +279,7 @@ namespace engine
          _blocks.clear( TRUE ) ;
          _workBlockIdx = -1 ;
          _activeBlocksSize = 0 ;
+         _dataSize = 0 ;
       }
 
       PD_TRACE_EXIT( SDB__UTILCOMMBUFF_CLEAR ) ;
@@ -302,6 +307,7 @@ namespace engine
 
       _workBlockIdx = 0 ;
       _activeBlocksSize = 0 ;
+      _dataSize = 0 ;
 
    done:
       PD_TRACE_EXIT( SDB__UTILCOMMBUFF_RESET ) ;

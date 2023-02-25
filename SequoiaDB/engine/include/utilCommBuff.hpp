@@ -177,6 +177,11 @@ namespace engine
          return _totalSize ;
       }
 
+      UINT64 dataSize() const
+      {
+         return _dataSize ;
+      }
+
    protected:
       UINT64 _reservedSpace() const
       {
@@ -209,6 +214,7 @@ namespace engine
       INT32 _workBlockIdx ;
       UINT64 _totalSize ;   // Total block size in the buffer.
       UINT64 _activeBlocksSize ;
+      UINT64 _dataSize ;
    } ;
    typedef _utilCommBuff utilCommBuff ;
 }

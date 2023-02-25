@@ -281,10 +281,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to decompress data, rc: %d", rc ) ;
 
       // assign return value
-
-
-
-      // TODO: YSD when internal schema is enabled, it's not right any more
       if ( ppData )
       {
          *ppData = pBuff ;

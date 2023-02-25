@@ -606,7 +606,6 @@ namespace engine
       }
    }
 
-   // TODO: YSD because of schema, the length check is no longer right
    // Extract Data
    #define DMS_RECORD_EXTRACTDATA( pRecord, retPtr, compressorEntry )   \
    do {                                                                 \

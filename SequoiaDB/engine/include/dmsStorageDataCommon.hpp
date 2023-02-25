@@ -1297,7 +1297,6 @@ namespace engine
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
 
-         // TODO: YSD
          INT32 enableInfoSchema( dmsMBContext * context ) ;
          INT32 disableInfoSchema( dmsMBContext * context ) ;
 
