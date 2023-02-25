@@ -66,7 +66,7 @@ SdbCollection
     >**Note:**
     >
     > - 如果不指定参数 options，插入操作默认不返回字段 _id 的内容，且发生索引键冲突时将报错。
-    > - 对于参数 ContOnDup、ReplaceOnDup、ContOnDupID 和 ReplaceOnDupID，不支持同时指定多项。
+    > - 对于参数 ContOnDup、ReplaceOnDup、ContOnDupID 和 ReplaceOnDupID，不支持同时指定多项为 true。
 
 ##返回值##
 
