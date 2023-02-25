@@ -33,6 +33,7 @@
 #include "utilSchema.hpp"
 #include "msgDef.hpp"
 #include "msg.h"
+#include "utilStr.hpp"
 #include "pd.hpp"
 #include "utilTrace.hpp"
 #include "pdTrace.hpp"
@@ -65,6 +66,52 @@ namespace engine
       }
 
       return buffer ;
+   }
+
+   static INT32 _utilRestrictDesc2Restrict( const CHAR *desc, UINT32 &value )
+   {
+      INT32 rc = SDB_OK ;
+
+      value = 0 ;
+
+      try
+      {
+         vector< string > values ;
+         values = utilStrSplit( desc, "|" ) ;
+         for ( vector< string >::const_iterator itr = values.begin() ;
+               itr != values.end() ;
+               ++ itr )
+         {
+            if ( 0 == ossStrcasecmp( itr->c_str(), FIELD_NAME_NOT_NULL ) )
+            {
+               OSS_BIT_SET( value, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
+            }
+            else if ( 0 == ossStrcasecmp( itr->c_str(), FIELD_NAME_NOT_ARRAY ) )
+            {
+               OSS_BIT_SET( value, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Failed to parse restrict description, "
+                           "invalid restrict [%s]", itr->c_str() ) ;
+               goto error ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse restrict description, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*
@@ -125,37 +172,30 @@ namespace engine
                          FIELD_NAME_TYPE, typeName ) ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_TYPE ) ;
             }
-            else if ( 0 == ossStrcmp( FIELD_NAME_NOT_NULL, fieldName ) &&
-                      fromUser )
+            else if ( 0 == ossStrcmp( FIELD_NAME_RESTRICT, fieldName ) )
             {
-               PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                         "Failed to parse field [%s], it is not a boolean",
-                         FIELD_NAME_NOT_NULL ) ;
-               if ( ele.boolean() )
+               if ( fromUser )
                {
-                  OSS_BIT_SET( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_NULL ) ;
+                  const CHAR *desc = NULL ;
+                  UINT32 restrictFlags = 0 ;
+
+                  PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                            "Failed to parse field [%s], it is not a string",
+                            FIELD_NAME_RESTRICT ) ;
+                  desc = ele.valuestrsafe() ;
+                  rc = _utilRestrictDesc2Restrict( desc, restrictFlags ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to parse restrict "
+                               "description, rc: %d", rc ) ;
+                  _restrictFlags = restrictFlags ;
                }
-               OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NNULL ) ;
-            }
-            else if ( 0 == ossStrcmp( FIELD_NAME_NOT_ARRAY, fieldName ) &&
-                      fromUser )
-            {
-               PD_CHECK( Bool == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                         "Failed to parse field [%s], it is not a boolean",
-                         FIELD_NAME_NOT_ARRAY ) ;
-               if ( ele.boolean() )
+               else
                {
-                  OSS_BIT_SET( _restrictFlags, UTIL_SCHEMA_COLUMN_NOT_ARRAY ) ;
+                  PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                            "Failed to parse field [%s], it is not a integer",
+                            FIELD_NAME_RESTRICT ) ;
+                  _restrictFlags = (UINT32)( ele.numberInt() ) ;
                }
-               OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ) ;
-            }
-            else if ( 0 == ossStrcmp( FIELD_NAME_RESTRICT, fieldName ) &&
-                      !fromUser )
-            {
-               PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                         "Failed to parse field [%s], it is not a integer",
-                         FIELD_NAME_RESTRICT ) ;
-               _restrictFlags = (UINT32)( ele.numberInt() ) ;
+
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NNULL ) ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ) ;
             }
