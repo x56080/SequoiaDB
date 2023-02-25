@@ -111,7 +111,7 @@ return the content of the field "_id" by default, and an error will be reported
 when an index key conflict occurs.
 .IP \[bu] 2
 For the parameters "ContOnDup", "ReplaceOnDup", "ContOnDupID" and
-"ReplaceOnDupID" do not support specifying multiple.
+"ReplaceOnDupID" do not support specifying multiple as true at the same time.
 .RE
 .RE
 .SH RETURN VALUE
