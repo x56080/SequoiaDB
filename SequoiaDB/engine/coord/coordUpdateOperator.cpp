@@ -56,6 +56,8 @@ using namespace bson;
 namespace engine
 {
 
+#define COORD_UPSERT_MAX_RETRY_TIME 1
+
    static BSONObj s_nullUpdator = BSON( "$null" << BSON( "null" << 1 ) ) ;
 
    /*
@@ -143,6 +145,8 @@ namespace engine
       BSONObj boSelector ;
       BSONObj boHint ;
       BSONObj boUpdator ;
+
+      UINT32 upsertRetryTime           = 0 ;
 
       rc = msgExtractUpdate( (const CHAR*)pMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
@@ -352,14 +356,27 @@ namespace engine
       // upsert
       if ( ( flag & FLG_UPDATE_UPSERT ) && 0 == _upResult.updateNum() )
       {
+         BOOLEAN needRetry = FALSE ;
          if ( OSS_BIT_TEST( cataSel.getCataPtr()->getCatalogSet()->getAttribute(),
                             DMS_MB_ATTR_STRICTDATAMODE ) )
          {
             strictDataMode = TRUE ;
          }
          rc = _upsert( pCollectionName, boSelector, boUpdator, boHint,
-                       strictDataMode, cb, contextID, buf, clientVer ) ;
-         if ( rc )
+                       strictDataMode, cb, contextID, buf, clientVer, needRetry ) ;
+         if ( SDB_IXM_DUP_KEY == rc )
+         {
+            if ( needRetry && upsertRetryTime < COORD_UPSERT_MAX_RETRY_TIME )
+            {
+               ++upsertRetryTime ;
+               _upResult.reset() ;
+               _groupSession.getGroupCtrl()->incRetry() ;
+               result.clear() ;
+               goto retry ;
+            }
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
          {
             goto error ;
          }
@@ -423,7 +440,8 @@ namespace engine
                                         pmdEDUCB *cb,
                                         INT64 &contextID,
                                         rtnContextBuf *buf,
-                                        INT32 clientVer )
+                                        INT32 clientVer,
+                                        BOOLEAN &needRetry )
    {
       INT32 rc = SDB_OK ;
 
@@ -512,6 +530,29 @@ namespace engine
                PD_LOG( PDWARNING, "Insert record[%s] failed because of "
                        "the record is already exist when upsert",
                        PD_SECURE_OBJ( target ) ) ;
+               
+               BSONObj resultObj = insertOpr.getResultObj() ;
+               if ( !source.isEmpty() && !resultObj.isEmpty() )
+               {
+                  rc = _checkIfDupKeyExistsInMatcher( source, resultObj, needRetry ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDERROR, "Check if dup key exist in matcher failed, rc:%d", rc ) ;
+                     goto error ;
+                  }
+
+                  if ( needRetry )
+                  {
+                     rc = matcherTree.matches( target, needRetry ) ;
+                     if ( SDB_OK != rc )
+                     {
+                        PD_LOG( PDERROR, "Check if target matches the matcher failed, rc:%d", rc ) ;
+                        goto error ;
+                     }
+                  }
+
+                  rc = SDB_IXM_DUP_KEY ;
+               }
             }
             else
             {
@@ -777,6 +818,53 @@ namespace engine
          _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg ) ;
          _upResult.incUpdatedNum( _recvNum ) ;
       }
+   }
+
+   INT32 _coordUpdateOperator::_checkIfDupKeyExistsInMatcher( const BSONObj &matcherEqualObj,
+                                                              const BSONObj &insertResultObj,
+                                                              BOOLEAN &res ) const
+   {
+      INT32 rc = SDB_OK ;
+      BSONElement indexEle ;
+      BSONObj dupIndexKey ;
+      res = FALSE ;
+
+      try
+      {
+         if ( insertResultObj.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         indexEle = insertResultObj.getField( FIELD_NAME_INDEX ) ;
+         if ( Object != indexEle.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         dupIndexKey = dotted2nested( indexEle.embeddedObject() ) ;
+         if ( dupIndexKey.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         res = matcherEqualObj.hasAllFieldNames( dupIndexKey ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurred:%s, rc:%d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      res = FALSE ;
+      goto done ;
    }
 
 }
