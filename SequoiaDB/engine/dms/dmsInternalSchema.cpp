@@ -144,30 +144,33 @@ namespace engine
             // Read default can not be changed.
             if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_READ_DEFAULT ) )
             {
-               BSONType readDefaultType = EOO ;
-               INT32 readDefaultSize = 0 ;
-               const CHAR *readDefaultValue = NULL ;
-               if ( ( oldColRecord->getDefault( readDefaultType,
-                                                readDefaultSize,
-                                                readDefaultValue,
-                                                TRUE ) ) &&
-                    ( readDefaultType == ele.type() ) &&
-                    ( readDefaultSize == ele.valuesize() ) &&
-                    ( 0 == ossMemcmp( readDefaultValue,
-                                      ele.value(),
-                                      readDefaultSize ) ) )
-               {
-                  // skip
-                  PD_LOG( PDDEBUG, "Got the same read default of column %s",
-                          name ) ;
-               }
-               else
-               {
-                  rc = SDB_OPERATION_INCOMPATIBLE ;
-                  PD_LOG( PDERROR, "Can not change read default of column %s, "
-                          "rc: %d", name, rc ) ;
-                  goto error ;
-               }
+//               BSONType readDefaultType = EOO ;
+//               INT32 readDefaultSize = 0 ;
+//               const CHAR *readDefaultValue = NULL ;
+//               if ( ( oldColRecord->getDefault( readDefaultType,
+//                                                readDefaultSize,
+//                                                readDefaultValue,
+//                                                TRUE ) ) &&
+//                    ( readDefaultType == ele.type() ) &&
+//                    ( readDefaultSize == ele.valuesize() ) &&
+//                    ( 0 == ossMemcmp( readDefaultValue,
+//                                      ele.value(),
+//                                      readDefaultSize ) ) )
+//               {
+//                  // skip
+//                  PD_LOG( PDDEBUG, "Got the same read default of column %s",
+//                          name ) ;
+//               }
+//               else
+//               {
+//                  rc = SDB_OPERATION_INCOMPATIBLE ;
+//                  PD_LOG( PDERROR, "Can not change read default of column %s, "
+//                          "rc: %d", name, rc ) ;
+//                  goto error ;
+//               }
+               // skip
+               PD_LOG( PDEVENT, "Skip the read default of column %s",
+                       name ) ;
             }
             else
             {
