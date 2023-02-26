@@ -188,6 +188,7 @@ namespace engine
       INT32 parse( const CHAR *name,
                    const bson::BSONObj &boDefine,
                    BOOLEAN fromUser,
+                   BOOLEAN isNewAdded,
                    UINT32 &parsedMask ) ;
 
       const CHAR *getTypeName() const ;

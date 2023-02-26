@@ -780,6 +780,7 @@
 // for informational schema
 #define FIELD_NAME_SCHEMA                    "Schema"
 #define FIELD_NAME_ENABLE_INFOSCHEMA         "EnableInfoSchema"
+#define FIELD_NAME_DEFAULT                   "Default"
 #define FIELD_NAME_READDEFAULT               "ReadDefault"
 #define FIELD_NAME_WRITEDEFAULT              "WriteDefault"
 #define FIELD_NAME_DELETED                   "Deleted"

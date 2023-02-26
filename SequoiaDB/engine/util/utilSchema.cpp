@@ -142,6 +142,7 @@ namespace engine
    INT32 _utilSchemaColAttr::parse( const CHAR *name,
                                     const bson::BSONObj &boDefine,
                                     BOOLEAN fromUser,
+                                    BOOLEAN isNewAdded,
                                     UINT32 &parsedMask )
    {
       INT32 rc = SDB_OK ;
@@ -151,6 +152,7 @@ namespace engine
       try
       {
          const CHAR *typeName = NULL ;
+         BOOLEAN hasDefault = FALSE ;
 
          parsedMask = 0 ;
 
@@ -199,13 +201,58 @@ namespace engine
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NNULL ) ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_NARRAY ) ;
             }
+            else if ( ( fromUser ) &&
+                      ( 0 == ossStrcmp( FIELD_NAME_DEFAULT, fieldName ) ) )
+            {
+               // check if conflicts with WriteDefault and ReadDefault
+               if ( OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to parse field [%s], "
+                              "already defined with [%s]",
+                              FIELD_NAME_DEFAULT, FIELD_NAME_WRITEDEFAULT ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               if ( OSS_BIT_TEST( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to parse field [%s], "
+                              "already defined with [%s]",
+                              FIELD_NAME_DEFAULT, FIELD_NAME_READDEFAULT ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               _writeDefault = ele ;
+               OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) ;
+               if ( isNewAdded )
+               {
+                  _readDefault = ele ;
+                  OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ;
+               }
+               hasDefault = TRUE ;
+            }
             else if ( 0 == ossStrcmp( FIELD_NAME_WRITEDEFAULT, fieldName ) )
             {
+               if ( fromUser && hasDefault )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to parse field [%s], "
+                              "already defined with [%s]",
+                              FIELD_NAME_WRITEDEFAULT, FIELD_NAME_DEFAULT ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
                _writeDefault = ele ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_WDEF ) ;
             }
             else if ( 0 == ossStrcmp( FIELD_NAME_READDEFAULT, fieldName ) )
             {
+               if ( fromUser && hasDefault )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to parse field [%s], "
+                              "already defined with [%s]",
+                              FIELD_NAME_READDEFAULT, FIELD_NAME_DEFAULT ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
                _readDefault = ele ;
                OSS_BIT_SET( parsedMask, UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ;
             }
@@ -309,7 +356,7 @@ namespace engine
 
          _define = needGetOwned ? boDefine.getOwned() : boDefine ;
 
-         rc = _utilSchemaColAttr::parse( name, boDefine, fromUser, parsedMask ) ;
+         rc = _utilSchemaColAttr::parse( name, boDefine, fromUser, fromUser, parsedMask ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse attributes of column[%s], "
                       "rc: %d", name, rc ) ;
          if ( fromUser )
@@ -1351,7 +1398,7 @@ namespace engine
                    "Failed to get column attributes, it is not an object" ) ;
          boDefine = ele.embeddedObject() ;
 
-         rc = _newColAttr.parse( _colName, boDefine, TRUE, parsedMask ) ;
+         rc = _newColAttr.parse( _colName, boDefine, TRUE, TRUE, parsedMask ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse new column attributes, "
                       "rc: %d", rc ) ;
          _boColDefine = boDefine ;
@@ -1436,7 +1483,7 @@ namespace engine
 
          _colName = options.firstElementFieldName() ;
 
-         rc = _newColAttr.parse( _colName, boDefine, TRUE, _alterMask ) ;
+         rc = _newColAttr.parse( _colName, boDefine, TRUE, FALSE, _alterMask ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse new column attributes, "
                       "rc: %d", rc ) ;
 
