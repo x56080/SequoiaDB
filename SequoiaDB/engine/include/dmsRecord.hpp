@@ -45,7 +45,6 @@
 #include "ossUtil.hpp"
 #include "utilCompressor.hpp"
 #include "dpsDef.hpp"
-#include <stddef.h>
 
 namespace engine
 {
@@ -59,69 +58,6 @@ namespace engine
 
    #define DMS_RECORD_USER_MAX_SZ      (DMS_RECORD_MAX_SZ-4096)
 
-   // For schema encoded records.
-   #define DMS_RECORD_FLAG_ENCODED     0x80
-
-   class _dmsEncodeHeader : public SDBObject
-   {
-   public:
-      union
-      {
-         CHAR     _encodeHead[4] ;
-         UINT32   _flag_and_columnum ;
-      }           _head ;
-      UINT32      _len ;            // Length of the complete encoded record, including this header.
-      UINT32      _origLen ;        // Length of the original record before encoding.
-
-      BYTE getFlag() const
-      {
-         return (BYTE)( (_head._flag_and_columnum & 0xFF000000) >> 24 ) ;
-      }
-
-      void setFlag( BYTE flag )
-      {
-         _head._flag_and_columnum =
-            ( _head._flag_and_columnum & 0x00FFFFFF ) | ( ((UINT32)flag) << 24 ) ;
-      }
-
-      BOOLEAN isEncoded() const
-      {
-         return getFlag() & DMS_RECORD_FLAG_ENCODED ;
-      }
-
-      UINT16 getColumnNum() const
-      {
-         return (UINT16)( _head._flag_and_columnum & 0x0000FFFF ) ;
-      }
-
-      void setColumnNum( UINT16 num )
-      {
-         _head._flag_and_columnum |= (UINT32)num ;
-      }
-
-      UINT32 getLen() const
-      {
-         return _len ;
-      }
-
-      void setLen( UINT32 len )
-      {
-         _len = len ;
-      }
-
-      UINT32 getOrigLen() const
-      {
-         return _origLen ;
-      }
-
-      void setOrigLen( UINT32 origLen )
-      {
-         _origLen = origLen ;
-      }
-   } ;
-   typedef _dmsEncodeHeader dmsEncodeHeader ;
-   #define DMS_ENCODE_HEADER_SZ  sizeof(dmsEncodeHeader)
-
    /*
       _dmsRecordData define
    */
@@ -134,7 +70,7 @@ namespace engine
          }
          _dmsRecordData( const CHAR *data, UINT32 len,
                          UINT8 compressType = UTIL_COMPRESSOR_INVALID,
-                         BOOLEAN isOrgData = TRUE )
+                         BOOLEAN isOrgData = TRUE, BOOLEAN isEncodedBySchema = FALSE )
          {
             _data = data ;
             _len = len ;
@@ -152,8 +88,7 @@ namespace engine
                _orgLen = 0 ;
             }
 
-            // Check if the data is encoded by internal schema.
-            _encodedBySchema = !isCompressed() && ((const dmsEncodeHeader *)data)->isEncoded() ;
+            _encodedBySchema = isEncodedBySchema ;
          }
          ~_dmsRecordData()
          {
@@ -185,7 +120,7 @@ namespace engine
 
          void setData( const CHAR *data, UINT32 len,
                        UINT8 compressType = UTIL_COMPRESSOR_INVALID,
-                       BOOLEAN isOrgData = TRUE )
+                       BOOLEAN isOrgData = TRUE, BOOLEAN isEncodedBySchema = FALSE )
          {
             _data = data ;
             _len = len ;
@@ -198,8 +133,7 @@ namespace engine
                _orgLen = len ;
             }
 
-            // Check if the data is encoded by internal schema.
-            _encodedBySchema = !isCompressed() && ((const dmsEncodeHeader *)data)->isEncoded() ;
+            _encodedBySchema = isEncodedBySchema ;
          }
          void setOrgData( const CHAR *orgData, UINT32 orgLen )
          {
@@ -248,6 +182,8 @@ namespace engine
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
    // Indicate this record has global transaction ID, introduced in v1
    #define DMS_RECORD_FLAG_HASGLOBTRANSID    0x20
+   // Indicate this record is encoded by internal schema
+   #define DMS_RECORD_FLAG_ENCODEBYSCHEMA    0x40
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
@@ -338,6 +274,10 @@ namespace engine
       {
          return getAttr() & DMS_RECORD_FLAG_HASGLOBTRANSID ;
       }
+      BOOLEAN isEncodedBySchema() const
+      {
+         return getAttr() & DMS_RECORD_FLAG_ENCODEBYSCHEMA ;
+      }
       OSS_INLINE dmsRecordID getOvfRID() const ;
 
       UINT32 getSize() const
@@ -424,6 +364,15 @@ namespace engine
       {
          unsetAttr( DMS_RECORD_FLAG_DELETING ) ;
       }
+      void setEncodedBySchema()
+      {
+         setAttr( DMS_RECORD_FLAG_ENCODEBYSCHEMA ) ;
+      }
+      void unsetEncodedBySchema()
+      {
+         unsetAttr( DMS_RECORD_FLAG_ENCODEBYSCHEMA ) ;
+      }
+
       OSS_INLINE void setOvfRID( const dmsRecordID &rid ) ;
 
       void  setSize( UINT32 size )
@@ -542,19 +491,9 @@ namespace engine
 
    OSS_INLINE UINT32 _dmsRecord_v0::getDataLength() const
    {
-      UINT32 len = 0 ;
-      const CHAR *dataPtr = (const CHAR*)this + DMS_RECORD_VERSIONED_METADATA_SZ ;
-      BOOLEAN encodeBySchema = !isCompressed() && ((const dmsEncodeHeader *)dataPtr)->isEncoded() ;
-
-      if ( encodeBySchema )
-      {
-         len = *(UINT32 *)( dataPtr + offsetof( _dmsEncodeHeader, _len ) ) ;
-      }
-      else
-      {
-         len = ( *(const UINT32 *)dataPtr ) & 0x00FFFFFF ;
-      }
-      return len ;
+      return ( *(const UINT32 *)
+                ( (const CHAR*)this + DMS_RECORD_VERSIONED_METADATA_SZ ) )
+             & 0x00FFFFFF ;
    }
 
    OSS_INLINE const CHAR* _dmsRecord_v0::getData() const
@@ -604,6 +543,15 @@ namespace engine
          ossMemcpy( (CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ,
                     data.data(), data.len() ) ;
       }
+
+      if ( data.isEncodedBySchema() )
+      {
+         setEncodedBySchema() ;
+      }
+      else
+      {
+         unsetEncodedBySchema() ;
+      }
    }
 
    // Extract Data
@@ -616,7 +564,6 @@ namespace engine
          else                                                           \
          {                                                              \
             INT32 uncompLen = 0 ;                                       \
-            INT32 expectLen = 0 ;                                       \
             UINT8 compressType = pRecord->getCompressType() ;           \
             rc = dmsUncompress( cb, compressorEntry, compressType,      \
                                 pRecord->getData(),                     \
@@ -624,11 +571,7 @@ namespace engine
                                 (const CHAR**)&(retPtr), &uncompLen ) ; \
             PD_RC_CHECK ( rc, PDERROR,                                  \
                           "Failed to uncompress record, rc = %d", rc ); \
-            if ( ( (const _dmsEncodeHeader *)retPtr)->isEncoded() )     \
-            {                                                           \
-               expectLen = *(UINT32 *)((const CHAR *)retPtr + offsetof(_dmsEncodeHeader, _len)) ; \
-            }                                                           \
-            PD_CHECK ( uncompLen == expectLen,                          \
+            PD_CHECK ( uncompLen == *(INT32*)(retPtr),                  \
                        SDB_CORRUPTED_RECORD, error, PDERROR,            \
                        "uncompressed length %d does not match real "    \
                        "len %d", uncompLen, *(INT32*)(retPtr) ) ;       \

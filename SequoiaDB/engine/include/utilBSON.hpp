@@ -26,6 +26,10 @@ namespace engine
 
          INT32 done( BOOLEAN &isEmpty ) ;
 
+         void reset() ;
+
+         INT32 dataSize() const ;
+
          OSS_INLINE static BOOLEAN  emptyValType( BSONType type ) ;
          OSS_INLINE static INT32    getEleValSize( CHAR type, const CHAR *value ) ;
 

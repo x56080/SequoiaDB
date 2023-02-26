@@ -1739,6 +1739,7 @@ namespace engine
                  DMS_RECORD_METADATA_SZ ) ;
 
       pNewRecord->unsetCompressed() ;
+      pNewRecord->unsetEncodedBySchema() ;
       pNewRecord->setSize( recSize ) ;
 
       /// copy data

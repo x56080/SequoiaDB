@@ -199,26 +199,8 @@ namespace engine
          const dmsSchemaHashExtent *_extent ;
          dmsExtRW                   _extRW ;
          INT32                      _nextFreeItemOffset ;
-
    } ;
    typedef _dmsSchemaHash dmsSchemaHash ;
-
-   struct _dmsSchemaEncodeColumn : public utilPooledObject
-   {
-      UINT16            _id ;
-      CHAR              _type ;
-      UINT32            _valueSize ;
-      const CHAR        *_value ;
-
-      _dmsSchemaEncodeColumn( UINT16 id, CHAR type, UINT32 valueSize, const CHAR *value )
-      : _id( id ),
-        _type( type ),
-        _valueSize( valueSize ) ,
-        _value( value )
-      {
-      }
-   } ;
-   typedef struct _dmsSchemaEncodeColumn dmsSchemaEncodeColumn ;
 
    class _dmsInternalSchema : public SDBObject
    {
@@ -250,8 +232,6 @@ namespace engine
 
       typedef ossPoolSet<UINT16>                      COLUMN_ID_SET ;
       typedef COLUMN_ID_SET::const_iterator           COLUMN_ID_SET_CITR ;
-      typedef ossPoolVector<dmsSchemaEncodeColumn>    ENCODE_COL_VEC ;
-      typedef ENCODE_COL_VEC::const_iterator          ENCODE_COL_VEC_CITR ;
       typedef ossPoolMap< const CHAR *, columnInfo, name_cmp >  NAME_INFO_MAP ;
       typedef NAME_INFO_MAP::iterator                 NAME_DECODE_INFO_ITR ;
 
@@ -327,7 +307,7 @@ namespace engine
                                bson::BSONObj &boSchema ) ;
 
       private:
-         INT32    _parseRecord( _dmsMBContext *context, ENCODE_COL_VEC &encodeColumns,
+         INT32    _parseRecord( _dmsMBContext *context, utilBSONRawBuilder &encodeBuilder,
                                 COLUMN_ID_SET &watchIDs, const BSONObj &record,
                                 BOOLEAN &hasNewColumn ) ;
 
@@ -335,7 +315,7 @@ namespace engine
 
          // Append primal columns which do not exist in the original record.
          INT32    _appendPrimalColumns( _dmsMBContext *context, _pmdEDUCB *cb,
-                                        ENCODE_COL_VEC &encodeColumns,
+                                        utilBSONRawBuilder &encodeBuilder,
                                         COLUMN_ID_SET &watchIDs, const BSONObj& originalRecord,
                                         dmsRecordData &recordData ) ;
 
@@ -352,7 +332,7 @@ namespace engine
 
          INT32    _flush() ;
 
-         INT32    _encodeSanityCheck( const ENCODE_COL_VEC &encodeColumns ) ;
+         INT32    _encodeSanityCheck( const dmsRecordData &encodedData ) ;
 
       private:
          BOOLEAN                _enabled ;
@@ -370,6 +350,7 @@ namespace engine
          NAME_INFO_MAP          _decodeWatchNames ;
 
          UINT16                 _defaultMaxSize ;  // Not accurate, but sure to be enough.
+         UINT16                 _totalValidNameSize ;
    } ;
    typedef _dmsInternalSchema dmsInternalSchema ;
 

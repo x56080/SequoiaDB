@@ -56,6 +56,8 @@
 #define DMS_SCHEMA_INVALID_ITEM_ID                 65535
 #define DMS_SCHEMA_INVALID_ITEM_OFFSET             65535
 
+#define DMS_SCHEMA_COLID_STR_MAX_SIZE              5
+
 namespace engine
 {
    _dmsSchemaContainer::_dmsSchemaContainer()
@@ -1365,7 +1367,8 @@ namespace engine
    : _enabled( FALSE ),
      _version( DMS_SCHEMA_INVALID_VERSION ),
      _schemaHash( &_schemaContainer ),
-     _defaultMaxSize( 0 )
+     _defaultMaxSize( 0 ),
+     _totalValidNameSize( 0 )
    {
    }
 
@@ -1412,9 +1415,10 @@ namespace engine
       _readDefaultIDsOfIndexCol.clear() ;
       _encodeWatchIDs.clear() ;
       _decodeWatchIDs.clear() ;
-      _defaultMaxSize = 0 ;
       _enabled = FALSE ;
       _version = DMS_SCHEMA_INVALID_VERSION ;
+      _defaultMaxSize = 0 ;
+      _totalValidNameSize = 0 ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_ADDCOLUMN, "_dmsInternalSchema::addColumn" )
@@ -1729,15 +1733,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_ENCODERECORD ) ;
-      UINT16 columnNum = 0 ;
       UINT32 totalSize = 0 ;
-      dmsEncodeHeader *encodeRecord = NULL ;
-      UINT16 *idPtr = NULL ;
-      CHAR *typePtr = NULL ;
-      CHAR *valuePtr = NULL ;
+      CHAR *encodeRecord = NULL ;
       BOOLEAN hasNewColumn = FALSE ;
-      ENCODE_COL_VEC encodeColumns ;
       COLUMN_ID_SET watchIDs( _encodeWatchIDs ) ;
+      INT32 estimateSize = 0 ;
+      utilBSONRawBuilder encodeBuilder ;
+      BOOLEAN isEmpty = FALSE ;
 
       if ( recordData.len() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
       {
@@ -1749,8 +1751,22 @@ namespace engine
       {
          BSONObj record( recordData.data() ) ;
 retry:
-         rc = _parseRecord( context, encodeColumns, watchIDs, record, hasNewColumn ) ;
-         if ( SDB_INVALIDARG == rc && hasNewColumn )
+         // Estimate by the worest case: Each column name is 1 byte and all columns with default
+         // will be added into the record.
+         estimateSize = record.objsize() + _defaultMaxSize + _schemaContainer.columnNum() ;
+         encodeRecord = cb->getEncodeBuff( estimateSize ) ;
+         if ( !encodeRecord )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Get buffer of size %u for encoding record failed, rc: %d",
+                    estimateSize, rc ) ;
+            goto error ;
+         }
+
+         encodeBuilder.start( encodeRecord, estimateSize ) ;
+
+         rc = _parseRecord( context, encodeBuilder, watchIDs, record, hasNewColumn ) ;
+         if ( SDB_OK == rc && hasNewColumn )
          {
             // Switch to EXCLUSIVE lock, update the internal schema.
             rc = _updateSchemaByRecord( context, record ) ;
@@ -1758,9 +1774,9 @@ retry:
                          rc ) ;
 
             hasNewColumn = FALSE ;
-            encodeColumns.clear() ;
             watchIDs.clear() ;
             watchIDs.insert( _encodeWatchIDs.begin(), _encodeWatchIDs.end() ) ;
+            encodeBuilder.reset() ;
             goto retry ;
          }
          else if ( SDB_OK != rc )
@@ -1774,62 +1790,16 @@ retry:
             ISession *session = cb->getSession() ;
             if ( session && session->isBusinessSession() )
             {
-               rc = _appendPrimalColumns( context, cb, encodeColumns, watchIDs,
+               rc = _appendPrimalColumns( context, cb, encodeBuilder, watchIDs,
                                           record, recordData ) ;
                PD_RC_CHECK( rc, PDERROR, "Append primal columns into record failed, rc: %d", rc ) ;
             }
          }
 
-#ifdef _DEBUG
-         _encodeSanityCheck( encodeColumns )  ;
-#endif /* _DEBUG */
+         rc = encodeBuilder.done( isEmpty ) ;
+         PD_RC_CHECK( rc, PDERROR, "Finish building encoded record failed, rc: %d", rc ) ;
 
-         columnNum = encodeColumns.size() ;
-         // Calculate the total size.
-         for ( ENCODE_COL_VEC_CITR citr = encodeColumns.begin();
-               citr != encodeColumns.end(); ++citr )
-         {
-            totalSize += citr->_valueSize ;
-         }
-         // 1 for the type
-         totalSize += ( sizeof(UINT16) + 1 ) * columnNum ;
-         // Space for the flag, pad, field number and final record size and original BSONObj size.
-         totalSize += DMS_ENCODE_HEADER_SZ ;
-
-         encodeRecord = (dmsEncodeHeader*)cb->getEncodeBuff( totalSize ) ;
-         if ( !encodeRecord )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Get buffer of size %u for encoding record failed, rc: %d",
-                    totalSize, rc ) ;
-            goto error ;
-         }
-
-         ossMemset( encodeRecord, 0, totalSize ) ;
-
-         encodeRecord->setFlag( DMS_RECORD_FLAG_ENCODED ) ;
-         encodeRecord->setColumnNum( columnNum ) ;
-         encodeRecord->setLen( totalSize ) ;
-         encodeRecord->setOrigLen( (UINT32)record.objsize() ) ;
-
-         idPtr = (UINT16*)( (CHAR *)encodeRecord + DMS_ENCODE_HEADER_SZ ) ;
-         typePtr = (CHAR *)idPtr + sizeof(UINT16) * columnNum ;
-         valuePtr = (CHAR *)typePtr + columnNum ;
-         for ( ENCODE_COL_VEC_CITR citr = encodeColumns.begin();
-               citr != encodeColumns.end(); ++citr )
-         {
-            *idPtr = citr->_id ;
-            *typePtr = citr->_type ;
-            if ( citr->_valueSize > 0 )
-            {
-               ossMemcpy( valuePtr, citr->_value, citr->_valueSize ) ;
-            }
-
-            ++idPtr ;
-            ++typePtr ;
-            valuePtr += citr->_valueSize ;
-            SDB_ASSERT( valuePtr <= (CHAR *)encodeRecord + totalSize, "Write out of bound" ) ;
-         }
+         totalSize = encodeBuilder.dataSize() ;
 
          // Check once again if the encoded record size exceeds the limit
          if ( totalSize + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
@@ -1838,7 +1808,13 @@ retry:
             goto error ;
          }
 
-         encodeData.setData( (const CHAR *)encodeRecord, totalSize ) ;
+         encodeData.setData( (const CHAR *)encodeRecord, totalSize,
+                             UTIL_COMPRESSOR_INVALID, TRUE, TRUE ) ;
+
+#ifdef _DEBUG
+         _encodeSanityCheck( encodeData )  ;
+#endif /* _DEBUG */
+
       }
       catch ( std::exception &e )
       {
@@ -1863,97 +1839,82 @@ retry:
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_DECODERECORD ) ;
       const CHAR *columnName = NULL ;
       INT32 nameLen = 0 ;
-      INT32 valueSize = 0 ;
       BOOLEAN colIsDeleted = FALSE ;
       ossPoolSet<UINT16> readDefaultIDs ;
       BOOLEAN hasReadDefault = _decodeWatchIDs.size() > 0 ? TRUE : FALSE ;
-      const dmsEncodeHeader *encodeHeader = (const dmsEncodeHeader *)data ;
-      UINT16 columnNum = encodeHeader->getColumnNum() ;
-      UINT32 decodeSize = encodeHeader->getOrigLen() ;
+      UINT32 decodeSize = 0 ;
       // Get three pointers: ID pointer, type pointer and value pointer, to build each BSON element.
-      const UINT16 *idPtr = (UINT16 *)( data + DMS_ENCODE_HEADER_SZ ) ;
-      const SCHEMA_COL_TYPE *typePtr = (CHAR *)idPtr + sizeof(UINT16) * columnNum ;
-      const CHAR *valuePtr = (CHAR *)typePtr + sizeof(SCHEMA_COL_TYPE) * columnNum ;
       CHAR *decodeBuffer = NULL ;
       utilBSONRawBuilder builder ;
       BOOLEAN isEmpty = FALSE ;
 
-      if ( ( 0 == columnNum ) || ( columnNum > DMS_SCHEMA_MAX_COLUMN_NUM ) ||
-           ( ( decodeSize + DMS_RECORD_METADATA_SZ ) > DMS_RECORD_USER_MAX_SZ ) )
+      try
       {
-         rc = SDB_CORRUPTED_RECORD ;
-         PD_LOG( PDERROR, "Record is corrupted, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      // Estimate the decode size.
-      decodeSize += _defaultMaxSize ;
-      decodeBuffer = cb->getDecodeBuff( decodeSize ) ;
-      if ( !decodeBuffer )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Get buffer of size %u for decoding record failed, rc: %d",
-                 decodeSize, rc ) ;
-         goto error ;
-      }
-
-      // Make a coyp of the ids, try to erase below
-      if ( hasReadDefault )
-      {
-         readDefaultIDs.insert( _decodeWatchIDs.begin(), _decodeWatchIDs.end() ) ;
-      }
-
-      rc = builder.start( decodeBuffer, decodeSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start building record, rc: %d", rc ) ;
-
-      for ( UINT16 index = 0; index < columnNum; ++index )
-      {
-         // This column is included in the record, so we need not to add its read default any more.
-         if ( hasReadDefault )
+         BSONObj encodedRecord( data ) ;
+         BSONObjIterator itr( encodedRecord ) ;
+         // Estimate the decode size. Column ids will be replaced by column names(deleted columns
+         // not included), and columns with write default values will be added.
+         decodeSize = encodedRecord.objsize() + _totalValidNameSize + _defaultMaxSize ;
+         decodeBuffer = cb->getDecodeBuff( decodeSize ) ;
+         if ( !decodeBuffer )
          {
-            readDefaultIDs.erase( *idPtr ) ;
-         }
-
-         // 拿到集合的属性及字段名，如果属性中包含读默认值，就记录下这个 ID，然后和所有读默认值 set 取差集
-         _schemaContainer.getColumnBasicInfo( *idPtr, &columnName, &nameLen, &colIsDeleted ) ;
-         if ( colIsDeleted )
-         {
-            // Ignore columns which has been marked as delete.
-            valueSize = utilBSONRawBuilder::getEleValSize( *typePtr, valuePtr ) ;
-            ++idPtr ;
-            ++typePtr ;
-            valuePtr += valueSize ;
-            continue ;
-         }
-
-         valueSize = utilBSONRawBuilder::getEleValSize( *typePtr, valuePtr ) ;
-         rc = builder.appendElement( (BSONType)*typePtr, columnName, nameLen,
-                                     valuePtr, valueSize ) ;
-         if ( rc )
-         {
-            rc = SDB_CORRUPTED_RECORD ;
-            PD_LOG( PDERROR, "Record is corrupted, rc: %d", rc ) ;
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Get buffer of size %u for decoding record failed, rc: %d",
+                    decodeSize, rc ) ;
             goto error ;
          }
 
-         // Move to next column
-         ++idPtr ;
-         ++typePtr ;
-         valuePtr += valueSize ;
-      }
+         // Make a coyp of the ids, try to erase below
+         if ( hasReadDefault )
+         {
+            readDefaultIDs.insert( _decodeWatchIDs.begin(), _decodeWatchIDs.end() ) ;
+         }
 
-      if ( readDefaultIDs.size() > 0 && !getPrimalData )
+         rc = builder.start( decodeBuffer, decodeSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start building record, rc: %d", rc ) ;
+
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            UINT16 columnID = ossAtoi( ele.fieldName() ) ;
+            // This column is included in the record, so we need not to add its read default any more.
+            if ( hasReadDefault )
+            {
+               readDefaultIDs.erase( columnID ) ;
+            }
+
+            _schemaContainer.getColumnBasicInfo( columnID, &columnName, &nameLen, &colIsDeleted ) ;
+            if ( colIsDeleted )
+            {
+               // Ignore columns which has been marked as delete.
+               continue ;
+            }
+
+            rc = builder.appendElement( ele.type(), columnName, nameLen,
+                                        ele.value(), ele.valuesize() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Append column [%s] to record decode buffer failed, rc: %d",
+                         columnName, rc ) ;
+         }
+
+         if ( readDefaultIDs.size() > 0 && !getPrimalData )
+         {
+            // Append columns with default.
+            rc = _appendColWithReadDefault( readDefaultIDs, builder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
+                        rc ) ;
+         }
+
+         builder.done( isEmpty ) ;
+
+         *record = decodeBuffer ;
+         recordSize = *(INT32 *)decodeBuffer ;
+      }
+      catch ( std::exception &e )
       {
-         // Append columns with default.
-         rc = _appendColWithReadDefault( readDefaultIDs, builder ) ;
-         PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
-                     rc ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
       }
-
-      builder.done( isEmpty ) ;
-
-      *record = decodeBuffer ;
-      recordSize = *(INT32 *)decodeBuffer ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_DECODERECORD, rc ) ;
@@ -2162,7 +2123,7 @@ retry:
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__PARSERECORD, "_dmsInternalSchema::_parseRecord" )
    INT32 _dmsInternalSchema::_parseRecord( dmsMBContext *context,
-                                           ENCODE_COL_VEC &encodeColumns,
+                                           utilBSONRawBuilder &encodeBuilder,
                                            COLUMN_ID_SET &watchIDs,
                                            const BSONObj& record,
                                            BOOLEAN &hasNewColumn )
@@ -2170,6 +2131,7 @@ retry:
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__PARSERECORD ) ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
+      CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
 
       BOOLEAN hasWriteDefault = _encodeWatchIDs.size() > 0 ? TRUE : FALSE ;
       if ( hasWriteDefault )
@@ -2186,19 +2148,16 @@ retry:
             columnID = _schemaHash.getColumnIDByName( ele.fieldName() ) ;
             if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
             {
-               // New column for the schema.
-               /*
-               rc = addColumn( context, ele.fieldName(), NULL, &columnID ) ;
-               PD_RC_CHECK( rc, PDERROR, "Add column %s into internal schema failed, rc: %d",
-                            ele.fieldName(), rc ) ;
-               */
                hasNewColumn = TRUE ;
-               rc = SDB_INVALIDARG;
-               goto error ;
+               goto done ;
             }
 
-            encodeColumns.push_back(
-               dmsSchemaEncodeColumn( columnID, ele.type(), ele.valuesize(), ele.value() ) ) ;
+            ossItoa( columnID, columnName, sizeof(columnName) ) ;
+            rc = encodeBuilder.appendElement( ele.type(), columnName, ossStrlen(columnName),
+                                              ele.value(), ele.valuesize() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Add column [%s] to encoded record failed, rc: %d",
+                         ele.fieldName(), rc ) ;
+
             if ( hasWriteDefault )
             {
                watchIDs.erase( columnID ) ;
@@ -2280,7 +2239,7 @@ retry:
 
    INT32 _dmsInternalSchema::_appendPrimalColumns( _dmsMBContext *context,
                                                    pmdEDUCB *cb,
-                                                   ENCODE_COL_VEC &encodeColumns,
+                                                   utilBSONRawBuilder &encodeBuilder,
                                                    COLUMN_ID_SET &watchIDs,
                                                    const BSONObj& originalRecord,
                                                    dmsRecordData &recordData )
@@ -2295,6 +2254,7 @@ retry:
       BOOLEAN isEmpty = FALSE ;
       CHAR *buff = NULL ;
       INT32 buffSize = originalRecord.objsize() + _defaultMaxSize ;
+      CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
 
       buff = (CHAR *)cb->getBuffer( buffSize ) ;
       if ( !buff )
@@ -2334,7 +2294,12 @@ retry:
 
             }
 
-            encodeColumns.push_back( dmsSchemaEncodeColumn( *citr, type, valueLen, value ) ) ;
+            ossItoa( *citr, columnName, sizeof(columnName) ) ;
+            rc = encodeBuilder.appendElement( type, columnName, ossStrlen(columnName),
+                                              value, valueLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Add column [%s] to encoded record failed, rc: %d",
+                         name, rc ) ;
+
             rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
             PD_RC_CHECK( rc, PDERROR, "Append info for column %s into record failed, rc: %d",
                          name, rc ) ;
@@ -2481,6 +2446,7 @@ retry:
          BOOLEAN hasOrigName = FALSE ;
 
          _decodeWatchNames.clear() ;
+         _totalValidNameSize = 0 ;
 
          for ( UINT16 columnID = 0; columnID < _schemaContainer.columnNum(); ++columnID )
          {
@@ -2507,6 +2473,10 @@ retry:
                _decodeWatchNames.insert(
                   std::make_pair( name, columnInfo( FALSE, columnID,
                                                     isDeleted, hasReadDefault ) ) ) ;
+            }
+            if ( !isDeleted )
+            {
+               _totalValidNameSize += nameLen ;
             }
          }
 
@@ -2585,42 +2555,63 @@ retry:
       return SDB_OK ;
    }
 
-   INT32 _dmsInternalSchema::_encodeSanityCheck( const ENCODE_COL_VEC &encodeColumns )
+   INT32 _dmsInternalSchema::_encodeSanityCheck( const dmsRecordData &encodedData )
    {
       INT32 rc = SDB_OK ;
       ossPoolSet<UINT16> columnIDs ;
 
-      for ( ENCODE_COL_VEC_CITR itr= encodeColumns.begin(); itr != encodeColumns.end(); ++itr )
+      try
       {
-         BOOLEAN isDeleted = FALSE ;
-         SDB_ASSERT( DMS_SCHEMA_INVALID_COLUMNID != itr->_id, "Column ID is invalid" ) ;
-         // Should NEVER have duplicated ID in the encoded record.
-         if ( FALSE == columnIDs.insert( itr->_id ).second )
+         const BSONObj record( encodedData.data() ) ;
+         if ( !record.isValid() )
          {
+            SDB_ASSERT( FALSE, "The encoded record is invalid" ) ;
             rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Duplicated column ID %u in the encoded record, rc: %d",
-                    itr->_id, rc ) ;
-            SDB_ASSERT( FALSE, "Duplicated column ID" ) ;
+            PD_LOG( PDERROR, "The encoded record is invalid, rc: %d", rc ) ;
             goto error ;
          }
 
-         rc = _schemaContainer.getColumnBasicInfo( itr->_id, NULL, NULL, &isDeleted ) ;
-         if ( SDB_OK != rc )
+         BSONObjIterator itr( record ) ;
+         while ( itr.more() )
          {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Get column info by column ID %u failed, rc: %d", itr->_id, rc ) ;
-            SDB_ASSERT( FALSE, "Get column info by column ID failed" ) ;
-            goto error ;
-         }
+            UINT16 columnID = ossAtoi( itr.next().fieldName() ) ;
+            BOOLEAN isDeleted = FALSE ;
+            SDB_ASSERT( DMS_SCHEMA_INVALID_COLUMNID != columnID, "Column ID is invalid" ) ;
+            // Should NEVER have duplicated ID in the encoded record.
+            if ( FALSE == columnIDs.insert( columnID ).second )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Duplicated column ID %u in the encoded record, rc: %d",
+                       columnID, rc ) ;
+               SDB_ASSERT( FALSE, "Duplicated column ID" ) ;
+               goto error ;
+            }
 
-         if ( isDeleted )
-         {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Should not include deleted column when encoding, rc: %d", rc ) ;
-            SDB_ASSERT( FALSE, "Should not include deleted column when encoding" ) ;
-            goto error ;
+            rc = _schemaContainer.getColumnBasicInfo( columnID, NULL, NULL, &isDeleted ) ;
+            if ( SDB_OK != rc )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Get column info by column ID %u failed, rc: %d", columnID, rc ) ;
+               SDB_ASSERT( FALSE, "Get column info by column ID failed" ) ;
+               goto error ;
+            }
+
+            if ( isDeleted )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Should not include deleted column when encoding, rc: %d", rc ) ;
+               SDB_ASSERT( FALSE, "Should not include deleted column when encoding" ) ;
+               goto error ;
+            }
          }
       }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
 
    done:
       return rc ;

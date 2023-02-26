@@ -42,7 +42,6 @@
 #include "rtnTrace.hpp"
 #include "rtnDictCreatorJob.hpp"
 #include "rtn.hpp"
-#include "utilCommBuff.hpp"
 
 namespace engine
 {
@@ -51,7 +50,6 @@ namespace engine
     * 100 records and 64MB data.
     */
    #define RTN_DICT_CREATE_REC_NUM_THRESHOLD    100
-   #define RTN_DICT_CREATE_DATA_BUFF_INIT_SIZE  ( 128 << 10 )
    #define RTN_DICT_CREATE_REC_DATA_SIZE        ( 64 << 20 )
 
    _rtnDictCreatorJob::_rtnDictCreatorJob( UINT32 scanInterval )
@@ -235,9 +233,6 @@ namespace engine
       BOOLEAN dictFull = FALSE ;
       SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
       IDmsScannerChecker *checker = NULL ;
-      // Buffer for fetching data from extent.
-      utilCommBuff dataBuff( UTIL_BUFF_MODE_SERIAL, RTN_DICT_CREATE_DATA_BUFF_INIT_SIZE,
-                             DMS_SEGMENT_SZ ) ;
 
       SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
@@ -249,6 +244,7 @@ namespace engine
       ossStrncat( fullName, clShortName, DMS_COLLECTION_NAME_SZ ) ;
       fullName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
 
+      rtnContextStoreBuf buf ;
       dmsExtScanner scanner( sd, context, NULL, context->mb()->_firstExtentID ) ;
 
       rc = dmsCB->createScannerChecker( sd->logicalID(),
@@ -273,7 +269,8 @@ namespace engine
       while ( TRUE )
       {
          dmsRecordID recordID ;
-         dataBuff.clear() ;
+
+         buf.empty() ;
 
          // resume scan
          rc = context->resume() ;
@@ -283,13 +280,20 @@ namespace engine
          // fetch records from one extent
          while ( SDB_OK == ( rc = scanner.advance( recordID, generator, cb ) ) )
          {
-            ossValuePtr recordDataPtr = 0 ;
-            generator.getDataPtr( recordDataPtr ) ;
-            rc = dataBuff.append( (const CHAR *)recordDataPtr, generator.getDataSize() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append data to buffer for building compression dictionary "
-                         "failed, rc: %d", rc ) ;
-            ++fetchNum ;
-            fetchSize += generator.getDataSize() ;
+            try
+            {
+               // save to buffer, will process later
+               ossValuePtr recordDataPtr = 0 ;
+               generator.getDataPtr( recordDataPtr ) ;
+               BSONObj bs( (const CHAR*)recordDataPtr ) ;
+               buf.append( bs ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to get record, occur exception: %s", e.what() ) ;
+               ossException2RC( &e ) ;
+               goto error ;
+            }
          }
 
          // pause scan to release mb lock
@@ -309,14 +313,45 @@ namespace engine
                goto error ;
             }
 
-            // process the data
-            if ( dataBuff.dataSize() > 0 )
+            // process the records
+            if ( buf.numRecords() > 0 )
             {
-               creator->build( dataBuff.offset2Addr( 0 ), dataBuff.dataSize(), dictFull ) ;
-               if ( dictFull )
+               rtnContextBuf ctxBuf ;
+
+               // get records from buffer
+               rc = buf.get( -1, ctxBuf ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Failed to get results from buffer, "
+                            "rc: %d", rc ) ;
+
+               // process record one-by-one
+               while ( !ctxBuf.eof() )
                {
-                  break ;
+                  BSONObj obj ;
+                  rc = ctxBuf.nextObj( obj ) ;
+                  if ( SDB_DMS_EOC == rc )
+                  {
+                     rc = SDB_OK ;
+                     break ;
+                  }
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to get next result, "
+                               "rc: %d", rc ) ;
+
+                  // put record into dictionary creator
+                  creator->build( obj.objdata(), obj.objsize(), dictFull ) ;
+                  if ( dictFull )
+                  {
+                     break ;
+                  }
+
+                  ++ fetchNum ;
+                  fetchSize += obj.objsize() ;
                }
+            }
+
+            // dictionary is ready
+            if ( dictFull )
+            {
+               break ;
             }
 
             // move to the next extent

@@ -1446,7 +1446,6 @@ namespace engine
       {
          const CHAR *pUncompressData = NULL ;
          INT32 unCompressDataLen = 0 ;
-         INT32 expectLen = 0 ;
          rc = dmsUncompress( cb, &_compressorEntry[ mbContext->mbID() ],
                              pRecord->getCompressType(), pRecord->getData(),
                              pRecord->getDataLength(),
@@ -1456,23 +1455,12 @@ namespace engine
             PD_LOG( PDERROR, "Failed to uncompress data, rc: %d", rc ) ;
             goto error ;
          }
-
-         /// check the length. For record which is encoded by internal schema, it's encoded length
-         /// is stored in the encode header. Otherwise, the decompressed result is a BSONObj, the
-         /// length is stored in its first 4 bytes.
-         if ( ((const dmsEncodeHeader *)pUncompressData)->isEncoded() )
+         /// check the length
+         if ( unCompressDataLen != *(INT32*)pUncompressData )
          {
-            expectLen = ((const dmsEncodeHeader *)pUncompressData)->getLen() ;
-         }
-         else
-         {
-            expectLen = *(INT32 *)pUncompressData ;
-         }
-
-         if ( unCompressDataLen != expectLen )
-         {
-            PD_LOG( PDERROR, "Uncompress data length[%d] does not match real length[%d]",
-                    unCompressDataLen, expectLen ) ;
+            PD_LOG( PDERROR, "Uncompress data length[%d] does not match "
+                    "real length[%d]", unCompressDataLen,
+                    *(INT32*)pUncompressData ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
@@ -1486,7 +1474,7 @@ namespace engine
       {
          const CHAR *decodeRecord = NULL ;
          UINT32 decodeSize = 0 ;
-         if ( recordData.isEncodedBySchema() )
+         if ( pRecord->isEncodedBySchema() )
          {
             dmsInternalSchema *schema = getSchema( mbContext->mbID() ) ;
             SDB_ASSERT( schema->enabled(), "Schema is not enabled" ) ;
@@ -1494,7 +1482,7 @@ namespace engine
             rc = schema->decodeRecord( cb, recordData.data(), recordData.len(),
                                        &decodeRecord, decodeSize, getPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Decode record by schema failed, rc: %d", rc ) ;
-            recordData.setData( decodeRecord, decodeSize ) ;
+            recordData.setData( decodeRecord, decodeSize, UTIL_COMPRESSOR_INVALID, FALSE ) ;
          }
          else if ( schema->needRebiuldUncodedRecord() )
          {
@@ -1506,7 +1494,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Rebuild record with internal schema failed, rc: %d", rc ) ;
             if ( changed )
             {
-               recordData.setData( decodeRecord, decodeSize ) ;
+               recordData.setData( decodeRecord, decodeSize, UTIL_COMPRESSOR_INVALID, FALSE ) ;
             }
          }
       }

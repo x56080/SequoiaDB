@@ -119,7 +119,8 @@ namespace engine
       }
 
       *_writePtr = (CHAR)EOO ;
-      *(INT32 *)_buffer = _writePtr - _buffer + 1 ;   // 1 byte is for the EOO.
+      ++_writePtr ;
+      *(INT32 *)_buffer = _writePtr - _buffer ;
 
 #ifdef _DEBUG
       // Check if the generated record is valid.
@@ -136,6 +137,20 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _utilBSONRawBuilder::reset()
+   {
+      _buffer = NULL ;
+      _writePtr = NULL ;
+      _buffSize = 0 ;
+      _remainSize = 0 ;
+      _done = FALSE ;
+   }
+
+   INT32 _utilBSONRawBuilder::dataSize() const
+   {
+      return (INT32)( _writePtr - _buffer ) ;
    }
 
    BOOLEAN _utilBSONRawBuilder::_validate() const
