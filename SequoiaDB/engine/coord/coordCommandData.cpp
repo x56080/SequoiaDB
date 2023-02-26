@@ -3939,6 +3939,25 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_LINKCL_REGEVENTHANDLERS, "_coordCMDLinkCollection::_regEventHandlers" )
+   INT32 _coordCMDLinkCollection::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_LINKCL_REGEVENTHANDLERS ) ;
+
+      rc = _regEventHandler( &_schemaHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register schema handler, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( COORD_LINKCL_REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( COORD_LINKCL_PARSEMSG, "_coordCMDLinkCollection::_parseMsg" )
    INT32 _coordCMDLinkCollection::_parseMsg ( MsgHeader *pMsg,
                                               coordCMDArguments *pArgs )

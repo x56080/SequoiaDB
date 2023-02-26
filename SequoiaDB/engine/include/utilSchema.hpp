@@ -324,7 +324,10 @@ namespace engine
                    BOOLEAN fromUser,
                    BOOLEAN needGetOwned ) ;
 
-      INT32 toBSON( bson::BSONObj &boSchema, UINT32 mask = 0xFFFFFFFF ) const ;
+      INT32 toBSON( bson::BSONObj &boSchema,
+                    UINT32 mask = 0xFFFFFFFF ) const ;
+      INT32 toBSON( bson::BSONObjBuilder &builder,
+                    UINT32 mask = 0xFFFFFFFF ) const ;
 
       BOOLEAN isValid() const
       {

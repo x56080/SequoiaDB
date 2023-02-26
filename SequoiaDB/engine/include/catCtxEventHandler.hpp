@@ -44,6 +44,7 @@
 #include "catLevelLock.hpp"
 #include "clsCatalogAgent.hpp"
 #include "utilRecycleItem.hpp"
+#include "utilSchema.hpp"
 #include "pmd.hpp"
 
 namespace engine
@@ -371,6 +372,29 @@ namespace engine
    } ;
 
    typedef class _catRtrnCtxTaskHandler catRtrnCtxTaskHandler ;
+
+   /*
+      _catCtxSchemaHandler define
+    */
+   class _catCtxSchemaHandler : public _catCtxEventHandler
+   {
+   public:
+      _catCtxSchemaHandler( catCtxLockMgr &lockMgr ) ;
+      virtual ~_catCtxSchemaHandler() ;
+
+      virtual const CHAR *getName() const
+      {
+         return "schema" ;
+      }
+
+      INT32 setSchema( const CHAR *schemaName, _pmdEDUCB *cb ) ;
+
+      virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder ) ;
+
+   protected:
+      utilSchema _schema ;
+   } ;
+   typedef class _catCtxSchemaHandler catCtxSchemaHandler ;
 
 }
 

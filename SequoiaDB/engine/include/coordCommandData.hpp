@@ -779,6 +779,8 @@ namespace engine
          virtual ~_coordCMDLinkCollection() ;
 
       protected :
+         virtual INT32 _regEventHandlers() ;
+
          virtual INT32 _parseMsg ( MsgHeader *pMsg,
                                    coordCMDArguments *pArgs ) ;
 
@@ -816,6 +818,7 @@ namespace engine
 
       private:
          string            _subCLName ;
+         coordCMDSchemaHandler _schemaHandler ;
    } ;
    typedef _coordCMDLinkCollection coordCMDLinkCollection ;
 

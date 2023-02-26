@@ -1496,4 +1496,93 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNBUILDADDSCHEMACMD, "_rtnBuildAddSchemaCommand" )
+   INT32 _rtnBuildAddSchemaCommand( const CHAR *collection,
+                                    const utilSchema &schema,
+                                    BSONObj &command )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNBUILDADDSCHEMACMD ) ;
+
+      SDB_ASSERT( schema.isValid(), "schema should be valid" ) ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         builder.append( FIELD_NAME_ALTER_TYPE, SDB_CATALOG_CL ) ;
+         builder.append( FIELD_NAME_VERSION, SDB_ALTER_VERSION ) ;
+         builder.append( FIELD_NAME_NAME, collection ) ;
+         builder.append( FIELD_NAME_OPTIONS, BSONObj() ) ;
+
+         BSONObjBuilder alterBuilder( builder.subobjStart( FIELD_NAME_ALTER ) ) ;
+         alterBuilder.append( FIELD_NAME_NAME, SDB_ALTER_CL_ADD_SCHEMA ) ;
+         BSONObjBuilder argBuilder( alterBuilder.subobjStart( FIELD_NAME_ARGS ) ) ;
+         argBuilder.append( FIELD_NAME_SCHEMA, schema.getName() ) ;
+         argBuilder.doneFast() ;
+         alterBuilder.doneFast() ;
+         BSONObjBuilder infoBuilder( builder.subobjStart( FIELD_NAME_ALTER_INFO ) ) ;
+         infoBuilder.append( FIELD_NAME_SCHEMA, schema.getDefine() ) ;
+         infoBuilder.doneFast() ;
+
+         command = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build alter command, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNBUILDADDSCHEMACMD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNALTERCOLLECTIONADDSCHEMA, "rtnAlterCollectionAddSchema" )
+   INT32 rtnAlterCollectionAddSchema( const CHAR *collection,
+                                      const utilSchema &schema,
+                                      _pmdEDUCB * cb,
+                                      _dpsLogWrapper * dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNALTERCOLLECTIONADDSCHEMA ) ;
+
+      BSONObj alterCommand ;
+
+      PD_CHECK( NULL != collection, SDB_INVALIDARG, error, PDERROR,
+                "Failed to alter collection to add schema, "
+                "collection name is invalid" ) ;
+      PD_CHECK( schema.isValid(), SDB_INVALIDARG, error, PDERROR,
+                "Failed to alter collection to add schema, "
+                "schema is invalid" ) ;
+
+      rc = _rtnBuildAddSchemaCommand( collection, schema, alterCommand ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build alter command for add "
+                   "schema [%s] to collection [%s], rc: %d", collection,
+                   schema.getName(), rc ) ;
+
+      rc = rtnAlterCommand( collection, RTN_ALTER_COLLECTION, alterCommand,
+                            cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to alter colection to add "
+                   "schema [%s] to collection [%s], rc: %d", collection,
+                   schema.getName(), rc ) ;
+
+      PD_LOG( PDDEBUG, "Add schema [%s] to collection [%s]",
+              collection, schema.getName() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_RTNALTERCOLLECTIONADDSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

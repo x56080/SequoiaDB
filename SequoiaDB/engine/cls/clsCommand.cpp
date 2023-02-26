@@ -885,6 +885,8 @@ namespace engine
       try
       {
          BSONObj arg ( pMatcherBuff ) ;
+         BSONObj hint( pHintBuff ) ;
+
          rc = rtnGetStringElement ( arg, FIELD_NAME_NAME,
                                     &_collectionName ) ;
          if ( SDB_OK != rc )
@@ -902,6 +904,12 @@ namespace engine
             goto error ;
          }
 
+         BSONElement ele = hint.getField( FIELD_NAME_SCHEMA ) ;
+         if ( Object == ele.type() )
+         {
+            rc = _schema.parse( ele.embeddedObject(), FALSE, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse schema, rc: %d", rc ) ;
+         }
       }
       catch( std::exception &e )
       {
@@ -939,6 +947,17 @@ namespace engine
                                        DPS_LOG_INVALIDCATA_TYPE_CATA |
                                        DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
       sdbGetClsCB()->invalidateCata( _subCLName ) ;
+
+      if ( _schema.isValid() )
+      {
+         rc = rtnAlterCollectionAddSchema( _subCLName, _schema, cb, dpsCB ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to add schema [%s] to sub-collection [%s], "
+                    "rc: %d", _schema.getName(), _subCLName, rc ) ;
+         }
+      }
+
       return SDB_OK ;
    }
 

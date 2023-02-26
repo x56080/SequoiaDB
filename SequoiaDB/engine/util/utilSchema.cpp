@@ -633,6 +633,37 @@ namespace engine
       {
          BSONObjBuilder builder ;
 
+         rc = toBSON( builder, mask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, "
+                      "rc: %d", rc ) ;
+
+         boSchema = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON for schema, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA_TOBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMA_TOBSON_BUILDER, "_utilSchema::toBSON" )
+   INT32 _utilSchema::toBSON( bson::BSONObjBuilder &builder, UINT32 mask ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__UTILSCHEMA_TOBSON_BUILDER ) ;
+
+      try
+      {
          builder.append( FIELD_NAME_NAME, _name ) ;
          builder.append( FIELD_NAME_VERSION, _version ) ;
 
@@ -649,20 +680,20 @@ namespace engine
          if ( OSS_BIT_TEST( mask, UTIL_SCHEMA_ATTR_MASK_COL ) )
          {
             rc = _columnsToBSON( builder ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for columns, rc: %d", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for columns, "
+                         "rc: %d", rc ) ;
          }
-
-         boSchema = builder.obj() ;
       }
       catch ( exception &e )
       {
-         PD_LOG( PDERROR, "Failed to build BSON for schema, occur exception %s", e.what() ) ;
+         PD_LOG( PDERROR, "Failed to build BSON for schema, "
+                 "occur exception %s", e.what() ) ;
          rc = ossException2RC( &e ) ;
          goto error ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__UTILSCHEMA_TOBSON, rc ) ;
+      PD_TRACE_EXITRC( SDB__UTILSCHEMA_TOBSON_BUILDER, rc ) ;
       return rc ;
 
    error:

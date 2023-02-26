@@ -3419,7 +3419,8 @@ namespace engine
                           "CAT_LINK_CL" )
 
    _catCtxLinkCL::_catCtxLinkCL ( INT64 contextID, UINT64 eduID )
-   : _catCtxDataBase( contextID, eduID )
+   : _catCtxDataBase( contextID, eduID ),
+     _schemaHandler( _lockMgr )
    {
       _executeOnP1 = TRUE ;
       _needRollback = TRUE ;
@@ -3552,6 +3553,13 @@ namespace engine
                       "Failed to check attach sub-collection [%s], it not "
                       "info schema enabled", _subCLName.c_str() ) ;
          }
+
+         if ( mainCLSet.hasSchema() )
+         {
+            rc = _schemaHandler.setSchema( mainCLSet.getSchemaName(), cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                         mainCLSet.getSchemaName(), rc ) ;
+         }
       }
 
       // Check if multiple collections on data source are being linked to the
@@ -3668,6 +3676,29 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB_CATCTXLINKCL_ROLLBACK_INT, rc ) ;
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXLINKCL__REGEVENTHANDLERS, "_catCtxLinkCL::_regEventHandlers" )
+   INT32 _catCtxLinkCL::_regEventHandlers()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXLINKCL__REGEVENTHANDLERS ) ;
+
+      rc = _BASE::_regEventHandlers() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register base handlers, "
+                   "rc: %d", rc ) ;
+
+      rc = _regEventHandler( &_schemaHandler ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register schema handler, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXLINKCL__REGEVENTHANDLERS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*

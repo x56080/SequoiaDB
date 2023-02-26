@@ -1450,4 +1450,78 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _coordCMDSchemaHandler implement
+    */
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATASCHEMAHANDLER_PARSECATRETURN, "_coordCMDSchemaHandler::parseCatReturn" )
+   INT32 _coordCMDSchemaHandler::parseCatReturn( coordCMDArguments *pArgs,
+                                                 const vector<BSONObj> &cataObjs )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATASCHEMAHANDLER_PARSECATRETURN ) ;
+
+      BSONObj cataReplyObj ;
+
+      if ( cataObjs.empty() )
+      {
+         goto done ;
+      }
+
+      cataReplyObj = cataObjs[ 0 ] ;
+
+      try
+      {
+         BSONElement ele = cataReplyObj.getField( FIELD_NAME_SCHEMA ) ;
+         if ( Object == ele.type() )
+         {
+            _boSchema = ele.embeddedObject().copy() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get schema, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATASCHEMAHANDLER_PARSECATRETURN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATASCHEMAHANDLER_REWRITEDATAMSG, "_coordCMDSchemaHandler::rewriteDataMsg" )
+   INT32 _coordCMDSchemaHandler::rewriteDataMsg( BSONObjBuilder &queryBuilder,
+                                                 BSONObjBuilder &hintBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATASCHEMAHANDLER_REWRITEDATAMSG ) ;
+
+      try
+      {
+         if ( !_boSchema.isEmpty() )
+         {
+            hintBuilder.append( FIELD_NAME_SCHEMA, _boSchema ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to rewrite data message, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATASCHEMAHANDLER_REWRITEDATAMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

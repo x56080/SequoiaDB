@@ -528,6 +528,37 @@ namespace engine
 
    typedef class _coordCMDReturnHandler coordCMDReturnHandler ;
 
+   /*
+      _coordCMDSchemaHandler define
+    */
+   class _coordCMDSchemaHandler : public _coordCMDEventHandler
+   {
+   public:
+      _coordCMDSchemaHandler() {}
+      virtual ~_coordCMDSchemaHandler() {}
+
+      virtual const CHAR *getName() const
+      {
+         return "schema" ;
+      }
+
+      virtual INT32 parseCatReturn( coordCMDArguments *pArgs,
+                                    const std::vector<bson::BSONObj> &cataObjs ) ;
+
+      virtual INT32 rewriteDataMsg( bson::BSONObjBuilder &queryBuilder,
+                                    bson::BSONObjBuilder &hintBuilder ) ;
+
+      virtual BOOLEAN needRewriteDataMsg()
+      {
+         return TRUE ;
+      }
+
+   protected:
+      BSONObj _boSchema ;
+   } ;
+
+   typedef class _coordCMDSchemaHandler coordCMDSchemaHandler ;
+
 }
 
 #endif // COORD_CMD_EVENT_HANDLER_HPP__

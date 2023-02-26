@@ -533,6 +533,8 @@ namespace engine
       }
 
    protected :
+      typedef _catCtxDataBase _BASE ;
+
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
@@ -541,7 +543,10 @@ namespace engine
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
+      virtual INT32 _regEventHandlers() ;
+
    protected :
+      catCtxSchemaHandler _schemaHandler ;
       BOOLEAN _needUpdateSubCL ;
       std::string _subCLName ;
       BSONObj _boSubCL ;

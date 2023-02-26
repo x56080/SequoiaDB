@@ -975,4 +975,60 @@ namespace engine
       return rc ;
    }
 
+   /*
+      _catCtxSchemaHandler implement
+    */
+   _catCtxSchemaHandler::_catCtxSchemaHandler( catCtxLockMgr &lockMgr )
+   : _catCtxEventHandler( lockMgr ),
+     _schema()
+   {
+   }
+
+   _catCtxSchemaHandler::~_catCtxSchemaHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXSCHEMAHANDLER_SETSCHEMA, "_catCtxSchemaHandler::setSchema" )
+   INT32 _catCtxSchemaHandler::setSchema( const CHAR *schemaName, _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXSCHEMAHANDLER_SETSCHEMA ) ;
+
+      rc = catGetSchema( schemaName, _schema, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
+                   schemaName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXSCHEMAHANDLER_SETSCHEMA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXSCHEMAHANDLER_BUILDP1REPLY, "_catCtxSchemaHandler::buildP1Reply" )
+   INT32 _catCtxSchemaHandler::buildP1Reply( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXSCHEMAHANDLER_BUILDP1REPLY ) ;
+
+      if ( _schema.isValid() )
+      {
+         BSONObjBuilder schemaBuilder( builder.subobjStart( FIELD_NAME_SCHEMA ) ) ;
+         rc = _schema.toBSON( schemaBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build reply for "
+                      "schema [%s], rc: %d", _schema.getName(), rc ) ;
+         schemaBuilder.done() ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXSCHEMAHANDLER_BUILDP1REPLY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

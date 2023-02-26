@@ -106,6 +106,11 @@ namespace engine
                                    _dmsStorageUnit * su,
                                    _SDB_DMSCB * dmsCB ) ;
 
+   INT32 rtnAlterCollectionAddSchema( const CHAR *collection,
+                                      const utilSchema &schema,
+                                      _pmdEDUCB * cb,
+                                      _dpsLogWrapper * dpsCB ) ;
+
 }
 
 #endif // RTN_ALTER_HPP_
