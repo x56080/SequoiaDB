@@ -1177,7 +1177,7 @@ namespace engine
             while ( ++it._curListID < partitions )
             {
                it._curList = _getList( it._curListID ) ;
-               it._latchPtr.reset( new latcher(this, it._curListID ) ) ;
+               it._latchPtr.reset( SDB_OSS_NEW latcher(this, it._curListID ) ) ;
                if ( it._curList->size() > 0 )
                {
                   it._itr = it._curList->begin() ;

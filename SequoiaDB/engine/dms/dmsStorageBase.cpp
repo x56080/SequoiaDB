@@ -777,7 +777,18 @@ namespace engine
          PD_LOG( PDERROR, "Alloc extend latch failed" ) ;
          goto error ;
       }
-      _segmentLatch = sharedMutexPtr( pExtendLatch ) ;
+      try
+      {
+         _segmentLatch = sharedMutexPtr( pExtendLatch ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pExtendLatch = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for segment "
+                 "latch, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
       if ( createNew )
       {

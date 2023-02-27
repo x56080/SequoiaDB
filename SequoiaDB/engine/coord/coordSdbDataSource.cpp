@@ -167,7 +167,18 @@ namespace engine
             goto error ;
          }
 
-         _groupInfoPtr = CoordGroupInfoPtr( pGroupInfo ) ;
+         try
+         {
+            _groupInfoPtr = CoordGroupInfoPtr( pGroupInfo ) ;
+         }
+         catch ( std::exception &e )
+         {
+            pGroupInfo = NULL ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Failed to create shared pointer for group "
+                    "info, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
          pGroupInfo = NULL ;
       }
       catch ( exception &e )

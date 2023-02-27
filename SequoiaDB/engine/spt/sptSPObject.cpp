@@ -34,6 +34,7 @@
 #include "utilStr.hpp"
 #include "sptSPVal.hpp"
 #include "pd.hpp"
+#include "ossUtil.hpp"
 #include <boost/lexical_cast.hpp>
 
 using boost::lexical_cast ;
@@ -79,7 +80,16 @@ namespace engine
       {
          rc = SDB_OOM ;
       }
-      objPtr = sptObjectPtr( pObj ) ;
+      try
+      {
+         objPtr = sptObjectPtr( pObj ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pObj = NULL ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
    done:
       return rc ;

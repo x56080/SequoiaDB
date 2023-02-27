@@ -1715,7 +1715,18 @@ namespace engine
          goto error ;
       }
       pEvent->reset() ;
-      ePtr = pmdEventPtr( pEvent ) ;
+      try
+      {
+         ePtr = pmdEventPtr( pEvent ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pEvent = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for event, "
+                 "occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
       cb = SDB_OSS_NEW pmdEDUCB ( this, EDU_TYPE_UNKNOWN ) ;
       if ( !cb )
@@ -1838,7 +1849,18 @@ namespace engine
          goto error ;
       }
       pEvent->reset() ;
-      ePtr = pmdEventPtr( pEvent ) ;
+      try
+      {
+         ePtr = pmdEventPtr( pEvent ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pEvent = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for event, "
+                 "occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
       cb = SDB_OSS_NEW pmdEDUCB ( this, type ) ;
       if ( !cb )
