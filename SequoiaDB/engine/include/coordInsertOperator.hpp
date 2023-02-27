@@ -163,6 +163,12 @@ namespace engine
                                  INT32 &newMsgSize,
                                  INT32 &newMsgLen ) ;
 
+         INT32 _buildDataByGroup( UINT32 groupID,
+                                  CoordCataInfoPtr &cataInfo,
+                                  coordSendMsgIn &inMsg,
+                                  const netIOV &fixed,
+                                  GROUP_2_IOVEC &datas ) ;
+
       protected:
 
          virtual INT32              _prepareCLOp( coordCataSel &cataSel,
@@ -214,6 +220,7 @@ namespace engine
 
          rtnInsertModifier _modifier ;
          const CHAR *      _pHint ;
+         CHAR              _filling[MSG_HINT_MARK_LEN] ;
    } ;
    typedef _coordInsertOperator coordInsertOperator ;
 

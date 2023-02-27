@@ -73,6 +73,15 @@ namespace engine
          return _opOption ;
       }
 
+      INT32 setNewUpdator( const BSONObj& opNewUpdator ) ;
+
+      void  resetUpdator() ;
+
+      BOOLEAN isUpdatorChanged() const
+      {
+         return _updatorHasChanged ;
+      }
+
       void setModifyShardKey( BOOLEAN modify )
       {
          _updateShardingKey = modify ;
@@ -85,7 +94,7 @@ namespace engine
 
       BOOLEAN needRebuild() const
       {
-         return _updateShardingKey ;
+         return _updateShardingKey || _updatorHasChanged ;
       }
 
       INT32 hint( BSONObj &hint ) ;
@@ -105,6 +114,8 @@ namespace engine
       RTN_MODIFY_OP _modifyOp ;
       BSONObj       _hint ;
       BSONObj       _opOption ;  // Operation option, e.g. updator for update.
+      BSONObj       _newUpdator ;
+      BOOLEAN       _updatorHasChanged ;
       BOOLEAN       _updateShardingKey ;
    } ;
    typedef _rtnHintModifier  rtnHintModifier ;
