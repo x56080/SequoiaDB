@@ -418,6 +418,24 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 + 作用范围： Global,Session
 + 是否支持在线修改生效：是
 
+**sql_select_result_limit**
+
+该参数可以配置 select 语句执行后，期望返回的最大记录数。当查询到的记录数大于或等于该参数指定的值时，系统将依据参数 sql_select_result_limit_exceed_handling 的配置，做出相应的行为。
+
++ 类型：uint64
++ 默认值：18446744073709551615
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sql_select_result_limit_exceed_handling**
+
+该参数可以配置 select 语句执行后返回记录的行为。当查询到的记录数大于或等于参数 sql_select_result_limit 指定的值时，系统将依据配置项返回相应的信息，可选配置项为 NONE、WARNING 和 ERROR。配置为 NONE 时，表示直接返回查询到的记录；配置为 WARNING 时，表示返回查询到的记录并携带警告信息；配置为 ERROR 时，表示仅返回报错信息。
+
++ 类型：enum
++ 默认值：NONE
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
 ##MySQL 常用系统配置##
 
 | 参数名                 | 类型   | 动态生效 | 动态范围   | 默认值  | 说明 |
