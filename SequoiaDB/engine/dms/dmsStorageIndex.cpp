@@ -3961,7 +3961,7 @@ namespace engine
          {
             const CHAR *conflictColumn = NULL ;
             rc = schema.checkDefaultKeys( indexCB.keyPattern(), FALSE, TRUE,
-                                          conflictColumn, &internalSchema ) ;
+                                          conflictColumn, NULL, &internalSchema ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
                          "schema [%s] for index [%s] keys, rc: %d",
                          schema.getName(), indexCB.getName(), rc ) ;
@@ -4023,7 +4023,7 @@ namespace engine
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[ indexID ] ) ;
 
-         rc = action.checkKeyPattern( indexCB.keyPattern(), hasColumn, hasNewColumn ) ;
+         rc = action.checkKeyPattern( indexCB.keyPattern(), hasColumn, hasNewColumn, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
                       "rc: %d", rc ) ;
 
@@ -4130,7 +4130,7 @@ namespace engine
             continue ;
          }
 
-         rc = action.checkKeyPattern( indexCB.keyPattern(), hasOldCol, hasNewCol ) ;
+         rc = action.checkKeyPattern( indexCB.keyPattern(), hasOldCol, hasNewCol, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
                       "rc: %d", rc ) ;
 

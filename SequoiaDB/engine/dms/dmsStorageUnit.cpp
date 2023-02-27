@@ -50,6 +50,7 @@
 #include "dmsTransContext.hpp"
 #include "dmsOprHandler.hpp"
 #include "utilMath.hpp"
+#include "dmsInternalSchemaUpdator.hpp"
 
 namespace engine
 {
@@ -4876,9 +4877,22 @@ namespace engine
       // parse the schema define, find which has default.
       // default conflict ?
       dmsInternalSchema *internalSchema = NULL ;
+      _dmsInternalSchemaWriter schemaWriter ;
       const CHAR *schemaName = schema.getName() ;
       const CHAR *spaceName = CSName() ;
       const CHAR *collectionName = context->mb()->_collectionName ;
+      dmsExtRW schemaExtRW ;
+      dmsExtRW hashExtRW ;
+      dmsSchemaExtent *schemaExt = NULL ;
+      dmsSchemaHashExtent *hashExt = NULL ;
+
+      if ( !context->isMBLock( EXCLUSIVE ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Collection mb latch should be taken in EXCLUSIVE mode when altering "
+                 "schema, rc: %d", rc ) ;
+         goto error ;
+      }
 
       PD_CHECK( OSS_BIT_TEST( context->mb()->_attributes,
                               DMS_MB_ATTR_ENABLE_INFOSCHEMA ),
@@ -4892,27 +4906,40 @@ namespace engine
                 "Failed to alter schema to collection [%s.%s], "
                 "schema is not enabled", spaceName, collectionName ) ;
 
+      schemaExtRW = _pDataSu->extent2RW( context->mb()->_schemaExtentID );
+      hashExtRW = _pDataSu->extent2RW( context->mb()->_schemaHashExtentID );
+      schemaExtRW.setNothrow( TRUE ) ;
+      hashExtRW.setNothrow( TRUE ) ;
+
+      schemaExt = schemaExtRW.writePtr<dmsSchemaExtent>( 0,
+                  internalSchema->getSchemaContainer()->getExtentSize() ) ;
+      hashExt = hashExtRW.writePtr<dmsSchemaHashExtent>( 0,
+                  internalSchema->getSchemaHashTable()->getExtentSize() ) ;
+
+      rc = schemaWriter.init( _pDataSu, context, schemaExt, hashExt ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init internal schema writer for collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
+
       switch ( action.getAction() )
       {
          case UTIL_SCHEMA_ADD_COLUMN :
          {
-            rc = internalSchema->addColumn( context, action.getColumnName(), &action.getColDefine(),
-                                            NULL, TRUE ) ;
+            rc = schemaWriter.addColumn( action.getColumnName(), &action.getColDefine(),
+                                         NULL, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
             break ;
          }
          case UTIL_SCHEMA_DROP_COLUMN :
          {
-            rc = internalSchema->dropColumn( context, action.getColumnName() ) ;
+            rc = schemaWriter.dropColumn( action.getColumnName() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to drop column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
             break ;
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
          {
-            rc = internalSchema->alterColumn( context, action.getColumnName(),
-                                              action.getColDefine() ) ;
+            rc = schemaWriter.alterColumn( action.getColumnName(), action.getColDefine() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to alter column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
             break ;
@@ -4920,20 +4947,16 @@ namespace engine
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
             BOOLEAN foundOldCol = TRUE ;
-            rc = _pIndexSu->renameColumnOnIndexes( context, action, FALSE, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] on indexes, "
-                         "rc: %d", action.getColumnName(), rc ) ;
-
-            rc = internalSchema->renameColumn( context, action.getColumnName(),
-                                               action.getNewColAttr().getName(), &foundOldCol ) ;
+            rc = schemaWriter.renameColumn( action.getColumnName(),
+                                            action.getNewColAttr().getName(), &foundOldCol ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] to [%s], "
                          "rc: %d", action.getColumnName(),
                          action.getNewColAttr().getName(), rc ) ;
             if ( !foundOldCol )
             {
                // If the old name does not exist, add the new column, and set the original name.
-               rc = internalSchema->addColumn( context, action.getNewColAttr().getName(),
-                                               NULL, NULL, FALSE, action.getColumnName() ) ;
+               rc = schemaWriter.addColumn( action.getNewColAttr().getName(),
+                                            NULL, NULL, FALSE, action.getColumnName() ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to add column with original name failed, rc: %d",
                             rc ) ;
                PD_LOG( PDDEBUG, "Old column [%s] does not exist when renaming. Add the new "
@@ -4944,7 +4967,7 @@ namespace engine
          }
          case UTIL_SCHEMA_DROP_DEFAULT :
          {
-            rc = internalSchema->dropColumnDefault( context, action.getColumnName() ) ;
+            rc = schemaWriter.dropColumnDefault( action.getColumnName() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to drop default value of column [%s], rc: %d",
                          action.getColumnName(), rc ) ;
             break ;
@@ -4963,6 +4986,20 @@ namespace engine
             goto error ;
          }
       }
+
+      rc = schemaWriter.save( context ) ;
+      PD_RC_CHECK( rc, PDERROR, "Save new internal schema failed, rc: %d", rc ) ;
+
+      if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
+      {
+         rc = _pIndexSu->renameColumnOnIndexes( context, action, FALSE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] on indexes, "
+                      "rc: %d", action.getColumnName(), rc ) ;
+      }
+
+      rc = internalSchema->reload() ;
+      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
 
       PD_LOG( PDEVENT, "Alter schema [%s] on collection [%s.%s]",
               schemaName, spaceName, collectionName ) ;

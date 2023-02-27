@@ -45,6 +45,7 @@
 #include "mthModifier.hpp"
 #include "dpsOp2Record.hpp"
 #include "pdSecure.hpp"
+#include "dmsInternalSchemaUpdator.hpp"
 
 namespace engine
 {
@@ -105,7 +106,7 @@ namespace engine
       IDToInsert oid ;
       idToInsertEle oidEle((CHAR*)(&oid)) ;
       CHAR *pMergedData = NULL ;
-      BOOLEAN lockByMe = FALSE ;
+      // BOOLEAN lockByMe = FALSE ;
 
       try
       {
@@ -157,12 +158,13 @@ namespace engine
 
          // Code Review: No mb context here
          // Fixed below: Take the mb latch in shared mode, and release at the end.
-         if ( !context->isMBLock( SHARED ) )
-         {
-            rc = context->mbLock( SHARED ) ;
-            PD_RC_CHECK( rc, PDERROR, "Take collection mb latch failed, rc: %d", rc ) ;
-            lockByMe = TRUE ;
-         }
+         // Check without lock, to avoid performance inpact on no schema collection.
+         // if ( !context->isMBLock( SHARED ) )
+         // {
+         //    rc = context->mbLock( SHARED ) ;
+         //    PD_RC_CHECK( rc, PDERROR, "Take collection mb latch failed, rc: %d", rc ) ;
+         //    lockByMe = TRUE ;
+         // }
 
          // If internal schema is enabled, need to encode the record.
          if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
@@ -192,13 +194,18 @@ namespace engine
       }
 
    done:
-      if ( lockByMe )
-      {
-         context->mbUnlock() ;
-      }
+      // if ( lockByMe )
+      // {
+      //    context->mbUnlock() ;
+      // }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, rc ) ;
       return rc ;
    error:
+      if ( pMergedData )
+      {
+         cb->releaseBuff( pMergedData ) ;
+         pMergedData = NULL ;
+      }
       goto done ;
    }
 
@@ -1564,24 +1571,49 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA ) ;
-      BOOLEAN lockByMe = FALSE ;
       dmsInternalSchema *schema = NULL ;
+      BOOLEAN hasNewColumn = FALSE ;
+      INT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
       const BSONObj record = BSONObj( recordData.data() ) ;
+      INT32 lockType = context->mbLockType() ;
 
       // 1. try to encode the record, need to take shared lock of the collection.
       // 2. If any new field is found, need to take exclusive lock of the collection, and update the
       //    schema, then try to encode again.
 
+      schema = getSchema( context->mbID() ) ;
+
       if ( !context->isMBLock() )
       {
          rc = context->mbLock( SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Take mb latch failed, rc: %d", rc ) ;
-         lockByMe = TRUE ;
+         PD_RC_CHECK( rc, PDERROR, "Take mb latch in SHARED mode failed, rc: %d", rc ) ;
       }
 
-      schema = getSchema( context->mbID() ) ;
-      rc = schema->encodeRecord( context, cb, recordData, encodeData ) ;
+   retry:
+      rc = schema->encodeRecord( context, cb, recordData, encodeData, hasNewColumn ) ;
       PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
+      if ( hasNewColumn )
+      {
+         schemaVersion = schema->getVersion() ;
+         rc = context->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Take collection mb latch in EXCLUSIVE mode to update internal "
+                      "schema failed, rc: %d", rc ) ;
+         // Check once again after taken the EXCLUSIVE latch. During inserting, may be many insert
+         // operations come here. Should avoid them to update the schema for multiple times.
+         if ( schema->getVersion() != schemaVersion )
+         {
+            context->mbUnlock() ;
+            goto retry ;
+         }
+
+         rc = _updateSchemaByRecord( context, cb, record ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update internal schema of collection[%s] by record failed, "
+                      "rc: %d", context->mb()->_collectionName, rc ) ;
+         hasNewColumn = FALSE ;
+
+         context->mbUnlock() ;
+         goto retry ;
+      }
 
       if ( schemaVer )
       {
@@ -1589,11 +1621,52 @@ namespace engine
       }
 
    done:
-      if ( lockByMe )
+      if ( ( -1 != lockType ) && ( lockType != context->mbLockType() ) )
+      {
+         rc = context->mbLock( lockType ) ;
+         PD_LOG( PDERROR,  "Resume collection mb latch failed, rc: %d", rc ) ;
+      }
+      else if ( context->isMBLock() )
       {
          context->mbUnlock() ;
       }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsStorageData::_updateSchemaByRecord( dmsMBContext *context, pmdEDUCB *cb,
+                                                 const BSONObj &record )
+   {
+      INT32 rc = SDB_OK ;
+
+      dmsInternalSchemaWriter schemaUpdator ;
+      dmsInternalSchema *schema = getSchema( context->mbID() ) ;
+      dmsExtRW schemaExtRW = extent2RW( context->mb()->_schemaExtentID, context->mbID() ) ;
+      dmsExtRW hashExtRW = extent2RW( context->mb()->_schemaHashExtentID, context->mbID() ) ;
+      schemaExtRW.setNothrow( TRUE ) ;
+      hashExtRW.setNothrow( TRUE ) ;
+      dmsSchemaExtent *schemaExt =
+         schemaExtRW.writePtr<dmsSchemaExtent>(0, schema->getSchemaContainer()->getExtentSize() ) ;
+      dmsSchemaHashExtent *hashExt =
+         hashExtRW.writePtr<dmsSchemaHashExtent>(0, schema->getSchemaHashTable()->getExtentSize() ) ;
+
+      rc = schemaUpdator.init( this, context, schemaExt, hashExt ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
+
+      rc = schemaUpdator.updateSchemaByRecord( record ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
+
+      rc = schemaUpdator.save( context ) ;
+      PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
+
+      rc = schema->reload() ;
+      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
+
+   done:
       return rc ;
    error:
       goto done ;

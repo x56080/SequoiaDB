@@ -3559,6 +3559,13 @@ namespace engine
             rc = _schemaHandler.setSchema( mainCLSet.getSchemaName(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get schema [%s], rc: %d",
                          mainCLSet.getSchemaName(), rc ) ;
+
+            rc = catCheckSchemaWithIndexes( _subCLName.c_str(),
+                                            subCLSet.getShardingKey(),
+                                            _schemaHandler.getSchema(), cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to pass index check to add "
+                         "schema [%s] to sub-collection [%s], rc: %d",
+                         mainCLSet.getSchemaName(), _subCLName.c_str(), rc ) ;
          }
       }
 

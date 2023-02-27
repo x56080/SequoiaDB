@@ -60,10 +60,15 @@ function test() {
 
   var cursor = cl.find();
   commCompareResults(cursor, expRecs, false);
+
+  var cmd = new Cmd();
+  var tmpFileDir = WORKDIR + "sdbexprt/";
+  cmd.run( "rm -rf " + tmpFileDir );
+
+  cmd.run( "mkdir -p " + tmpFileDir );
   
   // 导出贴源数据到csv
-  var csvFile = WORKDIR + "/sdbexprt/" + testConf.clName + "_primal.csv";
-  var cmd = new Cmd();
+  var csvFile = WORKDIR + "sdbexprt/" + testConf.clName + "_primal.csv";
   cmd.run( "rm -rf " + csvFile );
 
   var command = installPath + "bin/sdbexprt" +
@@ -83,7 +88,7 @@ function test() {
   cmd.run( "rm -rf " + csvFile );
 
   // 导出非贴源数据到csv
-  var csvFile = WORKDIR + "/sdbexprt/" + testConf.clName + ".csv";
+  var csvFile = WORKDIR + "sdbexprt/" + testConf.clName + ".csv";
   var cmd = new Cmd();
   cmd.run( "rm -rf " + csvFile );
 
@@ -103,7 +108,7 @@ function test() {
   cmd.run( "rm -rf " + csvFile );
 
   // 导出贴源数据到json
-  var jsonFile = WORKDIR + "/sdbexprt/" + testConf.clName + "_primal.json";
+  var jsonFile = WORKDIR + "sdbexprt/" + testConf.clName + "_primal.json";
   var cmd = new Cmd();
   cmd.run( "rm -rf " + jsonFile );
 
@@ -121,7 +126,7 @@ function test() {
   cmd.run( "rm -rf " + jsonFile );
 
   // 导出非贴源数据到json
-  var jsonFile = WORKDIR + "/sdbexprt/" + testConf.clName + ".json";
+  var jsonFile = WORKDIR + "sdbexprt/" + testConf.clName + ".json";
   var cmd = new Cmd();
   cmd.run( "rm -rf " + jsonFile );
 

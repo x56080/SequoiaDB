@@ -1340,20 +1340,21 @@ namespace engine
                            SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                            "Failed to check add schema of %scollection [%s], "
                            "schema [%s] has already bind",
-                           _subCLOFMainCL ? "sub-" : "", collectionName, schemaName ) ;
+                           ( _subCLOFMainCL ? "sub-" : "" ), collectionName,
+                           schemaName ) ;
       }
 
       PD_LOG_MSG_CHECK( cataSet.isAttrEnableInfoSchema(),
                         SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                         "Failed to check add schema of %scollection [%s], "
                         "info schema is not enabled",
-                        _subCLOFMainCL ? "sub-" : "", collectionName ) ;
+                        ( _subCLOFMainCL ? "sub-" : "" ), collectionName ) ;
 
       PD_LOG_MSG_CHECK( !cataSet.hasSchema(),
                         SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                         "Failed to check add schema of %scollection [%s], "
-                        "already has schema", _subCLOFMainCL ? "sub-" : "",
-                              collectionName ) ;
+                        "already has schema", ( _subCLOFMainCL ? "sub-" : "" ),
+                        collectionName ) ;
 
       if ( cataSet.isSubCL() && !_subCLOFMainCL )
       {
@@ -1378,6 +1379,12 @@ namespace engine
       //                      cataSet.getShardingKey().toPoolString().c_str(),
       //                      conflictColumn ) ;
       // }
+
+      rc = catCheckSchemaWithIndexes( collectionName, cataSet.getShardingKey(),
+                                      _schema, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to pass index check to add "
+                   "schema [%s] to collection [%s], rc: %d",
+                   _schema.getName(), collectionName, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKADDSCHEMA, rc ) ;
@@ -1438,6 +1445,10 @@ namespace engine
 
       rc = _checkAlterSchemaForShardingKey( cataSet, action, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on sharding key, "
+                   "rc: %d", rc ) ;
+
+      rc = _checkAlterSchemaForIdx( cataSet, action, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on indexes, "
                    "rc: %d", rc ) ;
 
    done:
@@ -2829,7 +2840,8 @@ namespace engine
          BSONObj shardingKey = cataSet.getShardingKey() ;
          rc = action.checkKeyPattern( shardingKey,
                                       hasColumn,
-                                      hasNewColumn );
+                                      hasNewColumn,
+                                      NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key, rc: %d",
                       rc ) ;
 
@@ -2883,6 +2895,110 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORIDX, "_catCtxAlterCLTask::_checkAlterSchemaForIdx" )
+   INT32 _catCtxAlterCLTask::_checkAlterSchemaForIdx( const clsCatalogSet &cataSet,
+                                                      const utilSchemaAlterAction &action,
+                                                      pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORIDX ) ;
+
+      const CHAR *collectionName = cataSet.name() ;
+      const CHAR *schemaName = action.getSchemaName() ;
+      ossPoolVector< BSONObj > indexList ;
+
+      if ( UTIL_SCHEMA_ADD_COLUMN != action.getAction() &&
+           UTIL_SCHEMA_RENAME_COLUMN != action.getAction() )
+      {
+         goto done ;
+      }
+
+      rc = catGetCLIndexes( collectionName, FALSE, cb, indexList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get indexes of collection [%s], "
+                   "rc: %d", collectionName, rc ) ;
+
+      for ( ossPoolVector< BSONObj >::iterator iter = indexList.begin() ;
+            iter != indexList.end() ;
+            ++ iter )
+      {
+         try
+         {
+            const BSONObj &boIndex = *iter ;
+            BSONObj boIndexDef = boIndex.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
+            BSONObj keyPattern = boIndexDef.getObjectField( IXM_KEY_FIELD ) ;
+            const CHAR *indexName = boIndexDef.getStringField( IXM_FIELD_NAME_NAME ) ;
+            BOOLEAN isNotNull = boIndexDef.getBoolField( IXM_FIELD_NAME_NOTNULL ) ;
+            BOOLEAN hasColumn = FALSE, hasNewCol = FALSE ;
+
+            rc = action.checkKeyPattern( keyPattern, hasColumn, hasNewCol,
+                                         &( cataSet.getShardingKey() ) ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
+                         "rc: %d", rc ) ;
+
+            switch ( action.getAction() )
+            {
+               case UTIL_SCHEMA_ADD_COLUMN:
+               {
+                  if ( hasColumn )
+                  {
+                     if ( !isNotNull )
+                     {
+                        PD_LOG_MSG_CHECK(
+                              !OSS_BIT_TEST( action.getAlterMask(),
+                                             UTIL_SCHEMA_ATTR_MASK_COL_RDEF ),
+                              SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                              "Failed to check add column [%s], "
+                              "can not add column [%s] with read value "
+                              "against index [%s] with keys [%s]",
+                              action.getColumnName(),
+                              action.getColumnName(),
+                              indexName,
+                              keyPattern.toPoolString().c_str() ) ;
+                     }
+                  }
+                  break ;
+               }
+               case UTIL_SCHEMA_RENAME_COLUMN:
+               {
+                  // new column name already exists in indexes
+                  PD_LOG_MSG_CHECK(
+                        !hasNewCol,
+                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                        "Failed to check alter schema [%s] on collection [%s], "
+                        "can not rename column [%s] to [%s] "
+                        "against index [%s] with keys [%s]",
+                        schemaName,
+                        collectionName,
+                        action.getColumnName(),
+                        action.getNewColAttr().getName(),
+                        indexName,
+                        keyPattern.toPoolString().c_str() ) ;
+                  break ;
+               }
+               default:
+               {
+                  break ;
+               }
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse index, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORIDX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__RENAMECOLIDX, "_catCtxAlterCLTask::_renameColumnForIdx" )
    INT32 _catCtxAlterCLTask::_renameColumnForIdx( const clsCatalogSet &cataSet,
                                                   const utilSchemaAlterAction &action,
@@ -2922,7 +3038,10 @@ namespace engine
                                      action.getColumnName() :
                                      action.getNewColAttr().getName() ;
 
-            rc = action.checkKeyPattern( keyPattern, hasOldCol, hasNewCol ) ;
+            rc = action.checkKeyPattern( keyPattern,
+                                         hasOldCol,
+                                         hasNewCol,
+                                         NULL ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
                          "rc: %d", rc ) ;
             needRebuild = isRollback ? hasNewCol : hasOldCol ;

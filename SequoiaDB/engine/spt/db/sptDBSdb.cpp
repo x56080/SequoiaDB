@@ -3679,6 +3679,12 @@ namespace engine
       _sdbSchema *schema = NULL ;
       sptDBSchema *sptSchema = NULL ;
 
+      if ( 1 != arg.argc() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       rc = arg.getString( 0, name ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {

@@ -365,7 +365,8 @@ dmsFiles = [
       "dms/dmsHoleMapMgr.cpp",
       "dms/dmsInternalSchema.cpp",
       "dms/dmsSchemaColRecord.cpp",
-      "dms/dmsInternalSchemaHandler.cpp"
+      "dms/dmsInternalSchemaHandler.cpp",
+      "dms/dmsInternalSchemaUpdator.cpp"
       ]
 
 ixmFiles = [

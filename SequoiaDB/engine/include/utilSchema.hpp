@@ -388,6 +388,7 @@ namespace engine
                               BOOLEAN checkWriteDefault,
                               BOOLEAN checkReadDefault,
                               const CHAR *&conflictColumnName,
+                              const bson::BSONObj *shardingKey = NULL,
                               const _utilSchema *oldSchema = NULL ) const ;
 
    protected:
@@ -480,7 +481,8 @@ namespace engine
 
       INT32 checkKeyPattern( const bson::BSONObj &keyPattern,
                              BOOLEAN &hasOldColumn,
-                             BOOLEAN &hasNewColumn ) const ;
+                             BOOLEAN &hasNewColumn,
+                             const bson::BSONObj *shardingKey = NULL ) const ;
       INT32 rebuildKeyPattern( const bson::BSONObj &keyPattern,
                                bson::BSONObj &newKeyPattern,
                                BOOLEAN isRollback = FALSE ) const ;

@@ -389,6 +389,11 @@ namespace engine
 
       INT32 setSchema( const CHAR *schemaName, _pmdEDUCB *cb ) ;
 
+      const utilSchema &getSchema() const
+      {
+         return _schema ;
+      }
+
       virtual INT32 buildP1Reply( bson::BSONObjBuilder &builder ) ;
 
    protected:

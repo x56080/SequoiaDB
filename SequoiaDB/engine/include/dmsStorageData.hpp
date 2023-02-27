@@ -213,6 +213,8 @@ namespace engine
                                    dmsRecordData &encodeData,
                                    INT32 *schemaVer ) ;
 
+      INT32 _updateSchemaByRecord( dmsMBContext *context, pmdEDUCB *cb, const BSONObj &record ) ;
+
       INT32 _checkEncodedRecord( const dmsMBContext *context,
                                  const dmsRecordData &origRecord,
                                  const dmsRecordData &encodedRecord,

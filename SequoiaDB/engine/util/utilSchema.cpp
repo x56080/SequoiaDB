@@ -1100,6 +1100,7 @@ namespace engine
                                         BOOLEAN checkWriteDefault,
                                         BOOLEAN checkReadDefault,
                                         const CHAR *&conflictColumnName,
+                                        const bson::BSONObj *shardingKey,
                                         const _utilSchema *oldSchema ) const
    {
       INT32 rc = SDB_OK ;
@@ -1113,6 +1114,13 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
             const CHAR *name = ele.fieldName() ;
+
+            if ( NULL != shardingKey &&
+                 shardingKey->hasField( name ) )
+            {
+               continue ;
+            }
+
             const CHAR *p = ossStrchr( name, '.' ) ;
             ossPoolString tmpName ;
             if ( NULL != p )
@@ -1834,7 +1842,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN, "_utilSchemaAlterAction::checkKeyPattern" )
    INT32 _utilSchemaAlterAction::checkKeyPattern( const bson::BSONObj &keyPattern,
                                                   BOOLEAN &hasOldColumn,
-                                                  BOOLEAN &hasNewColumn ) const
+                                                  BOOLEAN &hasNewColumn,
+                                                  const bson::BSONObj *shardingKey ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -1862,6 +1871,11 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
             const CHAR *keyName = ele.fieldName() ;
+            if ( NULL != shardingKey &&
+                 shardingKey->hasField( keyName ) )
+            {
+               continue ;
+            }
             if ( ( !hasOldColumn ) &&
                  ( 0 == ossStrncmp( keyName, oldColName, oldColNameLen ) ) &&
                  ( ( '\0' == keyName[ oldColNameLen ] ) ||

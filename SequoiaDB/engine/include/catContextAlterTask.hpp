@@ -259,6 +259,9 @@ namespace engine
          INT32 _checkAlterSchemaForShardingKey( const clsCatalogSet &cataSet,
                                                 const utilSchemaAlterAction &action,
                                                 pmdEDUCB *cb ) ;
+         INT32 _checkAlterSchemaForIdx( const clsCatalogSet &cataSet,
+                                        const utilSchemaAlterAction &action,
+                                        pmdEDUCB *cb ) ;
 
          // Helper functions
          INT32 _checkAutoSplit ( const clsCatalogSet & cataSet,

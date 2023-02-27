@@ -1539,6 +1539,8 @@ namespace engine
          INT32          _addSchema( dmsMBContext *context,
                                     const utilSchema &schema ) ;
 
+         INT32          _initSchemaEntry( UINT16 mbID ) ;
+
       //private:
       protected:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB

@@ -321,7 +321,8 @@ namespace engine
       UINT16      _blockSize ;
       UINT16      _mbID ;
       CHAR        _flag ;
-      CHAR        _version ;
+      CHAR        _reserve ;
+      UINT32      _version ;
       dmsExtentID _prevExtent ;
       dmsExtentID _nextExtent ;
       UINT32      _itemNum ;
@@ -336,6 +337,7 @@ namespace engine
          _blockSize           = numPages ;
          _mbID                = mbID ;
          _flag                = DMS_EXTENT_FLAG_INUSE ;
+         _reserve             = 0 ;
          _version             = DMS_SCHEMA_EXTENT_CURRENT_V ;
          _prevExtent          = DMS_INVALID_EXTENT ;
          _nextExtent          = DMS_INVALID_EXTENT ;
@@ -374,9 +376,7 @@ namespace engine
       UINT16      _blockSize ;
       UINT16      _mbID ;
       CHAR        _flag ;
-      CHAR        _version ;
-      UINT16      _bucketNum ;
-      UINT16      _conflictNum ;
+      CHAR        _reserve ;
 
       void init( UINT16 numPages, UINT16 mbID )
       {
@@ -385,9 +385,7 @@ namespace engine
          _blockSize           = numPages ;
          _mbID                = mbID ;
          _flag                = DMS_EXTENT_FLAG_INUSE ;
-         _version             = DMS_SCHEMA_HASH_EXTENT_CURRENT_V ;
-         _bucketNum           = 0 ;
-         _conflictNum         = 0 ;
+         _reserve             = 0 ;
       }
 
       BOOLEAN validate( UINT16 mbID = DMS_INVALID_MBID ) const

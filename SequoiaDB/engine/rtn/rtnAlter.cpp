@@ -599,10 +599,10 @@ namespace engine
          }
       }
 
-      rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema [%s] of "
-                   "collection [%s] on indexes, rc: %d", schema.getName(),
-                   collection, rc ) ;
+//      rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
+//      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema [%s] of "
+//                   "collection [%s] on indexes, rc: %d", schema.getName(),
+//                   collection, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNCLCHKALTERSCHEMA, rc ) ;

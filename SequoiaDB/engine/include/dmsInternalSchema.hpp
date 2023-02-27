@@ -42,7 +42,26 @@
 #include "utilBSON.hpp"
 #include "dmsSchemaColRecord.hpp"
 
-#define DMS_SCHEMA_INVALID_VERSION        (0)
+
+#define DMS_SCHEMA_INVALID_VERSION                 (0)
+#define DMS_SCHEMA_INVALID_COLUMNID                0xFFFF
+
+#define DMS_SCHEMA_HASH_BUCKET_SIZE                (4096)
+
+#define DMS_SCHEMA_COL_DELETED                     0x8000
+#define DMS_SCHEMA_COL_IN_INDEX                    0x4000
+#define DMS_SCHEMA_COL_READ_DEFAULT                0x2000
+#define DMS_SCHEMA_COL_WRITE_DEFAULT               0x1000
+#define DMS_SCHEMA_COL_HAS_ORIGNAME                0x0800
+
+#define DMS_SCHEMA_HASH_ID_MASK                    0x0000FFFF
+#define DMS_SCHEMA_HASH_OFFSET_MASK                0xFFFF0000
+#define DMS_SCHEMA_HASH_INVALID_ITEM_VALUE         0xFFFFFFFF
+
+#define DMS_SCHEMA_MAX_COLUMN_NUM                  65535
+#define DMS_SCHEMA_INVALID_ITEM_ID                 65535
+#define DMS_SCHEMA_INVALID_ITEM_OFFSET             65535
+
 namespace engine
 {
    class _pmdEDUCB ;
@@ -55,22 +74,11 @@ namespace engine
    {
       public:
          _dmsSchemaContainer() ;
-         ~_dmsSchemaContainer() ;
+         virtual ~_dmsSchemaContainer() ;
 
-         // Initialize the internal schema, including the internal schema container and internal
-         // schema hash table.
-         INT32 init( _dmsStorageDataCommon *su, _dmsMBContext *context,
-                     dmsExtentID extentID, BOOLEAN isLoad = TRUE ) ;
+         INT32 init( const dmsSchemaExtent *extent, UINT32 extentSize, UINT16 mbID ) ;
+
          void  reset() ;
-
-         INT32 addColumn( const CHAR *name, const BSONObj *columnDef, UINT16 &columnID,
-                          const CHAR *origName = NULL ) ;
-         INT32 alterColumn( UINT16 columnID, const BSONObj &columnInfo ) ;
-         INT32 dropColumn( UINT16 columnID ) ;
-
-         INT32 dropColumnDefault( UINT16 columnID, BOOLEAN dropWrite, BOOLEAN dropRead = FALSE ) ;
-
-         INT32 renameColumn( UINT16 columnID, const CHAR *newName ) ;
 
          INT32 getColIDsWithDefault( ossPoolSet<UINT16> &colsWithReadDefault,
                                      ossPoolSet<UINT16> &colsWithWriteDefault,
@@ -81,10 +89,6 @@ namespace engine
          BOOLEAN hasWriteDefault( UINT16 columnID ) const ;
 
          BOOLEAN isIndexColumn( UINT16 columnID ) const ;
-
-         void    setIndexColumn( UINT16 columnID ) ;
-
-         void    unsetIndexColumn( UINT16 columnID ) ;
 
          INT32 getColReadDefault( UINT16 columnID, const CHAR *&name, INT32 &nameLen,
                                   BSONType &type, const CHAR *&value, INT32 &valueLen ) const ;
@@ -99,7 +103,7 @@ namespace engine
                                    BOOLEAN *hasWriteDefault = NULL, BOOLEAN *isIndexColumn = NULL,
                                    BOOLEAN *hasOrigName = NULL ) const ;
 
-         const CHAR *getColumnName( UINT16 columnID, INT32 *nameLen = NULL ) const ;
+         OSS_INLINE const CHAR *getColumnName( UINT16 columnID, INT32 *nameLen = NULL ) const ;
 
          const CHAR *getOrigName( UINT16 columnID, INT32 *nameLen = NULL ) const ;
 
@@ -110,6 +114,16 @@ namespace engine
             return _extent->_itemNum ;
          }
 
+         const dmsSchemaExtent* getExtent() const
+         {
+            return _extent ;
+         }
+
+         UINT32 getExtentSize() const
+         {
+            return _extentSize ;
+         }
+
          // Fetch information of all valid columns.
          INT32 toObj( BSONObj &object ) const ;
 
@@ -117,88 +131,72 @@ namespace engine
          // deleted.
          INT32 dump( BSONObj &schemaInfo, BOOLEAN includeColumnID = TRUE ) const ;
 
-         INT32 flush() ;
+      protected:
+         void                 _setColumnAttr( UINT16 columnID, INT16 flags ) ;
+         void                 _clearColumnAttr( UINT16 columnID, INT16 flags ) ;
 
-      private:
-         INT32    _allocSpace4ColRecord( UINT16 slotSize, UINT16 vaueSize, UINT16 &offset,
-                                         UINT16 *allocSize = NULL ) ;
+         OSS_INLINE INT16    _getColumnAttr( UINT16 columnID ) const ;
+         OSS_INLINE UINT16   _getColRecordOffset( UINT16 columnID ) const ;
 
-         void     _setColumnAttr( UINT16 columnID, INT16 flags ) ;
-         INT16    _getColumnAttr( UINT16 columnID ) const ;
-         void     _clearColumnAttr( UINT16 columnID, INT16 flags ) ;
-
-         void     _setColRecordOffset( UINT16 columnID, UINT16 offset ) ;
-         UINT16   _getColRecordOffset( UINT16 columnID ) const ;
-
-         void     _initColAttrAndRecordOffset( UINT16 columnID, INT16 attr, UINT16 valOffset ) ;
          void     _getColAttrAndRecordOffset( UINT16 columnID, INT16 &attr,
                                               UINT16 &valueOffset ) const ;
 
-         const dmsSchemaColRecord *_getColRecord( UINT16 columnID ) const ;
-
-         INT32    _updateColRecord( UINT16 columnID, const dmsSchemaColRecord *oldRecord,
-                                    const dmsSchemaColRecord *newRecord ) ;
+         OSS_INLINE const dmsSchemaColRecord *_getColRecord( UINT16 columnID ) const ;
 
          BOOLEAN  _isColumnDeleted( UINT16 columnID ) const ;
-         BOOLEAN  _isIndexColumn( UINT16 columnID ) const ;
-         UINT32   _freeSpace() const ;
 
+         BOOLEAN  _isIndexColumn( UINT16 columnID ) const ;
 
          INT32    _columnInfo2Def( UINT16 columnID, const CHAR **name, BSONObj &columnDef ) const ;
 
          INT32    _columnInfo2Obj( UINT16 columnID, BSONObj &object, BOOLEAN includeID = FALSE,
                                    BOOLEAN includeAttr = FALSE ) ;
 
-      private:
-         // TODO: YSD compact the extent
-         INT32    _compact() ;
+         OSS_INLINE const CHAR* _offset2Ptr( UINT32 offset ) const ;
 
-      private:
-         _dmsStorageDataCommon           *_su ;
-         UINT16                           _mbID ;
-         dmsExtentID                      _extentID ;
-         const dmsSchemaExtent           *_extent ;     // Read pointer of the schema extent.
-         dmsExtRW                         _extRW ;       // Review: 不能作为成员变量存储，可能存在可靠性问题，使用 beginFixAddr ?
+      protected:
+         const dmsSchemaExtent            *_extent ;     // Pointer of the schema extent.
+         UINT32                            _extentSize ;
    } ;
    typedef _dmsSchemaContainer dmsSchemaContainer ;
 
    class _dmsSchemaHash : public SDBObject
    {
       public:
-         _dmsSchemaHash( dmsSchemaContainer *schemaContainer ) ;
-         ~_dmsSchemaHash() ;
+         _dmsSchemaHash() ;
+         virtual ~_dmsSchemaHash() ;
 
-         INT32 init( _dmsStorageDataCommon *su, _dmsMBContext *context,
-                     dmsExtentID extentID, BOOLEAN isLoad = TRUE ) ;
+         INT32 init( const dmsSchemaContainer *schemaContainer,
+                     const dmsSchemaHashExtent *extent, UINT32 extentSize, UINT16 mbID ) ;
+
          void  reset() ;
 
-         UINT16 getColumnIDByName( const CHAR *name ) ;
-         INT32  addColumnItem( const CHAR *name, UINT16 columnID ) ;
-         INT32  dropColumnItemByName( const CHAR *name ) ;
-         INT32  flush() ;
+         UINT16 getColumnIDByName( const CHAR *name ) const ;
 
-      private:
-         void   _setColumnIDInItem( INT32 *item, UINT16 columnID ) ;
-         UINT16 _getColumnIDByItem( INT32 *item ) ;
-
-         INT32  _getItemByName( const CHAR *name, INT32 *&item, INT32 **prevItem ) ;
-         void   _setNextItemOffset( INT32 *item, UINT16 id ) ;
-         UINT16 _getNextItemOffset( INT32 *item ) ;
-         void   _resetItem( INT32 *item )
+         const dmsSchemaHashExtent* getExtent() const
          {
-            *item = 0xFFFFFFFF ;
+            return _extent ;
          }
 
-         OSS_INLINE INT32 *_itemOffset2Ptr( UINT16 offset ) ;
+         UINT32 getExtentSize() const
+         {
+            return _extentSize ;
+         }
 
-      private:
-         dmsSchemaContainer        *_schemaContainer ;
-         _dmsStorageDataCommon     *_su ;
-         UINT16                     _mbID ;
-         dmsExtentID                _extentID ;
+      protected:
+         UINT16                     _getColumnIDByItem( const INT32 *item ) const ;
+         // Offset of the first free item in the conflict item area.
+         INT32                      _nextFreeItemOffset() const ;
+         OSS_INLINE UINT16          _getNextItemOffset( const INT32 *item ) const ;
+         OSS_INLINE const CHAR     *_offset2Ptr( UINT32 offset ) const ;
+         OSS_INLINE INT32           _getItemByName( const CHAR *name, INT32 *&item,
+                                                    INT32 **prevItem ) ;
+         OSS_INLINE INT32 *         _itemOffset2Ptr( UINT16 offset ) ;
+
+      protected:
+         const dmsSchemaContainer  *_schemaContainer ;
          const dmsSchemaHashExtent *_extent ;
-         dmsExtRW                   _extRW ;
-         INT32                      _nextFreeItemOffset ;
+         UINT32                     _extentSize ;
    } ;
    typedef _dmsSchemaHash dmsSchemaHash ;
 
@@ -237,11 +235,13 @@ namespace engine
 
       public:
          _dmsInternalSchema() ;
-         ~_dmsInternalSchema() ;
+         virtual ~_dmsInternalSchema() ;
 
-         INT32    init( _dmsStorageDataCommon *su, _dmsMBContext *context,
-                        dmsExtentID schemaExtentID, dmsExtentID schemaHashExtentID,
-                        BOOLEAN isLoad = TRUE ) ;
+         INT32    init( const dmsSchemaExtent *schemaExtent, UINT32 schemaExtentSize,
+                        const dmsSchemaHashExtent *hashExtent, UINT32 hashExtentSize,
+                        UINT16 mbID ) ;
+
+         INT32    reload() ;
 
          void     reset() ;
 
@@ -255,29 +255,8 @@ namespace engine
             return _version ;
          }
 
-         INT32    addColumn( _dmsMBContext *context, const CHAR *columnName,
-                             const BSONObj *columnDef = NULL, UINT16 *columnID = NULL,
-                             BOOLEAN mergeOnExist = FALSE, const CHAR *origName = NULL ) ;
-
-         INT32    dropColumn( _dmsMBContext *context,  const CHAR *columnName ) ;
-
-         INT32    renameColumn( _dmsMBContext *context, const CHAR *oldName, const CHAR *newName,
-                                BOOLEAN *oldColFound ) ;
-
-         /**
-          * Drop default value of a column. Only the write default can be dropped.
-         */
-         INT32    dropColumnDefault( _dmsMBContext *context, const CHAR *name ) ;
-
-         INT32    alterColumn( _dmsMBContext *context, const CHAR *columnName,
-                               const BSONObj &columnDef ) ;
-
-         INT32    setIndexColumn( _dmsMBContext *context, const CHAR *columnName ) ;
-
-         INT32    unsetIndexColumn( _dmsMBContext *context, const CHAR *columnName ) ;
-
          INT32    encodeRecord( _dmsMBContext *context, _pmdEDUCB *cb, dmsRecordData &recordData,
-                                dmsRecordData &encodeData ) ;
+                                dmsRecordData &encodeData, BOOLEAN &hasNewColumn ) ;
 
          // Decode a record which is encoded by the internal schema.
          INT32    decodeRecord( _pmdEDUCB *cb, const CHAR *data, UINT32 dataSize,
@@ -306,12 +285,21 @@ namespace engine
          INT32    toSchemaObj( const CHAR *name,
                                bson::BSONObj &boSchema ) ;
 
+         const dmsSchemaContainer* getSchemaContainer() const
+         {
+            return &_schemaContainer ;
+         }
+
+         const dmsSchemaHash* getSchemaHashTable() const
+         {
+            return &_schemaHash ;
+         }
+
       private:
          INT32    _parseRecord( _dmsMBContext *context, utilBSONRawBuilder &encodeBuilder,
                                 COLUMN_ID_SET &watchIDs, const BSONObj &record,
                                 BOOLEAN &hasNewColumn ) ;
 
-         INT32    _updateSchemaByRecord( _dmsMBContext *context, const BSONObj &record ) ;
 
          // Append primal columns which do not exist in the original record.
          INT32    _appendPrimalColumns( _dmsMBContext *context, _pmdEDUCB *cb,
@@ -321,7 +309,6 @@ namespace engine
 
          INT32    _checkRebuildRecord( const BSONObj &record, NAME_INFO_MAP &watchNames ) ;
 
-         INT32    _merge2Column( UINT16 columnID, const BSONObj &columnDef ) ;
 
          INT32    _appendColWithReadDefault( ossPoolSet<UINT16> &colIDs,
                                              utilBSONRawBuilder &builder ) ;
@@ -330,8 +317,6 @@ namespace engine
 
          void     _logSchemaInfo() ;
 
-         INT32    _flush() ;
-
          INT32    _encodeSanityCheck( const dmsRecordData &encodedData ) ;
 
       private:
@@ -339,8 +324,6 @@ namespace engine
          INT32                  _version ;
          dmsSchemaContainer     _schemaContainer ;
          dmsSchemaHash          _schemaHash ;
-         ossPoolSet<UINT16>     _readDefaultIDsOfIndexCol ;
-
          ossPoolSet<UINT16>     _encodeWatchIDs ;   // Columns with write default value or index
                                                    // column with read default value.
          ossPoolSet<UINT16>     _decodeWatchIDs ;    // Column with read default value.
@@ -354,9 +337,45 @@ namespace engine
    } ;
    typedef _dmsInternalSchema dmsInternalSchema ;
 
-   OSS_INLINE INT32 *_dmsSchemaHash::_itemOffset2Ptr( UINT16 offset )
+   OSS_INLINE const CHAR *_dmsSchemaContainer::getColumnName( UINT16 columnID,
+                                                              INT32 *nameLen ) const
    {
-      return (INT32 *)_extRW.readPtr( offset, DMS_SCHEMAHASHEXTENT_ITEM_SZ ) ;
+      const dmsSchemaColRecord *record = _getColRecord( columnID ) ;
+      return record->getName( nameLen ) ;
+   }
+
+   OSS_INLINE INT16 _dmsSchemaContainer::_getColumnAttr( UINT16 columnID ) const
+   {
+      const INT32* slot= (const INT32 *)
+         _offset2Ptr( DMS_SCHEMAEXTENT_HEADER_SZ + DMS_SCHEMAEXTENT_SLOT_SZ * columnID ) ;
+      return (INT16)(*slot >> 16) ;
+   }
+
+   OSS_INLINE UINT16 _dmsSchemaContainer::_getColRecordOffset( UINT16 columnID ) const
+   {
+      const INT32* slot= (const INT32 *)
+         _offset2Ptr( DMS_SCHEMAEXTENT_HEADER_SZ + DMS_SCHEMAEXTENT_SLOT_SZ * columnID ) ;
+      return (UINT16)( (*slot) & 0x0000FFFF ) ;
+   }
+
+   OSS_INLINE const dmsSchemaColRecord *_dmsSchemaContainer::_getColRecord( UINT16 columnID ) const
+   {
+      return (const dmsSchemaColRecord *)_offset2Ptr( _getColRecordOffset( columnID ) ) ;
+   }
+
+   OSS_INLINE const CHAR *_dmsSchemaContainer::_offset2Ptr( UINT32 offset ) const
+   {
+      return (const CHAR *)_extent + offset ;
+   }
+
+   OSS_INLINE UINT16 _dmsSchemaHash::_getNextItemOffset( const INT32 *item ) const
+   {
+      return (UINT16)( (*item) >> 16 ) ;
+   }
+
+   OSS_INLINE const CHAR *_dmsSchemaHash::_offset2Ptr( UINT32 offset ) const
+   {
+      return (const CHAR *)_extent + offset ;
    }
 }
 
