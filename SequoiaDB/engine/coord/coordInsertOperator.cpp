@@ -51,9 +51,6 @@
 
 using namespace bson ;
 
-#define GET_INSERT_HINT_MARK_PTR( hintPtr ) \
-   ( ( CHAR *)hintPtr - MSG_HINT_MARK_LEN )
-
 // | type:jstOID(1byte) | fieldname:"_id"(4bytes) | value:...(12bytes)
 #define BSON_ELEMENT_OID_SIZE 17
 
@@ -189,6 +186,7 @@ namespace engine
       _lastGenerateID = 0 ;
 
       _pHint = NULL ;
+      ossMemset( _filling, 0, MSG_HINT_MARK_LEN ) ;
    }
 
    _coordInsertOperator::~_coordInsertOperator()
@@ -275,6 +273,8 @@ namespace engine
       INT32 count = 0 ;
       rtnQueryOptions options ;
       BSONObj updator ;
+      BSONObj newUpdator ;
+      BSONObj hint ;
 
       BOOLEAN needAppendID = FALSE ;
       BOOLEAN needNewIDField = TRUE ;
@@ -324,7 +324,7 @@ namespace engine
       {
          try
          {
-            BSONObj hint = BSONObj( _pHint ) ;
+            hint = BSONObj( _pHint ) ;
             options.setHint( hint ) ;
 
             // Only when the updating flag is given do we parse the hint and get
@@ -361,9 +361,16 @@ namespace engine
                  "failed, rc: %d", pCollectionName, rc ) ;
          goto error ;
       }
+
       orgMsgLen = pMsg->messageLength ;
 
    retry:
+      if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) &&
+           _modifier.isUpdatorChanged() )
+      {
+         _modifier.resetUpdator() ;
+      }
+
       rc = checkCatVersion( cb, pCollectionName, clientVer, cataSel ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
                 "check cat version failed, rc: %d", rc ) ;
@@ -371,18 +378,43 @@ namespace engine
       // It may be a main or normal collection.
       cataPtr = cataSel.getCataPtr() ;
       _modifier.setModifyShardKey( FALSE ) ;
-      if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) &&
-           cataPtr->isSharded() )
+      if ( OSS_BIT_TEST( flag, FLG_INSERT_UPDATEONDUP ) )
       {
          coordKeyKicker keyKicker ;
          BOOLEAN includeShardKey = FALSE ;
+         BOOLEAN isChanged = FALSE ;
+
          keyKicker.bind( _pResource, cataSel.getCataPtr() ) ;
-         rc = keyKicker.checkShardingKey( updator, includeShardKey, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Check sharding key in updator failed[%d]",
-                      rc ) ;
-         if ( includeShardKey )
+
+         if ( cataPtr->isSharded() )
          {
-            _modifier.setModifyShardKey( TRUE ) ;
+            rc = keyKicker.checkShardingKey( updator, includeShardKey, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check sharding key in updator failed[%d]",
+                         rc ) ;
+            if ( includeShardKey )
+            {
+               _modifier.setModifyShardKey( TRUE ) ;
+            }
+         }
+
+         if ( cataPtr->hasAutoIncrement() )
+         {
+            rc = keyKicker.kickAutoIncKey( updator, newUpdator, isChanged ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Kick key for collection[%s] failed, rc: %d",
+                       pCollectionName, rc ) ;
+               goto error ;
+            }
+
+            if ( isChanged )
+            {
+               rc = _modifier.setNewUpdator( newUpdator ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
          }
       }
 
@@ -409,7 +441,7 @@ namespace engine
             // TODO: YSD The argument logic here is too obscure. Try to make
             //  it simple.
             rc = _addAutoIncToMsg( *pAutoIncSet, pInsertMsg, pInsertor,
-                                   count, orgMsgLen, needAppendID, 
+                                   count, orgMsgLen, needAppendID,
                                    cb, &pNewMsg, newMsgSize, newMsgLen,
                                    hasExplicitKey ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -430,7 +462,7 @@ namespace engine
             _grpSubCLDatas.clear() ;
             inMsg.data()->clear() ;
 
-            rc = _addIDFieldToMsg( pInsertMsg, pInsertor, count, 
+            rc = _addIDFieldToMsg( pInsertMsg, pInsertor, count,
                                    orgMsgLen, cb, &pNewMsg,
                                    newMsgSize, newMsgLen ) ;
             if ( SDB_OK != rc )
@@ -545,6 +577,55 @@ namespace engine
       goto done;
    }
 
+   INT32 _coordInsertOperator::_buildDataByGroup( UINT32 groupID,
+                                                  CoordCataInfoPtr &cataInfo,
+                                                  coordSendMsgIn &inMsg,
+                                                  const netIOV &fixed,
+                                                  GROUP_2_IOVEC &datas )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flag = 0 ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pInsertor = NULL ;
+      const CHAR *pHint = NULL ;
+      INT32 count = 0 ;
+      MsgHeader *pMsg = inMsg.msg() ;
+
+      rc = msgExtractInsert( (const CHAR *)pMsg, &flag, &pCollectionName,
+                             &pInsertor, count, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract insert msg failed, rc: %d", rc ) ;
+
+      try
+      {
+         netIOVec &iovec = datas[ groupID ] ;
+         UINT32 len = 0 ;
+
+         if ( pHint )
+         {
+            len = pHint - pInsertor - MSG_HINT_MARK_LEN ;
+         }
+         else
+         {
+            len = pMsg->messageLength - ( pInsertor - (const CHAR *)pMsg ) ;
+         }
+
+         iovec.push_back( fixed ) ;
+         iovec.push_back( netIOV( pInsertor, len ) ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building data by group: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _coordInsertOperator::_prepareCLOp( coordCataSel &cataSel,
                                              coordSendMsgIn &inMsg,
                                              coordSendOptions &options,
@@ -566,10 +647,24 @@ namespace engine
 
       if ( !cataSel.getCataPtr()->isSharded() )
       {
+         UINT32 groupID = 0 ;
          // get group
          cataSel.getCataPtr()->getGroupLst( options._groupLst ) ;
-         // don't change the msg
-         goto done ;
+
+         if ( !_modifier.needRebuild() )
+         {
+            // don't change the msg
+            goto done ;
+         }
+
+         inMsg.data()->clear() ;
+         _grpSubCLDatas.clear() ;
+
+         groupID = options._groupLst.begin()->first ;
+         rc = _buildDataByGroup( groupID, cataSel.getCataPtr(), inMsg, fixed, inMsg._datas ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build data by group, rc: %d", rc ) ;
+
+         msgRebuild = TRUE ;
       }
       else if ( inMsg.data()->size() == 0 )
       {
@@ -742,6 +837,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_INSERTOPR__PREPAREEXTRAINFOFORMSG ) ;
+
       if ( !_pHint )
       {
          goto done ;
@@ -761,8 +857,7 @@ namespace engine
             hint = BSONObj( _pHint ) ;
          }
 
-         iov.push_back( netIOV( GET_INSERT_HINT_MARK_PTR( _pHint ),
-                                MSG_HINT_MARK_LEN ) ) ;
+         iov.push_back( netIOV( _filling, MSG_HINT_MARK_LEN ) ) ;
          iov.push_back( netIOV( hint.objdata(), hint.objsize() ) ) ;
       }
       catch ( std::exception &e )
@@ -1309,7 +1404,7 @@ namespace engine
                                                  INT32 count,
                                                  INT32 orgMsgLen,
                                                  pmdEDUCB *cb,
-                                                 CHAR **ppNewMsg, 
+                                                 CHAR **ppNewMsg,
                                                  INT32 &newMsgSize,
                                                  INT32 &newMsgLen )
    {
@@ -1347,7 +1442,7 @@ namespace engine
             BSONObjIterator boIt( objIn ) ;
             BSONElement ele ;
 
-            // We are not sure whether the '_id' field is included in the 
+            // We are not sure whether the '_id' field is included in the
             // current record, so check first.
             if ( !objIn.hasField( DMS_ID_KEY_NAME ) )
             {
@@ -1379,8 +1474,8 @@ namespace engine
       // 4.Append the hint to the end of the message.
       if ( _pHint )
       {
-         ossMemcpy( pCurPos, GET_INSERT_HINT_MARK_PTR( _pHint ),
-                    *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ) ;
+         ossMemset( pCurPos, 0, MSG_HINT_MARK_LEN ) ;
+         ossMemcpy( pCurPos + MSG_HINT_MARK_LEN, _pHint, *((SINT32 *)_pHint) ) ;
          pCurPos += *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ;
       }
       newMsgLen = pCurPos - (*ppNewMsg) ;
@@ -1418,7 +1513,7 @@ namespace engine
       // 1.malloc a msg buffer which is big enough
       if ( needAppendID )
       {
-         estimatedSize = orgMsgLen + 
+         estimatedSize = orgMsgLen +
                          count * ossAlign4( autoIncSet.getEleSize() + BSON_ELEMENT_OID_SIZE ) ;
       }
       else
@@ -1455,8 +1550,8 @@ namespace engine
       // Append the hint to the end of the message.
       if ( _pHint )
       {
-         ossMemcpy( pCurPos, GET_INSERT_HINT_MARK_PTR( _pHint ),
-                    *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ) ;
+         ossMemset( pCurPos, 0, MSG_HINT_MARK_LEN ) ;
+         ossMemcpy( pCurPos + MSG_HINT_MARK_LEN, _pHint, *((SINT32 *)_pHint) ) ;
          pCurPos += *((SINT32 *)_pHint) + MSG_HINT_MARK_LEN ;
       }
 
@@ -1489,7 +1584,7 @@ namespace engine
       const clsAutoIncItem       *pItem = NULL ;
       StringKeySet               doneSet ;
 
-      // Even if 'needAppendID' is true, we are still not sure 
+      // Even if 'needAppendID' is true, we are still not sure
       // whether the '_id' field is included in the current record,
       // so check first.
       if ( needAppendID )

@@ -93,6 +93,10 @@ namespace engine
                         const BSONObj &matcher = BSONObj(),
                         BOOLEAN keepShardingKey = FALSE ) ;
 
+      INT32    kickAutoIncKey( const BSONObj &updator,
+                               BSONObj &newUpdator,
+                               BOOLEAN &isChanged ) ;
+
       INT32    checkShardingKey( const BSONObj &updator,
                                  BOOLEAN &hasInclude,
                                  _pmdEDUCB *cb,
