@@ -171,6 +171,125 @@ namespace engine
       return count ;
    }
 
+   /// kick auto-increment key of a cl
+   /// when doing replace, if new obj has no auto-increment key, we keep the old key.
+   INT32 _coordKeyKicker::kickAutoIncKey( const BSONObj &updator,
+                                          BSONObj &newUpdator,
+                                          BOOLEAN &isChanged )
+   {
+      INT32 rc = SDB_OK ;
+      ossPoolSet< strContainner > doneFields ;
+      BOOLEAN hasKeepAutoInc = FALSE ;
+      isChanged = FALSE ;
+
+      if ( !_cataPtr.get() || !_cataPtr->hasAutoIncrement() )
+      {
+         newUpdator = updator ;
+         goto done ;
+      }
+
+      _setKeys.clear() ;
+
+      try
+      {
+         BSONObjBuilder bobNewUpdator( updator.objsize() ) ;
+         BSONObj boShardingKey ;
+         const clsAutoIncSet &autoIncSet = _cataPtr->getAutoIncSet() ;
+         BSONObj subObj ;
+         BOOLEAN isReplace = _isUpdateReplace( updator ) ;
+         _cataPtr->getShardingKey( boShardingKey ) ;
+
+         BSONObjIterator iter( updator ) ;
+         while ( iter.more() )
+         {
+            BSONElement beTmp = iter.next() ;
+            if ( beTmp.type() != Object )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "updator's element must be an Object type:"
+                       "updator=%s", updator.toString().c_str() ) ;
+               goto error ;
+            }
+
+            subObj = beTmp.embeddedObject() ;
+            //if replace. leave the keep
+            if ( isReplace &&
+                 0 == ossStrcmp( beTmp.fieldName(),
+                                 CMD_ADMIN_PREFIX FIELD_OP_VALUE_KEEP ) )
+            {
+               _addKeys( subObj ) ;
+               continue ;
+            }
+
+            BSONObjBuilder subBuilder( bobNewUpdator.subobjStart(
+                                       beTmp.fieldName() ) ) ;
+            BSONObjIterator iterField( subObj ) ;
+            while( iterField.more() )
+            {
+               BSONElement beField = iterField.next() ;
+               const CHAR *pField = beField.fieldName() ;
+
+               subBuilder.append( beField ) ;
+
+               if ( isReplace && NULL != autoIncSet.findItem( pField ) )
+               {
+                  doneFields.insert( pField ) ;
+               }
+            } // while( iterField.more() )
+
+            subBuilder.done() ;
+         } // while ( iter.more() )
+
+         if ( isReplace )
+         {
+            //generate new $keep by combining boUpdator.$keep & boShardingKey.
+            _addKeys( boShardingKey ) ;
+
+            clsAutoIncIterator autoIncIt( autoIncSet );
+            while ( autoIncIt.more() )
+            {
+               const clsAutoIncItem *pItem = autoIncIt.next();
+               if ( doneFields.count( pItem->fieldName() ) == 0 )
+               {
+                  _setKeys.insert( pItem->fieldName() );
+                  hasKeepAutoInc = TRUE;
+               }
+            }
+
+            if ( !_setKeys.empty() )
+            {
+               BSONObjBuilder keepBuilder( bobNewUpdator.subobjStart(
+                                           CMD_ADMIN_PREFIX FIELD_OP_VALUE_KEEP ) ) ;
+               SET_KEEPKEY::iterator itKey = _setKeys.begin() ;
+               while( itKey != _setKeys.end() )
+               {
+                  keepBuilder.append( (*itKey)._pStr, (INT32)1 ) ;
+                  ++itKey ;
+               }
+               keepBuilder.done() ;
+            }
+         } // if ( isReplace )
+         newUpdator = bobNewUpdator.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG ( PDERROR,"Failed to kick auto inc field from the record,"
+                  "occured unexpected error: %s", e.what() ) ;
+         goto error ;
+      }
+
+      if ( hasKeepAutoInc )
+      {
+         isChanged = TRUE ;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    /// kick sharding key and auto-increment key of a cl
    /// we kick sharding key anyway, and when doing replace,
    /// if new obj has no auto-increment key, we keep the old key.

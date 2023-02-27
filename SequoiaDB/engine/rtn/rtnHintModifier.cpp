@@ -49,6 +49,7 @@ namespace engine
 {
    _rtnHintModifier::_rtnHintModifier()
    : _modifyOp( RTN_MODIFY_INVALID ),
+     _updatorHasChanged( FALSE ),
      _updateShardingKey( FALSE )
    {
    }
@@ -183,13 +184,42 @@ namespace engine
       goto done ;
    }
 
+   void _rtnHintModifier::resetUpdator()
+   {
+      _newUpdator = BSONObj() ;
+      _updatorHasChanged = FALSE ;
+   }
+
+   INT32 _rtnHintModifier::setNewUpdator( const BSONObj& opNewUpdator )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _newUpdator = opNewUpdator.getOwned() ;
+         _updatorHasChanged = TRUE ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when setting new updator: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _rtnHintModifier::hint( BSONObj &hint )
    {
       INT32 rc = SDB_OK ;
 
       try
       {
-         if ( !_updateShardingKey )
+         if ( !_updateShardingKey && !_updatorHasChanged )
          {
             // Nothing changed, just return the original hint.
             hint = _hint ;
@@ -210,10 +240,44 @@ namespace engine
             }
             else
             {
-               BSONObj modify = ele.Obj() ;
-               modifyBuilder.appendElements( modify ) ;
-               modifyBuilder.appendBool( FIELD_NAME_UPDATE_SHARDING_KEY,
-                                         _updateShardingKey ) ;
+               BSONObj modify ;
+
+               if ( Object != ele.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "The type of modify field must be object, rc: %d", rc ) ;
+                  goto error ;
+               }
+               modify = ele.Obj() ;
+
+               if ( _updateShardingKey )
+               {
+                  modifyBuilder.appendBool( FIELD_NAME_UPDATE_SHARDING_KEY,
+                                            _updateShardingKey ) ;
+               }
+
+               if ( _updatorHasChanged )
+               {
+                  BSONObjBuilder modifyBob ;
+                  BSONObjIterator modifyItr( modify ) ;
+                  while( modifyItr.more() )
+                  {
+                     BSONElement modifyEle = modifyItr.next() ;
+                     if ( 0 == ossStrcmp( FIELD_NAME_UPDATE, modifyEle.fieldName() ) &&
+                          Object == modifyEle.type() )
+                     {
+                        modifyBob.append( FIELD_NAME_UPDATE, _newUpdator ) ;
+                        continue ;
+                     }
+                     modifyBob.append( modifyEle ) ;
+                  }
+                  modifyBuilder.appendElements( modifyBob.obj() ) ;
+               }
+               else
+               {
+                  modifyBuilder.appendElements( modify ) ;
+               }
+
                modifyBuilder.doneFast() ;
             }
          }
