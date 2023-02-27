@@ -1,10 +1,81 @@
 [^_^]:
     查看访问计划
 
+用户可以使用 [explain()][queryExplain] 获取查询的访问计划。访问计划根据展示信息的不同，分为普通访问计划和详细访问计划。
 
-用户可以使用 [SdbQuery.explain()][queryExplain] 命令查看查询的访问计划。当命令的 Detail 选项为 true 时，将会展示详细的访问计划。协调节点和数据节点会展示的不同的详细访问计划。
+##普通访问计划##
 
-##协调节点上的详细访问计划##
+explain() 默认获取查询的普通访问计划
+
+```lang-javascript
+> db.sample.employee.find().explain()
+```
+
+**普通集合的访问计划信息**
+
+| 字段名         | 类型      | 描述                                             |
+| -------------- | --------- | ------------------------------------------------ |
+| NodeName       | string    | 访问计划所在的节点的名称                         |
+| GroupName      | string    | 访问计划所在的节点属于的复制组的名称             |
+| Role           | string    | 访问计划所在的节点的角色<br>1. "data" 表示数据节点<br>2. "coord" 表示协调节点 |
+| Name           | string    | 访问计划访问的集合的名称                         |
+| ScanType       | string    | 访问计划的扫描方式<br>1. "tbscan" 表示全表扫描<br>2. "ixscan" 表示索引扫描 |
+| IndexName      | string    | 访问计划使用的索引的名称<br>全表扫描时，字段值为 ""      |
+| UseExtSort     | boolean   | 访问计划是否使用非索引排序                       |
+| Query          | object | 访问计划解析后的用户查询条件                     |
+| IXBound        | object | 访问计划使用索引的查找范围<br>全表扫描时，字段值为 null  |
+| NeedMatch      | boolean  | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
+| IndexCover     | boolean  | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
+| ReturnNum      | int64    | 访问计划返回记录的个数                           |
+| ElapsedTime    | double   | 访问计划查询耗时（单位：秒）                     |
+| IndexRead      | int64    | 访问计划扫描索引记录的个数                       |
+| DataRead       | int64    | 访问计划扫描数据记录的个数                       |
+| UserCPU        | double   | 访问计划用户态 CPU 使用时间（单位：秒）          |
+| SysCPU         | double   | 访问计划内核态 CPU 使用时间（单位：秒）          |
+
+**表分区中主集合的访问计划信息**
+
+| 字段名         | 类型      | 描述                                             |
+| -------------- | --------- | ------------------------------------------------ |
+| NodeName       | string    | 访问计划所在的节点的名称                         |
+| GroupName      | string    | 访问计划所在的节点属于的复制组的名称             |
+| Role           | string    | 访问计划所在的节点的角色<br>1. "data" 表示数据节点<br>2. "coord" 表示协调节点 |
+| Name           | string    | 访问计划访问的集合的名称                         |
+| SubCollections | array     | 表分区中各子集合的访问计划                       |
+
+**表分区中子集合的访问计划信息**
+
+| 字段名         | 类型    | 描述                                             |
+| -------------- | --------| ------------------------------------------------ |
+| Name           | string  | 访问计划访问的集合的名称                         |
+| ScanType       | string  | 访问计划的扫描方式<br>1. "tbscan" 表示全表扫描<br>2. "ixscan" 表示索引扫描 |
+| IndexName      | string  | 访问计划使用的索引的名称<br>全表扫描时，字段值为 "" |
+| UseExtSort     | boolean | 访问计划是否使用非索引排序                       |
+| Query          | object  | 访问计划解析后的用户查询条件                     |
+| IXBound        | object  | 访问计划使用索引的查找范围<br>全表扫描时，字段值为 null |
+| NeedMatch      | boolean | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
+| IndexCover     | boolean | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
+| ReturnNum      | int64   | 访问计划返回记录的个数                           |
+| ElapsedTime    | double  | 访问计划查询耗时（单位：秒）                     |
+| IndexRead      | int64   | 访问计划扫描索引记录的个数                       |
+| DataRead       | int64   | 访问计划扫描数据记录的个数                       |
+| UserCPU        | double  | 访问计划用户态 CPU 使用时间（单位：秒）          |
+| SysCPU         | double  | 访问计划内核态 CPU 使用时间（单位：秒）          |
+
+> **Note:**
+>
+> - 如果集合经过 split 分布在多个复制组，访问计划会按照一组一记录的方式返回。
+> - 如果查询的匹配符不能命中表分区的任何一个分区时，查询将不会下发到数据节点上执行，此时的访问计划将返回一个带有协调节点的虚拟访问计划。
+
+##详细的访问计划##
+
+当 explain() 的参数 Detail 取值为 true 时，将获取查询的详细访问计划
+
+```lang-javascript
+> db.sample.employee.find().explain({Detail: true})
+```
+
+###协调节点上的详细访问计划###
 
 协调节点上的详细访问计划包括以下内容：
 - 协调节点上的访问计划信息
@@ -51,7 +122,7 @@
 
 >**Note:**  
 >
-> COORD-MERGE 中可能包含主表的访问计划或者数据节点的访问计划
+> COORD-MERGE 中可能包含主集合的访问计划或者数据节点的访问计划。
 
 **示例**
 
@@ -83,26 +154,27 @@
 }
 ```
 
-##数据节点上的详细访问计划##
+###数据节点上的详细访问计划###
 
 数据节点上的详细访问计划包括以下内容：
 + 数据节点上的访问计划信息
 + 访问计划的缓存使用情况
-+ 表分区中主表与子表的访问计划信息
++ 表分区中主集合与子集合的访问计划信息
 
-###主表的详细访问计划###
 
-主表的详细访问计划结构如下：
+**主集合的详细访问计划**
+
+主集合的详细访问计划结构如下：
 
 ```lang-json
 {
-  { 主表的访问计划信息 },
+  { 主集合的访问计划信息 },
   "PlanPath": {
     "Operator": "MERGE",
-    { 主表查询上下文的访问计划信息 },
+    { 主集合查询上下文的访问计划信息 },
     "ChildOperators": [
       {
-        { 子表的访问计划信息 },
+        { 子集合的访问计划信息 },
         ...
       },
       ...
@@ -111,7 +183,7 @@
 }
 ```
 
-主表访问计划包括以下信息：
+主集合访问计划包括以下信息：
 
 | 字段名 | 类型 | 描述 |
 |-------|------|-----|
@@ -136,7 +208,7 @@
 
 > **Note:**
 >
-> MERGE 中包含子表的访问计划，即数据节点上的普通集合的访问计划
+> MERGE 中包含子集合的访问计划，即数据节点上的普通集合的访问计划。
 
 **示例**
 
@@ -168,9 +240,9 @@
 }
 ```
 
-###普通集合或子表的详细访问计划###
+**普通集合或子集合的详细访问计划**
 
-普通集合或子表的详细访问计划结构如下：
+普通集合或子集合的详细访问计划结构如下：
 
 ```lang-json
 {
@@ -204,7 +276,7 @@
 |UserCPU|double|访问计划用户态 CPU 使用时间（单位：秒）|
 |SysCPU|double|访问计划内核态 CPU 使用时间（单位：秒）|
 |CacheStatus|string|访问计划的缓存状态，取值如下：<br> "NoCache"：没有加入缓存  <br> "NewCache"：新建的缓存 <br> "HitCache"：命中的缓存|
-|MainCLPlan|boolean|访问计划是否主表共享的查询计划|
+|MainCLPlan|boolean|访问计划是否主集合共享的查询计划|
 |CacheLevel|string|访问计划的缓存级别，取值如下：<br> "OPT_PLAN_NOCACHE"：不进行缓存 <br> "OPT_PLAN_ORIGINAL"：缓存原查询计划 <br> "OPT_PLAN_NORMALZIED"：缓存泛化后的查询计划 <br> "OPT_PLAN_PARAMETERIZED"：缓存参数化的查询计划 <br> "OPT_PLAN_FUZZYOPTR"：缓存参数化并带操作符模糊匹配的查询计划|
 |Parameters|array|参数化的访问计划使用的参数列表|
 |MatchConfig|bson|访问计划中的匹配符的配置|
@@ -216,7 +288,7 @@
 
 >**Note:**  
 >
-> 数据节点上的主表的访问计划可参考主表的访问计划。
+> 数据节点上的主集合的访问计划可参考主集合的访问计划。
 
 **示例**
 
@@ -243,7 +315,7 @@
   "DataRead": 0,
   "UserCPU": 0,
   "SysCPU": 0,
-  "CacheStatus": "HitCache",
+  "CacheStatus": "HitCache", 
   "MainCLPlan": false,
   "CacheLevel": "OPT_PLAN_PARAMETERIZED",
   "Parameters": [
@@ -358,18 +430,18 @@
 
 ###MERGE 操作###
 
-详细的访问计划中，MERGE 对象对应一个数据节点上的主表查询上下文对象，其中展示的信息如下：
+详细的访问计划中，MERGE 对象对应一个数据节点上的主集合查询上下文对象，其中展示的信息如下：
 
 |字段名|类型|描述|
 |------|----|----|
 |Operator|string|操作符的名称："MERGE"|
 |Sort|string|MERGE 需要保证输出结果有序的排序字段|
-|NeedReorder|boolean|MERGE 是否需要根据排序字段对多个子表的记录进行排序合并，当查询中包含排序，排序字段不包含主表的分区键时为 true|
-|SubCollectionNum|int32|MERGE 涉及查询的子表个数|
-|SubCollectionList|array|MERGE 涉及查询的子表，按查询的执行顺序列出|
-|SubCollectionList.Name|string|MERGE 发送查询的子表名称|
-|SubCollectionList.EstTotalCost|double|MERGE 发送的查询在子表上查询的估算时间（单位：秒）|
-|SubCollectionList.QueryTimeSpent|double|MERGE 发送的查询在子表上查询的执行时间（单位：秒），Run 选项为 true 时显示|
+|NeedReorder|boolean|MERGE 是否需要根据排序字段对多个子集合的记录进行排序合并，当查询中包含排序，排序字段不包含主集合的分区键时为 true|
+|SubCollectionNum|int32|MERGE 涉及查询的子集合个数|
+|SubCollectionList|array|MERGE 涉及查询的子集合，按查询的执行顺序列出|
+|SubCollectionList.Name|string|MERGE 发送查询的子集合名称|
+|SubCollectionList.EstTotalCost|double|MERGE 发送的查询在子集合上查询的估算时间（单位：秒）|
+|SubCollectionList.QueryTimeSpent|double|MERGE 发送的查询在子集合上查询的执行时间（单位：秒），Run 选项为 true 时显示|
 |SubCollectionList.WaitTimeSpent|double|MERGE 发送的查询在数据节点上查询的等待时间（单位：秒），Run 选项为 true 时显示）|
 |Selector|bson|MERGE 执行的选择符|
 |Skip|int64|指定 MERGE 需要跳过的记录个数|
@@ -388,7 +460,7 @@
 |Run.QueryTimeSpent|double|MERGE 执行耗时（单位：秒）|
 |Run.GetMores|int64|请求 MERGE 返回结果集的次数|
 |Run.ReturnNum|int64|MERGE 返回记录个数|
-|SubCollections|array|MERGE 的子操作（每个子表返回的查询的访问计划结果），详细可参考[数据节点的访问计划][explain]|
+|SubCollections|array|MERGE 的子操作（每个子集合返回的查询的访问计划结果），详细可参考[数据节点的访问计划][explain]|
 
 
 **示例**
@@ -520,6 +592,7 @@
 ```
 
 ###TBSCAN 操作###
+
 详细的访问计划中，TBSCAN 对应一个使用全表扫描的上下文对象，展示的信息如下：
 
 |字段名|类型|描述|
@@ -600,6 +673,7 @@
 ```
 
 ###IXSCAN 操作###
+
 详细的访问计划中，IXSCAN 对应一个使用索引扫描的上下文对象，展示的信息如下：
 
 |字段名|类型|描述|
