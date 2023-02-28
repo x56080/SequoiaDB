@@ -255,7 +255,19 @@ namespace engine
          goto error ;
       }
 
-      _defaultPtr = schedTaskContanierPtr( pContainer ) ;
+      try
+      {
+         _defaultPtr = schedTaskContanierPtr( pContainer ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pContainer = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for container, "
+                 "occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
       pContainer = NULL ;
 
       _mapContanier[ _defaultPtr->getName() ] = _defaultPtr ;
@@ -321,7 +333,18 @@ namespace engine
       }
       pContainer->setNice( nice ) ;
 
-      ptr = schedTaskContanierPtr( pContainer ) ;
+      try
+      {
+         ptr = schedTaskContanierPtr( pContainer ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pContainer = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for container, "
+                 "occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
       pContainer = NULL ;
 
       /// add to map

@@ -558,7 +558,18 @@ namespace engine
       {
          goto error ;
       }
-      dsPtr = CoordDataSourcePtr( dataSource ) ;
+      try
+      {
+         dsPtr = CoordDataSourcePtr( dataSource ) ;
+      }
+      catch ( std::exception &e )
+      {
+         dataSource = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for "
+                 "datasource, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
       /// init
       rc = dataSource->init( object ) ;

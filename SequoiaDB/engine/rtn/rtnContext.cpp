@@ -711,7 +711,17 @@ namespace engine
                {
                   goto done ;
                }
-               _prefetchLock = ctxMutexPtr( pMutex ) ;
+               try
+               {
+                  _prefetchLock = ctxMutexPtr( pMutex ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  pMutex = NULL ;
+                  PD_LOG( PDWARNING, "Failed to create shared pointer for "
+                          "prefetch lock, occur unexpection: %s", e.what() ) ;
+                  goto done ;
+               }
             }
 
             _prefetchLock->lock_r() ;

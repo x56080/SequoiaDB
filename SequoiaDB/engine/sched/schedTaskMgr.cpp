@@ -65,7 +65,18 @@ namespace engine
       }
 
       pDefault->setTaskInfo( SCHED_TASK_ID_DFT, SCHED_TASK_NAME_DFT ) ;
-      _defaultPtr = monSvcTaskInfoPtr( pDefault ) ;
+      try
+      {
+         _defaultPtr = monSvcTaskInfoPtr( pDefault ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pDefault = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for "
+                 "task info, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
       pDefault = NULL ;
 
       /// add to map
@@ -126,9 +137,25 @@ namespace engine
             if ( pTaskInfo )
             {
                pTaskInfo->setTaskInfo( taskID, taskName ) ;
-               ptr = monSvcTaskInfoPtr( pTaskInfo ) ;
-               /// add to map
-               _mapTaskInfo[ ptr->getTaskID() ] = ptr ;
+               try
+               {
+                  ptr = monSvcTaskInfoPtr( pTaskInfo ) ;
+               }
+               catch ( std::exception &e )
+               {
+                  pTaskInfo = NULL ;
+                  PD_LOG( PDWARNING, "Failed to create shared pointer for "
+                          "task info, occur unexpection: %s", e.what() ) ;
+               }
+               if ( NULL != ptr.get() )
+               {
+                  /// add to map
+                  _mapTaskInfo[ ptr->getTaskID() ] = ptr ;
+               }
+               else
+               {
+                  ptr = _defaultPtr ;
+               }
             }
             else
             {

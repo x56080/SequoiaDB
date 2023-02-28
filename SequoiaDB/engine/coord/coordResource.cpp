@@ -134,7 +134,18 @@ namespace engine
          PD_LOG( PDERROR, "Allocate catalog group info failed" ) ;
          goto error ;
       }
-      _cataGroupInfo = CoordGroupInfoPtr( pCataGroup ) ;
+      try
+      {
+         _cataGroupInfo = CoordGroupInfoPtr( pCataGroup ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pCataGroup = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for catalog group "
+                 "info, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
       pCataGroup = NULL ;
       _emptyGroupPtr = _cataGroupInfo ;
       _omGroupInfo = _emptyGroupPtr ;
@@ -1283,7 +1294,18 @@ namespace engine
             goto error ;
          }
 
-         groupPtr = CoordGroupInfoPtr( pGroupInfo ) ;
+         try
+         {
+            groupPtr = CoordGroupInfoPtr( pGroupInfo ) ;
+         }
+         catch ( std::exception &e )
+         {
+            pGroupInfo = NULL ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Failed to create shared pointer for group "
+                    "info, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
          pGroupInfo = NULL ;
       }
       else

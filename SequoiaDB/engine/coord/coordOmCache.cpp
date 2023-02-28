@@ -63,7 +63,18 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      _defaultPtr = omTaskStrategyInfoPtr( pInfo ) ;
+      try
+      {
+         _defaultPtr = omTaskStrategyInfoPtr( pInfo ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pInfo = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for task strategy "
+                 "info, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
       pInfo->setTaskID( taskID ) ;
       pInfo->setTaskName( taskName ) ;
@@ -184,7 +195,18 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      _defaultPtr = omTaskStrategyInfoPtr( pInfo ) ;
+      try
+      {
+         _defaultPtr = omTaskStrategyInfoPtr( pInfo ) ;
+      }
+      catch ( std::exception &e )
+      {
+         pInfo = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for task strategy "
+                 "info, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
       pInfo->setTaskName( OM_TASK_STRATEGY_TASK_NAME_DFT ) ;
       pInfo->setTaskID( OM_TASK_STRATEGY_TASK_ID_DFT ) ;

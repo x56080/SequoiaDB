@@ -97,14 +97,27 @@ INT32 cacheLoader::load(UINT32 hashKey, INT32 flId, INT64 offset)
       else
       {
          // add a key to the map
-         tmpPtr = SDB_OSS_NEW _ossEvent();
-         if(NULL == tmpPtr)
+         tmpPtr = SDB_OSS_NEW _ossEvent() ;
+         if ( NULL == tmpPtr )
          {
-            PD_LOG(PDERROR, "alloc event failed, flId=%d, offset=%d", flId, offset);
-            rc = SDB_OOM;
-            goto error;
+            _loadMapMutex.release() ;
+            PD_LOG( PDERROR, "alloc event failed, flId=%d, offset=%d", flId, offset ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
-         event = eventPtr(tmpPtr);
+         try
+         {
+            event = eventPtr( tmpPtr ) ;
+         }
+         catch ( std::exception &e )
+         {
+            _loadMapMutex.release() ;
+            tmpPtr = NULL ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "set event pointer failed, rc=%d, error=%s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
          try
          {
             _loadMap[mapKey] = event;
@@ -120,7 +133,7 @@ INT32 cacheLoader::load(UINT32 hashKey, INT32 flId, INT64 offset)
          loading = TRUE;
 
          hashBucket->lockBucketR(bucketKey);
-         node = hashBucket->get(bucketKey, flId, offset);  
+         node = hashBucket->get(bucketKey, flId, offset);
          if(NULL != node)
          {
             node->lockW();
@@ -131,12 +144,12 @@ INT32 cacheLoader::load(UINT32 hashKey, INT32 flId, INT64 offset)
             {
                PD_LOG(PDERROR, "cacheDownLoad failed, error=%d", rc);
                goto error;
-            }            
+            }
          }
          else
          {
             hashBucket->unLockBucketR(bucketKey);
-            
+
             node = _getNewCache(allocLen);
             if(NULL == node)
             {
@@ -144,7 +157,7 @@ INT32 cacheLoader::load(UINT32 hashKey, INT32 flId, INT64 offset)
                rc = SDB_OOM;
                goto error;
             }
-   
+
             node->init(flId, offset);
 
             rc = node->cacheDownLoad(&db, fl->getFullCL(), fl->getOid());
@@ -156,7 +169,7 @@ INT32 cacheLoader::load(UINT32 hashKey, INT32 flId, INT64 offset)
             }
 
             hashBucket->lockBucketW(bucketKey);
-            hashBucket->add(bucketKey, node); 
+            hashBucket->add(bucketKey, node);
             hashBucket->unLockBucketW(bucketKey);
 
             fl->addNode(node);
@@ -228,14 +241,27 @@ INT32 cacheLoader::loadEmpty(INT32 flId, INT64 offset)
    else
    {
       // add a key to the map
-      tmpPtr = SDB_OSS_NEW _ossEvent();
-      if(NULL == tmpPtr)
+      tmpPtr = SDB_OSS_NEW _ossEvent() ;
+      if( NULL == tmpPtr )
       {
-         PD_LOG(PDERROR, "alloc event failed, flId=%d, offset=%d", flId, offset);
-         rc = SDB_OOM;
-         goto error;
+         _loadMapMutex.release() ;
+         PD_LOG( PDERROR, "alloc event failed, flId=%d, offset=%d", flId, offset ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
-      event = eventPtr(tmpPtr);
+      try
+      {
+         event = eventPtr( tmpPtr ) ;
+      }
+      catch ( std::exception &e )
+      {
+         _loadMapMutex.release() ;
+         tmpPtr = NULL ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "set event pointer failed, rc=%d, error=%s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
       try
       {
          _loadMap[mapKey] = event;
@@ -253,7 +279,7 @@ INT32 cacheLoader::loadEmpty(INT32 flId, INT64 offset)
       bucketKey = hashBucket->hash(flId, offset);
       hashBucket->lockBucketW(bucketKey);
 
-      node = hashBucket->get(bucketKey, flId, offset);  
+      node = hashBucket->get(bucketKey, flId, offset);
       if(NULL == node)
       {
          node = _getNewCache(allocLen);
@@ -266,7 +292,7 @@ INT32 cacheLoader::loadEmpty(INT32 flId, INT64 offset)
          }
 
          node->init(flId, offset);
-         hashBucket->add(bucketKey, node); 
+         hashBucket->add(bucketKey, node);
          fl->addNode(node);
          hashBucket->unLockBucketW(bucketKey);
       }
@@ -274,9 +300,9 @@ INT32 cacheLoader::loadEmpty(INT32 flId, INT64 offset)
       {
          hashBucket->unLockBucketW(bucketKey);
       }
-      event->signalAll(EVENT_ALLOC_SUCCESS);     
+      event->signalAll(EVENT_ALLOC_SUCCESS);
    }
-   
+
 done:
    if(loading)
    {
@@ -300,7 +326,7 @@ void cacheLoader::preLoad(INT32 flId, INT64 offset)
    sequoiaFSHashBucket* hashBucket = _mgr->getHashBucket();
 
    PD_LOG(PDDEBUG, "preLoad(), flId:%d, offset:%d", flId, offset);
-   
+
    _preSetMutex.get();
    if(_preReadSet.find(mapKey) == _preReadSet.end())
    {
@@ -329,7 +355,7 @@ BOOLEAN cacheLoader::preLoadCheck(INT32 flId, INT64 offset)
 {
    UINT32 mapKey = hash(flId, offset);
    BOOLEAN isFind = FALSE;
-   
+
    _preSetMutex.get();
    if(_preReadSet.find(mapKey) != _preReadSet.end())
    {
@@ -337,14 +363,14 @@ BOOLEAN cacheLoader::preLoadCheck(INT32 flId, INT64 offset)
    }
    _preSetMutex.release();
 
-   return isFind;   
+   return isFind;
 }
 
 void cacheLoader::unPreLoad(INT32 flId, INT64 offset)
 {
    UINT32 mapKey = hash(flId, offset);
    PD_LOG(PDDEBUG, "unPreLoad(), flId:%d, offset:%d", flId, offset);
-   
+
    _preSetMutex.get();
    _preReadSet.erase(mapKey);
    _preSetMutex.release();
@@ -352,7 +378,7 @@ void cacheLoader::unPreLoad(INT32 flId, INT64 offset)
 
 UINT32 cacheLoader::hash(INT32 flId, INT64 offset)
 {
-   return ossHash( ( const BYTE * )(&flId), sizeof(flId),  
+   return ossHash( ( const BYTE * )(&flId), sizeof(flId),
                    ( const BYTE * )(&offset), sizeof(offset) );
 }
 
@@ -367,7 +393,7 @@ dataCache* cacheLoader::_getNewCache(INT32 allocLen)
       _mgr->getHashBucket()->setCacheClean();
       goto done;
    }
-   
+
    node = (dataCache* )SDB_THREAD_ALLOC(allocLen);
    if(NULL != node)
    {
@@ -377,7 +403,7 @@ dataCache* cacheLoader::_getNewCache(INT32 allocLen)
          _mgr->getHashBucket()->setCacheClean();
       }
    }
-   
+
 done:
    _countMutex.release();
    return node;

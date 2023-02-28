@@ -4818,7 +4818,17 @@ namespace engine
       _toMatch  = _matchObj.firstElement() ;
 
       _isSimpleMatch = _isPureWords( _regex, _options ) ;
-      _re.reset( new RE( _regex, reOptions ) ) ;
+      try
+      {
+         _re.reset( new RE( _regex, reOptions ) ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to create shared pointer for regular "
+                 "expression, occur unexpection: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
 
    done:
       return rc ;
