@@ -87,6 +87,7 @@ namespace engine
       _fullSyncIgnoreTimes = 0 ;
 
       _info._info.setNice( SCHED_NICE_MIN ) ;
+      _lastSyncDetail[0] = 0 ;
 
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN__CLSDSTREPSN );
    }
@@ -94,6 +95,7 @@ namespace engine
    _clsReplDstSession::~_clsReplDstSession ()
    {
       _replayer.unregEventHandler() ;
+      _lastSyncDetail[0] = 0 ;
    }
 
    SDB_SESSION_TYPE _clsReplDstSession::sessionType() const
@@ -117,6 +119,31 @@ namespace engine
       if ( MSG_INVALID_ROUTEID != _syncSrc.value )
       {
          _repl->aliveNode( _syncSrc ) ;
+      }
+   }
+
+   void _clsReplDstSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
+                                                const MsgHeader *pHeader )
+   {
+      MON_START_OP( eduCB()->getMonAppCB() ) ;
+      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
+   }
+
+   void _clsReplDstSession::onDispatchMsgEnd( INT64 costUsecs )
+   {
+      MON_END_OP( eduCB()->getMonAppCB() ) ;
+   }
+
+   void _clsReplDstSession::_updateName ()
+   {
+      ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:(%u,%u),PeerNodeID:(%u,%u)",
+                   className(), routeAgent()->localID().columns.groupID,
+                   routeAgent()->localID().columns.nodeID,
+                   _selector.src().columns.groupID,
+                   _selector.src().columns.nodeID ) ;
+      if ( eduCB() )
+      {
+         eduCB()->setName( _name ) ;
       }
    }
 
@@ -341,6 +368,14 @@ namespace engine
 
       if ( SDB_OK == msg->header.res )
       {
+         DPS_LSN expectLsn = _logger->expectLsn() ;
+
+         ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                      "Expect LSN: ( offset: %lld, version: %u ), size: %d",
+                      (INT64)expectLsn.offset, expectLsn.version,
+                      msg->header.header.messageLength - sizeof( MsgReplSyncRes ) ) ;
+         MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
          _lastSyncNode.value = msg->identity.value ;
 
          UINT32 num = 0 ;
@@ -451,7 +486,6 @@ namespace engine
                   sessionName(), _status, CLS_SESSION_STATUS_SYNC ) ;
          goto done ;
       }
-
       // Update request ID before sending request
       // Which may abandon response of the previous request
       ++ _requestID ;
@@ -516,6 +550,13 @@ namespace engine
       }
       else
       {
+         ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                      "Consult LSN: ( offset: %lld, version: %u )",
+                      (INT64)msg->returnTo.offset, msg->returnTo.version ) ;
+         MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
+         _lastSyncNode.value = _syncSrc.value ;
+
          PD_LOG ( PDEVENT, "Session[%s]: Consult returnTo "
                   "LSN[ver:%d, offset:%lld]", sessionName(),
                   msg->returnTo.version, msg->returnTo.offset ) ;
@@ -877,6 +918,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       _syncSrc = _selector.selected() ;
 
+      // when peer node change, then update Name
+      if ( _lastSyncNode.value != _syncSrc.value )
+      {
+         _updateName() ;
+      }
+
       if ( MSG_INVALID_ROUTEID != _syncSrc.value )
       {
          _timeout = 0 ;
@@ -968,6 +1015,12 @@ namespace engine
       }
 
       _syncSrc = _selector.selected() ;
+      // when peer node change, then update Name
+      if ( _lastSyncNode.value != _syncSrc.value )
+      {
+         _updateName() ;
+      }
+
       if ( MSG_INVALID_ROUTEID != _syncSrc.value )
       {
          _timeout = 0 ;
@@ -1298,11 +1351,14 @@ namespace engine
 
       _info._info.setNice( SCHED_NICE_MIN ) ;
 
+      _lastSyncDetail[0] = 0 ;
+
       PD_TRACE_EXIT ( SDB__CLSSRCREPSN__CLSREPSN );
    }
 
    _clsReplSrcSession::~_clsReplSrcSession ()
    {
+      _lastSyncDetail[0] = 0 ;
    }
 
    SDB_SESSION_TYPE _clsReplSrcSession::sessionType() const
@@ -1320,6 +1376,30 @@ namespace engine
    {
       _timeout = 0 ;
       _repl->aliveNode( msg->routeID ) ;
+   }
+
+   void _clsReplSrcSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
+                                                const MsgHeader *pHeader )
+   {
+      MON_START_OP( eduCB()->getMonAppCB() ) ;
+      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
+   }
+
+   void _clsReplSrcSession::onDispatchMsgEnd( INT64 costUsecs )
+   {
+      MON_END_OP( eduCB()->getMonAppCB() ) ;
+   }
+
+   void _clsReplSrcSession::_makeName ()
+   {
+      UINT32 TID        = 0 ;
+      UINT32 peerNodeID = 0 ;
+      UINT32 groupID    = routeAgent()->localID().columns.groupID ;
+      UINT16 selfNodeID = routeAgent()->localID().columns.nodeID ;
+      ossUnpack32From64 ( _sessionID, peerNodeID, TID ) ;
+      ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:(%u,%u),PeerNodeID:(%u,%u)",
+                   className(), groupID, selfNodeID,
+                   groupID, peerNodeID ) ;
    }
 
    BOOLEAN _clsReplSrcSession::timeout( UINT32 interval )
@@ -1353,6 +1433,12 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       MsgReplSyncReq *msg = ( MsgReplSyncReq * )header ;
 
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Expect LSN: ( offset: %lld, version: %u ), completed LSN: "
+                   "( offset: %lld, version: %u )", (INT64)msg->next.offset, msg->next.version,
+                   (INT64)msg->completeNext.offset, msg->completeNext.version ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
       if ( DPS_INVALID_LSN_OFFSET != msg->completeNext.offset )
       {
          _sync->complete( msg->identity, msg->completeNext,
@@ -1382,6 +1468,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN_HNDVIRSYNCREQ );
       MsgReplVirSyncReq *msg = ( MsgReplVirSyncReq * )header ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "PeerNode: (%u,%u), completed LSN: ( offset: %lld, version: %u )",
+                   msg->from.columns.groupID, msg->from.columns.nodeID,
+                   (INT64)msg->next.offset, msg->next.version ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
       _sync->complete( msg->from, msg->next, CLS_TID( _sessionID ) ) ;
       PD_TRACE_EXITRC ( SDB__CLSSRCREPSN_HNDVIRSYNCREQ, rc );
       return rc ;
@@ -1404,6 +1495,12 @@ namespace engine
       res.header.header.routeID = msg->header.routeID ;
       res.header.header.requestID = msg->header.requestID ;
       time_t bTime = time(NULL) ;
+
+      // when peer node change, then update Name
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Consult LSN: ( offset: %lld, version: %u )",
+                   (INT64)msg->lastConsult.offset, msg->lastConsult.version ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
       if ( (UINT32)header->messageLength < sizeof( _MsgReplConsultation ) )
       {

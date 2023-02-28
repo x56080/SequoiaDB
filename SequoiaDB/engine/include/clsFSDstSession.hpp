@@ -129,8 +129,10 @@ namespace engine
       public:
          virtual BOOLEAN timeout ( UINT32 interval ) ;
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
-         virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg ) ;
+         virtual void    onRecieve ( const NET_HANDLE netHandle, MsgHeader * msg ) ;
+
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
 
       protected:
          virtual INT32 _onMetaDone( const _clMetaData &meta ) ;
@@ -197,6 +199,8 @@ namespace engine
          INT32          _removeValidCLs( const vector<string> &validCLs,
                                          UINT32 *pHasRemoved = NULL ) ;
 
+         void           _updateName() ;
+
       private:
          INT32 _replayDoc( const MsgClsFSNotifyRes *msg ) ;
          INT32 _replayLog( const MsgClsFSNotifyRes *msg ) ;
@@ -221,6 +225,9 @@ namespace engine
          UINT64               _lastOprLSN ;
          /// when we begin to get lob, we do not want to sync doc any more.
          BOOLEAN              _needMoreDoc ;
+         UINT64               _syncBeginTick ;
+         UINT64               _totalDataSync ;
+         CHAR                 _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
 
       private:
          MsgRouteID           _connID ;

@@ -73,6 +73,13 @@ namespace engine
    #define CLS_FS_CL_MAX_RECNUM           "maxrecnum"
    #define CLS_FS_COMP_DICT               "compdict"
 
+   #define CLS_FS_SYNC_SPEED( syncSize, timeSpent ) \
+           0 == (timeSpent) ? 0 : \
+           ( (FLOAT64)(syncSize) / ( 1024 * 1024 ) / (timeSpent) ) * 1000
+
+   #define CLS_FS_TIME_SPENT( timeSpent ) \
+           (timeSpent) / ( 1000 * 60 )
+
    enum CLS_FS_STATUS
    {
       CLS_FS_STATUS_NONE = 0,

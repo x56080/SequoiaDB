@@ -61,6 +61,7 @@ namespace engine
    const UINT32 CLS_VOTE_CS_TIME = 3000 ;
    const UINT32 CLS_SHARING_BETA_INTERVAL = 2000 ;
    const UINT32 CLS_SYNC_MAX_LEN = 1024 * 1024 * 5 ;
+   const UINT32 CLS_SYNC_DETAIL_MAX_LEN = 1024 ;
    extern INT32  g_startShiftTime ;
 
    #define CLS_TID(sessionid)          ((UINT32)(sessionid & 0xFFFFFFFF))

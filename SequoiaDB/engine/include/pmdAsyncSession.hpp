@@ -241,12 +241,13 @@ namespace engine
          void           _holdOut() ;
 
       protected:
-         void  _makeName () ;
          INT32 _lock () ;
          INT32 _unlock () ;
          void  _reset() ;
 
          netRouteAgent* routeAgent() ;
+
+         virtual void   _makeName () ;
 
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;

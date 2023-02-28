@@ -70,7 +70,6 @@ namespace engine
          } \
       } while ( 0 )
 
-
    /*
    _clsDataDstBaseSession : implement
    */
@@ -97,12 +96,17 @@ namespace engine
       _needMoreDoc = TRUE ;
       _info._info.setNice( SCHED_NICE_MIN ) ;
 
+      _syncBeginTick = 0 ;
+      _totalDataSync = 0 ;
+      _lastSyncDetail[0] = 0 ;
+
       _connID.value = MSG_INVALID_ROUTEID ;
       _connHandle = NET_INVALID_HANDLE ;
    }
 
    _clsDataDstBaseSession::~_clsDataDstBaseSession ()
    {
+      _lastSyncDetail[0] = 0 ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS_ONTIMER, "_clsDataDstBaseSession::onTimer" )
@@ -179,7 +183,33 @@ namespace engine
          _netHandle = netHandle ;
       }
       _recvTimeout = 0 ;
+
       PD_TRACE_EXIT ( SDB__CLSDATADBS_ONRECV );
+   }
+
+   void _clsDataDstBaseSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
+                                                    const MsgHeader *pHeader )
+   {
+      MON_START_OP( eduCB()->getMonAppCB() ) ;
+      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
+   }
+
+   void _clsDataDstBaseSession::onDispatchMsgEnd( INT64 costUsecs )
+   {
+      MON_END_OP( eduCB()->getMonAppCB() ) ;
+   }
+
+   void _clsDataDstBaseSession::_updateName ()
+   {
+      ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:(%u,%u),PeerNodeID:(%u,%u)",
+                   className(), routeAgent()->localID().columns.groupID ,
+                   routeAgent()->localID().columns.nodeID,
+                   _selector.src().columns.groupID,
+                   _selector.src().columns.nodeID ) ;
+      if ( eduCB() )
+      {
+         eduCB()->setName( _name ) ;
+      }
    }
 
    INT32 _clsDataDstBaseSession::_onMetaDone( const _clMetaData &meta )
@@ -975,6 +1005,8 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_HNDMETARES );
       MsgClsFSMetaRes *msg = ( _MsgClsFSMetaRes * )header ;
+      UINT64 totalTimeSpent = 0 ;
+
       if ( CLS_FS_STATUS_META != _status )
       {
          PD_LOG( PDWARNING, "Session[%s]: ignore msg. local statsus:%d",
@@ -985,6 +1017,16 @@ namespace engine
       {
          goto done ;
       }
+
+      totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
+                   "%u collections finished, %u collections left, "
+                   "time spent: %llu min, speed: %.2f MB/s",
+                   _fullNames.size() > _current ? _fullNames.at( _current ).c_str(): "",
+                   _current, _fullNames.size() > _current ? _fullNames.size() - _current : 0,
+                   CLS_FS_TIME_SPENT( totalTimeSpent ),
+                   CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
@@ -1085,6 +1127,7 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_HNDINXRES2 );
       MsgClsFSIndexRes *msg = ( MsgClsFSIndexRes * )header ;
+      UINT64 totalTimeSpent = 0 ;
 
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
@@ -1100,6 +1143,16 @@ namespace engine
       }
       else
       {
+         totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+         ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
+                      "%u collections finished, %u collections left, "
+                      "time spent: %llu min, speed: %.2f MB/s",
+                      _fullNames.size() > _current ? _fullNames.at( _current ).c_str(): "",
+                      _current, _fullNames.size() > _current ? _fullNames.size() - _current : 0,
+                      CLS_FS_TIME_SPENT( totalTimeSpent ),
+                      CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ) ) ;
+         MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
          _selector.clearTime() ;
          BSONObj obj ;
          BOOLEAN noMore = FALSE ;
@@ -1146,6 +1199,7 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_HNDNTFRES );
       MsgClsFSNotifyRes *msg = ( MsgClsFSNotifyRes * )header ;
+      UINT64 totalTimeSpent = 0 ;
 
       CHECK_REQUEST_ID ( msg->header.header , _requestID ) ;
 
@@ -1173,6 +1227,18 @@ namespace engine
       {
          goto done ;
       }
+
+      totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+      _totalDataSync += ( header->messageLength - sizeof( MsgClsFSNotifyRes ) ) ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN, "Current collection: %s, "
+                   "%u collections finished, %u collections left, time spent: %llu min, "
+                   "speed: %.2f MB/s, type: %s" , _fullNames.size() > _current ?
+                   _fullNames.at( _current ).c_str() : "", _current,
+                   _fullNames.size() > _current ? _fullNames.size() - _current : 0,
+                   CLS_FS_TIME_SPENT( totalTimeSpent ),
+                   CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ),
+                   clsFSNotifyType2String( msg->type ) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
       if ( CLS_FS_NOTIFY_TYPE_DOC == msg->type )
       {
@@ -2150,6 +2216,12 @@ namespace engine
          goto done ;
       }
 
+      _syncBeginTick = pmdGetDBTick() ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Fullsync begin, expect LSN: ( offset: %lld, version: %u )",
+                   (INT64)msg->lsn.offset, msg->lsn.version ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
       /// begin next status
       _meta() ;
 
@@ -2213,6 +2285,12 @@ namespace engine
             disMsg.requestID = ++_requestID ;
             disMsg.opCode = MSG_BS_DISCONNECT ;
             _sendTo( lastID, &disMsg ) ;
+         }
+
+         /// when peer node change, then update Name
+         if ( lastID.value != src.value )
+         {
+            _updateName() ;
          }
 
          /// send to new source node
@@ -2925,9 +3003,16 @@ namespace engine
       rc = pRsp->header.res;
       CHAR *pOffset = (CHAR *)header + sizeof(MsgClsFSTransSyncRes);
       CHAR *pEnd = (CHAR *)header + header->messageLength;
-      DPS_LSN expectLsn ;
+      DPS_LSN expectLsn =  dpsCB->expectLsn() ;
 
       CHECK_REQUEST_ID ( pRsp->header.header , _requestID ) ;
+
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Sync transaction log, expect LSN: "
+                   "( offset: %lld, version: %u ), size: %d",
+                   (INT64)expectLsn.offset, expectLsn.version,
+                   header->messageLength - sizeof(MsgClsFSTransSyncRes) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
       if ( CLS_FS_STATUS_END != _status )
       {
@@ -3267,6 +3352,12 @@ namespace engine
             _sendTo( lastID, &disMsg ) ;
          }
 
+         /// when peer node change, then update Name
+         if ( lastID.value != src.value )
+         {
+            _updateName() ;
+         }
+
          // validate
          if ( MSG_INVALID_ROUTEID != src.value )
          {
@@ -3592,6 +3683,7 @@ namespace engine
       // this function always returns SDB_OK
       MsgClsFSBeginRes *msg = ( MsgClsFSBeginRes * )header ;
       _expectLSN = msg->lsn ;
+
       // sanity check
       if ( CLS_FS_STATUS_BEGIN != _status )
       {
@@ -3617,6 +3709,12 @@ namespace engine
          _selector.clearSrc () ;
          goto done ;
       }
+
+      _syncBeginTick = pmdGetDBTick() ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Split begin, expect LSN: ( offset: %lld, version: %u )",
+                   (INT64)msg->lsn.offset, msg->lsn.version ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
       PD_LOG( PDEVENT, "Session[%s]: Established the split session with "
               "node[%s], Remote LSN:[%u,%lld]", sessionName(),
@@ -3687,6 +3785,7 @@ namespace engine
       {
          goto done ;
       }
+
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
       _step = STEP_PRE_CLEANUP ;

@@ -171,4 +171,20 @@ namespace engine
       return "Unknown" ;
    }
 
+   const CHAR* clsFSNotifyType2String( CLS_FS_NOTIFY_TYPE type )
+   {
+      switch( type )
+      {
+         case CLS_FS_NOTIFY_TYPE_DOC :
+            return "DOC" ;
+         case CLS_FS_NOTIFY_TYPE_LOG :
+            return "LOG" ;
+         case CLS_FS_NOTIFY_TYPE_OVER :
+            return "OVER" ;
+         case CLS_FS_NOTIFY_TYPE_LOB :
+            return "LOB" ;
+      }
+      return "UNKNOWN" ;
+   }
+
 }

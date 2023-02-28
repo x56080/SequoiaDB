@@ -113,6 +113,10 @@ namespace engine
       _info._info.setNice( SCHED_NICE_MIN ) ;
 
       _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
+      _syncBeginTick = 0 ;
+      _totalDataSync = 0 ;
+      _lastSyncNode.value = MSG_INVALID_ROUTEID ;
+      _lastSyncDetail[0] = 0 ;
    }
 
    _clsDataSrcBaseSession::~_clsDataSrcBaseSession ()
@@ -124,8 +128,19 @@ namespace engine
                                             MsgHeader * msg )
    {
       _disconnectMsg.routeID = msg->routeID ;
-
       _timeCounter = 0 ;
+   }
+
+   void _clsDataSrcBaseSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
+                                                    const MsgHeader *pHeader )
+   {
+      MON_START_OP( eduCB()->getMonAppCB() ) ;
+      MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), pHeader->opCode, _lastSyncDetail ) ;
+   }
+
+   void _clsDataSrcBaseSession::onDispatchMsgEnd( INT64 costUsecs )
+   {
+      MON_END_OP( eduCB()->getMonAppCB() ) ;
    }
 
    BOOLEAN _clsDataSrcBaseSession::timeout( UINT32 interval )
@@ -200,6 +215,7 @@ namespace engine
       _curExtID = DMS_INVALID_EXTENT ;
       _curScanKeyObj = BSONObj() ;
       _curCollection = ~0 ;
+      _lastSyncDetail[0] = 0 ;
 
       if ( all )
       {
@@ -794,6 +810,7 @@ namespace engine
                                            _mb.length() ;
          _agent->syncSend( handle, &(msg.header.header),
                            _mb.offset( 0 ), _mb.length() ) ;
+         _totalDataSync += _mb.length() ;
       }
       else
       {
@@ -817,6 +834,7 @@ namespace engine
             _agent->syncSend( handle, &(msg.header.header),
                               (void*)commitObj.objdata(),
                               commitObj.objsize() ) ;
+            _totalDataSync += commitObj.objsize() ;
          }
          else
          {
@@ -916,6 +934,7 @@ namespace engine
                                            _mb.length() ;
          _agent->syncSend( handle, &(msg.header.header),
                            _mb.offset( 0 ), _mb.length() ) ;
+         _totalDataSync += _mb.length() ;
       }
       else if ( _canSwitchWhenSyncLog() )
       {
@@ -1119,6 +1138,7 @@ namespace engine
                                               _queryLen ;
             _agent->syncSend( handle, &(msg.header.header),
                               (void*)_query, _queryLen ) ;
+            _totalDataSync += _queryLen ;
          }
          rc = SDB_OK ;
       }
@@ -1135,6 +1155,7 @@ namespace engine
                                     _queryLen ;
          _agent->syncSend( handle, &(msg.header.header), (void*)_query,
                            _queryLen ) ;
+         _totalDataSync += _queryLen ;
       }
 
       PD_TRACE_EXITRC ( SDB__CLSDSBS__SYNCRECD, rc );
@@ -1210,6 +1231,7 @@ namespace engine
       UINT16 mbID = DMS_INVALID_MBID ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       BSONObj idIdxDef ;
+      UINT64 totalTimeSpent = 0 ;
 
       MsgClsFSMetaRes res ;
       res.header.header.TID = header->TID ;
@@ -1356,6 +1378,13 @@ namespace engine
          {
             _hasMeta = TRUE ;
          }
+
+         totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+         ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                     "Current collection: %s, time spent: %llu min, speed: %.2f MB/s",
+                     _curCollecitonName.c_str(), CLS_FS_TIME_SPENT( totalTimeSpent ),
+                     CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ) ) ;
+         MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
       }
       catch ( std::exception &e )
       {
@@ -1410,6 +1439,7 @@ namespace engine
 
       MsgClsFSIndexRes res ;
       BSONObj obj ;
+      UINT64 totalTimeSpent = 0 ;
       if ( !_hasMeta )
       {
          _disconnect() ;
@@ -1437,6 +1467,13 @@ namespace engine
       _agent->syncSend( handle, &(res.header.header),
                         (void *)obj.objdata(), obj.objsize() ) ;
 
+      totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Current collection: %s, time spent: %llu min, speed: %.2f MB/s",
+                   _curCollecitonName.c_str(), CLS_FS_TIME_SPENT( totalTimeSpent ),
+                   CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
+
    done:
       PD_TRACE_EXIT ( SDB__CLSDSBS_HNDFSINX );
       return SDB_OK ;
@@ -1450,6 +1487,7 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       MsgClsFSNotify *msg = ( MsgClsFSNotify * )header ;
       INT32 rc = SDB_OK ;
+      UINT64 totalTimeSpent = 0 ;
       if ( !_init || ( !_hasMeta && CLS_FS_NOTIFY_TYPE_DOC == msg->type ) )
       {
          _disconnect() ;
@@ -1558,6 +1596,14 @@ namespace engine
             goto done ;
          }
       }
+
+      totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Current collection: %s, time spent: %llu min, speed: %.2f MB/s, type: %s",
+                   _curCollecitonName.c_str(), CLS_FS_TIME_SPENT( totalTimeSpent ),
+                   CLS_FS_SYNC_SPEED( _totalDataSync, totalTimeSpent ),
+                   clsFSNotifyType2String( msg->type ) ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
    done:
       PD_TRACE_EXIT ( SDB__CLSDSBS_HNDFSNTF );
@@ -1856,6 +1902,7 @@ namespace engine
                     "full sync" ) ;
 
             _quit = FALSE ;
+            _syncBeginTick = pmdGetDBTick() ;
          }
       }
 
@@ -1918,6 +1965,12 @@ namespace engine
                  sessionName(), rc ) ;
          goto error ;
       }
+
+      ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
+                   "Sync transaction log, begin LSN: ( offset: %lld, version: %u ), "
+                   "end LSN: ( offset:  %lld, version: %u )", (INT64)pMsg->begin.offset,
+                   pMsg->begin.version, (INT64)pMsg->endExpect.offset, pMsg->endExpect.version ) ;
+      MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
       if ( DPS_INVALID_LSN_OFFSET == _lsn.offset )
       {
@@ -2633,6 +2686,18 @@ namespace engine
       goto done ;
    }
 
+   void _clsFSSrcSession::_makeName ()
+   {
+      UINT32 TID        = 0 ;
+      UINT32 peerNodeID = 0 ;
+      UINT32 groupID    = routeAgent()->localID().columns.groupID ;
+      UINT16 selfNodeID = routeAgent()->localID().columns.nodeID ;
+      ossUnpack32From64 ( _sessionID, peerNodeID, TID ) ;
+      ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:(%u,%u),PeerNodeID:(%u,%u)",
+                   className(), groupID, selfNodeID,
+                   groupID, peerNodeID ) ;
+   }
+
    /*
    _clsSplitSrcSession : implement
    */
@@ -3186,6 +3251,13 @@ namespace engine
       msg.header.header.routeID = header->routeID ;
       msg.header.res = SDB_OK ;
 
+      // when peer node change, then update Name
+      if ( header->routeID.value != _lastSyncNode.value )
+      {
+         _lastSyncNode.value = header->routeID.value ;
+         _updateName() ;
+      }
+
       if ( _hasMeta || _mapOveredCLs.size() > 0 )
       {
          PD_LOG( PDWARNING, "Session[%s]: already hasMeta, can't begin, "
@@ -3233,6 +3305,7 @@ namespace engine
                     routeID2String( header->routeID ).c_str() ) ;
             _init = TRUE ;
             _quit = FALSE ;
+            _syncBeginTick = pmdGetDBTick() ;
          }
 
          // save last offset after meta info is fetched.
@@ -3782,6 +3855,19 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__CLSSPLSS__ONLOBFILTER, rc ) ;
       return rc ;
+   }
+
+   void _clsSplitSrcSession::_updateName ()
+   {
+      ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:(%u,%u),PeerNodeID:(%u,%u)",
+                   className(), routeAgent()->localID().columns.groupID ,
+                   routeAgent()->localID().columns.nodeID,
+                   _lastSyncNode.columns.groupID,
+                   _lastSyncNode.columns.nodeID ) ;
+      if ( eduCB() )
+      {
+         eduCB()->setName( _name ) ;
+      }
    }
 
 }

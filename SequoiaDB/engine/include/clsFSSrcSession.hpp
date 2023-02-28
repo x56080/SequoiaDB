@@ -86,6 +86,9 @@ namespace engine
          // called by self thread
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
+
       public:
          virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID,
                                    dmsExtentID extLID,
@@ -152,6 +155,7 @@ namespace engine
 
          void              _updateNtyLSN( DPS_LSN_OFFSET collectoinLSN ) ;
 
+
       protected:
          BSONObj                          _rangeKeyObj ;
          BSONObj                          _rangeEndKeyObj ;
@@ -189,6 +193,11 @@ namespace engine
          ossSpinXLatch                    _LSNlatch ;
          rtnLobFetcher                    _lobFetcher ;
          DPS_LSN_OFFSET                   _lastEndNtyOffset ;
+
+         UINT64                           _syncBeginTick ;
+         UINT64                           _totalDataSync ;
+         MsgRouteID                       _lastSyncNode ;
+         CHAR                             _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
    };
 
    /*
@@ -247,6 +256,10 @@ namespace engine
       BOOLEAN _hasExternalData() const ;
 
    private:
+      virtual void _makeName () ;
+
+
+   private:
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;
       MAP_SU_STATUS              _validCLs ;
@@ -301,6 +314,10 @@ namespace engine
          INT32 handleBegin( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleEnd( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleLEnd ( NET_HANDLE handle, MsgHeader* header ) ;
+
+      private:
+      void     _updateName() ;
+
 
       protected:
          _dpsMessageBlock                 _filterMB ;
