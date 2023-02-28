@@ -3838,7 +3838,6 @@ namespace engine
 
       // clear truncate flag
       DMS_MB_STATINFO_CLEAR_TRUNCATED( mbContext->mbStat()->_flag ) ;
-      mbContext->mbStat()->_crudCB.reset() ;
 
       if ( dpsCB )
       {
