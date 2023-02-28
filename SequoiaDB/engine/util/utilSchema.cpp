@@ -114,6 +114,32 @@ namespace engine
       goto done ;
    }
 
+   INT32 _utilCheckColumnName( const CHAR *columnName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_LOG_MSG_CHECK( NULL != columnName,
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to check column name, should not be invalid" ) ;
+      PD_LOG_MSG_CHECK( '\0' != columnName[ 0 ],
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to check column name, should not be empty" ) ;
+      PD_LOG_MSG_CHECK( '$' != columnName[ 0 ],
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to check column name [%s], should not "
+                        "start with \'$\' in column name", columnName ) ;
+      PD_LOG_MSG_CHECK( NULL == ossStrchr( columnName, '.' ),
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to check column name [%s], should not "
+                        "contain \'.\' in column name", columnName ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _utilSchemaColAttr implement
     */
@@ -771,14 +797,9 @@ namespace engine
 
             if ( fromUser )
             {
-               PD_LOG_MSG_CHECK( NULL == ossStrchr( columnName, '.' ),
-                                 SDB_INVALIDARG, error, PDERROR,
-                                 "Failed to parse column [%s], should not "
-                                 "contain \'.\' in column name", columnName ) ;
-               PD_LOG_MSG_CHECK( NULL == ossStrchr( columnName, '$' ),
-                                 SDB_INVALIDARG, error, PDERROR,
-                                 "Failed to parse column [%s], should not "
-                                 "contain \'$\' in column name", columnName ) ;
+               rc = _utilCheckColumnName( columnName ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check column name, rc: %d",
+                            rc ) ;
             }
 
             PD_CHECK( Object == beColumn.type(), SDB_INVALIDARG, error, PDERROR,
@@ -1401,6 +1422,9 @@ namespace engine
 
          _colName = options.firstElementFieldName() ;
 
+         rc = _utilCheckColumnName( _colName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check column name, rc: %d", rc ) ;
+
          ele = options.firstElement() ;
          PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to get column attributes, it is not an object" ) ;
@@ -1522,18 +1546,30 @@ namespace engine
 
       try
       {
+         const CHAR *oldColName = NULL ;
+         const CHAR *newColName = NULL ;
          BSONElement ele ;
          BSONObj boDefine ;
 
          PD_CHECK( 1 == options.nFields(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse rename column options, "
                    "should be only one column" ) ;
-         _colName = options.firstElementFieldName() ;
+         oldColName = options.firstElementFieldName() ;
+         PD_LOG_MSG_CHECK( 0 != ossStrcmp( oldColName, "_id" ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Can not rename \"_id\" column" ) ;
+         _colName = oldColName ;
 
          ele = options.firstElement() ;
          PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
                    "Failed to get new column name, it is not a string" ) ;
-         _newColAttr.setName( ele.valuestr() ) ;
+         newColName = ele.valuestr() ;
+         PD_LOG_MSG_CHECK( 0 != ossStrcmp( newColName, "_id" ),
+                           SDB_INVALIDARG, error, PDERROR,
+                           "Can not rename to \"_id\" column" ) ;
+         rc = _utilCheckColumnName( newColName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check column name, rc: %d", rc ) ;
+         _newColAttr.setName( newColName ) ;
          OSS_BIT_SET( _alterMask, UTIL_SCHEMA_ATTR_MASK_COL_NAME ) ;
       }
       catch ( exception &e )
