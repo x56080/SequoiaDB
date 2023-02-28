@@ -308,8 +308,7 @@ namespace engine
 
          if ( 1 != oldKeySet.size() || 1 != newKeySet.size() )
          {
-            SDB_ASSERT( FALSE, "Key set size is wrong" ) ;
-            rc = SDB_SYS ;
+            rc = SDB_MULTI_SHARDING_KEY ;
             PD_LOG( PDERROR, "Sharding key from record is invalid[%d]",
                     rc ) ;
             goto error ;
