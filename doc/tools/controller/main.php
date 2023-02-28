@@ -201,7 +201,7 @@ if( $param['m'] == "doc" || $param['m'] == "pdf" )
    $coverContents = str_replace( '{{version}}', "$major.$minor", $coverContents ) ;
    file_put_contents( "$root/tools/pdfConvertor/src/cover_tmp.html", $coverContents ) ;
 
-   $pdf = "$root/tools/pdfConvertor/tools/$platform/wkhtmltox/bin/$wkhtmltopdf --page-size A4 --dpi 300 --enable-smart-shrinking --load-error-handling ignore --encoding utf-8 --user-style-sheet $root/tools/pdfConvertor/src/pdf_global.css --footer-html $root/tools/pdfConvertor/src/footer.html --header-html $root/tools/pdfConvertor/src/header_tmp.html --page-offset -1 cover $root/tools/pdfConvertor/src/cover_tmp.html toc --xsl-style-sheet $root/tools/pdfConvertor/src/toc.xsl $root/build/mid/build.html $root/build/output/$outputFileName.pdf" ;
+   $pdf = "$root/tools/pdfConvertor/tools/$platform/wkhtmltox/bin/$wkhtmltopdf --page-size A4 --dpi 150 --margin-top 20 --enable-local-file-access --enable-smart-shrinking --load-error-handling ignore --encoding utf-8 --user-style-sheet $root/tools/pdfConvertor/src/pdf_global.css --footer-html $root/tools/pdfConvertor/src/footer.html --header-html $root/tools/pdfConvertor/src/header_tmp.html --page-offset -1 cover $root/tools/pdfConvertor/src/cover_tmp.html toc --xsl-style-sheet $root/tools/pdfConvertor/src/toc.xsl $root/build/mid/build.html $root/build/output/$outputFileName.pdf" ;
    if( execCmd( $pdf ) != 0 )
    {
       //ºöÂÔpdfÔÚlinuxµÄ´íÎó
