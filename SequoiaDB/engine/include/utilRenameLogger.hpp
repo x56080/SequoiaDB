@@ -112,6 +112,7 @@ namespace engine
          INT32 load( utilRenameLog& log );
          INT32 clear() ;
          const CHAR* fileName() ;
+         BOOLEAN isOpened() const ;
 
       private:
          BOOLEAN _isOpened ;

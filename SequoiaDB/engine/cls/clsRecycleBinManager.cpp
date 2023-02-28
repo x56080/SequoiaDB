@@ -1092,6 +1092,17 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
 
+         /// log to .SEQUOIADB_RENAME_INFO
+         utilRenameLog aLog( originName, recycleName ) ;
+
+         rc = options->_logger.init() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, "
+                      "rc: %d", rc );
+
+         rc = options->_logger.log( aLog ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to log rename info to file, "
+                      "rc: %d", rc ) ;
+
          rc = _createRecycleCSTask( originName, recycleName, item, cb, taskID ) ;
          if ( SDB_OK != rc )
          {
@@ -1110,6 +1121,14 @@ namespace engine
       return rc ;
 
    error:
+      if ( NULL != options )
+      {
+         INT32 tmpRC = options->_logger.clear() ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
+         }
+      }
       goto done ;
    }
 
@@ -1117,7 +1136,8 @@ namespace engine
    INT32 _clsRecycleBinManager::_recycleDropCS( dmsStorageUnit *su,
                                                 const CHAR *csName,
                                                 const utilRecycleItem &item,
-                                                pmdEDUCB *cb )
+                                                pmdEDUCB *cb,
+                                                BOOLEAN needLogRename )
    {
       INT32 rc = SDB_OK ;
 
@@ -1133,6 +1153,7 @@ namespace engine
                    "[%s] from deleting, rc: %d", csName, rc ) ;
 
       /// log to .SEQUOIADB_RENAME_INFO
+      if ( needLogRename )
       {
          utilRenameLog aLog( csName, newName ) ;
 
@@ -1149,8 +1170,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space from "
                    "[%s] to [%s], rc: %d", csName, newName, rc ) ;
 
-      rc = logger.clear() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
+      if ( needLogRename )
+      {
+         rc = logger.clear() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
+      }
 
       rc = su->recycleCollectionSpace( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space [%s], "
@@ -1165,16 +1189,19 @@ namespace engine
 
    error:
       {
-         INT32 tmpRC = logger.clear() ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
-         }
-         tmpRC = _dmsCB->moveCSToDeleting( csName ) ;
+         INT32 tmpRC = _dmsCB->moveCSToDeleting( csName ) ;
          if ( SDB_OK != tmpRC )
          {
             PD_LOG( PDERROR, "Failed to remove collection space [%s], rc: %d",
                     csName, tmpRC ) ;
+         }
+         if ( needLogRename )
+         {
+            tmpRC = logger.clear() ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
+            }
          }
       }
       goto done ;
@@ -1222,7 +1249,8 @@ namespace engine
                             item.getRecycleName(), rc ) ;
             }
 
-            rc = _recycleDropCS( su, suItem._pCSName, item, cb ) ;
+            rc = _recycleDropCS( su, suItem._pCSName, item, cb,
+                                 !options->_logger.isOpened() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
                          "space [origin %s, recycle %s], rc: %d",
                          item.getOriginName(),
@@ -1268,6 +1296,7 @@ namespace engine
       {
          UINT64 blockID = options->_blockOpID ;
          UINT64 taskID = options->_localTaskID ;
+         INT32 tmpRC = SDB_OK ;
 
          const utilRecycleItem &item = options->_recycleItem ;
          const CHAR *originName = item.getOriginName() ;
@@ -1283,6 +1312,13 @@ namespace engine
          }
          options->_localTaskID = 0 ;
          options->_blockOpID = 0 ;
+
+         /// remove .SEQUOIADB_RENAME_INFO
+         tmpRC = options->_logger.clear() ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "Failed to clear rename info, rc: %d", tmpRC ) ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCLEANDROPCS, rc ) ;

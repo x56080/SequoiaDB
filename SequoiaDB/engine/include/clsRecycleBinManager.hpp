@@ -228,7 +228,8 @@ namespace engine
       INT32 _recycleDropCS( dmsStorageUnit *su,
                             const CHAR *csName,
                             const utilRecycleItem &item,
-                            pmdEDUCB *cb ) ;
+                            pmdEDUCB *cb,
+                            BOOLEAN needLogRename ) ;
 
       INT32 _regBlockCL( const CHAR *originName,
                          const CHAR *recycleName,

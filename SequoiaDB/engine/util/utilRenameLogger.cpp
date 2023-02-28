@@ -338,6 +338,11 @@ namespace engine
       return _fileName ;
    }
 
+   BOOLEAN _utilRenameLogger::isOpened() const
+   {
+      return _isOpened ;
+   }
+
    /*
       _utilRenameLogManager implement
     */
