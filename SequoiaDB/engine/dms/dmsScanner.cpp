@@ -492,6 +492,10 @@ namespace engine
             }
             else
             {
+               if ( _getPrimalData )
+               {
+                  _waitLock = TRUE ;
+               }
                _needUnLock = TRUE ;
             }
          }
@@ -1869,6 +1873,10 @@ namespace engine
             }
             else
             {
+               if ( _getPrimalData )
+               {
+                  _waitLock = TRUE ;
+               }
                _needUnLock = TRUE ;
             }
          }
