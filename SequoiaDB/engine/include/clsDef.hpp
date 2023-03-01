@@ -49,6 +49,8 @@
 #include "pmdEDU.hpp"
 #include "ossRWMutex.hpp"
 #include "dms.hpp"
+#include "utilReplSizePlan.hpp"
+#include "utilLocation.hpp"
 
 #include <map>
 
@@ -311,7 +313,9 @@ namespace engine
       UINT32        breakTime ;
       UINT32        deadtime ;
       UINT32        sendFailedTimes ;
+      UINT32        locationID ;
       BOOLEAN       isAffinitiveLocation ;
+      UINT8         locationIndex ;
 
    protected:
       // need test remote status, which might not support UDP
@@ -328,6 +332,8 @@ namespace engine
          resetStatus() ;
          resetUDP() ;
          isAffinitiveLocation = FALSE ;
+         locationID = MSG_INVALID_LOCATIONID ;
+         locationIndex = 0xFF ;
       }
 
       OSS_INLINE BOOLEAN isUDPSupported()
@@ -382,12 +388,14 @@ namespace engine
          _locationID    = MSG_INVALID_LOCATIONID ;
          _primary.value = 0 ;
          _isAffinitiveLocation = FALSE ;
+         _locationIndex = 0xFF ;
       }
 
       UINT32         _locationID ;
       ossPoolString  _location ;
       MsgRouteID     _primary ;
       BOOLEAN        _isAffinitiveLocation ;
+      UINT8          _locationIndex ;
    } ;
    // locationID is key, location info is value
    typedef ossPoolMap< UINT32, _clsLocationInfoItem > CLS_LOC_INFO_MAP ;
@@ -543,22 +551,22 @@ namespace engine
    class _clsSyncSession : public SDBObject
    {
    public :
-      DPS_LSN_OFFSET endLsn ;
+      utilReplSizePlan waitPlan ;
       _pmdEDUCB *eduCB ;
 
       /// local write has been completed.
       /// synced starts from one.
-      _clsSyncSession():endLsn(DPS_INVALID_LSN_OFFSET), eduCB( NULL)
+      _clsSyncSession():waitPlan(),eduCB( NULL )
       {}
 
-      BOOLEAN operator<( const _clsSyncSession &session )
+      BOOLEAN operator<( const _clsSyncSession &session ) const
       {
-         return endLsn < session.endLsn ;
+         return waitPlan < session.waitPlan ;
       }
 
-      BOOLEAN operator<=( const _clsSyncSession &session )
+      BOOLEAN operator<=( const _clsSyncSession &session ) const
       {
-         return endLsn <= session.endLsn ;
+         return waitPlan <= session.waitPlan ;
       }
    } ;
 
@@ -575,12 +583,18 @@ namespace engine
       _MsgRouteID       id ;
       BOOLEAN           valid ;
       UINT32            sameReqTimes ;
+      UINT32            locationID ;
+      BOOLEAN           affinitive ;
+      UINT8             locationIndex ;
 
       _clsSyncStatus():offset(0)
       {
          id.value       = 0 ;
          valid          = TRUE ;
          sameReqTimes   = 0 ;
+         locationID     = MSG_INVALID_LOCATIONID ;
+         affinitive     = FALSE ;
+         locationIndex  = 0xFF ;
       }
 
       _clsSyncStatus& operator=( const _clsSyncStatus &right )
@@ -589,6 +603,9 @@ namespace engine
          id.value       = right.id.value ;
          valid          = right.valid ;
          sameReqTimes   = right.sameReqTimes ;
+         locationID     = right.locationID ;
+         affinitive     = right.affinitive ;
+         locationIndex  = right.locationIndex ;
 
          return *this ;
       }

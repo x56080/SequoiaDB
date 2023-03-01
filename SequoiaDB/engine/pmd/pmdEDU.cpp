@@ -149,8 +149,6 @@ namespace engine
       _curRequestID     = 1 ;
       _confChangeID     = 0 ;
 
-      _orgReplSize      = 1 ;
-
       _pRemoteOperator  = NULL ;
 #endif // SDB_ENGINE
 

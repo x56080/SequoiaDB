@@ -694,6 +694,10 @@ namespace engine
          OSS_INLINE BOOLEAN transAllowLockEscalation() const { return _transAllowLockEscalation ; }
          OSS_INLINE INT32 transMaxLockNum() const { return _transMaxLockNum ; }
          OSS_INLINE INT32 transMaxLogSpaceRatio() const { return _transMaxLogSpaceRatio ; }
+         OSS_INLINE SDB_CONSISTENCY_STRATEGY transConsistencyStrategy() const
+         {
+            return _transConsistencyStrategy ;
+         }
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
@@ -840,6 +844,7 @@ namespace engine
          BOOLEAN     _transAllowLockEscalation ;
          INT32       _transMaxLockNum ;
          INT32       _transMaxLogSpaceRatio ;
+         SDB_CONSISTENCY_STRATEGY _transConsistencyStrategy ;
          UINT32      _slowQueryThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;

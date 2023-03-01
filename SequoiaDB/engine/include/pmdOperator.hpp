@@ -42,6 +42,11 @@
 
 #include "sdbInterface.hpp"
 
+#if defined ( SDB_ENGINE )
+#include "utilReplSizePlan.hpp"
+#include "utilLocation.hpp"
+#endif
+
 namespace engine
 {
 
@@ -51,6 +56,11 @@ namespace engine
       _pmdOperator()
       {
          _pMsg = NULL ;
+#if defined ( SDB_ENGINE )
+         _orgReplSize = 1 ;
+         _replStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+         _waitPlan.reset() ;
+#endif // SDB_ENGINE
       }
       virtual ~_pmdOperator()
       {
@@ -87,9 +97,67 @@ namespace engine
          _pMsg = NULL ;
       }
 
+#if defined ( SDB_ENGINE )
+
+      void setOrgReplSize( INT16 replSize )
+      {
+         _orgReplSize = replSize ;
+      }
+
+      INT16 getOrgReplSize() const
+      {
+         return _orgReplSize ;
+      }
+
+      void setReplStrategy( SDB_CONSISTENCY_STRATEGY replStrategy )
+      {
+         _replStrategy = replStrategy ;
+      }
+
+      SDB_CONSISTENCY_STRATEGY getReplStrategy() const
+      {
+         return _replStrategy ;
+      }
+
+      void setWaitplan( UINT8 nodes, const utilLocationInfo &info )
+      {
+         switch ( _replStrategy )
+         {
+            case SDB_CONSISTENCY_NODE:
+               _waitPlan.setNodeReplSizePlan() ;
+               break ;
+            case SDB_CONSISTENCY_LOC_MAJOR:
+               _waitPlan.setLocMajorReplSizePlan( nodes,
+                                                  info.affinitiveLocations,
+                                                  info.primaryLocationNodes,
+                                                  info.locations ) ;
+               break ;
+            case SDB_CONSISTENCY_PRY_LOC_MAJOR:
+               _waitPlan.setPryLocMajorReplSizePlan( nodes,
+                                                     info.affinitiveLocations,
+                                                     info.primaryLocationNodes,
+                                                     info.locations ) ;
+               break ;
+            default:
+               SDB_ASSERT( FALSE, "impossible" ) ;
+               _waitPlan.setNodeReplSizePlan() ;
+         }
+      }
+
+      utilReplSizePlan getWaitplan() const
+      {
+         return _waitPlan ;
+      }
+#endif // SDB_ENGINE
+
    private:
-      MsgHeader*  _pMsg ;
-      MsgGlobalID _globalID ;
+      MsgHeader*               _pMsg ;
+      MsgGlobalID              _globalID ;
+#if defined ( SDB_ENGINE )
+      INT16                    _orgReplSize ;
+      SDB_CONSISTENCY_STRATEGY _replStrategy ;
+      utilReplSizePlan         _waitPlan ;
+#endif // SDB_ENGINE
    } ;
    typedef _pmdOperator pmdOperator ;
 

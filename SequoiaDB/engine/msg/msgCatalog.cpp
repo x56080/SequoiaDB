@@ -321,6 +321,7 @@ namespace engine
          if ( NULL != pLocationInfo && Array == ele.type() )
          {
             BSONObjIterator i( ele.embeddedObject() ) ;
+            UINT8 index = 0 ;
             while ( i.more() )
             {
                BSONElement beLocations = i.next() ;
@@ -355,6 +356,7 @@ namespace engine
                   item._primary.columns.groupID = groupID ;
                   item._primary.columns.nodeID = bePrimary.numberInt() ;
                }
+               item._locationIndex = index++ ;
 
                pLocationInfo->insert( CLS_LOC_INFO_MAP::value_type( item._locationID, item ) ) ;
             }

@@ -668,6 +668,7 @@ namespace sdbclient
 
       virtual void setVersion( INT32 clVersion ) = 0;
       virtual INT32 getVersion() = 0;
+      virtual INT32 setConsistencyStrategy( INT32 value ) = 0 ;
    } ;
 
    /** \class sdbCollection
@@ -2730,6 +2731,16 @@ namespace sdbclient
       INT32 getVersion()
       {
           return pCollection->getVersion() ;
+      }
+      /* \fn INT32 setConsistencyStrategy ()
+          \brief set consistency strategy from collection.
+          \param [in] value The consistency strategy of collection.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setConsistencyStrategy( INT32 value )
+      {
+          return pCollection->setConsistencyStrategy( value ) ;
       }
    } ;
 

@@ -558,6 +558,7 @@
 #define FIELD_NAME_NODE_LOCATIONS            "Locations"
 #define FIELD_NAME_NODE_LOCATIONID           "LocationID"
 #define FIELD_NAME_IS_LOC_PRIMARY            "IsLocationPrimary"
+#define FIELD_NAME_CONSISTENCY_STRATEGY      "ConsistencyStrategy"
 
 #define FIELD_NAME_FREELOGSPACE              "freeLogSpace"
 #define FIELD_NAME_VSIZE                     "vsize"
@@ -1141,6 +1142,18 @@ enum SDB_LOB_MODE
    SDB_LOB_MODE_REMOVE     = 0x00000010,
    SDB_LOB_MODE_TRUNCATE   = 0x00000020,
    SDB_LOB_MODE_SHAREREAD  = 0x00000040,
+} ;
+
+enum SDB_CONSISTENCY_STRATEGY
+{
+   // Write the number of different nodes in the replication group.
+   SDB_CONSISTENCY_NODE = 1,
+   // Wtite to most locations first, and then write to most nodes
+   // of the location where the primary node is located.
+   SDB_CONSISTENCY_LOC_MAJOR,
+   // Write most nodes of the location where the primary node is
+   // located first, and the wtite to most locations.
+   SDB_CONSISTENCY_PRY_LOC_MAJOR,
 } ;
 
 #define SDB_ANALYZE_MODE_SAMPLE     ( 1 )

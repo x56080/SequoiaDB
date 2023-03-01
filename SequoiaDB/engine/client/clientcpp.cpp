@@ -4630,6 +4630,29 @@ do                                                            \
       return _version;
    }
 
+   INT32 _sdbCollectionImpl::setConsistencyStrategy( INT32 value )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+
+      try
+      {
+         BSONObjBuilder queryBuilder ;
+         queryBuilder.append( FIELD_NAME_CONSISTENCY_STRATEGY, value ) ;
+         query = queryBuilder.obj() ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = _alterInternal( SDB_ALTER_CL_SET_ATTR, &query, FALSE ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
     * _sdbNodeImpl
     * Sdb Node Implementation

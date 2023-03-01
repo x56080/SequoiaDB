@@ -710,8 +710,8 @@ namespace engine
          _transExecutor.resetLogSpace();
       }
 
-      void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
-      INT16    getOrgReplSize() const { return _orgReplSize ; }
+      void     setOrgReplSize( INT16 replSize ) { _operator.setOrgReplSize( replSize ) ; }
+      INT16    getOrgReplSize() const { return _operator.getOrgReplSize() ; }
 
       INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const
       {
@@ -825,8 +825,6 @@ namespace engine
       pmdTransExecutor        _transExecutor ;
       dpsLogConfig            _logConfig ;
       UINT32                  _confChangeID ;
-
-      INT16                   _orgReplSize ;
 
       sdbRemoteOpCtrl         _remoteOpCtrl ;
       IRemoteOperator         *_pRemoteOperator ;

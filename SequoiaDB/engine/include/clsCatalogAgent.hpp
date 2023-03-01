@@ -199,6 +199,7 @@ namespace engine
       public:
          INT32             getVersion () const ;
          UINT32            getW () const ;
+         SDB_CONSISTENCY_STRATEGY getConsistencyStrategy () const ;
          INT32             getHashPartition() const { return _partition ;}
          UINT32            getPartitionBit() const { return _square ; }
          BOOLEAN           ensureShardingIndex() const { return _ensureShardingIndex ; }
@@ -371,6 +372,7 @@ namespace engine
       private:
          INT32             _version ;
          UINT32            _w ;
+         SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
          BSONObj           _shardingKey ;
          UINT16            _shardingType ;
          // AutoSplit: -1 means no specified, 0 means FALSE, 1 means TRUE

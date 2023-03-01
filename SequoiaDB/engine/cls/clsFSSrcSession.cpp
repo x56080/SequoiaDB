@@ -3378,8 +3378,16 @@ namespace engine
          // need wait the group other nodes sync complete
          if ( _collectionW > 1 )
          {
-            INT32 rc = sdbGetReplCB()->sync( _lastOprLSN,
-                                             eduCB(), _collectionW, 1 ) ;
+            INT32 rc = SDB_OK ;
+            INT16 replSize = _collectionW ;
+            rc = sdbGetReplCB()->replSizeCheck( _collectionW, replSize,
+                                                eduCB(), TRUE ) ;
+            if ( SDB_OK != rc )
+            {
+               goto done ;
+            }
+            rc = sdbGetReplCB()->sync( _lastOprLSN,
+                                       eduCB(), replSize, 1 ) ;
             if ( SDB_TIMEOUT == rc )
             {
                goto done ;
@@ -3448,6 +3456,7 @@ namespace engine
       {
          mainCLName = pSet->getMainCLName() ;
          _collectionW = pSet->getW() ;
+         eduCB()->getOperator()->setReplStrategy( pSet->getConsistencyStrategy() ) ;
       }
       if ( !pSet || !pSet->isKeyInGroup( _rangeKeyObj, groupID ) )
       {

@@ -43,6 +43,8 @@
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "pmd.hpp"
+#include "utilReplSizePlan.hpp"
+#include "utilBitmap.hpp"
 
 using namespace std ;
 
@@ -71,11 +73,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
       _syncSrc.value = MSG_INVALID_ROUTEID ;
       _wakeTimeout = 0 ;
-
-      for ( UINT32 i = 0 ; i < CLS_REPLSET_MAX_NODE_SIZE - 1 ; i++ )
-      {
-         _checkList[i] = DPS_INVALID_LSN_OFFSET ;
-      }
 
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
    }
@@ -233,6 +230,9 @@ namespace engine
             if ( itr->first == status[j].id.value )
             {
                has = TRUE ;
+               status[j].locationID = itr->second.locationID ;
+               status[j].affinitive = itr->second.isAffinitiveLocation ;
+               status[j].locationIndex = itr->second.locationIndex ;
                break ;
             }
          }
@@ -241,6 +241,9 @@ namespace engine
             status[merge].offset = 0 ;
             status[merge].id.value = itr->first ;
             status[merge].valid = newNodeValid ;
+            status[merge].locationID = itr->second.locationID ;
+            status[merge].affinitive = itr->second.isAffinitiveLocation ;
+            status[merge].locationIndex = itr->second.locationIndex ;
             ++merge ;
          }
       }
@@ -263,14 +266,14 @@ namespace engine
                   CLS_REPLSE_WRITE_ONE <= w,
                  "1 <= sync num <= CLS_REPLSET_MAX_NODE_SIZE" ) ;
       SDB_ASSERT( NULL != session.eduCB, "educb should not be NULL" ) ;
-      SDB_ASSERT( DPS_INVALID_LSN_OFFSET != session.endLsn,
+      SDB_ASSERT( DPS_INVALID_LSN_OFFSET != session.waitPlan.offset,
                   "end lsn should not be valid" ) ;
       INT32 rc = SDB_OK ;
       UINT32 sub = 0;
       BOOLEAN needWait = TRUE ;
 
       /// if w <= 1, return
-      if ( w <= CLS_REPLSE_WRITE_ONE )
+      if ( CLS_REPLSE_WRITE_ONE >= w )
       {
          goto done ;
       }
@@ -298,7 +301,8 @@ namespace engine
          // we can degrade the ReplSize for wait sync, report node is down
          // to caller, who can adjust ReplSize if needed
          if ( ( -1 == session.eduCB->getOrgReplSize() ) ||
-              ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
+              ( 1 != session.eduCB->getOrgReplSize() &&
+                isFTWhole ) )
          {
             rc = SDB_DATABASE_DOWN ;
          }
@@ -319,16 +323,31 @@ namespace engine
       }
 
       _mtxs[sub].get() ;
-      if ( DPS_INVALID_LSN_OFFSET != _checkList[sub] &&
-           session.endLsn < _checkList[sub] )
+      if ( DPS_INVALID_LSN_OFFSET != _checkList[sub].offset &&
+           session.waitPlan.isPassed( _checkList[sub] ) )
       {
          needWait = FALSE ;
+         _mtxs[sub].release() ;
+      }
+      else if ( DPS_INVALID_LSN_OFFSET != _checkList[sub].offset &&
+                session.waitPlan.offset < _checkList[sub].offset )
+      {
+         _mtxs[sub].release() ;
+         if ( _validSync - 1 == sub )
+         {
+            // if it's last check list, session will not need to sync
+            needWait = FALSE ;
+         }
+         else
+         {
+            rc = _jump( session, sub, needWait ) ;
+         }
       }
       else
       {
          rc = _syncList[sub].push( session ) ;
+         _mtxs[sub].release() ;
       }
-      _mtxs[sub].release() ;
       _info->mtx.release_r() ;
 
       if ( SDB_OK != rc )
@@ -337,7 +356,7 @@ namespace engine
       }
       else if ( needWait )
       {
-         rc = _wait( session.eduCB, sub, timeout ) ;
+         rc = _wait( session, sub, timeout ) ;
       }
 
    done:
@@ -576,7 +595,8 @@ namespace engine
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
                if ( -1 == session.eduCB->getOrgReplSize() ||
-                    ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
+                    ( 1 != session.eduCB->getOrgReplSize() &&
+                      isFTWhole ) )
                {
                   session.eduCB->getEvent().signal( SDB_DATABASE_DOWN ) ;
                }
@@ -703,15 +723,25 @@ namespace engine
       {
          /// get max elemenet
          DPS_LSN lsn ;
-         lsn.offset = *ritr ;
+         lsn.offset = (*ritr).offset ;
          _mtxs[sub].get() ;
-         _checkList[sub] = lsn.offset ;
+         _checkList[sub] = *ritr ;
          while ( SDB_OK == _syncList[sub].root( session ) )
          {
-            if ( 0 < lsn.compareOffset( session.endLsn ) )
+            if ( 0 < lsn.compareOffset( session.waitPlan.offset ) )
             {
-               session.eduCB->getEvent().signal ( SDB_OK ) ;
-               _syncList[sub].pop( session ) ;
+               if ( session.waitPlan.isPassed( _checkList[sub] ) )
+               {
+                  session.eduCB->getEvent().signal ( SDB_OK ) ;
+                  _syncList[sub].pop( session ) ;
+               }
+               else
+               {
+                  PD_LOG( PDDEBUG, "Session[LSN:%llu, ID:%lld] need level up",
+                          session.waitPlan.offset, session.eduCB->getID() ) ;
+                  session.eduCB->getEvent().signal( SDB_OPERATION_RETRY ) ;
+                  _syncList[sub].pop( session ) ;
+               }
             }
             else
             {
@@ -733,8 +763,10 @@ namespace engine
 
       UINT32 fullSyncNodes = 0 ;
 
-      DPS_LSN_OFFSET offsetTmp = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET offsetMax = 0 ;
+      utilReplSizePlan wakePlan ;
+      UINT32 selfLocation = pmdGetLocationID() ;
+      _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
@@ -756,16 +788,54 @@ namespace engine
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
+         wakePlan.reset() ;
          if ( DPS_INVALID_LSN_OFFSET == _notifyList[i].offset )
          {
             /// DPS_INVALID_LSN_OFFSET is for full sync, so ignore the node.
             /// Save as max offset of other nodes
-            plan.insert( offsetMax ) ;
+            wakePlan.offset = offsetMax ;
          }
          else
          {
-            offsetTmp = _notifyList[i].offset ;
-            plan.insert( offsetTmp ) ;
+            wakePlan.offset = _notifyList[i].offset ;
+         }
+
+         if ( MSG_INVALID_LOCATIONID != selfLocation &&
+              MSG_INVALID_LOCATIONID != _notifyList[i].locationID )
+         {
+            if ( selfLocation == _notifyList[i].locationID )
+            {
+               wakePlan.primaryLocationNodes = 1 ;
+               isMarked.setBit( _notifyList[i].locationIndex ) ;
+            }
+            else if ( !isMarked.testBit( _notifyList[i].locationIndex ) )
+            {
+               wakePlan.locations = 1 ;
+               if ( _notifyList[i].affinitive )
+               {
+                  wakePlan.affinitiveLocations = 1 ;
+               }
+               isMarked.setBit( _notifyList[i].locationIndex ) ;
+            }
+         }
+         plan.insert( wakePlan ) ;
+      }
+
+      if ( MSG_INVALID_LOCATIONID != selfLocation &&
+           CLS_REPLSET_MAX_NODE_SIZE != isMarked.freeSize() )
+      {
+         CLS_WAKE_PLAN::reverse_iterator ritr = plan.rbegin() ;
+         wakePlan.reset() ;
+         while ( ritr != plan.rend() )
+         {
+            wakePlan.affinitiveLocations += (*ritr).affinitiveLocations ;
+            wakePlan.primaryLocationNodes += (*ritr).primaryLocationNodes ;
+            wakePlan.locations += (*ritr).locations ;
+
+            (*ritr).affinitiveLocations = wakePlan.affinitiveLocations ;
+            (*ritr).primaryLocationNodes = wakePlan.primaryLocationNodes ;
+            (*ritr).locations = wakePlan.locations ;
+            ++ritr ;
          }
       }
 
@@ -775,7 +845,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAIT, "_clsSyncManager::_wait" )
-   INT32 _clsSyncManager::_wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout )
+   INT32 _clsSyncManager::_wait( _clsSyncSession &session, UINT32 sub, INT64 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__WAIT ) ;
@@ -783,6 +853,7 @@ namespace engine
       pmdEDUEvent ev ;
       INT64 tmpTime = 0 ;
       BOOLEAN hasBlock = FALSE ;
+      pmdEDUCB *cb = session.eduCB ;
 
       while ( !cb->isInterrupted() )
       {
@@ -809,6 +880,28 @@ namespace engine
             }
             continue ;
          }
+         else if ( SDB_OPERATION_RETRY == rc )
+         {
+            cb->getEvent().reset() ;
+
+            if ( _validSync - 1 == sub )
+            {
+               // if it's last check list, session will not need to sync
+               rc = SDB_OK ;
+               goto done ;
+            }
+
+            BOOLEAN needWait = TRUE ;
+            rc = _jump( session, sub, needWait ) ;
+            if ( SDB_OK != rc )
+            {
+               goto done ;
+            }
+            else if ( !needWait )
+            {
+               goto done ;
+            }
+         }
          else
          {
             goto done ;
@@ -833,7 +926,7 @@ namespace engine
             {
                PD_LOG ( PDDEBUG, "Session[ID:%lld, LSN:%lld] interrupt,remove "
                         "from heap[sub:%d, index:%d]", heap[i].eduCB->getID(),
-                        heap[i].endLsn, sub, i ) ;
+                        heap[i].waitPlan.offset, sub, i ) ;
                heap.erase( i ) ;
                break ;
             }
@@ -852,6 +945,53 @@ namespace engine
          cb->unsetBlock() ;
       }
       PD_TRACE_EXITRC ( SDB__CLSSYNCMAG__WAIT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__JUMP, "_clsSyncManager::_jump" )
+   INT32 _clsSyncManager::_jump( _clsSyncSession &session,
+                                 UINT32 &sub,
+                                 BOOLEAN &needWait )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__JUMP ) ;
+      INT32 rc = SDB_OK ;
+
+      needWait = FALSE ;
+
+      while ( _validSync > sub )
+      {
+         _mtxs[++sub].get() ;
+         if ( DPS_INVALID_LSN_OFFSET != _checkList[sub].offset &&
+              session.waitPlan.isPassed( _checkList[sub] ) )
+         {
+            needWait = FALSE ;
+            _mtxs[sub].release() ;
+            break ;
+         }
+         else if ( DPS_INVALID_LSN_OFFSET != _checkList[sub].offset &&
+                   session.waitPlan.offset < _checkList[sub].offset )
+         {
+            _mtxs[sub].release() ;
+            // if it's last check list, session will not need to sync
+            if ( _validSync - 1 == sub )
+            {
+               needWait = FALSE ;
+               break ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDDEBUG, "Session[LSN:%llu, ID:%lld] has jumped to "
+                    "check list[sub:%d]", session.waitPlan.offset,
+                    session.eduCB->getID(), sub ) ;
+            rc = _syncList[sub].push( session ) ;
+            _mtxs[sub].release() ;
+            needWait = TRUE ;
+            break ;
+         }
+      }
+
+      PD_TRACE_EXITRC ( SDB__CLSSYNCMAG__JUMP, rc ) ;
       return rc ;
    }
 
@@ -882,7 +1022,7 @@ namespace engine
             /// compute w's completion
             for ( UINT32 j = 0; j < preSyncNum - 1 ; ++j )
             {
-               if ( session.endLsn < left[j].offset )
+               if ( session.waitPlan.offset < left[j].offset )
                {
                   ++complete ;
                }

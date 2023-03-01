@@ -1573,6 +1573,7 @@ namespace engine
      _autoIndexID( TRUE ),
      _idIdxUniqID( UTIL_UNIQUEID_NULL ),
      _replSize( 1 ),
+     _consistencyStrategy( SDB_CONSISTENCY_PRY_LOC_MAJOR ),
      _strictDataMode( TRUE ),
      _noTrans( FALSE )
    {
@@ -1752,6 +1753,26 @@ namespace engine
                    "Failed to get field [%s]: invalid repl size [%d]",
                    FIELD_NAME_W, _replSize ) ;
          parsedArgumentMask( UTIL_CL_REPLSIZE_FIELD ) ;
+         setFlags( RTN_ALTER_TASK_FLAG_SHARDONLY ) ;
+      }
+
+      if ( _argument.hasField( FIELD_NAME_CONSISTENCY_STRATEGY ) )
+      {
+         UINT32 consistencyStrategy = 0 ;
+         argElement = _argument.getField( FIELD_NAME_CONSISTENCY_STRATEGY ) ;
+         PD_CHECK( NumberInt == argElement.type(),
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_CONSISTENCY_STRATEGY ) ;
+         consistencyStrategy = argElement.numberInt() ;
+         PD_LOG_MSG_CHECK ( SDB_CONSISTENCY_NODE <= consistencyStrategy &&
+                            SDB_CONSISTENCY_PRY_LOC_MAJOR >=
+                            consistencyStrategy, SDB_INVALIDARG, error, PDERROR,
+                            "Failed to get field [%s]: invalid consistency strategy"
+                            " [%d]",FIELD_NAME_CONSISTENCY_STRATEGY,
+                            consistencyStrategy ) ;
+         _consistencyStrategy =
+               (SDB_CONSISTENCY_STRATEGY)consistencyStrategy ;
+         parsedArgumentMask( UTIL_CL_CONSISTENCYSTRATEGY_FIELD ) ;
          setFlags( RTN_ALTER_TASK_FLAG_SHARDONLY ) ;
       }
 

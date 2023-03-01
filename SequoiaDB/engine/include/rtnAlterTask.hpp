@@ -42,6 +42,7 @@
 #include "../bson/bson.hpp"
 #include "utilGlobalID.hpp"
 #include "utilUniqueID.hpp"
+#include "msgDef.hpp"
 
 namespace engine
 {
@@ -861,6 +862,11 @@ namespace engine
             return _replSize ;
          }
 
+         OSS_INLINE SDB_CONSISTENCY_STRATEGY getConsistencyStrategy () const
+         {
+            return _consistencyStrategy ;
+         }
+
          OSS_INLINE BOOLEAN isStrictDataMode () const
          {
             return _strictDataMode ;
@@ -890,6 +896,7 @@ namespace engine
          BOOLEAN         _autoIndexID ;
          utilIdxUniqueID _idIdxUniqID ;
          INT32           _replSize ;
+         SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
          BOOLEAN         _strictDataMode ;
          BOOLEAN         _noTrans ;
    } ;

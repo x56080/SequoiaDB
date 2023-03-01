@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dpsTransDef.hpp 
+   Source File Name = dpsTransDef.hpp
 
    Descriptive Name =
 

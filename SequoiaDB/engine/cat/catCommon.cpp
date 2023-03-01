@@ -6774,6 +6774,32 @@ namespace engine
 
             fieldMask |= UTIL_CL_REPLSIZE_FIELD ;
          }
+         // consistency strategy
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_CATALOG_CONSISTENCYSTRATEGY ) == 0 )
+         {
+            PD_CHECK( NumberInt == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_CATALOG_CONSISTENCYSTRATEGY, eleTmp.type() ) ;
+            UINT32 consistencyStrategy = eleTmp.numberInt() ;
+            if ( SDB_CONSISTENCY_NODE <= consistencyStrategy &&
+                 SDB_CONSISTENCY_PRY_LOC_MAJOR >=
+                 consistencyStrategy )
+            {
+               clInfo._consistencyStrategy =
+                  (SDB_CONSISTENCY_STRATEGY) consistencyStrategy ;
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Invalid consistency strategy: %d",
+                           consistencyStrategy ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            fieldMask |= UTIL_CL_CONSISTENCYSTRATEGY_FIELD ;
+         }
          // ensure sharding index
          else if ( ossStrcmp( eleTmp.fieldName(), CAT_ENSURE_SHDINDEX ) == 0 )
          {
@@ -7451,6 +7477,12 @@ namespace engine
       if ( mask & UTIL_CL_REPLSIZE_FIELD )
       {
          builder.append( CAT_CATALOG_W_NAME, clInfo._replSize ) ;
+      }
+
+      if ( mask & UTIL_CL_CONSISTENCYSTRATEGY_FIELD )
+      {
+         builder.append( CAT_CATALOG_CONSISTENCYSTRATEGY,
+                         clInfo._consistencyStrategy ) ;
       }
 
       builder.append( CAT_ATTRIBUTE_NAME, attribute ) ;

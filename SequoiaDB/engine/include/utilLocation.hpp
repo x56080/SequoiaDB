@@ -41,6 +41,22 @@
 namespace engine
 {
    BOOLEAN utilCalAffinity( const CHAR *location1, const CHAR *location2 ) ;
+
+   struct _utilLocationInfo
+   {
+      UINT8 primaryLocationNodes ;
+      UINT8 locations ;
+      UINT8 affinitiveLocations ;
+
+      _utilLocationInfo()
+      {
+         primaryLocationNodes = 0 ;
+         locations = 0 ;
+         affinitiveLocations = 0 ;
+      }
+   } ;
+
+   typedef _utilLocationInfo utilLocationInfo ;
 }
 
 #endif // UTIL_LOCATION_HPP_

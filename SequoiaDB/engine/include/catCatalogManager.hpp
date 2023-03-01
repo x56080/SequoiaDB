@@ -70,6 +70,7 @@ namespace engine
       BSONObj     _shardingKey ;
       const CHAR  *_lobShardingKeyFormat ;
       INT32       _replSize ;
+      SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
       BOOLEAN     _enSureShardIndex ;
       const CHAR  *_pShardingType ;
       INT32       _shardPartition ;
@@ -105,6 +106,7 @@ namespace engine
          _pCLName             = NULL ;
          _clUniqueID          = UTIL_UNIQUEID_NULL ;
          _replSize            = 1 ;
+         _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
          _enSureShardIndex    = TRUE ;
          _pShardingType       = CAT_SHARDING_TYPE_HASH ;
          _shardPartition      = CAT_SHARDING_PARTITION_DEFAULT ;

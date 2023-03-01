@@ -52,6 +52,8 @@
 #include "dpsDef.hpp"
 #include "ossQueue.hpp"
 #include "clsReelection.hpp"
+#include "utilReplSizePlan.hpp"
+#include "utilBitmap.hpp"
 #include <vector>
 
 using namespace std ;
@@ -149,7 +151,8 @@ namespace engine
          OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
                                         UINT32 &falutCnt, UINT32 &ssCnt,
                                         INT32 &indoubtErr,
-                                        UINT16 &indoubtNodeID )
+                                        UINT16 &indoubtNodeID,
+                                        utilLocationInfo *locationInfo )
          {
             map<UINT64, _clsSharingStatus *>::iterator it ;
             _clsSharingStatus *pStatus = NULL ;
@@ -159,6 +162,12 @@ namespace engine
             falutCnt = 0 ;
             ssCnt = 0 ;
             indoubtErr = SDB_OK ;
+            UINT32 selfLocationID = pmdGetLocationID() ;
+            UINT32 locationID = MSG_INVALID_LOCATIONID ;
+            UINT8 primaryLocationNodes = 0 ;
+            UINT8 affinitiveLocations = 0 ;
+            UINT8 locations = 0 ;
+            _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
 
             ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
@@ -174,6 +183,7 @@ namespace engine
                if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
                {
                   --aliveCnt ;
+                  continue ;
                }
                else if ( 0 != pStatus->beat.ftConfirmStat )
                {
@@ -183,11 +193,41 @@ namespace engine
                      indoubtErr = pStatus->beat.indoubtErr ;
                      indoubtNodeID = pStatus->beat.identity.columns.nodeID ;
                   }
+                  continue ;
                }
                else if ( CLS_NODE_RUNNING != pStatus->beat.nodeRunStat )
                {
                   ++ssCnt ;
+                  continue ;
                }
+
+               if( NULL != locationInfo )
+               {
+                  locationID = pStatus->beat.locationID ;
+                  if ( MSG_INVALID_LOCATIONID != selfLocationID &&
+                       MSG_INVALID_LOCATIONID != locationID )
+                  {
+                     if ( selfLocationID == locationID )
+                     {
+                        primaryLocationNodes++ ;
+                     }
+                     else if ( !isMarked.testBit( pStatus->locationIndex ) )
+                     {
+                        locations++ ;
+                        if ( pStatus->isAffinitiveLocation )
+                        {
+                           affinitiveLocations++ ;
+                        }
+                        isMarked.setBit( pStatus->locationIndex ) ;
+                     }
+                  }
+               }
+            }
+            if ( NULL != locationInfo )
+            {
+               locationInfo->primaryLocationNodes = primaryLocationNodes ;
+               locationInfo->locations = locations ;
+               locationInfo->affinitiveLocations = affinitiveLocations ;
             }
          }
 
@@ -238,7 +278,6 @@ namespace engine
             }
 
             _clsSyncSession session ;
-            session.endLsn = offset ;
             session.eduCB = eduCB ;
             eduCB->getEvent().reset() ;
 
@@ -247,6 +286,8 @@ namespace engine
                w = CLS_REPLSET_MAX_NODE_SIZE ;
             }
 
+            session.waitPlan = eduCB->getOperator()->getWaitplan() ;
+            session.waitPlan.offset = offset ;
             return _sync.sync( session, w, timeout,
                                FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ?
                                                              TRUE : FALSE ) ;

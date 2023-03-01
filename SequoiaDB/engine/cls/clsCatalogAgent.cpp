@@ -426,6 +426,7 @@ namespace engine
       _clUniqueID = clUniqueID ;
       _version = -1 ;
       _w = 1 ;
+      _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
       _next = NULL ;
       _lastItem = NULL ;
       _pOrder = NULL ;
@@ -483,6 +484,11 @@ namespace engine
    UINT32 _clsCatalogSet::getW () const
    {
       return _w ;
+   }
+
+   SDB_CONSISTENCY_STRATEGY _clsCatalogSet::getConsistencyStrategy() const
+   {
+      return _consistencyStrategy ;
    }
 
    const CHAR *_clsCatalogSet::name () const
@@ -1723,6 +1729,42 @@ namespace engine
       else
       {
          _w = (INT32)ele.Int() ;
+      }
+
+      //update consistency strategy, optional, 3 for default
+      ele = catSet.getField( CAT_CATALOG_CONSISTENCYSTRATEGY ) ;
+      // if the element does not exist, use default 3
+      if ( ele.eoo () )
+      {
+         _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+      }
+      else if ( ele.type() != NumberInt )
+      {
+         // if type is not Number, something wrong
+         PD_RC_CHECK ( SDB_CAT_CORRUPTION, PDSEVERE,
+                       "Catalog [%s] type error, type: %d",
+                       CAT_CATALOG_CONSISTENCYSTRATEGY, ele.type() ) ;
+      }
+      else
+      {
+         INT32 consistencyStrategy = (INT32)ele.Int() ;
+         if ( SDB_CONSISTENCY_NODE > consistencyStrategy )
+         {
+            PD_LOG( PDWARNING, "Consistency strategy[%d] is less than min ",
+                    "value[%d]", consistencyStrategy,
+                    SDB_CONSISTENCY_NODE ) ;
+            consistencyStrategy = SDB_CONSISTENCY_NODE ;
+         }
+         else if ( SDB_CONSISTENCY_PRY_LOC_MAJOR <
+                      consistencyStrategy )
+         {
+            PD_LOG( PDWARNING, "Consistency strategy[%d] is greater than max ",
+                    "value[%d]", consistencyStrategy,
+                    SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
+            consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
+         }
+         _consistencyStrategy =
+                  (SDB_CONSISTENCY_STRATEGY) consistencyStrategy ;
       }
 
       // update unique id

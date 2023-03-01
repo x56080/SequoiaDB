@@ -49,6 +49,7 @@
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "utilLocation.hpp"
+#include "utilReplSizePlan.hpp"
 
 namespace engine
 {
@@ -473,7 +474,7 @@ namespace engine
                }
                /// check active node
                getDetailInfo( nodeCnt, aliveCnt, falutCnt, ssCnt,
-                              indoubtErr, indoubtNodeID ) ;
+                              indoubtErr, indoubtNodeID, NULL ) ;
                if ( 1 == aliveCnt )
                {
                   /// All node stoped
@@ -698,16 +699,21 @@ namespace engine
          }
          else
          {
-            // set node affinity information
+            // set node location information
             UINT32 locationID = itr->second._locationID ;
             if ( MSG_INVALID_LOCATIONID != locationID &&
-               ( locItr = locationInfoMap.find( locationID ) ) != locationInfoMap.end() )
+                 ( locItr = locationInfoMap.find( locationID ) ) !=
+                      locationInfoMap.end() )
             {
                itr2->second.isAffinitiveLocation = locItr->second._isAffinitiveLocation ;
+               itr2->second.locationID = locItr->second._locationID ;
+               itr2->second.locationIndex = locItr->second._locationIndex ;
             }
             else
             {
                itr2->second.isAffinitiveLocation = FALSE ;
+               itr2->second.locationID = MSG_INVALID_LOCATIONID ;
+               itr2->second.locationIndex = 0xFF ;
             }
             ++itr2 ;
          }
@@ -727,8 +733,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       std::map<UINT64, _netRouteNode>::const_iterator nodeItr ;
       std::map<UINT64, _clsSharingStatus>::iterator infoItr ;
-      
-      // Add nodes to _locationInfo.info 
+
+      // Add nodes to _locationInfo.info
       nodeItr = nodes.begin() ;
       for ( ; nodeItr != nodes.end() ; ++nodeItr )
       {
@@ -1726,7 +1732,7 @@ namespace engine
          msg.id = _info.local ;
          _cata.call( (MsgHeader *)(&msg) ) ;
       }
-      else 
+      else
       {
          // Handle Replica Group heartbeat
          if ( itr != _info.info.end() )
@@ -2440,6 +2446,7 @@ namespace engine
       INT16 adjW = 0 ;
       UINT32 timeout = 0 ;
       BOOLEAN hasBlock = FALSE ;
+      utilLocationInfo locationInfo ;
 
       /// check valid
       if ( w < -1 || w > CLS_REPLSET_MAX_NODE_SIZE )
@@ -2454,6 +2461,7 @@ namespace engine
       if ( 1 == w && ( isAfterData || !_isAllNodeFatal ) )
       {
          finalW = w ;
+         cb->getOperator()->setWaitplan( finalW, locationInfo ) ;
          goto done ;
       }
 
@@ -2468,7 +2476,9 @@ namespace engine
          }
 
          getDetailInfo( nodeCnt, aliveCnt, faultCnt, ssCnt,
-                        indoubtErr, indoubtNodeID ) ;
+                        indoubtErr, indoubtNodeID,
+                        SDB_CONSISTENCY_NODE == cb->getOperator()->getReplStrategy() ?
+                        NULL : &locationInfo ) ;
 
          /// One node in the group
          if ( 1 == nodeCnt )
@@ -2595,6 +2605,7 @@ namespace engine
          timeout += OSS_ONE_SEC ;
          continue ;
       }
+      cb->getOperator()->setWaitplan( finalW, locationInfo ) ;
 
    done:
       if ( hasBlock )

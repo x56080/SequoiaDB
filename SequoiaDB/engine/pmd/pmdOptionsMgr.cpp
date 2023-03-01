@@ -2029,6 +2029,7 @@ done:
       _transAllowLockEscalation = DPS_TRANS_ALLOWLOCKESCALATION_DFT ;
       _transMaxLockNum = DPS_TRANS_MAXLOCKNUM_DFT ;
       _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
+      _transConsistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
 
       _detectDisk = TRUE ;
       _diagSecureOn = TRUE ;
@@ -2549,6 +2550,13 @@ done:
               FALSE, PMD_CFG_CHANGE_RUN, DPS_TRANS_MAXLOGSPACERATIO_DFT, FALSE ) ;
       rdvMinMax( pEX, _transMaxLogSpaceRatio, DPS_TRANS_MAXLOGSPACERATIO_MIN,
                  DPS_TRANS_MAXLOGSPACERATIO_MAX ) ;
+
+      // --transonsistencystrategy
+      rdxInt( pEX, PMD_OPTION_TRANSCONSISTENCYSTRATEGY, (INT32&)_transConsistencyStrategy,
+              FALSE, PMD_CFG_CHANGE_RUN,
+              (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR, TRUE ) ;
+      rdvMinMax( pEX, (INT32&)_transConsistencyStrategy, (INT32)SDB_CONSISTENCY_NODE,
+                 (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
 
       // --monslowquerythreshold
       rdxUInt( pEX, PMD_OPTION_MON_SLOWQUERY_THRESHOLD, _slowQueryThreshold, FALSE,

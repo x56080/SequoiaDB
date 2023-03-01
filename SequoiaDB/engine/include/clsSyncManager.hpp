@@ -45,6 +45,7 @@
 #include "msgReplicator.hpp"
 #include "ossAtomic.hpp"
 #include "ossMemPool.hpp"
+#include "utilReplSizePlan.hpp"
 
 namespace engine
 {
@@ -52,7 +53,44 @@ namespace engine
    class _dpsLogWrapper ;
    class _pmdEDUCB ;
 
-   typedef ossPoolMultiSet<DPS_LSN_OFFSET>   CLS_WAKE_PLAN ;
+   struct clsWakePlanCompare
+   {
+      bool operator() ( const utilReplSizePlan &left,
+                        const utilReplSizePlan &right ) const
+      {
+         BOOLEAN result = FALSE ;
+         /* sort in the following order
+            1.LSN ( order : sort from small to large )
+            2.the location of the primary node ( reverse order )
+            3.the affinitive location of the primary node ( reverse order )
+            4.location ( reverse order )
+          */
+         if ( right.offset > left.offset )
+         {
+            result = TRUE ;
+         }
+         else if ( right.offset < left.offset )
+         {
+            /// do nothing
+         }
+         else if ( right.primaryLocationNodes < left.primaryLocationNodes )
+         {
+            result = TRUE ;
+         }
+         else if ( right.affinitiveLocations < left.affinitiveLocations )
+         {
+            result = TRUE ;
+         }
+         else if ( right.locations < left.locations )
+         {
+            result = TRUE ;
+         }
+
+         return result ;
+      }
+   } ;
+
+   typedef ossPoolMultiSet<utilReplSizePlan, clsWakePlanCompare>   CLS_WAKE_PLAN ;
 
    /*
       _clsSyncManager define
@@ -123,7 +161,11 @@ namespace engine
                           UINT16 ensureNodeID = 0 ) ;
 
    private:
-      INT32 _wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;
+      INT32 _wait( _clsSyncSession &session, UINT32 sub, INT64 timeout = -1 ) ;
+
+      /// compare waitPlan of session whit checkList, and if necessary,
+      /// jump to next checklist until it passes checklist.
+      INT32 _jump( _clsSyncSession &session, UINT32 &sub, BOOLEAN &needWait ) ;
 
       void _createWakePlan( CLS_WAKE_PLAN &plan ) ;
 
@@ -134,16 +176,16 @@ namespace engine
 
 
       void _clearSyncList( UINT32 removed, UINT32 removedAlives,
-                           UINT32 preAlives, UINT32 preSyncNum,                           
+                           UINT32 preAlives, UINT32 preSyncNum,
                            _clsSyncStatus *left ) ;
 
    private:
       /// sub between <0, CLS_REPLSET_MAX_NODE_SIZE - 2>.
       /// means ( w = 2 ) to ( w = CLS_REPLSET_MAX_NODE_SIZE ).
-      _clsSyncMinHeap _syncList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
-      DPS_LSN_OFFSET  _checkList[CLS_REPLSET_MAX_NODE_SIZE -1] ;
-      _ossSpinXLatch _mtxs[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
-      _clsSyncStatus _notifyList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
+      _clsSyncMinHeap  _syncList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
+      utilReplSizePlan _checkList[CLS_REPLSET_MAX_NODE_SIZE -1] ;
+      _ossSpinXLatch   _mtxs[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
+      _clsSyncStatus   _notifyList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
 
       _netRouteAgent *_agent ;
       _clsGroupInfo *_info ;

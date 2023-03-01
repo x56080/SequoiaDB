@@ -1724,6 +1724,12 @@ namespace engine
          setBuilder.append( CAT_CATALOG_W_NAME, localTask->getReplSize() ) ;
       }
 
+      if ( localTask->testArgumentMask( UTIL_CL_CONSISTENCYSTRATEGY_FIELD ) )
+      {
+         setBuilder.append( CAT_CATALOG_CONSISTENCYSTRATEGY,
+                            localTask->getConsistencyStrategy() ) ;
+      }
+
       if ( localTask->testArgumentMask( UTIL_CL_STRICTDATAMODE_FIELD ) )
       {
          if ( localTask->isStrictDataMode() )

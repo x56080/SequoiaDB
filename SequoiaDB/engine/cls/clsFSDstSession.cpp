@@ -57,7 +57,6 @@ namespace engine
 {
    const UINT32 CLS_FS_TIMEOUT = 10000 ;
    const UINT32 CLS_FS_END_SYNC_TIMEOUT = 2000 ;
-   const UINT32 CLS_SPLIT_DST_SYNC_TIME = 60 * OSS_ONE_SEC ;
    const UINT32 CLS_FS_MAX_REPEAT_CNT = 180 * OSS_ONE_SEC / CLS_FS_TIMEOUT ;
 
    #define CHECK_REQUEST_ID(Header,id) \
@@ -3464,6 +3463,8 @@ namespace engine
                {
                   hasSplit = TRUE ;
                   _collectionW = catSet->getW() ;
+                  eduCB()->getOperator()->setReplStrategy(
+                     catSet->getConsistencyStrategy() ) ;
                }
             }
             pCatAgent->release_r() ;
@@ -3754,8 +3755,7 @@ namespace engine
       if ( _collectionW > 1 )
       {
          // wait the group other nodes sync complete, ignored result
-         sdbGetReplCB()->sync( _lastOprLSN, eduCB(),
-                               _collectionW, CLS_SPLIT_DST_SYNC_TIME ) ;
+         sdbGetReplCB()->onCompleteOpr( eduCB(), _collectionW ) ;
       }
 
       _step = STEP_FINISH ;

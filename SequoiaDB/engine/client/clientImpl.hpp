@@ -662,6 +662,7 @@ namespace sdbclient
 
       void  setVersion ( INT32 clVersion ) ;
       INT32 getVersion () ;
+      INT32 setConsistencyStrategy( INT32 value ) ;
 
    private:
       INT32 _alterCollection1( const bson::BSONObj &options ) ;

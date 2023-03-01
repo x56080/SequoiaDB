@@ -42,6 +42,7 @@
 #include "clsDef.hpp"
 #include "ossMem.hpp"
 #include "pd.hpp"
+#include "utilReplSizePlan.hpp"
 #include <iostream>
 
 namespace engine
@@ -170,7 +171,7 @@ namespace engine
       {
          for ( UINT32 i = 0; i < _dataSize; i++ )
          {
-            std::cout << _heap[i].endLsn
+            std::cout << _heap[i].waitPlan.offset
                       << " : " << _heap[i].eduCB
                       << std::endl ;
          }

@@ -25,6 +25,7 @@
 #include "netMsgHandler.hpp"
 #include "pmdEDU.hpp"
 #include "pmdEDUMgr.hpp"
+#include "pmdEnv.hpp"
 #include "ossAtomic.hpp"
 #include "ossEvent.hpp"
 
@@ -46,7 +47,7 @@ TEST(clsTest, clsHeap_1)
    /// push 9 - 0
    while ( i-- >  0 )
    {
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       ASSERT_TRUE(SDB_OK == heap.push(session));
    }
 
@@ -56,16 +57,16 @@ TEST(clsTest, clsHeap_1)
    for ( UINT32 j = 0; j < num; j++ )
    {
       ASSERT_TRUE( SDB_OK == heap.root( session )) ;
-      ASSERT_TRUE(session.endLsn == j) ;
+      ASSERT_TRUE(session.waitPlan.offset == j) ;
       ASSERT_TRUE(SDB_OK == heap.pop(session)) ;
-      ASSERT_TRUE(session.endLsn == j);
+      ASSERT_TRUE(session.waitPlan.offset == j);
    }
    ASSERT_TRUE( 0 == heap.dataSize() ) ;
 
    /// push 0 - 9
    for ( UINT32 j = 0; j < num; j++ )
    {
-      session.endLsn = j ;
+      session.waitPlan.offset = j ;
       ASSERT_TRUE(SDB_OK == heap.push(session));
    }
    ASSERT_TRUE( num == heap.dataSize() ) ;
@@ -74,9 +75,9 @@ TEST(clsTest, clsHeap_1)
    for ( UINT32 j = 0; j < num; j++ )
    {
       ASSERT_TRUE( SDB_OK == heap.root( session )) ;
-      ASSERT_TRUE(session.endLsn == j) ;
+      ASSERT_TRUE(session.waitPlan.offset == j) ;
       ASSERT_TRUE(SDB_OK == heap.pop(session)) ;
-      ASSERT_TRUE(session.endLsn == j);
+      ASSERT_TRUE(session.waitPlan.offset == j);
    }
    ASSERT_TRUE( 0 == heap.dataSize() ) ;
 }
@@ -90,7 +91,7 @@ TEST(clsTest, clsHeap_2)
    // push 99 - 0
    while ( i-- >  0 )
    {
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       ASSERT_TRUE(SDB_OK == heap.push(session));
    }
 
@@ -101,8 +102,8 @@ TEST(clsTest, clsHeap_2)
    while ( SDB_OK == heap.root( session ) )
    {
       ASSERT_TRUE(SDB_OK == heap.pop(session)) ;
-      ASSERT_TRUE( offset <= session.endLsn ) ;
-      offset = session.endLsn ;
+      ASSERT_TRUE( offset <= session.waitPlan.offset ) ;
+      offset = session.waitPlan.offset ;
       num++ ;
    }
    ASSERT_TRUE( 99 == num ) ;
@@ -159,7 +160,7 @@ TEST(clsTest, clsSyncManager_1)
    pmdEDUCB eduCB( &mgr, EDU_TYPE_SHARDAGENT ) ;
    _clsSyncSession session ;
    session.eduCB = &eduCB ;
-   session.endLsn = 10 ;
+   session.waitPlan.offset = 10 ;
    UINT32 w = 3 ;
    boost::thread t( fun, &sync, session, w, &complete ) ;
    /// ensure that w is registered. sleep one sec.
@@ -215,7 +216,7 @@ TEST(clsTest, clsSyncManager_2)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       UINT32 w = 3 ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
                                             &complete ) ;
@@ -279,8 +280,9 @@ TEST(clsTest, clsSyncManager_3)
    {
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
+      session.waitPlan.reset() ;
       session.eduCB = eduCBs[i] ;
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       UINT32 w = 2 ;
       boost::thread *t = new boost::thread( fun, &sync, session,
                                             w, &complete ) ;
@@ -296,7 +298,7 @@ TEST(clsTest, clsSyncManager_3)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       UINT32 w = 3 ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
                                             &complete ) ;
@@ -363,7 +365,7 @@ TEST(clsTest, clsSyncManager_4)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       UINT32 w = 3 ;
       boost::thread *t = new boost::thread( fun, &sync, session, w,
                                             &complete ) ;
@@ -445,7 +447,7 @@ TEST(clsTest, clsSyncManager_5)
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
-      session.endLsn = i ;
+      session.waitPlan.offset = i ;
       UINT32 w = 3 ;
       event.reset() ;
       boost::thread *t = new boost::thread( fun2, &sync, session, w,
@@ -464,4 +466,458 @@ TEST(clsTest, clsSyncManager_5)
       delete eduCBs[i] ;
    }
    ASSERT_TRUE( 10 == complete.peek() ) ;
+}
+
+TEST(clsTest, clsSyncManager_6)
+{
+   CLS_WAKE_PLAN plan ;
+   utilReplSizePlan expectPlan[6] ;
+   expectPlan[0].offset = 100 ;
+   expectPlan[0].affinitiveLocations = 1 ;
+   expectPlan[0].primaryLocationNodes = 2 ;
+   expectPlan[0].locations = 2 ;
+   plan.insert( expectPlan[0] ) ;
+
+   expectPlan[1].offset = 120 ;
+   expectPlan[1].affinitiveLocations = 1 ;
+   expectPlan[1].primaryLocationNodes = 2 ;
+   expectPlan[1].locations = 2 ;
+   plan.insert( expectPlan[1] ) ;
+
+   expectPlan[2].offset = 140 ;
+   expectPlan[2].affinitiveLocations = 1 ;
+   expectPlan[2].primaryLocationNodes = 2 ;
+   expectPlan[2].locations = 1 ;
+   plan.insert( expectPlan[2] ) ;
+
+   expectPlan[3].offset = 180 ;
+   expectPlan[3].affinitiveLocations = 1 ;
+   expectPlan[3].primaryLocationNodes = 2 ;
+   expectPlan[3].locations = 1 ;
+   plan.insert( expectPlan[3] ) ;
+
+   expectPlan[4].offset = 180 ;
+   expectPlan[4].affinitiveLocations = 0 ;
+   expectPlan[4].primaryLocationNodes = 2 ;
+   expectPlan[4].locations = 0 ;
+   plan.insert( expectPlan[4] ) ;
+
+   expectPlan[5].offset = 200 ;
+   expectPlan[5].affinitiveLocations = 0 ;
+   expectPlan[5].primaryLocationNodes = 1 ;
+   expectPlan[5].locations = 0 ;
+   plan.insert( expectPlan[5] ) ;
+
+   UINT32 i = 0 ;
+   CLS_WAKE_PLAN::iterator itr = plan.begin() ;
+   while ( itr != plan.end() )
+   {
+      ASSERT_TRUE( *itr == expectPlan[i] ) ;
+      i++ ;
+      itr++ ;
+   }
+}
+
+TEST(clsTest, clsSyncManager_7)
+{
+   // local: 2, group: 3(primary location), 4(affinitive location)
+   const UINT32 num = 10 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _clsGroupInfo info ;
+   _clsSharingStatus status ;
+   MsgRouteID id ;
+   id.columns.groupID = 1 ;
+   id.columns.nodeID = 2 ;
+   info.primary = id ;
+   info.local = id ;
+   info.localLocationID = 1 ;
+
+   pmdSetLocationID( 1 ) ;
+
+   ++id.columns.nodeID ;
+   status.locationID = 1 ;
+   status.locationIndex = 0 ;
+   status.isAffinitiveLocation = TRUE ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   ++id.columns.nodeID ;
+   status.locationID = 2 ;
+   status.locationIndex = 1 ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   _clsSyncManager sync( &agent, &info ) ;
+   sync.updateNotifyList( TRUE ) ;
+   ossAtomic32 complete( 0 ) ;
+
+   _pmdEDUMgr mgr ;
+   pmdEDUCB *eduCBs[num] ;
+   boost::thread *ts[num] ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = NULL ;
+      ts[i] = NULL ;
+   }
+
+   // cout << "construct write( lsn from 0 to 9, w:2 )" << endl ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+      _clsSyncSession session ;
+      UINT32 w = 2 ;
+      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.eduCB = eduCBs[i] ;
+      session.waitPlan.offset = i ;
+      boost::thread *t = new boost::thread( fun, &sync, session, w,
+                                            &complete ) ;
+      ts[i] = t ;
+   }
+
+   // cout << "construct complete( node 3 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 3 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+   }
+
+   ASSERT_TRUE( 0 == complete.peek() ) ;
+
+   // cout << "construct complete( node 4 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 4 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+      ts[i-1]->join() ;
+      ASSERT_TRUE( i == complete.peek() ) ;
+      delete ts[i-1] ;
+      delete eduCBs[i-1] ;
+   }
+}
+
+TEST(clsTest, clsSyncManager_8)
+{
+   // local: 2, group: 3(primary location), 4(affinitive location)
+   const UINT32 num = 10 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _clsGroupInfo info ;
+   _clsSharingStatus status ;
+   MsgRouteID id ;
+   id.columns.groupID = 1 ;
+   id.columns.nodeID = 2 ;
+   info.primary = id ;
+   info.local = id ;
+   info.localLocationID = 1 ;
+
+   pmdSetLocationID( 1 ) ;
+
+   ++id.columns.nodeID ;
+   status.locationID = 1 ;
+   status.locationIndex = 0 ;
+   status.isAffinitiveLocation = TRUE ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   ++id.columns.nodeID ;
+   status.locationID = 2 ;
+   status.locationIndex = 1 ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   _clsSyncManager sync( &agent, &info ) ;
+   sync.updateNotifyList( TRUE ) ;
+   ossAtomic32 complete( 0 ) ;
+
+   _pmdEDUMgr mgr ;
+   pmdEDUCB *eduCBs[num] ;
+   boost::thread *ts[num] ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = NULL ;
+      ts[i] = NULL ;
+   }
+
+   // cout << "construct write( lsn from 0 to 9, w:2 )" << endl ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+      _clsSyncSession session ;
+      UINT32 w = 2 ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.eduCB = eduCBs[i] ;
+      session.waitPlan.offset = i ;
+      boost::thread *t = new boost::thread( fun, &sync, session, w,
+                                            &complete ) ;
+      ts[i] = t ;
+   }
+
+   // cout << "construct complete( node 4 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 4 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+   }
+
+   ASSERT_TRUE( 0 == complete.peek() ) ;
+
+   // cout << "construct complete( node 3 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 3 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+      ts[i-1]->join() ;
+      ASSERT_TRUE( i == complete.peek() ) ;
+      delete ts[i-1] ;
+      delete eduCBs[i-1] ;
+   }
+}
+
+TEST(clsTest, clsSyncManager_9)
+{
+   // local: 2, group: 3(primary location), 4(affinitive location)
+   const UINT32 num = 10 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _clsGroupInfo info ;
+   _clsSharingStatus status ;
+   MsgRouteID id ;
+   id.columns.groupID = 1 ;
+   id.columns.nodeID = 2 ;
+   info.primary = id ;
+   info.local = id ;
+   info.localLocationID = 1 ;
+
+   pmdSetLocationID( 1 ) ;
+
+   ++id.columns.nodeID ;
+   status.locationID = 1 ;
+   status.locationIndex = 0 ;
+   status.isAffinitiveLocation = TRUE ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   ++id.columns.nodeID ;
+   status.locationID = 2 ;
+   status.locationIndex = 1 ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   _clsSyncManager sync( &agent, &info ) ;
+   sync.updateNotifyList( TRUE ) ;
+   ossAtomic32 complete( 0 ) ;
+
+   _pmdEDUMgr mgr ;
+   pmdEDUCB *eduCBs[num] ;
+   boost::thread *ts[num] ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = NULL ;
+      ts[i] = NULL ;
+   }
+
+   // cout << "construct write( lsn from 0 to 9, w:3 )" << endl ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+      _clsSyncSession session ;
+      UINT32 w = 3 ;
+      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.eduCB = eduCBs[i] ;
+      session.waitPlan.offset = i ;
+      boost::thread *t = new boost::thread( fun, &sync, session, w,
+                                            &complete ) ;
+      ts[i] = t ;
+   }
+
+   // cout << "construct complete( node 3 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 3 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+   }
+
+   // cout << "construct complete( node 4 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 4 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+      ts[i-1]->join() ;
+      ASSERT_TRUE( i == complete.peek() ) ;
+      delete ts[i-1] ;
+      delete eduCBs[i-1] ;
+   }
+}
+
+TEST(clsTest, clsSyncManager_10)
+{
+   // local: 2, group: 3(primary location), 4(affinitive location)
+   const UINT32 num = 10 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _clsGroupInfo info ;
+   _clsSharingStatus status ;
+   MsgRouteID id ;
+   id.columns.groupID = 1 ;
+   id.columns.nodeID = 2 ;
+   info.primary = id ;
+   info.local = id ;
+   info.localLocationID = 1 ;
+
+   pmdSetLocationID( 1 ) ;
+
+   ++id.columns.nodeID ;
+   status.locationID = 1 ;
+   status.locationIndex = 0 ;
+   status.isAffinitiveLocation = TRUE ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   ++id.columns.nodeID ;
+   status.locationID = 2 ;
+   status.locationIndex = 1 ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   _clsSyncManager sync( &agent, &info ) ;
+   sync.updateNotifyList( TRUE ) ;
+   ossAtomic32 complete( 0 ) ;
+
+   _pmdEDUMgr mgr ;
+   pmdEDUCB *eduCBs[num] ;
+   boost::thread *ts[num] ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = NULL ;
+      ts[i] = NULL ;
+   }
+
+   // cout << "construct write( lsn from 0 to 9, w:3 )" << endl ;
+   for ( UINT32 i = 0; i < num; i++ )
+   {
+      eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
+      _clsSyncSession session ;
+      UINT32 w = 3 ;
+      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 1 ) ;
+      session.eduCB = eduCBs[i] ;
+      session.waitPlan.offset = i ;
+      boost::thread *t = new boost::thread( fun, &sync, session, w,
+                                            &complete ) ;
+      ts[i] = t ;
+   }
+
+   // cout << "construct complete( node 4 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 4 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+   }
+
+   // cout << "construct complete( node 3 )" << endl ;
+   for ( UINT32 i = 1; i < num + 1; i++ )
+   {
+      id.columns.nodeID = 3 ;
+      DPS_LSN lsn ;
+      lsn.version = 1 ;
+      lsn.offset = i;
+      sync.complete( id, lsn, 1 ) ;
+      ts[i-1]->join() ;
+      ASSERT_TRUE( i == complete.peek() ) ;
+      delete ts[i-1] ;
+      delete eduCBs[i-1] ;
+   }
+}
+
+TEST(clsTest, clsSyncManager_11)
+{
+   // local: 2, group: 3(primary location), 4(affinitive location), 5(other location)
+   const UINT32 num = 4 ;
+   myHandler handler ;
+   _netRouteAgent agent( &handler ) ;
+   _clsGroupInfo info ;
+   _clsSharingStatus status ;
+   MsgRouteID id ;
+   id.columns.groupID = 1 ;
+   id.columns.nodeID = 2 ;
+   info.primary = id ;
+   info.local = id ;
+   info.localLocationID = 1 ;
+
+   pmdSetLocationID( 1 ) ;
+
+   ++id.columns.nodeID ;
+   status.locationID = 1 ;
+   status.isAffinitiveLocation = TRUE ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   ++id.columns.nodeID ;
+   status.locationID = 2 ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   ++id.columns.nodeID ;
+   status.locationID = 3 ;
+   status.isAffinitiveLocation = FALSE ;
+   info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+   _clsSyncManager sync( &agent, &info ) ;
+   sync.updateNotifyList( TRUE ) ;
+   utilReplSizePlan _locationMajority[2] ;
+   utilReplSizePlan _primaryLocationMajority[2] ;
+
+   _locationMajority[0].primaryLocationNodes = 0 ;
+   _locationMajority[0].affinitiveLocations = 1 ;
+   _locationMajority[0].locations = 1 ;
+
+   _locationMajority[1].primaryLocationNodes = 1 ;
+   _locationMajority[1].affinitiveLocations = 1 ;
+   _locationMajority[1].locations = 1 ;
+
+
+   _primaryLocationMajority[0].primaryLocationNodes = 1 ;
+   _primaryLocationMajority[0].affinitiveLocations = 0 ;
+   _primaryLocationMajority[0].locations = 0 ;
+
+   _primaryLocationMajority[1].primaryLocationNodes = 1 ;
+   _primaryLocationMajority[1].affinitiveLocations = 1 ;
+   _primaryLocationMajority[1].locations = 1 ;
+
+
+   // cout << "get consistency strategy( w from 2 to 4 )" << endl ;
+   for ( UINT32 w = 2; w <= num; w++ )
+   {
+      _clsSyncSession session ;
+      session.waitPlan.setLocMajorReplSizePlan( w - 1, 1, 1, 2 ) ;
+      if ( 2 == w )
+      {
+         ASSERT_TRUE( session.waitPlan == _locationMajority[0] ) ;
+      }
+      else
+      {
+         ASSERT_TRUE( session.waitPlan == _locationMajority[1] ) ;
+      }
+
+      session.waitPlan.setPryLocMajorReplSizePlan( w - 1, 1, 1, 2 ) ;
+      if ( 2 == w )
+      {
+         ASSERT_TRUE( session.waitPlan == _primaryLocationMajority[0] ) ;
+      }
+      else
+      {
+         ASSERT_TRUE( session.waitPlan == _primaryLocationMajority[1] ) ;
+      }
+   }
 }

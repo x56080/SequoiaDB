@@ -6946,7 +6946,7 @@ namespace engine
       }
 
       rc = _checkCLVersion( name, version, &_isMainCL, w, mainCLName,
-                            clUniqueID, repairCheck ) ;
+                            clUniqueID, repairCheck, TRUE ) ;
       if ( rc )
       {
          goto error ;
@@ -6991,19 +6991,28 @@ namespace engine
       }
 
       /// When first operation in transaction, should adjust the replsize
-      /// by param 'transreplsize'
-      if ( w >= 1 &&
-           _pEDUCB->isTransaction() &&
+      /// by param 'transreplsize' and the consistency strategy
+      /// by param 'transconsistencystrategy'
+      if ( _pEDUCB->isTransaction() &&
            DPS_INVALID_LSN_OFFSET == _pEDUCB->getCurTransLsn() )
       {
-         INT16 transReplSize = pmdGetOptionCB()->transReplSize() ;
-         if ( transReplSize <= 0 )
+         if ( w > 1 )
          {
-            w = transReplSize ;
+            INT16 transReplSize = pmdGetOptionCB()->transReplSize() ;
+            if ( transReplSize <= 0 )
+            {
+               w = transReplSize ;
+            }
+            else if ( w < transReplSize )
+            {
+               w = transReplSize ;
+            }
          }
-         else if ( w < transReplSize )
+         if ( SDB_CONSISTENCY_NODE == _pEDUCB->getOperator()->getReplStrategy() )
          {
-            w = transReplSize ;
+            SDB_CONSISTENCY_STRATEGY consistencyStrategy =
+                              pmdGetOptionCB()->transConsistencyStrategy() ;
+            _pEDUCB->getOperator()->setReplStrategy( consistencyStrategy ) ;
          }
       }
 
@@ -7027,7 +7036,8 @@ namespace engine
                                           INT16 *w,
                                           CHAR *mainCLName,
                                           utilCLUniqueID *clUniqueID,
-                                          BOOLEAN *repairCheck )
+                                          BOOLEAN *repairCheck,
+                                          BOOLEAN setReplStrategy )
    {
       INT32 rc = SDB_OK ;
 
@@ -7035,6 +7045,7 @@ namespace engine
 
       INT32 curVer = -1 ;
       INT16 replSize = 0 ;
+      SDB_CONSISTENCY_STRATEGY replStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
       UINT32 groupCount = 0 ;
       _clsCatalogSet *set = NULL ;
       BOOLEAN mainCL = FALSE ;
@@ -7061,6 +7072,12 @@ namespace engine
          {
             *w = 1 ;
          }
+
+         if ( setReplStrategy )
+         {
+            _pEDUCB->getOperator()->setReplStrategy( replStrategy ) ;
+         }
+
          if ( NULL != repairCheck )
          {
             *repairCheck = FALSE ;
@@ -7078,6 +7095,7 @@ namespace engine
       }
 
       replSize = set->getW() ;
+      replStrategy = set->getConsistencyStrategy() ;
       curVer = set->getVersion() ;
       groupCount = set->groupCount() ;
       mainCL = set->isMainCL() ;
@@ -7139,6 +7157,11 @@ namespace engine
          if ( NULL != w )
          {
             *w = replSize ;
+         }
+
+         if ( setReplStrategy )
+         {
+            _pEDUCB->getOperator()->setReplStrategy( replStrategy ) ;
          }
       }
 

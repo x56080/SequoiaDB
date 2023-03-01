@@ -3178,5 +3178,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_OPERATION_RETRY</name>
+         <description>
+            <en>Operation need retry</en>
+            <cn>操作需要重试</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

@@ -2859,6 +2859,35 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_TRANSCONSISTENCYSTRATEGY</name>
+      <long>transconsistencystrategy</long>
+      <description>
+        <en>The consistency strategy when transaction commit, the default is 3, range is [1, 3].</en>
+        <cn>事务提交的同步一致性策略，默认值为 3，取值范围为 [1, 3]</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The consistency strategy when transaction commit, the default is 3, and the values are as follows:<fig></fig>
+            ● 1: Node priority strategy<fig></fig>
+            ● 2: Location majority first strategy<fig></fig>
+            ● 3: Main Location majority first strategy<fig></fig>
+        </en>
+        <cn>事务提交的同步一致性策略，默认值为 3，取值说明如下：<fig></fig>
+            ● 1: 节点优先策略<fig></fig>
+            ● 2: 位置多数派优先策略<fig></fig>
+            ● 3: 主位置多数派优先策略<fig></fig>
+        </cn>
+      </detail>
+      <type>int</type>
+      <default>3</default>
+      <typeofweb>int</typeofweb>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_DETECT_DISK</name>
       <long>detectdisk</long>
       <description>
@@ -2877,7 +2906,7 @@
       <typeofweb>boolean</typeofweb>
       <hidden>true</hidden>
   </opt>
-  
+
   <opt>
       <name>PMD_OPTION_DIAG_SECURE_ON</name>
       <long>diagsecureon</long>

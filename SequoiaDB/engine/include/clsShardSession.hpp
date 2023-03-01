@@ -152,7 +152,8 @@ namespace engine
                                 INT16 *w = NULL,
                                 CHAR *mainCLName = NULL,
                                 utilCLUniqueID *clUniqueID = NULL,
-                                BOOLEAN *repairCheck = NULL ) ;
+                                BOOLEAN *repairCheck = NULL,
+                                BOOLEAN setReplStrategy = FALSE ) ;
 
          INT32   _reply ( MsgOpReply *header, const CHAR *buff, UINT32 size ) ;
 
