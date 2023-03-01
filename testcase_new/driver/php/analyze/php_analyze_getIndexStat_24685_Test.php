@@ -44,10 +44,31 @@ class TestAnalyzeGetIndexStat24685 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( self::$indexName, $actIndex );
       $actTotalRecords = $rec['TotalRecords'];
       $this -> assertEquals( self::$recNum, $actTotalRecords );
-      
+      $this->assertEquals(true, empty($rec['MCV']));
       $notExistIndexName = "indexNotExist24685";
       $rec = self::$cl -> getIndexStat( $notExistIndexName );
       analyzeUtils::checkErrno( -356, self::$db -> getError() ['errno'] );
+   }
+
+   function testMCVTrue()
+   {
+       $rec = self::$cl -> getIndexStat( self::$indexName, true );
+       analyzeUtils::checkErrno( 0, self::$db -> getError() ['errno'] );
+       $actMCV = $rec['MCV'];
+       $this->assertEquals(true, !empty($actMCV));
+   }
+
+   function testMCVFalse()
+   {
+       $rec = self::$cl -> getIndexStat( self::$indexName,  false );
+       analyzeUtils::checkErrno( 0, self::$db -> getError() ['errno'] );
+       $this->assertEquals(true, empty($rec['MCV']));
+   }
+
+   function testMCVError()
+   {
+       $rec = self::$cl -> getIndexStat( self::$indexName, "xxx" );
+       analyzeUtils::checkErrno( -6, self::$db -> getError() ['errno'] );
    }
    
    public static function tearDownAfterClass()
