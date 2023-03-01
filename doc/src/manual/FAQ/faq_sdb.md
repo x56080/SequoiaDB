@@ -320,7 +320,8 @@
 
 49. SDB_DPS_LOG_FILE_OUT_OF_SIZE(-203)
    * 事务日志空间不足
-   * 问题修复：可以通过修复"日志文件个数"或"日志文件大小"增大日志空间，默认日志空间为1.2GB。
+   * 问题诊断：检查是否存在未提交事务，可参考[事务快照][transcation]。
+   * 问题修复：可以通过修改“日志文件个数”或“日志文件大小”增大日志空间，具体可参考[特殊参数配置][logfilesz/logfilenum]。
 
 50. SDB_CATA_RM_NODE_FORBIDDEN(-204)
    * 不允许删除复制组内的主节点或最后一个节点
@@ -393,3 +394,5 @@
 [getSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/getSessionAttr.md
 [SDB_SNAP_COLLECTIONS]:manual/Manual/Snapshot/SDB_SNAP_COLLECTIONS.md
 [start]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/start.md
+[transcation]:manual/Manual/Snapshot/SDB_SNAP_TRANSACTIONS.md
+[logfilesz/logfilenum]:manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md

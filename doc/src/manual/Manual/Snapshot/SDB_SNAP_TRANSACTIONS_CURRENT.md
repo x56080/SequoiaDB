@@ -21,8 +21,8 @@ SDB_SNAP_TRANSACTIONS_CURRENT
 | TransactionID          | string   | 事务 ID                                  |
 | TransactionIDSN        | int64    | 事务序列号                               |
 | IsRollback             | boolean  | 事务是否处于回滚中                       |
-| CurrentTransLSN        | int64    | 事务当前的日志 LSN                       | 
-| BeginTransLSN          | int64    | 事务开始的日志 LSN                        |  
+| CurrentTransLSN        | int64    | 事务最后一条记录对应的 LSN<br>该字段可用于检查是否存在空闲事务，具体可参考[查询空闲事务][residualtransaction] |
+| BeginTransLSN          | int64    | 事务第一条记录对应的 LSN<br>该字段可用于查询最早开启的事务，当日志空间不足时，可以提交最早的事务以释放日志空间 |
 | WaitLock               | bson     | 正在等待的锁                             |
 | TransactionLocksNum    | int32    | 事务已经获得的锁                         |
 | IsLockEscalated        | boolean  | 事务是否已触发锁升级                     |
@@ -60,7 +60,9 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
 | 集合锁       | >= 0 | >= 0  | -1   | -1   | |
 | 记录锁       | >= 0 | >= 0  | >= 0 | >= 0 | |
 
-##示例##
+##应用场景##
+
+###查看快照信息###
 
 查看当前事务快照
 
@@ -75,10 +77,8 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
   "NodeName": "sdbserver:11830",
   "SessionID": 89,
   "TransactionID": "03e80000000001",
-  "TransactionIDSN": 1,
   "IsRollback": false,
   "CurrentTransLSN": -1,
-  "BeginTransLSN": -1,
   "WaitLock": {},
   "TransactionLocksNum": 3,
   "IsLockEscalated": false,
@@ -116,3 +116,50 @@ WaitLock 和 GetLocks 字段中锁对象的信息如下：
   ]
 }
 ```
+
+###查询空闲事务###
+
+用户可通过对比当前事务快照下字段 CurrentTransLSN 与[节点健康检测快照][SDB_SNAP_HEALTH]下字段 CurrentLSN 的值，检查当前会话是否存在长时间运行且未写入数据的空闲事务。如果取值相差过大，说明该事务为空闲事务。该类事务将占用大量数据库资源，同时导致日志空间不足，建议及时提交。具体操作步骤如下：
+
+1. 通过事务快照查看字段 CurrentTransLSN
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_TRANSACTIONS_CURRENT, {}, {NodeName: null, TransactionID: null, CurrentTransLSN: null})
+    ```
+
+    输出结果如下：
+
+    ```lang-json
+    ...
+    {
+      "NodeName": "sdbserver:11820",
+      "TransactionID": "0x00020067a74f69",
+      "CurrentTransLSN": 83624
+    }
+    ...
+    ```
+
+2. 通过节点健康检测快照查看字段 CurrentLSN
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_TRANSACTIONS_CURRENT, {}, {NodeName: null, CurrentLSN: null})
+    ```
+
+    输出结果如下：
+
+    ```lang-json
+    ...
+    {
+      "NodeName": "sdbserver:11820",
+      "CurrentLSN": {
+        "Offset": 157288368,
+        "Version": 1
+      }
+    }
+    ...
+    ```
+
+[^_^]:
+    本文使用的所有引用及链接
+[residualtransaction]:manual/Manual/Snapshot/SDB_SNAP_TRANSACTIONS_CURRENT.md#查询空闲事务
+[SDB_SNAP_HEALTH]:manual/Manual/Snapshot/SDB_SNAP_HEALTH.md

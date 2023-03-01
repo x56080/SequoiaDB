@@ -1,14 +1,5 @@
 [^_^]: 
-
-    数据库快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-    
-    王涛：
-    许建辉：
-    市场部：20190425
-
+    集合快照
 
 集合快照可以列出当前集群中的集合信息。连接协调节点执行函数时，将列出所有非系统集合的信息；连接非协调节点执行函数时，将列出与当前节点关联的所有集合信息。
 
@@ -51,9 +42,9 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalDataFreeSpace      | int64         | 集合的数据空闲空间，单位为字节                          |
 | Details.TotalIndexFreeSpace     | int64         | 集合的索引空闲空间，单位为字节                          |
 | Details.CurrentCompressionRatio | double        | 集合的的压缩率                                          |
-| Details.DataCommitLSN           | int64         | 集合数据文件最后提交 LSN                                |
-| Details.IndexCommitLSN          | int64         | 集合索引文件最后提交 LSN                                |
-| Details.LobCommitLSN            | int64         | 集合大对象文件最后提交 LSN                              |
+| Details.DataCommitLSN           | int64         | 集合数据文件已刷盘记录对应的 LSN（内部使用）        |
+| Details.IndexCommitLSN          | int64         | 集合索引文件已刷盘记录对应的 LSN（内部使用）        |
+| Details.LobCommitLSN            | int64         | 集合大对象文件已刷盘记录对应的 LSN（内部使用）      |
 | Details.DataCommitted           | boolean       | 集合数据文件当前是否有效提交                            |
 | Details.IndexCommitted          | boolean       | 集合索引文件当前是否有效提交                            |
 | Details.LobCommitted            | boolean       | 集合大对象文件当前是否有效提交                          |
@@ -136,7 +127,9 @@ SDB_SNAP_COLLECTIONS
 | Details.UpdateTime | string | 更新集合元数据的时间（仅在 v5.0.4 及以上版本生效） |
 
 
-##示例##
+##应用场景##
+
+###查看快照信息###
 
 - 通过非协调节点查看快照
 

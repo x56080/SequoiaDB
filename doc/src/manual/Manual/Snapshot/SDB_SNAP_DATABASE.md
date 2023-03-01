@@ -1,13 +1,5 @@
 [^_^]:
-
     数据库快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-    
-    王涛：
-    许建辉：
-    市场部：
 
 数据库快照可以列出数据库的状态和监控信息。
 
@@ -16,12 +8,11 @@
 > 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_DATABASE,{RawData:true})` 获取聚合前的数据。
 
 
-## 标识
-
+##标识##
 
 SDB_SNAP_DATABASE
 
-## 非协调节点字段信息
+##非协调节点字段信息##
 
 | 字段名                | 类型      | 描述                                                            |
 | --------------------- | --------- | --------------------------------------------------------------- |
@@ -33,16 +24,16 @@ SDB_SNAP_DATABASE
 | ServiceStatus         | boolean   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status                | string    | 节点状态，取值如下：<br/>            "Normal"：正常工作状态 <br/>              "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据 <br/>           "FullSync"：全量同步状态 <br/>              "OfflineBackup"：[数据备份][regular_bar]状态   |
 | FTStatus              | string | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
-| BeginLSN.Offset       | int64 | 起始 LSN 的偏移                                                            |
-| BeginLSN.Version      | int32   | 起始 LSN 的版本号                                                               |
-| CurrentLSN.Offset     | int64 | 当前 LSN 的偏移                                                                 |
-| CurrentLSN.Version    | int32   | 当前 LSN 的版本号                                                               |
-| CommittedLSN.Offset   | int64 | 已提交 LSN 的偏移                                                               |
-| CommittedLSN.Version  | int32   | 已提交 LSN 的版本号                                                             |
-| CompleteLSN           | int64     | 已完成 LSN 的偏移                                               |
+| BeginLSN.Offset       | int64 | 节点同步日志的起始 LSN |
+| BeginLSN.Version      | int32   | 版本号（内部使用）                                               |
+| CurrentLSN.Offset     | int64 | 节点同步日志的当前 LSN<br>该字段可用于查看同步日志的结束位置  |
+| CurrentLSN.Version    | int32   | 版本号（内部使用）                                                    |
+| CommittedLSN.Offset   | int64 | 已刷盘的同步日志对应的 LSN |
+| CommittedLSN.Version  | int32   | 版本号（内部使用）                                                        |
+| CompleteLSN           | int64     | 备节点已重放记录对应的 LSN |
 | LSNQueSize            | int32     | 等待同步的 LSN 队列长度                                           |
 | TransInfo.TotalCount  | int32  | 正在执行的事务数量                                                              |
-| TransInfo.BeginLSN    | int64 | 正在执行的事务的起始 LSN 的偏移                                                 |
+| TransInfo.BeginLSN    | int64 | 正在执行的事务的起始 LSN（内部使用）                           |
 | NodeID                | bson array| 节点的 ID 信息                                                  |
 | Version.Major         | int32   | 数据库主版本号                                                                  |
 | Version.Minor         | int32   | 数据库子版本号                                                                  |
@@ -115,7 +106,7 @@ SDB_SNAP_DATABASE
 | MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                                |
 
 
-## 协调节点字段信息
+##协调节点字段信息##
 
 | 字段名            | 类型      | 描述                                          |
 | ----------------- | --------- | --------------------------------------------- |
@@ -169,7 +160,9 @@ SDB_SNAP_DATABASE
 >
 > 当存在异常节点时才显示 ErrNodes 字段。
 
-## 示例
+##应用场景##
+
+###查看快照信息###
 
 - 通过非协调节点查看快照
 
