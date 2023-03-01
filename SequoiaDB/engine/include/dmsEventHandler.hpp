@@ -48,6 +48,7 @@
 #include "dmsSUCache.hpp"
 #include "utilUniqueID.hpp"
 #include "utilRecycleItem.hpp"
+#include "utilRenameLogger.hpp"
 
 namespace engine
 {
@@ -331,14 +332,16 @@ namespace engine
    {
       _dmsDropCSOptions()
       : _dmsRecycleOptions(),
-        _isPrepared( FALSE )
+        _isPrepared( FALSE ),
+        _logger()
       {
       }
 
       _dmsDropCSOptions( const utilRecycleItem &recycleItem,
                          BOOLEAN needSaveItem )
       : _dmsRecycleOptions( recycleItem, needSaveItem ),
-        _isPrepared( FALSE )
+        _isPrepared( FALSE ),
+        _logger()
       {
       }
 
@@ -410,6 +413,7 @@ namespace engine
 
       bson::BSONObj _boOptions ;
       BOOLEAN       _isPrepared ;
+      utilRenameLogger _logger ;
    } dmsDropCSOptions ;
 
    /*
