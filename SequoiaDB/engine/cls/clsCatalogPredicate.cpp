@@ -431,7 +431,7 @@ namespace engine
          {
             goto error ;
          }
-      
+
          if ( isNull() || isUniverse() )
          {
             goto done ;
@@ -538,14 +538,14 @@ namespace engine
                }
 
                // If the matching condition covers all groups or subcollections,
-               // stop the hit calculation in advance. 
-               if ( ( !pSet->isMainCL() && 
-                       pSet->groupCount() == setItem.size() ) || 
-                    ( pSet->isMainCL() && 
+               // stop the hit calculation in advance.
+               if ( ( !pSet->isMainCL() &&
+                       pSet->getCataItem()->size() == setItem.size() ) ||
+                    ( pSet->isMainCL() &&
                        ( UINT32 )pSet->getSubCLCount() == setItem.size() ) )
                {
-                  break ;  
-               } 
+                  break ;
+               }
                isEnd = _calcNext( vecPos ) ? FALSE : TRUE ;
             }
          }
