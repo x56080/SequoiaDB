@@ -1,5 +1,5 @@
 [^_^]: 
-    数据库快照
+    节点健康检测快照
 
 节点健康检测快照可以列出数据库中所有节点的健康信息。
 
@@ -15,13 +15,13 @@ SDB_SNAP_HEALTH
 | IsPrimary            | boolean   | 是否主节点                                                      |
 | ServiceStatus        | boolean   | 是否为可提供服务状态 <br>一些特殊状态，例如[全量同步][architecture]时，服务状态为 false |              
 | Status               | string    |  节点状态，取值如下：<br/> "Normal"：正常工作状态 <br/> "Shutdown"：正在关闭状态，表示节点正在被关闭 <br/> "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步，则节点会进入该状态，重新构建数据 <br/> "FullSync"：全量同步状态 <br/> "OfflineBackup"：[数据备份][regular_bar]状态 |
-| BeginLSN.Offset      | int64   | 起始 LSN 的偏移 |
-| BeginLSN.Version     | int32   | 起始 LSN 的版本号 |
-| CurrentLSN.Offset    | int64   | 当前 LSN 的偏移 |
-| CurrentLSN.Version   | int32   | 当前 LSN 的版本号 |
-| CommittedLSN.Offset  | int64   | 已提交 LSN 的偏移 |
-| CommittedLSN.Version | int32   | 已提交 LSN 的版本号 |
-| CompleteLSN          | int64     | 已完成 LSN 的偏移                                               |
+| BeginLSN.Offset      | int64   | 节点同步日志的起始 LSN |
+| BeginLSN.Version     | int32   | 版本号（内部使用）|
+| CurrentLSN.Offset    | int64   | 节点同步日志的当前 LSN<br>该字段可用于查看同步日志的结束位置 |
+| CurrentLSN.Version   | int32   | 版本号（内部使用） |
+| CommittedLSN.Offset  | int64   | 已刷盘的同步日志对应的 LSN<br>该字段可用于查看节点数据的刷盘进度  |
+| CommittedLSN.Version | int32   | 版本号（内部使用） |
+| CompleteLSN          | int64     | 备节点已重放记录对应的 LSN         |
 | LSNQueSize           | int32     | 等待同步的 LSN 队列长度                                         |
 | NodeID               | array  | 节点的 ID 信息，格式为[<分区组 ID>, <节点 ID>] <br> 在 standalone 模式下，该字段为[0, 0]                 |
 | DataStatus           | string    | 数据状态，取值如下：<br/> "Normal"：正常状态 <br/> "Repairing"：修复状态，当节点状态为"Rebuilding"或"FullSync"时，数据状态为"Repairing"  <br/> "Fault"：错误状态，当节点异常启动，且节点状态不为"Rebuilding"或"FullSync"时，数据状态为"Fault"  |
@@ -52,7 +52,7 @@ SDB_SNAP_HEALTH
 | FTStatus | string | 容错状态，取值如下：<br>"NOSPC"：磁盘空间不足<br>"DEADSYNC"：节点数据不同步 <br>"SLOWNODE"：节点数据同步过慢<br>"TRANSERR"：节点事务异常 |
 | StartHistory         | array     | 节点启动历史（只取最新的十条记录）                              |
 | AbnormalHistory      | array     | 节点异常后启动历史（只取最新的十条记录）                        |
-| DiffLSNWithPrimary   | int64     | 与主节点的 LSN 差异                                             |
+| DiffLSNWithPrimary   | int64     | 与主节点的 LSN 差异<br>该字段可用于[检查主备节点的数据一致性][consistent]                                       |
 
 > **Note：**  
 >
@@ -60,7 +60,9 @@ SDB_SNAP_HEALTH
 > - 备节点在计算与主节点的 LSN 差异时，所取的主节点 LSN 可能是两秒钟前的，因此 DiffLSNWithPrimary 可能与实际值存在一定偏差。（两秒是一个心跳间隔）
 
 
-##示例##
+##应用场景##
+
+###查看快照信息###
 
 查看节点健康检测快照
 
@@ -138,8 +140,33 @@ SDB_SNAP_HEALTH
 }
 ```
 
+###检查主备节点的数据一致性###
+
+用户可通过查看字段 DiffLSNWithPrimary 的值，检查节点数据的一致性。如果该字段取值为 0，说明节点间数据一致。具体操作步骤如下：
+
+```lang-javascript
+> db.snapshot(SDB_SNAP_HEALTH, {}, {NodeName: null, IsPrimary: null, DiffLSNWithPrimary: null})
+```
+
+输出结果如下：
+
+```lang-json
+...
+{
+  "NodeName": "sdbserver1:11820",
+  "IsPrimary": true,
+  "DiffLSNWithPrimary": 0
+}
+{
+  "NodeName": "sdbserver2:11820",
+  "IsPrimary": false,
+  "DiffLSNWithPrimary": 0
+}
+...
+```
+
 [^_^]:
-    本文使用到的所有链接及引用。
-    
+    本文使用的所有引用及链接
 [regular_bar]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md
 [architecture]: manual/Distributed_Engine/Architecture/Replication/architecture.md#全量同步
+[consistent]:manual/Manual/Snapshot/SDB_SNAP_HEALTH.md#检查主备节点的数据一致性

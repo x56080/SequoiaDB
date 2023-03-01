@@ -1,17 +1,7 @@
-[^_^]:
-
-    数据库快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-
-    王涛：
-    许建辉：
-    市场部：20190425
-
+[^_^]: 
+    集合空间快照
 
 集合空间快照可以列出当前集群中的集合空间信息。连接协调节点执行函数时，将列出所有非系统集合空间的信息；连接非协调节点执行函数时，将列出与当前节点关联的所有集合空间信息。
-
 
 ##标识##
 
@@ -69,9 +59,9 @@ SDB_SNAP_COLLECTIONSPACES
 | TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
-| DataCommitLSN   | int64      | 集合空间数据文件最后提交 LSN                 |
-| IndexCommitLSN  | int64      | 集合空间索引文件最后提交 LSN                 |
-| LobCommitLSN    | int64      | 集合空间大对象文件最后提交 LSN               |
+| DataCommitLSN   | int64      | 集合空间数据文件已刷盘记录对应的 LSN（内部使用）   |
+| IndexCommitLSN  | int64      | 集合空间索引文件已刷盘记录对应的 LSN（内部使用）   |
+| LobCommitLSN    | int64      | 集合空间大对象文件已刷盘记录对应的 LSN（内部使用） |
 | DataCommitted   | boolean    | 集合空间数据文件当前是否有效提交             |
 | IndexCommitted  | boolean    | 集合空间索引文件当前是否有效提交             |
 | LobCommitted    | boolean    | 集合空间大对象文件当前是否有效提交           |
@@ -126,7 +116,9 @@ SDB_SNAP_COLLECTIONSPACES
 | CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
 | UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
 
-##示例##
+##应用场景##
+
+###查看快照信息###
 
 - 通过非协调节点查看快照
 
