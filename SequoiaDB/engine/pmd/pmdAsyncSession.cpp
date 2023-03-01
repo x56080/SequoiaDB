@@ -441,8 +441,9 @@ namespace engine
       else
       {
          // otherwise it's not session from coord
-         ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:%u,TID:%u",
-                      className(), nodeID, TID ) ;
+         UINT32 selfNodeID = routeAgent()->localID().columns.nodeID ;
+         ossSnprintf( _name , SESSION_NAME_LEN, "Type:%s,NodeID:%u,PeerNodeID:%u",
+                      className(), selfNodeID, selfNodeID == nodeID ? 0 : nodeID ) ;
       }
       _name [SESSION_NAME_LEN] = 0 ;
       PD_TRACE_EXIT ( SDB__PMDSN__MKNAME );

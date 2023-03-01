@@ -44,6 +44,7 @@
 #include "clsDef.hpp"
 #include "netDef.hpp"
 #include "clsBase.hpp"
+#include "msgReplicator.hpp"
 
 using namespace std ;
 
@@ -60,6 +61,7 @@ namespace engine
    INT32 clsStrategy2String( INT32 sty, CHAR *str, UINT32 len ) ;
 
    const CHAR*    clsNodeRunStat2String( INT32 stat ) ;
+   const CHAR*    clsFSNotifyType2String( CLS_FS_NOTIFY_TYPE type ) ;
 
 }
 

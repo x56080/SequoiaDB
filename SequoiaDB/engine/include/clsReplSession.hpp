@@ -81,12 +81,18 @@ namespace engine
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;
 
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
+
       public:
          INT32 handleSyncRes( NET_HANDLE handle, MsgHeader* header ) ;
 
          INT32 handleNotify( NET_HANDLE handle, MsgHeader* header ) ;
 
          INT32 handleConsultRes( NET_HANDLE handle, MsgHeader *header ) ;
+
+      private:
+         void _updateName() ;
 
       private:
 
@@ -125,6 +131,7 @@ namespace engine
          DPS_LSN                       _lastRecvConsultLsn ;
 
          UINT32                        _fullSyncIgnoreTimes ;
+         CHAR                          _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
    } ;
 
    typedef _clsReplDstSession clsReplDstSession ;
@@ -150,6 +157,9 @@ namespace engine
          // called by self thread
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
+         virtual void onDispatchMsgBegin( const NET_HANDLE netHandle, const MsgHeader *pHeader ) ;
+         virtual void onDispatchMsgEnd( INT64 costUsecs ) ;
+
       public:
          INT32 handleSyncReq( NET_HANDLE handle, MsgHeader* header ) ;
 
@@ -162,6 +172,9 @@ namespace engine
                          const MsgReplSyncReq *req ) ;
 
       private:
+         virtual void _makeName() ;
+
+      private:
          _dpsMessageBlock              _mb ;
          _dpsLogWrapper                *_logger ;
          _clsSyncManager               *_sync ;
@@ -171,6 +184,7 @@ namespace engine
          UINT64                        _lastProcRequestID ;
 
          UINT64                        _dbTick ;
+         CHAR                          _lastSyncDetail[ CLS_SYNC_DETAIL_MAX_LEN + 1 ] ;
    } ;
    typedef _clsReplSrcSession clsReplSrcSession ;
 

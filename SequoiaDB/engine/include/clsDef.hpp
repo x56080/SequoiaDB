@@ -55,6 +55,7 @@ using namespace std ;
 
 namespace engine
 {
+   const UINT32 CLS_SYNC_DETAIL_MAX_LEN = 1024 ;
 
    //full sync node timeout
    #define CLS_FS_NORES_TIMEOUT                 (10000)  // 10 secs

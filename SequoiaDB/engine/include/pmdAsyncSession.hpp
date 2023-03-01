@@ -241,7 +241,6 @@ namespace engine
          UINT32         _decBuffPos ( UINT32 pos ) ;
 
       protected:
-         void  _makeName () ;
          INT32 _lock () ;
          INT32 _unlock () ;
          void  _reset() ;
@@ -250,6 +249,8 @@ namespace engine
          void           _holdOut() ;
 
          netRouteAgent* routeAgent() ;
+
+         virtual void   _makeName () ;
 
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;

@@ -605,6 +605,13 @@ namespace engine
       return ;
    }
 
+   void _monAppCB::replaceLastOpDetail( const CHAR *detail )
+   {
+      ossStrncpy( _lastOpDetail, detail, sizeof( _lastOpDetail ) - 1 ) ;
+      _lastOpDetail[ sizeof( _lastOpDetail ) - 1 ] = '\0' ;
+      _lastOpMsgSaved = FALSE ;
+   }
+
    void _monAppCB::clearLastOpDetail()
    {
       _lastOpMsgSaved = FALSE ;
