@@ -2,10 +2,11 @@
  * @Description   : seqDB-29812:update使用rename更新字段名为不存在的字段名
  * @Author        : ChengJingjing
  * @CreateTime    : 2022.01.10
- * @LastEditTime  : 2023.01.10
+ * @LastEditTime  : 2023.02.25
  * @LastEditors   : ChengJingjing
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "29812";
+testConf.clOpt = { ReplSize: 0 };
 main( test );
 
 function test ( args )
@@ -112,7 +113,7 @@ function test ( args )
    commCompareResults( cursor, expResult );
 }
 
-function checkUpdatedCL( cl, expResult )
+function checkUpdatedCL ( cl, expResult )
 {
    db.setSessionAttr( { PreferedInstance: "m" } );
    var cursor = cl.find().sort( { usernum: 1 } );
