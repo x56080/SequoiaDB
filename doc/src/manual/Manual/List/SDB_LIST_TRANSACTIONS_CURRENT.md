@@ -31,8 +31,8 @@ SDB_LIST_TRANSACTIONS_CURRENT
 | TransactionID          | string   | 事务 ID                                  |
 | TransactionIDSN        | int64    | 事务序列号                               |
 | IsRollback             | boolean  | 表示这个事务是否处于回滚中               |
-| CurrentTransLSN        | int64    | 事务当前的日志 LSN                       |
-| BeginTransLSN          | int64    | 事务开始的日志 LSN                       |   
+| CurrentTransLSN        | int64    | 事务最后一条记录对应的 LSN<br>该字段可用于检查是否存在空闲事务，具体可参考[查询空闲事务][residualtransaction] |
+| BeginTransLSN          | int64    | 事务第一条记录对应的 LSN<br>该字段可用于查询最早开启的事务，当日志空间不足时，可以提交最早的事务以释放日志空间 |
 | WaitLock               | bson     | 正在等待的锁                             |
 | TransactionLocksNum    | int32    | 事务已经获得的锁                         |
 | RelatedID              | string   | 内部标识                                 |
@@ -92,6 +92,6 @@ WaitLock 字段中锁对象的信息如下：
 ```
 
 [^_^]:
-    本文使用到的所有链接及引用。
-    
+    本文使用的所有引用及链接
 [transaction_url]:manual/Distributed_Engine/Architecture/Transactions/Readme.md
+[residualtransaction]:manual/Manual/Snapshot/SDB_SNAP_TRANSACTIONS_CURRENT.md#查询空闲事务

@@ -7,7 +7,6 @@
 >
 > 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_SYSTEM, {RawData:true})` 获取聚合前的数据。
 
-
 ##标识##
 
 SDB_SNAP_SYSTEM
@@ -23,16 +22,16 @@ SDB_SNAP_SYSTEM
 | IsPrimary            | boolean   | 是否为主节点，standalone 模式下该字段为 false                  |
 | ServiceStatus        | boolean   | 是否为可提供服务状态 <br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status               | string    | 数据库状态，如：Normal、Shutdown、Rebuilding、FullSync、OfflineBackup |
-| BeginLSN.Offset      | int64 | 起始 LSN 的偏移                                                |
-| BeginLSN.Version     | int32   | 起始 LSN 的版本号                                              |
-| CurrentLSN.Offset    | int64 | 当前 LSN 的偏移                                                |
-| CurrentLSN.Version   | int32   | 当前 LSN 的版本号                                              |
-| CommittedLSN.Offset  | int64 | 已提交 LSN 的偏移                                              |
-| CommittedLSN.Version | int32   | 已提交 LSN 的版本号                                            |
-| CompleteLSN          | int64     | 已完成 LSN 的偏移                                              |
+| BeginLSN.Offset       | int64 | 节点同步日志的起始 LSN |
+| BeginLSN.Version      | int32   | 版本号（内部使用）                                               |
+| CurrentLSN.Offset     | int64 | 节点同步日志的当前 LSN<br>该字段可用于查看同步日志的结束位置  |
+| CurrentLSN.Version    | int32   | 版本号（内部使用）                                                    |
+| CommittedLSN.Offset   | int64 | 已刷盘的同步日志对应的 LSN  |
+| CommittedLSN.Version  | int32   | 版本号（内部使用）                                                        |
+| CompleteLSN           | int64     | 备节点已重放记录对应的 LSN |
 | LSNQueSize           | int32     | 等待同步的LSN队列长度                                          |
 | TransInfo.TotalCount | int32   | 正在执行的事务数量                                             |
-| TransInfo.BeginLSN   | int64 | 正在执行的事务的起始 LSN 的偏移                                |
+| TransInfo.BeginLSN   | int64 | 正在执行的事务的起始 LSN（内部使用）                                |
 | NodeID               | bson array| 节点的 ID 信息，格式为`[<分区组 ID>, <节点 ID>]`<br>standalone 模式下该字段为[0, 0] |
 | CPU.User             | double | 操作系统启动后累计的用户 CPU 时间，单位为秒      |
 | CPU.Sys              | double | 操作系统启动后累计的系统 CPU 时间，单位为秒             |
@@ -77,7 +76,10 @@ SDB_SNAP_SYSTEM
 | ErrNodes.Flag     | int32     | 异常节点的[错误码][error_code_url]                     |
 | ErrNodes.ErrInfo  | bson      | 异常节点的错误信息                                     |
 
-##示例##
+
+##应用场景##
+
+###查看快照信息###
 
 - 通过非协调节点查看快照
 
