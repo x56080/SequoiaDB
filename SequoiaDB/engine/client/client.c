@@ -8776,9 +8776,7 @@ SDB_EXPORT INT32 sdbAttachCollection ( sdbCollectionHandle cHandle,
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
    connection = (sdbConnectionStruct*)(cs->_connection) ;
 
-   if ( !subClFullName || !options ||
-        ossStrlen ( subClFullName) > CLIENT_COLLECTION_NAMESZ ||
-        !cs->_collectionFullName[0] )
+   if ( !subClFullName || !options || !cs->_collectionFullName[0] )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -8831,9 +8829,7 @@ SDB_EXPORT INT32 sdbDetachCollection( sdbCollectionHandle cHandle,
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
    connection                      = (sdbConnectionStruct*)(cs->_connection) ;
 
-   if ( !subClFullName ||
-        ossStrlen ( subClFullName) > CLIENT_COLLECTION_NAMESZ ||
-        !cs->_collectionFullName[0] )
+   if ( !subClFullName || !cs->_collectionFullName[0] )
    {
       rc = SDB_INVALIDARG ;
       goto error ;

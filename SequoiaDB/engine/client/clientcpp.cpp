@@ -2745,9 +2745,7 @@ do                                                            \
       BSONObjBuilder ob ;
 
       // check argument
-      if ( !subClFullName ||
-            ossStrlen ( subClFullName) > CLIENT_COLLECTION_NAMESZ ||
-           _collectionFullName[0] == '\0' )
+      if ( !subClFullName || _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -2781,9 +2779,7 @@ do                                                            \
       BSONObjBuilder ob ;
 
       // check argument
-      if ( !subClFullName ||
-           ossStrlen ( subClFullName) > CLIENT_COLLECTION_NAMESZ ||
-           _collectionFullName[0] == '\0' )
+      if ( !subClFullName || _collectionFullName[0] == '\0' )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
