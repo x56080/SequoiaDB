@@ -57,6 +57,18 @@ SdbCS
 
         格式：`ReplSize: 0`
 
+    - ConsistencyStrategy（ *number* ）：[同步一致性][consistency_strategy]策略
+
+        该参数用于指定数据同步优先选择的节点，默认值为 3。
+
+        取值如下：
+
+        - 1：节点优先策略
+        - 2：位置多数派优先策略
+        - 3：主位置多数派优先策略
+
+        格式：`ConsistencyStrategy: 3`
+
     - Compressed（ *boolean* ）：是否开启数据压缩功能，默认值为 true，表示开启数据压缩功能
 
         格式：`Compressed: false`
@@ -93,7 +105,7 @@ SdbCS
         格式：`Group: "group1"`
 
     - AutoIndexId（ *boolean* ）：是否根据字段 _id 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
- 
+
         格式：`AutoIndexId: false`
 
     - EnsureShardingIndex（ *boolean* ）：是否根据参数 ShardingKey 指定的字段自动创建名为"$shard"的索引，默认值为 true，表示自动创建
@@ -141,7 +153,7 @@ SdbCS
         > 参数 DataSource 和 Mapping 的具体使用场景可参考[数据源][datasource]。
 
 ##返回值##
- 
+
 函数执行成功时，将返回一个 SdbCollection 类型的对象。
 
 函数执行失败时，将抛异常并输出错误信息。
@@ -209,7 +221,7 @@ v1.0 及以上版本
     ```
 
     不指定大对象 ID，直接将文件 `/opt/data/test.dat` 以大对象形式插入集合 sample.maincl 中，插入成功后自动生成大对象 ID，其时间属性为当前时间
-    
+
     ```lang-javascript
     > db.sample.maincl.putLob('/opt/data/test.dat')
     00005d36dbee370002de8080
@@ -225,3 +237,4 @@ v1.0 及以上版本
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[consistency_strategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md

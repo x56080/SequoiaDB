@@ -75,6 +75,22 @@ ReplSize（ \f[I]number\f[] ）：写操作需同步的副本数，默认值为
 格式：\f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
+ConsistencyStrategy（ \f[I]number\f[] ）：同步一致性策略
+.RS 2
+.PP
+该参数用于指定数据同步优先选择的节点，默认值为 3。
+.PP
+取值如下：
+.IP \[bu] 2
+1：节点优先策略
+.IP \[bu] 2
+2：位置多数派优先策略
+.IP \[bu] 2
+3：主位置多数派优先策略
+.PP
+格式：\f[C]ConsistencyStrategy: 3\f[]
+.RE
+.IP \[bu] 2
 Compressed（ \f[I]boolean\f[] ）：是否开启数据压缩功能，默认值为
 true，表示开启数据压缩功能
 .RS 2

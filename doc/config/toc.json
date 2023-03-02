@@ -140,7 +140,7 @@
                            "dir": "Operation",
                            "cn": "操作",
                            "en": "Operation",
-                           "contents": [ 
+                           "contents": [
                               {
                                  "id": 1521595283,
                                  "file": "connection",
@@ -605,7 +605,7 @@
                                  "id": 1641263195,
                                  "file": "usage",
                                  "cn": "使用",
-                                 "en": "usage"  
+                                 "en": "usage"
                               }
                            ]
                         },
@@ -1065,6 +1065,12 @@
                            "file": "primary_secondary_consistency",
                            "cn": "节点一致性",
                            "en": "Primary Secondary Consistency"
+                        },
+                        {
+                           "id": 1672796627,
+                           "file": "consistency_strategy",
+                           "cn": "同步一致性",
+                           "en": "Consistency Strategy"
                         },
                         {
                            "id": 1599727239,
@@ -1871,13 +1877,13 @@
                            "file": "network_security",
                            "cn": "网络安全",
                            "en": "Network Security"
-                        }, 
+                        },
                         {
                            "id": 1432190676,
                            "file": "authentication_algorithm",
                            "cn": "鉴权机制",
                            "en": "Authentication Algorithm"
-                        }                  
+                        }
                      ]
                   },
                   {
@@ -1995,7 +2001,7 @@
                            "file": "remove_host",
                            "cn": "删除主机",
                            "en": "Remove host"
-                        } 
+                        }
                      ]
                   },
                   {
@@ -3305,6 +3311,12 @@
                            "en": "setAttributes()"
                         },
                         {
+                           "id": 1671609925,
+                           "file": "setConsistencyStrategy",
+                           "cn": "setConsistencyStrategy()",
+                           "en": "setConsistencyStrategy()"
+                        },
+                        {
                            "id": 1524019505,
                            "file": "snapshotIndexes",
                            "cn": "snapshotIndexes()",
@@ -3421,7 +3433,7 @@
                            "file": "flags",
                            "cn": "flags()",
                            "en": "flags()"
-                        },                        
+                        },
                         {
                            "id": 1537862277,
                            "file": "getQueryMeta",
@@ -3945,7 +3957,7 @@
                            "file": "setIniConfigs",
                            "cn": "setIniConfigs()",
                            "en": "setIniConfigs()"
-                        }, 
+                        },
                         {
                            "id": 1580718041,
                            "file": "setNodeConfigs",
@@ -4483,7 +4495,7 @@
                            "en": "listNodes()"
                         }
                      ]
-                  },  
+                  },
                   {
                      "id": 1561538062,
                      "dir": "Ssh",
@@ -4495,7 +4507,7 @@
                            "file": "Ssh",
                            "cn": "Ssh()",
                            "en": "Ssh()"
-                        }, 
+                        },
                         {
                            "id": 1561538064,
                            "file": "close",
@@ -4545,7 +4557,7 @@
                            "en": "push()"
                         }
                      ]
-                  }, 
+                  },
                   {
                      "id": 1560930213,
                      "dir": "System",
@@ -4861,7 +4873,7 @@
                            "file": "BSONObj",
                            "cn": "BSONObj",
                            "en": "BSONObj"
-                        },   
+                        },
                         {
                            "id": 1440658409,
                            "file": "MaxKey",
@@ -4873,7 +4885,7 @@
                            "file": "MinKey",
                            "cn": "MinKey",
                            "en": "MinKey"
-                        },                  
+                        },
                         {
                            "id": 1562588927,
                            "file": "NumberDecimal",

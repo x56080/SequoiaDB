@@ -30,6 +30,18 @@ Modify the collection properties through the parameter "options":
 
     Format: `ReplSize: 0`
 
+- ConsistencyStrategy ( *number* ): [Synchronization consistency][consistency_strategy] strategy.
+
+    This parameter is used to set the preferred node for data synchronization, the default value is 3.
+
+    The values are as follows:
+
+    - 1: Node priority strategy.
+    - 2: Position majority first strategy.
+    - 3: Main position majority first strategy.
+
+    Format：`ConsistencyStrategy: 3`
+
 - ShardingKey ( *object* ): Sharding key, and the value is 1 or -1, indicating f orward or reverse sorting.
 
     "ShardingKey" can be modified when the collection only exists in one data group, or the collection does not have subcollections mounted.
@@ -165,3 +177,4 @@ v1.12 and above
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
+[consistency_strategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md

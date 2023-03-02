@@ -22,6 +22,7 @@
 | 分区类型（ShardingType） | 指定集合的分区类型：范围分区（range）或散列分区（hash）|
 | 分区数（Partition） | 仅当选择散列分区时填写，代表了散列分区的个数 |
 | 写副本数（ReplSize）     | 指定该集合默认的写副本数 |
+| 同步一致性策略（ConsistencyStrategy）| 指定该集合的[同步一致性][ConsistencyStrategy]策略 |
 | 数据压缩（Compressed）   | 指定新集合是否开启数据压缩功能 |
 | 压缩算法（CompressionType）| 压缩算法类型 |
 | 主子表（IsMainCL）| 指定新集合是否为主分区集合 |
@@ -45,4 +46,5 @@
     本文使用到的所有链接及引用
 [data_mode_createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [data_mode_split]:manual/Distributed_Engine/Architecture/Sharding/Readme.md
+[ConsistencyStrategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md
 

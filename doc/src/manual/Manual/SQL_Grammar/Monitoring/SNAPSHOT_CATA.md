@@ -17,6 +17,7 @@ $SNAPSHOT_CATA
 | UniqueID            | int64  | 集合的 UniqueID，在集群上全局唯一 |
 | EnsureShardingIndex | boolean | 是否自动为分区键字段创建索引 |
 | ReplSize            | int32   | 执行修改操作时需要同步的副本数<br>当执行更新、插入、删除记录等操作时，仅当指定副本数的节点都完成操作时才返回操作结果 |
+| ConsistencyStrategy | int32   | 集合的[同步一致性][ConsistencyStrategy]策略 |
 | ShardingKey         | object | 数据分区类型，取值如下：<br> "range"：数据按分区键值的范围进行分区存储<br>"hash"：数据按分区键的哈希值进行分区存储 |
 | Version             | int32  | 集合版本号，当对集合的元数据执行修改操作时递增该版本号（例如数据切分） |
 | Attribute           | int32  | 集合的属性掩码，取值可参考 [SYSCOLLECTION 集合][syscollection]                     |
@@ -74,7 +75,7 @@ $SNAPSHOT_CATA
      "CreateTime": "2022-10-06-18.04.31.090000",
      "UpdateTime": "2022-10-06-18.04.31.164000"
    }
-   
+
    ```
 
 - 查看数据库分区集合的编目信息快照
@@ -82,9 +83,9 @@ $SNAPSHOT_CATA
    ```lang-javascript
    > db.exec("select * from $SNAPSHOT_CATA")
    ```
-   
+
    输出结果如下：
-   
+
    ```lang-json
    {
      "_id": {
@@ -105,6 +106,7 @@ $SNAPSHOT_CATA
      ],
      "CompressionType": 0,
      "CompressionTypeDesc": "snappy",
+     "ConsistencyStrategy": 3,
      "ReplSize": 1,
      "ShardingKey": {
        "age": 1
@@ -141,9 +143,9 @@ $SNAPSHOT_CATA
    ```lang-javascript
    > db.exec("select * from $SNAPSHOT_CATA")
    ```
-   
+
    输出结果如下：
-   
+
    ```lang-json
    {
      "_id": {
@@ -216,3 +218,4 @@ $SNAPSHOT_CATA
     本文使用的所有引用及链接
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
 [syscollection]:manual/Manual/Catalog_Table/SYSCOLLECTIONS.md
+[ConsistencyStrategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md

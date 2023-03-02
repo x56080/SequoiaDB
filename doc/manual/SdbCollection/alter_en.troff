@@ -42,6 +42,23 @@ to the client.
 Format: \f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
+ConsistencyStrategy ( \f[I]number\f[] ): Synchronization consistency strategy.
+.RS 2
+.PP
+This parameter is used to set the preferred node for data synchronization, the
+default value is 3.
+.PP
+The values are as follows:
+.IP \[bu] 2
+1: Node priority strategy.
+.IP \[bu] 2
+2: Position majority first strategy.
+.IP \[bu] 2
+3: Main position majority first strategy.
+.PP
+Format：\f[C]ConsistencyStrategy: 3\f[]
+.RE
+.IP \[bu] 2
 ShardingKey ( \f[I]object\f[] ): Sharding key, and the value is 1 or \-1,
 indicating f orward or reverse sorting.
 .RS 2

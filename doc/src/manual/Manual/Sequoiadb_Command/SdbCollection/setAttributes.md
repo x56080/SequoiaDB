@@ -30,6 +30,18 @@ options ( *object，必填* )
 
     格式：`ReplSize: 0`
 
+- ConsistencyStrategy（ *number* ）：[同步一致性][consistency_strategy]策略
+
+    该参数用于指定数据同步优先选择的节点，默认值为 3。
+
+    取值如下：
+
+    - 1：节点优先策略
+    - 2：位置多数派优先策略
+    - 3：主位置多数派优先策略
+
+    格式：`ConsistencyStrategy: 3`
+
 - ShardingKey ( *object* )：分区键，取值为 1 或 -1，表示正向或逆向排序
 
     当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。
@@ -69,7 +81,7 @@ options ( *object，必填* )
 - EnsureShardingIndex ( *boolean* )：是否根据参数 ShardingKey 指定的字段自动创建名为"$shard"的索引，默认值为 true，表示自动创建
 
     当集合仅存在于一个数据组时，EnsureShardingIndex 可以被修改。
- 
+
     格式：`EnsureShardingIndex: false`
 
 - Compressed ( *boolean* )：是否开启数据压缩功能，默认值为 true，表示开启数据压缩功能
@@ -165,3 +177,4 @@ v2.10 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
+[consistency_strategy]:manual/Distributed_Engine/Architecture/Replication/consistency_strategy.md
