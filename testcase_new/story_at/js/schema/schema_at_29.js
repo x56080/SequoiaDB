@@ -70,7 +70,7 @@ function test() {
     LowBound: { id: 20 },
     UpBound: { id: 30 },
   });
-  commCheckInternalSchema(db, COMMCSNAME, subclName3, {
+  checkInternalSchema(db, COMMCSNAME, subclName3, {
     a: { WriteDefault: 5, ReadDefault: 10 },
     b: { WriteDefault: 5 },
   });
@@ -82,7 +82,7 @@ function test() {
     LowBound: { id: 30 },
     UpBound: { id: 40 },
   });
-  commCheckInternalSchema(db, COMMCSNAME, subclName4, {
+  checkInternalSchema(db, COMMCSNAME, subclName4, {
     a: { WriteDefault: 5, ReadDefault: 10 },
     b: { WriteDefault: 5 },
     c: {},

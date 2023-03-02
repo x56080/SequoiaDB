@@ -63,10 +63,10 @@ function test() {
     UpBound: { id: 30 },
   });
 
-  commCheckInternalSchema(db, COMMCSNAME, subclName3, { b: { WriteDefault: 5, ReadDefault: 10 } });
-  commCheckInternalSchemaHasNoColumn(db, COMMCSNAME, subclName3, { a: {} }, "a");
+  checkInternalSchema(db, COMMCSNAME, subclName3, { b: { WriteDefault: 5, ReadDefault: 10 } });
+  checkInternalSchemaHasNoColumn(db, COMMCSNAME, subclName3, { a: {} }, "a");
   cl.insert({ id: 25, c: 2.5 });
-  commCheckInternalSchema(db, COMMCSNAME, subclName3, {
+  checkInternalSchema(db, COMMCSNAME, subclName3, {
     b: { WriteDefault: 5, ReadDefault: 10 },
     c: {},
   });

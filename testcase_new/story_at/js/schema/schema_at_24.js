@@ -49,7 +49,7 @@ function test() {
   // 开启内部模式不会触发内部模式进化，更新记录来触发
   cl.update({ $set: { b: 4.5 } }, { b: { $et: 3.5 } });
   expRecs[1].b = 4.5;
-  commCheckInternalSchema(db, COMMCSNAME, clName, { _id: {}, b: {} });
+  checkInternalSchema(db, COMMCSNAME, clName, { _id: {}, b: {} });
   var cursor = cl.find().sort({ _id: 1 });
   commCompareResults(cursor, expRecs, false);
 
@@ -65,7 +65,7 @@ function test() {
   expRecs[1].a = 5;
   expRecs[1].c = 11.5;
   expRecs[2].a = 5;
-  commCheckInternalSchema(db, COMMCSNAME, clName, {
+  checkInternalSchema(db, COMMCSNAME, clName, {
     _id: {},
     a: { ReadDefault: 5 },
     b: { WriteDefault: 10.5 },
@@ -86,7 +86,7 @@ function test() {
 
   // 增加字段d
   schema.addColumn("d", { Type: "string", WriteDefault: "default d" });
-  commCheckInternalSchema(db, COMMCSNAME, clName, {
+  checkInternalSchema(db, COMMCSNAME, clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { WriteDefault: 10.5 },
@@ -96,7 +96,7 @@ function test() {
 
   // 删除字段d默认值
   schema.dropColumnDefault("d");
-  commCheckInternalSchema(db, COMMCSNAME, clName, {
+  checkInternalSchema(db, COMMCSNAME, clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { WriteDefault: 10.5 },
@@ -106,7 +106,7 @@ function test() {
 
   // 删除字段d
   schema.dropColumn("d");
-  commCheckInternalSchema(db, COMMCSNAME, clName, {
+  checkInternalSchema(db, COMMCSNAME, clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { WriteDefault: 10.5 },
@@ -122,7 +122,7 @@ function test() {
     expRecs.push({ _id: id, a: 10 + i, b: 10.5 + i, e: "e" + i, c: 11.5 });
   }
 
-  commCheckInternalSchema(db, COMMCSNAME, clName, {
+  checkInternalSchema(db, COMMCSNAME, clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { WriteDefault: 10.5 },

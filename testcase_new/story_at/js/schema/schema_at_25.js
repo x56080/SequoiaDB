@@ -42,7 +42,7 @@ function test(testPara) {
   });
   cl.addSchema(schemaName);
   // 内部模式中仅存在指定了默认值的字段b,而不存在字段a
-  commCheckInternalSchemaHasNoColumn(
+  checkInternalSchemaHasNoColumn(
     db,
     COMMCSNAME,
     clName,
@@ -54,7 +54,7 @@ function test(testPara) {
   );
   schema.renameColumn("a", "new_a");
   schema.renameColumn("b", "new_b");
-  commCheckInternalSchema(db, COMMCSNAME, clName, {
+  checkInternalSchema(db, COMMCSNAME, clName, {
     new_a: {},
     new_b: { WriteDefault: 5, ReadDefault: 10 },
   });

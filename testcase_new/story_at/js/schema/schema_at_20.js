@@ -59,5 +59,5 @@ function test() {
   for (var i = 201801; i < 202001; ++i) {
     cl.insert({ create_date: i.toString() });
   }
-  commCheckInternalSchema(db, COMMCSNAME, mainCLName, columnsDef);
+  checkInternalSchema(db, COMMCSNAME, mainCLName, columnsDef);
 }

@@ -56,7 +56,7 @@ function test(testPara) {
   var data1 = db.getRG(srcGroup).getMaster().connect();
   var data2 = db.getRG(dstGroups[0]).getMaster().connect();
   // 两个复制组的集合内部模式都无a字段
-  commCheckInternalSchemaHasNoColumn(
+  checkInternalSchemaHasNoColumn(
     data1,
     COMMCSNAME,
     clName,
@@ -66,7 +66,7 @@ function test(testPara) {
     },
     "a"
   );
-  commCheckInternalSchemaHasNoColumn(
+  checkInternalSchemaHasNoColumn(
     data2,
     COMMCSNAME,
     clName,
@@ -81,11 +81,11 @@ function test(testPara) {
   cl.insert({ id: 11, a: 1, b: 2, c: 3 });
 
   // 源复制组的集合内部模式无a, c字段
-  commCheckInternalSchemaHasNoColumn(data1, COMMCSNAME, clName, { a: {} }, "a");
-  commCheckInternalSchemaHasNoColumn(data1, COMMCSNAME, clName, { c: {} }, "c");
+  checkInternalSchemaHasNoColumn(data1, COMMCSNAME, clName, { a: {} }, "a");
+  checkInternalSchemaHasNoColumn(data1, COMMCSNAME, clName, { c: {} }, "c");
 
   // 目的复制组的集合内部模式含a,c字段
-  commCheckInternalSchema(data2, COMMCSNAME, clName, {
+  checkInternalSchema(data2, COMMCSNAME, clName, {
     b: { WriteDefault: 5, ReadDefault: 10 },
     a: {},
     c: {},
@@ -95,14 +95,14 @@ function test(testPara) {
   schema.renameColumn("a", "new_a");
   schema.renameColumn("b", "new_b");
   // 源复制组的集合内部模式无c字段,含new_a,new_b字段
-  commCheckInternalSchemaHasNoColumn(data1, COMMCSNAME, clName, { c: {} }, "c");
-  commCheckInternalSchema(data1, COMMCSNAME, clName, {
+  checkInternalSchemaHasNoColumn(data1, COMMCSNAME, clName, { c: {} }, "c");
+  checkInternalSchema(data1, COMMCSNAME, clName, {
     new_a: {},
     new_b: { WriteDefault: 5, ReadDefault: 10 },
   });
 
   // 目的复制组的集合内部模式含new_a,new_b,c字段
-  commCheckInternalSchema(data2, COMMCSNAME, clName, {
+  checkInternalSchema(data2, COMMCSNAME, clName, {
     new_b: { WriteDefault: 5, ReadDefault: 10 },
     new_a: {},
     c: {},

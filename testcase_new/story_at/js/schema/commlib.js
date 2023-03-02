@@ -111,7 +111,7 @@ function SchemaNoColumnError(message, columnName){
 SchemaNoColumnError.prototype = new Error();
 SchemaNoColumnError.prototype.constructor = SchemaNoColumnError;
 
-function commCheckInternalSchema(db, csName, clName, columnsDef) {
+function checkInternalSchema(db, csName, clName, columnsDef) {
   var cursor = db.getCS(csName).getCL(clName).getInternalSchema();
   while (cursor.next()) {
     var obj = cursor.current().toObj();
@@ -207,14 +207,44 @@ function checkJsonFileContent(jsonFile, expRecs) {
   assert.equal(actObjs, expRecs);
 }
 
-function commCheckInternalSchemaHasNoColumn(db, csName, clName, columnsDef, columnNotExist)
+function checkInternalSchemaHasNoColumn(db, csName, clName, columnsDef, columnNotExist)
 {
   try {
-    commCheckInternalSchema(db, csName, clName, columnsDef);
+    checkInternalSchema(db, csName, clName, columnsDef);
     throw Error("Expect to have no column " + columnNotExist + ", but it exists");
   } catch (e) {
     if (!(e instanceof SchemaNoColumnError && e.columnName == columnNotExist)) {
       throw e;
     }
   }
+}
+
+function checkConsistence ( db, csName, clName, sel, expResult, primalResult, expInternalColumnDef )
+{
+   var nodes = commGetCLNodes( db, csName + "." + clName );
+   for( var i = 0; i < nodes.length; i++ )
+   {
+      var data = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
+      try
+      {
+         var dbcl = data.getCS( COMMCSNAME ).getCL( clName );
+         var actResult = dbcl.find().sort( sel );
+         commCompareResults( actResult, expResult );
+         if( primalResult != undefined )
+         {
+            var actResult = dbcl.find().sort( sel ).flags( SDB_FLG_QUERY_PRIMAL_DATA );
+            commCompareResults( actResult, primalResult );
+         }
+         if( expInternalColumnDef != undefined )
+         {
+            checkInternalSchema( db, csName, clName, expInternalColumnDef );
+         }
+      } catch( e )
+      {
+         throw new Error( "\nnode: " + data + " failed:\n" + e );
+      } finally
+      {
+         data.close();
+      }
+   }
 }

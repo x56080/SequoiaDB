@@ -36,14 +36,14 @@ function test() {
   });
   cl.addSchema(schemaName);
   cl.insert({c: 1.1});
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, {
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { ReadDefault: "default b" },
     c: {},
   });
   cl.update({ $set: { d: 3.0 } }, { c: { $et: 1.1 } });
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, {
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { ReadDefault: "default b" },

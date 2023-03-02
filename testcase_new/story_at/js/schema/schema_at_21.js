@@ -31,11 +31,11 @@ main(test);
 function test() {
   var cl = testPara.testCL;
   cl.insert({a: 1});
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, { _id: {}, a: {} });
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, { _id: {}, a: {} });
   cl.insert({b: "1"});
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, { _id: {}, a: {}, b:{} });
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, { _id: {}, a: {}, b:{} });
   cl.truncate();
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, {});
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, {});
 
   var schemaName = testConf.clName + "_1";
   commClearLegacySchema(db, schemaName);
@@ -45,14 +45,14 @@ function test() {
   });
   cl.addSchema(schemaName);
   cl.insert({c: 1.1});
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, {
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, {
     _id: {},
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { ReadDefault: "default b" },
     c: {},
   });
   cl.truncate();
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, {
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, {
     a: { ReadDefault: 5, WriteDefault: 10 },
     b: { ReadDefault: "default b" },
   });

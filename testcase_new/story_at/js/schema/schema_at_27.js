@@ -64,7 +64,7 @@ function test() {
   cl.addSchema(schemaName);
 
   // 两个子表的集合内部模式都无a字段
-  commCheckInternalSchemaHasNoColumn(
+  checkInternalSchemaHasNoColumn(
     db,
     COMMCSNAME,
     subclName1,
@@ -74,7 +74,7 @@ function test() {
     },
     "a"
   );
-  commCheckInternalSchemaHasNoColumn(
+  checkInternalSchemaHasNoColumn(
     db,
     COMMCSNAME,
     subclName2,
@@ -89,11 +89,11 @@ function test() {
   cl.insert({ id: 11, a: 1, b: 2, c: 3 });
 
   // 子表1内部模式无a, c字段
-  commCheckInternalSchemaHasNoColumn(db, COMMCSNAME, subclName1, { a: {} }, "a");
-  commCheckInternalSchemaHasNoColumn(db, COMMCSNAME, subclName1, { c: {} }, "c");
+  checkInternalSchemaHasNoColumn(db, COMMCSNAME, subclName1, { a: {} }, "a");
+  checkInternalSchemaHasNoColumn(db, COMMCSNAME, subclName1, { c: {} }, "c");
 
   // 子表2内部模式含a,c字段
-  commCheckInternalSchema(db, COMMCSNAME, subclName2, {
+  checkInternalSchema(db, COMMCSNAME, subclName2, {
     b: { WriteDefault: 5, ReadDefault: 10 },
     a: {},
     c: {},
@@ -103,14 +103,14 @@ function test() {
   schema.renameColumn("a", "new_a");
   schema.renameColumn("b", "new_b");
   // 子表1内部模式无c字段,含new_a,new_b字段
-  commCheckInternalSchemaHasNoColumn(db, COMMCSNAME, subclName1, { c: {} }, "c");
-  commCheckInternalSchema(db, COMMCSNAME, subclName1, {
+  checkInternalSchemaHasNoColumn(db, COMMCSNAME, subclName1, { c: {} }, "c");
+  checkInternalSchema(db, COMMCSNAME, subclName1, {
     new_a: {},
     new_b: { WriteDefault: 5, ReadDefault: 10 },
   });
 
   // 子表2内部模式含new_a,new_b,c字段
-  commCheckInternalSchema(db, COMMCSNAME, subclName2, {
+  checkInternalSchema(db, COMMCSNAME, subclName2, {
     new_b: { WriteDefault: 5, ReadDefault: 10 },
     new_a: {},
     c: {},

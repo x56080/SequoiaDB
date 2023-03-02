@@ -42,5 +42,5 @@ function test() {
     cl.insert({ rid: i });
   }
   cl.enableSharding({ ShardingKey: { rid: 1 }, AutoSplit: true });
-  commCheckInternalSchema(db, COMMCSNAME, testConf.clName, columnsDef);
+  checkInternalSchema(db, COMMCSNAME, testConf.clName, columnsDef);
 }
