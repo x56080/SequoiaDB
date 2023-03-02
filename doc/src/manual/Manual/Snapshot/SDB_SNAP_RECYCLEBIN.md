@@ -26,9 +26,9 @@ SDB_SNAP_RECYCLEBIN
 | LobPageSize     | int32      | 回收站项目的大对象数据页大小，单位为字节 |
 | TotalRecords    | int32      | 回收站项目的记录总数 |
 | TotalLobs       | int32      | 回收站项目的大对象总数 |
-| TotalDataSize   | int64      | 回收站项目的数据文件总大小，单位为字节 |
-| TotalIndexSize  | int64      | 回收站项目的索引文件总大小，单位为字节 |
-| TotalLobSize    | int64      | 回收站项目的大对象文件总大小，单位为字节 |
+| TotalDataSize   | int64      | 回收站项目占用集合空间数据文件的大小，单位为字节 |
+| TotalIndexSize  | int64      | 回收站项目占用集合空间索引文件的大小，单位为字节 |
+| TotalLobSize    | int64      | 回收站项目占用集合空间大对象文件的大小，单位为字节 |
 
 ###协调节点字段信息###
 
@@ -45,9 +45,9 @@ SDB_SNAP_RECYCLEBIN
 | LobPageSize     | int32      | 回收站项目的大对象数据页大小，单位为字节 |
 | TotalRecords    | int32      | 回收站项目的记录总数 |
 | TotalLobs       | int32      | 回收站项目的大对象总数 |
-| TotalDataSize   | int64      | 回收站项目的数据文件总大小，单位为字节 |
-| TotalIndexSize  | int64      | 回收站项目的索引文件总大小，单位为字节 |
-| TotalLobSize    | int64      | 回收站项目的大对象文件总大小，单位为字节 |
+| TotalDataSize   | int64      | 回收站项目占用集合空间数据文件的大小，单位为字节 |
+| TotalIndexSize  | int64      | 回收站项目占用集合空间索引文件的大小，单位为字节 |
+| TotalLobSize    | int64      | 回收站项目占用集合空间大对象文件的大小，单位为字节 |
 | Group           | bson array | 已回收的集合空间或集合所属的复制组 |
 
 ##示例##
