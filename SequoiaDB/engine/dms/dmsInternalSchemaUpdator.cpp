@@ -518,7 +518,7 @@ namespace engine
       SDB_ASSERT( _extent, "Schema hash extent is invalid" ) ;
 
       INT32 itemID = ossHash( name ) % DMS_SCHEMA_HASH_BUCKET_SIZE ;  // The bucket is also an item.
-      UINT16 nextItemOffset = DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_SCHEMAHASHEXTENT_ITEM_SZ * itemID ;
+      UINT16 nextItemOffset = DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_HASHEXTENT_SLOT_SZ * itemID ;
 
       while ( TRUE )
       {
@@ -527,7 +527,7 @@ namespace engine
          {
             // Not used.
             _setColumnIDInItem( item, columnID ) ;
-            _setNextItemOffset( item, DMS_SCHEMA_INVALID_ITEM_ID ) ;
+            _setNextItemOffset( item, 0xFFFF ) ;
             if ( prevItem )
             {
                _setNextItemOffset( prevItem, nextItemOffset ) ;
@@ -537,7 +537,7 @@ namespace engine
          else
          {
             nextItemOffset = _getNextItemOffset( item ) ;
-            if ( DMS_SCHEMA_INVALID_ITEM_ID == nextItemOffset )
+            if ( 0xFFFF == nextItemOffset )
             {
                // Reach the end of the conflict list.
                prevItem = item ;
@@ -561,9 +561,9 @@ namespace engine
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       UINT32 itemID = ossHash( name ) % DMS_SCHEMA_HASH_BUCKET_SIZE ;
-      UINT16 itemOffset = DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_SCHEMAHASHEXTENT_ITEM_SZ * itemID ;
+      UINT16 itemOffset = DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_HASHEXTENT_SLOT_SZ * itemID ;
 
-      while ( DMS_SCHEMA_INVALID_ITEM_OFFSET != itemOffset )
+      while ( 0xFFFF != itemOffset )
       {
          item = (INT32 *)_offset2Ptr( itemOffset ) ;
          columnID = _getColumnIDByItem( item ) ;
@@ -580,7 +580,7 @@ namespace engine
          }
       }
 
-      if ( DMS_SCHEMA_INVALID_ITEM_OFFSET == itemOffset )
+      if ( 0xFFFF == itemOffset )
       {
          // Not found
          goto done ;
@@ -594,7 +594,7 @@ namespace engine
             _setNextItemOffset( prevItem, _getNextItemOffset( item ) ) ;
             _resetItem( item ) ;
          }
-         else if ( DMS_SCHEMA_INVALID_ITEM_OFFSET == nextItemOffset )
+         else if ( 0xFFFF == nextItemOffset )
          {
             // No next, only this one.
             _resetItem( item ) ;
@@ -613,17 +613,17 @@ namespace engine
 
    void _dmsSchemaHashWriter::_setColumnIDInItem( INT32 *item, UINT16 columnID )
    {
-      *item = ( (*item) & DMS_SCHEMA_HASH_OFFSET_MASK ) | (UINT32)columnID ;
+      *item = ( (*item) & 0xFFFF0000 ) | (UINT32)columnID ;
    }
 
    void _dmsSchemaHashWriter::_setNextItemOffset( INT32 *item, UINT16 offset )
    {
-      *item = ( (*item) & DMS_SCHEMA_HASH_ID_MASK ) | ( ((INT32)offset) << 16 ) ;
+      *item = ( (*item) & 0xFFFF0000 ) | ( ((INT32)offset) << 16 ) ;
    }
 
    void _dmsSchemaHashWriter::_resetItem( INT32 *item )
    {
-      *item = DMS_SCHEMA_HASH_INVALID_ITEM_VALUE ;
+      *item = 0xFFFFFFFF ;
    }
 
    _dmsInternalSchemaWriter::_dmsInternalSchemaWriter()

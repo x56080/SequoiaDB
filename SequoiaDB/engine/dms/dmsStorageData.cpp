@@ -106,7 +106,6 @@ namespace engine
       IDToInsert oid ;
       idToInsertEle oidEle((CHAR*)(&oid)) ;
       CHAR *pMergedData = NULL ;
-      // BOOLEAN lockByMe = FALSE ;
 
       try
       {
@@ -156,33 +155,31 @@ namespace engine
             memReallocate = TRUE ;
          }
 
-         // Code Review: No mb context here
-         // Fixed below: Take the mb latch in shared mode, and release at the end.
-         // Check without lock, to avoid performance inpact on no schema collection.
-         // if ( !context->isMBLock( SHARED ) )
-         // {
-         //    rc = context->mbLock( SHARED ) ;
-         //    PD_RC_CHECK( rc, PDERROR, "Take collection mb latch failed, rc: %d", rc ) ;
-         //    lockByMe = TRUE ;
-         // }
-
          // If internal schema is enabled, need to encode the record.
          if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
          {
+            BOOLEAN memAlloc = FALSE ;
+
             // Need to add the following kinds of columns which are not in the original record
             // into the originan record:
             // 1. Columns with write default values
             // 2. Columns with no write default values, but are index columns and have read
             //    default values.
-            rc = _encodeRecordBySchema( context, cb, recordData, encodeData, schemaVer ) ;
+            rc = _encodeRecordBySchema( context, cb, recordData, memAlloc,
+                                        encodeData, schemaVer ) ;
             PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
-            if ( pMergedData && ( pMergedData != recordData.data() ) )
+
+            if ( memAlloc )
             {
-               // The memory for the record has changed again. Release the memory allocated
-               // above.
-               cb->releaseBuff( pMergedData ) ;
-               pMergedData = NULL ;
-               // Keep memReallocate as TRUE.
+               /// release pMergedData
+               if ( memReallocate )
+               {
+                  cb->releaseBuff( pMergedData ) ;
+                  pMergedData = NULL ;
+                  memReallocate = FALSE ;
+               }
+               memReallocate = memAlloc ;
+               pMergedData = (CHAR*)recordData.data() ;
             }
          }
       }
@@ -194,17 +191,18 @@ namespace engine
       }
 
    done:
-      // if ( lockByMe )
-      // {
-      //    context->mbUnlock() ;
-      // }
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, rc ) ;
       return rc ;
    error:
-      if ( pMergedData )
+      if ( memReallocate )
       {
          cb->releaseBuff( pMergedData ) ;
          pMergedData = NULL ;
+         memReallocate = FALSE ;
+
+         /// reset
+         recordData.setData( record.objdata(), record.objsize(),
+                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
       }
       goto done ;
    }
@@ -469,13 +467,13 @@ namespace engine
          // If internal schema is enabled, need to encode the record.
          if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
          {
+            BOOLEAN memAlloc = FALSE ;
             dmsRecordData encodeData ;
-            const CHAR *origRecordAddr = newRecordData.data() ;
 
-            rc = _encodeRecordBySchema( context, cb, newRecordData, encodeData, NULL ) ;
+            rc = _encodeRecordBySchema( context, cb, newRecordData, memAlloc, encodeData, NULL ) ;
             PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
 
-            if ( newRecordData.data() !=  origRecordAddr )
+            if ( memAlloc )
             {
                // The record has been rebuilt in the encoding process. We need to free the memory.
                pMergeData = (CHAR *)newRecordData.data() ;
@@ -484,12 +482,6 @@ namespace engine
             try
             {
                finalRecord = BSONObj( newRecordData.data() ) ;
-               if ( finalRecord.objsize() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
-               {
-                  PD_LOG ( PDERROR, "record is too big: %d", finalRecord.objsize() ) ;
-                  rc = SDB_DMS_RECORD_TOO_BIG ;
-                  goto error ;
-               }
             }
             catch ( std::exception &e )
             {
@@ -518,11 +510,11 @@ namespace engine
                               compressRatio ) ;
             // Compression is valid and ratio is less the threshold
             if ( SDB_OK == rc &&
-                 compressedDataSize + sizeof(UINT32) < storeRecordData.orgLen() &&
+                 (UINT32)compressedDataSize < storeRecordData.orgLen() &&
                  compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
             {
-               // 4 bytes len + compressed record
-               dmsRecordSize = compressedDataSize + sizeof(UINT32) ;
+               // compressed record
+               dmsRecordSize = compressedDataSize ;
                PD_TRACE2 ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD,
                            PD_PACK_STRING ( "size after compress" ),
                            PD_PACK_UINT ( dmsRecordSize ) ) ;
@@ -530,7 +522,8 @@ namespace engine
                // set the compression data
                storeRecordData.setData( compressedData, compressedDataSize,
                                         compressorEntry->getCompressorType(),
-                                        FALSE ) ;
+                                        FALSE,
+                                        storeRecordData.isEncodedBySchema() ) ;
             }
          }
 
@@ -540,7 +533,6 @@ namespace engine
             // before moving on, let's first make sure the new object doesn't
             // violate any index unique rule
             BSONObj oriObj( recordData.data() ) ;
-            // BSONObj newObj( newRecordData.orgData() ) ;
 
             // check ID index for normal update
             // NOTE: for sequoiadb upgrade, if the old data before upgrade
@@ -721,8 +713,6 @@ namespace engine
       {
          ctrlAssist.switchToUndo() ;
          BSONObj oriObj( recordData.data() ) ;
-
-         // BSONObj newObj( newRecordData.orgData() ) ;
 
          // rollback the change on index by switching obj and oriObj
          INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
@@ -1417,6 +1407,7 @@ namespace engine
       monAppCB * pMonAppCB    = cb ? cb->getMonAppCB() : NULL ;
       const dmsRecord *pRecord= recordRW.readPtr( 0 ) ;
       dmsInternalSchema *schema = getSchema( mbContext->mbID() ) ;
+      UINT32 recordFillSz = 0 ;
 
       recordData.reset() ;
 
@@ -1446,16 +1437,29 @@ namespace engine
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
       }
 
-      recordData.setData( pRecord->getData(), pRecord->getDataLength(),
-                          UTIL_COMPRESSOR_INVALID, TRUE ) ;
+      if ( pRecord->isEncodedBySchema() )
+      {
+         recordFillSz = DMS_SCHEMA_ENCODE_FILL_SZ ;
+      }
 
       if ( pRecord->isCompressed() )
       {
          const CHAR *pUncompressData = NULL ;
          INT32 unCompressDataLen = 0 ;
+
+         SDB_ASSERT( decodeRecord, "When record is compressed, the decodeRecord should be TRUE" ) ;
+         if ( !decodeRecord )
+         {
+            decodeRecord = TRUE ;
+         }
+
+         /// set record data with recordFillSz
+         recordData.setData( pRecord->getData(), pRecord->getDataLength() + recordFillSz,
+                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
+
          rc = dmsUncompress( cb, &_compressorEntry[ mbContext->mbID() ],
-                             pRecord->getCompressType(), pRecord->getData(),
-                             pRecord->getDataLength(),
+                             pRecord->getCompressType(), recordData.data(),
+                             recordData.len(),
                              &pUncompressData, &unCompressDataLen ) ;
          if ( rc )
          {
@@ -1463,11 +1467,11 @@ namespace engine
             goto error ;
          }
          /// check the length
-         if ( unCompressDataLen != *(INT32*)pUncompressData )
+         if ( unCompressDataLen != *(INT32*)pUncompressData + (INT32)recordFillSz )
          {
             PD_LOG( PDERROR, "Uncompress data length[%d] does not match "
                     "real length[%d]", unCompressDataLen,
-                    *(INT32*)pUncompressData ) ;
+                    *(INT32*)pUncompressData + recordFillSz ) ;
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
@@ -1476,34 +1480,35 @@ namespace engine
       }
 
       // Check if the record is encoded. If yes, need to decode.
-      schema = getSchema( mbContext->mbID() ) ;
-      if ( decodeRecord & schema->enabled() )
+      if ( decodeRecord && schema->enabled() )
       {
-         const CHAR *decodeRecord = NULL ;
-         UINT32 decodeSize = 0 ;
+         BSONObj objDecode ;
+
+         /// set record data with recordFillSz
+         recordData.setData( pRecord->getData(), pRecord->getDataLength() + recordFillSz,
+                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
+
          if ( pRecord->isEncodedBySchema() )
          {
-            dmsInternalSchema *schema = getSchema( mbContext->mbID() ) ;
-            SDB_ASSERT( schema->enabled(), "Schema is not enabled" ) ;
-
             rc = schema->decodeRecord( cb, recordData.data(), recordData.len(),
-                                       &decodeRecord, decodeSize, getPrimalData ) ;
+                                       objDecode, getPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Decode record by schema failed, rc: %d", rc ) ;
-            recordData.setData( decodeRecord, decodeSize, UTIL_COMPRESSOR_INVALID, FALSE ) ;
          }
-         else if ( schema->needRebiuldUncodedRecord() )
+         else
          {
-            BOOLEAN changed = FALSE ;
             BSONObj record( recordData.data() ) ;
-
-            rc = schema->rebuildRecord( cb, record, &decodeRecord, decodeSize,
-                                        changed, getPrimalData ) ;
+            rc = schema->rebuildRecord( cb, record, objDecode, getPrimalData ) ;
             PD_RC_CHECK( rc, PDERROR, "Rebuild record with internal schema failed, rc: %d", rc ) ;
-            if ( changed )
-            {
-               recordData.setData( decodeRecord, decodeSize, UTIL_COMPRESSOR_INVALID, FALSE ) ;
-            }
          }
+
+         recordData.setData( objDecode.objdata(), objDecode.objsize(),
+                             UTIL_COMPRESSOR_INVALID, FALSE ) ;
+      }
+      else
+      {
+         /// set record data without recordFillSz
+         recordData.setData( pRecord->getData(), pRecord->getDataLength(),
+                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
       }
 
       if( needIncDataRead )
@@ -1566,31 +1571,32 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA, "_dmsStorageData::_encodeRecordBySchema" )
    INT32 _dmsStorageData::_encodeRecordBySchema( dmsMBContext *context, pmdEDUCB *cb,
                                                  dmsRecordData &recordData,
+                                                 BOOLEAN &memAlloc,
                                                  dmsRecordData &encodeData,
                                                  INT32 *schemaVer )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ENCODERECORDBYSCHEMA ) ;
+      BOOLEAN hasNewCol = FALSE ;
+      BOOLEAN hasRetry  = FALSE ;
       dmsInternalSchema *schema = NULL ;
       BOOLEAN hasNewColumn = FALSE ;
       INT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
       const BSONObj record = BSONObj( recordData.data() ) ;
       INT32 lockType = context->mbLockType() ;
 
-      // 1. try to encode the record, need to take shared lock of the collection.
-      // 2. If any new field is found, need to take exclusive lock of the collection, and update the
-      //    schema, then try to encode again.
-
       schema = getSchema( context->mbID() ) ;
-
-      if ( !context->isMBLock() )
-      {
-         rc = context->mbLock( SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Take mb latch in SHARED mode failed, rc: %d", rc ) ;
-      }
+      SDB_ASSERT( schema->enabled(), "Must be enabled" ) ;
 
    retry:
-      rc = schema->encodeRecord( context, cb, recordData, encodeData, hasNewColumn ) ;
+      /// first get version
+      if ( schemaVer )
+      {
+         *schemaVer = schema->getSchemaInnerVersion() ;
+      }
+
+      /// encode record
+      rc = schema->encodeRecord( cb, recordData, memAlloc, encodeData, hasNewCol ) ;
       PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
       if ( hasNewColumn )
       {
@@ -1615,9 +1621,25 @@ namespace engine
          goto retry ;
       }
 
-      if ( schemaVer )
+      if ( hasNewCol )
       {
-         *schemaVer = schema->getVersion() ;
+         if ( hasRetry )
+         {
+            PD_LOG( PDERROR, "Encode record failed[Has unknown new column]" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         /// TODO YSD: add column, when add exist shoud ignore
+         /// 1. switch lock to write
+         /// 2. update column by record, and ignore exist error
+         /// 3. reset schema
+         /// 4. reload schema
+         /// 5. switch lock to read, and retry
+
+         hasNewCol = FALSE ;
+         hasRetry = TRUE ;
+         goto retry ;
       }
 
    done:
@@ -1679,62 +1701,35 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      const CHAR *decodeRecordData = NULL ;
-      UINT32 decodeSize = 0 ;
+      dmsInternalSchemaWriter schemaUpdator ;
       dmsInternalSchema *schema = getSchema( context->mbID() ) ;
+      dmsExtRW schemaExtRW = extent2RW( context->mb()->_schemaExtentID, context->mbID() ) ;
+      dmsExtRW hashExtRW = extent2RW( context->mb()->_schemaHashExtentID, context->mbID() ) ;
+      schemaExtRW.setNothrow( TRUE ) ;
+      hashExtRW.setNothrow( TRUE ) ;
+      dmsSchemaExtent *schemaExt =
+         schemaExtRW.writePtr<dmsSchemaExtent>(0, schema->getSchemaContainer()->getExtentSize() ) ;
+      dmsSchemaHashExtent *hashExt =
+         hashExtRW.writePtr<dmsSchemaHashExtent>(0, schema->getSchemaHashTable()->getExtentSize() ) ;
 
-      try
-      {
-         BSONObj origRecord( origRecordData.data() ) ;
-         SDB_ASSERT( origRecord.valid(), "New record is not valid" ) ;
+      rc = schemaUpdator.init( this, context, schemaExt, hashExt ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
 
-         INT32 rcTmp = schema->decodeRecord( cb, encodedRecordData.data(), encodedRecordData.len(),
-                                             &decodeRecordData, decodeSize, TRUE ) ;
-         PD_RC_CHECK( rcTmp, PDERROR, "Decode record failed, rc: %d", rcTmp ) ;
+      rc = schemaUpdator.updateSchemaByRecord( record ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
 
-         {
-            BSONObj decodedRecord( decodeRecordData ) ;
-            SDB_ASSERT( decodedRecord.valid(), "Decoded record is invalid" ) ;
+      rc = schemaUpdator.save( context ) ;
+      PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
 
-            if ( decodedRecord.woCompare( origRecord ) )
-            {
-               // Check if each element match
-               BSONObjIterator itrOrig( origRecord ) ;
-
-               while ( itrOrig.more() )
-               {
-                  // May be columns with read default are appended to the record.
-                  BSONElement oldEle = itrOrig.next() ;
-                  BSONElement newEle = decodedRecord.getField( oldEle.fieldName() ) ;
-                  if ( newEle.eoo() || oldEle.woCompare( newEle ) )
-                  {
-                     PD_LOG( PDERROR, "Decode element check failed. Original: %s, decoded: %s",
-                             oldEle.toPoolString().c_str(), newEle.toPoolString().c_str() ) ;
-                     PD_LOG( PDERROR, "Original name: %s, hash: %u. Decode name: %s, hash: %u",
-                             oldEle.fieldName(), ossHash( oldEle.fieldName() ),
-                             newEle.fieldName(), ossHash( newEle.fieldName() ) ) ;
-                     PD_LOG( PDERROR, "The decoded record is not the same as the original, rc: %d."
-                             "Decode size: %d, original size: %d"OSS_NEWLINE
-                             "Decode record:"OSS_NEWLINE"%s"OSS_NEWLINE
-                             "Original record:"OSS_NEWLINE"%s",
-                             rc, decodedRecord.objsize(), origRecord.objsize(),
-                             decodedRecord.toString().c_str(), origRecord.toString().c_str() ) ;
-                     SDB_ASSERT( FALSE, "Decoded record check failed" ) ;
-                  }
-               }
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
+      //rc = schema->reload() ;
+      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
 
    done:
       return rc ;
    error:
       goto done ;
    }
+
 }

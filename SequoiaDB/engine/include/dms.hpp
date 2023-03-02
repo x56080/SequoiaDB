@@ -160,6 +160,11 @@ namespace engine
 // Default size of Rollback Segment collection is 128MB each.
 #define DMS_DFT_RBSCL_SIZE          ( 128 * 1024 * 1024 )
 
+// Default column number
+#define DMS_SCHEMA_DFT_COLUMN_NUM   ( 256 )
+#define DMS_SCHEMA_MAX_COLUMN_NUM   ( 60000 )
+#define DMS_SCHEMA_INVALID_COLUMNID ( 0xFF )
+
    /*
       MB FLAG(_flag) values :
    */

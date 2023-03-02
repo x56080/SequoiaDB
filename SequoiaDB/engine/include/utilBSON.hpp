@@ -29,6 +29,7 @@ namespace engine
          void reset() ;
 
          INT32 dataSize() const ;
+         BOOLEAN isOutOfBuff() const ;
 
          OSS_INLINE static BOOLEAN  emptyValType( BSONType type ) ;
          OSS_INLINE static INT32    getEleValSize( CHAR type, const CHAR *value ) ;
@@ -43,6 +44,7 @@ namespace engine
          INT32    _buffSize ;
          INT32    _remainSize ;
          BOOLEAN  _done ;
+         BOOLEAN  _isOutOfBuff ;
    } ;
    typedef _utilBSONRawBuilder utilBSONRawBuilder ;
 

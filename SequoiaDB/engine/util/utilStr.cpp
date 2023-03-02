@@ -681,6 +681,84 @@ namespace engine
       return TRUE ;
    }
 
+   INT32 utilHexStrToInt( const CHAR * pHex )
+   {
+      INT32 num = 0 ;
+
+      while ( *pHex != '\0' )
+      {
+         CHAR c = *pHex ;
+
+         if ( c >= '0' && c <= '9' )
+         {
+            num = ( num << 4 ) | ( c - '0' ) ;
+         }
+         else if ( c >= 'A' && c <= 'F' )
+         {
+            num = ( num << 4 ) | ( c - 'A' + 10 ) ;
+         }
+         else if ( c >= 'a' && c <= 'f' )
+         {
+            num = ( num << 4 ) | ( c - 'a' + 10 ) ;
+         }
+         else
+         {
+            return -1 ;
+         }
+      }
+
+      return num ;
+   }
+
+   INT32 utilIntToLowerHexStr( INT32 num, CHAR *pHex, INT32 size )
+   {
+      static const CHAR hexchars[] = "0123456789abcdef";
+      INT32 hexLength = 0 ;
+      INT32 realLen = 0 ;
+      INT32 temp = num ;
+      CHAR *p = NULL ;
+
+      if ( !pHex || size <= 0 )
+      {
+         return SDB_INVALIDARG ;
+      }
+
+      while ( temp > 0 )
+      {
+         hexLength++ ;
+         temp >>= 4 ;
+      }
+
+      if ( 0 == hexLength )
+      {
+         hexLength = 1 ;
+      }
+
+      if ( hexLength >= size )
+      {
+         return SDB_INVALIDARG ;
+      }
+
+      p = pHex + hexLength ;
+      *p = '\0' ;
+      while( hexLength > 0 )
+      {
+         temp = num & 0xF ;
+         *--p = hexchars[ temp ] ;
+         num >>= 4 ;
+         --hexLength ;
+         ++realLen ;
+      }
+
+      while ( p > pHex )
+      {
+         *--p = '0' ;
+         ++realLen ;
+      }
+
+      return realLen ;
+   }
+
    string utilTimeSpanStr( UINT64 seconds )
    {
       stringstream ss ;

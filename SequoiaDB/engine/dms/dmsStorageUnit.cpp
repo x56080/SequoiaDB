@@ -4997,7 +4997,7 @@ namespace engine
                       "rc: %d", action.getColumnName(), rc ) ;
       }
 
-      rc = internalSchema->reload() ;
+      //rc = internalSchema->reload() ;
       PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 

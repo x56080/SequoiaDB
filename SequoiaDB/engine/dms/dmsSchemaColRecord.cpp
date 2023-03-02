@@ -34,6 +34,7 @@
 
 *******************************************************************************/
 #include "dmsSchemaColRecord.hpp"
+#include "dmsExtent.hpp"
 
 #define SCHEMA_COLREC_MASK_NAME              0x01
 #define SCHEMA_COLREC_MASK_RD_DEFAULT        0x02
@@ -48,6 +49,26 @@
 
 namespace engine
 {
+   /*
+      _dmsSchemaColAssist implement
+   */
+   class _dmsSchemaColAssist
+   {
+      public:
+         _dmsSchemaColAssist()
+         {
+            SDB_ASSERT( DMS_SCHEMAEXTENT_SLOT_SZ == 4, "Slot size invalid" ) ;
+            SDB_ASSERT( DMS_HASHEXTENT_SLOT_SZ == 4, "Hash slot size invalid" ) ;
+
+            SDB_ASSERT( ossIsPowerOf2( DMS_SCHEMA_HASH_BUCKET_SIZE, NULL ),
+                        "Schema hash bucket must power of 2" ) ;
+         }
+   } ;
+   _dmsSchemaColAssist  __tmpColValidateAssist ;
+
+   /*
+      _dmsSchemaColRecord implement
+   */
    void _dmsSchemaColRecord::setLength( UINT16 length )
    {
       *(UINT16 *)this = length ;

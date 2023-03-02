@@ -141,6 +141,9 @@ namespace engine
 
    BOOLEAN utilIsValidOID( const CHAR *pStr ) ;
 
+   INT32   utilHexStrToInt( const CHAR *pHex ) ;
+   INT32   utilIntToLowerHexStr( INT32 num, CHAR *pHex, INT32 size ) ;
+
    class utilSplitIterator : public SDBObject
    {
    public:

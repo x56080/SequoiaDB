@@ -5,13 +5,6 @@
 
 namespace engine
 {
-   // TODO: YSD enable infoschema 的时候也要对索引字段进行标记
-   //       add schema too
-
-
-
-
-
 
    _dmsInternalSchemaHandler::_dmsInternalSchemaHandler()
    {
@@ -70,7 +63,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                       context->mb()->_collectionName, rc ) ;
 
-         rc = schema->reload() ;
+         //rc = schema->reload() ;
          PD_RC_CHECK( rc, PDERROR, "Reload new internal schema of collection[%s] failed, rc: %d",
                       rc ) ;
       }
@@ -157,7 +150,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                          context->mb()->_collectionName, rc ) ;
 
-            rc = schema->reload() ;
+            //rc = schema->reload() ;
             PD_RC_CHECK( rc, PDERROR, "Reload new internal schema of collection[%s] failed, rc: %d",
                          rc ) ;
          }

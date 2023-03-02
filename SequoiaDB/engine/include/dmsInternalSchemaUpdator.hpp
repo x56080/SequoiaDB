@@ -62,6 +62,9 @@ namespace engine
             return (CHAR *)_extent + offset ;
          }
 
+         void     _setColumnAttr( UINT16 columnID, UINT8 attr ) {}
+         void     _clearColumnAttr( UINT16 columnID, UINT8 attr ) {}
+
       private:
          dmsSchemaExtent        *_extent ;
    } ;
@@ -93,6 +96,9 @@ namespace engine
          void   _setColumnIDInItem( INT32 *item, UINT16 columnID ) ;
          void   _setNextItemOffset( INT32 *item, UINT16 id ) ;
          void   _resetItem( INT32 *item ) ;
+
+         UINT16 _getColumnIDByItem( INT32 *item ) { return 0 ; }
+         UINT16 _getNextItemOffset( INT32 *item ) { return 0 ; }
 
       private:
          dmsSchemaHashExtent    *_extent ;

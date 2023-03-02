@@ -35,14 +35,22 @@
 *******************************************************************************/
 
 #include "dmsInternalSchema.hpp"
+#include "msgDef.hpp"
+#include "pmdEDU.hpp"
+#include "pd.hpp"
+#include "utilStr.hpp"
+#include "pdTrace.hpp"
 #include "dmsTrace.hpp"
-#include "dmsStorageDataCommon.hpp"
 
-#define DMS_SCHEMA_INVALID_VERSION                 (0)
 #define DMS_SCHEMA_COLID_STR_MAX_SIZE              5
+
+using namespace bson ;
 
 namespace engine
 {
+   /*
+      _dmsSchemaContainer implement
+   */
    _dmsSchemaContainer::_dmsSchemaContainer()
    : _extent( NULL ),
      _extentSize( 0 )
@@ -51,6 +59,7 @@ namespace engine
 
    _dmsSchemaContainer::~_dmsSchemaContainer()
    {
+      reset() ;
    }
 
    INT32 _dmsSchemaContainer::init( const dmsSchemaExtent *extent, UINT32 extentSize, UINT16 mbID )
@@ -63,11 +72,24 @@ namespace engine
          PD_LOG( PDERROR, "Internal schema extent address is null, rc: %d", rc ) ;
          goto error ;
       }
-
-      if ( !extent->validate( mbID ) )
+      else if ( !extent->validate( mbID ) )
       {
          rc = SDB_DMS_CORRUPTED_EXTENT ;
          PD_LOG( PDERROR, "Internal schema extent is invalid, rc: %d", rc ) ;
+         goto error ;
+      }
+      else if ( extentSize < DMS_PAGE_SIZE4K )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Extent size[%u] less than the min[%u]",
+                 extentSize, DMS_PAGE_SIZE4K ) ;
+         goto error ;
+      }
+      else if ( extentSize > DMS_SCHEMA_EXTENT_MAX_SZ )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Extent size[%u] greater than the max[%u]",
+                 extentSize, DMS_SCHEMA_EXTENT_MAX_SZ ) ;
          goto error ;
       }
 
@@ -86,72 +108,6 @@ namespace engine
       _extentSize = 0 ;
    }
 
-   INT32 _dmsSchemaContainer::getColIDsWithDefault( ossPoolSet<UINT16> &colsWithReadDefault,
-                                                    ossPoolSet<UINT16> &colsWithWriteDefault,
-                                                    ossPoolSet<UINT16> &colsWithReadDefaultIndexCol ) const
-   {
-      INT32 rc = SDB_OK ;
-      INT16 attr = 0 ;
-
-      colsWithReadDefault.clear() ;
-      colsWithWriteDefault.clear() ;
-      colsWithReadDefaultIndexCol.clear() ;
-
-      try
-      {
-         for ( UINT16 id = 0; id < _extent->_itemNum; ++id )
-         {
-            attr = _getColumnAttr( id ) ;
-            if ( !( attr & DMS_SCHEMA_COL_DELETED ) )
-            {
-               if ( attr & DMS_SCHEMA_COL_READ_DEFAULT )
-               {
-                  colsWithReadDefault.insert( id ) ;
-                  if ( !(attr & DMS_SCHEMA_COL_WRITE_DEFAULT ) && (attr & DMS_SCHEMA_COL_IN_INDEX) )
-                  {
-                     // Columns in index, have read default but no write default. They will be
-                     // treated as primal columns.
-                     colsWithReadDefaultIndexCol.insert( id ) ;
-                  }
-               }
-               if ( attr & DMS_SCHEMA_COL_WRITE_DEFAULT )
-               {
-                  colsWithWriteDefault.insert( id ) ;
-               }
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   BOOLEAN _dmsSchemaContainer::hasReadDefault( UINT16 columnID ) const
-   {
-      SDB_ASSERT( columnID < _extent->_itemNum, "Column id is invalid" ) ;
-      return OSS_BIT_TEST( _getColumnAttr( columnID ), DMS_SCHEMA_COL_READ_DEFAULT ) ;
-   }
-
-   BOOLEAN _dmsSchemaContainer::hasWriteDefault( UINT16 columnID ) const
-   {
-      SDB_ASSERT( columnID < _extent->_itemNum, "Column id is invalid" ) ;
-      return OSS_BIT_TEST( _getColumnAttr( columnID ), DMS_SCHEMA_COL_WRITE_DEFAULT ) ;
-   }
-
-   BOOLEAN _dmsSchemaContainer::isIndexColumn( UINT16 columnID ) const
-   {
-      SDB_ASSERT( columnID < _extent->_itemNum, "Column id is invalid" ) ;
-      return OSS_BIT_TEST( _getColumnAttr( columnID ), DMS_SCHEMA_COL_IN_INDEX ) ;
-   }
-
    INT32 _dmsSchemaContainer::getColReadDefault( UINT16 columnID, const CHAR *&name,
                                                  INT32 &nameLen, BSONType &type,
                                                  const CHAR *&value, INT32 &valueLen ) const
@@ -160,7 +116,7 @@ namespace engine
       const dmsSchemaColRecord *colRecord = _getColRecord( columnID ) ;
       if ( !colRecord )
       {
-         rc = SDB_DMS_CORRUPTED_EXTENT ;
+         rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Column info of column id %u is invalid, rc: %d", columnID, rc ) ;
          goto error ;
       }
@@ -168,7 +124,7 @@ namespace engine
       name = colRecord->getName( &nameLen ) ;
       SDB_ASSERT( name, "Name is invalid" ) ;
 
-      if ( !colRecord->getDefault( type, valueLen, value ) )
+      if ( !colRecord->getDefault( type, valueLen, value, TRUE ) )
       {
          SDB_ASSERT( FALSE, "Default value should exist" ) ;
          rc = SDB_SYS ;
@@ -190,7 +146,7 @@ namespace engine
       const dmsSchemaColRecord *colRecord = _getColRecord( columnID ) ;
       if ( !colRecord )
       {
-         rc = SDB_DMS_CORRUPTED_EXTENT ;
+         rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Column info of column id %u is invalid, rc: %d", columnID, rc ) ;
          goto error ;
       }
@@ -220,11 +176,18 @@ namespace engine
                                                   BOOLEAN *hasOrigName ) const
    {
       INT32 rc = SDB_OK ;
-      INT16 attr = 0 ;
+      UINT8 attr = 0 ;
       const dmsSchemaColRecord *record = _getColRecord( columnID ) ;
 
+      if ( !record )
+      {
+         PD_LOG( PDERROR, "Get column record[%d] failed", columnID ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       attr = _getColumnAttr( columnID ) ;
-      if ( name && nameLen )
+      if ( name )
       {
          *name = record->getName( nameLen ) ;
       }
@@ -250,37 +213,54 @@ namespace engine
          *hasOrigName = ( attr & DMS_SCHEMA_COL_HAS_ORIGNAME ) ? TRUE : FALSE ;
       }
 
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    const CHAR *_dmsSchemaContainer::getOrigName( UINT16 columnID, INT32 *nameLen ) const
    {
       const dmsSchemaColRecord *record = _getColRecord( columnID ) ;
-      const CHAR *name = record->getOrigName( nameLen ) ;
-      return name ;
+      if ( record )
+      {
+         return record->getOrigName( nameLen ) ;
+      }
+
+      if ( nameLen )
+      {
+         *nameLen = 0 ;
+      }
+      return NULL ;
    }
 
    INT32 _dmsSchemaContainer::toObj( BSONObj &object ) const
    {
       INT32 rc = SDB_OK ;
+
+      if ( !_extent )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Extent is invalid" ) ;
+         goto error ;
+      }
+
       try
       {
-         const CHAR *name = NULL ;
-         BSONObjBuilder builder ;
+         BSONObjBuilder builder( _extentSize - _extent->_freeSpace ) ;
 
-         for ( UINT16 columnID = 0; columnID < _extent->_itemNum; ++columnID )
+         for ( UINT16 columnID = 0; columnID < _extent->_itemNum ; ++columnID )
          {
-            BSONObj columnDef ;
-            if ( _isColumnDeleted( columnID ) )
+            /// ignore delete columns
+            if ( isColumnDeleted( columnID ) )
             {
                continue ;
             }
 
-            rc = _columnInfo2Def( columnID, &name, columnDef ) ;
+            rc = _columnInfo2Def( columnID, builder ) ;
             PD_RC_CHECK( rc, PDERROR, "Get column definition failed, rc: %d", rc ) ;
-
-            builder.append( name, columnDef ) ;
          }
+
          object = builder.obj() ;
       }
       catch ( std::exception &e )
@@ -305,7 +285,7 @@ namespace engine
 
       if ( !record )
       {
-         rc = SDB_SYS ;
+         rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Get column info for column id %u failed, rc: %d", columnID, rc ) ;
          goto error ;
       }
@@ -318,48 +298,88 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsSchemaContainer::getReadEleSize( UINT16 columnID, UINT32 &size ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      size = 0 ;
+
+      if ( hasReadDefault( columnID ) )
+      {
+         const CHAR *name = NULL ;
+         INT32 nameLen = 0 ;
+         BSONType type = EOO ;
+         const CHAR *value = NULL ;
+         INT32 valueLen = 0 ;
+
+         rc = getColReadDefault( columnID, name, nameLen, type, value, valueLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get column[%d] read default failed, rc: %d",
+                      columnID, rc ) ;
+
+         size = nameLen + 1 + valueLen ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsSchemaContainer::getWriteEleSize( UINT16 columnID, UINT32 &size ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      size = 0 ;
+
+      if ( hasWriteDefault( columnID ) )
+      {
+         const CHAR *name = NULL ;
+         INT32 nameLen = 0 ;
+         BSONType type = EOO ;
+         const CHAR *value = NULL ;
+         INT32 valueLen = 0 ;
+
+         rc = getColWriteDefault( columnID, name, nameLen, type, value, valueLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get column[%d] write default failed, rc: %d",
+                      columnID, rc ) ;
+
+         size = nameLen + 1 + valueLen ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
    INT32 _dmsSchemaContainer::dump( BSONObj &schemaObj, BOOLEAN includeColumnID ) const
    {
       INT32 rc = SDB_OK ;
+
+      if ( !_extent )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Extent is invalid" ) ;
+         goto error ;
+      }
+
       try
       {
-         const CHAR *name = NULL ;
-         const CHAR *origName = NULL ;
-         BSONObjBuilder builder ;
-         BSONObjBuilder subBuilder ;
+         BSONObjBuilder builder( _extentSize - _extent->_freeSpace ) ; ;
          BSONArrayBuilder columnBuilder( builder.subarrayStart( FIELD_NAME_COLUMNS ) ) ;
 
-         for ( UINT16 columnID = 0; columnID < _extent->_itemNum; ++columnID )
+         for ( UINT16 columnID = 0 ; columnID < _extent->_itemNum ; ++columnID )
          {
-            BSONObj columnDef ;
-            INT16 attr = _getColumnAttr( columnID ) ;
-            rc = _columnInfo2Def( columnID, &name, columnDef ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get column definition failed, rc: %d", rc ) ;
-            origName = getOrigName( columnID ) ;
+            BSONObjBuilder subBuilder( columnBuilder.subobjStart() ) ;
 
-            if ( includeColumnID )
+            rc = _columnInfo2Obj( columnID, subBuilder, includeColumnID, TRUE ) ;
+            if ( rc )
             {
-               subBuilder.append( FIELD_NAME_ID, columnID ) ;
-            }
-            subBuilder.append( FIELD_NAME_NAME, name ) ;
-            if ( origName )
-            {
-               subBuilder.append( FIELD_NAME_ORIGIN_NAME, origName ) ;
-               origName = NULL ;
+               PD_LOG( PDERROR, "Get column info failed, rc: %d", rc ) ;
+               goto error ;
             }
 
-            subBuilder.appendElements( columnDef ) ;
-            if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_DELETED ) )
-            {
-               subBuilder.append( FIELD_NAME_DELETED, true ) ;
-            }
-            if ( OSS_BIT_TEST( attr, DMS_SCHEMA_COL_IN_INDEX ))
-            {
-               subBuilder.append( FIELD_NAME_INDEX_COL, true ) ;
-            }
-            columnBuilder.append( subBuilder.done() ) ;
-            subBuilder.reset() ;
+            subBuilder.done() ;
          }
 
          columnBuilder.done() ;
@@ -378,168 +398,126 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsSchemaContainer::_columnInfo2Def( UINT16 columnID, const CHAR **name,
-                                               BSONObj &columnDef ) const
+   INT32 _dmsSchemaContainer::_columnInfo2Def( UINT16 columnID, BSONObjBuilder &builder ) const
    {
       INT32 rc = SDB_OK ;
-      BSONType type ;
+
+      BSONType type = EOO ;
       const CHAR *value = NULL ;
       INT32 valueSize = 0 ;
-      BOOLEAN isEmpty = FALSE ;
-      BOOLEAN foundDefault = FALSE ;
-      utilBSONRawBuilder rawBuilder ;
-      const dmsSchemaColRecord *record = _getColRecord( columnID ) ;
-      UINT32 buffSize = record->getLength() + 64 ;  // Extra space for field names(ReadDefault, WriteDefault).
+      const CHAR *pName = NULL ;
 
-      CHAR *buffer = (CHAR *)SDB_OSS_MALLOC( buffSize ) ;
-      if ( !buffer )
+      const dmsSchemaColRecord *pRecord = _getColRecord( columnID ) ;
+      if ( !pRecord )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Allocate memory of size [%d] for building internal schema column object "
-                 "failed, rc: %d", record->getLength(), rc ) ;
+         PD_LOG( PDERROR, "Get column record failed" ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      if ( name )
-      {
-         *name = record->getName() ;
-         SDB_ASSERT( *name, "Column name is invalid" ) ;
-      }
-
-      rawBuilder.start( buffer, buffSize ) ;
-
-      foundDefault = record->getDefault( type, valueSize, value ) ;
-      if ( foundDefault )
-      {
-         rc = rawBuilder.appendElement( type, FIELD_NAME_READDEFAULT,
-                                        ossStrlen( FIELD_NAME_READDEFAULT ),
-                                        value, valueSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Append read default to column info builder failed, rc: %d",
-                      rc ) ;
-      }
-
-      foundDefault = record->getDefault( type, valueSize, value, FALSE ) ;
-      if ( foundDefault )
-      {
-         rc = rawBuilder.appendElement( type, FIELD_NAME_WRITEDEFAULT,
-                                        ossStrlen( FIELD_NAME_WRITEDEFAULT ),
-                                        value, valueSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Append write default to column info builder failed, rc: %d",
-                      rc ) ;
-      }
-
-      rc = rawBuilder.done( isEmpty ) ;
-      PD_RC_CHECK( rc, PDERROR, "Generate schema column info failed, rc: %d", rc ) ;
+      pName = pRecord->getName() ;
+      SDB_ASSERT( pName, "Column name is invalid" ) ;
 
       try
       {
-         if ( isEmpty )
+         BSONObjBuilder subBuilder( builder.subobjStart( pName ) ) ;
+
+         /// read default
+         if ( pRecord->getDefault( type, valueSize, value, TRUE ) )
          {
-            columnDef = BSONObj() ;
+            subBuilder.appendRawEle( type, StringData( FIELD_NAME_READDEFAULT,
+                                                    sizeof(FIELD_NAME_READDEFAULT)-1),
+                                     (const void *)value, valueSize ) ;
          }
-         else
+
+         /// write default
+         if ( pRecord->getDefault( type, valueSize, value, FALSE ) )
          {
-            columnDef = BSONObj( buffer ).copy() ;
+            subBuilder.appendRawEle( type, StringData( FIELD_NAME_WRITEDEFAULT,
+                                                    sizeof(FIELD_NAME_WRITEDEFAULT)-1),
+                                     (const void *)value, valueSize ) ;
          }
+
+         subBuilder.done() ;
       }
-      catch ( std::exception &e )
+      catch( std::exception &e )
       {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
          goto error ;
       }
 
    done:
-      if ( buffer )
-      {
-         SDB_OSS_FREE( buffer ) ;
-      }
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _dmsSchemaContainer::_columnInfo2Obj( UINT16 columnID, BSONObj &object, BOOLEAN includeID,
-                                               BOOLEAN includeAttr )
+   INT32 _dmsSchemaContainer::_columnInfo2Obj( UINT16 columnID,
+                                               BSONObjBuilder &builder,
+                                               BOOLEAN includeID,
+                                               BOOLEAN includeAttr ) const
    {
       INT32 rc = SDB_OK ;
-      BSONType type ;
+      BSONType type = EOO ;
       INT32 valueSize = 0 ;
       const CHAR *value = NULL ;
-      utilBSONRawBuilder rawBuilder ;
-      BSONObjBuilder builder ;
-      BOOLEAN isEmpty = FALSE ;
-      BOOLEAN foundDefault = FALSE ;
+      const CHAR *pName = NULL ;
+      const CHAR *pOrgName = NULL ;
 
-      const dmsSchemaColRecord *record = _getColRecord( columnID ) ;
-      UINT32 bufferSize = record->getLength() + 64 ;
-      CHAR *buffer = (CHAR *)SDB_OSS_MALLOC( bufferSize ) ;
-      if ( !buffer )
+      const dmsSchemaColRecord *pRecord = _getColRecord( columnID ) ;
+      if ( !pRecord )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Allocate memory of size [%d] for building internal schema column object "
-                 "failed, rc: %d", record->getLength(), rc ) ;
+         PD_LOG( PDERROR, "Get column record failed" ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      pName = pRecord->getName() ;
+      SDB_ASSERT( pName, "Column name is invalid" ) ;
+
+      pOrgName = pRecord->getOrigName() ;
 
       try
       {
          if ( includeID )
          {
-            builder.append( FIELD_NAME_ID, columnID ) ;
+            builder.append( FIELD_NAME_ID, (INT32)columnID ) ;
          }
 
-         builder.append( FIELD_NAME_NAME, record->getName() ) ;
+         builder.append( FIELD_NAME_NAME, pName ) ;
+         if ( pOrgName && *pOrgName )
+         {
+            builder.append( FIELD_NAME_ORIGIN_NAME, pOrgName ) ;
+         }
+
+         /// read default
+         if ( pRecord->getDefault( type, valueSize, value, TRUE ) )
+         {
+            builder.appendRawEle( type, StringData( FIELD_NAME_READDEFAULT,
+                                                    sizeof(FIELD_NAME_READDEFAULT)-1),
+                                  (const void *)value, valueSize ) ;
+         }
+
+         /// write default
+         if ( pRecord->getDefault( type, valueSize, value, FALSE ) )
+         {
+            builder.appendRawEle( type, StringData( FIELD_NAME_WRITEDEFAULT,
+                                                    sizeof(FIELD_NAME_WRITEDEFAULT)-1),
+                                  (const void *)value, valueSize ) ;
+         }
+
          if ( includeAttr )
          {
-            builder.append( FIELD_NAME_DELETED, _isColumnDeleted( columnID ) ? true : false ) ;
-            builder.append( FIELD_NAME_INDEX_COL, _isIndexColumn( columnID ) ? true : false ) ;
+            if ( isColumnDeleted( columnID ) )
+            {
+               builder.appendBool( FIELD_NAME_DELETED, TRUE ) ;
+            }
+            if ( isIndexColumn( columnID ) )
+            {
+               builder.appendBool( FIELD_NAME_INDEX_COL, TRUE ) ;
+            }
          }
-
-         rawBuilder.start( buffer, bufferSize ) ;
-         value = record->getOrigName() ;
-         if ( value )
-         {
-            rc = rawBuilder.appendElement( bson::String, FIELD_NAME_ORIGIN_NAME,
-                                           ossStrlen( FIELD_NAME_ORIGIN_NAME ),
-                                           value, valueSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append original name to column info builder failed, rc: %d",
-                         rc ) ;
-         }
-
-         foundDefault = record->getDefault( type, valueSize, value ) ;
-         if ( foundDefault )
-         {
-            rc = rawBuilder.appendElement( type, FIELD_NAME_READDEFAULT,
-                                           ossStrlen( FIELD_NAME_READDEFAULT ),
-                                           value, valueSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append read default to column info builder failed, rc: %d",
-                         rc ) ;
-         }
-
-         foundDefault = record->getDefault( type, valueSize, value, FALSE ) ;
-         if ( foundDefault )
-         {
-            rc = rawBuilder.appendElement( type, FIELD_NAME_WRITEDEFAULT,
-                                           ossStrlen( FIELD_NAME_WRITEDEFAULT ),
-                                           value, valueSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append write default to column info builder failed, rc: %d",
-                         rc ) ;
-         }
-
-         rc = rawBuilder.done( isEmpty ) ;
-         PD_RC_CHECK( rc, PDERROR, "Generate schema column info failed, rc: %d", rc ) ;
-
-         if ( isEmpty )
-         {
-            builder.appendElements( BSONObj() ) ;
-         }
-         else
-         {
-            builder.appendElements( BSONObj(buffer) ) ;
-         }
-
-         object = builder.obj() ;
       }
       catch ( std::exception &e )
       {
@@ -549,60 +527,27 @@ namespace engine
       }
 
    done:
-      if ( buffer )
-      {
-         SDB_OSS_FREE( buffer ) ;
-      }
       return rc ;
    error:
       goto done ;
    }
 
-   void _dmsSchemaContainer::_setColumnAttr( UINT16 columnID, INT16 flags )
-   {
-      INT32* slot= (INT32 *)
-         _offset2Ptr( DMS_SCHEMAEXTENT_HEADER_SZ + DMS_SCHEMAEXTENT_SLOT_SZ * columnID ) ;
-      OSS_BIT_SET( *slot, ((INT32)flags) << 16 ) ;
-   }
-
-   void _dmsSchemaContainer::_clearColumnAttr( UINT16 columnID, INT16 flags )
-   {
-      INT32* slot= (INT32 *)
-         _offset2Ptr( DMS_SCHEMAEXTENT_HEADER_SZ + DMS_SCHEMAEXTENT_SLOT_SZ * columnID ) ;
-      OSS_BIT_CLEAR( *slot, ((INT32)flags << 16 ) ) ;
-   }
-
-   void _dmsSchemaContainer::_getColAttrAndRecordOffset( UINT16 columnID, INT16 &attr,
-                                                         UINT16 &valueOffset ) const
-   {
-      const INT32* slot= (const INT32 *)
-         _offset2Ptr( DMS_SCHEMAEXTENT_HEADER_SZ + DMS_SCHEMAEXTENT_SLOT_SZ * columnID ) ;
-      attr = (INT16)( *slot >> 16 ) ;
-      valueOffset = (UINT16)( (*slot) & 0x0000FFFF ) ;
-   }
-
-   BOOLEAN _dmsSchemaContainer::_isColumnDeleted( UINT16 columnID ) const
-   {
-      INT16 attr = _getColumnAttr( columnID ) ;
-      return (attr & DMS_SCHEMA_COL_DELETED) ;
-   }
-
-   BOOLEAN _dmsSchemaContainer::_isIndexColumn( UINT16 columnID ) const
-   {
-      INT16 attr = _getColumnAttr( columnID ) ;
-      return (attr & DMS_SCHEMA_COL_IN_INDEX) ;
-   }
-
-
+   /*
+      _dmsSchemaHash implement
+   */
    _dmsSchemaHash::_dmsSchemaHash()
    : _schemaContainer( NULL ),
      _extent( NULL ),
-     _extentSize( 0 )
+     _extentSize( 0 ),
+     _bucketNum( 0 ),
+     _pBucketSlot( NULL ),
+     _pListSlot( NULL )
    {
    }
 
    _dmsSchemaHash::~_dmsSchemaHash()
    {
+      reset() ;
    }
 
    INT32 _dmsSchemaHash::init( const dmsSchemaContainer *schemaContainer,
@@ -610,23 +555,46 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( !extent )
+      if ( !extent || !schemaContainer )
       {
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "Internal schema hash extent address is null, rc: %d", rc ) ;
          goto error ;
       }
-
-      if ( !extent->validate( mbID ) )
+      else if ( !extent->validate( mbID ) )
       {
          rc = SDB_DMS_CORRUPTED_EXTENT ;
          PD_LOG( PDERROR, "Internal schema hash extent is invalid, rc: %d", rc ) ;
          goto error ;
       }
 
+      _bucketNum = _extent->_bucketNum ;
+      /// check bucket num
+      if ( _bucketNum < 2 || !ossIsPowerOf2( _bucketNum, NULL ) )
+      {
+         rc = SDB_DMS_CORRUPTED_EXTENT ;
+         PD_LOG( PDERROR, "Internal schema hash extent bucket number[u%] invalid",
+                 _bucketNum ) ;
+         goto error ;
+      }
+      /// check slot num
+      else if ( (UINT32)DMS_SCHEMAHASHEXTENT_HEADER_SZ +
+                _bucketNum * DMS_HASHEXTENT_SLOT_SZ +
+                extent->_slotNum * DMS_HASHEXTENT_SLOT_SZ > extentSize )
+      {
+         rc = SDB_DMS_CORRUPTED_EXTENT ;
+         PD_LOG( PDERROR, "Internal schema hash extent slot number[u%] invalid",
+                 extent->_slotNum ) ;
+         goto error ;
+      }
+
       _schemaContainer = schemaContainer ;
       _extent = extent ;
       _extentSize = extentSize ;
+
+      _pBucketSlot = (const dmsSchemaHashSlot*)
+                     ((const CHAR *)_extent + DMS_SCHEMAHASHEXTENT_HEADER_SZ) ;
+      _pListSlot = &_pBucketSlot[ _bucketNum ] ;
 
    done:
       return rc ;
@@ -639,30 +607,39 @@ namespace engine
       _schemaContainer = NULL ;
       _extent = NULL ;
       _extentSize = 0 ;
+      _pBucketSlot = NULL ;
+      _pListSlot = NULL ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSCHEMAHASH_GETCOLUMNIDBYNAME, "_dmsSchemaHash::getColumnIDByName" )
    UINT16 _dmsSchemaHash::getColumnIDByName( const CHAR *name ) const
    {
-      INT32 *currItem = NULL ;
+      PD_TRACE_ENTRY( SDB__DMSSCHEMAHASH_GETCOLUMNIDBYNAME ) ;
+      UINT32 slotID = 0 ;
+      const dmsSchemaHashSlot *pSlot = NULL ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
       const CHAR *columnName = NULL ;
 
-      UINT32 itemID = ossHash( name ) % DMS_SCHEMA_HASH_BUCKET_SIZE ;   // Bucket is also an item.
-      UINT16 itemOffset = DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_SCHEMAHASHEXTENT_ITEM_SZ * itemID ;
-
-      SDB_ASSERT( name, "Column name is null" ) ;
-
-      while ( DMS_SCHEMA_INVALID_ITEM_OFFSET != itemOffset )
+      if ( !name || !_schemaContainer )
       {
-         currItem = (INT32 *)_offset2Ptr( itemOffset ) ;
-         columnID = _getColumnIDByItem( currItem ) ;
+         SDB_ASSERT( FALSE, "Invalid name or container" ) ;
+         goto done ;
+      }
+
+      slotID = ossHash( name ) & ( _bucketNum - 1 ) ;
+      pSlot = _getHashBucketSlot( slotID ) ;
+
+      while ( pSlot )
+      {
+         columnID = pSlot->getColumnID() ;
+
          if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
          {
             break ;
          }
 
          columnName = _schemaContainer->getColumnName( columnID ) ;
-         if ( 0 == ossStrcmp( name, columnName ) )
+         if ( columnName && 0 == ossStrcmp( name, columnName ) )
          {
             // Found
             break ;
@@ -671,44 +648,89 @@ namespace engine
          {
             columnID = DMS_SCHEMA_INVALID_COLUMNID ;
             // Check if any conflict item.
-            itemOffset = _getNextItemOffset( currItem ) ;
+
+            if ( pSlot->hasNextSlot() )
+            {
+               pSlot = _getHashListSlot( pSlot->getNextSlotID() ) ;
+            }
+            else
+            {
+               break ;
+            }
          }
       }
 
+   done:
+      PD_TRACE_EXIT( SDB__DMSSCHEMAHASH_GETCOLUMNIDBYNAME ) ;
       return columnID ;
-   }
-
-   UINT16 _dmsSchemaHash::_getColumnIDByItem( const INT32 *item ) const
-   {
-      return (UINT16)( (*item) & DMS_SCHEMA_HASH_ID_MASK ) ;
    }
 
    INT32 _dmsSchemaHash::_nextFreeItemOffset() const
    {
-      // Search in the conflict area for a free item.
-      INT32 itemNum =
-         (_extentSize - DMS_SCHEMAHASHEXTENT_HEADER_SZ) / DMS_SCHEMAHASHEXTENT_ITEM_SZ -
-         DMS_SCHEMA_HASH_BUCKET_SIZE ;
-
-      INT32 offset = DMS_SCHEMAHASHEXTENT_HEADER_SZ +
-                     DMS_SCHEMAHASHEXTENT_ITEM_SZ * DMS_SCHEMA_HASH_BUCKET_SIZE ;
-
-      for ( INT32 i = 0; i < itemNum; ++i )
+      if ( _pListSlot )
       {
-         if ( DMS_SCHEMA_HASH_INVALID_ITEM_VALUE == *(UINT32 *)_offset2Ptr(offset) )
+         // Search in the conflict area for a free item.
+         for ( UINT32 i = 0 ; i < _extent->_slotNum ; ++i )
          {
-            return offset ;
+            if ( DMS_SCHEMA_INVALID_COLUMNID == _pListSlot[ i ].getColumnID() )
+            {
+               return i ;
+            }
          }
       }
 
       return -1 ;
    }
 
+   /*
+      Encode object format:
+      |  ...          | 1 Byte |    3 Byte    |
+      |  Data         |  Flag  |    Version   |
+
+      Data has two format:
+      1. Orignal format, ex: { a:1, b:1, c:1 }
+      2. Hex format,     ex: { 0:1, 1:1, 2:1 }
+   */
+
+   /*
+      Flag define
+   */
+   #define DMS_SCHEMA_ENCODE_ORG             0x01
+   #define DMS_SCHEMA_ENCODE_HEX             0x02
+
+   #define DMS_SCHEMA_ENCODE_POSIXPTR(pData)       (((CHAR*)(pData)) + *(UINT32*)(pData) )
+   #define DMS_SCHEMA_ENCODE_DATAPTR(pData)        ((CHAR*)(pData))
+
+   #define DMS_SCHEMA_GET_ENCODE_FLAG(pData)       \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) >> 24)
+
+   #define DMS_SCHEMA_SET_ENCODE_FLAG(pData,flag)  \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) = \
+      (((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData))&0x00FFFFFF) |\
+      (((UINT32)((UINT8)flag)) << 24 )))
+
+   #define DMS_SCHEMA_GET_VERSION(pData)           \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) & 0x00FFFFFF)
+
+   #define DMS_SCHEMA_SET_VERSION(pData,version)   \
+      ((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData)) = \
+      (((*(UINT32*)DMS_SCHEMA_ENCODE_POSIXPTR(pData))&0xFF000000) |\
+      (((UINT32)version)&0x00FFFFFF )))
+
+   /*
+      _dmsInternalSchema implement
+   */
    _dmsInternalSchema::_dmsInternalSchema()
    : _enabled( FALSE ),
-     _version( DMS_SCHEMA_INVALID_VERSION ),
-     _defaultMaxSize( 0 ),
-     _totalValidNameSize( 0 )
+     _forceEncode( FALSE ),
+     _schemaVersion( DMS_SCHEMA_INVALID_VERSION ),
+     _schemaInnerVersion( DMS_SCHEMA_INVALID_VERSION ),
+     _readColBitmap( 0 ),
+     _writeColBitmap( 0 ),
+     _defaultReadMaxSize( 0 ),
+     _defaultWriteMaxSize( 0 ),
+     _totalValidNameSize( 0 ),
+     _hasLoad( FALSE )
    {
    }
 
@@ -716,36 +738,45 @@ namespace engine
    {
    }
 
-   INT32 _dmsInternalSchema::init( const dmsSchemaExtent *schemaExtent, UINT32 schemaExtentSize,
-                                   const dmsSchemaHashExtent *hashExtent, UINT32 hashExtentSize,
-                                   UINT16 mbID )
+   INT32 _dmsInternalSchema::init( const dmsSchemaExtent *schemaExtent,
+                                   UINT32 schemaExtentSize,
+                                   const dmsSchemaHashExtent *hashExtent,
+                                   UINT32 hashExtentSize,
+                                   UINT16 mbID,
+                                   BOOLEAN forceEncode )
    {
-      INT32 rc = SDB_OK ;
-
-      SDB_ASSERT( schemaExtent && (schemaExtentSize > 0), "Schema extent is invalid" ) ;
-      SDB_ASSERT( hashExtent && (hashExtentSize > 0), "Schema hash extent is invalid" ) ;
-
-      rc = _schemaContainer.init( schemaExtent, schemaExtentSize, mbID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init internal schema extent failed, rc: %d", rc ) ;
-
-      rc = _schemaHash.init( &_schemaContainer, hashExtent, hashExtentSize, mbID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init internal schema hash extent failed, rc: %d", rc ) ;
-
-      _onSchemaColChanged() ;
-      _enabled = TRUE ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      _forceEncode = forceEncode ;
+      return _init( schemaExtent, schemaExtentSize, hashExtent, hashExtentSize, mbID, FALSE ) ;
    }
 
-   INT32 _dmsInternalSchema::reload()
+   INT32 _dmsInternalSchema::reload( const dmsSchemaExtent *schemaExtent,
+                                     UINT32 schemaExtentSize,
+                                     const dmsSchemaHashExtent *hashExtent,
+                                     UINT32 hashExtentSize,
+                                     UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
 
-      rc = _onSchemaColChanged() ;
-      PD_RC_CHECK( rc, PDERROR, "Refresh internal schema failed, rc: %d", rc ) ;
+      ossScopedLock lock( &_loadLatch ) ;
+
+      if ( schemaExtent == _schemaContainer.getExtent() &&
+           schemaExtentSize == _schemaContainer.getExtentSize() &&
+           hashExtent == _schemaHash.getExtent() &&
+           hashExtentSize == _schemaHash.getExtentSize() &&
+           _schemaVersion == schemaExtent->_schemaVersion &&
+           _schemaInnerVersion == schemaExtent->_schemaInnerVersion )
+      {
+         /// don't reload
+         goto done ;
+      }
+
+      reset() ;
+
+      rc = _init( schemaExtent, schemaExtentSize, hashExtent, hashExtentSize, mbID, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
    done:
       return rc ;
@@ -757,42 +788,112 @@ namespace engine
    {
       _schemaContainer.reset() ;
       _schemaHash.reset() ;
-      _encodeWatchIDs.clear() ;
-      _decodeWatchIDs.clear() ;
+
+      _clearBitmapInfo() ;
+
       _enabled = FALSE ;
-      _version = DMS_SCHEMA_INVALID_VERSION ;
-      _defaultMaxSize = 0 ;
+      _schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
+      _schemaInnerVersion = DMS_SCHEMA_INVALID_VERSION ;
+
+      _hasLoad = FALSE ;
+   }
+
+   void _dmsInternalSchema::_clearBitmapInfo()
+   {
+      _readColBitmap.release() ;
+      _writeColBitmap.release() ;
+      _decodeWatchNames.clear() ;
+
       _totalValidNameSize = 0 ;
+      _defaultReadMaxSize = 0 ;
+      _defaultWriteMaxSize = 0 ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_ENCODERECORD, "_dmsInternalSchema::encodeRecord" )
-   INT32 _dmsInternalSchema::encodeRecord( dmsMBContext *context, _pmdEDUCB *cb,
-                                           dmsRecordData &recordData, dmsRecordData &encodeData,
-                                           BOOLEAN &hasNewColumn )
+   INT32 _dmsInternalSchema::encodeRecord( _pmdEDUCB *cb,
+                                           dmsRecordData &recordData,
+                                           BOOLEAN &memAlloc,
+                                           dmsRecordData &encodeData,
+                                           BOOLEAN &hasNewCol )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_ENCODERECORD ) ;
+
       UINT32 totalSize = 0 ;
       CHAR *encodeRecord = NULL ;
-      COLUMN_ID_SET watchIDs( _encodeWatchIDs ) ;
       INT32 estimateSize = 0 ;
-      utilBSONRawBuilder encodeBuilder ;
       BOOLEAN isEmpty = FALSE ;
-      hasNewColumn = FALSE ;
+      UINT8 encodeFlag = DMS_SCHEMA_ENCODE_HEX ;
+      const BSONObj *pBaseObj = NULL ;
+      ISession *session = cb->getSession() ;
 
-      if ( recordData.len() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
+      const CHAR *pOrgData = recordData.data() ;
+      UINT32 orgDataLen    = recordData.len() ;
+
+      dmsThreadSchemaBitmap writeBitmap( _schemaContainer.columnNum() ) ;
+      utilBSONRawBuilder encodeBuilder ;
+
+      BOOLEAN isPrimalData = FALSE ;
+      BOOLEAN hasRetry = FALSE ;
+
+      /// check is load
+      if ( !_hasLoad )
       {
-         rc = SDB_DMS_RECORD_TOO_BIG ;
-         goto error ;
+         ossScopedLock lock( &_loadLatch ) ;
+         if ( !_hasLoad )
+         {
+            rc = _postLoad() ;
+            PD_RC_CHECK( rc, PDERROR, "Load schema info failed, rc: %d", rc ) ;
+         }
       }
 
+      rc = writeBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init write bitmap failed, rc: %d", rc ) ;
+
+      /// when Primal data don't set write bitmap
+      if ( session && session->isBusinessSession() && !cb->isInTransRollback() )
+      {
+         isPrimalData = TRUE ;
+         writeBitmap.setBitmap( _writeColBitmap ) ;
+      }
+
+   retry:
       try
       {
+         pBaseObj = NULL ;
          BSONObj record( recordData.data() ) ;
-         // Estimate by the worest case: Each column name is 1 byte and all columns with default
-         // will be added into the record.
-         estimateSize = record.objsize() + _defaultMaxSize + _schemaContainer.columnNum() ;
-         encodeRecord = cb->getEncodeBuff( estimateSize ) ;
+
+         if ( !_forceEncode )
+         {
+            if ( hasRetry )
+            {
+               if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
+               {
+                  pBaseObj = &record ;
+               }
+            }
+            else
+            {
+               BOOLEAN hitName = FALSE ;
+               BOOLEAN hitDefault = FALSE ;
+
+               rc = _checkOrgRecord( record, writeBitmap, hitName, hitDefault ) ;
+               PD_RC_CHECK( rc, PDERROR, "Check record for encode failed, rc: %d", rc ) ;
+
+               if ( !hitName )
+               {
+                  encodeFlag = DMS_SCHEMA_ENCODE_ORG ;
+                  pBaseObj = &record ;
+               }
+            }
+         }
+
+         if ( !hasRetry )
+         {
+            estimateSize = record.objsize() + _defaultWriteMaxSize ;
+         }
+
+         encodeRecord = cb->getEncodeBuff( estimateSize + DMS_SCHEMA_ENCODE_FILL_SZ ) ;
          if ( !encodeRecord )
          {
             rc = SDB_OOM ;
@@ -801,35 +902,41 @@ namespace engine
             goto error ;
          }
 
-         encodeBuilder.start( encodeRecord, estimateSize ) ;
+         DMS_SCHEMA_SET_ENCODE_FLAG( encodeRecord, encodeFlag ) ;
+         DMS_SCHEMA_SET_VERSION( encodeRecord, _schemaVersion ) ;
 
-         rc = _parseRecord( context, encodeBuilder, watchIDs, record, hasNewColumn ) ;
-         if ( SDB_OK == rc && hasNewColumn )
-         {
-            // Need to update the internal schema by the record, and encode again.
-            goto done ;
-         }
-         else if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Parse record by internal schema failed, rc: %d", rc ) ;
-            goto error ;
-         }
+         rc = encodeBuilder.start( DMS_SCHEMA_ENCODE_DATAPTR( encodeRecord ),
+                                   estimateSize, pBaseObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start building record, rc: %d", rc ) ;
 
-         if ( !watchIDs.empty() )
+         /// when encode by org, don't parse and build
+         if ( DMS_SCHEMA_ENCODE_HEX == encodeFlag )
          {
-            ISession *session = cb->getSession() ;
-            if ( session && session->isBusinessSession() )
+            rc = _parseRecord( encodeBuilder, writeBitmap, record, hasNewCol ) ;
+            if ( rc )
             {
-               rc = _appendPrimalColumns( context, cb, encodeBuilder, watchIDs,
-                                          record, recordData ) ;
-               PD_RC_CHECK( rc, PDERROR, "Append primal columns into record failed, rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Parse record by internal schema failed, rc: %d", rc ) ;
+               goto error ;
             }
+            else if ( hasNewCol )
+            {
+               /// need update the internal schema outside and retry
+               goto done ;
+            }
+         }
+
+         /// add write default columns
+         if ( writeBitmap.validBitSize() > 0 )
+         {
+            rc = _appendPrimalColumns( cb, record, writeBitmap, encodeFlag,
+                                       encodeBuilder, recordData, memAlloc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Append primal columns into record failed, rc: %d", rc ) ;
          }
 
          rc = encodeBuilder.done( isEmpty ) ;
          PD_RC_CHECK( rc, PDERROR, "Finish building encoded record failed, rc: %d", rc ) ;
 
-         totalSize = encodeBuilder.dataSize() ;
+         totalSize = encodeBuilder.dataSize() + DMS_SCHEMA_ENCODE_FILL_SZ ;
 
          // Check once again if the encoded record size exceeds the limit
          if ( totalSize + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
@@ -842,9 +949,9 @@ namespace engine
                              UTIL_COMPRESSOR_INVALID, TRUE, TRUE ) ;
 
 #ifdef _DEBUG
-         _encodeSanityCheck( encodeData )  ;
+         rc = _encodeSanityCheck( encodeData, isPrimalData ) ;
+         PD_RC_CHECK( rc, PDERROR, "Sanity check encode data failed, rc: %d", rc ) ;
 #endif /* _DEBUG */
-
       }
       catch ( std::exception &e )
       {
@@ -857,34 +964,100 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_ENCODERECORD, rc ) ;
       return rc ;
    error:
+      if ( memAlloc )
+      {
+         cb->releaseBuff( (CHAR*)recordData.data() ) ;
+         /// restore
+         recordData.setData( pOrgData, orgDataLen ) ;
+         memAlloc = FALSE ;
+      }
+      if ( encodeBuilder.isOutOfBuff() )
+      {
+         estimateSize <<= 1 ;
+         encodeBuilder.reset() ;
+         hasRetry = TRUE ;
+         goto retry ;
+      }
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_DECODERECORD, "_dmsInternalSchema::decodeRecord" )
-   INT32 _dmsInternalSchema::decodeRecord( _pmdEDUCB *cb, const CHAR *data, UINT32 dataSize,
-                                           const CHAR **record, UINT32 &recordSize,
+   INT32 _dmsInternalSchema::decodeRecord( _pmdEDUCB *cb,
+                                           const CHAR *data,
+                                           UINT32 dataSize,
+                                           BSONObj &objRecord,
                                            BOOLEAN getPrimalData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_DECODERECORD ) ;
+
+      UINT32 decodeSize = 0 ;
+      CHAR  *decodeBuffer = NULL ;
+      UINT16 columnID = 0 ;
       const CHAR *columnName = NULL ;
       INT32 nameLen = 0 ;
       BOOLEAN colIsDeleted = FALSE ;
-      ossPoolSet<UINT16> readDefaultIDs ;
-      BOOLEAN hasReadDefault = _decodeWatchIDs.size() > 0 ? TRUE : FALSE ;
-      UINT32 decodeSize = 0 ;
-      // Get three pointers: ID pointer, type pointer and value pointer, to build each BSON element.
-      CHAR *decodeBuffer = NULL ;
+      UINT8 encodeFlag = DMS_SCHEMA_GET_ENCODE_FLAG( data ) ;
+      UINT32 version = DMS_SCHEMA_GET_VERSION( data ) ;
+
+      dmsThreadSchemaBitmap readBitmap( _schemaContainer.columnNum() ) ;
       utilBSONRawBuilder builder ;
       BOOLEAN isEmpty = FALSE ;
+      BOOLEAN hasRetry = FALSE ;
 
+      rc = readBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init bitmap failed, rc: %d", rc ) ;
+
+      /// check is load
+      if ( !_hasLoad )
+      {
+         ossScopedLock lock( &_loadLatch ) ;
+         if ( !_hasLoad )
+         {
+            rc = _postLoad() ;
+            PD_RC_CHECK( rc, PDERROR, "Load schema info failed, rc: %d", rc ) ;
+         }
+      }
+
+      /// copy read bitmap
+      if ( !getPrimalData && version < _schemaVersion )
+      {
+         readBitmap.setBitmap( _readColBitmap ) ;
+      }
+
+   retry:
       try
       {
-         BSONObj encodedRecord( data ) ;
-         BSONObjIterator itr( encodedRecord ) ;
+         BSONObj encodedRecord( DMS_SCHEMA_ENCODE_DATAPTR( data ) ) ;
+
+         /// when encode format is ORG, and newest version
+         if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
+         {
+            if ( version >= _schemaVersion )
+            {
+               objRecord = encodedRecord ;
+            }
+            else
+            {
+               /// rebuild record by the orignal record
+               rc = rebuildRecord( cb, encodedRecord, objRecord, getPrimalData ) ;
+               PD_RC_CHECK( rc, PDERROR, "Rebuild record failed, rc: %d", rc ) ;
+            }
+            goto done ;
+         }
+
          // Estimate the decode size. Column ids will be replaced by column names(deleted columns
-         // not included), and columns with write default values will be added.
-         decodeSize = encodedRecord.objsize() + _totalValidNameSize + _defaultMaxSize ;
+         // not included), and columns with read default values will be added.
+         if ( !hasRetry )
+         {
+            decodeSize = encodedRecord.objsize() + _totalValidNameSize ;
+            if ( !readBitmap.isEmpty() )
+            {
+               decodeSize += _defaultReadMaxSize ;
+            }
+         }
+
+         BSONObjIterator itr( encodedRecord ) ;
          decodeBuffer = cb->getDecodeBuff( decodeSize ) ;
          if ( !decodeBuffer )
          {
@@ -894,27 +1067,26 @@ namespace engine
             goto error ;
          }
 
-         // Make a coyp of the ids, try to erase below
-         if ( hasReadDefault )
-         {
-            readDefaultIDs.insert( _decodeWatchIDs.begin(), _decodeWatchIDs.end() ) ;
-         }
-
          rc = builder.start( decodeBuffer, decodeSize ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to start building record, rc: %d", rc ) ;
 
          while ( itr.more() )
          {
             BSONElement ele = itr.next() ;
-            UINT16 columnID = ossAtoi( ele.fieldName() ) ;
-            // This column is included in the record, so we need not to add its read default any more.
-            if ( hasReadDefault )
-            {
-               readDefaultIDs.erase( columnID ) ;
-            }
+            columnID = (UINT16)utilHexStrToInt( ele.fieldName() ) ;
 
-            _schemaContainer.getColumnBasicInfo( columnID, &columnName, &nameLen, &colIsDeleted ) ;
-            if ( colIsDeleted )
+            /// clear read default bitmap
+            readBitmap.clearBit( columnID ) ;
+            /// get column from schema
+            rc = _schemaContainer.getColumnBasicInfo( columnID, &columnName,
+                                                      &nameLen, &colIsDeleted ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Get column[%s,%u] from schema failed, rc: %d",
+                       ele.fieldName(), columnID, rc ) ;
+               goto error ;
+            }
+            else if ( colIsDeleted )
             {
                // Ignore columns which has been marked as delete.
                continue ;
@@ -926,18 +1098,20 @@ namespace engine
                          columnName, rc ) ;
          }
 
-         if ( readDefaultIDs.size() > 0 && !getPrimalData )
+         /// process default columns
+         if ( readBitmap.validBitSize() > 0 )
          {
             // Append columns with default.
-            rc = _appendColWithReadDefault( readDefaultIDs, builder ) ;
+            rc = _appendColWithReadDefault( readBitmap, builder ) ;
             PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
                         rc ) ;
          }
 
          builder.done( isEmpty ) ;
+         PD_RC_CHECK( rc, PDERROR, "Finish building encoded record failed, rc: %d", rc ) ;
 
-         *record = decodeBuffer ;
-         recordSize = *(INT32 *)decodeBuffer ;
+         /// set return object
+         objRecord = BSONObj( decodeBuffer ) ;
       }
       catch ( std::exception &e )
       {
@@ -950,138 +1124,212 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_DECODERECORD, rc ) ;
       return rc ;
    error:
+      if ( builder.isOutOfBuff() )
+      {
+         decodeSize <<= 1 ;
+         builder.reset() ;
+         hasRetry = TRUE ;
+         goto retry ;
+      }
       goto done ;
    }
 
-   INT32 _dmsInternalSchema::rebuildRecord( _pmdEDUCB *cb, const BSONObj &record,
-                                            const CHAR **newRecord, UINT32 &newRecSize,
-                                            BOOLEAN &changed, BOOLEAN getPrimalData )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA_REBUILDRECORD, "_dmsInternalSchema::rebuildRecord" )
+   INT32 _dmsInternalSchema::rebuildRecord( _pmdEDUCB *cb,
+                                            const BSONObj &record,
+                                            BSONObj &outRecord,
+                                            BOOLEAN getPrimalData )
    {
-      // For records that are not encoded, we need to check:
-
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA_REBUILDRECORD ) ;
 
-      try
+      UINT32 hitCount = 0 ;
+      BOOLEAN isEmpty = FALSE ;
+      BOOLEAN hitName = FALSE ;
+      BOOLEAN hitDefault = FALSE ;
+      utilBSONRawBuilder builder ;
+      INT32 buffSize = 0 ;
+      CHAR *buff = NULL ;
+      UINT16 colID = DMS_SCHEMA_INVALID_COLUMNID ;
+      NAME_INFO_MAP_ITR itrInfo ;
+      BOOLEAN hasRetry = FALSE ;
+
+      const CHAR *name           = NULL ;
+      INT32 nameLen              = 0 ;
+      BOOLEAN isDeleted          = FALSE ;
+      BOOLEAN hasOrigName        = FALSE ;
+
+      dmsThreadSchemaBitmap readBitmap( _schemaContainer.columnNum() ) ;
+
+      /// check is load
+      if ( !_hasLoad )
       {
-         NAME_INFO_MAP watchNames ;  // Including column names which have been deleted, or renamed.
-         watchNames.insert( _decodeWatchNames.begin(), _decodeWatchNames.end() ) ;
-
-         rc = _checkRebuildRecord( record, watchNames ) ;
-         PD_RC_CHECK( rc, PDERROR, "Check rebuild record by internal schema failed, rc: %d", rc ) ;
-
-         if ( watchNames.empty() )
+         ossScopedLock lock( &_loadLatch ) ;
+         if ( !_hasLoad )
          {
-            // No columns need to be modified. Just use the original record.
-            changed = FALSE ;
+            rc = _postLoad() ;
+            PD_RC_CHECK( rc, PDERROR, "Load schema info failed, rc: %d", rc ) ;
+         }
+      }
+
+      if ( getPrimalData && _decodeWatchNames.empty() )
+      {
+         outRecord = record ;
+         goto done ;
+      }
+
+      rc = readBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init read bitmap failed, rc: %d", rc ) ;
+
+      rc = _checkOrgRecord( record, readBitmap, hitName, hitDefault ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check record need rebuild failed, rc: %d", rc ) ;
+
+      if ( !hitName && !hitDefault )
+      {
+         outRecord = record ;
+         goto done ;
+      }
+      else if ( !hitName )
+      {
+         /// only default value
+         if ( getPrimalData )
+         {
+            outRecord = record ;
             goto done ;
          }
 
-         changed = TRUE ;
-
+         buffSize = record.objsize() + _defaultReadMaxSize ;
+         buff = cb->getDecodeBuff( buffSize ) ;
+         if ( !buff )
          {
-            BOOLEAN isEmpty = FALSE ;
-            utilBSONRawBuilder builder ;
-            NAME_DECODE_INFO_ITR nameItr ;
-            BSONObjIterator itr( record ) ;
-            INT32 buffSize = record.objsize() +  _defaultMaxSize ;      // TODO: YSD need to calculate the size.
-            CHAR *buff = cb->getDecodeBuff( buffSize ) ;
-            if ( !buff )
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate buffer of size %d for decoding record failed, rc: %d",
+                    buffSize, rc ) ;
+            goto error ;
+         }
+
+         rc = builder.start( buff, buffSize, &record ) ;
+         PD_RC_CHECK( rc, PDERROR, "Start rebuild record by internal schema failed, rc: %d",
+                      rc ) ;
+
+         rc = _appendColWithReadDefault( readBitmap, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
+                     rc ) ;
+
+         rc = builder.done( isEmpty ) ;
+         PD_RC_CHECK( rc, PDERROR, "Finish building encoded record failed, rc: %d", rc ) ;
+
+         outRecord = BSONObj( buff ) ;
+
+         goto done ;
+      }
+
+   retry:
+      try
+      {
+         if ( !hasRetry )
+         {
+            buffSize = record.objsize() ;
+            if ( !readBitmap.isEmpty() )
             {
-               rc = SDB_OOM ;
-               PD_LOG( PDERROR, "Allocate buffer of size %d for decoding record failed, rc: %d",
-                       buffSize, rc ) ;
-               goto error ;
+               buffSize += _defaultReadMaxSize ;
             }
+         }
 
-            rc = builder.start( buff, buffSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Start rebuild record by internal schema failed, rc: %d",
-                         rc ) ;
+         hitCount = 0 ;
+         BSONObjIterator itr( record ) ;
+         buff = cb->getDecodeBuff( buffSize ) ;
+         if ( !buff )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate buffer of size %d for decoding record failed, rc: %d",
+                    buffSize, rc ) ;
+            goto error ;
+         }
 
-            while ( itr.more() )
+         rc = builder.start( buff, buffSize ) ;
+         PD_RC_CHECK( rc, PDERROR, "Start rebuild record by internal schema failed, rc: %d",
+                      rc ) ;
+
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            colID = DMS_SCHEMA_INVALID_COLUMNID ;
+
+            /// find in name map
+            if ( !_decodeWatchNames.empty() && hitCount < _decodeWatchNames.size() )
             {
-               BSONElement ele = itr.next() ;
-               nameItr = watchNames.find( ele.fieldName() ) ;
-               if ( watchNames.end() == nameItr )
+               itrInfo = _decodeWatchNames.find( ele.fieldName() ) ;
+               if ( itrInfo != _decodeWatchNames.end() )
                {
-                  rc = builder.appendElement( ele.type(), ele.fieldName(),
-                                              ossStrlen( ele.fieldName() ),
-                                              ele.value(), ele.valuesize() ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, rc: %d",
-                               rc ) ;
-                  watchNames.erase( ele.fieldName() ) ;
-               }
-               else
-               {
-                  // Found the name in the watch names.
-                  if ( nameItr->second._isDeleted )
+                  colID = itrInfo->second ;
+                  ++hitCount ;
+
+                  rc = _schemaContainer.getColumnBasicInfo( colID, &name, &nameLen, &isDeleted,
+                                                            NULL, NULL, NULL, &hasOrigName ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get column[%d] info failed, rc: %d", colID, rc ) ;
+
+                  if ( isDeleted )
                   {
-                     // If the column is deleted in the schema, do not add it to the result.
-                     watchNames.erase( ele.fieldName() ) ;  // Code Review: Remove by iterator. Use a counter instead of erase
+                     /// ignore
                      continue ;
                   }
-                  else if ( nameItr->second._isOrigName )
+                  else if ( hasOrigName )
                   {
-                     // If the column has been renamed in the schema, get the current name.
-                     const CHAR *name =
-                        _schemaContainer.getColumnName( nameItr->second._columnID ) ;
-                     rc = builder.appendElement( ele.type(), name, ossStrlen( name ),
+                     rc = builder.appendElement( ele.type(), name, nameLen,
                                                  ele.value(), ele.valuesize() ) ;
                      PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
                                   "rc: %d", rc ) ;
-                     watchNames.erase( ele.fieldName() ) ;
-                  }
-                  else
-                  {
-                     // If the column is not deleted, and has not been renamed, it's in the watch
-                     // list just because it has a read default value. Keep the value of the
-                     // original record here.
-                     rc = builder.appendElement( ele.type(), ele.fieldName(),
-                                                 ossStrlen( ele.fieldName() ),
-                                                 ele.value(), ele.valuesize() ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
-                                  "rc: %d", rc ) ;
-                     watchNames.erase( ele.fieldName() ) ;
+
+                     continue ;
                   }
                }
             }
 
-            if ( !getPrimalData )
+            /// not found
+            colID = _schemaHash.getColumnIDByName( ele.fieldName() ) ;
+            if ( DMS_SCHEMA_INVALID_COLUMNID != colID )
             {
-               for ( NAME_DECODE_INFO_ITR itr = watchNames.begin(); itr != watchNames.end(); )
-               {
-                  const CHAR *name = NULL ;
-                  INT32 nameLen = 0 ;
-                  BSONType type ;
-                  const CHAR *value = NULL ;
-                  INT32 valueLen = 0 ;
-                  rc = _schemaContainer.getColReadDefault( itr->second._columnID, name, nameLen,
-                                                           type, value, valueLen ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Get read default of column %s failed, rc: %d",
-                               itr->first, rc ) ;
-                  rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
-                               "rc: %d", rc ) ;
-                  watchNames.erase( itr++ ) ;
-               }
+               readBitmap.clearBit( colID ) ;
             }
 
-            rc = builder.done( isEmpty ) ;
-            PD_RC_CHECK( rc, PDERROR, "Rebuild record by internal schema failed, rc: %d", rc ) ;
-
-            *newRecord = buff ;
-            newRecSize = *(INT32 *)buff ;
+            rc = builder.appendElement( ele.type(), ele.fieldName(),
+                                        ossStrlen( ele.fieldName() ),
+                                        ele.value(), ele.valuesize() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, rc: %d",
+                         rc ) ;
          }
+
+         if ( !getPrimalData )
+         {
+            rc = _appendColWithReadDefault( readBitmap, builder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Append column with default value to record failed, rc: %d",
+                        rc ) ;
+         }
+
+         rc = builder.done( isEmpty ) ;
+         PD_RC_CHECK( rc, PDERROR, "Finish building encoded record failed, rc: %d", rc ) ;
+
+         outRecord = BSONObj( buff ) ;
       }
-      catch ( std::exception &e )
+      catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA_REBUILDRECORD, rc ) ;
       return rc ;
    error:
+      if ( builder.isOutOfBuff() )
+      {
+         buffSize <<= 1 ;
+         builder.reset() ;
+         hasRetry = TRUE ;
+         goto retry ;
+      }
       goto done ;
    }
 
@@ -1150,23 +1398,61 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsInternalSchema::_init( const dmsSchemaExtent *schemaExtent,
+                                    UINT32 schemaExtentSize,
+                                    const dmsSchemaHashExtent *hashExtent,
+                                    UINT32 hashExtentSize,
+                                    UINT16 mbID,
+                                    BOOLEAN isReload)
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( schemaExtent && (schemaExtentSize > 0), "Schema extent is invalid" ) ;
+      SDB_ASSERT( hashExtent && (hashExtentSize > 0), "Schema hash extent is invalid" ) ;
+
+      rc = _schemaContainer.init( schemaExtent, schemaExtentSize, mbID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init internal schema extent failed, rc: %d", rc ) ;
+
+      rc = _schemaHash.init( &_schemaContainer, hashExtent, hashExtentSize, mbID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init internal schema hash extent failed, rc: %d", rc ) ;
+
+      /// init version
+      _schemaVersion = schemaExtent->_schemaVersion ;
+      _schemaInnerVersion = schemaExtent->_schemaInnerVersion ;
+
+      rc = _postLoad() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Load internal schema failed, rc: %d", rc ) ;
+
+         if ( !isReload )
+         {
+            goto error ;
+         }
+         /// ignore, trigger postLoad() by encode()/decode()
+         rc = SDB_OK ;
+      }
+
+      _enabled = TRUE ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__PARSERECORD, "_dmsInternalSchema::_parseRecord" )
-   INT32 _dmsInternalSchema::_parseRecord( dmsMBContext *context,
-                                           utilBSONRawBuilder &encodeBuilder,
-                                           COLUMN_ID_SET &watchIDs,
-                                           const BSONObj& record,
-                                           BOOLEAN &hasNewColumn )
+   INT32 _dmsInternalSchema::_parseRecord( utilBSONRawBuilder &encodeBuilder,
+                                           _utilBitmapBase &writeBitmap,
+                                           const BSONObj &record,
+                                           BOOLEAN &hasNewCol )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__PARSERECORD ) ;
+
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
       CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
-
-      BOOLEAN hasWriteDefault = _encodeWatchIDs.size() > 0 ? TRUE : FALSE ;
-      if ( hasWriteDefault )
-      {
-         watchIDs.insert( _encodeWatchIDs.begin(), _encodeWatchIDs.end() ) ;
-      }
+      INT32 colNameLength = 0 ;
 
       try
       {
@@ -1177,20 +1463,25 @@ namespace engine
             columnID = _schemaHash.getColumnIDByName( ele.fieldName() ) ;
             if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
             {
-               hasNewColumn = TRUE ;
+               hasNewCol = TRUE ;
                goto done ;
             }
 
-            ossItoa( columnID, columnName, sizeof(columnName) ) ;
-            rc = encodeBuilder.appendElement( ele.type(), columnName, ossStrlen(columnName),
+            colNameLength = utilIntToLowerHexStr( (INT32)columnID, columnName,
+                                                  sizeof( columnName ) ) ;
+            if ( colNameLength < 0 )
+            {
+               PD_LOG( PDERROR, "Convert column[%u] to field name failed, rc: %d",
+                       columnID, rc ) ;
+               goto error ;
+            }
+
+            rc = encodeBuilder.appendElement( ele.type(), columnName, colNameLength,
                                               ele.value(), ele.valuesize() ) ;
             PD_RC_CHECK( rc, PDERROR, "Add column [%s] to encoded record failed, rc: %d",
                          ele.fieldName(), rc ) ;
 
-            if ( hasWriteDefault )
-            {
-               watchIDs.erase( columnID ) ;
-            }
+            writeBitmap.clearBit( columnID ) ;
          }
       }
       catch ( std::exception &e )
@@ -1207,264 +1498,327 @@ namespace engine
       goto done ;
    }
 
-
-   INT32 _dmsInternalSchema::_appendPrimalColumns( _dmsMBContext *context,
-                                                   pmdEDUCB *cb,
-                                                   utilBSONRawBuilder &encodeBuilder,
-                                                   COLUMN_ID_SET &watchIDs,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__APPENDPRIMALCOLUMNS, "_dmsInternalSchema::_appendPrimalColumns" )
+   INT32 _dmsInternalSchema::_appendPrimalColumns( _pmdEDUCB *cb,
                                                    const BSONObj& originalRecord,
-                                                   dmsRecordData &recordData )
+                                                   const _utilBitmapBase &writeBitmap,
+                                                   UINT8 encodeFlag,
+                                                   utilBSONRawBuilder &encodeBuilder,
+                                                   dmsRecordData &recordData,
+                                                   BOOLEAN &memAlloc )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__APPENDPRIMALCOLUMNS ) ;
+
       const CHAR *name = NULL ;
       INT32 nameLen = 0 ;
       BSONType type ;
       const CHAR *value = NULL ;
       INT32 valueLen = 0 ;
+      INT32 setBitPos = 0 ;
+
       utilBSONRawBuilder builder ;
       BOOLEAN isEmpty = FALSE ;
-      CHAR *buff = NULL ;
-      INT32 buffSize = originalRecord.objsize() + _defaultMaxSize ;
-      CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
 
-      rc = cb->allocBuff( buffSize, &buff ) ;
-      PD_RC_CHECK( rc, PDERROR, "Allocate memory of size [%d] failed, rc: %d", buffSize, rc ) ;
+      CHAR *buff = NULL ;
+      INT32 buffSize = originalRecord.objsize() + _defaultWriteMaxSize ;
+      CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
+      INT32 colNameLength = 0 ;
+
+      buff = (CHAR *)cb->getBuffer( buffSize ) ;
+      if ( !buff )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate memory of size[%u] failed, rc: %d", buffSize, rc ) ;
+         goto error ;
+      }
+      memAlloc = TRUE ;
 
       rc = builder.start( buff, buffSize, &originalRecord ) ;
-      PD_RC_CHECK( rc, PDERROR, "Starting adding columns with default values to record failed, "
-                   "rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Start rebuild record by internal schema failed, rc: %d",
+                   rc ) ;
 
-      try
+      while( TRUE )
       {
-         for ( COLUMN_ID_SET_CITR citr = watchIDs.begin(); citr != watchIDs.end(); ++citr )
+         setBitPos = writeBitmap.nextSetBitPos( setBitPos ) ;
+         if ( -1 == setBitPos )
          {
-            if ( _schemaContainer.hasWriteDefault( *citr ) )
-            {
-               rc = _schemaContainer.getColWriteDefault( *citr, name, nameLen,
-                                                         type, value, valueLen ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get write default value of column %s failed, rc: %d",
-                            name, rc ) ;
-            }
-            else if ( _schemaContainer.hasReadDefault( *citr ) )
-            {
-               // No write value, it should be a column in index with read default.
-               rc = _schemaContainer.getColReadDefault( *citr, name, nameLen,
-                                                        type, value, valueLen ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get read default value of column %s failed, rc: %d",
-                            name, rc ) ;
-            }
-            else
-            {
-               SDB_ASSERT( FALSE, "Should have read or write default value" ) ;
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "Get primal columns for record failed, rc: %d", rc ) ;
-               goto error ;
+            break ;
+         }
 
-            }
-
-            ossItoa( *citr, columnName, sizeof(columnName) ) ;
-            rc = encodeBuilder.appendElement( type, columnName, ossStrlen(columnName),
-                                              value, valueLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Add column [%s] to encoded record failed, rc: %d",
+         /// get write default
+         if ( _schemaContainer.hasWriteDefault( (UINT16)setBitPos ) )
+         {
+            rc = _schemaContainer.getColWriteDefault( (UINT16)setBitPos, name, nameLen,
+                                                      type, value, valueLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get write default value of column %s failed, rc: %d",
                          name, rc ) ;
+         }
+         else if ( _schemaContainer.hasReadDefault( (UINT16)setBitPos ) )
+         {
+            // No write value, it should be a column in index with read default.
+            rc = _schemaContainer.getColReadDefault( (UINT16)setBitPos, name, nameLen,
+                                                     type, value, valueLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get read default value of column %s failed, rc: %d",
+                         name, rc ) ;
+         }
+         else
+         {
+            SDB_ASSERT( FALSE, "Should have read or write default value" ) ;
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Get primal columns[%u] for record failed, rc: %d",
+                    setBitPos, rc ) ;
+            goto error ;
+         }
 
-            rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append info for column %s into record failed, rc: %d",
+         if ( DMS_SCHEMA_ENCODE_HEX == encodeFlag )
+         {
+            /// build hex name
+            colNameLength = utilIntToLowerHexStr( setBitPos, columnName, sizeof( columnName ) ) ;
+            if ( colNameLength < 0 )
+            {
+               PD_LOG( PDERROR, "Convert column[%u] to field name failed, rc: %d",
+                       setBitPos, rc ) ;
+               goto error ;
+            }
+
+            /// add to encode builder by hex name
+            rc = encodeBuilder.appendElement( type, columnName, colNameLength,
+                                              value, valueLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Add column[%s] to encoded record failed, rc: %d",
+                         name, rc ) ;
+         }
+         else
+         {
+            /// add to encode builder by org name
+            rc = encodeBuilder.appendElement( type, name, nameLen,
+                                              value, valueLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Add column[%s] to encoded record failed, rc: %d",
                          name, rc ) ;
          }
 
-         rc = builder.done( isEmpty ) ;
-         PD_RC_CHECK( rc, PDERROR, "Build column info record failed, rc: %d", rc ) ;
-
-         recordData.setData( buff, *(INT32 *)buff ) ;
+         /// add to orignal builder
+         rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Append info for column[%s] into record failed, rc: %d",
+                      name, rc ) ;
       }
-      catch ( std::exception &e )
+
+      rc = builder.done( isEmpty ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build column info record failed, rc: %d", rc ) ;
+
+      /// check size
+      if ( *(INT32 *)buff + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
       {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Object size[%d] is more than [%d]", *(INT32 *)buff,
+                 DMS_RECORD_USER_MAX_SZ ) ;
+         rc = SDB_DMS_RECORD_TOO_BIG ;
          goto error ;
       }
 
+      recordData.setData( buff, *(INT32 *)buff ) ;
+
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA__APPENDPRIMALCOLUMNS, rc ) ;
       return rc ;
    error:
       if ( buff )
       {
          cb->releaseBuff( buff ) ;
+         memAlloc = FALSE ;
       }
       goto done ;
    }
 
-   INT32 _dmsInternalSchema::_checkRebuildRecord( const BSONObj &record,
-                                                  NAME_INFO_MAP &watchNames )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__CHECKORGRECORD, "_dmsInternalSchema::_checkOrgRecord" )
+   INT32 _dmsInternalSchema::_checkOrgRecord( const BSONObj &record,
+                                              _utilBitmapBase &colBitmap,
+                                              BOOLEAN &hitName,
+                                              BOOLEAN &hitDefault )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__CHECKORGRECORD ) ;
 
-      for ( NAME_DECODE_INFO_ITR itr = watchNames.begin(); itr != watchNames.end(); )
+      NAME_INFO_MAP_ITR itrInfo ;
+      UINT16 colID = DMS_SCHEMA_INVALID_COLUMNID ;
+
+      hitName = FALSE ;
+      hitDefault = FALSE ;
+
+      try
       {
-         if ( record.hasField( itr->first ) )
+         BSONObjIterator itr( record ) ;
+         while( itr.more() ) ;
          {
-            // If we find the column in the original record, and it's not deleted, and has not
-            // been renamed, we should keep the field in the record.
-            if ( itr->second._isDeleted || itr->second._isOrigName )
+            BSONElement ele = itr.next() ;
+
+            if ( !_decodeWatchNames.empty() )
             {
-               // If the column is deleted in the schema, we need to delete it from the record.
-               // If the name is original name, it has been renamed. We need to rebuild that
-               // column with the new name.
-               ++itr ;
+               itrInfo = _decodeWatchNames.find( ele.fieldName() ) ;
+               if ( itrInfo != _decodeWatchNames.end() )
+               {
+                  hitName = TRUE ;
+                  goto done ;
+               }
             }
-            else
+            else if ( colBitmap.isEmpty() )
             {
-               watchNames.erase( itr++ ) ;
+               goto done ;
             }
-         }
-         else
-         {
-            // The column is not found in the original record. If the record is deleted, we can
-            // ignore it. Otherwise if it has read default value, we should keep it.
-            if ( itr->second._isDeleted || !itr->second._hasReadDefault )
+
+            colID = _schemaHash.getColumnIDByName( ele.fieldName() ) ;
+            if ( DMS_SCHEMA_INVALID_COLUMNID != colID )
             {
-               watchNames.erase( itr++ ) ;
-            }
-            else
-            {
-               ++itr ;
+               colBitmap.clearBit( colID ) ;
             }
          }
       }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      if ( !colBitmap.isEmpty() )
+      {
+         hitDefault = TRUE ;
+      }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA__CHECKORGRECORD, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _dmsInternalSchema::_appendColWithReadDefault( ossPoolSet<UINT16> &colIDs,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSINTERNALSCHEMA__APPENDCOLWITHREADDFT, "_dmsInternalSchema::_appendColWithReadDefault" )
+   INT32 _dmsInternalSchema::_appendColWithReadDefault( const _utilBitmapBase &readBitmap,
                                                         utilBSONRawBuilder &builder )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSINTERNALSCHEMA__APPENDCOLWITHREADDFT ) ;
 
       const CHAR *name = NULL ;
       INT32 nameLen = 0 ;
       BSONType type ;
       const CHAR *value = NULL ;
       INT32 valueLen = 0 ;
+      INT32 nextSetPos = 0 ;
 
-      for ( ossPoolSet<UINT16>::const_iterator citr = colIDs.begin(); citr != colIDs.end(); ++citr )
+      while ( TRUE )
       {
-         rc = _schemaContainer.getColReadDefault( *citr, name, nameLen, type, value, valueLen ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get column read default value failed, rc: %d", rc ) ;
-         rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
-         if ( rc )
+         nextSetPos = readBitmap.nextSetBitPos( ( UINT32 )nextSetPos ) ;
+         if ( -1 == nextSetPos )
          {
-            rc = SDB_CORRUPTED_RECORD ;
-            PD_LOG( PDERROR, "Record is corrupted, rc: %d", rc ) ;
-            goto error ;
+            break ;
          }
+
+         /// get read default value infor
+         rc = _schemaContainer.getColReadDefault( (UINT16)nextSetPos, name, nameLen,
+                                                  type, value, valueLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get column read default value failed, rc: %d", rc ) ;
+
+         /// append default
+         rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Append default column[%s] failed, rc: %d",
+                      name, rc ) ;
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSINTERNALSCHEMA__APPENDCOLWITHREADDFT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _dmsInternalSchema::_onSchemaColChanged()
+   INT32 _dmsInternalSchema::_postLoad()
    {
-      INT32 rc = SDB_OK ;
+      INT32 rc                   = SDB_OK ;
+      const CHAR *name           = NULL ;
+      INT32 nameLen              = 0 ;
+      BOOLEAN isDeleted          = FALSE ;
+      BOOLEAN hasReadDefault     = FALSE ;
+      BOOLEAN hasWriteDefault    = FALSE ;
+      BOOLEAN isIndexColumn      = FALSE ;
+      BOOLEAN hasOrigName        = FALSE ;
+      UINT32 colReadEleSize      = 0 ;
+      UINT32 colWriteEleSize     = 0 ;
 
-      ++_version ;
+      /// clear bitmap information
+      _clearBitmapInfo() ;
 
-      try
+      rc = _readColBitmap.resize( _schemaContainer.columnNum() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Resize read column bitmap failed, rc: %d", rc ) ;
+      rc = _writeColBitmap.resize( _schemaContainer.columnNum() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Resize write column bitmap failed, rc: %d", rc ) ;
+
+      for ( UINT16 colID = 0 ; colID < _schemaContainer.columnNum() ; ++colID )
       {
-         ossPoolSet<UINT16> rdDefaultIDs ;
-         ossPoolSet<UINT16> wtDefaultIDs ;
-         ossPoolSet<UINT16> rdDefaultIndexColIDs ;
-         const CHAR *name = NULL ;
-         INT32 nameLen = 0 ;
-         BOOLEAN isDeleted = FALSE ;
-         BOOLEAN hasReadDefault = FALSE ;
-         BOOLEAN hasWriteDefault = FALSE ;
-         BOOLEAN isIndexColumn = FALSE ;
-         BOOLEAN hasOrigName = FALSE ;
+         rc = _schemaContainer.getColumnBasicInfo( colID, &name, &nameLen, &isDeleted,
+                                                   &hasReadDefault, &hasWriteDefault,
+                                                   &isIndexColumn, &hasOrigName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get column info from internal schema failed, rc: %d", rc ) ;
 
-         _decodeWatchNames.clear() ;
-         _totalValidNameSize = 0 ;
-
-         for ( UINT16 columnID = 0; columnID < _schemaContainer.columnNum(); ++columnID )
+         if ( !isDeleted )
          {
-            name = NULL ;
-            nameLen = 0 ;
-            hasReadDefault = FALSE ;
-            hasWriteDefault = FALSE ;
-            isIndexColumn = FALSE ;
-            hasOrigName = FALSE ;
-            rc = _schemaContainer.getColumnBasicInfo( columnID, &name, &nameLen, &isDeleted,
-                                                      &hasReadDefault, &hasWriteDefault,
-                                                      &isIndexColumn, &hasOrigName ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get column info in internal schema failed, rc: %d", rc ) ;
+            if ( hasReadDefault )
+            {
+               _readColBitmap.setBit( colID ) ;
 
+               rc = _schemaContainer.getReadEleSize( colID, colReadEleSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get column element size failed, rc: %d", rc ) ;
+
+               _defaultReadMaxSize += colReadEleSize ;
+            }
+            if ( hasWriteDefault )
+            {
+               _writeColBitmap.setBit( colID ) ;
+
+               rc = _schemaContainer.getWriteEleSize( colID, colWriteEleSize ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get column element size failed, rc: %d", rc ) ;
+
+               _defaultWriteMaxSize += colWriteEleSize ;
+            }
+
+            if ( isIndexColumn && hasReadDefault )
+            {
+               /// add to write default
+               if ( !_writeColBitmap.testBit( colID ) )
+               {
+                  _writeColBitmap.setBit( colID ) ;
+                  _defaultWriteMaxSize += colReadEleSize ;
+               }
+            }
+
+            _totalValidNameSize += nameLen ;
+         }
+
+         try
+         {
             if ( hasOrigName )
             {
-               const CHAR *origName = _schemaContainer.getOrigName( columnID ) ;
-               _decodeWatchNames.insert(
-                  std::make_pair( origName, columnInfo( TRUE, columnID,
-                                                        isDeleted, hasReadDefault ) ) ) ;
+               const CHAR *origName = _schemaContainer.getOrigName( colID ) ;
+               _decodeWatchNames[ origName ] = colID ;
             }
-            else
+            else if ( isDeleted )
             {
-               _decodeWatchNames.insert(
-                  std::make_pair( name, columnInfo( FALSE, columnID,
-                                                    isDeleted, hasReadDefault ) ) ) ;
-            }
-            if ( !isDeleted )
-            {
-               _totalValidNameSize += nameLen ;
+               _decodeWatchNames[ name ] = colID ;
             }
          }
-
-         rc = _schemaContainer.getColIDsWithDefault( rdDefaultIDs, wtDefaultIDs,
-                                                     rdDefaultIndexColIDs ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get columns with default values in internal schema failed, "
-                      "rc: %d", rc ) ;
-
-         _encodeWatchIDs.clear() ;
-         _decodeWatchIDs.clear() ;
-
-         _encodeWatchIDs.insert( wtDefaultIDs.begin(), wtDefaultIDs.end() ) ;
-         _encodeWatchIDs.insert( rdDefaultIndexColIDs.begin(), rdDefaultIndexColIDs.end() ) ;
-         _decodeWatchIDs.insert( rdDefaultIDs.begin(), rdDefaultIDs.end() ) ;
-
-         // Calcuate the max size of all columns with default value.
+         catch( std::exception &e )
          {
-            COLUMN_ID_SET columnIDsWithDefault ;
-            UINT16 columnInfoSize = 0 ;
-
-            _defaultMaxSize = 0 ;
-
-            columnIDsWithDefault.insert( _encodeWatchIDs.begin(), _encodeWatchIDs.end() ) ;
-            columnIDsWithDefault.insert( _decodeWatchIDs.begin(), _decodeWatchIDs.end() ) ;
-            for ( COLUMN_ID_SET_CITR citr = columnIDsWithDefault.begin();
-                  citr != columnIDsWithDefault.end(); ++citr )
-            {
-               rc = _schemaContainer.getColumnInfoSize( *citr, columnInfoSize ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get column info size failed, rc: %d", rc ) ;
-               _defaultMaxSize += columnInfoSize ;
-            }
-
-#ifdef _DEBUG
-            SDB_ASSERT( _defaultMaxSize >= DMS_SCHEMA_COLREC_HEAD_SZ * columnIDsWithDefault.size(),
-                        "Total default max size wrong" ) ;
-            _logSchemaInfo() ;
-#endif /* _DEBUG */
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            goto error ;
          }
       }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
+
+   #ifdef _DEBUG
+      _logSchemaInfo() ;
+   #endif /* _DEBUG */
+
+      /// set has load
+      _hasLoad = TRUE ;
 
    done:
       return rc ;
@@ -1490,14 +1844,52 @@ namespace engine
       }
    }
 
-   INT32 _dmsInternalSchema::_encodeSanityCheck( const dmsRecordData &encodedData )
+   INT32 _dmsInternalSchema::_encodeSanityCheck( const dmsRecordData &encodedData,
+                                                 BOOLEAN isPrimalData )
    {
       INT32 rc = SDB_OK ;
-      ossPoolSet<UINT16> columnIDs ;
+      UINT8 encodeFlag = DMS_SCHEMA_GET_ENCODE_FLAG( encodedData.data() ) ;
+      UINT32 version = DMS_SCHEMA_GET_ENCODE_FLAG( encodedData.data() ) ;
+      INT32 colID = 0 ;
+      BOOLEAN isDeleted = FALSE ;
+      NAME_INFO_MAP_ITR itrInfo ;
+
+      dmsThreadSchemaBitmap colBitmap( _schemaContainer.columnNum() ) ;
+      dmsThreadSchemaBitmap writeBitmap( _writeColBitmap.getSize() ) ;
+
+      rc = colBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init column bitmap failed, rc: %d", rc ) ;
+
+      rc = writeBitmap.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init write bitmap failed, rc: %d", rc ) ;
+
+      if ( !isPrimalData )
+      {
+         writeBitmap.setBitmap( _writeColBitmap ) ;
+      }
+
+      /// check version
+      if ( version != _schemaVersion )
+      {
+         SDB_ASSERT( FALSE, "The encoded version is invalid" ) ;
+         PD_LOG( PDERROR, "The encoded version[%d] is not the same with current[%d]",
+                 version, _schemaVersion ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      /// check flag
+      if ( encodeFlag != DMS_SCHEMA_ENCODE_HEX && encodeFlag != DMS_SCHEMA_ENCODE_ORG )
+      {
+         SDB_ASSERT( FALSE, "The encoded flag is invalid" ) ;
+         PD_LOG( PDERROR, "The encode flag[%d] is invalid", encodeFlag ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
 
       try
       {
-         const BSONObj record( encodedData.data() ) ;
+         const BSONObj record( DMS_SCHEMA_ENCODE_DATAPTR( encodedData.data() ) ) ;
          if ( !record.isValid() )
          {
             SDB_ASSERT( FALSE, "The encoded record is invalid" ) ;
@@ -1509,34 +1901,80 @@ namespace engine
          BSONObjIterator itr( record ) ;
          while ( itr.more() )
          {
-            UINT16 columnID = ossAtoi( itr.next().fieldName() ) ;
-            BOOLEAN isDeleted = FALSE ;
-            SDB_ASSERT( DMS_SCHEMA_INVALID_COLUMNID != columnID, "Column ID is invalid" ) ;
-            // Should NEVER have duplicated ID in the encoded record.
-            if ( FALSE == columnIDs.insert( columnID ).second )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "Duplicated column ID %u in the encoded record, rc: %d",
-                       columnID, rc ) ;
-               SDB_ASSERT( FALSE, "Duplicated column ID" ) ;
-               goto error ;
-            }
+            BSONElement ele = itr.next() ;
 
-            rc = _schemaContainer.getColumnBasicInfo( columnID, NULL, NULL, &isDeleted ) ;
-            if ( SDB_OK != rc )
+            if ( DMS_SCHEMA_ENCODE_HEX == encodeFlag )
             {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "Get column info by column ID %u failed, rc: %d", columnID, rc ) ;
-               SDB_ASSERT( FALSE, "Get column info by column ID failed" ) ;
-               goto error ;
-            }
+               colID = utilHexStrToInt( ele.fieldName() ) ;
 
-            if ( isDeleted )
+               if ( colID < 0 )
+               {
+                  SDB_ASSERT( FALSE, "Invalid field name" ) ;
+                  PD_LOG( PDERROR, "Invalid field name[s]", ele.fieldName() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+
+               if ( colBitmap.testBit( colID ) )
+               {
+                  rc = SDB_SYS ;
+                  SDB_ASSERT( FALSE, "Duplicated column ID" ) ;
+                  PD_LOG( PDERROR, "Duplicate column[%d,%s]", colID, ele.fieldName() ) ;
+                  goto error ;
+               }
+
+               colBitmap.setBit( colID ) ;
+               writeBitmap.clearBit( colID ) ;
+
+               rc = _schemaContainer.getColumnBasicInfo( colID, NULL, NULL, &isDeleted ) ;
+               if ( rc )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Get column info by column ID %u failed, rc: %d", colID, rc ) ;
+                  SDB_ASSERT( FALSE, "Get column info by column ID failed" ) ;
+                  goto error ;
+               }
+
+               if ( isDeleted )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Should not include deleted column when encoding" ) ;
+                  SDB_ASSERT( FALSE, "Should not include deleted column when encoding" ) ;
+                  goto error ;
+               }
+            }
+            else if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
             {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "Should not include deleted column when encoding, rc: %d", rc ) ;
-               SDB_ASSERT( FALSE, "Should not include deleted column when encoding" ) ;
-               goto error ;
+               /// can't find in namemap
+               itrInfo = _decodeWatchNames.find( ele.fieldName() ) ;
+               if ( itrInfo != _decodeWatchNames.end() )
+               {
+                  rc = SDB_SYS ;
+                  SDB_ASSERT( FALSE, "Field should not in namemap when use ORG encode" ) ;
+                  PD_LOG( PDERROR, "Field[%s] should not in namemap when use ORG encode",
+                          ele.fieldName() ) ;
+                  goto error ;
+               }
+
+               colID = _schemaHash.getColumnIDByName( ele.fieldName() ) ;
+               if ( DMS_SCHEMA_INVALID_COLUMNID != (UINT16)colID )
+               {
+                  if ( colBitmap.testBit( colID ) )
+                  {
+                     rc = SDB_SYS ;
+                     SDB_ASSERT( FALSE, "Duplicated column ID" ) ;
+                     PD_LOG( PDERROR, "Duplicate column[%d,%s]", colID, ele.fieldName() ) ;
+                     goto error ;
+                  }
+
+                  colBitmap.setBit( colID ) ;
+                  writeBitmap.clearBit( colID ) ;
+               }
+               else
+               {
+                  PD_LOG( PDINFO, "Get field[%s] column ID failed", ele.fieldName() ) ;
+                  /// ignore, when use ORG encode, the new field don't add to column by data
+               }
             }
          }
       }
@@ -1552,4 +1990,6 @@ namespace engine
    error:
       goto done ;
    }
+
 }
+

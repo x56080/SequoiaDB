@@ -314,17 +314,18 @@ namespace engine
    #define DMS_SCHEMA_EXTENT_EYECATCHER1     'E'
    #define DMS_SCHEMA_EXTENT_CURRENT_V       1
 
+   #define DMS_SCHEMA_INVALID_VERSION                 (0)
+
    struct _dmsSchemaExtent : public SDBObject
    {
-      // Total: 28 bytes
+      // Total: 24 bytes
       CHAR        _eyeCatcher[2] ;
       UINT16      _blockSize ;
       UINT16      _mbID ;
       CHAR        _flag ;
-      CHAR        _reserve ;
-      UINT32      _version ;
-      dmsExtentID _prevExtent ;
-      dmsExtentID _nextExtent ;
+      CHAR        _version ;
+      UINT32      _schemaVersion ;
+      UINT32      _schemaInnerVersion ;
       UINT32      _itemNum ;
       UINT32      _valueOffset ;
       UINT32      _freeSpace ;      // Total free space in the extent, including bubbles in the
@@ -337,10 +338,9 @@ namespace engine
          _blockSize           = numPages ;
          _mbID                = mbID ;
          _flag                = DMS_EXTENT_FLAG_INUSE ;
-         _reserve             = 0 ;
          _version             = DMS_SCHEMA_EXTENT_CURRENT_V ;
-         _prevExtent          = DMS_INVALID_EXTENT ;
-         _nextExtent          = DMS_INVALID_EXTENT ;
+         _schemaVersion       = DMS_SCHEMA_INVALID_VERSION ;
+         _schemaInnerVersion  = DMS_SCHEMA_INVALID_VERSION ;
          _itemNum             = 0 ;
          _valueOffset         = 0 ;
          _freeSpace           = totalSize - sizeof( _dmsSchemaExtent ) ;
@@ -363,20 +363,23 @@ namespace engine
    } ;
    typedef _dmsSchemaExtent dmsSchemaExtent ;
    #define DMS_SCHEMAEXTENT_HEADER_SZ  sizeof(dmsSchemaExtent)
-   #define DMS_SCHEMAEXTENT_SLOT_SZ    (4)
 
    #define DMS_SCHEMA_HASH_EXTENT_EYECATCHER0   'H'
    #define DMS_SCHEMA_HASH_EXTENT_EYECATCHER1   'E'
    #define DMS_SCHEMA_HASH_EXTENT_CURRENT_V     1
+   #define DMS_SCHEMA_HASH_BUCKET_SIZE          (4096)
 
    struct _dmsSchemaHashExtent : public SDBObject
    {
-      // Total: 12 bytes
+      // Total: 16 bytes
       CHAR        _eyeCatcher[2] ;
       UINT16      _blockSize ;
       UINT16      _mbID ;
       CHAR        _flag ;
-      CHAR        _reserve ;
+      CHAR        _version ;
+      UINT16      _bucketNum ;
+      UINT16      _slotNum ;
+      UINT32      _reserved ;
 
       void init( UINT16 numPages, UINT16 mbID )
       {
@@ -385,7 +388,10 @@ namespace engine
          _blockSize           = numPages ;
          _mbID                = mbID ;
          _flag                = DMS_EXTENT_FLAG_INUSE ;
-         _reserve             = 0 ;
+         _version             = DMS_SCHEMA_HASH_EXTENT_CURRENT_V ;
+         _bucketNum           = DMS_SCHEMA_HASH_BUCKET_SIZE ;
+         _slotNum             = 0 ;
+         _reserved            = 0 ;
       }
 
       BOOLEAN validate( UINT16 mbID = DMS_INVALID_MBID ) const
@@ -405,7 +411,7 @@ namespace engine
    } ;
    typedef _dmsSchemaHashExtent dmsSchemaHashExtent ;
    #define DMS_SCHEMAHASHEXTENT_HEADER_SZ    sizeof(dmsSchemaHashExtent)
-   #define DMS_SCHEMAHASHEXTENT_ITEM_SZ      (4)
+
 }
 
 #endif //DMSEXTENT_HPP_

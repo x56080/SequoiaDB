@@ -8,7 +8,8 @@ namespace engine
      _writePtr( NULL ),
      _buffSize( 0 ),
      _remainSize( 0 ),
-     _done( FALSE )
+     _done( FALSE ),
+     _isOutOfBuff( FALSE )
    {
    }
 
@@ -26,6 +27,7 @@ namespace engine
       _buffSize = buffSize ;
       _remainSize = buffSize ;
       _done = FALSE ;
+      _isOutOfBuff = FALSE ;
 
       if ( baseObj )
       {
@@ -33,6 +35,7 @@ namespace engine
          if ( buffSize < baseObj->objsize() )
          {
             rc = SDB_SYS ;
+            _isOutOfBuff = TRUE ;
             goto error ;
          }
 
@@ -71,7 +74,8 @@ namespace engine
       {
          SDB_ASSERT( FALSE, "Buffer size too small" ) ;
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Buffer for building the record is too small, rc: %d", rc ) ;
+         _isOutOfBuff = TRUE ;
+         PD_LOG( PDWARNING, "Buffer for building the record is too small, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -114,7 +118,8 @@ namespace engine
       if ( _remainSize <= 0 )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Buffer for building the record is too small, rc: %d", rc ) ;
+         _isOutOfBuff = TRUE ;
+         PD_LOG( PDWARNING, "Buffer for building the record is too small, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -146,11 +151,17 @@ namespace engine
       _buffSize = 0 ;
       _remainSize = 0 ;
       _done = FALSE ;
+      _isOutOfBuff = FALSE ;
    }
 
    INT32 _utilBSONRawBuilder::dataSize() const
    {
       return (INT32)( _writePtr - _buffer ) ;
+   }
+
+   BOOLEAN _utilBSONRawBuilder::isOutOfBuff() const
+   {
+      return _isOutOfBuff ;
    }
 
    BOOLEAN _utilBSONRawBuilder::_validate() const

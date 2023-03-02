@@ -1535,7 +1535,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Save new internal schema for collecion[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 
-      rc = internalSchema->reload() ;
+      // rc = internalSchema->reload() ;
       PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 
@@ -4317,7 +4317,7 @@ retry:
                                      newMem, position, &schemaVersion ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
-            storeData = encodeData.isEmpty() ? recordData : encodeData ;
+            storeData = encodeData ;
 
             if ( newMem )
             {
@@ -4348,12 +4348,11 @@ retry:
                                     compressRatio ) ;
                   // Compression is valid and ratio is less the threshold
                   if ( SDB_OK == rc &&
-                       compressedDataSize + sizeof(UINT32) <
-                       storeData.orgLen() &&
+                       (UINT32)compressedDataSize < storeData.orgLen() &&
                        compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
                   {
-                     // 4 bytes len + compressed record
-                     dmsRecordSize = compressedDataSize + sizeof(UINT32) ;
+                     // compressed record
+                     dmsRecordSize = compressedDataSize ;
                      PD_TRACE2 ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD,
                                  PD_PACK_STRING ( "size after compress" ),
                                  PD_PACK_UINT ( dmsRecordSize ) ) ;
@@ -4361,7 +4360,8 @@ retry:
                      // set the compression data
                      storeData.setData( compressedData, compressedDataSize,
                                         compressorEntry->getCompressorType(),
-                                        FALSE ) ;
+                                        FALSE,
+                                        storeData.isEncodedBySchema() ) ;
                   }
                   else if ( rc )
                   {
@@ -4396,7 +4396,7 @@ retry:
          }
 
          _clFullName( context->mb()->_collectionName, fullName,
-                         sizeof(fullName) ) ;
+                      sizeof(fullName) ) ;
 
          // calc log reserve
          if ( dpscb )
@@ -4474,6 +4474,7 @@ retry:
                {
                   cb->releaseBuff( pMergedData ) ;
                   pMergedData = NULL ;
+                  newMem = FALSE ;
                }
                recordData.reset() ;
 

@@ -210,15 +210,11 @@ namespace engine
       INT32 _encodeRecordBySchema( dmsMBContext *context,
                                    pmdEDUCB *cb,
                                    dmsRecordData &recordData,
+                                   BOOLEAN &memAlloc,
                                    dmsRecordData &encodeData,
                                    INT32 *schemaVer ) ;
 
       INT32 _updateSchemaByRecord( dmsMBContext *context, pmdEDUCB *cb, const BSONObj &record ) ;
-
-      INT32 _checkEncodedRecord( const dmsMBContext *context,
-                                 const dmsRecordData &origRecord,
-                                 const dmsRecordData &encodedRecord,
-                                 pmdEDUCB *cb ) ;
 
    } ;
    typedef _dmsStorageData dmsStorageData ;

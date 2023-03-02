@@ -37,10 +37,115 @@
 #define DMS_SCHEMARECORD_HPP__
 
 #include "oss.hpp"
+#include "dms.hpp"
 #include "utilBSON.hpp"
 
 namespace engine
 {
+
+   /*
+      _dmsSchemaColSlot define
+
+      slot struct:
+      |  1 Byte  |  3 Byte  |
+      |   Attr   |  Offset  |
+   */
+   class _dmsSchemaColSlot : public SDBObject
+   {
+      public:
+         _dmsSchemaColSlot()
+         {
+            _data = 0 ;
+         }
+         ~_dmsSchemaColSlot() {}
+
+         UINT8    getAttr() const
+         {
+            return (UINT8)( _data >> 24 ) ;
+         }
+         void     clearAttr()
+         {
+            _data &= 0x00FFFFFF ;
+         }
+         void     clearAttrBits( UINT8 attr )
+         {
+            _data &= ~((UINT32)attr << 24 ) ;
+         }
+         void     setAttr( UINT8 attr )
+         {
+            _data = ( _data & 0x00FFFFFF ) | ( (UINT32)attr << 24 ) ;
+         }
+         void     setAttrBits( UINT8 attr )
+         {
+            _data |= ( (UINT32)attr << 24 ) ;
+         }
+         UINT32   getOffset() const
+         {
+            return _data & 0x00FFFFFF ;
+         }
+         void     setOffset( UINT32 offset )
+         {
+            _data = ( _data & 0xFF000000 ) | ( offset & 0x00FFFFFF ) ;
+         }
+
+      private:
+         UINT32   _data ;
+   } ;
+   typedef _dmsSchemaColSlot dmsSchemaColSlot ;
+
+   #define DMS_SCHEMAEXTENT_SLOT_SZ       (sizeof(dmsSchemaColSlot))
+   #define DMS_SCHEMA_HASH_INVALID_SLOTID (0xFFFF)
+
+   /*
+      _dmsSchemaHashSlot define
+
+      slot struct:
+      |  2 Byte     |   2 Byte    |
+      | Next slotID |   columnID  |
+   */
+   class _dmsSchemaHashSlot : public SDBObject
+   {
+      public:
+         _dmsSchemaHashSlot()
+         {
+            _data = 0 ;
+         }
+         ~_dmsSchemaHashSlot() {}
+
+         UINT16   getNextSlotID() const
+         {
+            return (UINT16)( _data >> 16 ) ;
+         }
+         BOOLEAN  hasNextSlot() const
+         {
+            return getNextSlotID() == (UINT16)DMS_SCHEMA_HASH_INVALID_SLOTID ? FALSE : TRUE ;
+         }
+         void     setNextSlotID( UINT16 nextSlotID )
+         {
+            _data = ( _data & 0x0000FFFF ) | ( (UINT32)nextSlotID << 16 ) ; 
+         }
+         UINT16   getColumnID() const
+         {
+            return _data & 0x0000FFFF ;
+         }
+         void     setColumnID( UINT16 columnID )
+         {
+            _data = ( _data & 0xFFFF0000 ) | columnID ;
+         }
+         void     reset()
+         {
+            setNextSlotID( DMS_SCHEMA_HASH_INVALID_SLOTID ) ;
+            setColumnID( DMS_SCHEMA_INVALID_COLUMNID ) ;
+         }
+
+      private:
+         UINT32   _data ;
+   } ;
+   typedef _dmsSchemaHashSlot dmsSchemaHashSlot ;
+
+   #define DMS_HASHEXTENT_SLOT_SZ         (sizeof(dmsSchemaHashSlot))
+
+
    /* Column record format is as below. It may contain the following four items:
     *  Name -- Current column name
     *  RD   -- Read Default

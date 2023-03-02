@@ -333,6 +333,11 @@ namespace engine
             return _freeSize ;
          }
 
+         OSS_INLINE UINT32 validBitSize() const
+         {
+            return _size - _freeSize ;
+         }
+
          OSS_INLINE BOOLEAN isEmpty() const
          {
             return _freeSize >= _size ? TRUE : FALSE ;
@@ -397,7 +402,10 @@ namespace engine
          _utilBitmap ( UINT32 size )
          : _utilBitmapBase()
          {
-            _allocateBitmap( size ) ;
+            _initSize = size ;
+            _buffSize = 0 ;
+
+            _allocateBitmap( _initSize ) ;
          }
 
          ~_utilBitmap ()
@@ -405,31 +413,86 @@ namespace engine
             _freeBitmap() ;
          }
 
-         void resize ( UINT32 size )
+         void release()
+         {
+            _freeBitmap() ;
+         }
+
+         INT32 init()
+         {
+            if ( _size != _initSize )
+            {
+               return _allocateBitmap( _initSize ) ;
+            }
+            return SDB_OK ;
+         }
+
+         INT32 resize ( UINT32 size )
          {
             if ( size != _size )
             {
-               _freeBitmap() ;
-               _allocateBitmap( size ) ;
+               _initSize = size ;
+               return _allocateBitmap( _initSize ) ;
             }
+            return SDB_OK ;
          }
 
       protected :
-         OSS_INLINE void _allocateBitmap ( UINT32 size )
+         OSS_INLINE INT32 _allocateBitmap ( UINT32 size )
          {
-            if ( size > 0 )
+            INT32 rc = SDB_OK ;
+            UINT8 *pBitmap = NULL ;
+            UINT32 bitmapSize = ( size + UTIL_BITMAP_UNIT_MODULO ) /
+                                UTIL_BITMAP_UNIT_SIZE ;
+            UINT32 buffSize = bitmapSize ;
+
+            if ( buffSize <= _buffSize )
             {
-               UINT32 bitmapSize = ( size + UTIL_BITMAP_UNIT_MODULO ) /
-                                   UTIL_BITMAP_UNIT_SIZE ;
-               _bitmap = (UINT8 *)SDB_OSS_MALLOC( bitmapSize ) ;
-               if ( NULL != _bitmap )
-               {
-                  _size = size ;
-                  _bitmapSize = bitmapSize ;
-               }
+               buffSize = _buffSize ;
+               pBitmap = _bitmap ;
+            }
+            else if ( !_bitmap )
+            {
+               pBitmap = (UINT8*)SDB_OSS_MALLOC( buffSize ) ;
+            }
+            else
+            {
+               pBitmap = (UINT8*)SDB_OSS_REALLOC( _bitmap, buffSize ) ;
             }
 
-            resetBitmap() ;
+            if ( !pBitmap )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Allocate memory[%u] failed", bitmapSize ) ;
+               goto error ;
+            }
+
+            /// reset bitmap
+            if ( _buffSize < buffSize )
+            {
+               ossMemset( pBitmap + _buffSize, 0, buffSize - _buffSize ) ;
+            }
+
+            while ( size < _size )
+            {
+               clearBit( size ) ;
+               ++size ;
+            }
+
+            /// asign info
+            if ( _size < size )
+            {
+               _freeSize += ( size - _size ) ;
+            }
+            _size = size ;
+            _bitmap = pBitmap ;
+            _bitmapSize = bitmapSize ;
+            _buffSize = buffSize ;
+
+         done:
+            return rc ;
+         error:
+            goto done ;
          }
 
          OSS_INLINE void _freeBitmap ()
@@ -437,7 +500,12 @@ namespace engine
             SAFE_OSS_FREE( _bitmap ) ;
             _size = 0 ;
             _bitmapSize = 0 ;
+            _freeSize = 0 ;
+            _buffSize = 0 ;
          }
+      protected:
+         UINT32            _initSize ;
+         UINT32            _buffSize ;
    } ;
 
    typedef class _utilBitmap utilBitmap ;
@@ -472,6 +540,76 @@ namespace engine
          UINT8 _bitmapBuf[ ( SIZE + UTIL_BITMAP_UNIT_MODULO ) >>
                            UTIL_BITMAP_UNIT_LOG2SIZE ] ;
    } ;
+
+   /*
+      _utilThreadBitmap define and implement
+   */
+   template < UINT32 SIZE >
+   class _utilThreadBitmap : public _utilBitmapBase
+   {
+      public :
+         _utilThreadBitmap ( UINT32 size = SIZE )
+         : _utilBitmapBase()
+         {
+            _initSize = size ;
+
+            if ( _initSize <= SIZE )
+            {
+               _size = _initSize ;
+               _bitmapSize = ( _size + UTIL_BITMAP_UNIT_MODULO ) >>
+                             UTIL_BITMAP_UNIT_LOG2SIZE ;
+               _bitmap = &( _bitmapBuf[0] ) ;
+               resetBitmap() ;
+            }
+         }
+
+         ~_utilThreadBitmap ()
+         {
+            if ( _bitmap )
+            {
+               if ( _bitmap != &( _bitmapBuf[0] ) )
+               {
+                  SDB_THREAD_FREE( _bitmap ) ;
+               }
+            }
+            _bitmap = NULL ;
+            _bitmapSize = 0 ;
+            _size = 0 ;
+            _freeSize = 0 ;
+         }
+
+         OSS_INLINE INT32 init()
+         {
+            INT32 rc = SDB_OK ;
+
+            if ( !_bitmap )
+            {
+               UINT32 bitmapSize = ( _initSize + UTIL_BITMAP_UNIT_MODULO ) >>
+                                     UTIL_BITMAP_UNIT_LOG2SIZE ;
+               _bitmap = (UINT8*)SDB_THREAD_ALLOC( bitmapSize ) ;
+               if ( !_bitmap )
+               {
+                  PD_LOG( PDERROR, "Allocate memory(%u) failed", bitmapSize ) ;
+                  rc = SDB_OOM ;
+                  goto error ;
+               }
+               _size = _initSize ;
+               _bitmapSize = bitmapSize ;
+               resetBitmap() ;
+            }
+
+         done:
+            return rc ;
+         error:
+            goto done ;
+         }
+
+      protected :
+         UINT8    _bitmapBuf[ ( SIZE + UTIL_BITMAP_UNIT_MODULO ) >>
+                              UTIL_BITMAP_UNIT_LOG2SIZE ] ;
+         UINT32   _initSize ;
+   } ;
+
 
 }
 

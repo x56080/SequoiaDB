@@ -343,6 +343,26 @@ namespace bson {
             return _b;
         }
 
+        /** Append a raw element **/
+        BSONObjBuilder& appendRawEle( BSONType type,
+                                      const StringData& fieldName,
+                                      const StringData& value  ) {
+            _b.appendNum( (char)type ) ;
+            _b.appendStr( fieldName ) ;
+            _b.appendBuf( value.data(), value.size() ) ;
+            return *this ;
+        }
+
+        BSONObjBuilder& appendRawEle( BSONType type,
+                                      const StringData& fieldName,
+                                      const void *data,
+                                      int len ) {
+            _b.appendNum( (char)type ) ;
+            _b.appendStr( fieldName ) ;
+            _b.appendBuf( data, (size_t)len ) ;
+            return *this ;
+        }
+
         /** Append a boolean element */
         BSONObjBuilder& appendBool(const StringData& fieldName, int val) {
             _b.appendNum((char) Bool);
