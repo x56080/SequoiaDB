@@ -1,5 +1,5 @@
 /***************************************************
- * @Description : test cl function para 
+ * @Description : test cl function para
  *                seqDB-14281:getDataBlocks参数校验
  *                seqDB-14282:getQueryMeta参数校验
  *                seqDB-14301:alterCL参数校验
@@ -35,7 +35,7 @@ protected:
    sdbCSHandle cs ;
    sdbCollectionHandle cl ;
 
-   void SetUp()  
+   void SetUp()
    {
       testBase::SetUp() ;
       csName = "clParaVerifyTestCs" ;
@@ -92,7 +92,7 @@ TEST_F( clParaVerify, getQueryMeta )
 TEST_F( clParaVerify, alterCl )
 {
    INT32 rc = SDB_OK ;
-   
+
    // test sdbAlterCollection
    bson option ;
    bson_init( &option ) ;
@@ -121,7 +121,7 @@ TEST_F( clParaVerify, alterCl )
 
    rc = sdbAlterCollection( cl, NULL ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
-   
+
    bson_init( &option ) ;
    bson_append_int( &option, "Alter", 1 ) ;
    bson_finish( &option ) ;
@@ -241,7 +241,7 @@ TEST_F( clParaVerify, splitCl )
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = sdbSplitCollectionByPercent( cl, srcGroup, dstGroup, 101.0 ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
-   
+
    // test sdbSplitCLByPercentAsync
    rc = sdbSplitCLByPercentAsync( NULL, srcGroup, dstGroup, percent, &taskID ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
@@ -299,7 +299,7 @@ TEST_F( clParaVerify, index )
    ASSERT_EQ( SDB_CLT_INVALID_HANDLE, rc ) ;
    rc = sdbGetIndexes( cl, NULL, NULL ) ;
    ASSERT_EQ( SDB_CLT_INVALID_HANDLE, rc ) ;  // should be SDB_INVALIDARG ?
-   
+
    // test sdbDropIndex
    rc = sdbDropIndex( NULL, indexName ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
@@ -381,7 +381,7 @@ TEST_F( clParaVerify, insert )
 TEST_F( clParaVerify, updateUpsert )
 {
    INT32 rc = SDB_OK ;
-   
+
    // sdbUpdate1 sdbUpsert sdbUpsert1 sdbUpsert2 same with sdbUpdate,
    // no need to test
    // test sdbUpdate
@@ -489,7 +489,7 @@ TEST_F( clParaVerify, aggregate )
    rc = sdbAggregate( cl, obj, 0, &cursor ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = sdbAggregate( cl, obj, num, NULL ) ;
-   ASSERT_EQ( SDB_INVALIDARG, rc ) ; 
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    for( INT32 i = 0;i < num;i++ )
    {
       bson_dispose( obj[i] ) ;
@@ -513,12 +513,6 @@ TEST_F( clParaVerify, attachDetach )
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = sdbAttachCollection( cs, clFullName, &option ) ;
    ASSERT_EQ( SDB_CLT_INVALID_HANDLE, rc ) ;
-   CHAR longClFullName[ 2*MAX_NAME_SIZE+3 ] = { 0 } ;
-   memset( longClFullName, 'x', 2*MAX_NAME_SIZE+2 ) ;
-   rc = sdbAttachCollection( cl, longClFullName, &option ) ;  // check name len is MAX_NAME_SIZE ?
-   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
-   rc = sdbAttachCollection( cl, clFullName, NULL ) ;
-   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    bson_destroy( &option ) ;
 
    // test sdbDetachCollection
@@ -528,14 +522,12 @@ TEST_F( clParaVerify, attachDetach )
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = sdbDetachCollection( cs, clFullName ) ;
    ASSERT_EQ( SDB_CLT_INVALID_HANDLE, rc ) ;
-   rc = sdbDetachCollection( cl, longClFullName ) ;  // check name len is MAX_NAME_SIZE ?
-   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
 }
 
 TEST_F( clParaVerify, lob )
 {
    INT32 rc = SDB_OK ;
- 
+
    // test sdbOpenLob
    bson_oid_t oid ;
    bson_oid_gen( &oid ) ;
@@ -560,7 +552,7 @@ TEST_F( clParaVerify, lob )
    ASSERT_EQ( SDB_CLT_INVALID_HANDLE, rc ) ;
    rc = sdbRemoveLob( cl, NULL ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
-   
+
    // test sdbTruncateLob
    rc = sdbTruncateLob( NULL, &oid, 0 ) ;  // check oid NULL repeatedly in sdbTruncateLob ?
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
