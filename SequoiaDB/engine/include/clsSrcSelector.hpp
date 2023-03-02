@@ -75,15 +75,17 @@ namespace engine
          {
             return _blacklist.insert( id.value ).second ;
          }
-         catch( ... )
+         catch( std::exception &e )
          {
+            PD_LOG( PDERROR, "Fail to insert black list exception occurred: %s", e.what() ) ;
          }
          return FALSE ;
       }
 
-      OSS_INLINE void clearBlacklist()
+      OSS_INLINE void clearBlackList()
       {
          _blacklist.clear() ;
+         _selectRange = CLS_SELECT_BEGIN ;
       }
 
       OSS_INLINE void clearSrc()
@@ -95,6 +97,7 @@ namespace engine
       OSS_INLINE void timeout( UINT32 timeout )
       {
          _noRes += timeout ;
+         _srcTimeout += timeout ;
       }
 
       OSS_INLINE void clearTime()
@@ -106,12 +109,19 @@ namespace engine
       {
          return _src ;
       }
+
+   private:
+      void _moveToNextRange() ;
+
    private:
       set<UINT64>       _blacklist ;
       _clsSyncManager   *_syncmgr ;
       MsgRouteID        _src ;
       UINT32            _noRes ;
       _clsNodeMgrAgent  *_nodeMgrAgent ;
+      UINT32            _srcTimeout ;
+      CLS_SELECT_RANGE  _selectRange ;
+      CLS_GROUP_VERSION _groupInfoVersion ;
 
    } ;
    typedef class _clsSrcSelector clsSrcSelector ;

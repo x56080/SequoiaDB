@@ -134,6 +134,21 @@ namespace engine
       CLS_NODE_STOP     = 2
    } ;
 
+   /*
+      CLS_SELECT_RANGE define
+   */
+   enum CLS_SELECT_RANGE
+   {
+      CLS_SELECT_BEGIN = 0,
+      // select the location set node
+      CLS_SELECT_LOCATION,
+      // select the affinity location set node
+      CLS_SELECT_AFFINITY_LOCATION,
+      // select the group node
+      CLS_SELECT_GROUP,
+      CLS_SELECT_END
+   } ;
+
    // after 5 times without receiving message, mark the UDP unavailable
    #define CLS_UDP_UNAVAILABLE  ( 5 )
 
@@ -376,6 +391,13 @@ namespace engine
          _supportUDP = FALSE ;
          _testUDPCount = 0 ;
       }
+
+      OSS_INLINE BOOLEAN isPrimary( BOOLEAN isLocation )
+      {
+         return ( isLocation && CLS_GROUP_ROLE_PRIMARY == beat.getLocationRole() ) ||
+                ( !isLocation && CLS_GROUP_ROLE_PRIMARY == beat.role ) ;
+      }
+
    } ;
 
    /*
@@ -675,6 +697,7 @@ namespace engine
       CLS_REELECTION_LEVEL_3 = 3,  /// wait for at least one replication catch up
       CLS_REELECTION_LEVEL_MAX
    } ;
+
 }
 
 #endif // CLSDEF_HPP_

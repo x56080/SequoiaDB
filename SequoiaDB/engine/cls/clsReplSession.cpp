@@ -392,7 +392,7 @@ namespace engine
             rc = SDB_OK ;
 
             _sendSyncReq() ;
-            _selector.clearBlacklist () ;
+            _selector.clearBlackList () ;
          }
          else if ( SDB_OK == rc )
          {

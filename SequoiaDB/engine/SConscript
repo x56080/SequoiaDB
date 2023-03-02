@@ -818,7 +818,8 @@ clientTestFiles = [
 #      ]
 clsTestFiles = [
       "test/cls/clsTest.cpp",
-      "test/cls/clsCataAgentTest.cpp"
+      "test/cls/clsCataAgentTest.cpp",
+      "test/cls/clsSrcSelectTest.cpp"
       ]
 ossTestFiles = [
       "test/oss/ossHashFloatTest.cpp"

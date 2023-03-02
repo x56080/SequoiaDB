@@ -455,92 +455,197 @@ namespace engine
       return ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_PREPAREBLACKLIST, "_clsSyncManager::prepareBlackList" )
+   void _clsSyncManager::prepareBlackList( set<UINT64> &blacklist, const CLS_SELECT_RANGE &range )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_PREPAREBLACKLIST ) ;
+      map<UINT64, _clsSharingStatus>::iterator iterInfo ;
+      map<UINT64, _clsSharingStatus *>::iterator iterAlive ;
+      UINT32 localLocationID = pmdGetLocationID() ;
+
+      if ( CLS_SELECT_LOCATION != range && blacklist.empty() )
+      {
+         goto done ;
+      }
+
+      _info->mtx.lock_r() ;
+
+      switch ( range )
+      {
+         case CLS_SELECT_BEGIN:
+            break ;
+         case CLS_SELECT_LOCATION:
+         {
+            // It is possible that someone who is not in the location
+            // has restarted and make a wrong choice.
+            // therefore, get from all node.
+            for ( iterInfo = _info->info.begin(); iterInfo != _info->info.end(); iterInfo++ )
+            {
+               if ( iterInfo->second.beat.locationID != localLocationID )
+               {
+                  try
+                  {
+                     blacklist.insert( iterInfo->first ) ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     PD_LOG( PDERROR, "Fail to insert black list"
+                             "exception occurred: %s", e.what() ) ;
+                     _info->mtx.release_r() ;
+                     goto error ;
+                  }
+               }
+            }
+
+            break ;
+         }
+         case CLS_SELECT_AFFINITY_LOCATION:
+         {
+            for ( iterAlive = _info->alives.begin(); iterAlive != _info->alives.end(); iterAlive++ )
+            {
+               if ( iterAlive->second->isAffinitiveLocation )
+               {
+                  blacklist.erase( iterAlive->first ) ;
+               }
+            }
+
+            break ;
+         }
+         case CLS_SELECT_GROUP:
+         {
+            if ( MSG_INVALID_LOCATIONID == localLocationID )
+            {
+               blacklist.clear() ;
+            }
+            else
+            {
+               iterAlive = _info->alives.begin() ;
+               for ( ; iterAlive != _info->alives.end(); iterAlive++ )
+               {
+                  if ( !iterAlive->second->isAffinitiveLocation )
+                  {
+                     blacklist.erase( iterAlive->first ) ;
+                  }
+               }
+            }
+
+            break ;
+         }
+         case CLS_SELECT_END:
+            break ;
+         default:
+         {
+            SDB_ASSERT( FALSE, "impossible" ) ;
+            break ;
+         }
+      }
+
+      _info->mtx.release_r() ;
+
+   done:
+      PD_TRACE_EXIT ( SDB__CLSSYNCMAG_PREPAREBLACKLIST ) ;
+      return ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_GETSYNCSRC, "_clsSyncManager::getSyncSrc" )
-   MsgRouteID _clsSyncManager::getSyncSrc( const set<UINT64> &blacklist )
+   MsgRouteID _clsSyncManager::getSyncSrc( const set<UINT64> &blacklist,
+                                           BOOLEAN isLocationPreferred,
+                                           CLS_GROUP_VERSION &version)
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_GETSYNCSRC ) ;
       MsgRouteID res ;
       res.value = MSG_INVALID_ROUTEID ;
+      MsgRouteID priIds[ CLS_SYNC_SET_NUM ] ;
+      MsgRouteID secIds[ CLS_SYNC_SET_NUM ] ;
+      UINT32 priSub = 0, secSub = 0 ;
+      map<UINT64, _clsSharingStatus *>::iterator itr ;
 
       _info->mtx.lock_r() ;
-      map<UINT64, _clsSharingStatus *>::iterator itr =
-                      _info->alives.find( _info->primary.value ) ;
-      /// if primary is peer, choose primary.
-      /// primary is not be affected by the blacklist.
-      if ( _info->alives.end() != itr &&
-           CLS_SYNC_STATUS_PEER ==
-           itr->second->beat.syncStatus )
+
+      // update group info version
+      version = _info->version ;
+
+      for ( itr = _info->alives.begin(); itr != _info->alives.end(); itr++ )
       {
-         res.value = itr->first ;
-         goto done ;
-      }
-      else
-      {
-         MsgRouteID ids[CLS_SYNC_SET_NUM] ;
-         UINT32 validNum = 0 ;
-         /// primary is not peer or has no primary, choose a peer node.
-         itr = _info->alives.begin() ;
-         for ( ; itr != _info->alives.end(); itr++ )
+         if ( CLS_SYNC_STATUS_PEER == itr->second->beat.syncStatus &&
+              0 == blacklist.count( itr->first ) )
          {
-            if ( CLS_SYNC_STATUS_PEER == itr->second->beat.syncStatus &&
-                 0 == blacklist.count( itr->first ) )
+            if ( itr->second->isPrimary( isLocationPreferred ) )
             {
-               ids[validNum++].value = itr->first ;
-            }
-         }
-         if ( 0 == validNum )
-         {
-            /// can not find peer, choose a rc peer but not the priamry.
-            itr = _info->alives.begin() ;
-            for ( ; itr != _info->alives.end(); itr++ )
-            {
-               if ( CLS_SYNC_STATUS_RC == itr->second->beat.syncStatus &&
-                    itr->first != _info->primary.value &&
-                    0 == blacklist.count( itr->first ))
-               {
-                  ids[validNum++].value = itr->first ;
-               }
-            }
-            if ( 0 != validNum )
-            {
-               res.value = ids[ossRand() % validNum].value ;
+               priIds[ priSub++ ].value = itr->first ;
             }
             else
             {
-               /// call the primary for helping.
-               /// possibly has no primary.
-               res.value = _info->primary.value ;
+               secIds[ secSub++ ].value = itr->first ;
             }
+         }
+      }
+
+      if ( 0 != priSub )
+      {
+         res.value = priIds[ ossRand() % priSub ].value ;
+      }
+      else if ( 0 != secSub )
+      {
+          res.value = secIds[ ossRand() % secSub ].value ;
+      }
+      else
+      {
+         priSub = 0, secSub = 0 ;
+         for ( itr = _info->alives.begin() ; itr != _info->alives.end(); itr++ )
+         {
+            if ( CLS_SYNC_STATUS_RC == itr->second->beat.syncStatus &&
+                 0 == blacklist.count( itr->first ) )
+            {
+               if ( itr->second->isPrimary( isLocationPreferred ) )
+               {
+                  priIds[ priSub++ ].value = itr->first ;
+               }
+               else
+               {
+                  secIds[ secSub++ ].value = itr->first ;
+               }
+            }
+         }
+         if ( 0 != priSub )
+         {
+            res.value = priIds[ ossRand() % priSub ].value ;
+         }
+         else if ( 0 != secSub )
+         {
+            res.value = secIds[ ossRand() % secSub ].value ;
          }
          else
          {
-            res.value = ids[ossRand() % validNum].value ;
+            res.value = _info->primary.value ;
          }
       }
-   done:
       _info->mtx.release_r() ;
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG_GETSYNCSRC ) ;
       return res ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_GETFULLSRC, "_clsSyncManager::getFullSrc" )
-   MsgRouteID _clsSyncManager::getFullSrc( const set<UINT64> &blacklist )
+   MsgRouteID _clsSyncManager::getFullSrc( const set<UINT64> &blacklist,
+                                           BOOLEAN isLocationPreferred,
+                                           CLS_GROUP_VERSION &version )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_GETFULLSRC ) ;
       MsgRouteID id ;
       id.value = MSG_INVALID_ROUTEID ;
       _info->mtx.lock_r() ;
-      MsgRouteID ids[ CLS_REPLSET_MAX_NODE_SIZE - 1 ] ;
-      map<UINT64, _clsSharingStatus *>::iterator itr =
-         _info->alives.begin() ;
-      UINT16 sub = 0 ;
+      // update group info version
+      version = _info->version ;
+
+      MsgRouteID secIds[ CLS_SYNC_SET_NUM ] ;
+      MsgRouteID priIds[ CLS_SYNC_SET_NUM ] ;
+      UINT32 secSub = 0, priSub = 0 ;
+      map<UINT64, _clsSharingStatus *>::iterator itr = _info->alives.begin() ;
       for ( ; itr != _info->alives.end(); itr++ )
       {
-         if ( itr->first == _info->primary.value )
-         {
-            continue ;
-         }
-         else if ( 0 != blacklist.count( itr->first ) )
+         if ( 0 != blacklist.count( itr->first ) )
          {
             continue ;
          }
@@ -551,24 +656,23 @@ namespace engine
          {
             continue ;
          }
+         else if ( itr->second->isPrimary( isLocationPreferred ) )
+         {
+            priIds[ priSub++ ].value = itr->first ;
+         }
          else
          {
-            ids[sub++].value = itr->first ;
+            secIds[ secSub++ ].value = itr->first ;
          }
       }
 
-      if ( 0 != sub )
+      if ( 0 != secSub )
       {
-        id = ids[ossRand() % sub] ;
+         id = secIds[ ossRand() % secSub ] ;
       }
-      else
+      else if ( 0 != priSub )
       {
-         /// possibly has no primary.
-         if ( _info->primary.columns.nodeID !=
-              _info->local.columns.nodeID )
-         {
-            id = _info->primary ;
-         }
+         id = priIds[ ossRand() % priSub ] ;
       }
       _info->mtx.release_r() ;
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG_GETFULLSRC ) ;

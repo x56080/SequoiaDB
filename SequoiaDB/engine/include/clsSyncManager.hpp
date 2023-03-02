@@ -123,9 +123,11 @@ namespace engine
 
       void notify( const DPS_LSN_OFFSET &offset ) ;
 
-      MsgRouteID getSyncSrc( const set<UINT64> &blacklist ) ;
+      MsgRouteID getSyncSrc( const set<UINT64> &blacklist, BOOLEAN isLocationPreferred,
+                             CLS_GROUP_VERSION &version ) ;
 
-      MsgRouteID getFullSrc( const set<UINT64> &blacklist ) ;
+      MsgRouteID getFullSrc( const set<UINT64> &blacklist, BOOLEAN isLocationPreferred,
+                             CLS_GROUP_VERSION &version ) ;
 
       OSS_INLINE BOOLEAN isReadyToReplay()
       {
@@ -157,8 +159,14 @@ namespace engine
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
       /// offset is current offset.
-      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset,
-                          UINT16 ensureNodeID = 0 ) ;
+      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset, UINT16 ensureNodeID = 0 ) ;
+
+      void prepareBlackList( set<UINT64> &blacklist, const CLS_SELECT_RANGE &range ) ;
+
+      BOOLEAN isGroupInfoExpired( CLS_GROUP_VERSION version )
+      {
+         return version < _info->version ;
+      }
 
    private:
       INT32 _wait( _clsSyncSession &session, UINT32 sub, INT64 timeout = -1 ) ;

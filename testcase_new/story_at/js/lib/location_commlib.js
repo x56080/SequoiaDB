@@ -245,6 +245,19 @@ function setLocationForNodes(rg, nodeList, location) {
 }
 
 /******************************************************************************
+ * @description: Clear location for given node list
+ * @param {array} nodeList
+ * @param {string} location
+ ******************************************************************************/
+function clearLocationForNodes(rg, nodeList) {
+  for (var i in nodeList) {
+    var nodeInfo = nodeList[i];
+    var node = rg.getNode(nodeInfo.HostName, nodeInfo.svcname);
+    node.setLocation("");
+  }
+}
+
+/******************************************************************************
  * @description: Get location slave node list
  * @param {array} nodeList // group node list
  * @param {string} primary // group primary node
@@ -291,3 +304,30 @@ function checkNodeLocation(node, expLocation) {
   assert.equal(actLocation, expLocation);
 }
 
+/******************************************************************************
+ * @description: check sync source
+ * @param {array} node
+ * @param {string} expectNodeID
+ ******************************************************************************/
+function checkPeerNodeID(db, node, expectNodeID) {
+  var selectOk = false;
+  nodeName = node.HostName + ":" + node.svcname;
+  cursor = db.snapshot(SDB_SNAP_SESSIONS, { Type: "ReplAgent", NodeName: nodeName });
+  while (cursor.next()) {
+    snapshotObj = cursor.current().toObj();
+    sessionName = snapshotObj.Name;
+    wordArrTmp = sessionName.split(/,|:|[(]|[)]/);
+    wordArr = [];
+    for (var i = 0; i < wordArrTmp.length; i++) {
+      if (wordArrTmp[i] != "") {
+        wordArr.push(wordArrTmp[i]);
+      }
+    }
+    if (wordArr[1] == "Sync-Source") {
+      if (wordArr[7] == wordArr[7]) {
+        selectOk = true;
+      }
+    }
+  }
+  assert.equal(selectOk, true);
+}

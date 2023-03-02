@@ -44,15 +44,20 @@
 
 namespace engine
 {
+   #define CLS_RESET_BLACKLIST_TIME     ( 10 * 60 * 1000 )   // 10 mins
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSRCSL__CLSSRCSL, "_clsSrcSelector::_clsSrcSelector" )
    _clsSrcSelector::_clsSrcSelector()
    :_syncmgr( NULL ),
-    _noRes( 0 )
+    _noRes( 0 ),
+    _srcTimeout( 0 ),
+    _groupInfoVersion( 0 )
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL__CLSSRCSL ) ;
       _nodeMgrAgent = sdbGetShardCB()->getNodeMgrAgent() ;
       _syncmgr = sdbGetReplCB()->syncMgr() ;
       _src.value = MSG_INVALID_ROUTEID ;
+      _selectRange = CLS_SELECT_BEGIN ;
       PD_TRACE_EXIT ( SDB__CLSSRCSL__CLSSRCSL ) ;
    }
 
@@ -64,16 +69,70 @@ namespace engine
       _blacklist.clear() ;
    }
 
+   void _clsSrcSelector::_moveToNextRange()
+   {
+      switch ( _selectRange )
+      {
+         case CLS_SELECT_BEGIN:
+         {
+            if ( MSG_INVALID_LOCATIONID == pmdGetLocationID() )
+            {
+               _selectRange = CLS_SELECT_GROUP ;
+            }
+            else
+            {
+               _selectRange = CLS_SELECT_LOCATION ;
+            }
+            break;
+         }
+         case CLS_SELECT_LOCATION:
+            _selectRange = CLS_SELECT_AFFINITY_LOCATION ;
+            break ;
+         case CLS_SELECT_AFFINITY_LOCATION:
+            _selectRange = CLS_SELECT_GROUP ;
+            break ;
+         case CLS_SELECT_GROUP:
+            _selectRange = CLS_SELECT_END ;
+            break ;
+         case CLS_SELECT_END:
+            _selectRange = CLS_SELECT_END ;
+            break ;
+         default:
+            SDB_ASSERT( FALSE, "impossible" ) ;
+            break ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSRCSL_GETFLSYNSRC, "_clsSrcSelector::getFullSyncSrc" )
    const MsgRouteID &_clsSrcSelector::getFullSyncSrc()
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL_GETFLSYNSRC ) ;
-      _src = _syncmgr->getFullSrc( _blacklist ) ;
+      if ( CLS_SELECT_BEGIN == _selectRange )
+      {
+         _moveToNextRange() ;
+         _syncmgr->prepareBlackList( _blacklist, _selectRange ) ;
+      }
+
+      BOOLEAN isLocationPreferred = ( CLS_SELECT_GROUP != _selectRange ) ? TRUE : FALSE ;
+
+      while ( CLS_SELECT_END != _selectRange )
+      {
+         _src = _syncmgr->getFullSrc( _blacklist, isLocationPreferred, _groupInfoVersion ) ;
+         if ( MSG_INVALID_ROUTEID != _src.value )
+         {
+            break ;
+         }
+         _moveToNextRange() ;
+         _syncmgr->prepareBlackList( _blacklist, _selectRange ) ;
+      }
+
       if ( MSG_INVALID_ROUTEID == _src.value )
       {
+         _selectRange = CLS_SELECT_GROUP ;
          _blacklist.clear() ;
-         _src = _syncmgr->getFullSrc( _blacklist ) ;
+         _src = _syncmgr->getFullSrc( _blacklist, FALSE, _groupInfoVersion ) ;
       }
+
       PD_TRACE_EXIT ( SDB__CLSSRCSL_GETFLSYNSRC ) ;
       return _src ;
    }
@@ -82,12 +141,32 @@ namespace engine
    const MsgRouteID &_clsSrcSelector::getSyncSrc()
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL_GETSYNCSRC ) ;
-      _src = _syncmgr->getSyncSrc( _blacklist ) ;
+      if ( CLS_SELECT_BEGIN == _selectRange )
+      {
+         _moveToNextRange() ;
+         _syncmgr->prepareBlackList( _blacklist, _selectRange ) ;
+      }
+
+      BOOLEAN isLocationPreferred = ( CLS_SELECT_GROUP != _selectRange ) ? TRUE : FALSE ;
+
+      while ( CLS_SELECT_END != _selectRange )
+      {
+         _src = _syncmgr->getSyncSrc( _blacklist, isLocationPreferred, _groupInfoVersion ) ;
+         if ( MSG_INVALID_ROUTEID != _src.value )
+         {
+            break ;
+         }
+         _moveToNextRange() ;
+         _syncmgr->prepareBlackList( _blacklist, _selectRange ) ;
+      }
+
       if ( MSG_INVALID_ROUTEID == _src.value )
       {
+         _selectRange = CLS_SELECT_GROUP ;
          _blacklist.clear() ;
-         _src = _syncmgr->getSyncSrc( _blacklist ) ;
+         _src = _syncmgr->getSyncSrc( _blacklist, FALSE, _groupInfoVersion ) ;
       }
+
       PD_TRACE_EXIT ( SDB__CLSSRCSL_GETSYNCSRC ) ;
       return _src ;
    }
@@ -106,12 +185,19 @@ namespace engine
          }
          _src.value = MSG_INVALID_ROUTEID ;
       }
+      else if ( _srcTimeout > CLS_RESET_BLACKLIST_TIME ||
+                _syncmgr->isGroupInfoExpired( _groupInfoVersion ) )
+      {
+         clearBlackList() ;
+         _src.value = MSG_INVALID_ROUTEID ;
+      }
 
       if ( MSG_INVALID_ROUTEID != _src.value )
       {
          goto done ;
       }
       _noRes  = 0 ;
+      _srcTimeout = 0 ;
 
       if ( isFullSync )
       {
