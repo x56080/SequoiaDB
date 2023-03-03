@@ -4320,7 +4320,7 @@ namespace engine
                                      newMem, position, &schemaVersion ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
-            storeData = encodeData ;
+            storeData = encodeData.isEmpty() ? recordData : encodeData ;
 
             if ( newMem )
             {
@@ -4465,7 +4465,7 @@ namespace engine
          {
             const dmsInternalSchema *schema = getSchema( context->mbID() ) ;
             if ( DMS_SCHEMA_INVALID_VERSION != schemaVersion &&
-                 schema->getSchemaInnerVersion() != schemaVersion )
+                 schema->getSchemaInnerVersion() != (UINT32)schemaVersion )
             {
                // Release resources aquired above.
                if ( canUnLock )
