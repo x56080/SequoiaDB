@@ -86,7 +86,7 @@ namespace engine
          dmsInternalSchemaWriter schemaUpdator ;
          ossPoolSet<ossPoolString> setFields ;
 
-         rc = schemaUpdator.init( schema, su, context, cb ) ;
+         rc = schemaUpdator.init( schema, su->data(), context, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Init schema updator failed, rc: %d", rc ) ;
 
          rc = su->index()->getIndexFields( context, setFields, idxItem._pIXName,
@@ -152,7 +152,7 @@ namespace engine
          ossPoolSet<ossPoolString> setFields ;
          ossPoolSet<ossPoolString> setFieldsDroped ;
 
-         rc = schemaUpdator.init( schema, su, context, cb ) ;
+         rc = schemaUpdator.init( schema, su->data(), context, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Init schema updator failed, rc: %d", rc ) ;
 
          /// get droped fields
