@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsInternalSchema.hpp
+   Source File Name = dmsInternalSchemaUpdator.hpp
 
    Descriptive Name =
 
@@ -136,11 +136,27 @@ namespace engine
    } ;
    typedef _dmsSchemaHashWriter dmsSchemaHashWriter ;
 
+   /*
+      _dmsInternalSchemaWriter define
+   */
    class _dmsInternalSchemaWriter : public dmsInternalSchema
    {
       public:
          _dmsInternalSchemaWriter() ;
-         ~_dmsInternalSchemaWriter() ;
+         virtual ~_dmsInternalSchemaWriter() ;
+
+         INT32 init( const dmsInternalSchema *pSchema,
+                     _dmsStorageDataCommon *su,
+                     _dmsMBContext *context,
+                     _pmdEDUCB *cb )
+         {
+            return SDB_OK ;
+         }
+
+         INT32 save( dmsInternalSchema *pSchema, _dmsMBContext *context, _pmdEDUCB *cb )
+         {
+            return SDB_OK ;
+         }
 
          INT32 init( _dmsStorageDataCommon *su, _dmsMBContext *context,
                      dmsSchemaExtent *schemaExtent, dmsSchemaHashExtent *hashExtent,
