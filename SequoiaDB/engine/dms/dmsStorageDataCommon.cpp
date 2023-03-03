@@ -1129,6 +1129,16 @@ namespace engine
             {
                _dmsMME->_mbList[i]._mbOptExtentID = DMS_INVALID_EXTENT ;
             }
+
+            /// upgrade
+            if ( !OSS_BIT_TEST( _dmsMME->_mbList[i]->_attributes,
+                                DMS_MB_ATTR_ENABLE_INFOSCHEMA ) &&
+                 0 == _dmsMME->_mbList[i]._schemaExtentID &&
+                 0 == _dmsMME->_mbList[i]._schemaHashExtentID )
+            {
+               _dmsMME->_mbList[i]._schemaExtentID = DMS_INVALID_EXTENT ;
+               _dmsMME->_mbList[i]._schemaHashExtentID = DMS_INVALID_EXTENT ;
+            }
          }
       }
 
