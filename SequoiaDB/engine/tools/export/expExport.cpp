@@ -470,6 +470,12 @@ namespace exprt
 
          goto error ;
       }
+      else
+      {
+         const Host& host = *it ;
+         PD_LOG ( PDINFO, "Connect to %s:%s",
+                  host.hostname.c_str(),host.svcname.c_str() );
+      }
 
    done:
       return rc ;
@@ -486,12 +492,10 @@ namespace exprt
       rc = _connectDB(hConn) ;
       if ( SDB_OK != rc )
       {
-         cerr << "Failed to connect to " << _options.hostName() << ":"
-              << _options.svcName() << ", rc = " << rc << endl;
+         cerr << "Failed to connect to " << _options.hostsString()
+              << ", rc = " << rc << endl;
          goto error ;
       }
-      PD_LOG ( PDINFO, "Connect to %s:%s", 
-               _options.hostName().c_str(), _options.svcName().c_str() );
 
       // 2. parse the options to get collection-list to will be exported
       rc = _clSet.parse(hConn) ;
