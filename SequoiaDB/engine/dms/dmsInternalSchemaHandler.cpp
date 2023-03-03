@@ -83,39 +83,35 @@ namespace engine
       schema = su->data()->getSchema( clItem._mbID ) ;
       if ( schema->enabled() )
       {
-         // Loop the columns in the index definition, and mark them in the internal schema.
-         BSONObj keyPattern = idxItem._boDefine.getObjectField( IXM_KEY_FIELD ) ;
-         BSONObjIterator itr( keyPattern ) ;
-
          dmsInternalSchemaWriter schemaUpdator ;
 
-         dmsExtRW schemaExtRW = su->data()->extent2RW( context->mb()->_schemaExtentID ) ;
-         dmsExtRW hashExtRW = su->data()->extent2RW( context->mb()->_schemaHashExtentID ) ;
-         schemaExtRW.setNothrow( TRUE ) ;
-         hashExtRW.setNothrow( TRUE ) ;
-         dmsSchemaExtent *schemaExtent =
-            schemaExtRW.writePtr<dmsSchemaExtent>(0, schema->getSchemaContainer()->getExtentSize() ) ;
-         dmsSchemaHashExtent *hashExtent =
-            hashExtRW.writePtr<dmsSchemaHashExtent>(0, schema->getSchemaHashTable()->getExtentSize() ) ;
-         rc = schemaUpdator.init( su->data(), context, schemaExtent, hashExtent ) ;
-         PD_RC_CHECK( rc, PDERROR, "Init internal schema of collection[%s] failed, rc: %d",
-                      context->mb()->_collectionName, rc ) ;
+         rc = schemaUpdator.init( schema, su, context, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Init schema updator failed, rc: %d", rc ) ;
 
-         while ( itr.more() )
+         try
          {
-            BSONElement ele = itr.next() ;
-            rc = schemaUpdator.setIndexColumn( ele.fieldName() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Set column %s as index column in internal schema failed, "
-                         "rc: %d", ele.fieldName(), rc ) ;
+            // Loop the columns in the index definition, and mark them in the internal schema.
+            BSONObj keyPattern = idxItem._boDefine.getObjectField( IXM_KEY_FIELD ) ;
+            BSONObjIterator itr( keyPattern ) ;
+
+            while ( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               rc = schemaUpdator.setIndexColumn( ele.fieldName() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Set column %s as index column in internal schema "
+                            "failed, rc: %d", ele.fieldName(), rc ) ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
          }
 
-         rc = schemaUpdator.save( context ) ;
+         rc = schemaUpdator.save( schema, context, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                       context->mb()->_collectionName, rc ) ;
-
-         //rc = schema->reload() ;
-         PD_RC_CHECK( rc, PDERROR, "Reload new internal schema of collection[%s] failed, rc: %d",
-                      rc ) ;
       }
 
    done:
@@ -137,12 +133,21 @@ namespace engine
       dmsMBContext *context = clItem._mbContext ;
 
       dmsEventHolder *holder = dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
-      PD_CHECK( holder, SDB_SYS, error, PDERROR, "Failed to get dms event holder in callback of "
-                "internal schema when creating index, rc: %d", rc ) ;
+      if ( holder )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to get dms event holder in callback of "
+                 "internal schema when creating index, rc: %d", rc ) ;
+         goto error ;
+      }
 
       su = holder->getSU() ;
-      PD_CHECK( su, SDB_SYS, error, PDERROR, "Failed to get storage unit from event holder, rc: %d",
-                rc ) ;
+      if ( !su )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to get storage unit from event holder, rc: %d", rc ) ;
+         goto error ;
+      }
 
       schema = su->data()->getSchema( clItem._mbID ) ;
       if ( schema->enabled() )

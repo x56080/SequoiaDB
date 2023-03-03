@@ -757,7 +757,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      ossScopedLock lock( &_loadLatch ) ;
+      ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
 
       if ( schemaExtent == _schemaContainer.getExtent() &&
            schemaExtentSize == _schemaContainer.getExtentSize() &&
@@ -839,7 +839,7 @@ namespace engine
       /// check is load
       if ( !_hasLoad )
       {
-         ossScopedLock lock( &_loadLatch ) ;
+         ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
          if ( !_hasLoad )
          {
             rc = _postLoad() ;
@@ -1011,7 +1011,7 @@ namespace engine
       /// check is load
       if ( !_hasLoad )
       {
-         ossScopedLock lock( &_loadLatch ) ;
+         ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
          if ( !_hasLoad )
          {
             rc = _postLoad() ;
@@ -1164,7 +1164,7 @@ namespace engine
       /// check is load
       if ( !_hasLoad )
       {
-         ossScopedLock lock( &_loadLatch ) ;
+         ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
          if ( !_hasLoad )
          {
             rc = _postLoad() ;
@@ -1396,6 +1396,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   ossRWMutex* _dmsInternalSchema::getRWMutex()
+   {
+      return &_loadRWMutex ;
    }
 
    INT32 _dmsInternalSchema::_init( const dmsSchemaExtent *schemaExtent,

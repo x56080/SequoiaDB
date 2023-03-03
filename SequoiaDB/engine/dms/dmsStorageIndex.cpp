@@ -787,6 +787,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to change index[%s] unique id[%llu], rc: %d",
                    indexName, newIdxUniqID, rc ) ;
+
+      /// flush
+      flushPages( indexCB.getExtentID(), 1, TRUE ) ;
+
       }
 
       // write dps log
@@ -3926,6 +3930,75 @@ namespace engine
       }
    }
 
+   INT32 _dmsStorageIndex::getIndexFields( _dmsMBContext *context,
+                                           ossPoolSet<ossPoolString> &setFields,
+                                           const CHAR *indexName )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj keyPattern ;
+
+      if ( !context->isMBLock() )
+      {
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
+                 context->toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      try
+      {
+         // loops through all potential indexes for the record
+         for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+         {
+            if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
+            {
+               break ;
+            }
+            ixmIndexCB indexCB ( context->mb()->_indexExtent[indexID], this,
+                                 context ) ;
+            PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
+                       PDERROR, "Failed to init index" ) ;
+
+            /*if ( ( indexName && 0 == ossStrcmp( indexName, indexCB.getName() ) ) || !indexName )
+            {
+               keyPattern = indexCB.keyPattern() ;
+               BSONObjIterator itr( keyPattern ) ;
+
+            }
+
+
+         
+
+            // If it's text index
+            if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                      IXM_EXTENT_TYPE_TEXT )
+                 && IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
+            {
+               textIdxCBs.push_back( indexCB ) ;
+            }
+            else
+            {
+               rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
+                                   dropDups, pOprHandle, pResult, pUnqIdxHashArray ) ;
+               PD_RC_CHECK ( rc, PDERROR, "Failed to insert object(%s) index(%s), "
+                             "rc: %d", PD_SECURE_OBJ( inputObj ),
+                             indexCB.getDef().toString().c_str(), rc ) ;
+            }*/
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS, "_dmsStorageIndex::checkAddSchemaOnIndexes" )
    INT32 _dmsStorageIndex::checkAddSchemaOnIndexes( dmsMBContext *context,
                                                     const utilSchema &schema )
@@ -4148,6 +4221,9 @@ namespace engine
                          "rc: %d", rc ) ;
             PD_LOG( PDDEBUG, "Rebuild key pattern of index [%s] to [%s]",
                     indexCB.getName(), newKeyPattern.toPoolString().c_str() ) ;
+
+            /// flush
+            flushPages( indexCB.getExtentID(), 1, TRUE ) ;
          }
       }
 

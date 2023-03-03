@@ -42,7 +42,7 @@
 #include "dmsSchemaColRecord.hpp"
 #include "dmsExtent.hpp"
 #include "utilBitmap.hpp"
-#include "ossLatch.hpp"
+#include "ossRWMutex.hpp"
 
 /*
    Attr define ( 1 Byte )
@@ -421,6 +421,8 @@ namespace engine
             return &_schemaHash ;
          }
 
+         ossRWMutex*          getRWMutex() ;
+
       private:
 
          INT32    _init( const dmsSchemaExtent *schemaExtent,
@@ -478,7 +480,7 @@ namespace engine
          UINT32                 _totalValidNameSize ;
 
          BOOLEAN                _hasLoad ;
-         ossSpinRecursiveXLatch _loadLatch ;
+         ossRWMutex             _loadRWMutex ;
    } ;
    typedef _dmsInternalSchema dmsInternalSchema ;
 

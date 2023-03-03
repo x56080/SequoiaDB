@@ -251,6 +251,10 @@ namespace engine
                                          BOOLEAN isRollback,
                                          pmdEDUCB *cb ) ;
 
+         INT32    getIndexFields( _dmsMBContext *context,
+                                  ossPoolSet<ossPoolString> &setFields,
+                                  const CHAR *indexName = NULL ) ;
+
       private:
          INT32    _releaseMetaExtent( dmsExtentID extentID ) ;
 

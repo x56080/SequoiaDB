@@ -662,6 +662,10 @@ namespace engine
 
          ossMemcpy( ((CHAR *) pExtent) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
                     newDef.objdata(), (size_t)newDef.objsize() ) ;
+
+         _infoObj = BSONObj( ((const CHAR*)pExtent) +
+                             IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
+         _fieldInitedFlag = 0 ;
       }
       catch ( std::exception &e )
       {
