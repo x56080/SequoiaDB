@@ -310,6 +310,13 @@ namespace engine
 
          virtual INT32 onChangeSUCaches ( UINT32 mask ) ;
 
+         virtual INT32 onRenameColumn( UINT32 mask,
+                                       const bson::BSONObj &newKeyPattern,
+                                       const dmsEventCLItem &clItem,
+                                       const dmsEventIdxItem &idxItem,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
          virtual const CHAR *getCSName () const ;
 
          virtual UINT32 getSUID () const ;

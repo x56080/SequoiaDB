@@ -4273,6 +4273,29 @@ namespace engine
 
             /// flush
             flushPages( indexCB.getExtentID(), 1, TRUE ) ;
+
+            if ( NULL != _pDataSu && NULL != _pDataSu->_pEventHolder )
+            {
+               IDmsEventHolder *pEventHolder = _pDataSu->_pEventHolder ;
+               dmsEventCLItem clItem ;
+               dmsEventIdxItem idxItem ( indexCB.getName(),
+                                         indexCB.getLogicalID(),
+                                         indexCB.getDef() ) ;
+               clItem.init( context->mb()->_collectionName,
+                            _pDataSu->logicalID(),
+                            context->mbID(),
+                            context->clLID(),
+                            context ) ;
+               INT32 tmpRC = pEventHolder->onRenameColumn( DMS_EVENT_MASK_ALL,
+                                                           newKeyPattern,
+                                                           clItem, idxItem, cb,
+                                                           NULL ) ;
+               if ( SDB_OK != tmpRC )
+               {
+                  PD_LOG( PDWARNING, "Failed to call rename column callback "
+                          "on index [%s], rc: %d", indexCB.getName(), rc ) ;
+               }
+            }
          }
       }
 

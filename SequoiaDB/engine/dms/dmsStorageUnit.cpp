@@ -1254,6 +1254,52 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONRENAMECOLUMN, "_dmsEventHolder::onRenameColumn" )
+   INT32 _dmsEventHolder::onRenameColumn( UINT32 mask,
+                                          const BSONObj &newKeyPattern,
+                                          const dmsEventCLItem &clItem,
+                                          const dmsEventIdxItem &idxItem,
+                                          pmdEDUCB *cb,
+                                          SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHGSUCACHES ) ;
+
+      // avoid recursively calling
+      dmsCallbackShield shield ;
+      if ( shield.isRecursive() )
+      {
+         goto done ;
+      }
+      else if ( NULL == _handlers )
+      {
+         goto done ;
+      }
+
+      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
+            iter != _handlers->end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            INT32 tmprc = pHandler->onRenameColumn( this, _pCacheHolder,
+                                                    newKeyPattern, clItem,
+                                                    idxItem, cb, dpsCB ) ;
+            if ( SDB_OK != tmprc )
+            {
+               rc = tmprc ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHGSUCACHES, rc ) ;
+
+      return rc ;
+   }
+
    const CHAR *_dmsEventHolder::getCSName () const
    {
       return _su->CSName() ;

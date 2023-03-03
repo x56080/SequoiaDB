@@ -187,6 +187,14 @@ namespace engine
                                          IDmsSUCacheHolder *pCacheHolder,
                                          const dmsEventCLItem &clItem ) ;
 
+         virtual INT32 onRenameColumn( IDmsEventHolder *pEventHolder,
+                                       IDmsSUCacheHolder *pCacheHolder,
+                                       const bson::BSONObj &newKeyPattern,
+                                       const dmsEventCLItem &clItem,
+                                       const dmsEventIdxItem &idxItem,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) ;
+
          OSS_INLINE virtual UINT32 getMask () const
          {
             return DMS_EVENT_MASK_STAT ;
@@ -229,6 +237,11 @@ namespace engine
 
          INT32 _deleteIndexStat ( const BSONObj &boMatcher, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
+         INT32 _deleteIndexStat( const CHAR *csName,
+                                 const CHAR *clName,
+                                 const CHAR *idxName,
+                                 pmdEDUCB *cb,
+                                 SDB_DPSCB *dpsCB ) ;
 
          INT32 _updateCollectionStat ( const BSONObj &boMatcher,
                                        const BSONObj &boUpdator,
@@ -254,6 +267,12 @@ namespace engine
                                  pmdEDUCB *cb,
                                  _SDB_DMSCB *dmsCB,
                                  _SDB_RTNCB *rtnCB ) ;
+
+         INT32 _loadIndexStat( const CHAR *csName,
+                               const CHAR *clName,
+                               const CHAR *idxName,
+                               dmsIndexStat &idxStat,
+                               pmdEDUCB *cb ) ;
 
          INT32 _onIndexOperator ( IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,

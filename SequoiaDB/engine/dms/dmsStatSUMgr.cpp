@@ -1181,6 +1181,76 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR_ONRENAMECOLUMN, "_dmsStatSUMgr::onRenameColumn" )
+   INT32 _dmsStatSUMgr::onRenameColumn( IDmsEventHolder *pEventHolder,
+                                        IDmsSUCacheHolder *pCacheHolder,
+                                        const bson::BSONObj &newKeyPattern,
+                                        const dmsEventCLItem &clItem,
+                                        const dmsEventIdxItem &idxItem,
+                                        pmdEDUCB *cb,
+                                        SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSSTATSUMGR_ONRENAMECOLUMN ) ;
+
+      SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
+
+      PD_CHECK( _initialized, SDB_INVALIDARG, error, PDWARNING,
+                "Statistics SU is not initialized" ) ;
+
+      if ( pCacheHolder )
+      {
+         dmsSUCache *pCache = pCacheHolder->getSUCache( DMS_CACHE_TYPE_STAT ) ;
+         if ( pCache )
+         {
+            pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
+         }
+      }
+
+      if ( pEventHolder && SDB_DB_NORMAL == PMD_DB_STATUS() )
+      {
+         const CHAR *pCSName = pEventHolder->getCSName() ;
+         const CHAR *pCLName = clItem._pCLName ;
+         const CHAR *pIdxName = idxItem._pIXName ;
+         dmsIndexStat indexStat ;
+
+         rc = _loadIndexStat( pCSName, pCLName, pIdxName, indexStat, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to load index stat [%s] on "
+                      "collection [%s.%s], rc: %d", pIdxName, pCSName, pCLName,
+                      rc ) ;
+
+         if ( !indexStat.isInited() )
+         {
+            goto done ;
+         }
+         rc = indexStat.updateKeyPattern( newKeyPattern ) ;
+         if ( SDB_OK != rc )
+         {
+            rc = _deleteIndexStat( pCSName, pCLName, pIdxName, cb, NULL ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to delete index statistics "
+                         "when operating on index [%s] of collection [%s %s], "
+                         "rc: %d", pIdxName, pCSName, pCLName, rc ) ;
+         }
+         else
+         {
+            // no dpsCB is passed, trigger by collection's alter log
+            rc = updateIndexStat( &indexStat, cb, _dmsCB, sdbGetRTNCB(), NULL ) ;
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to update index statistics when rename column "
+                         "on index [%s] of collection [%s.%s], rc: %d",
+                         pIdxName, pCSName, pCLName, rc ) ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR_ONRENAMECOLUMN, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    INT32 _dmsStatSUMgr::_ensureStatMetadata ( pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -1553,6 +1623,47 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR__DELIDXSTAT_NAME, "_dmsStatSUMgr::_deleteIndexStat" )
+   INT32 _dmsStatSUMgr::_deleteIndexStat( const CHAR *csName,
+                                          const CHAR *clName,
+                                          const CHAR *idxName,
+                                          pmdEDUCB *cb,
+                                          SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSSTATSUMGR__DELIDXSTAT_NAME ) ;
+
+      BSONObj boMatcher ;
+
+      try
+      {
+         BSONObjBuilder matcherBuilder ;
+         matcherBuilder.append( DMS_STAT_COLLECTION_SPACE, csName ) ;
+         matcherBuilder.append( DMS_STAT_COLLECTION, clName ) ;
+         matcherBuilder.append( DMS_STAT_IDX_INDEX, idxName ) ;
+         boMatcher = matcherBuilder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _deleteIndexStat( boMatcher, cb, dpsCB ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Delete index statistics [%s] failed, rc: %d",
+                   boMatcher.toString().c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR__DELIDXSTAT_NAME, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR__UPDATECLSTAT, "_dmsStatSUMgr::_updateCollectionStat" )
    INT32 _dmsStatSUMgr::_updateCollectionStat ( const BSONObj &boMatcher,
                                                 const BSONObj &boUpdator,
@@ -1840,6 +1951,93 @@ namespace engine
          rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
       }
       PD_TRACE_EXITRC( SDB_DMSSTATSUMGR__LOADIDXSTATS, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTATSUMGR__LOADIDXSTAT, "_dmsStatSUMgr::_loadIndexStat" )
+   INT32 _dmsStatSUMgr::_loadIndexStat( const CHAR *csName,
+                                        const CHAR *clName,
+                                        const CHAR *idxName,
+                                        dmsIndexStat &idxStat,
+                                        pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSSTATSUMGR__LOADIDXSTAT ) ;
+
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+      BSONObj boMatcher, boDummy ;
+      INT64 contextID = -1 ;
+
+      try
+      {
+         BSONObjBuilder matcherBuilder ;
+         matcherBuilder.append( DMS_STAT_COLLECTION_SPACE, csName ) ;
+         matcherBuilder.append( DMS_STAT_COLLECTION, clName ) ;
+         matcherBuilder.append( DMS_STAT_IDX_INDEX, idxName ) ;
+         boMatcher = matcherBuilder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      // query
+      rc = rtnQuery( DMS_STAT_INDEX_CL_NAME, boDummy, boMatcher, boDummy,
+                     _indexHint, 0, cb, 0, -1, _dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Query statistics [%s] from [%s] failed, "
+                   "rc: %d", boMatcher.toString( FALSE, TRUE ).c_str(),
+                   DMS_STAT_INDEX_CL_NAME, rc ) ;
+
+      // get more
+      while ( TRUE )
+      {
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDWARNING, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            BSONObj boIndexStat = BSONObj( contextBuf.data() ) ;
+
+            rc = idxStat.init( boIndexStat ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING,
+                       "Failed to initialize index statistics with %s, rc: %d",
+                       boIndexStat.toString( FALSE, TRUE ).c_str(), rc ) ;
+               goto error ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING,
+                    "Get index statistics for index occur exception: %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done :
+      if ( -1 != contextID )
+      {
+         rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
+      }
+      PD_TRACE_EXITRC( SDB_DMSSTATSUMGR__LOADIDXSTAT, rc ) ;
       return rc ;
 
    error :

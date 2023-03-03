@@ -1163,6 +1163,56 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXSTAT_UPDATEKEYPATTERN, "_dmsIndexStat::updateKeyPattern" )
+   INT32 _dmsIndexStat::updateKeyPattern( const BSONObj &keyPattern )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSIDXSTAT_UPDATEKEYPATTERN ) ;
+
+      try
+      {
+         for ( UINT32 i = 0 ; i < _mcvSet.getSize() ; ++ i )
+         {
+            BSONObjBuilder valueBuilder ;
+            const BSONObj &boValue = _mcvSet.getValue( i ) ;
+            BSONObjIterator iterValue( boValue ) ;
+            BSONObjIterator iterKey( keyPattern ) ;
+            while ( iterValue.more() && iterKey.more() )
+            {
+               BSONElement beValue = iterValue.next() ;
+               BSONElement beKey = iterKey.next() ;
+
+               valueBuilder.appendAs( beValue, beKey.fieldName() ) ;
+            }
+            if ( iterValue.more() || iterKey.more() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDWARNING, "key pattern [%s] and value [%s] is mismatched",
+                       keyPattern.toPoolString().c_str(),
+                       boValue.toPoolString().c_str() ) ;
+               goto error ;
+            }
+            _mcvSet.setValue( i, valueBuilder.obj() ) ;
+         }
+         _keyPattern = keyPattern.getOwned() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to update key pattern, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSIDXSTAT_UPDATEKEYPATTERN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _dmsCollectionStat implement
     */

@@ -573,9 +573,17 @@ namespace engine
                                 double &predSelectivity,
                                 double &scanSelectivity ) const ;
 
+         INT32 updateKeyPattern( const bson::BSONObj &keyPattern ) ;
+
          OSS_INLINE BOOLEAN isValidForEstimate () const
          {
             return _mcvSet.getSize() > 0 ;
+         }
+
+
+         BOOLEAN isInited() const
+         {
+            return !( _keyPattern.isEmpty() ) ;
          }
 
       protected :

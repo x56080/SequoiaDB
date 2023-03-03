@@ -728,6 +728,17 @@ namespace engine
             return SDB_OK ;
          }
 
+         virtual INT32 onRenameColumn( IDmsEventHolder *pEventHolder,
+                                       IDmsSUCacheHolder *pCacheHolder,
+                                       const bson::BSONObj &newKeyPattern,
+                                       const dmsEventCLItem &clItem,
+                                       const dmsEventIdxItem &idxItem,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
          virtual UINT32 getMask () const = 0 ;
 
          virtual const CHAR *getName() const = 0 ;
@@ -874,6 +885,13 @@ namespace engine
                                          const dmsEventCLItem &clItem ) = 0 ;
 
          virtual INT32 onChangeSUCaches ( UINT32 mask ) = 0 ;
+
+         virtual INT32 onRenameColumn( UINT32 mask,
+                                       const bson::BSONObj &newKeyPattern,
+                                       const dmsEventCLItem &clItem,
+                                       const dmsEventIdxItem &idxItem,
+                                       pmdEDUCB *cb,
+                                       SDB_DPSCB *dpsCB ) = 0 ;
 
          virtual const CHAR *getCSName () const = 0 ;
 
