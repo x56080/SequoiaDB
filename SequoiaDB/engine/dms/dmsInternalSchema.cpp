@@ -840,7 +840,7 @@ namespace engine
       BOOLEAN isPrimalData = FALSE ;
       BOOLEAN hasRetry = FALSE ;
 
-      /// check is load
+      /// check enbaled
       if ( !_enabled )
       {
          rc = SDB_INTERNAL_SCHEMA_NOT_ENABLED ;
@@ -1191,6 +1191,11 @@ namespace engine
 
       rc = readBitmap.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init read bitmap failed, rc: %d", rc ) ;
+      if ( !getPrimalData )
+      {
+         readBitmap.setBitmap( _readColBitmap ) ;
+      }
+
       if ( !getPrimalData )
       {
          readBitmap.setBitmap( _readColBitmap ) ;
@@ -1621,6 +1626,7 @@ namespace engine
          rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
          PD_RC_CHECK( rc, PDERROR, "Append info for column[%s] into record failed, rc: %d",
                       name, rc ) ;
+
          ++setBitPos ;
       }
 
@@ -1743,6 +1749,7 @@ namespace engine
          rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
          PD_RC_CHECK( rc, PDERROR, "Append default column[%s] failed, rc: %d",
                       name, rc ) ;
+
          ++nextSetPos ;
       }
 

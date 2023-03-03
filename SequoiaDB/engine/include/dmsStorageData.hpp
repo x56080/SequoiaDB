@@ -214,8 +214,6 @@ namespace engine
                                    dmsRecordData &encodeData,
                                    INT32 *schemaVer ) ;
 
-      INT32 _updateSchemaByRecord( dmsMBContext *context, pmdEDUCB *cb, const BSONObj &record ) ;
-
    } ;
    typedef _dmsStorageData dmsStorageData ;
 }

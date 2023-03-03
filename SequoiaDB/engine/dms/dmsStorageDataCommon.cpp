@@ -4304,13 +4304,13 @@ namespace engine
          // wrong index key on secondary node.
          // So Check the schema version after taking the collection latch. If it changed, retry the
          // operation.
-retry:
          rc = _checkMarkInsert( context, transID, insertObj, cb, position,
                                 markInsert, foundRID, recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
                       position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
+      retry:
          if ( !markInsert )
          {
             // recordData holds the BSONObj record. It's used to generate dps log and index keys.
@@ -4463,15 +4463,19 @@ retry:
          // after taken the latch, check if the schema has changed, if yes, retry.
          if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
          {
-            /*
             const dmsInternalSchema *schema = getSchema( context->mbID() ) ;
-            if ( schema->getVersion() != schemaVersion )
+            if ( DMS_SCHEMA_INVALID_VERSION != schemaVersion &&
+                 schema->getSchemaInnerVersion() != schemaVersion )
             {
                // Release resources aquired above.
-               context->mbUnlock() ;
+               if ( canUnLock )
+               {
+                  context->mbUnlock() ;
+               }
                if ( logRecSize > 0 )
                {
                   pTransCB->releaseLogSpace( logRecSize, cb ) ;
+                  logRecSize = 0 ;
                }
                if ( pMergedData )
                {
@@ -4481,11 +4485,9 @@ retry:
                }
                recordData.reset() ;
 
-               PD_LOG( PDEVENT, "Schema changed during inserting record, retry" ) ;
-
+               PD_LOG( PDINFO, "Schema changed during inserting record, retry" ) ;
                goto retry ;
             }
-            */
          }
 
          // then make sure the collection compatiblity

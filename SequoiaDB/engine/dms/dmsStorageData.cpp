@@ -1580,19 +1580,11 @@ namespace engine
       BOOLEAN hasNewCol = FALSE ;
       BOOLEAN hasRetry  = FALSE ;
       dmsInternalSchema *schema = NULL ;
-      BOOLEAN hasNewColumn = FALSE ;
-      UINT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
-      const BSONObj record = BSONObj( recordData.data() ) ;
       INT32 lockType = context->mbLockType() ;
+      UINT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
 
       schema = getSchema( context->mbID() ) ;
       SDB_ASSERT( schema->enabled(), "Must be enabled" ) ;
-
-      if ( !context->isMBLock() )
-      {
-         rc = context->mbLock( SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Take mb latch in SHARED mode failed, rc: %d", rc ) ;
-      }
 
    retry:
       /// first get version
@@ -1600,31 +1592,13 @@ namespace engine
       {
          *schemaVer = schema->getSchemaInnerVersion() ;
       }
+      schemaVersion = schema->getSchemaInnerVersion() ;
 
-      /// encode record
-      rc = schema->encodeRecord( cb, recordData, memAlloc, encodeData, hasNewCol ) ;
-      PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
-      if ( hasNewColumn )
+      /// encode record with schema lock
       {
-         schemaVersion = schema->getSchemaInnerVersion() ;
-         rc = context->mbLock( EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Take collection mb latch in EXCLUSIVE mode to update internal "
-                      "schema failed, rc: %d", rc ) ;
-         // Check once again after taken the EXCLUSIVE latch. During inserting, may be many insert
-         // operations come here. Should avoid them to update the schema for multiple times.
-         if ( schema->getSchemaInnerVersion() != schemaVersion )
-         {
-            context->mbUnlock() ;
-            goto retry ;
-         }
-
-         rc = _updateSchemaByRecord( context, cb, record ) ;
-         PD_RC_CHECK( rc, PDERROR, "Update internal schema of collection[%s] by record failed, "
-                      "rc: %d", context->mb()->_collectionName, rc ) ;
-         hasNewColumn = FALSE ;
-
-         context->mbUnlock() ;
-         goto retry ;
+         ossScopedRWLock lock( schema->getRWMutex(), SHARED ) ;
+         rc = schema->encodeRecord( cb, recordData, memAlloc, encodeData, hasNewCol ) ;
+         PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
       }
 
       if ( hasNewCol )
@@ -1636,19 +1610,50 @@ namespace engine
             goto error ;
          }
 
-         /// TODO YSD: add column, when add exist shoud ignore
          /// 1. switch lock to write
-         /// 2. update column by record, and ignore exist error
-         /// 3. reset schema
-         /// 4. reload schema
-         /// 5. switch lock to read, and retry
+         rc = context->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Lock collection mb latch in EXCLUSIVE mode failed, rc: %d",
+                      rc ) ;
 
+         /// 2. re-check the version
+         if ( schemaVersion != schema->getSchemaInnerVersion() )
+         {
+            context->mbUnlock() ;
+            goto retry ;
+         }
+
+         /// 3. update column by record, and ignore exist error
+         try
+         {
+            BSONObj record( recordData.data() ) ;
+            dmsInternalSchemaWriter schemaUpdator ;
+
+            rc = schemaUpdator.init( schema, this, context, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
+
+            rc = schemaUpdator.updateSchemaByRecord( record ) ;
+            PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
+
+            rc = schemaUpdator.save( context ) ;
+            PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
+                         context->mb()->_collectionName, rc ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+         /// 4. release lock, and retry
+         context->mbUnlock() ;
          hasNewCol = FALSE ;
          hasRetry = TRUE ;
          goto retry ;
       }
 
    done:
+      /// restore lock
       if ( -1 != lockType )
       {
          if ( lockType != context->mbLockType() )
@@ -1667,39 +1672,4 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsStorageData::_updateSchemaByRecord( dmsMBContext *context, pmdEDUCB *cb,
-                                                 const BSONObj &record )
-   {
-      INT32 rc = SDB_OK ;
-
-      dmsInternalSchemaWriter schemaUpdator ;
-      dmsInternalSchema *schema = getSchema( context->mbID() ) ;
-      dmsExtRW schemaExtRW = extent2RW( context->mb()->_schemaExtentID, context->mbID() ) ;
-      dmsExtRW hashExtRW = extent2RW( context->mb()->_schemaHashExtentID, context->mbID() ) ;
-      schemaExtRW.setNothrow( TRUE ) ;
-      hashExtRW.setNothrow( TRUE ) ;
-      dmsSchemaExtent *schemaExt =
-         schemaExtRW.writePtr<dmsSchemaExtent>(0, schema->getSchemaContainer()->getExtentSize() ) ;
-      dmsSchemaHashExtent *hashExt =
-         hashExtRW.writePtr<dmsSchemaHashExtent>(0, schema->getSchemaHashTable()->getExtentSize() ) ;
-
-      rc = schemaUpdator.init( this, context, schemaExt, hashExt ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
-
-      rc = schemaUpdator.updateSchemaByRecord( record ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
-
-      rc = schemaUpdator.save( schema, context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
-
-      // rc = schema->reload() ;
-      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
 }
