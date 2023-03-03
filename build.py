@@ -305,7 +305,7 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'script/sdbcm.service'), install_dir)
    copy_file(os.path.join(ROOT_DIR, 'script/generate_version_file.sh'), os.path.join(install_dir, 'tools/script'))
    copy_file(os.path.join(ROOT_DIR, 'script/service_control.sh'), os.path.join(install_dir, 'tools/script'))
-   copy_file(os.path.join(ROOT_DIR, 'ex_module/sequoiadb.dll'), os.path.join(install_dir, 'CSharp'))
+   copy_file(os.path.join(ROOT_DIR, 'driver/C#.Net/build/release/sequoiadb.dll'), os.path.join(install_dir, 'CSharp'))
    copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.chm'), os.path.join(install_dir, 'doc'))
    copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.pdf'), os.path.join(install_dir, 'doc'))
    copy_file(os.path.join(ROOT_DIR, 'ex_module/SequoiaDB_usermanuals_v*.tar.gz'), os.path.join(install_dir, 'doc'))
@@ -431,7 +431,7 @@ def package_all_driver(opt_mgr, ver):
    dirs = ['C#', 'C&CPP', 'Hadoop', 'Java', 'PHP', 'Postgresql', 'Python', 'Spark', 'Flink']
    for dir in dirs:
       os.makedirs(os.path.join(install_dir, dir))
-   copy_file(os.path.join(ROOT_DIR, 'ex_module/sequoiadb.dll'), os.path.join(install_dir, 'C#'))
+   copy_file(os.path.join(ROOT_DIR, 'driver/C#.Net/build/release/sequoiadb.dll'), os.path.join(install_dir, 'C#'))
    copy_file(os.path.join(ROOT_DIR, 'driver/hadoop/hadoop-connector/*.jar'), os.path.join(install_dir, 'Hadoop'))
    copy_file(os.path.join(ROOT_DIR, 'driver/hadoop/hive/*.jar'), os.path.join(install_dir, 'Hadoop'))
    copy_file(os.path.join(ROOT_DIR, 'driver/spark/target/*.jar'), os.path.join(install_dir, 'Spark'))
