@@ -1634,7 +1634,7 @@ namespace engine
             rc = schemaUpdator.updateSchemaByRecord( record ) ;
             PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
 
-            rc = schemaUpdator.save( context ) ;
+            rc = schemaUpdator.save( schema, context, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                          context->mb()->_collectionName, rc ) ;
          }
