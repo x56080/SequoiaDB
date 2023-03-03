@@ -224,6 +224,20 @@
                            ]
                         },
                         {
+                           "id": 1677595565,
+                           "dir": "SQL_Statements",
+                           "cn": "SQL 语句",
+                           "en": "SQL_Statements",
+                           "contents": [
+                              {
+                                 "id": 1677595580,
+                                 "file": "REFRESH_Statement",
+                                 "cn": "REFRESH 语句",
+                                 "en": "REFRESH_Statement"
+                              }
+                           ]
+                        },
+                        {
                            "id": 1595583528,
                            "dir": "Development",
                            "cn": "驱动",
@@ -387,6 +401,20 @@
                                  "file": "uninstall",
                                  "cn": "卸载",
                                  "en": "Uninstall"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1677595600,
+                           "dir": "SQL_Statements",
+                           "cn": "SQL 语句",
+                           "en": "SQL_Statements",
+                           "contents": [
+                              {
+                                 "id": 1677595610,
+                                 "file": "REFRESH_Statement",
+                                 "cn": "REFRESH 语句",
+                                 "en": "REFRESH_Statement"
                               }
                            ]
                         },
