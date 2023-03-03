@@ -76,20 +76,6 @@ class CompileExModuleMgr:
       self.err_exit(rs, 'Compile website fail')
       print('Finish compile website')
 
-
-   def compile_csharp(self):
-      print('Begine compile csharp')
-      csharp_dir = os.path.join(self.root_dir, 'driver/C#.Net')
-      out_put_dir = os.path.join(csharp_dir, 'build/release')
-      # it cant replace sequoiadb.dll, so, remove it first
-      self.remove_file(out_put_dir)
-      cmd = 'scons -j {}'.format(self.job)
-      self.exec_compile(cmd, csharp_dir)
-      # move to package dir
-      self.copy_file(out_put_dir, 'sequoiadb.dll')
-      print('End compile csharp')
-
-
    def exec_compile(self, cmd, exec_dir):
       self.set_env_dir = os.path.join(self.root_dir, 'script/SetEnv.cmd')
       compile_cmd = '\""cmd /E:ON /V:ON /T:0E /K {} && {} & EXIT "\"'.format(self.set_env_dir, cmd)
@@ -136,7 +122,6 @@ def main():
    compile_mgr = CompileExModuleMgr(opt_mgr)
    compile_mgr.create_package_dir()
    compile_mgr.compile_doc()
-   compile_mgr.compile_csharp()
    compile_mgr.package_file()
    
 if __name__ == "__main__":
