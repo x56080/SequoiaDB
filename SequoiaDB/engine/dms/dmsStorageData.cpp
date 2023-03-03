@@ -1453,8 +1453,8 @@ namespace engine
             decodeRecord = TRUE ;
          }
 
-         /// set record data with recordFillSz
-         recordData.setData( pRecord->getData(), pRecord->getDataLength() + recordFillSz,
+         /// set record data
+         recordData.setData( pRecord->getData(), pRecord->getDataLength(),
                              UTIL_COMPRESSOR_INVALID, TRUE ) ;
 
          rc = dmsUncompress( cb, &_compressorEntry[ mbContext->mbID() ],
@@ -1476,17 +1476,21 @@ namespace engine
             goto error ;
          }
          recordData.setData( pUncompressData, unCompressDataLen,
-                             UTIL_COMPRESSOR_INVALID, FALSE ) ;
+                             UTIL_COMPRESSOR_INVALID, FALSE,
+                             pRecord->isEncodedBySchema() ) ;
+      }
+      else
+      {
+         /// set record data with recordFillSz
+         recordData.setData( pRecord->getData(), pRecord->getDataLength() + recordFillSz,
+                             UTIL_COMPRESSOR_INVALID, TRUE,
+                             pRecord->isEncodedBySchema() ) ;
       }
 
       // Check if the record is encoded. If yes, need to decode.
       if ( decodeRecord && schema->enabled() )
       {
          BSONObj objDecode ;
-
-         /// set record data with recordFillSz
-         recordData.setData( pRecord->getData(), pRecord->getDataLength() + recordFillSz,
-                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
 
          if ( pRecord->isEncodedBySchema() )
          {

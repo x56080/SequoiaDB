@@ -4320,7 +4320,7 @@ namespace engine
                                      newMem, position, &schemaVersion ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
-            storeData = encodeData.isEmpty() ? recordData : encodeData ;
+            storeData = encodeData ;
 
             if ( newMem )
             {
