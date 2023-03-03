@@ -405,7 +405,10 @@ namespace engine
             _initSize = size ;
             _buffSize = 0 ;
 
-            _allocateBitmap( _initSize ) ;
+            if ( _initSize > 0 )
+            {
+               _allocateBitmap( _initSize ) ;
+            }
          }
 
          ~_utilBitmap ()

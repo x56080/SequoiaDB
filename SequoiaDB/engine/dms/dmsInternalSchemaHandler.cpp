@@ -1,11 +1,52 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2023 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = dmsInternalSchemaHandler.cpp
+
+   Descriptive Name =
+
+   When/how to use:
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          01/11/2023  YSD Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
 #include "dmsInternalSchemaHandler.hpp"
 #include "dmsInternalSchema.hpp"
 #include "dmsStorageUnit.hpp"
 #include "dmsInternalSchemaUpdator.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
 
+   /*
+      _dmsInternalSchemaHandler implement
+   */
    _dmsInternalSchemaHandler::_dmsInternalSchemaHandler()
    {
    }
@@ -23,12 +64,21 @@ namespace engine
       dmsMBContext *context = clItem._mbContext ;
 
       dmsEventHolder *holder = dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
-      PD_CHECK( holder, SDB_SYS, error, PDERROR, "Failed to get dms event holder in callback of "
-                "internal schema when creating index, rc: %d", rc ) ;
+      if ( holder )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to get dms event holder in callback of "
+                 "internal schema when creating index, rc: %d", rc ) ;
+         goto error ;
+      }
 
       su = holder->getSU() ;
-      PD_CHECK( su, SDB_SYS, error, PDERROR, "Failed to get storage unit from event holder, rc: %d",
-                rc ) ;
+      if ( !su )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to get storage unit from event holder, rc: %d", rc ) ;
+         goto error ;
+      }
 
       schema = su->data()->getSchema( clItem._mbID ) ;
       if ( schema->enabled() )
