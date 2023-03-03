@@ -9,6 +9,7 @@ createIndex \- 创建索引
 .PP
 \f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [isUnique],
 [enforced], [sortBufferSize])\f[]
+.PP
 \f[B]db.collectionspace.collection.createIndex(<name>, <indexDef>, [indexAttr],
 [option])\f[]
 .SH 类别
@@ -180,7 +181,7 @@ InstanceID（ \f[I]number/array\f[] ）：数据节点的实例 ID
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v3.4 及以上版本
+v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 创建名为“ageIndex”的唯一索引，并指定记录按索引字段 age 的值升序排序

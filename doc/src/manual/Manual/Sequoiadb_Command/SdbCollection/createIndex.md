@@ -5,6 +5,7 @@ createIndex - 创建索引
 ##语法##
 
 **db.collectionspace.collection.createIndex(\<name\>, \<indexDef\>, [isUnique], [enforced], [sortBufferSize])**
+
 **db.collectionspace.collection.createIndex(\<name\>, \<indexDef\>, [indexAttr], [option])**
 
 ##类别##
@@ -16,7 +17,6 @@ SdbCollection
 该函数用于为集合创建[索引][index]，以提高查询速度。创建前用户需了解索引的相关[限制][limitation]。
 
 如果索引字段在集合中为正序排序或需要匹配值较小的记录时，建议创建升序的索引，可以更快命中目标记录。如果需要匹配值较大的记录，建议创建降序的索引。在实际使用中，根据场景正确地指定索引类型，可以极大地提升索引的查询效率。
-
 
 ##参数##
 
@@ -133,7 +133,7 @@ SdbCollection
 
 ##版本##
 
-v3.4 及以上版本
+v2.0 及以上版本
 
 ##示例##
 

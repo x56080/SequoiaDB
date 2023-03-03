@@ -1337,15 +1337,9 @@
                      "contents":[
                         {
                             "id": 1634699299,
-                            "file": "single_field_index",
-                            "cn": "单字段索引",
-                            "en": "Single field Index"
-                        },
-                        {
-                            "id": 1634699308,
-                            "file": "compound_index",
-                            "cn": "复合索引",
-                            "en": "Compound Index"
+                            "file": "normal_index",
+                            "cn": "普通索引",
+                            "en": "Normal Index"
                         },
                         {
                             "id": 1634699313,
@@ -1372,7 +1366,7 @@
                      "file": "build_datasource",
                      "cn": "搭建数据源",
                      "en": "Build DataSource"
-				  }
+                  }
                ]
             },
             {

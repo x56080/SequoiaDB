@@ -20,17 +20,13 @@
 
 SequoiaDB 提供不同类型的索引，以支持特定类型的数据和查询。
 
-###单字段索引###
+###普通索引###
 
-单字段索引是指根据记录中任一字段创建的索引。更多说明及使用可参考[单字段索引][single_field]。
-
-###复合索引###
-
-复合索引是指结合记录中多个字段创建的索引。如果用户在查询时经常使用某几个字段，可以为这些字段创建复合索引，使查询更加高效。更多说明及使用可参考[复合索引][compound]。
+普通索引仅用于加快系统对数据的访问速度。如果用户经常使用特定的字段进行查询，可以为这些字段创建普通索引，是查询更加高效。更多说明及使用可参考[普通索引][normal]。
 
 ###唯一索引###
 
-唯一索引用于保证索引字段值的唯一性。在使用唯一索引时，如果插入或更新的索引字段值在集合中已存在，则操作会报错。更多说明及使用可参考[唯一索引][unique]。
+唯一索引用于保证索引字段值的唯一性。在使用唯一索引时，如果插入或更新的索引字段值在集合中已存在，则操作报错。更多说明及使用可参考[唯一索引][unique]。
 
 ###全文索引###
 
@@ -50,8 +46,7 @@ SequoiaDB 提供不同类型的索引，以支持特定类型的数据和查询�
 [^_^]:
     本文使用的所有链接和引用
 [picture1]:images/Distributed_Engine/Architecture/Data_Model/index_picture_1.png
-[single_field]:manual/Distributed_Engine/Operation/Index/single_field_index.md
-[compound]:manual/Distributed_Engine/Operation/Index/compound_index.md
+[normal]:manual/Distributed_Engine/Operation/Index/normal_index.md
 [standalone]:manual/Distributed_Engine/Operation/Index/standalone_index.md
 [text]:manual/Distributed_Engine/Operation/Index/text_index.md
 [unique]:manual/Distributed_Engine/Operation/Index/unique_index.md

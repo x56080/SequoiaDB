@@ -26,7 +26,7 @@ SequoiaDB 巨杉数据库支持创建独立索引。独立索引是指在集合�
 >
 > 创建索引的详细参数说明可参考 [createIndex()][createIndex]。
 
-查看条件为{"info.age": 28}的查询所对应的访问计划
+查看条件为`{"info.age": 28}`的查询所对应的访问计划
 
 ```lang-javascript
 > db.sample.employee.find({"info.age": 28}).explain()

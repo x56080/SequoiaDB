@@ -208,7 +208,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-v3.4 and above
+v2.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Create an unique index named "ageIndex", and specify the records are in
