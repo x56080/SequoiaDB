@@ -57,6 +57,7 @@ namespace engine
                           const CHAR *origName = NULL ) ;
 
          INT32 alterColumn( UINT16 columnID, const BSONObj &columnInfo ) ;
+
          INT32 dropColumn( UINT16 columnID ) ;
 
          INT32 dropColumnDefault( UINT16 columnID, BOOLEAN dropWrite, BOOLEAN dropRead = FALSE ) ;
@@ -83,15 +84,11 @@ namespace engine
 
       private:
 
-         INT32    _allocSpace4ColRecord( UINT16 slotSize, UINT16 vaueSize, UINT16 &offset,
+         INT32    _allocSpace4ColRecord( UINT16 slotSize, UINT16 vaueSize, UINT32 &offset,
                                          UINT16 *allocSize = NULL ) ;
 
          INT32    _updateColRecord( UINT16 columnID, const dmsSchemaColRecord *oldRecord,
                                     const dmsSchemaColRecord *newRecord ) ;
-
-         void     _setColRecordOffset( UINT16 columnID, UINT16 offset ) ;
-
-         void     _initColAttrAndRecordOffset( UINT16 columnID, INT16 attr, UINT16 valOffset ) ;
 
          UINT32   _freeSpace() const ;
 
@@ -123,14 +120,6 @@ namespace engine
          }
 
       private:
-         void   _setColumnIDInItem( INT32 *item, UINT16 columnID ) ;
-         void   _setNextItemOffset( INT32 *item, UINT16 id ) ;
-         void   _resetItem( INT32 *item ) ;
-
-         UINT16 _getColumnIDByItem( INT32 *item ) { return 0 ; }
-         UINT16 _getNextItemOffset( INT32 *item ) { return 0 ; }
-
-      private:
          dmsSchemaHashExtent    *_extent ;
          dmsSchemaWriter        *_schemaWriter ;
    } ;
@@ -145,18 +134,10 @@ namespace engine
          _dmsInternalSchemaWriter() ;
          virtual ~_dmsInternalSchemaWriter() ;
 
-         INT32 init( const dmsInternalSchema *pSchema,
-                     _dmsStorageDataCommon *su,
-                     _dmsMBContext *context,
-                     _pmdEDUCB *cb )
-         {
-            return SDB_OK ;
-         }
+         INT32 init( const dmsInternalSchema *pSchema, _dmsStorageDataCommon *su,
+                     _dmsMBContext *context, _pmdEDUCB *cb ) ;
 
-         INT32 save( dmsInternalSchema *pSchema, _dmsMBContext *context, _pmdEDUCB *cb )
-         {
-            return SDB_OK ;
-         }
+         INT32 save( dmsInternalSchema *pSchema, _dmsMBContext *context, _pmdEDUCB *cb ) ;
 
          INT32 init( _dmsStorageDataCommon *su, _dmsMBContext *context,
                      dmsSchemaExtent *schemaExtent, dmsSchemaHashExtent *hashExtent,
@@ -184,18 +165,19 @@ namespace engine
 
          INT32 updateSchemaByRecord( const BSONObj &record ) ;
 
-         INT32 save( _dmsMBContext *context ) ;
+         INT32 save( dmsInternalSchema *schema, _dmsMBContext *context ) ;
 
       private:
          INT32 _merge2Column( UINT16 columnID, const BSONObj &columnDef ) ;
 
       private:
-         dmsSchemaExtent        *_origSchemaExtent ;
-         dmsSchemaHashExtent    *_origHashExtent ;
-         dmsSchemaExtent        *_newSchemaExtent ;
-         dmsSchemaHashExtent    *_newHashExtent ;
-         dmsSchemaWriter         _schemaWriter ;
-         dmsSchemaHashWriter     _schemaHashWriter ;
+         const dmsSchemaExtent        *_origSchemaExtent ;
+         const dmsSchemaHashExtent    *_origHashExtent ;
+         dmsSchemaExtent              *_newSchemaExtent ;
+         dmsSchemaHashExtent          *_newHashExtent ;
+         dmsSchemaWriter               _schemaWriter ;
+         dmsSchemaHashWriter           _schemaHashWriter ;
+         BOOLEAN                       _changed ;
    } ;
    typedef _dmsInternalSchemaWriter dmsInternalSchemaWriter ;
 }

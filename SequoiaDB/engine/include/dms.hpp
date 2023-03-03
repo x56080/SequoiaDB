@@ -163,7 +163,7 @@ namespace engine
 // Default column number
 #define DMS_SCHEMA_DFT_COLUMN_NUM   ( 256 )
 #define DMS_SCHEMA_MAX_COLUMN_NUM   ( 60000 )
-#define DMS_SCHEMA_INVALID_COLUMNID ( 0xFF )
+#define DMS_SCHEMA_INVALID_COLUMNID ( 0xFFFF )
 
    /*
       MB FLAG(_flag) values :

@@ -64,7 +64,7 @@ namespace engine
       dmsMBContext *context = clItem._mbContext ;
 
       dmsEventHolder *holder = dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
-      if ( holder )
+      if ( !holder )
       {
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "Failed to get dms event holder in callback of "

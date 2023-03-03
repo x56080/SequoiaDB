@@ -316,7 +316,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Get column[%d] read default failed, rc: %d",
                       columnID, rc ) ;
 
-         size = nameLen + 1 + valueLen ;
+         // 1 byte for type, 1 byte for terminating null of name.
+         size = 1 + nameLen + 1 + valueLen ;
       }
 
    done:
@@ -343,7 +344,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Get column[%d] write default failed, rc: %d",
                       columnID, rc ) ;
 
-         size = nameLen + 1 + valueLen ;
+         // 1 byte for type, 1 byte for terminating null of name.
+         size = 1 + nameLen + 1 + valueLen ;
       }
 
    done:
@@ -540,6 +542,7 @@ namespace engine
      _extent( NULL ),
      _extentSize( 0 ),
      _bucketNum( 0 ),
+     _maxListSlotNum( 0 ),
      _pBucketSlot( NULL ),
      _pListSlot( NULL )
    {
@@ -568,7 +571,7 @@ namespace engine
          goto error ;
       }
 
-      _bucketNum = _extent->_bucketNum ;
+      _bucketNum = extent->_bucketNum ;
       /// check bucket num
       if ( _bucketNum < 2 || !ossIsPowerOf2( _bucketNum, NULL ) )
       {
@@ -591,6 +594,7 @@ namespace engine
       _schemaContainer = schemaContainer ;
       _extent = extent ;
       _extentSize = extentSize ;
+      _maxListSlotNum = ( extentSize - DMS_SCHEMAHASHEXTENT_HEADER_SZ ) / DMS_SCHEMAEXTENT_SLOT_SZ ;
 
       _pBucketSlot = (const dmsSchemaHashSlot*)
                      ((const CHAR *)_extent + DMS_SCHEMAHASHEXTENT_HEADER_SZ) ;
@@ -665,12 +669,12 @@ namespace engine
       return columnID ;
    }
 
-   INT32 _dmsSchemaHash::_nextFreeItemOffset() const
+   INT32 _dmsSchemaHash::_nextFreeListSlotID() const
    {
       if ( _pListSlot )
       {
-         // Search in the conflict area for a free item.
-         for ( UINT32 i = 0 ; i < _extent->_slotNum ; ++i )
+         // Search in the conflict area for a free slot.
+         for ( UINT32 i = 0 ; i < _maxListSlotNum; ++i )
          {
             if ( DMS_SCHEMA_INVALID_COLUMNID == _pListSlot[ i ].getColumnID() )
             {
@@ -837,7 +841,14 @@ namespace engine
       BOOLEAN hasRetry = FALSE ;
 
       /// check is load
-      if ( !_hasLoad )
+      if ( !_enabled )
+      {
+         rc = SDB_INTERNAL_SCHEMA_NOT_ENABLED ;
+         PD_LOG( PDERROR, "Schema is not enabled" ) ;
+         goto error ;
+      }
+      /// check is load
+      else if ( !_hasLoad )
       {
          ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
          if ( !_hasLoad )
@@ -902,9 +913,6 @@ namespace engine
             goto error ;
          }
 
-         DMS_SCHEMA_SET_ENCODE_FLAG( encodeRecord, encodeFlag ) ;
-         DMS_SCHEMA_SET_VERSION( encodeRecord, _schemaVersion ) ;
-
          rc = encodeBuilder.start( DMS_SCHEMA_ENCODE_DATAPTR( encodeRecord ),
                                    estimateSize, pBaseObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to start building record, rc: %d", rc ) ;
@@ -944,6 +952,9 @@ namespace engine
             rc = SDB_DMS_RECORD_TOO_BIG ;
             goto error ;
          }
+
+         DMS_SCHEMA_SET_ENCODE_FLAG( encodeRecord, encodeFlag ) ;
+         DMS_SCHEMA_SET_VERSION( encodeRecord, _schemaVersion ) ;
 
          encodeData.setData( (const CHAR *)encodeRecord, totalSize,
                              UTIL_COMPRESSOR_INVALID, TRUE, TRUE ) ;
@@ -1180,6 +1191,10 @@ namespace engine
 
       rc = readBitmap.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init read bitmap failed, rc: %d", rc ) ;
+      if ( !getPrimalData )
+      {
+         readBitmap.setBitmap( _readColBitmap ) ;
+      }
 
       rc = _checkOrgRecord( record, readBitmap, hitName, hitDefault ) ;
       PD_RC_CHECK( rc, PDERROR, "Check record need rebuild failed, rc: %d", rc ) ;
@@ -1606,6 +1621,7 @@ namespace engine
          rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
          PD_RC_CHECK( rc, PDERROR, "Append info for column[%s] into record failed, rc: %d",
                       name, rc ) ;
+         ++setBitPos ;
       }
 
       rc = builder.done( isEmpty ) ;
@@ -1652,7 +1668,7 @@ namespace engine
       try
       {
          BSONObjIterator itr( record ) ;
-         while( itr.more() ) ;
+         while( itr.more() )
          {
             BSONElement ele = itr.next() ;
 
@@ -1727,6 +1743,7 @@ namespace engine
          rc = builder.appendElement( type, name, nameLen, value, valueLen ) ;
          PD_RC_CHECK( rc, PDERROR, "Append default column[%s] failed, rc: %d",
                       name, rc ) ;
+         ++nextSetPos ;
       }
 
    done:
@@ -1854,7 +1871,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT8 encodeFlag = DMS_SCHEMA_GET_ENCODE_FLAG( encodedData.data() ) ;
-      UINT32 version = DMS_SCHEMA_GET_ENCODE_FLAG( encodedData.data() ) ;
+      UINT32 version = DMS_SCHEMA_GET_VERSION( encodedData.data() ) ;
       INT32 colID = 0 ;
       BOOLEAN isDeleted = FALSE ;
       NAME_INFO_MAP_ITR itrInfo ;

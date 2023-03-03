@@ -1531,7 +1531,7 @@ namespace engine
          }
       }
 
-      rc = schemaUpdator.save( context ) ;
+      rc = schemaUpdator.save( internalSchema, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Save new internal schema for collecion[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 
@@ -2746,8 +2746,11 @@ namespace engine
             (const dmsSchemaExtent *)schemaExtRW.readPtr( 0, schemaExtSize << pageSizeSquareRoot() ) ;
          const dmsSchemaHashExtent *hashExtentPtr =
             (const dmsSchemaHashExtent *)hashExtRW.readPtr( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         rc = _schemas[ newCollectionID ].init( schemaExtentPtr, schemaExtSize << pageSize(),
-              hashExtentPtr, schemaExtSize << pageSizeSquareRoot(), newCollectionID ) ;
+         rc = _schemas[ newCollectionID ].init( schemaExtentPtr,
+                                                schemaExtSize << pageSizeSquareRoot(),
+                                                hashExtentPtr,
+                                                schemaExtSize << pageSizeSquareRoot(),
+                                                newCollectionID ) ;
          PD_RC_CHECK( rc, PDERROR, "Initialize internal schema failed, rc: %d", rc ) ;
 
          if ( NULL != pSchema && pSchema->isValid() )
@@ -4317,7 +4320,7 @@ retry:
                                      newMem, position, &schemaVersion ) ;
             PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
                          rc ) ;
-            storeData = encodeData ;
+            storeData = encodeData.isEmpty() ? recordData : encodeData ;
 
             if ( newMem )
             {

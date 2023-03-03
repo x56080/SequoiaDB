@@ -5015,7 +5015,7 @@ namespace engine
                       "rc: %d", action.getColumnName(), rc ) ;
       }
 
-      rc = schemaWriter.save( context ) ;
+      rc = schemaWriter.save( internalSchema, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Save new internal schema failed, rc: %d", rc ) ;
 
       // rc = internalSchema->reload() ;

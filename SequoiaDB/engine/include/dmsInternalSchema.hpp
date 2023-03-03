@@ -316,14 +316,15 @@ namespace engine
             return NULL ;
          }
 
-         // Offset of the first free item in the conflict item area.
-         INT32                      _nextFreeItemOffset() const ;
+         // ID of the first free slot in the conflict item area.
+         INT32                      _nextFreeListSlotID() const ;
 
       protected:
          const dmsSchemaContainer  *_schemaContainer ;
          const dmsSchemaHashExtent *_extent ;
          UINT32                     _extentSize ;
          UINT32                     _bucketNum ;
+         UINT32                     _maxListSlotNum ;
          const dmsSchemaHashSlot   *_pBucketSlot ;
          const dmsSchemaHashSlot   *_pListSlot ;
    } ;
