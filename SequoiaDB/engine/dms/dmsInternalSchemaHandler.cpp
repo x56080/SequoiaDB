@@ -84,29 +84,22 @@ namespace engine
       if ( schema->enabled() )
       {
          dmsInternalSchemaWriter schemaUpdator ;
+         ossPoolSet<ossPoolString> setFields ;
 
          rc = schemaUpdator.init( schema, su, context, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Init schema updator failed, rc: %d", rc ) ;
 
-         try
-         {
-            // Loop the columns in the index definition, and mark them in the internal schema.
-            BSONObj keyPattern = idxItem._boDefine.getObjectField( IXM_KEY_FIELD ) ;
-            BSONObjIterator itr( keyPattern ) ;
+         rc = su->index()->getIndexFields( context, setFields, idxItem._pIXName,
+                                           idxItem._idxLID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get index fields failed, rc: %d", rc ) ;
 
-            while ( itr.more() )
-            {
-               BSONElement ele = itr.next() ;
-               rc = schemaUpdator.setIndexColumn( ele.fieldName() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Set column %s as index column in internal schema "
-                            "failed, rc: %d", ele.fieldName(), rc ) ;
-            }
-         }
-         catch( std::exception &e )
+         for ( ossPoolSet<ossPoolString>::iterator it = setFields.begin() ;
+               it != setFields.end() ;
+               ++it )
          {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
-            goto error ;
+            rc = schemaUpdator.setIndexColumn( (*it).c_str() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Set column %s as index column in internal schema "
+                         "failed, rc: %d", (*it).c_str(), rc ) ;
          }
 
          rc = schemaUpdator.save( schema, context, cb ) ;
@@ -154,67 +147,44 @@ namespace engine
       {
          // For each column in the current index, we need to check if it still exists in other
          // indexes. If yes, we should not remove the index column mark.
+
          dmsInternalSchemaWriter schemaUpdator ;
-         dmsExtRW schemaExtRW = su->data()->extent2RW( context->mb()->_schemaExtentID ) ;
-         dmsExtRW hashExtRW = su->data()->extent2RW( context->mb()->_schemaHashExtentID ) ;
-         schemaExtRW.setNothrow( TRUE ) ;
-         hashExtRW.setNothrow( TRUE ) ;
-         dmsSchemaExtent *schemaExtent =
-            schemaExtRW.writePtr<dmsSchemaExtent>(0, schema->getSchemaContainer()->getExtentSize() ) ;
-         dmsSchemaHashExtent *hashExtent =
-            schemaExtRW.writePtr<dmsSchemaHashExtent>(0, schema->getSchemaHashTable()->getExtentSize() ) ;
-         rc = schemaUpdator.init( su->data(), context, schemaExtent, hashExtent ) ;
-         PD_RC_CHECK( rc, PDERROR, "Init internal schema of collection[%s] failed, rc: %d",
+         ossPoolSet<ossPoolString> setFields ;
+         ossPoolSet<ossPoolString> setFieldsDroped ;
+
+         rc = schemaUpdator.init( schema, su, context, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Init schema updator failed, rc: %d", rc ) ;
+
+         /// get droped fields
+         rc = su->index()->getIndexFields( context, setFieldsDroped, idxItem._pIXName,
+                                           idxItem._idxLID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get index fields failed, rc: %d", rc ) ;
+
+         if ( setFieldsDroped.empty() )
+         {
+            goto done ;
+         }
+
+         /// get other fields
+         rc = su->index()->getIndexesFields( context, setFields, idxItem._idxLID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get all index fields failed, rc: %d", rc ) ;
+
+         for ( ossPoolSet<ossPoolString>::iterator it = setFieldsDroped.begin() ;
+               it != setFieldsDroped.end() ;
+               ++it )
+         {
+            /// the field is not in other indexes
+            if ( 0 == setFields.count( *it ) )
+            {
+               rc = schemaUpdator.unsetIndexColumn( (*it).c_str() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Unset column %s as index column in internal schema "
+                            "failed, rc: %d", (*it).c_str(), rc ) ;
+            }
+         }
+
+         rc = schemaUpdator.save( schema, context, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                       context->mb()->_collectionName, rc ) ;
-         try
-         {
-            BSONObj keyPattern = idxItem._boDefine.getObjectField( IXM_KEY_FIELD ) ;
-            BSONObjIterator currIdxItr( keyPattern ) ;
-            dmsMBContext *context = clItem._mbContext ;
-            ossPoolSet<const CHAR *, cmp_column_name> idxColumnNames ;
-            for ( UINT32 id = 0; id < context->mb()->_numIndexes; ++id )
-            {
-               ixmIndexCB indexCB( context->mb()->_indexExtent[id], su->index(), context ) ;
-               PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
-                         "Failed to initialize index" ) ;
-               // Skip the current index to be dropped.
-               if ( idxItem._idxLID != indexCB.getLogicalID() )
-               {
-                  BSONObj keyPattern = indexCB.keyPattern() ;
-                  BSONObjIterator itr( keyPattern ) ;
-                  while ( itr.more() )
-                  {
-                     BSONElement ele = itr.next() ;
-                     idxColumnNames.insert( ele.fieldName() ) ;
-                  }
-               }
-            }
-
-            while ( currIdxItr.more() )
-            {
-               BSONElement ele = currIdxItr.next() ;
-               if ( idxColumnNames.end() == idxColumnNames.find( ele.fieldName() ) )
-               {
-                  rc = schemaUpdator.unsetIndexColumn( ele.fieldName() ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Unset index column flag for column[%s] failed, rc: %d",
-                               ele.fieldName(), rc ) ;
-               }
-            }
-
-            rc = schemaUpdator.save( context ) ;
-            PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
-                         context->mb()->_collectionName, rc ) ;
-
-            //rc = schema->reload() ;
-            PD_RC_CHECK( rc, PDERROR, "Reload new internal schema of collection[%s] failed, rc: %d",
-                         rc ) ;
-         }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-            goto error ;
-         }
       }
 
    done:

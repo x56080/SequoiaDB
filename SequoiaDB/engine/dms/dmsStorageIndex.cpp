@@ -3930,9 +3930,9 @@ namespace engine
       }
    }
 
-   INT32 _dmsStorageIndex::getIndexFields( _dmsMBContext *context,
-                                           ossPoolSet<ossPoolString> &setFields,
-                                           const CHAR *indexName )
+   INT32 _dmsStorageIndex::getIndexesFields( _dmsMBContext *context,
+                                             ossPoolSet<ossPoolString> &setFields,
+                                             dmsExtentID exceptIdxLID )
    {
       INT32 rc = SDB_OK ;
       BSONObj keyPattern ;
@@ -3959,31 +3959,80 @@ namespace engine
             PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
                        PDERROR, "Failed to init index" ) ;
 
-            /*if ( ( indexName && 0 == ossStrcmp( indexName, indexCB.getName() ) ) || !indexName )
+            if ( DMS_INVALID_EXTENT == exceptIdxLID || exceptIdxLID != indexCB.getLogicalID() )
             {
                keyPattern = indexCB.keyPattern() ;
                BSONObjIterator itr( keyPattern ) ;
-
+               while( itr.more() )
+               {
+                  BSONElement e = itr.next() ;
+                  setFields.insert( e.fieldName() ) ;
+               }
             }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
-         
+   INT32 _dmsStorageIndex::getIndexFields( _dmsMBContext *context,
+                                           ossPoolSet<ossPoolString> &setFields,
+                                           const CHAR *indexName,
+                                           dmsExtentID indexLID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj keyPattern ;
+   
+      if ( !context->isMBLock() )
+      {
+         PD_LOG( PDERROR, "Caller must hold mb lock[%s]",
+                 context->toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      else if ( !indexName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
-            // If it's text index
-            if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                      IXM_EXTENT_TYPE_TEXT )
-                 && IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() )
+      try
+      {
+         // loops through all potential indexes for the record
+         for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+         {
+            if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
             {
-               textIdxCBs.push_back( indexCB ) ;
+               break ;
             }
-            else
+            ixmIndexCB indexCB ( context->mb()->_indexExtent[indexID], this,
+                                 context ) ;
+            PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
+                       PDERROR, "Failed to init index" ) ;
+   
+            if ( 0 == ossStrcmp( indexName, indexCB.getName() ) )
             {
-               rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
-                                   dropDups, pOprHandle, pResult, pUnqIdxHashArray ) ;
-               PD_RC_CHECK ( rc, PDERROR, "Failed to insert object(%s) index(%s), "
-                             "rc: %d", PD_SECURE_OBJ( inputObj ),
-                             indexCB.getDef().toString().c_str(), rc ) ;
-            }*/
+               if ( DMS_INVALID_EXTENT == indexLID || indexLID )
+               {
+                  keyPattern = indexCB.keyPattern() ;
+                  BSONObjIterator itr( keyPattern ) ;
+                  while( itr.more() )
+                  {
+                     BSONElement e = itr.next() ;
+                     setFields.insert( e.fieldName() ) ;
+                  }
+               }
+               break ;
+            }
          }
       }
       catch( std::exception &e )
