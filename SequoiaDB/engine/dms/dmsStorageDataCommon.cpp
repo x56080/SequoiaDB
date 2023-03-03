@@ -1131,7 +1131,7 @@ namespace engine
             }
 
             /// upgrade
-            if ( !OSS_BIT_TEST( _dmsMME->_mbList[i]->_attributes,
+            if ( !OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes,
                                 DMS_MB_ATTR_ENABLE_INFOSCHEMA ) &&
                  0 == _dmsMME->_mbList[i]._schemaExtentID &&
                  0 == _dmsMME->_mbList[i]._schemaHashExtentID )
