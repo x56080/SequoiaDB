@@ -1,3 +1,39 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2023 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = dmsInternalSchema.hpp
+
+   Descriptive Name =
+
+   When/how to use:
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          01/11/2023  YSD Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
 #ifndef DMS_INTSCHEMA_UPDATOR_HPP__
 #define DMS_INTSCHEMA_UPDATOR_HPP__
 
@@ -31,6 +67,10 @@ namespace engine
 
          void  unsetIndexColumn( UINT16 columnID ) ;
 
+         void  setColumnAttr( UINT16 columnID, UINT8 attr, BOOLEAN replace ) ;
+
+         void  unsetColumnAttr( UINT16 columnID, UINT8 attr ) ;
+
          const dmsSchemaExtent *getExtent( UINT32 *size ) const
          {
             return _extent ;
@@ -54,16 +94,6 @@ namespace engine
          void     _initColAttrAndRecordOffset( UINT16 columnID, INT16 attr, UINT16 valOffset ) ;
 
          UINT32   _freeSpace() const ;
-
-         INT32    _compact() ;
-
-         OSS_INLINE CHAR *_offset2Ptr( UINT32 offset ) const
-         {
-            return (CHAR *)_extent + offset ;
-         }
-
-         void     _setColumnAttr( UINT16 columnID, UINT8 attr ) {}
-         void     _clearColumnAttr( UINT16 columnID, UINT8 attr ) {}
 
       private:
          dmsSchemaExtent        *_extent ;
@@ -120,17 +150,17 @@ namespace engine
                           UINT16 *columnID = NULL,
                           BOOLEAN mergeOnExist = FALSE, const CHAR *origName = NULL ) ;
 
-         INT32 dropColumn( const CHAR *columnName ) ;
+         INT32 dropColumn( const CHAR *columnName, BOOLEAN *colNotFound ) ;
 
-         INT32 renameColumn( const CHAR *oldName, const CHAR *newName, BOOLEAN *oldColFound ) ;
+         INT32 renameColumn( const CHAR *oldName, const CHAR *newName, BOOLEAN *colNotFound ) ;
 
          /**
           * Drop default value of a column. Only the write default can be dropped.
          */
          INT32 dropColumnDefault( const CHAR *name ) ;
 
-         INT32 alterColumn( const CHAR *columnName,
-                            const BSONObj &columnDef ) ;
+         INT32 alterColumn( const CHAR *columnName, const BSONObj &columnDef,
+                            BOOLEAN *colNotFound ) ;
 
          INT32 setIndexColumn( const CHAR *columnName ) ;
 

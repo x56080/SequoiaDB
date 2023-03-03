@@ -1020,7 +1020,7 @@ namespace engine
       }
 
       /// copy read bitmap
-      if ( !getPrimalData && version < _schemaVersion )
+      if ( !getPrimalData && version != _schemaVersion )
       {
          readBitmap.setBitmap( _readColBitmap ) ;
       }
@@ -1033,7 +1033,7 @@ namespace engine
          /// when encode format is ORG, and newest version
          if ( DMS_SCHEMA_ENCODE_ORG == encodeFlag )
          {
-            if ( version >= _schemaVersion )
+            if ( version == _schemaVersion )
             {
                objRecord = encodedRecord ;
             }

@@ -3,6 +3,9 @@
 #include "dmsTrace.hpp"
 #include "dmsStorageDataCommon.hpp"
 
+#define DMS_SCHEMA_INVALID_SLOT_ID              (0xFFFF)
+#define DMS_SCHEMA_INVALID_SLOT_OFFSET          (0xFFFF)
+
 namespace engine
 {
    _dmsSchemaWriter::_dmsSchemaWriter()
@@ -108,7 +111,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Allocate space for column infor in internal schema extent failed, "
                    "rc: %d", rc ) ;
 
-      ossMemcpy( _offset2Ptr(recOffset), (CHAR *)colInfoRec, recLength ) ;
+      ossMemcpy( (CHAR *)_offset2Ptr(recOffset), (CHAR *)colInfoRec, recLength ) ;
 
       columnID = _extent->_itemNum ;
       _initColAttrAndRecordOffset( columnID, attr, recOffset ) ;
@@ -224,7 +227,7 @@ namespace engine
 
          if ( newAttr != attr )
          {
-            _setColumnAttr( columnID, newAttr ) ;
+            setColumnAttr( columnID, newAttr, FALSE ) ;
          }
       }
       catch ( std::exception &e )
@@ -242,7 +245,7 @@ namespace engine
 
    INT32 _dmsSchemaWriter::dropColumn( UINT16 columnID )
    {
-      _setColumnAttr( columnID, DMS_SCHEMA_COL_DELETED ) ;
+      setColumnAttr( columnID, DMS_SCHEMA_COL_DELETED, FALSE ) ;
       return SDB_OK ;
    }
 
@@ -280,9 +283,9 @@ namespace engine
       SDB_ASSERT( newRecord->getLength() <= oldRecord->getLength(), "Length is wrong" ) ;
 
       offset = _getColRecordOffset( columnID ) ;
-      ossMemcpy( _offset2Ptr(offset), newRecord, newRecord->getLength() ) ;
+      ossMemcpy( (CHAR *)_offset2Ptr(offset), newRecord, newRecord->getLength() ) ;
 
-      _clearColumnAttr( columnID, attr ) ;
+      unsetColumnAttr( columnID, attr ) ;
 
    done:
       return rc ;
@@ -320,7 +323,7 @@ namespace engine
 
       if ( !OSS_BIT_TEST( attr, DMS_SCHEMA_COL_HAS_ORIGNAME ) )
       {
-         _setColumnAttr( columnID, DMS_SCHEMA_COL_HAS_ORIGNAME ) ;
+         setColumnAttr( columnID, DMS_SCHEMA_COL_HAS_ORIGNAME, FALSE ) ;
       }
 
    done:
@@ -418,12 +421,37 @@ namespace engine
 
    void _dmsSchemaWriter::setIndexColumn( UINT16 columnID )
    {
-      _setColumnAttr( columnID, DMS_SCHEMA_COL_IN_INDEX ) ;
+      setColumnAttr( columnID, DMS_SCHEMA_COL_IN_INDEX, FALSE ) ;
    }
 
    void _dmsSchemaWriter::unsetIndexColumn( UINT16 columnID )
    {
-      _clearColumnAttr( columnID, DMS_SCHEMA_COL_IN_INDEX ) ;
+      unsetColumnAttr( columnID, DMS_SCHEMA_COL_IN_INDEX ) ;
+   }
+
+   void _dmsSchemaWriter::setColumnAttr( UINT16 columnID, UINT8 attr, BOOLEAN replace )
+   {
+      dmsSchemaColSlot* pSlot = (dmsSchemaColSlot *)_getColSlot( columnID ) ;
+      if ( pSlot )
+      {
+         if ( replace )
+         {
+            pSlot->setAttr( attr ) ;
+         }
+         else
+         {
+            pSlot->setAttrBits( attr ) ;
+         }
+      }
+   }
+
+   void _dmsSchemaWriter::unsetColumnAttr( UINT16 columnID, UINT8 attr )
+   {
+      dmsSchemaColSlot* pSlot = (dmsSchemaColSlot *)_getColSlot( columnID ) ;
+      if ( pSlot )
+      {
+         pSlot->clearAttrBits( attr ) ;
+      }
    }
 
    void _dmsSchemaWriter::_initColAttrAndRecordOffset( UINT16 columnID, INT16 attr,
@@ -451,16 +479,6 @@ namespace engine
                      DMS_SCHEMAEXTENT_SLOT_SZ * _extent->_itemNum ;
       }
       return freeSpace ;
-   }
-
-   INT32 _dmsSchemaWriter::_compact()
-   {
-      INT32 rc = SDB_OK ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 
    _dmsSchemaHashWriter::_dmsSchemaHashWriter()
@@ -527,7 +545,7 @@ namespace engine
          {
             // Not used.
             _setColumnIDInItem( item, columnID ) ;
-            _setNextItemOffset( item, 0xFFFF ) ;
+            _setNextItemOffset( item, DMS_SCHEMA_INVALID_SLOT_ID ) ;
             if ( prevItem )
             {
                _setNextItemOffset( prevItem, nextItemOffset ) ;
@@ -537,7 +555,7 @@ namespace engine
          else
          {
             nextItemOffset = _getNextItemOffset( item ) ;
-            if ( 0xFFFF == nextItemOffset )
+            if ( DMS_SCHEMA_INVALID_SLOT_ID == nextItemOffset )
             {
                // Reach the end of the conflict list.
                prevItem = item ;
@@ -563,7 +581,7 @@ namespace engine
       UINT32 itemID = ossHash( name ) % DMS_SCHEMA_HASH_BUCKET_SIZE ;
       UINT16 itemOffset = DMS_SCHEMAHASHEXTENT_HEADER_SZ + DMS_HASHEXTENT_SLOT_SZ * itemID ;
 
-      while ( 0xFFFF != itemOffset )
+      while ( DMS_SCHEMA_INVALID_SLOT_OFFSET != itemOffset )
       {
          item = (INT32 *)_offset2Ptr( itemOffset ) ;
          columnID = _getColumnIDByItem( item ) ;
@@ -580,7 +598,7 @@ namespace engine
          }
       }
 
-      if ( 0xFFFF == itemOffset )
+      if ( DMS_SCHEMA_INVALID_SLOT_OFFSET == itemOffset )
       {
          // Not found
          goto done ;
@@ -594,7 +612,7 @@ namespace engine
             _setNextItemOffset( prevItem, _getNextItemOffset( item ) ) ;
             _resetItem( item ) ;
          }
-         else if ( 0xFFFF == nextItemOffset )
+         else if ( DMS_SCHEMA_INVALID_SLOT_OFFSET == nextItemOffset )
          {
             // No next, only this one.
             _resetItem( item ) ;
@@ -752,7 +770,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsInternalSchemaWriter::dropColumn( const CHAR *columnName )
+   INT32 _dmsInternalSchemaWriter::dropColumn( const CHAR *columnName, BOOLEAN *colNotFound )
    {
       INT32 rc = SDB_OK ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
@@ -761,8 +779,17 @@ namespace engine
       columnID = _schemaHashWriter.getColumnIDByName( columnName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
       {
+         if ( colNotFound )
+         {
+            *colNotFound = TRUE ;
+         }
          PD_LOG( PDDEBUG, "Column %s does not exist when dropping", columnName ) ;
          goto done ;
+      }
+
+      if ( colNotFound )
+      {
+         *colNotFound = FALSE ;
       }
 
       rc = _schemaHashWriter.dropColumnItemByName( columnName ) ;
@@ -780,7 +807,7 @@ namespace engine
    }
 
    INT32 _dmsInternalSchemaWriter::renameColumn( const CHAR *oldName, const CHAR *newName,
-                                                 BOOLEAN *oldColumnFound )
+                                                 BOOLEAN *colNotFound )
    {
       // If the column has been renamed before, directly change the current name.
       // If not, need to store the original name, to handle the records which are not encoded and
@@ -816,16 +843,16 @@ namespace engine
          // For internal schema, it's normal that the name we want to rename does not exist.
          PD_LOG( PDDEBUG, "Old name [%s] does not exist in the local internal schema when "
                  "renaming, rc: %d", oldName, rc ) ;
-         if ( oldColumnFound )
+         if ( colNotFound )
          {
-            *oldColumnFound = FALSE ;
+            *colNotFound = TRUE ;
          }
          goto done ;
       }
 
-      if ( oldColumnFound )
+      if ( colNotFound )
       {
-         *oldColumnFound = TRUE ;
+         *colNotFound = FALSE ;
       }
 
       if ( DMS_SCHEMA_INVALID_COLUMNID != _schemaHashWriter.getColumnIDByName( newName ) )
@@ -881,7 +908,8 @@ namespace engine
    }
 
    INT32 _dmsInternalSchemaWriter::alterColumn( const CHAR *columnName,
-                                                const BSONObj &columnDef )
+                                                const BSONObj &columnDef,
+                                                BOOLEAN *colNotFound )
    {
       // There are several scenarios:
       // Case 1: The column does not exist in the internal schema before(No default value).
@@ -895,22 +923,26 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       UINT16 columnID = _schemaHashWriter.getColumnIDByName( columnName ) ;
-
       if ( DMS_SCHEMA_INVALID_COLUMNID == columnID )
       {
          // Case 1
-         rc = addColumn( columnName, &columnDef, &columnID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Add column %s into internal schema failed, rc: %d",
-                      columnName, rc ) ;
+         PD_LOG( PDDEBUG, "Column [%s] does not exist when altering", columnName ) ;
+         if ( colNotFound )
+         {
+            *colNotFound = TRUE ;
+         }
          goto done ;
       }
-      else
+
+      if ( colNotFound )
       {
-         // Case 2/3
-         rc = _schemaWriter.alterColumn( columnID, columnDef ) ;
-         PD_RC_CHECK( rc, PDERROR, "Alter column %s info in internal schema failed, rc: %d",
-                      columnName, rc ) ;
+         *colNotFound = FALSE ;
       }
+
+      // Case 2/3
+      rc = _schemaWriter.alterColumn( columnID, columnDef ) ;
+      PD_RC_CHECK( rc, PDERROR, "Alter column %s info in internal schema failed, rc: %d",
+                   columnName, rc ) ;
 
    done:
       return rc ;
@@ -945,21 +977,19 @@ namespace engine
 
    INT32 _dmsInternalSchemaWriter::unsetIndexColumn( const CHAR *columnName )
    {
-      INT32 rc = SDB_OK ;
       UINT16 columnID = DMS_SCHEMA_INVALID_COLUMNID ;
 
       SDB_ASSERT( columnName, "Column name is invalid" ) ;
 
+      columnID = _schemaHashWriter.getColumnIDByName( columnName ) ;
       if ( DMS_SCHEMA_INVALID_COLUMNID != columnID )
       {
          _schemaWriter.unsetIndexColumn( columnID ) ;
          PD_LOG( PDDEBUG, "Remove index column flag for column %s", columnName ) ;
       }
+      // If the column does not exist in the internal schema, just ignore.
 
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
    INT32 _dmsInternalSchemaWriter::updateSchemaByRecord( const BSONObj &record )

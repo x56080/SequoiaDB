@@ -4885,6 +4885,8 @@ namespace engine
       dmsExtRW hashExtRW ;
       dmsSchemaExtent *schemaExt = NULL ;
       dmsSchemaHashExtent *hashExt = NULL ;
+      BOOLEAN colNotFound = TRUE ;
+      BOOLEAN doOnColNotExist = FALSE ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -4920,6 +4922,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Init internal schema writer for collection[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 
+      // In order to process uncoded records, we need to do the alter action in the following
+      // scenarios, even when the column does not exist.
+      // 1. Dropping a column.
+      // 2. Renaming a column.
+      // 3. Altering a column.
+      // This information are usefull to generate the right results of uncoded records.
+      // If the collection is empty on this node, we can just ignore.
+
+   retry:
       switch ( action.getAction() )
       {
          case UTIL_SCHEMA_ADD_COLUMN :
@@ -4932,36 +4943,37 @@ namespace engine
          }
          case UTIL_SCHEMA_DROP_COLUMN :
          {
-            rc = schemaWriter.dropColumn( action.getColumnName() ) ;
+            rc = schemaWriter.dropColumn( action.getColumnName(), &colNotFound ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to drop column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
+            if ( colNotFound && ( context->mb()->_totalRecords > 0 ) )
+            {
+               doOnColNotExist = TRUE ;
+            }
             break ;
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
          {
-            rc = schemaWriter.alterColumn( action.getColumnName(), action.getColDefine() ) ;
+            rc = schemaWriter.alterColumn( action.getColumnName(), action.getColDefine(),
+                                           &colNotFound ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to alter column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
+            if ( colNotFound && ( context->mb()->_totalRecords > 0 ) )
+            {
+               doOnColNotExist = TRUE ;
+            }
             break ;
          }
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
-            BOOLEAN foundOldCol = TRUE ;
             rc = schemaWriter.renameColumn( action.getColumnName(),
-                                            action.getNewColAttr().getName(), &foundOldCol ) ;
+                                            action.getNewColAttr().getName(), &colNotFound ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] to [%s], "
                          "rc: %d", action.getColumnName(),
                          action.getNewColAttr().getName(), rc ) ;
-            if ( !foundOldCol )
+            if ( colNotFound && ( context->mb()->_totalRecords > 0 ) )
             {
-               // If the old name does not exist, add the new column, and set the original name.
-               rc = schemaWriter.addColumn( action.getNewColAttr().getName(),
-                                            NULL, NULL, FALSE, action.getColumnName() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to add column with original name failed, rc: %d",
-                            rc ) ;
-               PD_LOG( PDDEBUG, "Old column [%s] does not exist when renaming. Add the new "
-                       "column[%s] with original name[%s]", action.getColumnName(),
-                       action.getNewColAttr().getName(), action.getColumnName() ) ;
+               doOnColNotExist = TRUE ;
             }
             break ;
          }
@@ -4987,8 +4999,14 @@ namespace engine
          }
       }
 
-      rc = schemaWriter.save( context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Save new internal schema failed, rc: %d", rc ) ;
+      if ( doOnColNotExist )
+      {
+         rc = schemaWriter.addColumn( action.getColumnName() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s] for marking deleting, rc: %d",
+                      action.getColumnName(), rc ) ;
+         doOnColNotExist = FALSE ;
+         goto retry ;
+      }
 
       if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
       {
@@ -4997,7 +5015,10 @@ namespace engine
                       "rc: %d", action.getColumnName(), rc ) ;
       }
 
-      //rc = internalSchema->reload() ;
+      rc = schemaWriter.save( context ) ;
+      PD_RC_CHECK( rc, PDERROR, "Save new internal schema failed, rc: %d", rc ) ;
+
+      // rc = internalSchema->reload() ;
       PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 

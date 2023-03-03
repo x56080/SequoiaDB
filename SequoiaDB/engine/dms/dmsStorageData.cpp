@@ -1581,12 +1581,18 @@ namespace engine
       BOOLEAN hasRetry  = FALSE ;
       dmsInternalSchema *schema = NULL ;
       BOOLEAN hasNewColumn = FALSE ;
-      INT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
+      UINT32 schemaVersion = DMS_SCHEMA_INVALID_VERSION ;
       const BSONObj record = BSONObj( recordData.data() ) ;
       INT32 lockType = context->mbLockType() ;
 
       schema = getSchema( context->mbID() ) ;
       SDB_ASSERT( schema->enabled(), "Must be enabled" ) ;
+
+      if ( !context->isMBLock() )
+      {
+         rc = context->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Take mb latch in SHARED mode failed, rc: %d", rc ) ;
+      }
 
    retry:
       /// first get version
@@ -1600,13 +1606,13 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Encode record by internal schema failed, rc: %d", rc ) ;
       if ( hasNewColumn )
       {
-         schemaVersion = schema->getVersion() ;
+         schemaVersion = schema->getSchemaInnerVersion() ;
          rc = context->mbLock( EXCLUSIVE ) ;
          PD_RC_CHECK( rc, PDERROR, "Take collection mb latch in EXCLUSIVE mode to update internal "
                       "schema failed, rc: %d", rc ) ;
          // Check once again after taken the EXCLUSIVE latch. During inserting, may be many insert
          // operations come here. Should avoid them to update the schema for multiple times.
-         if ( schema->getVersion() != schemaVersion )
+         if ( schema->getSchemaInnerVersion() != schemaVersion )
          {
             context->mbUnlock() ;
             goto retry ;
@@ -1643,12 +1649,15 @@ namespace engine
       }
 
    done:
-      if ( ( -1 != lockType ) && ( lockType != context->mbLockType() ) )
+      if ( -1 != lockType )
       {
-         rc = context->mbLock( lockType ) ;
-         PD_LOG( PDERROR,  "Resume collection mb latch failed, rc: %d", rc ) ;
+         if ( lockType != context->mbLockType() )
+         {
+            rc = context->mbLock( lockType ) ;
+            PD_LOG( PDERROR,  "Resume collection mb latch failed, rc: %d", rc ) ;
+         }
       }
-      else if ( context->isMBLock() )
+      else
       {
          context->mbUnlock() ;
       }
@@ -1684,7 +1693,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 
-      rc = schema->reload() ;
+      // rc = schema->reload() ;
       PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
                    context->mb()->_collectionName, rc ) ;
 
@@ -1693,43 +1702,4 @@ namespace engine
    error:
       goto done ;
    }
-
-   INT32 _dmsStorageData::_checkEncodedRecord( const dmsMBContext *context,
-                                               const dmsRecordData &origRecordData,
-                                               const dmsRecordData &encodedRecordData,
-                                               pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      dmsInternalSchemaWriter schemaUpdator ;
-      dmsInternalSchema *schema = getSchema( context->mbID() ) ;
-      dmsExtRW schemaExtRW = extent2RW( context->mb()->_schemaExtentID, context->mbID() ) ;
-      dmsExtRW hashExtRW = extent2RW( context->mb()->_schemaHashExtentID, context->mbID() ) ;
-      schemaExtRW.setNothrow( TRUE ) ;
-      hashExtRW.setNothrow( TRUE ) ;
-      dmsSchemaExtent *schemaExt =
-         schemaExtRW.writePtr<dmsSchemaExtent>(0, schema->getSchemaContainer()->getExtentSize() ) ;
-      dmsSchemaHashExtent *hashExt =
-         hashExtRW.writePtr<dmsSchemaHashExtent>(0, schema->getSchemaHashTable()->getExtentSize() ) ;
-
-      rc = schemaUpdator.init( this, context, schemaExt, hashExt ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
-
-      rc = schemaUpdator.updateSchemaByRecord( record ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
-
-      rc = schemaUpdator.save( context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
-
-      //rc = schema->reload() ;
-      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
 }
