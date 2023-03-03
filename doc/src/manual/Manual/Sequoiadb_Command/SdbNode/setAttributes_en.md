@@ -52,7 +52,7 @@ v3.6.1 and above
 - Delete the location information of the node.
 
     ```lang-javascript
-    > ndoe.setAttributes({Location: ""})
+    > node.setAttributes({Location: ""})
     ```
 
 [^_^]:

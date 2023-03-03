@@ -52,7 +52,7 @@ v3.6.1 及以上版本
 - 删除节点的位置信息
 
     ```lang-javascript
-    > ndoe.setAttributes({Location: ""})
+    > node.setAttributes({Location: ""})
     ```
 
 [^_^]:

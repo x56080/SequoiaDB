@@ -60,7 +60,7 @@ Delete the location information of the node.
 .IP
 .nf
 \f[C]
-> ndoe.setAttributes({Location: ""})
+> node.setAttributes({Location: ""})
 \f[]
 .fi
 .RE

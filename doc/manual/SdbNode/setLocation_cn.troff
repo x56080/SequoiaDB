@@ -109,7 +109,7 @@ v3.6.1 及以上版本
 .IP
 .nf
 \f[C]
-> ndoe.setLocation("")
+> node.setLocation("")
 \f[]
 .fi
 .RE

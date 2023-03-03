@@ -57,7 +57,7 @@ v3.6.1 及以上版本
 .IP
 .nf
 \f[C]
-> ndoe.setAttributes({Location: ""})
+> node.setAttributes({Location: ""})
 \f[]
 .fi
 .RE
