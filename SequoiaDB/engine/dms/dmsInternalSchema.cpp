@@ -1550,10 +1550,9 @@ namespace engine
       CHAR columnName[ DMS_SCHEMA_COLID_STR_MAX_SIZE + 1 ] = { 0 } ;
       INT32 colNameLength = 0 ;
 
-      buff = (CHAR *)cb->getBuffer( buffSize ) ;
-      if ( !buff )
+      rc = (CHAR *)cb->allocBuff( buffSize, &buff, NULL ) ;
+      if ( rc )
       {
-         rc = SDB_OOM ;
          PD_LOG( PDERROR, "Allocate memory of size[%u] failed, rc: %d", buffSize, rc ) ;
          goto error ;
       }
