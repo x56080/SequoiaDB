@@ -3932,6 +3932,7 @@ namespace engine
 
    INT32 _dmsStorageIndex::getIndexesFields( _dmsMBContext *context,
                                              ossPoolSet<ossPoolString> &setFields,
+                                             BOOLEAN getDotted,
                                              dmsExtentID exceptIdxLID )
    {
       INT32 rc = SDB_OK ;
@@ -3947,6 +3948,8 @@ namespace engine
 
       try
       {
+         const CHAR *pName = NULL ;
+         const CHAR *p = NULL ;
          // loops through all potential indexes for the record
          for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
          {
@@ -3965,8 +3968,17 @@ namespace engine
                BSONObjIterator itr( keyPattern ) ;
                while( itr.more() )
                {
-                  BSONElement e = itr.next() ;
-                  setFields.insert( e.fieldName() ) ;
+                  pName = itr.next().fieldName() ;
+                  if ( getDotted && NULL != ( p = ossStrchr( pName, '.' ) ) )
+                  {
+                     ossPoolString tmp ;
+                     tmp.assign( pName, p - pName ) ;
+                     setFields.insert( tmp ) ;
+                  }
+                  else
+                  {
+                     setFields.insert( pName ) ;
+                  }
                }
             }
          }
@@ -3987,7 +3999,8 @@ namespace engine
    INT32 _dmsStorageIndex::getIndexFields( _dmsMBContext *context,
                                            ossPoolSet<ossPoolString> &setFields,
                                            const CHAR *indexName,
-                                           dmsExtentID indexLID )
+                                           dmsExtentID indexLID,
+                                           BOOLEAN getDotted )
    {
       INT32 rc = SDB_OK ;
       BSONObj keyPattern ;
@@ -4007,6 +4020,9 @@ namespace engine
 
       try
       {
+         const CHAR *pName = NULL ;
+         const CHAR *p = NULL ;
+
          // loops through all potential indexes for the record
          for ( UINT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
          {
@@ -4027,8 +4043,17 @@ namespace engine
                   BSONObjIterator itr( keyPattern ) ;
                   while( itr.more() )
                   {
-                     BSONElement e = itr.next() ;
-                     setFields.insert( e.fieldName() ) ;
+                     pName = itr.next().fieldName() ;
+                     if ( getDotted && NULL != ( p = ossStrchr( pName, '.' ) ) )
+                     {
+                        ossPoolString tmp ;
+                        tmp.assign( pName, p - pName ) ;
+                        setFields.insert( tmp ) ;
+                     }
+                     else
+                     {
+                        setFields.insert( pName ) ;
+                     }
                   }
                }
                break ;
@@ -4064,7 +4089,6 @@ namespace engine
 
       rc = _pDataSu->getSchema( context, internalSchema, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get schema, rc: %d", rc ) ;
-
 
       for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {

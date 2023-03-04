@@ -4902,7 +4902,7 @@ namespace engine
       }
 
       /// get all index fields
-      rc = _pIndexSu->getIndexesFields( context, setFields ) ;
+      rc = _pIndexSu->getIndexesFields( context, setFields, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Get index fields form collection[%s] failed, rc: %d",
                    spaceName, collectionName, rc ) ;
 

@@ -253,11 +253,14 @@ namespace engine
 
          INT32    getIndexesFields( _dmsMBContext *context,
                                     ossPoolSet<ossPoolString> &setFields,
+                                    BOOLEAN getDotted,  /// TRUE means "a.b" get "a"
                                     dmsExtentID exceptIdxLID = DMS_INVALID_EXTENT ) ;
 
          INT32    getIndexFields( _dmsMBContext *context,
                                   ossPoolSet<ossPoolString> &setFields,
-                                  const CHAR* indexName, dmsExtentID indexLID ) ;
+                                  const CHAR* indexName, dmsExtentID indexLID,
+                                  BOOLEAN getDotted  /// TRUE means "a.b" get "a"
+                                ) ;
 
       private:
          INT32    _releaseMetaExtent( dmsExtentID extentID ) ;

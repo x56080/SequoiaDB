@@ -278,14 +278,14 @@ namespace engine
                         "should be lock escalated" ) ;
             markInsert = FALSE ;
          }
-         /// 2. check the value of (OID) is the same
+         /// 2. check the value of (_id) is the same
          else
          {
             if ( SDB_OK != extractData( context, recordRW, cb, recordData, TRUE, TRUE, TRUE ) )
             {
                markInsert = FALSE ;
             }
-            else if ( 0 != insertObj.woCompare(BSONObj()) )
+            else
             {
                try
                {
@@ -501,7 +501,7 @@ namespace engine
                PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
                goto error ;
             }
-            storeRecordData = encodeData ;
+            storeRecordData = encodeData.isEmpty() ? newRecordData : encodeData ;
          }
          else
          {

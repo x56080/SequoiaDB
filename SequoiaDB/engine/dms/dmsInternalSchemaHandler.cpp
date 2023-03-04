@@ -91,7 +91,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Init schema updator failed, rc: %d", rc ) ;
 
          rc = su->index()->getIndexFields( context, setFields, idxItem._pIXName,
-                                           idxItem._idxLID ) ;
+                                           idxItem._idxLID, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Get index fields failed, rc: %d", rc ) ;
 
          for ( ossPoolSet<ossPoolString>::iterator it = setFields.begin() ;
@@ -166,7 +166,7 @@ namespace engine
 
          /// get droped fields
          rc = su->index()->getIndexFields( context, setFieldsDroped, idxItem._pIXName,
-                                           idxItem._idxLID ) ;
+                                           idxItem._idxLID, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Get index fields failed, rc: %d", rc ) ;
 
          if ( setFieldsDroped.empty() )
@@ -175,7 +175,7 @@ namespace engine
          }
 
          /// get other fields
-         rc = su->index()->getIndexesFields( context, setFields, idxItem._idxLID ) ;
+         rc = su->index()->getIndexesFields( context, setFields, TRUE, idxItem._idxLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Get all index fields failed, rc: %d", rc ) ;
 
          for ( ossPoolSet<ossPoolString>::iterator it = setFieldsDroped.begin() ;
