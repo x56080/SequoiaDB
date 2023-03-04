@@ -154,9 +154,10 @@ namespace engine
                           UINT16 *columnID = NULL,
                           BOOLEAN mergeOnExist = FALSE, const CHAR *origName = NULL ) ;
 
-         INT32 dropColumn( const CHAR *columnName, BOOLEAN *colNotFound ) ;
+         INT32 dropColumn( const CHAR *columnName, BOOLEAN *colNotFound = NULL ) ;
 
-         INT32 renameColumn( const CHAR *oldName, const CHAR *newName, BOOLEAN *colNotFound ) ;
+         INT32 renameColumn( const CHAR *oldName, const CHAR *newName,
+                             BOOLEAN *colNotFound = NULL ) ;
 
          /**
           * Drop default value of a column. Only the write default can be dropped.
@@ -164,7 +165,7 @@ namespace engine
          INT32 dropColumnDefault( const CHAR *name ) ;
 
          INT32 alterColumn( const CHAR *columnName, const BSONObj &columnDef,
-                            BOOLEAN *colNotFound ) ;
+                            BOOLEAN *colNotFound = NULL ) ;
 
          INT32 setIndexColumn( const CHAR *columnName ) ;
 
