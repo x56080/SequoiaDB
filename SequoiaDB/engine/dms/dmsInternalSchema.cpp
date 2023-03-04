@@ -774,7 +774,7 @@ namespace engine
          goto done ;
       }
 
-      reset() ;
+      _reset() ;
 
       rc = _init( schemaExtent, schemaExtentSize, hashExtent, hashExtentSize, mbID, TRUE ) ;
       if ( rc )
@@ -789,6 +789,12 @@ namespace engine
    }
 
    void _dmsInternalSchema::reset()
+   {
+      ossScopedRWLock lock( &_loadRWMutex, EXCLUSIVE ) ;
+      _reset() ;
+   }
+
+   void _dmsInternalSchema::_reset()
    {
       _schemaContainer.reset() ;
       _schemaHash.reset() ;

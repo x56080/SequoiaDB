@@ -4858,13 +4858,13 @@ namespace engine
 
       if ( enableInfoSchema )
       {
-         rc = data()->enableInfoSchema( context ) ;
+         rc = data()->enableInfoSchema( context, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to enable info schema on collection [%s.%s], "
                       "rc: %d", CSName(), pName, rc ) ;
       }
       else
       {
-         rc = data()->disableInfoSchema( context ) ;
+         rc = data()->disableInfoSchema( context, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to disable info schema on collection [%s.%s], "
                       "rc: %d", CSName(), pName, rc ) ;
       }

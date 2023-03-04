@@ -131,13 +131,13 @@ namespace engine
    class _dmsInternalSchemaWriter : public dmsInternalSchema
    {
       public:
-         _dmsInternalSchemaWriter() ;
+         _dmsInternalSchemaWriter( BOOLEAN createNew = FALSE ) ;
          virtual ~_dmsInternalSchemaWriter() ;
 
          INT32 init( const dmsInternalSchema *pSchema, _dmsStorageDataCommon *su,
                      _dmsMBContext *context, _pmdEDUCB *cb ) ;
 
-         INT32 save( dmsInternalSchema *pSchema, _dmsMBContext *context, _pmdEDUCB *cb ) ;
+         INT32 save( _dmsMBContext *context, _pmdEDUCB *cb, BOOLEAN &hasChanged ) ;
 
          INT32 init( _dmsStorageDataCommon *su, _dmsMBContext *context,
                      dmsSchemaExtent *schemaExtent, dmsSchemaHashExtent *hashExtent,

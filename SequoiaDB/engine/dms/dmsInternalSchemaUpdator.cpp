@@ -727,7 +727,7 @@ namespace engine
       return rc ;
    }
 
-   _dmsInternalSchemaWriter::_dmsInternalSchemaWriter()
+   _dmsInternalSchemaWriter::_dmsInternalSchemaWriter( BOOLEAN createNew )
    : _origSchemaExtent( NULL ),
      _origHashExtent( NULL ),
      _newSchemaExtent( NULL ),
@@ -777,8 +777,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsInternalSchemaWriter::save( dmsInternalSchema *pSchema,
-                                         dmsMBContext *context, pmdEDUCB *cb )
+   INT32 _dmsInternalSchemaWriter::save( dmsMBContext *context, pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 

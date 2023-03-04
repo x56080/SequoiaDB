@@ -83,6 +83,7 @@ namespace engine
       schema = su->data()->getSchema( clItem._mbID ) ;
       if ( schema->enabled() )
       {
+         BOOLEAN hasChanged = FALSE ;
          dmsInternalSchemaWriter schemaUpdator ;
          ossPoolSet<ossPoolString> setFields ;
 
@@ -102,9 +103,16 @@ namespace engine
                          "failed, rc: %d", (*it).c_str(), rc ) ;
          }
 
-         rc = schemaUpdator.save( schema, context, cb ) ;
+         rc = schemaUpdator.save( context, cb, hasChanged ) ;
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                       context->mb()->_collectionName, rc ) ;
+
+         if ( hasChanged )
+         {
+            rc = su->data()->reloadSchema( context, &schema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Reload internal schema of collection[%s] failed, rc: %d",
+                         context->mb()->_collectionName, rc ) ;
+         }
       }
 
    done:
@@ -148,6 +156,7 @@ namespace engine
          // For each column in the current index, we need to check if it still exists in other
          // indexes. If yes, we should not remove the index column mark.
 
+         BOOLEAN hasChanged = FALSE ;
          dmsInternalSchemaWriter schemaUpdator ;
          ossPoolSet<ossPoolString> setFields ;
          ossPoolSet<ossPoolString> setFieldsDroped ;
@@ -182,9 +191,16 @@ namespace engine
             }
          }
 
-         rc = schemaUpdator.save( schema, context, cb ) ;
+         rc = schemaUpdator.save( context, cb, hasChanged ) ;
          PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                       context->mb()->_collectionName, rc ) ;
+
+         if ( hasChanged )
+         {
+            rc = su->data()->reloadSchema( context, &schema ) ;
+            PD_RC_CHECK( rc, PDERROR, "Reload internal schema of collection[%s] failed, rc: %d",
+                         context->mb()->_collectionName, rc ) ;
+         }
       }
 
    done:

@@ -1174,7 +1174,7 @@ namespace engine
             // If schema is enabled, need to load the schema extent.
             if ( OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
             {
-               rc = _initSchemaEntry( i ) ;
+               rc = _loadSchemaEntry( i ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to initialize internal schema entry for "
                             "collection: %s, rc = %d", _dmsMME->_mbList[i]._collectionName, rc ) ;
             }
@@ -1316,120 +1316,71 @@ namespace engine
       }
    }
 
-   INT32 _dmsStorageDataCommon::enableInfoSchema( dmsMBContext *context )
+   INT32 _dmsStorageDataCommon::enableInfoSchema( dmsMBContext *context, _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
-      UINT16 mbID = context->mbID() ;
-      UINT16 schemaExtSize = DMS_PAGE_SIZE64K >> pageSizeSquareRoot() ;
-      dmsSchemaExtent *schemaExtPtr = NULL ;
-      dmsSchemaHashExtent *schemaHashExtPtr = NULL ;
-      dmsExtentID schemaExtent = context->mb()->_schemaExtentID ;
-      dmsExtentID schemaHashExtent = context->mb()->_schemaHashExtentID ;
-
-      BOOLEAN isSchemaNew = FALSE, isSchemaHashNew = FALSE ;
-
-      if ( DMS_INVALID_EXTENT == schemaExtent )
+      if ( !context || !context->isMBLock( EXCLUSIVE ) )
       {
-         SDB_ASSERT( DMS_INVALID_EXTENT == schemaHashExtent, "should have no schema hash extent" ) ;
-         rc = _findFreeSpace( schemaExtSize, schemaExtent, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema extent failed, pageNum: %d, "
-                      "rc: %d", schemaExtSize, rc ) ;
-         isSchemaNew = TRUE ;
-      }
-      if ( DMS_INVALID_EXTENT == schemaHashExtent )
-      {
-         SDB_ASSERT( isSchemaNew, "should have no schema extent" ) ;
-         rc = _findFreeSpace( schemaExtSize, schemaHashExtent, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema hash extent failed, "
-                      "pageNum: %d, rc: %d", schemaExtSize, rc ) ;
-         isSchemaHashNew = TRUE ;
+         SDB_ASSERT( FALSE, "MBContext is invalid or not hold EXCLUSIVE lock" ) ;
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "MBContext is invalid or not hold EXCLUSIVE lock" ) ;
+         goto error ;
       }
 
-      if ( isSchemaNew || isSchemaHashNew )
+      if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) &&
+           DMS_INVALID_EXTENT != context->mb()->_schemaExtentID &&
+           DMS_INVALID_EXTENT != context->mb()->_schemaHashExtentID )
       {
-         dmsExtRW rw = extent2RW( schemaExtent, mbID ) ;
-         rw.setNothrow( TRUE ) ;
-         schemaExtPtr = rw.writePtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
-                   schemaExtent ) ;
-         schemaExtPtr->init( schemaExtSize, mbID, DMS_PAGE_SIZE64K ) ;
-         ossMemset( (CHAR *)schemaExtPtr + DMS_SCHEMAEXTENT_HEADER_SZ, 0x00,
-                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
-
-         rw = extent2RW( schemaHashExtent, mbID ) ;
-         rw.setNothrow( TRUE ) ;
-         schemaHashExtPtr =
-            rw.writePtr<dmsSchemaHashExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         PD_CHECK( schemaHashExtPtr, SDB_SYS, error, PDERROR,
-                   "Invalid internal schema hash extent[%d]", schemaHashExtent ) ;
-         schemaHashExtPtr->init( schemaExtSize, mbID ) ;
-         ossMemset( (CHAR *)schemaHashExtPtr + DMS_SCHEMAHASHEXTENT_HEADER_SZ, 0xFF,
-                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAHASHEXTENT_HEADER_SZ ) ;
+         if ( !_schemas[ context->mbID() ].enabled() )
+         {
+            rc = reloadSchema( context, NULL ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
       }
-
-      if ( !schemaExtPtr )
+      else
       {
-         dmsExtRW rw = extent2RW( schemaExtent, mbID ) ;
-         rw.setNothrow( TRUE ) ;
-         schemaExtPtr = (dmsSchemaExtent *)rw.readPtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
-                   schemaExtent ) ;
+         dmsInternalSchemaWriter schemaWriter( TRUE ) ;
+         BOOLEAN hasChanged = FALSE ;
+
+         _rmInternalSchema( context ) ;
+
+         rc = schemaWriter.init( NULL, this, context, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Init schema writer failed in collection[%s], rc: %d",
+                      context->mb()->_collectionName, rc ) ;
+
+         rc = schemaWriter.save( context, cb, hasChanged ) ;
+         PD_RC_CHECK( rc, PDERROR, "Create schema info failed in collection[%s], rc: %d",
+                      context->mb()->_collectionName, rc ) ;
+
+         if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+         {
+            OSS_BIT_CLEAR( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
+         }
+
+         /// check
+         SDB_ASSERT( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ),
+                     "Invalid attribute" ) ;
+         SDB_ASSERT( DMS_INVALID_EXTENT != context->mb()->_schemaExtentID,
+                     "Invalid schema extent ID" ) ;
+         SDB_ASSERT( DMS_INVALID_EXTENT != context->mb()->_schemaHashExtentID,
+                     "Invalid schema hash extent ID" ) ;
+
+         rc = _loadSchemaEntry( context->mbID() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Load schema info failed in collection[%s], rc: %d",
+                      context->mb()->_collectionName, rc ) ;
       }
-
-      if ( !schemaHashExtPtr )
-      {
-         dmsExtRW rw = extent2RW( schemaHashExtent, mbID ) ;
-         rw.setNothrow( TRUE ) ;
-         schemaHashExtPtr =
-            (dmsSchemaHashExtent *)rw.readPtr<dmsSchemaHashExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         PD_CHECK( schemaHashExtPtr, SDB_SYS, error, PDERROR,
-                   "Invalid internal schema hash extent[%d]", schemaHashExtent ) ;
-      }
-
-      rc = _schemas[ mbID ].init( schemaExtPtr, DMS_PAGE_SIZE64K,
-                                  schemaHashExtPtr, DMS_PAGE_SIZE64K, mbID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize internal schema failed, rc: %d", rc ) ;
-
-      if ( isSchemaNew )
-      {
-         context->mb()->_schemaExtentID = schemaExtent ;
-         schemaExtent = DMS_INVALID_EXTENT ;
-      }
-      if ( isSchemaHashNew )
-      {
-         context->mb()->_schemaHashExtentID = schemaHashExtent ;
-         schemaHashExtent = DMS_INVALID_EXTENT ;
-      }
-
-      OSS_BIT_SET( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
-
-      // on metadata updated
-      _onMBUpdated( context->mbID() ) ;
-
-      // Flush MME
-      flushMME( isSyncDeep() ) ;
 
    done:
       return rc ;
-
    error:
-      if ( DMS_INVALID_EXTENT != schemaExtent && isSchemaNew )
-      {
-         _releaseSpace( schemaExtent, schemaExtSize ) ;
-         schemaExtent = DMS_INVALID_EXTENT ;
-         isSchemaNew = FALSE ;
-      }
-      if ( DMS_INVALID_EXTENT != schemaHashExtent && isSchemaHashNew )
-      {
-         _releaseSpace( schemaHashExtent, schemaExtSize ) ;
-         schemaHashExtent = DMS_INVALID_EXTENT ;
-         isSchemaHashNew = FALSE ;
-      }
       goto done ;
    }
 
-   INT32 _dmsStorageDataCommon::disableInfoSchema( dmsMBContext *context )
+   INT32 _dmsStorageDataCommon::disableInfoSchema( dmsMBContext *context, _pmdEDUCB *cb )
    {
       if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
       {
@@ -1481,6 +1432,80 @@ namespace engine
    done:
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsStorageDataCommon::reloadSchema( dmsMBContext *context,
+                                              _dmsInternalSchema **ppSchema )
+   {
+      INT32 rc = SDB_OK ;
+      _dmsInternalSchema *pSchema = NULL ;
+      const dmsSchemaExtent *extent = NULL ;
+      const dmsSchemaHashExtent *hashExtent = NULL ;
+
+      const dmsSchemaExtent *newSchemaExtent = NULL ;
+      const dmsSchemaHashExtent *newHashExtent = NULL ;
+      UINT32 newSchemaExtentSize = 0 ;
+      UINT32 newHashExtentSize = 0 ;
+
+      if ( !context || !context->isMBLock( EXCLUSIVE ) )
+      {
+         rc = SDB_SYS ;
+         SDB_ASSERT( FALSE, "Context is invalid or not get EXCLUSIVE lock" ) ;
+         PD_LOG( PDERROR, "Context is invalid or not get EXCLUSIVE lock" ) ;
+         goto error ;
+      }
+
+      pSchema = &_schemas[ context->mbID() ] ;
+      extent = pSchema->getSchemaContainer()->getExtent() ;
+      hashExtent = pSchema->getSchemaHashTable()->getExtent() ;
+
+      rc = _getSchemaEntryInfo( context->mbID(), newSchemaExtent, newHashExtent,
+                                newSchemaExtentSize, newHashExtentSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get internal schema info in collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
+
+      rc = pSchema->reload( newSchemaExtent, newSchemaExtentSize,
+                            newHashExtent, newHashExtentSize, context->mbID() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Reload internal schema in collection[%s] failed, rc: %d",
+                   context->mb()->_collectionName, rc ) ;
+
+      if ( ppSchema )
+      {
+         *ppSchema = pSchema ;
+      }
+
+   done:
+      /// end schema extent fix addr
+      if ( extent == pSchema->getSchemaContainer()->getExtent() )
+      {
+         endFixedAddr( (const ossValuePtr)newSchemaExtent ) ;
+      }
+      else if ( newSchemaExtent == pSchema->getSchemaContainer()->getExtent() )
+      {
+         endFixedAddr( (const ossValuePtr)extent ) ;
+      }
+      else
+      {
+         endFixedAddr( (const ossValuePtr)extent ) ;
+         endFixedAddr( (const ossValuePtr)newSchemaExtent ) ;
+      }
+      /// end schema hash extent fix addr
+      if ( hashExtent == pSchema->getSchemaHashTable()->getExtent() )
+      {
+         endFixedAddr( (const ossValuePtr)newHashExtent ) ;
+      }
+      else if ( newHashExtent == pSchema->getSchemaHashTable()->getExtent() )
+      {
+         endFixedAddr( (const ossValuePtr)hashExtent ) ;
+      }
+      else
+      {
+         endFixedAddr( (const ossValuePtr)hashExtent ) ;
+         endFixedAddr( (const ossValuePtr)newHashExtent ) ;
+      }
+      return rc ;
    error:
       goto done ;
    }
@@ -1556,31 +1581,107 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsStorageDataCommon::_initSchemaEntry( UINT16 mbID )
+   INT32 _dmsStorageDataCommon::_getSchemaEntryInfo( UINT16 mbID,
+                                                     const dmsSchemaExtent *&extent,
+                                                     const dmsSchemaHashExtent *&hashExtent,
+                                                     UINT32 &extSize,
+                                                     UINT32 &exthashSize )
    {
       INT32 rc = SDB_OK ;
+      dmsExtentID extID = DMS_INVALID_EXTENT ;
+      dmsExtentID hashExtID = DMS_INVALID_EXTENT ;
       dmsExtRW extRW ;
       dmsExtRW hashRW ;
-      UINT32 extSize = 0 ;
-      UINT32 exthashSize = 0 ;
+      UINT32 extPageNum = 0 ;
+      UINT32 extHashPageNum = 0 ;
 
-      extRW = extent2RW( _dmsMME->_mbList[mbID]._schemaExtentID ) ;
+      extID = _dmsMME->_mbList[mbID]._schemaExtentID ;
+      hashExtID = _dmsMME->_mbList[mbID]._schemaHashExtentID ;
+
+      extRW = extent2RW( extID ) ;
       extRW.setNothrow( TRUE ) ;
-      const dmsSchemaExtent *extent = extRW.readPtr<dmsSchemaExtent>() ;
-      extSize = extent->_blockSize << pageSizeSquareRoot() ;
+      extent = extRW.readPtr<dmsSchemaExtent>() ;
+      if ( !extent )
+      {
+         PD_LOG( PDERROR, "Internal schema extent[%d] is invalid in collection[%u]",
+                 extID, mbID ) ;
+         rc = SDB_DMS_CORRUPTED_EXTENT ;
+         goto error ;
+      }
+      extPageNum = extent->_blockSize ;
+      extSize = extPageNum << pageSizeSquareRoot() ;
 
-      hashRW = extent2RW( _dmsMME->_mbList[mbID]._schemaHashExtentID ) ;
+      hashRW = extent2RW( hashExtID ) ;
       hashRW.setNothrow( TRUE ) ;
-      const dmsSchemaHashExtent *hashExtent = hashRW.readPtr<dmsSchemaHashExtent>() ;
-      exthashSize = hashExtent->_blockSize << pageSizeSquareRoot() ;
+      hashExtent = hashRW.readPtr<dmsSchemaHashExtent>() ;
+      if ( !hashExtent )
+      {
+         PD_LOG( PDERROR, "Internal schema hash extent[%d] is invalid in collection[%u]",
+                 hashExtID, mbID ) ;
+         rc = SDB_DMS_CORRUPTED_EXTENT ;
+         goto error ;
+      }
+      extHashPageNum = hashExtent->_blockSize ;
+      exthashSize = extHashPageNum << pageSizeSquareRoot() ;
 
-      rc = _schemas[mbID].init( extent,  extSize, hashExtent, exthashSize, mbID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init schema, rc: %d", rc ) ;
+      /// use fix addr
+      extent = (const dmsSchemaExtent*)beginFixedAddr( extID, extPageNum ) ;
+      hashExtent = (const dmsSchemaHashExtent*)beginFixedAddr( hashExtID, extHashPageNum ) ;
 
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _dmsStorageDataCommon::_loadSchemaEntry( UINT16 mbID )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 extSize = 0 ;
+      UINT32 exthashSize = 0 ;
+      const dmsSchemaExtent *extent = NULL ;
+      const dmsSchemaHashExtent *hashExtent = NULL ;
+
+      rc = _getSchemaEntryInfo( mbID, extent, hashExtent, extSize, exthashSize ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _schemas[mbID].init( extent, extSize, hashExtent, exthashSize, mbID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init schema in collection[%u], rc: %d",
+                   mbID, rc ) ;
+
+   done:
+      /// end schema extent fix addr
+      if ( extent != _schemas[mbID].getSchemaContainer()->getExtent() )
+      {
+         endFixedAddr( (const ossValuePtr)extent ) ;
+      }
+      /// end schema hash extent fix addr
+      if ( hashExtent == _schemas[mbID].getSchemaHashTable()->getExtent() )
+      {
+         endFixedAddr( (const ossValuePtr)hashExtent ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _dmsStorageDataCommon::_unloadSchemaEntry( _dmsMBContext *context )
+   {
+      _dmsInternalSchema *pSchema = &_schemas[ context->mbID() ] ;
+      const dmsSchemaExtent *extent = NULL ;
+      const dmsSchemaHashExtent *hashExtent = NULL ;
+
+      extent = pSchema->getSchemaContainer()->getExtent() ;
+      hashExtent = pSchema->getSchemaHashTable()->getExtent() ;
+
+      pSchema->reset() ;
+
+      /// end fix addr
+      endFixedAddr( (const ossValuePtr)extent ) ;
+      endFixedAddr( (const ossValuePtr)hashExtent ) ;
    }
 
    UINT64 _dmsStorageDataCommon::_getOldestWriteTick() const
@@ -1928,7 +2029,7 @@ namespace engine
       dmsExtentID currentExt       = DMS_INVALID_EXTENT ;
       dmsExtentID prevExt          = DMS_INVALID_EXTENT ;
       dmsMetaExtent *metaExt       = NULL ;
-      dmsDictExtent *dictExt       = NULL ;
+      const dmsDictExtent *dictExt = NULL ;
       BOOLEAN reachLast            = FALSE ;
       dmsExtentID nextExt          = DMS_INVALID_EXTENT ;
       const dmsExtent *pCurrExt    = NULL ;
@@ -2076,7 +2177,7 @@ namespace engine
       {
          dictRW = extent2RW( context->mb()->_dictExtentID,
                              context->mbID() ) ;
-         dictExt = dictRW.writePtr<dmsDictExtent>() ;
+         dictExt = dictRW.readPtr<dmsDictExtent>() ;
          _releaseSpace( context->mb()->_dictExtentID, dictExt->_blockSize ) ;
          context->mb()->_dictExtentID = DMS_INVALID_EXTENT ;
          context->mb()->_dictVersion = 0 ;
@@ -5708,8 +5809,9 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__RMINTERNALSCHEMA ) ;
 
-      _schemas[ context->mbID() ].reset() ;
+      _unloadSchemaEntry( context ) ;
 
+      /// release pages
       if ( DMS_INVALID_EXTENT != context->mb()->_schemaExtentID )
       {
          const dmsSchemaExtent *schemaExtPtr = NULL ;
@@ -5717,8 +5819,11 @@ namespace engine
                                   context->mbID() ) ;
          rw.setNothrow( TRUE ) ;
          schemaExtPtr = rw.readPtr<dmsSchemaExtent>() ;
-         _releaseSpace( context->mb()->_schemaExtentID,
-                        schemaExtPtr->_blockSize ) ;
+         if ( schemaExtPtr )
+         {
+            _releaseSpace( context->mb()->_schemaExtentID,
+                           schemaExtPtr->_blockSize ) ;
+         }
          context->mb()->_schemaExtentID = DMS_INVALID_EXTENT ;
       }
 
@@ -5729,9 +5834,17 @@ namespace engine
                                   context->mbID() ) ;
          rw.setNothrow( TRUE ) ;
          schemaHashExtPtr = rw.readPtr<dmsSchemaHashExtent>() ;
-         _releaseSpace( context->mb()->_schemaHashExtentID,
-                        schemaHashExtPtr->_blockSize ) ;
+         if ( schemaHashExtPtr )
+         {
+            _releaseSpace( context->mb()->_schemaHashExtentID,
+                           schemaHashExtPtr->_blockSize ) ;
+         }
          context->mb()->_schemaHashExtentID = DMS_INVALID_EXTENT ;
+      }
+
+      if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
+      {
+         OSS_BIT_CLEAR( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__RMINTERNALSCHEMA ) ;

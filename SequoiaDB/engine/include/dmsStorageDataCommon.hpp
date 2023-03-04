@@ -1297,13 +1297,16 @@ namespace engine
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
 
-         INT32 enableInfoSchema( dmsMBContext * context ) ;
-         INT32 disableInfoSchema( dmsMBContext * context ) ;
+         INT32 enableInfoSchema( dmsMBContext *context, _pmdEDUCB *cb ) ;
+         INT32 disableInfoSchema( dmsMBContext *context, _pmdEDUCB *cb ) ;
 
          _dmsInternalSchema* getSchema( UINT16 mbID ) ;
          INT32 getSchema( dmsMBContext * context,
                           utilSchema &schema,
                           BOOLEAN needGetOwned ) ;
+
+         INT32 reloadSchema( dmsMBContext *context,
+                             _dmsInternalSchema **ppSchema = NULL ) ;
 
       protected:
          virtual INT32 _prepareAddCollection( const BSONObj *extOption,
@@ -1463,7 +1466,14 @@ namespace engine
          void _setCompressor( dmsMBContext *context ) ;
          void _rmCompressor( _dmsMBContext *context ) ;
 
-         void _rmInternalSchema( _dmsMBContext *context ) ;
+         INT32 _getSchemaEntryInfo( UINT16 mbID,
+                                    const dmsSchemaExtent *&extent,
+                                    const dmsSchemaHashExtent *&hashExtent,
+                                    UINT32 &extSize,
+                                    UINT32 &exthashSize ) ;
+         INT32 _loadSchemaEntry( UINT16 mbID ) ;
+         void  _unloadSchemaEntry( _dmsMBContext *context ) ;
+         void  _rmInternalSchema( _dmsMBContext *context ) ;
 
          // This function allocates a new extent. When the extent is allocated,
          // different storage types( sub classes of this base class ) may have
@@ -1538,9 +1548,6 @@ namespace engine
 
          INT32          _addSchema( dmsMBContext *context,
                                     const utilSchema &schema ) ;
-
-         INT32          _initSchemaEntry( UINT16 mbID ) ;
-
       //private:
       protected:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB

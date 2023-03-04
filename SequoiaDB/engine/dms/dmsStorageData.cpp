@@ -47,6 +47,8 @@
 #include "pdSecure.hpp"
 #include "dmsInternalSchemaUpdator.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
 
@@ -272,27 +274,38 @@ namespace engine
          pRecord = recordRW.readPtr<dmsRecord>() ;
          if ( !pRecord->isDeleting() )
          {
-            SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
+            SDB_ASSERT( cb->getTransExecutor()->isLockEscalated( LOCKMGR_TRANS_LOCK ),
                         "should be lock escalated" ) ;
             markInsert = FALSE ;
          }
-         /// 2. check the value is the same
+         /// 2. check the value of (OID) is the same
          else
          {
-            if ( SDB_OK != extractData( context, recordRW, cb, recordData ) )
+            if ( SDB_OK != extractData( context, recordRW, cb, recordData, TRUE, TRUE, TRUE ) )
             {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
                markInsert = FALSE ;
             }
-            else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
+            else if ( 0 != insertObj.woCompare(BSONObj()) )
             {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
+               try
+               {
+                  BSONObj objDeleting( recordData.data() ) ;
+                  BSONElement eleIDIn = insertObj.getField( DMS_ID_KEY_NAME ) ;
+                  BSONElement eleIDDeleting = objDeleting.getField( DMS_ID_KEY_NAME ) ;
+
+                  if ( ! ( ( OSS_BIT_TEST( context->mb()->_attributes,
+                                           DMS_MB_ATTR_ENABLE_INFOSCHEMA ) &&
+                             0 == eleIDIn.woCompare( eleIDDeleting, false ) ) ||
+                            0 == insertObj.woComapre( objDeleting ) ) )
+                  {
+                     markInsert = FALSE ;
+                  }
+               }
+               catch ( std::exception &e )
+               {
+                  PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+                  markInsert = FALSE ;
+               }
             }
          }
 
@@ -314,7 +327,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKMARKINST, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -1625,6 +1637,7 @@ namespace engine
          {
             BSONObj record( recordData.data() ) ;
             dmsInternalSchemaWriter schemaUpdator ;
+            BOOLEAN hasChanged = FALSE ;
 
             rc = schemaUpdator.init( schema, this, context, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
@@ -1632,9 +1645,16 @@ namespace engine
             rc = schemaUpdator.updateSchemaByRecord( record ) ;
             PD_RC_CHECK( rc, PDERROR, "Update internal schema by record failed, rc: %d", rc ) ;
 
-            rc = schemaUpdator.save( schema, context, cb ) ;
+            rc = schemaUpdator.save( context, cb, hasChanged ) ;
             PD_RC_CHECK( rc, PDERROR, "Save new internal schema of collection[%s] failed, rc: %d",
                          context->mb()->_collectionName, rc ) ;
+
+            if ( hasChanged )
+            {
+               rc = reloadSchema( context, &schema ) ;
+               PD_RC_CHECK( rc, PDERROR, "Reload internal schema of collection[%s] failed, rc: %d",
+                            context->mb()->_collectionName, rc ) ;
+            }
          }
          catch( std::exception &e )
          {

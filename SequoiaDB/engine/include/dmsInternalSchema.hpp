@@ -433,6 +433,8 @@ namespace engine
                          UINT16 mbID,
                          BOOLEAN isReload ) ;
 
+         void     _reset() ;
+
          INT32    _parseRecord( utilBSONRawBuilder &encodeBuilder,
                                 _utilBitmapBase &writeBitmap,
                                 const BSONObj &record,
