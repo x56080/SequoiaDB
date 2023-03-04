@@ -1547,7 +1547,9 @@ namespace engine
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 
          INT32          _addSchema( dmsMBContext *context,
-                                    const utilSchema &schema ) ;
+                                    const utilSchema &schema,
+                                    _pmdEDUCB *cb,
+                                    const ossPoolSet<ossPoolString> *pSetIdxFields = NULL ) ;
       //private:
       protected:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB

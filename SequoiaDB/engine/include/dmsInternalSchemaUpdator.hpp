@@ -139,6 +139,12 @@ namespace engine
 
          INT32 save( _dmsMBContext *context, _pmdEDUCB *cb, BOOLEAN &hasChanged ) ;
 
+         INT32 addColumns( const utilSchema &schema, _pmdEDUCB *cb,
+                           const ossPoolSet<ossPoolString> *pSetIdxFields = NULL )
+         {
+            return SDB_OK ;
+         }
+
          INT32 init( _dmsStorageDataCommon *su, _dmsMBContext *context,
                      dmsSchemaExtent *schemaExtent, dmsSchemaHashExtent *hashExtent,
                      BOOLEAN create = FALSE ) ;

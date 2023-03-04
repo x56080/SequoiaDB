@@ -1356,11 +1356,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Create schema info failed in collection[%s], rc: %d",
                       context->mb()->_collectionName, rc ) ;
 
-         if ( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) )
-         {
-            OSS_BIT_CLEAR( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
-         }
-
          /// check
          SDB_ASSERT( OSS_BIT_TEST( context->mb()->_attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ),
                      "Invalid attribute" ) ;
@@ -1511,23 +1506,16 @@ namespace engine
    }
 
    INT32 _dmsStorageDataCommon::_addSchema( dmsMBContext *context,
-                                            const utilSchema &schema )
+                                            const utilSchema &schema,
+                                            _pmdEDUCB *cb,
+                                            const ossPoolSet<ossPoolString> *pSetIdxFields )
    {
       INT32 rc = SDB_OK ;
-
-      // parse the schema define, find which has default.
-      // default conflict ?
-      dmsInternalSchema *internalSchema = NULL ;
+      dmsInternalSchema *schema = NULL ;
       const CHAR *spaceName = getSuName() ;
-      dmsInternalSchemaWriter schemaUpdator ;
       const CHAR *collectionName = context->mb()->_collectionName ;
-
-      dmsExtRW schemaExtRW = extent2RW( context->mb()->_schemaExtentID ) ;
-      dmsExtRW hashExtRW = extent2RW( context->mb()->_schemaHashExtentID ) ;
-      schemaExtRW.setNothrow( TRUE ) ;
-      hashExtRW.setNothrow( TRUE ) ;
-      dmsSchemaExtent *schemaExtent = NULL ;
-      dmsSchemaHashExtent *hashExtent = NULL ;
+      BOOLEAN hasChanged = FALSE ;
+      dmsInternalSchemaWriter schemaUpdator ;
 
       PD_CHECK( OSS_BIT_TEST( context->mb()->_attributes,
                               DMS_MB_ATTR_ENABLE_INFOSCHEMA ),
@@ -1535,48 +1523,32 @@ namespace engine
                 "Failed to check add schema of collection [%s.%s], "
                 "info schema is not enabled", spaceName, collectionName ) ;
 
-      internalSchema = getSchema( context->mbID() ) ;
-      PD_CHECK( internalSchema->enabled(),
+      schema = getSchema( context->mbID() ) ;
+      PD_CHECK( schema->enabled(),
                 SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                 "Failed to add schema to collection [%s.%s], "
                 "schema is not enabled", spaceName, collectionName ) ;
 
-      schemaExtent = schemaExtRW.writePtr<dmsSchemaExtent>(0,
-                     internalSchema->getSchemaContainer()->getExtentSize() ) ;
-      hashExtent = hashExtRW.writePtr<dmsSchemaHashExtent>(0,
-                   internalSchema->getSchemaHashTable()->getExtentSize() ) ;
-
-      rc = schemaUpdator.init( this, context, schemaExtent, hashExtent ) ;
+      rc = schemaUpdator.init( schema, this, context, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
 
-      for ( UTIL_SCHEMA_COLUMN_LIST_CIT iter = schema.getColumns().begin() ;
-            iter != schema.getColumns().end() ;
-            ++ iter )
+      rc = schemaUpdator.addColumns( schema, cb, pSetIdxFields ) ;
+      PD_RC_CHECK( rc, PDERROR, "Add schema columns to collection[%s.%s] failed, rc: %d",
+                   spaceName, collectionName, rc ) ;
+
+      rc = schemaUpdator.save( context, cb, hasChanged ) ;
+      PD_RC_CHECK( rc, PDERROR, "Save new internal schema for collecion[%s.%s] failed, rc: %d",
+                   spaceName, collectionName, rc ) ;
+
+      if ( hasChanged )
       {
-         const utilSchemaColumn &column = *iter ;
-         const CHAR *columnName = column.getName() ;
-         if ( column.hasWriteDefault() || column.hasReadDefault() )
-         {
-            rc = schemaUpdator.addColumn( columnName, &column.getDefine(), NULL, TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s] to schema of "
-                         "collection [%s.%s], rc: %d",
-                         columnName, spaceName, collectionName, rc ) ;
-            PD_LOG( PDDEBUG, "Add column [%s] to collection [%s.%s]",
-                    columnName, spaceName, collectionName ) ;
-         }
+         rc = reloadSchema( context, &schema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s.%s] failed, rc: %d",
+                      spaceName, collectionName, rc ) ;
       }
-
-      rc = schemaUpdator.save( internalSchema, context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Save new internal schema for collecion[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
-
-      // rc = internalSchema->reload() ;
-      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
 
    done:
       return rc ;
-
    error:
       goto done ;
    }
@@ -2603,15 +2575,11 @@ namespace engine
       UINT32 segNum           = DMS_MAX_PG >> segmentPagesSquareRoot() ;
       UINT32 mbExSize         = (( segNum << 3 ) >> pageSizeSquareRoot()) + 1 ;
       UINT16 optExtSize       = 0 ;
-      // The size of both internal schema extent and schema hash extent is 64KB.
-      UINT16 schemaExtSize    = DMS_PAGE_SIZE64K >> pageSizeSquareRoot() ;
       dmsExtentID mbExExtent  = DMS_INVALID_EXTENT ;
       dmsExtentID mbOptExtent = DMS_INVALID_EXTENT ;
-      dmsExtentID schemaExtent = DMS_INVALID_EXTENT ;
-      dmsExtentID schemaHashExtent = DMS_INVALID_EXTENT ;
       dmsMetaExtent *mbExtent = NULL ;
       INT32 testTransLockRC   = SDB_OK ;
-      BOOLEAN enableInfoSchema = OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
+      BOOLEAN isEnableSchema  = OSS_BIT_TEST( attributes, DMS_MB_ATTR_ENABLE_INFOSCHEMA ) ;
       BSONObj schemaDef ;
       BSONObj *pSchemaDef = NULL ;
 
@@ -2624,7 +2592,7 @@ namespace engine
 
       _clFullName( pName, fullName, sizeof(fullName) ) ;
 
-      if ( enableInfoSchema && NULL != pSchema && pSchema->isValid() )
+      if ( isEnableSchema && NULL != pSchema && pSchema->isValid() )
       {
          rc = pSchema->toBSON( schemaDef ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for schema, rc: %d",
@@ -2663,17 +2631,6 @@ namespace engine
          rc = _findFreeSpace( mbExSize, mbExExtent, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Allocate metablock expand extent failed, "
                       "pageNum: %d, rc: %d", mbExSize, rc ) ;
-      }
-
-      // Allocate schema extent and schema hash extent
-      if ( enableInfoSchema )
-      {
-         rc = _findFreeSpace( schemaExtSize, schemaExtent, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema extent failed, pageNum: %d, rc: %d",
-                      schemaExtSize, rc ) ;
-         rc = _findFreeSpace( schemaExtSize, schemaHashExtent, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Allocate internal schema hash extent failed, "
-                      "pageNum: %d, rc: %d", schemaExtSize, rc ) ;
       }
 
       // first exclusive latch metadata, this shouldn't be replaced by SHARED to
@@ -2797,35 +2754,6 @@ namespace engine
          mbExExtent = DMS_INVALID_EXTENT ;
       }
 
-      if ( enableInfoSchema )
-      {
-         dmsSchemaExtent *schemaExtPtr = NULL ;
-         dmsSchemaHashExtent *schemaHashExtPtr = NULL ;
-         dmsExtRW rw = extent2RW( schemaExtent, newCollectionID ) ;
-         rw.setNothrow( TRUE ) ;
-         schemaExtPtr = rw.writePtr<dmsSchemaExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         PD_CHECK( schemaExtPtr, SDB_SYS, error, PDERROR, "Invalid internal schema extent[%d]",
-                   schemaExtent ) ;
-         schemaExtPtr->init( schemaExtSize, newCollectionID, DMS_PAGE_SIZE64K ) ;
-         ossMemset( (CHAR *)schemaExtPtr + DMS_SCHEMAEXTENT_HEADER_SZ, 0x00,
-                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAEXTENT_HEADER_SZ ) ;
-
-         mb->_schemaExtentID = schemaExtent ;
-         schemaExtent = DMS_INVALID_EXTENT ;
-
-         rw = extent2RW( schemaHashExtent, newCollectionID ) ;
-         rw.setNothrow( TRUE ) ;
-         schemaHashExtPtr =
-            rw.writePtr<dmsSchemaHashExtent>( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         PD_CHECK( schemaHashExtPtr, SDB_SYS, error, PDERROR,
-                   "Invalid internal schema hash extent[%d]", schemaHashExtent ) ;
-         schemaHashExtPtr->init( schemaExtSize, newCollectionID ) ;
-         ossMemset( (CHAR *)schemaHashExtPtr + DMS_SCHEMAHASHEXTENT_HEADER_SZ, 0xFF,
-                    ( schemaExtSize << pageSizeSquareRoot() ) - DMS_SCHEMAHASHEXTENT_HEADER_SZ ) ;
-         mb->_schemaHashExtentID = schemaHashExtent ;
-         schemaHashExtent = DMS_INVALID_EXTENT ;
-      }
-
       rc = _onAddCollection( extOptions, mbOptExtent,
                              optExtSize, newCollectionID ) ;
       PD_RC_CHECK( rc, PDERROR, "onAddCollection operation failed: %d", rc ) ;
@@ -2847,26 +2775,15 @@ namespace engine
          goto error ;
       }
 
-      if ( enableInfoSchema )
+      if ( isEnableSchema )
       {
-         dmsExtRW schemaExtRW = extent2RW( context->mb()->_schemaExtentID, newCollectionID ) ;
-         dmsExtRW hashExtRW = extent2RW( context->mb()->_schemaHashExtentID, newCollectionID ) ;
-         schemaExtRW.setNothrow( TRUE ) ;
-         hashExtRW.setNothrow( TRUE ) ;
-         const dmsSchemaExtent *schemaExtentPtr =
-            (const dmsSchemaExtent *)schemaExtRW.readPtr( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         const dmsSchemaHashExtent *hashExtentPtr =
-            (const dmsSchemaHashExtent *)hashExtRW.readPtr( 0, schemaExtSize << pageSizeSquareRoot() ) ;
-         rc = _schemas[ newCollectionID ].init( schemaExtentPtr,
-                                                schemaExtSize << pageSizeSquareRoot(),
-                                                hashExtentPtr,
-                                                schemaExtSize << pageSizeSquareRoot(),
-                                                newCollectionID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Initialize internal schema failed, rc: %d", rc ) ;
+         rc = enableInfoSchema( context, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Enable internal schema on collection[%s] failed, rc: %d",
+                      fullName, rc ) ;
 
          if ( NULL != pSchema && pSchema->isValid() )
          {
-            rc = _addSchema( context, *pSchema ) ;
+            rc = _addSchema( context, *pSchema, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add schema [%s] to "
                          "collection [%s], rc: %d",
                          pSchema->getName(), fullName, rc ) ;
@@ -2970,14 +2887,6 @@ namespace engine
       if ( DMS_INVALID_EXTENT != mbOptExtent )
       {
          _releaseSpace( mbOptExtent, optExtSize ) ;
-      }
-      if ( DMS_INVALID_EXTENT != schemaExtent )
-      {
-         _releaseSpace( schemaExtent, schemaExtSize ) ;
-      }
-      if ( DMS_INVALID_EXTENT != schemaHashExtent )
-      {
-         _releaseSpace( schemaHashExtent, schemaExtSize ) ;
       }
       if ( DMS_INVALID_MBID != newCollectionID )
       {

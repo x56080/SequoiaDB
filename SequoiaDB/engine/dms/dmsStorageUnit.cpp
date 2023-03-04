@@ -4888,13 +4888,26 @@ namespace engine
                                      pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY( SDB__DMSSU__ADDSCHEMA ) ;
 
+      ossPoolSet< ossPoolString > setFields ;
       const CHAR *spaceName = CSName() ;
       const CHAR *collectionName = context->mb()->_collectionName ;
 
-      rc = _pDataSu->_addSchema( context, schema ) ;
+      if ( !context->isMBLock( EXCLUSIVE ) )
+      {
+         rc = context->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "MB context hold EXCLUSIVE lock failed, rc: %d",
+                      rc ) ;
+      }
+
+      /// get all index fields
+      rc = _pIndexSu->getIndexesFields( context, setFields ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get index fields form collection[%s] failed, rc: %d",
+                   spaceName, collectionName, rc ) ;
+
+      /// add schema
+      rc = _pDataSu->_addSchema( context, schema, cb, &setFields ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add schema [%s] to "
                    "collection [%s.%s], rc: %d",
                    schema.getName(), spaceName, collectionName, rc ) ;
@@ -4905,7 +4918,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__DMSSU__ADDSCHEMA, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
