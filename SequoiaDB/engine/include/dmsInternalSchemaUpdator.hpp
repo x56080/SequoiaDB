@@ -38,6 +38,7 @@
 #define DMS_INTSCHEMA_UPDATOR_HPP__
 
 #include "dmsInternalSchema.hpp"
+#include "utilSchema.hpp"
 
 namespace engine
 {
