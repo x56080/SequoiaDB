@@ -1511,7 +1511,7 @@ namespace engine
                                             const ossPoolSet<ossPoolString> *pSetIdxFields )
    {
       INT32 rc = SDB_OK ;
-      dmsInternalSchema *schema = NULL ;
+      dmsInternalSchema *pSchema = NULL ;
       const CHAR *spaceName = getSuName() ;
       const CHAR *collectionName = context->mb()->_collectionName ;
       BOOLEAN hasChanged = FALSE ;
@@ -1523,13 +1523,13 @@ namespace engine
                 "Failed to check add schema of collection [%s.%s], "
                 "info schema is not enabled", spaceName, collectionName ) ;
 
-      schema = getSchema( context->mbID() ) ;
-      PD_CHECK( schema->enabled(),
+      pSchema = getSchema( context->mbID() ) ;
+      PD_CHECK( pSchema->enabled(),
                 SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                 "Failed to add schema to collection [%s.%s], "
                 "schema is not enabled", spaceName, collectionName ) ;
 
-      rc = schemaUpdator.init( schema, this, context, cb ) ;
+      rc = schemaUpdator.init( pSchema, this, context, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Init internal schema updator failed, rc: %d", rc ) ;
 
       rc = schemaUpdator.addColumns( schema, cb, pSetIdxFields ) ;
@@ -1542,7 +1542,7 @@ namespace engine
 
       if ( hasChanged )
       {
-         rc = reloadSchema( context, &schema ) ;
+         rc = reloadSchema( context, &pSchema ) ;
          PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s.%s] failed, rc: %d",
                       spaceName, collectionName, rc ) ;
       }
