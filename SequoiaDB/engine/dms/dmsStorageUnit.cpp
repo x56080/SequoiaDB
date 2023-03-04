@@ -4938,6 +4938,7 @@ namespace engine
       const CHAR *schemaName = schema.getName() ;
       const CHAR *spaceName = CSName() ;
       const CHAR *collectionName = context->mb()->_collectionName ;
+      BOOLEAN needRollback = FALSE ;
 
       rc = context->isMBLock( EXCLUSIVE ) ;
       if ( rc )
@@ -5031,6 +5032,7 @@ namespace engine
 
       if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
       {
+         needRollback = TRUE ;
          rc = _pIndexSu->renameColumnOnIndexes( context, action, FALSE, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] on indexes, "
                       "rc: %d", action.getColumnName(), rc ) ;
@@ -5053,6 +5055,15 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSU__ALTERSCHEMA, rc ) ;
       return rc ;
    error:
+      if ( needRollback )
+      {
+         INT32 rcTmp = _pIndexSu->renameColumnOnIndexes( context, action, TRUE, cb ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to rollback rename column [%s] on indexes, rc: %d",
+                    action.getColumnName(), rcTmp ) ;
+         }
+      }
       goto done ;
    }
 
