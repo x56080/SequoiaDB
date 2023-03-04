@@ -4932,25 +4932,20 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSU__ALTERSCHEMA ) ;
 
-      // parse the schema define, find which has default.
-      // default conflict ?
       dmsInternalSchema *internalSchema = NULL ;
       _dmsInternalSchemaWriter schemaWriter ;
+      BOOLEAN hasChanged = FALSE ;
       const CHAR *schemaName = schema.getName() ;
       const CHAR *spaceName = CSName() ;
       const CHAR *collectionName = context->mb()->_collectionName ;
-      dmsExtRW schemaExtRW ;
-      dmsExtRW hashExtRW ;
-      dmsSchemaExtent *schemaExt = NULL ;
-      dmsSchemaHashExtent *hashExt = NULL ;
       BOOLEAN colNotFound = TRUE ;
       BOOLEAN doOnColNotExist = FALSE ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
+      rc = context->isMBLock( EXCLUSIVE ) ;
+      if ( rc )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Collection mb latch should be taken in EXCLUSIVE mode when altering "
-                 "schema, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "MB context taken in EXCLUSIVE mode failed in collection[%s.%s], "
+                 "rc: %d", spaceName, collectionName, rc ) ;
          goto error ;
       }
 
@@ -4966,19 +4961,9 @@ namespace engine
                 "Failed to alter schema to collection [%s.%s], "
                 "schema is not enabled", spaceName, collectionName ) ;
 
-      schemaExtRW = _pDataSu->extent2RW( context->mb()->_schemaExtentID );
-      hashExtRW = _pDataSu->extent2RW( context->mb()->_schemaHashExtentID );
-      schemaExtRW.setNothrow( TRUE ) ;
-      hashExtRW.setNothrow( TRUE ) ;
-
-      schemaExt = schemaExtRW.writePtr<dmsSchemaExtent>( 0,
-                  internalSchema->getSchemaContainer()->getExtentSize() ) ;
-      hashExt = hashExtRW.writePtr<dmsSchemaHashExtent>( 0,
-                  internalSchema->getSchemaHashTable()->getExtentSize() ) ;
-
-      rc = schemaWriter.init( _pDataSu, context, schemaExt, hashExt ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init internal schema writer for collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
+      rc = schemaWriter.init( internalSchema, _pDataSu, context, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init internal schema writer for collection[%s.%s] failed, "
+                   "rc: %d", spaceName, collectionName, rc ) ;
 
       // In order to process uncoded records, we need to do the alter action in the following
       // scenarios, even when the column does not exist.
@@ -4993,7 +4978,8 @@ namespace engine
       {
          case UTIL_SCHEMA_ADD_COLUMN :
          {
-            rc = schemaWriter.addColumn( action.getColumnName(), &action.getColDefine(),
+            rc = schemaWriter.addColumn( action.getColumnName(),
+                                         &action.getColDefine(),
                                          NULL, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
@@ -5012,11 +4998,12 @@ namespace engine
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
          {
-            rc = schemaWriter.alterColumn( action.getColumnName(), action.getColDefine(),
+            rc = schemaWriter.alterColumn( action.getColumnName(),
+                                           action.getColDefine(),
                                            &colNotFound ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to alter column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
-            if ( colNotFound && ( context->mb()->_totalRecords > 0 ) )
+            if ( colNotFound )
             {
                doOnColNotExist = TRUE ;
             }
@@ -5025,7 +5012,8 @@ namespace engine
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
             rc = schemaWriter.renameColumn( action.getColumnName(),
-                                            action.getNewColAttr().getName(), &colNotFound ) ;
+                                            action.getNewColAttr().getName(),
+                                            &colNotFound ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] to [%s], "
                          "rc: %d", action.getColumnName(),
                          action.getNewColAttr().getName(), rc ) ;
@@ -5057,15 +5045,6 @@ namespace engine
          }
       }
 
-      if ( doOnColNotExist )
-      {
-         rc = schemaWriter.addColumn( action.getColumnName() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to add column [%s] for marking deleting, rc: %d",
-                      action.getColumnName(), rc ) ;
-         doOnColNotExist = FALSE ;
-         goto retry ;
-      }
-
       if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() )
       {
          rc = _pIndexSu->renameColumnOnIndexes( context, action, FALSE, cb ) ;
@@ -5073,20 +5052,22 @@ namespace engine
                       "rc: %d", action.getColumnName(), rc ) ;
       }
 
-      rc = schemaWriter.save( internalSchema, context ) ;
+      rc = schemaWriter.save( context, cb, hasChanged ) ;
       PD_RC_CHECK( rc, PDERROR, "Save new internal schema failed, rc: %d", rc ) ;
 
-      // rc = internalSchema->reload() ;
-      PD_RC_CHECK( rc, PDERROR, "Reload internal schema for collection[%s] failed, rc: %d",
-                   context->mb()->_collectionName, rc ) ;
+      if ( hasChanged )
+      {
+         rc = _pDataSu->reloadSchema( context, &schema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Reload internal schema of collection[%s.%s] failed, rc: %d",
+                      spaceName, collectionName, rc ) ;
+      }
 
-      PD_LOG( PDEVENT, "Alter schema [%s] on collection [%s.%s]",
+      PD_LOG( PDEVENT, "Alter schema [%s] on collection [%s.%s] succeed",
               schemaName, spaceName, collectionName ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSU__ALTERSCHEMA, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
