@@ -1160,6 +1160,11 @@ namespace engine
             needRetry = TRUE ;
             hasUpCataGrp = result > 0 ? TRUE : FALSE ;
          }
+         else if ( SDB_TIMEOUT == rc )
+         {
+            needRetry = TRUE ;
+            _cataGrpItem.cancelPrimary() ;
+         }
          else if ( rc && SDB_DMS_NOTEXIST != rc )
          {
             PD_LOG( PDERROR, "Update catalog[%s] failed, rc: %d",
