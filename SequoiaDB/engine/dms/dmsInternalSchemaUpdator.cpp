@@ -777,7 +777,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsInternalSchemaWriter::save( dmsMBContext *context, pmdEDUCB *cb )
+   INT32 _dmsInternalSchemaWriter::save( dmsMBContext *context, pmdEDUCB *cb, BOOLEAN &hasChanged )
    {
       INT32 rc = SDB_OK ;
 
