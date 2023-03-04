@@ -460,6 +460,7 @@ namespace engine
          INT32    _postLoad() ;
 
          void     _logSchemaInfo() ;
+         INT32    _dumpSchemaInfo( BSONObj &schema, BOOLEAN includeColumnID = TRUE ) ;
 
          INT32    _encodeSanityCheck( const dmsRecordData &encodedData,
                                       BOOLEAN isPrimalData ) ;

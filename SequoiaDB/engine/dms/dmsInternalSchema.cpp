@@ -1359,6 +1359,12 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsInternalSchema::dumpSchemaInfo( BSONObj &schema, BOOLEAN includeColumnID )
+   {
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
+      return _dumpSchemaInfo( schema, includeColumnID ) ;
+   }
+
    /* Each column includes:
     * 1. ID( if includeColumnID is true )
     * 2. Name
@@ -1367,7 +1373,7 @@ namespace engine
     * 5. If the column is deleted
     * 6. If it's column in index
    */
-   INT32 _dmsInternalSchema::dumpSchemaInfo( BSONObj &schema, BOOLEAN includeColumnID )
+   INT32 _dmsInternalSchema::_dumpSchemaInfo( BSONObj &schema, BOOLEAN includeColumnID )
    {
       INT32 rc = SDB_OK ;
 
@@ -1384,6 +1390,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
+
       rc = _schemaContainer.toObj( obj ) ;
       PD_RC_CHECK( rc, PDERROR, "Get internal schema object failed, rc: %d", rc ) ;
 
@@ -1399,6 +1407,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       BSONObj boColDefine ;
+
+      ossScopedRWLock lock( &_loadRWMutex, SHARED ) ;
 
       rc = _schemaContainer.toObj( boColDefine ) ;
       PD_RC_CHECK( rc, PDERROR, "Get internal schema object failed, rc: %d", rc ) ;
@@ -1865,7 +1875,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj schemaInfo ;
 
-      rc = dumpSchemaInfo( schemaInfo, TRUE ) ;
+      rc = _dumpSchemaInfo( schemaInfo, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDWARNING, "Dump internal schema info failed, rc: %d", rc )  ;
