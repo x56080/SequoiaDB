@@ -5057,7 +5057,7 @@ namespace engine
 
       if ( hasChanged )
       {
-         rc = _pDataSu->reloadSchema( context, &schema ) ;
+         rc = _pDataSu->reloadSchema( context, &internalSchema ) ;
          PD_RC_CHECK( rc, PDERROR, "Reload internal schema of collection[%s.%s] failed, rc: %d",
                       spaceName, collectionName, rc ) ;
       }
