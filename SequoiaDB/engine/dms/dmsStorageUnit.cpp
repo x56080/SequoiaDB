@@ -4972,7 +4972,6 @@ namespace engine
       // This information are usefull to generate the right results of uncoded records.
       // If the collection is empty on this node, we can just ignore.
 
-   retry:
       switch ( action.getAction() )
       {
          case UTIL_SCHEMA_ADD_COLUMN :
