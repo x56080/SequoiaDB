@@ -1508,12 +1508,6 @@ namespace engine
          recordData.setData( objDecode.objdata(), objDecode.objsize(),
                              UTIL_COMPRESSOR_INVALID, FALSE ) ;
       }
-      else
-      {
-         /// set record data without recordFillSz
-         recordData.setData( pRecord->getData(), pRecord->getDataLength(),
-                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
-      }
 
       if( needIncDataRead )
       {
