@@ -4938,8 +4938,6 @@ namespace engine
       const CHAR *schemaName = schema.getName() ;
       const CHAR *spaceName = CSName() ;
       const CHAR *collectionName = context->mb()->_collectionName ;
-      BOOLEAN colNotFound = TRUE ;
-      BOOLEAN doOnColNotExist = FALSE ;
 
       rc = context->isMBLock( EXCLUSIVE ) ;
       if ( rc )
@@ -4987,40 +4985,26 @@ namespace engine
          }
          case UTIL_SCHEMA_DROP_COLUMN :
          {
-            rc = schemaWriter.dropColumn( action.getColumnName(), &colNotFound ) ;
+            rc = schemaWriter.dropColumn( action.getColumnName() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to drop column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
-            if ( colNotFound && ( context->mb()->_totalRecords > 0 ) )
-            {
-               doOnColNotExist = TRUE ;
-            }
             break ;
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
          {
             rc = schemaWriter.alterColumn( action.getColumnName(),
-                                           action.getColDefine(),
-                                           &colNotFound ) ;
+                                           action.getColDefine() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to alter column [%s], "
                          "rc: %d", action.getColumnName(), rc ) ;
-            if ( colNotFound )
-            {
-               doOnColNotExist = TRUE ;
-            }
             break ;
          }
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
             rc = schemaWriter.renameColumn( action.getColumnName(),
-                                            action.getNewColAttr().getName(),
-                                            &colNotFound ) ;
+                                            action.getNewColAttr().getName() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rename column [%s] to [%s], "
                          "rc: %d", action.getColumnName(),
                          action.getNewColAttr().getName(), rc ) ;
-            if ( colNotFound && ( context->mb()->_totalRecords > 0 ) )
-            {
-               doOnColNotExist = TRUE ;
-            }
             break ;
          }
          case UTIL_SCHEMA_DROP_DEFAULT :
