@@ -4154,7 +4154,7 @@ namespace engine
 
       for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {
-         BOOLEAN hasColumn = FALSE, hasNewColumn = FALSE ;
+         BOOLEAN hasColumn = FALSE ;
 
          if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
          {
@@ -4172,8 +4172,10 @@ namespace engine
             continue ;
          }
 
-         rc = action.checkKeyPattern( indexCB.keyPattern(), hasColumn, hasNewColumn, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
+         rc = action.checkKeyPattern( indexCB.keyPattern(),
+                                      action.getColumnName(),
+                                      hasColumn ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
                       "rc: %d", rc ) ;
 
          PD_LOG_MSG_CHECK( !hasColumn,
@@ -4208,8 +4210,7 @@ namespace engine
 
       for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {
-         BOOLEAN hasOldCol = FALSE, hasNewCol = FALSE ;
-         BOOLEAN needRebuild = FALSE ;
+         BOOLEAN hasColumn = FALSE ;
 
          if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
          {
@@ -4228,16 +4229,31 @@ namespace engine
             continue ;
          }
 
-         rc = action.checkKeyPattern( indexCB.keyPattern(), hasOldCol, hasNewCol, NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
-                      "rc: %d", rc ) ;
+         if ( isRollback )
+         {
+            rc = action.checkKeyPattern( indexCB.keyPattern(),
+                                         action.getNewColAttr().getName(),
+                                         hasColumn ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                         "rollback new column [%s], rc: %d",
+                         action.getNewColAttr().getName(), rc ) ;
+         }
+         else
+         {
+            rc = action.checkKeyPattern( indexCB.keyPattern(),
+                                         action.getColumnName(),
+                                         hasColumn ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                         "old column [%s], rc: %d", action.getColumnName(),
+                         rc ) ;
+         }
 
-         needRebuild = isRollback ? hasNewCol : hasOldCol ;
-
-         if ( needRebuild )
+         if ( hasColumn )
          {
             BSONObj newKeyPattern ;
-            rc = action.rebuildKeyPattern( indexCB.keyPattern(), newKeyPattern ) ;
+            rc = action.rebuildKeyPattern( indexCB.keyPattern(),
+                                           newKeyPattern,
+                                           isRollback ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rebuild key pattern, "
                          "rc: %d", rc ) ;
             rc = indexCB.updateKeyPattern( newKeyPattern ) ;

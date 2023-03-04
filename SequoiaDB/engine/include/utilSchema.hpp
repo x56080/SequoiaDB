@@ -480,9 +480,8 @@ namespace engine
       INT32 applySchema( utilSchema &schema ) const ;
 
       INT32 checkKeyPattern( const bson::BSONObj &keyPattern,
-                             BOOLEAN &hasOldColumn,
-                             BOOLEAN &hasNewColumn,
-                             const bson::BSONObj *shardingKey = NULL ) const ;
+                             const CHAR *columnName,
+                             BOOLEAN &hasColumn ) const ;
       INT32 rebuildKeyPattern( const bson::BSONObj &keyPattern,
                                bson::BSONObj &newKeyPattern,
                                BOOLEAN isRollback = FALSE ) const ;

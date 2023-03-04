@@ -9848,24 +9848,20 @@ namespace engine
             const BSONObj &boIndex = *iter ;
             BSONObj boIndexDef = boIndex.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
             BSONObj keyPattern = boIndexDef.getObjectField( IXM_KEY_FIELD ) ;
-            BOOLEAN isNotNull = boIndexDef.getBoolField( IXM_FIELD_NAME_NOTNULL ) ;
             const CHAR *indexName = boIndexDef.getStringField( IXM_FIELD_NAME_NAME ) ;
-            if ( !isNotNull )
-            {
-               const CHAR *conflictColumn = NULL ;
-               rc = schema.checkDefaultKeys( keyPattern, FALSE, TRUE,
-                                             conflictColumn, &shardingKey ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
-                            "schema [%s] for index [%s] keys of collection [%s], "
-                            "rc: %d", schemaName, indexName, collectionName, rc ) ;
-               PD_LOG_MSG_CHECK( NULL == conflictColumn,
-                                 SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                                 "Failed to pass default key check for "
-                                 "index keys [%s] of index [%s], "
-                                 "column [%s] has read default value",
-                                 keyPattern.toPoolString().c_str(), indexName,
-                                 conflictColumn ) ;
-            }
+            const CHAR *conflictColumn = NULL ;
+            rc = schema.checkDefaultKeys( keyPattern, FALSE, TRUE,
+                                          conflictColumn, &shardingKey ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
+                         "schema [%s] for index [%s] keys of collection [%s], "
+                         "rc: %d", schemaName, indexName, collectionName, rc ) ;
+            PD_LOG_MSG_CHECK( NULL == conflictColumn,
+                              SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                              "Failed to pass default key check for "
+                              "index keys [%s] of index [%s], "
+                              "column [%s] has read default value",
+                              keyPattern.toPoolString().c_str(), indexName,
+                              conflictColumn ) ;
          }
          catch ( exception &e )
          {

@@ -868,6 +868,9 @@ namespace engine
                       _dataName.c_str(), rc ) ;
       }
 
+      rc = _rollbackSchema( cataSet, cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to rollback schema, rc: %d", rc ) ;
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK_ROLLBACK_INT, rc ) ;
       return rc ;
@@ -2836,14 +2839,7 @@ namespace engine
 
       if ( cataSet.isSharding() )
       {
-         BOOLEAN hasColumn = FALSE, hasNewColumn = FALSE ;
          BSONObj shardingKey = cataSet.getShardingKey() ;
-         rc = action.checkKeyPattern( shardingKey,
-                                      hasColumn,
-                                      hasNewColumn,
-                                      NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key, rc: %d",
-                      rc ) ;
 
          switch ( action.getAction() )
          {
@@ -2867,8 +2863,24 @@ namespace engine
             }
             case UTIL_SCHEMA_RENAME_COLUMN:
             {
+               BOOLEAN hasOldColumn = FALSE, hasNewColumn = FALSE ;
+
+               rc = action.checkKeyPattern( shardingKey,
+                                            action.getColumnName(),
+                                            hasOldColumn ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key on "
+                            "old column [%s], rc: %d", action.getColumnName(),
+                            rc ) ;
+
+               rc = action.checkKeyPattern( shardingKey,
+                                            action.getNewColAttr().getName(),
+                                            hasNewColumn ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check sharding key on "
+                            "new column [%s], rc: %d",
+                            action.getNewColAttr().getName(), rc ) ;
+
                PD_LOG_MSG_CHECK(
-                     ( !hasColumn ) && ( !hasNewColumn ),
+                     ( !hasOldColumn ) && ( !hasNewColumn ),
                      SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                      "Failed to check alter schema [%s] on collection [%s], "
                      "can not rename column [%s] to [%s] against "
@@ -2928,42 +2940,75 @@ namespace engine
             BSONObj boIndexDef = boIndex.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
             BSONObj keyPattern = boIndexDef.getObjectField( IXM_KEY_FIELD ) ;
             const CHAR *indexName = boIndexDef.getStringField( IXM_FIELD_NAME_NAME ) ;
-            BOOLEAN isNotNull = boIndexDef.getBoolField( IXM_FIELD_NAME_NOTNULL ) ;
-            BOOLEAN hasColumn = FALSE, hasNewCol = FALSE ;
-
-            rc = action.checkKeyPattern( keyPattern, hasColumn, hasNewCol,
-                                         &( cataSet.getShardingKey() ) ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
-                         "rc: %d", rc ) ;
 
             switch ( action.getAction() )
             {
                case UTIL_SCHEMA_ADD_COLUMN:
                {
+                  BOOLEAN hasColumn = FALSE ;
+                  rc = action.checkKeyPattern( keyPattern,
+                                               action.getColumnName(),
+                                               hasColumn ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                               "old column [%s], rc: %d", action.getColumnName(),
+                               rc ) ;
                   if ( hasColumn )
                   {
-                     if ( !isNotNull )
-                     {
-                        PD_LOG_MSG_CHECK(
-                              !OSS_BIT_TEST( action.getAlterMask(),
-                                             UTIL_SCHEMA_ATTR_MASK_COL_RDEF ),
-                              SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                              "Failed to check add column [%s], "
-                              "can not add column [%s] with read value "
-                              "against index [%s] with keys [%s]",
-                              action.getColumnName(),
-                              action.getColumnName(),
-                              indexName,
-                              keyPattern.toPoolString().c_str() ) ;
-                     }
+                     BOOLEAN inShardingKey = FALSE ;
+                     rc = action.checkKeyPattern( cataSet.getShardingKey(),
+                                                  action.getColumnName(),
+                                                  inShardingKey ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                                  "old column [%s], rc: %d", action.getColumnName(),
+                                  rc ) ;
+                     PD_LOG_MSG_CHECK(
+                           ( inShardingKey ) ||
+                           ( !OSS_BIT_TEST( action.getAlterMask(),
+                                            UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ),
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check add column [%s], "
+                           "can not add column [%s] with read value "
+                           "against index [%s] with keys [%s]",
+                           action.getColumnName(),
+                           action.getColumnName(),
+                           indexName,
+                           keyPattern.toPoolString().c_str() ) ;
                   }
                   break ;
                }
                case UTIL_SCHEMA_RENAME_COLUMN:
                {
+                  BOOLEAN hasOldColumn = FALSE, hasNewColumn = FALSE ;
+
+                  rc = action.checkKeyPattern( keyPattern,
+                                               action.getColumnName(),
+                                               hasOldColumn ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                               "old column [%s], rc: %d", action.getColumnName(),
+                               rc ) ;
+
+                  rc = action.checkKeyPattern( keyPattern,
+                                               action.getNewColAttr().getName(),
+                                               hasNewColumn ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                               "new column [%s], rc: %d",
+                               action.getNewColAttr().getName(), rc ) ;
+
+                  // text index should not rename column
+                  if ( ixmIsTextIndex( boIndexDef ) )
+                  {
+                     PD_LOG_MSG_CHECK(
+                           !hasOldColumn,
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check rename column [%s] to [%s], "
+                           "conflict with text index [%s] with keys [%s]",
+                           action.getColumnName(),
+                           action.getNewColAttr().getName(),
+                           indexName, keyPattern.toPoolString().c_str() ) ;
+                  }
                   // new column name already exists in indexes
                   PD_LOG_MSG_CHECK(
-                        !hasNewCol,
+                        !hasNewColumn,
                         SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
                         "Failed to check alter schema [%s] on collection [%s], "
                         "can not rename column [%s] to [%s] "
@@ -3028,25 +3073,28 @@ namespace engine
             BSONObj keyPattern = boIndexDef.getObjectField( IXM_KEY_FIELD ) ;
             const CHAR *indexName = boIndexDef.getStringField( IXM_FIELD_NAME_NAME ) ;
             BSONObj newKeyPattern ;
-            BOOLEAN hasOldCol = FALSE, hasNewCol = FALSE ;
-            BOOLEAN needRebuild = FALSE ;
+            BOOLEAN hasColumn = FALSE ;
 
-            const CHAR *oldColName = isRollback ?
-                                     action.getNewColAttr().getName() :
-                                     action.getColumnName() ;
-            const CHAR *newColName = isRollback ?
-                                     action.getColumnName() :
-                                     action.getNewColAttr().getName() ;
+            if ( isRollback )
+            {
+               rc = action.checkKeyPattern( keyPattern,
+                                            action.getNewColAttr().getName(),
+                                            hasColumn ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                            "rollback new column [%s], rc: %d",
+                            action.getNewColAttr().getName(), rc ) ;
+            }
+            else
+            {
+               rc = action.checkKeyPattern( keyPattern,
+                                            action.getColumnName(),
+                                            hasColumn ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern on "
+                            "old column [%s], rc: %d", action.getColumnName(),
+                            rc ) ;
+            }
 
-            rc = action.checkKeyPattern( keyPattern,
-                                         hasOldCol,
-                                         hasNewCol,
-                                         NULL ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check key pattern, "
-                         "rc: %d", rc ) ;
-            needRebuild = isRollback ? hasNewCol : hasOldCol ;
-
-            if ( needRebuild )
+            if ( hasColumn )
             {
                rc = action.rebuildKeyPattern( keyPattern,
                                               newKeyPattern,
@@ -3057,10 +3105,9 @@ namespace engine
                rc = catUpdateIndex( collectionName, indexName, newKeyPattern, cb, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to update index [%s] with rename "
                             "column, rc: %d", rc ) ;
-               PD_LOG( PDDEBUG, "Rename column from [%s] to [%s] for index [%s] "
+               PD_LOG( PDDEBUG, "Rename column for index [%s] "
                        "key from [%s] to [%s] on collection [%s]",
-                       oldColName, newColName, indexName,
-                       keyPattern.toPoolString().c_str(),
+                       indexName, keyPattern.toPoolString().c_str(),
                        newKeyPattern.toPoolString().c_str(),
                        collectionName ) ;
             }

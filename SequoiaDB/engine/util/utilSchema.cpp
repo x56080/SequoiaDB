@@ -1874,64 +1874,32 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN, "_utilSchemaAlterAction::checkKeyPattern" )
-   INT32 _utilSchemaAlterAction::checkKeyPattern( const bson::BSONObj &keyPattern,
-                                                  BOOLEAN &hasOldColumn,
-                                                  BOOLEAN &hasNewColumn,
-                                                  const bson::BSONObj *shardingKey ) const
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN_NAME, "_utilSchemaAlterAction::checkKeyPattern" )
+   INT32 _utilSchemaAlterAction::checkKeyPattern( const BSONObj &keyPattern,
+                                                  const CHAR *columnName,
+                                                  BOOLEAN &hasColumn  ) const
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN ) ;
+      PD_TRACE_ENTRY( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN_NAME ) ;
 
-      BOOLEAN needCheckNewCol = UTIL_SCHEMA_RENAME_COLUMN == _action ;
-      const CHAR *oldColName = _colName ;
-      const CHAR *newColName = oldColName ;
-      UINT32 oldColNameLen = ossStrlen( _colName ) ;
-      UINT32 newColNameLen = oldColNameLen ;
-      if ( needCheckNewCol )
-      {
-         newColName = _newColAttr.getName() ;
-         newColNameLen = ossStrlen( newColName ) ;
-      }
+      SDB_ASSERT( NULL != columnName, "column is invalid" ) ;
 
-      hasOldColumn = FALSE ;
-      hasNewColumn = FALSE ;
+      UINT32 colNameLen = ossStrlen( columnName ) ;
+      hasColumn = FALSE ;
 
       try
       {
-
          BSONObjIterator iter( keyPattern ) ;
          while ( iter.more() )
          {
             BSONElement ele = iter.next() ;
             const CHAR *keyName = ele.fieldName() ;
-            if ( NULL != shardingKey &&
-                 shardingKey->hasField( keyName ) )
+            if ( ( 0 == ossStrncmp( keyName, columnName, colNameLen ) ) &&
+                 ( ( '\0' == keyName[ colNameLen ] ) ||
+                   ( '.' == keyName[ colNameLen ] ) ) )
             {
-               continue ;
-            }
-            if ( ( !hasOldColumn ) &&
-                 ( 0 == ossStrncmp( keyName, oldColName, oldColNameLen ) ) &&
-                 ( ( '\0' == keyName[ oldColNameLen ] ) ||
-                   ( '.' == keyName[ oldColNameLen ] ) ) )
-            {
-               hasOldColumn = TRUE ;
-               if ( !needCheckNewCol )
-               {
-                  hasNewColumn = TRUE ;
-               }
-            }
-            if ( ( needCheckNewCol ) &&
-                 ( !hasNewColumn ) &&
-                 ( 0 == ossStrncmp( keyName, newColName, newColNameLen ) ) &&
-                 ( ( '\0' == keyName[ newColNameLen ] ) ||
-                   ( '.' == keyName[ newColNameLen ] ) ) )
-            {
-               hasNewColumn = TRUE ;
-            }
-            if ( hasOldColumn && hasNewColumn )
-            {
+               hasColumn = TRUE ;
                break ;
             }
          }
@@ -1945,7 +1913,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN, rc ) ;
+      PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_CHECKKEYPATTERN_NAME, rc ) ;
       return rc ;
 
    error:
