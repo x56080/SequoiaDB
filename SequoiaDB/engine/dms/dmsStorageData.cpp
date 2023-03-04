@@ -296,7 +296,7 @@ namespace engine
                   if ( ! ( ( OSS_BIT_TEST( context->mb()->_attributes,
                                            DMS_MB_ATTR_ENABLE_INFOSCHEMA ) &&
                              0 == eleIDIn.woCompare( eleIDDeleting, false ) ) ||
-                            0 == insertObj.woComapre( objDeleting ) ) )
+                            0 == insertObj.woCompare( objDeleting ) ) )
                   {
                      markInsert = FALSE ;
                   }
