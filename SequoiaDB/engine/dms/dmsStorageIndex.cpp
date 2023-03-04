@@ -4075,20 +4075,21 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS, "_dmsStorageIndex::checkAddSchemaOnIndexes" )
    INT32 _dmsStorageIndex::checkAddSchemaOnIndexes( dmsMBContext *context,
-                                                    const utilSchema &schema )
+                                                    const utilSchema &schema,
+                                                    const utilSchema &oldSchema )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS ) ;
 
-      utilSchema internalSchema ;
+      const CHAR *conflictColumn = NULL ;
 
-      // need to lock mb
-      rc = context->mbLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-
-      rc = _pDataSu->getSchema( context, internalSchema, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get schema, rc: %d", rc ) ;
+      if ( !context || !context->isMBLock() )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "MB context is invalid or don't hold lock" ) ;
+         goto error ;
+      }
 
       for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {
@@ -4103,29 +4104,25 @@ namespace engine
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[indexID] ) ;
 
-         if ( !indexCB.notNull() )
-         {
-            const CHAR *conflictColumn = NULL ;
-            rc = schema.checkDefaultKeys( indexCB.keyPattern(), FALSE, TRUE,
-                                          conflictColumn, NULL, &internalSchema ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
-                         "schema [%s] for index [%s] keys, rc: %d",
-                         schema.getName(), indexCB.getName(), rc ) ;
-            PD_LOG_MSG_CHECK( NULL == conflictColumn,
-                              SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                              "Failed to pass default key check for "
-                              "index keys [%s] of index [%s], "
-                              "column [%s] has read default value",
-                              indexCB.getName(),
-                              indexCB.keyPattern().toPoolString().c_str(),
-                              conflictColumn ) ;
-         }
+         rc = schema.checkDefaultKeys( indexCB.keyPattern(), FALSE, TRUE,
+                                       conflictColumn, NULL, &oldSchema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check default values of "
+                      "schema [%s] for index [%s] keys, rc: %d",
+                      schema.getName(), indexCB.getName(), rc ) ;
+
+         PD_LOG_MSG_CHECK( NULL == conflictColumn,
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to pass default key check for "
+                           "index keys [%s] of index [%s], "
+                           "column [%s] has read default value",
+                           indexCB.keyPattern().toPoolString().c_str(),
+                           indexCB.getName(),
+                           conflictColumn ) ;
       }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_CHKADDSCHEMAONIDXS, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -4138,21 +4135,22 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX_CHKALTERSCHEMAONIDXS ) ;
 
-      utilSchema internalSchema ;
-
-      if ( UTIL_SCHEMA_ADD_COLUMN != action.getAction() &&
-           UTIL_SCHEMA_RENAME_COLUMN != action.getAction() )
+      if ( UTIL_SCHEMA_RENAME_COLUMN != action.getAction() )
       {
          goto done ;
       }
 
-      // need to lock mb
-      rc = context->mbLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+      if ( !context || !context->isMBLock() )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "MB context is invalid or don't hold lock" ) ;
+         goto error ;
+      }
 
-      rc = _pDataSu->getSchema( context, internalSchema, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get schema, rc: %d", rc ) ;
-
+      if ( 0 == context->mbStat()->_textIdxNum )
+      {
+         goto done ;
+      }
 
       for ( INT32 indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {
@@ -4169,75 +4167,28 @@ namespace engine
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[ indexID ] ) ;
 
+         if ( !IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(), IXM_EXTENT_TYPE_TEXT ) )
+         {
+            continue ;
+         }
+
          rc = action.checkKeyPattern( indexCB.keyPattern(), hasColumn, hasNewColumn, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check rebuild key pattern, "
                       "rc: %d", rc ) ;
 
-         switch ( action.getAction() )
-         {
-            case UTIL_SCHEMA_ADD_COLUMN:
-            {
-               if ( ( hasColumn ) &&
-                    ( !indexCB.notNull() )&&
-                    ( OSS_BIT_TEST( action.getAlterMask(),
-                                    UTIL_SCHEMA_ATTR_MASK_COL_RDEF ) ) )
-               {
-                  utilSchemaColumn *column =
-                        internalSchema.getColumn( action.getColumnName() ) ;
-                  PD_LOG_MSG_CHECK(
-                        ( ( NULL != column ) &&
-                          ( column->hasReadDefault() ) &&
-                          ( column->hasSameReadDefault( action.getNewColAttr() ) ) ),
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to check add column [%s], "
-                        "can not add column [%s] with read value "
-                        "against index [%s] with keys [%s]",
-                        action.getColumnName(),
-                        action.getColumnName(),
-                        indexCB.getName(),
-                        indexCB.keyPattern().toPoolString().c_str()) ;
-               }
-               break ;
-            }
-            case UTIL_SCHEMA_RENAME_COLUMN:
-            {
-               // text index not allow to rename column
-               if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                         IXM_EXTENT_TYPE_TEXT ) )
-               {
-                  PD_LOG_MSG_CHECK(
-                        !hasColumn,
-                        SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                        "Failed to check rename column [%s] to [%s], "
-                        "conflict with text index [%s] with keys [%s]",
-                        action.getColumnName(),
-                        action.getNewColAttr().getName(),
-                        indexCB.getName(),
-                        indexCB.keyPattern().toPoolString().c_str() ) ;
-               }
-               // new column name already exists in indexes
-               PD_LOG_MSG_CHECK(
-                     !hasNewColumn,
-                     SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-                     "Failed to check rename column [%s] to [%s], "
-                     "conflict with index [%s] with keys",
-                     action.getColumnName(),
-                     action.getNewColAttr().getName(),
-                     indexCB.getName(),
-                     indexCB.keyPattern().toPoolString().c_str() ) ;
-               break ;
-            }
-            default:
-            {
-               break ;
-            }
-         }
+         PD_LOG_MSG_CHECK( !hasColumn,
+                           SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                           "Failed to check rename column [%s] to [%s], "
+                           "conflict with text index [%s] with keys [%s]",
+                           action.getColumnName(),
+                           action.getNewColAttr().getName(),
+                           indexCB.getName(),
+                           indexCB.keyPattern().toPoolString().c_str() ) ;
       }
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_CHKALTERSCHEMAONIDXS, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -4270,8 +4221,9 @@ namespace engine
          PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[indexID] ) ;
-         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                   IXM_EXTENT_TYPE_TEXT ) )
+
+         /// ignore text index, because the fields in text index can't rename
+         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(), IXM_EXTENT_TYPE_TEXT ) )
          {
             continue ;
          }
@@ -4285,8 +4237,7 @@ namespace engine
          if ( needRebuild )
          {
             BSONObj newKeyPattern ;
-            rc = action.rebuildKeyPattern( indexCB.keyPattern(),
-                                           newKeyPattern ) ;
+            rc = action.rebuildKeyPattern( indexCB.keyPattern(), newKeyPattern ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to rebuild key pattern, "
                          "rc: %d", rc ) ;
             rc = indexCB.updateKeyPattern( newKeyPattern ) ;
@@ -4326,7 +4277,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX_RENAMECOLONIDXS, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }

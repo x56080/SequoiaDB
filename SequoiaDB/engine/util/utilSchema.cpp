@@ -1181,8 +1181,7 @@ namespace engine
                         oldColumn = oldSchema->getColumn( name ) ;
                      }
                      if ( ( NULL == oldColumn ) ||
-                          ( !( oldColumn->hasReadDefault() ) ) ||
-                          ( !( oldColumn->hasSameReadDefault( *column ) ) ) )
+                          ( !( oldColumn->hasReadDefault() ) ) )
                      {
                         conflictColumnName = column->getName() ;
                         break ;
@@ -1964,6 +1963,7 @@ namespace engine
 
       if ( UTIL_SCHEMA_RENAME_COLUMN != _action )
       {
+         newKeyPattern = keyPattern ;
          goto done ;
       }
 
@@ -2010,7 +2010,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__UTILSCHEMAALTERACTION_REBUILDKEYPATTERN, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }

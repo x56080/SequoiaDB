@@ -243,9 +243,10 @@ namespace engine
 
          INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
          INT32    checkAddSchemaOnIndexes( dmsMBContext *context,
-                                           const utilSchema &schema ) ;
+                                           const utilSchema &schema,
+                                           const utilSchema &oldSchema ) ;
          INT32    checkAlterSchemaOnIndexes( dmsMBContext *context,
-                                              const utilSchemaAlterAction &action ) ;
+                                             const utilSchemaAlterAction &action ) ;
          INT32    renameColumnOnIndexes( dmsMBContext *context,
                                          const utilSchemaAlterAction &action,
                                          BOOLEAN isRollback,

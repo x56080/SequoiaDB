@@ -460,45 +460,46 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNCLCHKADDSCHEMA ) ;
 
-//      utilSchema oldSchema ;
-//
-//      PD_CHECK( su->isInfoSchemaEnabled( mbContext ),
-//                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
-//                "Failed to check alter schema [%s] of collection [%s], "
-//                "info schema is not enabled", schema.getName(), collection ) ;
-//
-//      rc = su->data()->getSchema( mbContext, oldSchema, FALSE ) ;
-//      PD_RC_CHECK( rc, PDERROR, "Failed to get internal schema on "
-//                   "collection [%s], rc: %d", collection, rc ) ;
-//
-//      for ( UTIL_SCHEMA_COLUMN_LIST_CIT iter = schema.getColumns().begin() ;
-//            iter != schema.getColumns().end() ;
-//            ++ iter )
-//      {
-//         const utilSchemaColumn &newColumn = *iter ;
-//         const CHAR *newColName = newColumn.getName() ;
-//         const utilSchemaColumn *oldColumn = oldSchema.getColumn( newColName ) ;
-//         if ( ( NULL != oldColumn ) &&
-//              ( newColumn.hasReadDefault() ) &&
-//              ( oldColumn->hasReadDefault() ) &&
-//              ( !( newColumn.hasSameReadDefault( *oldColumn ) ) ) )
-//         {
-//            rc = SDB_OPERATION_INCOMPATIBLE ;
-//            PD_LOG( PDERROR, "Failed to check add column [%s], "
-//                    "[%s] already exists with a different read default value",
-//                    newColName, newColName ) ;
-//            goto error ;
-//         }
-//      }
-//
-//      rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema ) ;
-//      PD_RC_CHECK( rc, PDERROR, "Failed to check add schema on indexes of "
-//                   "collection [%s], rc: %d", collection, rc ) ;
+      utilSchema oldSchema ;
+
+      PD_CHECK( su->isInfoSchemaEnabled( mbContext ),
+                SDB_OPERATION_INCOMPATIBLE, error, PDERROR,
+                "Failed to check alter schema [%s] of collection [%s], "
+                "info schema is not enabled", schema.getName(), collection ) ;
+
+      rc = su->data()->getSchema( mbContext, oldSchema, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get internal schema on "
+                   "collection [%s], rc: %d", collection, rc ) ;
+
+      /* Column read default value ignored update, so no need check
+      for ( UTIL_SCHEMA_COLUMN_LIST_CIT iter = schema.getColumns().begin() ;
+            iter != schema.getColumns().end() ;
+            ++ iter )
+      {
+         const utilSchemaColumn &newColumn = *iter ;
+         const CHAR *newColName = newColumn.getName() ;
+         const utilSchemaColumn *oldColumn = oldSchema.getColumn( newColName ) ;
+         if ( ( NULL != oldColumn ) &&
+              ( newColumn.hasReadDefault() ) &&
+              ( oldColumn->hasReadDefault() ) &&
+              ( !( newColumn.hasSameReadDefault( *oldColumn ) ) ) )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG( PDERROR, "Failed to check add column [%s], "
+                    "[%s] already exists with a different read default value",
+                    newColName, newColName ) ;
+            goto error ;
+         }
+      }
+      */
+
+      rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check add schema on indexes of "
+                   "collection [%s], rc: %d", collection, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNCLCHKADDSCHEMA, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -537,6 +538,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNCLCHKALTERSCHEMA ) ;
 
+      BOOLEAN needCheckAdd = FALSE ;
       const CHAR *schemaName = schema.getName() ;
       utilSchema oldSchema ;
 
@@ -553,24 +555,32 @@ namespace engine
       {
          case UTIL_SCHEMA_ADD_COLUMN :
          {
-//            const utilSchemaColumn *oldColumn =
-//                              oldSchema.getColumn( action.getColumnName() ) ;
-//            if ( ( NULL != oldColumn ) &&
-//                 ( action.getNewColAttr().hasReadDefault() ) &&
-//                 ( oldColumn->hasReadDefault() ) &&
-//                 ( !( action.getNewColAttr().hasSameReadDefault( *oldColumn ) ) ) )
-//            {
-//               rc = SDB_OPERATION_INCOMPATIBLE ;
-//               PD_LOG( PDERROR, "Failed to check add column [%s], "
-//                       "[%s] already exists with a different read default value",
-//                       action.getColumnName(), action.getColumnName() ) ;
-//               goto error ;
-//            }
+            /* Column read default value ignored update, so no need check
+            const utilSchemaColumn *oldColumn = oldSchema.getColumn( action.getColumnName() ) ;
+            if ( ( NULL != oldColumn ) &&
+                 ( action.getNewColAttr().hasReadDefault() ) &&
+                 ( oldColumn->hasReadDefault() ) &&
+                 ( !( action.getNewColAttr().hasSameReadDefault( *oldColumn ) ) ) )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG( PDERROR, "Failed to check add column [%s], "
+                       "[%s] already exists with a different read default value",
+                       action.getColumnName(), action.getColumnName() ) ;
+               goto error ;
+            }
+            */
+            needCheckAdd = TRUE ;
             break ;
          }
          case UTIL_SCHEMA_RENAME_COLUMN :
          {
-            if ( oldSchema.hasColumn( action.getNewColAttr().getName() ) )
+            BOOLEAN hasOld = FALSE ;
+            BOOLEAN hasNew = FALSE ;
+
+            hasOld = oldSchema.hasColumn( action.getColumnName() ) ;
+            hasNew = oldSchema.hasColumn( action.getNewColAttr().getName() ) ;
+            /// only old and new both exist, forbidden
+            if ( hasOld && hasNew )
             {
                rc = SDB_OPERATION_INCOMPATIBLE ;
                PD_LOG( PDERROR, "Failed to check rename column from [%s] "
@@ -579,9 +589,18 @@ namespace engine
                        action.getNewColAttr().getName() ) ;
                goto error ;
             }
+
+            rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema [%s] of "
+                         "collection [%s] on indexes, rc: %d", schema.getName(),
+                         collection, rc ) ;
             break ;
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
+         {
+            needCheckAdd = TRUE ;
+            break ;
+         }
          case UTIL_SCHEMA_DROP_COLUMN :
          case UTIL_SCHEMA_DROP_DEFAULT :
          case UTIL_SCHEMA_SET_ATTRIBUTES :
@@ -599,15 +618,16 @@ namespace engine
          }
       }
 
-//      rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
-//      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema [%s] of "
-//                   "collection [%s] on indexes, rc: %d", schema.getName(),
-//                   collection, rc ) ;
+      if ( needCheckAdd )
+      {
+         rc = su->index()->checkAddSchemaOnIndexes( mbContext, schema, oldSchema ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on indexes of "
+                      "collection [%s], rc: %d", collection, rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__RTNCLCHKALTERSCHEMA, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
@@ -631,7 +651,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__RTNCLALTERSCHEMA, rc ) ;
       return rc ;
-
    error:
       goto done ;
    }
