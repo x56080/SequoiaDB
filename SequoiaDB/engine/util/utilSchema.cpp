@@ -1659,10 +1659,7 @@ namespace engine
          }
          case UTIL_SCHEMA_DROP_COLUMN :
          {
-            PD_LOG_MSG_CHECK( schema.hasColumn( _colName ),
-                              SDB_INVALIDARG, error, PDERROR,
-                              "Failed to drop column [%s], it does not exist",
-                              _colName ) ;
+            // to allow retry drop column, do not check if column exists
             break ;
          }
          case UTIL_SCHEMA_ALTER_COLUMN :
