@@ -542,7 +542,6 @@ namespace engine
      _extent( NULL ),
      _extentSize( 0 ),
      _bucketNum( 0 ),
-     _maxListSlotNum( 0 ),
      _pBucketSlot( NULL ),
      _pListSlot( NULL )
    {
@@ -594,7 +593,6 @@ namespace engine
       _schemaContainer = schemaContainer ;
       _extent = extent ;
       _extentSize = extentSize ;
-      _maxListSlotNum = ( extentSize - DMS_SCHEMAHASHEXTENT_HEADER_SZ ) / DMS_SCHEMAEXTENT_SLOT_SZ ;
 
       _pBucketSlot = (const dmsSchemaHashSlot*)
                      ((const CHAR *)_extent + DMS_SCHEMAHASHEXTENT_HEADER_SZ) ;
@@ -667,23 +665,6 @@ namespace engine
    done:
       PD_TRACE_EXIT( SDB__DMSSCHEMAHASH_GETCOLUMNIDBYNAME ) ;
       return columnID ;
-   }
-
-   INT32 _dmsSchemaHash::_nextFreeListSlotID() const
-   {
-      if ( _pListSlot )
-      {
-         // Search in the conflict area for a free slot.
-         for ( UINT32 i = 0 ; i < _maxListSlotNum; ++i )
-         {
-            if ( DMS_SCHEMA_INVALID_COLUMNID == _pListSlot[ i ].getColumnID() )
-            {
-               return i ;
-            }
-         }
-      }
-
-      return -1 ;
    }
 
    /*
@@ -1202,11 +1183,6 @@ namespace engine
          readBitmap.setBitmap( _readColBitmap ) ;
       }
 
-      if ( !getPrimalData )
-      {
-         readBitmap.setBitmap( _readColBitmap ) ;
-      }
-
       rc = _checkOrgRecord( record, readBitmap, hitName, hitDefault ) ;
       PD_RC_CHECK( rc, PDERROR, "Check record need rebuild failed, rc: %d", rc ) ;
 
@@ -1306,7 +1282,7 @@ namespace engine
                                                  ele.value(), ele.valuesize() ) ;
                      PD_RC_CHECK( rc, PDERROR, "Append element when rebuilding record failed, "
                                   "rc: %d", rc ) ;
-
+                     readBitmap.clearBit( colID ) ;
                      continue ;
                   }
                }

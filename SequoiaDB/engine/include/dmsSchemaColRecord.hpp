@@ -122,7 +122,7 @@ namespace engine
          }
          void     setNextSlotID( UINT16 nextSlotID )
          {
-            _data = ( _data & 0x0000FFFF ) | ( (UINT32)nextSlotID << 16 ) ; 
+            _data = ( _data & 0x0000FFFF ) | ( (UINT32)nextSlotID << 16 ) ;
          }
          UINT16   getColumnID() const
          {

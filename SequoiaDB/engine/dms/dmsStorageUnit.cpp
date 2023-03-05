@@ -4940,7 +4940,7 @@ namespace engine
       const CHAR *collectionName = context->mb()->_collectionName ;
       BOOLEAN needRollback = FALSE ;
 
-      rc = context->isMBLock( EXCLUSIVE ) ;
+      rc = context->mbLock( EXCLUSIVE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "MB context taken in EXCLUSIVE mode failed in collection[%s.%s], "

@@ -687,7 +687,7 @@ namespace engine
 
       while ( *pHex != '\0' )
       {
-         CHAR c = *pHex ;
+         CHAR c = *pHex++ ;
 
          if ( c >= '0' && c <= '9' )
          {

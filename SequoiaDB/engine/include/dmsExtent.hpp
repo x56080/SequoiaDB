@@ -328,8 +328,7 @@ namespace engine
       UINT32      _schemaInnerVersion ;
       UINT32      _itemNum ;
       UINT32      _valueOffset ;
-      UINT32      _freeSpace ;      // Total free space in the extent, including bubbles in the
-                                    // middle of column information.
+      UINT32      _freeSpace ;
 
       void init( UINT16 numPages, UINT16 mbID, UINT32 totalSize )
       {

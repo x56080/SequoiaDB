@@ -1058,6 +1058,7 @@ namespace engine
       friend class _dmsStorageUnit ;
       friend class _dmsStorageLob ;
       friend class _dmsRBSSUMgr ;
+      friend class _dmsInternalSchemaWriter ;
 
 
       struct cmp_str

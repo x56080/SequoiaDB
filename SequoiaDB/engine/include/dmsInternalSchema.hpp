@@ -72,6 +72,8 @@ namespace engine
    */
    class _dmsSchemaContainer : public SDBObject
    {
+      friend class _dmsSchemaWriter ;
+
       public:
          _dmsSchemaContainer() ;
          virtual ~_dmsSchemaContainer() ;
@@ -316,15 +318,11 @@ namespace engine
             return NULL ;
          }
 
-         // ID of the first free slot in the conflict item area.
-         INT32                      _nextFreeListSlotID() const ;
-
       protected:
          const dmsSchemaContainer  *_schemaContainer ;
          const dmsSchemaHashExtent *_extent ;
          UINT32                     _extentSize ;
          UINT32                     _bucketNum ;
-         UINT32                     _maxListSlotNum ;
          const dmsSchemaHashSlot   *_pBucketSlot ;
          const dmsSchemaHashSlot   *_pListSlot ;
    } ;
