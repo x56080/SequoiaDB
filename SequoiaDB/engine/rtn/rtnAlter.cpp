@@ -582,21 +582,12 @@ namespace engine
             /// only old and new both exist, forbidden
             if ( hasOld && hasNew )
             {
-               if ( !oldSchema.hasColumn( action.getColumnName() ) )
-               {
-                  PD_LOG( PDWARNING, "no column [%s] found, skip it",
-                          action.getColumnName() ) ;
-               }
-               else
-               {
-                  rc = SDB_OPERATION_INCOMPATIBLE ;
-                  PD_LOG_MSG( PDERROR, "Failed to check rename column from [%s] "
-                              "to [%s], [%s] already exists",
-                              action.getColumnName(),
-                              action.getNewColAttr().getName(),
-                              action.getNewColAttr().getName() ) ;
-                  goto error ;
-               }
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG( PDERROR, "Failed to check rename column from [%s] "
+                       "to [%s], [%s] already exists",
+                       action.getColumnName(), action.getNewColAttr().getName(),
+                       action.getNewColAttr().getName() ) ;
+               goto error ;
             }
 
             rc = su->index()->checkAlterSchemaOnIndexes( mbContext, action ) ;
