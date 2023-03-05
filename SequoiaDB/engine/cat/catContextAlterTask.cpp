@@ -1454,6 +1454,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on indexes, "
                    "rc: %d", rc ) ;
 
+      rc = _checkAlterSchemaForSeq( cataSet, action, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check alter schema on "
+                   "auto-incremental fields, rc: %d", rc ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMA, rc ) ;
       return rc ;
@@ -3038,6 +3042,46 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORIDX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORSEQ, "_catCtxAlterCLTask::_checkAlterSchemaForSeq" )
+   INT32 _catCtxAlterCLTask::_checkAlterSchemaForSeq( const clsCatalogSet &cataSet,
+                                                      const utilSchemaAlterAction &action,
+                                                      pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORSEQ ) ;
+
+      if ( UTIL_SCHEMA_RENAME_COLUMN == action.getAction() &&
+           cataSet.getAutoIncSet()->itemCount() > 0 )
+      {
+         clsAutoIncIterator it( *( cataSet.getAutoIncSet() ),
+                                clsAutoIncIterator::NON_RECURS ) ;
+         while ( it.more() )
+         {
+            const clsAutoIncItem *item = it.next() ;
+            const CHAR *fieldName = item->fieldName() ;
+            if ( 0 == ossStrcmp( action.getNewColAttr().getName(), fieldName ) )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "Failed to check alter schema [%s] on "
+                           "collection [%s], can not rename column [%s] "
+                           "to [%s], conflict with auto-incremental field [%s]",
+                           action.getSchemaName(), cataSet.name(),
+                           action.getColumnName(), action.getNewColAttr().getName(),
+                           fieldName ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKALTERSCHEMAFORSEQ, rc ) ;
       return rc ;
 
    error:
