@@ -139,6 +139,35 @@ namespace engine
       _pmdObjBase::onTimer( timerID, interval ) ;
    }
 
+   BOOLEAN catMainController::canDelayed( UINT32 maxRetryTimes )
+   {
+      BOOLEAN result       = TRUE ;
+      pmdEDUEvent *last    = getLastEvent() ;
+      UINT32 handle        = 0 ;
+      UINT32 tryTime       = 0 ;
+
+      if ( NULL == _lastDelayEvent._Data &&
+           ( PMD_EDU_EVENT_MSG != last->_eventType ||
+             NULL == last->_Data ) )
+      {
+         result = FALSE ;
+      }
+      else
+      {
+         // if the msg has already delayed
+         if ( _lastDelayEvent._Data )
+         {
+            ossUnpack32From64( _lastDelayEvent._userData, tryTime, handle ) ;
+
+            if ( tryTime > maxRetryTimes )
+            {
+               result = FALSE ;
+            }
+         }
+      }
+      return result ;
+   }
+
    BOOLEAN catMainController::delayCurOperation( UINT32 maxRetryTimes )
    {
       BOOLEAN result       = TRUE ;

@@ -488,6 +488,11 @@ namespace engine
          if ( isLimitedByVersion )
          {
             rc = _tryFindOldestItem( originName, originID, cb, droppingItem ) ;
+            if ( SDB_LOCK_FAILED == rc )
+            {
+               SDB_ASSERT( conf.getAutoDrop(), "conf can be AutoDrop" ) ;
+               rc = _checkDelayLockFailed( conf ) ;
+            }
             PD_RC_CHECK( rc, PDERROR, "Failed to drop oldest recycle item "
                          "for [%s] in different versions, rc: %d",
                          originName, rc ) ;
@@ -495,6 +500,11 @@ namespace engine
          else
          {
             rc = _tryFindOldestItem( cb, droppingItem ) ;
+            if ( SDB_LOCK_FAILED == rc )
+            {
+               SDB_ASSERT( conf.getAutoDrop(), "conf can be AutoDrop" ) ;
+               rc = _checkDelayLockFailed( conf ) ;
+            }
             PD_RC_CHECK( rc, PDERROR, "Failed to drop oldest recycle item, "
                          "rc: %d", rc ) ;
          }
@@ -1959,6 +1969,27 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHECKDELAYLOCKFAILED, "_catRecycleBinManager::_checkDelayLockFailed" )
+   INT32 _catRecycleBinManager::_checkDelayLockFailed( const utilRecycleBinConf &conf )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATRECYBINMGR__CHECKDELAYLOCKFAILED ) ;
+
+      // retry exceeded times, only pass the oldest item
+      if ( !sdbGetCatalogueCB()->getMainController()->canDelayed() )
+      {
+         SDB_ASSERT( conf.getAutoDrop(), "conf can be AutoDrop" ) ;
+         enableLimitCheck() ;
+      }
+      else
+      {
+         rc = SDB_LOCK_FAILED ;
+      }
+      PD_TRACE_EXITRC( SDB__CATRECYBINMGR__CHECKDELAYLOCKFAILED, rc ) ;
+      return rc ;
    }
 
 }
